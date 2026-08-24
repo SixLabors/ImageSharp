@@ -111,26 +111,34 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// Derives the lower-level context for the final nonzero coefficient.
+    /// Derives the lower-level context for the final nonzero coefficient from an index expressed as a two-dimensional coordinate.
     /// </summary>
     /// <param name="levels">The padded coefficient-level buffer.</param>
-    /// <param name="position">The coefficient position in raster order.</param>
+    /// <param name="position">The coordinate whose row-major index identifies the coefficient's scan position.</param>
     /// <returns>The end-of-block lower-level context.</returns>
     internal static int GetLowerLevelContextEndOfBlock(Av1LevelBuffer levels, Point position)
+        => GetLowerLevelContextEndOfBlock(levels, position.X + (position.Y * levels.Size.Width));
+
+    /// <summary>
+    /// Derives the lower-level context for the final nonzero coefficient from its scan-order index.
+    /// </summary>
+    /// <param name="levels">The padded coefficient-level buffer.</param>
+    /// <param name="scanIndex">The zero-based coefficient index in scan order.</param>
+    /// <returns>The end-of-block lower-level context.</returns>
+    internal static int GetLowerLevelContextEndOfBlock(Av1LevelBuffer levels, int scanIndex)
     {
-        if (position.X == 0 && position.Y == 0)
+        if (scanIndex == 0)
         {
             return 0;
         }
 
         int total = levels.Size.Height * levels.Size.Width;
-        int index = position.X + (position.Y * levels.Size.Width);
-        if (index <= total >> 3)
+        if (scanIndex <= total >> 3)
         {
             return 1;
         }
 
-        if (index <= total >> 2)
+        if (scanIndex <= total >> 2)
         {
             return 2;
         }
@@ -335,26 +343,19 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// Derives the nonzero-map context for one coefficient.
+    /// Derives the nonzero-map context for one coefficient preceding the final nonzero coefficient.
     /// </summary>
     /// <param name="levels">The padded coefficient-level buffer.</param>
     /// <param name="position">The coefficient position in raster order.</param>
-    /// <param name="isEndOfBlock">Indicates that this is the final nonzero coefficient.</param>
     /// <param name="transformSize">The coded transform size.</param>
     /// <param name="transformClass">The transform direction class.</param>
     /// <returns>The nonzero-map context.</returns>
     internal static sbyte GetNzMapContext(
         Av1LevelBuffer levels,
         Point position,
-        bool isEndOfBlock,
         Av1TransformSize transformSize,
         Av1TransformClass transformClass)
     {
-        if (isEndOfBlock)
-        {
-            return (sbyte)GetLowerLevelContextEndOfBlock(levels, position);
-        }
-
         int stats = Av1NzMap.GetNzMagnitude(levels, position, transformClass);
         return (sbyte)Av1NzMap.GetNzMapContextFromStats(stats, position, transformSize, transformClass);
     }
@@ -380,7 +381,12 @@ internal static class Av1SymbolContextHelper
         {
             int pos = scan[i];
             Point position = levels.GetPosition(pos);
-            coefficientContexts[pos] = GetNzMapContext(levels, position, i == eob - 1, transformSize, transformClass);
+
+            // The final coefficient context is based on its scan position, while all preceding contexts use the
+            // coefficient's raster position and already-decoded forward neighbors.
+            coefficientContexts[pos] = i == eob - 1
+                ? (sbyte)GetLowerLevelContextEndOfBlock(levels, i)
+                : GetNzMapContext(levels, position, transformSize, transformClass);
         }
     }
 

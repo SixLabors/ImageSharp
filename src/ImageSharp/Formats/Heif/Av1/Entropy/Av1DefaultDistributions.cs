@@ -3,8 +3,14 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
+/// <summary>
+/// Provides the normative initial AV1 cumulative distributions used before tile-local adaptation.
+/// </summary>
 internal static class Av1DefaultDistributions
 {
+    /// <summary>
+    /// Gets the intra-frame luma-mode distributions indexed by block-size group.
+    /// </summary>
     public static Av1Distribution[] FrameYMode =>
         [
             new(22801, 23489, 24293, 24756, 25601, 26123, 26606, 27418, 27945, 29228, 29685, 30349),
@@ -13,6 +19,9 @@ internal static class Av1DefaultDistributions
             new(20155, 21301, 22838, 23178, 23261, 23533, 23703, 24804, 25352, 26575, 27016, 28049)
         ];
 
+    /// <summary>
+    /// Gets the key-frame luma-mode distributions indexed by the above and left intra-mode contexts.
+    /// </summary>
     public static Av1Distribution[][] FilterYMode =>
     [
         [
@@ -48,6 +57,9 @@ internal static class Av1DefaultDistributions
         ]
     ];
 
+    /// <summary>
+    /// Gets the chroma intra-mode distributions indexed first by chroma-from-luma availability and then by luma mode.
+    /// </summary>
     public static Av1Distribution[][] UvMode =>
         [
             [
@@ -81,6 +93,9 @@ internal static class Av1DefaultDistributions
             ]
         ];
 
+    /// <summary>
+    /// Gets the directional intra-prediction angle-delta distributions indexed by directional mode.
+    /// </summary>
     public static Av1Distribution[] AngleDelta =>
         [
             new(2180, 5032, 7567, 22776, 26989, 30217),
@@ -93,8 +108,14 @@ internal static class Av1DefaultDistributions
             new(3605, 10428, 12459, 17676, 21244, 30655)
         ];
 
+    /// <summary>
+    /// Gets the binary distribution that signals intra-block copy.
+    /// </summary>
     public static Av1Distribution IntraBlockCopy => new(30531);
 
+    /// <summary>
+    /// Gets the partition-type distributions indexed by block-size and neighboring split context.
+    /// </summary>
     public static Av1Distribution[] PartitionTypes =>
         [
             new(19132, 25510, 30392),
@@ -120,25 +141,28 @@ internal static class Av1DefaultDistributions
         ];
 
     /// <summary>
-    /// Gets the skip <see cref="Av1Distribution"/>.
+    /// Gets the transform-skip distributions indexed by the neighboring skip context.
     /// </summary>
-    /// <remarks>SVT: default_skip_cdfs</remarks>
     public static Av1Distribution[] Skip => [new(31671), new(16515), new(4576)];
 
     /// <summary>
-    /// Gets the skip mode <see cref="Av1Distribution"/>.
+    /// Gets the skip-mode distributions indexed by the neighboring skip-mode context.
     /// </summary>
-    /// <remarks>SVT: default_skip_mode_cdfs</remarks>
     public static Av1Distribution[] SkipMode => [new(32621), new(20708), new(8127)];
 
+    /// <summary>
+    /// Gets the distribution for an absolute loop-filter delta magnitude.
+    /// </summary>
     public static Av1Distribution DeltaLoopFilterAbsolute => new(28160, 32120, 32677);
 
+    /// <summary>
+    /// Gets the distribution for an absolute quantizer delta magnitude.
+    /// </summary>
     public static Av1Distribution DeltaQuantizerAbsolute => new(28160, 32120, 32677);
 
     /// <summary>
-    /// Gets the Segment identifier <see cref="Av1Distribution"/>.
+    /// Gets the spatially predicted segment-identifier distributions indexed by neighboring segment context.
     /// </summary>
-    /// <remarks>SVT: default_spatial_pred_seg_tree_cdf</remarks>
     public static Av1Distribution[] SegmentId =>
         [
             new(5622, 7893, 16093, 18233, 27809, 28373, 32533),
@@ -146,6 +170,9 @@ internal static class Av1DefaultDistributions
             new(27527, 28487, 28723, 28890, 32397, 32647, 32679),
         ];
 
+    /// <summary>
+    /// Gets the key-frame luma intra-mode distributions indexed by the above and left mode contexts.
+    /// </summary>
     public static Av1Distribution[][] KeyFrameYMode =>
         [
             [
@@ -181,8 +208,14 @@ internal static class Av1DefaultDistributions
             ]
         ];
 
+    /// <summary>
+    /// Gets the distribution selecting a filter-intra prediction mode.
+    /// </summary>
     public static Av1Distribution FilterIntraMode => new(8949, 12776, 17211, 29558);
 
+    /// <summary>
+    /// Gets the binary filter-intra enable distributions indexed by block size.
+    /// </summary>
     public static Av1Distribution[] FilterIntra =>
         [
             new(4621), new(6743), new(5893), new(7866), new(12551), new(9394),
@@ -191,6 +224,9 @@ internal static class Av1DefaultDistributions
             new(20229), new(18101), new(16384), new(16384)
         ];
 
+    /// <summary>
+    /// Gets the transform-size distributions indexed by maximum transform category and neighboring transform-size context.
+    /// </summary>
     public static Av1Distribution[][] TransformSize =>
         [
             [new(19968), new(19968), new(24320)],
@@ -199,6 +235,9 @@ internal static class Av1DefaultDistributions
             [new(5782, 11475), new(5782, 11475), new(16803, 22759)],
         ];
 
+    /// <summary>
+    /// Gets the end-of-block token distributions for transforms containing at most 16 coefficients, indexed by quantizer, plane, and transform-class contexts.
+    /// </summary>
     private static Av1Distribution[][][] EndOfBlockFlagMulti16 =>
         [
             [
@@ -219,6 +258,9 @@ internal static class Av1DefaultDistributions
             ]
         ];
 
+    /// <summary>
+    /// Gets the end-of-block token distributions for transforms containing at most 32 coefficients, indexed by quantizer, plane, and transform-class contexts.
+    /// </summary>
     private static Av1Distribution[][][] EndOfBlockFlagMulti32 =>
         [
             [
@@ -239,6 +281,9 @@ internal static class Av1DefaultDistributions
             ]
         ];
 
+    /// <summary>
+    /// Gets the end-of-block token distributions for transforms containing at most 64 coefficients, indexed by quantizer, plane, and transform-class contexts.
+    /// </summary>
     private static Av1Distribution[][][] EndOfBlockFlagMulti64 =>
         [
             [
@@ -259,6 +304,9 @@ internal static class Av1DefaultDistributions
             ]
         ];
 
+    /// <summary>
+    /// Gets the end-of-block token distributions for transforms containing at most 128 coefficients, indexed by quantizer, plane, and transform-class contexts.
+    /// </summary>
     private static Av1Distribution[][][] EndOfBlockFlagMulti128 =>
         [
             [
@@ -279,6 +327,9 @@ internal static class Av1DefaultDistributions
             ]
         ];
 
+    /// <summary>
+    /// Gets the end-of-block token distributions for transforms containing at most 256 coefficients, indexed by quantizer, plane, and transform-class contexts.
+    /// </summary>
     private static Av1Distribution[][][] EndOfBlockFlagMulti256 =>
         [
             [
@@ -323,6 +374,9 @@ internal static class Av1DefaultDistributions
             ]
         ];
 
+    /// <summary>
+    /// Gets the end-of-block token distributions for transforms containing at most 512 coefficients, indexed by quantizer, plane, and transform-class contexts.
+    /// </summary>
     private static Av1Distribution[][][] EndOfBlockFlagMulti512 =>
         [
             [
@@ -367,6 +421,9 @@ internal static class Av1DefaultDistributions
             ]
         ];
 
+    /// <summary>
+    /// Gets the end-of-block token distributions for transforms containing at most 1024 coded coefficients, indexed by quantizer, plane, and transform-class contexts.
+    /// </summary>
     private static Av1Distribution[][][] EndOfBlockFlagMulti1024 =>
         [
             [
@@ -411,6 +468,9 @@ internal static class Av1DefaultDistributions
             ]
         ];
 
+    /// <summary>
+    /// Gets the coefficient base-range distributions indexed by quantizer, transform-size, plane, and base-range contexts.
+    /// </summary>
     private static Av1Distribution[][][][] CoefficientsBaseRange =>
         [
             [
@@ -823,6 +883,9 @@ internal static class Av1DefaultDistributions
             ]
         ];
 
+    /// <summary>
+    /// Gets the coefficient base-level distributions indexed by quantizer, transform-size, plane, and nonzero-map contexts.
+    /// </summary>
     private static Av1Distribution[][][][] CoefficientsBase =>
         [
             [
@@ -1515,6 +1578,9 @@ internal static class Av1DefaultDistributions
             ]
         ];
 
+    /// <summary>
+    /// Gets the final-nonzero coefficient base-level distributions indexed by quantizer, transform-size, plane, and end-of-block contexts.
+    /// </summary>
     private static Av1Distribution[][][][] BaseEndOfBlock =>
         [
             [
@@ -1607,6 +1673,9 @@ internal static class Av1DefaultDistributions
             ]
         ];
 
+    /// <summary>
+    /// Gets the DC coefficient-sign distributions indexed by quantizer, plane, and neighboring sign contexts.
+    /// </summary>
     private static Av1Distribution[][][] DcSign =>
         [
             [
@@ -1627,7 +1696,9 @@ internal static class Av1DefaultDistributions
             ],
         ];
 
-    // SVT: av1_default_txb_skip_cdfs
+    /// <summary>
+    /// Gets the transform-block skip distributions indexed by quantizer, transform-size, and neighboring skip contexts.
+    /// </summary>
     private static Av1Distribution[][][] TransformBlockSkip =>
         [
             [
@@ -1720,6 +1791,9 @@ internal static class Av1DefaultDistributions
             ]
         ];
 
+    /// <summary>
+    /// Gets the end-of-block extra-bit distributions indexed by quantizer, transform-size, plane, and token contexts.
+    /// </summary>
     private static Av1Distribution[][][][] EndOfBlockExtra =>
         [
             [
@@ -2012,8 +2086,14 @@ internal static class Av1DefaultDistributions
             ]
         ];
 
+    /// <summary>
+    /// Gets the joint chroma-from-luma sign distribution for the U and V alpha values.
+    /// </summary>
     public static Av1Distribution ChromaFromLumaSign => new(1418, 2123, 13340, 18405, 26972, 28343, 32294);
 
+    /// <summary>
+    /// Gets the chroma-from-luma alpha-magnitude distributions indexed by joint-sign context.
+    /// </summary>
     public static Av1Distribution[] ChromaFromLumaAlpha =>
         [
             new(7637, 20719, 31401, 32481, 32657, 32688, 32692, 32696, 32700, 32704, 32708, 32712, 32716, 32720, 32724),
@@ -2024,6 +2104,9 @@ internal static class Av1DefaultDistributions
             new(14738, 21678, 25779, 27901, 29024, 30302, 30980, 31843, 32144, 32413, 32520, 32594, 32622, 32656, 32660)
         ];
 
+    /// <summary>
+    /// Gets the intra transform-type distributions indexed by transform set, transform-size group, and intra prediction mode.
+    /// </summary>
     public static Av1Distribution[][][] IntraExtendedTransform =>
         [
             [
@@ -2214,8 +2297,14 @@ internal static class Av1DefaultDistributions
             ],
         ];
 
+    /// <summary>
+    /// Gets the complete set of end-of-block token distributions for a base quantizer.
+    /// </summary>
+    /// <param name="baseQIndex">The frame base quantizer index.</param>
+    /// <returns>The distributions indexed by coefficient-count category, plane, and transform-class contexts.</returns>
     public static Av1Distribution[][][] GetEndOfBlockFlag(int baseQIndex)
     {
+        // AV1 initializes coefficient models from one of four quantizer bands, then adapts each tile's copy.
         int qContext = GetQContext(baseQIndex);
         return
             [
@@ -2229,24 +2318,59 @@ internal static class Av1DefaultDistributions
             ];
     }
 
+    /// <summary>
+    /// Gets the coefficient base-range distributions for a base quantizer.
+    /// </summary>
+    /// <param name="baseQIndex">The frame base quantizer index.</param>
+    /// <returns>The distributions indexed by transform-size, plane, and base-range contexts.</returns>
     public static Av1Distribution[][][] GetCoefficientsBaseRange(int baseQIndex)
         => CoefficientsBaseRange[GetQContext(baseQIndex)];
 
+    /// <summary>
+    /// Gets the coefficient base-level distributions for a base quantizer.
+    /// </summary>
+    /// <param name="baseQIndex">The frame base quantizer index.</param>
+    /// <returns>The distributions indexed by transform-size, plane, and nonzero-map contexts.</returns>
     public static Av1Distribution[][][] GetCoefficientsBase(int baseQIndex)
         => CoefficientsBase[GetQContext(baseQIndex)];
 
+    /// <summary>
+    /// Gets the final-nonzero coefficient base-level distributions for a base quantizer.
+    /// </summary>
+    /// <param name="baseQIndex">The frame base quantizer index.</param>
+    /// <returns>The distributions indexed by transform-size, plane, and end-of-block contexts.</returns>
     public static Av1Distribution[][][] GetBaseEndOfBlock(int baseQIndex)
         => BaseEndOfBlock[GetQContext(baseQIndex)];
 
+    /// <summary>
+    /// Gets the DC sign distributions for a base quantizer.
+    /// </summary>
+    /// <param name="baseQIndex">The frame base quantizer index.</param>
+    /// <returns>The distributions indexed by plane and neighboring sign context.</returns>
     public static Av1Distribution[][] GetDcSign(int baseQIndex)
         => DcSign[GetQContext(baseQIndex)];
 
+    /// <summary>
+    /// Gets the transform-block skip distributions for a base quantizer.
+    /// </summary>
+    /// <param name="baseQIndex">The frame base quantizer index.</param>
+    /// <returns>The distributions indexed by transform-size and neighboring skip context.</returns>
     public static Av1Distribution[][] GetTransformBlockSkip(int baseQIndex)
         => TransformBlockSkip[GetQContext(baseQIndex)];
 
+    /// <summary>
+    /// Gets the end-of-block extra-bit distributions for a base quantizer.
+    /// </summary>
+    /// <param name="baseQIndex">The frame base quantizer index.</param>
+    /// <returns>The distributions indexed by transform-size, plane, and end-of-block token context.</returns>
     public static Av1Distribution[][][] GetEndOfBlockExtra(int baseQIndex)
         => EndOfBlockExtra[GetQContext(baseQIndex)];
 
+    /// <summary>
+    /// Maps a base quantizer index to one of the four AV1 coefficient-probability initialization bands.
+    /// </summary>
+    /// <param name="q">The base quantizer index.</param>
+    /// <returns>The zero-based quantizer context.</returns>
     private static int GetQContext(int q)
     {
         if (q <= 20)

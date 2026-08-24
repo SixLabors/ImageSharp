@@ -6,13 +6,29 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
+/// <summary>
+/// Derives the AV1 nonzero-coefficient probability context from neighboring coefficient levels and transform geometry.
+/// </summary>
 internal static class Av1NzMap
 {
-    // SIG_COEF_CONTEXTS_2D = 26
+    /// <summary>
+    /// The first one-dimensional nonzero-map context, immediately after the 26 two-dimensional contexts.
+    /// </summary>
     private const int NzMapContext0 = 26;
+
+    /// <summary>
+    /// The second one-dimensional position band.
+    /// </summary>
     private const int NzMapContext5 = NzMapContext0 + 5;
+
+    /// <summary>
+    /// The final one-dimensional position band.
+    /// </summary>
     private const int NzMapContext10 = NzMapContext0 + 10;
 
+    /// <summary>
+    /// Maps a horizontal or vertical coefficient coordinate to its one-dimensional context offset.
+    /// </summary>
     private static readonly int[] NzMapContextOffset1d = [
         NzMapContext0,  NzMapContext5,  NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10,
         NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10,
@@ -21,14 +37,18 @@ internal static class Av1NzMap
         NzMapContext10, NzMapContext10, NzMapContext10, NzMapContext10,
     ];
 
-    // The ctx offset table when TX is TX_CLASS_2D.
-    // TX col and row indices are clamped to 4
+    /// <summary>
+    /// The row-major positional context offsets for a 4x4 two-dimensional transform.
+    /// </summary>
     private static readonly int[] NzMapContextOffset4x4 = [
         0,  1,  6,  6,
         1,  6,  6, 21,
         6,  6, 21, 21,
         6, 21, 21, 21];
 
+    /// <summary>
+    /// The row-major positional context offsets for an 8x8 two-dimensional transform.
+    /// </summary>
     private static readonly int[] NzMapContextOffset8x8 = [
         0,  1,  6,  6,  21, 21, 21, 21,
         1,  6,  6,  21, 21, 21, 21, 21,
@@ -40,6 +60,9 @@ internal static class Av1NzMap
         21, 21, 21, 21, 21, 21, 21, 21,
     ];
 
+    /// <summary>
+    /// The row-major positional context offsets for a 16x16 two-dimensional transform.
+    /// </summary>
     private static readonly int[] NzMapContextOffset16x16 = [
         0,  1,  6,  6,  21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
         1,  6,  6,  21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
@@ -59,6 +82,9 @@ internal static class Av1NzMap
         21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
     ];
 
+    /// <summary>
+    /// The row-major positional context offsets for a 32x32 two-dimensional transform.
+    /// </summary>
     private static readonly int[] NzMapContextOffset32x32 = [
         0,  1,  6,  6,  21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
         1,  6,  6,  21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
@@ -94,6 +120,9 @@ internal static class Av1NzMap
         21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
     ];
 
+    /// <summary>
+    /// The row-major positional context offsets for an 8x4 two-dimensional transform.
+    /// </summary>
     private static readonly int[] NzMapContextOffset8x4 = [
         0,  16, 6,  6,  21, 21, 21, 21,
         16, 16, 6,  21, 21, 21, 21, 21,
@@ -101,6 +130,9 @@ internal static class Av1NzMap
         16, 16, 21, 21, 21, 21, 21, 21,
     ];
 
+    /// <summary>
+    /// The row-major positional context offsets for a 16x8 two-dimensional transform.
+    /// </summary>
     private static readonly int[] NzMapContextOffset16x8 = [
         0,  16, 6,  6,  21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
         16, 16, 6,  21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
@@ -112,6 +144,9 @@ internal static class Av1NzMap
         16, 16, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
     ];
 
+    /// <summary>
+    /// The row-major positional context offsets for a 16x32 two-dimensional transform.
+    /// </summary>
     private static readonly int[] NzMapContextOffset16x32 = [
         0,  11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
         11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
@@ -147,6 +182,9 @@ internal static class Av1NzMap
         21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
     ];
 
+    /// <summary>
+    /// The row-major positional context offsets for a 32x16 two-dimensional transform.
+    /// </summary>
     private static readonly int[] NzMapContextOffset32x16 = [
         0,  16, 6,  6,  21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
         16, 16, 6,  21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
@@ -166,6 +204,9 @@ internal static class Av1NzMap
         16, 16, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
     ];
 
+    /// <summary>
+    /// The row-major positional context offsets for the coded low-frequency region of a 32x64 transform.
+    /// </summary>
     private static readonly int[] NzMapContextOffset32x64 = [
         0,  11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
         11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11, 11,
@@ -201,6 +242,9 @@ internal static class Av1NzMap
         21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
     ];
 
+    /// <summary>
+    /// The row-major positional context offsets for the coded low-frequency region of a 64x32 transform.
+    /// </summary>
     private static readonly int[] NzMapContextOffset64x32 = [
         0,  16, 6,  6,  21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
         16, 16, 6,  21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
@@ -236,6 +280,9 @@ internal static class Av1NzMap
         16, 16, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
     ];
 
+    /// <summary>
+    /// The row-major positional context offsets for a 4x16 two-dimensional transform.
+    /// </summary>
     private static readonly int[] NzMapContextOffset4x16 = [
         0,  11, 11, 11,
         11, 11, 11, 11,
@@ -255,6 +302,9 @@ internal static class Av1NzMap
         21, 21, 21, 21,
     ];
 
+    /// <summary>
+    /// The row-major positional context offsets for a 16x4 two-dimensional transform.
+    /// </summary>
     private static readonly int[] NzMapContextOffset16x4 = [
         0,  16, 6,  6,  21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
         16, 16, 6,  21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
@@ -262,6 +312,9 @@ internal static class Av1NzMap
         16, 16, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
     ];
 
+    /// <summary>
+    /// The row-major positional context offsets for an 8x32 two-dimensional transform.
+    /// </summary>
     private static readonly int[] NzMapContextOffset8x32 = [
         0,  11, 11, 11, 11, 11, 11, 11,
         11, 11, 11, 11, 11, 11, 11, 11,
@@ -297,6 +350,9 @@ internal static class Av1NzMap
         21, 21, 21, 21, 21, 21, 21, 21,
     ];
 
+    /// <summary>
+    /// The row-major positional context offsets for a 32x8 two-dimensional transform.
+    /// </summary>
     private static readonly int[] NzMapContextOffset32x8 = [
         0,  16, 6,  6,  21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
         16, 16, 6,  21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
@@ -308,12 +364,18 @@ internal static class Av1NzMap
         16, 16, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21, 21,
     ];
 
+    /// <summary>
+    /// Maps each AV1 transform-size value to its row-major two-dimensional positional context table.
+    /// </summary>
     private static readonly int[][] NzMapContextOffset = [
+
+        // Several rectangular transforms reuse a prefix of the next larger table. Every reused prefix has the same
+        // row-major stride as the adjusted coefficient plane, which avoids duplicating identical context offsets.
         NzMapContextOffset4x4, // TX_4x4
         NzMapContextOffset8x8, // TX_8x8
         NzMapContextOffset16x16, // TX_16x16
         NzMapContextOffset32x32, // TX_32x32
-        NzMapContextOffset32x32, // TX_32x32
+        NzMapContextOffset32x32, // TX_64x64
         NzMapContextOffset4x16, // TX_4x8
         NzMapContextOffset8x4, // TX_8x4
         NzMapContextOffset8x32, // TX_8x16
@@ -331,8 +393,12 @@ internal static class Av1NzMap
     ];
 
     /// <summary>
-    /// SVT: get_nz_mag
+    /// Sums the clipped magnitudes of the transform-class-specific forward coefficient neighbors.
     /// </summary>
+    /// <param name="levels">The padded absolute-coefficient level plane.</param>
+    /// <param name="position">The coefficient position.</param>
+    /// <param name="transformClass">The transform direction class selecting the neighbor pattern.</param>
+    /// <returns>The summed neighbor magnitude used to select a nonzero-map context.</returns>
     public static int GetNzMagnitude(Av1LevelBuffer levels, Point position, Av1TransformClass transformClass)
     {
         int mag;
@@ -340,7 +406,7 @@ internal static class Av1NzMap
         Span<byte> row1 = levels.GetRow(position.Y + 1)[position.X..];
         Span<byte> row2 = levels.GetRow(position.Y + 2)[position.X..];
 
-        // Note: AOMMIN(level, 3) is useless for decoder since level < 3.
+        // Large levels must not dominate probability selection; AV1 contributes at most three from each neighbor.
         mag = ClipMax3(row0[1]); // { 0, 1 }
         mag += ClipMax3(row1[0]); // { 1, 0 }
 
@@ -369,30 +435,29 @@ internal static class Av1NzMap
         return mag;
     }
 
+    /// <summary>
+    /// Combines a neighboring-level statistic with the coefficient's transform-class-specific position band.
+    /// </summary>
+    /// <param name="stats">The clipped sum of the applicable forward-neighbor magnitudes.</param>
+    /// <param name="position">The coefficient position.</param>
+    /// <param name="transformSize">The coded transform size selecting the positional table.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <returns>The nonzero-map probability context.</returns>
     public static int GetNzMapContextFromStats(int stats, Point position, Av1TransformSize transformSize, Av1TransformClass transformClass)
     {
-        // tx_class == 0(TX_CLASS_2D)
-        if (transformClass == 0 && (position.X == 0) && (position.Y == 0))
+        // The DC coefficient has a dedicated 2D context independent of neighboring levels.
+        if (transformClass == Av1TransformClass.Class2D && position.X == 0 && position.Y == 0)
         {
             return 0;
         }
 
+        // Rounding the neighbor sum before clipping produces the five AV1 magnitude bands 0 through 4.
         int ctx = (stats + 1) >> 1;
         ctx = Math.Min(ctx, 4);
         switch (transformClass)
         {
             case Av1TransformClass.Class2D:
-                // This is the algorithm to generate eb_av1_nz_map_ctx_offset[][]
-                //   const int width = tx_size_wide[tx_size];
-                //   const int height = tx_size_high[tx_size];
-                //   if (width < height) {
-                //     if (row < 2) return 11 + ctx;
-                //   } else if (width > height) {
-                //     if (col < 2) return 16 + ctx;
-                //   }
-                //   if (row + col < 2) return ctx + 1;
-                //   if (row + col < 4) return 5 + ctx + 1;
-                //   return 21 + ctx;
+                // The tables preserve AV1's distinct early-row and early-column bands for rectangular transforms.
                 return ctx + GetNzMapContext(transformSize, position);
             case Av1TransformClass.ClassHorizontal:
                 return ctx + NzMapContextOffset1d[position.X];
@@ -405,9 +470,32 @@ internal static class Av1NzMap
         return 0;
     }
 
-    public static int GetNzMapContext(Av1TransformSize transformSize, Point pos) => GetNzMapContext(transformSize, pos.X + (pos.Y * transformSize.GetWidth()));
+    /// <summary>
+    /// Gets the two-dimensional positional context offset for a coefficient position.
+    /// </summary>
+    /// <param name="transformSize">The coded transform size.</param>
+    /// <param name="position">The coefficient position.</param>
+    /// <returns>The positional context offset.</returns>
+    public static int GetNzMapContext(Av1TransformSize transformSize, Point position)
+    {
+        // AV1 codes only the low-frequency 32-sample region of a 64-point transform dimension. The table still
+        // uses the signaled shape to select tall or wide bands, but its row-major stride follows the coded region.
+        int codedWidth = transformSize.GetAdjusted().GetWidth();
+        return GetNzMapContext(transformSize, position.X + (position.Y * codedWidth));
+    }
 
-    public static int GetNzMapContext(Av1TransformSize transformSize, int pos) => NzMapContextOffset[(int)transformSize][pos];
+    /// <summary>
+    /// Gets the two-dimensional positional context offset for a row-major coefficient index.
+    /// </summary>
+    /// <param name="transformSize">The coded transform size.</param>
+    /// <param name="position">The row-major coefficient index.</param>
+    /// <returns>The positional context offset.</returns>
+    public static int GetNzMapContext(Av1TransformSize transformSize, int position) => NzMapContextOffset[(int)transformSize][position];
 
+    /// <summary>
+    /// Clips a coefficient magnitude to the maximum contribution allowed per neighbor.
+    /// </summary>
+    /// <param name="value">The coefficient magnitude.</param>
+    /// <returns>The magnitude limited to three.</returns>
     private static int ClipMax3(int value) => Math.Min(value, 3);
 }

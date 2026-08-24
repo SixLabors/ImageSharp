@@ -2,43 +2,158 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
+/// <summary>
+/// Decodes tile syntax elements and transform coefficients from an AV1 entropy-coded bitstream.
+/// </summary>
 internal ref struct Av1SymbolDecoder
 {
+    /// <summary>
+    /// Maps each intra prediction mode to the reduced neighbor context used by key-frame luma modes.
+    /// </summary>
     private static readonly int[] IntraModeContext = [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
-    private static readonly int[] AlphaVContexts = [-1, 0, 3, -1, 1, 4, -1, 2, 5];
 
+    /// <summary>
+    /// The tile-adaptive intra-block-copy distribution.
+    /// </summary>
     private readonly Av1Distribution tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy;
+
+    /// <summary>
+    /// The tile-adaptive partition-type distributions.
+    /// </summary>
     private readonly Av1Distribution[] tilePartitionTypes = Av1DefaultDistributions.PartitionTypes;
+
+    /// <summary>
+    /// The tile-adaptive key-frame luma-mode distributions.
+    /// </summary>
     private readonly Av1Distribution[][] keyFrameYMode = Av1DefaultDistributions.KeyFrameYMode;
+
+    /// <summary>
+    /// The tile-adaptive chroma intra-mode distributions.
+    /// </summary>
     private readonly Av1Distribution[][] uvMode = Av1DefaultDistributions.UvMode;
+
+    /// <summary>
+    /// The tile-adaptive transform-skip distributions.
+    /// </summary>
     private readonly Av1Distribution[] skip = Av1DefaultDistributions.Skip;
+
+    /// <summary>
+    /// The tile-adaptive skip-mode distributions.
+    /// </summary>
     private readonly Av1Distribution[] skipMode = Av1DefaultDistributions.SkipMode;
+
+    /// <summary>
+    /// The tile-adaptive absolute loop-filter delta distribution.
+    /// </summary>
     private readonly Av1Distribution deltaLoopFilterAbsolute = Av1DefaultDistributions.DeltaLoopFilterAbsolute;
+
+    /// <summary>
+    /// The tile-adaptive absolute quantizer delta distribution.
+    /// </summary>
     private readonly Av1Distribution deltaQuantizerAbsolute = Av1DefaultDistributions.DeltaQuantizerAbsolute;
+
+    /// <summary>
+    /// The tile-adaptive spatial segment-identifier distributions.
+    /// </summary>
     private readonly Av1Distribution[] segmentId = Av1DefaultDistributions.SegmentId;
+
+    /// <summary>
+    /// The tile-adaptive directional angle-delta distributions.
+    /// </summary>
     private readonly Av1Distribution[] angleDelta = Av1DefaultDistributions.AngleDelta;
+
+    /// <summary>
+    /// The tile-adaptive filter-intra mode distribution.
+    /// </summary>
     private readonly Av1Distribution filterIntraMode = Av1DefaultDistributions.FilterIntraMode;
+
+    /// <summary>
+    /// The tile-adaptive filter-intra enable distributions.
+    /// </summary>
     private readonly Av1Distribution[] filterIntra = Av1DefaultDistributions.FilterIntra;
+
+    /// <summary>
+    /// The tile-adaptive transform-size distributions.
+    /// </summary>
     private readonly Av1Distribution[][] transformSize = Av1DefaultDistributions.TransformSize;
+
+    /// <summary>
+    /// The tile-adaptive end-of-block token distributions selected for the frame base quantizer.
+    /// </summary>
     private readonly Av1Distribution[][][] endOfBlockFlag;
+
+    /// <summary>
+    /// The tile-adaptive coefficient base-level distributions selected for the frame base quantizer.
+    /// </summary>
     private readonly Av1Distribution[][][] coefficientsBase;
+
+    /// <summary>
+    /// The tile-adaptive final-nonzero coefficient distributions selected for the frame base quantizer.
+    /// </summary>
     private readonly Av1Distribution[][][] baseEndOfBlock;
+
+    /// <summary>
+    /// The tile-adaptive DC sign distributions selected for the frame base quantizer.
+    /// </summary>
     private readonly Av1Distribution[][] dcSign;
+
+    /// <summary>
+    /// The tile-adaptive coefficient base-range distributions selected for the frame base quantizer.
+    /// </summary>
     private readonly Av1Distribution[][][] coefficientsBaseRange;
+
+    /// <summary>
+    /// The tile-adaptive transform-block skip distributions selected for the frame base quantizer.
+    /// </summary>
     private readonly Av1Distribution[][] transformBlockSkip;
+
+    /// <summary>
+    /// The tile-adaptive end-of-block extra-bit distributions selected for the frame base quantizer.
+    /// </summary>
     private readonly Av1Distribution[][][] endOfBlockExtra;
+
+    /// <summary>
+    /// The tile-adaptive joint chroma-from-luma sign distribution.
+    /// </summary>
     private readonly Av1Distribution chromaFromLumaSign = Av1DefaultDistributions.ChromaFromLumaSign;
+
+    /// <summary>
+    /// The tile-adaptive chroma-from-luma alpha-magnitude distributions.
+    /// </summary>
     private readonly Av1Distribution[] chromaFromLumaAlpha = Av1DefaultDistributions.ChromaFromLumaAlpha;
+
+    /// <summary>
+    /// The tile-adaptive intra transform-type distributions.
+    /// </summary>
     private readonly Av1Distribution[][][] intraExtendedTransform = Av1DefaultDistributions.IntraExtendedTransform;
+
+    /// <summary>
+    /// The configuration providing temporary coefficient-context memory.
+    /// </summary>
     private readonly Configuration configuration;
+
+    /// <summary>
+    /// The range decoder over the current tile payload.
+    /// </summary>
     private Av1SymbolReader reader;
+
+    /// <summary>
+    /// The frame base quantizer used to select coefficient probability models.
+    /// </summary>
     private readonly int baseQIndex;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1SymbolDecoder"/> struct for one AV1 tile.
+    /// </summary>
+    /// <param name="configuration">The configuration providing temporary memory.</param>
+    /// <param name="tileData">The entropy-coded tile payload.</param>
+    /// <param name="qIndex">The frame base quantizer index.</param>
     public Av1SymbolDecoder(Configuration configuration, Span<byte> tileData, int qIndex)
     {
         this.configuration = configuration;
@@ -53,18 +168,32 @@ internal ref struct Av1SymbolDecoder
         this.endOfBlockExtra = Av1DefaultDistributions.GetEndOfBlockExtra(qIndex);
     }
 
+    /// <summary>
+    /// Reads a fixed-width CDEF strength index.
+    /// </summary>
+    /// <param name="bitCount">The number of bits signaled for the strength index.</param>
+    /// <returns>The decoded CDEF strength index.</returns>
     public int ReadCdfStrength(int bitCount)
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadLiteral(bitCount);
     }
 
+    /// <summary>
+    /// Reads the frame-local intra-block-copy flag.
+    /// </summary>
+    /// <returns><see langword="true"/> when intra-block copy is selected.</returns>
     public bool ReadUseIntraBlockCopy()
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.tileIntraBlockCopy) > 0;
     }
 
+    /// <summary>
+    /// Reads a complete block partition type from the selected partition context.
+    /// </summary>
+    /// <param name="context">The partition probability context.</param>
+    /// <returns>The decoded partition type.</returns>
     public Av1PartitionType ReadPartitionType(int context)
     {
         ref Av1SymbolReader r = ref this.reader;
@@ -72,8 +201,11 @@ internal ref struct Av1SymbolDecoder
     }
 
     /// <summary>
-    /// SVT: partition_gather_vert_alike
+    /// Reads the binary split-versus-horizontal decision used at a clipped right tile boundary.
     /// </summary>
+    /// <param name="blockSize">The current block size.</param>
+    /// <param name="context">The partition probability context.</param>
+    /// <returns><see cref="Av1PartitionType.Split"/> or <see cref="Av1PartitionType.Horizontal"/>.</returns>
     public Av1PartitionType ReadSplitOrHorizontal(Av1BlockSize blockSize, int context)
     {
         Av1Distribution distribution = GetSplitOrHorizontalDistribution(this.tilePartitionTypes, blockSize, context);
@@ -82,8 +214,11 @@ internal ref struct Av1SymbolDecoder
     }
 
     /// <summary>
-    /// SVT: partition_gather_horz_alike
+    /// Reads the binary split-versus-vertical decision used at a clipped bottom tile boundary.
     /// </summary>
+    /// <param name="blockSize">The current block size.</param>
+    /// <param name="context">The partition probability context.</param>
+    /// <returns><see cref="Av1PartitionType.Split"/> or <see cref="Av1PartitionType.Vertical"/>.</returns>
     public Av1PartitionType ReadSplitOrVertical(Av1BlockSize blockSize, int context)
     {
         Av1Distribution distribution = GetSplitOrVerticalDistribution(this.tilePartitionTypes, blockSize, context);
@@ -91,6 +226,12 @@ internal ref struct Av1SymbolDecoder
         return r.ReadSymbol(distribution) > 0 ? Av1PartitionType.Split : Av1PartitionType.Vertical;
     }
 
+    /// <summary>
+    /// Reads a key-frame luma prediction mode using the available above and left modes.
+    /// </summary>
+    /// <param name="aboveModeInfo">The above block mode, or <see langword="null"/> at the frame boundary.</param>
+    /// <param name="leftModeInfo">The left block mode, or <see langword="null"/> at the frame boundary.</param>
+    /// <returns>The decoded luma prediction mode.</returns>
     public Av1PredictionMode ReadYMode(Av1BlockModeInfo? aboveModeInfo, Av1BlockModeInfo? leftModeInfo)
     {
         ref Av1SymbolReader r = ref this.reader;
@@ -111,6 +252,12 @@ internal ref struct Av1SymbolDecoder
         return (Av1PredictionMode)r.ReadSymbol(this.keyFrameYMode[aboveContext][leftContext]);
     }
 
+    /// <summary>
+    /// Reads a chroma intra prediction mode conditioned on the luma mode and chroma-from-luma availability.
+    /// </summary>
+    /// <param name="mode">The decoded luma prediction mode.</param>
+    /// <param name="chromaFromLumaAllowed">Indicates whether chroma-from-luma is valid for the block.</param>
+    /// <returns>The decoded chroma prediction mode.</returns>
     public Av1PredictionMode ReadIntraModeUv(Av1PredictionMode mode, bool chromaFromLumaAllowed)
     {
         int chromaForLumaIndex = chromaFromLumaAllowed ? 1 : 0;
@@ -118,18 +265,32 @@ internal ref struct Av1SymbolDecoder
         return (Av1PredictionMode)r.ReadSymbol(this.uvMode[chromaForLumaIndex][(int)mode]);
     }
 
+    /// <summary>
+    /// Reads the transform-skip flag from a neighboring skip context.
+    /// </summary>
+    /// <param name="ctx">The neighboring skip context.</param>
+    /// <returns><see langword="true"/> when the block contains no coded transform coefficients.</returns>
     public bool ReadSkip(int ctx)
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.skip[ctx]) > 0;
     }
 
-    public bool ReadSkipMode(Av1BlockSize blockSize)
+    /// <summary>
+    /// Reads the compound-reference skip-mode flag.
+    /// </summary>
+    /// <param name="context">The neighboring skip-mode context.</param>
+    /// <returns><see langword="true"/> when skip mode is selected.</returns>
+    public bool ReadSkipMode(int context)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.skipMode[(int)blockSize]) > 0;
+        return r.ReadSymbol(this.skipMode[context]) > 0;
     }
 
+    /// <summary>
+    /// Reads a signed loop-filter delta value.
+    /// </summary>
+    /// <returns>The decoded loop-filter delta.</returns>
     public int ReadDeltaLoopFilter()
     {
         ref Av1SymbolReader r = ref this.reader;
@@ -151,8 +312,9 @@ internal ref struct Av1SymbolDecoder
     }
 
     /// <summary>
-    /// SVT: read_delta_qindex
+    /// Reads a signed quantizer-index delta value.
     /// </summary>
+    /// <returns>The decoded quantizer-index delta.</returns>
     public int ReadDeltaQuantizerIndex()
     {
         ref Av1SymbolReader r = ref this.reader;
@@ -173,18 +335,33 @@ internal ref struct Av1SymbolDecoder
         return deltaQuantizerSignBit ? -deltaQuantizerAbsolute : deltaQuantizerAbsolute;
     }
 
+    /// <summary>
+    /// Reads a spatially predicted segment identifier.
+    /// </summary>
+    /// <param name="context">The context derived from neighboring segment identifiers.</param>
+    /// <returns>The decoded segment identifier.</returns>
     public int ReadSegmentId(int context)
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.segmentId[context]);
     }
 
+    /// <summary>
+    /// Reads the unsigned directional angle-delta symbol for a prediction mode.
+    /// </summary>
+    /// <param name="mode">The directional prediction mode.</param>
+    /// <returns>The symbol in the range zero through twice the maximum signed angle delta.</returns>
     public int ReadAngleDelta(Av1PredictionMode mode)
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.angleDelta[(int)mode - 1]);
     }
 
+    /// <summary>
+    /// Reads the filter-intra enable flag and, when enabled, its prediction mode.
+    /// </summary>
+    /// <param name="blockSize">The block size selecting the enable distribution.</param>
+    /// <returns>The selected mode, or <see cref="Av1FilterIntraMode.AllFilterIntraModes"/> when filter-intra is disabled.</returns>
     public Av1FilterIntraMode ReadFilterUltraMode(Av1BlockSize blockSize)
     {
         ref Av1SymbolReader r = ref this.reader;
@@ -198,6 +375,12 @@ internal ref struct Av1SymbolDecoder
         return filterIntraMode;
     }
 
+    /// <summary>
+    /// Reads a transform subdivision depth and resolves it to a transform size.
+    /// </summary>
+    /// <param name="blockSize">The block size defining the maximum transform.</param>
+    /// <param name="context">The neighboring transform-size context.</param>
+    /// <returns>The decoded transform size.</returns>
     public Av1TransformSize ReadTransformSize(Av1BlockSize blockSize, int context)
     {
         ref Av1SymbolReader r = ref this.reader;
@@ -223,8 +406,15 @@ internal ref struct Av1SymbolDecoder
     }
 
     /// <summary>
-    /// SVT: parse_transform_type
+    /// Reads an intra transform type from the transform set permitted for the block.
     /// </summary>
+    /// <param name="transformSize">The coded transform size.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="useFilterIntra">Indicates whether filter-intra prediction selected the intra direction.</param>
+    /// <param name="baseQIndex">The active base quantizer index.</param>
+    /// <param name="filterIntraMode">The filter-intra mode when enabled.</param>
+    /// <param name="intraDirection">The ordinary intra prediction mode.</param>
+    /// <returns>The decoded transform type, or DCT-DCT when no transform type is signaled.</returns>
     public Av1TransformType ReadTransformType(
         Av1TransformSize transformSize,
         bool useReducedTransformSet,
@@ -235,20 +425,13 @@ internal ref struct Av1SymbolDecoder
     {
         Av1TransformType transformType = Av1TransformType.DctDct;
 
-        /*
-        // No need to read transform type if block is skipped.
-        if (mbmi.Skip ||
-            svt_aom_seg_feature_active(&parse_ctxt->frame_header->segmentation_params, mbmi->segment_id, SEG_LVL_SKIP))
-            return;
-        */
-
+        // A zero base quantizer selects DCT-DCT and carries no transform-type symbol in this intra path.
         if (baseQIndex == 0)
         {
             return transformType;
         }
 
-        // Ignoring INTER blocks here, as these should not end up here.
-        // int inter_block = is_inter_block_dec(mbmi);
+        // Still-image decoding reaches this path only for intra blocks, so the intra transform set is authoritative.
         Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(transformSize, useReducedTransformSet);
         if (transformSetType > Av1TransformSetType.DctOnly && baseQIndex > 0)
         {
@@ -265,35 +448,73 @@ internal ref struct Av1SymbolDecoder
         return transformType;
     }
 
+    /// <summary>
+    /// Reads whether a transform block has no coded coefficients.
+    /// </summary>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
+    /// <returns><see langword="true"/> when the transform block is empty.</returns>
     public bool ReadTransformBlockSkip(Av1TransformSize transformSizeContext, int skipContext)
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.transformBlockSkip[(int)transformSizeContext][skipContext]) > 0;
     }
 
+    /// <summary>
+    /// Reads the joint U/V sign symbol for chroma-from-luma alpha values.
+    /// </summary>
+    /// <returns>The joint sign symbol.</returns>
     public int ReadChromFromLumaSign()
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.chromaFromLumaSign);
     }
 
+    /// <summary>
+    /// Reads the U-plane chroma-from-luma alpha-magnitude symbol.
+    /// </summary>
+    /// <param name="jointSignPlus1">The one-based joint U/V sign symbol.</param>
+    /// <returns>The U-plane alpha-magnitude symbol.</returns>
     public int ReadChromaFromLumaAlphaU(int jointSignPlus1)
     {
         ref Av1SymbolReader r = ref this.reader;
-        int context = jointSignPlus1 - 3;
-        return r.ReadSymbol(this.chromaFromLumaAlpha[context]);
-    }
-
-    public int ReadChromaFromLumaAlphaV(int jointSignPlus1)
-    {
-        ref Av1SymbolReader r = ref this.reader;
-        int context = AlphaVContexts[jointSignPlus1];
+        int context = Av1ChromaFromLumaMath.ContextU(jointSignPlus1 - 1);
         return r.ReadSymbol(this.chromaFromLumaAlpha[context]);
     }
 
     /// <summary>
-    /// SVT: parse_coeffs
+    /// Reads the V-plane chroma-from-luma alpha-magnitude symbol.
     /// </summary>
+    /// <param name="jointSignPlus1">The one-based joint U/V sign symbol.</param>
+    /// <returns>The V-plane alpha-magnitude symbol.</returns>
+    public int ReadChromaFromLumaAlphaV(int jointSignPlus1)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        int context = Av1ChromaFromLumaMath.ContextV(jointSignPlus1 - 1);
+        return r.ReadSymbol(this.chromaFromLumaAlpha[context]);
+    }
+
+    /// <summary>
+    /// Decodes one transform block's coefficient syntax and updates its neighboring entropy contexts.
+    /// </summary>
+    /// <param name="modeInfo">The current block prediction and segment modes.</param>
+    /// <param name="blockPosition">The transform-block position in four-sample units.</param>
+    /// <param name="aboveContexts">The above coefficient contexts for the current plane.</param>
+    /// <param name="leftContexts">The left coefficient contexts for the current plane.</param>
+    /// <param name="aboveOffset">The first above context covered by the transform.</param>
+    /// <param name="leftOffset">The first left context covered by the transform.</param>
+    /// <param name="plane">The zero-based Y, U, or V plane index.</param>
+    /// <param name="blocksWide">The available plane width in four-sample units.</param>
+    /// <param name="blocksHigh">The available plane height in four-sample units.</param>
+    /// <param name="transformBlockContext">The neighboring skip and DC sign contexts.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="isLossless">Indicates whether the active segment is lossless.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="transformInfo">The transform descriptor updated with the decoded type and coded-block flag.</param>
+    /// <param name="modeBlocksToRightEdge">The signed distance from the mode block to the right frame edge.</param>
+    /// <param name="modeBlocksToBottomEdge">The signed distance from the mode block to the bottom frame edge.</param>
+    /// <param name="coefficientBuffer">The destination receiving the coefficient count followed by scan-ordered signed levels.</param>
+    /// <returns>The one-based end-of-block position, or zero for an empty transform block.</returns>
     public int ReadCoefficients(
         Av1BlockModeInfo modeInfo,
         Point blockPosition,
@@ -313,13 +534,15 @@ internal ref struct Av1SymbolDecoder
         int modeBlocksToBottomEdge,
         Span<int> coefficientBuffer)
     {
-        int width = transformSize.GetWidth();
-        int height = transformSize.GetHeight();
+        Av1TransformSize adjustedTransformSize = transformSize.GetAdjusted();
+        int width = adjustedTransformSize.GetWidth();
+        int height = adjustedTransformSize.GetHeight();
         Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
         Av1PlaneType planeType = (Av1PlaneType)Math.Min(plane, 1);
         int culLevel = 0;
 
-        Av1LevelBuffer levels = new(this.configuration, new Size(width, height));
+        // AV1 omits high-frequency coefficients beyond 32 samples on every 64-point transform dimension.
+        using Av1LevelBuffer levels = new(this.configuration, new Size(width, height));
 
         bool allZero = this.ReadTransformBlockSkip(transformSizeContext, transformBlockContext.SkipContext);
         int endOfBlock;
@@ -373,6 +596,14 @@ internal ref struct Av1SymbolDecoder
         return endOfBlock;
     }
 
+    /// <summary>
+    /// Reads an end-of-block token and its literal suffix.
+    /// </summary>
+    /// <param name="transformSize">The signaled transform size selecting the token alphabet.</param>
+    /// <param name="transformClass">The transform class selecting the two-dimensional or one-dimensional model.</param>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="planeType">The luma or chroma plane category.</param>
+    /// <returns>The one-based end-of-block coefficient position.</returns>
     public int ReadEndOfBlockPosition(Av1TransformSize transformSize, Av1TransformClass transformClass, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
         ref Av1SymbolReader r = ref this.reader;
@@ -381,7 +612,8 @@ internal ref struct Av1SymbolDecoder
         int endOfBlockShift = Av1SymbolContextHelper.EndOfBlockOffsetBits[endOfBlockPoint];
         if (endOfBlockShift > 0)
         {
-            int endOfBlockContext = endOfBlockPoint;
+            // Extra-bit distributions start with token three because the first three tokens have no extra bits.
+            int endOfBlockContext = endOfBlockPoint - 3;
             bool bit = this.ReadEndOfBlockExtra(transformSizeContext, planeType, endOfBlockContext);
             if (bit)
             {
@@ -400,13 +632,21 @@ internal ref struct Av1SymbolDecoder
         return Av1SymbolContextHelper.RecordEndOfBlockPosition(endOfBlockPoint, endOfBlockExtra);
     }
 
+    /// <summary>
+    /// Decodes the mandatory nonzero coefficient at the end-of-block scan position.
+    /// </summary>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <param name="endOfBlock">The one-based end-of-block position.</param>
+    /// <param name="scan">The transform's scan-to-raster mapping.</param>
+    /// <param name="levels">The padded absolute-coefficient level plane to update.</param>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="planeType">The luma or chroma plane category.</param>
     public void ReadCoefficientsEndOfBlock(Av1TransformClass transformClass, int endOfBlock, ReadOnlySpan<short> scan, Av1LevelBuffer levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
         int i = endOfBlock - 1;
         Point position = levels.GetPosition(scan[i]);
-        int coefficientContext = Av1SymbolContextHelper.GetLowerLevelContextEndOfBlock(levels, position);
+        int coefficientContext = Av1SymbolContextHelper.GetLowerLevelContextEndOfBlock(levels, i);
         int level = this.ReadBaseEndOfBlock(transformSizeContext, planeType, coefficientContext) + 1;
-        Av1TransformSize limitedTransformSizeContext = (Av1TransformSize)Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
         if (level > Av1Constants.BaseLevelsCount)
         {
             int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContextEndOfBlock(position, transformClass);
@@ -416,9 +656,18 @@ internal ref struct Av1SymbolDecoder
         levels.GetRow(position)[position.X] = (byte)level;
     }
 
+    /// <summary>
+    /// Decodes a reverse scan range using the specialized two-dimensional coefficient contexts.
+    /// </summary>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="startScanIndex">The inclusive lowest scan index.</param>
+    /// <param name="endScanIndex">The inclusive highest scan index.</param>
+    /// <param name="scan">The transform's scan-to-raster mapping.</param>
+    /// <param name="levels">The padded absolute-coefficient level plane to update.</param>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="planeType">The luma or chroma plane category.</param>
     public void ReadCoefficientsReverse2d(Av1TransformSize transformSize, int startScanIndex, int endScanIndex, ReadOnlySpan<short> scan, Av1LevelBuffer levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
-        Av1TransformSize limitedTransformSizeContext = (Av1TransformSize)Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
         for (int c = endScanIndex; c >= startScanIndex; --c)
         {
             Point position = levels.GetPosition(scan[c]);
@@ -434,9 +683,19 @@ internal ref struct Av1SymbolDecoder
         }
     }
 
+    /// <summary>
+    /// Decodes a reverse scan range using transform-class-specific coefficient contexts.
+    /// </summary>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <param name="startScanIndex">The inclusive lowest scan index.</param>
+    /// <param name="endScanIndex">The inclusive highest scan index.</param>
+    /// <param name="scan">The transform's scan-to-raster mapping.</param>
+    /// <param name="levels">The padded absolute-coefficient level plane to update.</param>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="planeType">The luma or chroma plane category.</param>
     public void ReadCoefficientsReverse(Av1TransformSize transformSize, Av1TransformClass transformClass, int startScanIndex, int endScanIndex, ReadOnlySpan<short> scan, Av1LevelBuffer levels, Av1TransformSize transformSizeContext, Av1PlaneType planeType)
     {
-        Av1TransformSize limitedTransformSizeContext = (Av1TransformSize)Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
         for (int c = endScanIndex; c >= startScanIndex; --c)
         {
             int pos = scan[c];
@@ -453,21 +712,30 @@ internal ref struct Av1SymbolDecoder
         }
     }
 
+    /// <summary>
+    /// Reads coefficient signs and Golomb extensions, then writes scan-ordered signed levels.
+    /// </summary>
+    /// <param name="coefficientBuffer">The destination receiving the coefficient count followed by signed levels.</param>
+    /// <param name="endOfBlock">The one-based end-of-block position and coefficient count.</param>
+    /// <param name="scan">The transform's scan-to-raster mapping.</param>
+    /// <param name="levels">The decoded absolute-coefficient level plane.</param>
+    /// <param name="dcSignContext">The neighboring DC sign context.</param>
+    /// <param name="planeType">The luma or chroma plane category.</param>
+    /// <returns>The packed coefficient context used by adjacent transform blocks.</returns>
     public int ReadCoefficientsSign(Span<int> coefficientBuffer, int endOfBlock, ReadOnlySpan<short> scan, Av1LevelBuffer levels, int dcSignContext, Av1PlaneType planeType)
     {
         ref Av1SymbolReader r = ref this.reader;
-        int maxScanLine = 0;
         int culLevel = 0;
         int dcValue = 0;
         coefficientBuffer[0] = endOfBlock;
         for (int c = 0; c < endOfBlock; c++)
         {
             int sign = 0;
-            Point position = levels.GetPosition(c);
+            int pos = scan[c];
+            Point position = levels.GetPosition(pos);
             int level = levels[position];
             if (level != 0)
             {
-                maxScanLine = Math.Max(maxScanLine, scan[c]);
                 if (c == 0)
                 {
                     sign = this.ReadDcSign(planeType, dcSignContext);
@@ -500,6 +768,13 @@ internal ref struct Av1SymbolDecoder
         return culLevel;
     }
 
+    /// <summary>
+    /// Reads the end-of-block token for a transform coefficient-count category.
+    /// </summary>
+    /// <param name="planeType">The luma or chroma plane category.</param>
+    /// <param name="transformClass">The transform direction class.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <returns>The one-based end-of-block token.</returns>
     private int ReadEndOfBlockFlag(Av1PlaneType planeType, Av1TransformClass transformClass, Av1TransformSize transformSize)
     {
         int endOfBlockContext = transformClass == Av1TransformClass.Class2D ? 0 : 1;
@@ -508,36 +783,77 @@ internal ref struct Av1SymbolDecoder
         return r.ReadSymbol(this.endOfBlockFlag[endOfBlockMultiSize][(int)planeType][endOfBlockContext]) + 1;
     }
 
+    /// <summary>
+    /// Reads the most significant context-coded bit of an end-of-block suffix.
+    /// </summary>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="planeType">The luma or chroma plane category.</param>
+    /// <param name="endOfBlockContext">The zero-based extra-bit token context.</param>
+    /// <returns>The decoded suffix bit.</returns>
     private bool ReadEndOfBlockExtra(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int endOfBlockContext)
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.endOfBlockExtra[(int)transformSizeContext][(int)planeType][endOfBlockContext]) > 0;
     }
 
+    /// <summary>
+    /// Reads one coefficient base-range symbol.
+    /// </summary>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="planeType">The luma or chroma plane category.</param>
+    /// <param name="baseRangeContext">The coefficient base-range context.</param>
+    /// <returns>The decoded base-range symbol.</returns>
     private int ReadCoefficientsBaseRange(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int baseRangeContext)
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.coefficientsBaseRange[(int)transformSizeContext][(int)planeType][baseRangeContext]);
     }
 
+    /// <summary>
+    /// Reads the sign of a nonzero DC coefficient.
+    /// </summary>
+    /// <param name="planeType">The luma or chroma plane category.</param>
+    /// <param name="dcSignContext">The neighboring DC sign context.</param>
+    /// <returns>Zero for positive or one for negative.</returns>
     private int ReadDcSign(Av1PlaneType planeType, int dcSignContext)
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.dcSign[(int)planeType][dcSignContext]);
     }
 
+    /// <summary>
+    /// Reads the base-level symbol for the final nonzero coefficient.
+    /// </summary>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="planeType">The luma or chroma plane category.</param>
+    /// <param name="coefficientContext">The end-of-block coefficient context.</param>
+    /// <returns>The zero-based base-level symbol.</returns>
     private int ReadBaseEndOfBlock(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int coefficientContext)
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.baseEndOfBlock[(int)transformSizeContext][(int)planeType][coefficientContext]);
     }
 
+    /// <summary>
+    /// Reads the base-level symbol for a coefficient preceding end-of-block.
+    /// </summary>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="planeType">The luma or chroma plane category.</param>
+    /// <param name="coefficientContext">The nonzero-map coefficient context.</param>
+    /// <returns>The decoded base-level symbol.</returns>
     private int ReadCoefficientsBase(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int coefficientContext)
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.coefficientsBase[(int)transformSizeContext][(int)planeType][coefficientContext]);
     }
 
+    /// <summary>
+    /// Accumulates coefficient base-range symbols until the terminal symbol or AV1 range limit is reached.
+    /// </summary>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="planeType">The luma or chroma plane category.</param>
+    /// <param name="baseRangeContext">The coefficient base-range context.</param>
+    /// <param name="level">The coefficient level to increment.</param>
     private void ReadCoefficientsBaseRangeLoop(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int baseRangeContext, ref int level)
     {
         ref Av1SymbolReader r = ref this.reader;
@@ -554,6 +870,11 @@ internal ref struct Av1SymbolDecoder
         }
     }
 
+    /// <summary>
+    /// Reads the unsigned exponential-Golomb suffix used for coefficient levels beyond the base range.
+    /// </summary>
+    /// <returns>The decoded nonnegative suffix value.</returns>
+    /// <exception cref="InvalidImageContentException">The unary prefix exceeds the AV1 coefficient limit.</exception>
     internal int ReadGolomb()
     {
         ref Av1SymbolReader r = ref this.reader;
@@ -567,8 +888,7 @@ internal ref struct Av1SymbolDecoder
             ++length;
             if (length > 20)
             {
-                // SVT_LOG("Invalid length in read_golomb");
-                break;
+                throw new InvalidImageContentException("The AV1 coefficient Golomb code exceeds its 20-bit limit.");
             }
         }
 
@@ -581,6 +901,21 @@ internal ref struct Av1SymbolDecoder
         return x - 1;
     }
 
+    /// <summary>
+    /// Stores a transform block's packed coefficient context into the above and left neighbor arrays.
+    /// </summary>
+    /// <param name="modeInfo">The current block mode information.</param>
+    /// <param name="aboveContexts">The above contexts for the current plane.</param>
+    /// <param name="leftContexts">The left contexts for the current plane.</param>
+    /// <param name="blocksWide">The available plane width in four-sample units.</param>
+    /// <param name="blocksHigh">The available plane height in four-sample units.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="blockPosition">The transform-block position in four-sample units.</param>
+    /// <param name="aboveOffset">The first above context covered by the transform.</param>
+    /// <param name="leftOffset">The first left context covered by the transform.</param>
+    /// <param name="culLevel">The packed coefficient magnitude and DC sign context.</param>
+    /// <param name="modeBlockToRightEdge">The signed distance from the mode block to the right frame edge.</param>
+    /// <param name="modeBlockToBottomEdge">The signed distance from the mode block to the bottom frame edge.</param>
     private static void UpdateCoefficientContext(
         Av1BlockModeInfo modeInfo,
         int[] aboveContexts,
@@ -613,7 +948,7 @@ internal ref struct Av1SymbolDecoder
         {
             int leftContextCount = Math.Min(transformSizeHigh, blocksHigh - leftOffset);
             Array.Fill(leftContexts, culLevel, 0, leftContextCount);
-            Array.Fill(leftContexts, 0, leftContextCount, transformSizeWide - leftContextCount);
+            Array.Fill(leftContexts, 0, leftContextCount, transformSizeHigh - leftContextCount);
         }
         else
         {
@@ -621,6 +956,16 @@ internal ref struct Av1SymbolDecoder
         }
     }
 
+    /// <summary>
+    /// Resolves the transform type permitted for a plane after lossless, size, prediction, and transform-set restrictions.
+    /// </summary>
+    /// <param name="planeType">The luma or chroma plane category.</param>
+    /// <param name="modeInfo">The current block prediction modes.</param>
+    /// <param name="isLossless">Indicates whether the active segment is lossless.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="transformInfo">The transform descriptor containing the signaled luma type.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <returns>The transform type valid for the current plane.</returns>
     private static Av1TransformType ComputeTransformType(Av1PlaneType planeType, Av1BlockModeInfo modeInfo, bool isLossless, Av1TransformSize transformSize, Av1TransformInfo transformInfo, bool useReducedTransformSet)
     {
         Av1TransformType transformType = Av1TransformType.DctDct;
@@ -636,8 +981,7 @@ internal ref struct Av1SymbolDecoder
             }
             else
             {
-                // In intra mode, uv planes don't share the same prediction mode as y
-                // plane, so the tx_type should not be shared
+                // Chroma has its own intra mode, so its implicit transform must be derived independently of luma.
                 transformType = Av1SymbolContextHelper.ConvertIntraModeToTransformType(modeInfo, Av1PlaneType.Uv);
             }
         }
@@ -651,9 +995,18 @@ internal ref struct Av1SymbolDecoder
         return transformType;
     }
 
+    /// <summary>
+    /// Collapses a full partition distribution into the split-versus-horizontal boundary decision.
+    /// </summary>
+    /// <param name="inputs">The full partition distributions.</param>
+    /// <param name="blockSize">The current block size.</param>
+    /// <param name="context">The partition probability context.</param>
+    /// <returns>The binary cumulative distribution for split versus the horizontal-like partition group.</returns>
     internal static Av1Distribution GetSplitOrHorizontalDistribution(Av1Distribution[] inputs, Av1BlockSize blockSize, int context)
     {
         Av1Distribution input = inputs[context];
+
+        // At a clipped right edge, all syntax choices that advance horizontally collapse into one binary outcome.
         uint p = Av1Distribution.ProbabilityTop;
         p -= GetElementProbability(input, Av1PartitionType.Horizontal);
         p -= GetElementProbability(input, Av1PartitionType.Split);
@@ -668,9 +1021,18 @@ internal ref struct Av1SymbolDecoder
         return new(Av1Distribution.ProbabilityTop - p);
     }
 
+    /// <summary>
+    /// Collapses a full partition distribution into the split-versus-vertical boundary decision.
+    /// </summary>
+    /// <param name="inputs">The full partition distributions.</param>
+    /// <param name="blockSize">The current block size.</param>
+    /// <param name="context">The partition probability context.</param>
+    /// <returns>The binary cumulative distribution for split versus the vertical-like partition group.</returns>
     internal static Av1Distribution GetSplitOrVerticalDistribution(Av1Distribution[] inputs, Av1BlockSize blockSize, int context)
     {
         Av1Distribution input = inputs[context];
+
+        // At a clipped bottom edge, all syntax choices that advance vertically collapse into one binary outcome.
         uint p = Av1Distribution.ProbabilityTop;
         p -= GetElementProbability(input, Av1PartitionType.Vertical);
         p -= GetElementProbability(input, Av1PartitionType.Split);
@@ -685,6 +1047,12 @@ internal ref struct Av1SymbolDecoder
         return new(Av1Distribution.ProbabilityTop - p);
     }
 
+    /// <summary>
+    /// Gets one symbol's probability mass from adjacent inverse-CDF thresholds.
+    /// </summary>
+    /// <param name="probability">The inverse cumulative distribution.</param>
+    /// <param name="element">The partition symbol.</param>
+    /// <returns>The symbol's probability mass.</returns>
     private static uint GetElementProbability(Av1Distribution probability, Av1PartitionType element)
         => probability[(int)element - 1] - probability[(int)element];
 }

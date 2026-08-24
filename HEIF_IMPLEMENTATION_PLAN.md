@@ -33,11 +33,24 @@ The container implementation is a deliberately narrow HEIF still-image reader an
 
 In scope are the file type, metadata, item location/data, item information, item properties, item references, primary-item selection, `idat`/`mdat` payload storage, grids, auxiliary alpha, presentation transforms, color properties, and Exif/XMP paths required by HEIC, AVIF, and generic HEIF/HIF still images.
 
+The ImageSharp result is one presented primary still image. Supporting items are decoded only when they are required to construct or describe that result, such as grid tiles, alpha auxiliaries, a selected thumbnail fallback, Exif, or XMP. The implementation does not expose an arbitrary HEIF image collection, burst, animation, timed sequence, or page model, and the encoder writes only the primary image and the supporting image items and metadata selected through the ImageSharp still-image API.
+
 Out of scope are movie and media boxes, tracks, sample tables, timing and edit models, fragments, streaming profiles, sequence playback, sequence brands, and inter-frame reference-picture behavior whose only purpose is HEIC/AVIF animation or video. These surfaces must not be modeled speculatively, registered, or accepted as supported formats. Unknown optional boxes remain bounded and skippable; an unsupported essential image property or unsupported sequence/movie brand must fail with a useful image-format error.
 
 Implementation rule: do not introduce a reusable general-purpose ISO BMFF box hierarchy, track model, or media parser. Add box syntax directly to the bounded HEIF container model only when a supported still-image item, relationship, property, metadata path, or conformance fixture requires it. Each addition must name the image behavior it enables and have a focused image-format test.
 
+An ISO BMFF construct may be added only when all of the following are true:
+
+1. A conforming supported still-image file requires it to produce or describe the primary ImageSharp image.
+2. Its owning image item and its effect on the decoded or encoded image are explicit.
+3. It can be parsed or written as a bounded part of the existing HEIF image-item model without adding a general box, sample, track, or presentation abstraction.
+4. Independent still-image fixtures exercise the behavior it enables.
+
+Encountering a box in libavif, ISO BMFF, or a third-party file is not by itself a reason to port it. Constructs used only by tracks, timed samples, movies, fragments, audio, animation, or arbitrary image collections must be skipped when optional or rejected when essential to the requested presentation.
+
 Codec-configuration rule: parse `av1C` and `hvcC` only as properties of coded still-image items. Validate their image profile, level, bit depth, chroma layout, and parameter-set/OBU declarations against the associated item payload and expose only image metadata needed by ImageSharp. Do not port visual sample entries, sample descriptions, decoder-configuration records for tracks, layer-selection state, sample groups, timing, or any other movie-oriented ISO BMFF surface around those records.
+
+AV1 sequence headers and HEVC VPS/SPS/PPS structures remain in scope because they are codec syntax required to decode a single independently decodable image item. Their presence does not authorize ISO BMFF sequence brands, timed samples, retained playback state, or multi-frame APIs.
 
 ## Reference hierarchy
 

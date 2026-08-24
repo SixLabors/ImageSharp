@@ -268,6 +268,22 @@ internal class Av1Distribution
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="Av1Distribution"/> class with the same probability and adaptation state as another distribution.
+    /// </summary>
+    /// <param name="source">The distribution state to copy.</param>
+    private Av1Distribution(Av1Distribution source)
+    {
+        this.probabilities = new uint[source.probabilities.Length];
+        source.probabilities.CopyTo(this.probabilities, 0);
+
+        // The adaptation rate depends on both the alphabet size and prior update count, so copying only the
+        // thresholds would make the cloned frame context diverge after its next symbol.
+        this.speed = source.speed;
+        this.updateCount = source.updateCount;
+        this.NumberOfSymbols = source.NumberOfSymbols;
+    }
+
+    /// <summary>
     /// Gets the number of symbols represented by the distribution.
     /// </summary>
     public int NumberOfSymbols { get; }
@@ -278,6 +294,60 @@ internal class Av1Distribution
     /// <param name="index">The zero-based threshold index.</param>
     /// <returns>The Q15 inverse cumulative threshold.</returns>
     public uint this[int index] => this.probabilities[index];
+
+    /// <summary>
+    /// Creates an independently adaptable copy of a distribution.
+    /// </summary>
+    /// <returns>A distribution initialized with the same probabilities and update count.</returns>
+    public Av1Distribution CreateCopy() => new(this);
+
+    /// <summary>
+    /// Creates independently adaptable copies of a distribution array.
+    /// </summary>
+    /// <param name="source">The distributions to copy.</param>
+    /// <returns>An array with the same shape and distribution state.</returns>
+    public static Av1Distribution[] CreateCopy(Av1Distribution[] source)
+    {
+        Av1Distribution[] result = new Av1Distribution[source.Length];
+        for (int i = 0; i < source.Length; i++)
+        {
+            result[i] = source[i].CreateCopy();
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Creates independently adaptable copies of a two-dimensional jagged distribution array.
+    /// </summary>
+    /// <param name="source">The distributions to copy.</param>
+    /// <returns>An array with the same shape and distribution state.</returns>
+    public static Av1Distribution[][] CreateCopy(Av1Distribution[][] source)
+    {
+        Av1Distribution[][] result = new Av1Distribution[source.Length][];
+        for (int i = 0; i < source.Length; i++)
+        {
+            result[i] = CreateCopy(source[i]);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Creates independently adaptable copies of a three-dimensional jagged distribution array.
+    /// </summary>
+    /// <param name="source">The distributions to copy.</param>
+    /// <returns>An array with the same shape and distribution state.</returns>
+    public static Av1Distribution[][][] CreateCopy(Av1Distribution[][][] source)
+    {
+        Av1Distribution[][][] result = new Av1Distribution[source.Length][][];
+        for (int i = 0; i < source.Length; i++)
+        {
+            result[i] = CreateCopy(source[i]);
+        }
+
+        return result;
+    }
 
     /// <summary>
     /// Adapts the cumulative thresholds after coding one symbol.

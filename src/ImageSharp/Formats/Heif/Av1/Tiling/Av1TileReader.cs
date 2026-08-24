@@ -168,7 +168,14 @@ internal class Av1TileReader : IAv1TileReader
     /// <remarks>Corresponds to <c>parse_tile</c> in SVT-AV1.</remarks>
     public void ReadTile(Span<byte> tileData, int tileNum)
     {
-        Av1SymbolDecoder reader = new(this.configuration, tileData, this.FrameHeader.QuantizationParameters.BaseQIndex);
+        // The frame syntax exposes a disable flag, while the range reader follows libaom's positive
+        // allow_update_cdf convention.
+        Av1SymbolDecoder reader = new(
+            this.configuration,
+            tileData,
+            this.FrameHeader.QuantizationParameters.BaseQIndex,
+            !this.FrameHeader.DisableCdfUpdate);
+
         int tileColumnIndex = tileNum % this.FrameHeader.TilesInfo.TileColumnCount;
         int tileRowIndex = tileNum / this.FrameHeader.TilesInfo.TileColumnCount;
 

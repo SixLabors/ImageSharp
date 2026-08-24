@@ -24,6 +24,11 @@ internal ref struct Av1SymbolReader
     private readonly Span<byte> buffer;
 
     /// <summary>
+    /// Indicates whether decoded symbols adapt their distributions.
+    /// </summary>
+    private readonly bool updateCdf;
+
+    /// <summary>
     /// The next byte position to load into the code-value window.
     /// </summary>
     private int position;
@@ -51,9 +56,11 @@ internal ref struct Av1SymbolReader
     /// Initializes a new instance of the <see cref="Av1SymbolReader"/> struct over one entropy-coded span.
     /// </summary>
     /// <param name="span">The bounded entropy-coded bytes.</param>
-    public Av1SymbolReader(Span<byte> span)
+    /// <param name="updateCdf">A value indicating whether decoded symbols adapt their distributions.</param>
+    public Av1SymbolReader(Span<byte> span, bool updateCdf = true)
     {
         this.buffer = span;
+        this.updateCdf = updateCdf;
         this.position = 0;
         this.difference = (1U << (DecoderWindowsSize - 1)) - 1;
         this.range = 0x8000;
@@ -62,7 +69,7 @@ internal ref struct Av1SymbolReader
     }
 
     /// <summary>
-    /// Reads one symbol and adapts its distribution.
+    /// Reads one symbol and adapts its distribution when CDF updates are enabled.
     /// </summary>
     /// <param name="distribution">The inverse cumulative distribution for the symbol alphabet.</param>
     /// <returns>The decoded zero-based symbol.</returns>
@@ -70,8 +77,12 @@ internal ref struct Av1SymbolReader
     {
         int value = this.DecodeIntegerQ15(distribution);
 
-        // Decoder and encoder must adapt after the same symbol so their subsequent intervals remain identical.
-        distribution.Update(value);
+        // disable_cdf_update freezes every tile distribution while leaving range decoding unchanged.
+        if (this.updateCdf)
+        {
+            distribution.Update(value);
+        }
+
         return value;
     }
 

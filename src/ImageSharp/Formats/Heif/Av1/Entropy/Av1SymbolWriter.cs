@@ -40,6 +40,11 @@ internal class Av1SymbolWriter : IDisposable
     private readonly AutoExpandingMemory<ushort> memory;
 
     /// <summary>
+    /// Indicates whether encoded symbols adapt their distributions.
+    /// </summary>
+    private readonly bool updateCdf;
+
+    /// <summary>
     /// The next pre-carry output position.
     /// </summary>
     private int position;
@@ -49,10 +54,12 @@ internal class Av1SymbolWriter : IDisposable
     /// </summary>
     /// <param name="configuration">The configuration that supplies output allocation.</param>
     /// <param name="initialSize">The estimated encoded size in bytes.</param>
-    public Av1SymbolWriter(Configuration configuration, int initialSize)
+    /// <param name="updateCdf">A value indicating whether encoded symbols adapt their distributions.</param>
+    public Av1SymbolWriter(Configuration configuration, int initialSize, bool updateCdf = true)
     {
         this.configuration = configuration;
         this.memory = new AutoExpandingMemory<ushort>(configuration, (initialSize + 1) >> 1);
+        this.updateCdf = updateCdf;
     }
 
     /// <summary>
@@ -61,7 +68,7 @@ internal class Av1SymbolWriter : IDisposable
     public void Dispose() => this.memory.Dispose();
 
     /// <summary>
-    /// Writes one binary symbol and adapts its distribution.
+    /// Writes one binary symbol and adapts its distribution when CDF updates are enabled.
     /// </summary>
     /// <param name="symbol">The binary symbol.</param>
     /// <param name="distribution">The inverse cumulative distribution for the binary alphabet.</param>
@@ -69,7 +76,7 @@ internal class Av1SymbolWriter : IDisposable
         => this.WriteSymbol(symbol ? 1 : 0, distribution);
 
     /// <summary>
-    /// Writes one symbol and adapts its distribution.
+    /// Writes one symbol and adapts its distribution when CDF updates are enabled.
     /// </summary>
     /// <param name="symbol">The zero-based symbol.</param>
     /// <param name="distribution">The inverse cumulative distribution for the symbol alphabet.</param>
@@ -80,7 +87,12 @@ internal class Av1SymbolWriter : IDisposable
         DebugGuard.IsTrue(distribution[distribution.NumberOfSymbols - 1] == 0, "Last entry in Probabilities table needs to be zero.");
 
         this.EncodeIntegerQ15(symbol, distribution);
-        distribution.Update(symbol);
+
+        // disable_cdf_update freezes every tile distribution while leaving range encoding unchanged.
+        if (this.updateCdf)
+        {
+            distribution.Update(symbol);
+        }
     }
 
     /// <summary>

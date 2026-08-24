@@ -18,22 +18,22 @@ internal class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// The tile-adaptive intra-block-copy distribution.
     /// </summary>
-    private readonly Av1Distribution tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy;
+    private readonly Av1Distribution tileIntraBlockCopy;
 
     /// <summary>
     /// The tile-adaptive partition-type distributions.
     /// </summary>
-    private readonly Av1Distribution[] tilePartitionTypes = Av1DefaultDistributions.PartitionTypes;
+    private readonly Av1Distribution[] tilePartitionTypes;
 
     /// <summary>
     /// The tile-adaptive key-frame luma-mode distributions.
     /// </summary>
-    private readonly Av1Distribution[][] keyFrameYMode = Av1DefaultDistributions.KeyFrameYMode;
+    private readonly Av1Distribution[][] keyFrameYMode;
 
     /// <summary>
     /// The tile-adaptive chroma intra-mode distributions.
     /// </summary>
-    private readonly Av1Distribution[][] uvMode = Av1DefaultDistributions.UvMode;
+    private readonly Av1Distribution[][] uvMode;
 
     /// <summary>
     /// The tile-adaptive transform-block skip distributions selected for the frame base quantizer.
@@ -63,17 +63,17 @@ internal class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// The tile-adaptive filter-intra enable distributions.
     /// </summary>
-    private readonly Av1Distribution[] filterIntra = Av1DefaultDistributions.FilterIntra;
+    private readonly Av1Distribution[] filterIntra;
 
     /// <summary>
     /// The tile-adaptive filter-intra mode distribution.
     /// </summary>
-    private readonly Av1Distribution filterIntraMode = Av1DefaultDistributions.FilterIntraMode;
+    private readonly Av1Distribution filterIntraMode;
 
     /// <summary>
     /// The tile-adaptive absolute quantizer delta distribution.
     /// </summary>
-    private readonly Av1Distribution deltaQuantizerAbsolute = Av1DefaultDistributions.DeltaQuantizerAbsolute;
+    private readonly Av1Distribution deltaQuantizerAbsolute;
 
     /// <summary>
     /// The tile-adaptive DC sign distributions selected for the frame base quantizer.
@@ -88,37 +88,37 @@ internal class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// The tile-adaptive intra transform-type distributions.
     /// </summary>
-    private readonly Av1Distribution[][][] intraExtendedTransform = Av1DefaultDistributions.IntraExtendedTransform;
+    private readonly Av1Distribution[][][] intraExtendedTransform;
 
     /// <summary>
     /// The tile-adaptive spatial segment-identifier distributions.
     /// </summary>
-    private readonly Av1Distribution[] segmentId = Av1DefaultDistributions.SegmentId;
+    private readonly Av1Distribution[] segmentId;
 
     /// <summary>
     /// The tile-adaptive directional angle-delta distributions.
     /// </summary>
-    private readonly Av1Distribution[] angleDelta = Av1DefaultDistributions.AngleDelta;
+    private readonly Av1Distribution[] angleDelta;
 
     /// <summary>
     /// The tile-adaptive transform-skip distributions.
     /// </summary>
-    private readonly Av1Distribution[] skip = Av1DefaultDistributions.Skip;
+    private readonly Av1Distribution[] skip;
 
     /// <summary>
     /// The tile-adaptive skip-mode distributions.
     /// </summary>
-    private readonly Av1Distribution[] skipMode = Av1DefaultDistributions.SkipMode;
+    private readonly Av1Distribution[] skipMode;
 
     /// <summary>
     /// The tile-adaptive joint chroma-from-luma sign distribution.
     /// </summary>
-    private readonly Av1Distribution chromaFromLumaSign = Av1DefaultDistributions.ChromaFromLumaSign;
+    private readonly Av1Distribution chromaFromLumaSign;
 
     /// <summary>
     /// The tile-adaptive chroma-from-luma alpha-magnitude distributions.
     /// </summary>
-    private readonly Av1Distribution[] chromaFromLumaAlpha = Av1DefaultDistributions.ChromaFromLumaAlpha;
+    private readonly Av1Distribution[] chromaFromLumaAlpha;
 
     /// <summary>
     /// Indicates whether the range writer has been disposed.
@@ -146,17 +146,34 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="configuration">The configuration providing output and temporary memory.</param>
     /// <param name="initialSize">The initial output buffer size in bytes.</param>
     /// <param name="qIndex">The frame base quantizer index.</param>
-    public Av1SymbolEncoder(Configuration configuration, int initialSize, int qIndex)
+    /// <param name="updateCdf">A value indicating whether encoded symbols adapt their tile distributions.</param>
+    public Av1SymbolEncoder(Configuration configuration, int initialSize, int qIndex, bool updateCdf = true)
     {
-        this.transformBlockSkip = Av1DefaultDistributions.GetTransformBlockSkip(qIndex);
-        this.endOfBlockFlag = Av1DefaultDistributions.GetEndOfBlockFlag(qIndex);
-        this.coefficientsBaseRange = Av1DefaultDistributions.GetCoefficientsBaseRange(qIndex);
-        this.coefficientsBase = Av1DefaultDistributions.GetCoefficientsBase(qIndex);
-        this.coefficientsBaseEndOfBlock = Av1DefaultDistributions.GetBaseEndOfBlock(qIndex);
-        this.dcSign = Av1DefaultDistributions.GetDcSign(qIndex);
-        this.endOfBlockExtra = Av1DefaultDistributions.GetEndOfBlockExtra(qIndex);
+        // Encoding and decoding must begin from equivalent tile-local models. Copying the defaults also prevents
+        // one encoded image from changing the probabilities used by later encoder or decoder instances.
+        this.tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy.CreateCopy();
+        this.tilePartitionTypes = Av1Distribution.CreateCopy(Av1DefaultDistributions.PartitionTypes);
+        this.keyFrameYMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.KeyFrameYMode);
+        this.uvMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.UvMode);
+        this.filterIntra = Av1Distribution.CreateCopy(Av1DefaultDistributions.FilterIntra);
+        this.filterIntraMode = Av1DefaultDistributions.FilterIntraMode.CreateCopy();
+        this.deltaQuantizerAbsolute = Av1DefaultDistributions.DeltaQuantizerAbsolute.CreateCopy();
+        this.intraExtendedTransform = Av1Distribution.CreateCopy(Av1DefaultDistributions.IntraExtendedTransform);
+        this.segmentId = Av1Distribution.CreateCopy(Av1DefaultDistributions.SegmentId);
+        this.angleDelta = Av1Distribution.CreateCopy(Av1DefaultDistributions.AngleDelta);
+        this.skip = Av1Distribution.CreateCopy(Av1DefaultDistributions.Skip);
+        this.skipMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.SkipMode);
+        this.chromaFromLumaSign = Av1DefaultDistributions.ChromaFromLumaSign.CreateCopy();
+        this.chromaFromLumaAlpha = Av1Distribution.CreateCopy(Av1DefaultDistributions.ChromaFromLumaAlpha);
+        this.transformBlockSkip = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetTransformBlockSkip(qIndex));
+        this.endOfBlockFlag = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetEndOfBlockFlag(qIndex));
+        this.coefficientsBaseRange = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetCoefficientsBaseRange(qIndex));
+        this.coefficientsBase = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetCoefficientsBase(qIndex));
+        this.coefficientsBaseEndOfBlock = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetBaseEndOfBlock(qIndex));
+        this.dcSign = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetDcSign(qIndex));
+        this.endOfBlockExtra = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetEndOfBlockExtra(qIndex));
         this.configuration = configuration;
-        this.writer = new(configuration, initialSize);
+        this.writer = new(configuration, initialSize, updateCdf);
         this.baseQIndex = qIndex;
     }
 

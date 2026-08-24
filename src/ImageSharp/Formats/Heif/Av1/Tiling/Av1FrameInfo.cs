@@ -48,7 +48,7 @@ internal partial class Av1FrameInfo
         // Allocate the arrays.
         this.superblockInfos = new Av1SuperblockInfo[superblockCount];
         this.modeInfos = new Av1BlockModeInfo[superblockCount * this.modeInfoCountPerSuperblock];
-        this.modeInfoMap = new Av1FrameModeInfoMap(new Size(this.modeInfoSizePerSuperblock * this.superblockColumnCount, this.modeInfoSizePerSuperblock * this.superblockRowCount), superblockSizeLog2);
+        this.modeInfoMap = new Av1FrameModeInfoMap(new Size(this.modeInfoSizePerSuperblock * this.superblockColumnCount, this.modeInfoSizePerSuperblock * this.superblockRowCount));
         this.transformInfosY = new Av1TransformInfo[superblockCount * this.modeInfoCountPerSuperblock];
         this.transformInfosUv = new Av1TransformInfo[2 * superblockCount * this.modeInfoCountPerSuperblock];
 
@@ -105,12 +105,7 @@ internal partial class Av1FrameInfo
         return span[i];
     }
 
-    public Av1BlockModeInfo GetModeInfo(Point superblockIndex)
-    {
-        Span<Av1BlockModeInfo> span = this.modeInfos;
-        int superblock = (superblockIndex.Y * this.superblockColumnCount) + superblockIndex.X;
-        return span[superblock * this.modeInfoCountPerSuperblock];
-    }
+    public Av1BlockModeInfo GetModeInfo(Point superblockIndex) => this.GetModeInfo(superblockIndex, Point.Empty);
 
     public Av1BlockModeInfo GetModeInfo(Point superblockIndex, Point modeInfoIndex)
     {
@@ -118,6 +113,11 @@ internal partial class Av1FrameInfo
         int index = this.modeInfoMap[location];
         return this.modeInfos[index];
     }
+
+    /// <summary>
+    /// Gets the mode information record covering the specified frame-relative mode information position.
+    /// </summary>
+    public Av1BlockModeInfo GetModeInfoAt(Point modeInfoPosition) => this.modeInfos[this.modeInfoMap[modeInfoPosition]];
 
     /// <summary>
     /// Gets the mode information records parsed for the specified superblock in bitstream order.
@@ -223,8 +223,8 @@ internal partial class Av1FrameInfo
 
     private Point GetModeInfoPosition(Point superblockPosition, Point positionInSuperblock)
     {
-        int x = (superblockPosition.X * this.modeInfoCountPerSuperblock) + positionInSuperblock.X;
-        int y = (superblockPosition.Y * this.modeInfoCountPerSuperblock) + positionInSuperblock.Y;
+        int x = (superblockPosition.X * this.modeInfoSizePerSuperblock) + positionInSuperblock.X;
+        int y = (superblockPosition.Y * this.modeInfoSizePerSuperblock) + positionInSuperblock.Y;
         return new Point(x, y);
     }
 }

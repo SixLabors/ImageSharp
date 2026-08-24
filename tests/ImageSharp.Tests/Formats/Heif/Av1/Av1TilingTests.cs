@@ -142,6 +142,23 @@ public class Av1TilingTests
 
                 Assert.Equal(superblockInfo.BlockCount, modeInfos.Length);
                 Assert.DoesNotContain(modeInfos.ToArray(), modeInfo => modeInfo is null);
+                Assert.Same(modeInfos[0], tileReader.FrameInfo.GetModeInfo(superblockPosition));
+
+                foreach (Av1BlockModeInfo modeInfo in modeInfos)
+                {
+                    Point modeInfoPosition = new(
+                        superblockInfo.ModeInfoPosition.X + modeInfo.PositionInSuperblock.X,
+                        superblockInfo.ModeInfoPosition.Y + modeInfo.PositionInSuperblock.Y);
+
+                    for (int y = 0; y < modeInfo.BlockSize.Get4x4HighCount(); y++)
+                    {
+                        for (int x = 0; x < modeInfo.BlockSize.Get4x4WideCount(); x++)
+                        {
+                            Assert.Same(modeInfo, tileReader.FrameInfo.GetModeInfoAt(new Point(modeInfoPosition.X + x, modeInfoPosition.Y + y)));
+                        }
+                    }
+                }
+
                 parsedModeInfoCount += modeInfos.Length;
             }
         }

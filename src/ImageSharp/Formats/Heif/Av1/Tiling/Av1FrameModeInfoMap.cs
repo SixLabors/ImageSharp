@@ -14,13 +14,11 @@ internal partial class Av1FrameInfo
     public class Av1FrameModeInfoMap
     {
         private readonly ushort[] offsets;
-        private Size alignedModeInfoCount;
+        private readonly Size alignedModeInfoCount;
 
-        public Av1FrameModeInfoMap(Size modeInfoCount, int superblockSizeLog2)
+        public Av1FrameModeInfoMap(Size modeInfoCount)
         {
-            this.alignedModeInfoCount = new Size(
-                modeInfoCount.Width * (1 << (superblockSizeLog2 - Av1Constants.ModeInfoSizeLog2)),
-                modeInfoCount.Height * (1 << (superblockSizeLog2 - Av1Constants.ModeInfoSizeLog2)));
+            this.alignedModeInfoCount = modeInfoCount;
             this.NextIndex = 0;
             this.offsets = new ushort[this.alignedModeInfoCount.Width * this.alignedModeInfoCount.Height];
         }

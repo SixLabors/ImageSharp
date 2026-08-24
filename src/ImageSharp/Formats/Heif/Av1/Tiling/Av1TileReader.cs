@@ -290,8 +290,6 @@ internal class Av1TileReader : IAv1TileReader
         int block4x4Width = blockSize.Get4x4WideCount();
         int block4x4Height = blockSize.Get4x4HighCount();
         int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
-        int subX = this.SequenceHeader.ColorConfig.SubSamplingX ? 1 : 0;
-        int subY = this.SequenceHeader.ColorConfig.SubSamplingY ? 1 : 0;
         Point superblockLocation = superblockInfo.Position * this.SequenceHeader.SuperblockModeInfoSize;
         Point locationInSuperblock = new Point(modeInfoLocation.X - superblockLocation.X, modeInfoLocation.Y - superblockLocation.Y);
         Av1BlockModeInfo blockModeInfo = new(planesCount, blockSize, locationInSuperblock);
@@ -317,25 +315,7 @@ internal class Av1TileReader : IAv1TileReader
             }
         }
 
-        if (partitionInfo.AvailableAbove)
-        {
-            partitionInfo.AboveModeInfo = superblockInfo.GetModeInfo(new Point(rowIndex - 1, columnIndex));
-        }
-
-        if (partitionInfo.AvailableLeft)
-        {
-            partitionInfo.LeftModeInfo = superblockInfo.GetModeInfo(new Point(rowIndex, columnIndex - 1));
-        }
-
-        if (partitionInfo.AvailableAboveForChroma)
-        {
-            partitionInfo.AboveModeInfoForChroma = superblockInfo.GetModeInfo(new Point(rowIndex & ~subY, columnIndex | subX));
-        }
-
-        if (partitionInfo.AvailableLeftForChroma)
-        {
-            partitionInfo.LeftModeInfoForChroma = superblockInfo.GetModeInfo(new Point(rowIndex | subY, columnIndex & ~subX));
-        }
+        partitionInfo.PopulateModeInfoNeighbors(this.FrameInfo, this.SequenceHeader.ColorConfig);
 
         this.ReadModeInfo(ref reader, partitionInfo);
         ReadPaletteTokens(ref reader, partitionInfo);

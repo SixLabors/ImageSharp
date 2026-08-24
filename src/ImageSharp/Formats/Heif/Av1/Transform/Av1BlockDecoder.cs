@@ -83,6 +83,8 @@ internal class Av1BlockDecoder
             }
         }
 
+        partitionInfo.PopulateModeInfoNeighbors(this.frameInfo, colorConfig);
+
         int maxBlocksWide = partitionInfo.GetMaxBlockWide(blockSize, false);
         int maxBlocksHigh = partitionInfo.GetMaxBlockHigh(blockSize, false);
 

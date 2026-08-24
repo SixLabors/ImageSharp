@@ -757,11 +757,11 @@ internal ref struct Av1SymbolDecoder
     /// Decodes one transform block's coefficient syntax and updates its neighboring entropy contexts.
     /// </summary>
     /// <param name="modeInfo">The current block prediction and segment modes.</param>
-    /// <param name="blockPosition">The transform-block position in four-sample units.</param>
+    /// <param name="blockPosition">The transform-block offset within the coding block in four-sample units.</param>
     /// <param name="aboveContexts">The above coefficient contexts for the current plane.</param>
     /// <param name="leftContexts">The left coefficient contexts for the current plane.</param>
-    /// <param name="aboveOffset">The first above context covered by the transform.</param>
-    /// <param name="leftOffset">The first left context covered by the transform.</param>
+    /// <param name="aboveOffset">The first tile-relative above context covered by the transform.</param>
+    /// <param name="leftOffset">The first superblock-row-relative left context covered by the transform.</param>
     /// <param name="plane">The zero-based Y, U, or V plane index.</param>
     /// <param name="blocksWide">The available plane width in four-sample units.</param>
     /// <param name="blocksHigh">The available plane height in four-sample units.</param>
@@ -813,7 +813,7 @@ internal ref struct Av1SymbolDecoder
                 transformInfo.CodeBlockFlag = false;
             }
 
-            UpdateCoefficientContext(modeInfo, aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
+            UpdateCoefficientContext(aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
             return 0;
         }
 
@@ -849,7 +849,7 @@ internal ref struct Av1SymbolDecoder
 
         DebugGuard.MustBeGreaterThan(scan.Length, 0, nameof(scan));
         culLevel = this.ReadCoefficientsSign(coefficientBuffer, endOfBlock, scan, levels, transformBlockContext.DcSignContext, planeType);
-        UpdateCoefficientContext(modeInfo, aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
+        UpdateCoefficientContext(aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
 
         transformInfo.CodeBlockFlag = true;
         return endOfBlock;
@@ -1164,20 +1164,18 @@ internal ref struct Av1SymbolDecoder
     /// <summary>
     /// Stores a transform block's packed coefficient context into the above and left neighbor arrays.
     /// </summary>
-    /// <param name="modeInfo">The current block mode information.</param>
     /// <param name="aboveContexts">The above contexts for the current plane.</param>
     /// <param name="leftContexts">The left contexts for the current plane.</param>
     /// <param name="blocksWide">The available plane width in four-sample units.</param>
     /// <param name="blocksHigh">The available plane height in four-sample units.</param>
     /// <param name="transformSize">The signaled transform size.</param>
-    /// <param name="blockPosition">The transform-block position in four-sample units.</param>
-    /// <param name="aboveOffset">The first above context covered by the transform.</param>
-    /// <param name="leftOffset">The first left context covered by the transform.</param>
+    /// <param name="blockPosition">The transform-block offset within the coding block in four-sample units.</param>
+    /// <param name="aboveOffset">The first tile-relative above context covered by the transform.</param>
+    /// <param name="leftOffset">The first superblock-row-relative left context covered by the transform.</param>
     /// <param name="culLevel">The packed coefficient magnitude and DC sign context.</param>
     /// <param name="modeBlockToRightEdge">The signed distance from the mode block to the right frame edge.</param>
     /// <param name="modeBlockToBottomEdge">The signed distance from the mode block to the bottom frame edge.</param>
     private static void UpdateCoefficientContext(
-        Av1BlockModeInfo modeInfo,
         int[] aboveContexts,
         int[] leftContexts,
         int blocksWide,
@@ -1195,24 +1193,24 @@ internal ref struct Av1SymbolDecoder
 
         if (modeBlockToRightEdge < 0)
         {
-            int aboveContextCount = Math.Min(transformSizeWide, blocksWide - aboveOffset);
-            Array.Fill(aboveContexts, culLevel, 0, aboveContextCount);
-            Array.Fill(aboveContexts, 0, aboveContextCount, transformSizeWide - aboveContextCount);
+            int aboveContextCount = Math.Min(transformSizeWide, blocksWide - blockPosition.X);
+            Array.Fill(aboveContexts, culLevel, aboveOffset, aboveContextCount);
+            Array.Fill(aboveContexts, 0, aboveOffset + aboveContextCount, transformSizeWide - aboveContextCount);
         }
         else
         {
-            Array.Fill(aboveContexts, culLevel, 0, transformSizeWide);
+            Array.Fill(aboveContexts, culLevel, aboveOffset, transformSizeWide);
         }
 
         if (modeBlockToBottomEdge < 0)
         {
-            int leftContextCount = Math.Min(transformSizeHigh, blocksHigh - leftOffset);
-            Array.Fill(leftContexts, culLevel, 0, leftContextCount);
-            Array.Fill(leftContexts, 0, leftContextCount, transformSizeHigh - leftContextCount);
+            int leftContextCount = Math.Min(transformSizeHigh, blocksHigh - blockPosition.Y);
+            Array.Fill(leftContexts, culLevel, leftOffset, leftContextCount);
+            Array.Fill(leftContexts, 0, leftOffset + leftContextCount, transformSizeHigh - leftContextCount);
         }
         else
         {
-            Array.Fill(leftContexts, culLevel, 0, transformSizeHigh);
+            Array.Fill(leftContexts, culLevel, leftOffset, transformSizeHigh);
         }
     }
 

@@ -1,10 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 
@@ -17,62 +16,144 @@ internal class Av1ChromaFromLumaContext
     private readonly bool subX;
     private readonly bool subY;
 
-    public Av1ChromaFromLumaContext(Configuration configuration, ObuColorConfig colorConfig)
+    public Av1ChromaFromLumaContext(ObuColorConfig colorConfig)
     {
         this.subX = colorConfig.SubSamplingX;
         this.subY = colorConfig.SubSamplingY;
-        this.Q3Buffer = configuration.MemoryAllocator.Allocate2D<short>(new Size(32, 32), AllocationOptions.Clean);
+        this.Q3Buffer = new short[BufferLine * BufferLine];
     }
 
-    public Buffer2D<short> Q3Buffer { get; private set; }
+    public short[] Q3Buffer { get; }
 
     public bool AreParametersComputed { get; private set; }
+
+    public void Store<T>(
+        Span<T> input,
+        int inputStride,
+        int row,
+        int column,
+        Av1TransformSize transformSize,
+        Av1BlockSize blockSize,
+        int modeInfoRow,
+        int modeInfoColumn)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        if (blockSize.GetHeight() == 4 || blockSize.GetWidth() == 4)
+        {
+            // Subsampled chroma shares one CfL surface across the adjacent sub-8x8 luma blocks.
+            if ((modeInfoRow & 1) != 0 && this.subY)
+            {
+                row++;
+            }
+
+            if ((modeInfoColumn & 1) != 0 && this.subX)
+            {
+                column++;
+            }
+        }
+
+        int subX = this.subX ? 1 : 0;
+        int subY = this.subY ? 1 : 0;
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        int storeRow = row << (Av1Constants.ModeInfoSizeLog2 - subY);
+        int storeColumn = column << (Av1Constants.ModeInfoSizeLog2 - subX);
+        int storeWidth = width >> subX;
+        int storeHeight = height >> subY;
+        this.AreParametersComputed = false;
+
+        if (column == 0 && row == 0)
+        {
+            this.bufferWidth = storeWidth;
+            this.bufferHeight = storeHeight;
+        }
+        else
+        {
+            this.bufferWidth = Math.Max(storeColumn + storeWidth, this.bufferWidth);
+            this.bufferHeight = Math.Max(storeRow + storeHeight, this.bufferHeight);
+        }
+
+        int outputOffset = (storeRow * BufferLine) + storeColumn;
+        if (!this.subX)
+        {
+            // A direct luma sample is multiplied by eight to produce the Q3 representation used by CfL.
+            for (int y = 0; y < height; y++)
+            {
+                int inputRow = y * inputStride;
+                int outputRow = outputOffset + (y * BufferLine);
+                for (int x = 0; x < width; x++)
+                {
+                    this.Q3Buffer[outputRow + x] = (short)(int.CreateChecked(input[inputRow + x]) << 3);
+                }
+            }
+        }
+        else if (!this.subY)
+        {
+            // The pair sum is multiplied by four, which is the Q3 representation of its horizontal average.
+            for (int y = 0; y < height; y++)
+            {
+                int inputRow = y * inputStride;
+                int outputRow = outputOffset + (y * BufferLine);
+                for (int x = 0; x < width; x += 2)
+                {
+                    int sum = int.CreateChecked(input[inputRow + x]) + int.CreateChecked(input[inputRow + x + 1]);
+                    this.Q3Buffer[outputRow + (x >> 1)] = (short)(sum << 2);
+                }
+            }
+        }
+        else
+        {
+            // The 2x2 sum is multiplied by two, which is the Q3 representation of its four-sample average.
+            for (int y = 0; y < height; y += 2)
+            {
+                int inputRow = y * inputStride;
+                int nextInputRow = inputRow + inputStride;
+                int outputRow = outputOffset + ((y >> 1) * BufferLine);
+                for (int x = 0; x < width; x += 2)
+                {
+                    int sum = int.CreateChecked(input[inputRow + x]) +
+                        int.CreateChecked(input[inputRow + x + 1]) +
+                        int.CreateChecked(input[nextInputRow + x]) +
+                        int.CreateChecked(input[nextInputRow + x + 1]);
+
+                    this.Q3Buffer[outputRow + (x >> 1)] = (short)(sum << 1);
+                }
+            }
+        }
+    }
 
     public void ComputeParameters(Av1TransformSize transformSize)
     {
         Guard.IsFalse(this.AreParametersComputed, nameof(this.AreParametersComputed), "Do not call cfl_compute_parameters multiple time on the same values.");
         this.Pad(transformSize.GetWidth(), transformSize.GetHeight());
-        SubtractAverage(ref this.Q3Buffer[0, 0], transformSize);
+        this.SubtractAverage(transformSize);
         this.AreParametersComputed = true;
     }
 
     private void Pad(int width, int height)
     {
-        int diff_width = width - this.bufferWidth;
-        int diff_height = height - this.bufferHeight;
+        int differenceWidth = width - this.bufferWidth;
+        int differenceHeight = height - this.bufferHeight;
 
-        if (diff_width > 0)
+        if (differenceWidth > 0)
         {
-            int min_height = height - diff_height;
-            ref short recon_buf_q3 = ref this.Q3Buffer[width - diff_width, 0];
-            for (int j = 0; j < min_height; j++)
+            int minimumHeight = height - differenceHeight;
+            for (int y = 0; y < minimumHeight; y++)
             {
-                short last_pixel = Unsafe.Subtract(ref recon_buf_q3, 1);
-                Guard.IsTrue(Unsafe.IsAddressLessThan(ref Unsafe.Add(ref recon_buf_q3, diff_width), ref this.Q3Buffer[BufferLine, BufferLine]), nameof(recon_buf_q3), "Shall stay within bounds.");
-                for (int i = 0; i < diff_width; i++)
-                {
-                    Unsafe.Add(ref recon_buf_q3, i) = last_pixel;
-                }
-
-                recon_buf_q3 += BufferLine;
+                int rowOffset = y * BufferLine;
+                short lastPixel = this.Q3Buffer[rowOffset + this.bufferWidth - 1];
+                this.Q3Buffer.AsSpan(rowOffset + this.bufferWidth, differenceWidth).Fill(lastPixel);
             }
 
             this.bufferWidth = width;
         }
 
-        if (diff_height > 0)
+        if (differenceHeight > 0)
         {
-            ref short recon_buf_q3 = ref this.Q3Buffer[0, height - diff_height];
-            for (int j = 0; j < diff_height; j++)
+            for (int y = this.bufferHeight; y < height; y++)
             {
-                ref short last_row_q3 = ref Unsafe.Subtract(ref recon_buf_q3, BufferLine);
-                Guard.IsTrue(Unsafe.IsAddressLessThan(ref Unsafe.Add(ref recon_buf_q3, diff_width), ref this.Q3Buffer[BufferLine, BufferLine]), nameof(recon_buf_q3), "Shall stay within bounds.");
-                for (int i = 0; i < width; i++)
-                {
-                    Unsafe.Add(ref recon_buf_q3, i) = Unsafe.Add(ref last_row_q3, i);
-                }
-
-                recon_buf_q3 += BufferLine;
+                int rowOffset = y * BufferLine;
+                this.Q3Buffer.AsSpan(rowOffset - BufferLine, width).CopyTo(this.Q3Buffer.AsSpan(rowOffset, width));
             }
 
             this.bufferHeight = height;
@@ -83,38 +164,31 @@ internal class Av1ChromaFromLumaContext
     * svt_subtract_average_c
     * Calculate the DC value by averaging over all sample. Subtract DC value to get AC values In C
     ************************************************************************************************/
-    private static void SubtractAverage(ref short pred_buf_q3, Av1TransformSize transformSize)
+    private void SubtractAverage(Av1TransformSize transformSize)
     {
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
         int roundOffset = (width * height) >> 1;
         int pelCountLog2 = transformSize.GetBlockWidthLog2() + transformSize.GetBlockHeightLog2();
-        int sum_q3 = 0;
-        ref short pred_buf = ref pred_buf_q3;
-        for (int j = 0; j < height; j++)
+        int sumQ3 = roundOffset;
+        for (int y = 0; y < height; y++)
         {
-            // assert(pred_buf_q3 + tx_width <= cfl->pred_buf_q3 + CFL_BUF_SQUARE);
-            for (int i = 0; i < width; i++)
+            int rowOffset = y * BufferLine;
+            for (int x = 0; x < width; x++)
             {
-                sum_q3 += Unsafe.Add(ref pred_buf, i);
+                sumQ3 += this.Q3Buffer[rowOffset + x];
             }
-
-            pred_buf += BufferLine;
         }
 
-        int avg_q3 = (sum_q3 + roundOffset) >> pelCountLog2;
+        int averageQ3 = sumQ3 >> pelCountLog2;
 
-        // Loss is never more than 1/2 (in Q3)
-        // assert(abs((avg_q3 * (1 << num_pel_log2)) - sum_q3) <= 1 << num_pel_log2 >>
-        //       1);
-        for (int j = 0; j < height; j++)
+        for (int y = 0; y < height; y++)
         {
-            for (int i = 0; i < width; i++)
+            int rowOffset = y * BufferLine;
+            for (int x = 0; x < width; x++)
             {
-                Unsafe.Add(ref pred_buf_q3, i) -= (short)avg_q3;
+                this.Q3Buffer[rowOffset + x] -= (short)averageQ3;
             }
-
-            pred_buf_q3 += BufferLine;
         }
     }
 }

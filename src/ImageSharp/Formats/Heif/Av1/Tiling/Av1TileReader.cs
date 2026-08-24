@@ -303,7 +303,7 @@ internal class Av1TileReader : IAv1TileReader
         partitionInfo.ColumnIndex = columnIndex;
         partitionInfo.RowIndex = rowIndex;
         superblockInfo.BlockCount++;
-        partitionInfo.ComputeBoundaryOffsets(this.configuration, this.SequenceHeader, this.FrameHeader, tileInfo);
+        partitionInfo.ComputeBoundaryOffsets(this.SequenceHeader, this.FrameHeader, tileInfo);
         if (hasChroma)
         {
             if (this.SequenceHeader.ColorConfig.SubSamplingY && block4x4Height == 1)

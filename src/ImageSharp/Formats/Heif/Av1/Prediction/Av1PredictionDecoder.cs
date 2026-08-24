@@ -159,7 +159,7 @@ internal class Av1PredictionDecoder
         // assert((transformSize.GetHeight() - 1) * CFL_BUF_LINE + transformSize.GetWidth() <= CFL_BUF_SQUARE);
         Av1BitDepth bitDepth = this.sequenceHeader.ColorConfig.BitDepth;
         ChromaFromLumaPredict(
-            chromaFromLumaContext.Q3Buffer!.DangerousGetSingleSpan(),
+            chromaFromLumaContext.Q3Buffer,
             pixelBuffer,
             stride,
             pixelBuffer,
@@ -207,7 +207,7 @@ internal class Av1PredictionDecoder
         return Av1Math.RoundPowerOf2Signed(scaledLumaQ6, 6);
     }
 
-    private static void ChromaFromLumaPredict<T>(Span<short> predictedBufferQ3, Span<T> predictedBuffer, int predictedStride, Span<T> destinationBuffer, int destinationStride, int alphaQ3, Av1BitDepth bitDepth, int width, int height)
+    internal static void ChromaFromLumaPredict<T>(Span<short> predictedBufferQ3, Span<T> predictedBuffer, int predictedStride, Span<T> destinationBuffer, int destinationStride, int alphaQ3, Av1BitDepth bitDepth, int width, int height)
         where T : unmanaged, IBinaryInteger<T>
     {
         // TODO: Make SIMD variant of this method.

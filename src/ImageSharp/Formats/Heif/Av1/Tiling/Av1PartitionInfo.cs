@@ -87,7 +87,7 @@ internal class Av1PartitionInfo
 
     public Av1ChromaFromLumaContext? ChromaFromLumaContext { get; internal set; }
 
-    public void ComputeBoundaryOffsets(Configuration configuration, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1TileInfo tileInfo)
+    public void ComputeBoundaryOffsets(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1TileInfo tileInfo)
     {
         Av1BlockSize blockSize = this.ModeInfo.BlockSize;
         int bw4 = blockSize.Get4x4WideCount();
@@ -118,8 +118,6 @@ internal class Av1PartitionInfo
         // For V plane chroma bock
         this.WidthInPixels[2] = Math.Max(1, bw4 >> subX) * modeInfoSize;
         this.HeightInPixels[2] = Math.Max(1, bh4 >> subY) * modeInfoSize;
-
-        this.ChromaFromLumaContext = new Av1ChromaFromLumaContext(configuration, sequenceHeader.ColorConfig);
     }
 
     public int GetMaxBlockWide(Av1BlockSize blockSize, bool subX)

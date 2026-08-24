@@ -5,6 +5,7 @@ using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -23,6 +24,8 @@ internal class Av1BlockDecoder
 
     private readonly int[] currentCoefficientIndex;
 
+    private readonly Av1ChromaFromLumaContext chromaFromLumaContext;
+
     public Av1BlockDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo, Av1FrameBuffer<byte> frameBuffer)
     {
         this.sequenceHeader = sequenceHeader;
@@ -36,6 +39,7 @@ internal class Av1BlockDecoder
         this.CurrentInverseQuantizationCoefficients = new int[inverseQuantizationSize];
         this.isLoopFilterEnabled = false;
         this.currentCoefficientIndex = new int[3];
+        this.chromaFromLumaContext = new(sequenceHeader.ColorConfig);
     }
 
     public int[] CurrentInverseQuantizationCoefficients { get; private set; }
@@ -57,7 +61,27 @@ internal class Av1BlockDecoder
         Av1TransformSize transformSize;
         int transformUnitCount;
         bool hasChroma = Av1TileReader.HasChroma(this.sequenceHeader, modeInfoPosition, blockSize);
-        Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, hasChroma, Av1PartitionType.None);
+        Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, hasChroma, modeInfo.PartitionType)
+        {
+            ColumnIndex = modeInfoPosition.X,
+            RowIndex = modeInfoPosition.Y,
+            ChromaFromLumaContext = this.chromaFromLumaContext
+        };
+
+        partitionInfo.ComputeBoundaryOffsets(this.sequenceHeader, this.frameHeader, tileInfo);
+
+        if (hasChroma)
+        {
+            if (colorConfig.SubSamplingY && blockSize.Get4x4HighCount() == 1)
+            {
+                partitionInfo.AvailableAboveForChroma = modeInfoPosition.Y - 2 >= tileInfo.ModeInfoRowStart;
+            }
+
+            if (colorConfig.SubSamplingX && blockSize.Get4x4WideCount() == 1)
+            {
+                partitionInfo.AvailableLeftForChroma = modeInfoPosition.X - 2 >= tileInfo.ModeInfoColumnStart;
+            }
+        }
 
         int maxBlocksWide = partitionInfo.GetMaxBlockWide(blockSize, false);
         int maxBlocksHigh = partitionInfo.GetMaxBlockHigh(blockSize, false);
@@ -234,22 +258,32 @@ internal class Av1BlockDecoder
                 }
 
                 // Store Luma for CFL if required!
-                if (plane == (int)Av1Plane.Y && StoreChromeFromLumeRequired(colorConfig, partitionInfo, hasChroma))
+                if (plane == (int)Av1Plane.Y && StoreChromaFromLumaRequired(colorConfig, partitionInfo))
                 {
-                    /*
-                    // SVT: svt_cfl_store_tx
-                    ChromaFromLumaStoreTransform(
-                        partitionInfo,
-                        this.chromaFromLumaContext,
-                        transformInfo.OffsetY,
-                        transformInfo.OffsetX,
-                        transformSize,
-                        blockSize,
-                        colorConfig,
-                        transformBlockReconstructionBuffer,
-                        reconstructionStride,
-                        is16BitsPipeline);
-                    */
+                    if (highBitDepth)
+                    {
+                        this.chromaFromLumaContext.Store(
+                            highBitDepthTransformBlockReconstructionBuffer[reconstructionStride..],
+                            reconstructionStride,
+                            transformInfo[0].OffsetY,
+                            transformInfo[0].OffsetX,
+                            transformSize,
+                            blockSize,
+                            modeInfoPosition.Y,
+                            modeInfoPosition.X);
+                    }
+                    else
+                    {
+                        this.chromaFromLumaContext.Store(
+                            transformBlockReconstructionBuffer[reconstructionStride..],
+                            reconstructionStride,
+                            transformInfo[0].OffsetY,
+                            transformInfo[0].OffsetX,
+                            transformSize,
+                            blockSize,
+                            modeInfoPosition.Y,
+                            modeInfoPosition.X);
+                    }
                 }
 
                 // increment transform pointer
@@ -319,5 +353,7 @@ internal class Av1BlockDecoder
         }
     }
 
-    private static bool StoreChromeFromLumeRequired(ObuColorConfig colorConfig, Av1PartitionInfo partitionInfo, bool hasChroma) => false;
+    private static bool StoreChromaFromLumaRequired(ObuColorConfig colorConfig, Av1PartitionInfo partitionInfo)
+        => !colorConfig.IsMonochrome &&
+            (!partitionInfo.IsChroma || partitionInfo.ModeInfo.UvMode == Av1PredictionMode.UvChromaFromLuma);
 }

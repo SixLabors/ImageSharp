@@ -1,8 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -10,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// Stores left, top, and top-left neighbor values at the granularity required by AV1 encoder contexts.
 /// </summary>
 /// <typeparam name="T">The context value type, including its invalid sentinel value.</typeparam>
-internal class Av1NeighborArrayUnit<T>
+internal sealed class Av1NeighborArrayUnit<T> : IDisposable
     where T : struct, IMinMaxValue<T>
 {
     /// <summary>
@@ -19,31 +21,42 @@ internal class Av1NeighborArrayUnit<T>
     public static readonly T InvalidNeighborData = T.MaxValue;
 
     /// <summary>
-    /// Stores context units exposed to blocks on the right.
+    /// Owns the contiguous neighbor storage until this instance is disposed.
     /// </summary>
-    private readonly T[] left;
+    private IMemoryOwner<T>? memory;
 
     /// <summary>
-    /// Stores context units exposed to blocks below.
+    /// The number of context values exposed to blocks on the right.
     /// </summary>
-    private readonly T[] top;
+    private readonly int leftLength;
 
     /// <summary>
-    /// Stores context units indexed by the diagonal difference between horizontal and vertical positions.
+    /// The number of context values exposed to blocks below.
     /// </summary>
-    private readonly T[] topLeft;
+    private readonly int topLength;
+
+    /// <summary>
+    /// The number of context values indexed by the diagonal difference between horizontal and vertical positions.
+    /// </summary>
+    private readonly int topLeftLength;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1NeighborArrayUnit{T}"/> class.
     /// </summary>
+    /// <param name="configuration">The configuration providing the memory allocator.</param>
     /// <param name="leftSize">The number of values in the left-neighbor storage.</param>
     /// <param name="topSize">The number of values in the top-neighbor storage.</param>
     /// <param name="topLeftSize">The number of values in the diagonal-neighbor storage.</param>
-    public Av1NeighborArrayUnit(int leftSize, int topSize, int topLeftSize)
+    public Av1NeighborArrayUnit(Configuration configuration, int leftSize, int topSize, int topLeftSize)
     {
-        this.left = new T[leftSize];
-        this.top = new T[topSize];
-        this.topLeft = new T[topLeftSize];
+        this.leftLength = leftSize;
+        this.topLength = topSize;
+        this.topLeftLength = topLeftSize;
+        int totalLength = checked(leftSize + topSize + topLeftSize);
+
+        // All three neighbor regions share the picture lifetime, so one clean allocator-backed
+        // buffer avoids three managed arrays and preserves their zero-initialized starting state.
+        this.memory = configuration.MemoryAllocator.Allocate<T>(totalLength, AllocationOptions.Clean);
     }
 
     /// <summary>
@@ -71,17 +84,38 @@ internal class Av1NeighborArrayUnit<T>
     /// <summary>
     /// Gets the left-neighbor storage.
     /// </summary>
-    public Span<T> Left => this.left;
+    public Span<T> Left
+    {
+        get
+        {
+            ObjectDisposedException.ThrowIf(this.memory is null, this);
+            return this.memory.Memory.Span[..this.leftLength];
+        }
+    }
 
     /// <summary>
     /// Gets the top-neighbor storage.
     /// </summary>
-    public Span<T> Top => this.top;
+    public Span<T> Top
+    {
+        get
+        {
+            ObjectDisposedException.ThrowIf(this.memory is null, this);
+            return this.memory.Memory.Span.Slice(this.leftLength, this.topLength);
+        }
+    }
 
     /// <summary>
     /// Gets the top-left diagonal storage.
     /// </summary>
-    public Span<T> TopLeft => this.topLeft;
+    public Span<T> TopLeft
+    {
+        get
+        {
+            ObjectDisposedException.ThrowIf(this.memory is null, this);
+            return this.memory.Memory.Span.Slice(this.leftLength + this.topLength, this.topLeftLength);
+        }
+    }
 
     /// <summary>
     /// Gets or sets the base-2 logarithm of the top and left context granularity in samples.
@@ -118,7 +152,16 @@ internal class Av1NeighborArrayUnit<T>
     /// <param name="loc">The sample position.</param>
     /// <returns>The top-left neighbor index derived from the position's diagonal.</returns>
     public int GetTopLeftIndex(Point loc)
-        => this.left.Length + (loc.X >> this.GranularityTopLeftLog2) - (loc.Y >> this.GranularityTopLeftLog2);
+        => this.leftLength + (loc.X >> this.GranularityTopLeftLog2) - (loc.Y >> this.GranularityTopLeftLog2);
+
+    /// <summary>
+    /// Returns the neighbor storage to the configured memory allocator.
+    /// </summary>
+    public void Dispose()
+    {
+        this.memory?.Dispose();
+        this.memory = null;
+    }
 
     /// <summary>
     /// Writes one context unit across the selected block edges.

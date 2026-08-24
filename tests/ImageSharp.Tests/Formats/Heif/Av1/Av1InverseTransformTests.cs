@@ -267,6 +267,56 @@ public class Av1InverseTransformTests
         Assert.Equal(expected.Select(value => (byte)value), actual);
     }
 
+    [Theory]
+    [InlineData((int)Av1BitDepth.TenBit, 1023)]
+    [InlineData((int)Av1BitDepth.TwelveBit, 4095)]
+    public void HighBitDepthReconstructionClipsPositiveValues(int bitDepthIndex, short maximum)
+    {
+        const int width = 4;
+        int[] coefficients = new int[width * width];
+        coefficients[0] = 64;
+        short[] reconstruction = new short[width * width];
+        Array.Fill(reconstruction, (short)(maximum - 1));
+
+        Av1InverseTransformer.ReconstructHighBitDepth(
+            coefficients,
+            reconstruction,
+            width,
+            Av1TransformSize.Size4x4,
+            Av1TransformType.DctDct,
+            0,
+            1,
+            false,
+            (Av1BitDepth)bitDepthIndex);
+
+        Assert.All(reconstruction, value => Assert.Equal(maximum, value));
+    }
+
+    [Theory]
+    [InlineData((int)Av1BitDepth.TenBit)]
+    [InlineData((int)Av1BitDepth.TwelveBit)]
+    public void HighBitDepthReconstructionClipsNegativeValues(int bitDepthIndex)
+    {
+        const int width = 4;
+        int[] coefficients = new int[width * width];
+        coefficients[0] = -64;
+        short[] reconstruction = new short[width * width];
+        Array.Fill(reconstruction, (short)1);
+
+        Av1InverseTransformer.ReconstructHighBitDepth(
+            coefficients,
+            reconstruction,
+            width,
+            Av1TransformSize.Size4x4,
+            Av1TransformType.DctDct,
+            0,
+            1,
+            false,
+            (Av1BitDepth)bitDepthIndex);
+
+        Assert.All(reconstruction, value => Assert.Equal((short)0, value));
+    }
+
     private static void AssertAccuracy1d(
         Av1TransformType transformType,
         Av1TransformSize transformSize,

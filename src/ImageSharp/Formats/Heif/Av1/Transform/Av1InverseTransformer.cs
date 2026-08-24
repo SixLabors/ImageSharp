@@ -47,4 +47,23 @@ internal class Av1InverseTransformer
         Av1InverseTransformerFactory.InverseTransformAdd(
             coefficientsBuffer, reconstructionBufferRead, reconstructionReadStride, reconstructionBufferWrite, reconstructionWriteStride, transformFunctionParameters);
     }
+
+    /// <summary>
+    /// AV1: 7.11.2 Reconstruct.
+    /// </summary>
+    public static void ReconstructHighBitDepth(Span<int> coefficientsBuffer, Span<short> reconstructionBuffer, int reconstructionStride, Av1TransformSize transformSize, Av1TransformType transformType, int plane, int numberOfCoefficients, bool isLossless, Av1BitDepth bitDepth)
+    {
+        Av1TransformFunctionParameters transformFunctionParameters = new()
+        {
+            TransformType = transformType,
+            TransformSize = transformSize,
+            EndOfBuffer = numberOfCoefficients,
+            IsLossless = isLossless,
+            BitDepth = bitDepth.GetBitCount(),
+            Is16BitPipeline = true
+        };
+
+        Av1InverseTransformerFactory.InverseTransformAdd(
+            coefficientsBuffer, reconstructionBuffer, reconstructionStride, reconstructionBuffer, reconstructionStride, transformFunctionParameters);
+    }
 }

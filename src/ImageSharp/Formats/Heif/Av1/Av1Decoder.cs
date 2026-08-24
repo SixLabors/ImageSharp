@@ -73,6 +73,8 @@ internal class Av1Decoder : IAv1TileReader
         Av1CodecConfiguration? codecConfiguration = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        codecConfiguration?.ValidateItemData(buffer);
+
         Av1BitStreamReader reader = new(buffer);
         this.obuReader.ReadAll(ref reader, buffer.Length, () => this, false);
         Guard.NotNull(this.tileReader, nameof(this.tileReader));

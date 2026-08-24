@@ -413,6 +413,137 @@ public class Av1PredictorTests
         Assert.All(destination, value => Assert.Equal(73, value));
     }
 
+    [Theory]
+    [InlineData(true, true, 800)]
+    [InlineData(true, false, 700)]
+    [InlineData(false, true, 900)]
+    [InlineData(false, false, 512)]
+    public void HighBitDepthDcPredictionUsesAvailableEdges(bool hasLeft, bool hasAbove, short expected)
+    {
+        short[] destination = new short[16];
+        short[] above = [900, 900, 900, 900];
+        short[] left = [700, 700, 700, 700];
+
+        Av1PredictorFactory.DcPredictor(
+            hasLeft,
+            hasAbove,
+            Av1TransformSize.Size4x4,
+            destination,
+            4,
+            above,
+            left,
+            10);
+
+        Assert.All(destination, value => Assert.Equal(expected, value));
+    }
+
+    [Theory]
+    [InlineData((int)Av1PredictionMode.Horizontal)]
+    [InlineData((int)Av1PredictionMode.Vertical)]
+    [InlineData((int)Av1PredictionMode.Paeth)]
+    [InlineData((int)Av1PredictionMode.Smooth)]
+    [InlineData((int)Av1PredictionMode.SmoothHorizontal)]
+    [InlineData((int)Av1PredictionMode.SmoothVertical)]
+    public void HighBitDepthGeneralPredictionMatchesTranslatedEightBitOracle(int modeIndex)
+    {
+        const int offset = 512;
+        Av1PredictionMode mode = (Av1PredictionMode)modeIndex;
+        byte[] aboveData = [50, 60, 10, 90, 40];
+        byte[] left = [20, 80, 30, 100];
+        short[] highAboveData = aboveData.Select(value => (short)(value + offset)).ToArray();
+        short[] highLeft = left.Select(value => (short)(value + offset)).ToArray();
+        byte[] expected = new byte[16];
+        short[] actual = new short[16];
+
+        Av1PredictorFactory.GeneralPredictor(
+            mode,
+            Av1TransformSize.Size4x4,
+            expected,
+            4,
+            aboveData.AsSpan(1),
+            left);
+
+        Av1PredictorFactory.GeneralPredictor(
+            mode,
+            Av1TransformSize.Size4x4,
+            actual,
+            4,
+            highAboveData.AsSpan(1),
+            highLeft);
+
+        Assert.Equal(expected.Select(value => (short)(value + offset)), actual);
+    }
+
+    [Theory]
+    [InlineData(45)]
+    [InlineData(67)]
+    [InlineData(90)]
+    [InlineData(113)]
+    [InlineData(135)]
+    [InlineData(157)]
+    [InlineData(180)]
+    [InlineData(203)]
+    public void HighBitDepthDirectionalPredictionMatchesTranslatedEightBitOracle(int angle)
+    {
+        const int offset = 512;
+        byte[] aboveData = new byte[256];
+        byte[] leftData = new byte[256];
+        for (int i = 0; i < aboveData.Length; i++)
+        {
+            aboveData[i] = (byte)(20 + (i % 180));
+            leftData[i] = (byte)(30 + (i % 170));
+        }
+
+        short[] highAboveData = aboveData.Select(value => (short)(value + offset)).ToArray();
+        short[] highLeftData = leftData.Select(value => (short)(value + offset)).ToArray();
+        byte[] expected = new byte[16];
+        short[] actual = new short[16];
+
+        Av1PredictorFactory.DirectionalPredictor(
+            expected,
+            4,
+            Av1TransformSize.Size4x4,
+            aboveData.AsSpan(128),
+            leftData.AsSpan(128),
+            false,
+            false,
+            angle);
+
+        Av1PredictorFactory.DirectionalPredictor(
+            actual,
+            4,
+            Av1TransformSize.Size4x4,
+            highAboveData.AsSpan(128),
+            highLeftData.AsSpan(128),
+            false,
+            false,
+            angle,
+            10);
+
+        Assert.Equal(expected.Select(value => (short)(value + offset)), actual);
+    }
+
+    [Theory]
+    [MemberData(nameof(GetFilterIntraPredictions))]
+    public void HighBitDepthFilterIntraMatchesTranslatedLibaomVector(int mode, byte[] expected)
+    {
+        const int offset = 512;
+        short[] destination = new short[16];
+        short[] aboveData = [529, 542, 582, 622, 662];
+        short[] left = [552, 592, 632, 672];
+
+        Av1PredictorFactory.FilterIntraPredictor(
+            destination,
+            4,
+            Av1TransformSize.Size4x4,
+            aboveData.AsSpan(1),
+            left,
+            (Av1FilterIntraMode)mode,
+            10);
+
+        Assert.Equal(expected.Select(value => (short)(value + offset)), destination);
+    }
+
     private static void AssertValue(byte expected, byte actual)
     {
         Assert.NotEqual(0, actual);

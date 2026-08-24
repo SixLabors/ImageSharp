@@ -18,7 +18,7 @@ internal static class Av1FilterIntraPredictor
 
     // AV1 7.11.2.3 defines five sets of eight filters over the same seven
     // already-reconstructed neighbors. The omitted eighth libaom tap is zero.
-    private static readonly sbyte[] Taps =
+    internal static readonly sbyte[] Taps =
     [
 
         // DC

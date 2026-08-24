@@ -69,6 +69,9 @@ internal class Av1PredictorFactory
         }
     }
 
+    internal static void DcPredictor(bool hasLeft, bool hasAbove, Av1TransformSize transformSize, Span<short> destination, nuint destinationStride, Span<short> aboveRow, Span<short> leftColumn, int bitDepth)
+        => Av1HighBitDepthPredictor.DcPredictor(hasLeft, hasAbove, transformSize, destination, destinationStride, aboveRow, leftColumn, bitDepth);
+
     /// <summary>
     /// SVT: svt_aom_highbd_dr_predictor
     /// </summary>
@@ -102,8 +105,14 @@ internal class Av1PredictorFactory
         }
     }
 
+    internal static void DirectionalPredictor(Span<short> destination, nuint stride, Av1TransformSize transformSize, Span<short> aboveRow, Span<short> leftColumn, bool upsampleAbove, bool upsampleLeft, int angle, int bitDepth)
+        => Av1HighBitDepthPredictor.DirectionalPredictor(destination, stride, transformSize, aboveRow, leftColumn, upsampleAbove, upsampleLeft, angle, bitDepth);
+
     internal static void FilterIntraPredictor(Span<byte> destination, nuint destinationStride, Av1TransformSize transformSize, Span<byte> aboveRow, Span<byte> leftColumn, Av1FilterIntraMode filterIntraMode)
         => Av1FilterIntraPredictor.Predict(destination, destinationStride, transformSize, aboveRow, leftColumn, filterIntraMode);
+
+    internal static void FilterIntraPredictor(Span<short> destination, nuint destinationStride, Av1TransformSize transformSize, Span<short> aboveRow, Span<short> leftColumn, Av1FilterIntraMode filterIntraMode, int bitDepth)
+        => Av1HighBitDepthPredictor.FilterIntraPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, filterIntraMode, bitDepth);
 
     internal static void GeneralPredictor(Av1PredictionMode mode, Av1TransformSize transformSize, Span<byte> destination, nuint destinationStride, Span<byte> aboveRow, Span<byte> leftColumn)
     {
@@ -130,11 +139,14 @@ internal class Av1PredictorFactory
         }
     }
 
+    internal static void GeneralPredictor(Av1PredictionMode mode, Av1TransformSize transformSize, Span<short> destination, nuint destinationStride, Span<short> aboveRow, Span<short> leftColumn)
+        => Av1HighBitDepthPredictor.GeneralPredictor(mode, transformSize, destination, destinationStride, aboveRow, leftColumn);
+
     // Get the shift (up-scaled by 256) in Y w.r.t a unit change in X.
     // If angle > 0 && angle < 90, dy = 1;
     // If angle > 90 && angle < 180, dy = (int32_t)(256 * t);
     // If angle > 180 && angle < 270, dy = -((int32_t)(256 * t));
-    private static int GetDeltaY(int angle)
+    internal static int GetDeltaY(int angle)
     {
         if (angle is > 90 and < 180)
         {
@@ -155,7 +167,7 @@ internal class Av1PredictorFactory
     // If angle > 0 && angle < 90, dx = -((int32_t)(256 / t));
     // If angle > 90 && angle < 180, dx = (int32_t)(256 / t);
     // If angle > 180 && angle < 270, dx = 1;
-    private static int GetDeltaX(int angle)
+    internal static int GetDeltaX(int angle)
     {
         if (angle is > 0 and < 90)
         {

@@ -10,15 +10,48 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// <summary>
 /// Implements AV1 intra prediction for 10-bit and 12-bit sample buffers.
 /// </summary>
+/// <remarks>
+/// Samples are stored in signed 16-bit buffers, but predictions are clamped to the nonnegative range of the signaled bit depth.
+/// </remarks>
 internal static class Av1HighBitDepthPredictor
 {
+    /// <summary>
+    /// The row stride of the temporary filter intra prediction buffer.
+    /// </summary>
     private const int FilterBufferStride = 33;
+
+    /// <summary>
+    /// The number of samples in the temporary filter intra prediction buffer.
+    /// </summary>
     private const int FilterBufferLength = FilterBufferStride * FilterBufferStride;
+
+    /// <summary>
+    /// The number of nonzero filter coefficients used to predict each filter intra sample.
+    /// </summary>
     private const int FilterTapsPerPixel = 7;
+
+    /// <summary>
+    /// The number of samples produced by each filter coefficient group.
+    /// </summary>
     private const int FilterPixelsPerGroup = 8;
+
+    /// <summary>
+    /// The number of stored coefficients for each filter intra mode.
+    /// </summary>
     private const int FilterTapsPerMode = FilterTapsPerPixel * FilterPixelsPerGroup;
 
-    internal static void DcPredictor(
+    /// <summary>
+    /// Produces a high-bit-depth DC intra prediction from the available neighboring samples.
+    /// </summary>
+    /// <param name="hasLeft">A value indicating whether reconstructed left samples are available.</param>
+    /// <param name="hasAbove">A value indicating whether reconstructed top samples are available.</param>
+    /// <param name="transformSize">The transform size that determines the prediction block dimensions.</param>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="above">The reconstructed top reference samples.</param>
+    /// <param name="left">The reconstructed left reference samples.</param>
+    /// <param name="bitDepth">The number of bits used to represent each sample.</param>
+    public static void DcPredictor(
         bool hasLeft,
         bool hasAbove,
         Av1TransformSize transformSize,
@@ -57,10 +90,21 @@ internal static class Av1HighBitDepthPredictor
             ? (short)(1 << (bitDepth - 1))
             : (short)((sum + (count >> 1)) / count);
 
+        // The midpoint is normative when neither edge exists; otherwise the half-count bias
+        // rounds the mean of the available top and left samples to the nearest integer.
         Fill(destination, destinationStride, width, height, prediction);
     }
 
-    internal static void GeneralPredictor(
+    /// <summary>
+    /// Produces a high-bit-depth nondirectional intra prediction.
+    /// </summary>
+    /// <param name="mode">The nondirectional prediction mode to apply.</param>
+    /// <param name="transformSize">The transform size that determines the prediction block dimensions.</param>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="above">The reconstructed top reference samples.</param>
+    /// <param name="left">The reconstructed left reference samples.</param>
+    public static void GeneralPredictor(
         Av1PredictionMode mode,
         Av1TransformSize transformSize,
         Span<short> destination,
@@ -94,7 +138,19 @@ internal static class Av1HighBitDepthPredictor
         }
     }
 
-    internal static void DirectionalPredictor(
+    /// <summary>
+    /// Produces a high-bit-depth directional intra prediction.
+    /// </summary>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="transformSize">The transform size that determines the prediction block dimensions.</param>
+    /// <param name="above">The top reference samples, including any required extension.</param>
+    /// <param name="left">The left reference samples, including any required extension.</param>
+    /// <param name="upsampleAbove">A value indicating whether the top reference samples were upsampled.</param>
+    /// <param name="upsampleLeft">A value indicating whether the left reference samples were upsampled.</param>
+    /// <param name="angle">The prediction angle in degrees.</param>
+    /// <param name="bitDepth">The number of bits used to represent each sample.</param>
+    public static void DirectionalPredictor(
         Span<short> destination,
         nuint destinationStride,
         Av1TransformSize transformSize,
@@ -111,6 +167,8 @@ internal static class Av1HighBitDepthPredictor
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
 
+        // Angles on a cardinal axis copy one reference edge directly. Other angles are
+        // separated into the three AV1 projection zones according to the edges they cross.
         if (angle is > 0 and < 90)
         {
             PredictDirectionalZone1(destination, destinationStride, above, upsampleAbove, dx, width, height, bitDepth);
@@ -133,7 +191,17 @@ internal static class Av1HighBitDepthPredictor
         }
     }
 
-    internal static void FilterIntraPredictor(
+    /// <summary>
+    /// Produces a high-bit-depth filter intra prediction.
+    /// </summary>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="transformSize">The transform size that determines the prediction block dimensions.</param>
+    /// <param name="above">The reconstructed top reference samples.</param>
+    /// <param name="left">The reconstructed left reference samples.</param>
+    /// <param name="mode">The filter intra mode whose coefficient set is applied.</param>
+    /// <param name="bitDepth">The number of bits used to represent each sample.</param>
+    public static void FilterIntraPredictor(
         Span<short> destination,
         nuint destinationStride,
         Av1TransformSize transformSize,
@@ -158,6 +226,8 @@ internal static class Av1HighBitDepthPredictor
         ref short leftRef = ref left[0];
 
         // Row zero includes the top-left sample followed by the top neighbors.
+        // Column zero stores the left neighbors so each 4-by-2 group can consume the
+        // seven already-reconstructed samples defined by the recursive AV1 process.
         bufferRef = Unsafe.Subtract(ref aboveRef, 1);
         above[..width].CopyTo(buffer[1..]);
         for (int row = 0; row < height; row++)
@@ -208,6 +278,14 @@ internal static class Av1HighBitDepthPredictor
         }
     }
 
+    /// <summary>
+    /// Copies each left reference sample across one destination row.
+    /// </summary>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="stride">The distance, in samples, between destination rows.</param>
+    /// <param name="left">The reconstructed left reference samples.</param>
+    /// <param name="width">The width of the prediction block in samples.</param>
+    /// <param name="height">The height of the prediction block in samples.</param>
     private static void PredictHorizontal(Span<short> destination, nuint stride, Span<short> left, int width, int height)
     {
         for (int row = 0; row < height; row++)
@@ -216,6 +294,14 @@ internal static class Av1HighBitDepthPredictor
         }
     }
 
+    /// <summary>
+    /// Copies the top reference samples into every destination row.
+    /// </summary>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="stride">The distance, in samples, between destination rows.</param>
+    /// <param name="above">The reconstructed top reference samples.</param>
+    /// <param name="width">The width of the prediction block in samples.</param>
+    /// <param name="height">The height of the prediction block in samples.</param>
     private static void PredictVertical(Span<short> destination, nuint stride, Span<short> above, int width, int height)
     {
         for (int row = 0; row < height; row++)
@@ -224,6 +310,15 @@ internal static class Av1HighBitDepthPredictor
         }
     }
 
+    /// <summary>
+    /// Produces a Paeth prediction from the nearest top, left, and top-left reference sample.
+    /// </summary>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="stride">The distance, in samples, between destination rows.</param>
+    /// <param name="above">The reconstructed top reference samples.</param>
+    /// <param name="left">The reconstructed left reference samples.</param>
+    /// <param name="width">The width of the prediction block in samples.</param>
+    /// <param name="height">The height of the prediction block in samples.</param>
     private static void PredictPaeth(Span<short> destination, nuint stride, Span<short> above, Span<short> left, int width, int height)
     {
         int topLeft = Unsafe.Subtract(ref above[0], 1);
@@ -238,6 +333,8 @@ internal static class Av1HighBitDepthPredictor
                 int leftDistance = Av1Math.AbsoluteDifference(basis, leftValue);
                 int topDistance = Av1Math.AbsoluteDifference(basis, topValue);
                 int topLeftDistance = Av1Math.AbsoluteDifference(basis, topLeft);
+
+                // The comparison order preserves AV1's left, top, then top-left tie precedence.
                 destinationRow[column] = leftDistance <= topDistance && leftDistance <= topLeftDistance
                     ? leftValue
                     : topDistance <= topLeftDistance ? topValue : (short)topLeft;
@@ -245,6 +342,15 @@ internal static class Av1HighBitDepthPredictor
         }
     }
 
+    /// <summary>
+    /// Produces a two-dimensional smooth prediction from the four terminating edge samples.
+    /// </summary>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="stride">The distance, in samples, between destination rows.</param>
+    /// <param name="above">The reconstructed top reference samples.</param>
+    /// <param name="left">The reconstructed left reference samples.</param>
+    /// <param name="width">The width of the prediction block in samples.</param>
+    /// <param name="height">The height of the prediction block in samples.</param>
     private static void PredictSmooth(Span<short> destination, nuint stride, Span<short> above, Span<short> left, int width, int height)
     {
         int below = left[height - 1];
@@ -254,6 +360,8 @@ internal static class Av1HighBitDepthPredictor
         int scale = 1 << Av1SmoothPredictor.WeightLog2Scale;
         int log2Scale = Av1SmoothPredictor.WeightLog2Scale + 1;
 
+        // Horizontal weights follow the block width and vertical weights follow the height.
+        // Keeping those domains separate is required for rectangular transform blocks.
         for (int row = 0; row < height; row++)
         {
             int rowWeight = heightWeights[row];
@@ -268,6 +376,15 @@ internal static class Av1HighBitDepthPredictor
         }
     }
 
+    /// <summary>
+    /// Produces a horizontal smooth prediction between the left and right edge samples.
+    /// </summary>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="stride">The distance, in samples, between destination rows.</param>
+    /// <param name="above">The reconstructed top reference samples.</param>
+    /// <param name="left">The reconstructed left reference samples.</param>
+    /// <param name="width">The width of the prediction block in samples.</param>
+    /// <param name="height">The height of the prediction block in samples.</param>
     private static void PredictSmoothHorizontal(Span<short> destination, nuint stride, Span<short> above, Span<short> left, int width, int height)
     {
         int right = above[width - 1];
@@ -286,6 +403,15 @@ internal static class Av1HighBitDepthPredictor
         }
     }
 
+    /// <summary>
+    /// Produces a vertical smooth prediction between the top and bottom edge samples.
+    /// </summary>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="stride">The distance, in samples, between destination rows.</param>
+    /// <param name="above">The reconstructed top reference samples.</param>
+    /// <param name="left">The reconstructed left reference samples.</param>
+    /// <param name="width">The width of the prediction block in samples.</param>
+    /// <param name="height">The height of the prediction block in samples.</param>
     private static void PredictSmoothVertical(Span<short> destination, nuint stride, Span<short> above, Span<short> left, int width, int height)
     {
         int below = left[height - 1];
@@ -304,6 +430,17 @@ internal static class Av1HighBitDepthPredictor
         }
     }
 
+    /// <summary>
+    /// Projects top reference samples into a directional zone 1 prediction block.
+    /// </summary>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="stride">The distance, in samples, between destination rows.</param>
+    /// <param name="above">The top reference samples, including any required extension.</param>
+    /// <param name="upsample">A value indicating whether the top reference samples were upsampled.</param>
+    /// <param name="dx">The horizontal projection derivative in Q6 precision.</param>
+    /// <param name="width">The width of the prediction block in samples.</param>
+    /// <param name="height">The height of the prediction block in samples.</param>
+    /// <param name="bitDepth">The number of bits used to represent each sample.</param>
     private static void PredictDirectionalZone1(Span<short> destination, nuint stride, Span<short> above, bool upsample, int dx, int width, int height, int bitDepth)
     {
         int upsampleAbove = upsample ? 1 : 0;
@@ -317,6 +454,9 @@ internal static class Av1HighBitDepthPredictor
         for (int row = 0; row < height; row++)
         {
             Span<short> destinationRow = destination.Slice(row * (int)stride, width);
+
+            // AV1 retains six fractional projection bits, or five after reference upsampling.
+            // The interpolation weights sum to 32 because the low projection bit is discarded.
             int basis = x >> fractionBitCount;
             int shift = ((x << upsampleAbove) & 0x3F) >> 1;
             for (int column = 0; column < width; column++)
@@ -338,6 +478,20 @@ internal static class Av1HighBitDepthPredictor
         }
     }
 
+    /// <summary>
+    /// Projects top and left reference samples into a directional zone 2 prediction block.
+    /// </summary>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="stride">The distance, in samples, between destination rows.</param>
+    /// <param name="above">The top reference samples, including any required extension.</param>
+    /// <param name="left">The left reference samples, including any required extension.</param>
+    /// <param name="doUpsampleAbove">A value indicating whether the top reference samples were upsampled.</param>
+    /// <param name="doUpsampleLeft">A value indicating whether the left reference samples were upsampled.</param>
+    /// <param name="dx">The horizontal projection derivative in Q6 precision.</param>
+    /// <param name="dy">The vertical projection derivative in Q6 precision.</param>
+    /// <param name="width">The width of the prediction block in samples.</param>
+    /// <param name="height">The height of the prediction block in samples.</param>
+    /// <param name="bitDepth">The number of bits used to represent each sample.</param>
     private static void PredictDirectionalZone2(Span<short> destination, nuint stride, Span<short> above, Span<short> left, bool doUpsampleAbove, bool doUpsampleLeft, int dx, int dy, int width, int height, int bitDepth)
     {
         int upsampleAbove = doUpsampleAbove ? 1 : 0;
@@ -359,6 +513,9 @@ internal static class Av1HighBitDepthPredictor
             for (int column = 0; column < width; column++, basisX += basisIncrementX, y -= dy)
             {
                 int prediction;
+
+                // A nonnegative top projection uses the above edge. Once the projection crosses
+                // the top-left corner, the same destination sample is projected from the left edge.
                 if (basisX >= minBasisX)
                 {
                     int shift = ((x * (1 << upsampleAbove)) & 0x3F) >> 1;
@@ -378,6 +535,18 @@ internal static class Av1HighBitDepthPredictor
         }
     }
 
+    /// <summary>
+    /// Projects left reference samples into a directional zone 3 prediction block.
+    /// </summary>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="stride">The distance, in samples, between destination rows.</param>
+    /// <param name="left">The left reference samples, including any required extension.</param>
+    /// <param name="upsample">A value indicating whether the left reference samples were upsampled.</param>
+    /// <param name="dx">The horizontal projection derivative, which must be one in zone 3.</param>
+    /// <param name="dy">The vertical projection derivative in Q6 precision.</param>
+    /// <param name="width">The width of the prediction block in samples.</param>
+    /// <param name="height">The height of the prediction block in samples.</param>
+    /// <param name="bitDepth">The number of bits used to represent each sample.</param>
     private static void PredictDirectionalZone3(Span<short> destination, nuint stride, Span<short> left, bool upsample, int dx, int dy, int width, int height, int bitDepth)
     {
         int upsampleLeft = upsample ? 1 : 0;
@@ -391,6 +560,8 @@ internal static class Av1HighBitDepthPredictor
 
         for (int column = 0; column < width; column++)
         {
+            // Zone 3 is the transpose of zone 1: columns advance along the projected left edge,
+            // while rows advance through the reference samples for each destination column.
             int basis = y >> fractionBitCount;
             int shift = ((y << upsampleLeft) & 0x3F) >> 1;
             for (int row = 0; row < height; row++)
@@ -413,6 +584,14 @@ internal static class Av1HighBitDepthPredictor
         }
     }
 
+    /// <summary>
+    /// Fills a rectangular prediction block with one sample value.
+    /// </summary>
+    /// <param name="destination">The buffer that receives the sample value.</param>
+    /// <param name="stride">The distance, in samples, between destination rows.</param>
+    /// <param name="width">The width of the prediction block in samples.</param>
+    /// <param name="height">The height of the prediction block in samples.</param>
+    /// <param name="value">The sample value written to every destination position.</param>
     private static void Fill(Span<short> destination, nuint stride, int width, int height, short value)
     {
         for (int row = 0; row < height; row++)

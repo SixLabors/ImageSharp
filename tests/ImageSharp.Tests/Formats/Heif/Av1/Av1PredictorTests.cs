@@ -32,7 +32,7 @@ public class Av1PredictorTests
               "7896fdbbfe538dce1dc3a5b0873d74b0", "504aea29c6b27f21555d5516b8de2d8a",
               "c5738e7fa82b91ea0e39232120da56ea", "19abbd934c243a6d9df7585d81332dd5",
               "9e42b7b342e45c842dfa8aedaddbdfaa", "0e9eb07a89f8bf96bc219d5d1c3d9f6d",
-              "659393c31633e0f498bae384c9df5c7b", "29241129BC91B354D04CA6C09A7CF1E1",
+              "659393c31633e0f498bae384c9df5c7b", "812DFE5C38F2B837529C5A918756E8B8",
           ];
 
     private static string[] Digests8x4 = [
@@ -56,7 +56,7 @@ public class Av1PredictorTests
               "7911e2e02abfbe226f17529ac5db08fc", "064e509948982f66a14293f406d88d42",
               "5c443aa713891406d5be3af4b3cf67c6", "5d2cb98e532822ca701110cda9ada968",
               "3d58836e17918b8890012dd96b95bb9d", "20e8d61ddc451b9e553a294073349ffd",
-              "a9aa6cf9d0dcf1977a1853ccc264e40b", "FEDA9D1554325ED2A243FC3DD6ADD4E3",
+              "a9aa6cf9d0dcf1977a1853ccc264e40b", "D84707DAAF6CA99F041A670F16885CBA",
           ];
 
     private static string[] Digests8x32 = [
@@ -64,7 +64,7 @@ public class Av1PredictorTests
               "f337dce3980f70730d6f6c2c756e3b62", "796189b05dc026e865c9e95491b255d1",
               "ea932c21e7189eeb215c1990491320ab", "a9fffdf9455eba5e3b01317cae140289",
               "9525dbfdbf5fba61ef9c7aa5fe887503", "8c6a7e3717ff8a459f415c79bb17341c",
-              "3761071bfaa2363a315fe07223f95a2d", "506D691319D1AEF38DF5C1E060408BDD",
+              "3761071bfaa2363a315fe07223f95a2d", "25DADBA40EBC6C4616A7A536AC48CAA6",
           ];
 
     private static string[] Digests16x4 = [
@@ -72,7 +72,7 @@ public class Av1PredictorTests
               "28a6af15e31f76d3ff189012475d78f5", "e330d67b859bceef62b96fc9e1f49a34",
               "36eca3b8083ce2fb5f7e6227dfc34e71", "08f567d2abaa8e83e4d9b33b3f709538",
               "dc2d0ba13aa9369446932f03b53dc77d", "9ab342944c4b1357aa79d39d7bebdd3a",
-              "77ec278c5086c88b91d68eef561ed517", "7B8ECDFBF449908E9C96664582C05BFE",
+              "77ec278c5086c88b91d68eef561ed517", "E4726C9838383FAC75A028303808EABF",
           ];
 
     private static string[] Digests16x8 = [
@@ -80,7 +80,7 @@ public class Av1PredictorTests
               "728d61c11b06baf7fe77881003a918b9", "889997b89a44c9976cb34f573e2b1eea",
               "b43bfc31d1c770bb9ca5ca158c9beec4", "9d3fe9f762e0c6e4f114042147c50c7f",
               "c74fdd7c9938603b01e7ecf9fdf08d61", "870c7336db1102f80f74526bd5a7cf4e",
-              "3fd5354a6190903d6a0b661fe177daf6", "EA586FE5C31B38A547D18332141665E9",
+              "3fd5354a6190903d6a0b661fe177daf6", "02BB1B12EC2CD3D9E08706D177309B25",
           ];
 
     private static string[] Digests16x16 = [
@@ -96,7 +96,7 @@ public class Av1PredictorTests
               "bc05c46f18d0638f0228f1de64f07cd5", "204e613e429935f721a5b29cec7d44bb",
               "aa0a7c9a7482dfc06d9685072fc5bafd", "ffb60f090d83c624bb4f7dc3a630ac4f",
               "36bcb9ca9bb5eac520b050409de25da5", "34d9a5dd3363668391bc3bd05b468182",
-              "1e149c28db8b234e43931c347a523794", "DD9FCEB000F2B2F1F4910AE9856BCF4C",
+              "1e149c28db8b234e43931c347a523794", "1C0AF3C1B39A4C1866440D4C80A8CE8E",
           ];
 
     private static string[] Digests16x64 = [
@@ -104,7 +104,7 @@ public class Av1PredictorTests
               "12b0c69595328c465e0b25e0c9e3e9fc", "3b2a053ee8b05a8ac35ad23b0422a151",
               "f3be77c0fe67eb5d9d515e92bec21eb7", "f1ece6409e01e9dd98b800d49628247d",
               "efd2ec9bfbbd4fd1f6604ea369df1894", "ec703de918422b9e03197ba0ed60a199",
-              "739418efb89c07f700895deaa5d0b3e3", "AE9A0FBC3EB929B82E20E8C45001E7BE",
+              "739418efb89c07f700895deaa5d0b3e3", "272C2EAFEABCDA41F27EFBB48B938211",
           ];
 
     private static string[] Digests32x8 = [
@@ -112,7 +112,7 @@ public class Av1PredictorTests
               "79b799f1eb77d5189535dc4e18873a0e", "90e943adf3de4f913864dce4e52b4894",
               "5e1b9cc800a89ef45f5bdcc9e99e4e96", "3103405df20d254cbf32ac30872ead4b",
               "648550e369b77687bff3c7d6f249b02f", "f9f73bcd8aadfc059fa260325df957a1",
-              "204cef70d741c25d4fe2b1d10d2649a5", "8CB3C74FFFF9975F3DE5178311486350",
+              "204cef70d741c25d4fe2b1d10d2649a5", "A71D39B79759B44AF95E3C03D2D72C56",
           ];
 
     private static string[] Digests32x16 = [
@@ -120,7 +120,7 @@ public class Av1PredictorTests
               "6ad3bb37ebe8374b0a4c2d18fe3ebb6a", "08d3cfe7a1148bff55eb6166da3378c6",
               "656a722394764d17b6c42401b9e0ad3b", "4aa00c192102efeb325883737e562f0d",
               "9881a90ca88bca4297073e60b3bb771a", "8cd74aada398a3d770fc3ace38ecd311",
-              "0a927e3f5ff8e8338984172cc0653b13", "91ABCB84EB86746DEF31AF8F96BAA0CF",
+              "0a927e3f5ff8e8338984172cc0653b13", "B48D4391B5637D085F128C7137739400",
           ];
 
     private static string[] Digests32x32 = [
@@ -136,7 +136,7 @@ public class Av1PredictorTests
               "4e2a2cfd8f56f15939bdfc753145b303", "0ce332b343934b34cd4417725faa85cb",
               "1d2f8e48e3adb7c448be05d9f66f4954", "9fb2e176636a5689b26f73ca73fcc512",
               "e720ebccae7e25e36f23da53ae5b5d6a", "86fe4364734169aaa4520d799890d530",
-              "b1870290764bb1b100d1974e2bd70f1d", "B652BBE65C345A7153A1F3E1C801633F",
+              "b1870290764bb1b100d1974e2bd70f1d", "2579B3CD9B1252A282C79C36B47FA186",
           ];
 
     private static string[] Digests64x16 = [
@@ -144,7 +144,7 @@ public class Av1PredictorTests
               "69e462c3338a9aaf993c3f7cfbc15649", "821b76b1494d4f84d20817840f719a1a",
               "fd9b4276e7affe1e0e4ce4f428058994", "cd82fd361a4767ac29a9f406b480b8f3",
               "2792c2f810157a4a6cb13c28529ff779", "1220442d90c4255ba0969d28b91e93a6",
-              "c7253e10b45f7f67dfee3256c9b94825", "F0DC6EE8E9291452AC361E08AEB53DB5",
+              "c7253e10b45f7f67dfee3256c9b94825", "103DA3694F8D5C6F79CA854418F3E3F9",
           ];
 
     private static string[] Digests64x32 = [
@@ -152,7 +152,7 @@ public class Av1PredictorTests
               "538424b24bd0830f21788e7238ca762f", "a6c5aeb722615089efbca80b02951ceb",
               "12604b37875533665078405ef4582e35", "0048afa17bd3e1632d68b96048836530",
               "07a0cfcb56a5eed50c4bd6c26814336b", "529d8a070de5bc6531fa3ee8f450c233",
-              "33c50a11c7d78f72434064f634305e95", "28E560D9C16C5ED6055A66AB16EC6900",
+              "33c50a11c7d78f72434064f634305e95", "98BEB315BF0A9B734D4FB137FDE00DF4",
           ];
 
     private static string[] Digests64x64 = [

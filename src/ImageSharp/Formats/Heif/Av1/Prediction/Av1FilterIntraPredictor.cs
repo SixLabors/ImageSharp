@@ -8,17 +8,47 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
+/// <summary>
+/// Produces AV1 filter intra predictions from reconstructed neighboring samples.
+/// </summary>
+/// <remarks>
+/// The scalar prediction follows the filter intra prediction process in section 7.11.2.3 of the AV1 specification.
+/// </remarks>
 internal static class Av1FilterIntraPredictor
 {
+    /// <summary>
+    /// The row stride of the temporary prediction buffer.
+    /// </summary>
     private const int BufferStride = 33;
+
+    /// <summary>
+    /// The number of samples in the temporary prediction buffer.
+    /// </summary>
     private const int BufferLength = BufferStride * BufferStride;
+
+    /// <summary>
+    /// The number of nonzero filter coefficients used to predict each sample.
+    /// </summary>
     private const int TapsPerPixel = 7;
+
+    /// <summary>
+    /// The number of samples produced by each filter coefficient group.
+    /// </summary>
     private const int PixelsPerGroup = 8;
+
+    /// <summary>
+    /// The number of stored coefficients for each filter intra mode.
+    /// </summary>
     private const int TapsPerMode = TapsPerPixel * PixelsPerGroup;
 
-    // AV1 7.11.2.3 defines five sets of eight filters over the same seven
-    // already-reconstructed neighbors. The omitted eighth libaom tap is zero.
-    internal static readonly sbyte[] Taps =
+    /// <summary>
+    /// Gets the filter coefficients for the five AV1 filter intra modes.
+    /// </summary>
+    /// <remarks>
+    /// AV1 defines eight filters per mode over seven nonzero neighboring samples. The eighth coefficient used by
+    /// libaom is always zero, so it is omitted here to keep the scalar coefficient layout aligned with the work performed.
+    /// </remarks>
+    public static readonly sbyte[] Taps =
     [
 
         // DC
@@ -72,7 +102,16 @@ internal static class Av1FilterIntraPredictor
         -7, 0, 0, 1, 12, 1, 9,
     ];
 
-    internal static void Predict(
+    /// <summary>
+    /// Produces an 8-bit filter intra prediction for a transform block.
+    /// </summary>
+    /// <param name="destination">The buffer that receives the predicted samples.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="transformSize">The transform size that determines the prediction block dimensions.</param>
+    /// <param name="above">The reconstructed top reference samples.</param>
+    /// <param name="left">The reconstructed left reference samples.</param>
+    /// <param name="mode">The filter intra mode whose coefficient set is applied.</param>
+    public static void Predict(
         Span<byte> destination,
         nuint destinationStride,
         Av1TransformSize transformSize,
@@ -95,6 +134,8 @@ internal static class Av1FilterIntraPredictor
         ref byte leftRef = ref left[0];
 
         // Row zero includes the top-left sample followed by the top neighbors.
+        // Column zero stores the left neighbors so each 4-by-2 group can consume the
+        // seven already-reconstructed samples defined by the recursive AV1 process.
         bufferRef = Unsafe.Subtract(ref aboveRef, 1);
         above[..width].CopyTo(buffer[1..]);
         for (int row = 0; row < height; row++)

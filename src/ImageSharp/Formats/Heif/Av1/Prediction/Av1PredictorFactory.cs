@@ -6,8 +6,14 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
+/// <summary>
+/// Selects the scalar 8-bit or high-bit-depth AV1 intra predictor for a decoded prediction mode.
+/// </summary>
 internal class Av1PredictorFactory
 {
+    /// <summary>
+    /// The Q8 directional derivatives indexed by acute angle in degrees; zero entries represent angles AV1 does not signal.
+    /// </summary>
     private static readonly int[] DirectionalIntraDerivative = [
 
         // More evenly spread out angles and limited to 10-bit
@@ -43,7 +49,17 @@ internal class Av1PredictorFactory
         3,    0, 0,        // 87, ...
     ];
 
-    internal static void DcPredictor(bool hasLeft, bool hasAbove, Av1TransformSize transformSize, Span<byte> destination, nuint destinationStride, Span<byte> aboveRow, Span<byte> leftColumn)
+    /// <summary>
+    /// Predicts an 8-bit block from the average of whichever top and left neighbor edges are available.
+    /// </summary>
+    /// <param name="hasLeft">Whether the left neighboring column is available.</param>
+    /// <param name="hasAbove">Whether the top neighboring row is available.</param>
+    /// <param name="transformSize">The predicted block dimensions.</param>
+    /// <param name="destination">The destination block.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="aboveRow">The top neighboring samples.</param>
+    /// <param name="leftColumn">The left neighboring samples.</param>
+    public static void DcPredictor(bool hasLeft, bool hasAbove, Av1TransformSize transformSize, Span<byte> destination, nuint destinationStride, Span<byte> aboveRow, Span<byte> leftColumn)
     {
         if (hasLeft)
         {
@@ -69,13 +85,33 @@ internal class Av1PredictorFactory
         }
     }
 
-    internal static void DcPredictor(bool hasLeft, bool hasAbove, Av1TransformSize transformSize, Span<short> destination, nuint destinationStride, Span<short> aboveRow, Span<short> leftColumn, int bitDepth)
+    /// <summary>
+    /// Predicts a high-bit-depth block from the average of whichever top and left neighbor edges are available.
+    /// </summary>
+    /// <param name="hasLeft">Whether the left neighboring column is available.</param>
+    /// <param name="hasAbove">Whether the top neighboring row is available.</param>
+    /// <param name="transformSize">The predicted block dimensions.</param>
+    /// <param name="destination">The destination block.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="aboveRow">The top neighboring samples.</param>
+    /// <param name="leftColumn">The left neighboring samples.</param>
+    /// <param name="bitDepth">The coded sample bit depth used to select the midpoint when no edge is available.</param>
+    public static void DcPredictor(bool hasLeft, bool hasAbove, Av1TransformSize transformSize, Span<short> destination, nuint destinationStride, Span<short> aboveRow, Span<short> leftColumn, int bitDepth)
         => Av1HighBitDepthPredictor.DcPredictor(hasLeft, hasAbove, transformSize, destination, destinationStride, aboveRow, leftColumn, bitDepth);
 
     /// <summary>
-    /// SVT: svt_aom_highbd_dr_predictor
+    /// Predicts an 8-bit block by projecting reference-edge samples along a directional angle.
     /// </summary>
-    internal static void DirectionalPredictor(Span<byte> destination, nuint stride, Av1TransformSize transformSize, Span<byte> aboveRow, Span<byte> leftColumn, bool upsampleAbove, bool upsampleLeft, int angle)
+    /// <param name="destination">The destination block.</param>
+    /// <param name="stride">The distance, in samples, between destination rows.</param>
+    /// <param name="transformSize">The predicted block dimensions.</param>
+    /// <param name="aboveRow">The top and top-right reference samples.</param>
+    /// <param name="leftColumn">The left and bottom-left reference samples.</param>
+    /// <param name="upsampleAbove">Whether the top reference edge is stored at half-sample intervals.</param>
+    /// <param name="upsampleLeft">Whether the left reference edge is stored at half-sample intervals.</param>
+    /// <param name="angle">The prediction angle in degrees from 1 through 269.</param>
+    /// <remarks>SVT-AV1: <c>svt_aom_highbd_dr_predictor</c>.</remarks>
+    public static void DirectionalPredictor(Span<byte> destination, nuint stride, Av1TransformSize transformSize, Span<byte> aboveRow, Span<byte> leftColumn, bool upsampleAbove, bool upsampleLeft, int angle)
     {
         int dx = GetDeltaX(angle);
         int dy = GetDeltaY(angle);
@@ -83,6 +119,8 @@ internal class Av1PredictorFactory
         int bh = transformSize.GetHeight();
         Guard.MustBeBetweenOrEqualTo(angle, 1, 269, nameof(angle));
 
+        // The three open quadrants select which reference edge or edge pair the projected ray intersects.
+        // Exact 90- and 180-degree modes reduce to copying the top row or left column without interpolation.
         if (angle is > 0 and < 90)
         {
             Av1DirectionalZone1Predictor.PredictScalar(transformSize, destination, stride, aboveRow, upsampleAbove, dx);
@@ -105,16 +143,56 @@ internal class Av1PredictorFactory
         }
     }
 
-    internal static void DirectionalPredictor(Span<short> destination, nuint stride, Av1TransformSize transformSize, Span<short> aboveRow, Span<short> leftColumn, bool upsampleAbove, bool upsampleLeft, int angle, int bitDepth)
+    /// <summary>
+    /// Predicts a high-bit-depth block by projecting reference-edge samples along a directional angle.
+    /// </summary>
+    /// <param name="destination">The destination block.</param>
+    /// <param name="stride">The distance, in samples, between destination rows.</param>
+    /// <param name="transformSize">The predicted block dimensions.</param>
+    /// <param name="aboveRow">The top and top-right reference samples.</param>
+    /// <param name="leftColumn">The left and bottom-left reference samples.</param>
+    /// <param name="upsampleAbove">Whether the top reference edge is stored at half-sample intervals.</param>
+    /// <param name="upsampleLeft">Whether the left reference edge is stored at half-sample intervals.</param>
+    /// <param name="angle">The prediction angle in degrees from 1 through 269.</param>
+    /// <param name="bitDepth">The coded sample bit depth used to clamp interpolated values.</param>
+    public static void DirectionalPredictor(Span<short> destination, nuint stride, Av1TransformSize transformSize, Span<short> aboveRow, Span<short> leftColumn, bool upsampleAbove, bool upsampleLeft, int angle, int bitDepth)
         => Av1HighBitDepthPredictor.DirectionalPredictor(destination, stride, transformSize, aboveRow, leftColumn, upsampleAbove, upsampleLeft, angle, bitDepth);
 
-    internal static void FilterIntraPredictor(Span<byte> destination, nuint destinationStride, Av1TransformSize transformSize, Span<byte> aboveRow, Span<byte> leftColumn, Av1FilterIntraMode filterIntraMode)
+    /// <summary>
+    /// Predicts an 8-bit block using the selected AV1 filter-intra kernel.
+    /// </summary>
+    /// <param name="destination">The destination block.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="transformSize">The predicted block dimensions.</param>
+    /// <param name="aboveRow">The top neighboring samples.</param>
+    /// <param name="leftColumn">The left neighboring samples.</param>
+    /// <param name="filterIntraMode">The filter-intra coefficient set.</param>
+    public static void FilterIntraPredictor(Span<byte> destination, nuint destinationStride, Av1TransformSize transformSize, Span<byte> aboveRow, Span<byte> leftColumn, Av1FilterIntraMode filterIntraMode)
         => Av1FilterIntraPredictor.Predict(destination, destinationStride, transformSize, aboveRow, leftColumn, filterIntraMode);
 
-    internal static void FilterIntraPredictor(Span<short> destination, nuint destinationStride, Av1TransformSize transformSize, Span<short> aboveRow, Span<short> leftColumn, Av1FilterIntraMode filterIntraMode, int bitDepth)
+    /// <summary>
+    /// Predicts a high-bit-depth block using the selected AV1 filter-intra kernel.
+    /// </summary>
+    /// <param name="destination">The destination block.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="transformSize">The predicted block dimensions.</param>
+    /// <param name="aboveRow">The top neighboring samples.</param>
+    /// <param name="leftColumn">The left neighboring samples.</param>
+    /// <param name="filterIntraMode">The filter-intra coefficient set.</param>
+    /// <param name="bitDepth">The coded sample bit depth used to clamp filtered values.</param>
+    public static void FilterIntraPredictor(Span<short> destination, nuint destinationStride, Av1TransformSize transformSize, Span<short> aboveRow, Span<short> leftColumn, Av1FilterIntraMode filterIntraMode, int bitDepth)
         => Av1HighBitDepthPredictor.FilterIntraPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, filterIntraMode, bitDepth);
 
-    internal static void GeneralPredictor(Av1PredictionMode mode, Av1TransformSize transformSize, Span<byte> destination, nuint destinationStride, Span<byte> aboveRow, Span<byte> leftColumn)
+    /// <summary>
+    /// Selects an 8-bit horizontal, vertical, Paeth, or smooth predictor for a non-directional mode.
+    /// </summary>
+    /// <param name="mode">The non-directional prediction mode.</param>
+    /// <param name="transformSize">The predicted block dimensions.</param>
+    /// <param name="destination">The destination block.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="aboveRow">The top neighboring samples.</param>
+    /// <param name="leftColumn">The left neighboring samples.</param>
+    public static void GeneralPredictor(Av1PredictionMode mode, Av1TransformSize transformSize, Span<byte> destination, nuint destinationStride, Span<byte> aboveRow, Span<byte> leftColumn)
     {
         switch (mode)
         {
@@ -139,14 +217,24 @@ internal class Av1PredictorFactory
         }
     }
 
-    internal static void GeneralPredictor(Av1PredictionMode mode, Av1TransformSize transformSize, Span<short> destination, nuint destinationStride, Span<short> aboveRow, Span<short> leftColumn)
+    /// <summary>
+    /// Selects a high-bit-depth horizontal, vertical, Paeth, or smooth predictor for a non-directional mode.
+    /// </summary>
+    /// <param name="mode">The non-directional prediction mode.</param>
+    /// <param name="transformSize">The predicted block dimensions.</param>
+    /// <param name="destination">The destination block.</param>
+    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
+    /// <param name="aboveRow">The top neighboring samples.</param>
+    /// <param name="leftColumn">The left neighboring samples.</param>
+    public static void GeneralPredictor(Av1PredictionMode mode, Av1TransformSize transformSize, Span<short> destination, nuint destinationStride, Span<short> aboveRow, Span<short> leftColumn)
         => Av1HighBitDepthPredictor.GeneralPredictor(mode, transformSize, destination, destinationStride, aboveRow, leftColumn);
 
-    // Get the shift (up-scaled by 256) in Y w.r.t a unit change in X.
-    // If angle > 0 && angle < 90, dy = 1;
-    // If angle > 90 && angle < 180, dy = (int32_t)(256 * t);
-    // If angle > 180 && angle < 270, dy = -((int32_t)(256 * t));
-    internal static int GetDeltaY(int angle)
+    /// <summary>
+    /// Gets the Q8 vertical displacement per unit horizontal displacement for a directional angle.
+    /// </summary>
+    /// <param name="angle">The prediction angle in degrees.</param>
+    /// <returns>The Q8 vertical derivative, or one when the selected directional zone does not consume it.</returns>
+    public static int GetDeltaY(int angle)
     {
         if (angle is > 90 and < 180)
         {
@@ -158,16 +246,17 @@ internal class Av1PredictorFactory
         }
         else
         {
-            // In this case, we are not really going to use dy. We may return any value.
+            // Zones one and the exact horizontal/vertical modes never consume dy; one avoids a zero placeholder.
             return 1;
         }
     }
 
-    // Get the shift (up-scaled by 256) in X w.r.t a unit change in Y.
-    // If angle > 0 && angle < 90, dx = -((int32_t)(256 / t));
-    // If angle > 90 && angle < 180, dx = (int32_t)(256 / t);
-    // If angle > 180 && angle < 270, dx = 1;
-    internal static int GetDeltaX(int angle)
+    /// <summary>
+    /// Gets the Q8 horizontal displacement per unit vertical displacement for a directional angle.
+    /// </summary>
+    /// <param name="angle">The prediction angle in degrees.</param>
+    /// <returns>The Q8 horizontal derivative, or one when the selected directional zone does not consume it.</returns>
+    public static int GetDeltaX(int angle)
     {
         if (angle is > 0 and < 90)
         {
@@ -179,7 +268,7 @@ internal class Av1PredictorFactory
         }
         else
         {
-            // In this case, we are not really going to use dx. We may return any value.
+            // Zone three and the exact horizontal/vertical modes never consume dx; one avoids a zero placeholder.
             return 1;
         }
     }

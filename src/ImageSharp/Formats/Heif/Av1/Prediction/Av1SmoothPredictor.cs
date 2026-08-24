@@ -6,12 +6,22 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
+/// <summary>
+/// Predicts an 8-bit AV1 block by blending top-to-bottom and left-to-right smooth interpolation surfaces.
+/// </summary>
 internal class Av1SmoothPredictor : IAv1Predictor
 {
     // Weights are quadratic from '1' to '1 / BlockSize', scaled by
     // 2^sm_weight_log2_scale.
+
+    /// <summary>
+    /// The number of fractional bits in the normative smooth-prediction weights.
+    /// </summary>
     internal static readonly int WeightLog2Scale = 8;
 
+    /// <summary>
+    /// The concatenated smooth-weight sequences, addressed by using the block dimension as the sequence offset.
+    /// </summary>
     internal static readonly int[] Weights = [
 
         // Unused, because we always offset by bs, which is at least 2.
@@ -40,27 +50,49 @@ internal class Av1SmoothPredictor : IAv1Predictor
         13, 12, 10, 9, 8, 7, 6, 6, 5, 5, 4, 4, 4,
     ];
 
+    /// <summary>
+    /// The number of top samples consumed and samples written to each destination row.
+    /// </summary>
     private readonly nuint blockWidth;
+
+    /// <summary>
+    /// The number of left samples consumed and destination rows written.
+    /// </summary>
     private readonly nuint blockHeight;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1SmoothPredictor"/> class for explicit block dimensions.
+    /// </summary>
+    /// <param name="blockSize">The predicted block dimensions in samples.</param>
     public Av1SmoothPredictor(Size blockSize)
     {
         this.blockWidth = (nuint)blockSize.Width;
         this.blockHeight = (nuint)blockSize.Height;
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1SmoothPredictor"/> class for a transform size.
+    /// </summary>
+    /// <param name="transformSize">The transform size whose dimensions define the predicted block.</param>
     public Av1SmoothPredictor(Av1TransformSize transformSize)
     {
         this.blockWidth = (nuint)transformSize.GetWidth();
         this.blockHeight = (nuint)transformSize.GetHeight();
     }
 
+    /// <summary>
+    /// Predicts a transform block by combining horizontal and vertical smooth interpolation.
+    /// </summary>
+    /// <param name="transformSize">The predicted block dimensions.</param>
+    /// <param name="destination">The destination block.</param>
+    /// <param name="stride">The distance, in samples, between destination rows.</param>
+    /// <param name="above">The top neighboring samples.</param>
+    /// <param name="left">The left neighboring samples.</param>
     public static void PredictScalar(Av1TransformSize transformSize, Span<byte> destination, nuint stride, Span<byte> above, Span<byte> left)
         => new Av1SmoothPredictor(transformSize).PredictScalar(destination, stride, above, left);
 
-    /// <summary>
-    /// SVT: highbd_smooth_predictor
-    /// </summary>
+    /// <inheritdoc/>
+    /// <remarks>SVT-AV1: <c>highbd_smooth_predictor</c>.</remarks>
     public void PredictScalar(Span<byte> destination, nuint stride, Span<byte> above, Span<byte> left)
     {
         Guard.MustBeGreaterThanOrEqualTo(stride, this.blockWidth, nameof(stride));
@@ -72,10 +104,10 @@ internal class Av1SmoothPredictor : IAv1Predictor
         ref byte destinationRef = ref destination[0];
         int belowPrediction = Unsafe.Add(ref leftRef, this.blockHeight - 1); // estimated by bottom-left pixel
         int rightPrediction = Unsafe.Add(ref aboveRef, this.blockWidth - 1); // estimated by top-right pixel
-        ref int heightWeights = ref Weights[(int)this.blockWidth];
-        ref int widthWeights = ref Weights[(int)this.blockHeight];
+        ref int heightWeights = ref Weights[(int)this.blockHeight];
+        ref int widthWeights = ref Weights[(int)this.blockWidth];
 
-        // scale = 2 * 2^sm_weight_log2_scale
+        // The two independent interpolation surfaces each use Q8 weights, so their combined sum has one extra scale bit.
         int log2Scale = 1 + WeightLog2Scale;
         int scale = 1 << WeightLog2Scale;
 
@@ -88,6 +120,8 @@ internal class Av1SmoothPredictor : IAv1Predictor
             {
                 int columnWeight = Unsafe.Add(ref widthWeights, c);
                 Guard.MustBeGreaterThanOrEqualTo(scale, columnWeight, nameof(scale));
+
+                // Blend top toward bottom-left and left toward top-right, then normalize their combined Q8 contributions.
                 int thisPredition = Unsafe.Add(ref aboveRef, c) * rowWeight;
                 thisPredition += belowPrediction * (scale - rowWeight);
                 thisPredition += Unsafe.Add(ref leftRef, r) * columnWeight;

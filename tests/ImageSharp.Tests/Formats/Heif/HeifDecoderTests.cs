@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -10,6 +11,8 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 [ValidateDisposedMemoryAllocations]
 public class HeifDecoderTests
 {
+    private const uint UnknownBoxType = 0x74657374U;
+
     [Theory]
     [InlineData(TestImages.Heif.Image1, HeifCompressionMethod.Hevc, 3992, 2992)]
     [InlineData(TestImages.Heif.Sample640x427, HeifCompressionMethod.Hevc, 640, 428)]
@@ -41,5 +44,129 @@ public class HeifDecoderTests
 
         image.CompareToReferenceOutput(provider);
         Assert.Equal(HeifCompressionMethod.LegacyJpeg, heicMetadata.CompressionMethod);
+    }
+
+    [Fact]
+    public void DecodeIgnoresUnknownTopLevelBox()
+    {
+        byte[] data = CreateEncodedContainer();
+        data = InsertBytes(data, data.Length, CreateUnknownBox());
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(data);
+
+        Assert.Equal(new Size(2, 3), image.Size);
+    }
+
+    [Fact]
+    public void IdentifyIgnoresUnknownMetadataBox()
+    {
+        byte[] data = CreateEncodedContainer();
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
+        data = InsertBytes(data, metaOffset + metaSize, CreateUnknownBox());
+        IncrementBoxSize(data, metaOffset, 8);
+
+        ImageInfo imageInfo = Image.Identify(data);
+
+        Assert.Equal(new Size(2, 3), imageInfo.Size);
+    }
+
+    [Fact]
+    public void IdentifyIgnoresUnknownNonEssentialProperty()
+    {
+        byte[] data = CreateContainerWithUnknownProperty(false);
+
+        ImageInfo imageInfo = Image.Identify(data);
+
+        Assert.Equal(new Size(2, 3), imageInfo.Size);
+    }
+
+    [Fact]
+    public void IdentifyRejectsUnknownEssentialProperty()
+    {
+        byte[] data = CreateContainerWithUnknownProperty(true);
+
+        InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
+
+        Assert.Contains("essential", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static byte[] CreateEncodedContainer()
+    {
+        using Image<Rgba32> image = new(2, 3);
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder());
+        return stream.ToArray();
+    }
+
+    private static byte[] CreateContainerWithUnknownProperty(bool essential)
+    {
+        byte[] data = CreateEncodedContainer();
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
+        int iprpOffset = FindBoxOffset(data, Heif4CharCode.Iprp, metaOffset + 12, metaSize - 12);
+        int iprpSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(iprpOffset));
+        int ipcoOffset = FindBoxOffset(data, Heif4CharCode.Ipco, iprpOffset + 8, iprpSize - 8);
+        int ipcoSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(ipcoOffset));
+        int ipmaOffset = FindBoxOffset(data, Heif4CharCode.Ipma, iprpOffset + 8, iprpSize - 8);
+
+        // Insert the property before ipma so its one-based index is 2 and all parent box sizes remain explicit.
+        data = InsertBytes(data, ipcoOffset + ipcoSize, CreateUnknownBox());
+        IncrementBoxSize(data, metaOffset, 8);
+        IncrementBoxSize(data, iprpOffset, 8);
+        IncrementBoxSize(data, ipcoOffset, 8);
+        ipmaOffset += 8;
+
+        // The generated container has one item with one property association; append the unknown property to that entry.
+        int associationCountOffset = ipmaOffset + 18;
+        data[associationCountOffset]++;
+        int associationOffset = ipmaOffset + (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(ipmaOffset));
+        byte association = (byte)(2 | (essential ? 0x80 : 0));
+        data = InsertBytes(data, associationOffset, new byte[] { association });
+        IncrementBoxSize(data, metaOffset, 1);
+        IncrementBoxSize(data, iprpOffset, 1);
+        IncrementBoxSize(data, ipmaOffset, 1);
+        return data;
+    }
+
+    private static byte[] CreateUnknownBox()
+    {
+        byte[] box = new byte[8];
+        BinaryPrimitives.WriteUInt32BigEndian(box, (uint)box.Length);
+        BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), UnknownBoxType);
+        return box;
+    }
+
+    private static int FindBoxOffset(ReadOnlySpan<byte> data, Heif4CharCode type, int offset, int length)
+    {
+        int endOffset = offset + length;
+        while (offset < endOffset)
+        {
+            int boxSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data[offset..]);
+            Heif4CharCode boxType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(data[(offset + 4)..]);
+            if (boxType == type)
+            {
+                return offset;
+            }
+
+            offset += boxSize;
+        }
+
+        return -1;
+    }
+
+    private static byte[] InsertBytes(byte[] data, int offset, ReadOnlySpan<byte> inserted)
+    {
+        byte[] result = new byte[data.Length + inserted.Length];
+        data.AsSpan(0, offset).CopyTo(result);
+        inserted.CopyTo(result.AsSpan(offset));
+        data.AsSpan(offset).CopyTo(result.AsSpan(offset + inserted.Length));
+        return result;
+    }
+
+    private static void IncrementBoxSize(byte[] data, int offset, int increment)
+    {
+        uint size = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(offset));
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(offset), size + (uint)increment);
     }
 }

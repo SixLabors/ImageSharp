@@ -19,6 +19,8 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// </summary>
 internal sealed class HeifDecoderCore : ImageDecoderCore
 {
+    private static readonly object UnknownProperty = new();
+
     /// <summary>
     /// The general configuration.
     /// </summary>
@@ -81,7 +83,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     stream.Skip((int)(stream.Length - stream.Position));
                     break;
                 default:
-                    throw new ImageFormatException($"Unknown box type of '{PrettyPrint(boxType)}'");
+                    SkipBox(stream, boxLength);
+                    break;
             }
         }
 
@@ -245,7 +248,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     SkipBox(stream, length);
                     break;
                 default:
-                    throw new ImageFormatException($"Unknown metadata box type of '{PrettyPrint(boxType)}'");
+                    SkipBox(stream, length);
+                    break;
             }
         }
     }
@@ -484,7 +488,9 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     properties.Add(new KeyValuePair<Heif4CharCode, object>(itemType, new object()));
                     break;
                 default:
-                    throw new ImageFormatException($"Unknown item type in property box of '{PrettyPrint(itemType)}'");
+                    // Unknown properties still occupy an ipco index and become an error only when marked essential.
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(itemType, UnknownProperty));
+                    break;
             }
         }
     }
@@ -546,6 +552,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 }
 
                 KeyValuePair<Heif4CharCode, object> prop = properties[(int)propertyIndex];
+                if (essential && ReferenceEquals(prop.Value, UnknownProperty))
+                {
+                    throw new InvalidImageContentException($"Item {itemId} associates unknown essential property '{PrettyPrint(prop.Key)}'.");
+                }
+
                 switch (prop.Key)
                 {
                     case Heif4CharCode.Ispe:

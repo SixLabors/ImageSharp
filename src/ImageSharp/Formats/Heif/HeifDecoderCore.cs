@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Heif;
 
@@ -202,16 +203,22 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="item">The primary item whose visible representation is being identified.</param>
     private void UpdateMetadata(ImageMetadata metadata, HeifItem item)
     {
+        HeifItem presentationItem = item;
         HeifItem metadataItem = item;
         if (item.Type == Heif4CharCode.Grid)
         {
             // A grid is a derived image rather than a compression method. Its dimg references identify the coded
             // tile items whose decoder determines the compression reported for the primary presentation.
-            metadataItem = this.FindDecodableGridTile<Rgba32>(item) ?? this.FindDecodableThumbnail<Rgba32>(item) ?? item;
+            HeifItem? gridTile = this.FindDecodableGridTile<Rgba32>(item);
+            HeifItem? thumbnail = gridTile is null ? this.FindDecodableThumbnail<Rgba32>(item) : null;
+            metadataItem = gridTile ?? thumbnail ?? item;
+            presentationItem = thumbnail ?? item;
         }
         else if (HeifCompressionFactory.GetDecoder<Rgba32>(item.Type) is null)
         {
-            metadataItem = this.FindDecodableThumbnail<Rgba32>(item) ?? item;
+            HeifItem? thumbnail = this.FindDecodableThumbnail<Rgba32>(item);
+            metadataItem = thumbnail ?? item;
+            presentationItem = thumbnail ?? item;
         }
 
         HeifMetadata meta = metadata.GetHeifMetadata();
@@ -226,6 +233,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         }
 
         meta.CompressionMethod = compressionMethod;
+        meta.HasAlpha = this.FindAlphaItem(presentationItem) is not null
+            || (presentationItem.Type == Heif4CharCode.Grid && this.FindGridAlphaTiles(presentationItem) is not null);
     }
 
     /// <summary>
@@ -772,9 +781,14 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     EnsureBufferRemaining(boxBuffer, 0, 12, "image spatial extents");
 
                     // The full-box header precedes the unsigned display width and height.
-                    int width = (int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[4..]);
-                    int height = (int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[8..]);
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Ispe, new Size(width, height)));
+                    uint width = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[4..]);
+                    uint height = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[8..]);
+                    if (width is 0 or > int.MaxValue || height is 0 or > int.MaxValue)
+                    {
+                        throw new InvalidImageContentException("The image spatial extents property has invalid dimensions.");
+                    }
+
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Ispe, new Size((int)width, (int)height)));
                     break;
                 case Heif4CharCode.Pasp:
                     EnsureBufferRemaining(boxBuffer, 0, 8, "pixel aspect ratio");
@@ -797,6 +811,18 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                     properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Pixi, new int[] { channelCount, bitsPerPixel }));
 
+                    break;
+                case Heif4CharCode.AuxC:
+                    EnsureBufferRemaining(boxBuffer, 0, 5, "auxiliary type");
+                    if (boxBuffer[0] != 0)
+                    {
+                        throw new InvalidImageContentException($"The auxiliary type property has unsupported version {boxBuffer[0]}.");
+                    }
+
+                    // aux_type is a required null-terminated string. Any remaining bytes are the registered
+                    // auxiliary subtype payload, which is not needed to identify an alpha image plane.
+                    string auxiliaryType = ReadNullTerminatedString(boxBuffer[4..], out _);
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.AuxC, auxiliaryType));
                     break;
                 case Heif4CharCode.Colr:
                     EnsureBufferRemaining(boxBuffer, 0, 4, "color information");
@@ -925,6 +951,14 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         int[] values = (int[])prop.Value;
                         item.ChannelCount = values[0];
                         item.BitsPerPixel = values[1];
+                        break;
+                    case Heif4CharCode.AuxC:
+                        if (item.AuxiliaryType is not null)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates more than one auxiliary type property.");
+                        }
+
+                        item.AuxiliaryType = (string)prop.Value;
                         break;
                 }
             }
@@ -1195,10 +1229,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             throw new ImageFormatException("No primary HEIF item defined.");
         }
 
-        IHeifItemDecoder<TPixel>? itemDecoder = rootItem.Type == Heif4CharCode.Grid
-            && this.FindDecodableGridTile<TPixel>(rootItem) is not null
-                ? new GridHeifItemDecoder<TPixel>(this.configuration, this.items, this.itemLinks, buffers)
-                : HeifCompressionFactory.GetDecoder<TPixel>(rootItem.Type);
+        IHeifItemDecoder<TPixel>? itemDecoder = this.GetItemDecoder<TPixel>(rootItem, buffers);
 
         HeifItem itemToDecode = rootItem;
         if (itemDecoder is null)
@@ -1217,18 +1248,178 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             throw new ImageFormatException("No decodable item found inside this HEIF container.");
         }
 
-        if (!buffers.TryGetValue(itemToDecode.Id, out IMemoryOwner<byte>? itemMemory))
+        Image<TPixel> image = this.DecodeImageItem(itemToDecode, itemDecoder, buffers);
+        try
         {
-            throw new InvalidImageContentException($"Item {itemToDecode.Id} has no data extents.");
+            using Image<L16>? alphaImage = this.DecodeAlphaPlane(itemToDecode, buffers, out bool alphaPremultiplied);
+            if (alphaImage is not null)
+            {
+                this.ApplyAlpha(image, alphaImage, alphaPremultiplied);
+            }
+
+            // The decoder determines the compression of the pixels that were actually returned, including grid tiles
+            // and a thumbnail fallback when the primary image compression is not available.
+            HeifMetadata meta = image.Metadata.GetHeifMetadata();
+            meta.CompressionMethod = itemDecoder.CompressionMethod;
+            meta.HasAlpha = alphaImage is not null;
+            return image;
+        }
+        catch
+        {
+            // Ownership transfers to the caller only after every auxiliary plane has been composed successfully.
+            image.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Selects the registered coded-image or grid decoder for an image item.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="item">The coded or derived image item.</param>
+    /// <param name="buffers">The assembled payloads available to a grid decoder and its tiles.</param>
+    /// <returns>The selected decoder, or <see langword="null"/> when the item cannot be reconstructed.</returns>
+    private IHeifItemDecoder<TPixel>? GetItemDecoder<TPixel>(HeifItem item, DisposableDictionary<uint, IMemoryOwner<byte>> buffers)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => item.Type == Heif4CharCode.Grid && this.FindDecodableGridTile<TPixel>(item) is not null
+            ? new GridHeifItemDecoder<TPixel>(this.configuration, this.items, this.itemLinks, buffers)
+            : HeifCompressionFactory.GetDecoder<TPixel>(item.Type);
+
+    /// <summary>
+    /// Decodes one image item from its assembled payload.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
+    /// <param name="item">The image item to decode.</param>
+    /// <param name="decoder">The decoder selected for the item.</param>
+    /// <param name="buffers">The assembled item payloads.</param>
+    /// <returns>The decoded image.</returns>
+    private Image<TPixel> DecodeImageItem<TPixel>(
+        HeifItem item,
+        IHeifItemDecoder<TPixel> decoder,
+        DisposableDictionary<uint, IMemoryOwner<byte>> buffers)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (!buffers.TryGetValue(item.Id, out IMemoryOwner<byte>? itemMemory))
+        {
+            throw new InvalidImageContentException($"Item {item.Id} has no data extents.");
         }
 
-        Image<TPixel> image = itemDecoder.DecodeItemData(this.configuration, itemToDecode, itemMemory.GetSpan());
+        Image<TPixel> image = decoder.DecodeItemData(this.configuration, item, itemMemory.GetSpan());
+        try
+        {
+            HeifItemDecoderUtilities.ScaleToItemExtent(image, item);
+            return image;
+        }
+        catch
+        {
+            image.Dispose();
+            throw;
+        }
+    }
 
-        // The decoder determines the compression of the pixels that were actually returned, including grid tiles
-        // and a thumbnail fallback when the primary image compression is not available.
-        HeifMetadata meta = image.Metadata.GetHeifMetadata();
-        meta.CompressionMethod = itemDecoder.CompressionMethod;
-        return image;
+    /// <summary>
+    /// Decodes the direct or per-grid-tile alpha auxiliary plane associated with a color image item.
+    /// </summary>
+    /// <param name="colorItem">The color image item whose alpha plane is requested.</param>
+    /// <param name="buffers">The assembled item payloads.</param>
+    /// <param name="premultiplied">Indicates whether the color samples are premultiplied by the decoded alpha.</param>
+    /// <returns>The normalized 16-bit alpha plane, or <see langword="null"/> when the item has no alpha auxiliary.</returns>
+    private Image<L16>? DecodeAlphaPlane(
+        HeifItem colorItem,
+        DisposableDictionary<uint, IMemoryOwner<byte>> buffers,
+        out bool premultiplied)
+    {
+        premultiplied = false;
+        HeifItem? alphaItem = this.FindAlphaItem(colorItem);
+        if (alphaItem is not null)
+        {
+            IHeifItemDecoder<L16>? decoder = this.GetItemDecoder<L16>(alphaItem, buffers);
+            if (decoder is null)
+            {
+                throw new ImageFormatException($"The alpha auxiliary item uses unsupported item type '{alphaItem.Type}'.");
+            }
+
+            premultiplied = this.itemLinks.Any(
+                link => link.Type == Heif4CharCode.Prem
+                    && link.SourceId == colorItem.Id
+                    && link.DestinationIds.Contains(alphaItem.Id));
+
+            return this.DecodeImageItem(alphaItem, decoder, buffers);
+        }
+
+        if (colorItem.Type != Heif4CharCode.Grid)
+        {
+            return null;
+        }
+
+        List<uint>? alphaTileIds = this.FindGridAlphaTiles(colorItem);
+        if (alphaTileIds is null)
+        {
+            return null;
+        }
+
+        if (!buffers.TryGetValue(colorItem.Id, out IMemoryOwner<byte>? gridMemory))
+        {
+            throw new InvalidImageContentException($"Item {colorItem.Id} has no data extents.");
+        }
+
+        // The color grid descriptor defines the same row/column layout and output canvas for per-tile alpha
+        // auxiliaries. Supplying their IDs lets the existing grid compositor preserve that normative ordering.
+        GridHeifItemDecoder<L16> gridDecoder = new(
+            this.configuration,
+            this.items,
+            this.itemLinks,
+            buffers,
+            alphaTileIds);
+
+        return gridDecoder.DecodeItemData(this.configuration, colorItem, gridMemory.GetSpan());
+    }
+
+    /// <summary>
+    /// Composes a normalized alpha plane into a decoded color image.
+    /// </summary>
+    /// <typeparam name="TPixel">The decoded color pixel format.</typeparam>
+    /// <param name="image">The decoded color image.</param>
+    /// <param name="alphaImage">The normalized 16-bit alpha plane.</param>
+    /// <param name="premultiplied">Whether the stored color values must be converted to unassociated alpha.</param>
+    private void ApplyAlpha<TPixel>(Image<TPixel> image, Image<L16> alphaImage, bool premultiplied)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (alphaImage.Width != image.Width || alphaImage.Height != image.Height)
+        {
+            // HEIF permits auxiliary alpha dimensions to differ from the master image. libavif uses a box filter
+            // for this plane scaling, which maps directly to ImageSharp's existing resampler.
+            alphaImage.Mutate(context => context.Resize(image.Width, image.Height, KnownResamplers.Box));
+        }
+
+        using IMemoryOwner<Rgba64> rowOwner = this.configuration.MemoryAllocator.Allocate<Rgba64>(image.Width);
+        Span<Rgba64> rgbaRow = rowOwner.GetSpan()[..image.Width];
+        PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
+        ImageFrame<TPixel> colorFrame = image.Frames.RootFrame;
+        ImageFrame<L16> alphaFrame = alphaImage.Frames.RootFrame;
+        for (int y = 0; y < image.Height; y++)
+        {
+            Span<TPixel> colorRow = colorFrame.PixelBuffer.DangerousGetRowSpan(y);
+            Span<L16> alphaRow = alphaFrame.PixelBuffer.DangerousGetRowSpan(y);
+            pixelOperations.ToRgba64(this.configuration, colorRow, rgbaRow);
+            for (int x = 0; x < image.Width; x++)
+            {
+                Rgba64 pixel = rgbaRow[x];
+                pixel.A = alphaRow[x].PackedValue;
+                if (premultiplied)
+                {
+                    // libavif defines transparent premultiplied samples as transparent black. For nonzero alpha,
+                    // reuse the packed pixel's associated-input conversion so clamping and rounding follow ImageSharp.
+                    pixel = pixel.A == 0
+                        ? new Rgba64(0, 0, 0, 0)
+                        : Rgba64.FromAssociatedScaledVector4(pixel.ToScaledVector4());
+                }
+
+                rgbaRow[x] = pixel;
+            }
+
+            pixelOperations.FromRgba64(this.configuration, rgbaRow, colorRow);
+        }
     }
 
     /// <summary>
@@ -1306,6 +1497,87 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <returns>The matching item, or <see langword="null"/> when it has not been declared.</returns>
     private HeifItem? FindItemById(uint itemId)
         => this.items.FirstOrDefault(item => item.Id == itemId);
+
+    /// <summary>
+    /// Finds the alpha auxiliary image linked to a color image item.
+    /// </summary>
+    /// <param name="colorItem">The color image item.</param>
+    /// <returns>The alpha auxiliary item, or <see langword="null"/> when no registered alpha relationship exists.</returns>
+    private HeifItem? FindAlphaItem(HeifItem colorItem)
+    {
+        HeifItem? alphaItem = null;
+        foreach (HeifItemLink link in this.itemLinks)
+        {
+            if (link.Type != Heif4CharCode.Auxl || !link.DestinationIds.Contains(colorItem.Id))
+            {
+                continue;
+            }
+
+            HeifItem candidate = this.FindItemById(link.SourceId)!;
+            if (!HeifConstants.IsAlphaAuxiliaryType(candidate.AuxiliaryType))
+            {
+                continue;
+            }
+
+            if (alphaItem is not null && alphaItem.Id != candidate.Id)
+            {
+                throw new InvalidImageContentException($"Item {colorItem.Id} has more than one alpha auxiliary image.");
+            }
+
+            alphaItem = candidate;
+        }
+
+        return alphaItem;
+    }
+
+    /// <summary>
+    /// Resolves one alpha auxiliary image for each tile of a color grid.
+    /// </summary>
+    /// <param name="gridItem">The color grid whose tile order defines the alpha grid.</param>
+    /// <returns>
+    /// The row-major alpha tile identifiers, or <see langword="null"/> when any color tile has no alpha auxiliary.
+    /// </returns>
+    private List<uint>? FindGridAlphaTiles(HeifItem gridItem)
+    {
+        List<uint> colorTileIds = [];
+        foreach (HeifItemLink link in this.itemLinks)
+        {
+            if (link.Type == Heif4CharCode.Dimg && link.SourceId == gridItem.Id)
+            {
+                colorTileIds.AddRange(link.DestinationIds);
+            }
+        }
+
+        if (colorTileIds.Count == 0)
+        {
+            return null;
+        }
+
+        List<uint> alphaTileIds = new(colorTileIds.Count);
+        foreach (uint colorTileId in colorTileIds)
+        {
+            HeifItem colorTile = this.FindItemById(colorTileId)!;
+            HeifItem? alphaTile = this.FindAlphaItem(colorTile);
+            if (alphaTile is null)
+            {
+                // A partial set cannot describe an alpha plane for the complete grid. libavif treats this case as
+                // an opaque image rather than mixing opaque cells with auxiliary alpha cells.
+                return null;
+            }
+
+            bool alphaIsDerivedTile = this.itemLinks.Any(
+                link => link.Type == Heif4CharCode.Dimg && link.DestinationIds.Contains(alphaTile.Id));
+
+            if (alphaIsDerivedTile)
+            {
+                throw new InvalidImageContentException($"Alpha auxiliary item {alphaTile.Id} is already a derived-image tile.");
+            }
+
+            alphaTileIds.Add(alphaTile.Id);
+        }
+
+        return alphaTileIds;
+    }
 
     /// <summary>
     /// Finds the first tile of a grid when every referenced tile uses a registered still-image decoder.

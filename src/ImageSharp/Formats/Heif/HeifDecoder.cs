@@ -45,5 +45,5 @@ public sealed class HeifDecoder : ImageDecoder
 
     /// <inheritdoc />
     protected override Image Decode(DecoderOptions options, Stream stream, CancellationToken cancellationToken)
-        => this.Decode<Rgb24>(options, stream, cancellationToken);
+        => this.Decode<Rgba32>(options, stream, cancellationToken);
 }

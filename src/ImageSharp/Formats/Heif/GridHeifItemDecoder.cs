@@ -37,18 +37,32 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
     private readonly IDictionary<uint, IMemoryOwner<byte>> buffers;
 
     /// <summary>
+    /// The optional row-major tile identifiers supplied for an auxiliary grid plane.
+    /// </summary>
+    private readonly IReadOnlyList<uint>? tileItemIds;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="GridHeifItemDecoder{TPixel}"/> class.
     /// </summary>
     /// <param name="configuration">The configuration used to decode compressed grid tiles.</param>
     /// <param name="items">The item definitions in the containing HEIF file.</param>
     /// <param name="itemLinks">The item-reference relationships in the containing HEIF file.</param>
     /// <param name="buffers">The assembled encoded payload for each image item.</param>
-    public GridHeifItemDecoder(Configuration configuration, IList<HeifItem> items, IList<HeifItemLink> itemLinks, IDictionary<uint, IMemoryOwner<byte>> buffers)
+    /// <param name="tileItemIds">
+    /// Optional row-major tile identifiers that replace the grid item's own derived-image references.
+    /// </param>
+    public GridHeifItemDecoder(
+        Configuration configuration,
+        IList<HeifItem> items,
+        IList<HeifItemLink> itemLinks,
+        IDictionary<uint, IMemoryOwner<byte>> buffers,
+        IReadOnlyList<uint>? tileItemIds = null)
     {
         this.configuration = configuration;
         this.items = items;
         this.itemLinks = itemLinks;
         this.buffers = buffers;
+        this.tileItemIds = tileItemIds;
     }
 
     /// <summary>
@@ -109,13 +123,16 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
             throw new InvalidImageContentException("The HEIF image grid descriptor has invalid output dimensions.");
         }
 
-        List<uint> linked = [];
-        foreach (HeifItemLink link in this.itemLinks)
+        List<uint> linked = this.tileItemIds is null ? [] : new(this.tileItemIds);
+        if (this.tileItemIds is null)
         {
-            if (link.Type == Heif4CharCode.Dimg && link.SourceId == gridItem.Id)
+            foreach (HeifItemLink link in this.itemLinks)
             {
-                // The order of dimg destinations is the normative row-major order of the grid cells.
-                linked.AddRange(link.DestinationIds);
+                if (link.Type == Heif4CharCode.Dimg && link.SourceId == gridItem.Id)
+                {
+                    // The order of dimg destinations is the normative row-major order of the grid cells.
+                    linked.AddRange(link.DestinationIds);
+                }
             }
         }
 
@@ -154,7 +171,17 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
             }
 
             this.CompressionMethod = decoder.CompressionMethod;
-            gridTiles.Add(decoder.DecodeItemData(this.configuration, item, itemMemory.GetSpan()));
+            Image<TPixel> tile = decoder.DecodeItemData(this.configuration, item, itemMemory.GetSpan());
+            try
+            {
+                HeifItemDecoderUtilities.ScaleToItemExtent(tile, item);
+                gridTiles.Add(tile);
+            }
+            catch
+            {
+                tile.Dispose();
+                throw;
+            }
         }
 
         Image<TPixel> firstTile = gridTiles[0];

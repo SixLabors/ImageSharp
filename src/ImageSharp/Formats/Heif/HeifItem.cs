@@ -46,6 +46,11 @@ internal class HeifItem(Heif4CharCode type, uint id)
     public string? UriType { get; set; }
 
     /// <summary>
+    /// Gets or sets the registered auxiliary type associated with this image item.
+    /// </summary>
+    public string? AuxiliaryType { get; set; }
+
+    /// <summary>
     /// Gets or sets the aspect ratio of the pixels.
     /// </summary>
     public Size PixelAspectRatio { get; set; }

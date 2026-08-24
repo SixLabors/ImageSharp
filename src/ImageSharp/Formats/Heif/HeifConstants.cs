@@ -16,6 +16,16 @@ internal static class HeifConstants
     public const Heif4CharCode HeicBrand = Heif4CharCode.Heic;
 
     /// <summary>
+    /// The auxiliary-type URN used by current HEIF alpha image items.
+    /// </summary>
+    public const string AlphaAuxiliaryType = "urn:mpeg:mpegB:cicp:systems:auxiliary:alpha";
+
+    /// <summary>
+    /// The auxiliary-type URN used by legacy HEVC alpha image items.
+    /// </summary>
+    public const string LegacyAlphaAuxiliaryType = "urn:mpeg:hevc:2015:auxid:1";
+
+    /// <summary>
     /// The list of mimetypes that equate to a HEIC.
     /// </summary>
     public static readonly IEnumerable<string> MimeTypes = new[] { "image/heif", "image/heic", "image/avif" };
@@ -68,6 +78,14 @@ internal static class HeifConstants
 
         return false;
     }
+
+    /// <summary>
+    /// Determines whether an auxiliary-type property identifies an alpha image plane.
+    /// </summary>
+    /// <param name="auxiliaryType">The null-terminated auxiliary type decoded from an <c>auxC</c> property.</param>
+    /// <returns><see langword="true"/> when the type is either registered HEIF alpha URN.</returns>
+    public static bool IsAlphaAuxiliaryType(string? auxiliaryType)
+        => auxiliaryType is AlphaAuxiliaryType or LegacyAlphaAuxiliaryType;
 
     /// <summary>
     /// Determines whether <paramref name="brand"/> identifies a still-image container supported by this codec.

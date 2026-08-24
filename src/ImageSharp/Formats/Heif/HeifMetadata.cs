@@ -23,29 +23,40 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
     /// </summary>
     /// <param name="other">The metadata to create an instance from.</param>
     private HeifMetadata(HeifMetadata other)
-        => this.CompressionMethod = other.CompressionMethod;
+    {
+        this.CompressionMethod = other.CompressionMethod;
+        this.HasAlpha = other.HasAlpha;
+    }
 
     /// <summary>
     /// Gets or sets the compression method used for the primary frame.
     /// </summary>
     public HeifCompressionMethod CompressionMethod { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether the primary image has an alpha channel.
+    /// </summary>
+    public bool HasAlpha { get; set; }
+
     /// <inheritdoc/>
     public static HeifMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata) => new()
     {
-        CompressionMethod = HeifCompressionMethod.LegacyJpeg
+        CompressionMethod = HeifCompressionMethod.LegacyJpeg,
+        HasAlpha = metadata.PixelTypeInfo.AlphaRepresentation != PixelAlphaRepresentation.None
     };
 
     /// <inheritdoc/>
     public PixelTypeInfo GetPixelTypeInfo()
     {
-        int bpp = 8;
-        PixelColorType colorType = PixelColorType.RGB;
-        PixelComponentInfo info = PixelComponentInfo.Create(3, bpp, 8, 8, 8);
+        int bpp = this.HasAlpha ? 32 : 24;
+        PixelColorType colorType = this.HasAlpha ? PixelColorType.RGB | PixelColorType.Alpha : PixelColorType.RGB;
+        PixelComponentInfo info = this.HasAlpha
+            ? PixelComponentInfo.Create(4, bpp, 8, 8, 8, 8)
+            : PixelComponentInfo.Create(3, bpp, 8, 8, 8);
 
         return new PixelTypeInfo(bpp)
         {
-            AlphaRepresentation = PixelAlphaRepresentation.None,
+            AlphaRepresentation = this.HasAlpha ? PixelAlphaRepresentation.Unassociated : PixelAlphaRepresentation.None,
             ColorType = colorType,
             ComponentInfo = info,
         };

@@ -109,6 +109,11 @@ public enum Heif4CharCode : uint
     Pixi = 0x70697869U,
 
     /// <summary>
+    /// Auxiliary Type.
+    /// </summary>
+    AuxC = 0x61757843U,
+
+    /// <summary>
     /// Reference Location.
     /// </summary>
     Rloc = 0x726C6F63U,
@@ -247,6 +252,16 @@ public enum Heif4CharCode : uint
     /// Thumbnail.
     /// </summary>
     Thmb = 0x74686D62U,
+
+    /// <summary>
+    /// Auxiliary Image.
+    /// </summary>
+    Auxl = 0x6175786CU,
+
+    /// <summary>
+    /// Premultiplied Alpha.
+    /// </summary>
+    Prem = 0x7072656DU,
 
     /// <summary>
     /// Content Description.

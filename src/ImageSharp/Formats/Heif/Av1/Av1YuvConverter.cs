@@ -479,18 +479,18 @@ internal static class Av1YuvConverter
             throw new InvalidImageContentException("The reserved AV1 chroma sample position is invalid.");
         }
 
-        if (mode == ConversionMode.YCgCo && !isMonochrome && !isFullRange)
-        {
-            throw new NotSupportedException("Limited-range AV1 YCgCo color conversion is not currently supported.");
-        }
-
         int bitCount = frameBuffer.BitDepth.GetBitCount();
         int depthScale = 1 << (bitCount - 8);
         sampleMaximum = (1 << bitCount) - 1;
         chromaBias = 128F * depthScale;
         lumaBias = isFullRange ? 0F : 16F * depthScale;
         lumaScale = isFullRange ? sampleMaximum : 219F * depthScale;
-        chromaScale = isFullRange ? sampleMaximum : 224F * depthScale;
+
+        // H.273 limited-range YCgCo first maps R, G, and B through the 219-code luma range, so its
+        // difference components inherit that scale instead of the 224-code scale used by YCbCr.
+        chromaScale = isFullRange || mode == ConversionMode.YCgCo
+            ? lumaScale
+            : 224F * depthScale;
     }
 
     /// <summary>

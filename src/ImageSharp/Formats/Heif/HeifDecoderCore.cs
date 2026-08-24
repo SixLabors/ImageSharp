@@ -170,7 +170,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         this.UpdateMetadata(this.metadata, item);
 
-        return new ImageInfo(new(item.Extent.Width, item.Extent.Height), this.metadata);
+        Size presentationExtent = GetPresentationExtent(item);
+        return new ImageInfo(new(presentationExtent.Width, presentationExtent.Height), this.metadata);
     }
 
     /// <summary>
@@ -843,9 +844,25 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     this.av1CodecConfiguration = new(boxBuffer);
                     properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Av1C, new object()));
                     break;
-                case Heif4CharCode.Altt:
-                case Heif4CharCode.Imir:
                 case Heif4CharCode.Irot:
+                    EnsureBufferRemaining(boxBuffer, 0, 1, "image rotation");
+                    if ((boxBuffer[0] & 0xFC) != 0)
+                    {
+                        throw new InvalidImageContentException("The image rotation property has nonzero reserved bits.");
+                    }
+
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Irot, (byte)(boxBuffer[0] & 3)));
+                    break;
+                case Heif4CharCode.Imir:
+                    EnsureBufferRemaining(boxBuffer, 0, 1, "image mirror");
+                    if ((boxBuffer[0] & 0xFE) != 0)
+                    {
+                        throw new InvalidImageContentException("The image mirror property has nonzero reserved bits.");
+                    }
+
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Imir, (byte)(boxBuffer[0] & 1)));
+                    break;
+                case Heif4CharCode.Altt:
                 case Heif4CharCode.Iscl:
                 case Heif4CharCode.HvcC:
                 case Heif4CharCode.Rloc:
@@ -939,6 +956,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     throw new InvalidImageContentException($"Item {itemId} associates unknown essential property '{PrettyPrint(prop.Key)}'.");
                 }
 
+                if (!essential && prop.Key is Heif4CharCode.Irot or Heif4CharCode.Imir)
+                {
+                    throw new InvalidImageContentException($"Item {itemId} associates nonessential transformative property '{PrettyPrint(prop.Key)}'.");
+                }
+
                 switch (prop.Key)
                 {
                     case Heif4CharCode.Ispe:
@@ -959,6 +981,22 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         }
 
                         item.AuxiliaryType = (string)prop.Value;
+                        break;
+                    case Heif4CharCode.Irot:
+                        if (item.RotationAngle is not null)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates more than one image rotation property.");
+                        }
+
+                        item.RotationAngle = (byte)prop.Value;
+                        break;
+                    case Heif4CharCode.Imir:
+                        if (item.MirrorAxis is not null)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates more than one image mirror property.");
+                        }
+
+                        item.MirrorAxis = (byte)prop.Value;
                         break;
                 }
             }
@@ -1257,6 +1295,10 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 this.ApplyAlpha(image, alphaImage, alphaPremultiplied);
             }
 
+            // MIAF defines crop, rotation, and mirror as presentation operations in that order. Applying the
+            // implemented transforms after alpha composition keeps the auxiliary plane in the same coordinate space.
+            ApplyPresentationTransforms(image, itemToDecode);
+
             // The decoder determines the compression of the pixels that were actually returned, including grid tiles
             // and a thumbnail fallback when the primary image compression is not available.
             HeifMetadata meta = image.Metadata.GetHeifMetadata();
@@ -1318,6 +1360,50 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
+    /// Gets the dimensions of an image item after its rotation property is applied.
+    /// </summary>
+    /// <param name="item">The image item whose presentation dimensions are requested.</param>
+    /// <returns>The item dimensions after an optional quarter-turn rotation.</returns>
+    private static Size GetPresentationExtent(HeifItem item)
+        => item.RotationAngle is not null && (item.RotationAngle.Value & 1) != 0
+            ? new Size(item.Extent.Height, item.Extent.Width)
+            : item.Extent;
+
+    /// <summary>
+    /// Applies the rotation and mirror properties associated with an image item.
+    /// </summary>
+    /// <typeparam name="TPixel">The image pixel format.</typeparam>
+    /// <param name="image">The decoded image item.</param>
+    /// <param name="item">The item carrying the presentation properties.</param>
+    private static void ApplyPresentationTransforms<TPixel>(Image<TPixel> image, HeifItem item)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (item.RotationAngle is not null)
+        {
+            // HEIF angles count quarter turns counter-clockwise, while ImageSharp's optimized rotate modes are clockwise.
+            RotateMode rotation = item.RotationAngle.Value switch
+            {
+                1 => RotateMode.Rotate270,
+                2 => RotateMode.Rotate180,
+                3 => RotateMode.Rotate90,
+                _ => RotateMode.None
+            };
+
+            if (rotation != RotateMode.None)
+            {
+                image.Mutate(context => context.Rotate(rotation));
+            }
+        }
+
+        if (item.MirrorAxis is not null)
+        {
+            // Axis zero reflects top-to-bottom around the horizontal axis; axis one reflects left-to-right.
+            FlipMode flip = item.MirrorAxis.Value == 0 ? FlipMode.Vertical : FlipMode.Horizontal;
+            image.Mutate(context => context.Flip(flip));
+        }
+    }
+
+    /// <summary>
     /// Decodes the direct or per-grid-tile alpha auxiliary plane associated with a color image item.
     /// </summary>
     /// <param name="colorItem">The color image item whose alpha plane is requested.</param>
@@ -1333,6 +1419,14 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         HeifItem? alphaItem = this.FindAlphaItem(colorItem);
         if (alphaItem is not null)
         {
+            // libavif releases through 1.3 omitted alpha transform associations, so accept complete absence for
+            // compatibility. If either property is present, it must match the color item before plane composition.
+            if ((alphaItem.RotationAngle is not null || alphaItem.MirrorAxis is not null) &&
+                (alphaItem.RotationAngle != colorItem.RotationAngle || alphaItem.MirrorAxis != colorItem.MirrorAxis))
+            {
+                throw new ImageFormatException("The alpha auxiliary image and color image use different presentation transforms.");
+            }
+
             IHeifItemDecoder<L16>? decoder = this.GetItemDecoder<L16>(alphaItem, buffers);
             if (decoder is null)
             {

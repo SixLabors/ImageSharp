@@ -56,6 +56,18 @@ internal class HeifItem(Heif4CharCode type, uint id)
     public Size PixelAspectRatio { get; set; }
 
     /// <summary>
+    /// Gets or sets the number of 90-degree counter-clockwise rotations applied to the image, or
+    /// <see langword="null"/> when no image-rotation property is associated with the item.
+    /// </summary>
+    public byte? RotationAngle { get; set; }
+
+    /// <summary>
+    /// Gets or sets the image-mirror axis, where zero is the horizontal axis and one is the vertical axis, or
+    /// <see langword="null"/> when no image-mirror property is associated with the item.
+    /// </summary>
+    public byte? MirrorAxis { get; set; }
+
+    /// <summary>
     /// Gets or sets the number of color channels in each pixel.
     /// </summary>
     public int ChannelCount { get; set; }

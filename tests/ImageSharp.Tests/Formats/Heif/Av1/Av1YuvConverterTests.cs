@@ -117,6 +117,64 @@ public class Av1YuvConverterTests
         Assert.Equal(new Rgb24(255, 255, 255), actual[1]);
     }
 
+    [Theory]
+    [InlineData(Av1BitDepth.TenBit, true, 0, 1023, 512)]
+    [InlineData(Av1BitDepth.TenBit, false, 64, 940, 512)]
+    [InlineData(Av1BitDepth.TwelveBit, true, 0, 4095, 2048)]
+    [InlineData(Av1BitDepth.TwelveBit, false, 256, 3760, 2048)]
+    public void HighBitDepthYuvToRgbExpandsSignaledRange(
+        int bitDepth,
+        bool fullRange,
+        ushort black,
+        ushort white,
+        ushort neutralChroma)
+    {
+        // Assign
+        using Image<Rgb24> image = new(2, 1);
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(2, 1, fullRange, bitDepth: (Av1BitDepth)bitDepth);
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv444, false);
+        Span<ushort> yRow = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, 0, 0, 0);
+        yRow[0] = black;
+        yRow[1] = white;
+        frameBuffer.GetHighBitDepthRowSpan(Av1Plane.U, 0, 0, 0).Fill(neutralChroma);
+        frameBuffer.GetHighBitDepthRowSpan(Av1Plane.V, 0, 0, 0).Fill(neutralChroma);
+
+        // Act
+        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, image.Frames.RootFrame);
+
+        // Assert
+        Span<Rgb24> actual = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0);
+        Assert.Equal(new Rgb24(0, 0, 0), actual[0]);
+        Assert.Equal(new Rgb24(255, 255, 255), actual[1]);
+    }
+
+    [Theory]
+    [InlineData(Av1BitDepth.TenBit)]
+    [InlineData(Av1BitDepth.TwelveBit)]
+    public void HighBitDepthFrameBufferUsesSampleUnitStrides(int bitDepth)
+    {
+        // Assign
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(
+            3,
+            3,
+            colorFormat: Av1ColorFormat.Yuv420,
+            bitDepth: (Av1BitDepth)bitDepth);
+
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv420, false);
+
+        // Act
+        Span<short> block = frameBuffer.DeriveBlockPointer16(Av1Plane.Y, Point.Empty, 0, 0, out int stride);
+        block[stride] = 321;
+        Span<ushort> chromaRow = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.U, 0, 1, 1);
+
+        // Assert
+        Assert.Equal(2, frameBuffer.BytesPerSample);
+        Assert.Equal(3 + 144, stride);
+        Assert.Equal(stride * 2, frameBuffer.BufferY!.Width);
+        Assert.Equal(321, frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, 0, 0, 0)[0]);
+        Assert.Equal(2, chromaRow.Length);
+    }
+
     [Fact]
     public void Yuv422ToRgbBilinearlyUpsamplesCenteredChroma()
     {
@@ -333,6 +391,44 @@ public class Av1YuvConverterTests
         Assert.Equal(b, actualPixel.B, 2d);
     }
 
+    [Theory]
+    [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.Bt709)]
+    [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.Identity)]
+    [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.SmpteYCgCo)]
+    [InlineData(Av1BitDepth.TwelveBit, ObuMatrixCoefficients.Bt709)]
+    [InlineData(Av1BitDepth.TwelveBit, ObuMatrixCoefficients.Identity)]
+    [InlineData(Av1BitDepth.TwelveBit, ObuMatrixCoefficients.SmpteYCgCo)]
+    public void HighBitDepthRoundTrip(int bitDepth, int matrixCoefficients)
+    {
+        // Assign
+        using Image<Rgb24> image = new(3, 1);
+        Span<Rgb24> source = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0);
+        source[0] = new Rgb24(0, 0, 0);
+        source[1] = new Rgb24(150, 100, 50);
+        source[2] = new Rgb24(255, 255, 255);
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(
+            image.Width,
+            image.Height,
+            matrixCoefficients: (ObuMatrixCoefficients)matrixCoefficients,
+            bitDepth: (Av1BitDepth)bitDepth);
+
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv444, false);
+        using Image<Rgb24> actual = new(image.Width, image.Height);
+
+        // Act
+        Av1YuvConverter.ConvertFromRgb(Configuration.Default, image.Frames.RootFrame, frameBuffer);
+        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, actual.Frames.RootFrame);
+
+        // Assert
+        Span<Rgb24> actualPixels = actual.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0);
+        for (int x = 0; x < source.Length; x++)
+        {
+            Assert.Equal(source[x].R, actualPixels[x].R, 1D);
+            Assert.Equal(source[x].G, actualPixels[x].G, 1D);
+            Assert.Equal(source[x].B, actualPixels[x].B, 1D);
+        }
+    }
+
     // [Theory]
     // [WithFile(TestImages.Jpeg.Baseline.Winter444_Interleaved, PixelTypes.Rgb24)]
     public void RoundTrip(TestImageProvider<Rgb24> provider)
@@ -358,7 +454,8 @@ public class Av1YuvConverterTests
         bool fullRange = true,
         ObuMatrixCoefficients matrixCoefficients = ObuMatrixCoefficients.Bt709,
         Av1ColorFormat colorFormat = Av1ColorFormat.Yuv444,
-        ObuChromoSamplePosition chromaSamplePosition = ObuChromoSamplePosition.Unknown)
+        ObuChromoSamplePosition chromaSamplePosition = ObuChromoSamplePosition.Unknown,
+        Av1BitDepth bitDepth = Av1BitDepth.EightBit)
         => new()
         {
             MaxFrameWidth = width,
@@ -366,7 +463,7 @@ public class Av1YuvConverterTests
             ColorConfig = new ObuColorConfig
             {
                 IsMonochrome = colorFormat == Av1ColorFormat.Yuv400,
-                BitDepth = Av1BitDepth.EightBit,
+                BitDepth = bitDepth,
                 MatrixCoefficients = matrixCoefficients,
                 ColorRange = fullRange,
                 SubSamplingX = colorFormat is Av1ColorFormat.Yuv400 or Av1ColorFormat.Yuv420 or Av1ColorFormat.Yuv422,

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Memory;
 
@@ -18,6 +20,7 @@ internal class Av1FrameBuffer<T> : IDisposable
     private const int PictureBufferCrFlag = 1 << 2;
     private const int PictureBufferLumaMask = PictureBufferYFlag;
     private const int PictureBufferFullMask = PictureBufferYFlag | PictureBufferCbFlag | PictureBufferCrFlag;
+    private readonly int storageElementsPerSample;
 
     public Av1FrameBuffer(Configuration configuration, ObuSequenceHeader sequenceHeader, Av1ColorFormat maxColorFormat, bool is16BitPipeline)
     {
@@ -26,8 +29,13 @@ internal class Av1FrameBuffer<T> : IDisposable
         this.MaxHeight = sequenceHeader.MaxFrameHeight;
         this.BitDepth = sequenceHeader.ColorConfig.BitDepth;
         this.ColorConfig = sequenceHeader.ColorConfig;
-        int bitsPerPixel = this.BitDepth > Av1BitDepth.EightBit || is16BitPipeline ? 2 : 1;
+        this.BytesPerSample = this.BitDepth > Av1BitDepth.EightBit || is16BitPipeline ? 2 : 1;
+        this.storageElementsPerSample = Math.Max(
+            (this.BytesPerSample + Unsafe.SizeOf<T>() - 1) / Unsafe.SizeOf<T>(),
+            1);
+
         this.ColorFormat = colorFormat;
+        this.Is16BitPipeline = is16BitPipeline;
         this.BufferEnableMask = sequenceHeader.ColorConfig.IsMonochrome ? PictureBufferLumaMask : PictureBufferFullMask;
 
         int leftPadding = DecoderPaddingValue;
@@ -69,17 +77,17 @@ internal class Av1FrameBuffer<T> : IDisposable
         this.BufferCr = null;
         if ((this.BufferEnableMask & PictureBufferYFlag) != 0)
         {
-            this.BufferY = configuration.MemoryAllocator.Allocate2D<T>(strideY * bitsPerPixel, heightY);
+            this.BufferY = configuration.MemoryAllocator.Allocate2D<T>(strideY * this.storageElementsPerSample, heightY);
         }
 
         if ((this.BufferEnableMask & PictureBufferCbFlag) != 0)
         {
-            this.BufferCb = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * bitsPerPixel, heightChroma);
+            this.BufferCb = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * this.storageElementsPerSample, heightChroma);
         }
 
         if ((this.BufferEnableMask & PictureBufferCrFlag) != 0)
         {
-            this.BufferCr = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * bitsPerPixel, heightChroma);
+            this.BufferCr = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * this.storageElementsPerSample, heightChroma);
         }
 
         this.BitIncrementY = null;
@@ -149,6 +157,11 @@ internal class Av1FrameBuffer<T> : IDisposable
     public Av1BitDepth BitDepth { get; set; }
 
     /// <summary>
+    /// Gets the number of bytes used to store each reconstructed sample.
+    /// </summary>
+    public int BytesPerSample { get; }
+
+    /// <summary>
     /// Gets the color configuration signaled by the AV1 sequence header.
     /// </summary>
     public ObuColorConfig ColorConfig { get; }
@@ -205,44 +218,52 @@ internal class Av1FrameBuffer<T> : IDisposable
     /// </remarks>
     public Span<T> DeriveBlockPointer(Av1Plane plane, Point locationInPixels, int subX, int subY, out int stride)
     {
-        Span<T> blockReconstructionBuffer;
-        int blockOffset;
-        Buffer2D<T> buffer;
+        this.GetPlaneLayout(
+            plane,
+            subX,
+            subY,
+            out Buffer2D<T> buffer,
+            out int originX,
+            out int originY,
+            out _,
+            out _);
 
-        switch (plane)
-        {
-            case Av1Plane.Y:
-                Guard.NotNull(this.BufferY);
-                buffer = this.BufferY;
-                stride = buffer.Width;
-                blockOffset = ((this.OriginY + locationInPixels.Y) * stride) +
-                    (this.OriginX + locationInPixels.X);
-                break;
-            case Av1Plane.U:
-                Guard.NotNull(this.BufferCb);
-                buffer = this.BufferCb;
-                stride = buffer.Width;
-                blockOffset = (((this.OriginY >> subY) + locationInPixels.Y) * stride) +
-                    ((this.OriginX >> subX) + locationInPixels.X);
-                break;
-            case Av1Plane.V:
-            default:
-                Guard.NotNull(this.BufferCr);
-                buffer = this.BufferCr;
-                stride = buffer.Width;
-                blockOffset = (((this.OriginY >> subY) + locationInPixels.Y) * stride) +
-                    ((this.OriginX >> subX) + locationInPixels.X);
-                break;
-        }
+        int elementStride = buffer.Width;
+        stride = elementStride / this.storageElementsPerSample;
+        int blockOffset = (((originY + locationInPixels.Y) * stride) + originX + locationInPixels.X) *
+            this.storageElementsPerSample;
 
         // Deviation from SVT, return PREVIOUS row in Block Reconstruction Buffer.
-        blockOffset -= stride;
+        blockOffset -= elementStride;
         Guard.MustBeGreaterThanOrEqualTo(blockOffset, 0, nameof(blockOffset));
 
-        blockOffset = (this.BitDepth != Av1BitDepth.EightBit || this.Is16BitPipeline) ? blockOffset << 1 : blockOffset;
-        blockReconstructionBuffer = buffer.DangerousGetSingleSpan()[blockOffset..];
+        return buffer.DangerousGetSingleSpan()[blockOffset..];
+    }
 
-        return blockReconstructionBuffer;
+    /// <summary>
+    /// Returns a 16-bit sample span starting one row before the specified block.
+    /// </summary>
+    /// <remarks>
+    /// SVT: svt_aom_derive_blk_pointers
+    /// </remarks>
+    public Span<short> DeriveBlockPointer16(Av1Plane plane, Point locationInPixels, int subX, int subY, out int stride)
+    {
+        this.GetPlaneLayout(
+            plane,
+            subX,
+            subY,
+            out Buffer2D<T> buffer,
+            out int originX,
+            out int originY,
+            out _,
+            out _);
+
+        stride = buffer.Width / this.storageElementsPerSample;
+        int blockOffset = ((originY + locationInPixels.Y - 1) * stride) + originX + locationInPixels.X;
+        Guard.MustBeGreaterThanOrEqualTo(blockOffset, 0, nameof(blockOffset));
+
+        // High-bit-depth reconstruction uses native 16-bit samples in the byte-backed frame planes.
+        return MemoryMarshal.Cast<T, short>(buffer.DangerousGetSingleSpan())[blockOffset..];
     }
 
     /// <summary>
@@ -253,39 +274,81 @@ internal class Av1FrameBuffer<T> : IDisposable
     /// </remarks>
     public Buffer2DRegion<T> DeriveBlockPointer(Av1Plane plane, int subX, int subY)
     {
-        Rectangle region;
-        Buffer2D<T> buffer;
+        this.GetPlaneLayout(
+            plane,
+            subX,
+            subY,
+            out Buffer2D<T> buffer,
+            out int originX,
+            out int originY,
+            out int width,
+            out int height);
 
+        Rectangle region = new(
+            originX * this.storageElementsPerSample,
+            originY,
+            width * this.storageElementsPerSample,
+            height);
+
+        return new Buffer2DRegion<T>(buffer, region);
+    }
+
+    /// <summary>
+    /// Returns one logical row of 16-bit samples from the specified plane.
+    /// </summary>
+    public Span<ushort> GetHighBitDepthRowSpan(Av1Plane plane, int row, int subX, int subY)
+    {
+        this.GetPlaneLayout(
+            plane,
+            subX,
+            subY,
+            out Buffer2D<T> buffer,
+            out int originX,
+            out int originY,
+            out int width,
+            out _);
+
+        Span<ushort> samples = MemoryMarshal.Cast<T, ushort>(buffer.DangerousGetRowSpan(originY + row));
+        return samples.Slice(originX, width);
+    }
+
+    private void GetPlaneLayout(
+        Av1Plane plane,
+        int subX,
+        int subY,
+        out Buffer2D<T> buffer,
+        out int originX,
+        out int originY,
+        out int width,
+        out int height)
+    {
         switch (plane)
         {
             case Av1Plane.Y:
                 Guard.NotNull(this.BufferY);
                 buffer = this.BufferY;
-                region = new Rectangle(this.OriginX, this.OriginY, this.Width, this.Height);
+                originX = this.OriginX;
+                originY = this.OriginY;
+                width = this.Width;
+                height = this.Height;
                 break;
             case Av1Plane.U:
                 Guard.NotNull(this.BufferCb);
                 buffer = this.BufferCb;
-                region = new Rectangle(
-                    this.OriginX >> subX,
-                    this.OriginY >> subY,
-                    Av1Math.DivideLog2Ceiling(this.Width, subX),
-                    Av1Math.DivideLog2Ceiling(this.Height, subY));
-
+                originX = this.OriginX >> subX;
+                originY = this.OriginY >> subY;
+                width = Av1Math.DivideLog2Ceiling(this.Width, subX);
+                height = Av1Math.DivideLog2Ceiling(this.Height, subY);
                 break;
             case Av1Plane.V:
             default:
                 Guard.NotNull(this.BufferCr);
                 buffer = this.BufferCr;
-                region = new Rectangle(
-                    this.OriginX >> subX,
-                    this.OriginY >> subY,
-                    Av1Math.DivideLog2Ceiling(this.Width, subX),
-                    Av1Math.DivideLog2Ceiling(this.Height, subY));
-
+                originX = this.OriginX >> subX;
+                originY = this.OriginY >> subY;
+                width = Av1Math.DivideLog2Ceiling(this.Width, subX);
+                height = Av1Math.DivideLog2Ceiling(this.Height, subY);
                 break;
         }
-
-        return new Buffer2DRegion<T>(buffer, region);
     }
 }

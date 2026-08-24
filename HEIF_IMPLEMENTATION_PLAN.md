@@ -56,7 +56,7 @@ This snapshot pins or classifies the available references and failures; it does 
 
 | Managed implementation | Normative behavior | Reviewed implementation reference | Use |
 | --- | --- | --- | --- |
-| `Av1YuvConverter.ConvertToRgb`, `ConvertFromRgb`, and scalar row conversion | H.273 formulas 20-31 and the identity, YCgCo, and non-constant-luminance matrix formulas | libavif `src/reformat.c` and `src/colr.c` at `092276ce89098ead06db80975173191e5fee1826` | Scalar behavioral oracle for 8-bit YUV 4:4:4 full/limited-range conversion; later subsampling, high-bit-depth, and SIMD paths must match it. |
+| `Av1YuvConverter.ConvertToRgb`, `ConvertFromRgb`, scalar row conversion, and chroma reconstruction | H.273 formulas 20-31 and the identity, YCgCo, and non-constant-luminance matrix formulas; AV1 section 6.4.2 chroma sample positions | libavif `src/reformat.c` and `src/colr.c` at `092276ce89098ead06db80975173191e5fee1826`; libaom `aom/aom_image.h` at `03087864cf4bea6abb0d28f95cf7843511413d8f` | Scalar behavioral oracle for 8-bit full/limited-range conversion. Decode covers monochrome, YUV 4:2:0, 4:2:2, and 4:4:4 with AV1 chroma sample positioning; encode remains YUV 4:4:4 at this snapshot. Later high-bit-depth and SIMD paths must match it. |
 
 This table is intentionally incomplete. Add a row before each additional AV1 or HEVC algorithm is ported or materially reshaped.
 
@@ -97,8 +97,8 @@ This assessment is based on the current source after the upstream ImageSharp mer
 - Decoder state is allocated or replaced at multiple points, making parsed tile state, reconstructed frame state, and ownership unclear.
 - The reconstruction pipeline disables loop filtering, CDEF, super-resolution, loop restoration, and padding with constant flags. These are normative stages when signaled, not optional quality improvements.
 - Loop restoration, filter intra prediction, palette paths, `show_existing_frame`, reference/CDF state, and other syntax paths contain `NotImplementedException` or equivalent unsupported branches.
-- The active output path is limited to an 8-bit byte buffer and YUV 4:4:4. The generic frame buffer does not yet establish correct storage and indexing for 10/12-bit samples.
-- `Av1YuvConverter` ignores most bitstream color information, uses fixed conversion constants, and allocates an intermediate `Image<Rgb24>` before converting to the requested pixel type.
+- The active reconstruction path remains limited to an 8-bit byte buffer. Output conversion now handles monochrome, YUV 4:2:0, 4:2:2, and 4:4:4 planes, but the generic frame buffer does not yet establish correct storage and indexing for 10/12-bit samples.
+- `Av1YuvConverter` now consumes the signaled range, supported H.273 matrix coefficients, subsampling, and chroma sample position for 8-bit output and uses one allocator-backed RGB row. High-bit-depth conversion, constant-luminance and chromaticity-derived matrices, ICtCp, and encoder-side subsampling remain incomplete.
 - The inverse-transform path allocates arrays in a per-transform hot path.
 - No usable end-to-end AV1 SIMD path was found. The most visible 4x4 forward-transform SIMD call is commented out, while the production prediction, transform, filter, and output paths are predominantly scalar.
 

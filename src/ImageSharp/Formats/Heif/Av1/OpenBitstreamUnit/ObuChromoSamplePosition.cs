@@ -19,4 +19,9 @@ internal enum ObuChromoSamplePosition : byte
     /// Co-located with luma(0, 0) sample
     /// </summary>
     Colocated = 2,
+
+    /// <summary>
+    /// Reserved and invalid for AV1 content.
+    /// </summary>
+    Reserved = 3,
 }

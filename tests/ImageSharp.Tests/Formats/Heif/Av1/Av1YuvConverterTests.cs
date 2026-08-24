@@ -92,6 +92,110 @@ public class Av1YuvConverterTests
     }
 
     [Fact]
+    public void Yuv400ToRgbExpandsLimitedRangeLuma()
+    {
+        // Assign
+        using Image<Rgb24> image = new(2, 1);
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(
+            2,
+            1,
+            false,
+            ObuMatrixCoefficients.Identity,
+            Av1ColorFormat.Yuv400);
+
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv400, false);
+        Span<byte> yRow = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(0);
+        yRow[0] = 16;
+        yRow[1] = 235;
+
+        // Act
+        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, image.Frames.RootFrame);
+
+        // Assert
+        Span<Rgb24> actual = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0);
+        Assert.Equal(new Rgb24(0, 0, 0), actual[0]);
+        Assert.Equal(new Rgb24(255, 255, 255), actual[1]);
+    }
+
+    [Fact]
+    public void Yuv422ToRgbBilinearlyUpsamplesCenteredChroma()
+    {
+        // Assign
+        using Image<Rgb24> image = new(4, 1);
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(4, 1, colorFormat: Av1ColorFormat.Yuv422);
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv422, false);
+        frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(0).Fill(128);
+        Span<byte> uRow = frameBuffer.DeriveBlockPointer(Av1Plane.U, 1, 0).DangerousGetRowSpan(0);
+        uRow[0] = 128;
+        uRow[1] = 192;
+        frameBuffer.DeriveBlockPointer(Av1Plane.V, 1, 0).DangerousGetRowSpan(0).Fill(128);
+
+        // Act
+        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, image.Frames.RootFrame);
+
+        // Assert
+        Span<Rgb24> actual = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0);
+        Assert.Equal(new Rgb24(128, 128, 128), actual[0]);
+        Assert.Equal(new Rgb24(128, 125, 158), actual[1]);
+        Assert.Equal(new Rgb24(128, 119, 217), actual[2]);
+        Assert.Equal(new Rgb24(128, 116, 247), actual[3]);
+    }
+
+    [Theory]
+    [InlineData(ObuChromoSamplePosition.Unknown, 158, 98)]
+    [InlineData(ObuChromoSamplePosition.Vertical, 187, 98)]
+    [InlineData(ObuChromoSamplePosition.Colocated, 187, 69)]
+    public void Yuv420ToRgbUsesChromaSamplePosition(int chromaSamplePosition, byte expectedTopBlue, byte expectedLeftBlue)
+    {
+        // Assign
+        using Image<Rgb24> image = new(4, 4);
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(
+            4,
+            4,
+            colorFormat: Av1ColorFormat.Yuv420,
+            chromaSamplePosition: (ObuChromoSamplePosition)chromaSamplePosition);
+
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv420, false);
+        Buffer2DRegion<byte> yPlane = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0);
+        Buffer2DRegion<byte> uPlane = frameBuffer.DeriveBlockPointer(Av1Plane.U, 1, 1);
+        Buffer2DRegion<byte> vPlane = frameBuffer.DeriveBlockPointer(Av1Plane.V, 1, 1);
+        for (int y = 0; y < yPlane.Height; y++)
+        {
+            yPlane.DangerousGetRowSpan(y).Fill(128);
+        }
+
+        uPlane.DangerousGetRowSpan(0)[0] = 128;
+        uPlane.DangerousGetRowSpan(0)[1] = 192;
+        uPlane.DangerousGetRowSpan(1)[0] = 64;
+        uPlane.DangerousGetRowSpan(1)[1] = 255;
+        vPlane.DangerousGetRowSpan(0).Fill(128);
+        vPlane.DangerousGetRowSpan(1).Fill(128);
+
+        // Act
+        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, image.Frames.RootFrame);
+
+        // Assert
+        Assert.Equal(expectedTopBlue, image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0)[1].B);
+        Assert.Equal(expectedLeftBlue, image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(1)[0].B);
+    }
+
+    [Fact]
+    public void Yuv420UsesCeilingChromaPlaneDimensions()
+    {
+        // Assign
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(3, 3, colorFormat: Av1ColorFormat.Yuv420);
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv420, false);
+
+        // Act
+        Buffer2DRegion<byte> uPlane = frameBuffer.DeriveBlockPointer(Av1Plane.U, 1, 1);
+        Buffer2DRegion<byte> vPlane = frameBuffer.DeriveBlockPointer(Av1Plane.V, 1, 1);
+
+        // Assert
+        Assert.Equal(new Size(2, 2), uPlane.Size);
+        Assert.Equal(new Size(2, 2), vPlane.Size);
+    }
+
+    [Fact]
     public void RgbToYuvCompareToReferenceRandomPixels()
     {
         const int sampleCount = 1000;
@@ -252,17 +356,22 @@ public class Av1YuvConverterTests
         int width,
         int height,
         bool fullRange = true,
-        ObuMatrixCoefficients matrixCoefficients = ObuMatrixCoefficients.Bt709)
+        ObuMatrixCoefficients matrixCoefficients = ObuMatrixCoefficients.Bt709,
+        Av1ColorFormat colorFormat = Av1ColorFormat.Yuv444,
+        ObuChromoSamplePosition chromaSamplePosition = ObuChromoSamplePosition.Unknown)
         => new()
         {
             MaxFrameWidth = width,
             MaxFrameHeight = height,
             ColorConfig = new ObuColorConfig
             {
-                IsMonochrome = false,
+                IsMonochrome = colorFormat == Av1ColorFormat.Yuv400,
                 BitDepth = Av1BitDepth.EightBit,
                 MatrixCoefficients = matrixCoefficients,
                 ColorRange = fullRange,
+                SubSamplingX = colorFormat is Av1ColorFormat.Yuv400 or Av1ColorFormat.Yuv420 or Av1ColorFormat.Yuv422,
+                SubSamplingY = colorFormat is Av1ColorFormat.Yuv400 or Av1ColorFormat.Yuv420,
+                ChromaSamplePosition = chromaSamplePosition,
             },
         };
 }

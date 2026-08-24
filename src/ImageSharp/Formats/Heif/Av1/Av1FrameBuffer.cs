@@ -266,13 +266,23 @@ internal class Av1FrameBuffer<T> : IDisposable
             case Av1Plane.U:
                 Guard.NotNull(this.BufferCb);
                 buffer = this.BufferCb;
-                region = new Rectangle(this.OriginX >> subX, this.OriginY >> subY, this.Width >> subX, this.Height >> subY);
+                region = new Rectangle(
+                    this.OriginX >> subX,
+                    this.OriginY >> subY,
+                    Av1Math.DivideLog2Ceiling(this.Width, subX),
+                    Av1Math.DivideLog2Ceiling(this.Height, subY));
+
                 break;
             case Av1Plane.V:
             default:
                 Guard.NotNull(this.BufferCr);
                 buffer = this.BufferCr;
-                region = new Rectangle(this.OriginX >> subX, this.OriginY >> subY, this.Width >> subX, this.Height >> subY);
+                region = new Rectangle(
+                    this.OriginX >> subX,
+                    this.OriginY >> subY,
+                    Av1Math.DivideLog2Ceiling(this.Width, subX),
+                    Av1Math.DivideLog2Ceiling(this.Height, subY));
+
                 break;
         }
 

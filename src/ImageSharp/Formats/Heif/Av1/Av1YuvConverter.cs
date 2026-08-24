@@ -26,7 +26,7 @@ internal static class Av1YuvConverter
     }
 
     /// <summary>
-    /// Converts the reconstructed 8-bit YUV 4:4:4 planes to packed pixels.
+    /// Converts the reconstructed 8-bit YUV planes to packed pixels.
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel type.</typeparam>
     /// <param name="configuration">The configuration used for allocation and pixel conversion.</param>
@@ -46,18 +46,26 @@ internal static class Av1YuvConverter
             out float chromaScale);
 
         Buffer2DRegion<byte> yPlane = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0);
-        Buffer2DRegion<byte> uPlane = frameBuffer.DeriveBlockPointer(Av1Plane.U, 0, 0);
-        Buffer2DRegion<byte> vPlane = frameBuffer.DeriveBlockPointer(Av1Plane.V, 0, 0);
+        bool isMonochrome = frameBuffer.ColorFormat == Av1ColorFormat.Yuv400;
+        int subX = frameBuffer.ColorConfig.SubSamplingX ? 1 : 0;
+        int subY = frameBuffer.ColorConfig.SubSamplingY ? 1 : 0;
+        Buffer2DRegion<byte> uPlane = isMonochrome ? default : frameBuffer.DeriveBlockPointer(Av1Plane.U, subX, subY);
+        Buffer2DRegion<byte> vPlane = isMonochrome ? default : frameBuffer.DeriveBlockPointer(Av1Plane.V, subX, subY);
         using IMemoryOwner<Rgb24> rowOwner = configuration.MemoryAllocator.Allocate<Rgb24>(image.Width);
         Span<Rgb24> rgbRow = rowOwner.GetSpan()[..image.Width];
 
         for (int y = 0; y < image.Height; y++)
         {
-            ConvertYuv444ToRgbRow(
+            ConvertYuvToRgbRow(
                 yPlane.DangerousGetRowSpan(y),
-                uPlane.DangerousGetRowSpan(y),
-                vPlane.DangerousGetRowSpan(y),
+                uPlane,
+                vPlane,
+                y,
                 rgbRow,
+                isMonochrome,
+                subX,
+                subY,
+                frameBuffer.ColorConfig.ChromaSamplePosition,
                 mode,
                 kr,
                 kg,
@@ -92,6 +100,11 @@ internal static class Av1YuvConverter
             out float lumaBias,
             out float lumaScale,
             out float chromaScale);
+
+        if (frameBuffer.ColorFormat != Av1ColorFormat.Yuv444)
+        {
+            throw new NotSupportedException("Only AV1 YUV 4:4:4 encoding color conversion is currently supported.");
+        }
 
         Buffer2DRegion<byte> yPlane = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0);
         Buffer2DRegion<byte> uPlane = frameBuffer.DeriveBlockPointer(Av1Plane.U, 0, 0);
@@ -147,11 +160,6 @@ internal static class Av1YuvConverter
             throw new NotSupportedException("Only 8-bit AV1 color conversion is currently supported.");
         }
 
-        if (frameBuffer.ColorFormat != Av1ColorFormat.Yuv444)
-        {
-            throw new NotSupportedException("Only AV1 YUV 4:4:4 color conversion is currently supported.");
-        }
-
         mode = ConversionMode.Coefficients;
         kr = 0F;
         kb = 0F;
@@ -193,8 +201,19 @@ internal static class Av1YuvConverter
         }
 
         kg = 1F - kr - kb;
+        bool isMonochrome = frameBuffer.ColorFormat == Av1ColorFormat.Yuv400;
         bool isFullRange = frameBuffer.ColorConfig.ColorRange;
-        if (mode == ConversionMode.YCgCo && !isFullRange)
+        if (mode == ConversionMode.Identity && !isMonochrome && frameBuffer.ColorFormat != Av1ColorFormat.Yuv444)
+        {
+            throw new InvalidImageContentException("AV1 identity matrix coefficients require YUV 4:4:4 sampling.");
+        }
+
+        if (frameBuffer.ColorConfig.ChromaSamplePosition == ObuChromoSamplePosition.Reserved)
+        {
+            throw new InvalidImageContentException("The reserved AV1 chroma sample position is invalid.");
+        }
+
+        if (mode == ConversionMode.YCgCo && !isMonochrome && !isFullRange)
         {
             throw new NotSupportedException("Limited-range AV1 YCgCo color conversion is not currently supported.");
         }
@@ -205,12 +224,17 @@ internal static class Av1YuvConverter
     }
 
     /// <summary>
-    /// Converts one YUV 4:4:4 row to packed RGB using the resolved H.273 conversion state.
+    /// Converts one YUV row to packed RGB using the resolved H.273 conversion state.
     /// </summary>
     /// <param name="ySource">The luma samples.</param>
-    /// <param name="uSource">The blue-difference chroma samples.</param>
-    /// <param name="vSource">The red-difference chroma samples.</param>
+    /// <param name="uPlane">The blue-difference chroma plane.</param>
+    /// <param name="vPlane">The red-difference chroma plane.</param>
+    /// <param name="yCoordinate">The luma row coordinate.</param>
     /// <param name="destination">The destination RGB pixels.</param>
+    /// <param name="isMonochrome">Whether the frame contains only luma samples.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    /// <param name="chromaSamplePosition">The spatial position of subsampled chroma.</param>
     /// <param name="mode">The conversion mode.</param>
     /// <param name="kr">The red luma coefficient.</param>
     /// <param name="kg">The green luma coefficient.</param>
@@ -218,11 +242,16 @@ internal static class Av1YuvConverter
     /// <param name="lumaBias">The encoded luma bias.</param>
     /// <param name="lumaScale">The encoded luma range.</param>
     /// <param name="chromaScale">The encoded chroma range.</param>
-    private static void ConvertYuv444ToRgbRow(
+    private static void ConvertYuvToRgbRow(
         ReadOnlySpan<byte> ySource,
-        ReadOnlySpan<byte> uSource,
-        ReadOnlySpan<byte> vSource,
+        in Buffer2DRegion<byte> uPlane,
+        in Buffer2DRegion<byte> vPlane,
+        int yCoordinate,
         Span<Rgb24> destination,
+        bool isMonochrome,
+        int subX,
+        int subY,
+        ObuChromoSamplePosition chromaSamplePosition,
         ConversionMode mode,
         float kr,
         float kg,
@@ -234,31 +263,43 @@ internal static class Av1YuvConverter
         for (int x = 0; x < destination.Length; x++)
         {
             float y = (ySource[x] - lumaBias) / lumaScale;
-            float cb = (uSource[x] - ChromaBias) / chromaScale;
-            float cr = (vSource[x] - ChromaBias) / chromaScale;
             float r;
             float g;
             float b;
 
-            switch (mode)
+            if (isMonochrome)
             {
-                case ConversionMode.Identity:
-                    // H.273 identity coding stores the nonlinear G, B, and R signals in Y, U, and V order.
-                    r = (vSource[x] - lumaBias) / lumaScale;
-                    g = y;
-                    b = (uSource[x] - lumaBias) / lumaScale;
-                    break;
-                case ConversionMode.YCgCo:
-                    float temporary = y - cb;
-                    r = temporary + cr;
-                    g = y + cb;
-                    b = temporary - cr;
-                    break;
-                default:
-                    r = y + (2F * (1F - kr) * cr);
-                    g = y - (2F * ((kr * (1F - kr) * cr) + (kb * (1F - kb) * cb)) / kg);
-                    b = y + (2F * (1F - kb) * cb);
-                    break;
+                r = y;
+                g = y;
+                b = y;
+            }
+            else
+            {
+                float u = SampleChroma(uPlane, x, yCoordinate, subX, subY, chromaSamplePosition);
+                float v = SampleChroma(vPlane, x, yCoordinate, subX, subY, chromaSamplePosition);
+                float cb = (u - ChromaBias) / chromaScale;
+                float cr = (v - ChromaBias) / chromaScale;
+
+                switch (mode)
+                {
+                    case ConversionMode.Identity:
+                        // H.273 identity coding stores the nonlinear G, B, and R signals in Y, U, and V order.
+                        r = (v - lumaBias) / lumaScale;
+                        g = y;
+                        b = (u - lumaBias) / lumaScale;
+                        break;
+                    case ConversionMode.YCgCo:
+                        float temporary = y - cb;
+                        r = temporary + cr;
+                        g = y + cb;
+                        b = temporary - cr;
+                        break;
+                    default:
+                        r = y + (2F * (1F - kr) * cr);
+                        g = y - (2F * ((kr * (1F - kr) * cr) + (kb * (1F - kb) * cb)) / kg);
+                        b = y + (2F * (1F - kb) * cb);
+                        break;
+                }
             }
 
             destination[x] = new Rgb24(
@@ -266,6 +307,80 @@ internal static class Av1YuvConverter
                 ToByte(g * ByteMaximum),
                 ToByte(b * ByteMaximum));
         }
+    }
+
+    /// <summary>
+    /// Bilinearly reconstructs a chroma sample at a luma coordinate.
+    /// </summary>
+    /// <param name="plane">The subsampled chroma plane.</param>
+    /// <param name="x">The luma column coordinate.</param>
+    /// <param name="y">The luma row coordinate.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    /// <param name="chromaSamplePosition">The spatial position of subsampled chroma.</param>
+    /// <returns>The reconstructed encoded chroma sample.</returns>
+    private static float SampleChroma(
+        in Buffer2DRegion<byte> plane,
+        int x,
+        int y,
+        int subX,
+        int subY,
+        ObuChromoSamplePosition chromaSamplePosition)
+    {
+        // Unknown 4:2:0 and all 4:2:2 input use the centered convention employed by libavif.
+        bool isCenteredX = subX != 0 && (subY == 0 || chromaSamplePosition == ObuChromoSamplePosition.Unknown);
+        bool isCenteredY = subY != 0 && chromaSamplePosition != ObuChromoSamplePosition.Colocated;
+        GetChromaCoordinates(x, subX, isCenteredX, plane.Width - 1, out int x0, out int x1, out int x1Weight);
+        GetChromaCoordinates(y, subY, isCenteredY, plane.Height - 1, out int y0, out int y1, out int y1Weight);
+
+        ReadOnlySpan<byte> row0 = plane.DangerousGetRowSpan(y0);
+        ReadOnlySpan<byte> row1 = plane.DangerousGetRowSpan(y1);
+        int top = (row0[x0] * (4 - x1Weight)) + (row0[x1] * x1Weight);
+        int bottom = (row1[x0] * (4 - x1Weight)) + (row1[x1] * x1Weight);
+
+        return ((top * (4 - y1Weight)) + (bottom * y1Weight)) / 16F;
+    }
+
+    /// <summary>
+    /// Resolves the two chroma samples and quarter-sample weight surrounding a luma coordinate.
+    /// </summary>
+    /// <param name="coordinate">The luma coordinate.</param>
+    /// <param name="subsampling">The chroma subsampling shift.</param>
+    /// <param name="isCentered">Whether chroma lies between neighboring luma samples.</param>
+    /// <param name="maximum">The last available chroma coordinate.</param>
+    /// <param name="lower">The lower chroma coordinate.</param>
+    /// <param name="upper">The upper chroma coordinate.</param>
+    /// <param name="upperWeight">The upper-coordinate weight with a denominator of four.</param>
+    private static void GetChromaCoordinates(
+        int coordinate,
+        int subsampling,
+        bool isCentered,
+        int maximum,
+        out int lower,
+        out int upper,
+        out int upperWeight)
+    {
+        if (subsampling == 0)
+        {
+            lower = coordinate;
+            upper = coordinate;
+            upperWeight = 0;
+            return;
+        }
+
+        int sample = coordinate >> 1;
+        bool isOdd = (coordinate & 1) != 0;
+        if (isCentered)
+        {
+            lower = isOdd ? sample : Math.Max(sample - 1, 0);
+            upper = isOdd ? Math.Min(sample + 1, maximum) : sample;
+            upperWeight = isOdd ? 1 : 3;
+            return;
+        }
+
+        lower = sample;
+        upper = isOdd ? Math.Min(sample + 1, maximum) : sample;
+        upperWeight = isOdd ? 2 : 0;
     }
 
     /// <summary>

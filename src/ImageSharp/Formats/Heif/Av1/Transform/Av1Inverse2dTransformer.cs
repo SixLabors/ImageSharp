@@ -208,8 +208,8 @@ internal class Av1Inverse2dTransformer
             }
 
             Av1InverseTransformMath.RoundShiftArray(bufPtr, transformWidth, -shift[0]);
-            input.Slice(transformWidth);
-            bufPtr.Slice(transformWidth);
+            input = input[transformWidth..];
+            bufPtr = bufPtr[transformWidth..];
         }
 
         // Columns

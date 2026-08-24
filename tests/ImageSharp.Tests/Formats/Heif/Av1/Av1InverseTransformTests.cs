@@ -221,6 +221,52 @@ public class Av1InverseTransformTests
         Assert.True(CompareWithError<short>(expected, actual, 1));
     }
 
+    [Theory]
+    [InlineData((int)Av1TransformType.DctDct)]
+    [InlineData((int)Av1TransformType.AdstAdst)]
+    [InlineData((int)Av1TransformType.Identity)]
+    public void EightBitTransformMatchesSixteenBitPipeline(int transformTypeIndex)
+    {
+        const int width = 4;
+        Av1TransformType transformType = (Av1TransformType)transformTypeIndex;
+        int[] coefficients =
+        [
+            48, -15, 7, 3,
+            11, 5, -9, 2,
+            -6, 8, 4, -3,
+            9, -2, 6, 1,
+        ];
+        byte[] actual = new byte[width * width];
+        short[] expected = new short[width * width];
+        Array.Fill(actual, (byte)96);
+        Array.Fill(expected, (short)96);
+        int[] actualBuffer = new int[(width * width) + (2 * width)];
+        int[] expectedBuffer = new int[(width * width) + (2 * width)];
+        Av1Transform2dFlipConfiguration actualConfig = new(transformType, Av1TransformSize.Size4x4);
+        Av1Transform2dFlipConfiguration expectedConfig = new(transformType, Av1TransformSize.Size4x4);
+
+        Av1Inverse2dTransformer.Transform2dAdd(
+            coefficients,
+            actual,
+            width,
+            actual,
+            width,
+            actualConfig,
+            actualBuffer);
+
+        Av1Inverse2dTransformer.Transform2dAdd(
+            coefficients,
+            expected,
+            width,
+            expected,
+            width,
+            expectedConfig,
+            expectedBuffer,
+            8);
+
+        Assert.Equal(expected.Select(value => (byte)value), actual);
+    }
+
     private static void AssertAccuracy1d(
         Av1TransformType transformType,
         Av1TransformSize transformSize,

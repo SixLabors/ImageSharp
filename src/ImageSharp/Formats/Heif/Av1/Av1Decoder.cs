@@ -14,7 +14,6 @@ internal class Av1Decoder : IAv1TileReader
     private readonly ObuReader obuReader;
     private readonly Configuration configuration;
     private Av1TileReader? tileReader;
-    private Av1FrameDecoder? frameDecoder;
 
     public Av1Decoder(Configuration configuration)
     {
@@ -28,8 +27,6 @@ internal class Av1Decoder : IAv1TileReader
 
     public Av1FrameInfo? FrameInfo { get; private set; }
 
-    public Av1FrameBuffer<byte>? FrameBuffer { get; private set; }
-
     public Image<TPixel> Decode<TPixel>(Span<byte> buffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -40,14 +37,33 @@ internal class Av1Decoder : IAv1TileReader
         Guard.NotNull(this.FrameHeader, nameof(this.FrameHeader));
 
         this.FrameInfo = this.tileReader.FrameInfo;
-        this.FrameBuffer = new(this.configuration, this.SequenceHeader, this.SequenceHeader.ColorConfig.GetColorFormat(), false);
-        this.frameDecoder = new(this.SequenceHeader, this.FrameHeader, this.FrameInfo, this.FrameBuffer);
-        this.frameDecoder.DecodeFrame();
+        using Av1FrameBuffer<byte> frameBuffer = new(
+            this.configuration,
+            this.SequenceHeader,
+            this.SequenceHeader.ColorConfig.GetColorFormat(),
+            false);
 
-        Image<TPixel> resultImage = new(this.FrameHeader.FrameSize.FrameWidth, this.FrameHeader.FrameSize.FrameHeight);
-        ImageFrame<TPixel> resultFrame = resultImage.Frames.RootFrame;
-        Av1YuvConverter.ConvertToRgb(this.configuration, this.FrameBuffer, resultFrame);
-        return resultImage;
+        Av1FrameDecoder frameDecoder = new(this.SequenceHeader, this.FrameHeader, this.FrameInfo, frameBuffer);
+        frameDecoder.DecodeFrame();
+
+        Image<TPixel>? resultImage = null;
+        try
+        {
+            resultImage = new Image<TPixel>(
+                this.configuration,
+                this.FrameHeader.FrameSize.FrameWidth,
+                this.FrameHeader.FrameSize.FrameHeight,
+                null);
+
+            ImageFrame<TPixel> resultFrame = resultImage.Frames.RootFrame;
+            Av1YuvConverter.ConvertToRgb(this.configuration, frameBuffer, resultFrame);
+            return resultImage;
+        }
+        catch
+        {
+            resultImage?.Dispose();
+            throw;
+        }
     }
 
     public void ReadTile(Span<byte> tileData, int tileNum)
@@ -56,13 +72,9 @@ internal class Av1Decoder : IAv1TileReader
         {
             this.SequenceHeader = this.obuReader.SequenceHeader;
             this.FrameHeader = this.obuReader.FrameHeader;
-            Guard.NotNull(this.tileReader, nameof(this.tileReader));
             Guard.NotNull(this.SequenceHeader, nameof(this.SequenceHeader));
             Guard.NotNull(this.FrameHeader, nameof(this.FrameHeader));
-            this.FrameInfo = new(this.SequenceHeader);
-            this.FrameBuffer = new(this.configuration, this.SequenceHeader, this.SequenceHeader.ColorConfig.GetColorFormat(), false);
-            this.frameDecoder = new(this.SequenceHeader, this.FrameHeader, this.FrameInfo, this.FrameBuffer);
-            this.tileReader = new Av1TileReader(this.configuration, this.SequenceHeader, this.FrameHeader, this.frameDecoder);
+            this.tileReader = new Av1TileReader(this.configuration, this.SequenceHeader, this.FrameHeader);
         }
 
         this.tileReader.ReadTile(tileData, tileNum);

@@ -95,10 +95,9 @@ This assessment is based on the current source after the upstream ImageSharp mer
 
 ### AV1 decoder
 
-- `Av1Decoder.ReadTile()` checks `tileReader` in the branch where it is known to be null, so the first tile cannot reach reconstruction.
-- Decoder state is allocated or replaced at multiple points, making parsed tile state, reconstructed frame state, and ownership unclear.
+- The single-still `Av1Decoder` path now parses tile state before allocating and reconstructing one frame, and it disposes the reconstruction planes after pixel conversion. Reference-frame, `show_existing_frame`, and multi-frame ownership remain incomplete.
 - The reconstruction pipeline disables loop filtering, CDEF, super-resolution, loop restoration, and padding with constant flags. These are normative stages when signaled, not optional quality improvements.
-- Loop restoration, filter intra prediction, palette paths, `show_existing_frame`, reference/CDF state, and other syntax paths contain `NotImplementedException` or equivalent unsupported branches.
+- Loop restoration, palette paths, `show_existing_frame`, reference/CDF state, and other syntax paths contain `NotImplementedException` or equivalent unsupported branches.
 - The frame buffer now establishes two-byte native sample storage, logical plane rows, and sample-unit block strides for 10/12-bit frames. The active prediction and block reconstruction path is still limited to 8-bit samples and must be connected to the existing high-bit-depth inverse-transform core.
 - `Av1YuvConverter` now consumes the signaled range, supported H.273 matrix coefficients, subsampling, and chroma sample position for 8, 10, and 12-bit output and uses one allocator-backed RGB row. Constant-luminance and chromaticity-derived matrices, ICtCp, and encoder-side subsampling remain incomplete.
 - The inverse-transform path allocates arrays in a per-transform hot path.
@@ -122,7 +121,7 @@ This assessment is based on the current source after the upstream ImageSharp mer
 
 - The repository contains HEIC, HIF, and AVIF assets, but only the legacy JPEG HIF path reaches a full reference-image comparison.
 - HEVC fixtures are identified but not decoded, and there are no HEVC algorithm tests.
-- The strongest AV1 integration test only verifies that the first tile produces non-zero luma data.
+- The strongest AV1 integration test now drives the single-still decoder through tile parsing, reconstruction, and pixel conversion, but only verifies non-zero output rather than independent reference pixels.
 - Several full-image, inverse-transform, entropy, and frame-header cases are disabled or commented out.
 - Existing bitstream, predictor, transform, and entropy unit tests are useful foundations, but many compare two in-tree implementations with the same assumptions.
 - There is no decode matrix covering bit depth, subsampling, range, matrix coefficients, alpha, grids, transformations, metadata, truncated data, or resource limits.

@@ -33,14 +33,13 @@ internal class Av1TileReader : IAv1TileReader
     private readonly int[] firstTransformOffset = new int[2];
     private readonly int[] coefficientIndex = [];
     private readonly Configuration configuration;
-    private readonly IAv1FrameDecoder frameDecoder;
+    private readonly IAv1FrameDecoder? frameDecoder;
 
-    public Av1TileReader(Configuration configuration, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, IAv1FrameDecoder frameDecoder)
+    public Av1TileReader(Configuration configuration, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         this.FrameHeader = frameHeader;
         this.configuration = configuration;
         this.SequenceHeader = sequenceHeader;
-        this.frameDecoder = frameDecoder;
 
         // init_main_frame_ctxt
         this.FrameInfo = new(this.SequenceHeader);
@@ -65,6 +64,10 @@ internal class Av1TileReader : IAv1TileReader
         this.transformUnitCount[2] = new int[this.FrameInfo.ModeInfoCount];
         this.coefficientIndex = new int[Av1Constants.MaxPlanes];
     }
+
+    public Av1TileReader(Configuration configuration, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, IAv1FrameDecoder frameDecoder)
+        : this(configuration, sequenceHeader, frameHeader)
+        => this.frameDecoder = frameDecoder;
 
     public ObuFrameHeader FrameHeader { get; }
 
@@ -126,7 +129,7 @@ internal class Av1TileReader : IAv1TileReader
                 this.ParsePartition(ref reader, modeInfoPosition, superBlockSize, superblockInfo, tileInfo);
 
                 // decoding of the superblock
-                this.frameDecoder.DecodeSuperblock(modeInfoPosition, superblockInfo, tileInfo);
+                this.frameDecoder?.DecodeSuperblock(modeInfoPosition, superblockInfo, tileInfo);
             }
         }
     }

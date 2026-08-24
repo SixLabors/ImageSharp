@@ -6,12 +6,27 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 [Trait("Format", "Avif")]
 public class Av1TilingTests
 {
+    [Fact]
+    public void DecoderReadsFirstTile()
+    {
+        string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Heif.Orange4x4);
+        byte[] content = File.ReadAllBytes(filePath);
+        Av1Decoder decoder = new(Configuration.Default);
+
+        using Image<Rgba32> image = decoder.Decode<Rgba32>(content.AsSpan(0x010E, 0x001D));
+
+        Assert.Equal(4, image.Width);
+        Assert.Equal(4, image.Height);
+        Assert.True(image.Frames.RootFrame.PixelBuffer.DangerousGetSingleSpan().ContainsAnyExcept(default(Rgba32)));
+    }
+
     [Theory]
     [InlineData(TestImages.Heif.Orange4x4, 0x010E, 0x001d, 21, 1)]
     public void DecodePixelsFirstTile(string filename, int dataOffset, int dataSize, int tileOffset, int superblockCount)

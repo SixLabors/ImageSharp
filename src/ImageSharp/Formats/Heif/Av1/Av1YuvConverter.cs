@@ -49,6 +49,11 @@ internal static class Av1YuvConverter
         /// The SMPTE ST 2085 YDzDx color transform.
         /// </summary>
         Smpte2085,
+
+        /// <summary>
+        /// A constant-luminance transform using the signaled transfer characteristics.
+        /// </summary>
+        ConstantLuminance,
     }
 
     /// <summary>
@@ -72,6 +77,11 @@ internal static class Av1YuvConverter
             out float chromaBias,
             out float chromaScale,
             out float sampleMaximum);
+
+        ObuTransferCharacteristics transferCharacteristics = frameBuffer.ColorConfig.TransferCharacteristics;
+        ConstantLuminanceScales constantLuminanceScales = mode == ConversionMode.ConstantLuminance
+            ? new ConstantLuminanceScales(transferCharacteristics, kr, kb)
+            : default;
 
         Buffer2DRegion<byte> yPlane = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0);
         bool isMonochrome = frameBuffer.ColorFormat == Av1ColorFormat.Yuv400;
@@ -128,6 +138,8 @@ internal static class Av1YuvConverter
                     kr,
                     kg,
                     kb,
+                    transferCharacteristics,
+                    in constantLuminanceScales,
                     lumaBias,
                     lumaScale,
                     chromaBias,
@@ -154,6 +166,8 @@ internal static class Av1YuvConverter
                     kr,
                     kg,
                     kb,
+                    transferCharacteristics,
+                    in constantLuminanceScales,
                     lumaBias,
                     lumaScale,
                     chromaBias,
@@ -199,6 +213,11 @@ internal static class Av1YuvConverter
             out float chromaBias,
             out float chromaScale,
             out float sampleMaximum);
+
+        ObuTransferCharacteristics transferCharacteristics = frameBuffer.ColorConfig.TransferCharacteristics;
+        ConstantLuminanceScales constantLuminanceScales = mode == ConversionMode.ConstantLuminance
+            ? new ConstantLuminanceScales(transferCharacteristics, kr, kb)
+            : default;
 
         bool isMonochrome = frameBuffer.ColorFormat == Av1ColorFormat.Yuv400;
         int subX = frameBuffer.ColorConfig.SubSamplingX ? 1 : 0;
@@ -282,6 +301,8 @@ internal static class Av1YuvConverter
                         kr,
                         kg,
                         kb,
+                        transferCharacteristics,
+                        in constantLuminanceScales,
                         lumaBias,
                         lumaScale,
                         chromaBias,
@@ -301,6 +322,8 @@ internal static class Av1YuvConverter
                         kr,
                         kg,
                         kb,
+                        transferCharacteristics,
+                        in constantLuminanceScales,
                         lumaBias,
                         lumaScale,
                         chromaBias,
@@ -322,6 +345,8 @@ internal static class Av1YuvConverter
                         kr,
                         kg,
                         kb,
+                        transferCharacteristics,
+                        in constantLuminanceScales,
                         lumaBias,
                         lumaScale,
                         chromaBias,
@@ -341,6 +366,8 @@ internal static class Av1YuvConverter
                         kr,
                         kg,
                         kb,
+                        transferCharacteristics,
+                        in constantLuminanceScales,
                         lumaBias,
                         lumaScale,
                         chromaBias,
@@ -412,10 +439,19 @@ internal static class Av1YuvConverter
                 kr = 0.2627F;
                 kb = 0.0593F;
                 break;
+            case ObuMatrixCoefficients.Bt2020ConstantLuminance:
+                mode = ConversionMode.ConstantLuminance;
+                kr = 0.2627F;
+                kb = 0.0593F;
+                break;
             case ObuMatrixCoefficients.Smpte2085:
                 mode = ConversionMode.Smpte2085;
                 break;
             case ObuMatrixCoefficients.ChromaticityDerivedNonConstantLuminance:
+                GetChromaticityDerivedCoefficients(frameBuffer.ColorConfig.ColorPrimaries, out kr, out kb);
+                break;
+            case ObuMatrixCoefficients.ChromaticityDerivedConstantLuminance:
+                mode = ConversionMode.ConstantLuminance;
                 GetChromaticityDerivedCoefficients(frameBuffer.ColorConfig.ColorPrimaries, out kr, out kb);
                 break;
             default:
@@ -619,6 +655,8 @@ internal static class Av1YuvConverter
     /// <param name="kr">The red luma coefficient.</param>
     /// <param name="kg">The green luma coefficient.</param>
     /// <param name="kb">The blue luma coefficient.</param>
+    /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
+    /// <param name="constantLuminanceScales">The constant-luminance chroma scales.</param>
     /// <param name="lumaBias">The encoded luma bias.</param>
     /// <param name="lumaScale">The encoded luma range.</param>
     /// <param name="chromaBias">The encoded chroma midpoint.</param>
@@ -640,6 +678,8 @@ internal static class Av1YuvConverter
         float kr,
         float kg,
         float kb,
+        ObuTransferCharacteristics transferCharacteristics,
+        in ConstantLuminanceScales constantLuminanceScales,
         float lumaBias,
         float lumaScale,
         float chromaBias,
@@ -688,6 +728,24 @@ internal static class Av1YuvConverter
                         g = y;
                         b = ((2F * cb) + y) / 0.986566F;
                         r = (2F * cr) + (0.991902F * y);
+                        break;
+                    case ConversionMode.ConstantLuminance:
+                        // H.273 equations 66 to 75 define luma in linear light, while the stored luma and
+                        // difference signals remain nonlinear. Reconstruct red and blue before solving green.
+                        float nonlinearBlue = y +
+                            (2F * (cb <= 0F ? constantLuminanceScales.NegativeBlue : constantLuminanceScales.PositiveBlue) * cb);
+
+                        float nonlinearRed = y +
+                            (2F * (cr <= 0F ? constantLuminanceScales.NegativeRed : constantLuminanceScales.PositiveRed) * cr);
+
+                        float linearY = Av1TransferFunctions.ToLinear(transferCharacteristics, y);
+                        float linearBlue = Av1TransferFunctions.ToLinear(transferCharacteristics, nonlinearBlue);
+                        float linearRed = Av1TransferFunctions.ToLinear(transferCharacteristics, nonlinearRed);
+                        float linearGreen = (linearY - (kr * linearRed) - (kb * linearBlue)) / kg;
+
+                        r = nonlinearRed;
+                        g = Av1TransferFunctions.ToGamma(transferCharacteristics, linearGreen);
+                        b = nonlinearBlue;
                         break;
                     default:
                         r = y + (2F * (1F - kr) * cr);
@@ -807,6 +865,8 @@ internal static class Av1YuvConverter
     /// <param name="kr">The red luma coefficient.</param>
     /// <param name="kg">The green luma coefficient.</param>
     /// <param name="kb">The blue luma coefficient.</param>
+    /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
+    /// <param name="constantLuminanceScales">The constant-luminance chroma scales.</param>
     /// <param name="lumaBias">The encoded luma bias.</param>
     /// <param name="lumaScale">The encoded luma range.</param>
     /// <param name="chromaBias">The encoded chroma midpoint.</param>
@@ -821,6 +881,8 @@ internal static class Av1YuvConverter
         float kr,
         float kg,
         float kb,
+        ObuTransferCharacteristics transferCharacteristics,
+        in ConstantLuminanceScales constantLuminanceScales,
         float lumaBias,
         float lumaScale,
         float chromaBias,
@@ -831,7 +893,17 @@ internal static class Av1YuvConverter
     {
         for (int x = 0; x < source.Length; x++)
         {
-            ConvertRgbToYuv(source[x], mode, kr, kg, kb, out float y, out float cb, out float cr);
+            ConvertRgbToYuv(
+                source[x],
+                mode,
+                kr,
+                kg,
+                kb,
+                transferCharacteristics,
+                in constantLuminanceScales,
+                out float y,
+                out float cb,
+                out float cr);
 
             yDestination[x] = ToSample<TSample>((y * lumaScale) + lumaBias, sampleMaximum);
             if (!uDestination.IsEmpty)
@@ -865,6 +937,8 @@ internal static class Av1YuvConverter
     /// <param name="kr">The red luma coefficient.</param>
     /// <param name="kg">The green luma coefficient.</param>
     /// <param name="kb">The blue luma coefficient.</param>
+    /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
+    /// <param name="constantLuminanceScales">The constant-luminance chroma scales.</param>
     /// <param name="lumaBias">The encoded luma bias.</param>
     /// <param name="lumaScale">The encoded luma range.</param>
     /// <param name="chromaBias">The encoded chroma midpoint.</param>
@@ -881,6 +955,8 @@ internal static class Av1YuvConverter
         float kr,
         float kg,
         float kb,
+        ObuTransferCharacteristics transferCharacteristics,
+        in ConstantLuminanceScales constantLuminanceScales,
         float lumaBias,
         float lumaScale,
         float chromaBias,
@@ -902,7 +978,18 @@ internal static class Av1YuvConverter
                 for (int column = 0; column < columnCount; column++)
                 {
                     int sourceIndex = x + column;
-                    ConvertRgbToYuv(source[sourceIndex], mode, kr, kg, kb, out float y, out float cb, out float cr);
+                    ConvertRgbToYuv(
+                        source[sourceIndex],
+                        mode,
+                        kr,
+                        kg,
+                        kb,
+                        transferCharacteristics,
+                        in constantLuminanceScales,
+                        out float y,
+                        out float cb,
+                        out float cr);
+
                     yDestination[sourceIndex] = ToSample<TSample>((y * lumaScale) + lumaBias, sampleMaximum);
                     cbSum += cb;
                     crSum += cr;
@@ -929,6 +1016,8 @@ internal static class Av1YuvConverter
     /// <param name="kr">The red luma coefficient.</param>
     /// <param name="kg">The green luma coefficient.</param>
     /// <param name="kb">The blue luma coefficient.</param>
+    /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
+    /// <param name="constantLuminanceScales">The constant-luminance chroma scales.</param>
     /// <param name="y">The normalized luma result.</param>
     /// <param name="cb">The normalized blue-difference chroma result.</param>
     /// <param name="cr">The normalized red-difference chroma result.</param>
@@ -939,6 +1028,8 @@ internal static class Av1YuvConverter
         float kr,
         float kg,
         float kb,
+        ObuTransferCharacteristics transferCharacteristics,
+        in ConstantLuminanceScales constantLuminanceScales,
         out float y,
         out float cb,
         out float cr)
@@ -983,6 +1074,24 @@ internal static class Av1YuvConverter
                 y = g;
                 cb = ((0.986566F * b) - y) * 0.5F;
                 cr = (r - (0.991902F * y)) * 0.5F;
+                break;
+            case ConversionMode.ConstantLuminance:
+                // The packed RGB values are nonlinear signal components. H.273 constant luminance derives Y
+                // after applying the inverse transfer curve to each component.
+                float linearRed = Av1TransferFunctions.ToLinear(transferCharacteristics, r);
+                float linearGreen = Av1TransferFunctions.ToLinear(transferCharacteristics, g);
+                float linearBlue = Av1TransferFunctions.ToLinear(transferCharacteristics, b);
+                float linearY = (kr * linearRed) + (kg * linearGreen) + (kb * linearBlue);
+                y = Av1TransferFunctions.ToGamma(transferCharacteristics, linearY);
+
+                float blueDifference = b - y;
+                float redDifference = r - y;
+                cb = blueDifference /
+                    (2F * (blueDifference <= 0F ? constantLuminanceScales.NegativeBlue : constantLuminanceScales.PositiveBlue));
+
+                cr = redDifference /
+                    (2F * (redDifference <= 0F ? constantLuminanceScales.NegativeRed : constantLuminanceScales.PositiveRed));
+
                 break;
             default:
                 y = (kr * r) + (kg * g) + (kb * b);
@@ -1029,5 +1138,48 @@ internal static class Av1YuvConverter
 
         ushort highBitDepthResult = (ushort)sample;
         return Unsafe.As<ushort, TSample>(ref highBitDepthResult);
+    }
+
+    /// <summary>
+    /// Stores the H.273 chroma normalization constants for constant-luminance conversion.
+    /// </summary>
+    private readonly struct ConstantLuminanceScales
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ConstantLuminanceScales"/> struct.
+        /// </summary>
+        /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
+        /// <param name="kr">The red luma coefficient.</param>
+        /// <param name="kb">The blue luma coefficient.</param>
+        public ConstantLuminanceScales(
+            ObuTransferCharacteristics transferCharacteristics,
+            float kr,
+            float kb)
+        {
+            this.NegativeBlue = Av1TransferFunctions.ToGamma(transferCharacteristics, 1F - kb);
+            this.PositiveBlue = 1F - Av1TransferFunctions.ToGamma(transferCharacteristics, kb);
+            this.NegativeRed = Av1TransferFunctions.ToGamma(transferCharacteristics, 1F - kr);
+            this.PositiveRed = 1F - Av1TransferFunctions.ToGamma(transferCharacteristics, kr);
+        }
+
+        /// <summary>
+        /// Gets the scale for a non-positive blue difference.
+        /// </summary>
+        public float NegativeBlue { get; }
+
+        /// <summary>
+        /// Gets the scale for a positive blue difference.
+        /// </summary>
+        public float PositiveBlue { get; }
+
+        /// <summary>
+        /// Gets the scale for a non-positive red difference.
+        /// </summary>
+        public float NegativeRed { get; }
+
+        /// <summary>
+        /// Gets the scale for a positive red difference.
+        /// </summary>
+        public float PositiveRed { get; }
     }
 }

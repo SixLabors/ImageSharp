@@ -111,40 +111,33 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
     /// <remarks>SVT-AV1: <c>decode_tile</c>.</remarks>
     private void DecodeFrameTiles(int tileColumn)
     {
-        int tileRowCount = this.frameHeader.TilesInfo.TileRowCount;
-        int tileCount = tileRowCount * this.frameHeader.TilesInfo.TileColumnCount;
-        for (int row = 0; row < tileRowCount; row++)
+        ObuTileGroupHeader tileInfo = this.frameHeader.TilesInfo;
+        for (int tileRow = 0; tileRow < tileInfo.TileRowCount; tileRow++)
         {
-            // Tile row starts are signaled in 4x4 mode-info units. Convert to pixels and then to superblock rows
-            // so the frame-level superblock store and the tile-local syntax address the same region.
-            int superblockRowTileStart = this.frameHeader.TilesInfo.TileRowStartModeInfo[row] << Av1Constants.ModeInfoSizeLog2 >>
-                this.sequenceHeader.SuperblockSizeLog2;
-            int superblockRow = row + superblockRowTileStart;
-
-            int modeInfoRow = superblockRow << this.sequenceHeader.SuperblockSizeLog2 >> Av1Constants.ModeInfoSizeLog2;
-
-            // EbColorConfig* color_config = &dec_mod_ctxt->seq_header->color_config;
-            // svt_cfl_init(&dec_mod_ctxt->cfl_ctx, color_config);
-            this.DecodeTileRow(row, tileColumn, modeInfoRow, superblockRow);
+            // Tile boundaries are expressed in 4x4 mode-info units. Walk every superblock row between consecutive
+            // boundaries; using only the tile-row index would reconstruct one row and leave taller tiles incomplete.
+            int modeInfoRowStart = tileInfo.TileRowStartModeInfo[tileRow];
+            int modeInfoRowEnd = tileInfo.TileRowStartModeInfo[tileRow + 1];
+            for (int modeInfoRow = modeInfoRowStart;
+                modeInfoRow < modeInfoRowEnd;
+                modeInfoRow += this.sequenceHeader.SuperblockModeInfoSize)
+            {
+                int superblockRow = modeInfoRow / this.sequenceHeader.SuperblockModeInfoSize;
+                this.DecodeTileSuperblockRow(tileRow, tileColumn, modeInfoRow, superblockRow);
+            }
         }
     }
 
     /// <summary>
-    /// Reconstructs the superblocks in one tile row from left to right.
+    /// Reconstructs one superblock row within a tile from left to right.
     /// </summary>
     /// <param name="tileRow">The zero-based tile-row index.</param>
     /// <param name="tileColumn">The zero-based tile-column index.</param>
     /// <param name="modeInfoRow">The frame-relative row in 4x4 mode-info units.</param>
     /// <param name="superblockRow">The frame-relative superblock row.</param>
     /// <remarks>SVT-AV1: <c>decode_tile_row</c>.</remarks>
-    private void DecodeTileRow(int tileRow, int tileColumn, int modeInfoRow, int superblockRow)
+    private void DecodeTileSuperblockRow(int tileRow, int tileColumn, int modeInfoRow, int superblockRow)
     {
-        int superblockModeInfoSizeLog2 = this.sequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2;
-        int superblockRowTileStart = this.frameHeader.TilesInfo.TileRowStartModeInfo[tileRow] << Av1Constants.ModeInfoSizeLog2 >>
-            this.sequenceHeader.SuperblockSizeLog2;
-
-        int superblockRowInTile = superblockRow - superblockRowTileStart;
-
         ObuTileGroupHeader tileInfo = this.frameHeader.TilesInfo;
         for (int modeInfoColumn = tileInfo.TileColumnStartModeInfo[tileColumn]; modeInfoColumn < tileInfo.TileColumnStartModeInfo[tileColumn + 1];
              modeInfoColumn += this.sequenceHeader.SuperblockModeInfoSize)

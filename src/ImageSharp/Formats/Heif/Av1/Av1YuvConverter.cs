@@ -44,6 +44,11 @@ internal static class Av1YuvConverter
         /// The reversible-style YCgCo color transform.
         /// </summary>
         YCgCo,
+
+        /// <summary>
+        /// The SMPTE ST 2085 YDzDx color transform.
+        /// </summary>
+        Smpte2085,
     }
 
     /// <summary>
@@ -407,6 +412,12 @@ internal static class Av1YuvConverter
                 kr = 0.2627F;
                 kb = 0.0593F;
                 break;
+            case ObuMatrixCoefficients.Smpte2085:
+                mode = ConversionMode.Smpte2085;
+                break;
+            case ObuMatrixCoefficients.ChromaticityDerivedNonConstantLuminance:
+                GetChromaticityDerivedCoefficients(frameBuffer.ColorConfig.ColorPrimaries, out kr, out kb);
+                break;
             default:
                 throw new NotSupportedException($"AV1 matrix coefficients '{frameBuffer.ColorConfig.MatrixCoefficients}' are not currently supported.");
         }
@@ -436,6 +447,156 @@ internal static class Av1YuvConverter
         lumaBias = isFullRange ? 0F : 16F * depthScale;
         lumaScale = isFullRange ? sampleMaximum : 219F * depthScale;
         chromaScale = isFullRange ? sampleMaximum : 224F * depthScale;
+    }
+
+    /// <summary>
+    /// Computes the luma coefficients defined by the signaled H.273 primary chromaticities.
+    /// </summary>
+    /// <param name="colorPrimaries">The signaled color-primary code point.</param>
+    /// <param name="kr">The resulting red luma coefficient.</param>
+    /// <param name="kb">The resulting blue luma coefficient.</param>
+    private static void GetChromaticityDerivedCoefficients(
+        ObuColorPrimaries colorPrimaries,
+        out float kr,
+        out float kb)
+    {
+        float redX;
+        float redY;
+        float greenX;
+        float greenY;
+        float blueX;
+        float blueY;
+        float whiteX;
+        float whiteY;
+
+        switch (colorPrimaries)
+        {
+            case ObuColorPrimaries.Bt470M:
+                redX = 0.67F;
+                redY = 0.33F;
+                greenX = 0.21F;
+                greenY = 0.71F;
+                blueX = 0.14F;
+                blueY = 0.08F;
+                whiteX = 0.310F;
+                whiteY = 0.316F;
+                break;
+            case ObuColorPrimaries.Bt470BG:
+                redX = 0.64F;
+                redY = 0.33F;
+                greenX = 0.29F;
+                greenY = 0.60F;
+                blueX = 0.15F;
+                blueY = 0.06F;
+                whiteX = 0.3127F;
+                whiteY = 0.3290F;
+                break;
+            case ObuColorPrimaries.Bt601:
+            case ObuColorPrimaries.Smpte240:
+                redX = 0.630F;
+                redY = 0.340F;
+                greenX = 0.310F;
+                greenY = 0.595F;
+                blueX = 0.155F;
+                blueY = 0.070F;
+                whiteX = 0.3127F;
+                whiteY = 0.3290F;
+                break;
+            case ObuColorPrimaries.GenericFilm:
+                redX = 0.681F;
+                redY = 0.319F;
+                greenX = 0.243F;
+                greenY = 0.692F;
+                blueX = 0.145F;
+                blueY = 0.049F;
+                whiteX = 0.310F;
+                whiteY = 0.316F;
+                break;
+            case ObuColorPrimaries.Bt2020:
+                redX = 0.708F;
+                redY = 0.292F;
+                greenX = 0.170F;
+                greenY = 0.797F;
+                blueX = 0.131F;
+                blueY = 0.046F;
+                whiteX = 0.3127F;
+                whiteY = 0.3290F;
+                break;
+            case ObuColorPrimaries.Xyz:
+                redX = 1F;
+                redY = 0F;
+                greenX = 0F;
+                greenY = 1F;
+                blueX = 0F;
+                blueY = 0F;
+                whiteX = 1F / 3F;
+                whiteY = 1F / 3F;
+                break;
+            case ObuColorPrimaries.Smpte431:
+                redX = 0.680F;
+                redY = 0.320F;
+                greenX = 0.265F;
+                greenY = 0.690F;
+                blueX = 0.150F;
+                blueY = 0.060F;
+                whiteX = 0.314F;
+                whiteY = 0.351F;
+                break;
+            case ObuColorPrimaries.Smpte432:
+                redX = 0.680F;
+                redY = 0.320F;
+                greenX = 0.265F;
+                greenY = 0.690F;
+                blueX = 0.150F;
+                blueY = 0.060F;
+                whiteX = 0.3127F;
+                whiteY = 0.3290F;
+                break;
+            case ObuColorPrimaries.Ebu3213:
+                redX = 0.630F;
+                redY = 0.340F;
+                greenX = 0.295F;
+                greenY = 0.605F;
+                blueX = 0.155F;
+                blueY = 0.077F;
+                whiteX = 0.3127F;
+                whiteY = 0.3290F;
+                break;
+            default:
+                // Unspecified and reserved code points have no chromaticities to derive. Match libavif's established
+                // still-image fallback so such files retain the same deterministic BT.709 interpretation.
+                redX = 0.64F;
+                redY = 0.33F;
+                greenX = 0.30F;
+                greenY = 0.60F;
+                blueX = 0.15F;
+                blueY = 0.06F;
+                whiteX = 0.3127F;
+                whiteY = 0.3290F;
+                break;
+        }
+
+        float redZ = 1F - (redX + redY);
+        float greenZ = 1F - (greenX + greenY);
+        float blueZ = 1F - (blueX + blueY);
+        float whiteZ = 1F - (whiteX + whiteY);
+
+        // H.273 equations 39 and 40 solve the RGB-to-XYZ primary matrix at the signaled white point. Keeping
+        // the expanded determinant matches libavif and avoids introducing a general matrix inversion dependency.
+        float denominator = whiteY *
+            ((redX * ((greenY * blueZ) - (blueY * greenZ))) +
+             (greenX * ((blueY * redZ) - (redY * blueZ))) +
+             (blueX * ((redY * greenZ) - (greenY * redZ))));
+
+        kr = (redY *
+            ((whiteX * ((greenY * blueZ) - (blueY * greenZ))) +
+             (whiteY * ((blueX * greenZ) - (greenX * blueZ))) +
+             (whiteZ * ((greenX * blueY) - (blueX * greenY))))) / denominator;
+
+        kb = (blueY *
+            ((whiteX * ((redY * greenZ) - (greenY * redZ))) +
+             (whiteY * ((greenX * redZ) - (redX * greenZ))) +
+             (whiteZ * ((redX * greenY) - (greenX * redY))))) / denominator;
     }
 
     /// <summary>
@@ -520,6 +681,13 @@ internal static class Av1YuvConverter
                         r = temporary + cr;
                         g = y + cb;
                         b = temporary - cr;
+                        break;
+                    case ConversionMode.Smpte2085:
+                        // H.273 equations 76 to 78 store green as luma and use the ST 2085 scale factors for
+                        // the blue and red difference components.
+                        g = y;
+                        b = ((2F * cb) + y) / 0.986566F;
+                        r = (2F * cr) + (0.991902F * y);
                         break;
                     default:
                         r = y + (2F * (1F - kr) * cr);
@@ -809,6 +977,12 @@ internal static class Av1YuvConverter
                 y = (0.5F * g) + (0.25F * (r + b));
                 cb = (0.5F * g) - (0.25F * (r + b));
                 cr = 0.5F * (r - b);
+                break;
+            case ConversionMode.Smpte2085:
+                // ST 2085 uses green directly as luma, so this path must remain separate from Kr/Kb YCbCr.
+                y = g;
+                cb = ((0.986566F * b) - y) * 0.5F;
+                cr = (r - (0.991902F * y)) * 0.5F;
                 break;
             default:
                 y = (kr * r) + (kg * g) + (kb * b);

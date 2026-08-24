@@ -37,6 +37,16 @@ internal readonly struct HevcNalUnitHeader
     public byte TemporalId { get; }
 
     /// <summary>
+    /// Gets a value indicating whether the NAL unit contains coded slice-segment data.
+    /// </summary>
+    public bool IsVideoCodingLayer => this.NalUnitType <= 31;
+
+    /// <summary>
+    /// Gets a value indicating whether the NAL unit begins an instantaneous decoder refresh picture.
+    /// </summary>
+    public bool IsInstantaneousDecoderRefresh => this.NalUnitType is 19 or 20;
+
+    /// <summary>
     /// Reads and validates an HEVC NAL-unit header.
     /// </summary>
     /// <param name="data">The complete NAL unit beginning with its two-byte header.</param>

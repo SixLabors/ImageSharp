@@ -177,6 +177,28 @@ internal ref struct HevcBitReader
     }
 
     /// <summary>
+    /// Reads the one-bit marker and zero padding that align slice data to the next byte boundary.
+    /// </summary>
+    /// <exception cref="InvalidImageContentException">
+    /// The alignment marker is zero or any following alignment bit is nonzero.
+    /// </exception>
+    public void ReadByteAlignment()
+    {
+        if (!this.ReadFlag())
+        {
+            throw new InvalidImageContentException("The HEVC slice-header alignment marker is not set.");
+        }
+
+        while (!this.IsByteAligned)
+        {
+            if (this.ReadFlag())
+            {
+                throw new InvalidImageContentException("The HEVC slice header has a nonzero alignment bit.");
+            }
+        }
+    }
+
+    /// <summary>
     /// Reads and validates the stop bit and zero alignment bits that terminate an HEVC raw byte sequence payload.
     /// </summary>
     /// <exception cref="InvalidImageContentException">

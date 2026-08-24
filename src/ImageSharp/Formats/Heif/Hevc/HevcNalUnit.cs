@@ -21,8 +21,14 @@ internal sealed class HevcNalUnit
         // parameter-set and slice parser observes the same validated RBSP representation.
         ReadOnlySpan<byte> encodedPayload = data[2..];
         byte[] rbspBuffer = new byte[encodedPayload.Length];
-        int rbspLength = HevcRbspDecoder.Decode(encodedPayload, rbspBuffer);
+        int rbspLength = HevcRbspDecoder.Decode(
+            encodedPayload,
+            rbspBuffer,
+            out int[] emulationPreventionBytePositions);
+
+        this.EncodedPayloadLength = encodedPayload.Length;
         this.Rbsp = rbspBuffer.AsMemory(0, rbspLength);
+        this.EmulationPreventionBytePositions = emulationPreventionBytePositions;
     }
 
     /// <summary>
@@ -34,6 +40,16 @@ internal sealed class HevcNalUnit
     /// Gets the raw byte sequence payload after removal of emulation-prevention bytes.
     /// </summary>
     public ReadOnlyMemory<byte> Rbsp { get; }
+
+    /// <summary>
+    /// Gets the encoded byte-sequence payload length before removal of emulation-prevention bytes.
+    /// </summary>
+    public int EncodedPayloadLength { get; }
+
+    /// <summary>
+    /// Gets the zero-based encoded-payload positions of removed emulation-prevention bytes.
+    /// </summary>
+    public IReadOnlyList<int> EmulationPreventionBytePositions { get; }
 }
 
 /// <summary>
@@ -46,16 +62,23 @@ internal static class HevcRbspDecoder
     /// </summary>
     /// <param name="encodedPayload">The NAL payload following the two-byte header.</param>
     /// <param name="destination">A buffer at least as long as <paramref name="encodedPayload"/>.</param>
+    /// <param name="emulationPreventionBytePositions">
+    /// Receives the zero-based encoded-payload positions of removed emulation-prevention bytes.
+    /// </param>
     /// <returns>The number of decoded bytes written to <paramref name="destination"/>.</returns>
     /// <exception cref="InvalidImageContentException">
     /// The payload contains a forbidden start-code-like byte sequence or an invalid emulation-prevention byte.
     /// </exception>
-    public static int Decode(ReadOnlySpan<byte> encodedPayload, Span<byte> destination)
+    public static int Decode(
+        ReadOnlySpan<byte> encodedPayload,
+        Span<byte> destination,
+        out int[] emulationPreventionBytePositions)
     {
         DebugGuard.MustBeGreaterThanOrEqualTo(destination.Length, encodedPayload.Length, nameof(destination));
 
         int destinationOffset = 0;
         int consecutiveZeroBytes = 0;
+        List<int>? preventionBytePositions = null;
         for (int sourceOffset = 0; sourceOffset < encodedPayload.Length; sourceOffset++)
         {
             byte value = encodedPayload[sourceOffset];
@@ -71,6 +94,7 @@ internal static class HevcRbspDecoder
 
                 if (value == 3)
                 {
+                    (preventionBytePositions ??= []).Add(sourceOffset);
                     sourceOffset++;
                     if (sourceOffset == encodedPayload.Length || encodedPayload[sourceOffset] > 3)
                     {
@@ -88,6 +112,7 @@ internal static class HevcRbspDecoder
             consecutiveZeroBytes = value == 0 ? consecutiveZeroBytes + 1 : 0;
         }
 
+        emulationPreventionBytePositions = preventionBytePositions?.ToArray() ?? Array.Empty<int>();
         return destinationOffset;
     }
 }

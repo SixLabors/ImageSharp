@@ -27,6 +27,69 @@ internal static class HevcParameterSetSyntax
         => !separateColorPlane && chromaFormat == 1 ? 2 : 1;
 
     /// <summary>
+    /// Gets the number of coding-tree blocks needed to cover one coded picture dimension.
+    /// </summary>
+    /// <param name="sampleCount">The coded luma-sample count.</param>
+    /// <param name="codingTreeBlockLog2">The base-two logarithm of the coding-tree-block size.</param>
+    /// <returns>The covering coding-tree-block count.</returns>
+    public static int GetCodingTreeBlockCount(int sampleCount, int codingTreeBlockLog2)
+        => ((sampleCount - 1) >> codingTreeBlockLog2) + 1;
+
+    /// <summary>
+    /// Gets the number of bits required to represent values below a positive exclusive upper bound.
+    /// </summary>
+    /// <param name="exclusiveUpperBound">The positive exclusive upper bound.</param>
+    /// <returns>The ceiling of the base-two logarithm, with zero returned for an upper bound of one.</returns>
+    public static int GetCeilingLog2(int exclusiveUpperBound)
+    {
+        DebugGuard.MustBeGreaterThan(exclusiveUpperBound, 0, nameof(exclusiveUpperBound));
+
+        int bitCount = 0;
+        int remaining = exclusiveUpperBound - 1;
+        while (remaining > 0)
+        {
+            bitCount++;
+            remaining >>= 1;
+        }
+
+        return bitCount;
+    }
+
+    /// <summary>
+    /// Reads a signed chroma quantization-parameter offset.
+    /// </summary>
+    /// <param name="reader">The HEVC syntax reader.</param>
+    /// <returns>The decoded offset in the registered range from negative twelve through twelve.</returns>
+    /// <exception cref="InvalidImageContentException">The offset is outside its registered range.</exception>
+    public static int ReadQuantizationParameterOffset(ref HevcBitReader reader)
+    {
+        int offset = reader.ReadSignedExpGolomb();
+        if (offset is < -12 or > 12)
+        {
+            throw new InvalidImageContentException("The HEVC chroma quantization-parameter offset is invalid.");
+        }
+
+        return offset;
+    }
+
+    /// <summary>
+    /// Reads a signed deblocking-filter threshold offset.
+    /// </summary>
+    /// <param name="reader">The HEVC syntax reader.</param>
+    /// <returns>The decoded half-offset in the registered range from negative six through six.</returns>
+    /// <exception cref="InvalidImageContentException">The offset is outside its registered range.</exception>
+    public static int ReadDeblockingFilterOffset(ref HevcBitReader reader)
+    {
+        int offset = reader.ReadSignedExpGolomb();
+        if (offset is < -6 or > 6)
+        {
+            throw new InvalidImageContentException("The HEVC deblocking-filter offset is invalid.");
+        }
+
+        return offset;
+    }
+
+    /// <summary>
     /// Consumes hypothetical-reference-decoder syntax without adding playback state to the still-image model.
     /// </summary>
     /// <param name="reader">The parameter-set raw byte sequence payload reader.</param>

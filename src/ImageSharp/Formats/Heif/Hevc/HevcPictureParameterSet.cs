@@ -95,8 +95,8 @@ internal sealed class HevcPictureParameterSet
             this.QuantizationParameterDeltaDepth = (int)quantizationParameterDeltaDepth;
         }
 
-        this.ChromaCbQuantizationParameterOffset = ReadQuantizationParameterOffset(ref reader);
-        this.ChromaCrQuantizationParameterOffset = ReadQuantizationParameterOffset(ref reader);
+        this.ChromaCbQuantizationParameterOffset = HevcParameterSetSyntax.ReadQuantizationParameterOffset(ref reader);
+        this.ChromaCrQuantizationParameterOffset = HevcParameterSetSyntax.ReadQuantizationParameterOffset(ref reader);
         this.SliceChromaQuantizationParameterOffsetsPresent = reader.ReadFlag();
         this.WeightedPredictionEnabled = reader.ReadFlag();
         this.WeightedBiPredictionEnabled = reader.ReadFlag();
@@ -104,11 +104,11 @@ internal sealed class HevcPictureParameterSet
         this.TilesEnabled = reader.ReadFlag();
         this.EntropyCodingSynchronizationEnabled = reader.ReadFlag();
 
-        int codingTreeBlockColumns = GetCodingTreeBlockCount(
+        int codingTreeBlockColumns = HevcParameterSetSyntax.GetCodingTreeBlockCount(
             sequenceParameterSet.Width,
             sequenceParameterSet.CodingTreeBlockLog2);
 
-        int codingTreeBlockRows = GetCodingTreeBlockCount(
+        int codingTreeBlockRows = HevcParameterSetSyntax.GetCodingTreeBlockCount(
             sequenceParameterSet.Height,
             sequenceParameterSet.CodingTreeBlockLog2);
 
@@ -158,8 +158,8 @@ internal sealed class HevcPictureParameterSet
             this.DeblockingFilterDisabled = reader.ReadFlag();
             if (!this.DeblockingFilterDisabled)
             {
-                this.DeblockingFilterBetaOffsetDiv2 = ReadDeblockingFilterOffset(ref reader);
-                this.DeblockingFilterTcOffsetDiv2 = ReadDeblockingFilterOffset(ref reader);
+                this.DeblockingFilterBetaOffsetDiv2 = HevcParameterSetSyntax.ReadDeblockingFilterOffset(ref reader);
+                this.DeblockingFilterTcOffsetDiv2 = HevcParameterSetSyntax.ReadDeblockingFilterOffset(ref reader);
             }
         }
 
@@ -399,8 +399,8 @@ internal sealed class HevcPictureParameterSet
             int[] crOffsets = new int[chromaOffsetCount];
             for (int offset = 0; offset < chromaOffsetCount; offset++)
             {
-                cbOffsets[offset] = ReadQuantizationParameterOffset(ref reader);
-                crOffsets[offset] = ReadQuantizationParameterOffset(ref reader);
+                cbOffsets[offset] = HevcParameterSetSyntax.ReadQuantizationParameterOffset(ref reader);
+                crOffsets[offset] = HevcParameterSetSyntax.ReadQuantizationParameterOffset(ref reader);
             }
 
             this.ChromaQuantizationParameterOffsetsCb = cbOffsets;
@@ -419,49 +419,6 @@ internal sealed class HevcPictureParameterSet
         this.SampleAdaptiveOffsetScaleLumaLog2 = (int)lumaScale;
         this.SampleAdaptiveOffsetScaleChromaLog2 = (int)chromaScale;
     }
-
-    /// <summary>
-    /// Reads a signed chroma quantization-parameter offset.
-    /// </summary>
-    /// <param name="reader">The picture-parameter-set raw byte sequence payload reader.</param>
-    /// <returns>The decoded offset in the registered range from negative twelve through twelve.</returns>
-    /// <exception cref="InvalidImageContentException">The offset is outside its registered range.</exception>
-    private static int ReadQuantizationParameterOffset(ref HevcBitReader reader)
-    {
-        int offset = reader.ReadSignedExpGolomb();
-        if (offset is < -12 or > 12)
-        {
-            throw new InvalidImageContentException("The HEVC picture parameter set has an invalid chroma quantization-parameter offset.");
-        }
-
-        return offset;
-    }
-
-    /// <summary>
-    /// Reads a signed picture-level deblocking-filter offset.
-    /// </summary>
-    /// <param name="reader">The picture-parameter-set raw byte sequence payload reader.</param>
-    /// <returns>The decoded half-offset in the registered range from negative six through six.</returns>
-    /// <exception cref="InvalidImageContentException">The offset is outside its registered range.</exception>
-    private static int ReadDeblockingFilterOffset(ref HevcBitReader reader)
-    {
-        int offset = reader.ReadSignedExpGolomb();
-        if (offset is < -6 or > 6)
-        {
-            throw new InvalidImageContentException("The HEVC picture parameter set has an invalid deblocking-filter offset.");
-        }
-
-        return offset;
-    }
-
-    /// <summary>
-    /// Gets the number of coding-tree blocks needed to cover one coded picture dimension.
-    /// </summary>
-    /// <param name="sampleCount">The coded luma-sample count.</param>
-    /// <param name="codingTreeBlockLog2">The base-two logarithm of the coding-tree-block size.</param>
-    /// <returns>The covering coding-tree-block count.</returns>
-    private static int GetCodingTreeBlockCount(int sampleCount, int codingTreeBlockLog2)
-        => ((sampleCount - 1) >> codingTreeBlockLog2) + 1;
 
     /// <summary>
     /// Reads or derives one axis of the tile grid.

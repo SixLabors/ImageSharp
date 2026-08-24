@@ -40,9 +40,21 @@ The linked ImageSharp discussion establishes the project constraint: the shipped
 
 The AOM source is distributed under the BSD 2-Clause License and the Alliance for Open Media Patent License 1.0. Before porting further code, record the exact upstream file, commit, applicable license/patent notice, and corresponding managed file or method. Audit the existing SVT-AV1-attributed WIP separately rather than relabeling it as libaom-derived. Update `THIRD-PARTY-NOTICES.TXT` before any referenced implementation code is merged. A pure managed HEVC implementation does not remove HEVC patent or licensing obligations, so those must be resolved before the HEIC work is considered releasable.
 
+### Pinned reference and baseline snapshot
+
+The initial post-merge snapshot was established on 2026-08-24:
+
+- the official libaom reference is tag `v3.14.1`, commit `03087864cf4bea6abb0d28f95cf7843511413d8f`, matching the revision selected by the local libavif `ext/aom.cmd` dependency script;
+- the local libavif container, color-conversion, and interoperability oracle is commit `092276ce89098ead06db80975173191e5fee1826`, described as `v1.4.2-66-g092276ce`;
+- the independently reviewed HEVC implementation and interoperability references remain unresolved and must be pinned before HEVC algorithm work begins;
+- `dotnet build ImageSharp.sln -c Release --no-restore -m:1 -v minimal` succeeds with no errors after the upstream compatibility fixes; and
+- the existing HEIF-focused test run executes 8,198 cases, with 8,184 passing and 14 failing. Thirteen failures are isolated to the WIP AV1 YUV conversion tests, and one is the existing legacy JPEG HIF reference-image mismatch. Golden artifacts have not been changed.
+
+This snapshot pins or classifies the available references and failures; it does not complete Phase 0. The full WIP provenance map, disabled-test inventory, HEVC reference selection, and feature-state matrix remain required.
+
 ## Current implementation assessment
 
-This assessment is based on the current source after the upstream ImageSharp merge. It is a source inspection, not a claim that the branch currently builds or passes tests.
+This assessment is based on the current source after the upstream ImageSharp merge and the baseline recorded above. Unless a result is stated explicitly, each item is a source-inspection finding rather than a verified interoperability claim.
 
 ### Public integration
 

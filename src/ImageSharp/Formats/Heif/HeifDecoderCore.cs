@@ -7,6 +7,7 @@ using System.Text;
 using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Hevc;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -266,6 +267,19 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 ?? throw new InvalidImageContentException($"AV1 image item {metadataItem.Id} has no codec configuration property.");
 
             compressionMethod = HeifCompressionMethod.Av1;
+            meta.BitDepth = codecConfiguration.BitDepth;
+            meta.IsMonochrome = codecConfiguration.IsMonochrome;
+        }
+        else if (metadataItem.Type == Heif4CharCode.Hvc1)
+        {
+            HevcCodecConfiguration codecConfiguration = metadataItem.HevcCodecConfiguration
+                ?? throw new InvalidImageContentException($"HEVC image item {metadataItem.Id} has no codec configuration property.");
+
+            if (metadataItem.ChannelBitDepths is not null)
+            {
+                codecConfiguration.ValidateChannelBitDepths(metadataItem.ChannelBitDepths);
+            }
+
             meta.BitDepth = codecConfiguration.BitDepth;
             meta.IsMonochrome = codecConfiguration.IsMonochrome;
         }
@@ -1268,6 +1282,13 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                             new Av1CodecConfiguration(boxBuffer)));
 
                     break;
+                case Heif4CharCode.HvcC:
+                    properties.Add(
+                        new KeyValuePair<Heif4CharCode, object>(
+                            Heif4CharCode.HvcC,
+                            new HevcCodecConfiguration(boxBuffer)));
+
+                    break;
                 case Heif4CharCode.Clap:
                     EnsureBufferRemaining(boxBuffer, 0, 32, "clean aperture");
                     HeifCleanAperture cleanAperture = new(
@@ -1302,7 +1323,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     break;
                 case Heif4CharCode.Altt:
                 case Heif4CharCode.Iscl:
-                case Heif4CharCode.HvcC:
                 case Heif4CharCode.Rloc:
                 case Heif4CharCode.Udes:
                     // These registered image properties are not arbitrary unknown boxes. Preserve their indices so
@@ -1441,6 +1461,19 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         }
 
                         item.Av1CodecConfiguration = (Av1CodecConfiguration)prop.Value;
+                        break;
+                    case Heif4CharCode.HvcC:
+                        if (item.Type != Heif4CharCode.Hvc1)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates an HEVC codec configuration with non-HEVC item type '{PrettyPrint(item.Type)}'.");
+                        }
+
+                        if (item.HevcCodecConfiguration is not null)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates more than one HEVC codec configuration property.");
+                        }
+
+                        item.HevcCodecConfiguration = (HevcCodecConfiguration)prop.Value;
                         break;
                     case Heif4CharCode.AuxC:
                         if (item.AuxiliaryType is not null)

@@ -104,7 +104,7 @@ public enum Heif4CharCode : uint
     Ndwt = 0x6E647774U,
 
     /// <summary>
-    /// HVC configuration.
+    /// HEVC codec-configuration item property.
     /// </summary>
     HvcC = 0x68766343U,
 
@@ -219,7 +219,7 @@ public enum Heif4CharCode : uint
     Avis = 0x61766973U,
 
     /// <summary>
-    /// High Efficiency Coding tile.
+    /// HEVC-coded image item.
     /// </summary>
     Hvc1 = 0x68766331U,
 

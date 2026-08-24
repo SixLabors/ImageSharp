@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Hevc;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -107,6 +108,12 @@ internal class HeifItem(Heif4CharCode type, uint id)
     /// when the item has no AV1 codec-configuration property.
     /// </summary>
     public Av1CodecConfiguration? Av1CodecConfiguration { get; set; }
+
+    /// <summary>
+    /// Gets or sets the HEVC codec configuration associated with this coded image item, or <see langword="null"/>
+    /// when the item has no HEVC codec-configuration property.
+    /// </summary>
+    public HevcCodecConfiguration? HevcCodecConfiguration { get; set; }
 
     /// <summary>
     /// Gets or sets the relative pixel spacing associated with this image item, or <see langword="null"/> when the

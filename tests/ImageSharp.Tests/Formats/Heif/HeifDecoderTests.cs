@@ -149,6 +149,145 @@ public class HeifDecoderTests
         Assert.Throws<ImageFormatException>(() => HeifDecoder.Instance.Identify(DecoderOptions.Default, stream));
     }
 
+    [Fact]
+    public void IdentifyAcceptsExtendedSizeTopLevelBox()
+    {
+        byte[] data = CreateEncodedContainer();
+        byte[] box = new byte[16];
+        BinaryPrimitives.WriteUInt32BigEndian(box, 1);
+        BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), UnknownBoxType);
+        BinaryPrimitives.WriteUInt64BigEndian(box.AsSpan(8), (ulong)box.Length);
+        data = InsertBytes(data, data.Length, box);
+
+        ImageInfo imageInfo = Image.Identify(data);
+
+        Assert.Equal(new Size(2, 3), imageInfo.Size);
+    }
+
+    [Fact]
+    public void IdentifyAcceptsUuidTopLevelBox()
+    {
+        byte[] data = CreateEncodedContainer();
+        byte[] box = new byte[24];
+        BinaryPrimitives.WriteUInt32BigEndian(box, (uint)box.Length);
+        BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), (uint)Heif4CharCode.Uuid);
+        data = InsertBytes(data, data.Length, box);
+
+        ImageInfo imageInfo = Image.Identify(data);
+
+        Assert.Equal(new Size(2, 3), imageInfo.Size);
+    }
+
+    [Fact]
+    public void IdentifyAcceptsSizeZeroTopLevelBox()
+    {
+        byte[] data = CreateEncodedContainer();
+        byte[] box = CreateUnknownBox();
+        BinaryPrimitives.WriteUInt32BigEndian(box, 0);
+        data = InsertBytes(data, data.Length, box);
+
+        ImageInfo imageInfo = Image.Identify(data);
+
+        Assert.Equal(new Size(2, 3), imageInfo.Size);
+    }
+
+    [Fact]
+    public void IdentifyAcceptsExtendedSizeItemInfoEntry()
+    {
+        byte[] data = CreateEncodedContainer();
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
+        int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
+        int infeOffset = iinfOffset + 14;
+        uint infeSize = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(infeOffset));
+        data = InsertBytes(data, infeOffset + 8, new byte[8]);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(infeOffset), 1);
+        BinaryPrimitives.WriteUInt64BigEndian(data.AsSpan(infeOffset + 8), infeSize + 8);
+        IncrementBoxSize(data, metaOffset, 8);
+        IncrementBoxSize(data, iinfOffset, 8);
+
+        ImageInfo imageInfo = Image.Identify(data);
+
+        Assert.Equal(new Size(2, 3), imageInfo.Size);
+    }
+
+    [Fact]
+    public void IdentifyRejectsSizeZeroMetadataChild()
+    {
+        byte[] data = CreateEncodedContainer();
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
+        byte[] box = CreateUnknownBox();
+        BinaryPrimitives.WriteUInt32BigEndian(box, 0);
+        data = InsertBytes(data, metaOffset + metaSize, box);
+        IncrementBoxSize(data, metaOffset, box.Length);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
+    }
+
+    [Fact]
+    public void IdentifyRejectsMetadataChildBeyondParent()
+    {
+        byte[] data = CreateEncodedContainer();
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
+        byte[] box = CreateUnknownBox();
+        BinaryPrimitives.WriteUInt32BigEndian(box, 16);
+        data = InsertBytes(data, metaOffset + metaSize, box);
+        IncrementBoxSize(data, metaOffset, box.Length);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
+    }
+
+    [Fact]
+    public void IdentifyRejectsItemInfoEntryBeyondParent()
+    {
+        byte[] data = CreateEncodedContainer();
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
+        int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
+        uint iinfSize = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(iinfOffset));
+        int infeOffset = iinfOffset + 14;
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(infeOffset), iinfSize);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
+    }
+
+    [Fact]
+    public void IdentifyRejectsBoxSmallerThanHeader()
+    {
+        byte[] data = CreateEncodedContainer();
+        byte[] box = CreateUnknownBox();
+        BinaryPrimitives.WriteUInt32BigEndian(box, 4);
+        data = InsertBytes(data, data.Length, box);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
+    }
+
+    [Fact]
+    public void IdentifyRejectsTruncatedExtendedSizeHeader()
+    {
+        byte[] data = CreateEncodedContainer();
+        byte[] box = new byte[12];
+        BinaryPrimitives.WriteUInt32BigEndian(box, 1);
+        BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), UnknownBoxType);
+        data = InsertBytes(data, data.Length, box);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
+    }
+
+    [Fact]
+    public void IdentifyRejectsTruncatedUuidHeader()
+    {
+        byte[] data = CreateEncodedContainer();
+        byte[] box = new byte[16];
+        BinaryPrimitives.WriteUInt32BigEndian(box, 24);
+        BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), (uint)Heif4CharCode.Uuid);
+        data = InsertBytes(data, data.Length, box);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
+    }
+
     private static byte[] CreateEncodedContainer()
     {
         using Image<Rgba32> image = new(2, 3);

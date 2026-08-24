@@ -87,6 +87,34 @@ internal ref struct HevcBitReader
     public bool ReadFlag() => this.ReadBits(1) != 0;
 
     /// <summary>
+    /// Determines whether unread syntax remains before the raw byte sequence payload trailing bits.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> when the unread bits contain syntax before the stop bit; otherwise,
+    /// <see langword="false"/>.
+    /// </returns>
+    public bool HasMoreRbspData()
+    {
+        int bitsRemaining = this.BitsRemaining;
+        if (bitsRemaining == 0)
+        {
+            return false;
+        }
+
+        if (bitsRemaining > 8)
+        {
+            return true;
+        }
+
+        int savedBitPosition = this.bitPosition;
+        uint remainingValue = this.ReadBits(bitsRemaining);
+        this.bitPosition = savedBitPosition;
+
+        // At most one partial byte can contain only rbsp_stop_one_bit followed by alignment zeros.
+        return remainingValue != 1U << (bitsRemaining - 1);
+    }
+
+    /// <summary>
     /// Reads an unsigned exponential-Golomb value.
     /// </summary>
     /// <returns>The decoded unsigned value.</returns>

@@ -70,6 +70,8 @@ internal sealed class HevcCodecConfiguration
         // to reach the image item's NAL length width without retaining playback state in the still-image model.
         offset += 2;
         byte temporalAndLengthFields = data[offset++];
+        int temporalLayerCount = (temporalAndLengthFields >> 3) & 7;
+        bool temporalIdNested = (temporalAndLengthFields & 4) != 0;
         this.NalUnitLengthSize = (temporalAndLengthFields & 3) + 1;
 
         int arrayCount = data[offset++];
@@ -133,6 +135,35 @@ internal sealed class HevcCodecConfiguration
         {
             throw new InvalidImageContentException("The HEVC codec configuration contains unexpected trailing data.");
         }
+
+        List<HevcVideoParameterSet> videoParameterSets = new();
+        foreach (HevcNalUnitArray nalUnitArray in this.nalUnitArrays)
+        {
+            const byte videoParameterSetNalUnitType = 32;
+            if (nalUnitArray.NalUnitType != videoParameterSetNalUnitType)
+            {
+                continue;
+            }
+
+            foreach (HevcNalUnit nalUnit in nalUnitArray.NalUnits)
+            {
+                HevcVideoParameterSet videoParameterSet = new(nalUnit);
+
+                // Legacy HEIC muxers commonly preserve only the original four source/packing constraint bits in
+                // hvcC and zero later profile-specific constraint bits. SPS validation provides the authoritative
+                // chroma and bit-depth checks, so do not reject otherwise matching Range Extensions images here.
+                if (!videoParameterSet.ProfileTierLevel.Matches(this)
+                    || (temporalLayerCount != 0 && videoParameterSet.MaxSubLayers != temporalLayerCount)
+                    || (temporalLayerCount != 0 && videoParameterSet.TemporalIdNestingFlag != temporalIdNested))
+                {
+                    throw new InvalidImageContentException("The HEVC video parameter set does not match its codec configuration.");
+                }
+
+                videoParameterSets.Add(videoParameterSet);
+            }
+        }
+
+        this.VideoParameterSets = videoParameterSets;
     }
 
     /// <summary>
@@ -200,6 +231,11 @@ internal sealed class HevcCodecConfiguration
     /// Gets the bounded NAL-unit arrays carried by the codec-configuration property.
     /// </summary>
     public IReadOnlyList<HevcNalUnitArray> NalUnitArrays => this.nalUnitArrays;
+
+    /// <summary>
+    /// Gets the validated video parameter sets carried by the codec-configuration property.
+    /// </summary>
+    public IReadOnlyList<HevcVideoParameterSet> VideoParameterSets { get; }
 
     /// <summary>
     /// Validates the associated pixel-information property against the coded luma and chroma sample precisions.

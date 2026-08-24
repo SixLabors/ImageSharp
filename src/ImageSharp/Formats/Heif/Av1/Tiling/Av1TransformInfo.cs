@@ -6,12 +6,12 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
-/// Information of a single Transform Block.
+/// Describes the size, position, type, and residual state of one AV1 transform block.
 /// </summary>
 internal class Av1TransformInfo
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1TransformInfo"/> class.
+    /// Initializes a new instance of the <see cref="Av1TransformInfo"/> class with a 4x4 transform at the origin.
     /// </summary>
     public Av1TransformInfo()
         : this(Av1TransformSize.Size4x4, 0, 0)
@@ -21,6 +21,9 @@ internal class Av1TransformInfo
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1TransformInfo"/> class.
     /// </summary>
+    /// <param name="size">The transform size.</param>
+    /// <param name="offsetX">The horizontal offset in mode-information units.</param>
+    /// <param name="offsetY">The vertical offset in mode-information units.</param>
     public Av1TransformInfo(Av1TransformSize size, int offsetX, int offsetY)
     {
         this.Size = size;
@@ -40,35 +43,35 @@ internal class Av1TransformInfo
     }
 
     /// <summary>
-    /// Gets or sets the transform size to be used for this Transform Block.
+    /// Gets or sets the transform size used for this transform block.
     /// </summary>
     public Av1TransformSize Size { get; internal set; }
 
     /// <summary>
-    /// Gets or sets the transform type to be used for this Transform Block.
+    /// Gets or sets the transform type used for this transform block.
     /// </summary>
     public Av1TransformType Type { get; internal set; }
 
     /// <summary>
-    /// Gets or sets the X offset of this block in ModeInfo units.
+    /// Gets or sets the horizontal offset of this block in mode-information units.
     /// </summary>
     public int OffsetX { get; internal set; }
 
     /// <summary>
-    /// Gets or sets the Y offset of this block in ModeInfo units.
+    /// Gets or sets the vertical offset of this block in mode-information units.
     /// </summary>
     public int OffsetY { get; internal set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the Code block flag is set.
+    /// Gets or sets a value indicating whether the transform block contains a coded residual.
     /// <list type="table">
     /// <item>
     /// <term>false</term>
-    /// <description>No residual for the block</description>
+    /// <description>The block has no residual.</description>
     /// </item>
     /// <item>
     /// <term>true</term>
-    /// <description>Residual exists for the block</description>
+    /// <description>The block has a residual.</description>
     /// </item>
     /// </list>
     /// </summary>

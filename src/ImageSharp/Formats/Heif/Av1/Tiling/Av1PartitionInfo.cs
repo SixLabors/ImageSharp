@@ -6,8 +6,18 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
+/// <summary>
+/// Describes a decoded AV1 partition's block geometry, neighbors, and frame-boundary availability.
+/// </summary>
 internal class Av1PartitionInfo
 {
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1PartitionInfo"/> class.
+    /// </summary>
+    /// <param name="modeInfo">The decoded mode information for the partition block.</param>
+    /// <param name="superblockInfo">The containing superblock.</param>
+    /// <param name="isChroma">A value indicating whether the partition has chroma samples.</param>
+    /// <param name="partitionType">The partition type that produced the block.</param>
     public Av1PartitionInfo(Av1BlockModeInfo modeInfo, Av1SuperblockInfo superblockInfo, bool isChroma, Av1PartitionType partitionType)
     {
         this.ModeInfo = modeInfo;
@@ -20,6 +30,9 @@ internal class Av1PartitionInfo
         this.HeightInPixels = new int[3];
     }
 
+    /// <summary>
+    /// Gets the decoded block mode information.
+    /// </summary>
     public Av1BlockModeInfo ModeInfo { get; }
 
     /// <summary>
@@ -27,8 +40,14 @@ internal class Av1PartitionInfo
     /// </summary>
     public Av1SuperblockInfo SuperblockInfo { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether the partition has chroma samples at its current luma position.
+    /// </summary>
     public bool IsChroma { get; }
 
+    /// <summary>
+    /// Gets the partition type that produced the block.
+    /// </summary>
     public Av1PartitionType Type { get; }
 
     /// <summary>
@@ -61,32 +80,77 @@ internal class Av1PartitionInfo
     /// </summary>
     public int RowIndex { get; set; }
 
+    /// <summary>
+    /// Gets or sets the mode information covering the immediately above luma neighbor.
+    /// </summary>
     public Av1BlockModeInfo? AboveModeInfo { get; set; }
 
+    /// <summary>
+    /// Gets or sets the mode information covering the immediately left luma neighbor.
+    /// </summary>
     public Av1BlockModeInfo? LeftModeInfo { get; set; }
 
+    /// <summary>
+    /// Gets or sets the mode information covering the above chroma neighbor.
+    /// </summary>
     public Av1BlockModeInfo? AboveModeInfoForChroma { get; set; }
 
+    /// <summary>
+    /// Gets or sets the mode information covering the left chroma neighbor.
+    /// </summary>
     public Av1BlockModeInfo? LeftModeInfoForChroma { get; set; }
 
+    /// <summary>
+    /// Gets or sets the constrained directional enhancement filter strengths associated with the block.
+    /// </summary>
     public int[] CdefStrength { get; set; }
 
+    /// <summary>
+    /// Gets or sets the reference-frame identifiers selected for the block.
+    /// </summary>
     public int[] ReferenceFrame { get; set; }
 
+    /// <summary>
+    /// Gets the signed distance from the block to the left frame edge in one-eighth-sample units.
+    /// </summary>
     public int ModeBlockToLeftEdge { get; private set; }
 
+    /// <summary>
+    /// Gets the signed distance from the block to the right frame edge in one-eighth-sample units.
+    /// </summary>
     public int ModeBlockToRightEdge { get; private set; }
 
+    /// <summary>
+    /// Gets the signed distance from the block to the top frame edge in one-eighth-sample units.
+    /// </summary>
     public int ModeBlockToTopEdge { get; private set; }
 
+    /// <summary>
+    /// Gets the signed distance from the block to the bottom frame edge in one-eighth-sample units.
+    /// </summary>
     public int ModeBlockToBottomEdge { get; private set; }
 
+    /// <summary>
+    /// Gets the block width in samples for each color plane.
+    /// </summary>
     public int[] WidthInPixels { get; private set; }
 
+    /// <summary>
+    /// Gets the block height in samples for each color plane.
+    /// </summary>
     public int[] HeightInPixels { get; private set; }
 
+    /// <summary>
+    /// Gets or sets the neighboring luma samples used by chroma-from-luma prediction.
+    /// </summary>
     public Av1ChromaFromLumaContext? ChromaFromLumaContext { get; internal set; }
 
+    /// <summary>
+    /// Computes tile-neighbor availability, frame-edge distances, and per-plane block dimensions.
+    /// </summary>
+    /// <param name="sequenceHeader">The sequence header describing color subsampling.</param>
+    /// <param name="frameHeader">The frame header describing coded dimensions.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
     public void ComputeBoundaryOffsets(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1TileInfo tileInfo)
     {
         Av1BlockSize blockSize = this.ModeInfo.BlockSize;
@@ -105,21 +169,23 @@ internal class Av1PartitionInfo
         this.ModeBlockToTopEdge = -this.RowIndex << shift;
         this.ModeBlockToBottomEdge = (frameHeader.ModeInfoRowCount - bh4 - this.RowIndex) << shift;
 
-        // Block Size width & height in pixels.
-        // For Luma bock
+        // The bitstream expresses block size on the luma grid. Chroma dimensions are derived by
+        // subsampling that grid while retaining at least one 4x4 chroma unit for narrow blocks.
         const int modeInfoSize = 1 << Av1Constants.ModeInfoSizeLog2;
         this.WidthInPixels[0] = bw4 * modeInfoSize;
         this.HeightInPixels[0] = bh4 * modeInfoSize;
 
-        // For U plane chroma bock
         this.WidthInPixels[1] = Math.Max(1, bw4 >> subX) * modeInfoSize;
         this.HeightInPixels[1] = Math.Max(1, bh4 >> subY) * modeInfoSize;
 
-        // For V plane chroma bock
         this.WidthInPixels[2] = Math.Max(1, bw4 >> subX) * modeInfoSize;
         this.HeightInPixels[2] = Math.Max(1, bh4 >> subY) * modeInfoSize;
     }
 
+    /// <summary>
+    /// Resolves the decoded luma and chroma mode information for available above and left neighbors.
+    /// </summary>
+    /// <param name="colorConfig">The color-plane subsampling configuration.</param>
     public void PopulateModeInfoNeighbors(ObuColorConfig colorConfig)
     {
         if (this.AvailableAbove)
@@ -154,6 +220,12 @@ internal class Av1PartitionInfo
         }
     }
 
+    /// <summary>
+    /// Gets the block width clipped to the right frame edge.
+    /// </summary>
+    /// <param name="blockSize">The luma block size.</param>
+    /// <param name="subX">A value indicating whether the target plane is horizontally subsampled.</param>
+    /// <returns>The clipped width in 4x4 units of the target plane.</returns>
     public int GetMaxBlockWide(Av1BlockSize blockSize, bool subX)
     {
         int maxBlockWide = blockSize.GetWidth();
@@ -166,6 +238,12 @@ internal class Av1PartitionInfo
         return maxBlockWide >> 2;
     }
 
+    /// <summary>
+    /// Gets the block height clipped to the bottom frame edge.
+    /// </summary>
+    /// <param name="blockSize">The luma block size.</param>
+    /// <param name="subY">A value indicating whether the target plane is vertically subsampled.</param>
+    /// <returns>The clipped height in 4x4 units of the target plane.</returns>
     public int GetMaxBlockHigh(Av1BlockSize blockSize, bool subY)
     {
         int maxBlockHigh = blockSize.GetHeight();

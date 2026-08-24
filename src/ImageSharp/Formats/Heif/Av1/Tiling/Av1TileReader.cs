@@ -11,37 +11,107 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
+/// <summary>
+/// Parses partition, mode, transform, and coefficient syntax for one AV1 tile.
+/// </summary>
 internal class Av1TileReader : IAv1TileReader
 {
+    /// <summary>
+    /// The default self-guided restoration projection coefficients for each color plane.
+    /// </summary>
     private static readonly int[] SgrprojXqdMid = [-32, 31];
+
+    /// <summary>
+    /// The default Wiener restoration taps retained between restoration units.
+    /// </summary>
     private static readonly int[] WienerTapsMid = [3, -7, 15];
+
+    /// <summary>
+    /// Maps packed coefficient sign classes to their signed contribution to the DC context.
+    /// </summary>
     private static readonly int[] Signs = [0, -1, 1];
+
+    /// <summary>
+    /// Maps the summed neighboring DC signs to the AV1 DC-sign entropy context.
+    /// </summary>
     private static readonly int[] DcSignContexts = [
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
         2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2];
 
+    /// <summary>
+    /// Maps the minimum and union of luma neighbor levels to a transform-block skip context.
+    /// </summary>
     private static readonly int[][] SkipContexts = [
         [1, 2, 2, 2, 3], [1, 4, 4, 4, 5], [1, 4, 4, 4, 5], [1, 4, 4, 4, 5], [1, 4, 4, 4, 6]];
 
+    /// <summary>
+    /// Stores the preceding self-guided restoration coefficients for each color plane.
+    /// </summary>
     private int[][] referenceSgrXqd = [];
+
+    /// <summary>
+    /// Stores the preceding horizontal and vertical Wiener taps for each color plane.
+    /// </summary>
     private int[][][] referenceLrWiener = [];
+
+    /// <summary>
+    /// Tracks entropy, partition, transform, and palette state above the current block.
+    /// </summary>
     private readonly Av1ParseAboveNeighbor4x4Context aboveNeighborContext;
+
+    /// <summary>
+    /// Tracks entropy, partition, transform, and palette state left of the current block.
+    /// </summary>
     private readonly Av1ParseLeftNeighbor4x4Context leftNeighborContext;
+
+    /// <summary>
+    /// The quantizer index carried between delta-quantized blocks in the current tile.
+    /// </summary>
     private int currentQuantizerIndex;
+
+    /// <summary>
+    /// Stores the segment identifier covering each 4x4 frame position.
+    /// </summary>
     private readonly int[][] segmentIds = [];
+
+    /// <summary>
+    /// Stores per-plane transform counts for each forced 64x64 residual region.
+    /// </summary>
     private readonly int[][] transformUnitCount;
+
+    /// <summary>
+    /// Tracks the first unassigned transform-information index for luma and shared chroma storage.
+    /// </summary>
     private readonly int[] firstTransformOffset = new int[2];
+
+    /// <summary>
+    /// Tracks the next coefficient slot for each color plane within the current superblock.
+    /// </summary>
     private readonly int[] coefficientIndex = [];
+
+    /// <summary>
+    /// Provides allocator and decoder configuration to tile entropy decoding.
+    /// </summary>
     private readonly Configuration configuration;
+
+    /// <summary>
+    /// Reconstructs each parsed superblock when pixel decoding is requested; otherwise, tile parsing is metadata-only.
+    /// </summary>
     private readonly IAv1FrameDecoder? frameDecoder;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1TileReader"/> class for syntax parsing without reconstruction.
+    /// </summary>
+    /// <param name="configuration">The decoder configuration.</param>
+    /// <param name="sequenceHeader">The active AV1 sequence header.</param>
+    /// <param name="frameHeader">The frame header whose tiles will be parsed.</param>
     public Av1TileReader(Configuration configuration, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         this.FrameHeader = frameHeader;
         this.configuration = configuration;
         this.SequenceHeader = sequenceHeader;
 
-        // init_main_frame_ctxt
+        // FrameInfo owns all traversal-order records and coefficient storage produced by the tile readers.
         this.FrameInfo = new(this.SequenceHeader);
         this.segmentIds = new int[this.FrameHeader.ModeInfoRowCount][];
         for (int y = 0; y < this.FrameHeader.ModeInfoRowCount; y++)
@@ -49,8 +119,7 @@ internal class Av1TileReader : IAv1TileReader
             this.segmentIds[y] = new int[this.FrameHeader.ModeInfoColumnCount];
         }
 
-        // reallocate_parse_context_memory
-        // Hard code number of threads to 1 for now.
+        // Above contexts span the aligned frame width, while left contexts are reused for each superblock row.
         int planesCount = sequenceHeader.ColorConfig.PlaneCount;
         int superblockColumnCount =
             Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, sequenceHeader.SuperblockSizeLog2) >> sequenceHeader.SuperblockSizeLog2;
@@ -65,19 +134,38 @@ internal class Av1TileReader : IAv1TileReader
         this.coefficientIndex = new int[Av1Constants.MaxPlanes];
     }
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1TileReader"/> class that reconstructs parsed superblocks.
+    /// </summary>
+    /// <param name="configuration">The decoder configuration.</param>
+    /// <param name="sequenceHeader">The active AV1 sequence header.</param>
+    /// <param name="frameHeader">The frame header whose tiles will be parsed.</param>
+    /// <param name="frameDecoder">The frame decoder that reconstructs each parsed superblock.</param>
     public Av1TileReader(Configuration configuration, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, IAv1FrameDecoder frameDecoder)
         : this(configuration, sequenceHeader, frameHeader)
         => this.frameDecoder = frameDecoder;
 
+    /// <summary>
+    /// Gets the frame header whose tile syntax is being parsed.
+    /// </summary>
     public ObuFrameHeader FrameHeader { get; }
 
+    /// <summary>
+    /// Gets the sequence header governing the frame.
+    /// </summary>
     public ObuSequenceHeader SequenceHeader { get; }
 
+    /// <summary>
+    /// Gets the frame-owned mode, transform, coefficient, quantizer, and filter state populated by tile parsing.
+    /// </summary>
     public Av1FrameInfo FrameInfo { get; }
 
     /// <summary>
-    /// SVT: parse_tile
+    /// Parses one tile's partition, mode, transform, coefficient, and filter syntax in superblock order.
     /// </summary>
+    /// <param name="tileData">The entropy-coded tile payload.</param>
+    /// <param name="tileNum">The zero-based tile index in row-major order.</param>
+    /// <remarks>Corresponds to <c>parse_tile</c> in SVT-AV1.</remarks>
     public void ReadTile(Span<byte> tileData, int tileNum)
     {
         Av1SymbolDecoder reader = new(this.configuration, tileData, this.FrameHeader.QuantizationParameters.BaseQIndex);
@@ -92,7 +180,7 @@ internal class Av1TileReader : IAv1TileReader
         this.ClearLoopFilterDelta();
         int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
 
-        // Default initialization of Wiener and SGR Filter.
+        // Restoration coefficients are differentially coded, so each tile begins from the AV1 defaults.
         this.referenceSgrXqd = new int[planesCount][];
         this.referenceLrWiener = new int[planesCount][][];
         for (int plane = 0; plane < planesCount; plane++)
@@ -129,15 +217,24 @@ internal class Av1TileReader : IAv1TileReader
                 this.ReadLoopRestoration(modeInfoPosition, superBlockSize);
                 this.ParsePartition(ref reader, modeInfoPosition, superBlockSize, superblockInfo, tileInfo);
 
-                // decoding of the superblock
+                // Identify-only parsing omits a frame decoder but still populates the complete syntax model.
                 this.frameDecoder?.DecodeSuperblock(modeInfoPosition, superblockInfo, tileInfo);
             }
         }
     }
 
+    /// <summary>
+    /// Resets all frame loop-filter delta state before parsing a tile.
+    /// </summary>
     private void ClearLoopFilterDelta()
         => this.FrameInfo.ClearDeltaLoopFilter();
 
+    /// <summary>
+    /// Reads loop-restoration unit syntax that begins at a superblock location.
+    /// </summary>
+    /// <param name="modeInfoLocation">The superblock origin in 4x4 mode-information units.</param>
+    /// <param name="superBlockSize">The superblock size.</param>
+    /// <exception cref="NotImplementedException">A color plane signals a loop-restoration filter.</exception>
     private void ReadLoopRestoration(Point modeInfoLocation, Av1BlockSize superBlockSize)
     {
         int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
@@ -145,15 +242,20 @@ internal class Av1TileReader : IAv1TileReader
         {
             if (this.FrameHeader.LoopRestorationParameters.Items[plane].Type != ObuRestorationType.None)
             {
-                // TODO: Implement.
                 throw new NotImplementedException("No loop restoration filter support.");
             }
         }
     }
 
     /// <summary>
-    /// 5.11.4. Decode partition syntax.
+    /// Decodes AV1 partition syntax and recursively visits each resulting coding block.
     /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="modeInfoLocation">The parent block origin in 4x4 mode-information units.</param>
+    /// <param name="blockSize">The parent block size.</param>
+    /// <param name="superblockInfo">The containing superblock.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    /// <remarks>Implements AV1 section 5.11.4.</remarks>
     private void ParsePartition(ref Av1SymbolDecoder reader, Point modeInfoLocation, Av1BlockSize blockSize, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         int columnIndex = modeInfoLocation.X;
@@ -189,6 +291,9 @@ internal class Av1TileReader : IAv1TileReader
 
         Av1BlockSize subSize = partitionType.GetBlockSubSize(blockSize);
         Av1BlockSize splitSize = Av1PartitionType.Split.GetBlockSubSize(blockSize);
+
+        // Partition syntax is depth-first. The visit order here is also the order in which mode,
+        // transform, and coefficient records are appended to their frame-owned arrays.
         switch (partitionType)
         {
             case Av1PartitionType.Split:
@@ -284,6 +389,15 @@ internal class Av1TileReader : IAv1TileReader
         this.UpdatePartitionContext(new Point(columnIndex, rowIndex), tileInfo, superblockInfo, subSize, blockSize, partitionType);
     }
 
+    /// <summary>
+    /// Parses all syntax associated with one final coding block and stores its frame mode information.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="modeInfoLocation">The block origin in 4x4 mode-information units.</param>
+    /// <param name="blockSize">The final block size.</param>
+    /// <param name="superblockInfo">The containing superblock.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    /// <param name="partitionType">The partition type that produced the block.</param>
     private void ParseBlock(ref Av1SymbolDecoder reader, Point modeInfoLocation, Av1BlockSize blockSize, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo, Av1PartitionType partitionType)
     {
         int rowIndex = modeInfoLocation.Y;
@@ -328,13 +442,16 @@ internal class Av1TileReader : IAv1TileReader
 
         this.Residual(ref reader, partitionInfo, superblockInfo, tileInfo, blockSize);
 
-        // Update the Frame buffer for this ModeInfo.
+        // Store the record only after all syntax has populated it, then map every covered 4x4 position.
         this.FrameInfo.UpdateModeInfo(blockModeInfo, superblockInfo);
     }
 
     /// <summary>
-    /// SVT: reset_skip_context
+    /// Clears coefficient neighbor contexts across every plane of a skipped block.
     /// </summary>
+    /// <param name="partitionInfo">The skipped block and its frame position.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    /// <remarks>Corresponds to <c>reset_skip_context</c> in SVT-AV1.</remarks>
     private void ResetSkipContext(Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
     {
         int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
@@ -354,9 +471,14 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     /// <summary>
-    /// 5.11.34. Residual syntax.
+    /// Parses every luma and chroma transform block and its coefficients for a coding block.
     /// </summary>
-    /// <remarks>SVT: parse_residual</remarks>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block.</param>
+    /// <param name="superblockInfo">The containing superblock and coefficient storage.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    /// <param name="blockSize">The coding block size.</param>
+    /// <remarks>Implements AV1 section 5.11.34 and corresponds to <c>parse_residual</c> in SVT-AV1.</remarks>
     private void Residual(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo, Av1BlockSize blockSize)
     {
         int maxBlocksWide = partitionInfo.GetMaxBlockWide(blockSize, false);
@@ -378,6 +500,8 @@ internal class Av1TileReader : IAv1TileReader
         transformInfoIndices[2] = transformInfoIndices[1] + chromaTransformUnitCount;
         int forceSplitCount = 0;
 
+        // AV1 forces residual traversal into at most 64x64 regions even when the coding block is larger.
+        // transformUnitCount preserves the transform geometry generated for each such region and plane.
         for (int row = 0; row < maxBlocksHigh; row += modeUnitBlocksHigh)
         {
             for (int column = 0; column < maxBlocksWide; column += modeUnitBlocksWide)
@@ -397,7 +521,8 @@ internal class Av1TileReader : IAv1TileReader
                     Span<Av1TransformInfo> transformInfoSpan = (plane == 0) ? superblockInfo.GetTransformInfoY() : superblockInfo.GetTransformInfoUv();
                     if (isLosslessBlock)
                     {
-                        // TODO: Implement.
+                        // Lossless coding fixes transforms at 4x4, so count each clipped 4x4 unit
+                        // directly after applying the plane's chroma subsampling.
                         int unitHeight = Av1Math.RoundPowerOf2(Math.Min(modeUnitBlocksHigh + row, maxBlocksHigh), 0);
                         int unitWidth = Av1Math.RoundPowerOf2(Math.Min(modeUnitBlocksWide + column, maxBlocksWide), 0);
                         DebugGuard.IsTrue(transformInfoSpan[transformInfoIndices[plane]].Size == Av1TransformSize.Size4x4, "Lossless frame shall have transform units of size 4x4.");
@@ -445,6 +570,8 @@ internal class Av1TileReader : IAv1TileReader
 
                         if (endOfBlock != 0)
                         {
+                            // Coefficients are stored as an end index followed by scan-order values, so the
+                            // next transform begins after both the prefix and its decoded coefficient range.
                             this.coefficientIndex[plane] += endOfBlock + 1;
                             transformInfo.CodeBlockFlag = true;
                         }
@@ -462,6 +589,13 @@ internal class Av1TileReader : IAv1TileReader
         }
     }
 
+    /// <summary>
+    /// Determines whether a luma coding block owns chroma mode and residual syntax at its frame position.
+    /// </summary>
+    /// <param name="sequenceHeader">The sequence header describing chroma subsampling.</param>
+    /// <param name="modeInfoLocation">The block origin in 4x4 luma mode-information units.</param>
+    /// <param name="blockSize">The luma block size.</param>
+    /// <returns><see langword="true"/> when the block is a chroma reference position; otherwise, <see langword="false"/>.</returns>
     public static bool HasChroma(ObuSequenceHeader sequenceHeader, Point modeInfoLocation, Av1BlockSize blockSize)
     {
         int blockWide = blockSize.Get4x4WideCount();
@@ -474,10 +608,23 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     /// <summary>
-    /// 5.11.35. Transform block syntax.
+    /// Derives a transform block's entropy context and decodes its coefficient syntax.
     /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The containing coding block.</param>
+    /// <param name="coefficientBuffer">The destination beginning at this transform's coefficient slot.</param>
+    /// <param name="transformInfo">The transform geometry and syntax state to populate.</param>
+    /// <param name="plane">The zero-based color-plane index.</param>
+    /// <param name="blockColumn">The transform's horizontal offset within the coding block in 4x4 units.</param>
+    /// <param name="blockRow">The transform's vertical offset within the coding block in 4x4 units.</param>
+    /// <param name="startX">The frame-relative transform column in 4x4 units of the target plane.</param>
+    /// <param name="startY">The frame-relative transform row in 4x4 units of the target plane.</param>
+    /// <param name="transformSize">The transform size.</param>
+    /// <param name="subX">A value indicating whether the target plane is horizontally subsampled.</param>
+    /// <param name="subY">A value indicating whether the target plane is vertically subsampled.</param>
+    /// <returns>The decoded end-of-block coefficient position, or zero for an all-zero transform.</returns>
     /// <remarks>
-    /// The implementation is taken from SVT-AV1 library, which deviates from the code flow in the specification.
+    /// Implements AV1 section 5.11.35 using the traversal shape of the corresponding SVT-AV1 implementation.
     /// </remarks>
     private int ParseTransformBlock(
         ref Av1SymbolDecoder reader,
@@ -517,10 +664,22 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     /// <summary>
-    /// 5.11.39. Coefficients syntax.
+    /// Decodes transform coefficients and updates the coefficient neighbor contexts for one color plane.
     /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The containing coding block.</param>
+    /// <param name="blockRow">The frame-relative transform row in 4x4 units of the target plane.</param>
+    /// <param name="blockColumn">The frame-relative transform column in 4x4 units of the target plane.</param>
+    /// <param name="aboveOffset">The horizontal transform offset within the coding block in 4x4 units.</param>
+    /// <param name="leftOffset">The vertical transform offset within the coding block in 4x4 units.</param>
+    /// <param name="plane">The zero-based color-plane index.</param>
+    /// <param name="transformBlockContext">The coefficient skip and DC-sign entropy contexts.</param>
+    /// <param name="transformSize">The transform size.</param>
+    /// <param name="transformInfo">The transform syntax state to populate.</param>
+    /// <param name="coefficientBuffer">The destination beginning at this transform's coefficient slot.</param>
+    /// <returns>The decoded end-of-block coefficient position, or zero for an all-zero transform.</returns>
     /// <remarks>
-    /// The implementation is taken from SVT-AV1 library, which deviates from the code flow in the specification.
+    /// Implements AV1 section 5.11.39 using the traversal shape of the corresponding SVT-AV1 implementation.
     /// </remarks>
     private int ParseCoefficients(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, int blockRow, int blockColumn, int aboveOffset, int leftOffset, int plane, Av1TransformBlockContext transformBlockContext, Av1TransformSize transformSize, Av1TransformInfo transformInfo, Span<int> coefficientBuffer)
     {
@@ -539,6 +698,17 @@ internal class Av1TileReader : IAv1TileReader
         return reader.ReadCoefficients(partitionInfo.ModeInfo, blockPosition, this.aboveNeighborContext.GetContext(plane), this.leftNeighborContext.GetContext(plane), aboveOffset, leftOffset, plane, blocksWide, blocksHigh, transformBlockContext, transformSize, isLossless, this.FrameHeader.UseReducedTransformSet, transformInfo, partitionInfo.ModeBlockToRightEdge, partitionInfo.ModeBlockToBottomEdge, coefficientBuffer);
     }
 
+    /// <summary>
+    /// Derives coefficient skip and DC-sign contexts from the transform block's above and left neighbors.
+    /// </summary>
+    /// <param name="transformSize">The transform size.</param>
+    /// <param name="plane">The zero-based color-plane index.</param>
+    /// <param name="planeBlockSize">The containing block size on the target plane.</param>
+    /// <param name="transformBlockUnitHighCount">The transform height clipped to the frame in 4x4 units.</param>
+    /// <param name="transformBlockUnitWideCount">The transform width clipped to the frame in 4x4 units.</param>
+    /// <param name="startY">The frame-relative transform row in 4x4 units of the target plane.</param>
+    /// <param name="startX">The frame-relative transform column in 4x4 units of the target plane.</param>
+    /// <returns>The derived transform-block entropy contexts.</returns>
     private Av1TransformBlockContext GetTransformBlockContext(Av1TransformSize transformSize, int plane, Av1BlockSize planeBlockSize, int transformBlockUnitHighCount, int transformBlockUnitWideCount, int startY, int startX)
     {
         Av1TransformBlockContext transformBlockContext = new();
@@ -548,6 +718,8 @@ internal class Av1TileReader : IAv1TileReader
         int k = 0;
         int mask = (1 << Av1Constants.CoefficientContextBitCount) - 1;
 
+        // The high bits of each neighbor value encode its DC sign class. Summing both edges maps
+        // negative, balanced, and positive neighborhoods to the AV1 DC-sign context.
         do
         {
             uint sign = (uint)aboveContext[k] >> Av1Constants.CoefficientContextBitCount;
@@ -575,6 +747,7 @@ internal class Av1TileReader : IAv1TileReader
             }
             else
             {
+                // Luma skip contexts preserve both the weakest neighboring level and whether either edge is stronger.
                 int top = 0;
                 int left = 0;
 
@@ -602,6 +775,8 @@ internal class Av1TileReader : IAv1TileReader
         }
         else
         {
+            // Chroma needs only the presence of nonzero levels on each edge, plus an offset that
+            // distinguishes a transform smaller than its containing plane block.
             int contextBase = GetEntropyContext(transformSize, aboveContext, leftContext);
             int contextOffset = planeBlockSize.GetPelsLog2Count() > transformSize.ToBlockSize().GetPelsLog2Count() ? 10 : 7;
             transformBlockContext.SkipContext = contextBase + contextOffset;
@@ -610,11 +785,20 @@ internal class Av1TileReader : IAv1TileReader
         return transformBlockContext;
     }
 
+    /// <summary>
+    /// Determines whether the above and left edges contain nonzero chroma coefficient contexts.
+    /// </summary>
+    /// <param name="transformSize">The transform size that selects how many edge entries to inspect.</param>
+    /// <param name="above">The above coefficient contexts.</param>
+    /// <param name="left">The left coefficient contexts.</param>
+    /// <returns>The sum of the nonzero-above and nonzero-left flags.</returns>
     private static int GetEntropyContext(Av1TransformSize transformSize, int[] above, int[] left)
     {
         bool aboveEntropyContext = false;
         bool leftEntropyContext = false;
 
+        // The reference implementation tests packed 16, 32, 64, or 128-bit edge groups. Enumerating
+        // each transform shape keeps those exact edge widths without unaligned native memory reads.
         switch (transformSize)
         {
             case Av1TransformSize.Size4x4:
@@ -742,8 +926,15 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     /// <summary>
-    /// 5.11.15. TX size syntax.
+    /// Selects the transform size for a coding block from lossless, explicit-selection, or maximum-size rules.
     /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block.</param>
+    /// <param name="superblockInfo">The containing superblock.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    /// <param name="allowSelect">A value indicating whether transform-size selection syntax is allowed at this node.</param>
+    /// <returns>The selected transform size.</returns>
+    /// <remarks>Implements AV1 section 5.11.15.</remarks>
     private Av1TransformSize ReadTransformSize(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo, bool allowSelect)
     {
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
@@ -760,6 +951,14 @@ internal class Av1TileReader : IAv1TileReader
         return modeInfo.BlockSize.GetMaximumTransformSize();
     }
 
+    /// <summary>
+    /// Reads a transform size using the available above and left transform-size contexts.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block.</param>
+    /// <param name="superblockInfo">The containing superblock.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    /// <returns>The decoded transform size.</returns>
     private Av1TransformSize ReadSelectedTransformSize(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         int context = 0;
@@ -792,22 +991,34 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     /// <summary>
-    /// Section 5.11.16. Block TX size syntax.
+    /// Reads a coding block's transform size, updates neighbor contexts, and creates its transform geometry records.
     /// </summary>
-    /// <remarks>SVT: read_block_tx_size</remarks>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="modeInfoLocation">The block origin in 4x4 mode-information units.</param>
+    /// <param name="partitionInfo">The current coding block.</param>
+    /// <param name="superblockInfo">The containing superblock.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    /// <remarks>Implements AV1 section 5.11.16 and corresponds to <c>read_block_tx_size</c> in SVT-AV1.</remarks>
     private void ReadBlockTransformSize(ref Av1SymbolDecoder reader, Point modeInfoLocation, Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         Av1BlockSize blockSize = partitionInfo.ModeInfo.BlockSize;
         int block4x4Width = blockSize.Get4x4WideCount();
         int block4x4Height = blockSize.Get4x4HighCount();
 
-        // First condition in spec is for INTER frames, implemented only the INTRA condition.
+        // HEIF still-image decoding follows the independently decodable intra-frame transform-size branch.
         Av1TransformSize transformSize = this.ReadTransformSize(ref reader, partitionInfo, superblockInfo, tileInfo, true);
         this.aboveNeighborContext.UpdateTransformation(modeInfoLocation, tileInfo, transformSize, blockSize, false);
         this.leftNeighborContext.UpdateTransformation(modeInfoLocation, superblockInfo, transformSize, blockSize, false);
         this.UpdateTransformInfo(partitionInfo, superblockInfo, blockSize, transformSize);
     }
 
+    /// <summary>
+    /// Populates luma and chroma transform-information records in residual traversal order.
+    /// </summary>
+    /// <param name="partitionInfo">The current coding block.</param>
+    /// <param name="superblockInfo">The containing superblock and transform storage.</param>
+    /// <param name="blockSize">The coding block size.</param>
+    /// <param name="transformSize">The selected luma transform size.</param>
     private unsafe void UpdateTransformInfo(Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1BlockSize blockSize, Av1TransformSize transformSize)
     {
         int transformInfoYIndex = partitionInfo.ModeInfo.FirstTransformLocation[(int)Av1PlaneType.Y];
@@ -829,6 +1040,8 @@ internal class Av1TileReader : IAv1TileReader
         bool isLossLess = this.FrameHeader.LosslessArray[partitionInfo.ModeInfo.SegmentId];
         Av1TransformSize transformSizeUv = isLossLess ? Av1TransformSize.Size4x4 : blockSize.GetMaxUvTransformSize(subX, subY);
 
+        // Residual syntax visits at most 64x64 luma regions. Record transform geometry in the same
+        // nested region/row/column order so coefficient parsing and reconstruction consume matching spans.
         for (int idy = 0; idy < maxBlockHigh; idy += height)
         {
             for (int idx = 0; idx < maxBlockWide; idx += width, forceSplitCount++)
@@ -836,7 +1049,7 @@ internal class Av1TileReader : IAv1TileReader
                 int lumaTransformUnitCount = 0;
                 int chromaTransformUnitCount = 0;
 
-                // Update Luminance Transform Info.
+                // Luma transform offsets remain relative to the coding block in 4x4 luma units.
                 int stepColumn = transformSize.Get4x4WideCount();
                 int stepRow = transformSize.Get4x4HighCount();
 
@@ -861,7 +1074,7 @@ internal class Av1TileReader : IAv1TileReader
                     continue;
                 }
 
-                // Update Chroma Transform Info.
+                // Chroma geometry is rounded to the subsampling grid before stepping its transform size.
                 stepColumn = transformSizeUv.Get4x4WideCount();
                 stepRow = transformSizeUv.Get4x4HighCount();
 
@@ -884,7 +1097,7 @@ internal class Av1TileReader : IAv1TileReader
             }
         }
 
-        // Cr Transform Info Update from Cb.
+        // U and V share transform geometry, so append a second copy for V after the complete U sequence.
         if (totalChromaTransformUnitCount != 0)
         {
             DebugGuard.IsTrue(
@@ -911,26 +1124,31 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     /// <summary>
-    /// 5.11.49. Palette tokens syntax.
+    /// Reads luma and chroma palette-map tokens when a block selects palette prediction.
     /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block.</param>
+    /// <exception cref="NotImplementedException">The block selects a nonempty luma or chroma palette.</exception>
+    /// <remarks>Implements AV1 section 5.11.49.</remarks>
     private static void ReadPaletteTokens(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         if (partitionInfo.ModeInfo.GetPaletteSize(Av1PlaneType.Y) != 0)
         {
-            // TODO: Implement.
             throw new NotImplementedException();
         }
 
         if (partitionInfo.ModeInfo.GetPaletteSize(Av1PlaneType.Uv) != 0)
         {
-            // TODO: Implement.
             throw new NotImplementedException();
         }
     }
 
     /// <summary>
-    /// 5.11.6. Mode info syntax.
+    /// Reads the prediction, segmentation, skip, quantizer, and filter mode information for a still-image block.
     /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block.</param>
+    /// <remarks>Implements the intra-frame branch of AV1 section 5.11.6.</remarks>
     private void ReadModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         DebugGuard.IsTrue(this.FrameHeader.FrameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame, "Only INTRA frames supported.");
@@ -938,8 +1156,11 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     /// <summary>
-    /// 5.11.7. Intra frame mode info syntax.
+    /// Reads all intra-frame mode syntax for a coding block in bitstream order.
     /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block and its neighbors.</param>
+    /// <remarks>Implements AV1 section 5.11.7.</remarks>
     private void ReadIntraFrameModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         if (this.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
@@ -947,7 +1168,6 @@ internal class Av1TileReader : IAv1TileReader
             this.IntraSegmentId(ref reader, partitionInfo);
         }
 
-        // this.skipMode = false;
         partitionInfo.ModeInfo.Skip = this.ReadSkip(ref reader, partitionInfo);
         if (!this.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
         {
@@ -962,8 +1182,9 @@ internal class Av1TileReader : IAv1TileReader
             this.ReadDeltaLoopFilter(ref reader, partitionInfo);
         }
 
-        partitionInfo.ReferenceFrame[0] = 0; // IntraFrame;
-        partitionInfo.ReferenceFrame[1] = -1; // None;
+        // Independently decodable still-image blocks reference only the current intra frame.
+        partitionInfo.ReferenceFrame[0] = 0;
+        partitionInfo.ReferenceFrame[1] = -1;
         partitionInfo.ModeInfo.SetPaletteSizes(0, 0);
         bool useIntraBlockCopy = false;
         if (this.AllowIntraBlockCopy())
@@ -978,10 +1199,8 @@ internal class Av1TileReader : IAv1TileReader
         }
         else
         {
-            // this.IsInter = false;
             partitionInfo.ModeInfo.YMode = reader.ReadYMode(partitionInfo.AboveModeInfo, partitionInfo.LeftModeInfo);
 
-            // 5.11.42.Intra angle info luma syntax.
             partitionInfo.ModeInfo.AngleDelta[(int)Av1PlaneType.Y] = IntraAngleInfo(ref reader, partitionInfo.ModeInfo.YMode, partitionInfo.ModeInfo.BlockSize);
             if (partitionInfo.IsChroma && !this.SequenceHeader.ColorConfig.IsMonochrome)
             {
@@ -991,7 +1210,6 @@ internal class Av1TileReader : IAv1TileReader
                     ReadChromaFromLumaAlphas(ref reader, partitionInfo.ModeInfo);
                 }
 
-                // 5.11.43.Intra angle info chroma syntax.
                 partitionInfo.ModeInfo.AngleDelta[(int)Av1PlaneType.Uv] = IntraAngleInfo(ref reader, partitionInfo.ModeInfo.UvMode, partitionInfo.ModeInfo.BlockSize);
             }
             else
@@ -1011,27 +1229,41 @@ internal class Av1TileReader : IAv1TileReader
         }
     }
 
+    /// <summary>
+    /// Determines whether the frame header permits intra block copy for an intra still image.
+    /// </summary>
+    /// <returns><see langword="true"/> when the frame and sequence enable intra block copy; otherwise, <see langword="false"/>.</returns>
     private bool AllowIntraBlockCopy()
         => (this.FrameHeader.FrameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame) &&
             (this.SequenceHeader.ForceScreenContentTools > 0) &&
             this.FrameHeader.AllowIntraBlockCopy;
 
+    /// <summary>
+    /// Determines whether chroma-from-luma prediction is available for a coding block.
+    /// </summary>
+    /// <param name="partitionInfo">The current coding block.</param>
+    /// <returns><see langword="true"/> when the lossless transform or block dimensions permit chroma-from-luma prediction; otherwise, <see langword="false"/>.</returns>
     private bool IsChromaForLumaAllowed(Av1PartitionInfo partitionInfo)
     {
         if (this.FrameHeader.LosslessArray[partitionInfo.ModeInfo.SegmentId])
         {
-            // In lossless, CfL is available when the partition size is equal to the
-            // transform size.
+            // Lossless mode fixes transforms at 4x4, so CfL is available only when the subsampled
+            // plane block is itself 4x4 and therefore has no smaller transform partition.
             bool subX = this.SequenceHeader.ColorConfig.SubSamplingX;
             bool subY = this.SequenceHeader.ColorConfig.SubSamplingY;
             Av1BlockSize planeBlockSize = partitionInfo.ModeInfo.BlockSize.GetSubsampled(subX, subY);
             return planeBlockSize == Av1BlockSize.Block4x4;
         }
 
-        // Spec: CfL is available to luma partitions lesser than or equal to 32x32
+        // Outside lossless mode, AV1 limits CfL to luma blocks no larger than 32x32.
         return partitionInfo.ModeInfo.BlockSize.GetWidth() <= 32 && partitionInfo.ModeInfo.BlockSize.GetHeight() <= 32;
     }
 
+    /// <summary>
+    /// Reads filter-intra selection for an eligible DC-predicted luma block.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block.</param>
     private void FilterIntraModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         partitionInfo.ModeInfo.FilterIntraModeInfo.UseFilterIntra = false;
@@ -1050,16 +1282,21 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     /// <summary>
-    /// 5.11.46. Palette mode info syntax.
+    /// Reads palette size and color syntax for an eligible screen-content block.
     /// </summary>
-    private void PaletteModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo) =>
-
-        // TODO: Implement.
-        throw new NotImplementedException();
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block.</param>
+    /// <exception cref="NotImplementedException">Palette-mode syntax is not implemented.</exception>
+    /// <remarks>Implements AV1 section 5.11.46.</remarks>
+    private void PaletteModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
+        => throw new NotImplementedException();
 
     /// <summary>
-    /// 5.11.45. Read CFL alphas syntax.
+    /// Reads the joint signs and nonzero alpha magnitudes for chroma-from-luma prediction.
     /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="modeInfo">The block mode information to populate.</param>
+    /// <remarks>Implements AV1 section 5.11.45.</remarks>
     private static void ReadChromaFromLumaAlphas(ref Av1SymbolDecoder reader, Av1BlockModeInfo modeInfo)
     {
         int jointSignPlus1 = reader.ReadChromFromLumaSign() + 1;
@@ -1079,8 +1316,13 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     /// <summary>
-    /// 5.11.42. and 5.11.43.
+    /// Reads a directional intra-prediction angle adjustment when the block and mode permit one.
     /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="mode">The selected luma or chroma prediction mode.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <returns>The signed angle adjustment.</returns>
+    /// <remarks>Implements AV1 sections 5.11.42 and 5.11.43.</remarks>
     private static int IntraAngleInfo(ref Av1SymbolDecoder reader, Av1PredictionMode mode, Av1BlockSize blockSize)
     {
         int angleDelta = 0;
@@ -1093,12 +1335,20 @@ internal class Av1TileReader : IAv1TileReader
         return angleDelta;
     }
 
+    /// <summary>
+    /// Determines whether a prediction mode belongs to the AV1 directional-mode range.
+    /// </summary>
+    /// <param name="mode">The prediction mode.</param>
+    /// <returns><see langword="true"/> for a directional mode; otherwise, <see langword="false"/>.</returns>
     private static bool IsDirectionalMode(Av1PredictionMode mode)
         => mode is >= Av1PredictionMode.Vertical and <= Av1PredictionMode.Directional67Degrees;
 
     /// <summary>
-    /// 5.11.8. Intra segment ID syntax.
+    /// Reads or inherits a segment identifier and writes it over every 4x4 position covered by the block.
     /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block.</param>
+    /// <remarks>Implements AV1 section 5.11.8.</remarks>
     private void IntraSegmentId(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         if (this.FrameHeader.SegmentationParameters.Enabled)
@@ -1111,6 +1361,8 @@ internal class Av1TileReader : IAv1TileReader
         int modeInfoCountX = Math.Min(this.FrameHeader.ModeInfoColumnCount - partitionInfo.ColumnIndex, blockWidth4x4);
         int modeInfoCountY = Math.Min(this.FrameHeader.ModeInfoRowCount - partitionInfo.RowIndex, blockHeight4x4);
         int segmentId = partitionInfo.ModeInfo.SegmentId;
+
+        // Later blocks predict from 4x4 positions, so replicate one block ID over its clipped frame coverage.
         for (int y = 0; y < modeInfoCountY; y++)
         {
             int[] segmentRow = this.segmentIds[partitionInfo.RowIndex + y];
@@ -1122,8 +1374,11 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     /// <summary>
-    /// 5.11.9. Read segment ID syntax.
+    /// Predicts and, when required, decodes the segment identifier for an intra block.
     /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block and its available neighbors.</param>
+    /// <remarks>Implements AV1 section 5.11.9.</remarks>
     private void ReadSegmentId(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         int predictor;
@@ -1166,7 +1421,9 @@ internal class Av1TileReader : IAv1TileReader
         }
         else
         {
-            int ctx = prevUL < 0 ? 0 /* Edge cases */
+            // Any unavailable neighbor selects the edge context; otherwise, agreement among two
+            // or three neighbors increases the specificity of the segment-ID distribution.
+            int ctx = prevUL < 0 ? 0
                 : prevUL == prevU && prevUL == prevL ? 2
                 : prevUL == prevU || prevUL == prevL || prevU == prevL ? 1 : 0;
             int lastActiveSegmentId = this.FrameHeader.SegmentationParameters.LastActiveSegmentId;
@@ -1175,9 +1432,11 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     /// <summary>
-    /// 5.11.56. Read CDEF syntax.
+    /// Reads the constrained directional enhancement filter strength for the block's 64x64 filter unit.
     /// </summary>
-    /// <remarks>SVT: read_cdef</remarks>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block.</param>
+    /// <remarks>Implements AV1 section 5.11.56 and corresponds to <c>read_cdef</c> in SVT-AV1.</remarks>
     private void ReadCdef(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         if (partitionInfo.ModeInfo.Skip || this.FrameHeader.CodedLossless || !this.SequenceHeader.EnableCdef || this.FrameHeader.AllowIntraBlockCopy)
@@ -1194,7 +1453,8 @@ internal class Av1TileReader : IAv1TileReader
             int cdfStrength = reader.ReadCdfStrength(this.FrameHeader.CdefParameters.BitCount);
             partitionInfo.CdefStrength[index] = cdfStrength;
 
-            // Populate to nearby 64x64s if needed based on h4 & w4
+            // A block in a 128x128 superblock can cover multiple 64x64 CDEF units. Replicate the
+            // first decoded strength so subsequent blocks in every covered unit observe it as assigned.
             if (this.SequenceHeader.SuperblockSize == Av1BlockSize.Block128x128)
             {
                 int w4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
@@ -1210,6 +1470,11 @@ internal class Av1TileReader : IAv1TileReader
         }
     }
 
+    /// <summary>
+    /// Reads and accumulates the loop-filter delta values carried by a coding block.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block and superblock delta storage.</param>
     private void ReadDeltaLoopFilter(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
@@ -1237,6 +1502,12 @@ internal class Av1TileReader : IAv1TileReader
         }
     }
 
+    /// <summary>
+    /// Reads or infers the residual-skip flag for a coding block.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block and its available neighbors.</param>
+    /// <returns><see langword="true"/> when the block omits residual coefficients; otherwise, <see langword="false"/>.</returns>
     private bool ReadSkip(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         int segmentId = partitionInfo.ModeInfo.SegmentId;
@@ -1254,8 +1525,11 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     /// <summary>
-    /// SVT: read_delta_qindex
+    /// Reads and accumulates a superblock quantizer-index delta when the block carries one.
     /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block and superblock quantizer storage.</param>
+    /// <remarks>Corresponds to <c>read_delta_qindex</c> in SVT-AV1.</remarks>
     private void ReadDeltaQuantizerIndex(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
         Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
@@ -1274,28 +1548,30 @@ internal class Av1TileReader : IAv1TileReader
         }
     }
 
+    /// <summary>
+    /// Determines whether a frame-relative mode-information position lies inside the active tile.
+    /// </summary>
+    /// <param name="rowIndex">The frame-relative mode-information row.</param>
+    /// <param name="columnIndex">The frame-relative mode-information column.</param>
+    /// <returns><see langword="true"/> when the position lies within the active tile; otherwise, <see langword="false"/>.</returns>
     private bool IsInside(int rowIndex, int columnIndex) =>
         columnIndex >= this.FrameHeader.TilesInfo.TileColumnCount &&
         columnIndex < this.FrameHeader.TilesInfo.TileColumnCount &&
         rowIndex >= this.FrameHeader.TilesInfo.TileRowCount &&
         rowIndex < this.FrameHeader.TilesInfo.TileRowCount;
 
-    /*
-    private static bool IsChroma(int rowIndex, int columnIndex, Av1BlockModeInfo blockMode, bool subSamplingX, bool subSamplingY)
-    {
-        int block4x4Width = blockMode.BlockSize.Get4x4WideCount();
-        int block4x4Height = blockMode.BlockSize.Get4x4HighCount();
-        bool xPos = (columnIndex & 0x1) > 0 || (block4x4Width & 0x1) > 0 || !subSamplingX;
-        bool yPos = (rowIndex & 0x1) > 0 || (block4x4Height & 0x1) > 0 || !subSamplingY;
-        return xPos && yPos;
-    }*/
-
     /// <summary>
-    /// SVT: partition_plane_context
+    /// Derives the partition entropy context from the current split bit of the above and left neighbors.
     /// </summary>
+    /// <param name="location">The partition origin in 4x4 mode-information units.</param>
+    /// <param name="blockSize">The square parent block size.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    /// <param name="superblockInfo">The containing superblock.</param>
+    /// <returns>The partition entropy context.</returns>
+    /// <remarks>Corresponds to <c>partition_plane_context</c> in SVT-AV1.</remarks>
     private int GetPartitionPlaneContext(Point location, Av1BlockSize blockSize, Av1TileInfo tileInfo, Av1SuperblockInfo superblockInfo)
     {
-        // Maximum partition point is 8x8. Offset the log value occordingly.
+        // The five stored split bits begin at the 8x8 partition point, so normalize the block-size log to that bit index.
         int aboveCtx = this.aboveNeighborContext.AbovePartitionWidth[location.X - tileInfo.ModeInfoColumnStart];
         int leftCtx = this.leftNeighborContext.LeftPartitionHeight[(location.Y - superblockInfo.ModeInfoPosition.Y) & Av1PartitionContext.Mask];
         int blockSizeLog = blockSize.Get4x4WidthLog2() - Av1BlockSize.Block8x8.Get4x4WidthLog2();
@@ -1306,6 +1582,15 @@ internal class Av1TileReader : IAv1TileReader
         return ((left << 1) + above) + (blockSizeLog * Av1Constants.PartitionProbabilitySet);
     }
 
+    /// <summary>
+    /// Publishes the decoded partition sizes to the above and left neighbor contexts.
+    /// </summary>
+    /// <param name="modeInfoLocation">The parent block origin in 4x4 mode-information units.</param>
+    /// <param name="tileLoc">The active tile boundaries.</param>
+    /// <param name="superblockInfo">The containing superblock.</param>
+    /// <param name="subSize">The primary size produced by the partition.</param>
+    /// <param name="blockSize">The parent block size.</param>
+    /// <param name="partition">The decoded partition type.</param>
     private void UpdatePartitionContext(Point modeInfoLocation, Av1TileInfo tileLoc, Av1SuperblockInfo superblockInfo, Av1BlockSize subSize, Av1BlockSize blockSize, Av1PartitionType partition)
     {
         if (blockSize >= Av1BlockSize.Block8x8)

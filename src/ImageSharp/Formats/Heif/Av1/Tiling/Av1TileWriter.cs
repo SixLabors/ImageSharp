@@ -10,11 +10,18 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
+/// <summary>
+/// Writes the partition, mode, transform, and coefficient syntax for one AV1 tile.
+/// </summary>
 internal partial class Av1TileWriter
 {
-    // Generates 5 bit field in which each bit set to 1 represents
-    // a BlockSize partition  11111 means we split 128x128, 64x64, 32x32, 16x16
-    // and 8x8.  10000 means we just split the 128x128 to 64x64
+    /// <summary>
+    /// Maps each AV1 block size to the five-bit partition contexts written to its bottom and right edges.
+    /// </summary>
+    /// <remarks>
+    /// Each set bit represents a split level from 128x128 through 8x8. For example, <c>11111</c>
+    /// records every split level, while <c>10000</c> records only the 128x128 split.
+    /// </remarks>
     private static readonly Av1PartitionContext[] PartitionContextLookup =
         [
             new(31, 31),  // 4X4   - {0b11111, 0b11111}
@@ -41,11 +48,21 @@ internal partial class Av1TileWriter
             new(16, 28),  // 64X16 - {0b10000, 0b11100}
     ];
 
+    /// <summary>
+    /// Maps neighboring intra prediction modes to the key-frame luma-mode entropy contexts.
+    /// </summary>
     private static readonly byte[] IntraModeContextLookup = [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
 
     /// <summary>
-    /// SVT: svt_aom_write_sb
+    /// Writes the partition tree and each final coding block for a superblock.
     /// </summary>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="ec_ctx">The entropy-coding position state for the superblock.</param>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="superblock">The encoder decisions for the superblock.</param>
+    /// <param name="frameBuffer">The transformed coefficients for the frame.</param>
+    /// <param name="tileIndex">The zero-based tile index.</param>
+    /// <remarks>Corresponds to <c>svt_aom_write_sb</c> in SVT-AV1.</remarks>
     public static void WriteSuperblock(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext ec_ctx,
@@ -57,7 +74,8 @@ internal partial class Av1TileWriter
         Av1SequenceControlSet scs = pcs.Sequence;
         Av1NeighborArrayUnit<Av1PartitionContext> partitionContextNeighbors = pcs.PartitionContexts[tileIndex];
 
-        // CU Varaiables
+        // The geometry scan includes both partition nodes and final coding blocks. These two indices
+        // advance independently because a split node consumes geometry without consuming FinalBlocks.
         int blockIndex = 0;
         uint finalBlockIndex = 0;
 
@@ -67,7 +85,7 @@ internal partial class Av1TileWriter
         bool check_blk_out_of_bound = !sb_geom.IsComplete;
         do
         {
-            bool code_blk_cond = true; // Code cu only if it is inside the picture
+            bool code_blk_cond = true;
             Av1EncoderBlockStruct blk_ptr = superblock.FinalBlocks[finalBlockIndex];
             Av1BlockGeometry blk_geom = Av1BlockGeometryFactory.GetBlockGeometryByModeDecisionScanIndex(blockIndex);
 
@@ -75,9 +93,10 @@ internal partial class Av1TileWriter
             Point blockOrigin = blk_geom.Origin;
             Guard.IsTrue(bsize < Av1BlockSize.AllSizes, nameof(bsize), "Block size must be a valid value.");
 
-            // assert(blk_geom->shape == PART_N);
             if (check_blk_out_of_bound)
             {
+                // Edge superblocks retain their complete geometry tree, but only nodes whose center or
+                // origin reaches the visible frame can contribute coding syntax.
                 code_blk_cond = (((blockOrigin.X + (blk_geom.BlockWidth / 2)) < pcs.Parent.AlignedWidth) ||
                                  ((blockOrigin.Y + (blk_geom.BlockHeight / 2)) < pcs.Parent.AlignedHeight)) &&
                     (blockOrigin.X < pcs.Parent.AlignedWidth && blockOrigin.Y < pcs.Parent.AlignedHeight);
@@ -126,7 +145,7 @@ internal partial class Av1TileWriter
                         }*/
                     }
 
-                    // Code Split Flag
+                    // Blocks below 8x8 cannot be partition points in the AV1 syntax.
                     EncodePartition(
                         pcs,
                         ref writer,
@@ -136,7 +155,6 @@ internal partial class Av1TileWriter
                         partitionContextNeighbors);
                 }
 
-                // assert(blk_geom.Shape == PART_N);
                 Guard.IsTrue(Av1Math.Implies(bsize == Av1BlockSize.Block4x4, superblock.CodingUnitPartitionTypes[blockIndex] == Av1PartitionType.None), nameof(bsize), string.Empty);
                 switch (superblock.CodingUnitPartitionTypes[blockIndex])
                 {
@@ -281,8 +299,15 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// SVT: encode_partition_av1
+    /// Writes a partition symbol using the above and left partition contexts available at a block origin.
     /// </summary>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="blockSize">The square parent block size.</param>
+    /// <param name="partitionType">The selected partition type.</param>
+    /// <param name="blockOrigin">The block origin in samples.</param>
+    /// <param name="partition_context_na">The partition neighbor arrays for the tile.</param>
+    /// <remarks>Corresponds to <c>encode_partition_av1</c> in SVT-AV1.</remarks>
     private static void EncodePartition(
         Av1PictureControlSet pcs,
         ref Av1SymbolEncoder writer,
@@ -322,6 +347,7 @@ internal partial class Av1TileWriter
         Guard.IsTrue(blockSize.Get4x4WidthLog2() == blockSize.Get4x4HeightLog2(), nameof(blockSize), "Blocks need to be square.");
         Guard.IsTrue(blockSizeLog2 >= 0, nameof(blockSizeLog2), "bsl needs to be a positive integer.");
 
+        // Each square block-size level owns four contexts selected by the current split bit of its neighbors.
         context_index = ((left * 2) + above) + (blockSizeLog2 * Av1Constants.PartitionProbabilitySet);
 
         if (!has_rows && !has_cols)
@@ -347,8 +373,16 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// SVT: write_modes_b
+    /// Writes the segmentation, prediction, transform, coefficient, and filter syntax for one final coding block.
     /// </summary>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="tb_ptr">The containing superblock.</param>
+    /// <param name="blk_ptr">The final encoder decisions for the block.</param>
+    /// <param name="tile_idx">The zero-based tile index.</param>
+    /// <param name="coeff_ptr">The transformed coefficients for the frame.</param>
+    /// <remarks>Corresponds to <c>write_modes_b</c> in SVT-AV1.</remarks>
     private static void WriteModesBlock(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
@@ -402,8 +436,6 @@ internal partial class Av1TileWriter
             blk_ptr.MacroBlock.LeftMacroBlock = null;
         }
 
-        // Not required, part of Av1SymbolEncoder.
-        // blk_ptr.MacroBlock.tile_ctx = frame_context;
         SetModeInfoRowAndColumn(
             pcs,
             blk_ptr.MacroBlock,
@@ -414,10 +446,8 @@ internal partial class Av1TileWriter
             pcs.Parent.Common.ModeInfoRowCount,
             pcs.Parent.Common.ModeInfoColumnCount);
 
-        // if (pcs.slice_type == I_SLICE)
-        // We implement only INTRA frames.
+        // This encoder path currently writes intra frames only, so every block follows the key-frame mode syntax.
         {
-            // const int32_t skip = write_skip(cm, xd, mbmi->segment_id, mi, w)
             if (pcs.Parent.FrameHeader.SegmentationParameters.Enabled && pcs.Parent.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
             {
                 WriteSegmentId(pcs, ref writer, blockGeometry.BlockSize, blockOrigin, blk_ptr, skipWritingCoefficients);
@@ -548,7 +578,6 @@ internal partial class Av1TileWriter
 
             if (!skipWritingCoefficients)
             {
-                // SVT: av1_encode_coeff_1d
                 EncodeCoefficients1d(
                     pcs,
                     entropyCodingContext,
@@ -565,7 +594,7 @@ internal partial class Av1TileWriter
             }
         }
 
-        // Update the neighbors
+        // Neighbor state must be updated after all symbols for the block have used the preceding contexts.
         UpdateNeighbors(pcs, entropyCodingContext, blockOrigin, blk_ptr, tile_idx, blockSize);
 
         if (IsPaletteAllowed(pcs.Parent.PaletteLevel, blockGeometry.BlockSize))
@@ -579,6 +608,16 @@ internal partial class Av1TileWriter
         }
     }
 
+    /// <summary>
+    /// Writes the chroma intra mode, chroma-from-luma alpha values, and directional angle adjustment for a block.
+    /// </summary>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="macroBlockModeInfo">The selected block modes.</param>
+    /// <param name="blk_ptr">The encoder prediction-unit state.</param>
+    /// <param name="blockSize">The luma block size.</param>
+    /// <param name="lumaMode">The selected luma prediction mode.</param>
+    /// <param name="chromaMode">The selected chroma prediction mode.</param>
+    /// <param name="isChromaFromLumaAllowed">A value indicating whether chroma-from-luma mode is available.</param>
     private static void EncodeIntraChromaMode(
         ref Av1SymbolEncoder writer,
         Av1MacroBlockModeInfo macroBlockModeInfo,
@@ -604,26 +643,24 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// Get the contexts (left and top) for writing the intra luma mode for key frames.
-    /// Intended to be used for key frame only.
+    /// Gets the above and left key-frame contexts used to write an intra luma mode.
     /// </summary>
-    /// <remarks>SVT: svt_aom_get_kf_y_mode_ctx</remarks>
+    /// <param name="xd">The current macroblock and its mapped neighbors.</param>
+    /// <param name="above_ctx">The context derived from the above luma mode.</param>
+    /// <param name="left_ctx">The context derived from the left luma mode.</param>
+    /// <remarks>Corresponds to <c>svt_aom_get_kf_y_mode_ctx</c> in SVT-AV1.</remarks>
     private static void GetYModeContext(Av1MacroBlockD xd, out byte above_ctx, out byte left_ctx)
     {
         Av1PredictionMode intraLumaLeftMode = Av1PredictionMode.DC;
         Av1PredictionMode intraLumaTopMode = Av1PredictionMode.DC;
         if (xd.IsLeftAvailable)
         {
-            // When called for key frame, neighbouring mode should be intra
-            // assert(!is_inter_block(&xd->mi[-1]->mbmi.block_mi) || is_intrabc_block(&xd->mi[-1]->mbmi.block_mi));
+            // Key-frame neighbors are intra blocks, so their luma modes directly select the context class.
             intraLumaLeftMode = xd.ModeInfo[-1].MacroBlockModeInfo.Block.Mode;
         }
 
         if (xd.IsUpAvailable)
         {
-            // When called for key frame, neighbouring mode should be intra
-            // assert(!is_inter_block(&xd->mi[-xd->mi_stride]->mbmi.block_mi) ||
-            //       is_intrabc_block(&xd->mi[-xd->mi_stride]->mbmi.block_mi));
             intraLumaTopMode = xd.ModeInfo[-xd.ModeInfoStride].MacroBlockModeInfo.Block.Mode;
         }
 
@@ -632,8 +669,14 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// SVT: encode_intra_luma_mode_kf_av1
+    /// Writes the key-frame luma prediction mode and any directional angle adjustment.
     /// </summary>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="macroBlockModeInfo">The selected block modes.</param>
+    /// <param name="blk_ptr">The encoder prediction-unit state.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="lumaMode">The selected luma prediction mode.</param>
+    /// <remarks>Corresponds to <c>encode_intra_luma_mode_kf_av1</c> in SVT-AV1.</remarks>
     private static void EncodeIntraLumaMode(
         ref Av1SymbolEncoder writer,
         Av1MacroBlockModeInfo macroBlockModeInfo,
@@ -650,6 +693,16 @@ internal partial class Av1TileWriter
         }
     }
 
+    /// <summary>
+    /// Writes luma and chroma palette-mode syntax for a block.
+    /// </summary>
+    /// <param name="scs">The sequence coding state.</param>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="macroBlockModeInfo">The selected block modes.</param>
+    /// <param name="blk_ptr">The encoder block state.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="point">The block position in mode-information units.</param>
+    /// <exception cref="NotImplementedException">Palette-mode encoding is not implemented.</exception>
     private static void WritePaletteModeInfo(
         Av1SequenceControlSet scs,
         ref Av1SymbolEncoder writer,
@@ -687,8 +740,14 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// SVT: svt_aom_filter_intra_allowed
+    /// Determines whether filter-intra syntax is available for a block mode.
     /// </summary>
+    /// <param name="enableFilterIntra">A value indicating whether the sequence enables filter-intra prediction.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="paletteSize">The selected luma palette size.</param>
+    /// <param name="mode">The selected luma prediction mode.</param>
+    /// <returns><see langword="true"/> when the block can use filter-intra prediction; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Corresponds to <c>svt_aom_filter_intra_allowed</c> in SVT-AV1.</remarks>
     private static bool IsFilterIntraAllowed(
         bool enableFilterIntra,
         Av1BlockSize blockSize,
@@ -697,8 +756,12 @@ internal partial class Av1TileWriter
         => mode == Av1PredictionMode.DC && paletteSize == 0 && IsFilterIntraAllowedBlockSize(enableFilterIntra, blockSize);
 
     /// <summary>
-    /// SVT: svt_aom_filter_intra_allowed_bsize
+    /// Determines whether filter-intra prediction is enabled for a block size.
     /// </summary>
+    /// <param name="enableFilterIntra">A value indicating whether the sequence enables filter-intra prediction.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <returns><see langword="true"/> when filter-intra prediction supports the block dimensions; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Corresponds to <c>svt_aom_filter_intra_allowed_bsize</c> in SVT-AV1.</remarks>
     private static bool IsFilterIntraAllowedBlockSize(bool enableFilterIntra, Av1BlockSize blockSize)
     {
         if (!enableFilterIntra)
@@ -710,8 +773,13 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// SVT: write_intrabc_info
+    /// Writes the intra-block-copy selection and displacement-vector syntax for a block.
     /// </summary>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="macroBlockModeInfo">The selected block modes.</param>
+    /// <param name="block">The encoder block state.</param>
+    /// <exception cref="NotImplementedException">The displacement-vector syntax is not implemented when intra block copy is selected.</exception>
+    /// <remarks>Corresponds to <c>write_intrabc_info</c> in SVT-AV1.</remarks>
     private static void WriteIntraBlockCopyInfo(
         ref Av1SymbolEncoder writer,
         Av1MacroBlockModeInfo macroBlockModeInfo,
@@ -734,14 +802,24 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// SVT: svt_aom_allow_intrabc
+    /// Determines whether the current frame permits intra block copy.
     /// </summary>
+    /// <param name="frameHeader">The current frame header.</param>
+    /// <returns><see langword="true"/> when both screen-content tools and intra block copy are enabled; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Corresponds to <c>svt_aom_allow_intrabc</c> in SVT-AV1.</remarks>
     private static bool IsIntraBlockCopyAllowed(ObuFrameHeader frameHeader)
         => frameHeader.AllowScreenContentTools && frameHeader.AllowIntraBlockCopy;
 
     /// <summary>
-    /// SVT: ec_update_neighbors
+    /// Updates partition and coefficient neighbor arrays after writing a block.
     /// </summary>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
+    /// <param name="blockOrigin">The block origin in samples.</param>
+    /// <param name="blk_ptr">The encoder block state.</param>
+    /// <param name="tile_idx">The zero-based tile index.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <remarks>Corresponds to <c>ec_update_neighbors</c> in SVT-AV1.</remarks>
     private static void UpdateNeighbors(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
@@ -758,7 +836,7 @@ internal partial class Av1TileWriter
         Av1MacroBlockModeInfo mbmi = pcs.GetMacroBlockModeInfo(blockOrigin);
         bool skip_coeff = mbmi.Block.Skip;
 
-        // Update the Leaf Depth Neighbor Array
+        // Store the block-size split mask across the edges that future partition symbols can observe.
         Av1PartitionContext partition = new(
             PartitionContextLookup[(int)blockSize].Above,
             PartitionContextLookup[(int)blockSize].Left);
@@ -771,6 +849,8 @@ internal partial class Av1TileWriter
             Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Left | Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Top);
         if (skip_coeff)
         {
+            // A skipped block has an all-zero residual, so publish a zero sign/level context over its edges
+            // and advance coefficient positions without reading transform units.
             byte dcSignLevelCoefficient = 0;
             Span<byte> dcSignSpan = new(ref dcSignLevelCoefficient);
 
@@ -800,8 +880,12 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// SVT: svt_av1_allow_palette
+    /// Determines whether the encoder palette level and block dimensions permit palette mode.
     /// </summary>
+    /// <param name="allowPalette">The nonzero encoder palette level.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <returns><see langword="true"/> when palette mode is enabled for the block; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Corresponds to <c>svt_av1_allow_palette</c> in SVT-AV1.</remarks>
     private static bool IsPaletteAllowed(int allowPalette, Av1BlockSize blockSize)
     {
         Guard.MustBeLessThan((int)blockSize, (int)Av1BlockSize.AllSizes, nameof(blockSize));
@@ -812,8 +896,12 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// SVT: svt_aom_allow_palette
+    /// Determines whether screen-content tools and block dimensions permit palette mode.
     /// </summary>
+    /// <param name="allowScreenContentTools">A value indicating whether screen-content tools are enabled.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <returns><see langword="true"/> when palette mode is available for the block; otherwise, <see langword="false"/>.</returns>
+    /// <remarks>Corresponds to <c>svt_aom_allow_palette</c> in SVT-AV1.</remarks>
     private static bool IsPaletteAllowed(bool allowScreenContentTools, Av1BlockSize blockSize)
         => allowScreenContentTools &&
             blockSize.GetWidth() <= 64 &&
@@ -821,8 +909,15 @@ internal partial class Av1TileWriter
             blockSize >= Av1BlockSize.Block8x8;
 
     /// <summary>
-    /// SVT: write_cdef
+    /// Writes the constrained directional enhancement filter strength at its first coded block in a filter unit.
     /// </summary>
+    /// <param name="scs">The sequence coding state.</param>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="tileIndex">The zero-based tile index.</param>
+    /// <param name="skip">A value indicating whether the current block omits residual coefficients.</param>
+    /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
+    /// <remarks>Corresponds to <c>write_cdef</c> in SVT-AV1.</remarks>
     private static void WriteCdef(
         Av1SequenceControlSet scs,
         Av1PictureControlSet pcs,
@@ -836,7 +931,7 @@ internal partial class Av1TileWriter
 
         if (frameHeader.CodedLossless || frameHeader.AllowIntraBlockCopy)
         {
-            // Initialize to indicate no CDEF for safety.
+            // Lossless and intra-block-copy frames disable CDEF, so normalize the header to its single zero-strength form.
             frameHeader.CdefParameters.BitCount = 0;
             frameHeader.CdefParameters.YStrength[0] = 0;
             frameHeader.CdefParameters.UvStrength[0] = 0;
@@ -849,18 +944,17 @@ internal partial class Av1TileWriter
         // cm->mi_grid_visible[(mi_row & m) * cm->mi_stride + (mi_col & m)];
         Av1ModeInfo mi = pcs.GetFromModeInfoGrid(modeInfoPosition)[0];
 
-        // Initialise when at top left part of the superblock
+        // Each superblock begins with all contained 64x64 filter units unassigned.
         if ((modeInfoPosition.Y & (scs.SequenceHeader.SuperblockModeInfoSize - 1)) == 0 &&
             (modeInfoPosition.X & (scs.SequenceHeader.SuperblockModeInfoSize - 1)) == 0)
         {
-            // Top left?
             pcs.CdefPreset[tileIndex][0] = -1;
             pcs.CdefPreset[tileIndex][1] = -1;
             pcs.CdefPreset[tileIndex][2] = -1;
             pcs.CdefPreset[tileIndex][3] = -1;
         }
 
-        // Emit CDEF param at first non-skip coding block
+        // The strength is coded once, at the first non-skipped block in each 64x64 CDEF filter unit.
         int mask = 1 << (6 - Av1Constants.ModeInfoSizeLog2);
         int index = scs.SequenceHeader.Use128x128Superblock ? Math.Max(1, modeInfoPosition.X & mask) + (2 * Math.Max(1, modeInfoPosition.Y & mask)) : 0;
 
@@ -872,8 +966,17 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// SVT: set_mi_row_col
+    /// Populates a macroblock's frame edges, tile-neighbor availability, and rectangular-partition context.
     /// </summary>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="macroBlock">The macroblock state to populate.</param>
+    /// <param name="tile">The active tile boundaries.</param>
+    /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="modeInfoStride">The row stride of the mode-information grid.</param>
+    /// <param name="modeInfoRowCount">The coded frame height in mode-information rows.</param>
+    /// <param name="modeInfoColumnCount">The coded frame width in mode-information columns.</param>
+    /// <remarks>Corresponds to <c>set_mi_row_col</c> in SVT-AV1.</remarks>
     private static void SetModeInfoRowAndColumn(
         Av1PictureControlSet pcs,
         Av1MacroBlockD macroBlock,
@@ -891,7 +994,7 @@ internal partial class Av1TileWriter
 
         macroBlock.ModeInfoStride = modeInfoStride;
 
-        // Are edges available for intra prediction?
+        // Prediction cannot cross tile boundaries even when frame mode information exists there.
         macroBlock.IsUpAvailable = modeInfoPosition.Y > tile.ModeInfoRowStart;
         macroBlock.IsLeftAvailable = modeInfoPosition.X > tile.ModeInfoColumnStart;
         macroBlock.ModeInfo = pcs.GetFromModeInfoGrid(modeInfoPosition);
@@ -918,9 +1021,8 @@ internal partial class Av1TileWriter
         macroBlock.IsSecondRectangle = false;
         if (macroBlock.N8Size.Width < macroBlock.N8Size.Height)
         {
-            // Only mark is_sec_rect as 1 for the last block.
-            // For PARTITION_VERT_4, it would be (0, 0, 0, 1);
-            // For other partitions, it would be (0, 1).
+            // Only the last sub-block of a rectangular partition selects the secondary transform context.
+            // Vertical-four therefore maps to (0, 0, 0, 1), while two-way partitions map to (0, 1).
             if (((modeInfoPosition.X + macroBlock.N8Size.Width) & (macroBlock.N8Size.Height - 1)) == 0)
             {
                 macroBlock.IsSecondRectangle = true;
@@ -937,8 +1039,22 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// SVT: av1_encode_coeff_1d
+    /// Writes luma and chroma transform coefficients for a block in plane order.
     /// </summary>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="ec_ctx">The entropy-coding position state for the superblock.</param>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="mbmi">The selected macroblock modes.</param>
+    /// <param name="blk_ptr">The encoder block state.</param>
+    /// <param name="blockOrigin">The block origin in samples.</param>
+    /// <param name="intraLumaDir">The luma prediction direction.</param>
+    /// <param name="planeBlockSize">The luma block size.</param>
+    /// <param name="coeff_ptr">The transformed coefficients for the frame.</param>
+    /// <param name="luma_dc_sign_level_coeff_na">The luma coefficient neighbor contexts.</param>
+    /// <param name="cr_dc_sign_level_coeff_na">The red-difference chroma coefficient neighbor contexts.</param>
+    /// <param name="cb_dc_sign_level_coeff_na">The blue-difference chroma coefficient neighbor contexts.</param>
+    /// <exception cref="NotImplementedException">The transform-depth path required by the block is not implemented.</exception>
+    /// <remarks>Corresponds to <c>av1_encode_coeff_1d</c> in SVT-AV1.</remarks>
     private static void EncodeCoefficients1d(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext ec_ctx,
@@ -987,8 +1103,19 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// SVT: av1_encode_tx_coef_y
+    /// Writes each luma transform block and updates its DC-sign and coefficient-level neighbor contexts.
     /// </summary>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="mbmi">The selected macroblock modes.</param>
+    /// <param name="blk_ptr">The encoder block state.</param>
+    /// <param name="blockOrigin">The block origin in samples.</param>
+    /// <param name="intraLumaDir">The luma prediction direction.</param>
+    /// <param name="plane_bsize">The luma block size.</param>
+    /// <param name="coeff_ptr">The transformed coefficients for the frame.</param>
+    /// <param name="luma_dc_sign_level_coeff_na">The luma coefficient neighbor contexts.</param>
+    /// <remarks>Corresponds to <c>av1_encode_tx_coef_y</c> in SVT-AV1.</remarks>
     public static void EncodeTransformCoefficientsY(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
@@ -1001,7 +1128,7 @@ internal partial class Av1TileWriter
         Av1FrameBuffer<int> coeff_ptr,
         Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na)
     {
-        // Removed any code related to INTER frames.
+        // This writer currently emits intra frames, so coefficient contexts use only intra prediction state.
         Av1BlockGeometry blockGeometry = Av1BlockGeometryFactory.GetBlockGeometryByModeDecisionScanIndex(blk_ptr.ModeDecisionScanIndex);
         int tx_depth = mbmi.Block.TransformDepth;
         int txb_count = blockGeometry.TransformBlockCount[mbmi.Block.TransformDepth];
@@ -1031,7 +1158,7 @@ internal partial class Av1TileWriter
             int eob = blk_ptr.TransformBlocks[txb_itr].NzCoefficientCount[0];
             if (eob == 0)
             {
-                // INTRA
+                // AV1 requires the canonical DCT_DCT transform type when a transform block has no coefficients.
                 tx_type = blk_ptr.TransformBlocks[txb_itr].TransformType[(int)Av1PlaneType.Y] = Av1TransformType.DctDct;
                 Guard.IsTrue(tx_type == Av1TransformType.DctDct, nameof(tx_type), string.Empty);
             }
@@ -1047,7 +1174,8 @@ internal partial class Av1TileWriter
                 frameHeader.UseReducedTransformSet,
                 blk_ptr.FilterIntraMode);
 
-            // Update the luma Dc Sign Level Coeff Neighbor Array
+            // WriteCoefficients packs the DC sign and cumulative level into one integer; publish its bytes
+            // across the transform edges so the next blocks derive identical entropy contexts.
             Span<int> culLevelSpan = new(ref cul_level_y);
             ReadOnlySpan<byte> dc_sign_level_coeff = MemoryMarshal.AsBytes(culLevelSpan);
 
@@ -1064,8 +1192,20 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// SVT: av1_encode_tx_coef_uv
+    /// Writes both chroma transform blocks and updates their DC-sign and coefficient-level neighbor contexts.
     /// </summary>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="entropyCodingContext">The entropy-coding position state for the superblock.</param>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="mbmi">The selected macroblock modes.</param>
+    /// <param name="blk_ptr">The encoder block state.</param>
+    /// <param name="blockOrigin">The luma block origin in samples.</param>
+    /// <param name="intraLumaDir">The luma prediction direction used by coefficient contexts.</param>
+    /// <param name="plane_bsize">The luma block size.</param>
+    /// <param name="coeff_ptr">The transformed coefficients for the frame.</param>
+    /// <param name="cr_dc_sign_level_coeff_na">The red-difference chroma coefficient neighbor contexts.</param>
+    /// <param name="cb_dc_sign_level_coeff_na">The blue-difference chroma coefficient neighbor contexts.</param>
+    /// <remarks>Corresponds to <c>av1_encode_tx_coef_uv</c> in SVT-AV1.</remarks>
     private static void EncodeTransformCoefficientsUv(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
@@ -1098,7 +1238,7 @@ internal partial class Av1TileWriter
 
             if (blockGeometry.HasUv)
             {
-                // cb
+                // Both chroma planes share transform geometry but retain independent coefficient contexts.
                 Span<int> coeff_buffer = coeff_ptr.BufferCb!.DangerousGetSingleSpan().Slice(entropyCodingContext.CodedAreaSuperblockUv);
                 Av1TransformBlockContext blockContext = new();
                 Point transformOrigin = blockGeometry.TransformOrigin[tx_depth][tx_index];
@@ -1123,7 +1263,6 @@ internal partial class Av1TileWriter
                     frameHeader.UseReducedTransformSet,
                     blk_ptr.FilterIntraMode);
 
-                // cr
                 coeff_buffer = coeff_ptr.BufferCr!.DangerousGetSingleSpan().Slice(entropyCodingContext.CodedAreaSuperblockUv);
                 blockContext = new();
                 int endOfBlockCr = blk_ptr.TransformBlocks[tx_index].NzCoefficientCount[2];
@@ -1148,7 +1287,7 @@ internal partial class Av1TileWriter
                     frameHeader.UseReducedTransformSet,
                     blk_ptr.FilterIntraMode);
 
-                // Update the cb Dc Sign Level Coeff Neighbor Array
+                // Publish each plane's packed sign/level summary across its transform edges.
                 Span<int> culLevelCbSpan = new(ref cul_level_cb);
                 ReadOnlySpan<byte> dc_sign_level_coeff = MemoryMarshal.AsBytes(culLevelCbSpan);
                 cb_dc_sign_level_coeff_na.UnitModeWrite(
@@ -1157,7 +1296,6 @@ internal partial class Av1TileWriter
                     new Size(transformWidth, transformHeight),
                     Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
 
-                // Update the cr DC Sign Level Coeff Neighbor Array
                 Span<int> culLevelCrSpan = new(ref cul_level_cr);
                 dc_sign_level_coeff = MemoryMarshal.AsBytes(culLevelCrSpan);
                 cr_dc_sign_level_coeff_na.UnitModeWrite(
@@ -1171,11 +1309,24 @@ internal partial class Av1TileWriter
         }
     }
 
+    /// <summary>
+    /// Rounds a luma sample position down to the 8-sample alignment used before chroma subsampling.
+    /// </summary>
+    /// <param name="point">The luma sample position.</param>
+    /// <returns>The aligned luma position.</returns>
     private static Point RoundUv(Point point) => (point >> 3) << 3;
 
     /// <summary>
-    /// SVT: svt_aom_get_txb_ctx
+    /// Derives coefficient skip and DC-sign contexts from the transform block's above and left neighbors.
     /// </summary>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="plane">The luma or chroma component class.</param>
+    /// <param name="dcSignLevelCoefficientNeighborArray">The packed DC-sign and coefficient-level neighbor contexts.</param>
+    /// <param name="blockOrigin">The transform-block origin in samples of the target plane.</param>
+    /// <param name="planeBlockSize">The containing block size on the target plane.</param>
+    /// <param name="transformSize">The transform size.</param>
+    /// <param name="blockContext">The context object to populate.</param>
+    /// <remarks>Corresponds to <c>svt_aom_get_txb_ctx</c> in SVT-AV1.</remarks>
     private static void GetTransformBlockContexts(
         Av1PictureControlSet pcs,
         Av1ComponentType plane,
@@ -1207,6 +1358,8 @@ internal partial class Av1TileWriter
 
         byte sign;
 
+        // The high bits encode the DC sign class: zero, negative, or positive. Summing classes over
+        // both edges selects whether neighboring DC coefficients bias the current sign context.
         if (dcSignLevelCoefficientNeighborArray.Top[dcSignLevelCoefficientTopNeighborIndex] != Av1NeighborArrayUnit<byte>.InvalidNeighborData)
         {
             do
@@ -1253,6 +1406,7 @@ internal partial class Av1TileWriter
             }
             else
             {
+                // Luma skip contexts depend on the minimum and union of the clipped edge levels.
                 byte[][] skip_contexts = [
                     [1, 2, 2, 2, 3], [1, 4, 4, 4, 5], [1, 4, 4, 4, 5], [1, 4, 4, 4, 5], [1, 4, 4, 4, 6]
                 ];
@@ -1292,6 +1446,8 @@ internal partial class Av1TileWriter
         }
         else
         {
+            // Chroma contexts use only the presence of nonzero levels on each edge, plus an offset
+            // that distinguishes a transform smaller than its containing plane block.
             short ctx_base_left = 0;
             short ctx_base_top = 0;
 
@@ -1324,6 +1480,15 @@ internal partial class Av1TileWriter
         }
     }
 
+    /// <summary>
+    /// Writes or predicts a block segment identifier and updates the frame segmentation map.
+    /// </summary>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="blockOrigin">The block origin in samples.</param>
+    /// <param name="block">The encoder block state.</param>
+    /// <param name="skip">A value indicating whether residual coefficients are omitted.</param>
     private static void WriteSegmentId(Av1PictureControlSet pcs, ref Av1SymbolEncoder writer, Av1BlockSize blockSize, Point blockOrigin, Av1EncoderBlockStruct block, bool skip)
     {
         ObuSegmentationParameters segmentation_params = pcs.Parent.FrameHeader.SegmentationParameters;
@@ -1335,6 +1500,7 @@ internal partial class Av1TileWriter
         int spatial_pred = GetSpatialSegmentationPrediction(pcs, block.MacroBlock, blockOrigin, out int cdf_num);
         if (skip)
         {
+            // With segment-id-before-skip syntax, a skipped block inherits the spatial predictor without coding a residual ID.
             pcs.UpdateSegmentation(blockSize, blockOrigin, spatial_pred);
             block.SegmentId = spatial_pred;
             return;
@@ -1346,17 +1512,24 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// SVT: svt_av1_get_spatial_seg_prediction
+    /// Derives a segment identifier predictor and entropy context from the upper-left, above, and left neighbors.
     /// </summary>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="xd">The current macroblock and its neighbor availability.</param>
+    /// <param name="blockOrigin">The block origin in samples.</param>
+    /// <param name="cdf_index">The entropy context selected by matching neighbor identifiers.</param>
+    /// <returns>The spatially predicted segment identifier.</returns>
+    /// <remarks>Corresponds to <c>svt_av1_get_spatial_seg_prediction</c> in SVT-AV1.</remarks>
     private static int GetSpatialSegmentationPrediction(
         Av1PictureControlSet pcs,
         Av1MacroBlockD xd,
         Point blockOrigin,
         out int cdf_index)
     {
-        int prev_ul = -1; // top left segment_id
-        int prev_l = -1; // left segment_id
-        int prev_u = -1; // top segment_id
+        const int unavailableSegmentId = -1;
+        int prev_ul = unavailableSegmentId;
+        int prev_l = unavailableSegmentId;
+        int prev_u = unavailableSegmentId;
 
         int mi_col = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
         int mi_row = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
@@ -1380,8 +1553,8 @@ internal partial class Av1TileWriter
             prev_l = Av1SymbolContextHelper.GetSegmentId(cm, segmentation_map, Av1BlockSize.Block4x4, new Point(mi_row - 0, mi_col - 1));
         }
 
-        // Pick CDF index based on number of matching/out-of-bounds segment IDs.
-        // Edge case
+        // The entropy context records whether zero, two, or all three neighboring IDs agree.
+        // Any unavailable neighbor falls back to the least-specific context.
         if (prev_ul < 0 || prev_u < 0 || prev_l < 0)
         {
             cdf_index = 0;
@@ -1399,15 +1572,13 @@ internal partial class Av1TileWriter
             cdf_index = 0;
         }
 
-        // If 2 or more are identical returns that as predictor, otherwise prev_l.
-        // edge case
-        if (prev_u == -1)
+        // Select the majority value when possible; otherwise AV1 gives the left neighbor precedence.
+        if (prev_u == unavailableSegmentId)
         {
-            return prev_l == -1 ? 0 : prev_l;
+            return prev_l == unavailableSegmentId ? 0 : prev_l;
         }
 
-        // edge case
-        if (prev_l == -1)
+        if (prev_l == unavailableSegmentId)
         {
             return prev_u;
         }
@@ -1415,6 +1586,12 @@ internal partial class Av1TileWriter
         return (prev_ul == prev_u) ? prev_u : prev_l;
     }
 
+    /// <summary>
+    /// Writes the block skip flag using the sum of available above and left skip states as its context.
+    /// </summary>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="block">The encoder block state.</param>
+    /// <param name="skip">The skip value to write.</param>
     internal static void EncodeSkipCoefficients(ref Av1SymbolEncoder writer, Av1EncoderBlockStruct block, bool skip)
     {
         Av1MacroBlockModeInfo? above_mi = block.MacroBlock.AboveMacroBlock;

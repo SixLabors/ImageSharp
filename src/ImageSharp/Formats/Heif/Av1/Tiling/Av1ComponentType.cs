@@ -3,12 +3,38 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
+/// <summary>
+/// Identifies the luma or chroma component class used by AV1 entropy contexts.
+/// </summary>
 internal enum Av1ComponentType
 {
-    Luminance = 0, // luma
-    Chroma = 1, // chroma (Cb+Cr)
-    ChromaCb = 2, // chroma Cb
-    ChromaCr = 3, // chroma Cr
-    All = 4, // Y+Cb+Cr
+    /// <summary>
+    /// The luma component.
+    /// </summary>
+    Luminance = 0,
+
+    /// <summary>
+    /// Both chroma components.
+    /// </summary>
+    Chroma = 1,
+
+    /// <summary>
+    /// The blue-difference chroma component.
+    /// </summary>
+    ChromaCb = 2,
+
+    /// <summary>
+    /// The red-difference chroma component.
+    /// </summary>
+    ChromaCr = 3,
+
+    /// <summary>
+    /// The luma and both chroma components.
+    /// </summary>
+    All = 4,
+
+    /// <summary>
+    /// No component.
+    /// </summary>
     None = 15
 }

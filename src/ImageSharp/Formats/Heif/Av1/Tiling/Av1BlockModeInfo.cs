@@ -5,10 +5,22 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
+/// <summary>
+/// Stores block-size, prediction-mode, transform, and palette decisions shared by AV1 block processing.
+/// </summary>
 internal class Av1BlockModeInfo
 {
+    /// <summary>
+    /// Stores the palette size for luma and for the shared chroma mode.
+    /// </summary>
     private int[] paletteSize;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1BlockModeInfo"/> class.
+    /// </summary>
+    /// <param name="numPlanes">The number of color planes in the decoded frame.</param>
+    /// <param name="blockSize">The decoded block size.</param>
+    /// <param name="positionInSuperblock">The block origin relative to its superblock in 4x4 mode-information units.</param>
     public Av1BlockModeInfo(int numPlanes, Av1BlockSize blockSize, Point positionInSuperblock)
     {
         this.BlockSize = blockSize;
@@ -20,6 +32,9 @@ internal class Av1BlockModeInfo
         this.TransformUnitsCount = new int[numPlanes - 1];
     }
 
+    /// <summary>
+    /// Gets the decoded block size.
+    /// </summary>
     public Av1BlockSize BlockSize { get; }
 
     /// <summary>
@@ -27,12 +42,24 @@ internal class Av1BlockModeInfo
     /// </summary>
     public Av1PredictionMode YMode { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether residual coefficients are omitted for the block.
+    /// </summary>
     public bool Skip { get; set; }
 
+    /// <summary>
+    /// Gets or sets the partition type that produced the block.
+    /// </summary>
     public Av1PartitionType PartitionType { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether compound skip mode is selected.
+    /// </summary>
     public bool SkipMode { get; set; }
 
+    /// <summary>
+    /// Gets or sets the segmentation identifier assigned to the block.
+    /// </summary>
     public int SegmentId { get; set; }
 
     /// <summary>
@@ -40,31 +67,64 @@ internal class Av1BlockModeInfo
     /// </summary>
     public Av1PredictionMode UvMode { get; set; }
 
+    /// <summary>
+    /// Gets or sets a value indicating whether intra block copy is selected.
+    /// </summary>
     public bool UseUltraBlockCopy { get; set; }
 
+    /// <summary>
+    /// Gets or sets the packed chroma-from-luma alpha magnitude indices.
+    /// </summary>
     public int ChromaFromLumaAlphaIndex { get; set; }
 
+    /// <summary>
+    /// Gets or sets the joint chroma-from-luma alpha sign value.
+    /// </summary>
     public int ChromaFromLumaAlphaSign { get; set; }
 
+    /// <summary>
+    /// Gets or sets the directional prediction angle adjustments for the chroma planes.
+    /// </summary>
     public int[] AngleDelta { get; set; }
 
     /// <summary>
-    /// Gets the position relative to the Superblock, counted in mode info (4x4 pixels).
+    /// Gets the position relative to the superblock in 4x4 mode-information units.
     /// </summary>
     public Point PositionInSuperblock { get; }
 
+    /// <summary>
+    /// Gets or sets the filter-intra syntax for the block.
+    /// </summary>
     public Av1IntraFilterModeInfo FilterIntraModeInfo { get; internal set; }
 
     /// <summary>
-    /// Gets the index of the first <see cref="Av1TransformInfo"/> of this Mode Info in the <see cref="Av1FrameInfo"/>.
+    /// Gets the plane-relative index of the first <see cref="Av1TransformInfo"/> for this block.
     /// </summary>
     public int[] FirstTransformLocation { get; }
 
+    /// <summary>
+    /// Gets or sets the number of transform units for luma and for each chroma plane.
+    /// </summary>
     public int[] TransformUnitsCount { get; internal set; }
 
+    /// <summary>
+    /// Gets the palette size for the specified color plane.
+    /// </summary>
+    /// <param name="plane">The color plane.</param>
+    /// <returns>The palette size for the plane.</returns>
     public int GetPaletteSize(Av1Plane plane) => this.paletteSize[Math.Min(1, (int)plane)];
 
+    /// <summary>
+    /// Gets the palette size for the specified plane class.
+    /// </summary>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <returns>The palette size for the plane class.</returns>
     public int GetPaletteSize(Av1PlaneType planeType) => this.paletteSize[(int)planeType];
 
+    /// <summary>
+    /// Sets the luma and shared chroma palette sizes.
+    /// </summary>
+    /// <param name="ySize">The luma palette size.</param>
+    /// <param name="uvSize">The palette size shared by the chroma planes.</param>
     public void SetPaletteSizes(int ySize, int uvSize) => this.paletteSize = [ySize, uvSize];
 }

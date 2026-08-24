@@ -6,15 +6,39 @@ using System.Runtime.CompilerServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
+/// <summary>
+/// Stores left, top, and top-left neighbor values at the granularity required by AV1 encoder contexts.
+/// </summary>
+/// <typeparam name="T">The context value type, including its invalid sentinel value.</typeparam>
 internal class Av1NeighborArrayUnit<T>
     where T : struct, IMinMaxValue<T>
 {
+    /// <summary>
+    /// The sentinel used for neighbor positions that have not been populated.
+    /// </summary>
     public static readonly T InvalidNeighborData = T.MaxValue;
 
+    /// <summary>
+    /// Stores context units exposed to blocks on the right.
+    /// </summary>
     private readonly T[] left;
+
+    /// <summary>
+    /// Stores context units exposed to blocks below.
+    /// </summary>
     private readonly T[] top;
+
+    /// <summary>
+    /// Stores context units indexed by the diagonal difference between horizontal and vertical positions.
+    /// </summary>
     private readonly T[] topLeft;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1NeighborArrayUnit{T}"/> class.
+    /// </summary>
+    /// <param name="leftSize">The number of values in the left-neighbor storage.</param>
+    /// <param name="topSize">The number of values in the top-neighbor storage.</param>
+    /// <param name="topLeftSize">The number of values in the diagonal-neighbor storage.</param>
     public Av1NeighborArrayUnit(int leftSize, int topSize, int topLeftSize)
     {
         this.left = new T[leftSize];
@@ -22,33 +46,87 @@ internal class Av1NeighborArrayUnit<T>
         this.topLeft = new T[topLeftSize];
     }
 
+    /// <summary>
+    /// Selects which neighbor arrays receive an update.
+    /// </summary>
     [Flags]
     public enum UnitMask
     {
+        /// <summary>
+        /// Update the left-neighbor storage.
+        /// </summary>
         Left = 1,
+
+        /// <summary>
+        /// Update the top-neighbor storage.
+        /// </summary>
         Top = 2,
+
+        /// <summary>
+        /// Update the top-left diagonal storage.
+        /// </summary>
         TopLeft = 4,
     }
 
+    /// <summary>
+    /// Gets the left-neighbor storage.
+    /// </summary>
     public Span<T> Left => this.left;
 
+    /// <summary>
+    /// Gets the top-neighbor storage.
+    /// </summary>
     public Span<T> Top => this.top;
 
+    /// <summary>
+    /// Gets the top-left diagonal storage.
+    /// </summary>
     public Span<T> TopLeft => this.topLeft;
 
+    /// <summary>
+    /// Gets or sets the base-2 logarithm of the top and left context granularity in samples.
+    /// </summary>
     public required int GranularityNormalLog2 { get; set; }
 
+    /// <summary>
+    /// Gets or sets the base-2 logarithm of the diagonal context granularity in samples.
+    /// </summary>
     public required int GranularityTopLeftLog2 { get; set; }
 
+    /// <summary>
+    /// Gets the number of consecutive values stored for each neighbor-array unit.
+    /// </summary>
     public int UnitSize { get; private set; }
 
+    /// <summary>
+    /// Gets the left-neighbor unit index for a sample position.
+    /// </summary>
+    /// <param name="loc">The sample position.</param>
+    /// <returns>The left-neighbor unit index.</returns>
     public int GetLeftIndex(Point loc) => loc.Y >> this.GranularityNormalLog2;
 
+    /// <summary>
+    /// Gets the top-neighbor unit index for a sample position.
+    /// </summary>
+    /// <param name="loc">The sample position.</param>
+    /// <returns>The top-neighbor unit index.</returns>
     public int GetTopIndex(Point loc) => loc.X >> this.GranularityNormalLog2;
 
+    /// <summary>
+    /// Gets the diagonal-neighbor unit index for a sample position.
+    /// </summary>
+    /// <param name="loc">The sample position.</param>
+    /// <returns>The top-left neighbor index derived from the position's diagonal.</returns>
     public int GetTopLeftIndex(Point loc)
         => this.left.Length + (loc.X >> this.GranularityTopLeftLog2) - (loc.Y >> this.GranularityTopLeftLog2);
 
+    /// <summary>
+    /// Writes one context unit across the selected block edges.
+    /// </summary>
+    /// <param name="value">The values that make up one context unit.</param>
+    /// <param name="origin">The block origin in samples.</param>
+    /// <param name="blockSize">The block dimensions in samples.</param>
+    /// <param name="mask">The neighbor arrays to update.</param>
     public void UnitModeWrite(ReadOnlySpan<T> value, Point origin, Size blockSize, UnitMask mask)
     {
         int idx, j;
@@ -83,7 +161,7 @@ internal class Av1NeighborArrayUnit<T>
 
             for (idx = 0; idx < count; ++idx)
             {
-                /* svt_memcpy less that 10 bytes*/
+                // Unit sizes are deliberately tiny, so direct ref copies avoid slicing for every neighbor position.
                 for (j = 0; j < na_unit_size; ++j)
                 {
                     dst_ptr = value[j];
@@ -117,7 +195,7 @@ internal class Av1NeighborArrayUnit<T>
 
             for (idx = 0; idx < count; ++idx)
             {
-                /* svt_memcpy less that 10 bytes*/
+                // Unit sizes are deliberately tiny, so direct ref copies avoid slicing for every neighbor position.
                 for (j = 0; j < na_unit_size; ++j)
                 {
                     dst_ptr = value[j];
@@ -156,7 +234,7 @@ internal class Av1NeighborArrayUnit<T>
 
             for (idx = 0; idx < count; ++idx)
             {
-                /* svt_memcpy less that 10 bytes*/
+                // Unit sizes are deliberately tiny, so direct ref copies avoid slicing for every neighbor position.
                 for (j = 0; j < na_unit_size; ++j)
                 {
                     dst_ptr = value[j];
@@ -166,5 +244,13 @@ internal class Av1NeighborArrayUnit<T>
         }
     }
 
+    /// <summary>
+    /// Writes a DC-sign context across selected block edges.
+    /// </summary>
+    /// <param name="dcSignSpan">The encoded DC-sign context.</param>
+    /// <param name="blockOrigin">The block origin in samples.</param>
+    /// <param name="blockSize">The block dimensions in samples.</param>
+    /// <param name="unitMask">The neighbor arrays to update.</param>
+    /// <exception cref="NotImplementedException">The byte-specific write path is not implemented.</exception>
     internal void UnitModeWrite(Span<byte> dcSignSpan, Point blockOrigin, Size blockSize, Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask unitMask) => throw new NotImplementedException();
 }

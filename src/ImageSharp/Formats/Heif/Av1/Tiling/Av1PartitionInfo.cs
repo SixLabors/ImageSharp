@@ -120,16 +120,16 @@ internal class Av1PartitionInfo
         this.HeightInPixels[2] = Math.Max(1, bh4 >> subY) * modeInfoSize;
     }
 
-    public void PopulateModeInfoNeighbors(Av1FrameInfo frameInfo, ObuColorConfig colorConfig)
+    public void PopulateModeInfoNeighbors(ObuColorConfig colorConfig)
     {
         if (this.AvailableAbove)
         {
-            this.AboveModeInfo = frameInfo.GetModeInfoAt(new Point(this.ColumnIndex, this.RowIndex - 1));
+            this.AboveModeInfo = this.SuperblockInfo.GetModeInfoAt(new Point(this.ColumnIndex, this.RowIndex - 1));
         }
 
         if (this.AvailableLeft)
         {
-            this.LeftModeInfo = frameInfo.GetModeInfoAt(new Point(this.ColumnIndex - 1, this.RowIndex));
+            this.LeftModeInfo = this.SuperblockInfo.GetModeInfoAt(new Point(this.ColumnIndex - 1, this.RowIndex));
         }
 
         if (!this.IsChroma)
@@ -145,12 +145,12 @@ internal class Av1PartitionInfo
         // Chroma neighbors refer to the bottom-right luma mode covered by each adjacent chroma block.
         if (this.AvailableAboveForChroma)
         {
-            this.AboveModeInfoForChroma = frameInfo.GetModeInfoAt(new Point(chromaBaseColumn + subX, chromaBaseRow - 1));
+            this.AboveModeInfoForChroma = this.SuperblockInfo.GetModeInfoAt(new Point(chromaBaseColumn + subX, chromaBaseRow - 1));
         }
 
         if (this.AvailableLeftForChroma)
         {
-            this.LeftModeInfoForChroma = frameInfo.GetModeInfoAt(new Point(chromaBaseColumn - 1, chromaBaseRow + subY));
+            this.LeftModeInfoForChroma = this.SuperblockInfo.GetModeInfoAt(new Point(chromaBaseColumn - 1, chromaBaseRow + subY));
         }
     }
 

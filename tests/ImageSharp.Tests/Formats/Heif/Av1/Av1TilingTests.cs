@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -164,6 +165,75 @@ public class Av1TilingTests
         }
 
         Assert.True(parsedModeInfoCount > 16);
+    }
+
+    [Fact]
+    public void ParsedCoefficientsRemainAvailablePerSuperblockAndPlane()
+    {
+        string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Heif.XnConvert);
+        byte[] content = File.ReadAllBytes(filePath);
+        const int dataOffset = 0x010E;
+        const int dataSize = 0x03CC;
+        const int tileOffset = 18;
+        Span<byte> headerSpan = content.AsSpan(dataOffset, dataSize);
+        Span<byte> tileSpan = content.AsSpan(tileOffset, dataSize - tileOffset);
+        Av1BitStreamReader bitStreamReader = new(headerSpan);
+        IAv1TileReader stub = new Av1TileDecoderStub();
+        ObuReader obuReader = new();
+        obuReader.ReadAll(ref bitStreamReader, dataSize, () => stub);
+        Av1TileReader tileReader = new(Configuration.Default, obuReader.SequenceHeader, obuReader.FrameHeader);
+
+        tileReader.ReadTile(tileSpan, 0);
+
+        int codedTransformCount = 0;
+        int superblockSize = obuReader.SequenceHeader.SuperblockModeInfoSize;
+        for (int row = 0; row < obuReader.FrameHeader.ModeInfoRowCount; row += superblockSize)
+        {
+            for (int column = 0; column < obuReader.FrameHeader.ModeInfoColumnCount; column += superblockSize)
+            {
+                Point superblockPosition = new(column / superblockSize, row / superblockSize);
+                Av1SuperblockInfo superblockInfo = tileReader.FrameInfo.GetSuperblock(superblockPosition);
+                int[] coefficientIndices = new int[Av1Constants.MaxPlanes];
+
+                foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
+                {
+                    Point modeInfoPosition = new(column + modeInfo.PositionInSuperblock.X, row + modeInfo.PositionInSuperblock.Y);
+                    bool hasChroma = Av1TileReader.HasChroma(obuReader.SequenceHeader, modeInfoPosition, modeInfo.BlockSize);
+
+                    for (int plane = 0; plane < obuReader.SequenceHeader.ColorConfig.PlaneCount; plane++)
+                    {
+                        if (plane != 0 && !hasChroma)
+                        {
+                            continue;
+                        }
+
+                        int transformUnitCount = modeInfo.TransformUnitsCount[Math.Min(plane, 1)];
+                        int transformInfoIndex = modeInfo.FirstTransformLocation[Math.Min(plane, 1)];
+                        if (plane == (int)Av1Plane.V)
+                        {
+                            transformInfoIndex += transformUnitCount;
+                        }
+
+                        Span<Av1TransformInfo> transformInfos = superblockInfo.GetTransformInfo(plane)[transformInfoIndex..];
+                        Span<int> coefficients = superblockInfo.GetCoefficients((Av1Plane)plane);
+                        for (int i = 0; i < transformUnitCount; i++)
+                        {
+                            if (!transformInfos[i].CodeBlockFlag)
+                            {
+                                continue;
+                            }
+
+                            int endOfBlock = coefficients[coefficientIndices[plane]];
+                            Assert.InRange(endOfBlock, 1, transformInfos[i].Size.GetWidth() * transformInfos[i].Size.GetHeight());
+                            coefficientIndices[plane] += endOfBlock + 1;
+                            codedTransformCount++;
+                        }
+                    }
+                }
+            }
+        }
+
+        Assert.True(codedTransformCount > 3);
     }
 
     [Theory]

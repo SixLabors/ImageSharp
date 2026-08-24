@@ -60,12 +60,6 @@ internal partial class Av1FrameInfo
             {
                 Point point = new(x, y);
                 this.superblockInfos[i] = new(this, point);
-                for (int j = 0; j < this.modeInfoCountPerSuperblock; j++)
-                {
-                    this.transformInfosY[j] = new Av1TransformInfo();
-                    this.transformInfosUv[j] = new Av1TransformInfo();
-                }
-
                 i++;
             }
         }
@@ -76,9 +70,11 @@ internal partial class Av1FrameInfo
         // Factor: 444 => 0, 422 => 1, 420 => 2.
         this.subsamplingFactor = (subX && subY) ? 2 : (subX && !subY) ? 1 : (!subX && !subY) ? 0 : -1;
         Guard.IsFalse(this.subsamplingFactor == -1, nameof(this.subsamplingFactor), "Invalid combination of subsampling.");
-        this.coefficientsY = new int[superblockCount * this.modeInfoCountPerSuperblock * CoefficientCountPerModeInfo];
-        this.coefficientsU = new int[(this.modeInfoCountPerSuperblock * CoefficientCountPerModeInfo) >> this.subsamplingFactor];
-        this.coefficientsV = new int[(this.modeInfoCountPerSuperblock * CoefficientCountPerModeInfo) >> this.subsamplingFactor];
+        int lumaCoefficientCountPerSuperblock = this.modeInfoCountPerSuperblock * CoefficientCountPerModeInfo;
+        int chromaCoefficientCountPerSuperblock = lumaCoefficientCountPerSuperblock >> this.subsamplingFactor;
+        this.coefficientsY = new int[superblockCount * lumaCoefficientCountPerSuperblock];
+        this.coefficientsU = new int[superblockCount * chromaCoefficientCountPerSuperblock];
+        this.coefficientsV = new int[superblockCount * chromaCoefficientCountPerSuperblock];
         this.deltaQ = new int[superblockCount];
 
         // Superblock size: 128x128 has sizelog2 = 7, 64x64 = 6. Factor should be 128x128 => 4 and 64x64 => 1.
@@ -150,37 +146,31 @@ internal partial class Av1FrameInfo
     {
         Span<Av1TransformInfo> span = this.transformInfosUv;
         int offset = (((index.Y * this.superblockColumnCount) + index.X) * this.modeInfoCountPerSuperblock) << 1;
-        return span.Slice(offset, this.modeInfoCountPerSuperblock);
+        return span.Slice(offset, this.modeInfoCountPerSuperblock << 1);
     }
-
-    public Span<int> GetCoefficients(int plane) =>
-        plane switch
-        {
-            0 => (Span<int>)this.coefficientsY,
-            1 => (Span<int>)this.coefficientsY,
-            2 => (Span<int>)this.coefficientsY,
-            _ => null,
-        };
 
     public Span<int> GetCoefficientsY(Point index)
     {
         Span<int> span = this.coefficientsY;
-        int i = ((index.Y * this.modeInfoCountPerSuperblock) + index.X) * CoefficientCountPerModeInfo;
-        return span.Slice(i, CoefficientCountPerModeInfo);
+        int count = this.modeInfoCountPerSuperblock * CoefficientCountPerModeInfo;
+        int superblock = (index.Y * this.superblockColumnCount) + index.X;
+        return span.Slice(superblock * count, count);
     }
 
     public Span<int> GetCoefficientsU(Point index)
     {
         Span<int> span = this.coefficientsU;
-        int i = ((index.Y * this.modeInfoCountPerSuperblock) + index.X) * CoefficientCountPerModeInfo;
-        return span.Slice(i >> this.subsamplingFactor, CoefficientCountPerModeInfo);
+        int count = (this.modeInfoCountPerSuperblock * CoefficientCountPerModeInfo) >> this.subsamplingFactor;
+        int superblock = (index.Y * this.superblockColumnCount) + index.X;
+        return span.Slice(superblock * count, count);
     }
 
     public Span<int> GetCoefficientsV(Point index)
     {
         Span<int> span = this.coefficientsV;
-        int i = ((index.Y * this.modeInfoCountPerSuperblock) + index.X) * CoefficientCountPerModeInfo;
-        return span.Slice(i >> this.subsamplingFactor, CoefficientCountPerModeInfo);
+        int count = (this.modeInfoCountPerSuperblock * CoefficientCountPerModeInfo) >> this.subsamplingFactor;
+        int superblock = (index.Y * this.superblockColumnCount) + index.X;
+        return span.Slice(superblock * count, count);
     }
 
     public ref int GetDeltaQuantizationIndex(Point index)

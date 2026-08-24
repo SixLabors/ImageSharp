@@ -47,12 +47,16 @@ internal class Av1SuperblockInfo
 
     public Span<Av1TransformInfo> GetTransformInfoUv() => this.frameInfo.GetSuperblockTransformUv(this.Position);
 
+    public Span<Av1TransformInfo> GetTransformInfo(int plane) => this.frameInfo.GetSuperblockTransform(plane, this.Position);
+
     /// <summary>
     /// Gets the mode information records parsed for this superblock in bitstream order.
     /// </summary>
     public Span<Av1BlockModeInfo> GetModeInfos() => this.frameInfo.GetModeInfos(this.Position, this.BlockCount);
 
     public Av1BlockModeInfo GetModeInfo(Point index) => this.frameInfo.GetModeInfo(this.Position, index);
+
+    public Av1BlockModeInfo GetModeInfoAt(Point index) => this.frameInfo.GetModeInfoAt(index);
 
     public Span<int> GetCoefficients(Av1Plane plane) => plane switch
     {

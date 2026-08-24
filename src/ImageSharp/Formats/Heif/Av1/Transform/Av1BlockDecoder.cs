@@ -16,8 +16,6 @@ internal class Av1BlockDecoder
 
     private readonly ObuFrameHeader frameHeader;
 
-    private readonly Av1FrameInfo frameInfo;
-
     private readonly Av1FrameBuffer<byte> frameBuffer;
 
     private readonly bool isLoopFilterEnabled;
@@ -26,11 +24,10 @@ internal class Av1BlockDecoder
 
     private readonly Av1ChromaFromLumaContext chromaFromLumaContext;
 
-    public Av1BlockDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo, Av1FrameBuffer<byte> frameBuffer)
+    public Av1BlockDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameBuffer<byte> frameBuffer)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
-        this.frameInfo = frameInfo;
         this.frameBuffer = frameBuffer;
         int ySize = (1 << this.sequenceHeader.SuperblockSizeLog2) * (1 << this.sequenceHeader.SuperblockSizeLog2);
         int inverseQuantizationSize = ySize +
@@ -83,7 +80,7 @@ internal class Av1BlockDecoder
             }
         }
 
-        partitionInfo.PopulateModeInfoNeighbors(this.frameInfo, colorConfig);
+        partitionInfo.PopulateModeInfoNeighbors(colorConfig);
 
         int maxBlocksWide = partitionInfo.GetMaxBlockWide(blockSize, false);
         int maxBlocksHigh = partitionInfo.GetMaxBlockHigh(blockSize, false);
@@ -111,11 +108,11 @@ internal class Av1BlockDecoder
             int transformInfoIndex = plane switch
             {
                 2 => superblockInfo.TransformInfoIndexUv + modeInfo.FirstTransformLocation[plane - 1] + chromaTransformUnitCount,
-                1 => superblockInfo.TransformInfoIndexY + modeInfo.FirstTransformLocation[plane],
+                1 => superblockInfo.TransformInfoIndexUv + modeInfo.FirstTransformLocation[plane],
                 0 => superblockInfo.TransformInfoIndexY + modeInfo.FirstTransformLocation[plane],
                 _ => throw new InvalidImageContentException("Maximum of 3 color planes")
             };
-            Span<Av1TransformInfo> transformInfo = this.frameInfo.GetSuperblockTransform(plane, superblockInfo.Position)[transformInfoIndex..];
+            Span<Av1TransformInfo> transformInfo = superblockInfo.GetTransformInfo(plane)[transformInfoIndex..];
             Guard.NotNull(transformInfo[0]);
 
             if (isLosslessBlock)

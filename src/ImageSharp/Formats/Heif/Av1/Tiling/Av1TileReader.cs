@@ -125,6 +125,7 @@ internal class Av1TileReader : IAv1TileReader
                 this.FrameInfo.ClearCdef(superblockPosition);
                 this.firstTransformOffset[0] = 0;
                 this.firstTransformOffset[1] = 0;
+                this.coefficientIndex.AsSpan().Clear();
                 this.ReadLoopRestoration(modeInfoPosition, superBlockSize);
                 this.ParsePartition(ref reader, modeInfoPosition, superBlockSize, superblockInfo, tileInfo);
 
@@ -315,7 +316,7 @@ internal class Av1TileReader : IAv1TileReader
             }
         }
 
-        partitionInfo.PopulateModeInfoNeighbors(this.FrameInfo, this.SequenceHeader.ColorConfig);
+        partitionInfo.PopulateModeInfoNeighbors(this.SequenceHeader.ColorConfig);
 
         this.ReadModeInfo(ref reader, partitionInfo);
         ReadPaletteTokens(ref reader, partitionInfo);
@@ -438,7 +439,8 @@ internal class Av1TileReader : IAv1TileReader
 
                         if (!partitionInfo.ModeInfo.Skip)
                         {
-                            endOfBlock = this.ParseTransformBlock(ref reader, partitionInfo, coefficientIndex, transformInfo, plane, blockColumn, blockRow, startX, startY, transformInfo.Size, subX != 0, subY != 0);
+                            Span<int> coefficientBuffer = superblockInfo.GetCoefficients((Av1Plane)plane)[coefficientIndex..];
+                            endOfBlock = this.ParseTransformBlock(ref reader, partitionInfo, coefficientBuffer, transformInfo, plane, blockColumn, blockRow, startX, startY, transformInfo.Size, subX != 0, subY != 0);
                         }
 
                         if (endOfBlock != 0)
@@ -480,7 +482,7 @@ internal class Av1TileReader : IAv1TileReader
     private int ParseTransformBlock(
         ref Av1SymbolDecoder reader,
         Av1PartitionInfo partitionInfo,
-        int coefficientIndex,
+        Span<int> coefficientBuffer,
         Av1TransformInfo transformInfo,
         int plane,
         int blockColumn,
@@ -509,7 +511,7 @@ internal class Av1TileReader : IAv1TileReader
         }
 
         Av1TransformBlockContext transformBlockContext = this.GetTransformBlockContext(transformSize, plane, planeBlockSize, transformBlockUnitHighCount, transformBlockUnitWideCount, startY, startX);
-        endOfBlock = this.ParseCoefficients(ref reader, partitionInfo, startY, startX, blockRow, blockColumn, plane, transformBlockContext, transformSize, coefficientIndex, transformInfo);
+        endOfBlock = this.ParseCoefficients(ref reader, partitionInfo, startY, startX, blockRow, blockColumn, plane, transformBlockContext, transformSize, transformInfo, coefficientBuffer);
 
         return endOfBlock;
     }
@@ -520,9 +522,8 @@ internal class Av1TileReader : IAv1TileReader
     /// <remarks>
     /// The implementation is taken from SVT-AV1 library, which deviates from the code flow in the specification.
     /// </remarks>
-    private int ParseCoefficients(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, int blockRow, int blockColumn, int aboveOffset, int leftOffset, int plane, Av1TransformBlockContext transformBlockContext, Av1TransformSize transformSize, int coefficientIndex, Av1TransformInfo transformInfo)
+    private int ParseCoefficients(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, int blockRow, int blockColumn, int aboveOffset, int leftOffset, int plane, Av1TransformBlockContext transformBlockContext, Av1TransformSize transformSize, Av1TransformInfo transformInfo, Span<int> coefficientBuffer)
     {
-        Span<int> coefficientBuffer = this.FrameInfo.GetCoefficients(plane);
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
         Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
@@ -895,7 +896,8 @@ internal class Av1TileReader : IAv1TileReader
             ref Av1TransformInfo infoV = ref chromaTransformInfo[transformInfoUvIndex];
             for (int i = 0; i < totalChromaTransformUnitCount; i++)
             {
-                infoV = originalInfo;
+                // U and V share transform geometry, but their entropy state and coefficients remain independent.
+                infoV = new Av1TransformInfo(originalInfo);
                 originalInfo = ref Unsafe.Add(ref originalInfo, 1);
                 infoV = ref Unsafe.Add(ref infoV, 1);
             }

@@ -3,6 +3,13 @@
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
+/// <summary>
+/// Provides packed AV1 top-right and bottom-left reference-availability tables for blocks within a superblock.
+/// </summary>
+/// <remarks>
+/// Each bit describes whether a reference edge has already been reconstructed for one block in the AV1 partition traversal order.
+/// Separate tables preserve the alternate visit order used by mixed vertical partitions.
+/// </remarks>
 internal class Av1BottomRightTopLeftConstants
 {
     // Tables to store if the top-right reference pixels are available. The flags
@@ -14,6 +21,10 @@ internal class Av1BottomRightTopLeftConstants
     //       . . . .
     //       . . o .
     //       . . . .
+
+    /// <summary>
+    /// Packed top-right availability bits for 4-by-4 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight4x4 = [
         255, 255, 255, 255, 85,  85,  85,  85,  119, 119, 119, 119, 85,  85,  85,  85,  127, 127, 127, 127, 85,  85,
         85,  85,  119, 119, 119, 119, 85,  85,  85,  85,  255, 127, 255, 127, 85,  85,  85,  85,  119, 119, 119, 119,
@@ -23,23 +34,35 @@ internal class Av1BottomRightTopLeftConstants
         85,  85,  127, 127, 127, 127, 85,  85,  85,  85,  119, 119, 119, 119, 85,  85,  85,  85,
     ];
 
+    /// <summary>
+    /// Packed top-right availability bits for 4-by-8 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight4x8 = [
         255, 255, 255, 255, 119, 119, 119, 119, 127, 127, 127, 127, 119, 119, 119, 119, 255, 127, 255, 127, 119, 119,
         119, 119, 127, 127, 127, 127, 119, 119, 119, 119, 255, 255, 255, 127, 119, 119, 119, 119, 127, 127, 127, 127,
         119, 119, 119, 119, 255, 127, 255, 127, 119, 119, 119, 119, 127, 127, 127, 127, 119, 119, 119, 119,
     ];
 
+    /// <summary>
+    /// Packed top-right availability bits for 8-by-4 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight8x4 = [
         255, 255, 0,   0,   85,  85,  0,  0,  119, 119, 0,   0,   85,  85,  0,  0,  127, 127, 0,   0,   85, 85,
         0,   0,   119, 119, 0,   0,   85, 85, 0,   0,   255, 127, 0,   0,   85, 85, 0,   0,   119, 119, 0,  0,
         85,  85,  0,   0,   127, 127, 0,  0,  85,  85,  0,   0,   119, 119, 0,  0,  85,  85,  0,   0,
     ];
 
+    /// <summary>
+    /// Packed top-right availability bits for 8-by-8 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight8x8 = [
         255, 255, 85, 85, 119, 119, 85, 85, 127, 127, 85, 85, 119, 119, 85, 85,
         255, 127, 85, 85, 119, 119, 85, 85, 127, 127, 85, 85, 119, 119, 85, 85,
     ];
 
+    /// <summary>
+    /// Packed top-right availability bits for 8-by-16 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight8x16 = [
         255,
         255,
@@ -59,6 +82,9 @@ internal class Av1BottomRightTopLeftConstants
         119,
     ];
 
+    /// <summary>
+    /// Packed top-right availability bits for 16-by-8 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight16x8 = [
         255,
         0,
@@ -78,6 +104,9 @@ internal class Av1BottomRightTopLeftConstants
         0,
     ];
 
+    /// <summary>
+    /// Packed top-right availability bits for 16-by-16 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight16x16 = [
         255,
         85,
@@ -89,24 +118,69 @@ internal class Av1BottomRightTopLeftConstants
         85,
     ];
 
+    /// <summary>
+    /// Packed top-right availability bits for 16-by-32 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight16x32 = [255, 119, 127, 119];
+
+    /// <summary>
+    /// Packed top-right availability bits for 32-by-16 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight32x16 = [15, 5, 7, 5];
+
+    /// <summary>
+    /// Packed top-right availability bits for 32-by-32 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight32x32 = [95, 87];
+
+    /// <summary>
+    /// Packed top-right availability bits for 32-by-64 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight32x64 = [127];
+
+    /// <summary>
+    /// Packed top-right availability bits for 64-by-32 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight64x32 = [19];
+
+    /// <summary>
+    /// Packed top-right availability bits for 64-by-64 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight64x64 = [7];
+
+    /// <summary>
+    /// Packed top-right availability bits for 64-by-128 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight64x128 = [3];
+
+    /// <summary>
+    /// Packed top-right availability bits for 128-by-64 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight128x64 = [1];
+
+    /// <summary>
+    /// Packed top-right availability bits for 128-by-128 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight128x128 = [1];
+
+    /// <summary>
+    /// Packed top-right availability bits for 4-by-16 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight4x16 = [
         255, 255, 255, 255, 127, 127, 127, 127, 255, 127, 255, 127, 127, 127, 127, 127,
         255, 255, 255, 127, 127, 127, 127, 127, 255, 127, 255, 127, 127, 127, 127, 127,
     ];
 
+    /// <summary>
+    /// Packed top-right availability bits for 16-by-4 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight16x4 = [
         255, 0, 0, 0, 85, 0, 0, 0, 119, 0, 0, 0, 85, 0, 0, 0, 127, 0, 0, 0, 85, 0, 0, 0, 119, 0, 0, 0, 85, 0, 0, 0,
     ];
 
+    /// <summary>
+    /// Packed top-right availability bits for 8-by-32 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight8x32 = [
         255,
         255,
@@ -118,6 +192,9 @@ internal class Av1BottomRightTopLeftConstants
         127,
     ];
 
+    /// <summary>
+    /// Packed top-right availability bits for 32-by-8 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight32x8 = [
         15,
         0,
@@ -129,9 +206,19 @@ internal class Av1BottomRightTopLeftConstants
         0,
     ];
 
+    /// <summary>
+    /// Packed top-right availability bits for 16-by-64 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight16x64 = [255, 127];
+
+    /// <summary>
+    /// Packed top-right availability bits for 64-by-16 blocks.
+    /// </summary>
     private static readonly byte[] HasTopRight64x16 = [3, 1];
 
+    /// <summary>
+    /// Maps each supported AV1 block-size value to its standard top-right availability table.
+    /// </summary>
     private static readonly byte[][] HasTopRightTables = [
 
         // 4X4
@@ -173,11 +260,17 @@ internal class Av1BottomRightTopLeftConstants
         HasTopRight64x16
     ];
 
+    /// <summary>
+    /// Packed top-right availability bits for 8-by-8 blocks visited by a mixed vertical partition.
+    /// </summary>
     private static readonly byte[] HasTopRightVertical8x8 = [
         255, 255, 0, 0, 119, 119, 0, 0, 127, 127, 0, 0, 119, 119, 0, 0,
         255, 127, 0, 0, 119, 119, 0, 0, 127, 127, 0, 0, 119, 119, 0, 0,
     ];
 
+    /// <summary>
+    /// Packed top-right availability bits for 16-by-16 blocks visited by a mixed vertical partition.
+    /// </summary>
     private static readonly byte[] HasTopRightVertical16x16 = [
         255,
         0,
@@ -189,7 +282,14 @@ internal class Av1BottomRightTopLeftConstants
         0,
     ];
 
+    /// <summary>
+    /// Packed top-right availability bits for 32-by-32 blocks visited by a mixed vertical partition.
+    /// </summary>
     private static readonly byte[] HasTopRightVertical32x32 = [15, 7];
+
+    /// <summary>
+    /// Packed top-right availability bits for 64-by-64 blocks visited by a mixed vertical partition.
+    /// </summary>
     private static readonly byte[] HasTopRightVertical64x64 = [3];
 
     // The _vert_* tables are like the ordinary tables above, but describe the
@@ -201,6 +301,13 @@ internal class Av1BottomRightTopLeftConstants
     //
     // There are tables for each of the square sizes. Vertical rectangles (like
     // BLOCK_16X32) use their respective "non-vert" table
+
+    /// <summary>
+    /// Maps supported block-size values to top-right availability tables for mixed vertical partition traversal.
+    /// </summary>
+    /// <remarks>
+    /// Null entries identify block sizes that cannot use this traversal table; vertical rectangles reuse their standard tables.
+    /// </remarks>
     private static readonly byte[]?[] HasTopRightVerticalTables = [
 
         // 4X4
@@ -234,6 +341,10 @@ internal class Av1BottomRightTopLeftConstants
 
     // Similar to the has_tr_* tables, but store if the bottom-left reference
     // pixels are available.
+
+    /// <summary>
+    /// Packed bottom-left availability bits for 4-by-4 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft4x4 = [
         84, 85, 85, 85, 16, 17, 17, 17, 84, 85, 85, 85, 0,  1,  1,  1,  84, 85, 85, 85, 16, 17, 17, 17, 84, 85,
         85, 85, 0,  0,  1,  0,  84, 85, 85, 85, 16, 17, 17, 17, 84, 85, 85, 85, 0,  1,  1,  1,  84, 85, 85, 85,
@@ -242,22 +353,34 @@ internal class Av1BottomRightTopLeftConstants
         84, 85, 85, 85, 0,  1,  1,  1,  84, 85, 85, 85, 16, 17, 17, 17, 84, 85, 85, 85, 0,  0,  0,  0,
     ];
 
+    /// <summary>
+    /// Packed bottom-left availability bits for 4-by-8 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft4x8 = [
         16, 17, 17, 17, 0, 1, 1, 1, 16, 17, 17, 17, 0, 0, 1, 0, 16, 17, 17, 17, 0, 1, 1, 1, 16, 17, 17, 17, 0, 0, 0, 0,
         16, 17, 17, 17, 0, 1, 1, 1, 16, 17, 17, 17, 0, 0, 1, 0, 16, 17, 17, 17, 0, 1, 1, 1, 16, 17, 17, 17, 0, 0, 0, 0,
     ];
 
+    /// <summary>
+    /// Packed bottom-left availability bits for 8-by-4 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft8x4 = [
         254, 255, 84,  85,  254, 255, 16,  17,  254, 255, 84,  85,  254, 255, 0,   1,   254, 255, 84,  85,  254, 255,
         16,  17,  254, 255, 84,  85,  254, 255, 0,   0,   254, 255, 84,  85,  254, 255, 16,  17,  254, 255, 84,  85,
         254, 255, 0,   1,   254, 255, 84,  85,  254, 255, 16,  17,  254, 255, 84,  85,  254, 255, 0,   0,
     ];
 
+    /// <summary>
+    /// Packed bottom-left availability bits for 8-by-8 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft8x8 = [
         84, 85, 16, 17, 84, 85, 0, 1, 84, 85, 16, 17, 84, 85, 0, 0,
         84, 85, 16, 17, 84, 85, 0, 1, 84, 85, 16, 17, 84, 85, 0, 0,
     ];
 
+    /// <summary>
+    /// Packed bottom-left availability bits for 8-by-16 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft8x16 = [
         16,
         17,
@@ -277,6 +400,9 @@ internal class Av1BottomRightTopLeftConstants
         0,
     ];
 
+    /// <summary>
+    /// Packed bottom-left availability bits for 16-by-8 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft16x8 = [
         254,
         84,
@@ -296,6 +422,9 @@ internal class Av1BottomRightTopLeftConstants
         0,
     ];
 
+    /// <summary>
+    /// Packed bottom-left availability bits for 16-by-16 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft16x16 = [
         84,
         16,
@@ -307,24 +436,69 @@ internal class Av1BottomRightTopLeftConstants
         0,
     ];
 
+    /// <summary>
+    /// Packed bottom-left availability bits for 16-by-32 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft16x32 = [16, 0, 16, 0];
+
+    /// <summary>
+    /// Packed bottom-left availability bits for 32-by-16 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft32x16 = [78, 14, 78, 14];
+
+    /// <summary>
+    /// Packed bottom-left availability bits for 32-by-32 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft32x32 = [4, 4];
+
+    /// <summary>
+    /// Packed bottom-left availability bits for 32-by-64 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft32x64 = [0];
+
+    /// <summary>
+    /// Packed bottom-left availability bits for 64-by-32 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft64x32 = [34];
+
+    /// <summary>
+    /// Packed bottom-left availability bits for 64-by-64 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft64x64 = [0];
+
+    /// <summary>
+    /// Packed bottom-left availability bits for 64-by-128 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft64x128 = [0];
+
+    /// <summary>
+    /// Packed bottom-left availability bits for 128-by-64 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft128x64 = [0];
+
+    /// <summary>
+    /// Packed bottom-left availability bits for 128-by-128 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft128x128 = [0];
+
+    /// <summary>
+    /// Packed bottom-left availability bits for 4-by-16 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft4x16 = [
         0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1, 0, 0, 1, 0, 0, 1, 1, 1, 0, 0, 0, 0,
     ];
 
+    /// <summary>
+    /// Packed bottom-left availability bits for 16-by-4 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft16x4 = [
         254, 254, 254, 84, 254, 254, 254, 16, 254, 254, 254, 84, 254, 254, 254, 0,
         254, 254, 254, 84, 254, 254, 254, 16, 254, 254, 254, 84, 254, 254, 254, 0,
     ];
 
+    /// <summary>
+    /// Packed bottom-left availability bits for 8-by-32 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft8x32 = [
         0,
         1,
@@ -336,6 +510,9 @@ internal class Av1BottomRightTopLeftConstants
         0,
     ];
 
+    /// <summary>
+    /// Packed bottom-left availability bits for 32-by-8 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft32x8 = [
         238,
         78,
@@ -347,9 +524,19 @@ internal class Av1BottomRightTopLeftConstants
         14,
     ];
 
+    /// <summary>
+    /// Packed bottom-left availability bits for 16-by-64 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft16x64 = [0, 0];
+
+    /// <summary>
+    /// Packed bottom-left availability bits for 64-by-16 blocks.
+    /// </summary>
     private static readonly byte[] HasBottomLeft64x16 = [42, 42];
 
+    /// <summary>
+    /// Maps each supported AV1 block-size value to its standard bottom-left availability table.
+    /// </summary>
     private static readonly byte[][] HasBottomLeftTables = [
 
         // 4X4
@@ -391,11 +578,17 @@ internal class Av1BottomRightTopLeftConstants
         HasBottomLeft64x16
     ];
 
+    /// <summary>
+    /// Packed bottom-left availability bits for 8-by-8 blocks visited by a mixed vertical partition.
+    /// </summary>
     private static readonly byte[] HasBottomLeftVertical8x8 = [
         254, 255, 16, 17, 254, 255, 0, 1, 254, 255, 16, 17, 254, 255, 0, 0,
         254, 255, 16, 17, 254, 255, 0, 1, 254, 255, 16, 17, 254, 255, 0, 0,
     ];
 
+    /// <summary>
+    /// Packed bottom-left availability bits for 16-by-16 blocks visited by a mixed vertical partition.
+    /// </summary>
     private static readonly byte[] HasBottomLeftVertical16x16 = [
         254,
         16,
@@ -407,7 +600,14 @@ internal class Av1BottomRightTopLeftConstants
         0,
     ];
 
+    /// <summary>
+    /// Packed bottom-left availability bits for 32-by-32 blocks visited by a mixed vertical partition.
+    /// </summary>
     private static readonly byte[] HasBottomLeftVertical32x32 = [14, 14];
+
+    /// <summary>
+    /// Packed bottom-left availability bits for 64-by-64 blocks visited by a mixed vertical partition.
+    /// </summary>
     private static readonly byte[] HasBottomLeftVertical64x64 = [2];
 
     // The _vert_* tables are like the ordinary tables above, but describe the
@@ -419,6 +619,13 @@ internal class Av1BottomRightTopLeftConstants
     //
     // There are tables for each of the square sizes. Vertical rectangles (like
     // BLOCK_16X32) use their respective "non-vert" table
+
+    /// <summary>
+    /// Maps supported block-size values to bottom-left availability tables for mixed vertical partition traversal.
+    /// </summary>
+    /// <remarks>
+    /// Null entries identify block sizes that cannot use this traversal table; vertical rectangles reuse their standard tables.
+    /// </remarks>
     private static readonly byte[]?[] HasBottomLeftVerticalTables = [
 
         // 4X4
@@ -449,22 +656,46 @@ internal class Av1BottomRightTopLeftConstants
         null,
         HasBottomLeft128x128];
 
+    /// <summary>
+    /// Determines whether the top-right reference samples are available for a block at the specified traversal index.
+    /// </summary>
+    /// <param name="partitionType">The partition type that determines the block traversal order.</param>
+    /// <param name="blockSize">The size of each block represented by the selected availability table.</param>
+    /// <param name="blockIndex">The block's index in partition traversal order.</param>
+    /// <returns><see langword="true"/> when the block may use its top-right reference samples; otherwise, <see langword="false"/>.</returns>
     public static bool HasTopRight(Av1PartitionType partitionType, Av1BlockSize blockSize, int blockIndex)
     {
+        // Eight block flags share each byte; the quotient selects the byte and the
+        // remainder selects the bit within that byte.
         int index1 = blockIndex / 8;
         int index2 = blockIndex % 8;
-        Span<byte> hasBottomLeftTable = GetHasTopRightTable(partitionType, blockSize);
-        return ((hasBottomLeftTable[index1] >> index2) & 1) > 0;
+        Span<byte> hasTopRightTable = GetHasTopRightTable(partitionType, blockSize);
+        return ((hasTopRightTable[index1] >> index2) & 1) > 0;
     }
 
+    /// <summary>
+    /// Determines whether the bottom-left reference samples are available for a block at the specified traversal index.
+    /// </summary>
+    /// <param name="partitionType">The partition type that determines the block traversal order.</param>
+    /// <param name="blockSize">The size of each block represented by the selected availability table.</param>
+    /// <param name="blockIndex">The block's index in partition traversal order.</param>
+    /// <returns><see langword="true"/> when the block may use its bottom-left reference samples; otherwise, <see langword="false"/>.</returns>
     public static bool HasBottomLeft(Av1PartitionType partitionType, Av1BlockSize blockSize, int blockIndex)
     {
+        // Eight block flags share each byte; the quotient selects the byte and the
+        // remainder selects the bit within that byte.
         int index1 = blockIndex / 8;
         int index2 = blockIndex % 8;
         Span<byte> hasBottomLeftTable = GetHasBottomLeftTable(partitionType, blockSize);
         return ((hasBottomLeftTable[index1] >> index2) & 1) > 0;
     }
 
+    /// <summary>
+    /// Selects the top-right availability table for a block size and partition traversal order.
+    /// </summary>
+    /// <param name="partition">The partition type that determines the block traversal order.</param>
+    /// <param name="blockSize">The block size whose availability table is selected.</param>
+    /// <returns>The packed top-right availability table.</returns>
     private static Span<byte> GetHasTopRightTable(Av1PartitionType partition, Av1BlockSize blockSize)
     {
         byte[]? ret;
@@ -484,6 +715,12 @@ internal class Av1BottomRightTopLeftConstants
         return ret;
     }
 
+    /// <summary>
+    /// Selects the bottom-left availability table for a block size and partition traversal order.
+    /// </summary>
+    /// <param name="partition">The partition type that determines the block traversal order.</param>
+    /// <param name="blockSize">The block size whose availability table is selected.</param>
+    /// <returns>The packed bottom-left availability table.</returns>
     private static Span<byte> GetHasBottomLeftTable(Av1PartitionType partition, Av1BlockSize blockSize)
     {
         byte[]? ret;

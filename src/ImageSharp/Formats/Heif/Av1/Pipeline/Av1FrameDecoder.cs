@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.SuperResolution;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -86,8 +87,7 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
             this.DecodeFrameTiles(column);
         }
 
-        bool doLoopRestoration = false;
-        bool doUpscale = this.frameHeader.FrameSize.FrameWidth != this.frameHeader.FrameSize.SuperResolutionUpscaledWidth;
+        bool doLoopRestoration = this.frameHeader.LoopRestorationParameters.UsesLoopRestoration;
 
         Av1LoopFilterDecoder loopFilterDecoder = new(
             this.sequenceHeader,
@@ -98,9 +98,13 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
 
         loopFilterDecoder.DecodeFrame();
 
-        if (doLoopRestoration)
+        using Av1LoopRestorationBoundary? restorationBoundary = doLoopRestoration
+            ? new(this.sequenceHeader, this.frameHeader, this.frameBuffer)
+            : null;
+
+        if (restorationBoundary is not null)
         {
-            // LoopRestorationSaveBoundaryLines(false);
+            restorationBoundary.SaveDeblockedRows();
         }
 
         Av1CdefDecoder cdefDecoder = new(this.sequenceHeader, this.frameHeader, this.frameInfo, this.frameBuffer);
@@ -109,13 +113,21 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
         Av1SuperResolutionDecoder superResolutionDecoder = new(this.sequenceHeader, this.frameHeader, this.frameBuffer);
         superResolutionDecoder.DecodeFrame();
 
-        if (doLoopRestoration && doUpscale)
+        if (restorationBoundary is not null)
         {
-            // LoopRestorationSaveBoundaryLines(true);
+            restorationBoundary.SaveFrameEdgeRows();
+            Av1LoopRestorationDecoder loopRestorationDecoder = new(
+                this.sequenceHeader,
+                this.frameHeader,
+                this.frameInfo,
+                this.frameBuffer,
+                restorationBoundary);
+
+            loopRestorationDecoder.DecodeFrame();
         }
 
-        // DecodeLoopRestoration(doLoopRestoration);
-        // PadPicture();
+        // A still-image decode ends at the visible restored samples. Extending reference-frame
+        // borders is sequence playback state and is deliberately outside this decoder's scope.
     }
 
     /// <summary>

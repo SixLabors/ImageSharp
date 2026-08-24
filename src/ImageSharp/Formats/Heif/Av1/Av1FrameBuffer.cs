@@ -59,6 +59,7 @@ internal class Av1FrameBuffer<T> : IDisposable
     /// <param name="is16BitPipeline">Indicates whether reconstruction uses native 16-bit sample storage.</param>
     public Av1FrameBuffer(Configuration configuration, ObuSequenceHeader sequenceHeader, Av1ColorFormat maxColorFormat, bool is16BitPipeline)
     {
+        this.MemoryAllocator = configuration.MemoryAllocator;
         Av1ColorFormat colorFormat = sequenceHeader.ColorConfig.IsMonochrome ? Av1ColorFormat.Yuv400 : maxColorFormat;
         this.MaxWidth = sequenceHeader.MaxFrameWidth;
         this.MaxHeight = sequenceHeader.MaxFrameHeight;
@@ -197,6 +198,11 @@ internal class Av1FrameBuffer<T> : IDisposable
     /// Gets a value indicating whether reconstruction uses native 16-bit samples.
     /// </summary>
     public bool Is16BitPipeline { get; }
+
+    /// <summary>
+    /// Gets the allocator used for frame-owned and frame-scoped working buffers.
+    /// </summary>
+    public MemoryAllocator MemoryAllocator { get; }
 
     /// <summary>
     /// Releases the owned luma and chroma plane allocations.

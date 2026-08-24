@@ -116,6 +116,11 @@ internal partial class Av1FrameInfo
     private readonly int[] loopRestorationUnitColumns = new int[Av1Constants.MaxPlanes];
 
     /// <summary>
+    /// The number of loop-restoration unit rows allocated for each color plane.
+    /// </summary>
+    private readonly int[] loopRestorationUnitRows = new int[Av1Constants.MaxPlanes];
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1FrameInfo"/> class.
     /// </summary>
     /// <param name="sequenceHeader">The sequence header defining maximum dimensions, superblock size, and color sampling.</param>
@@ -216,6 +221,7 @@ internal partial class Av1FrameInfo
             }
 
             this.loopRestorationUnitColumns[planeIndex] = columnCount;
+            this.loopRestorationUnitRows[planeIndex] = rowCount;
             this.loopRestorationUnits[planeIndex] = units;
         }
     }
@@ -406,6 +412,13 @@ internal partial class Av1FrameInfo
     /// <param name="plane">The zero-based color-plane index.</param>
     /// <returns>The number of restoration-unit columns.</returns>
     public int GetLoopRestorationUnitColumnCount(int plane) => this.loopRestorationUnitColumns[plane];
+
+    /// <summary>
+    /// Gets the number of loop-restoration unit rows allocated for a color plane.
+    /// </summary>
+    /// <param name="plane">The zero-based color-plane index.</param>
+    /// <returns>The number of restoration-unit rows.</returns>
+    public int GetLoopRestorationUnitRowCount(int plane) => this.loopRestorationUnitRows[plane];
 
     /// <summary>
     /// Gets the loop-restoration unit at a plane-relative grid position.

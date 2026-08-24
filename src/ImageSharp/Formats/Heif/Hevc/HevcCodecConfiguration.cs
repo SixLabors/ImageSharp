@@ -199,6 +199,23 @@ internal sealed class HevcCodecConfiguration
         }
 
         this.SequenceParameterSets = sequenceParameterSets;
+
+        List<HevcPictureParameterSet> pictureParameterSets = new();
+        foreach (HevcNalUnitArray nalUnitArray in this.nalUnitArrays)
+        {
+            const byte pictureParameterSetNalUnitType = 34;
+            if (nalUnitArray.NalUnitType != pictureParameterSetNalUnitType)
+            {
+                continue;
+            }
+
+            foreach (HevcNalUnit nalUnit in nalUnitArray.NalUnits)
+            {
+                pictureParameterSets.Add(new HevcPictureParameterSet(nalUnit, sequenceParameterSets));
+            }
+        }
+
+        this.PictureParameterSets = pictureParameterSets;
     }
 
     /// <summary>
@@ -276,6 +293,11 @@ internal sealed class HevcCodecConfiguration
     /// Gets the validated sequence parameter sets carried by the codec-configuration property.
     /// </summary>
     public IReadOnlyList<HevcSequenceParameterSet> SequenceParameterSets { get; }
+
+    /// <summary>
+    /// Gets the validated picture parameter sets carried by the codec-configuration property.
+    /// </summary>
+    public IReadOnlyList<HevcPictureParameterSet> PictureParameterSets { get; }
 
     /// <summary>
     /// Validates the associated pixel-information property against the coded luma and chroma sample precisions.

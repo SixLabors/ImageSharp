@@ -21,6 +21,16 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 {
     private static readonly object UnknownProperty = new();
 
+    private static readonly Heif4CharCode[] MetadataParseOrder =
+    [
+        Heif4CharCode.Hdlr,
+        Heif4CharCode.Iinf,
+        Heif4CharCode.Pitm,
+        Heif4CharCode.Iref,
+        Heif4CharCode.Iloc,
+        Heif4CharCode.Iprp
+    ];
+
     /// <summary>
     /// The general configuration.
     /// </summary>
@@ -295,45 +305,61 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
     private void ParseMetadata(BufferedReadStream stream, long boxLength)
     {
+        if (boxLength < 4)
+        {
+            throw new InvalidImageContentException("The metadata box is missing its version and flags.");
+        }
+
         long endPosition = stream.Position + boxLength;
         stream.Skip(4);
+        Dictionary<Heif4CharCode, (long Offset, long Length)> boxes = [];
         while (stream.Position < endPosition)
         {
             long length = this.ReadBoxHeader(stream, endPosition, out Heif4CharCode boxType);
+            if (Array.IndexOf(MetadataParseOrder, boxType) >= 0)
+            {
+                // Association and location boxes can precede the item declarations they reference.
+                if (!boxes.TryAdd(boxType, (stream.Position, length)))
+                {
+                    throw new InvalidImageContentException($"The metadata box contains duplicate '{PrettyPrint(boxType)}' boxes.");
+                }
+            }
+
+            SkipBox(stream, length);
+        }
+
+        foreach (Heif4CharCode boxType in MetadataParseOrder)
+        {
+            if (!boxes.TryGetValue(boxType, out (long Offset, long Length) box))
+            {
+                continue;
+            }
+
+            stream.Position = box.Offset;
             switch (boxType)
             {
-                case Heif4CharCode.Iprp:
-                    this.ParseItemProperties(stream, length);
+                case Heif4CharCode.Hdlr:
+                    this.ParseHandler(stream, box.Length);
                     break;
                 case Heif4CharCode.Iinf:
-                    this.ParseItemInfo(stream, length);
-                    break;
-                case Heif4CharCode.Iref:
-                    this.ParseItemReference(stream, length);
+                    this.ParseItemInfo(stream, box.Length);
                     break;
                 case Heif4CharCode.Pitm:
-                    this.ParsePrimaryItem(stream, length);
+                    this.ParsePrimaryItem(stream, box.Length);
                     break;
-                case Heif4CharCode.Hdlr:
-                    this.ParseHandler(stream, length);
+                case Heif4CharCode.Iref:
+                    this.ParseItemReference(stream, box.Length);
                     break;
                 case Heif4CharCode.Iloc:
-                    this.ParseItemLocation(stream, length);
+                    this.ParseItemLocation(stream, box.Length);
                     break;
-                case Heif4CharCode.Dinf:
-                case Heif4CharCode.Idat:
-                case Heif4CharCode.Grpl:
-                case Heif4CharCode.Ipro:
-                case Heif4CharCode.Uuid:
-                case Heif4CharCode.Ipmc:
-                    // Silently skip these boxes.
-                    SkipBox(stream, length);
-                    break;
-                default:
-                    SkipBox(stream, length);
+                case Heif4CharCode.Iprp:
+                    this.ParseItemProperties(stream, box.Length);
                     break;
             }
         }
+
+        stream.Position = endPosition;
     }
 
     private void ParseHandler(BufferedReadStream stream, long boxLength)

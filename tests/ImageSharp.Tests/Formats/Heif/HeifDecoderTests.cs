@@ -288,6 +288,52 @@ public class HeifDecoderTests
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
     }
 
+    [Fact]
+    public void IdentifyAcceptsItemPropertiesBeforeItemInfo()
+    {
+        byte[] data = CreateEncodedContainer();
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
+        int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
+        int iprpOffset = FindBoxOffset(data, Heif4CharCode.Iprp, metaOffset + 12, metaSize - 12);
+        int iprpSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(iprpOffset));
+        data = MoveBoxBefore(data, iprpOffset, iprpSize, iinfOffset);
+
+        ImageInfo imageInfo = Image.Identify(data);
+
+        Assert.Equal(new Size(2, 3), imageInfo.Size);
+    }
+
+    [Fact]
+    public void IdentifyAcceptsItemLocationBeforeItemInfo()
+    {
+        byte[] data = CreateEncodedContainer();
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
+        int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
+        int ilocOffset = FindBoxOffset(data, Heif4CharCode.Iloc, metaOffset + 12, metaSize - 12);
+        int ilocSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(ilocOffset));
+        data = MoveBoxBefore(data, ilocOffset, ilocSize, iinfOffset);
+
+        ImageInfo imageInfo = Image.Identify(data);
+
+        Assert.Equal(new Size(2, 3), imageInfo.Size);
+    }
+
+    [Fact]
+    public void IdentifyRejectsDuplicateUniqueMetadataBox()
+    {
+        byte[] data = CreateEncodedContainer();
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
+        int pitmOffset = FindBoxOffset(data, Heif4CharCode.Pitm, metaOffset + 12, metaSize - 12);
+        int pitmSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(pitmOffset));
+        data = InsertBytes(data, metaOffset + metaSize, data.AsSpan(pitmOffset, pitmSize));
+        IncrementBoxSize(data, metaOffset, pitmSize);
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
+    }
+
     private static byte[] CreateEncodedContainer()
     {
         using Image<Rgba32> image = new(2, 3);
@@ -358,6 +404,16 @@ public class HeifDecoderTests
         data.AsSpan(0, offset).CopyTo(result);
         inserted.CopyTo(result.AsSpan(offset));
         data.AsSpan(offset).CopyTo(result.AsSpan(offset + inserted.Length));
+        return result;
+    }
+
+    private static byte[] MoveBoxBefore(byte[] data, int boxOffset, int boxSize, int beforeOffset)
+    {
+        byte[] result = new byte[data.Length];
+        data.AsSpan(0, beforeOffset).CopyTo(result);
+        data.AsSpan(boxOffset, boxSize).CopyTo(result.AsSpan(beforeOffset));
+        data.AsSpan(beforeOffset, boxOffset - beforeOffset).CopyTo(result.AsSpan(beforeOffset + boxSize));
+        data.AsSpan(boxOffset + boxSize).CopyTo(result.AsSpan(boxOffset + boxSize));
         return result;
     }
 

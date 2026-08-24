@@ -146,6 +146,16 @@ internal class Av1Decoder : IAv1TileReader
 
             ImageFrame<TPixel> resultFrame = resultImage.Frames.RootFrame;
             Av1YuvConverter.ConvertToRgb(this.configuration, frameBuffer, resultFrame);
+
+            // Preserve the effective CICP description used for conversion, including container values that legally
+            // supplied unspecified bitstream fields. This also exposes bitstream-only color metadata to callers.
+            ObuColorConfig effectiveColorConfig = this.SequenceHeader.ColorConfig;
+            resultImage.Metadata.CicpProfile = new CicpProfile(
+                (byte)effectiveColorConfig.ColorPrimaries,
+                (byte)effectiveColorConfig.TransferCharacteristics,
+                (byte)effectiveColorConfig.MatrixCoefficients,
+                effectiveColorConfig.ColorRange);
+
             return resultImage;
         }
         catch

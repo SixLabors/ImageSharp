@@ -1864,8 +1864,9 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             meta.HasAlpha = alphaImage is not null;
             if (this.Options.SkipMetadata)
             {
-                // AV1 item decoders still parse metadata OBUs to enforce codec/container equivalence. Remove the
-                // parsed value here so the public decoder option continues to suppress encoded metadata.
+                // AV1 item decoders still parse encoded metadata to enforce codec/container equivalence and select
+                // the correct conversion. Remove the exposed values so the decoder option suppresses metadata.
+                image.Metadata.CicpProfile = null;
                 meta.ContentLightLevel = null;
                 meta.MasteringDisplayColorVolume = null;
                 meta.ContentColorVolume = null;

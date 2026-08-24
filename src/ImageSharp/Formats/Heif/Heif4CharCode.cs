@@ -74,6 +74,11 @@ public enum Heif4CharCode : uint
     Colr = 0x636F6C72U,
 
     /// <summary>
+    /// Content light level information.
+    /// </summary>
+    Clli = 0x636C6C69U,
+
+    /// <summary>
     /// HVC configuration.
     /// </summary>
     HvcC = 0x68766343U,

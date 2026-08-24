@@ -280,6 +280,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         if (!this.Options.SkipMetadata)
         {
             this.ApplyItemColorMetadata(metadata, presentationItem);
+            this.ApplyItemHdrMetadata(metadata, presentationItem);
             this.ApplyItemPixelAspectRatioMetadata(metadata, presentationItem);
         }
     }
@@ -957,6 +958,21 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Colr, colorInformation));
 
                     break;
+                case Heif4CharCode.Clli:
+                    EnsureBufferRemaining(boxBuffer, 0, 4, "content light level information");
+                    if (boxBuffer.Length != 4)
+                    {
+                        throw new InvalidImageContentException("The content light level property has an invalid length.");
+                    }
+
+                    properties.Add(
+                        new KeyValuePair<Heif4CharCode, object>(
+                            Heif4CharCode.Clli,
+                            new HeifContentLightLevel(
+                                BinaryPrimitives.ReadUInt16BigEndian(boxBuffer),
+                                BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[2..]))));
+
+                    break;
                 case Heif4CharCode.Av1C:
                     EnsureBufferRemaining(boxBuffer, 0, 4, "AV1 codec configuration");
                     properties.Add(
@@ -1167,6 +1183,14 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                             item.CicpProfile = cicpProfile;
                         }
 
+                        break;
+                    case Heif4CharCode.Clli:
+                        if (item.ContentLightLevel is not null)
+                        {
+                            throw new InvalidImageContentException($"Item {itemId} associates more than one content light level property.");
+                        }
+
+                        item.ContentLightLevel = (HeifContentLightLevel)prop.Value;
                         break;
                     case Heif4CharCode.Clap:
                         if (item.CleanAperture is not null)
@@ -1492,6 +1516,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             if (!this.Options.SkipMetadata)
             {
                 this.ApplyItemColorMetadata(image.Metadata, itemToDecode);
+                this.ApplyItemHdrMetadata(image.Metadata, itemToDecode);
                 this.ApplyAssociatedMetadata(image.Metadata, rootItem, buffers);
                 _ = this.TryConvertIccProfile(image);
             }
@@ -1510,6 +1535,13 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             HeifMetadata meta = image.Metadata.GetHeifMetadata();
             meta.CompressionMethod = itemDecoder.CompressionMethod;
             meta.HasAlpha = alphaImage is not null;
+            if (this.Options.SkipMetadata)
+            {
+                // AV1 item decoders still parse metadata OBUs to enforce codec/container equivalence. Remove the
+                // parsed value here so the public decoder option continues to suppress encoded metadata.
+                meta.ContentLightLevel = null;
+            }
+
             return image;
         }
         catch
@@ -1543,6 +1575,26 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         if (cicpProfile is not null)
         {
             metadata.CicpProfile = cicpProfile.DeepClone();
+        }
+    }
+
+    /// <summary>
+    /// Applies high-dynamic-range metadata associated with a presented still-image item.
+    /// </summary>
+    /// <param name="metadata">The image metadata receiving the high-dynamic-range description.</param>
+    /// <param name="imageItem">The image item whose pixels are presented.</param>
+    private void ApplyItemHdrMetadata(ImageMetadata metadata, HeifItem imageItem)
+    {
+        HeifItem? gridTile = imageItem.Type == Heif4CharCode.Grid
+            ? this.FindDecodableGridTile<Rgba32>(imageItem)
+            : null;
+
+        // A derived grid can describe the complete presentation. Fall back to the first coded tile only when the
+        // grid does not carry its own value, matching the precedence used for its color-profile properties.
+        HeifContentLightLevel? contentLightLevel = imageItem.ContentLightLevel ?? gridTile?.ContentLightLevel;
+        if (contentLightLevel is not null)
+        {
+            metadata.GetHeifMetadata().ContentLightLevel = contentLightLevel;
         }
     }
 

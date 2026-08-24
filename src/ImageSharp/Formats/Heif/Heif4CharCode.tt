@@ -19,6 +19,7 @@
         "ispe", "Item Spatial Extent",
         "altt", "Alternative text",
         "colr", "Colour information",
+        "clli", "Content light level information",
         "hvcC", "HVC configuration",
         "av1C", "AV1 configuration",
         "imir", "Image Mirror",

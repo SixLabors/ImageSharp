@@ -67,6 +67,12 @@ internal class HeifItem(Heif4CharCode type, uint id)
     public CicpProfile? CicpProfile { get; set; }
 
     /// <summary>
+    /// Gets or sets the content light-level information associated with this image item, or <see langword="null"/>
+    /// when the item has no content light-level property.
+    /// </summary>
+    public HeifContentLightLevel? ContentLightLevel { get; set; }
+
+    /// <summary>
     /// Gets or sets the AV1 codec configuration associated with this coded image item, or <see langword="null"/>
     /// when the item has no AV1 codec-configuration property.
     /// </summary>

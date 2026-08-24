@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
@@ -30,6 +31,11 @@ internal sealed class Av1CodecConfiguration
     /// The sequence-header OBU extension byte, or <c>-1</c> when its header has no extension.
     /// </summary>
     private readonly int configSequenceHeaderExtension;
+
+    /// <summary>
+    /// The content light-level metadata carried by the configuration OBUs, or <see langword="null"/> when absent.
+    /// </summary>
+    private readonly HeifContentLightLevel? configContentLightLevel;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1CodecConfiguration"/> class from an AV1 codec-configuration
@@ -89,7 +95,8 @@ internal sealed class Av1CodecConfiguration
             "AV1 codec configuration",
             out this.configSequenceHeaderOffset,
             out this.configSequenceHeaderLength,
-            out this.configSequenceHeaderExtension);
+            out this.configSequenceHeaderExtension,
+            out this.configContentLightLevel);
 
         if (sequenceHeaderCount > 1)
         {
@@ -153,10 +160,19 @@ internal sealed class Av1CodecConfiguration
     public ReadOnlyMemory<byte> ConfigObus => this.configObus;
 
     /// <summary>
-    /// Validates the AV1 image item OBU layout and any sequence header repeated by the configuration record.
+    /// Validates the AV1 image item OBU layout and metadata against its item properties and configuration record.
     /// </summary>
     /// <param name="itemData">The complete AV1 image item payload.</param>
-    public void ValidateItemData(ReadOnlySpan<byte> itemData)
+    /// <param name="itemContentLightLevel">
+    /// The content light-level property associated with the image item, or <see langword="null"/> when absent.
+    /// </param>
+    /// <returns>
+    /// The content light-level metadata carried by the combined configuration and item OBUs, or
+    /// <see langword="null"/> when neither sequence carries it.
+    /// </returns>
+    public HeifContentLightLevel? ValidateItemData(
+        ReadOnlySpan<byte> itemData,
+        HeifContentLightLevel? itemContentLightLevel)
     {
         int sequenceHeaderCount = ScanObus(
             itemData,
@@ -165,7 +181,8 @@ internal sealed class Av1CodecConfiguration
             "AV1 image item",
             out int itemSequenceHeaderOffset,
             out int itemSequenceHeaderLength,
-            out int itemSequenceHeaderExtension);
+            out int itemSequenceHeaderExtension,
+            out HeifContentLightLevel? itemObuContentLightLevel);
 
         if (sequenceHeaderCount != 1)
         {
@@ -191,6 +208,27 @@ internal sealed class Av1CodecConfiguration
                 throw new InvalidImageContentException("The AV1 codec configuration sequence header does not match the image item sequence header.");
             }
         }
+
+        ValidateContentLightLevel(
+            this.configContentLightLevel,
+            itemContentLightLevel,
+            "AV1 codec configuration");
+
+        ValidateContentLightLevel(
+            itemObuContentLightLevel,
+            itemContentLightLevel,
+            "AV1 image item");
+
+        if (this.configContentLightLevel is not null
+            && itemObuContentLightLevel is not null
+            && !ContentLightLevelsMatch(this.configContentLightLevel.Value, itemObuContentLightLevel.Value))
+        {
+            throw new InvalidImageContentException("The AV1 codec configuration and image item contain conflicting content light-level metadata.");
+        }
+
+        // Configuration OBUs precede the image-item OBUs in the combined AV1 stream, so an item OBU supplies the
+        // effective value when both sequences repeat the same metadata type.
+        return itemObuContentLightLevel ?? this.configContentLightLevel;
     }
 
     /// <summary>
@@ -235,7 +273,7 @@ internal sealed class Av1CodecConfiguration
     }
 
     /// <summary>
-    /// Scans a low-overhead AV1 OBU sequence and locates its first sequence-header payload.
+    /// Scans a low-overhead AV1 OBU sequence and locates its still-image description metadata.
     /// </summary>
     /// <param name="data">The complete bounded OBU sequence.</param>
     /// <param name="requireSizeFields">Indicates that every OBU must carry its registered payload-size field.</param>
@@ -246,6 +284,9 @@ internal sealed class Av1CodecConfiguration
     /// <param name="sequenceHeaderOffset">Receives the first sequence-header payload offset, or <c>-1</c>.</param>
     /// <param name="sequenceHeaderLength">Receives the first sequence-header payload length.</param>
     /// <param name="sequenceHeaderExtension">Receives the first sequence-header extension byte, or <c>-1</c>.</param>
+    /// <param name="contentLightLevel">
+    /// Receives the content light-level metadata carried by the sequence, or <see langword="null"/> when absent.
+    /// </param>
     /// <returns>The number of sequence-header OBUs in the sequence.</returns>
     private static int ScanObus(
         ReadOnlySpan<byte> data,
@@ -254,11 +295,13 @@ internal sealed class Av1CodecConfiguration
         string sourceName,
         out int sequenceHeaderOffset,
         out int sequenceHeaderLength,
-        out int sequenceHeaderExtension)
+        out int sequenceHeaderExtension,
+        out HeifContentLightLevel? contentLightLevel)
     {
         sequenceHeaderOffset = -1;
         sequenceHeaderLength = 0;
         sequenceHeaderExtension = -1;
+        contentLightLevel = null;
         int sequenceHeaderCount = 0;
         int obuIndex = 0;
         int offset = 0;
@@ -325,6 +368,23 @@ internal sealed class Av1CodecConfiguration
                     sequenceHeaderExtension = extension;
                 }
             }
+            else if (type == ObuType.Metadata)
+            {
+                HeifContentLightLevel? obuContentLightLevel = ReadContentLightLevelMetadata(
+                    data.Slice(offset, payloadLength),
+                    sourceName);
+
+                if (obuContentLightLevel is not null)
+                {
+                    if (contentLightLevel is not null
+                        && !ContentLightLevelsMatch(contentLightLevel.Value, obuContentLightLevel.Value))
+                    {
+                        throw new InvalidImageContentException($"The {sourceName} contains conflicting content light-level metadata OBUs.");
+                    }
+
+                    contentLightLevel = obuContentLightLevel;
+                }
+            }
 
             offset += payloadLength;
             obuIndex++;
@@ -342,27 +402,125 @@ internal sealed class Av1CodecConfiguration
     /// <returns>The payload length representable by the current item buffer.</returns>
     private static int ReadObuPayloadLength(ReadOnlySpan<byte> data, ref int offset, string sourceName)
     {
+        ulong value = ReadLeb128(data, ref offset, sourceName, "OBU payload length");
+        if (value > int.MaxValue)
+        {
+            throw new InvalidImageContentException($"The {sourceName} contains an OBU payload too large to buffer.");
+        }
+
+        return (int)value;
+    }
+
+    /// <summary>
+    /// Reads content light-level data from an AV1 metadata OBU payload.
+    /// </summary>
+    /// <param name="payload">The bounded metadata OBU payload.</param>
+    /// <param name="sourceName">The source description used by invalid-content errors.</param>
+    /// <returns>
+    /// The decoded content light-level metadata, or <see langword="null"/> when the OBU carries another metadata type.
+    /// </returns>
+    private static HeifContentLightLevel? ReadContentLightLevelMetadata(
+        ReadOnlySpan<byte> payload,
+        string sourceName)
+    {
+        int offset = 0;
+        ulong metadataType = ReadLeb128(payload, ref offset, sourceName, "metadata type");
+        if (metadataType != (ulong)ObuMetadataType.HdrCll)
+        {
+            return null;
+        }
+
+        const int contentLightLevelLength = 4;
+        if (payload.Length - offset <= contentLightLevelLength)
+        {
+            throw new InvalidImageContentException($"The {sourceName} contains truncated content light-level metadata or no trailing bits.");
+        }
+
+        ReadOnlySpan<byte> contentLightLevelData = payload.Slice(offset, contentLightLevelLength);
+        ReadOnlySpan<byte> trailingData = payload[(offset + contentLightLevelLength)..];
+        byte lastNonzeroByte = 0;
+        for (int i = trailingData.Length - 1; i >= 0; i--)
+        {
+            if (trailingData[i] != 0)
+            {
+                lastNonzeroByte = trailingData[i];
+                break;
+            }
+        }
+
+        // HDR CLL fields end on a byte boundary. libaom accepts zero padding after the required 0x80 trailing byte,
+        // so locate the last nonzero byte rather than assuming the OBU payload ends immediately after trailing_bits().
+        if (lastNonzeroByte != 0x80)
+        {
+            throw new InvalidImageContentException($"The {sourceName} content light-level metadata has invalid trailing bits.");
+        }
+
+        return new HeifContentLightLevel(
+            BinaryPrimitives.ReadUInt16BigEndian(contentLightLevelData),
+            BinaryPrimitives.ReadUInt16BigEndian(contentLightLevelData[2..]));
+    }
+
+    /// <summary>
+    /// Reads a bounded AV1 little-endian base-128 value.
+    /// </summary>
+    /// <param name="data">The complete bounded byte sequence.</param>
+    /// <param name="offset">The current byte offset, advanced past the encoded value.</param>
+    /// <param name="sourceName">The source description used by invalid-content errors.</param>
+    /// <param name="valueName">The value description used by invalid-content errors.</param>
+    /// <returns>The decoded unsigned value.</returns>
+    private static ulong ReadLeb128(
+        ReadOnlySpan<byte> data,
+        ref int offset,
+        string sourceName,
+        string valueName)
+    {
         ulong value = 0;
         for (int byteIndex = 0; byteIndex < 8; byteIndex++)
         {
             if (offset >= data.Length)
             {
-                throw new InvalidImageContentException($"The {sourceName} contains a truncated OBU payload length.");
+                throw new InvalidImageContentException($"The {sourceName} contains a truncated {valueName}.");
             }
 
             byte current = data[offset++];
             value |= (ulong)(current & 0x7F) << (byteIndex * 7);
             if ((current & 0x80) == 0)
             {
-                if (value > int.MaxValue)
-                {
-                    throw new InvalidImageContentException($"The {sourceName} contains an OBU payload too large to buffer.");
-                }
-
-                return (int)value;
+                return value;
             }
         }
 
-        throw new InvalidImageContentException($"The {sourceName} contains an unterminated OBU payload length.");
+        throw new InvalidImageContentException($"The {sourceName} contains an unterminated {valueName}.");
+    }
+
+    /// <summary>
+    /// Validates content light-level metadata against the corresponding image-item property when both are present.
+    /// </summary>
+    /// <param name="obuContentLightLevel">The value carried by an AV1 metadata OBU.</param>
+    /// <param name="itemContentLightLevel">The value carried by the associated image-item property.</param>
+    /// <param name="sourceName">The OBU source description used by invalid-content errors.</param>
+    private static void ValidateContentLightLevel(
+        HeifContentLightLevel? obuContentLightLevel,
+        HeifContentLightLevel? itemContentLightLevel,
+        string sourceName)
+    {
+        if (obuContentLightLevel is not null
+            && itemContentLightLevel is not null
+            && !ContentLightLevelsMatch(obuContentLightLevel.Value, itemContentLightLevel.Value))
+        {
+            throw new InvalidImageContentException($"The {sourceName} content light-level metadata does not match the image-item property.");
+        }
+    }
+
+    /// <summary>
+    /// Determines whether two content light-level descriptions carry the same observable values.
+    /// </summary>
+    /// <param name="left">The first content light-level description.</param>
+    /// <param name="right">The second content light-level description.</param>
+    /// <returns><see langword="true"/> when both light-level fields are equal.</returns>
+    private static bool ContentLightLevelsMatch(HeifContentLightLevel left, HeifContentLightLevel right)
+    {
+        return left.MaximumContentLightLevel == right.MaximumContentLightLevel
+            && left.MaximumPictureAverageLightLevel == right.MaximumPictureAverageLightLevel;
     }
 }

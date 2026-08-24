@@ -28,6 +28,7 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
         this.BitDepth = other.BitDepth;
         this.IsMonochrome = other.IsMonochrome;
         this.HasAlpha = other.HasAlpha;
+        this.ContentLightLevel = other.ContentLightLevel;
     }
 
     /// <summary>
@@ -49,6 +50,12 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
     /// Gets or sets a value indicating whether the primary image has an alpha channel.
     /// </summary>
     public bool HasAlpha { get; set; }
+
+    /// <summary>
+    /// Gets or sets the content light-level information for the primary image, or <see langword="null"/> when it is
+    /// not available.
+    /// </summary>
+    public HeifContentLightLevel? ContentLightLevel { get; set; }
 
     /// <inheritdoc/>
     public static HeifMetadata FromFormatConnectingMetadata(FormatConnectingMetadata metadata) => new()

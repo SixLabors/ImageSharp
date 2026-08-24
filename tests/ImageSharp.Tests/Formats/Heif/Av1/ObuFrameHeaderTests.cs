@@ -74,7 +74,7 @@ public class ObuFrameHeaderTests
 
         // Assert
         byte[] encodedArray = encoded.ToArray();
-        Assert.Equal(span, encodedArray);
+        Assert.Equal((ReadOnlySpan<byte>)span, encodedArray);
     }
 
     [Theory]

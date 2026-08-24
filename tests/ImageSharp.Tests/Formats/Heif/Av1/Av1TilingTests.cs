@@ -35,7 +35,7 @@ public class Av1TilingTests
 
         // Assert
         Assert.Equal(dataSize * 8, bitStreamReader.BitPosition);
-        Assert.False(frameBuffer.BufferY.Size().IsEmpty);
+        Assert.False(frameBuffer.BufferY.Size.IsEmpty);
         Assert.True(frameBuffer.BufferY.DangerousGetSingleSpan().ContainsAnyExcept<byte>(0));
     }
 

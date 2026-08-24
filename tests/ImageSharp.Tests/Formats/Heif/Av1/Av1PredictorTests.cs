@@ -262,6 +262,112 @@ public class Av1PredictorTests
         Assert.Equal(expectedDigest, predictorMemory.GetDestinationDigest());
     }
 
+    [Fact]
+    public void PaethFactoryUsesNearestNeighborPrediction()
+    {
+        byte[] destination = new byte[16];
+        byte[] aboveData = [50, 60, 10, 90, 40];
+        Span<byte> above = aboveData.AsSpan(1);
+        byte[] left = [20, 80, 30, 100];
+        byte[] expected =
+        [
+            20, 10, 50, 20,
+            80, 50, 90, 80,
+            30, 10, 90, 30,
+            100, 50, 100, 100,
+        ];
+
+        Av1PredictorFactory.GeneralPredictor(
+            Av1PredictionMode.Paeth,
+            Av1TransformSize.Size4x4,
+            destination,
+            4,
+            above,
+            left);
+
+        Assert.Equal(expected, destination);
+    }
+
+    [Fact]
+    public void SmoothHorizontalUsesSingleAxisNormalization()
+    {
+        byte[] destination = new byte[16];
+        byte[] above = [20, 40, 60, 80];
+        byte[] left = [20, 40, 60, 80];
+        byte[] expected =
+        [
+            20, 45, 60, 65,
+            40, 57, 67, 70,
+            60, 68, 73, 75,
+            80, 80, 80, 80,
+        ];
+
+        Av1SmoothHorizontalPredictor.PredictScalar(
+            Av1TransformSize.Size4x4,
+            destination,
+            4,
+            above,
+            left);
+
+        Assert.Equal(expected, destination);
+    }
+
+    [Fact]
+    public void SmoothVerticalUsesSingleAxisNormalization()
+    {
+        byte[] destination = new byte[16];
+        byte[] above = [20, 40, 60, 80];
+        byte[] left = [20, 40, 60, 80];
+        byte[] expected =
+        [
+            20, 40, 60, 80,
+            45, 57, 68, 80,
+            60, 67, 73, 80,
+            65, 70, 75, 80,
+        ];
+
+        Av1SmoothVerticalPredictor.PredictScalar(
+            Av1TransformSize.Size4x4,
+            destination,
+            4,
+            above,
+            left);
+
+        Assert.Equal(expected, destination);
+    }
+
+    [Fact]
+    public void DirectionalZone2StaticPredictorForwardsLeftUpsampling()
+    {
+        byte[] actual = new byte[16];
+        byte[] expected = new byte[16];
+        byte[] aboveData = new byte[128];
+        byte[] leftData = new byte[128];
+        for (int i = 0; i < aboveData.Length; i++)
+        {
+            aboveData[i] = (byte)((i * 5) + 1);
+            leftData[i] = (byte)((i * 7) + 3);
+        }
+
+        Span<byte> above = aboveData.AsSpan(64);
+        Span<byte> left = leftData.AsSpan(64);
+        Av1DirectionalZone2Predictor predictor = new(Av1TransformSize.Size4x4);
+        predictor.PredictScalar(expected, 4, above, left, false, true, 64, 64);
+
+        Av1DirectionalZone2Predictor.PredictScalar(
+            Av1TransformSize.Size4x4,
+            actual,
+            4,
+            above,
+            left,
+            false,
+            true,
+            64,
+            64);
+
+        Assert.Equal(expected, actual);
+    }
+
     private static void AssertValue(byte expected, byte actual)
     {
         Assert.NotEqual(0, actual);

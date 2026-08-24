@@ -41,8 +41,7 @@ internal class Av1SmoothVerticalPredictor : IAv1Predictor
         int belowPrediction = Unsafe.Add(ref leftRef, this.blockHeight - 1); // estimated by bottom-left pixel
         ref int weights = ref Av1SmoothPredictor.Weights[(int)this.blockHeight];
 
-        // scale = 2 * 2^sm_weight_log2_scale
-        int log2Scale = 1 + Av1SmoothPredictor.WeightLog2Scale;
+        int log2Scale = Av1SmoothPredictor.WeightLog2Scale;
         int scale = 1 << Av1SmoothPredictor.WeightLog2Scale;
 
         // sm_weights_sanity_checks(sm_weights_w, sm_weights_h, scale, log2_scale + 2);

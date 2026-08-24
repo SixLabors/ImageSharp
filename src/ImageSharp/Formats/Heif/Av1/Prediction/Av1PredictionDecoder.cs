@@ -38,8 +38,7 @@ internal class Av1PredictionDecoder
         int blockModeInfoColumnOffset,
         int blockModeInfoRowOffset)
     {
-        int bytesPerPixel = (bitDepth == Av1BitDepth.EightBit && !this.is16BitPipeline) ? 2 : 1;
-        int stride = pixelStride * bytesPerPixel;
+        int stride = pixelStride;
 
         // Deviation from SVT: Buffer starts at PREVIOUS row.
         Span<byte> topNeighbor = pixelBuffer;
@@ -190,9 +189,9 @@ internal class Av1PredictionDecoder
                 destinationBuffer[i] = (byte)Av1Math.Clamp(alphaQ0 + predictedBuffer[i], 0, maxPixelValue);
             }
 
-            destinationBuffer = destinationBuffer[width..];
-            predictedBuffer = predictedBuffer[width..];
-            predictedBufferQ3 = predictedBufferQ3[width..];
+            destinationBuffer = destinationBuffer[destinationStride..];
+            predictedBuffer = predictedBuffer[predictedStride..];
+            predictedBufferQ3 = predictedBufferQ3[32..];
         }
     }
 

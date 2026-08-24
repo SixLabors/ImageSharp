@@ -26,7 +26,7 @@ internal class Av1DirectionalZone2Predictor
     }
 
     public static void PredictScalar(Av1TransformSize transformSize, Span<byte> destination, nuint stride, Span<byte> above, Span<byte> left, bool upsampleAbove, bool upsampleLeft, int dx, int dy)
-        => new Av1DirectionalZone2Predictor(transformSize).PredictScalar(destination, stride, above, left, upsampleAbove, upsampleAbove, dx, dy);
+        => new Av1DirectionalZone2Predictor(transformSize).PredictScalar(destination, stride, above, left, upsampleAbove, upsampleLeft, dx, dy);
 
     /// <summary>
     /// SVT: svt_av1_dr_prediction_z1_c

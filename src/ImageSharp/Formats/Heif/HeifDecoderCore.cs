@@ -106,7 +106,10 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <inheritdoc/>
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
-        this.CheckFileTypeBox(stream);
+        if (!this.CheckFileTypeBox(stream))
+        {
+            throw new ImageFormatException("Not an HEIF image.");
+        }
 
         while (stream.Position < stream.Length)
         {
@@ -138,13 +141,20 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     private bool CheckFileTypeBox(BufferedReadStream stream)
     {
         long boxLength = this.ReadBoxHeader(stream, out Heif4CharCode boxType);
+        if (boxType != Heif4CharCode.Ftyp)
+        {
+            return false;
+        }
+
+        EnsureBoxBoundary(boxLength, stream);
+        if (boxLength < 8 || boxLength > int.MaxValue || (boxLength & 3) != 0)
+        {
+            return false;
+        }
+
         using IMemoryOwner<byte> boxMemory = this.ReadIntoBuffer(stream, boxLength);
         Span<byte> boxBuffer = boxMemory.GetSpan();
-        uint majorBrand = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer);
-        bool correctBrand = majorBrand is (uint)Heif4CharCode.Heic or (uint)Heif4CharCode.Heix or (uint)Heif4CharCode.Avif;
-
-        // TODO: Interpret minorVersion and compatible brands.
-        return boxType == Heif4CharCode.Ftyp && correctBrand;
+        return HeifConstants.IsSupportedFileType(boxBuffer);
     }
 
     private void UpdateMetadata(ImageMetadata metadata, HeifItem item)

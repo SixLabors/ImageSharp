@@ -144,6 +144,26 @@ public enum Heif4CharCode : uint
     Heix = 0x68656978U,
 
     /// <summary>
+    /// HEVC image sequence brand.
+    /// </summary>
+    Hevc = 0x68657663U,
+
+    /// <summary>
+    /// HEVC Main 10 image sequence brand.
+    /// </summary>
+    Hevx = 0x68657678U,
+
+    /// <summary>
+    /// Layered HEVC image sequence brand.
+    /// </summary>
+    Hevm = 0x6865766DU,
+
+    /// <summary>
+    /// Layered HEVC image sequence brand.
+    /// </summary>
+    Hevs = 0x68657673U,
+
+    /// <summary>
     /// High Efficient File brand.
     /// </summary>
     Mif1 = 0x6D696631U,
@@ -154,6 +174,11 @@ public enum Heif4CharCode : uint
     Avif = 0x61766966U,
 
     /// <summary>
+    /// AVIF image sequence brand.
+    /// </summary>
+    Avis = 0x61766973U,
+
+    /// <summary>
     /// High Efficiency Coding tile.
     /// </summary>
     Hvc1 = 0x68766331U,
@@ -162,6 +187,11 @@ public enum Heif4CharCode : uint
     /// Legacy JPEG coded tile.
     /// </summary>
     Jpeg = 0x6A706567U,
+
+    /// <summary>
+    /// JPEG image sequence brand.
+    /// </summary>
+    Jpgs = 0x6A706773U,
 
     /// <summary>
     /// AOMedia Video Coding tile.

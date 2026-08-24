@@ -55,6 +55,37 @@ public class Av1TilingTests
     }
 
     [Theory]
+    [InlineData((int)Av1BitDepth.TenBit, 1023)]
+    [InlineData((int)Av1BitDepth.TwelveBit, 4095)]
+    public void DecodePixelsFirstTileThroughHighBitDepthPipeline(int bitDepthIndex, ushort maximum)
+    {
+        string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Heif.Orange4x4);
+        byte[] content = File.ReadAllBytes(filePath);
+        const int dataOffset = 0x010E;
+        const int dataSize = 0x001D;
+        const int tileOffset = 21;
+        Span<byte> headerSpan = content.AsSpan(dataOffset, dataSize);
+        Span<byte> tileSpan = content.AsSpan(tileOffset, dataSize - tileOffset);
+        Av1BitStreamReader bitStreamReader = new(headerSpan);
+        IAv1TileReader stub = new Av1TileDecoderStub();
+        ObuReader obuReader = new();
+        obuReader.ReadAll(ref bitStreamReader, dataSize, () => stub);
+
+        // Reuse known-good tile syntax after parsing so this test isolates native high-bit prediction and reconstruction wiring.
+        obuReader.SequenceHeader.ColorConfig.BitDepth = (Av1BitDepth)bitDepthIndex;
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, obuReader.SequenceHeader, Av1ColorFormat.Yuv444, false);
+        Av1FrameInfo frameInfo = new(obuReader.SequenceHeader);
+        Av1FrameDecoder frameDecoder = new(obuReader.SequenceHeader, obuReader.FrameHeader, frameInfo, frameBuffer);
+        Av1TileReader tileReader = new(Configuration.Default, obuReader.SequenceHeader, obuReader.FrameHeader, frameDecoder);
+
+        tileReader.ReadTile(tileSpan, 0);
+
+        Span<ushort> yRow = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, 0, 0, 0);
+        Assert.True(yRow[..4].ContainsAnyExcept<ushort>(0));
+        Assert.All(yRow[..4].ToArray(), value => Assert.InRange(value, (ushort)0, maximum));
+    }
+
+    [Theory]
     [InlineData(TestImages.Heif.XnConvert, 0x010E, 0x03CC, 18, 16)]
     [InlineData(TestImages.Heif.Orange4x4, 0x010E, 0x001d, 21, 1)]
     public void DecodePartitionsFirstTile(string filename, int dataOffset, int dataSize, int tileOffset, int superblockCount)

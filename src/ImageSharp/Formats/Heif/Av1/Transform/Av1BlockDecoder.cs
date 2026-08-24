@@ -67,10 +67,9 @@ internal class Av1BlockDecoder
         int chromaTransformUnitCount = isLosslessBlock
                 ? (maxBlocksWide * maxBlocksHigh) >> ((colorConfig.SubSamplingX ? 1 : 0) + (colorConfig.SubSamplingY ? 1 : 0))
                 : modeInfo.TransformUnitsCount[(int)Av1Plane.U];
-        bool highBitDepth = false;
-        bool is16BitsPipeline = false;
+        bool highBitDepth = this.frameBuffer.BytesPerSample == 2;
         int loopFilterStride = this.frameHeader.ModeInfoStride;
-        Av1PredictionDecoder predictionDecoder = new(this.sequenceHeader, this.frameHeader, false);
+        Av1PredictionDecoder predictionDecoder = new(this.sequenceHeader, this.frameHeader);
         Av1InverseQuantizer inverseQuantizer = new(this.sequenceHeader, this.frameHeader);
 
         for (int plane = 0; plane < colorConfig.PlaneCount; plane++)
@@ -108,17 +107,36 @@ internal class Av1BlockDecoder
             Point pixelPosition = new(
                 (modeInfoPosition.X >> subX) << Av1Constants.ModeInfoSizeLog2,
                 (modeInfoPosition.Y >> subY) << Av1Constants.ModeInfoSizeLog2);
-            Span<byte> blockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer((Av1Plane)plane, pixelPosition, subX, subY, out int reconstructionStride);
+            Span<byte> blockReconstructionBuffer = default;
+            Span<short> highBitDepthBlockReconstructionBuffer = default;
+            int reconstructionStride;
+            if (highBitDepth)
+            {
+                highBitDepthBlockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer16((Av1Plane)plane, pixelPosition, subX, subY, out reconstructionStride);
+            }
+            else
+            {
+                blockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer((Av1Plane)plane, pixelPosition, subX, subY, out reconstructionStride);
+            }
+
             for (int tu = 0; tu < transformUnitCount; tu++)
             {
-                Span<byte> transformBlockReconstructionBuffer;
+                Span<byte> transformBlockReconstructionBuffer = default;
+                Span<short> highBitDepthTransformBlockReconstructionBuffer = default;
                 int transformBlockOffset;
 
                 transformSize = transformInfo[0].Size;
                 Span<int> coefficients = superblockInfo.GetCoefficients((Av1Plane)plane)[this.currentCoefficientIndex[plane]..];
 
                 transformBlockOffset = ((transformInfo[0].OffsetY * reconstructionStride) + transformInfo[0].OffsetX) << Av1Constants.ModeInfoSizeLog2;
-                transformBlockReconstructionBuffer = blockReconstructionBuffer.Slice(transformBlockOffset << (highBitDepth ? 1 : 0));
+                if (highBitDepth)
+                {
+                    highBitDepthTransformBlockReconstructionBuffer = highBitDepthBlockReconstructionBuffer[transformBlockOffset..];
+                }
+                else
+                {
+                    transformBlockReconstructionBuffer = blockReconstructionBuffer[transformBlockOffset..];
+                }
 
                 if (this.isLoopFilterEnabled)
                 {
@@ -141,16 +159,32 @@ internal class Av1BlockDecoder
                 // if (!inter_block)
                 {
                     // SVT: svt_av1_predict_intra
-                    predictionDecoder.Decode(
-                        partitionInfo,
-                        (Av1Plane)plane,
-                        transformSize,
-                        tileInfo,
-                        transformBlockReconstructionBuffer,
-                        reconstructionStride,
-                        this.frameBuffer.BitDepth,
-                        transformInfo[0].OffsetX,
-                        transformInfo[0].OffsetY);
+                    if (highBitDepth)
+                    {
+                        predictionDecoder.Decode(
+                            partitionInfo,
+                            (Av1Plane)plane,
+                            transformSize,
+                            tileInfo,
+                            highBitDepthTransformBlockReconstructionBuffer,
+                            reconstructionStride,
+                            this.frameBuffer.BitDepth,
+                            transformInfo[0].OffsetX,
+                            transformInfo[0].OffsetY);
+                    }
+                    else
+                    {
+                        predictionDecoder.Decode(
+                            partitionInfo,
+                            (Av1Plane)plane,
+                            transformSize,
+                            tileInfo,
+                            transformBlockReconstructionBuffer,
+                            reconstructionStride,
+                            this.frameBuffer.BitDepth,
+                            transformInfo[0].OffsetX,
+                            transformInfo[0].OffsetY);
+                    }
                 }
 
                 int numberOfCoefficients = 0;
@@ -169,7 +203,21 @@ internal class Av1BlockDecoder
                     {
                         this.currentCoefficientIndex[plane] += numberOfCoefficients + 1;
 
-                        if (this.frameBuffer.BitDepth == Av1BitDepth.EightBit && !is16BitsPipeline)
+                        if (highBitDepth)
+                        {
+                            // AV1 high-bit-depth reconstruction stores unsigned samples in the existing signed 16-bit transform representation.
+                            Av1InverseTransformer.ReconstructHighBitDepth(
+                                quantizationCoefficients,
+                                highBitDepthTransformBlockReconstructionBuffer,
+                                reconstructionStride,
+                                transformSize,
+                                transformType,
+                                plane,
+                                numberOfCoefficients,
+                                isLossless,
+                                this.frameBuffer.BitDepth);
+                        }
+                        else
                         {
                             // SVT: svt_aom_inv_transform_recon8bit
                             Av1InverseTransformer.Reconstruct8Bit(
@@ -181,10 +229,6 @@ internal class Av1BlockDecoder
                                 plane,
                                 numberOfCoefficients,
                                 isLossless);
-                        }
-                        else
-                        {
-                            throw new NotImplementedException("No support for 16 bit pipeline yet.");
                         }
                     }
                 }

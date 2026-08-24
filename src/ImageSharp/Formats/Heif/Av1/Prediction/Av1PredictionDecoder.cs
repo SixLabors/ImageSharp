@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -15,13 +17,11 @@ internal class Av1PredictionDecoder
 
     private readonly ObuSequenceHeader sequenceHeader;
     private readonly ObuFrameHeader frameHeader;
-    private readonly bool is16BitPipeline;
 
-    public Av1PredictionDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, bool is16BitPipeline)
+    public Av1PredictionDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
-        this.is16BitPipeline = is16BitPipeline;
     }
 
     /// <summary>
@@ -37,15 +37,60 @@ internal class Av1PredictionDecoder
         Av1BitDepth bitDepth,
         int blockModeInfoColumnOffset,
         int blockModeInfoRowOffset)
+        => this.DecodeCore(
+            partitionInfo,
+            plane,
+            transformSize,
+            tileInfo,
+            pixelBuffer,
+            pixelStride,
+            bitDepth,
+            blockModeInfoColumnOffset,
+            blockModeInfoRowOffset);
+
+    /// <summary>
+    /// AV1: 7.11.2 Reconstruct.
+    /// </summary>
+    public void Decode(
+        Av1PartitionInfo partitionInfo,
+        Av1Plane plane,
+        Av1TransformSize transformSize,
+        Av1TileInfo tileInfo,
+        Span<short> pixelBuffer,
+        int pixelStride,
+        Av1BitDepth bitDepth,
+        int blockModeInfoColumnOffset,
+        int blockModeInfoRowOffset)
+        => this.DecodeCore(
+            partitionInfo,
+            plane,
+            transformSize,
+            tileInfo,
+            pixelBuffer,
+            pixelStride,
+            bitDepth,
+            blockModeInfoColumnOffset,
+            blockModeInfoRowOffset);
+
+    private void DecodeCore<T>(
+        Av1PartitionInfo partitionInfo,
+        Av1Plane plane,
+        Av1TransformSize transformSize,
+        Av1TileInfo tileInfo,
+        Span<T> pixelBuffer,
+        int pixelStride,
+        Av1BitDepth bitDepth,
+        int blockModeInfoColumnOffset,
+        int blockModeInfoRowOffset)
+        where T : unmanaged, IBinaryInteger<T>
     {
         int stride = pixelStride;
 
         // Deviation from SVT: Buffer starts at PREVIOUS row.
-        Span<byte> topNeighbor = pixelBuffer;
-        Span<byte> leftNeighbor = pixelBuffer[(stride - 1)..];
-        Span<byte> startOfPixels = pixelBuffer[stride..];
+        Span<T> topNeighbor = pixelBuffer;
+        Span<T> leftNeighbor = pixelBuffer[(stride - 1)..];
+        Span<T> startOfPixels = pixelBuffer[stride..];
 
-        bool is16BitPipeline = this.is16BitPipeline;
         Av1PredictionMode mode = (plane == Av1Plane.Y) ? partitionInfo.ModeInfo.YMode : partitionInfo.ModeInfo.UvMode;
 
         if (plane != Av1Plane.Y && partitionInfo.ModeInfo.UvMode == Av1PredictionMode.UvChromaFromLuma)
@@ -92,7 +137,8 @@ internal class Av1PredictionDecoder
             bitDepth);
     }
 
-    private void PredictChromaFromLumaBlock(Av1PartitionInfo partitionInfo, Av1ChromaFromLumaContext? chromaFromLumaContext, Span<byte> pixelBuffer, int stride, Av1TransformSize transformSize, Av1Plane plane)
+    private void PredictChromaFromLumaBlock<T>(Av1PartitionInfo partitionInfo, Av1ChromaFromLumaContext? chromaFromLumaContext, Span<T> pixelBuffer, int stride, Av1TransformSize transformSize, Av1Plane plane)
+        where T : unmanaged, IBinaryInteger<T>
     {
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
         bool isChromaFromLumaAllowedFlag = IsChromaFromLumaAllowedWithFrameHeader(partitionInfo, this.sequenceHeader.ColorConfig, this.frameHeader);
@@ -112,22 +158,6 @@ internal class Av1PredictionDecoder
 
         // assert((transformSize.GetHeight() - 1) * CFL_BUF_LINE + transformSize.GetWidth() <= CFL_BUF_SQUARE);
         Av1BitDepth bitDepth = this.sequenceHeader.ColorConfig.BitDepth;
-        if ((bitDepth != Av1BitDepth.EightBit) || this.is16BitPipeline)
-        {
-            /* 16 bit pipeline
-            svt_cfl_predict_hbd(
-                chromaFromLumaContext->recon_buf_q3,
-                (uint16_t*)dst,
-                dst_stride,
-                (uint16_t*)dst,
-                dst_stride,
-                alpha_q3,
-                cc->bit_depth,
-                tx_size_wide[tx_size],
-                tx_size_high[tx_size]);
-            return;*/
-        }
-
         ChromaFromLumaPredict(
             chromaFromLumaContext.Q3Buffer!.DangerousGetSingleSpan(),
             pixelBuffer,
@@ -177,7 +207,8 @@ internal class Av1PredictionDecoder
         return Av1Math.RoundPowerOf2Signed(scaledLumaQ6, 6);
     }
 
-    private static void ChromaFromLumaPredict(Span<short> predictedBufferQ3, Span<byte> predictedBuffer, int predictedStride, Span<byte> destinationBuffer, int destinationStride, int alphaQ3, Av1BitDepth bitDepth, int width, int height)
+    private static void ChromaFromLumaPredict<T>(Span<short> predictedBufferQ3, Span<T> predictedBuffer, int predictedStride, Span<T> destinationBuffer, int destinationStride, int alphaQ3, Av1BitDepth bitDepth, int width, int height)
+        where T : unmanaged, IBinaryInteger<T>
     {
         // TODO: Make SIMD variant of this method.
         int maxPixelValue = (1 << bitDepth.GetBitCount()) - 1;
@@ -186,7 +217,8 @@ internal class Av1PredictionDecoder
             for (int i = 0; i < width; i++)
             {
                 int alphaQ0 = GetScaledLumaQ0(alphaQ3, predictedBufferQ3[i]);
-                destinationBuffer[i] = (byte)Av1Math.Clamp(alphaQ0 + predictedBuffer[i], 0, maxPixelValue);
+                int predicted = int.CreateChecked(predictedBuffer[i]);
+                destinationBuffer[i] = T.CreateChecked(Av1Math.Clamp(alphaQ0 + predicted, 0, maxPixelValue));
             }
 
             destinationBuffer = destinationBuffer[destinationStride..];
@@ -195,20 +227,21 @@ internal class Av1PredictionDecoder
         }
     }
 
-    private void PredictIntraBlock(
+    private void PredictIntraBlock<T>(
         Av1PartitionInfo partitionInfo,
         Av1Plane plane,
         Av1TransformSize transformSize,
         Av1TileInfo tileInfo,
-        Span<byte> pixelBuffer,
+        Span<T> pixelBuffer,
         int pixelBufferStride,
-        Span<byte> topNeighbor,
-        Span<byte> leftNeighbor,
+        Span<T> topNeighbor,
+        Span<T> leftNeighbor,
         int referenceStride,
         Av1PredictionMode mode,
         int blockModeInfoColumnOffset,
         int blockModeInfoRowOffset,
         Av1BitDepth bitDepth)
+        where T : unmanaged, IBinaryInteger<T>
     {
         // TODO:are_parameters_computed variable for CFL so that cal part for V plane we can skip,
         // once we compute for U plane, this parameter is block level parameter.
@@ -286,49 +319,25 @@ internal class Av1PredictionDecoder
 
         bool disableEdgeFilter = !this.sequenceHeader.EnableIntraEdgeFilter;
 
-        // Calling all other intra predictors except CFL & pallate...
-        if (bitDepth == Av1BitDepth.EightBit && !this.is16BitPipeline)
-        {
-            this.DecodeBuildIntraPredictors(
-                partitionInfo,
-                topNeighbor,
-                leftNeighbor,
-                (nuint)referenceStride,
-                pixelBuffer,
-                (nuint)pixelBufferStride,
-                mode,
-                angleDelta,
-                filterIntraMode,
-                transformSize,
-                disableEdgeFilter,
-                haveTop ? Math.Min(transformWidth, xr + transformWidth) : 0,
-                haveTopRight ? Math.Min(transformWidth, xr) : 0,
-                haveLeft ? Math.Min(transformHeight, yd + transformHeight) : 0,
-                haveBottomLeft ? Math.Min(transformHeight, yd) : 0,
-                plane);
-        }
-        else
-        {
-            /* 16bit
-            decode_build_intra_predictors_high(xd,
-                (uint16_t*) top_neigh_array, //As per SVT Enc
-                (uint16_t*) left_neigh_array,
-                ref_stride,// As per SVT Enc
-                (uint16_t*) pv_pred_buf,
-                pred_stride,
-                mode,
-                angle_delta,
-                filter_intra_mode,
-                tx_size,
-                disable_edge_filter,
-                have_top? AOMMIN(transformWidth, xr + transformWidth) : 0,
-                have_top_right? AOMMIN(transformWidth, xr) : 0,
-                have_left? AOMMIN(transformHeight, yd + transformHeight) : 0,
-                have_bottom_left? AOMMIN(transformHeight, yd) : 0,
-                plane,
-                bit_depth);
-            */
-        }
+        // Calling all other intra predictors except CFL and palette.
+        this.DecodeBuildIntraPredictors(
+            partitionInfo,
+            topNeighbor,
+            leftNeighbor,
+            (nuint)referenceStride,
+            pixelBuffer,
+            (nuint)pixelBufferStride,
+            mode,
+            angleDelta,
+            filterIntraMode,
+            transformSize,
+            disableEdgeFilter,
+            haveTop ? Math.Min(transformWidth, xr + transformWidth) : 0,
+            haveTopRight ? Math.Min(transformWidth, xr) : 0,
+            haveLeft ? Math.Min(transformHeight, yd + transformHeight) : 0,
+            haveBottomLeft ? Math.Min(transformHeight, yd) : 0,
+            plane,
+            bitDepth.GetBitCount());
     }
 
     private static Av1BlockSize ScaleChromaBlockSize(Av1BlockSize blockSize, bool subX, bool subY)
@@ -559,12 +568,12 @@ internal class Av1PredictionDecoder
         }
     }
 
-    private void DecodeBuildIntraPredictors(
+    private void DecodeBuildIntraPredictors<T>(
         Av1PartitionInfo partitionInfo,
-        Span<byte> aboveNeighbor,
-        Span<byte> leftNeighbor,
+        Span<T> aboveNeighbor,
+        Span<T> leftNeighbor,
         nuint referenceStride,
-        Span<byte> destination,
+        Span<T> destination,
         nuint destinationStride,
         Av1PredictionMode mode,
         int angleDelta,
@@ -575,12 +584,17 @@ internal class Av1PredictionDecoder
         int topRightPixelCount,
         int leftPixelCount,
         int bottomLeftPixelCount,
-        Av1Plane plane)
+        Av1Plane plane,
+        int bitDepth)
+        where T : unmanaged, IBinaryInteger<T>
     {
-        Span<byte> aboveData = stackalloc byte[(Av1Constants.MaxTransformSize * 2) + 32];
-        Span<byte> leftData = stackalloc byte[(Av1Constants.MaxTransformSize * 2) + 32];
-        Span<byte> aboveRow = aboveData[16..];
-        Span<byte> leftColumn = leftData[16..];
+        int baseValue = 128 << (bitDepth - 8);
+        Span<T> aboveData = stackalloc T[(Av1Constants.MaxTransformSize * 2) + 32];
+        Span<T> leftData = stackalloc T[(Av1Constants.MaxTransformSize * 2) + 32];
+        aboveData.Fill(T.CreateChecked(baseValue - 1));
+        leftData.Fill(T.CreateChecked(baseValue + 1));
+        Span<T> aboveRow = aboveData[16..];
+        Span<T> leftColumn = leftData[16..];
         int transformWidth = transformSize.GetWidth();
         int transformHeight = transformSize.GetHeight();
         bool isDirectionalMode = mode.IsDirectional();
@@ -628,21 +642,19 @@ internal class Av1PredictionDecoder
 
         if ((!needAbove && leftPixelCount == 0) || (!needLeft && topPixelCount == 0))
         {
-            byte val;
+            T value;
             if (needLeft)
             {
-                val = (byte)((topPixelCount > 0) ? aboveNeighbor[0] : 129);
+                value = topPixelCount > 0 ? aboveNeighbor[0] : T.CreateChecked(baseValue + 1);
             }
             else
             {
-                val = (byte)((leftPixelCount > 0) ? leftNeighbor[0] : 127);
+                value = leftPixelCount > 0 ? leftNeighbor[0] : T.CreateChecked(baseValue - 1);
             }
 
-            ref byte destinationRef = ref destination[0];
             for (int i = 0; i < transformHeight; ++i)
             {
-                Unsafe.InitBlock(ref destinationRef, val, (uint)transformWidth);
-                destinationRef = ref Unsafe.Add(ref destinationRef, destinationStride);
+                destination.Slice(i * (int)destinationStride, transformWidth).Fill(value);
             }
 
             return;
@@ -662,7 +674,7 @@ internal class Av1PredictionDecoder
                 needBottom = angle > 180;
             }
 
-            uint numLeftPixelsNeeded = (uint)(transformHeight + (needBottom ? transformWidth : 0));
+            int numLeftPixelsNeeded = transformHeight + (needBottom ? transformWidth : 0);
             int i = 0;
             if (leftPixelCount > 0)
             {
@@ -682,18 +694,18 @@ internal class Av1PredictionDecoder
 
                 if (i < numLeftPixelsNeeded)
                 {
-                    Unsafe.InitBlock(ref leftColumn[i], leftColumn[i - 1], numLeftPixelsNeeded - (uint)i);
+                    leftColumn.Slice(i, numLeftPixelsNeeded - i).Fill(leftColumn[i - 1]);
                 }
             }
             else
             {
                 if (topPixelCount > 0)
                 {
-                    Unsafe.InitBlock(ref leftColumn[0], aboveNeighbor[0], numLeftPixelsNeeded);
+                    leftColumn[..numLeftPixelsNeeded].Fill(aboveNeighbor[0]);
                 }
                 else
                 {
-                    Unsafe.InitBlock(ref leftColumn[0], 129, numLeftPixelsNeeded);
+                    leftColumn[..numLeftPixelsNeeded].Fill(T.CreateChecked(baseValue + 1));
                 }
             }
         }
@@ -712,39 +724,39 @@ internal class Av1PredictionDecoder
                 needRight = angle < 90;
             }
 
-            uint numTopPixelsNeeded = (uint)(transformWidth + (needRight ? transformHeight : 0));
+            int numTopPixelsNeeded = transformWidth + (needRight ? transformHeight : 0);
             if (topPixelCount > 0)
             {
-                Unsafe.CopyBlock(ref aboveRow[0], ref aboveNeighbor[0], (uint)topPixelCount);
+                aboveNeighbor[..topPixelCount].CopyTo(aboveRow);
                 int i = topPixelCount;
                 if (needRight && topPixelCount > 0)
                 {
                     Guard.IsTrue(topPixelCount == transformWidth, nameof(topPixelCount), string.Empty);
-                    Unsafe.CopyBlock(ref aboveRow[transformWidth], ref aboveNeighbor[transformWidth], (uint)topPixelCount);
-                    i += topPixelCount;
+                    aboveNeighbor.Slice(transformWidth, topRightPixelCount).CopyTo(aboveRow[transformWidth..]);
+                    i += topRightPixelCount;
                 }
 
                 if (i < numTopPixelsNeeded)
                 {
-                    Unsafe.InitBlock(ref aboveRow[i], aboveRow[i - 1], numTopPixelsNeeded - (uint)i);
+                    aboveRow.Slice(i, numTopPixelsNeeded - i).Fill(aboveRow[i - 1]);
                 }
             }
             else
             {
                 if (leftPixelCount > 0)
                 {
-                    Unsafe.InitBlock(ref aboveRow[0], leftNeighbor[0], numTopPixelsNeeded);
+                    aboveRow[..numTopPixelsNeeded].Fill(leftNeighbor[0]);
                 }
                 else
                 {
-                    Unsafe.InitBlock(ref aboveRow[0], 127, numTopPixelsNeeded);
+                    aboveRow[..numTopPixelsNeeded].Fill(T.CreateChecked(baseValue - 1));
                 }
             }
         }
 
         if (needAboveLeft)
         {
-            ref byte aboveLeft = ref Unsafe.Subtract(ref aboveRow[0], 1);
+            ref T aboveLeft = ref Unsafe.Subtract(ref aboveRow[0], 1);
             if (topPixelCount > 0 && leftPixelCount > 0)
             {
                 aboveLeft = Unsafe.Subtract(ref aboveNeighbor[0], 1);
@@ -759,7 +771,7 @@ internal class Av1PredictionDecoder
             }
             else
             {
-                aboveLeft = 128;
+                aboveLeft = T.CreateChecked(baseValue);
             }
 
             Unsafe.Subtract(ref leftColumn[0], 1) = aboveLeft;
@@ -767,7 +779,7 @@ internal class Av1PredictionDecoder
 
         if (useFilterIntra)
         {
-            Av1PredictorFactory.FilterIntraPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, filterIntraMode);
+            FilterIntraPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, filterIntraMode, bitDepth);
             return;
         }
 
@@ -810,7 +822,7 @@ internal class Av1PredictionDecoder
                 {
                     int pixelCount = transformWidth + (needRight ? transformHeight : 0);
 
-                    UpsampleIntraEdge(aboveRow, pixelCount);
+                    UpsampleIntraEdge(aboveRow, pixelCount, bitDepth);
                 }
 
                 upsampleLeft = UseIntraEdgeUpsample(transformHeight, transformWidth, angle - 180, filterType);
@@ -818,34 +830,144 @@ internal class Av1PredictionDecoder
                 {
                     int pixelCount = transformHeight + (needBottom ? transformWidth : 0);
 
-                    UpsampleIntraEdge(leftColumn, pixelCount);
+                    UpsampleIntraEdge(leftColumn, pixelCount, bitDepth);
                 }
             }
 
-            Av1PredictorFactory.DirectionalPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, upsampleAbove, upsampleLeft, angle);
+            DirectionalPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, upsampleAbove, upsampleLeft, angle, bitDepth);
             return;
         }
 
         // predict
         if (mode == Av1PredictionMode.DC)
         {
-            Av1PredictorFactory.DcPredictor(leftPixelCount > 0, topPixelCount > 0, transformSize, destination, destinationStride, aboveRow, leftColumn);
+            DcPredictor(leftPixelCount > 0, topPixelCount > 0, transformSize, destination, destinationStride, aboveRow, leftColumn, bitDepth);
         }
         else
         {
-            Av1PredictorFactory.GeneralPredictor(mode, transformSize, destination, destinationStride, aboveRow, leftColumn);
+            GeneralPredictor(mode, transformSize, destination, destinationStride, aboveRow, leftColumn);
         }
     }
 
-    private static void UpsampleIntraEdge(Span<byte> buffer, int count)
+    private static void DcPredictor<T>(bool hasLeft, bool hasAbove, Av1TransformSize transformSize, Span<T> destination, nuint destinationStride, Span<T> above, Span<T> left, int bitDepth)
+        where T : unmanaged
+    {
+        if (typeof(T) == typeof(byte))
+        {
+            Av1PredictorFactory.DcPredictor(
+                hasLeft,
+                hasAbove,
+                transformSize,
+                MemoryMarshal.Cast<T, byte>(destination),
+                destinationStride,
+                MemoryMarshal.Cast<T, byte>(above),
+                MemoryMarshal.Cast<T, byte>(left));
+        }
+        else
+        {
+            Av1PredictorFactory.DcPredictor(
+                hasLeft,
+                hasAbove,
+                transformSize,
+                MemoryMarshal.Cast<T, short>(destination),
+                destinationStride,
+                MemoryMarshal.Cast<T, short>(above),
+                MemoryMarshal.Cast<T, short>(left),
+                bitDepth);
+        }
+    }
+
+    private static void GeneralPredictor<T>(Av1PredictionMode mode, Av1TransformSize transformSize, Span<T> destination, nuint destinationStride, Span<T> above, Span<T> left)
+        where T : unmanaged
+    {
+        if (typeof(T) == typeof(byte))
+        {
+            Av1PredictorFactory.GeneralPredictor(
+                mode,
+                transformSize,
+                MemoryMarshal.Cast<T, byte>(destination),
+                destinationStride,
+                MemoryMarshal.Cast<T, byte>(above),
+                MemoryMarshal.Cast<T, byte>(left));
+        }
+        else
+        {
+            Av1PredictorFactory.GeneralPredictor(
+                mode,
+                transformSize,
+                MemoryMarshal.Cast<T, short>(destination),
+                destinationStride,
+                MemoryMarshal.Cast<T, short>(above),
+                MemoryMarshal.Cast<T, short>(left));
+        }
+    }
+
+    private static void DirectionalPredictor<T>(Span<T> destination, nuint destinationStride, Av1TransformSize transformSize, Span<T> above, Span<T> left, bool upsampleAbove, bool upsampleLeft, int angle, int bitDepth)
+        where T : unmanaged
+    {
+        if (typeof(T) == typeof(byte))
+        {
+            Av1PredictorFactory.DirectionalPredictor(
+                MemoryMarshal.Cast<T, byte>(destination),
+                destinationStride,
+                transformSize,
+                MemoryMarshal.Cast<T, byte>(above),
+                MemoryMarshal.Cast<T, byte>(left),
+                upsampleAbove,
+                upsampleLeft,
+                angle);
+        }
+        else
+        {
+            Av1PredictorFactory.DirectionalPredictor(
+                MemoryMarshal.Cast<T, short>(destination),
+                destinationStride,
+                transformSize,
+                MemoryMarshal.Cast<T, short>(above),
+                MemoryMarshal.Cast<T, short>(left),
+                upsampleAbove,
+                upsampleLeft,
+                angle,
+                bitDepth);
+        }
+    }
+
+    private static void FilterIntraPredictor<T>(Span<T> destination, nuint destinationStride, Av1TransformSize transformSize, Span<T> above, Span<T> left, Av1FilterIntraMode mode, int bitDepth)
+        where T : unmanaged
+    {
+        if (typeof(T) == typeof(byte))
+        {
+            Av1PredictorFactory.FilterIntraPredictor(
+                MemoryMarshal.Cast<T, byte>(destination),
+                destinationStride,
+                transformSize,
+                MemoryMarshal.Cast<T, byte>(above),
+                MemoryMarshal.Cast<T, byte>(left),
+                mode);
+        }
+        else
+        {
+            Av1PredictorFactory.FilterIntraPredictor(
+                MemoryMarshal.Cast<T, short>(destination),
+                destinationStride,
+                transformSize,
+                MemoryMarshal.Cast<T, short>(above),
+                MemoryMarshal.Cast<T, short>(left),
+                mode,
+                bitDepth);
+        }
+    }
+
+    private static void UpsampleIntraEdge<T>(Span<T> buffer, int count, int bitDepth)
+        where T : unmanaged, IBinaryInteger<T>
     {
         // TODO: Consider creating SIMD version
 
         // interpolate half-sample positions
         Guard.MustBeLessThanOrEqualTo(count, MaxUpsampleSize, nameof(count));
 
-        Span<byte> input = stackalloc byte[MaxUpsampleSize + 3];
-        byte beforeBuffer = Unsafe.Subtract(ref buffer[0], 1);
+        Span<T> input = stackalloc T[MaxUpsampleSize + 3];
+        T beforeBuffer = Unsafe.Subtract(ref buffer[0], 1);
 
         // copy p[-1..(sz-1)] and extend first and last samples
         input[0] = beforeBuffer;
@@ -861,9 +983,9 @@ internal class Av1PredictionDecoder
         Unsafe.Subtract(ref buffer[0], 2) = input[0];
         for (int i = 0; i < count; i++)
         {
-            int s = -input[i] + (9 * input[i + 1]) + (9 * input[i + 2]) - input[i + 3];
-            s = Av1Math.Clamp((s + 8) >> 4, 0, 255);
-            buffer[(2 * i) - 1] = (byte)s;
+            int s = -int.CreateChecked(input[i]) + (9 * int.CreateChecked(input[i + 1])) + (9 * int.CreateChecked(input[i + 2])) - int.CreateChecked(input[i + 3]);
+            s = Av1Math.Clamp((s + 8) >> 4, 0, (1 << bitDepth) - 1);
+            buffer[(2 * i) - 1] = T.CreateChecked(s);
             buffer[2 * i] = input[i + 2];
         }
     }
@@ -886,7 +1008,8 @@ internal class Av1PredictionDecoder
     /// <summary>
     /// SVT: svt_av1_filter_intra_edge_c
     /// </summary>
-    private static void FilterIntraEdge(ref byte buffer, int count, int strength)
+    private static void FilterIntraEdge<T>(ref T buffer, int count, int strength)
+        where T : unmanaged, IBinaryInteger<T>
     {
         // TODO: Consider creating SIMD version
         if (strength == 0)
@@ -898,9 +1021,9 @@ internal class Av1PredictionDecoder
             [0, 4, 8, 4, 0], [0, 5, 6, 5, 0], [2, 4, 4, 4, 2]
         ];
         int filt = strength - 1;
-        Span<byte> edge = stackalloc byte[129];
+        Span<T> edge = stackalloc T[129];
 
-        Unsafe.CopyBlock(ref edge[0], ref buffer, (uint)count);
+        MemoryMarshal.CreateSpan(ref buffer, count).CopyTo(edge);
         for (int i = 1; i < count; i++)
         {
             int s = 0;
@@ -909,11 +1032,11 @@ internal class Av1PredictionDecoder
                 int k = i - 2 + j;
                 k = (k < 0) ? 0 : k;
                 k = (k > count - 1) ? count - 1 : k;
-                s += edge[k] * kernel[filt][j];
+                s += int.CreateChecked(edge[k]) * kernel[filt][j];
             }
 
             s = (s + 8) >> 4;
-            Unsafe.Add(ref buffer, i) = (byte)s;
+            Unsafe.Add(ref buffer, i) = T.CreateChecked(s);
         }
     }
 
@@ -1035,18 +1158,19 @@ internal class Av1PredictionDecoder
         return strength;
     }
 
-    private static void FilterIntraEdgeCorner(Span<byte> above, Span<byte> left)
+    private static void FilterIntraEdgeCorner<T>(Span<T> above, Span<T> left)
+        where T : unmanaged, IBinaryInteger<T>
     {
         int[] kernel = [5, 6, 5];
 
-        ref byte aboveRef = ref above[0];
-        ref byte leftRef = ref left[0];
-        ref byte abovePreviousRef = ref Unsafe.Subtract(ref aboveRef, 1);
-        ref byte leftPreviousRef = ref Unsafe.Subtract(ref leftRef, 1);
-        int s = (leftRef * kernel[0]) + (abovePreviousRef * kernel[1]) + (aboveRef * kernel[2]);
+        ref T aboveRef = ref above[0];
+        ref T leftRef = ref left[0];
+        ref T abovePreviousRef = ref Unsafe.Subtract(ref aboveRef, 1);
+        ref T leftPreviousRef = ref Unsafe.Subtract(ref leftRef, 1);
+        int s = (int.CreateChecked(leftRef) * kernel[0]) + (int.CreateChecked(abovePreviousRef) * kernel[1]) + (int.CreateChecked(aboveRef) * kernel[2]);
         s = (s + 8) >> 4;
-        abovePreviousRef = (byte)s;
-        leftPreviousRef = (byte)s;
+        abovePreviousRef = T.CreateChecked(s);
+        leftPreviousRef = T.CreateChecked(s);
     }
 
     private static bool GetFilterType(Av1PartitionInfo partitionInfo, Av1Plane plane)

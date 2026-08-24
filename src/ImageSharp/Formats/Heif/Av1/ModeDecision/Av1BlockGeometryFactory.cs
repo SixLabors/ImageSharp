@@ -5,10 +5,24 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.ModeDecision;
 
+/// <summary>
+/// Builds the AV1 block and transform geometries traversed by the mode-decision scan.
+/// </summary>
 internal class Av1BlockGeometryFactory
 {
+    /// <summary>
+    /// The number of scan entries required by the largest supported 128-pixel superblock geometry.
+    /// </summary>
     private const int MaxBlocksAllocated = 4421;
+
+    /// <summary>
+    /// Marks a geometry-depth combination that has no valid scan offset.
+    /// </summary>
     private const int NotUsedValue = 0;
+
+    /// <summary>
+    /// Maps each partition shape, axis, and component to its origin offset measured in quarter-block units.
+    /// </summary>
     private static readonly int[][][] NonSkipQuarterOffMult =
         [
 
@@ -27,6 +41,9 @@ internal class Av1BlockGeometryFactory
             /*P=6*/ [[0, 2, 2, 9], [0, 0, 2, 9]]
         ];
 
+    /// <summary>
+    /// Maps each partition shape, axis, and component to its dimension measured in quarter-block units.
+    /// </summary>
     private static readonly uint[][][] NonSkipSizeMult =
         [
 
@@ -45,7 +62,9 @@ internal class Av1BlockGeometryFactory
             /*P=6*/ [[2, 2, 2, 9], [4, 2, 2, 9]]
         ];
 
-    // gives the index of next quadrant child within a depth
+    /// <summary>
+    /// Maps geometry and quadtree depth to the scan offset of the next quadrant at that depth.
+    /// </summary>
     private static readonly int[][] NonSkipDepthOffset =
         [
             [85, 21, 5, 1, NotUsedValue, NotUsedValue],
@@ -59,7 +78,9 @@ internal class Av1BlockGeometryFactory
             [2377, 593, 145, 33, 5, NotUsedValue]
         ];
 
-    // gives the next depth block(first qudrant child) from a given parent square
+    /// <summary>
+    /// Maps geometry and quadtree depth to the scan offset of the square block's first child.
+    /// </summary>
     private static readonly int[][] Depth1DepthOffset =
         [
             [1, 1, 1, 1, 1, NotUsedValue],
@@ -73,24 +94,47 @@ internal class Av1BlockGeometryFactory
             [5, 13, 13, 13, 5, NotUsedValue]
         ];
 
+    /// <summary>
+    /// The geometry whose lookup-table row is active while a scan is constructed.
+    /// </summary>
     private static Av1GeometryIndex geometryIndex;
+
+    /// <summary>
+    /// The active geometry's superblock width and height in pixels.
+    /// </summary>
     private static int maxSuperblock;
+
+    /// <summary>
+    /// The number of quadtree depths generated for the active geometry.
+    /// </summary>
     private static int maxDepth;
+
+    /// <summary>
+    /// The number of partition shapes considered by the active geometry before size-specific restrictions.
+    /// </summary>
     private static int maxPart;
 
     // private static int maxActiveBlockCount;
+
+    /// <summary>
+    /// Stores block geometries by mode-decision scan index.
+    /// </summary>
     private readonly Av1BlockGeometry[] blockGeometryModeDecisionScan;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1BlockGeometryFactory"/> class.
     /// </summary>
-    /// <remarks>SVT: md_scan_all_blks</remarks>
+    /// <param name="geom">The predefined geometry used to size and populate the mode-decision scan.</param>
+    /// <remarks>SVT-AV1: <c>md_scan_all_blks</c>.</remarks>
     public Av1BlockGeometryFactory(Av1GeometryIndex geom)
     {
         this.blockGeometryModeDecisionScan = new Av1BlockGeometry[MaxBlocksAllocated];
         int max_block_count;
         geometryIndex = geom;
         byte min_nsq_bsize;
+
+        // These preset limits and the enum order form the row index contract for the offset tables above.
+        // Changing one without the other would make parent and sibling scan offsets refer to a different geometry.
         if (geom == Av1GeometryIndex.Geometry0)
         {
             maxSuperblock = 64;
@@ -176,8 +220,11 @@ internal class Av1BlockGeometryFactory
     }
 
     /// <summary>
-    /// SVT: count_total_num_of_active_blks
+    /// Counts the block entries produced by every enabled partition at every depth of the active geometry.
     /// </summary>
+    /// <param name="min_nsq_bsize">The smallest square size, in pixels, at which non-square partitions remain enabled.</param>
+    /// <returns>The number of active mode-decision scan entries.</returns>
+    /// <remarks>SVT-AV1: <c>count_total_num_of_active_blks</c>.</remarks>
     private static int CountTotalNumberOfActiveBlocks(int min_nsq_bsize)
     {
         int depth_scan_idx = 0;
@@ -185,12 +232,17 @@ internal class Av1BlockGeometryFactory
         for (int depthIterator = 0; depthIterator < maxDepth; depthIterator++)
         {
             int totalSquareCount = 1 << depthIterator;
+
+            // Each quadtree depth halves the square sequence dimension. The final branch covers the deepest
+            // 128-pixel-superblock geometry, whose sixth level contains 4-pixel squares.
             int sequenceSize = depthIterator == 0 ? maxSuperblock
                    : depthIterator == 1 ? maxSuperblock / 2
                    : depthIterator == 2 ? maxSuperblock / 4
                    : depthIterator == 3 ? maxSuperblock / 8
                    : depthIterator == 4 ? maxSuperblock / 16 : maxSuperblock / 32;
 
+            // AV1 restricts the partition shapes allowed at the largest and smallest block sizes. Apply those
+            // caps before walking the shape table so a row is never interpreted for an illegal block size.
             int max_part_updated = sequenceSize == 128 ? Math.Min(maxPart, maxPart < 9 && maxPart > 3 ? 3 : 7)
                 : sequenceSize == 8 ? Math.Min(maxPart, 3)
                 : sequenceSize == 4 ? 1 : maxPart;
@@ -216,8 +268,12 @@ internal class Av1BlockGeometryFactory
     }
 
     /// <summary>
-    /// SVT: get_num_ns_per_part
+    /// Gets the number of component blocks emitted by one partition shape.
     /// </summary>
+    /// <param name="partitionIterator">The zero-based partition-shape index in scan order.</param>
+    /// <param name="sequenceSize">The width and height, in pixels, of the square being partitioned.</param>
+    /// <returns>The number of component blocks in the partition.</returns>
+    /// <remarks>SVT-AV1: <c>get_num_ns_per_part</c>.</remarks>
     private static int GetNonSquareCountPerPart(int partitionIterator, int sequenceSize)
     {
         int tot_num_ns_per_part = partitionIterator < 1 ? 1 : partitionIterator < 3 ? 2 : partitionIterator < 5 && sequenceSize < 128 ? 4 : 3;
@@ -225,8 +281,10 @@ internal class Av1BlockGeometryFactory
     }
 
     /// <summary>
-    /// SVT: log_redundancy_similarity
+    /// Records scan entries that represent the same block size at the same pixel origin.
     /// </summary>
+    /// <param name="max_block_count">The number of populated scan entries to compare.</param>
+    /// <remarks>SVT-AV1: <c>log_redundancy_similarity</c>.</remarks>
     private static void LogRedundancySimilarity(int max_block_count)
     {
         for (int blockIterator = 0; blockIterator < max_block_count; blockIterator++)
@@ -252,10 +310,24 @@ internal class Av1BlockGeometryFactory
     }
 
     /// <summary>
-    /// SVT: get_blk_geom_mds
+    /// Gets the block geometry at a mode-decision scan index.
     /// </summary>
+    /// <param name="modeDecisionScanIndex">The zero-based mode-decision scan index.</param>
+    /// <returns>The geometry stored at <paramref name="modeDecisionScanIndex"/>.</returns>
+    /// <exception cref="NotImplementedException">Always thrown because the geometry lookup has not been implemented.</exception>
+    /// <remarks>SVT-AV1: <c>get_blk_geom_mds</c>.</remarks>
     public static Av1BlockGeometry GetBlockGeometryByModeDecisionScanIndex(int modeDecisionScanIndex) => throw new NotImplementedException();
 
+    /// <summary>
+    /// Appends every enabled partition and transform layout for a square region to scan order.
+    /// </summary>
+    /// <param name="index">The next scan index; advanced once for every emitted block geometry.</param>
+    /// <param name="sequenceSize">The width and height, in pixels, of the square region being partitioned.</param>
+    /// <param name="x">The region's horizontal origin in pixels relative to the superblock.</param>
+    /// <param name="y">The region's vertical origin in pixels relative to the superblock.</param>
+    /// <param name="isLastQuadrant">Whether the region is the final quadrant of its parent.</param>
+    /// <param name="quadIterator">The zero-based quadrant index within the parent.</param>
+    /// <param name="minNonSquareBlockSize">The smallest square size, in pixels, at which non-square partitions remain enabled.</param>
     private void ScanAllBlocks(ref int index, int sequenceSize, int x, int y, bool isLastQuadrant, byte quadIterator, byte minNonSquareBlockSize)
     {
         // The input block is the parent square block of size sq_size located at pos (x,y)
@@ -264,6 +336,8 @@ internal class Av1BlockGeometryFactory
         int halfsize = sequenceSize / 2;
         int quartsize = sequenceSize / 4;
 
+        // AV1 removes partition shapes that cannot be represented at 128-, 8-, and 4-pixel square sizes.
+        // The scan tables are ordered by the remaining shape set, so the cap must be applied before indexing them.
         int max_part_updated = sequenceSize == 128 ? Math.Min(maxPart, maxPart is < 9 and > 3 ? 3 : 7)
             : sequenceSize == 8 ? Math.Min(maxPart, 3)
             : sequenceSize == 4 ? 1 : maxPart;
@@ -280,6 +354,8 @@ internal class Av1BlockGeometryFactory
 
             for (int nonSquareIterator = 0; nonSquareIterator < tot_num_ns_per_part; nonSquareIterator++)
             {
+                // Geometry presets use power-of-two superblocks, so the current square dimension uniquely identifies
+                // its quadtree depth without carrying recursion state in every scan entry.
                 this.blockGeometryModeDecisionScan[index].Depth = sequenceSize == maxSuperblock / 1 ? 0
                     : sequenceSize == maxSuperblock / 2 ? 1
                     : sequenceSize == maxSuperblock / 4 ? 2
@@ -315,6 +391,8 @@ internal class Av1BlockGeometryFactory
                 this.blockGeometryModeDecisionScan[index].NonSquareIndex = nonSquareIterator;
                 uint blockWidth = (uint)quartsize * NonSkipSizeMult[part_it_idx][0][nonSquareIterator];
                 uint blockHeight = (uint)quartsize * NonSkipSizeMult[part_it_idx][1][nonSquareIterator];
+
+                // Av1BlockSize indexes dimensions by log2(size) - 2 because 4x4 is the smallest coded block.
                 this.blockGeometryModeDecisionScan[index].BlockSize =
                     Av1BlockSizeExtensions.FromWidthAndHeight(Av1Math.Log2_32(blockWidth) - 2u, Av1Math.Log2_32(blockHeight) - 2u);
                 this.blockGeometryModeDecisionScan[index].BlockSizeUv = this.blockGeometryModeDecisionScan[index].BlockSize.GetSubsampled(true, true);
@@ -323,6 +401,8 @@ internal class Av1BlockGeometryFactory
                 // this.blockGeometryModeDecisionScan[index].BlockHeightUv = Math.Max(4, this.blockGeometryModeDecisionScan[index].BlockHeight >> 1);
                 this.blockGeometryModeDecisionScan[index].HasUv = true;
 
+                // Chroma cannot be subdivided below its minimum block dimensions. When several luma blocks map to
+                // the same chroma block, only the final contributing luma component owns that shared U/V geometry.
                 if (this.blockGeometryModeDecisionScan[index].BlockWidth == 4 && this.blockGeometryModeDecisionScan[index].BlockHeight == 4)
                 {
                     this.blockGeometryModeDecisionScan[index].HasUv = isLastQuadrant;
@@ -350,7 +430,8 @@ internal class Av1BlockGeometryFactory
                     }
                 }
 
-                // tx_depth 1 geom settings
+                // Transform depth zero keeps the largest legal transform. Blocks larger than AV1's 64x64 transform
+                // limit are represented by two or four transform blocks whose origins cover the coded block.
                 int tx_depth = 0;
                 this.blockGeometryModeDecisionScan[index].TransformBlockCount[tx_depth] = this.blockGeometryModeDecisionScan[index].BlockSize == Av1BlockSize.Block128x128
                     ? 4
@@ -405,7 +486,8 @@ internal class Av1BlockGeometryFactory
                         tx_size_high[this.blockGeometryModeDecisionScan[index].TransformSizeUv[tx_depth]];*/
                 }
 
-                // tx_depth 1 geom settings
+                // Transform depth one subdivides eligible luma blocks once while chroma retains its depth-zero size.
+                // The block-count cases below mirror the legal rectangular AV1 transform partitions.
                 tx_depth = 1;
                 this.blockGeometryModeDecisionScan[index].TransformBlockCount[tx_depth] = this.blockGeometryModeDecisionScan[index].BlockSize == Av1BlockSize.Block128x128
                     ? 4
@@ -695,7 +777,8 @@ internal class Av1BlockGeometryFactory
                     this.blockGeometryModeDecisionScan[index].tx_height_uv[tx_depth] = this.blockGeometryModeDecisionScan[index].tx_height_uv[0];*/
                 }
 
-                // tx_depth 2 geom settings
+                // Transform depth two performs a second subdivision. The origin tables enumerate the child
+                // transforms in raster order so coefficient reconstruction visits the same spatial layout.
                 tx_depth = 2;
 
                 this.blockGeometryModeDecisionScan[index].TransformBlockCount[tx_depth] = this.blockGeometryModeDecisionScan[index].BlockSize == Av1BlockSize.Block128x128
@@ -970,18 +1053,21 @@ internal class Av1BlockGeometryFactory
     }
 
     /// <summary>
-    /// SVT: av1_get_tx_size
+    /// Gets the largest legal transform size for a luma or subsampled chroma block.
     /// </summary>
+    /// <param name="blockSize">The coded block size whose transform limit is requested.</param>
+    /// <param name="plane">The plane index, where zero selects luma and a positive value selects chroma.</param>
+    /// <returns>The maximum transform size for the selected plane.</returns>
+    /// <remarks>SVT-AV1: <c>av1_get_tx_size</c>.</remarks>
     private static Av1TransformSize GetTransformSize(Av1BlockSize blockSize, int plane)
     {
-        // const MbModeInfo* mbmi = xd->mi[0];
-        // if (xd->lossless[mbmi->segment_id]) return TX_4X4;
+        // Luma uses the coded block's normative transform ceiling directly.
         if (plane == 0)
         {
             return blockSize.GetMaximumTransformSize();
         }
 
-        // const MacroblockdPlane *pd = &xd->plane[plane];
+        // This geometry models 4:2:0 chroma, so both chroma axes are subsampled before selecting their limit.
         bool subsampling_x = plane > 0;
         bool subsampling_y = plane > 0;
         return blockSize.GetMaxUvTransformSize(subsampling_x, subsampling_y);

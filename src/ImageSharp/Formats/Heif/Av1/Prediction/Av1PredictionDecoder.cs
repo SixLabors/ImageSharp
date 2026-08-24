@@ -744,24 +744,25 @@ internal class Av1PredictionDecoder
 
         if (needAboveLeft)
         {
+            ref byte aboveLeft = ref Unsafe.Subtract(ref aboveRow[0], 1);
             if (topPixelCount > 0 && leftPixelCount > 0)
             {
-                aboveRow[-1] = aboveNeighbor[-1];
+                aboveLeft = Unsafe.Subtract(ref aboveNeighbor[0], 1);
             }
             else if (topPixelCount > 0)
             {
-                aboveRow[-1] = aboveNeighbor[0];
+                aboveLeft = aboveNeighbor[0];
             }
             else if (leftPixelCount > 0)
             {
-                aboveRow[-1] = leftNeighbor[0];
+                aboveLeft = leftNeighbor[0];
             }
             else
             {
-                aboveRow[-1] = 128;
+                aboveLeft = 128;
             }
 
-            leftColumn[-1] = aboveRow[-1];
+            Unsafe.Subtract(ref leftColumn[0], 1) = aboveLeft;
         }
 
         if (useFilterIntra)
@@ -857,7 +858,7 @@ internal class Av1PredictionDecoder
         input[count + 2] = buffer[count - 1];
 
         // interpolate half-sample edge positions
-        buffer[-2] = input[0];
+        Unsafe.Subtract(ref buffer[0], 2) = input[0];
         for (int i = 0; i < count; i++)
         {
             int s = -input[i] + (9 * input[i + 1]) + (9 * input[i + 2]) - input[i + 3];

@@ -102,7 +102,8 @@ internal class Av1PredictorFactory
         }
     }
 
-    internal static void FilterIntraPredictor(Span<byte> destination, nuint destinationStride, Av1TransformSize transformSize, Span<byte> aboveRow, Span<byte> leftColumn, Av1FilterIntraMode filterIntraMode) => throw new NotImplementedException();
+    internal static void FilterIntraPredictor(Span<byte> destination, nuint destinationStride, Av1TransformSize transformSize, Span<byte> aboveRow, Span<byte> leftColumn, Av1FilterIntraMode filterIntraMode)
+        => Av1FilterIntraPredictor.Predict(destination, destinationStride, transformSize, aboveRow, leftColumn, filterIntraMode);
 
     internal static void GeneralPredictor(Av1PredictionMode mode, Av1TransformSize transformSize, Span<byte> destination, nuint destinationStride, Span<byte> aboveRow, Span<byte> leftColumn)
     {

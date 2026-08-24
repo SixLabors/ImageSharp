@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
@@ -368,6 +369,50 @@ public class Av1PredictorTests
         Assert.Equal(expected, actual);
     }
 
+    [Theory]
+    [MemberData(nameof(GetFilterIntraPredictions))]
+    public void FilterIntraMatchesLibaomScalarVector(int mode, byte[] expected)
+    {
+        byte[] destination = new byte[16];
+        byte[] aboveData = [17, 30, 70, 110, 150];
+        Span<byte> above = aboveData.AsSpan(1);
+        byte[] left = [40, 80, 120, 160];
+
+        Av1PredictorFactory.FilterIntraPredictor(
+            destination,
+            4,
+            Av1TransformSize.Size4x4,
+            above,
+            left,
+            (Av1FilterIntraMode)mode);
+
+        Assert.Equal(expected, destination);
+    }
+
+    [Theory]
+    [MemberData(nameof(GetFilterIntraTransformSizes))]
+    public void FilterIntraSupportsEveryPermittedTransformSize(int transformSizeIndex)
+    {
+        Av1TransformSize transformSize = (Av1TransformSize)transformSizeIndex;
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        byte[] destination = new byte[width * height];
+        byte[] aboveData = new byte[width + 1];
+        byte[] left = new byte[height];
+        Array.Fill(aboveData, (byte)73);
+        Array.Fill(left, (byte)73);
+
+        Av1PredictorFactory.FilterIntraPredictor(
+            destination,
+            (nuint)width,
+            transformSize,
+            aboveData.AsSpan(1),
+            left,
+            Av1FilterIntraMode.DC);
+
+        Assert.All(destination, value => Assert.Equal(73, value));
+    }
+
     private static void AssertValue(byte expected, byte actual)
     {
         Assert.NotEqual(0, actual);
@@ -397,6 +442,45 @@ public class Av1PredictorTests
         }
 
         return combinations;
+    }
+
+    public static TheoryData<int, byte[]> GetFilterIntraPredictions() => new()
+    {
+        {
+            (int)Av1FilterIntraMode.DC,
+            [42, 65, 89, 123, 72, 77, 91, 110, 105, 100, 104, 112, 142, 128, 123, 124]
+        },
+        {
+            (int)Av1FilterIntraMode.Vertical,
+            [44, 79, 116, 153, 69, 94, 126, 158, 94, 109, 136, 163, 119, 124, 146, 168]
+        },
+        {
+            (int)Av1FilterIntraMode.Horizontal,
+            [47, 67, 87, 107, 83, 93, 103, 113, 122, 127, 132, 137, 161, 163, 166, 168]
+        },
+        {
+            (int)Av1FilterIntraMode.Directional157,
+            [38, 55, 81, 111, 64, 62, 73, 92, 97, 83, 81, 86, 134, 113, 103, 100]
+        },
+        {
+            (int)Av1FilterIntraMode.Paeth,
+            [49, 81, 114, 148, 82, 105, 132, 159, 117, 132, 153, 174, 152, 159, 177, 190]
+        },
+    };
+
+    public static TheoryData<int> GetFilterIntraTransformSizes()
+    {
+        TheoryData<int> transformSizes = [];
+        for (int i = 0; i < (int)Av1TransformSize.AllSizes; i++)
+        {
+            Av1TransformSize transformSize = (Av1TransformSize)i;
+            if (transformSize.GetWidth() <= 32 && transformSize.GetHeight() <= 32)
+            {
+                transformSizes.Add(i);
+            }
+        }
+
+        return transformSizes;
     }
 
     private static string GetExpectedDigext(Av1TransformSize size, Av1PredictionMode mode) => size switch

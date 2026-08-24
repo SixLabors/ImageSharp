@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
-/// Stores entropy, palette, partition, and transform contexts for 4-by-4 blocks above the current block.
+/// Stores entropy, partition, and transform contexts for 4-by-4 blocks above the current block.
 /// </summary>
 internal class Av1ParseAboveNeighbor4x4Context
 {
@@ -22,11 +22,6 @@ internal class Av1ParseAboveNeighbor4x4Context
     private readonly int[] aboveSegmentIdPredictionContext;
 
     /// <summary>
-    /// Stores palette base colors for each plane above the current block.
-    /// </summary>
-    private readonly int[][] abovePaletteColors = new int[Av1Constants.MaxPlanes][];
-
-    /// <summary>
     /// Stores compound-reference group contexts from the preceding 4x4 row.
     /// </summary>
     private readonly int[] aboveCompGroupIndex;
@@ -38,13 +33,11 @@ internal class Av1ParseAboveNeighbor4x4Context
     /// <param name="modeInfoColumnCount">The frame width in 4x4 mode-information columns.</param>
     public Av1ParseAboveNeighbor4x4Context(int planesCount, int modeInfoColumnCount)
     {
-        int wide64x64Count = Av1BlockSize.Block64x64.Get4x4WideCount();
         this.AboveTransformWidth = new int[modeInfoColumnCount];
         this.AbovePartitionWidth = new int[modeInfoColumnCount];
         for (int i = 0; i < planesCount; i++)
         {
             this.aboveContext[i] = new int[modeInfoColumnCount];
-            this.abovePaletteColors[i] = new int[wide64x64Count * Av1Constants.PaletteMaxSize];
         }
 
         this.aboveSegmentIdPredictionContext = new int[modeInfoColumnCount];
@@ -83,7 +76,6 @@ internal class Av1ParseAboveNeighbor4x4Context
         for (int i = 0; i < planeCount; i++)
         {
             Array.Fill(this.aboveContext[i], 0, 0, width);
-            Array.Fill(this.abovePaletteColors[i], 0, 0, width);
         }
 
         Array.Fill(this.aboveSegmentIdPredictionContext, 0, 0, width);

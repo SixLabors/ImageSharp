@@ -16,6 +16,16 @@ internal class Av1BlockModeInfo
     private int[] paletteSize;
 
     /// <summary>
+    /// Stores the decoded palette colors for the Y, U, and V planes.
+    /// </summary>
+    private readonly ushort[][] paletteColors = [[], [], []];
+
+    /// <summary>
+    /// Stores the luma and shared chroma palette color-index maps.
+    /// </summary>
+    private readonly byte[][] paletteColorIndexMaps = [[], []];
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1BlockModeInfo"/> class.
     /// </summary>
     /// <param name="numPlanes">The number of color planes in the decoded frame.</param>
@@ -127,4 +137,35 @@ internal class Av1BlockModeInfo
     /// <param name="ySize">The luma palette size.</param>
     /// <param name="uvSize">The palette size shared by the chroma planes.</param>
     public void SetPaletteSizes(int ySize, int uvSize) => this.paletteSize = [ySize, uvSize];
+
+    /// <summary>
+    /// Gets the decoded palette colors for a color plane.
+    /// </summary>
+    /// <param name="plane">The color plane.</param>
+    /// <returns>The palette colors in prediction-index order.</returns>
+    public ReadOnlySpan<ushort> GetPaletteColors(Av1Plane plane) => this.paletteColors[(int)plane];
+
+    /// <summary>
+    /// Stores the decoded palette colors for a color plane.
+    /// </summary>
+    /// <param name="plane">The color plane.</param>
+    /// <param name="colors">The palette colors in prediction-index order.</param>
+    public void SetPaletteColors(Av1Plane plane, ReadOnlySpan<ushort> colors)
+        => this.paletteColors[(int)plane] = colors.ToArray();
+
+    /// <summary>
+    /// Gets the palette color-index map for a color plane.
+    /// </summary>
+    /// <param name="plane">The color plane.</param>
+    /// <returns>The luma map for <see cref="Av1Plane.Y"/> or the shared chroma map for either chroma plane.</returns>
+    public ReadOnlySpan<byte> GetPaletteColorIndexMap(Av1Plane plane)
+        => this.paletteColorIndexMaps[Math.Min(1, (int)plane)];
+
+    /// <summary>
+    /// Stores the palette color-index map for a plane class.
+    /// </summary>
+    /// <param name="planeType">The luma or shared chroma plane class.</param>
+    /// <param name="colorIndexMap">The row-major color-index map including coded-block edge padding.</param>
+    public void SetPaletteColorIndexMap(Av1PlaneType planeType, byte[] colorIndexMap)
+        => this.paletteColorIndexMaps[(int)planeType] = colorIndexMap;
 }

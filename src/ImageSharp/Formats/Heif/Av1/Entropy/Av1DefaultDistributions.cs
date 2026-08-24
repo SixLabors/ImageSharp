@@ -114,6 +114,81 @@ internal static class Av1DefaultDistributions
     public static Av1Distribution IntraBlockCopy => new(30531);
 
     /// <summary>
+    /// Gets the luma palette-mode distributions indexed by block-size and neighboring-palette contexts.
+    /// </summary>
+    public static Av1Distribution[][] PaletteYMode =>
+        [
+            [new(31676), new(3419), new(1261)],
+            [new(31912), new(2859), new(980)],
+            [new(31823), new(3400), new(781)],
+            [new(32030), new(3561), new(904)],
+            [new(32309), new(7337), new(1462)],
+            [new(32265), new(4015), new(1521)],
+            [new(32450), new(7946), new(129)]
+        ];
+
+    /// <summary>
+    /// Gets the chroma palette-mode distributions indexed by whether luma uses a palette.
+    /// </summary>
+    public static Av1Distribution[] PaletteUvMode => [new(32461), new(21488)];
+
+    /// <summary>
+    /// Gets the luma palette-size distributions indexed by block-size context.
+    /// </summary>
+    public static Av1Distribution[] PaletteYSize =>
+        [
+            new(7952, 13000, 18149, 21478, 25527, 29241),
+            new(7139, 11421, 16195, 19544, 23666, 28073),
+            new(7788, 12741, 17325, 20500, 24315, 28530),
+            new(8271, 14064, 18246, 21564, 25071, 28533),
+            new(12725, 19180, 21863, 24839, 27535, 30120),
+            new(9711, 14888, 16923, 21052, 25661, 27875),
+            new(14940, 20797, 21678, 24186, 27033, 28999)
+        ];
+
+    /// <summary>
+    /// Gets the chroma palette-size distributions indexed by block-size context.
+    /// </summary>
+    public static Av1Distribution[] PaletteUvSize =>
+        [
+            new(8713, 19979, 27128, 29609, 31331, 32272),
+            new(5839, 15573, 23581, 26947, 29848, 31700),
+            new(4426, 11260, 17999, 21483, 25863, 29430),
+            new(3228, 9464, 14993, 18089, 22523, 27420),
+            new(3768, 8886, 13091, 17852, 22495, 27207),
+            new(2464, 8451, 12861, 21632, 25525, 28555),
+            new(1269, 5435, 10433, 18963, 21700, 25865)
+        ];
+
+    /// <summary>
+    /// Gets the luma palette color-index distributions indexed by palette size minus two and spatial context.
+    /// </summary>
+    public static Av1Distribution[][] PaletteYColorIndex =>
+        [
+            [new(28710), new(16384), new(10553), new(27036), new(31603)],
+            [new(27877, 30490), new(11532, 25697), new(6544, 30234), new(23018, 28072), new(31915, 32385)],
+            [new(25572, 28046, 30045), new(9478, 21590, 27256), new(7248, 26837, 29824), new(19167, 24486, 28349), new(31400, 31825, 32250)],
+            [new(24779, 26955, 28576, 30282), new(8669, 20364, 24073, 28093), new(4255, 27565, 29377, 31067), new(19864, 23674, 26716, 29530), new(31646, 31893, 32147, 32426)],
+            [new(23132, 25407, 26970, 28435, 30073), new(7443, 17242, 20717, 24762, 27982), new(6300, 24862, 26944, 28784, 30671), new(18916, 22895, 25267, 27435, 29652), new(31270, 31550, 31808, 32059, 32353)],
+            [new(23105, 25199, 26464, 27684, 28931, 30318), new(6950, 15447, 18952, 22681, 25567, 28563), new(7560, 23474, 25490, 27203, 28921, 30708), new(18544, 22373, 24457, 26195, 28119, 30045), new(31198, 31451, 31670, 31882, 32123, 32391)],
+            [new(21689, 23883, 25163, 26352, 27506, 28827, 30195), new(6892, 15385, 17840, 21606, 24287, 26753, 29204), new(5651, 23182, 25042, 26518, 27982, 29392, 30900), new(19349, 22578, 24418, 25994, 27524, 29031, 30448), new(31028, 31270, 31504, 31705, 31927, 32153, 32392)]
+        ];
+
+    /// <summary>
+    /// Gets the chroma palette color-index distributions indexed by palette size minus two and spatial context.
+    /// </summary>
+    public static Av1Distribution[][] PaletteUvColorIndex =>
+        [
+            [new(29089), new(16384), new(8713), new(29257), new(31610)],
+            [new(25257, 29145), new(12287, 27293), new(7033, 27960), new(20145, 25405), new(30608, 31639)],
+            [new(24210, 27175, 29903), new(9888, 22386, 27214), new(5901, 26053, 29293), new(18318, 22152, 28333), new(30459, 31136, 31926)],
+            [new(22980, 25479, 27781, 29986), new(8413, 21408, 24859, 28874), new(2257, 29449, 30594, 31598), new(19189, 21202, 25915, 28620), new(31844, 32044, 32281, 32518)],
+            [new(22217, 24567, 26637, 28683, 30548), new(7307, 16406, 19636, 24632, 28424), new(4441, 25064, 26879, 28942, 30919), new(17210, 20528, 23319, 26750, 29582), new(30674, 30953, 31396, 31735, 32207)],
+            [new(21239, 23168, 25044, 26962, 28705, 30506), new(6545, 15012, 18004, 21817, 25503, 28701), new(3448, 26295, 27437, 28704, 30126, 31442), new(15889, 18323, 21704, 24698, 26976, 29690), new(30988, 31204, 31479, 31734, 31983, 32325)],
+            [new(21442, 23288, 24758, 26246, 27649, 28980, 30563), new(5863, 14933, 17552, 20668, 23683, 26411, 29273), new(3415, 25810, 26877, 27990, 29223, 30394, 31618), new(17965, 20084, 22232, 23974, 26274, 28402, 30390), new(31190, 31329, 31516, 31679, 31825, 32026, 32322)]
+        ];
+
+    /// <summary>
     /// Gets the partition-type distributions indexed by block-size and neighboring split context.
     /// </summary>
     public static Av1Distribution[] PartitionTypes =>

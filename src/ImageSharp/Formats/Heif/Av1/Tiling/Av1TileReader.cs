@@ -45,6 +45,11 @@ internal class Av1TileReader : IAv1TileReader
         [1, 2, 2, 2, 3], [1, 4, 4, 4, 5], [1, 4, 4, 4, 5], [1, 4, 4, 4, 5], [1, 4, 4, 4, 6]];
 
     /// <summary>
+    /// Maps the weighted palette-neighbor score hash to its color-index entropy context.
+    /// </summary>
+    private static readonly int[] PaletteColorIndexContexts = [-1, -1, 0, -1, -1, 4, 3, 2, 1];
+
+    /// <summary>
     /// Stores the preceding self-guided restoration coefficients for each color plane.
     /// </summary>
     private int[][] referenceSgrXqd = [];
@@ -55,12 +60,12 @@ internal class Av1TileReader : IAv1TileReader
     private int[][][] referenceLrWiener = [];
 
     /// <summary>
-    /// Tracks entropy, partition, transform, and palette state above the current block.
+    /// Tracks entropy, partition, and transform state above the current block.
     /// </summary>
     private readonly Av1ParseAboveNeighbor4x4Context aboveNeighborContext;
 
     /// <summary>
-    /// Tracks entropy, partition, transform, and palette state left of the current block.
+    /// Tracks entropy, partition, and transform state left of the current block.
     /// </summary>
     private readonly Av1ParseLeftNeighbor4x4Context leftNeighborContext;
 
@@ -440,7 +445,7 @@ internal class Av1TileReader : IAv1TileReader
         partitionInfo.PopulateModeInfoNeighbors(this.SequenceHeader.ColorConfig);
 
         this.ReadModeInfo(ref reader, partitionInfo);
-        ReadPaletteTokens(ref reader, partitionInfo);
+        this.ReadPaletteTokens(ref reader, partitionInfo);
         this.ReadBlockTransformSize(ref reader, modeInfoLocation, partitionInfo, superblockInfo, tileInfo);
         if (partitionInfo.ModeInfo.Skip)
         {
@@ -1135,18 +1140,54 @@ internal class Av1TileReader : IAv1TileReader
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block.</param>
-    /// <exception cref="NotImplementedException">The block selects a nonempty luma or chroma palette.</exception>
     /// <remarks>Implements AV1 section 5.11.49.</remarks>
-    private static void ReadPaletteTokens(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
+    private void ReadPaletteTokens(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
-        if (partitionInfo.ModeInfo.GetPaletteSize(Av1PlaneType.Y) != 0)
+        Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
+        if (modeInfo.GetPaletteSize(Av1PlaneType.Y) != 0)
         {
-            throw new NotImplementedException();
+            GetPaletteMapDimensions(
+                partitionInfo,
+                Av1PlaneType.Y,
+                this.SequenceHeader.ColorConfig,
+                out int planeWidth,
+                out int planeHeight,
+                out int rows,
+                out int columns);
+
+            byte[] colorIndexMap = DecodePaletteColorMap(
+                ref reader,
+                modeInfo.GetPaletteSize(Av1PlaneType.Y),
+                Av1PlaneType.Y,
+                planeWidth,
+                planeHeight,
+                rows,
+                columns);
+
+            modeInfo.SetPaletteColorIndexMap(Av1PlaneType.Y, colorIndexMap);
         }
 
-        if (partitionInfo.ModeInfo.GetPaletteSize(Av1PlaneType.Uv) != 0)
+        if (modeInfo.GetPaletteSize(Av1PlaneType.Uv) != 0)
         {
-            throw new NotImplementedException();
+            GetPaletteMapDimensions(
+                partitionInfo,
+                Av1PlaneType.Uv,
+                this.SequenceHeader.ColorConfig,
+                out int planeWidth,
+                out int planeHeight,
+                out int rows,
+                out int columns);
+
+            byte[] colorIndexMap = DecodePaletteColorMap(
+                ref reader,
+                modeInfo.GetPaletteSize(Av1PlaneType.Uv),
+                Av1PlaneType.Uv,
+                planeWidth,
+                planeHeight,
+                rows,
+                columns);
+
+            modeInfo.SetPaletteColorIndexMap(Av1PlaneType.Uv, colorIndexMap);
         }
     }
 
@@ -1293,10 +1334,467 @@ internal class Av1TileReader : IAv1TileReader
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block.</param>
-    /// <exception cref="NotImplementedException">Palette-mode syntax is not implemented.</exception>
     /// <remarks>Implements AV1 section 5.11.46.</remarks>
     private void PaletteModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
-        => throw new NotImplementedException();
+    {
+        Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
+        Av1BlockSize blockSize = modeInfo.BlockSize;
+
+        // The palette block-size context is the base-two block-area difference from an 8-by-8 block.
+        int blockSizeContext = Av1Math.Log2(blockSize.GetWidth() * blockSize.GetHeight()) - 6;
+        int yPaletteSize = 0;
+        int uvPaletteSize = 0;
+        int bitDepth = this.SequenceHeader.ColorConfig.BitDepth.GetBitCount();
+        if (modeInfo.YMode == Av1PredictionMode.DC)
+        {
+            int neighborContext = 0;
+            if (partitionInfo.AboveModeInfo is not null && partitionInfo.AboveModeInfo.GetPaletteSize(Av1PlaneType.Y) != 0)
+            {
+                neighborContext++;
+            }
+
+            if (partitionInfo.LeftModeInfo is not null && partitionInfo.LeftModeInfo.GetPaletteSize(Av1PlaneType.Y) != 0)
+            {
+                neighborContext++;
+            }
+
+            if (reader.ReadPaletteYMode(blockSizeContext, neighborContext))
+            {
+                yPaletteSize = reader.ReadPaletteSize(blockSizeContext, Av1PlaneType.Y);
+                Span<ushort> yColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+                ReadPaletteColorsY(ref reader, partitionInfo, yPaletteSize, bitDepth, yColors);
+                modeInfo.SetPaletteColors(Av1Plane.Y, yColors[..yPaletteSize]);
+            }
+        }
+
+        if (this.SequenceHeader.ColorConfig.PlaneCount > 1 &&
+            modeInfo.UvMode == Av1PredictionMode.DC &&
+            partitionInfo.IsChroma &&
+            reader.ReadPaletteUvMode(yPaletteSize != 0))
+        {
+            uvPaletteSize = reader.ReadPaletteSize(blockSizeContext, Av1PlaneType.Uv);
+            Span<ushort> uColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+            Span<ushort> vColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+            ReadPaletteColorsUv(ref reader, partitionInfo, uvPaletteSize, bitDepth, uColors, vColors);
+            modeInfo.SetPaletteColors(Av1Plane.U, uColors[..uvPaletteSize]);
+            modeInfo.SetPaletteColors(Av1Plane.V, vColors[..uvPaletteSize]);
+        }
+
+        modeInfo.SetPaletteSizes(yPaletteSize, uvPaletteSize);
+    }
+
+    /// <summary>
+    /// Reads the sorted luma palette colors, including selections from neighboring palette caches.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block and its palette neighbors.</param>
+    /// <param name="paletteSize">The number of luma palette colors.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <param name="colors">The destination palette-color buffer.</param>
+    private static void ReadPaletteColorsY(
+        ref Av1SymbolDecoder reader,
+        Av1PartitionInfo partitionInfo,
+        int paletteSize,
+        int bitDepth,
+        scoped Span<ushort> colors)
+    {
+        Span<ushort> colorCache = stackalloc ushort[Av1Constants.PaletteMaxSize * 2];
+        Span<ushort> cachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+        int cacheSize = GetPaletteCache(partitionInfo, Av1Plane.Y, colorCache);
+        int colorIndex = 0;
+        for (int i = 0; i < cacheSize && colorIndex < paletteSize; i++)
+        {
+            if (reader.ReadLiteral(1) != 0)
+            {
+                cachedColors[colorIndex++] = colorCache[i];
+            }
+        }
+
+        if (colorIndex == paletteSize)
+        {
+            cachedColors[..paletteSize].CopyTo(colors);
+            return;
+        }
+
+        int cachedColorCount = colorIndex;
+        colors[colorIndex++] = (ushort)reader.ReadLiteral(bitDepth);
+        if (colorIndex < paletteSize)
+        {
+            int bits = bitDepth - 3 + reader.ReadLiteral(2);
+            int maximumColor = (1 << bitDepth) - 1;
+            int range = maximumColor - colors[colorIndex - 1];
+            for (; colorIndex < paletteSize; colorIndex++)
+            {
+                int delta = reader.ReadLiteral(bits) + 1;
+                colors[colorIndex] = (ushort)Av1Math.Clip3(0, maximumColor, colors[colorIndex - 1] + delta);
+                range -= colors[colorIndex] - colors[colorIndex - 1];
+                bits = Math.Min(bits, (int)Av1Math.CeilLog2((uint)range));
+            }
+        }
+
+        MergePaletteColors(colors, cachedColors, paletteSize, cachedColorCount);
+    }
+
+    /// <summary>
+    /// Reads the U and V palette colors, including neighboring U colors and optional V delta coding.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block and its palette neighbors.</param>
+    /// <param name="paletteSize">The number of chroma palette colors.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <param name="uColors">The destination U palette-color buffer.</param>
+    /// <param name="vColors">The destination V palette-color buffer.</param>
+    private static void ReadPaletteColorsUv(
+        ref Av1SymbolDecoder reader,
+        Av1PartitionInfo partitionInfo,
+        int paletteSize,
+        int bitDepth,
+        scoped Span<ushort> uColors,
+        scoped Span<ushort> vColors)
+    {
+        Span<ushort> colorCache = stackalloc ushort[Av1Constants.PaletteMaxSize * 2];
+        Span<ushort> cachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+        int cacheSize = GetPaletteCache(partitionInfo, Av1Plane.U, colorCache);
+        int colorIndex = 0;
+        for (int i = 0; i < cacheSize && colorIndex < paletteSize; i++)
+        {
+            if (reader.ReadLiteral(1) != 0)
+            {
+                cachedColors[colorIndex++] = colorCache[i];
+            }
+        }
+
+        if (colorIndex < paletteSize)
+        {
+            int cachedColorCount = colorIndex;
+            uColors[colorIndex++] = (ushort)reader.ReadLiteral(bitDepth);
+            if (colorIndex < paletteSize)
+            {
+                int bits = bitDepth - 3 + reader.ReadLiteral(2);
+                int maximumColor = (1 << bitDepth) - 1;
+                int range = (1 << bitDepth) - uColors[colorIndex - 1];
+                for (; colorIndex < paletteSize; colorIndex++)
+                {
+                    int delta = reader.ReadLiteral(bits);
+                    uColors[colorIndex] = (ushort)Av1Math.Clip3(0, maximumColor, uColors[colorIndex - 1] + delta);
+                    range -= uColors[colorIndex] - uColors[colorIndex - 1];
+                    bits = Math.Min(bits, (int)Av1Math.CeilLog2((uint)range));
+                }
+            }
+
+            MergePaletteColors(uColors, cachedColors, paletteSize, cachedColorCount);
+        }
+        else
+        {
+            cachedColors[..paletteSize].CopyTo(uColors);
+        }
+
+        if (reader.ReadLiteral(1) != 0)
+        {
+            // V deltas wrap in the unsigned sample domain so complementary chroma colors remain compact.
+            int bits = bitDepth - 4 + reader.ReadLiteral(2);
+            int maximumColorPlusOne = 1 << bitDepth;
+            vColors[0] = (ushort)reader.ReadLiteral(bitDepth);
+            for (int i = 1; i < paletteSize; i++)
+            {
+                int delta = reader.ReadLiteral(bits);
+                if (delta != 0 && reader.ReadLiteral(1) != 0)
+                {
+                    delta = -delta;
+                }
+
+                int value = vColors[i - 1] + delta;
+                if (value < 0)
+                {
+                    value += maximumColorPlusOne;
+                }
+
+                if (value >= maximumColorPlusOne)
+                {
+                    value -= maximumColorPlusOne;
+                }
+
+                vColors[i] = (ushort)value;
+            }
+        }
+        else
+        {
+            for (int i = 0; i < paletteSize; i++)
+            {
+                vColors[i] = (ushort)reader.ReadLiteral(bitDepth);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Builds the sorted unique palette cache from the available above and left block palettes.
+    /// </summary>
+    /// <param name="partitionInfo">The current coding block and its decoded neighbors.</param>
+    /// <param name="plane">The luma or U plane whose sorted base colors form the cache.</param>
+    /// <param name="cache">The destination cache, which can hold both neighboring palettes.</param>
+    /// <returns>The number of colors written to <paramref name="cache"/>.</returns>
+    private static int GetPaletteCache(Av1PartitionInfo partitionInfo, Av1Plane plane, Span<ushort> cache)
+    {
+        // AV1 deliberately excludes the block above at a 64-by-64 superblock-row boundary.
+        int minimumSuperblockHeight = Av1BlockSize.Block64x64.Get4x4HighCount();
+        Av1BlockModeInfo? aboveModeInfo = partitionInfo.RowIndex % minimumSuperblockHeight == 0
+            ? null
+            : partitionInfo.AboveModeInfo;
+        Av1BlockModeInfo? leftModeInfo = partitionInfo.LeftModeInfo;
+
+        int abovePaletteSize = aboveModeInfo?.GetPaletteSize(plane) ?? 0;
+        int leftPaletteSize = leftModeInfo?.GetPaletteSize(plane) ?? 0;
+        ReadOnlySpan<ushort> aboveColors = aboveModeInfo is null ? [] : aboveModeInfo.GetPaletteColors(plane);
+        ReadOnlySpan<ushort> leftColors = leftModeInfo is null ? [] : leftModeInfo.GetPaletteColors(plane);
+        int aboveIndex = 0;
+        int leftIndex = 0;
+        int count = 0;
+        while (aboveIndex < abovePaletteSize && leftIndex < leftPaletteSize)
+        {
+            ushort aboveColor = aboveColors[aboveIndex];
+            ushort leftColor = leftColors[leftIndex];
+            if (leftColor < aboveColor)
+            {
+                AddPaletteCacheColor(cache, ref count, leftColor);
+                leftIndex++;
+            }
+            else
+            {
+                AddPaletteCacheColor(cache, ref count, aboveColor);
+                aboveIndex++;
+                if (leftColor == aboveColor)
+                {
+                    leftIndex++;
+                }
+            }
+        }
+
+        while (aboveIndex < abovePaletteSize)
+        {
+            AddPaletteCacheColor(cache, ref count, aboveColors[aboveIndex++]);
+        }
+
+        while (leftIndex < leftPaletteSize)
+        {
+            AddPaletteCacheColor(cache, ref count, leftColors[leftIndex++]);
+        }
+
+        return count;
+    }
+
+    /// <summary>
+    /// Appends a palette cache color unless it duplicates the preceding sorted value.
+    /// </summary>
+    /// <param name="cache">The sorted cache being populated.</param>
+    /// <param name="count">The number of colors currently stored.</param>
+    /// <param name="color">The next sorted color.</param>
+    private static void AddPaletteCacheColor(Span<ushort> cache, ref int count, ushort color)
+    {
+        if (count == 0 || cache[count - 1] != color)
+        {
+            cache[count++] = color;
+        }
+    }
+
+    /// <summary>
+    /// Merges selected cached colors with the sorted transmitted colors in one prediction-order palette.
+    /// </summary>
+    /// <param name="colors">The transmitted colors beginning at <paramref name="cachedColorCount"/> and the merged output.</param>
+    /// <param name="cachedColors">The selected cached colors in ascending order.</param>
+    /// <param name="paletteSize">The total palette size.</param>
+    /// <param name="cachedColorCount">The number of selected cached colors.</param>
+    private static void MergePaletteColors(Span<ushort> colors, ReadOnlySpan<ushort> cachedColors, int paletteSize, int cachedColorCount)
+    {
+        if (cachedColorCount == 0)
+        {
+            return;
+        }
+
+        int cacheIndex = 0;
+        int transmittedIndex = cachedColorCount;
+        for (int i = 0; i < paletteSize; i++)
+        {
+            if (cacheIndex < cachedColorCount &&
+                (transmittedIndex >= paletteSize || cachedColors[cacheIndex] <= colors[transmittedIndex]))
+            {
+                colors[i] = cachedColors[cacheIndex++];
+            }
+            else
+            {
+                colors[i] = colors[transmittedIndex++];
+            }
+        }
+    }
+
+    /// <summary>
+    /// Computes the padded plane dimensions and the portion that lies inside the coded image.
+    /// </summary>
+    /// <param name="partitionInfo">The current coding block and frame-edge distances.</param>
+    /// <param name="planeType">The luma or shared chroma plane class.</param>
+    /// <param name="colorConfig">The sequence chroma-subsampling configuration.</param>
+    /// <param name="planeWidth">The padded plane-block width in samples.</param>
+    /// <param name="planeHeight">The padded plane-block height in samples.</param>
+    /// <param name="rows">The number of plane-block rows inside the coded image.</param>
+    /// <param name="columns">The number of plane-block columns inside the coded image.</param>
+    private static void GetPaletteMapDimensions(
+        Av1PartitionInfo partitionInfo,
+        Av1PlaneType planeType,
+        ObuColorConfig colorConfig,
+        out int planeWidth,
+        out int planeHeight,
+        out int rows,
+        out int columns)
+    {
+        int subX = planeType == Av1PlaneType.Uv && colorConfig.SubSamplingX ? 1 : 0;
+        int subY = planeType == Av1PlaneType.Uv && colorConfig.SubSamplingY ? 1 : 0;
+        int blockWidth = partitionInfo.ModeInfo.BlockSize.GetWidth();
+        int blockHeight = partitionInfo.ModeInfo.BlockSize.GetHeight();
+        int columnsInsideImage = partitionInfo.ModeBlockToRightEdge >= 0
+            ? blockWidth
+            : blockWidth + (partitionInfo.ModeBlockToRightEdge >> 3);
+        int rowsInsideImage = partitionInfo.ModeBlockToBottomEdge >= 0
+            ? blockHeight
+            : blockHeight + (partitionInfo.ModeBlockToBottomEdge >> 3);
+
+        planeWidth = blockWidth >> subX;
+        planeHeight = blockHeight >> subY;
+        columns = columnsInsideImage >> subX;
+        rows = rowsInsideImage >> subY;
+    }
+
+    /// <summary>
+    /// Decodes a padded palette color-index map in AV1 diagonal wavefront order.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="paletteSize">The number of palette colors.</param>
+    /// <param name="planeType">The luma or shared chroma plane class.</param>
+    /// <param name="planeWidth">The padded plane-block width.</param>
+    /// <param name="planeHeight">The padded plane-block height.</param>
+    /// <param name="rows">The number of rows inside the coded image.</param>
+    /// <param name="columns">The number of columns inside the coded image.</param>
+    /// <returns>The decoded row-major color-index map.</returns>
+    private static byte[] DecodePaletteColorMap(
+        ref Av1SymbolDecoder reader,
+        int paletteSize,
+        Av1PlaneType planeType,
+        int planeWidth,
+        int planeHeight,
+        int rows,
+        int columns)
+    {
+        byte[] colorIndexMap = new byte[planeWidth * planeHeight];
+        colorIndexMap[0] = (byte)reader.ReadUniform(paletteSize);
+        Span<byte> colorOrder = stackalloc byte[Av1Constants.PaletteMaxSize];
+        for (int diagonal = 1; diagonal < rows + columns - 1; diagonal++)
+        {
+            int firstColumn = Math.Min(diagonal, columns - 1);
+            int lastColumn = Math.Max(0, diagonal - rows + 1);
+            for (int column = firstColumn; column >= lastColumn; column--)
+            {
+                int row = diagonal - column;
+                int colorContext = GetPaletteColorIndexContext(
+                    colorIndexMap,
+                    planeWidth,
+                    row,
+                    column,
+                    paletteSize,
+                    colorOrder);
+
+                int colorOrderIndex = reader.ReadPaletteColorIndex(paletteSize, colorContext, planeType);
+                colorIndexMap[(row * planeWidth) + column] = colorOrder[colorOrderIndex];
+            }
+        }
+
+        if (columns < planeWidth)
+        {
+            // Blocks clipped by the right image edge repeat their final coded column into the padded block area.
+            for (int row = 0; row < rows; row++)
+            {
+                int rowOffset = row * planeWidth;
+                colorIndexMap.AsSpan(rowOffset + columns, planeWidth - columns)
+                    .Fill(colorIndexMap[rowOffset + columns - 1]);
+            }
+        }
+
+        // Blocks clipped by the bottom image edge repeat their final coded row for later transform reconstruction.
+        ReadOnlySpan<byte> finalRow = colorIndexMap.AsSpan((rows - 1) * planeWidth, planeWidth);
+        for (int row = rows; row < planeHeight; row++)
+        {
+            finalRow.CopyTo(colorIndexMap.AsSpan(row * planeWidth, planeWidth));
+        }
+
+        return colorIndexMap;
+    }
+
+    /// <summary>
+    /// Derives the palette color order and entropy context from the left, upper-left, and above indices.
+    /// </summary>
+    /// <param name="colorIndexMap">The partially decoded color-index map.</param>
+    /// <param name="stride">The map row stride.</param>
+    /// <param name="row">The current map row.</param>
+    /// <param name="column">The current map column.</param>
+    /// <param name="paletteSize">The number of palette colors.</param>
+    /// <param name="colorOrder">The destination color order for the current context.</param>
+    /// <returns>The color-index entropy context in the range from zero through four.</returns>
+    private static int GetPaletteColorIndexContext(
+        ReadOnlySpan<byte> colorIndexMap,
+        int stride,
+        int row,
+        int column,
+        int paletteSize,
+        Span<byte> colorOrder)
+    {
+        Span<int> neighborColors = stackalloc int[3];
+        neighborColors[0] = column > 0 ? colorIndexMap[(row * stride) + column - 1] : -1;
+        neighborColors[1] = column > 0 && row > 0 ? colorIndexMap[((row - 1) * stride) + column - 1] : -1;
+        neighborColors[2] = row > 0 ? colorIndexMap[((row - 1) * stride) + column] : -1;
+
+        Span<int> scores = stackalloc int[Av1Constants.PaletteMaxSize];
+        ReadOnlySpan<int> neighborWeights = [2, 1, 2];
+        for (int i = 0; i < neighborColors.Length; i++)
+        {
+            if (neighborColors[i] >= 0)
+            {
+                scores[neighborColors[i]] += neighborWeights[i];
+            }
+        }
+
+        for (int i = 0; i < colorOrder.Length; i++)
+        {
+            colorOrder[i] = (byte)i;
+        }
+
+        // Stable descending score order keeps lower palette indices ahead when neighboring scores tie.
+        for (int i = 0; i < 3; i++)
+        {
+            int maximumScore = scores[i];
+            int maximumIndex = i;
+            for (int j = i + 1; j < paletteSize; j++)
+            {
+                if (scores[j] > maximumScore)
+                {
+                    maximumScore = scores[j];
+                    maximumIndex = j;
+                }
+            }
+
+            if (maximumIndex != i)
+            {
+                byte maximumColor = colorOrder[maximumIndex];
+                for (int j = maximumIndex; j > i; j--)
+                {
+                    scores[j] = scores[j - 1];
+                    colorOrder[j] = colorOrder[j - 1];
+                }
+
+                scores[i] = maximumScore;
+                colorOrder[i] = maximumColor;
+            }
+        }
+
+        int contextHash = scores[0] + (2 * scores[1]) + (2 * scores[2]);
+        return PaletteColorIndexContexts[contextHash];
+    }
 
     /// <summary>
     /// Reads the joint signs and nonzero alpha magnitudes for chroma-from-luma prediction.

@@ -378,8 +378,24 @@ internal class Av1PredictionDecoder
 
         if (usePalette)
         {
-            // Palette blocks use their decoded color-index map rather than neighboring-sample
-            // prediction. The tile parser currently rejects palette syntax before this point.
+            ReadOnlySpan<ushort> paletteColors = modeInfo.GetPaletteColors(plane);
+            ReadOnlySpan<byte> colorIndexMap = modeInfo.GetPaletteColorIndexMap(plane);
+            int paletteStride = partitionInfo.WidthInPixels[(int)plane];
+            int mapOffset = ((blockModeInfoRowOffset << Av1Constants.ModeInfoSizeLog2) * paletteStride) +
+                (blockModeInfoColumnOffset << Av1Constants.ModeInfoSizeLog2);
+
+            // Every transform reconstructs its own window of the block-level palette map. Keeping the map padded to
+            // the coded block dimensions lets edge transforms use the same addressing rule as interior transforms.
+            for (int row = 0; row < transformHeight; row++)
+            {
+                Span<T> destinationRow = pixelBuffer.Slice(row * pixelBufferStride, transformWidth);
+                ReadOnlySpan<byte> mapRow = colorIndexMap.Slice(mapOffset + (row * paletteStride), transformWidth);
+                for (int column = 0; column < transformWidth; column++)
+                {
+                    destinationRow[column] = T.CreateChecked(paletteColors[mapRow[column]]);
+                }
+            }
+
             return;
         }
 

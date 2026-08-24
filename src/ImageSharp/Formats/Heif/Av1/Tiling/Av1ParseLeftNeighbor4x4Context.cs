@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
-/// Stores entropy, palette, partition, and transform contexts for 4-by-4 blocks left of the current block.
+/// Stores entropy, partition, and transform contexts for 4-by-4 blocks left of the current block.
 /// </summary>
 internal class Av1ParseLeftNeighbor4x4Context
 {
@@ -20,11 +20,6 @@ internal class Av1ParseLeftNeighbor4x4Context
     /// Stores segmentation-prediction contexts for the current superblock row.
     /// </summary>
     private readonly int[] leftSegmentIdPredictionContext;
-
-    /// <summary>
-    /// Stores palette base colors for each plane left of the current block.
-    /// </summary>
-    private readonly int[][] leftPaletteColors = new int[Av1Constants.MaxPlanes][];
 
     /// <summary>
     /// Stores compound-reference group contexts for the current superblock row.
@@ -43,7 +38,6 @@ internal class Av1ParseLeftNeighbor4x4Context
         for (int i = 0; i < planesCount; i++)
         {
             this.leftContext[i] = new int[superblockModeInfoSize];
-            this.leftPaletteColors[i] = new int[superblockModeInfoSize * Av1Constants.PaletteMaxSize];
         }
 
         this.leftSegmentIdPredictionContext = new int[superblockModeInfoSize];
@@ -76,7 +70,6 @@ internal class Av1ParseLeftNeighbor4x4Context
         for (int i = 0; i < planeCount; i++)
         {
             Array.Fill(this.leftContext[i], 0, 0, blockCount);
-            Array.Fill(this.leftPaletteColors[i], 0, 0, blockCount);
         }
 
         Array.Fill(this.leftSegmentIdPredictionContext, 0, 0, blockCount);

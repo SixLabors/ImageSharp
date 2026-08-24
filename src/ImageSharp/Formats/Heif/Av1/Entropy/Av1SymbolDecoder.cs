@@ -24,6 +24,36 @@ internal ref struct Av1SymbolDecoder
     private readonly Av1Distribution tileIntraBlockCopy;
 
     /// <summary>
+    /// The tile-adaptive luma palette-mode distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] paletteYMode;
+
+    /// <summary>
+    /// The tile-adaptive chroma palette-mode distributions.
+    /// </summary>
+    private readonly Av1Distribution[] paletteUvMode;
+
+    /// <summary>
+    /// The tile-adaptive luma palette-size distributions.
+    /// </summary>
+    private readonly Av1Distribution[] paletteYSize;
+
+    /// <summary>
+    /// The tile-adaptive chroma palette-size distributions.
+    /// </summary>
+    private readonly Av1Distribution[] paletteUvSize;
+
+    /// <summary>
+    /// The tile-adaptive luma palette color-index distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] paletteYColorIndex;
+
+    /// <summary>
+    /// The tile-adaptive chroma palette color-index distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] paletteUvColorIndex;
+
+    /// <summary>
     /// The tile-adaptive partition-type distributions.
     /// </summary>
     private readonly Av1Distribution[] tilePartitionTypes;
@@ -160,6 +190,12 @@ internal ref struct Av1SymbolDecoder
         // Every tile starts from its own frame-context copy. Sharing these objects would let one image's adaptive
         // updates change the initial probabilities used to decode the next tile or image.
         this.tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy.CreateCopy();
+        this.paletteYMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.PaletteYMode);
+        this.paletteUvMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.PaletteUvMode);
+        this.paletteYSize = Av1Distribution.CreateCopy(Av1DefaultDistributions.PaletteYSize);
+        this.paletteUvSize = Av1Distribution.CreateCopy(Av1DefaultDistributions.PaletteUvSize);
+        this.paletteYColorIndex = Av1Distribution.CreateCopy(Av1DefaultDistributions.PaletteYColorIndex);
+        this.paletteUvColorIndex = Av1Distribution.CreateCopy(Av1DefaultDistributions.PaletteUvColorIndex);
         this.tilePartitionTypes = Av1Distribution.CreateCopy(Av1DefaultDistributions.PartitionTypes);
         this.keyFrameYMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.KeyFrameYMode);
         this.uvMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.UvMode);
@@ -196,6 +232,93 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadLiteral(bitCount);
+    }
+
+    /// <summary>
+    /// Reads an unsigned fixed-width literal from the tile entropy stream.
+    /// </summary>
+    /// <param name="bitCount">The number of literal bits to read.</param>
+    /// <returns>The decoded literal.</returns>
+    public int ReadLiteral(int bitCount)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadLiteral(bitCount);
+    }
+
+    /// <summary>
+    /// Reads a uniformly coded value from a non-power-of-two alphabet.
+    /// </summary>
+    /// <param name="valueCount">The number of possible values.</param>
+    /// <returns>A value in the range from zero through <paramref name="valueCount"/> minus one.</returns>
+    public int ReadUniform(int valueCount)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        int bitCount = Av1Math.Log2(valueCount) + 1;
+        int threshold = (1 << bitCount) - valueCount;
+        int value = r.ReadLiteral(bitCount - 1);
+        if (value < threshold)
+        {
+            // The short prefix covers the lower values; only the remaining prefixes consume a final bit.
+            return value;
+        }
+
+        return (value << 1) - threshold + r.ReadLiteral(1);
+    }
+
+    /// <summary>
+    /// Reads whether the current luma block uses palette prediction.
+    /// </summary>
+    /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
+    /// <param name="neighborContext">The number of available above and left luma neighbors that use palettes.</param>
+    /// <returns><see langword="true"/> when luma palette prediction is selected; otherwise, <see langword="false"/>.</returns>
+    public bool ReadPaletteYMode(int blockSizeContext, int neighborContext)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.paletteYMode[blockSizeContext][neighborContext]) != 0;
+    }
+
+    /// <summary>
+    /// Reads whether the current chroma block uses palette prediction.
+    /// </summary>
+    /// <param name="hasLumaPalette">A value indicating whether the current block uses a luma palette.</param>
+    /// <returns><see langword="true"/> when chroma palette prediction is selected; otherwise, <see langword="false"/>.</returns>
+    public bool ReadPaletteUvMode(bool hasLumaPalette)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.paletteUvMode[hasLumaPalette ? 1 : 0]) != 0;
+    }
+
+    /// <summary>
+    /// Reads a luma or chroma palette size.
+    /// </summary>
+    /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <returns>The palette size in the range from two through eight.</returns>
+    public int ReadPaletteSize(int blockSizeContext, Av1PlaneType planeType)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        Av1Distribution distribution = planeType == Av1PlaneType.Y
+            ? this.paletteYSize[blockSizeContext]
+            : this.paletteUvSize[blockSizeContext];
+
+        return r.ReadSymbol(distribution) + 2;
+    }
+
+    /// <summary>
+    /// Reads a palette color-order index from the selected spatial context.
+    /// </summary>
+    /// <param name="paletteSize">The number of colors in the palette.</param>
+    /// <param name="colorContext">The color-index context derived from decoded neighboring indices.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <returns>The decoded index into the context-specific color order.</returns>
+    public int ReadPaletteColorIndex(int paletteSize, int colorContext, Av1PlaneType planeType)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        Av1Distribution distribution = planeType == Av1PlaneType.Y
+            ? this.paletteYColorIndex[paletteSize - 2][colorContext]
+            : this.paletteUvColorIndex[paletteSize - 2][colorContext];
+
+        return r.ReadSymbol(distribution);
     }
 
     /// <summary>

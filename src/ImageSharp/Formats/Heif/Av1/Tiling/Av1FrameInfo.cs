@@ -81,9 +81,9 @@ internal partial class Av1FrameInfo
     private readonly Av1TransformInfo[] transformInfosUv;
 
     /// <summary>
-    /// Stores the quantizer-index delta for each frame superblock.
+    /// Stores the active base quantizer index for each frame superblock.
     /// </summary>
-    private readonly int[] deltaQ;
+    private readonly int[] quantizerIndices;
 
     /// <summary>
     /// The base-2 number of constrained directional enhancement filter entries allocated per superblock.
@@ -154,7 +154,7 @@ internal partial class Av1FrameInfo
         this.coefficientsY = new int[superblockCount * lumaCoefficientCountPerSuperblock];
         this.coefficientsU = new int[superblockCount * chromaCoefficientCountPerSuperblock];
         this.coefficientsV = new int[superblockCount * chromaCoefficientCountPerSuperblock];
-        this.deltaQ = new int[superblockCount];
+        this.quantizerIndices = new int[superblockCount];
 
         // A 128x128 superblock contains four 64x64 CDEF filter blocks; a 64x64 superblock contains one.
         this.cdefStrengthFactorLog2 = (superblockSizeLog2 - 6) << 2;
@@ -305,13 +305,13 @@ internal partial class Av1FrameInfo
     }
 
     /// <summary>
-    /// Gets a reference to the quantizer-index delta for a specified superblock.
+    /// Gets a reference to the active base quantizer index for a specified superblock.
     /// </summary>
     /// <param name="index">The position in the frame superblock grid.</param>
-    /// <returns>A reference to the superblock quantizer-index delta.</returns>
-    public ref int GetDeltaQuantizationIndex(Point index)
+    /// <returns>A reference to the superblock base quantizer index.</returns>
+    public ref int GetQuantizerIndex(Point index)
     {
-        Span<int> span = this.deltaQ;
+        Span<int> span = this.quantizerIndices;
         int i = (index.Y * this.superblockColumnCount) + index.X;
         return ref span[i];
     }
@@ -352,11 +352,6 @@ internal partial class Av1FrameInfo
         int i = ((index.Y * this.superblockColumnCount) + index.X) << this.deltaLoopFactorLog2;
         return span.Slice(i, 1 << this.deltaLoopFactorLog2);
     }
-
-    /// <summary>
-    /// Resets all frame loop-filter delta values to zero.
-    /// </summary>
-    public void ClearDeltaLoopFilter() => Array.Fill(this.deltaLoopFilter, 0);
 
     /// <summary>
     /// Stores decoded mode information and maps every 4x4 position covered by its block.

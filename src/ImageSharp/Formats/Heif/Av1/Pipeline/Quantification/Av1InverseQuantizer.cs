@@ -53,7 +53,10 @@ internal class Av1InverseQuantizer
         {
             for (int i = 0; i < Av1Constants.MaxSegmentCount; i++)
             {
-                int currentQIndex = Av1QuantizationLookup.GetQIndex(this.frameHeader.SegmentationParameters, i, superblockInfo.SuperblockDeltaQ);
+                int currentQIndex = Av1QuantizationLookup.GetQIndex(
+                    this.frameHeader.SegmentationParameters,
+                    i,
+                    superblockInfo.SuperblockQuantizerIndex);
 
                 for (Av1Plane plane = 0; (int)plane < Av1Constants.MaxPlanes; plane++)
                 {

@@ -35,9 +35,9 @@ internal class Av1SuperblockInfo
     public Point ModeInfoPosition => this.Position * this.frameInfo.SuperblockModeInfoSize;
 
     /// <summary>
-    /// Gets a reference to the superblock quantizer-index delta.
+    /// Gets a reference to the active base quantizer index for this superblock.
     /// </summary>
-    public ref int SuperblockDeltaQ => ref this.frameInfo.GetDeltaQuantizationIndex(this.Position);
+    public ref int SuperblockQuantizerIndex => ref this.frameInfo.GetQuantizerIndex(this.Position);
 
     /// <summary>
     /// Gets the mode information that covers the superblock origin.

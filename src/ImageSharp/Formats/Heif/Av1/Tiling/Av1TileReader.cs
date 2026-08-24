@@ -75,6 +75,11 @@ internal class Av1TileReader : IAv1TileReader
     private int currentQuantizerIndex;
 
     /// <summary>
+    /// Stores the loop-filter delta values carried between superblocks in the current tile.
+    /// </summary>
+    private readonly int[] currentDeltaLoopFilter = new int[Av1Constants.FrameLoopFilterCount];
+
+    /// <summary>
     /// Stores the segment identifier covering each 4x4 frame position.
     /// </summary>
     private readonly int[][] segmentIds = [];
@@ -189,6 +194,7 @@ internal class Av1TileReader : IAv1TileReader
         int modeInfoRowStart = this.FrameHeader.TilesInfo.TileRowStartModeInfo[tileRowIndex];
         int modeInfoRowEnd = this.FrameHeader.TilesInfo.TileRowStartModeInfo[tileRowIndex + 1];
         this.aboveNeighborContext.Clear(this.SequenceHeader, modeInfoColumnStart, modeInfoColumnEnd);
+        this.currentQuantizerIndex = this.FrameHeader.QuantizationParameters.BaseQIndex;
         this.ClearLoopFilterDelta();
         int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
 
@@ -236,10 +242,10 @@ internal class Av1TileReader : IAv1TileReader
     }
 
     /// <summary>
-    /// Resets all frame loop-filter delta state before parsing a tile.
+    /// Resets the loop-filter delta predictors before parsing a tile.
     /// </summary>
     private void ClearLoopFilterDelta()
-        => this.FrameInfo.ClearDeltaLoopFilter();
+        => this.currentDeltaLoopFilter.AsSpan().Clear();
 
     /// <summary>
     /// Reads loop-restoration unit syntax that begins at a superblock location.
@@ -1982,14 +1988,13 @@ internal class Av1TileReader : IAv1TileReader
     /// <param name="partitionInfo">The current coding block and superblock delta storage.</param>
     private void ReadDeltaLoopFilter(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
-        Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
-        if (this.FrameHeader.DeltaLoopFilterParameters.IsPresent ||
-            (partitionInfo.ModeInfo.BlockSize == superBlockSize && partitionInfo.ModeInfo.Skip))
+        if (!this.FrameHeader.DeltaLoopFilterParameters.IsPresent || partitionInfo.ModeInfo.PositionInSuperblock != Point.Empty)
         {
             return;
         }
 
-        if (this.FrameHeader.DeltaLoopFilterParameters.IsPresent)
+        Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
+        if (partitionInfo.ModeInfo.BlockSize != superBlockSize || !partitionInfo.ModeInfo.Skip)
         {
             int frameLoopFilterCount = 1;
             if (this.FrameHeader.DeltaLoopFilterParameters.IsMulti)
@@ -1997,14 +2002,20 @@ internal class Av1TileReader : IAv1TileReader
                 frameLoopFilterCount = this.SequenceHeader.ColorConfig.PlaneCount > 1 ? Av1Constants.FrameLoopFilterCount : Av1Constants.FrameLoopFilterCount - 2;
             }
 
-            Span<int> currentDeltaLoopFilter = partitionInfo.SuperblockInfo.SuperblockDeltaLoopFilter;
             for (int i = 0; i < frameLoopFilterCount; i++)
             {
                 int reducedDeltaLoopFilterLevel = reader.ReadDeltaLoopFilter();
                 int deltaLoopFilterResolution = this.FrameHeader.DeltaLoopFilterParameters.Resolution;
-                currentDeltaLoopFilter[i] = Av1Math.Clip3(-Av1Constants.MaxLoopFilter, Av1Constants.MaxLoopFilter, currentDeltaLoopFilter[i] + (reducedDeltaLoopFilterLevel << deltaLoopFilterResolution));
+                this.currentDeltaLoopFilter[i] = Av1Math.Clip3(
+                    -Av1Constants.MaxLoopFilter,
+                    Av1Constants.MaxLoopFilter,
+                    this.currentDeltaLoopFilter[i] + (reducedDeltaLoopFilterLevel * deltaLoopFilterResolution));
             }
         }
+
+        // Delta-LF values are predicted across superblocks within a tile, but every block in one superblock observes
+        // the same resulting values. Snapshot the predictors so later filtering does not depend on parse order.
+        this.currentDeltaLoopFilter.AsSpan().CopyTo(partitionInfo.SuperblockInfo.SuperblockDeltaLoopFilter);
     }
 
     /// <summary>
@@ -2037,9 +2048,7 @@ internal class Av1TileReader : IAv1TileReader
     /// <remarks>Corresponds to <c>read_delta_qindex</c> in SVT-AV1.</remarks>
     private void ReadDeltaQuantizerIndex(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
     {
-        Av1BlockSize superBlockSize = this.SequenceHeader.Use128x128Superblock ? Av1BlockSize.Block128x128 : Av1BlockSize.Block64x64;
-        if (!this.FrameHeader.DeltaQParameters.IsPresent ||
-            (partitionInfo.ModeInfo.BlockSize == superBlockSize && partitionInfo.ModeInfo.Skip))
+        if (!this.FrameHeader.DeltaQParameters.IsPresent || partitionInfo.ModeInfo.PositionInSuperblock != Point.Empty)
         {
             return;
         }
@@ -2048,9 +2057,13 @@ internal class Av1TileReader : IAv1TileReader
         {
             int reducedDeltaQuantizerIndex = reader.ReadDeltaQuantizerIndex();
             int deltaQuantizerResolution = this.FrameHeader.DeltaQParameters.Resolution;
-            this.currentQuantizerIndex = Av1Math.Clip3(1, 255, this.currentQuantizerIndex + (reducedDeltaQuantizerIndex << deltaQuantizerResolution));
-            partitionInfo.SuperblockInfo.SuperblockDeltaQ = this.currentQuantizerIndex;
+            this.currentQuantizerIndex = Av1Math.Clip3(
+                1,
+                Av1Constants.MaxQ,
+                this.currentQuantizerIndex + (reducedDeltaQuantizerIndex * deltaQuantizerResolution));
         }
+
+        partitionInfo.SuperblockInfo.SuperblockQuantizerIndex = this.currentQuantizerIndex;
     }
 
     /// <summary>

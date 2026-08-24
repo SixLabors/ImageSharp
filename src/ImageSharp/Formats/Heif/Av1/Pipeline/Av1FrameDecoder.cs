@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -44,6 +45,11 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
     private readonly Av1DeQuantizationContext deQuants;
 
     /// <summary>
+    /// The transform-size map populated during reconstruction and consumed by deblocking.
+    /// </summary>
+    private readonly Av1LoopFilterContext loopFilterContext;
+
+    /// <summary>
     /// The block reconstruction stage that applies prediction and inverse transforms.
     /// </summary>
     private readonly Av1BlockDecoder blockDecoder;
@@ -63,11 +69,12 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
         this.frameBuffer = frameBuffer;
         this.inverseQuantizer = new(sequenceHeader, frameHeader);
         this.deQuants = new(sequenceHeader, frameHeader);
-        this.blockDecoder = new(this.sequenceHeader, this.frameHeader, this.frameBuffer);
+        this.loopFilterContext = new(sequenceHeader);
+        this.blockDecoder = new(this.sequenceHeader, this.frameHeader, this.frameBuffer, this.loopFilterContext);
     }
 
     /// <summary>
-    /// Reconstructs every coded tile of the frame; in-loop post-processing stages remain disabled until implemented.
+    /// Reconstructs every coded tile and applies the implemented in-loop frame stages in normative order.
     /// </summary>
     public void DecodeFrame()
     {
@@ -77,16 +84,17 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
             this.DecodeFrameTiles(column);
         }
 
-        bool doLoopFilterFlag = false;
         bool doLoopRestoration = false;
         bool doUpscale = false;
 
-        // These flags remain false until the corresponding normative stages have complete scalar implementations
-        // and independent still-image vectors; silently running partial filters would corrupt reconstructed pixels.
-        if (doLoopFilterFlag)
-        {
-            this.DecodeLoopFilterForFrame();
-        }
+        Av1LoopFilterDecoder loopFilterDecoder = new(
+            this.sequenceHeader,
+            this.frameHeader,
+            this.frameInfo,
+            this.frameBuffer,
+            this.loopFilterContext);
+
+        loopFilterDecoder.DecodeFrame();
 
         if (doLoopRestoration)
         {
@@ -184,46 +192,6 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
             // Block positions are stored relative to the superblock; prediction and reconstruction require frame-relative mode-info coordinates.
             globalPosition.Offset(subPosition);
             this.blockDecoder.DecodeBlock(modeInfo, globalPosition, subSize, superblockInfo, tileInfo);
-        }
-    }
-
-    /// <summary>
-    /// Traverses frame superblocks in the order required by the not-yet-implemented deblocking stage.
-    /// </summary>
-    private void DecodeLoopFilterForFrame()
-    {
-        int superblockSizeLog2 = this.sequenceHeader.SuperblockSizeLog2;
-        int pictureWidthInSuperblocks = Av1Math.DivideLog2Ceiling(this.frameHeader.FrameSize.FrameWidth, this.sequenceHeader.SuperblockSizeLog2);
-        int pictureHeightInSuperblocks = Av1Math.DivideLog2Ceiling(this.frameHeader.FrameSize.FrameHeight, this.sequenceHeader.SuperblockSizeLog2);
-
-        // Deblocking uses raster traversal so each block can consume already reconstructed top and left edges.
-        for (int superblockIndexY = 0; superblockIndexY < pictureHeightInSuperblocks; ++superblockIndexY)
-        {
-            for (int superblockIndexX = 0; superblockIndexX < pictureWidthInSuperblocks; ++superblockIndexX)
-            {
-                int superblockOriginX = superblockIndexX << superblockSizeLog2;
-                int superblockOriginY = superblockIndexY << superblockSizeLog2;
-                bool endOfRowFlag = superblockIndexX == pictureWidthInSuperblocks - 1;
-
-                Point superblockPoint = new(superblockOriginX, superblockOriginY);
-                Av1SuperblockInfo superblockInfo = this.frameInfo.GetSuperblock(superblockPoint);
-
-                // Superblock filtering remains disabled until its complete plane and edge-strength implementation is available.
-                /*
-                DecodeLoopFilterForSuperblock(
-                    superblockInfo,
-                    this.frameHeader,
-                    this.sequenceHeader,
-                    reconstructionFrameBuffer,
-                    loopFilterContext,
-                    superblockOriginY >> 2,
-                    superblockOriginX >> 2,
-                    Av1Plane.Y,
-                    3,
-                    endOfRowFlag,
-                    superblockInfo.SuperblockDeltaLoopFilter);
-                */
-            }
         }
     }
 }

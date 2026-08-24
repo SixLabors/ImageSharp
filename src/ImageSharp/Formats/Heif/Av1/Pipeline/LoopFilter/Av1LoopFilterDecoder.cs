@@ -1,114 +1,329 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 
 /// <summary>
-/// Provides frame traversal for the AV1 in-loop deblocking stage.
+/// Applies the AV1 in-loop deblocking stage to a reconstructed still-image frame.
 /// </summary>
 internal class Av1LoopFilterDecoder
 {
     /// <summary>
-    /// The sequence-level superblock configuration.
+    /// The sequence-level superblock and color configuration.
     /// </summary>
     private readonly ObuSequenceHeader sequenceHeader;
 
     /// <summary>
-    /// The frame dimensions and loop-filter parameters.
+    /// The frame dimensions, segmentation state, and loop-filter parameters.
     /// </summary>
     private readonly ObuFrameHeader frameHeader;
 
     /// <summary>
-    /// The decoded block-mode information addressed by superblock origin.
+    /// The decoded mode and superblock delta information.
     /// </summary>
     private readonly Av1FrameInfo frameInfo;
 
     /// <summary>
-    /// The reconstructed plane samples supplied to in-loop filtering.
+    /// The reconstructed plane samples modified by deblocking.
     /// </summary>
     private readonly Av1FrameBuffer<byte> frameBuffer;
 
     /// <summary>
-    /// The per-frame filter context retained across superblocks.
+    /// The per-plane transform-size map populated during reconstruction.
     /// </summary>
     private readonly Av1LoopFilterContext loopFilterContext;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1LoopFilterDecoder"/> class.
     /// </summary>
-    /// <param name="sequenceHeader">The sequence header that supplies the superblock size.</param>
-    /// <param name="frameHeader">The frame header that supplies dimensions and filter parameters.</param>
-    /// <param name="frameInfo">The decoded block-mode information for the frame.</param>
+    /// <param name="sequenceHeader">The sequence header defining superblock size and color layout.</param>
+    /// <param name="frameHeader">The frame header defining dimensions and filter parameters.</param>
+    /// <param name="frameInfo">The decoded block-mode and superblock delta information.</param>
     /// <param name="frameBuffer">The reconstructed frame samples to filter.</param>
-    public Av1LoopFilterDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo, Av1FrameBuffer<byte> frameBuffer)
+    /// <param name="loopFilterContext">The transform-size map populated during reconstruction.</param>
+    public Av1LoopFilterDecoder(
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        Av1FrameInfo frameInfo,
+        Av1FrameBuffer<byte> frameBuffer,
+        Av1LoopFilterContext loopFilterContext)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
         this.frameInfo = frameInfo;
         this.frameBuffer = frameBuffer;
-        this.loopFilterContext = new();
+        this.loopFilterContext = loopFilterContext;
     }
 
     /// <summary>
-    /// Traverses each superblock in raster order when loop filtering is enabled for the decode pass.
+    /// Filters every enabled plane, processing all vertical boundaries before horizontal boundaries.
     /// </summary>
-    /// <param name="doLoopFilterFlag">Whether the frame should run the deblocking stage.</param>
-    /// <exception cref="NotImplementedException">The superblock filtering operation has not been implemented.</exception>
-    public void DecodeFrame(bool doLoopFilterFlag)
+    public void DecodeFrame()
     {
-        Guard.NotNull(this.sequenceHeader);
-        Guard.NotNull(this.frameHeader);
-        Guard.NotNull(this.frameInfo);
-
-        if (!doLoopFilterFlag)
+        ObuLoopFilterParameters filterParameters = this.frameHeader.LoopFilterParameters;
+        if (filterParameters.FilterLevel[0] == 0 && filterParameters.FilterLevel[1] == 0)
         {
             return;
         }
 
-        int superblockSizeLog2 = this.sequenceHeader.SuperblockSizeLog2;
-        int frameWidthInSuperblocks = Av1Math.DivideLog2Ceiling(this.frameHeader.FrameSize.FrameWidth, this.sequenceHeader.SuperblockSizeLog2);
-        int frameHeightInSuperblocks = Av1Math.DivideLog2Ceiling(this.frameHeader.FrameSize.FrameHeight, this.sequenceHeader.SuperblockSizeLog2);
-
-        // Filtering proceeds in raster order because vertical and horizontal edges depend on already reconstructed
-        // neighboring blocks, while the final superblock in each row requires distinct delayed-edge handling.
-        for (int superblockIndexY = 0; superblockIndexY < frameHeightInSuperblocks; ++superblockIndexY)
+        ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
+        for (int planeIndex = 0; planeIndex < colorConfig.PlaneCount; planeIndex++)
         {
-            for (int superblockIndexX = 0; superblockIndexX < frameWidthInSuperblocks; ++superblockIndexX)
+            Av1Plane plane = (Av1Plane)planeIndex;
+            int planeFilterLevel = plane switch
             {
-                int superblockOriginX = superblockIndexX << superblockSizeLog2;
-                int superblockOriginY = superblockIndexY << superblockSizeLog2;
-                bool endOfRowFlag = superblockIndexX == frameWidthInSuperblocks - 1;
+                Av1Plane.U => filterParameters.FilterLevelU,
+                Av1Plane.V => filterParameters.FilterLevelV,
+                _ => Math.Max(filterParameters.FilterLevel[0], filterParameters.FilterLevel[1])
+            };
 
-                Point superblockPoint = new(superblockOriginX, superblockOriginY);
-                Av1SuperblockInfo superblockInfo = this.frameInfo.GetSuperblock(superblockPoint);
+            if (planeFilterLevel == 0)
+            {
+                continue;
+            }
 
-                // Mode-info coordinates are measured in 4x4 units, whereas the frame and superblock origins are pixels.
-                Point superblockOriginInModeInfo = new(superblockOriginX >> 2, superblockOriginY >> 2);
+            int subX = plane != Av1Plane.Y && colorConfig.SubSamplingX ? 1 : 0;
+            int subY = plane != Av1Plane.Y && colorConfig.SubSamplingY ? 1 : 0;
+            Span<byte> lowBitDepthSamples = default;
+            Span<ushort> highBitDepthSamples = default;
+            int stride;
 
-                this.DecodeForSuperblock(
-                    superblockInfo,
-                    superblockOriginInModeInfo,
-                    Av1Plane.Y,
-                    3,
-                    endOfRowFlag,
-                    superblockInfo.SuperblockDeltaLoopFilter);
+            if (this.frameBuffer.BytesPerSample == 2)
+            {
+                Span<short> signedSamples = this.frameBuffer.DeriveBlockPointer16(plane, Point.Empty, subX, subY, out stride);
+                highBitDepthSamples = MemoryMarshal.Cast<short, ushort>(signedSamples);
+            }
+            else
+            {
+                lowBitDepthSamples = this.frameBuffer.DeriveBlockPointer(plane, Point.Empty, subX, subY, out stride);
+            }
+
+            this.FilterPlane(plane, subX, subY, stride, lowBitDepthSamples, highBitDepthSamples);
+        }
+    }
+
+    /// <summary>
+    /// Filters one plane in the AV1 vertical-then-horizontal boundary order.
+    /// </summary>
+    /// <param name="plane">The color plane to filter.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    /// <param name="stride">The plane stride in logical samples.</param>
+    /// <param name="lowBitDepthSamples">The low-bit-depth plane storage, when active.</param>
+    /// <param name="highBitDepthSamples">The high-bit-depth plane storage, when active.</param>
+    private void FilterPlane(
+        Av1Plane plane,
+        int subX,
+        int subY,
+        int stride,
+        Span<byte> lowBitDepthSamples,
+        Span<ushort> highBitDepthSamples)
+    {
+        int rowStep = 1 << subY;
+        int columnStep = 1 << subX;
+
+        // The AV1 result is independent of ordering within a pass, but vertical filtering must finish before any
+        // horizontal filtering begins because the two directions modify intersecting sample neighborhoods.
+        for (int pass = 0; pass < 2; pass++)
+        {
+            for (int row = 0; row < this.frameHeader.ModeInfoRowCount; row += rowStep)
+            {
+                for (int column = 0; column < this.frameHeader.ModeInfoColumnCount; column += columnStep)
+                {
+                    this.FilterEdge(
+                        plane,
+                        pass,
+                        row,
+                        column,
+                        subX,
+                        subY,
+                        stride,
+                        lowBitDepthSamples,
+                        highBitDepthSamples);
+                }
             }
         }
     }
 
     /// <summary>
-    /// Represents the not-yet-implemented deblocking operation for one superblock and plane range.
+    /// Derives and applies the filter for one 4x4 luma-grid boundary.
     /// </summary>
-    /// <param name="superblockInfo">The decoded modes and delta values for the superblock.</param>
-    /// <param name="modeInfoLocation">The superblock origin in 4x4 mode-info units.</param>
-    /// <param name="startPlane">The first color plane to filter.</param>
-    /// <param name="endPlane">The exclusive color-plane index at which filtering stops.</param>
-    /// <param name="endOfRowFlag">Whether the superblock is the final block in its raster row.</param>
-    /// <param name="superblockDeltaLoopFilter">The per-superblock loop-filter strength adjustments.</param>
-    /// <exception cref="NotImplementedException">Always thrown because superblock deblocking has not been implemented.</exception>
-    private void DecodeForSuperblock(Av1SuperblockInfo superblockInfo, Point modeInfoLocation, Av1Plane startPlane, int endPlane, bool endOfRowFlag, Span<int> superblockDeltaLoopFilter)
-        => throw new NotImplementedException();
+    /// <param name="plane">The color plane to filter.</param>
+    /// <param name="pass">Zero for a vertical boundary; one for a horizontal boundary.</param>
+    /// <param name="row">The boundary row in luma 4x4 units.</param>
+    /// <param name="column">The boundary column in luma 4x4 units.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    /// <param name="stride">The plane stride in logical samples.</param>
+    /// <param name="lowBitDepthSamples">The low-bit-depth plane storage, when active.</param>
+    /// <param name="highBitDepthSamples">The high-bit-depth plane storage, when active.</param>
+    private void FilterEdge(
+        Av1Plane plane,
+        int pass,
+        int row,
+        int column,
+        int subX,
+        int subY,
+        int stride,
+        Span<byte> lowBitDepthSamples,
+        Span<ushort> highBitDepthSamples)
+    {
+        int x = column << Av1Constants.ModeInfoSizeLog2;
+        int y = row << Av1Constants.ModeInfoSizeLog2;
+        bool verticalBoundary = pass == 0;
+        if (x >= this.frameHeader.FrameSize.FrameWidth ||
+            y >= this.frameHeader.FrameSize.FrameHeight ||
+            (verticalBoundary ? x == 0 : y == 0))
+        {
+            return;
+        }
+
+        int adjustedRow = row | subY;
+        int adjustedColumn = column | subX;
+        int previousRow = adjustedRow - (verticalBoundary ? 0 : 1 << subY);
+        int previousColumn = adjustedColumn - (verticalBoundary ? 1 << subX : 0);
+        Point modeInfoPosition = new(adjustedColumn, adjustedRow);
+        Point previousModeInfoPosition = new(previousColumn, previousRow);
+        Point planeTransformPosition = new(adjustedColumn >> subX, adjustedRow >> subY);
+        Point previousPlaneTransformPosition = new(previousColumn >> subX, previousRow >> subY);
+        Av1BlockModeInfo modeInfo = this.frameInfo.GetModeInfoAt(modeInfoPosition);
+        Av1TransformSize transformSize = this.loopFilterContext.GetTransformSize(plane, planeTransformPosition);
+        Av1TransformSize previousTransformSize = this.loopFilterContext.GetTransformSize(plane, previousPlaneTransformPosition);
+        Av1BlockSize planeBlockSize = modeInfo.BlockSize.GetSubsampled(subX, subY);
+        int planeX = x >> subX;
+        int planeY = y >> subY;
+        bool isBlockEdge = verticalBoundary
+            ? planeX % planeBlockSize.GetWidth() == 0
+            : planeY % planeBlockSize.GetHeight() == 0;
+
+        bool isTransformEdge = verticalBoundary
+            ? planeX % transformSize.GetWidth() == 0
+            : planeY % transformSize.GetHeight() == 0;
+
+        // The still-image decoder accepts key and intra-only frames, so every decoded block satisfies the AV1
+        // isIntra condition. Retaining the other predicates mirrors the normative edge decision without inter state.
+        bool applyFilter = isTransformEdge && (isBlockEdge || !modeInfo.Skip || this.frameHeader.IsIntra);
+        if (!applyFilter)
+        {
+            return;
+        }
+
+        int currentLevel = this.GetFilterLevel(modeInfo, modeInfoPosition, plane, pass);
+        int filterLevel = currentLevel != 0
+            ? currentLevel
+            : this.GetFilterLevel(this.frameInfo.GetModeInfoAt(previousModeInfoPosition), previousModeInfoPosition, plane, pass);
+
+        if (filterLevel == 0)
+        {
+            return;
+        }
+
+        int baseFilterSize = verticalBoundary
+            ? Math.Min(transformSize.GetWidth(), previousTransformSize.GetWidth())
+            : Math.Min(transformSize.GetHeight(), previousTransformSize.GetHeight());
+
+        int maximumFilterSize = plane == Av1Plane.Y ? 16 : 8;
+        int filterSize = Math.Min(maximumFilterSize, baseFilterSize);
+        int kernelLength = plane == Av1Plane.Y
+            ? filterSize switch
+            {
+                4 => 4,
+                8 => 8,
+                _ => 14
+            }
+            : filterSize == 4 ? 4 : 6;
+
+        int sharpness = this.frameHeader.LoopFilterParameters.SharpnessLevel;
+        int shift = sharpness > 4 ? 2 : sharpness > 0 ? 1 : 0;
+        int limit = sharpness > 0
+            ? Av1Math.Clip3(1, 9 - sharpness, filterLevel >> shift)
+            : Math.Max(1, filterLevel >> shift);
+
+        int boundaryLimit = (2 * (filterLevel + 2)) + limit;
+        int highEdgeVarianceThreshold = filterLevel >> 4;
+        int q0Offset = stride + (planeY * stride) + planeX;
+        int pixelStep = verticalBoundary ? 1 : stride;
+        int lineStep = verticalBoundary ? stride : 1;
+
+        if (this.frameBuffer.BytesPerSample == 2)
+        {
+            Av1LoopFilterKernels.FilterHighBitDepthEdge(
+                highBitDepthSamples,
+                q0Offset,
+                pixelStep,
+                lineStep,
+                kernelLength,
+                limit,
+                boundaryLimit,
+                highEdgeVarianceThreshold,
+                this.frameBuffer.BitDepth.GetBitCount());
+        }
+        else
+        {
+            Av1LoopFilterKernels.FilterLowBitDepthEdge(
+                lowBitDepthSamples,
+                q0Offset,
+                pixelStep,
+                lineStep,
+                kernelLength,
+                limit,
+                boundaryLimit,
+                highEdgeVarianceThreshold);
+        }
+    }
+
+    /// <summary>
+    /// Derives the adaptive filter level for one block, plane, and boundary direction.
+    /// </summary>
+    /// <param name="modeInfo">The decoded mode and segment information.</param>
+    /// <param name="modeInfoPosition">The frame-relative position in luma 4x4 units.</param>
+    /// <param name="plane">The color plane.</param>
+    /// <param name="pass">Zero for a vertical boundary; one for a horizontal boundary.</param>
+    /// <returns>The filter level in the AV1 zero-to-63 domain.</returns>
+    private int GetFilterLevel(Av1BlockModeInfo modeInfo, Point modeInfoPosition, Av1Plane plane, int pass)
+    {
+        int filterIndex = plane == Av1Plane.Y ? pass : (int)plane + 1;
+        ObuLoopFilterParameters parameters = this.frameHeader.LoopFilterParameters;
+        int baseLevel = filterIndex switch
+        {
+            0 => parameters.FilterLevel[0],
+            1 => parameters.FilterLevel[1],
+            2 => parameters.FilterLevelU,
+            _ => parameters.FilterLevelV
+        };
+
+        int superblockShift = this.sequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2;
+        Point superblockPosition = new(modeInfoPosition.X >> superblockShift, modeInfoPosition.Y >> superblockShift);
+        Span<int> deltaLoopFilter = this.frameInfo.GetSuperblock(superblockPosition).SuperblockDeltaLoopFilter;
+        int delta = this.frameHeader.DeltaLoopFilterParameters.IsMulti ? deltaLoopFilter[filterIndex] : deltaLoopFilter[0];
+        int level = Av1Math.Clip3(0, Av1Constants.MaxLoopFilter, baseLevel + delta);
+        ObuSegmentationLevelFeature feature = (ObuSegmentationLevelFeature)((int)ObuSegmentationLevelFeature.AlternativeLoopFilterYVertical + filterIndex);
+        ObuSegmentationParameters segmentation = this.frameHeader.SegmentationParameters;
+
+        if (segmentation.IsFeatureActive(modeInfo.SegmentId, feature))
+        {
+            level = Av1Math.Clip3(
+                0,
+                Av1Constants.MaxLoopFilter,
+                level + segmentation.FeatureData[modeInfo.SegmentId, (int)feature]);
+        }
+
+        if (parameters.ReferenceDeltaModeEnabled)
+        {
+            // Every supported AVIF still-picture block uses INTRA_FRAME, whose reference delta is index zero and
+            // whose prediction mode does not consume either inter mode delta.
+            int referenceScale = 1 << (level >> 5);
+            level = Av1Math.Clip3(
+                0,
+                Av1Constants.MaxLoopFilter,
+                level + (parameters.ReferenceDeltas[0] * referenceScale));
+        }
+
+        return level;
+    }
 }

@@ -3,6 +3,7 @@
 
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
@@ -31,6 +32,11 @@ internal class Av1BlockDecoder
     private readonly Av1FrameBuffer<byte> frameBuffer;
 
     /// <summary>
+    /// The per-plane transform-size map consumed after reconstruction by the deblocking stage.
+    /// </summary>
+    private readonly Av1LoopFilterContext loopFilterContext;
+
+    /// <summary>
     /// Indicates whether transform traversal must also populate loop-filter parameters.
     /// </summary>
     private readonly bool isLoopFilterEnabled;
@@ -51,11 +57,17 @@ internal class Av1BlockDecoder
     /// <param name="sequenceHeader">The decoded sequence header.</param>
     /// <param name="frameHeader">The decoded frame header.</param>
     /// <param name="frameBuffer">The frame buffer receiving reconstructed samples.</param>
-    public Av1BlockDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameBuffer<byte> frameBuffer)
+    /// <param name="loopFilterContext">The transform-size map populated while reconstructing blocks.</param>
+    public Av1BlockDecoder(
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        Av1FrameBuffer<byte> frameBuffer,
+        Av1LoopFilterContext loopFilterContext)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
         this.frameBuffer = frameBuffer;
+        this.loopFilterContext = loopFilterContext;
         int ySize = (1 << this.sequenceHeader.SuperblockSizeLog2) * (1 << this.sequenceHeader.SuperblockSizeLog2);
 
         // One scratch plane is reused for every transform unit. Its maximum size must cover a complete superblock
@@ -65,7 +77,9 @@ internal class Av1BlockDecoder
             (this.sequenceHeader.ColorConfig.SubSamplingY ? ySize >> 2 : ySize);
 
         this.CurrentInverseQuantizationCoefficients = new int[inverseQuantizationSize];
-        this.isLoopFilterEnabled = false;
+        this.isLoopFilterEnabled = frameHeader.LoopFilterParameters.FilterLevel[0] != 0 ||
+            frameHeader.LoopFilterParameters.FilterLevel[1] != 0;
+
         this.currentCoefficientIndex = new int[3];
         this.chromaFromLumaContext = new(sequenceHeader.ColorConfig);
     }
@@ -140,7 +154,6 @@ internal class Av1BlockDecoder
             : modeInfo.TransformUnitsCount[(int)Av1Plane.U];
 
         bool highBitDepth = this.frameBuffer.BytesPerSample == 2;
-        int loopFilterStride = this.frameHeader.ModeInfoStride;
         Av1PredictionDecoder predictionDecoder = new(this.sequenceHeader, this.frameHeader);
         Av1InverseQuantizer inverseQuantizer = new(this.sequenceHeader, this.frameHeader);
 
@@ -220,20 +233,16 @@ internal class Av1BlockDecoder
 
                 if (this.isLoopFilterEnabled)
                 {
-                    /*
+                    // U and V share transform geometry. Store the chroma map once so the later plane passes consume
+                    // identical sizes without retaining duplicate state.
                     if (plane != 2)
                     {
-                        // SVT: svt_aom_fill_4x4_lf_param
-                        Fill4x4LoopFilterParameters(
-                            this.loopFilterContext,
-                            (modeInfoPosition.X & (~subX)) + (transformInfo.OffsetX << subX),
-                            (modeInfoPosition.Y & (~subY)) + (transformInfo.OffsetY << subY),
-                            loopFilterStride,
-                            transformSize,
-                            subX,
-                            subY,
-                            plane);
-                    }*/
+                        Point transformPosition = new(
+                            (modeInfoPosition.X >> subX) + transformInfo[0].OffsetX,
+                            (modeInfoPosition.Y >> subY) + transformInfo[0].OffsetY);
+
+                        this.loopFilterContext.SetTransformSize((Av1Plane)plane, transformPosition, transformSize);
+                    }
                 }
 
                 // if (!inter_block)

@@ -28,6 +28,8 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
         this.BitDepth = other.BitDepth;
         this.IsMonochrome = other.IsMonochrome;
         this.HasAlpha = other.HasAlpha;
+        this.RepeatCount = other.RepeatCount;
+        this.AnimateRootFrame = other.AnimateRootFrame;
         this.ContentLightLevel = other.ContentLightLevel;
         this.MasteringDisplayColorVolume = other.MasteringDisplayColorVolume;
         this.ContentColorVolume = other.ContentColorVolume;
@@ -55,6 +57,18 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
     /// Gets or sets a value indicating whether the primary image has an alpha channel.
     /// </summary>
     public bool HasAlpha { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of times the image sequence is played. A value of zero repeats indefinitely.
+    /// The default is one play.
+    /// </summary>
+    public ushort RepeatCount { get; set; } = 1;
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the root frame is included in the image sequence.
+    /// The default is <see langword="true"/>.
+    /// </summary>
+    public bool AnimateRootFrame { get; set; } = true;
 
     /// <summary>
     /// Gets or sets the content light-level information for the primary image, or <see langword="null"/> when it is
@@ -108,7 +122,9 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
             BitDepth = bitDepth,
             IsMonochrome = metadata.PixelTypeInfo.ColorType.HasFlag(PixelColorType.Luminance)
                 && !metadata.PixelTypeInfo.ColorType.HasFlag(PixelColorType.ChrominanceBlue),
-            HasAlpha = metadata.PixelTypeInfo.AlphaRepresentation != PixelAlphaRepresentation.None
+            HasAlpha = metadata.PixelTypeInfo.AlphaRepresentation != PixelAlphaRepresentation.None,
+            RepeatCount = metadata.RepeatCount,
+            AnimateRootFrame = metadata.AnimateRootFrame
         };
     }
 
@@ -151,7 +167,9 @@ public class HeifMetadata : IFormatMetadata<HeifMetadata>
     public FormatConnectingMetadata ToFormatConnectingMetadata()
         => new()
         {
+            AnimateRootFrame = this.AnimateRootFrame,
             PixelTypeInfo = this.GetPixelTypeInfo(),
+            RepeatCount = this.RepeatCount
         };
 
     /// <inheritdoc/>

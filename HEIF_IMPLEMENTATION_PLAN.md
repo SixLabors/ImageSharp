@@ -2,7 +2,7 @@
 
 ## Goal
 
-Complete a production-quality, fully managed still-image HEIF family implementation for ImageSharp. The implementation must support HEIC, HIF/HEIF, and AVIF image files, interoperate with independent encoders and decoders, follow the existing ImageSharp architecture and code style, reuse existing ImageSharp infrastructure wherever its semantics match, and use SIMD for measured hot paths without maintaining a separate behavior model.
+Complete a production-quality, fully managed HEIF family image-format implementation for ImageSharp. The implementation must support still and animated HEIC, HIF/HEIF, and AVIF image files, interoperate with independent encoders and decoders, follow the existing ImageSharp architecture and code style, reuse existing ImageSharp infrastructure wherever its semantics match, and use SIMD for measured hot paths without maintaining a separate behavior model.
 
 HEIF is the shared ISO BMFF-derived container. HEIC carries HEVC image items, AVIF carries AV1 image items, and `.hif`/`.heif` are container extensions whose payload codec must be determined from brands and item types rather than the filename. The completed implementation will support HEVC, AV1, and legacy JPEG image items. Other registered HEIF payload codecs must not be advertised unless they are implemented and independently verified.
 
@@ -42,9 +42,10 @@ Checkboxes may be marked complete only when the implementation and the verificat
   - [x] Add complete-block BenchmarkDotNet coverage for scalar, `Vector128`, `Vector256`, and runtime-dispatched 8x8 and 32x32 forward/inverse DCT paths, including managed-allocation reporting.
   - [x] Verify every scalar and hardware path across all transform types, sizes, bit depths, edge blocks, and bounded overflow cases, then record representative complete-block timings and allocations.
     - Verification covers all 159 normative size/type combinations at 8, 10, and 12 bits with padded input, prediction, and destination strides. Each of the 477 configurations compares scalar and `Vector128` output, and every configuration that contains a complete eight-lane tile also compares `Vector256` output. The 989-test focused suite passes with normal AVX2 dispatch, with AVX2 disabled, and with all hardware intrinsics disabled.
-- [ ] **Queued:** restore bounded animated HEIC and AVIF image-sequence scope, including the required image-level and per-frame metadata contracts, without introducing unrelated ISO BMFF surfaces.
-  - [ ] Reconcile the still-image-only statements in this plan with the required animated HEIC and AVIF completion scope before sequence implementation begins.
-  - [ ] Define the ImageSharp image-level sequence metadata and per-frame metadata contracts, including observable timing, repetition, color, alpha, orientation, and profile behavior.
+- [ ] **Active:** restore bounded animated HEIC and AVIF image-sequence scope, including the required image-level and per-frame metadata contracts, without introducing unrelated ISO BMFF surfaces.
+  - [x] Reconcile the top-level still-image-only scope with the required animated HEIC and AVIF completion boundary before sequence implementation begins.
+  - [x] Define the ImageSharp image-level sequence metadata and per-frame metadata contracts, including observable timing, repetition, color, alpha, orientation, and profile behavior.
+    - `HeifMetadata` now carries repetition and root-frame animation behavior through `FormatConnectingMetadata`. `HeifFrameMetadata` carries frame duration through `FormatConnectingFrameMetadata`; frame-local color, alpha, orientation, and profile state remain owned by the existing `ImageFrameMetadata` contract. The focused Release suite passes all 40 encoder, image metadata, and frame metadata tests.
   - [ ] Identify and document the minimum normative ISO BMFF track, sample-description, sample-location, dependency, and timing syntax required by conforming HEIC and AVIF image sequences.
   - [ ] Parse and write only that bounded image-sequence syntax; do not add audio, arbitrary media, editing, fragmentation, streaming, or general presentation APIs.
   - [ ] Decode frame dependencies, durations, repetition, frame-local auxiliary images, and frame-local metadata into the existing ImageSharp multi-frame model.
@@ -72,28 +73,28 @@ Gain maps, progressive/layered images, sample transforms, and experimental exten
 
 ## Container scope
 
-The container implementation is a deliberately narrow HEIF still-image reader and writer, not a general ISO BMFF framework. Implement only the box syntax and relationships required to identify, locate, describe, decode, and encode supported HEIF image items, derived image items, auxiliary images, thumbnails, and their image metadata.
+The container implementation is a deliberately narrow HEIF image-format reader and writer, not a general ISO BMFF framework. Implement only the box syntax and relationships required for supported HEIF image items and bounded HEIC/AVIF image sequences.
 
-In scope are the file type, metadata, item location/data, item information, item properties, item references, primary-item selection, `idat`/`mdat` payload storage, grids, auxiliary alpha, presentation transforms, color properties, and Exif/XMP paths required by HEIC, AVIF, and generic HEIF/HIF still images.
+In scope are the file type, metadata, item location/data, item information, item properties, item references, primary-item selection, `idat`/`mdat` payload storage, grids, auxiliary alpha, presentation transforms, color properties, and Exif/XMP paths required by still images. Image sequences additionally include only the brands, tracks, sample descriptions, sample locations, decode dependencies, timing, repetition, and frame-local metadata required to map HEIC and AVIF sequences to ImageSharp frames.
 
-The ImageSharp result is one presented primary still image. Supporting items are decoded only when they are required to construct or describe that result, such as grid tiles, alpha auxiliaries, a selected thumbnail fallback, Exif, or XMP. The implementation does not expose an arbitrary HEIF image collection, burst, animation, timed sequence, or page model, and the encoder writes only the primary image and the supporting image items and metadata selected through the ImageSharp still-image API.
+Still files produce one presented primary image. Supported image sequences produce one ordered ImageSharp frame collection with bounded duration, repetition, frame dependency, alpha, color, orientation, and profile state. Supporting items are decoded only when required to construct or describe those presented frames. The implementation does not expose arbitrary HEIF image collections, bursts, pages, audio, or non-image media.
 
-Out of scope are movie and media boxes, tracks, sample tables, timing and edit models, fragments, streaming profiles, sequence playback, sequence brands, and inter-frame reference-picture behavior whose only purpose is HEIC/AVIF animation or video. These surfaces must not be modeled speculatively, registered, or accepted as supported formats. Unknown optional boxes remain bounded and skippable; an unsupported essential image property or unsupported sequence/movie brand must fail with a useful image-format error.
+Out of scope are audio, arbitrary video, edit lists, fragments, streaming profiles, general presentation APIs, and reusable movie, track, or sample-table object models. Track, sample, timing, and inter-frame codec state may exist only inside the bounded HEIC/AVIF sequence decoder or encoder that owns it. Unknown optional boxes remain bounded and skippable; unsupported essential image or sequence syntax must fail with a useful image-format error.
 
-Implementation rule: do not introduce a reusable general-purpose ISO BMFF box hierarchy, track model, or media parser. Add box syntax directly to the bounded HEIF container model only when a supported still-image item, relationship, property, metadata path, or conformance fixture requires it. Each addition must name the image behavior it enables and have a focused image-format test.
+Implementation rule: do not introduce a reusable general-purpose ISO BMFF box hierarchy, track model, or media parser. Add box syntax directly to the bounded HEIF model only when a supported still image, image-sequence frame, relationship, property, metadata path, or conformance fixture requires it. Each addition must name the image behavior it enables and have a focused image-format test.
 
 An ISO BMFF construct may be added only when all of the following are true:
 
-1. A conforming supported still-image file requires it to produce or describe the primary ImageSharp image.
+1. A conforming supported still image or HEIC/AVIF image sequence requires it to produce or describe presented ImageSharp frames.
 2. Its owning image item and its effect on the decoded or encoded image are explicit.
-3. It can be parsed or written as a bounded part of the existing HEIF image-item model without adding a general box, sample, track, or presentation abstraction.
-4. Independent still-image fixtures exercise the behavior it enables.
+3. It can be parsed or written as bounded state owned by the HEIF image-item or image-sequence path without adding a general media abstraction.
+4. Independent still-image or animated-image fixtures exercise the behavior it enables.
 
-Encountering a box in libavif, ISO BMFF, or a third-party file is not by itself a reason to port it. Constructs used only by tracks, timed samples, movies, fragments, audio, animation, or arbitrary image collections must be skipped when optional or rejected when essential to the requested presentation.
+Encountering a box in libavif, ISO BMFF, or a third-party file is not by itself a reason to port it. Constructs not required by the supported still-image or bounded image-sequence presentation must be skipped when optional or rejected when essential.
 
-Codec-configuration rule: parse `av1C` and `hvcC` only as properties of coded still-image items. Validate their image profile, level, bit depth, chroma layout, and parameter-set/OBU declarations against the associated item payload and expose only image metadata needed by ImageSharp. Do not port visual sample entries, sample descriptions, decoder-configuration records for tracks, layer-selection state, sample groups, timing, or any other movie-oriented ISO BMFF surface around those records.
+Codec-configuration rule: parse `av1C` and `hvcC` as properties of coded image items and as the bounded decoder configurations referenced by supported image-sequence sample descriptions. Validate profile, level, bit depth, chroma layout, and parameter-set/OBU declarations against the associated item or sequence samples. Do not expose visual sample entries, sample descriptions, layer selection, sample groups, or timing as general public or reusable ISO BMFF models.
 
-AV1 sequence headers and HEVC VPS/SPS/PPS structures remain in scope because they are codec syntax required to decode a single independently decodable image item. Their presence does not authorize ISO BMFF sequence brands, timed samples, retained playback state, or multi-frame APIs.
+AV1 sequence headers and HEVC VPS/SPS/PPS structures remain in scope because they are codec syntax required by image items and image-sequence frames. Retained reference-frame state is permitted only for the lifetime of a bounded HEIC/AVIF sequence decode or encode operation.
 
 ## Reference hierarchy
 
@@ -271,7 +272,7 @@ Use existing ImageSharp buffered stream and allocation abstractions. Do not copy
 
 ### Codec state and sample storage
 
-Keep HEVC and AV1 bitstream state in separate codec implementations. Within each codec, separate parameter/sequence state, frame or picture headers, tile/slice entropy state, and the reconstructed still image. Do not introduce retained reference-frame or playback state for sequence behavior outside the supported image-item syntax. Give each allocation one owner and a deterministic disposal point.
+Keep HEVC and AV1 bitstream state in separate codec implementations. Within each codec, separate parameter/sequence state, frame or picture headers, tile/slice entropy state, and reconstructed images. Still-image operations retain no reference pictures; bounded image-sequence operations retain only the reference frames required by their declared dependencies. Give each allocation one owner and a deterministic disposal point.
 
 Represent 8-bit samples with bytes and high-bit-depth samples with unsigned 16-bit storage. Plane dimensions and strides must reflect monochrome and chroma subsampling instead of pretending every plane is full-resolution 4:4:4. Keep scalar reconstruction as the behavioral oracle for every SIMD implementation.
 

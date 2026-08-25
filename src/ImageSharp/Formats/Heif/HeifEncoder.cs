@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// <summary>
 /// Image encoder for writing image data to a stream in a HEIF container.
 /// </summary>
-public sealed class HeifEncoder : AlphaAwareImageEncoder
+public sealed class HeifEncoder : AnimatedImageEncoder
 {
     /// <summary>
     /// Backing field for <see cref="Quality"/>.

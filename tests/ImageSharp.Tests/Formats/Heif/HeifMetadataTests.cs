@@ -20,6 +20,8 @@ public class HeifMetadataTests
         Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
         Assert.False(metadata.IsMonochrome);
         Assert.False(metadata.HasAlpha);
+        Assert.Equal(1, metadata.RepeatCount);
+        Assert.True(metadata.AnimateRootFrame);
     }
 
     [Fact]
@@ -30,7 +32,9 @@ public class HeifMetadataTests
             CompressionMethod = HeifCompressionMethod.Av1,
             BitDepth = HeifBitDepth.Bit12,
             IsMonochrome = true,
-            HasAlpha = true
+            HasAlpha = true,
+            RepeatCount = 3,
+            AnimateRootFrame = false
         };
 
         HeifMetadata clone = metadata.DeepClone();
@@ -39,6 +43,25 @@ public class HeifMetadataTests
         Assert.Equal(metadata.BitDepth, clone.BitDepth);
         Assert.Equal(metadata.IsMonochrome, clone.IsMonochrome);
         Assert.Equal(metadata.HasAlpha, clone.HasAlpha);
+        Assert.Equal(metadata.RepeatCount, clone.RepeatCount);
+        Assert.Equal(metadata.AnimateRootFrame, clone.AnimateRootFrame);
+    }
+
+    [Fact]
+    public void SequenceStateRoundTripsFormatConnectingMetadata()
+    {
+        FormatConnectingMetadata connectingMetadata = new()
+        {
+            AnimateRootFrame = false,
+            PixelTypeInfo = new PixelTypeInfo(24),
+            RepeatCount = 7
+        };
+
+        HeifMetadata metadata = HeifMetadata.FromFormatConnectingMetadata(connectingMetadata);
+        FormatConnectingMetadata result = metadata.ToFormatConnectingMetadata();
+
+        Assert.False(result.AnimateRootFrame);
+        Assert.Equal(7, result.RepeatCount);
     }
 
     [Theory]

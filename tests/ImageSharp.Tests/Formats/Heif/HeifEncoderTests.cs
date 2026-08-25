@@ -24,6 +24,8 @@ public class HeifEncoderTests
         Assert.False(encoder.Lossless);
         Assert.Null(encoder.BitDepth);
         Assert.Null(encoder.ChromaSubsampling);
+        Assert.Null(encoder.RepeatCount);
+        Assert.True(encoder.AnimateRootFrame);
     }
 
     [Theory]

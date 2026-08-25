@@ -12,47 +12,53 @@ internal abstract partial class HeifColorConverterBase
     /// <summary>
     /// Implements BT.2100 ICtCp conversion for scalar and SIMD lanes.
     /// </summary>
+    /// <remarks>
+    /// H.273 equations 72-74 and 75-77 define the forward PQ and HLG matrices from nonlinear LMS to I, Ct, and Cp. Decoding requires the
+    /// inverse matrices, whose non-identity terms are used below as <c>L' = I + aCt + bCp</c>, <c>M' = I - aCt - bCp</c>, and
+    /// <c>S' = I + cCt + dCp</c>. Each rational constant is the exact result of inverting the corresponding integer-over-4096 matrix;
+    /// the explicit double-precision division preserves that value until the compile-time conversion to <see cref="float"/>.
+    /// </remarks>
     internal readonly struct HeifICtCpColorOperator : IHeifColorOperator
     {
         /// <summary>
-        /// The PQ Ct contribution to nonlinear L.
+        /// The PQ Ct contribution to nonlinear L, derived by inverting H.273 equations 72-74.
         /// </summary>
-        public const float PqCtToL = 0.008609037037932756F;
+        public const float PqCtToL = (float)(1_112_064D / 129_174_029D);
 
         /// <summary>
-        /// The PQ Cp contribution to nonlinear L.
+        /// The PQ Cp contribution to nonlinear L, derived by inverting H.273 equations 72-74.
         /// </summary>
-        public const float PqCpToL = 0.11102962500302596F;
+        public const float PqCpToL = (float)(14_342_144D / 129_174_029D);
 
         /// <summary>
-        /// The PQ Ct contribution to nonlinear S.
+        /// The PQ Ct contribution to nonlinear S, derived by inverting H.273 equations 72-74.
         /// </summary>
-        public const float PqCtToS = 0.5600313357106791F;
+        public const float PqCtToS = (float)(72_341_504D / 129_174_029D);
 
         /// <summary>
-        /// The PQ Cp contribution to nonlinear S.
+        /// The PQ Cp contribution to nonlinear S, derived by inverting H.273 equations 72-74.
         /// </summary>
-        public const float PqCpToS = -0.32062717498731885F;
+        public const float PqCpToS = (float)(-41_416_704D / 129_174_029D);
 
         /// <summary>
-        /// The HLG Ct contribution to nonlinear L.
+        /// The HLG Ct contribution to nonlinear L, derived by inverting H.273 equations 75-77.
         /// </summary>
-        public const float HlgCtToL = 0.015718580108730413F;
+        public const float HlgCtToL = (float)(6_144D / 390_875D);
 
         /// <summary>
-        /// The HLG Cp contribution to nonlinear L.
+        /// The HLG Cp contribution to nonlinear L, derived by inverting H.273 equations 75-77.
         /// </summary>
-        public const float HlgCpToL = 0.2095810681164055F;
+        public const float HlgCpToL = (float)(16_384D / 78_175D);
 
         /// <summary>
-        /// The HLG Ct contribution to nonlinear S.
+        /// The HLG Ct contribution to nonlinear S, derived by inverting H.273 equations 75-77.
         /// </summary>
-        public const float HlgCtToS = 1.0212710798422342F;
+        public const float HlgCtToS = (float)(1_197_568D / 1_172_625D);
 
         /// <summary>
-        /// The HLG Cp contribution to nonlinear S.
+        /// The HLG Cp contribution to nonlinear S, derived by inverting H.273 equations 75-77.
         /// </summary>
-        public const float HlgCpToS = -0.6052744909924315F;
+        public const float HlgCpToS = (float)(-141_952D / 234_525D);
 
         /// <summary>
         /// The linear L contribution to red.

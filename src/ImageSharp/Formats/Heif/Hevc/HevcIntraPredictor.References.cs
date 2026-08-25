@@ -133,13 +133,19 @@ internal static partial class HevcIntraPredictor
             line.Slice(leftSampleCount, unitWidth).Fill(picture.GetRowSpan(plane, y - 1)[x - 1]);
         }
 
-        ReadOnlySpan<ushort> aboveRow = picture.GetRowSpan(plane, y - 1);
         int topStart = leftSampleCount + unitWidth;
-        for (int unit = 0; unit < aboveUnitCount; unit++)
+        ReadOnlySpan<bool> aboveAvailability = availability.Slice(cornerUnit + 1, aboveUnitCount);
+        if (aboveAvailability.IndexOf(true) >= 0)
         {
-            if (availability[cornerUnit + unit + 1])
+            // A top-edge block can still have reconstructed left references. Load the preceding row only when
+            // the availability derivation proves that at least one above or above-right unit exists.
+            ReadOnlySpan<ushort> aboveRow = picture.GetRowSpan(plane, y - 1);
+            for (int unit = 0; unit < aboveUnitCount; unit++)
             {
-                aboveRow.Slice(x + (unit * unitWidth), unitWidth).CopyTo(line.Slice(topStart + (unit * unitWidth), unitWidth));
+                if (aboveAvailability[unit])
+                {
+                    aboveRow.Slice(x + (unit * unitWidth), unitWidth).CopyTo(line.Slice(topStart + (unit * unitWidth), unitWidth));
+                }
             }
         }
 

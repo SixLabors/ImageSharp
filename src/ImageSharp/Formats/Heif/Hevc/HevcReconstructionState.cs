@@ -53,11 +53,14 @@ internal sealed class HevcReconstructionState : IDisposable
         int heightInUnits = DivideCeilingByPowerOfTwo(this.height, MinPredictionBlockLog2);
         this.chromaSubsamplingX = !sequenceParameterSet.SeparateColorPlaneFlag && sequenceParameterSet.ChromaFormat is 1 or 2 ? 1 : 0;
         this.chromaSubsamplingY = !sequenceParameterSet.SeparateColorPlaneFlag && sequenceParameterSet.ChromaFormat == 1 ? 1 : 0;
+
+        // Region identifiers gate every reconstructed-neighbor read. A stale pooled identifier can match the first
+        // region of a later picture, so these maps must begin at the reserved unavailable value zero.
         this.regions =
         [
-            configuration.MemoryAllocator.Allocate2D<int>(widthInUnits, heightInUnits),
-            configuration.MemoryAllocator.Allocate2D<int>(widthInUnits, heightInUnits),
-            configuration.MemoryAllocator.Allocate2D<int>(widthInUnits, heightInUnits),
+            configuration.MemoryAllocator.Allocate2D<int>(widthInUnits, heightInUnits, AllocationOptions.Clean),
+            configuration.MemoryAllocator.Allocate2D<int>(widthInUnits, heightInUnits, AllocationOptions.Clean),
+            configuration.MemoryAllocator.Allocate2D<int>(widthInUnits, heightInUnits, AllocationOptions.Clean),
         ];
     }
 

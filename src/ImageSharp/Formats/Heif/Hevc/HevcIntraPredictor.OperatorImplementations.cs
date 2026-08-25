@@ -32,8 +32,10 @@ internal static partial class HevcIntraPredictor
         {
             ref ushort topBase = ref MemoryMarshal.GetReference(top);
             ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
-            uint bottomLeft = left[size];
-            uint topRight = top[size];
+
+            // Index zero is the shared corner, so the planar endpoint at coordinate N is stored at N + 1.
+            uint bottomLeft = left[size + 1];
+            uint topRight = top[size + 1];
             int shift = BitOperations.Log2((uint)size) + 1;
             uint rounding = (uint)size;
 

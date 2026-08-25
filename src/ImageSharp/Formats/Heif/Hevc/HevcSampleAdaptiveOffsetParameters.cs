@@ -282,6 +282,10 @@ internal sealed class HevcSampleAdaptiveOffsetState : IDisposable
     public HevcSampleAdaptiveOffsetState(Configuration configuration, int codingTreeBlockCount)
     {
         this.parameters = configuration.MemoryAllocator.Allocate<HevcSampleAdaptiveOffsetParameters>(codingTreeBlockCount * 3);
+
+        // Slice headers can disable SAO independently for luma and chroma. Initialize every component record to Off
+        // so an enabled component never causes untouched records from pooled memory to enter the picture-level pass.
+        this.parameters.Memory.Span.Clear();
         this.regions = configuration.MemoryAllocator.Allocate<int>(codingTreeBlockCount * 3);
         this.loopFilterRegions = configuration.MemoryAllocator.Allocate<HevcLoopFilterRegion>(codingTreeBlockCount * 3);
     }

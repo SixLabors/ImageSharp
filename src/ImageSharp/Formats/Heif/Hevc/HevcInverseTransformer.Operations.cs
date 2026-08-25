@@ -455,7 +455,7 @@ internal static partial class HevcInverseTransformer
                 for (; x <= oneVectorFromEnd; x += Vector128<int>.Count)
                 {
                     ulong packed = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref destinationBase, x)));
-                    Vector128<int> predicted = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsUInt16()).AsInt32();
+                    Vector128<int> predicted = Vector128.WidenLower(Vector128.CreateScalar(packed).AsUInt16()).AsInt32();
                     Vector128<int> reconstructed = Vector128.Clamp(
                         predicted + Vector128.LoadUnsafe(ref residualBase, (nuint)x),
                         Vector128<int>.Zero,

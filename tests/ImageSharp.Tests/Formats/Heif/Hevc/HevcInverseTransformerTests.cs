@@ -150,6 +150,21 @@ public class HevcInverseTransformerTests
     }
 
     /// <summary>
+    /// Verifies that SIMD residual reconstruction preserves each predicted lane for an extracted HEVC transform block.
+    /// </summary>
+    [Fact]
+    public void AddResidualMatchesExtractedHevcBlock()
+    {
+        int[] residual = [-6, 0, 2, 4, -9, -25, -15, -2];
+        ushort[] destination = [154, 154, 154, 154, 154, 154, 154, 154];
+        ushort[] expected = [148, 154, 156, 158, 145, 129, 139, 152];
+
+        HevcInverseTransformer.AddResidual(residual, destination, destination.Length, destination.Length, 1, 8);
+
+        Assert.True(expected.AsSpan().SequenceEqual(destination));
+    }
+
+    /// <summary>
     /// Applies both inverse-transform dimensions using direct matrix products and normative rounding points.
     /// </summary>
     /// <param name="coefficients">The dequantized coefficient block.</param>

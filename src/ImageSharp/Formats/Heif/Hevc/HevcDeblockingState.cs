@@ -39,11 +39,13 @@ internal sealed class HevcDeblockingState : IDisposable
     {
         int width = DivideCeilingByPowerOfTwo(sequenceParameterSet.Width, UnitLog2);
         int height = DivideCeilingByPowerOfTwo(sequenceParameterSet.Height, UnitLog2);
+
+        // MarkBlock combines sparse edge flags with existing values, so zero initialization is part of the state contract.
         this.boundaries =
         [
-            configuration.MemoryAllocator.Allocate2D<byte>(width, height),
-            configuration.MemoryAllocator.Allocate2D<byte>(width, height),
-            configuration.MemoryAllocator.Allocate2D<byte>(width, height),
+            configuration.MemoryAllocator.Allocate2D<byte>(width, height, AllocationOptions.Clean),
+            configuration.MemoryAllocator.Allocate2D<byte>(width, height, AllocationOptions.Clean),
+            configuration.MemoryAllocator.Allocate2D<byte>(width, height, AllocationOptions.Clean),
         ];
     }
 

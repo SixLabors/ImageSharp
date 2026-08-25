@@ -1279,6 +1279,19 @@ public static class TestImages
 
     public static class Heif
     {
+        // The tile payloads are exact item extents from the named HEIC fixtures. Their planar references were decoded
+        // with the HEVC Test Model 18.0 decoder so codec conformance is checked independently of color conversion.
+        public const string Image1TileHvcConfiguration = "Heif/Hevc/image1-tile1.hvcc";
+        public const string Image1Tile1Payload = "Heif/Hevc/image1-tile1.hvc1";
+        public const string Image1Tile1ReferenceYuv = "Heif/Hevc/image1-tile1-hm.yuv";
+        public const string Image1Tile2Payload = "Heif/Hevc/image1-tile2.hvc1";
+        public const string Image1Tile2ReferenceYuv = "Heif/Hevc/image1-tile2-hm.yuv";
+        public const string Image2TileHvcConfiguration = "Heif/Hevc/image2-tile.hvcc";
+        public const string Image2Tile1Payload = "Heif/Hevc/image2-tile1.hvc1";
+        public const string Image2Tile1ReferenceYuv = "Heif/Hevc/image2-tile1-hm.yuv";
+        public const string DwsampleTileHvcConfiguration = "Heif/Hevc/dwsample-tile.hvcc";
+        public const string DwsampleTilePayload = "Heif/Hevc/dwsample-tile.hvc1";
+        public const string DwsampleTileReferenceYuv = "Heif/Hevc/dwsample-tile-hm.yuv";
         public const string Image1 = "Heif/image1.heic";
         public const string Image2 = "Heif/image2.heic";
         public const string Image3 = "Heif/image3.heic";

@@ -104,7 +104,7 @@ internal sealed partial class HevcPictureDecoder
 
             this.sampleAdaptiveOffsetState.SetLoopFilterRegion(rasterAddress, regionPlane, loopFilterRegion);
             this.DecodeSampleAdaptiveOffset(ref reader, independentSlice, rasterAddress, ctbX, ctbY, regionId);
-            bool endOfSliceSegment = this.DecodeCodingTree(
+            this.DecodeCodingTree(
                 ref reader,
                 x,
                 y,
@@ -112,6 +112,10 @@ internal sealed partial class HevcPictureDecoder
                 0,
                 regionId,
                 colorPlaneIndex);
+
+            // HEVC places end_of_slice_segment_flag after the final coding unit of each complete CTB. Reading it
+            // inside the recursive leaf traversal consumes coefficient data whenever a CTB contains multiple CUs.
+            bool endOfSliceSegment = reader.ReadTerminate();
 
             // Wavefront synchronization copies probability and persistent Rice state after the second CTB of each
             // row. The next row starts with those contexts but a newly initialized arithmetic register.
@@ -161,8 +165,7 @@ internal sealed partial class HevcPictureDecoder
     /// <param name="depth">The coding-tree depth below the coding-tree-block root.</param>
     /// <param name="regionId">The current independent-slice and tile prediction region.</param>
     /// <param name="colorPlaneIndex">The selected separate-color plane, or zero for combined coding.</param>
-    /// <returns><see langword="true"/> when the current leaf terminates the slice segment.</returns>
-    private bool DecodeCodingTree(
+    private void DecodeCodingTree(
         ref HevcCabacSyntaxReader reader,
         int x,
         int y,
@@ -191,14 +194,18 @@ internal sealed partial class HevcPictureDecoder
             }
         }
 
-        if (depth == this.pictureParameterSet.QuantizationParameterDeltaDepth
-            && this.pictureParameterSet.CodingUnitQuantizationParameterDeltaEnabled)
+        bool startsQuantizationGroup = depth == this.pictureParameterSet.QuantizationParameterDeltaDepth
+            || (!split && depth < this.pictureParameterSet.QuantizationParameterDeltaDepth);
+        if (startsQuantizationGroup && this.pictureParameterSet.CodingUnitQuantizationParameterDeltaEnabled)
         {
+            // A leaf above the configured QG depth owns one complete quantization group. Waiting for the configured
+            // depth would carry the preceding group's coded-delta state into this coding unit and skip required syntax.
             this.BeginQuantizationGroup(x, y, regionId, colorPlaneIndex);
         }
 
-        if (depth == this.pictureParameterSet.ChromaQuantizationParameterOffsetDepth
-            && this.pictureParameterSet.ChromaQuantizationParameterOffsetsCb.Count != 0)
+        bool startsChromaQuantizationGroup = depth == this.pictureParameterSet.ChromaQuantizationParameterOffsetDepth
+            || (!split && depth < this.pictureParameterSet.ChromaQuantizationParameterOffsetDepth);
+        if (startsChromaQuantizationGroup && this.pictureParameterSet.ChromaQuantizationParameterOffsetsCb.Count != 0)
         {
             this.currentChromaQuantizationAdjustment = 0;
             this.chromaQuantizationAdjustmentPending = true;
@@ -217,23 +224,20 @@ internal sealed partial class HevcPictureDecoder
                     continue;
                 }
 
-                if (this.DecodeCodingTree(
+                this.DecodeCodingTree(
                     ref reader,
                     childX,
                     childY,
                     childLog2Size,
                     depth + 1,
                     regionId,
-                    colorPlaneIndex))
-                {
-                    return true;
-                }
+                    colorPlaneIndex);
             }
 
-            return false;
+            return;
         }
 
-        return this.DecodeCodingUnit(ref reader, x, y, log2Size, depth, regionId, colorPlaneIndex);
+        this.DecodeCodingUnit(ref reader, x, y, log2Size, depth, regionId, colorPlaneIndex);
     }
 
     /// <summary>
@@ -246,8 +250,7 @@ internal sealed partial class HevcPictureDecoder
     /// <param name="depth">The coding-tree depth.</param>
     /// <param name="regionId">The current independent-slice and tile prediction region.</param>
     /// <param name="colorPlaneIndex">The selected separate-color plane, or zero for combined coding.</param>
-    /// <returns><see langword="true"/> when this coding unit terminates the slice segment.</returns>
-    private bool DecodeCodingUnit(
+    private void DecodeCodingUnit(
         ref HevcCabacSyntaxReader reader,
         int x,
         int y,
@@ -281,7 +284,7 @@ internal sealed partial class HevcPictureDecoder
             predictionState.DecodeLumaModes(ref reader, x, y, log2Size, usesNxNPartitions, leftAvailable, aboveAvailable);
             if (this.sequenceParameterSet.ChromaFormat != 0 && !this.sequenceParameterSet.SeparateColorPlaneFlag)
             {
-                predictionState.DecodeChromaMode(ref reader, x, y, log2Size);
+                predictionState.DecodeChromaModes(ref reader, x, y, log2Size, usesNxNPartitions);
             }
 
             int minimumTransformLog2 = GetMinimumTransformLog2Size(this.sequenceParameterSet, log2Size, usesNxNPartitions);
@@ -319,7 +322,6 @@ internal sealed partial class HevcPictureDecoder
             pcm);
 
         this.lastCodedQuantizationParameter = this.currentQuantizationParameter;
-        return reader.ReadTerminate();
     }
 
     /// <summary>
@@ -332,8 +334,12 @@ internal sealed partial class HevcPictureDecoder
     private void BeginQuantizationGroup(int x, int y, int regionId, int colorPlaneIndex)
     {
         HevcPlane plane = this.sequenceParameterSet.SeparateColorPlaneFlag ? (HevcPlane)colorPlaneIndex : HevcPlane.Y;
-        bool leftAvailable = this.reconstructionState.IsReconstructed(plane, x - 1, y, regionId);
-        bool aboveAvailable = this.reconstructionState.IsReconstructed(plane, x, y - 1, regionId);
+        int codingTreeBlockMask = (1 << this.sequenceParameterSet.CodingTreeBlockLog2) - 1;
+
+        // QP prediction neighbours are confined to the current CTB. This differs from intra sample availability,
+        // which may legitimately use reconstructed samples across the same left or upper CTB boundary.
+        bool leftAvailable = (x & codingTreeBlockMask) != 0 && this.reconstructionState.IsReconstructed(plane, x - 1, y, regionId);
+        bool aboveAvailable = (y & codingTreeBlockMask) != 0 && this.reconstructionState.IsReconstructed(plane, x, y - 1, regionId);
         int fallback = this.lastCodedQuantizationParameter;
         HevcCodingTreeState codingTreeState = this.codingTreeStates[colorPlaneIndex];
         int left = leftAvailable ? codingTreeState.GetQuantizationParameter(x - 1, y) : fallback;

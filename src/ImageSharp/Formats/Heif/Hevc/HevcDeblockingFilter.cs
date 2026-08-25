@@ -17,15 +17,16 @@ internal static class HevcDeblockingFilter
     private interface IEdgeOperator
     {
         /// <summary>
-        /// Loads four samples at one signed distance across the edge.
+        /// Loads samples at one signed distance across the edge.
         /// </summary>
         /// <param name="picture">The reconstructed picture.</param>
         /// <param name="plane">The component plane.</param>
         /// <param name="x">The first Q-side sample X coordinate.</param>
         /// <param name="y">The first Q-side sample Y coordinate.</param>
         /// <param name="distance">The signed sample distance across the edge.</param>
-        /// <returns>Four widened samples ordered along the edge.</returns>
-        public static abstract Vector128<int> LoadVector(HevcPictureBuffer picture, HevcPlane plane, int x, int y, int distance);
+        /// <param name="count">The number of valid low lanes to load.</param>
+        /// <returns>The widened samples ordered along the edge.</returns>
+        public static abstract Vector128<int> LoadVector(HevcPictureBuffer picture, HevcPlane plane, int x, int y, int distance, int count);
 
         /// <summary>
         /// Stores four samples at one signed distance across the edge.
@@ -250,14 +251,14 @@ internal static class HevcDeblockingFilter
             return;
         }
 
-        Vector128<int> p3 = TOperator.LoadVector(picture, plane, x, y, -4);
-        Vector128<int> p2 = TOperator.LoadVector(picture, plane, x, y, -3);
-        Vector128<int> p1 = TOperator.LoadVector(picture, plane, x, y, -2);
-        Vector128<int> p0 = TOperator.LoadVector(picture, plane, x, y, -1);
-        Vector128<int> q0 = TOperator.LoadVector(picture, plane, x, y, 0);
-        Vector128<int> q1 = TOperator.LoadVector(picture, plane, x, y, 1);
-        Vector128<int> q2 = TOperator.LoadVector(picture, plane, x, y, 2);
-        Vector128<int> q3 = TOperator.LoadVector(picture, plane, x, y, 3);
+        Vector128<int> p3 = TOperator.LoadVector(picture, plane, x, y, -4, 4);
+        Vector128<int> p2 = TOperator.LoadVector(picture, plane, x, y, -3, 4);
+        Vector128<int> p1 = TOperator.LoadVector(picture, plane, x, y, -2, 4);
+        Vector128<int> p0 = TOperator.LoadVector(picture, plane, x, y, -1, 4);
+        Vector128<int> q0 = TOperator.LoadVector(picture, plane, x, y, 0, 4);
+        Vector128<int> q1 = TOperator.LoadVector(picture, plane, x, y, 1, 4);
+        Vector128<int> q2 = TOperator.LoadVector(picture, plane, x, y, 2, 4);
+        Vector128<int> q3 = TOperator.LoadVector(picture, plane, x, y, 3, 4);
 
         // Each Int32 lane is one row or column along the edge. The threshold decision is shared by all four lanes,
         // while the filter arithmetic stays lane-local and exactly matches the scalar equations below.
@@ -366,10 +367,10 @@ internal static class HevcDeblockingFilter
             return;
         }
 
-        Vector128<int> p1Vector = TOperator.LoadVector(picture, plane, x, y, -2);
-        Vector128<int> p0Vector = TOperator.LoadVector(picture, plane, x, y, -1);
-        Vector128<int> q0Vector = TOperator.LoadVector(picture, plane, x, y, 0);
-        Vector128<int> q1Vector = TOperator.LoadVector(picture, plane, x, y, 1);
+        Vector128<int> p1Vector = TOperator.LoadVector(picture, plane, x, y, -2, count);
+        Vector128<int> p0Vector = TOperator.LoadVector(picture, plane, x, y, -1, count);
+        Vector128<int> q0Vector = TOperator.LoadVector(picture, plane, x, y, 0, count);
+        Vector128<int> q1Vector = TOperator.LoadVector(picture, plane, x, y, 1, count);
         Vector128<int> deltaVector = (((q0Vector - p0Vector) * 4) + p1Vector - q1Vector + Vector128.Create(4)) >> 3;
         deltaVector = Vector128.Clamp(deltaVector, Vector128.Create(-tc), Vector128.Create(tc));
         Vector128<int> minimum = Vector128<int>.Zero;
@@ -529,12 +530,25 @@ internal static class HevcDeblockingFilter
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<int> LoadVector(HevcPictureBuffer picture, HevcPlane plane, int x, int y, int distance)
-            => Vector128.Create(
+        public static Vector128<int> LoadVector(HevcPictureBuffer picture, HevcPlane plane, int x, int y, int distance, int count)
+        {
+            if (count == 4)
+            {
+                return Vector128.Create(
+                    (int)picture.GetRowSpan(plane, y)[x + distance],
+                    picture.GetRowSpan(plane, y + 1)[x + distance],
+                    picture.GetRowSpan(plane, y + 2)[x + distance],
+                    picture.GetRowSpan(plane, y + 3)[x + distance]);
+            }
+
+            // Subsampled chroma edges contain two samples. Zeroing the unused lanes keeps the vector path within
+            // the plane while allowing the shared kernel to operate on both valid samples in one instruction stream.
+            return Vector128.Create(
                 (int)picture.GetRowSpan(plane, y)[x + distance],
                 picture.GetRowSpan(plane, y + 1)[x + distance],
-                picture.GetRowSpan(plane, y + 2)[x + distance],
-                picture.GetRowSpan(plane, y + 3)[x + distance]);
+                0,
+                0);
+        }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -571,9 +585,15 @@ internal static class HevcDeblockingFilter
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<int> LoadVector(HevcPictureBuffer picture, HevcPlane plane, int x, int y, int distance)
+        public static Vector128<int> LoadVector(HevcPictureBuffer picture, HevcPlane plane, int x, int y, int distance, int count)
         {
             ref ushort source = ref picture.GetRowSpan(plane, y + distance)[x];
+            if (count == 2)
+            {
+                // The packed load used by full-width segments would read two samples beyond a subsampled edge.
+                return Vector128.Create((int)source, Unsafe.Add(ref source, 1), 0, 0);
+            }
+
             Vector64<ushort> packed = Unsafe.As<ushort, Vector64<ushort>>(ref source);
             return Vector128.WidenLower(Vector128.Create(packed, Vector64<ushort>.Zero)).AsInt32();
         }

@@ -149,6 +149,7 @@ internal sealed partial class HevcPictureDecoder
         bool canPredictAcrossComponents = this.pictureParameterSet.CrossComponentPredictionEnabled
             && primaryFlags.Any
             && chromaMode == 36
+            && chromaBlueGeometry.Process
             && chromaBlueGeometry.Width == chromaBlueGeometry.Height;
 
         if (canPredictAcrossComponents)
@@ -409,6 +410,7 @@ internal sealed partial class HevcPictureDecoder
                 useLumaSyntax);
 
             this.coefficientDecoder.Decode(ref reader, quantized, in codingParameters);
+
             bool rotate = HevcResidualReconstructor.IsNonTransformedResidualRotated(
                 this.sequenceParameterSet.TransformSkipRotationEnabled,
                 true,

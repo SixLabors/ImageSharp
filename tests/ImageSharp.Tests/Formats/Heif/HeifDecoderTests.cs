@@ -65,6 +65,37 @@ public class HeifDecoderTests
     }
 
     /// <summary>
+    /// Verifies complete HEVC still-image decoding for real grid, auxiliary-alpha, 4:2:0, and 4:4:4 HEIC inputs.
+    /// </summary>
+    /// <param name="provider">The real HEIC input and matching output naming context.</param>
+    /// <param name="width">The independently reported presented width.</param>
+    /// <param name="height">The independently reported presented height.</param>
+    /// <param name="hasIccProfile">Whether the presented image carries an ICC profile.</param>
+    [Theory]
+    [WithFile(TestImages.Heif.Image1, PixelTypes.Rgba32, 3992, 2992, true)]
+    [WithFile(TestImages.Heif.Image2, PixelTypes.Rgba32, 3464, 2130, true)]
+    [WithFile(TestImages.Heif.Image3, PixelTypes.Rgba32, 4242, 2828, true)]
+    [WithFile(TestImages.Heif.Image4, PixelTypes.Rgba32, 700, 476, true)]
+    [WithFile(TestImages.Heif.Sample640x427, PixelTypes.Rgba32, 640, 428, false)]
+    public void DecodeHevcStillImage<TPixel>(TestImageProvider<TPixel> provider, int width, int height, bool hasIccProfile)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Image<TPixel> image = provider.GetImage();
+        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
+        image.DebugSave(provider);
+
+        // The extracted native YUV tiles have byte-exact HM coverage. Pinned libheif 1.23.1 selects its cheaper fused
+        // nearest-neighbor RGB path by default, so the full-image oracle permits the bounded difference from our
+        // bilinear reconstruction while still covering grids, alpha composition, color conversion, and presentation.
+        image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.6F), provider);
+
+        Assert.Equal(new Size(width, height), image.Size);
+        Assert.Equal(HeifCompressionMethod.Hevc, metadata.CompressionMethod);
+        Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
+        Assert.Equal(hasIccProfile, image.Metadata.IccProfile is not null);
+    }
+
+    /// <summary>
     /// Verifies that AVIF decoding preserves the exact embedded ICC profile bytes.
     /// </summary>
     [Theory]

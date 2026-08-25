@@ -56,6 +56,21 @@ internal sealed class HevcIntraPredictionState : IDisposable
     private readonly Buffer2D<byte> chromaModes;
 
     /// <summary>
+    /// The resolved chroma intra mode at minimum-prediction-block resolution in luma coordinates.
+    /// </summary>
+    private readonly Buffer2D<byte> effectiveChromaModes;
+
+    /// <summary>
+    /// Whether derived chroma prediction selects the colocated luma prediction block.
+    /// </summary>
+    private readonly bool derivedChromaUsesColocatedLuma;
+
+    /// <summary>
+    /// The mask selecting a luma coordinate within its coding-tree block.
+    /// </summary>
+    private readonly int codingTreeBlockMask;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="HevcIntraPredictionState"/> class.
     /// </summary>
     /// <param name="configuration">The configuration providing the image memory allocator.</param>
@@ -77,6 +92,13 @@ internal sealed class HevcIntraPredictionState : IDisposable
         this.chromaModes = configuration.MemoryAllocator.Allocate2D<byte>(
             this.WidthInMinPredictionBlocks,
             this.HeightInMinPredictionBlocks);
+
+        this.effectiveChromaModes = configuration.MemoryAllocator.Allocate2D<byte>(
+            this.WidthInMinPredictionBlocks,
+            this.HeightInMinPredictionBlocks);
+
+        this.derivedChromaUsesColocatedLuma = sequenceParameterSet.ChromaFormat == 3;
+        this.codingTreeBlockMask = (1 << sequenceParameterSet.CodingTreeBlockLog2) - 1;
     }
 
     /// <summary>
@@ -130,7 +152,10 @@ internal sealed class HevcIntraPredictionState : IDisposable
             int predictionX = x + offsetX;
             int predictionY = y + offsetY;
             bool predictionLeftAvailable = offsetX != 0 || leftAvailable;
-            bool predictionAboveAvailable = offsetY != 0 || aboveAvailable;
+
+            // Luma MPM derivation treats an above prediction unit across a CTB boundary as unavailable. This is
+            // narrower than sample reconstruction availability and keeps the candidate order synchronized with CABAC.
+            bool predictionAboveAvailable = (predictionY & this.codingTreeBlockMask) != 0 && (offsetY != 0 || aboveAvailable);
 
             this.GetMostProbableLumaModes(
                 predictionX,
@@ -161,31 +186,45 @@ internal sealed class HevcIntraPredictionState : IDisposable
     }
 
     /// <summary>
-    /// Decodes and records the chroma intra mode of one leaf coding unit.
+    /// Decodes and records the chroma intra modes of one leaf coding unit.
     /// </summary>
     /// <param name="reader">The current entropy-substream syntax reader.</param>
     /// <param name="x">The coding-unit left coordinate in luma samples.</param>
     /// <param name="y">The coding-unit top coordinate in luma samples.</param>
     /// <param name="log2Size">The base-two logarithm of the square coding-unit size.</param>
-    public void DecodeChromaMode(ref HevcCabacSyntaxReader reader, int x, int y, int log2Size)
+    /// <param name="usesNxNPartitions">Whether the coding unit contains four luma prediction units.</param>
+    public void DecodeChromaModes(ref HevcCabacSyntaxReader reader, int x, int y, int log2Size, bool usesNxNPartitions)
     {
-        int selector = reader.ReadChromaPredictionModeIndex();
-        byte mode;
-        if (selector < 0)
+        bool usesFourChromaPredictionUnits = this.derivedChromaUsesColocatedLuma && usesNxNPartitions;
+        int predictionBlockLog2 = usesFourChromaPredictionUnits ? log2Size - 1 : log2Size;
+        int predictionBlockSize = 1 << predictionBlockLog2;
+        int predictionBlockCount = usesFourChromaPredictionUnits ? 4 : 1;
+        for (int index = 0; index < predictionBlockCount; index++)
         {
-            mode = DerivedChromaMode;
-        }
-        else
-        {
-            ReadOnlySpan<byte> candidates = [PlanarMode, VerticalMode, HorizontalMode, DcMode];
-            mode = candidates[selector];
-            if (mode == this.GetLumaMode(x, y))
+            int predictionX = x + ((index & 1) * predictionBlockSize);
+            int predictionY = y + ((index >> 1) * predictionBlockSize);
+            int selector = reader.ReadChromaPredictionModeIndex();
+            byte mode;
+            if (selector < 0)
             {
-                mode = ChromaReplacementMode;
+                mode = DerivedChromaMode;
             }
-        }
+            else
+            {
+                ReadOnlySpan<byte> candidates = [PlanarMode, VerticalMode, HorizontalMode, DcMode];
+                mode = candidates[selector];
+                if (mode == this.GetLumaMode(predictionX, predictionY))
+                {
+                    mode = ChromaReplacementMode;
+                }
+            }
 
-        this.SetMode(this.chromaModes, x, y, log2Size, mode);
+            // Combined 4:4:4 follows the four luma prediction partitions of an NxN coding unit. Subsampled formats
+            // carry one chroma mode for the coding unit and derive it from the top-left luma partition when requested.
+            this.SetMode(this.chromaModes, predictionX, predictionY, predictionBlockLog2, mode);
+            byte effectiveMode = mode == DerivedChromaMode ? this.GetLumaMode(predictionX, predictionY) : mode;
+            this.SetMode(this.effectiveChromaModes, predictionX, predictionY, predictionBlockLog2, effectiveMode);
+        }
     }
 
     /// <summary>
@@ -213,10 +252,7 @@ internal sealed class HevcIntraPredictionState : IDisposable
     /// <param name="y">The luma sample Y coordinate.</param>
     /// <returns>The explicit chroma mode, or the colocated luma mode when chroma uses derived mode.</returns>
     public byte GetEffectiveChromaMode(int x, int y)
-    {
-        byte mode = this.GetChromaMode(x, y);
-        return mode == DerivedChromaMode ? this.GetLumaMode(x, y) : mode;
-    }
+        => this.effectiveChromaModes.DangerousGetRowSpan(y >> MinPredictionBlockLog2)[x >> MinPredictionBlockLog2];
 
     /// <summary>
     /// Releases the owned intra-mode maps.
@@ -225,6 +261,7 @@ internal sealed class HevcIntraPredictionState : IDisposable
     {
         this.lumaModes.Dispose();
         this.chromaModes.Dispose();
+        this.effectiveChromaModes.Dispose();
     }
 
     /// <summary>

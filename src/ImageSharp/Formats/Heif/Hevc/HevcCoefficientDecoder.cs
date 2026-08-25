@@ -359,8 +359,13 @@ internal sealed class HevcCoefficientDecoder : IDisposable
         int syntaxWidth = verticalScan ? parameters.Height : parameters.Width;
         int syntaxHeight = verticalScan ? parameters.Width : parameters.Height;
         bool isChroma = parameters.Plane != HevcPlane.Y;
-        x = ReadLastSignificantCoordinate(ref reader, isChroma, syntaxWidth, true);
-        y = ReadLastSignificantCoordinate(ref reader, isChroma, syntaxHeight, false);
+        int xPrefix = ReadLastSignificantPrefix(ref reader, isChroma, syntaxWidth, true);
+        int yPrefix = ReadLastSignificantPrefix(ref reader, isChroma, syntaxHeight, false);
+
+        // The HEVC syntax carries both context-coded prefixes before either bypass-coded suffix. Decoding a suffix
+        // immediately after its own prefix changes the arithmetic bit order whenever both coordinates need suffixes.
+        x = ReadLastSignificantSuffix(ref reader, xPrefix);
+        y = ReadLastSignificantSuffix(ref reader, yPrefix);
         if (verticalScan)
         {
             (x, y) = (y, x);
@@ -368,14 +373,14 @@ internal sealed class HevcCoefficientDecoder : IDisposable
     }
 
     /// <summary>
-    /// Decodes one last-significant coefficient coordinate from its context prefix and bypass suffix.
+    /// Decodes one context-coded last-significant coefficient coordinate prefix.
     /// </summary>
     /// <param name="reader">The current entropy-substream syntax reader.</param>
     /// <param name="isChroma">Whether the coordinate belongs to a chroma transform block.</param>
     /// <param name="size">The transform-block extent along the coded axis.</param>
     /// <param name="horizontal">Whether to use the horizontal rather than vertical context set.</param>
-    /// <returns>The decoded zero-based coefficient coordinate.</returns>
-    private static int ReadLastSignificantCoordinate(ref HevcCabacSyntaxReader reader, bool isChroma, int size, bool horizontal)
+    /// <returns>The decoded coordinate prefix.</returns>
+    private static int ReadLastSignificantPrefix(ref HevcCabacSyntaxReader reader, bool isChroma, int size, bool horizontal)
     {
         int convertedSize = BitOperations.Log2((uint)size) - 2;
         int contextOffset = isChroma ? 0 : (convertedSize * 3) + ((convertedSize + 1) >> 2);
@@ -395,6 +400,17 @@ internal sealed class HevcCoefficientDecoder : IDisposable
             }
         }
 
+        return prefix;
+    }
+
+    /// <summary>
+    /// Expands one last-significant coordinate prefix with its bypass-coded suffix.
+    /// </summary>
+    /// <param name="reader">The current entropy-substream syntax reader.</param>
+    /// <param name="prefix">The context-coded coordinate prefix.</param>
+    /// <returns>The decoded zero-based coefficient coordinate.</returns>
+    private static int ReadLastSignificantSuffix(ref HevcCabacSyntaxReader reader, int prefix)
+    {
         if (prefix <= 3)
         {
             return prefix;

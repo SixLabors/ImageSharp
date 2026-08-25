@@ -5,8 +5,10 @@ using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Color;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using static SixLabors.ImageSharp.Formats.Heif.Color.HeifColorConverterBase;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
@@ -24,7 +26,7 @@ internal static partial class Av1YuvConverter
     private readonly struct YuvToRgbRowConverter<TPixel, TSample, TLoader>
         where TPixel : unmanaged, IPixel<TPixel>
         where TSample : unmanaged
-        where TLoader : struct, ISampleLoader<TSample>
+        where TLoader : struct, IHeifSampleLoader<TSample>
     {
         /// <summary>
         /// The configuration used by bulk pixel conversion.
@@ -59,7 +61,7 @@ internal static partial class Av1YuvConverter
         /// <summary>
         /// The frame-scoped color-model converter.
         /// </summary>
-        private readonly Av1ColorConverterBase colorConverter;
+        private readonly HeifColorConverterBase colorConverter;
 
         /// <summary>
         /// The signaled chroma sample position used for reconstruction.
@@ -92,7 +94,7 @@ internal static partial class Av1YuvConverter
             Configuration configuration,
             Av1FrameBuffer<byte> frameBuffer,
             ImageFrame<TPixel> image,
-            Av1ColorConverterBase colorConverter)
+            HeifColorConverterBase colorConverter)
         {
             this.configuration = configuration;
             this.frameBuffer = frameBuffer;
@@ -229,7 +231,7 @@ internal static partial class Av1YuvConverter
     private readonly struct RgbToYuvRowConverter<TPixel, TSample, TStorer>
         where TPixel : unmanaged, IPixel<TPixel>
         where TSample : unmanaged
-        where TStorer : struct, ISampleStorer<TSample>
+        where TStorer : struct, IHeifSampleStorer<TSample>
     {
         /// <summary>
         /// The configuration used by bulk pixel conversion.
@@ -264,7 +266,7 @@ internal static partial class Av1YuvConverter
         /// <summary>
         /// The frame-scoped color-model converter.
         /// </summary>
-        private readonly Av1ColorConverterBase colorConverter;
+        private readonly HeifColorConverterBase colorConverter;
 
         /// <summary>
         /// The largest value represented by the encoded AV1 bit depth.
@@ -298,7 +300,7 @@ internal static partial class Av1YuvConverter
             Configuration configuration,
             Av1FrameBuffer<byte> frameBuffer,
             ImageFrame<TPixel> image,
-            Av1ColorConverterBase colorConverter,
+            HeifColorConverterBase colorConverter,
             float sampleMaximum)
         {
             this.configuration = configuration;
@@ -383,8 +385,26 @@ internal static partial class Av1YuvConverter
             }
             else
             {
-                WriteSubsampledSamples<TSample, TStorer>(cbRow0, cbRow1, uDestination, chromaScale, chromaBias, this.sampleMaximum);
-                WriteSubsampledSamples<TSample, TStorer>(crRow0, crRow1, vDestination, chromaScale, chromaBias, this.sampleMaximum);
+                float secondRowWeight = hasSecondSourceRow ? 0.5F : 0F;
+                WriteSubsampledSamples<TSample, TStorer>(
+                    cbRow0,
+                    cbRow1,
+                    uDestination,
+                    true,
+                    secondRowWeight,
+                    chromaScale,
+                    chromaBias,
+                    this.sampleMaximum);
+
+                WriteSubsampledSamples<TSample, TStorer>(
+                    crRow0,
+                    crRow1,
+                    vDestination,
+                    true,
+                    secondRowWeight,
+                    chromaScale,
+                    chromaBias,
+                    this.sampleMaximum);
             }
         }
 

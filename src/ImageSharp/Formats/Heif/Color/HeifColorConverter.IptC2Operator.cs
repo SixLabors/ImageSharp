@@ -4,14 +4,14 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1;
+namespace SixLabors.ImageSharp.Formats.Heif.Color;
 
-internal abstract partial class Av1ColorConverterBase
+internal abstract partial class HeifColorConverterBase
 {
     /// <summary>
     /// Implements IPT-C2 conversion for scalar and SIMD lanes.
     /// </summary>
-    internal readonly struct Av1IptC2ColorOperator : IAv1ColorOperator
+    internal readonly struct HeifIptC2ColorOperator : IHeifColorOperator
     {
         /// <summary>
         /// The linear red contribution to L.
@@ -183,23 +183,23 @@ internal abstract partial class Av1ColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref float intensity, ref float protan, ref float tritan, in Av1ColorConversionParameters parameters)
+        public static void ConvertToRgb(ref float intensity, ref float protan, ref float tritan, in HeifColorConversionParameters parameters)
         {
             // IPT-C2 stores opponent axes around intensity in nonlinear LMS. Undo both matrices around the
             // signaled transfer function so the final RGB values remain in the source signal domain.
             float nonlinearL = intensity + (ProtanToL * protan) + (TritanToL * tritan);
             float nonlinearM = intensity + (ProtanToM * protan) + (TritanToM * tritan);
             float nonlinearS = intensity + (ProtanToS * protan) + (TritanToS * tritan);
-            float linearL = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearL);
-            float linearM = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearM);
-            float linearS = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearS);
+            float linearL = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearL);
+            float linearM = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearM);
+            float linearS = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearS);
             float linearRed = (LToRed * linearL) + (MToRed * linearM) + (SToRed * linearS);
             float linearGreen = (LToGreen * linearL) + (MToGreen * linearM) + (SToGreen * linearS);
             float linearBlue = (LToBlue * linearL) + (MToBlue * linearM) + (SToBlue * linearS);
 
-            intensity = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearRed);
-            protan = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearGreen);
-            tritan = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearBlue);
+            intensity = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearRed);
+            protan = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearGreen);
+            tritan = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearBlue);
         }
 
         /// <inheritdoc/>
@@ -208,7 +208,7 @@ internal abstract partial class Av1ColorConverterBase
             ref Vector128<float> intensity,
             ref Vector128<float> protan,
             ref Vector128<float> tritan,
-            in Av1ColorConversionParameters parameters)
+            in HeifColorConversionParameters parameters)
         {
             Vector128<float> nonlinearL = Vector128.MultiplyAddEstimate(
                 Vector128.Create(TritanToL),
@@ -225,9 +225,9 @@ internal abstract partial class Av1ColorConverterBase
                 tritan,
                 Vector128.MultiplyAddEstimate(Vector128.Create(ProtanToS), protan, intensity));
 
-            Vector128<float> linearL = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearL);
-            Vector128<float> linearM = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearM);
-            Vector128<float> linearS = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearS);
+            Vector128<float> linearL = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearL);
+            Vector128<float> linearM = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearM);
+            Vector128<float> linearS = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearS);
             Vector128<float> linearRed = Vector128.MultiplyAddEstimate(
                 Vector128.Create(SToRed), linearS, Vector128.MultiplyAddEstimate(Vector128.Create(MToRed), linearM, Vector128.Create(LToRed) * linearL));
 
@@ -237,9 +237,9 @@ internal abstract partial class Av1ColorConverterBase
             Vector128<float> linearBlue = Vector128.MultiplyAddEstimate(
                 Vector128.Create(SToBlue), linearS, Vector128.MultiplyAddEstimate(Vector128.Create(MToBlue), linearM, Vector128.Create(LToBlue) * linearL));
 
-            intensity = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearRed);
-            protan = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearGreen);
-            tritan = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearBlue);
+            intensity = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearRed);
+            protan = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearGreen);
+            tritan = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearBlue);
         }
 
         /// <inheritdoc/>
@@ -248,7 +248,7 @@ internal abstract partial class Av1ColorConverterBase
             ref Vector256<float> intensity,
             ref Vector256<float> protan,
             ref Vector256<float> tritan,
-            in Av1ColorConversionParameters parameters)
+            in HeifColorConversionParameters parameters)
         {
             Vector256<float> nonlinearL = Vector256.MultiplyAddEstimate(
                 Vector256.Create(TritanToL),
@@ -265,9 +265,9 @@ internal abstract partial class Av1ColorConverterBase
                 tritan,
                 Vector256.MultiplyAddEstimate(Vector256.Create(ProtanToS), protan, intensity));
 
-            Vector256<float> linearL = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearL);
-            Vector256<float> linearM = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearM);
-            Vector256<float> linearS = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearS);
+            Vector256<float> linearL = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearL);
+            Vector256<float> linearM = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearM);
+            Vector256<float> linearS = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearS);
             Vector256<float> linearRed = Vector256.MultiplyAddEstimate(
                 Vector256.Create(SToRed), linearS, Vector256.MultiplyAddEstimate(Vector256.Create(MToRed), linearM, Vector256.Create(LToRed) * linearL));
 
@@ -277,9 +277,9 @@ internal abstract partial class Av1ColorConverterBase
             Vector256<float> linearBlue = Vector256.MultiplyAddEstimate(
                 Vector256.Create(SToBlue), linearS, Vector256.MultiplyAddEstimate(Vector256.Create(MToBlue), linearM, Vector256.Create(LToBlue) * linearL));
 
-            intensity = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearRed);
-            protan = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearGreen);
-            tritan = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearBlue);
+            intensity = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearRed);
+            protan = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearGreen);
+            tritan = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearBlue);
         }
 
         /// <inheritdoc/>
@@ -288,7 +288,7 @@ internal abstract partial class Av1ColorConverterBase
             ref Vector512<float> intensity,
             ref Vector512<float> protan,
             ref Vector512<float> tritan,
-            in Av1ColorConversionParameters parameters)
+            in HeifColorConversionParameters parameters)
         {
             Vector512<float> nonlinearL = Vector512.MultiplyAddEstimate(
                 Vector512.Create(TritanToL),
@@ -305,9 +305,9 @@ internal abstract partial class Av1ColorConverterBase
                 tritan,
                 Vector512.MultiplyAddEstimate(Vector512.Create(ProtanToS), protan, intensity));
 
-            Vector512<float> linearL = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearL);
-            Vector512<float> linearM = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearM);
-            Vector512<float> linearS = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearS);
+            Vector512<float> linearL = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearL);
+            Vector512<float> linearM = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearM);
+            Vector512<float> linearS = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, nonlinearS);
             Vector512<float> linearRed = Vector512.MultiplyAddEstimate(
                 Vector512.Create(SToRed), linearS, Vector512.MultiplyAddEstimate(Vector512.Create(MToRed), linearM, Vector512.Create(LToRed) * linearL));
 
@@ -317,9 +317,9 @@ internal abstract partial class Av1ColorConverterBase
             Vector512<float> linearBlue = Vector512.MultiplyAddEstimate(
                 Vector512.Create(SToBlue), linearS, Vector512.MultiplyAddEstimate(Vector512.Create(MToBlue), linearM, Vector512.Create(LToBlue) * linearL));
 
-            intensity = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearRed);
-            protan = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearGreen);
-            tritan = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearBlue);
+            intensity = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearRed);
+            protan = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearGreen);
+            tritan = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearBlue);
         }
 
         /// <inheritdoc/>
@@ -328,25 +328,25 @@ internal abstract partial class Av1ColorConverterBase
             float red,
             float green,
             float blue,
-            in Av1ColorConversionParameters parameters,
+            in HeifColorConversionParameters parameters,
             out float intensity,
             out float protan,
             out float tritan)
         {
             // The encoded RGB signal is linearized before the LMS matrix, then the signaled transfer function
             // is reapplied to each LMS component before the fixed IPT-C2 opponent matrix.
-            float linearRed = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, red);
-            float linearGreen = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, green);
-            float linearBlue = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, blue);
-            float nonlinearL = Av1TransferFunctions.ToGamma(
+            float linearRed = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, red);
+            float linearGreen = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, green);
+            float linearBlue = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, blue);
+            float nonlinearL = HeifTransferFunctions.ToGamma(
                 parameters.TransferCharacteristics,
                 (RedToL * linearRed) + (GreenToL * linearGreen) + (BlueToL * linearBlue));
 
-            float nonlinearM = Av1TransferFunctions.ToGamma(
+            float nonlinearM = HeifTransferFunctions.ToGamma(
                 parameters.TransferCharacteristics,
                 (RedToM * linearRed) + (GreenToM * linearGreen) + (BlueToM * linearBlue));
 
-            float nonlinearS = Av1TransferFunctions.ToGamma(
+            float nonlinearS = HeifTransferFunctions.ToGamma(
                 parameters.TransferCharacteristics,
                 (RedToS * linearRed) + (GreenToS * linearGreen) + (BlueToS * linearBlue));
 
@@ -361,14 +361,14 @@ internal abstract partial class Av1ColorConverterBase
             Vector128<float> red,
             Vector128<float> green,
             Vector128<float> blue,
-            in Av1ColorConversionParameters parameters,
+            in HeifColorConversionParameters parameters,
             out Vector128<float> intensity,
             out Vector128<float> protan,
             out Vector128<float> tritan)
         {
-            Vector128<float> linearRed = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, red);
-            Vector128<float> linearGreen = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, green);
-            Vector128<float> linearBlue = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, blue);
+            Vector128<float> linearRed = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, red);
+            Vector128<float> linearGreen = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, green);
+            Vector128<float> linearBlue = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, blue);
             Vector128<float> linearL = Vector128.MultiplyAddEstimate(
                 Vector128.Create(BlueToL),
                 linearBlue,
@@ -384,9 +384,9 @@ internal abstract partial class Av1ColorConverterBase
                 linearBlue,
                 Vector128.MultiplyAddEstimate(Vector128.Create(GreenToS), linearGreen, Vector128.Create(RedToS) * linearRed));
 
-            Vector128<float> nonlinearL = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearL);
-            Vector128<float> nonlinearM = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearM);
-            Vector128<float> nonlinearS = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearS);
+            Vector128<float> nonlinearL = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearL);
+            Vector128<float> nonlinearM = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearM);
+            Vector128<float> nonlinearS = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearS);
             intensity = Vector128.MultiplyAddEstimate(
                 Vector128.Create(SToIntensity),
                 nonlinearS,
@@ -409,14 +409,14 @@ internal abstract partial class Av1ColorConverterBase
             Vector256<float> red,
             Vector256<float> green,
             Vector256<float> blue,
-            in Av1ColorConversionParameters parameters,
+            in HeifColorConversionParameters parameters,
             out Vector256<float> intensity,
             out Vector256<float> protan,
             out Vector256<float> tritan)
         {
-            Vector256<float> linearRed = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, red);
-            Vector256<float> linearGreen = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, green);
-            Vector256<float> linearBlue = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, blue);
+            Vector256<float> linearRed = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, red);
+            Vector256<float> linearGreen = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, green);
+            Vector256<float> linearBlue = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, blue);
             Vector256<float> linearL = Vector256.MultiplyAddEstimate(
                 Vector256.Create(BlueToL),
                 linearBlue,
@@ -432,9 +432,9 @@ internal abstract partial class Av1ColorConverterBase
                 linearBlue,
                 Vector256.MultiplyAddEstimate(Vector256.Create(GreenToS), linearGreen, Vector256.Create(RedToS) * linearRed));
 
-            Vector256<float> nonlinearL = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearL);
-            Vector256<float> nonlinearM = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearM);
-            Vector256<float> nonlinearS = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearS);
+            Vector256<float> nonlinearL = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearL);
+            Vector256<float> nonlinearM = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearM);
+            Vector256<float> nonlinearS = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearS);
             intensity = Vector256.MultiplyAddEstimate(
                 Vector256.Create(SToIntensity),
                 nonlinearS,
@@ -457,14 +457,14 @@ internal abstract partial class Av1ColorConverterBase
             Vector512<float> red,
             Vector512<float> green,
             Vector512<float> blue,
-            in Av1ColorConversionParameters parameters,
+            in HeifColorConversionParameters parameters,
             out Vector512<float> intensity,
             out Vector512<float> protan,
             out Vector512<float> tritan)
         {
-            Vector512<float> linearRed = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, red);
-            Vector512<float> linearGreen = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, green);
-            Vector512<float> linearBlue = Av1TransferFunctions.ToLinear(parameters.TransferCharacteristics, blue);
+            Vector512<float> linearRed = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, red);
+            Vector512<float> linearGreen = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, green);
+            Vector512<float> linearBlue = HeifTransferFunctions.ToLinear(parameters.TransferCharacteristics, blue);
             Vector512<float> linearL = Vector512.MultiplyAddEstimate(
                 Vector512.Create(BlueToL),
                 linearBlue,
@@ -480,9 +480,9 @@ internal abstract partial class Av1ColorConverterBase
                 linearBlue,
                 Vector512.MultiplyAddEstimate(Vector512.Create(GreenToS), linearGreen, Vector512.Create(RedToS) * linearRed));
 
-            Vector512<float> nonlinearL = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearL);
-            Vector512<float> nonlinearM = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearM);
-            Vector512<float> nonlinearS = Av1TransferFunctions.ToGamma(parameters.TransferCharacteristics, linearS);
+            Vector512<float> nonlinearL = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearL);
+            Vector512<float> nonlinearM = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearM);
+            Vector512<float> nonlinearS = HeifTransferFunctions.ToGamma(parameters.TransferCharacteristics, linearS);
             intensity = Vector512.MultiplyAddEstimate(
                 Vector512.Create(SToIntensity),
                 nonlinearS,

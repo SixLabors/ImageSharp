@@ -70,8 +70,8 @@ internal sealed class HevcVideoUsabilityInformation
                 throw new InvalidImageContentException("The HEVC VUI declares an invalid chroma sample location.");
             }
 
-            this.ChromaSampleLocationTopField = (byte)topFieldLocation;
-            this.ChromaSampleLocationBottomField = (byte)bottomFieldLocation;
+            this.ChromaSampleLocationTopField = (HevcChromaSampleLocation)topFieldLocation;
+            this.ChromaSampleLocationBottomField = (HevcChromaSampleLocation)bottomFieldLocation;
         }
 
         reader.ReadFlag();
@@ -195,12 +195,12 @@ internal sealed class HevcVideoUsabilityInformation
     /// <summary>
     /// Gets the top-field chroma sample-location identifier.
     /// </summary>
-    public byte ChromaSampleLocationTopField { get; }
+    public HevcChromaSampleLocation ChromaSampleLocationTopField { get; }
 
     /// <summary>
     /// Gets the bottom-field chroma sample-location identifier.
     /// </summary>
-    public byte ChromaSampleLocationBottomField { get; }
+    public HevcChromaSampleLocation ChromaSampleLocationBottomField { get; }
 
     /// <summary>
     /// Gets a value indicating whether a default display window is present.

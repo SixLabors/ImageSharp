@@ -1,14 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1;
+namespace SixLabors.ImageSharp.Formats.Heif.Color;
 
 /// <summary>
-/// Applies the H.273 transfer characteristics used by AV1 color conversion.
+/// Applies the H.273 transfer characteristics used by HEIF color conversion.
 /// </summary>
-internal static partial class Av1TransferFunctions
+internal static partial class HeifTransferFunctions
 {
     /// <summary>
     /// The BT.709 and BT.2020 nonlinear scale factor.
@@ -91,40 +91,40 @@ internal static partial class Av1TransferFunctions
     /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
     /// <param name="value">The nonlinear signal value.</param>
     /// <returns>The corresponding linear-domain value.</returns>
-    public static float ToLinear(ObuTransferCharacteristics transferCharacteristics, float value)
+    public static float ToLinear(CicpTransferCharacteristics transferCharacteristics, float value)
     {
         switch (transferCharacteristics)
         {
-            case ObuTransferCharacteristics.Bt709:
-            case ObuTransferCharacteristics.Bt601:
-            case ObuTransferCharacteristics.Bt202010Bit:
-            case ObuTransferCharacteristics.Bt202012Bit:
+            case CicpTransferCharacteristics.ItuRBt709_6:
+            case CicpTransferCharacteristics.ItuRBt601_7:
+            case CicpTransferCharacteristics.ItuRBt2020_2_10bit:
+            case CicpTransferCharacteristics.ItuRBt2020_2_12bit:
                 return ToLinearBt709(value);
-            case ObuTransferCharacteristics.Bt470M:
+            case CicpTransferCharacteristics.Gamma2_2:
                 return MathF.Pow(Math.Clamp(value, 0F, 1F), 2.2F);
-            case ObuTransferCharacteristics.Bt470BG:
+            case CicpTransferCharacteristics.Gamma2_8:
                 return MathF.Pow(Math.Clamp(value, 0F, 1F), 2.8F);
-            case ObuTransferCharacteristics.Smpte240:
+            case CicpTransferCharacteristics.SmpteSt240:
                 return ToLinearSmpte240(value);
-            case ObuTransferCharacteristics.Linear:
+            case CicpTransferCharacteristics.Linear:
                 return Math.Clamp(value, 0F, 1F);
-            case ObuTransferCharacteristics.Log100:
+            case CicpTransferCharacteristics.Log100:
                 // Zero represents an interval rather than one linear value. The midpoint matches libavif and
                 // minimizes the worst-case round-trip error when constant-luminance content is decoded.
                 return value <= 0F ? 0.005F : MathF.Pow(10F, 2F * (MathF.Min(value, 1F) - 1F));
-            case ObuTransferCharacteristics.Log100Sqrt10:
+            case CicpTransferCharacteristics.Log100Sqrt:
                 return value <= 0F ? 0.00158113883F : MathF.Pow(10F, 2.5F * (MathF.Min(value, 1F) - 1F));
-            case ObuTransferCharacteristics.Iec61966:
+            case CicpTransferCharacteristics.Iec61966_2_4:
                 return ToLinearIec61966(value);
-            case ObuTransferCharacteristics.Bt1361:
+            case CicpTransferCharacteristics.ItuRBt1361_0:
                 return ToLinearBt1361(value);
-            case ObuTransferCharacteristics.Srgb:
+            case CicpTransferCharacteristics.Iec61966_2_1:
                 return ToLinearSrgb(value);
-            case ObuTransferCharacteristics.Smpte2084:
+            case CicpTransferCharacteristics.SmpteSt2084:
                 return ToLinearPq(value);
-            case ObuTransferCharacteristics.Smpte428:
+            case CicpTransferCharacteristics.SmpteSt428_1:
                 return MathF.Pow(MathF.Max(value, 0F), 2.6F) / Smpte428Scale;
-            case ObuTransferCharacteristics.Hlg:
+            case CicpTransferCharacteristics.AribStdB67:
                 return ToLinearHlg(value);
             default:
                 // H.273 leaves unspecified and reserved transfer values to the application. Match libavif's
@@ -139,38 +139,38 @@ internal static partial class Av1TransferFunctions
     /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
     /// <param name="value">The linear signal value.</param>
     /// <returns>The corresponding nonlinear-domain value.</returns>
-    public static float ToGamma(ObuTransferCharacteristics transferCharacteristics, float value)
+    public static float ToGamma(CicpTransferCharacteristics transferCharacteristics, float value)
     {
         switch (transferCharacteristics)
         {
-            case ObuTransferCharacteristics.Bt709:
-            case ObuTransferCharacteristics.Bt601:
-            case ObuTransferCharacteristics.Bt202010Bit:
-            case ObuTransferCharacteristics.Bt202012Bit:
+            case CicpTransferCharacteristics.ItuRBt709_6:
+            case CicpTransferCharacteristics.ItuRBt601_7:
+            case CicpTransferCharacteristics.ItuRBt2020_2_10bit:
+            case CicpTransferCharacteristics.ItuRBt2020_2_12bit:
                 return ToGammaBt709(value);
-            case ObuTransferCharacteristics.Bt470M:
+            case CicpTransferCharacteristics.Gamma2_2:
                 return MathF.Pow(Math.Clamp(value, 0F, 1F), 1F / 2.2F);
-            case ObuTransferCharacteristics.Bt470BG:
+            case CicpTransferCharacteristics.Gamma2_8:
                 return MathF.Pow(Math.Clamp(value, 0F, 1F), 1F / 2.8F);
-            case ObuTransferCharacteristics.Smpte240:
+            case CicpTransferCharacteristics.SmpteSt240:
                 return ToGammaSmpte240(value);
-            case ObuTransferCharacteristics.Linear:
+            case CicpTransferCharacteristics.Linear:
                 return Math.Clamp(value, 0F, 1F);
-            case ObuTransferCharacteristics.Log100:
+            case CicpTransferCharacteristics.Log100:
                 return value <= 0.01F ? 0F : 1F + (MathF.Log10(MathF.Min(value, 1F)) / 2F);
-            case ObuTransferCharacteristics.Log100Sqrt10:
+            case CicpTransferCharacteristics.Log100Sqrt:
                 return value <= 0.00316227766F ? 0F : 1F + (MathF.Log10(MathF.Min(value, 1F)) / 2.5F);
-            case ObuTransferCharacteristics.Iec61966:
+            case CicpTransferCharacteristics.Iec61966_2_4:
                 return ToGammaIec61966(value);
-            case ObuTransferCharacteristics.Bt1361:
+            case CicpTransferCharacteristics.ItuRBt1361_0:
                 return ToGammaBt1361(value);
-            case ObuTransferCharacteristics.Srgb:
+            case CicpTransferCharacteristics.Iec61966_2_1:
                 return ToGammaSrgb(value);
-            case ObuTransferCharacteristics.Smpte2084:
+            case CicpTransferCharacteristics.SmpteSt2084:
                 return ToGammaPq(value);
-            case ObuTransferCharacteristics.Smpte428:
+            case CicpTransferCharacteristics.SmpteSt428_1:
                 return MathF.Pow(Smpte428Scale * MathF.Max(value, 0F), 1F / 2.6F);
-            case ObuTransferCharacteristics.Hlg:
+            case CicpTransferCharacteristics.AribStdB67:
                 return ToGammaHlg(value);
             default:
                 return ToGammaBt709(value);

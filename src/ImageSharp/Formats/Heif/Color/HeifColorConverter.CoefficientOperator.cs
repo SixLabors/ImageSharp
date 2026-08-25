@@ -4,21 +4,21 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1;
+namespace SixLabors.ImageSharp.Formats.Heif.Color;
 
-internal abstract partial class Av1ColorConverterBase
+internal abstract partial class HeifColorConverterBase
 {
     /// <summary>
     /// Implements coefficient-based YCbCr conversion for scalar and SIMD lanes.
     /// </summary>
-    internal readonly struct Av1CoefficientColorOperator : IAv1ColorOperator
+    internal readonly struct HeifCoefficientColorOperator : IHeifColorOperator
     {
         /// <inheritdoc/>
         public static bool ChromaUsesLumaRange => false;
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref float y, ref float cb, ref float cr, in Av1ColorConversionParameters parameters)
+        public static void ConvertToRgb(ref float y, ref float cb, ref float cr, in HeifColorConversionParameters parameters)
         {
             // The resolved coefficients are frame invariants. Keeping the operator in this direct matrix form
             // lets every SIMD overload map the same three equations to fused multiply-add instructions.
@@ -33,7 +33,7 @@ internal abstract partial class Av1ColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref Vector128<float> y, ref Vector128<float> cb, ref Vector128<float> cr, in Av1ColorConversionParameters parameters)
+        public static void ConvertToRgb(ref Vector128<float> y, ref Vector128<float> cb, ref Vector128<float> cr, in HeifColorConversionParameters parameters)
         {
             Vector128<float> r = Vector128.MultiplyAddEstimate(Vector128.Create(parameters.RedChromaScale), cr, y);
             Vector128<float> g = Vector128.MultiplyAddEstimate(
@@ -49,7 +49,7 @@ internal abstract partial class Av1ColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref Vector256<float> y, ref Vector256<float> cb, ref Vector256<float> cr, in Av1ColorConversionParameters parameters)
+        public static void ConvertToRgb(ref Vector256<float> y, ref Vector256<float> cb, ref Vector256<float> cr, in HeifColorConversionParameters parameters)
         {
             Vector256<float> r = Vector256.MultiplyAddEstimate(Vector256.Create(parameters.RedChromaScale), cr, y);
             Vector256<float> g = Vector256.MultiplyAddEstimate(
@@ -65,7 +65,7 @@ internal abstract partial class Av1ColorConverterBase
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void ConvertToRgb(ref Vector512<float> y, ref Vector512<float> cb, ref Vector512<float> cr, in Av1ColorConversionParameters parameters)
+        public static void ConvertToRgb(ref Vector512<float> y, ref Vector512<float> cb, ref Vector512<float> cr, in HeifColorConversionParameters parameters)
         {
             Vector512<float> r = Vector512.MultiplyAddEstimate(Vector512.Create(parameters.RedChromaScale), cr, y);
             Vector512<float> g = Vector512.MultiplyAddEstimate(
@@ -85,7 +85,7 @@ internal abstract partial class Av1ColorConverterBase
             float r,
             float g,
             float b,
-            in Av1ColorConversionParameters parameters,
+            in HeifColorConversionParameters parameters,
             out float y,
             out float cb,
             out float cr)
@@ -102,7 +102,7 @@ internal abstract partial class Av1ColorConverterBase
             Vector128<float> r,
             Vector128<float> g,
             Vector128<float> b,
-            in Av1ColorConversionParameters parameters,
+            in HeifColorConversionParameters parameters,
             out Vector128<float> y,
             out Vector128<float> cb,
             out Vector128<float> cr)
@@ -121,7 +121,7 @@ internal abstract partial class Av1ColorConverterBase
             Vector256<float> r,
             Vector256<float> g,
             Vector256<float> b,
-            in Av1ColorConversionParameters parameters,
+            in HeifColorConversionParameters parameters,
             out Vector256<float> y,
             out Vector256<float> cb,
             out Vector256<float> cr)
@@ -140,7 +140,7 @@ internal abstract partial class Av1ColorConverterBase
             Vector512<float> r,
             Vector512<float> g,
             Vector512<float> b,
-            in Av1ColorConversionParameters parameters,
+            in HeifColorConversionParameters parameters,
             out Vector512<float> y,
             out Vector512<float> cb,
             out Vector512<float> cr)

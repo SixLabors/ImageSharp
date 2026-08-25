@@ -5,17 +5,17 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1;
+namespace SixLabors.ImageSharp.Formats.Heif.Color;
 
 /// <content>
 /// Provides the static operator contract and SIMD traversal used by AV1 color converters.
 /// </content>
-internal abstract partial class Av1ColorConverterBase
+internal abstract partial class HeifColorConverterBase
 {
     /// <summary>
     /// Defines color-model arithmetic for scalar and SIMD lanes in both conversion directions.
     /// </summary>
-    internal interface IAv1ColorOperator
+    internal interface IHeifColorOperator
     {
         /// <summary>
         /// Gets a value indicating whether chroma uses the luma range rather than the centered chroma range.
@@ -33,7 +33,7 @@ internal abstract partial class Av1ColorConverterBase
             ref float component0,
             ref float component1,
             ref float component2,
-            in Av1ColorConversionParameters parameters);
+            in HeifColorConversionParameters parameters);
 
         /// <summary>
         /// Converts four normalized AV1 samples to RGB.
@@ -46,7 +46,7 @@ internal abstract partial class Av1ColorConverterBase
             ref Vector128<float> component0,
             ref Vector128<float> component1,
             ref Vector128<float> component2,
-            in Av1ColorConversionParameters parameters);
+            in HeifColorConversionParameters parameters);
 
         /// <summary>
         /// Converts eight normalized AV1 samples to RGB.
@@ -59,7 +59,7 @@ internal abstract partial class Av1ColorConverterBase
             ref Vector256<float> component0,
             ref Vector256<float> component1,
             ref Vector256<float> component2,
-            in Av1ColorConversionParameters parameters);
+            in HeifColorConversionParameters parameters);
 
         /// <summary>
         /// Converts sixteen normalized AV1 samples to RGB.
@@ -72,10 +72,10 @@ internal abstract partial class Av1ColorConverterBase
             ref Vector512<float> component0,
             ref Vector512<float> component1,
             ref Vector512<float> component2,
-            in Av1ColorConversionParameters parameters);
+            in HeifColorConversionParameters parameters);
 
         /// <summary>
-        /// Converts one normalized RGB sample to AV1 components.
+        /// Converts one normalized RGB sample to encoded components.
         /// </summary>
         /// <param name="red">The normalized red component.</param>
         /// <param name="green">The normalized green component.</param>
@@ -88,13 +88,13 @@ internal abstract partial class Av1ColorConverterBase
             float red,
             float green,
             float blue,
-            in Av1ColorConversionParameters parameters,
+            in HeifColorConversionParameters parameters,
             out float component0,
             out float component1,
             out float component2);
 
         /// <summary>
-        /// Converts four normalized RGB samples to AV1 components.
+        /// Converts four normalized RGB samples to encoded components.
         /// </summary>
         /// <param name="red">The normalized red lanes.</param>
         /// <param name="green">The normalized green lanes.</param>
@@ -107,13 +107,13 @@ internal abstract partial class Av1ColorConverterBase
             Vector128<float> red,
             Vector128<float> green,
             Vector128<float> blue,
-            in Av1ColorConversionParameters parameters,
+            in HeifColorConversionParameters parameters,
             out Vector128<float> component0,
             out Vector128<float> component1,
             out Vector128<float> component2);
 
         /// <summary>
-        /// Converts eight normalized RGB samples to AV1 components.
+        /// Converts eight normalized RGB samples to encoded components.
         /// </summary>
         /// <param name="red">The normalized red lanes.</param>
         /// <param name="green">The normalized green lanes.</param>
@@ -126,13 +126,13 @@ internal abstract partial class Av1ColorConverterBase
             Vector256<float> red,
             Vector256<float> green,
             Vector256<float> blue,
-            in Av1ColorConversionParameters parameters,
+            in HeifColorConversionParameters parameters,
             out Vector256<float> component0,
             out Vector256<float> component1,
             out Vector256<float> component2);
 
         /// <summary>
-        /// Converts sixteen normalized RGB samples to AV1 components.
+        /// Converts sixteen normalized RGB samples to encoded components.
         /// </summary>
         /// <param name="red">The normalized red lanes.</param>
         /// <param name="green">The normalized green lanes.</param>
@@ -145,25 +145,25 @@ internal abstract partial class Av1ColorConverterBase
             Vector512<float> red,
             Vector512<float> green,
             Vector512<float> blue,
-            in Av1ColorConversionParameters parameters,
+            in HeifColorConversionParameters parameters,
             out Vector512<float> component0,
             out Vector512<float> component1,
             out Vector512<float> component2);
     }
 
     /// <summary>
-    /// Converts an AV1 color model using one operator-driven traversal for all SIMD widths.
+    /// Converts an HEIF color model using one operator-driven traversal for all SIMD widths.
     /// </summary>
     /// <typeparam name="TOperator">The color-model-specific arithmetic.</typeparam>
-    internal sealed class Av1ColorConverter<TOperator> : Av1ColorConverterBase
-        where TOperator : struct, IAv1ColorOperator
+    internal sealed class HeifColorConverter<TOperator> : HeifColorConverterBase
+        where TOperator : struct, IHeifColorOperator
     {
         /// <summary>
-        /// Initializes a new instance of the <see cref="Av1ColorConverter{TOperator}"/> class.
+        /// Initializes a new instance of the <see cref="HeifColorConverter{TOperator}"/> class.
         /// </summary>
         /// <param name="parameters">The resolved H.273 conversion parameters.</param>
         /// <param name="isMonochrome">Whether the frame contains only luma samples.</param>
-        public Av1ColorConverter(in Av1ColorConversionParameters parameters, bool isMonochrome)
+        public HeifColorConverter(in HeifColorConversionParameters parameters, bool isMonochrome)
             : base(in parameters, isMonochrome)
         {
         }
@@ -177,7 +177,7 @@ internal abstract partial class Av1ColorConverterBase
         /// <inheritdoc/>
         public override void ConvertToRgbInPlace(Span<float> component0, Span<float> component1, Span<float> component2)
         {
-            Av1ColorConversionParameters parameters = this.Parameters;
+            HeifColorConversionParameters parameters = this.Parameters;
 
             // Row reconstruction owns equally sized planar buffers. As in JPEG, first-element byrefs let each
             // SIMD width share one offset while the closed operator type keeps color-model dispatch out of the loop.
@@ -329,7 +329,7 @@ internal abstract partial class Av1ColorConverterBase
             Span<float> component2,
             float maximumValue)
         {
-            Av1ColorConversionParameters parameters = this.Parameters;
+            HeifColorConversionParameters parameters = this.Parameters;
 
             // The unpacker supplies three planar RGB rows. These same buffers become the destination component
             // rows after each operator call, so encoding retains JPEG's planar contract without another allocation.

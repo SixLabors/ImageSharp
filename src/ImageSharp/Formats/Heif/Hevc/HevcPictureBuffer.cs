@@ -26,13 +26,42 @@ internal sealed class HevcPictureBuffer : IDisposable
     /// <param name="configuration">The configuration providing the image memory allocator.</param>
     /// <param name="sequenceParameterSet">The coded dimensions, precision, and chroma layout.</param>
     public HevcPictureBuffer(Configuration configuration, HevcSequenceParameterSet sequenceParameterSet)
+        : this(
+            configuration,
+            sequenceParameterSet.Width,
+            sequenceParameterSet.Height,
+            sequenceParameterSet.BitDepthLuma,
+            sequenceParameterSet.BitDepthChroma,
+            sequenceParameterSet.ChromaFormat,
+            sequenceParameterSet.SeparateColorPlaneFlag)
     {
-        this.Width = sequenceParameterSet.Width;
-        this.Height = sequenceParameterSet.Height;
-        this.BitDepthLuma = sequenceParameterSet.BitDepthLuma;
-        this.BitDepthChroma = sequenceParameterSet.BitDepthChroma;
-        this.ChromaFormat = sequenceParameterSet.ChromaFormat;
-        this.SeparateColorPlane = sequenceParameterSet.SeparateColorPlaneFlag;
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HevcPictureBuffer"/> class for encoder-owned component planes.
+    /// </summary>
+    /// <param name="configuration">The configuration providing the image memory allocator.</param>
+    /// <param name="width">The coded luma width.</param>
+    /// <param name="height">The coded luma height.</param>
+    /// <param name="bitDepthLuma">The luma sample precision.</param>
+    /// <param name="bitDepthChroma">The chroma sample precision.</param>
+    /// <param name="chromaFormat">The HEVC chroma-format identifier.</param>
+    /// <param name="separateColorPlane">Whether 4:4:4 components are coded as separate color planes.</param>
+    public HevcPictureBuffer(
+        Configuration configuration,
+        int width,
+        int height,
+        int bitDepthLuma,
+        int bitDepthChroma,
+        byte chromaFormat,
+        bool separateColorPlane)
+    {
+        this.Width = width;
+        this.Height = height;
+        this.BitDepthLuma = bitDepthLuma;
+        this.BitDepthChroma = bitDepthChroma;
+        this.ChromaFormat = chromaFormat;
+        this.SeparateColorPlane = separateColorPlane;
 
         // Separate color planes are independently coded at full resolution even though chroma_format_idc is 4:4:4.
         this.chromaSubsamplingX = !this.SeparateColorPlane && this.ChromaFormat is 1 or 2 ? 1 : 0;

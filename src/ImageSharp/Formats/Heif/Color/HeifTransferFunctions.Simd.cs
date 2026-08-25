@@ -2,15 +2,15 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
-using static SixLabors.ImageSharp.Formats.Heif.Av1.Av1TransferVectorOperators;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
+using static SixLabors.ImageSharp.Formats.Heif.Color.HeifTransferVectorOperators;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1;
+namespace SixLabors.ImageSharp.Formats.Heif.Color;
 
 /// <content>
-/// Provides the SIMD implementations of the H.273 transfer characteristics used by AV1 color conversion.
+/// Provides the SIMD implementations of the H.273 transfer characteristics used by HEIF color conversion.
 /// </content>
-internal static partial class Av1TransferFunctions
+internal static partial class HeifTransferFunctions
 {
     /// <summary>
     /// Converts four nonlinear signal values to their H.273 linear-domain values.
@@ -18,7 +18,7 @@ internal static partial class Av1TransferFunctions
     /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
     /// <param name="value">The nonlinear signal values.</param>
     /// <returns>The corresponding linear-domain values.</returns>
-    public static Vector128<float> ToLinear(ObuTransferCharacteristics transferCharacteristics, Vector128<float> value)
+    public static Vector128<float> ToLinear(CicpTransferCharacteristics transferCharacteristics, Vector128<float> value)
         => ToLinear<Vector128<float>, Vector128Operator>(transferCharacteristics, value);
 
     /// <summary>
@@ -27,7 +27,7 @@ internal static partial class Av1TransferFunctions
     /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
     /// <param name="value">The nonlinear signal values.</param>
     /// <returns>The corresponding linear-domain values.</returns>
-    public static Vector256<float> ToLinear(ObuTransferCharacteristics transferCharacteristics, Vector256<float> value)
+    public static Vector256<float> ToLinear(CicpTransferCharacteristics transferCharacteristics, Vector256<float> value)
         => ToLinear<Vector256<float>, Vector256Operator>(transferCharacteristics, value);
 
     /// <summary>
@@ -36,7 +36,7 @@ internal static partial class Av1TransferFunctions
     /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
     /// <param name="value">The nonlinear signal values.</param>
     /// <returns>The corresponding linear-domain values.</returns>
-    public static Vector512<float> ToLinear(ObuTransferCharacteristics transferCharacteristics, Vector512<float> value)
+    public static Vector512<float> ToLinear(CicpTransferCharacteristics transferCharacteristics, Vector512<float> value)
         => ToLinear<Vector512<float>, Vector512Operator>(transferCharacteristics, value);
 
     /// <summary>
@@ -45,7 +45,7 @@ internal static partial class Av1TransferFunctions
     /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
     /// <param name="value">The linear signal values.</param>
     /// <returns>The corresponding nonlinear-domain values.</returns>
-    public static Vector128<float> ToGamma(ObuTransferCharacteristics transferCharacteristics, Vector128<float> value)
+    public static Vector128<float> ToGamma(CicpTransferCharacteristics transferCharacteristics, Vector128<float> value)
         => ToGamma<Vector128<float>, Vector128Operator>(transferCharacteristics, value);
 
     /// <summary>
@@ -54,7 +54,7 @@ internal static partial class Av1TransferFunctions
     /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
     /// <param name="value">The linear signal values.</param>
     /// <returns>The corresponding nonlinear-domain values.</returns>
-    public static Vector256<float> ToGamma(ObuTransferCharacteristics transferCharacteristics, Vector256<float> value)
+    public static Vector256<float> ToGamma(CicpTransferCharacteristics transferCharacteristics, Vector256<float> value)
         => ToGamma<Vector256<float>, Vector256Operator>(transferCharacteristics, value);
 
     /// <summary>
@@ -63,7 +63,7 @@ internal static partial class Av1TransferFunctions
     /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
     /// <param name="value">The linear signal values.</param>
     /// <returns>The corresponding nonlinear-domain values.</returns>
-    public static Vector512<float> ToGamma(ObuTransferCharacteristics transferCharacteristics, Vector512<float> value)
+    public static Vector512<float> ToGamma(CicpTransferCharacteristics transferCharacteristics, Vector512<float> value)
         => ToGamma<Vector512<float>, Vector512Operator>(transferCharacteristics, value);
 
     /// <summary>
@@ -74,7 +74,7 @@ internal static partial class Av1TransferFunctions
     /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
     /// <param name="value">The nonlinear signal values.</param>
     /// <returns>The corresponding linear-domain values.</returns>
-    private static TVector ToLinear<TVector, TOperator>(ObuTransferCharacteristics transferCharacteristics, TVector value)
+    private static TVector ToLinear<TVector, TOperator>(CicpTransferCharacteristics transferCharacteristics, TVector value)
         where TVector : struct
         where TOperator : struct, ITransferVectorOperator<TVector>
     {
@@ -83,20 +83,20 @@ internal static partial class Av1TransferFunctions
 
         switch (transferCharacteristics)
         {
-            case ObuTransferCharacteristics.Bt709:
-            case ObuTransferCharacteristics.Bt601:
-            case ObuTransferCharacteristics.Bt202010Bit:
-            case ObuTransferCharacteristics.Bt202012Bit:
+            case CicpTransferCharacteristics.ItuRBt709_6:
+            case CicpTransferCharacteristics.ItuRBt601_7:
+            case CicpTransferCharacteristics.ItuRBt2020_2_10bit:
+            case CicpTransferCharacteristics.ItuRBt2020_2_12bit:
                 return ToLinearBt709<TVector, TOperator>(value);
-            case ObuTransferCharacteristics.Bt470M:
+            case CicpTransferCharacteristics.Gamma2_2:
                 return Power<TVector, TOperator>(TOperator.Min(TOperator.Max(value, zero), one), 2.2F);
-            case ObuTransferCharacteristics.Bt470BG:
+            case CicpTransferCharacteristics.Gamma2_8:
                 return Power<TVector, TOperator>(TOperator.Min(TOperator.Max(value, zero), one), 2.8F);
-            case ObuTransferCharacteristics.Smpte240:
+            case CicpTransferCharacteristics.SmpteSt240:
                 return ToLinearSmpte240<TVector, TOperator>(value);
-            case ObuTransferCharacteristics.Linear:
+            case CicpTransferCharacteristics.Linear:
                 return TOperator.Min(TOperator.Max(value, zero), one);
-            case ObuTransferCharacteristics.Log100:
+            case CicpTransferCharacteristics.Log100:
             {
                 // H.273 assigns an interval to zero for logarithmic curves. The scalar midpoint convention is
                 // selected lane-wise after evaluating the positive branch, which keeps the hot path branchless.
@@ -105,24 +105,24 @@ internal static partial class Av1TransferFunctions
                 return TOperator.ConditionalSelect(TOperator.LessThanOrEqual(value, zero), TOperator.Create(0.005F), positive);
             }
 
-            case ObuTransferCharacteristics.Log100Sqrt10:
+            case CicpTransferCharacteristics.Log100Sqrt:
             {
                 TVector exponent = TOperator.Multiply(TOperator.Subtract(TOperator.Min(value, one), one), TOperator.Create(2.5F * 2.302585092994046F));
                 TVector positive = TOperator.Exp(exponent);
                 return TOperator.ConditionalSelect(TOperator.LessThanOrEqual(value, zero), TOperator.Create(0.00158113883F), positive);
             }
 
-            case ObuTransferCharacteristics.Iec61966:
+            case CicpTransferCharacteristics.Iec61966_2_4:
                 return ToLinearIec61966<TVector, TOperator>(value);
-            case ObuTransferCharacteristics.Bt1361:
+            case CicpTransferCharacteristics.ItuRBt1361_0:
                 return ToLinearBt1361<TVector, TOperator>(value);
-            case ObuTransferCharacteristics.Srgb:
+            case CicpTransferCharacteristics.Iec61966_2_1:
                 return ToLinearSrgb<TVector, TOperator>(value);
-            case ObuTransferCharacteristics.Smpte2084:
+            case CicpTransferCharacteristics.SmpteSt2084:
                 return ToLinearPq<TVector, TOperator>(value);
-            case ObuTransferCharacteristics.Smpte428:
+            case CicpTransferCharacteristics.SmpteSt428_1:
                 return TOperator.Divide(Power<TVector, TOperator>(TOperator.Max(value, zero), 2.6F), TOperator.Create(Smpte428Scale));
-            case ObuTransferCharacteristics.Hlg:
+            case CicpTransferCharacteristics.AribStdB67:
                 return ToLinearHlg<TVector, TOperator>(value);
             default:
                 return ToLinearBt709<TVector, TOperator>(value);
@@ -137,7 +137,7 @@ internal static partial class Av1TransferFunctions
     /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
     /// <param name="value">The linear signal values.</param>
     /// <returns>The corresponding nonlinear-domain values.</returns>
-    private static TVector ToGamma<TVector, TOperator>(ObuTransferCharacteristics transferCharacteristics, TVector value)
+    private static TVector ToGamma<TVector, TOperator>(CicpTransferCharacteristics transferCharacteristics, TVector value)
         where TVector : struct
         where TOperator : struct, ITransferVectorOperator<TVector>
     {
@@ -146,20 +146,20 @@ internal static partial class Av1TransferFunctions
 
         switch (transferCharacteristics)
         {
-            case ObuTransferCharacteristics.Bt709:
-            case ObuTransferCharacteristics.Bt601:
-            case ObuTransferCharacteristics.Bt202010Bit:
-            case ObuTransferCharacteristics.Bt202012Bit:
+            case CicpTransferCharacteristics.ItuRBt709_6:
+            case CicpTransferCharacteristics.ItuRBt601_7:
+            case CicpTransferCharacteristics.ItuRBt2020_2_10bit:
+            case CicpTransferCharacteristics.ItuRBt2020_2_12bit:
                 return ToGammaBt709<TVector, TOperator>(value);
-            case ObuTransferCharacteristics.Bt470M:
+            case CicpTransferCharacteristics.Gamma2_2:
                 return Power<TVector, TOperator>(TOperator.Min(TOperator.Max(value, zero), one), 1F / 2.2F);
-            case ObuTransferCharacteristics.Bt470BG:
+            case CicpTransferCharacteristics.Gamma2_8:
                 return Power<TVector, TOperator>(TOperator.Min(TOperator.Max(value, zero), one), 1F / 2.8F);
-            case ObuTransferCharacteristics.Smpte240:
+            case CicpTransferCharacteristics.SmpteSt240:
                 return ToGammaSmpte240<TVector, TOperator>(value);
-            case ObuTransferCharacteristics.Linear:
+            case CicpTransferCharacteristics.Linear:
                 return TOperator.Min(TOperator.Max(value, zero), one);
-            case ObuTransferCharacteristics.Log100:
+            case CicpTransferCharacteristics.Log100:
             {
                 // Clamp inactive lanes to the threshold before Log. ConditionalSelect does not short-circuit,
                 // so this prevents negative input lanes from contaminating the vector operation with NaN values.
@@ -169,7 +169,7 @@ internal static partial class Av1TransferFunctions
                 return TOperator.ConditionalSelect(TOperator.LessThanOrEqual(value, threshold), zero, positive);
             }
 
-            case ObuTransferCharacteristics.Log100Sqrt10:
+            case CicpTransferCharacteristics.Log100Sqrt:
             {
                 TVector threshold = TOperator.Create(0.00316227766F);
                 TVector bounded = TOperator.Min(TOperator.Max(value, threshold), one);
@@ -177,17 +177,17 @@ internal static partial class Av1TransferFunctions
                 return TOperator.ConditionalSelect(TOperator.LessThanOrEqual(value, threshold), zero, positive);
             }
 
-            case ObuTransferCharacteristics.Iec61966:
+            case CicpTransferCharacteristics.Iec61966_2_4:
                 return ToGammaIec61966<TVector, TOperator>(value);
-            case ObuTransferCharacteristics.Bt1361:
+            case CicpTransferCharacteristics.ItuRBt1361_0:
                 return ToGammaBt1361<TVector, TOperator>(value);
-            case ObuTransferCharacteristics.Srgb:
+            case CicpTransferCharacteristics.Iec61966_2_1:
                 return ToGammaSrgb<TVector, TOperator>(value);
-            case ObuTransferCharacteristics.Smpte2084:
+            case CicpTransferCharacteristics.SmpteSt2084:
                 return ToGammaPq<TVector, TOperator>(value);
-            case ObuTransferCharacteristics.Smpte428:
+            case CicpTransferCharacteristics.SmpteSt428_1:
                 return Power<TVector, TOperator>(TOperator.Multiply(TOperator.Create(Smpte428Scale), TOperator.Max(value, zero)), 1F / 2.6F);
-            case ObuTransferCharacteristics.Hlg:
+            case CicpTransferCharacteristics.AribStdB67:
                 return ToGammaHlg<TVector, TOperator>(value);
             default:
                 return ToGammaBt709<TVector, TOperator>(value);
@@ -516,7 +516,7 @@ internal static partial class Av1TransferFunctions
 /// <summary>
 /// Contains the stateless vector-width operators used by the shared H.273 transfer-function formulas.
 /// </summary>
-internal static class Av1TransferVectorOperators
+internal static class HeifTransferVectorOperators
 {
     /// <summary>
     /// Defines the lane-wise operations required by the shared H.273 SIMD formulas.

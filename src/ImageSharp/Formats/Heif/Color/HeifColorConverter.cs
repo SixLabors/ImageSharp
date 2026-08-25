@@ -1,12 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1;
+namespace SixLabors.ImageSharp.Formats.Heif.Color;
 
 /// <summary>
 /// Identifies the H.273 matrix operation used between encoded planes and RGB components.
 /// </summary>
-internal enum Av1ColorConversionMode
+internal enum HeifColorConversionMode
 {
     /// <summary>
     /// A coefficient-based YCbCr matrix conversion.
@@ -50,16 +50,16 @@ internal enum Av1ColorConversionMode
 }
 
 /// <summary>
-/// Converts normalized component planes between an AV1 color model and RGB.
+/// Converts normalized component planes between an encoded HEIF color model and RGB.
 /// </summary>
-internal abstract partial class Av1ColorConverterBase
+internal abstract partial class HeifColorConverterBase
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1ColorConverterBase"/> class.
+    /// Initializes a new instance of the <see cref="HeifColorConverterBase"/> class.
     /// </summary>
     /// <param name="parameters">The resolved H.273 conversion parameters.</param>
     /// <param name="isMonochrome">Whether the frame contains only luma samples.</param>
-    protected Av1ColorConverterBase(in Av1ColorConversionParameters parameters, bool isMonochrome)
+    protected HeifColorConverterBase(in HeifColorConversionParameters parameters, bool isMonochrome)
     {
         this.Parameters = parameters;
         this.IsMonochrome = isMonochrome;
@@ -68,7 +68,7 @@ internal abstract partial class Av1ColorConverterBase
     /// <summary>
     /// Gets the resolved H.273 conversion parameters.
     /// </summary>
-    protected Av1ColorConversionParameters Parameters { get; }
+    protected HeifColorConversionParameters Parameters { get; }
 
     /// <summary>
     /// Gets a value indicating whether the frame contains only luma samples.
@@ -96,7 +96,7 @@ internal abstract partial class Av1ColorConverterBase
     public abstract float ChromaBias { get; }
 
     /// <summary>
-    /// Converts normalized AV1 components to normalized RGB in place.
+    /// Converts normalized encoded components to normalized RGB in place.
     /// </summary>
     /// <param name="component0">The luma or first color component, replaced by red.</param>
     /// <param name="component1">The first chroma or second color component, replaced by green.</param>
@@ -104,7 +104,7 @@ internal abstract partial class Av1ColorConverterBase
     public abstract void ConvertToRgbInPlace(Span<float> component0, Span<float> component1, Span<float> component2);
 
     /// <summary>
-    /// Converts normalized RGB components to normalized AV1 components in place.
+    /// Converts normalized RGB components to normalized encoded components in place.
     /// </summary>
     /// <param name="component0">The red component, replaced by luma or the first color component.</param>
     /// <param name="component1">The green component, replaced by the first chroma or second color component.</param>
@@ -123,16 +123,16 @@ internal abstract partial class Av1ColorConverterBase
     /// <param name="parameters">The resolved H.273 conversion parameters.</param>
     /// <param name="isMonochrome">Whether the frame contains only luma samples.</param>
     /// <returns>The selected converter.</returns>
-    public static Av1ColorConverterBase Create(Av1ColorConversionMode mode, in Av1ColorConversionParameters parameters, bool isMonochrome)
+    public static HeifColorConverterBase Create(HeifColorConversionMode mode, in HeifColorConversionParameters parameters, bool isMonochrome)
         => mode switch
         {
-            Av1ColorConversionMode.Identity => new Av1ColorConverter<Av1IdentityColorOperator>(in parameters, isMonochrome),
-            Av1ColorConversionMode.YCgCo => new Av1ColorConverter<Av1YCgCoColorOperator>(in parameters, isMonochrome),
-            Av1ColorConversionMode.Smpte2085 => new Av1ColorConverter<Av1Smpte2085ColorOperator>(in parameters, isMonochrome),
-            Av1ColorConversionMode.ConstantLuminance => new Av1ColorConverter<Av1ConstantLuminanceColorOperator>(in parameters, isMonochrome),
-            Av1ColorConversionMode.ICtCp => new Av1ColorConverter<Av1ICtCpColorOperator>(in parameters, isMonochrome),
-            Av1ColorConversionMode.IptC2 => new Av1ColorConverter<Av1IptC2ColorOperator>(in parameters, isMonochrome),
-            Av1ColorConversionMode.YCgCoReversible => new Av1ColorConverter<Av1YCgCoReversibleColorOperator>(in parameters, isMonochrome),
-            _ => new Av1ColorConverter<Av1CoefficientColorOperator>(in parameters, isMonochrome),
+            HeifColorConversionMode.Identity => new HeifColorConverter<HeifIdentityColorOperator>(in parameters, isMonochrome),
+            HeifColorConversionMode.YCgCo => new HeifColorConverter<HeifYCgCoColorOperator>(in parameters, isMonochrome),
+            HeifColorConversionMode.Smpte2085 => new HeifColorConverter<HeifSmpte2085ColorOperator>(in parameters, isMonochrome),
+            HeifColorConversionMode.ConstantLuminance => new HeifColorConverter<HeifConstantLuminanceColorOperator>(in parameters, isMonochrome),
+            HeifColorConversionMode.ICtCp => new HeifColorConverter<HeifICtCpColorOperator>(in parameters, isMonochrome),
+            HeifColorConversionMode.IptC2 => new HeifColorConverter<HeifIptC2ColorOperator>(in parameters, isMonochrome),
+            HeifColorConversionMode.YCgCoReversible => new HeifColorConverter<HeifYCgCoReversibleColorOperator>(in parameters, isMonochrome),
+            _ => new HeifColorConverter<HeifCoefficientColorOperator>(in parameters, isMonochrome),
         };
 }

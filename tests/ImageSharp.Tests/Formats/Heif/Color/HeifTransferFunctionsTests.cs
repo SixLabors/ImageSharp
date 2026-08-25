@@ -2,16 +2,16 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Formats.Heif.Av1;
-using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Color;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 
-namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
+namespace SixLabors.ImageSharp.Tests.Formats.Heif.Color;
 
 /// <summary>
-/// Verifies scalar and SIMD parity for every H.273 transfer characteristic consumed by AV1 color conversion.
+/// Verifies scalar and SIMD parity for every H.273 transfer characteristic consumed by HEIF color conversion.
 /// </summary>
-[Trait("Format", "Avif")]
-public class Av1TransferFunctionsTests
+[Trait("Format", "Heif")]
+public class HeifTransferFunctionsTests
 {
     private static readonly float[] SignalValues =
     [
@@ -38,23 +38,23 @@ public class Av1TransferFunctionsTests
     /// </summary>
     public static TheoryData<int> TransferCharacteristics { get; } = new()
     {
-        (int)ObuTransferCharacteristics.Bt709,
-        (int)ObuTransferCharacteristics.Unspecified,
-        (int)ObuTransferCharacteristics.Bt470M,
-        (int)ObuTransferCharacteristics.Bt470BG,
-        (int)ObuTransferCharacteristics.Bt601,
-        (int)ObuTransferCharacteristics.Smpte240,
-        (int)ObuTransferCharacteristics.Linear,
-        (int)ObuTransferCharacteristics.Log100,
-        (int)ObuTransferCharacteristics.Log100Sqrt10,
-        (int)ObuTransferCharacteristics.Iec61966,
-        (int)ObuTransferCharacteristics.Bt1361,
-        (int)ObuTransferCharacteristics.Srgb,
-        (int)ObuTransferCharacteristics.Bt202010Bit,
-        (int)ObuTransferCharacteristics.Bt202012Bit,
-        (int)ObuTransferCharacteristics.Smpte2084,
-        (int)ObuTransferCharacteristics.Smpte428,
-        (int)ObuTransferCharacteristics.Hlg,
+        (int)CicpTransferCharacteristics.ItuRBt709_6,
+        (int)CicpTransferCharacteristics.Unspecified,
+        (int)CicpTransferCharacteristics.Gamma2_2,
+        (int)CicpTransferCharacteristics.Gamma2_8,
+        (int)CicpTransferCharacteristics.ItuRBt601_7,
+        (int)CicpTransferCharacteristics.SmpteSt240,
+        (int)CicpTransferCharacteristics.Linear,
+        (int)CicpTransferCharacteristics.Log100,
+        (int)CicpTransferCharacteristics.Log100Sqrt,
+        (int)CicpTransferCharacteristics.Iec61966_2_4,
+        (int)CicpTransferCharacteristics.ItuRBt1361_0,
+        (int)CicpTransferCharacteristics.Iec61966_2_1,
+        (int)CicpTransferCharacteristics.ItuRBt2020_2_10bit,
+        (int)CicpTransferCharacteristics.ItuRBt2020_2_12bit,
+        (int)CicpTransferCharacteristics.SmpteSt2084,
+        (int)CicpTransferCharacteristics.SmpteSt428_1,
+        (int)CicpTransferCharacteristics.AribStdB67,
     };
 
     /// <summary>
@@ -65,12 +65,12 @@ public class Av1TransferFunctionsTests
     [MemberData(nameof(TransferCharacteristics))]
     public void ToLinearSimdMatchesScalar(int transferCharacteristicsValue)
     {
-        ObuTransferCharacteristics transferCharacteristics = (ObuTransferCharacteristics)transferCharacteristicsValue;
-        float[] expected = SignalValues.Select(value => Av1TransferFunctions.ToLinear(transferCharacteristics, value)).ToArray();
+        CicpTransferCharacteristics transferCharacteristics = (CicpTransferCharacteristics)transferCharacteristicsValue;
+        float[] expected = SignalValues.Select(value => HeifTransferFunctions.ToLinear(transferCharacteristics, value)).ToArray();
 
-        Vector128<float> vector128 = Av1TransferFunctions.ToLinear(transferCharacteristics, Vector128.Create(SignalValues.AsSpan(0, Vector128<float>.Count)));
-        Vector256<float> vector256 = Av1TransferFunctions.ToLinear(transferCharacteristics, Vector256.Create(SignalValues.AsSpan(0, Vector256<float>.Count)));
-        Vector512<float> vector512 = Av1TransferFunctions.ToLinear(transferCharacteristics, Vector512.Create(SignalValues));
+        Vector128<float> vector128 = HeifTransferFunctions.ToLinear(transferCharacteristics, Vector128.Create(SignalValues.AsSpan(0, Vector128<float>.Count)));
+        Vector256<float> vector256 = HeifTransferFunctions.ToLinear(transferCharacteristics, Vector256.Create(SignalValues.AsSpan(0, Vector256<float>.Count)));
+        Vector512<float> vector512 = HeifTransferFunctions.ToLinear(transferCharacteristics, Vector512.Create(SignalValues));
 
         AssertVectorMatchesScalar(expected, vector128, transferCharacteristics);
         AssertVectorMatchesScalar(expected, vector256, transferCharacteristics);
@@ -85,12 +85,12 @@ public class Av1TransferFunctionsTests
     [MemberData(nameof(TransferCharacteristics))]
     public void ToGammaSimdMatchesScalar(int transferCharacteristicsValue)
     {
-        ObuTransferCharacteristics transferCharacteristics = (ObuTransferCharacteristics)transferCharacteristicsValue;
-        float[] expected = SignalValues.Select(value => Av1TransferFunctions.ToGamma(transferCharacteristics, value)).ToArray();
+        CicpTransferCharacteristics transferCharacteristics = (CicpTransferCharacteristics)transferCharacteristicsValue;
+        float[] expected = SignalValues.Select(value => HeifTransferFunctions.ToGamma(transferCharacteristics, value)).ToArray();
 
-        Vector128<float> vector128 = Av1TransferFunctions.ToGamma(transferCharacteristics, Vector128.Create(SignalValues.AsSpan(0, Vector128<float>.Count)));
-        Vector256<float> vector256 = Av1TransferFunctions.ToGamma(transferCharacteristics, Vector256.Create(SignalValues.AsSpan(0, Vector256<float>.Count)));
-        Vector512<float> vector512 = Av1TransferFunctions.ToGamma(transferCharacteristics, Vector512.Create(SignalValues));
+        Vector128<float> vector128 = HeifTransferFunctions.ToGamma(transferCharacteristics, Vector128.Create(SignalValues.AsSpan(0, Vector128<float>.Count)));
+        Vector256<float> vector256 = HeifTransferFunctions.ToGamma(transferCharacteristics, Vector256.Create(SignalValues.AsSpan(0, Vector256<float>.Count)));
+        Vector512<float> vector512 = HeifTransferFunctions.ToGamma(transferCharacteristics, Vector512.Create(SignalValues));
 
         AssertVectorMatchesScalar(expected, vector128, transferCharacteristics);
         AssertVectorMatchesScalar(expected, vector256, transferCharacteristics);
@@ -103,7 +103,7 @@ public class Av1TransferFunctionsTests
     /// <param name="expected">The scalar results.</param>
     /// <param name="actual">The SIMD results.</param>
     /// <param name="transferCharacteristics">The transfer characteristic under test.</param>
-    private static void AssertVectorMatchesScalar(ReadOnlySpan<float> expected, Vector128<float> actual, ObuTransferCharacteristics transferCharacteristics)
+    private static void AssertVectorMatchesScalar(ReadOnlySpan<float> expected, Vector128<float> actual, CicpTransferCharacteristics transferCharacteristics)
     {
         for (int i = 0; i < Vector128<float>.Count; i++)
         {
@@ -117,7 +117,7 @@ public class Av1TransferFunctionsTests
     /// <param name="expected">The scalar results.</param>
     /// <param name="actual">The SIMD results.</param>
     /// <param name="transferCharacteristics">The transfer characteristic under test.</param>
-    private static void AssertVectorMatchesScalar(ReadOnlySpan<float> expected, Vector256<float> actual, ObuTransferCharacteristics transferCharacteristics)
+    private static void AssertVectorMatchesScalar(ReadOnlySpan<float> expected, Vector256<float> actual, CicpTransferCharacteristics transferCharacteristics)
     {
         for (int i = 0; i < Vector256<float>.Count; i++)
         {
@@ -131,7 +131,7 @@ public class Av1TransferFunctionsTests
     /// <param name="expected">The scalar results.</param>
     /// <param name="actual">The SIMD results.</param>
     /// <param name="transferCharacteristics">The transfer characteristic under test.</param>
-    private static void AssertVectorMatchesScalar(ReadOnlySpan<float> expected, Vector512<float> actual, ObuTransferCharacteristics transferCharacteristics)
+    private static void AssertVectorMatchesScalar(ReadOnlySpan<float> expected, Vector512<float> actual, CicpTransferCharacteristics transferCharacteristics)
     {
         for (int i = 0; i < Vector512<float>.Count; i++)
         {
@@ -147,7 +147,7 @@ public class Av1TransferFunctionsTests
     /// <param name="transferCharacteristics">The transfer characteristic under test.</param>
     /// <param name="lane">The SIMD lane index.</param>
     /// <param name="width">The SIMD register width.</param>
-    private static void AssertClose(float expected, float actual, ObuTransferCharacteristics transferCharacteristics, int lane, int width)
+    private static void AssertClose(float expected, float actual, CicpTransferCharacteristics transferCharacteristics, int lane, int width)
     {
         float tolerance = MathF.Max(2E-5F, MathF.Abs(expected) * 2E-5F);
         Assert.True(

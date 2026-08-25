@@ -47,7 +47,14 @@ internal sealed class HeifEncoderCore
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        byte[] pixels = CompressPixels(image, cancellationToken);
+        byte[] pixels = this.encoder.CompressionMethod switch
+        {
+            HeifCompressionMethod.LegacyJpeg => this.CompressPixels(image, cancellationToken),
+            HeifCompressionMethod.Av1 => throw new NotSupportedException("AV1 encoding is not implemented."),
+            HeifCompressionMethod.Hevc => throw new NotSupportedException("HEVC encoding is not implemented."),
+            _ => throw new NotSupportedException($"HEIF compression method '{this.encoder.CompressionMethod}' is not supported.")
+        };
+
         List<HeifItem> items = new();
         List<HeifItemLink> links = new();
         GenerateItems(image, pixels, items);
@@ -59,7 +66,7 @@ internal sealed class HeifEncoderCore
         stream.Flush();
 
         HeifMetadata meta = image.Metadata.GetHeifMetadata();
-        meta.CompressionMethod = HeifCompressionMethod.LegacyJpeg;
+        meta.CompressionMethod = this.encoder.CompressionMethod;
     }
 
     /// <summary>
@@ -432,13 +439,40 @@ internal sealed class HeifEncoderCore
     /// <param name="image">The source image.</param>
     /// <param name="cancellationToken">The token used to cancel payload encoding.</param>
     /// <returns>The encoded JPEG item bytes.</returns>
-    private static byte[] CompressPixels<TPixel>(Image<TPixel> image, CancellationToken cancellationToken)
+    private byte[] CompressPixels<TPixel>(Image<TPixel> image, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        if (this.encoder.Lossless)
+        {
+            throw new NotSupportedException("Legacy JPEG image items do not support lossless encoding.");
+        }
+
+        if (this.encoder.BitDepth is not null && this.encoder.BitDepth != HeifBitDepth.Bit8)
+        {
+            throw new NotSupportedException("Legacy JPEG image items support only 8-bit component encoding.");
+        }
+
+        if (this.encoder.Quality == 0)
+        {
+            // Zero is meaningful to the AV1 and HEVC quality scales, but ImageSharp's JPEG encoder deliberately
+            // exposes the JPEG quality scale as 1 through 100. Reject the codec-specific mismatch at this boundary.
+            throw new NotSupportedException("Legacy JPEG image items support quality values in the range [1..100].");
+        }
+
+        JpegColorType colorType = this.encoder.ChromaSubsampling switch
+        {
+            null or HeifChromaSubsampling.Yuv420 => JpegColorType.YCbCrRatio420,
+            HeifChromaSubsampling.Yuv422 => JpegColorType.YCbCrRatio422,
+            HeifChromaSubsampling.Yuv444 => JpegColorType.YCbCrRatio444,
+            HeifChromaSubsampling.Monochrome => JpegColorType.Luminance,
+            _ => throw new NotSupportedException($"HEIF chroma sampling '{this.encoder.ChromaSubsampling}' is not supported.")
+        };
+
         using MemoryStream stream = new();
         JpegEncoder encoder = new()
         {
-            ColorType = JpegColorType.YCbCrRatio420
+            Quality = this.encoder.Quality,
+            ColorType = colorType
         };
 
         // ImageEncoder is a synchronous contract. Wait for the cancellable JPEG operation

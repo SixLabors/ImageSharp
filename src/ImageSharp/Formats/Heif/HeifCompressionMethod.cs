@@ -19,27 +19,7 @@ public enum HeifCompressionMethod
     LegacyJpeg,
 
     /// <summary>
-    /// JPEG 2000 coding.
-    /// </summary>
-    Jpeg2000,
-
-    /// <summary>
-    /// JPEG XR coding.
-    /// </summary>
-    JpegXR,
-
-    /// <summary>
-    /// JPEG XS coding.
-    /// </summary>
-    JpegXS,
-
-    /// <summary>
     /// AOMedia Video 1 (AV1) coding.
     /// </summary>
     Av1,
-
-    /// <summary>
-    /// Advanced Video Coding (AVC).
-    /// </summary>
-    Avc,
 }

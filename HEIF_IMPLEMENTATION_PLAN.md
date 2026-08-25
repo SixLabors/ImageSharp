@@ -56,11 +56,11 @@ Checkboxes may be marked complete only when the implementation and the verificat
   - [ ] Connect both payload encoders to the bounded HEIF writer with the selected bit depth, chroma layout, range, color signaling, alpha, metadata, and animation state.
   - [ ] Replace each `NotSupportedException` branch only when the corresponding payload is accepted by the pinned independent decoder and the ImageSharp decoder.
   - [ ] Verify that every public quality, effort, lossless, bit-depth, chroma, alpha, and metadata option changes or constrains the encoded output exactly as documented.
-- [ ] **Queued:** complete `IHeifEncoderOptions` documentation, including all observable limits, and use `<inheritdoc/>` consistently from `HeifEncoder` if the interface remains justified.
-  - [ ] Confirm that the interface is required by multiple concrete HEIF-family encoders and remove it if it does not represent a genuine shared public contract.
-  - [ ] Document the default, valid range, special values, invalid-value behavior, and format-dependent restrictions of every retained option using observable API behavior only.
-  - [ ] Keep the complete contract on `IHeifEncoderOptions` and use `<inheritdoc/>` on matching `HeifEncoder` members instead of maintaining duplicate documentation.
-  - [ ] Verify option validation and API shape against the established ImageSharp encoder patterns before the Phase 1 API-review gate is marked complete.
+- [x] **Completed:** define and document the HEIF encoder option contract using the established ImageSharp encoder pattern.
+  - [x] Confirm that `IHeifEncoderOptions` has only one concrete implementation and remove the unnecessary interface.
+  - [x] Document the default, valid range, special values, invalid-value behavior, and format-dependent restrictions of every retained option using observable API behavior only.
+  - [x] Pass `HeifEncoder` directly to `HeifEncoderCore`, matching the JPEG, PNG, and WebP encoder-core contracts and avoiding interface dispatch.
+  - [x] Verify construction-time range validation and legacy-JPEG codec-boundary restrictions with focused tests before the Phase 1 API-review gate is marked complete.
 
 Gain maps, progressive/layered images, sample transforms, and experimental extension brands require explicit conformance and API decisions. They do not create permission to omit any valid color, compression, or bit-depth path from the PR. The container reader must skip unsupported optional extensions safely and reject an unsupported essential property with a useful error.
 
@@ -176,7 +176,7 @@ This assessment is based on the current source after the upstream ImageSharp mer
 - `HeifFormat` combines the HEIF, HEIC, HIF, and AVIF identities and extensions, but the implementation does not yet decode all payloads that contract implies.
 - `HeifDecoder` now defaults to `Rgba32`, preserving decoded auxiliary alpha for non-generic loads.
 - `HeifMetadata` now reports alpha presence and the corresponding 24/32-bit RGB pixel shape, but complete decoded HEVC/AV1 bit depth, monochrome/chroma layout, color signaling, and profiles remain absent.
-- `IHeifEncoderOptions` is empty, and the encoder exposes no meaningful quality, speed, lossless, subsampling, bit-depth, or alpha policy.
+- `HeifEncoder` defines quality, alpha quality, effort, lossless, chroma-subsampling, and bit-depth contracts directly, without a single-implementation options interface. The legacy JPEG path applies its supported quality, bit-depth, and chroma options and rejects unsupported combinations; AV1 and HEVC must implement the same public contracts before the Phase 1 API-review gate can pass.
 - HEIF/HEIC/AVIF is absent from the format source-generation list in `_Formats.ttinclude`, so the standard ImageSharp save extensions are not generated.
 - Configuration registration exists, but it currently registers capabilities broader than the implementation provides.
 

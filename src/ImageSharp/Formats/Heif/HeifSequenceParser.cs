@@ -344,22 +344,43 @@ internal sealed class HeifSequenceParser
     /// <returns>The fixed track identity fields.</returns>
     private static TrackIdentity ParseTrackHeader(Stream stream, long boxLength, Span<byte> scratch)
     {
-        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 4, "track header");
+        const int fullBoxHeaderLength = sizeof(uint);
+        const int trackIdAndReservedLength = 2 * sizeof(uint);
+        const int postDurationFieldsLength = (2 * sizeof(uint)) + (4 * sizeof(ushort));
+        const int matrixLength = 9 * sizeof(int);
+        const int dimensionsLength = 2 * sizeof(uint);
+        const int fixedPointFractionalBits = 16;
+        const uint trackEnabledFlag = 1 << 0;
+        const uint trackInMovieFlag = 1 << 1;
+
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, fullBoxHeaderLength, "track header");
         byte version = prefix[0];
-        int requiredLength = version switch
+
+        // ISO/IEC 14496-12, Section 8.3.2 defines 'tkhd' as a FullBox followed by creation and modification
+        // times, the track identifier, a reserved field, and the duration. Version 1 widens each time and duration
+        // field from 32 to 64 bits, which shifts every field that follows them by twelve bytes.
+        int versionedFieldLength = version switch
         {
-            0 => 84,
-            1 => 96,
+            0 => sizeof(uint),
+            1 => sizeof(ulong),
             _ => throw new InvalidImageContentException($"The track header has unsupported version {version}.")
         };
 
+        int trackIdOffset = fullBoxHeaderLength + (2 * versionedFieldLength);
+        int durationOffset = trackIdOffset + trackIdAndReservedLength;
+
+        // The fields between duration and matrix are two reserved 32-bit values followed by the 16-bit layer,
+        // alternate_group, volume, and reserved values specified by Section 8.3.2. The matrix then contains nine
+        // 32-bit fixed-point coefficients, followed by the two 32-bit track dimensions.
+        int matrixOffset = durationOffset + versionedFieldLength + postDurationFieldsLength;
+        int widthOffset = matrixOffset + matrixLength;
+        int requiredLength = widthOffset + dimensionsLength;
+
         prefix = ReadPrefixFromStart(stream, boxLength, scratch, requiredLength, "track header");
         uint flags = ReadFlags(prefix);
-        int trackIdOffset = version == 0 ? 12 : 20;
-        int durationOffset = version == 0 ? 20 : 28;
-        int matrixOffset = version == 0 ? 40 : 52;
-        int widthOffset = version == 0 ? 76 : 88;
         uint id = BinaryPrimitives.ReadUInt32BigEndian(prefix[trackIdOffset..]);
+
+        // Section 8.3.2 reserves track_ID zero, so accepting it would make track references ambiguous.
         if (id == 0)
         {
             throw new InvalidImageContentException("A HEIF image-sequence track has identifier zero.");
@@ -369,25 +390,41 @@ internal sealed class HeifSequenceParser
             ? BinaryPrimitives.ReadUInt32BigEndian(prefix[durationOffset..])
             : BinaryPrimitives.ReadUInt64BigEndian(prefix[durationOffset..]);
 
+        // The specification uses the all-ones value for an indefinite duration. Normalize the 32-bit version to
+        // the 64-bit sentinel used by the sequence model so both TrackHeaderBox versions follow the same path.
         if (version == 0 && duration == uint.MaxValue)
         {
             duration = ulong.MaxValue;
         }
 
-        int width = checked((int)(BinaryPrimitives.ReadUInt32BigEndian(prefix[widthOffset..]) >> 16));
-        int height = checked((int)(BinaryPrimitives.ReadUInt32BigEndian(prefix[(widthOffset + 4)..]) >> 16));
+        // Section 8.3.2 stores width and height as unsigned 16.16 fixed-point values. ImageSharp dimensions are
+        // integral pixels, matching libavif, so discard the fractional half before validating the display size.
+        uint fixedWidth = BinaryPrimitives.ReadUInt32BigEndian(prefix[widthOffset..]);
+        uint fixedHeight = BinaryPrimitives.ReadUInt32BigEndian(prefix[(widthOffset + sizeof(uint))..]);
+        int width = checked((int)(fixedWidth >> fixedPointFractionalBits));
+        int height = checked((int)(fixedHeight >> fixedPointFractionalBits));
+
         if (width == 0 || height == 0)
         {
             throw new InvalidImageContentException("A HEIF image-sequence track has zero dimensions.");
         }
 
-        HeifTrackMatrix matrix = HeifTrackMatrix.Parse(prefix.Slice(matrixOffset, 36));
+        HeifTrackMatrix matrix = HeifTrackMatrix.Parse(prefix.Slice(matrixOffset, matrixLength));
+
+        // The Section 8.3.2 matrix transforms the track into the movie presentation coordinate system. This image
+        // decoder currently emits the stored raster directly, so a non-unity matrix would produce incorrect pixels.
         if (!matrix.IsIdentity)
         {
             throw new NotSupportedException("The HEIF image-sequence track requires an unsupported movie presentation matrix.");
         }
 
-        return new TrackIdentity(id, (flags & 3) == 3, width, height, duration);
+        // Bits 0 and 1 are track_enabled and track_in_movie respectively. A primary image-sequence candidate must
+        // participate in movie playback as well as being enabled; preview-only and disabled tracks remain available
+        // for explicit references but are not selected as the primary color track.
+        uint enabledInMovieFlags = trackEnabledFlag | trackInMovieFlag;
+        bool isEnabledInMovie = (flags & enabledInMovieFlags) == enabledInMovieFlags;
+
+        return new TrackIdentity(id, isEnabledInMovie, width, height, duration);
     }
 
     /// <summary>

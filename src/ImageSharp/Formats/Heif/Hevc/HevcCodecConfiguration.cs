@@ -66,6 +66,14 @@ internal sealed class HevcCodecConfiguration
         this.BitDepthLuma = 8 + (lumaBitDepth & 7);
         this.BitDepthChroma = 8 + (chromaBitDepth & 7);
 
+        // Reject precisions outside the public HEIF profile matrix before an unrepresentable value can enter the
+        // typed image metadata or reach a sample pipeline that only implements 8, 10, and 12-bit arithmetic.
+        if (this.BitDepthLuma is not 8 and not 10 and not 12
+            || (this.ChromaFormat != 0 && this.BitDepthChroma is not 8 and not 10 and not 12))
+        {
+            throw new InvalidImageContentException("The HEVC codec configuration uses an unsupported component bit depth.");
+        }
+
         // Average frame rate and temporal-layer signaling describe timed samples. Consume those fixed-record fields
         // to reach the image item's NAL length width without retaining playback state in the still-image model.
         offset += 2;
@@ -267,7 +275,8 @@ internal sealed class HevcCodecConfiguration
     /// <summary>
     /// Gets the maximum coded color-component precision in bits.
     /// </summary>
-    public int BitDepth => this.IsMonochrome ? this.BitDepthLuma : Math.Max(this.BitDepthLuma, this.BitDepthChroma);
+    public HeifBitDepth BitDepth
+        => (HeifBitDepth)(this.IsMonochrome ? this.BitDepthLuma : Math.Max(this.BitDepthLuma, this.BitDepthChroma));
 
     /// <summary>
     /// Gets a value indicating whether the coded image contains only a luma plane.

@@ -15,11 +15,11 @@ public class HeifDecoderTests
     private const uint UnknownBoxType = 0x74657374U;
 
     [Theory]
-    [InlineData(TestImages.Heif.Image1, HeifCompressionMethod.Hevc, 3992, 2992)]
-    [InlineData(TestImages.Heif.Sample640x427, HeifCompressionMethod.Hevc, 640, 428)]
-    [InlineData(TestImages.Heif.FujiFilmHif, HeifCompressionMethod.LegacyJpeg, 7728, 5152)]
-    [InlineData(TestImages.Heif.IrvineAvif, HeifCompressionMethod.Av1, 480, 640)]
-    public void Identify(string imagePath, HeifCompressionMethod compressionMethod, int width, int height)
+    [InlineData(TestImages.Heif.Image1, HeifCompressionMethod.Hevc, HeifBitDepth.Bit8, 3992, 2992)]
+    [InlineData(TestImages.Heif.Sample640x427, HeifCompressionMethod.Hevc, HeifBitDepth.Bit8, 640, 428)]
+    [InlineData(TestImages.Heif.FujiFilmHif, HeifCompressionMethod.LegacyJpeg, HeifBitDepth.Bit8, 7728, 5152)]
+    [InlineData(TestImages.Heif.IrvineAvif, HeifCompressionMethod.Av1, HeifBitDepth.Bit8, 480, 640)]
+    public void Identify(string imagePath, HeifCompressionMethod compressionMethod, HeifBitDepth bitDepth, int width, int height)
     {
         TestFile testFile = TestFile.Create(imagePath);
         using MemoryStream stream = new(testFile.Bytes, false);
@@ -30,6 +30,7 @@ public class HeifDecoderTests
         Assert.NotNull(imageInfo);
         Assert.Equal(HeifFormat.Instance, imageInfo.Metadata.DecodedImageFormat);
         Assert.Equal(compressionMethod, heicMetadata.CompressionMethod);
+        Assert.Equal(bitDepth, heicMetadata.BitDepth);
         Assert.Equal(width, imageInfo.Width);
         Assert.Equal(height, imageInfo.Height);
     }

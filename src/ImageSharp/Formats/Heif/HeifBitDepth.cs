@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Enumerates the component bit depths supported for HEIF image encoding.
+/// Enumerates the supported HEIF image-component bit depths.
 /// </summary>
 public enum HeifBitDepth : byte
 {

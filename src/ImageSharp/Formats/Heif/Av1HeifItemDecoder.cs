@@ -47,7 +47,7 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
         {
             foreach (byte channelBitDepth in item.ChannelBitDepths)
             {
-                if (channelBitDepth != codecConfiguration.BitDepth)
+                if (channelBitDepth != (byte)codecConfiguration.BitDepth)
                 {
                     throw new InvalidImageContentException($"AV1 image item {item.Id} has mismatched pixel-information and codec-configuration bit depths.");
                 }

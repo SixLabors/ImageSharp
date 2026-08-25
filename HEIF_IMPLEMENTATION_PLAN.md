@@ -61,6 +61,12 @@ Checkboxes may be marked complete only when the implementation and the verificat
   - [x] Document the default, valid range, special values, invalid-value behavior, and format-dependent restrictions of every retained option using observable API behavior only.
   - [x] Pass `HeifEncoder` directly to `HeifEncoderCore`, matching the JPEG, PNG, and WebP encoder-core contracts and avoiding interface dispatch.
   - [x] Verify construction-time range validation and legacy-JPEG codec-boundary restrictions with focused tests before the Phase 1 API-review gate is marked complete.
+- [x] **Completed:** lock public HEIF image metadata to the supported component bit-depth contract.
+  - [x] Replace the unrestricted integer bit depth with `HeifBitDepth` and preserve the 8-bit default.
+  - [x] Resolve format-connecting component precision to the nearest supported 8/10/12-bit output without widening the public value domain.
+  - [x] Reject HEVC configuration records outside the exposed 8/10/12-bit profile matrix at the external parse boundary.
+  - [x] Verify defaults, cloning, format-connecting conversion, pixel-type projection, and current HEIC/HIF/AVIF Identify results.
+    - Release build: 0 errors. Focused metadata and Identify tests: 42 passed, 0 failed.
 
 Gain maps, progressive/layered images, sample transforms, and experimental extension brands require explicit conformance and API decisions. They do not create permission to omit any valid color, compression, or bit-depth path from the PR. The container reader must skip unsupported optional extensions safely and reject an unsupported essential property with a useful error.
 

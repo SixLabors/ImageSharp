@@ -139,7 +139,7 @@ internal sealed class Av1CodecConfiguration
     /// <summary>
     /// Gets the coded image sample precision in bits.
     /// </summary>
-    public int BitDepth => this.TwelveBit ? 12 : this.HighBitDepth ? 10 : 8;
+    public HeifBitDepth BitDepth => this.TwelveBit ? HeifBitDepth.Bit12 : this.HighBitDepth ? HeifBitDepth.Bit10 : HeifBitDepth.Bit8;
 
     /// <summary>
     /// Gets a value indicating whether the coded image contains only a luma plane.

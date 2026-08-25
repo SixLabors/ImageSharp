@@ -453,7 +453,7 @@ Exit gate:
 
 - [ ] Independently encoded, opaque, single-item AVIF files reconstruct correctly across all AVIF profiles, bit depths, subsampling modes, and normative still-image compression tools. Pixel comparisons are made after applying the same signaled color conversion in the reference path.
 
-### Phase 4: complete scalar HEVC still-image reconstruction
+### Phase 4: complete HEVC still-image reconstruction
 
 Implement and verify in dependency order:
 
@@ -466,11 +466,15 @@ Implement and verify in dependency order:
   - [x] Implement reconstructed-plane reference collection, substitution, asymmetric chroma-unit handling, and reference-filter selection from caller-owned availability and scratch spans.
   - [ ] Build each availability flag from reconstructed-plane and coding state, and connect the predictor to transform-unit traversal.
 - [ ] Scaling lists, inverse quantization, transform skip, every required inverse transform, range-extension precision, and lossless reconstruction.
+  - [x] Implement allocation-free SIMD-first inverse DCT for every 4/8/16/32 width and height combination, the four-by-four intra-luma inverse DST, normative intermediate and residual clipping, and saturated prediction addition for 8/10/12-bit samples. Verify normal and forced-scalar execution against fixed results and a dense scalar oracle.
+  - [ ] Implement scaling-list selection and inverse quantization for every transform size, component, prediction mode, quantization parameter, and range-extension precision path.
+  - [ ] Implement transform skip, coefficient rotation, implicit and explicit residual DPCM, transquant bypass, and lossless reconstruction.
+  - [ ] Connect coefficient decoding, inverse quantization, transform selection, reusable scratch, and add/clip to transform-unit traversal.
 - [ ] Deblocking and sample-adaptive offset for every signaled luma/chroma and bit-depth path.
 - [ ] Tiles, wavefront entry points, dependent slices, and all other parallelization syntax permitted by the exposed still-image profiles.
 - [ ] Supplemental enhancement information that changes image presentation or metadata exposed by ImageSharp.
 
-Each subsystem starts with scalar conformance vectors derived from the HEVC specification and the pinned implementation reference. No valid syntax in the exposed HEIC profiles may terminate in an unsupported branch or silently omit a normative reconstruction stage.
+Each subsystem keeps a specification-shaped scalar oracle derived from the HEVC specification and the pinned implementation reference, while production hot paths are designed SIMD-first with scalar fallback. No valid syntax in the exposed HEIC profiles may terminate in an unsupported branch or silently omit a normative reconstruction stage.
 
 Exit gate:
 
@@ -552,7 +556,7 @@ Exit gate:
 
 ### Phase 8: SIMD and allocation optimization
 
-SIMD work begins after the corresponding scalar stage has independent correctness tests; it then proceeds alongside subsequent functional phases.
+Production hot paths are designed SIMD-first. Each SIMD implementation is verified against an independent specification-shaped scalar oracle before it is connected to the decoder pipeline.
 
 Tasks:
 
@@ -561,6 +565,7 @@ Tasks:
 - [ ] Benchmark codec-specific costs for CABAC/range decode, inverse transforms, still-image prediction, deblocking, SAO, CDEF, restoration, chroma upsampling, color conversion, alpha packing, and grid copies.
   - [x] Add a permanent frame-wide HEVC intra-prediction benchmark. On .NET 10, SIMD planar, vertical-angular, and horizontal-angular prediction measured 155.2, 150.7, and 255.0 microseconds per padded 1920x1088 frame, compared with forced-scalar timings of 1.890, 1.081, and 0.979 milliseconds: 12.2, 7.2, and 3.8 times faster with zero managed allocations.
   - [x] Add a permanent frame-wide HEVC reference-preparation benchmark. On .NET 10, complete and partially substituted borders measured 465.3 and 566.7 microseconds per 2,040-block padded 1920x1088 frame, compared with forced-scalar timings of 477.5 and 608.0 microseconds, with zero managed allocations.
+  - [x] Add a permanent frame-wide HEVC inverse-transform benchmark. On .NET 10, dense-coefficient 32x32 twelve-bit inverse DCT, transposition, and add/clip measured 3.643 milliseconds per padded 1920x1088 frame, compared with 45.23 milliseconds with hardware intrinsics disabled: 12.4 times faster with zero managed allocations.
 - [ ] Implement vector paths only for confirmed hot loops, using existing `Vector128`, `Vector256`, and `Vector512` helper and dispatch patterns where supported.
 - [ ] Prioritize shared color conversion and pixel packing, chroma upsampling, inverse-transform add-and-clip, intra predictors, HEVC deblock/SAO, AV1 loop filter/CDEF/restoration, and contiguous grid copies.
 - [ ] Benchmark the complete decode color pipeline on representative 8/10/12-bit AVIF and HEIC images with and without embedded ICC profiles. Report absolute end-to-end timings and allocations in addition to the isolated YUV/CICP and ICC stage costs.
@@ -631,12 +636,12 @@ The critical path is:
 
 - [ ] Baseline and provenance.
 - [ ] Public HEIC/AVIF boundaries and the shared parsed HEIF container model.
-- [ ] Scalar AV1 still decode, starting with 8-bit 4:2:0 and completing every AVIF profile/tool.
-- [ ] Scalar HEVC still decode, starting with 8-bit 4:2:0 and completing every exposed HEIC profile/tool.
+- [ ] SIMD-first AV1 still decode with specification-shaped scalar oracles, starting with 8-bit 4:2:0 and completing every AVIF profile/tool.
+- [ ] SIMD-first HEVC still decode with specification-shaped scalar oracles, starting with 8-bit 4:2:0 and completing every exposed HEIC profile/tool.
 - [ ] Shared color, alpha, grids, metadata, and presentation transforms across all bit depths and chroma formats.
 - [ ] Real AV1 encoder and libavif/libaom cross-decode across the complete matrix.
 - [ ] Real HEVC encoder and independent HEIC cross-decode across the complete matrix.
-- [ ] Measured SIMD/allocation work integrated after each scalar subsystem stabilizes.
+- [ ] Measured SIMD/allocation work integrated with each production hot-path subsystem before that subsystem is considered complete.
 - [ ] Hardening and release gates.
 
 This sequence does not define partial PR completion. The early 8-bit 4:2:0 decoders and smallest-valid encoders are temporary vertical slices, but the PR remains incomplete until all nine steps and the complete still-image verification matrix pass.

@@ -526,6 +526,17 @@ internal sealed class HevcSequenceParameterSet
     public bool CabacBypassAlignmentEnabled { get; }
 
     /// <summary>
+    /// Gets the base-two logarithm of the transform dynamic range for the specified reconstructed plane.
+    /// </summary>
+    /// <param name="plane">The reconstructed plane.</param>
+    /// <returns>The transform dynamic range excluding its sign bit.</returns>
+    public int GetMaxTransformDynamicRange(HevcPlane plane)
+    {
+        int bitDepth = plane == HevcPlane.Y ? this.BitDepthLuma : this.BitDepthChroma;
+        return this.ExtendedPrecisionProcessingEnabled ? Math.Max(15, bitDepth + 6) : 15;
+    }
+
+    /// <summary>
     /// Reads a conformance-window offset and converts it to luma-sample units.
     /// </summary>
     /// <param name="reader">The sequence-parameter-set raw byte sequence payload reader.</param>

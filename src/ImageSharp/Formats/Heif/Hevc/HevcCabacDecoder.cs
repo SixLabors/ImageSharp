@@ -34,6 +34,11 @@ internal ref struct HevcCabacDecoder
     private int bitsNeeded;
 
     /// <summary>
+    /// The raw-bit position used while a pulse-code-modulated coding unit suspends arithmetic decoding.
+    /// </summary>
+    private int pcmBitOffset;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="HevcCabacDecoder"/> struct.
     /// </summary>
     /// <param name="data">The bytes of one independently bounded HEVC entropy substream.</param>
@@ -50,6 +55,7 @@ internal ref struct HevcCabacDecoder
         this.range = 510;
         this.value = ((uint)data[0] << 8) | data[1];
         this.bitsNeeded = -8;
+        this.pcmBitOffset = 0;
     }
 
     /// <summary>
@@ -261,6 +267,67 @@ internal ref struct HevcCabacDecoder
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Decodes the terminating-bin flag that enters pulse-code-modulated sample syntax.
+    /// </summary>
+    /// <returns><see langword="true"/> when raw PCM samples follow; otherwise, <see langword="false"/>.</returns>
+    public bool ReadPcmFlag()
+    {
+        bool pcm = this.ReadTerminate();
+        if (pcm)
+        {
+            // A successful terminating bin leaves the underlying byte reader at the first byte after the CABAC
+            // alignment pattern. PCM sample bits start there and temporarily bypass the arithmetic registers.
+            this.pcmBitOffset = this.byteOffset * 8;
+        }
+
+        return pcm;
+    }
+
+    /// <summary>
+    /// Reads one unsigned pulse-code-modulated sample while arithmetic decoding is suspended.
+    /// </summary>
+    /// <param name="bitDepth">The number of most-significant-bit-first sample bits.</param>
+    /// <returns>The decoded sample value.</returns>
+    /// <exception cref="InvalidImageContentException">The entropy substream ends within the PCM sample.</exception>
+    public ushort ReadPcmSample(int bitDepth)
+    {
+        DebugGuard.MustBeBetweenOrEqualTo(bitDepth, 1, 16, nameof(bitDepth));
+        if (this.pcmBitOffset > (this.data.Length * 8) - bitDepth)
+        {
+            throw new InvalidImageContentException("The HEVC pulse-code-modulated sample data is truncated.");
+        }
+
+        uint sample = 0;
+        int bitsRemaining = bitDepth;
+        while (bitsRemaining > 0)
+        {
+            int byteIndex = this.pcmBitOffset >> 3;
+            int bitIndex = this.pcmBitOffset & 7;
+            int bitsFromByte = Math.Min(8 - bitIndex, bitsRemaining);
+            int shift = 8 - bitIndex - bitsFromByte;
+            uint mask = (uint)((1 << bitsFromByte) - 1);
+            sample = (sample << bitsFromByte) | ((uint)(this.data[byteIndex] >> shift) & mask);
+            this.pcmBitOffset += bitsFromByte;
+            bitsRemaining -= bitsFromByte;
+        }
+
+        return (ushort)sample;
+    }
+
+    /// <summary>
+    /// Restarts arithmetic decoding after a complete byte-aligned PCM coding unit.
+    /// </summary>
+    /// <exception cref="InvalidImageContentException">The following arithmetic substream is truncated.</exception>
+    public void RestartAfterPcm()
+    {
+        DebugGuard.IsTrue((this.pcmBitOffset & 7) == 0, "The complete HEVC PCM payload must end on a byte boundary.");
+        this.byteOffset = this.pcmBitOffset >> 3;
+        this.range = 510;
+        this.bitsNeeded = -8;
+        this.value = ((uint)this.ReadByte() << 8) | this.ReadByte();
     }
 
     /// <summary>

@@ -111,7 +111,7 @@ internal sealed class HevcCabacContexts
     /// <summary>
     /// The number of contexts used by the independently coded intra-picture syntax.
     /// </summary>
-    private const int ContextCount = 178;
+    public const int ContextCount = 178;
 
     /// <summary>
     /// The contiguous adaptive context storage owned by the entropy substream.
@@ -304,4 +304,16 @@ internal sealed class HevcCabacContexts
     /// </summary>
     public Span<HevcCabacContext> CrossComponentPrediction =>
         this.contexts.AsSpan(CrossComponentPredictionOffset, 10);
+
+    /// <summary>
+    /// Copies every adaptive probability context to caller-owned wavefront state.
+    /// </summary>
+    /// <param name="destination">The destination containing at least <see cref="ContextCount"/> elements.</param>
+    public void CopyTo(Span<HevcCabacContext> destination) => this.contexts.CopyTo(destination);
+
+    /// <summary>
+    /// Restores every adaptive probability context from caller-owned wavefront state.
+    /// </summary>
+    /// <param name="source">The source containing at least <see cref="ContextCount"/> elements.</param>
+    public void CopyFrom(ReadOnlySpan<HevcCabacContext> source) => source[..ContextCount].CopyTo(this.contexts);
 }

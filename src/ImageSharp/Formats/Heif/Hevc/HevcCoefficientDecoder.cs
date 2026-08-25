@@ -97,6 +97,23 @@ internal sealed class HevcCoefficientDecoder : IDisposable
     ];
 
     /// <summary>
+    /// Clears all persistent Rice adaptation statistics for a newly initialized entropy substream.
+    /// </summary>
+    public void ResetRiceAdaptation() => this.riceAdaptationStatistics = default;
+
+    /// <summary>
+    /// Copies the four persistent Rice adaptation statistics to caller-owned wavefront state.
+    /// </summary>
+    /// <param name="destination">The four-element destination.</param>
+    public void CopyRiceAdaptationTo(Span<int> destination) => this.riceAdaptationStatistics[..4].CopyTo(destination);
+
+    /// <summary>
+    /// Restores the four persistent Rice adaptation statistics captured for a later wavefront row.
+    /// </summary>
+    /// <param name="source">The four saved statistics.</param>
+    public void CopyRiceAdaptationFrom(ReadOnlySpan<int> source) => source[..4].CopyTo(this.riceAdaptationStatistics[..4]);
+
+    /// <summary>
     /// Decodes one transform block into raster-ordered signed coefficient levels.
     /// </summary>
     /// <param name="reader">The current entropy-substream syntax reader.</param>

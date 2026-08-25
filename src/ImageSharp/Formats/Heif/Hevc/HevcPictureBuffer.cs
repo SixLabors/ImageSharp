@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
@@ -33,7 +34,8 @@ internal sealed class HevcPictureBuffer : IDisposable
             sequenceParameterSet.BitDepthLuma,
             sequenceParameterSet.BitDepthChroma,
             sequenceParameterSet.ChromaFormat,
-            sequenceParameterSet.SeparateColorPlaneFlag)
+            sequenceParameterSet.SeparateColorPlaneFlag,
+            1 << sequenceParameterSet.MinCodingBlockLog2)
     {
     }
 
@@ -47,6 +49,7 @@ internal sealed class HevcPictureBuffer : IDisposable
     /// <param name="bitDepthChroma">The chroma sample precision.</param>
     /// <param name="chromaFormat">The HEVC chroma-format identifier.</param>
     /// <param name="separateColorPlane">Whether 4:4:4 components are coded as separate color planes.</param>
+    /// <param name="storageAlignment">The luma sample alignment applied to the owned reconstruction planes.</param>
     public HevcPictureBuffer(
         Configuration configuration,
         int width,
@@ -54,7 +57,8 @@ internal sealed class HevcPictureBuffer : IDisposable
         int bitDepthLuma,
         int bitDepthChroma,
         byte chromaFormat,
-        bool separateColorPlane)
+        bool separateColorPlane,
+        int storageAlignment = 1)
     {
         this.Width = width;
         this.Height = height;
@@ -66,11 +70,13 @@ internal sealed class HevcPictureBuffer : IDisposable
         // Separate color planes are independently coded at full resolution even though chroma_format_idc is 4:4:4.
         this.chromaSubsamplingX = !this.SeparateColorPlane && this.ChromaFormat is 1 or 2 ? 1 : 0;
         this.chromaSubsamplingY = !this.SeparateColorPlane && this.ChromaFormat == 1 ? 1 : 0;
-        this.Luma = configuration.MemoryAllocator.Allocate2D<ushort>(this.Width, this.Height);
+        int storageWidth = DivideCeilingByPowerOfTwo(this.Width, BitOperations.Log2((uint)storageAlignment)) * storageAlignment;
+        int storageHeight = DivideCeilingByPowerOfTwo(this.Height, BitOperations.Log2((uint)storageAlignment)) * storageAlignment;
+        this.Luma = configuration.MemoryAllocator.Allocate2D<ushort>(storageWidth, storageHeight);
         if (this.ChromaFormat != 0)
         {
-            int chromaWidth = DivideCeilingByPowerOfTwo(this.Width, this.chromaSubsamplingX);
-            int chromaHeight = DivideCeilingByPowerOfTwo(this.Height, this.chromaSubsamplingY);
+            int chromaWidth = DivideCeilingByPowerOfTwo(storageWidth, this.chromaSubsamplingX);
+            int chromaHeight = DivideCeilingByPowerOfTwo(storageHeight, this.chromaSubsamplingY);
 
             this.ChromaBlue = configuration.MemoryAllocator.Allocate2D<ushort>(chromaWidth, chromaHeight);
             this.ChromaRed = configuration.MemoryAllocator.Allocate2D<ushort>(chromaWidth, chromaHeight);
@@ -170,6 +176,25 @@ internal sealed class HevcPictureBuffer : IDisposable
             HevcPlane.Cb => this.ChromaBlue!.DangerousGetRowSpan(row),
             _ => this.ChromaRed!.DangerousGetRowSpan(row),
         };
+
+    /// <summary>
+    /// Copies the complete coded component planes to another picture buffer with the same dimensions and chroma layout.
+    /// </summary>
+    /// <param name="destination">The destination picture buffer.</param>
+    public void CopyTo(HevcPictureBuffer destination)
+    {
+        int planeCount = this.ChromaFormat == 0 ? 1 : 3;
+        for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
+        {
+            HevcPlane plane = (HevcPlane)planeIndex;
+            int width = this.GetWidth(plane);
+            int height = this.GetHeight(plane);
+            for (int row = 0; row < height; row++)
+            {
+                this.GetRowSpan(plane, row)[..width].CopyTo(destination.GetRowSpan(plane, row));
+            }
+        }
+    }
 
     /// <summary>
     /// Releases the owned luma and chroma plane allocations.

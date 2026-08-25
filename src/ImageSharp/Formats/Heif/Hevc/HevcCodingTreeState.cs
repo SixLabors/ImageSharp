@@ -31,6 +31,16 @@ internal sealed class HevcCodingTreeState : IDisposable
     private readonly Buffer2D<sbyte> quantizationParameters;
 
     /// <summary>
+    /// The combined picture, slice, and coding-unit Cb quantization offsets at minimum-coding-block resolution.
+    /// </summary>
+    private readonly Buffer2D<sbyte> chromaBlueQuantizationOffsets;
+
+    /// <summary>
+    /// The combined picture, slice, and coding-unit Cr quantization offsets at minimum-coding-block resolution.
+    /// </summary>
+    private readonly Buffer2D<sbyte> chromaRedQuantizationOffsets;
+
+    /// <summary>
     /// The packed bypass and PCM flags at minimum-coding-block resolution.
     /// </summary>
     private readonly Buffer2D<byte> flags;
@@ -56,6 +66,14 @@ internal sealed class HevcCodingTreeState : IDisposable
             this.HeightInMinCodingBlocks);
 
         this.quantizationParameters = configuration.MemoryAllocator.Allocate2D<sbyte>(
+            this.WidthInMinCodingBlocks,
+            this.HeightInMinCodingBlocks);
+
+        this.chromaBlueQuantizationOffsets = configuration.MemoryAllocator.Allocate2D<sbyte>(
+            this.WidthInMinCodingBlocks,
+            this.HeightInMinCodingBlocks);
+
+        this.chromaRedQuantizationOffsets = configuration.MemoryAllocator.Allocate2D<sbyte>(
             this.WidthInMinCodingBlocks,
             this.HeightInMinCodingBlocks);
 
@@ -114,6 +132,8 @@ internal sealed class HevcCodingTreeState : IDisposable
     /// <param name="log2Size">The base-two logarithm of the square coding-unit size.</param>
     /// <param name="depth">The coding-tree depth.</param>
     /// <param name="quantizationParameter">The effective luma quantization parameter.</param>
+    /// <param name="chromaBlueQuantizationOffset">The combined Cb quantization-parameter offset.</param>
+    /// <param name="chromaRedQuantizationOffset">The combined Cr quantization-parameter offset.</param>
     /// <param name="transquantBypass">A value indicating whether transform and quantization are bypassed.</param>
     /// <param name="pcm">A value indicating whether the coding unit contains pulse-code-modulated samples.</param>
     public void SetCodingUnit(
@@ -122,6 +142,8 @@ internal sealed class HevcCodingTreeState : IDisposable
         int log2Size,
         int depth,
         int quantizationParameter,
+        int chromaBlueQuantizationOffset,
+        int chromaRedQuantizationOffset,
         bool transquantBypass,
         bool pcm)
     {
@@ -138,6 +160,8 @@ internal sealed class HevcCodingTreeState : IDisposable
         {
             this.depths.DangerousGetRowSpan(row)[unitX..endX].Fill((byte)depth);
             this.quantizationParameters.DangerousGetRowSpan(row)[unitX..endX].Fill((sbyte)quantizationParameter);
+            this.chromaBlueQuantizationOffsets.DangerousGetRowSpan(row)[unitX..endX].Fill((sbyte)chromaBlueQuantizationOffset);
+            this.chromaRedQuantizationOffsets.DangerousGetRowSpan(row)[unitX..endX].Fill((sbyte)chromaRedQuantizationOffset);
             this.flags.DangerousGetRowSpan(row)[unitX..endX].Fill(packedFlags);
         }
     }
@@ -159,6 +183,18 @@ internal sealed class HevcCodingTreeState : IDisposable
     /// <returns>The effective luma quantization parameter.</returns>
     public int GetQuantizationParameter(int x, int y)
         => this.quantizationParameters.DangerousGetRowSpan(y >> this.MinCodingBlockLog2)[x >> this.MinCodingBlockLog2];
+
+    /// <summary>
+    /// Gets the combined chroma quantization-parameter offset at a luma sample coordinate.
+    /// </summary>
+    /// <param name="plane">The Cb or Cr reconstruction plane.</param>
+    /// <param name="x">The luma sample X coordinate.</param>
+    /// <param name="y">The luma sample Y coordinate.</param>
+    /// <returns>The selected picture, slice, and coding-unit offset.</returns>
+    public int GetChromaQuantizationOffset(HevcPlane plane, int x, int y)
+        => plane == HevcPlane.Cb
+            ? this.chromaBlueQuantizationOffsets.DangerousGetRowSpan(y >> this.MinCodingBlockLog2)[x >> this.MinCodingBlockLog2]
+            : this.chromaRedQuantizationOffsets.DangerousGetRowSpan(y >> this.MinCodingBlockLog2)[x >> this.MinCodingBlockLog2];
 
     /// <summary>
     /// Gets a value indicating whether the coding unit at a luma sample coordinate bypasses transform and quantization.
@@ -187,6 +223,8 @@ internal sealed class HevcCodingTreeState : IDisposable
     {
         this.depths.Dispose();
         this.quantizationParameters.Dispose();
+        this.chromaBlueQuantizationOffsets.Dispose();
+        this.chromaRedQuantizationOffsets.Dispose();
         this.flags.Dispose();
     }
 

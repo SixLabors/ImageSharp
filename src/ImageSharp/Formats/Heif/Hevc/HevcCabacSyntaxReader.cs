@@ -46,6 +46,18 @@ internal ref struct HevcCabacSyntaxReader
     public readonly int BytesConsumed => this.decoder.BytesConsumed;
 
     /// <summary>
+    /// Copies the adaptive contexts required to initialize a later wavefront row.
+    /// </summary>
+    /// <param name="destination">The caller-owned context destination.</param>
+    public readonly void CopyContextsTo(Span<HevcCabacContext> destination) => this.contexts.CopyTo(destination);
+
+    /// <summary>
+    /// Restores adaptive contexts captured after the second coding-tree block of the preceding wavefront row.
+    /// </summary>
+    /// <param name="source">The saved wavefront contexts.</param>
+    public readonly void CopyContextsFrom(ReadOnlySpan<HevcCabacContext> source) => this.contexts.CopyFrom(source);
+
+    /// <summary>
     /// Decodes the coding-unit transquant-bypass flag.
     /// </summary>
     /// <returns>The decoded flag value.</returns>
@@ -86,6 +98,24 @@ internal ref struct HevcCabacSyntaxReader
         Span<HevcCabacContext> selectedContexts = this.contexts.PartitionSize;
         return !this.decoder.ReadDecision(ref selectedContexts[0]);
     }
+
+    /// <summary>
+    /// Decodes whether a square intra coding unit carries raw pulse-code-modulated samples.
+    /// </summary>
+    /// <returns><see langword="true"/> when PCM sample syntax follows; otherwise, <see langword="false"/>.</returns>
+    public bool ReadPcmFlag() => this.decoder.ReadPcmFlag();
+
+    /// <summary>
+    /// Reads one pulse-code-modulated component sample.
+    /// </summary>
+    /// <param name="bitDepth">The PCM sample precision.</param>
+    /// <returns>The decoded unsigned sample.</returns>
+    public ushort ReadPcmSample(int bitDepth) => this.decoder.ReadPcmSample(bitDepth);
+
+    /// <summary>
+    /// Restarts arithmetic decoding after the complete PCM coding-unit payload.
+    /// </summary>
+    public void RestartAfterPcm() => this.decoder.RestartAfterPcm();
 
     /// <summary>
     /// Decodes whether a luma intra mode is selected from the three most-probable modes.

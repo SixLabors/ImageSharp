@@ -165,6 +165,113 @@ internal static class HevcResidualReconstructor
     }
 
     /// <summary>
+    /// Adds the scaled luma residual to one chroma residual block for inverse cross-component prediction.
+    /// </summary>
+    /// <param name="lumaResidual">The packed luma residual samples colocated with the chroma block.</param>
+    /// <param name="chromaResidual">The packed chroma residual block updated in place.</param>
+    /// <param name="sampleCount">The number of residual samples in each block.</param>
+    /// <param name="alpha">The signed cross-component scale from minus eight through eight.</param>
+    /// <param name="bitDepthDifference">The luma bit depth minus the chroma bit depth.</param>
+    public static void ApplyCrossComponentPrediction(
+        ReadOnlySpan<int> lumaResidual,
+        Span<int> chromaResidual,
+        int sampleCount,
+        int alpha,
+        int bitDepthDifference)
+    {
+        ref int lumaBase = ref MemoryMarshal.GetReference(lumaResidual);
+        ref int chromaBase = ref MemoryMarshal.GetReference(chromaResidual);
+        int index = 0;
+
+        // The scale denominator is eight. Adjusting luma precision first preserves the normative arithmetic shift
+        // for negative residuals before the signed alpha multiplication is applied independently to every lane.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<int> alphaVector = Vector512.Create(alpha);
+            Vector512<int> minimum = Vector512.Create(ResidualMinimum);
+            Vector512<int> maximum = Vector512.Create(ResidualMaximum);
+            for (; index <= sampleCount - Vector512<int>.Count; index += Vector512<int>.Count)
+            {
+                Vector512<int> luma = AdjustBitDepth(Vector512.LoadUnsafe(ref lumaBase, (nuint)index), bitDepthDifference);
+                Vector512<int> chroma = Vector512.LoadUnsafe(ref chromaBase, (nuint)index);
+                Vector512.Clamp(chroma + ((luma * alphaVector) >> 3), minimum, maximum).StoreUnsafe(ref chromaBase, (nuint)index);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<int> alphaVector = Vector256.Create(alpha);
+            Vector256<int> minimum = Vector256.Create(ResidualMinimum);
+            Vector256<int> maximum = Vector256.Create(ResidualMaximum);
+            for (; index <= sampleCount - Vector256<int>.Count; index += Vector256<int>.Count)
+            {
+                Vector256<int> luma = AdjustBitDepth(Vector256.LoadUnsafe(ref lumaBase, (nuint)index), bitDepthDifference);
+                Vector256<int> chroma = Vector256.LoadUnsafe(ref chromaBase, (nuint)index);
+                Vector256.Clamp(chroma + ((luma * alphaVector) >> 3), minimum, maximum).StoreUnsafe(ref chromaBase, (nuint)index);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<int> alphaVector = Vector128.Create(alpha);
+            Vector128<int> minimum = Vector128.Create(ResidualMinimum);
+            Vector128<int> maximum = Vector128.Create(ResidualMaximum);
+            for (; index <= sampleCount - Vector128<int>.Count; index += Vector128<int>.Count)
+            {
+                Vector128<int> luma = AdjustBitDepth(Vector128.LoadUnsafe(ref lumaBase, (nuint)index), bitDepthDifference);
+                Vector128<int> chroma = Vector128.LoadUnsafe(ref chromaBase, (nuint)index);
+                Vector128.Clamp(chroma + ((luma * alphaVector) >> 3), minimum, maximum).StoreUnsafe(ref chromaBase, (nuint)index);
+            }
+        }
+
+        for (; index < sampleCount; index++)
+        {
+            int luma = AdjustBitDepth(Unsafe.Add(ref lumaBase, index), bitDepthDifference);
+            int chroma = Unsafe.Add(ref chromaBase, index) + ((alpha * luma) >> 3);
+            Unsafe.Add(ref chromaBase, index) = Math.Clamp(chroma, ResidualMinimum, ResidualMaximum);
+        }
+    }
+
+    /// <summary>
+    /// Adjusts sixteen luma residuals to chroma precision.
+    /// </summary>
+    /// <param name="values">The luma residuals.</param>
+    /// <param name="difference">The luma bit depth minus the chroma bit depth.</param>
+    /// <returns>The precision-adjusted residuals.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector512<int> AdjustBitDepth(Vector512<int> values, int difference)
+        => difference >= 0 ? values >> difference : values << -difference;
+
+    /// <summary>
+    /// Adjusts eight luma residuals to chroma precision.
+    /// </summary>
+    /// <param name="values">The luma residuals.</param>
+    /// <param name="difference">The luma bit depth minus the chroma bit depth.</param>
+    /// <returns>The precision-adjusted residuals.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector256<int> AdjustBitDepth(Vector256<int> values, int difference)
+        => difference >= 0 ? values >> difference : values << -difference;
+
+    /// <summary>
+    /// Adjusts four luma residuals to chroma precision.
+    /// </summary>
+    /// <param name="values">The luma residuals.</param>
+    /// <param name="difference">The luma bit depth minus the chroma bit depth.</param>
+    /// <returns>The precision-adjusted residuals.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<int> AdjustBitDepth(Vector128<int> values, int difference)
+        => difference >= 0 ? values >> difference : values << -difference;
+
+    /// <summary>
+    /// Adjusts one luma residual to chroma precision.
+    /// </summary>
+    /// <param name="value">The luma residual.</param>
+    /// <param name="difference">The luma bit depth minus the chroma bit depth.</param>
+    /// <returns>The precision-adjusted residual.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static int AdjustBitDepth(int value, int difference) => difference >= 0 ? value >> difference : value << -difference;
+
+    /// <summary>
     /// Applies one transform-skip normalization operator to a complete coefficient block.
     /// </summary>
     /// <typeparam name="TOperator">The signed shift operator selected before entering the hot loop.</typeparam>

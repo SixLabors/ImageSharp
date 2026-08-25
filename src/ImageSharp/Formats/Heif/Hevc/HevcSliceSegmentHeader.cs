@@ -9,6 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 internal sealed class HevcSliceSegmentHeader
 {
     /// <summary>
+    /// The decoded-byte lengths preceding each tile or wavefront entropy entry point.
+    /// </summary>
+    private int[] entryPointOffsets = [];
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="HevcSliceSegmentHeader"/> class.
     /// </summary>
     /// <param name="nalUnit">The item-local instantaneous-decoder-refresh NAL unit.</param>
@@ -119,14 +124,26 @@ internal sealed class HevcSliceSegmentHeader
 
         int availableEncodedData = nalUnit.EncodedPayloadLength - encodedHeaderLength;
         int cumulativeEntryPointOffset = 0;
-        foreach (int entryPointOffset in this.EntryPointOffsets)
+        int previousDecodedBoundary = this.HeaderLength;
+        int[] entryPointOffsets = this.entryPointOffsets;
+        for (int index = 0; index < entryPointOffsets.Length; index++)
         {
+            int entryPointOffset = entryPointOffsets[index];
             if (cumulativeEntryPointOffset > availableEncodedData - entryPointOffset)
             {
                 throw new InvalidImageContentException("The HEVC slice entry point extends beyond its NAL unit.");
             }
 
             cumulativeEntryPointOffset += entryPointOffset;
+            int encodedBoundary = encodedHeaderLength + cumulativeEntryPointOffset;
+            int decodedBoundary = GetDecodedPayloadOffset(
+                encodedBoundary,
+                nalUnit.EmulationPreventionBytePositions.Span);
+
+            // entry_point_offset_minus1 counts encoded NAL bytes. The entropy decoder consumes the de-escaped RBSP,
+            // so each retained substream length must exclude prevention bytes from its own encoded interval.
+            entryPointOffsets[index] = decodedBoundary - previousDecodedBoundary;
+            previousDecodedBoundary = decodedBoundary;
         }
     }
 
@@ -216,9 +233,14 @@ internal sealed class HevcSliceSegmentHeader
     public bool? LoopFilterAcrossSlicesEnabled { get; private set; }
 
     /// <summary>
-    /// Gets the encoded-byte lengths that separate tile or wavefront entropy substreams after the first substream.
+    /// Gets the decoded-byte lengths that separate tile or wavefront entropy substreams after the first substream.
     /// </summary>
-    public IReadOnlyList<int> EntryPointOffsets { get; private set; } = Array.Empty<int>();
+    public IReadOnlyList<int> EntryPointOffsets => this.entryPointOffsets;
+
+    /// <summary>
+    /// Gets the number of independently initialized tile or wavefront entropy substreams in this slice segment.
+    /// </summary>
+    public int EntropySubstreamCount => this.entryPointOffsets.Length + 1;
 
     /// <summary>
     /// Gets the slice-header length in decoded raw-byte-sequence payload bytes.
@@ -229,6 +251,27 @@ internal sealed class HevcSliceSegmentHeader
     /// Gets the entropy-coded slice data following byte alignment.
     /// </summary>
     public ReadOnlyMemory<byte> SliceData { get; }
+
+    /// <summary>
+    /// Gets one bounded entropy substream in slice coding order.
+    /// </summary>
+    /// <param name="index">The zero-based entropy-substream index.</param>
+    /// <returns>The decoded raw-byte-sequence payload bytes belonging to the selected substream.</returns>
+    public ReadOnlyMemory<byte> GetEntropySubstream(int index)
+    {
+        DebugGuard.MustBeBetweenOrEqualTo(index, 0, this.entryPointOffsets.Length, nameof(index));
+        int offset = 0;
+        for (int precedingIndex = 0; precedingIndex < index; precedingIndex++)
+        {
+            offset += this.entryPointOffsets[precedingIndex];
+        }
+
+        int length = index < this.entryPointOffsets.Length
+            ? this.entryPointOffsets[index]
+            : this.SliceData.Length - offset;
+
+        return this.SliceData.Slice(offset, length);
+    }
 
     /// <summary>
     /// Reads fields carried only by an independent slice-segment header.
@@ -398,7 +441,7 @@ internal sealed class HevcSliceSegmentHeader
             entryPointOffsets[entryPoint] = (int)entryPointOffsetMinusOne + 1;
         }
 
-        this.EntryPointOffsets = entryPointOffsets;
+        this.entryPointOffsets = entryPointOffsets;
     }
 
     /// <summary>
@@ -423,5 +466,29 @@ internal sealed class HevcSliceSegmentHeader
         }
 
         return encodedOffset;
+    }
+
+    /// <summary>
+    /// Converts an encoded-payload byte boundary to its corresponding RBSP boundary.
+    /// </summary>
+    /// <param name="encodedOffset">The encoded byte-sequence payload offset.</param>
+    /// <param name="emulationPreventionBytePositions">The removed encoded-payload byte positions.</param>
+    /// <returns>The decoded raw-byte-sequence payload offset at the same syntax boundary.</returns>
+    private static int GetDecodedPayloadOffset(
+        int encodedOffset,
+        ReadOnlySpan<int> emulationPreventionBytePositions)
+    {
+        int decodedOffset = encodedOffset;
+        foreach (int preventionBytePosition in emulationPreventionBytePositions)
+        {
+            if (preventionBytePosition >= encodedOffset)
+            {
+                break;
+            }
+
+            decodedOffset--;
+        }
+
+        return decodedOffset;
     }
 }

@@ -422,7 +422,7 @@ internal static partial class HevcInverseTransformer
     /// <param name="width">The transform-block width.</param>
     /// <param name="height">The transform-block height.</param>
     /// <param name="bitDepth">The reconstructed component precision.</param>
-    private static void AddResidual(ReadOnlySpan<int> residual, Span<ushort> destination, int destinationStride, int width, int height, int bitDepth)
+    public static void AddResidual(ReadOnlySpan<int> residual, Span<ushort> destination, int destinationStride, int width, int height, int bitDepth)
     {
         int maximum = (1 << bitDepth) - 1;
         for (int y = 0; y < height; y++)

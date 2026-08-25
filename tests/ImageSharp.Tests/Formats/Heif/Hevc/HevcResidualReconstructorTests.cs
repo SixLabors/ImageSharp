@@ -176,6 +176,39 @@ public class HevcResidualReconstructorTests
     }
 
     /// <summary>
+    /// Compares cross-component residual prediction with the scalar signed-precision oracle across SIMD widths and a tail.
+    /// </summary>
+    /// <param name="bitDepthDifference">The luma precision minus the chroma precision.</param>
+    [Theory]
+    [InlineData(-2)]
+    [InlineData(0)]
+    [InlineData(2)]
+    public void CrossComponentPredictionMatchesScalarOracle(int bitDepthDifference)
+    {
+        const int sampleCount = 257;
+        const int alpha = -8;
+        int[] luma = new int[sampleCount];
+        int[] actual = new int[sampleCount];
+        int[] expected = new int[sampleCount];
+        for (int index = 0; index < sampleCount; index++)
+        {
+            luma[index] = (((index * 7919) + 1229) & 65535) - 32768;
+            actual[index] = (((index * 4099) + 811) & 65535) - 32768;
+            expected[index] = actual[index];
+        }
+
+        for (int index = 0; index < sampleCount; index++)
+        {
+            int adjustedLuma = bitDepthDifference >= 0 ? luma[index] >> bitDepthDifference : luma[index] << -bitDepthDifference;
+            expected[index] = Math.Clamp(expected[index] + ((alpha * adjustedLuma) >> 3), short.MinValue, short.MaxValue);
+        }
+
+        HevcResidualReconstructor.ApplyCrossComponentPrediction(luma, actual, sampleCount, alpha, bitDepthDifference);
+
+        Assert.True(expected.AsSpan().SequenceEqual(actual));
+    }
+
+    /// <summary>
     /// Applies the normative transform-skip normalization as a scalar test oracle.
     /// </summary>
     /// <param name="coefficients">The dequantized coefficients.</param>

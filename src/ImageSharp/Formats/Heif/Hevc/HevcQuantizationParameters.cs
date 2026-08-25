@@ -27,6 +27,8 @@ internal readonly struct HevcQuantizationParameters
     {
         int lumaBitDepthOffset = 6 * (lumaBitDepth - 8);
         int chromaBitDepthOffset = 6 * (chromaBitDepth - 8);
+        this.CbOffset = cbQuantizationParameterOffset;
+        this.CrOffset = crQuantizationParameterOffset;
         this.Luma = lumaQuantizationParameter + lumaBitDepthOffset;
         this.Cb = GetChromaQuantizationParameter(lumaQuantizationParameter, cbQuantizationParameterOffset, chromaBitDepthOffset, chromaFormat);
         this.Cr = GetChromaQuantizationParameter(lumaQuantizationParameter, crQuantizationParameterOffset, chromaBitDepthOffset, chromaFormat);
@@ -46,6 +48,16 @@ internal readonly struct HevcQuantizationParameters
     /// Gets the effective nonnegative red-difference chroma quantization parameter including its bit-depth offset.
     /// </summary>
     public int Cr { get; }
+
+    /// <summary>
+    /// Gets the combined picture, slice, and coding-unit Cb quantization-parameter offset.
+    /// </summary>
+    public int CbOffset { get; }
+
+    /// <summary>
+    /// Gets the combined picture, slice, and coding-unit Cr quantization-parameter offset.
+    /// </summary>
+    public int CrOffset { get; }
 
     /// <summary>
     /// Gets the H.265 Table 8-10 chroma quantization-parameter mapping for 4:2:0 pictures.
@@ -76,7 +88,7 @@ internal readonly struct HevcQuantizationParameters
     /// <param name="chromaBitDepthOffset">Six times the number of chroma bits above eight.</param>
     /// <param name="chromaFormat">The sequence chroma-format identifier.</param>
     /// <returns>The effective nonnegative chroma quantization parameter including its bit-depth offset.</returns>
-    private static int GetChromaQuantizationParameter(
+    public static int GetChromaQuantizationParameter(
         int lumaQuantizationParameter,
         int componentOffset,
         int chromaBitDepthOffset,

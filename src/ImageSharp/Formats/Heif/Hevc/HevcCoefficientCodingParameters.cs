@@ -126,6 +126,7 @@ internal readonly struct HevcCoefficientCodingParameters
     /// <param name="transformSkip">Whether the transform block bypasses the inverse transform.</param>
     /// <param name="transquantBypass">Whether the coding unit bypasses inverse quantization and inverse transform.</param>
     /// <param name="residualDpcmMode">The residual differential-pulse-code-modulation mode selected for the block.</param>
+    /// <param name="useLumaSyntax">Whether a separately coded color plane uses the luma coefficient context set.</param>
     /// <returns>The coefficient entropy-coding parameters for the transform block.</returns>
     public static HevcCoefficientCodingParameters Create(
         HevcPictureParameterSet pictureParameterSet,
@@ -136,15 +137,17 @@ internal readonly struct HevcCoefficientCodingParameters
         int intraPredictionMode,
         bool transformSkip,
         bool transquantBypass,
-        HevcResidualDpcmMode residualDpcmMode)
+        HevcResidualDpcmMode residualDpcmMode,
+        bool useLumaSyntax = false)
     {
         HevcSequenceParameterSet sequenceParameterSet = pictureParameterSet.SequenceParameterSet;
-        bool isChroma = plane != HevcPlane.Y;
+        HevcPlane codingPlane = useLumaSyntax ? HevcPlane.Y : plane;
+        bool isChroma = codingPlane != HevcPlane.Y;
         bool nonTransformed = transformSkip || transquantBypass;
         HevcCoefficientScanType scanType = SelectScanType(
             width,
             height,
-            plane,
+            codingPlane,
             isIntra,
             intraPredictionMode,
             sequenceParameterSet.ChromaFormat,

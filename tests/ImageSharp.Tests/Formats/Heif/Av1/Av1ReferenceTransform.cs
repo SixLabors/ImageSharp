@@ -25,15 +25,14 @@ internal class Av1ReferenceTransform
 
     public static double GetScaleFactor(Av1Transform2dFlipConfiguration config)
     {
-        Span<int> shift = config.Shift;
         int transformWidth = config.TransformSize.GetWidth();
         int transformHeight = config.TransformSize.GetHeight();
-        int amplifyBit = shift[0] + shift[1] + shift[2];
+        int amplifyBit = config.Shift0 + config.Shift1 + config.Shift2;
         double scaleFactor =
             amplifyBit >= 0 ? (1 << amplifyBit) : (1.0 / (1 << -amplifyBit));
 
         // For rectangular transforms, we need to multiply by an extra factor.
-        int rectType = Av1ForwardTransformer.GetRectangularRatio(transformWidth, transformHeight);
+        int rectType = config.TransformSize.GetRectangleLogRatio();
         if (Math.Abs(rectType) == 1)
         {
             scaleFactor *= Math.Sqrt(2);
@@ -48,7 +47,7 @@ internal class Av1ReferenceTransform
     public static void ReferenceTransformFunction2d(Span<double> input, Span<double> output, Av1TransformType transformType, Av1TransformSize transformSize, double scaleFactor)
     {
         // Get transform type and size of each dimension.
-        Av1Transform2dFlipConfiguration config = new(transformType, transformSize);
+        Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateForward(transformType, transformSize, 8);
         Av1TransformType1d columnType = GetTransformType1d(config.TransformFunctionTypeColumn);
         Av1TransformType1d rowType = GetTransformType1d(config.TransformFunctionTypeRow);
         int transformWidth = transformSize.GetWidth();
@@ -261,13 +260,11 @@ internal class Av1ReferenceTransform
             case Av1TransformFunctionType.Adst4:
             case Av1TransformFunctionType.Adst8:
             case Av1TransformFunctionType.Adst16:
-            case Av1TransformFunctionType.Adst32:
                 return Av1TransformType1d.Adst;
             case Av1TransformFunctionType.Identity4:
             case Av1TransformFunctionType.Identity8:
             case Av1TransformFunctionType.Identity16:
             case Av1TransformFunctionType.Identity32:
-            case Av1TransformFunctionType.Identity64:
                 return Av1TransformType1d.Identity;
             case Av1TransformFunctionType.Invalid:
             default:

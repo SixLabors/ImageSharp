@@ -23,7 +23,8 @@ internal static class Av1ForwardTransformerFactory
     /// <param name="transformType">The compound transform type.</param>
     /// <param name="componentType">The luma or chroma component class.</param>
     /// <param name="transformCoefficientShape">The subset of coefficients evaluated by mode decision.</param>
-    internal static void EstimateTransform(
+    /// <param name="workspace">The reusable transform workspace for the containing encode operation.</param>
+    public static void EstimateTransform(
         Span<short> residualBuffer,
         uint residualStride,
         Span<int> coefficientBuffer,
@@ -33,21 +34,66 @@ internal static class Av1ForwardTransformerFactory
         int bitDepth,
         Av1TransformType transformType,
         Av1PlaneType componentType,
-        Av1CoefficientShape transformCoefficientShape)
+        Av1CoefficientShape transformCoefficientShape,
+        Span<int> workspace)
     {
         switch (transformCoefficientShape)
         {
             case Av1CoefficientShape.Default:
-                EstimateTransformDefault(residualBuffer, residualStride, coefficientBuffer, coefficientStride, transformSize, ref threeQuadEnergy, bitDepth, transformType, componentType);
+                EstimateTransformDefault(
+                    residualBuffer,
+                    residualStride,
+                    coefficientBuffer,
+                    coefficientStride,
+                    transformSize,
+                    ref threeQuadEnergy,
+                    bitDepth,
+                    transformType,
+                    componentType,
+                    workspace);
+
                 break;
             case Av1CoefficientShape.N2:
-                EstimateTransformN2(residualBuffer, residualStride, coefficientBuffer, coefficientStride, transformSize, ref threeQuadEnergy, bitDepth, transformType, componentType);
+                EstimateTransformN2(
+                    residualBuffer,
+                    residualStride,
+                    coefficientBuffer,
+                    coefficientStride,
+                    transformSize,
+                    ref threeQuadEnergy,
+                    bitDepth,
+                    transformType,
+                    componentType,
+                    workspace);
+
                 break;
             case Av1CoefficientShape.N4:
-                EstimateTransformN4(residualBuffer, residualStride, coefficientBuffer, coefficientStride, transformSize, ref threeQuadEnergy, bitDepth, transformType, componentType);
+                EstimateTransformN4(
+                    residualBuffer,
+                    residualStride,
+                    coefficientBuffer,
+                    coefficientStride,
+                    transformSize,
+                    ref threeQuadEnergy,
+                    bitDepth,
+                    transformType,
+                    componentType,
+                    workspace);
+
                 break;
             case Av1CoefficientShape.OnlyDc:
-                EstimateTransformOnlyDc(residualBuffer, residualStride, coefficientBuffer, coefficientStride, transformSize, ref threeQuadEnergy, bitDepth, transformType, componentType);
+                EstimateTransformOnlyDc(
+                    residualBuffer,
+                    residualStride,
+                    coefficientBuffer,
+                    coefficientStride,
+                    transformSize,
+                    ref threeQuadEnergy,
+                    bitDepth,
+                    transformType,
+                    componentType,
+                    workspace);
+
                 break;
         }
     }
@@ -64,6 +110,7 @@ internal static class Av1ForwardTransformerFactory
     /// <param name="bitDepth">The source sample bit depth.</param>
     /// <param name="transformType">The compound transform type.</param>
     /// <param name="componentType">The luma or chroma component class.</param>
+    /// <param name="workspace">The reusable transform workspace for the containing encode operation.</param>
     private static void EstimateTransformDefault(
         Span<short> residualBuffer,
         uint residualStride,
@@ -73,8 +120,9 @@ internal static class Av1ForwardTransformerFactory
         ref ulong threeQuadEnergy,
         int bitDepth,
         Av1TransformType transformType,
-        Av1PlaneType componentType)
-        => Av1ForwardTransformer.Transform2d(residualBuffer, coefficientBuffer, residualStride, transformType, transformSize, bitDepth);
+        Av1PlaneType componentType,
+        Span<int> workspace)
+        => Av1ForwardTransformer.Transform2d(residualBuffer, coefficientBuffer, residualStride, transformType, transformSize, bitDepth, workspace);
 
     /// <summary>
     /// Applies the half-coefficient transform shape and measures the discarded coefficient energy.
@@ -88,7 +136,18 @@ internal static class Av1ForwardTransformerFactory
     /// <param name="bitDepth">The source sample bit depth.</param>
     /// <param name="transformType">The compound transform type.</param>
     /// <param name="componentType">The luma or chroma component class.</param>
-    private static void EstimateTransformN2(Span<short> residualBuffer, uint residualStride, Span<int> coefficientBuffer, uint coefficientStride, Av1TransformSize transformSize, ref ulong threeQuadEnergy, int bitDepth, Av1TransformType transformType, Av1PlaneType componentType) => throw new NotImplementedException();
+    /// <param name="workspace">The reusable transform workspace for the containing encode operation.</param>
+    private static void EstimateTransformN2(
+        Span<short> residualBuffer,
+        uint residualStride,
+        Span<int> coefficientBuffer,
+        uint coefficientStride,
+        Av1TransformSize transformSize,
+        ref ulong threeQuadEnergy,
+        int bitDepth,
+        Av1TransformType transformType,
+        Av1PlaneType componentType,
+        Span<int> workspace) => throw new NotImplementedException();
 
     /// <summary>
     /// Applies the quarter-coefficient transform shape and measures the discarded coefficient energy.
@@ -102,7 +161,18 @@ internal static class Av1ForwardTransformerFactory
     /// <param name="bitDepth">The source sample bit depth.</param>
     /// <param name="transformType">The compound transform type.</param>
     /// <param name="componentType">The luma or chroma component class.</param>
-    private static void EstimateTransformN4(Span<short> residualBuffer, uint residualStride, Span<int> coefficientBuffer, uint coefficientStride, Av1TransformSize transformSize, ref ulong threeQuadEnergy, int bitDepth, Av1TransformType transformType, Av1PlaneType componentType) => throw new NotImplementedException();
+    /// <param name="workspace">The reusable transform workspace for the containing encode operation.</param>
+    private static void EstimateTransformN4(
+        Span<short> residualBuffer,
+        uint residualStride,
+        Span<int> coefficientBuffer,
+        uint coefficientStride,
+        Av1TransformSize transformSize,
+        ref ulong threeQuadEnergy,
+        int bitDepth,
+        Av1TransformType transformType,
+        Av1PlaneType componentType,
+        Span<int> workspace) => throw new NotImplementedException();
 
     /// <summary>
     /// Evaluates only the transform's DC coefficient and measures the discarded coefficient energy.
@@ -116,5 +186,16 @@ internal static class Av1ForwardTransformerFactory
     /// <param name="bitDepth">The source sample bit depth.</param>
     /// <param name="transformType">The compound transform type.</param>
     /// <param name="componentType">The luma or chroma component class.</param>
-    private static void EstimateTransformOnlyDc(Span<short> residualBuffer, uint residualStride, Span<int> coefficientBuffer, uint coefficientStride, Av1TransformSize transformSize, ref ulong threeQuadEnergy, int bitDepth, Av1TransformType transformType, Av1PlaneType componentType) => throw new NotImplementedException();
+    /// <param name="workspace">The reusable transform workspace for the containing encode operation.</param>
+    private static void EstimateTransformOnlyDc(
+        Span<short> residualBuffer,
+        uint residualStride,
+        Span<int> coefficientBuffer,
+        uint coefficientStride,
+        Av1TransformSize transformSize,
+        ref ulong threeQuadEnergy,
+        int bitDepth,
+        Av1TransformType transformType,
+        Av1PlaneType componentType,
+        Span<int> workspace) => throw new NotImplementedException();
 }

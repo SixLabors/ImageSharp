@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 
@@ -10,45 +11,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <summary>
 /// Converts spatial residual samples into AV1 transform coefficients.
 /// </summary>
-internal class Av1ForwardTransformer
+internal static class Av1ForwardTransformer
 {
-    /// <summary>
-    /// The fixed-point representation of <c>sqrt(2)</c> at <see cref="NewSqrtBitCount"/> fractional bits.
-    /// </summary>
-    private const int NewSqrt = 5793;
-
-    /// <summary>
-    /// The number of fractional bits used by <see cref="NewSqrt"/>.
-    /// </summary>
-    private const int NewSqrtBitCount = 12;
-
-    /// <summary>
-    /// Maps each concrete transform-function enum value to its managed one-dimensional implementation.
-    /// </summary>
-    private static readonly IAv1Transformer1d?[] Transformers =
-        [
-            new Av1Dct4Forward1dTransformer(),
-            new Av1Dct8Forward1dTransformer(),
-            new Av1Dct16Forward1dTransformer(),
-            new Av1Dct32Forward1dTransformer(),
-            new Av1Dct64Forward1dTransformer(),
-            new Av1Adst4Forward1dTransformer(),
-            new Av1Adst8Forward1dTransformer(),
-            new Av1Adst16Forward1dTransformer(),
-            new Av1Adst32Forward1dTransformer(),
-            new Av1Identity4Forward1dTransformer(),
-            new Av1Identity8Forward1dTransformer(),
-            new Av1Identity16Forward1dTransformer(),
-            new Av1Identity32Forward1dTransformer(),
-            new Av1Identity64Forward1dTransformer(),
-            null
-        ];
-
-    /// <summary>
-    /// The transposed intermediate coefficient plane shared by the current encoder transform pipeline.
-    /// </summary>
-    private static readonly int[] TemporaryCoefficientsBuffer = new int[Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize];
-
     /// <summary>
     /// Resolves and applies the configured two-dimensional AV1 forward transform.
     /// </summary>
@@ -58,246 +22,449 @@ internal class Av1ForwardTransformer
     /// <param name="transformType">The compound transform type.</param>
     /// <param name="transformSize">The transform-block dimensions.</param>
     /// <param name="bitDepth">The source sample bit depth.</param>
-    internal static void Transform2d(Span<short> input, Span<int> coefficients, uint stride, Av1TransformType transformType, Av1TransformSize transformSize, int bitDepth)
+    /// <param name="workspace">The reusable workspace owned by the containing encode operation.</param>
+    public static void Transform2d(
+        Span<short> input,
+        Span<int> coefficients,
+        uint stride,
+        Av1TransformType transformType,
+        Av1TransformSize transformSize,
+        int bitDepth,
+        Span<int> workspace)
     {
-        Av1Transform2dFlipConfiguration config = new(transformType, transformSize);
-        IAv1Transformer1d? columnTransformer = GetTransformer(config.TransformFunctionTypeColumn);
-        IAv1Transformer1d? rowTransformer = GetTransformer(config.TransformFunctionTypeRow);
-        Transform2d(columnTransformer, rowTransformer, input, coefficients, stride, config, bitDepth);
+        Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateForward(transformType, transformSize, bitDepth);
+        Guard.MustBeSizedAtLeast(workspace, Av1TransformWorkspace.GetRequiredLength(transformSize), nameof(workspace));
+        DispatchColumn(input, coefficients, stride, ref config, workspace);
     }
 
     /// <summary>
-    /// Applies a two-dimensional transform using explicitly selected column and row functions.
+    /// Selects the concrete column operator for a transform block.
     /// </summary>
-    /// <typeparam name="TColumn">The column-transform implementation type.</typeparam>
-    /// <typeparam name="TRow">The row-transform implementation type.</typeparam>
-    /// <param name="transformFunctionColumn">The column-transform implementation.</param>
-    /// <param name="transformFunctionRow">The row-transform implementation.</param>
-    /// <param name="input">The spatial residual samples.</param>
-    /// <param name="coefficients">The destination transform coefficients.</param>
-    /// <param name="stride">The number of input samples between rows.</param>
-    /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
-    /// <param name="bitDepth">The source sample bit depth.</param>
-    internal static void Transform2d<TColumn, TRow>(TColumn? transformFunctionColumn, TRow? transformFunctionRow, Span<short> input, Span<int> coefficients, uint stride, Av1Transform2dFlipConfiguration config, int bitDepth)
-            where TColumn : IAv1Transformer1d
-            where TRow : IAv1Transformer1d
+    private static void DispatchColumn(
+        Span<short> input,
+        Span<int> coefficients,
+        uint stride,
+        ref Av1Transform2dFlipConfiguration config,
+        Span<int> workspace)
     {
-        if (transformFunctionColumn != null && transformFunctionRow != null)
+        switch (config.TransformFunctionTypeColumn)
         {
-            Transform2dCore(transformFunctionColumn, transformFunctionRow, input, stride, coefficients, config, TemporaryCoefficientsBuffer, bitDepth);
-        }
-        else
-        {
-            throw new InvalidImageContentException($"Cannot find 1d transformer implementation for {config.TransformFunctionTypeColumn} or {config.TransformFunctionTypeRow}.");
-        }
-    }
-
-    /// <summary>
-    /// Gets the managed implementation for a concrete one-dimensional transform function.
-    /// </summary>
-    /// <param name="transformerType">The concrete transform function and length.</param>
-    /// <returns>The transform implementation, or <see langword="null"/> for an invalid function.</returns>
-    private static IAv1Transformer1d? GetTransformer(Av1TransformFunctionType transformerType)
-        => Transformers[(int)transformerType];
-
-    /// <summary>
-    /// Applies the separable column and row stages, including normative flips, shifts, and rectangular scaling.
-    /// </summary>
-    /// <typeparam name="TColumn">The column-transform implementation type.</typeparam>
-    /// <typeparam name="TRow">The row-transform implementation type.</typeparam>
-    /// <param name="transformFunctionColumn">The column-transform implementation.</param>
-    /// <param name="transformFunctionRow">The row-transform implementation.</param>
-    /// <param name="input">The spatial residual samples.</param>
-    /// <param name="inputStride">The number of input samples between rows.</param>
-    /// <param name="output">The destination transform coefficients and temporary axis buffers.</param>
-    /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
-    /// <param name="buf">The transposed intermediate coefficient plane.</param>
-    /// <param name="bitDepth">The source sample bit depth.</param>
-    /// <remarks>Corresponds to <c>av1_tranform_two_d_core_c</c> in the original WIP reference.</remarks>
-    private static void Transform2dCore<TColumn, TRow>(TColumn transformFunctionColumn, TRow transformFunctionRow, Span<short> input, uint inputStride, Span<int> output, Av1Transform2dFlipConfiguration config, Span<int> buf, int bitDepth)
-            where TColumn : IAv1Transformer1d
-            where TRow : IAv1Transformer1d
-    {
-        int c, r;
-
-        // The row configuration's size is the number of columns, while the column configuration's size is the
-        // number of rows. Keeping those axis names explicit is essential for rectangular transforms.
-        int transformColumnCount = config.TransformSize.GetWidth();
-        int transformRowCount = config.TransformSize.GetHeight();
-        int transformCount = transformColumnCount * transformRowCount;
-
-        // Take the shift from the larger dimension in the rectangular case.
-        Span<int> shift = config.Shift;
-        int rectangleType = GetRectangularRatio(transformColumnCount, transformRowCount);
-        Span<byte> stageRangeColumn = stackalloc byte[Av1Transform2dFlipConfiguration.MaxStageNumber];
-        Span<byte> stageRangeRow = stackalloc byte[Av1Transform2dFlipConfiguration.MaxStageNumber];
-
-        // assert(cfg->stage_num_col <= MAX_TXFM_STAGE_NUM);
-        // assert(cfg->stage_num_row <= MAX_TXFM_STAGE_NUM);
-        config.GenerateStageRange(bitDepth);
-
-        int cosBitColumn = config.CosBitColumn;
-        int cosBitRow = config.CosBitRow;
-
-        // Reuse the output prefix for per-axis input/output vectors. The complete transformed rows overwrite this
-        // scratch only after every column has been transposed into the separate intermediate buffer.
-        Span<int> tempInSpan = output[..transformRowCount];
-        Span<int> tempOutSpan = output.Slice(transformRowCount, transformRowCount);
-        ref int tempIn = ref tempInSpan[0];
-        ref int tempOut = ref tempOutSpan[0];
-        ref short inputRef = ref input[0];
-        ref int outputRef = ref output[0];
-        ref int bufRef = ref buf[0];
-
-        // Columns
-        for (c = 0; c < transformColumnCount; ++c)
-        {
-            if (!config.FlipUpsideDown)
-            {
-                uint t = (uint)c;
-                for (r = 0; r < transformRowCount; ++r)
-                {
-                    Unsafe.Add(ref tempIn, r) = Unsafe.Add(ref inputRef, t);
-                    t += inputStride;
-                }
-            }
-            else
-            {
-                uint t = (uint)(c + ((transformRowCount - 1) * (int)inputStride));
-                for (r = 0; r < transformRowCount; ++r)
-                {
-                    // Flip upside down
-                    Unsafe.Add(ref tempIn, r) = Unsafe.Add(ref inputRef, t);
-                    t -= inputStride;
-                }
-            }
-
-            RoundShiftArray(ref tempIn, transformRowCount, -shift[0]); // NM svt_av1_round_shift_array_c
-            transformFunctionColumn.Transform(tempInSpan, tempOutSpan, cosBitColumn, stageRangeColumn);
-            RoundShiftArray(ref tempOut, transformRowCount, -shift[1]); // NM svt_av1_round_shift_array_c
-            if (!config.FlipLeftToRight)
-            {
-                int t = c;
-                for (r = 0; r < transformRowCount; ++r)
-                {
-                    Unsafe.Add(ref bufRef, t) = Unsafe.Add(ref tempOut, r);
-                    t += transformColumnCount;
-                }
-            }
-            else
-            {
-                int t = transformColumnCount - c - 1;
-                for (r = 0; r < transformRowCount; ++r)
-                {
-                    // flip from left to right
-                    Unsafe.Add(ref bufRef, t) = Unsafe.Add(ref tempOut, r);
-                    t += transformColumnCount;
-                }
-            }
-        }
-
-        // Rows
-        for (r = 0; r < transformCount; r += transformColumnCount)
-        {
-            transformFunctionRow.Transform(
-                buf.Slice(r, transformColumnCount),
-                output.Slice(r, transformColumnCount),
-                cosBitRow,
-                stageRangeRow);
-            RoundShiftArray(ref Unsafe.Add(ref outputRef, r), transformColumnCount, -shift[2]);
-
-            if (Math.Abs(rectangleType) == 1)
-            {
-                // Multiply everything by Sqrt2 if the transform is rectangular and the
-                // size difference is a factor of 2.
-                int t = r;
-                for (c = 0; c < transformColumnCount; ++c)
-                {
-                    ref int current = ref Unsafe.Add(ref outputRef, t);
-                    current = Av1Math.RoundShift((long)current * NewSqrt, NewSqrtBitCount);
-                    t++;
-                }
-            }
+            case Av1TransformFunctionType.Dct4:
+                DispatchRow<Av1Dct4Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Dct8:
+                DispatchRow<Av1Dct8Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Dct16:
+                DispatchRow<Av1Dct16Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Dct32:
+                DispatchRow<Av1Dct32Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Dct64:
+                DispatchRow<Av1Dct64Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Adst4:
+                DispatchRow<Av1Adst4Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Adst8:
+                DispatchRow<Av1Adst8Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Adst16:
+                DispatchRow<Av1Adst16Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Identity4:
+                DispatchRow<Av1Identity4Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Identity8:
+                DispatchRow<Av1Identity8Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Identity16:
+                DispatchRow<Av1Identity16Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Identity32:
+                DispatchRow<Av1Identity32Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            default:
+                throw new InvalidImageContentException($"The {config.TransformFunctionTypeColumn} column transform is not valid for {config.TransformSize}.");
         }
     }
 
     /// <summary>
-    /// Applies a signed fixed-point shift to a contiguous transform-stage vector.
+    /// Selects the concrete row operator after the column operator has been specialized.
     /// </summary>
-    /// <param name="arr">A reference to the first transform-stage value.</param>
-    /// <param name="size">The number of values to update.</param>
-    /// <param name="bit">A positive rounded-right shift or a negative exact-left shift.</param>
-    private static void RoundShiftArray(ref int arr, int size, int bit)
+    private static void DispatchRow<TColumnOperator>(
+        Span<short> input,
+        Span<int> coefficients,
+        uint stride,
+        ref Av1Transform2dFlipConfiguration config,
+        Span<int> workspace)
+        where TColumnOperator : struct, IAv1Transform1dOperator
     {
-        if (bit == 0)
+        switch (config.TransformFunctionTypeRow)
         {
+            case Av1TransformFunctionType.Dct4:
+                Transform2d<TColumnOperator, Av1Dct4Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Dct8:
+                Transform2d<TColumnOperator, Av1Dct8Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Dct16:
+                Transform2d<TColumnOperator, Av1Dct16Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Dct32:
+                Transform2d<TColumnOperator, Av1Dct32Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Dct64:
+                Transform2d<TColumnOperator, Av1Dct64Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Adst4:
+                Transform2d<TColumnOperator, Av1Adst4Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Adst8:
+                Transform2d<TColumnOperator, Av1Adst8Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Adst16:
+                Transform2d<TColumnOperator, Av1Adst16Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Identity4:
+                Transform2d<TColumnOperator, Av1Identity4Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Identity8:
+                Transform2d<TColumnOperator, Av1Identity8Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Identity16:
+                Transform2d<TColumnOperator, Av1Identity16Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            case Av1TransformFunctionType.Identity32:
+                Transform2d<TColumnOperator, Av1Identity32Forward1dOperator>(input, coefficients, stride, ref config, workspace);
+                break;
+            default:
+                throw new InvalidImageContentException($"The {config.TransformFunctionTypeRow} row transform is not valid for {config.TransformSize}.");
+        }
+    }
+
+    /// <summary>
+    /// Applies the specialized operator pair using the widest lane width supported by the block and processor.
+    /// </summary>
+    private static void Transform2d<TColumnOperator, TRowOperator>(
+        Span<short> input,
+        Span<int> coefficients,
+        uint stride,
+        ref Av1Transform2dFlipConfiguration config,
+        Span<int> workspace)
+        where TColumnOperator : struct, IAv1Transform1dOperator
+        where TRowOperator : struct, IAv1Transform1dOperator
+    {
+        int width = config.TransformSize.GetWidth();
+        int height = config.TransformSize.GetHeight();
+
+        if (Vector256.IsHardwareAccelerated && width >= Vector256<int>.Count && height >= Vector256<int>.Count)
+        {
+            Transform2dVector256<TColumnOperator, TRowOperator>(input, coefficients, stride, ref config, workspace);
             return;
         }
-        else
+
+        if (Vector128.IsHardwareAccelerated)
         {
-            nuint sz = (nuint)size;
-            if (bit > 0)
+            Transform2dVector128<TColumnOperator, TRowOperator>(input, coefficients, stride, ref config, workspace);
+            return;
+        }
+
+        Transform2dScalar<TColumnOperator, TRowOperator>(input, coefficients, stride, ref config, workspace);
+    }
+
+    /// <summary>
+    /// Applies both transform axes with eight samples packed into each SIMD vector.
+    /// </summary>
+    /// <typeparam name="TColumnOperator">The one-dimensional operator applied down each column.</typeparam>
+    /// <typeparam name="TRowOperator">The one-dimensional operator applied across each row.</typeparam>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="output">The destination transform coefficients.</param>
+    /// <param name="inputStride">The number of input samples between rows.</param>
+    /// <param name="config">The transform dimensions, operators, flips, and fixed-point settings.</param>
+    /// <param name="workspace">The reusable storage for SIMD vectors and transposed coefficients.</param>
+    public static void Transform2dVector256<TColumnOperator, TRowOperator>(
+        Span<short> input,
+        Span<int> output,
+        uint inputStride,
+        ref Av1Transform2dFlipConfiguration config,
+        Span<int> workspace)
+        where TColumnOperator : struct, IAv1Transform1dOperator
+        where TRowOperator : struct, IAv1Transform1dOperator
+    {
+        const int laneCount = 8;
+        const int vectorLength = Av1Constants.MaxTransformSize * laneCount;
+
+        int width = config.TransformSize.GetWidth();
+        int height = config.TransformSize.GetHeight();
+        int shift0 = config.Shift0;
+        int shift1 = config.Shift1;
+        int shift2 = config.Shift2;
+        bool normalizeRectangle = Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1;
+
+        ref int workspaceBase = ref MemoryMarshal.GetReference(workspace);
+        ref Av1TransformVector<Vector256<int>> tempIn = ref Unsafe.As<int, Av1TransformVector<Vector256<int>>>(ref workspaceBase);
+        ref Av1TransformVector<Vector256<int>> tempOut = ref Unsafe.As<int, Av1TransformVector<Vector256<int>>>(ref Unsafe.Add(ref workspaceBase, vectorLength));
+        ref Av1TransformVector<Vector256<int>> step = ref Unsafe.As<int, Av1TransformVector<Vector256<int>>>(ref Unsafe.Add(ref workspaceBase, 2 * vectorLength));
+        Span<int> buffer = workspace.Slice(Av1TransformWorkspace.Vector256StorageLength, width * height);
+        ref short inputBase = ref MemoryMarshal.GetReference(input);
+        ref int bufferBase = ref MemoryMarshal.GetReference(buffer);
+
+        // Each lane carries one complete column through every stage of the first transform axis.
+        for (int column = 0; column < width; column += laneCount)
+        {
+            for (int row = 0; row < height; row++)
             {
-                for (nuint i = 0; i < sz; i++)
-                {
-                    ref int a = ref Unsafe.Add(ref arr, i);
-                    a = Av1Math.RoundShift(a, bit);
-                }
+                int sourceRow = config.FlipUpsideDown ? height - row - 1 : row;
+                ref short source = ref Unsafe.Add(ref inputBase, (sourceRow * (int)inputStride) + column);
+                tempIn[row] = Av1Transform2dOperations.RoundShift(Av1Transform2dOperations.Load8Int16(ref source), -shift0);
             }
-            else
+
+            TColumnOperator.Transform(ref tempIn, ref tempOut, ref step, config.CosBitColumn, config.StageRangeColumn);
+            int destinationColumn = config.FlipLeftToRight ? width - column - laneCount : column;
+
+            for (int row = 0; row < height; row++)
             {
-                for (nuint i = 0; i < sz; i++)
+                Vector256<int> value = Av1Transform2dOperations.RoundShift(tempOut[row], -shift1);
+                value = config.FlipLeftToRight ? Av1Transform2dOperations.Reverse(value) : value;
+                value.StoreUnsafe(ref bufferBase, (nuint)((row * width) + destinationColumn));
+            }
+        }
+
+        ref int outputBase = ref MemoryMarshal.GetReference(output);
+
+        // Tile transposition changes the lane meaning from columns to rows without scalar gathers.
+        for (int row = 0; row < height; row += laneCount)
+        {
+            for (int column = 0; column < width; column += laneCount)
+            {
+                Vector256<int> row0 = Vector256.LoadUnsafe(ref bufferBase, (nuint)(((row + 0) * width) + column));
+                Vector256<int> row1 = Vector256.LoadUnsafe(ref bufferBase, (nuint)(((row + 1) * width) + column));
+                Vector256<int> row2 = Vector256.LoadUnsafe(ref bufferBase, (nuint)(((row + 2) * width) + column));
+                Vector256<int> row3 = Vector256.LoadUnsafe(ref bufferBase, (nuint)(((row + 3) * width) + column));
+                Vector256<int> row4 = Vector256.LoadUnsafe(ref bufferBase, (nuint)(((row + 4) * width) + column));
+                Vector256<int> row5 = Vector256.LoadUnsafe(ref bufferBase, (nuint)(((row + 5) * width) + column));
+                Vector256<int> row6 = Vector256.LoadUnsafe(ref bufferBase, (nuint)(((row + 6) * width) + column));
+                Vector256<int> row7 = Vector256.LoadUnsafe(ref bufferBase, (nuint)(((row + 7) * width) + column));
+                Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3, ref row4, ref row5, ref row6, ref row7);
+                tempIn[column + 0] = row0;
+                tempIn[column + 1] = row1;
+                tempIn[column + 2] = row2;
+                tempIn[column + 3] = row3;
+                tempIn[column + 4] = row4;
+                tempIn[column + 5] = row5;
+                tempIn[column + 6] = row6;
+                tempIn[column + 7] = row7;
+            }
+
+            TRowOperator.Transform(ref tempIn, ref tempOut, ref step, config.CosBitRow, config.StageRangeRow);
+
+            for (int column = 0; column < width; column += laneCount)
+            {
+                Vector256<int> row0 = FinishForward(tempOut[column + 0], -shift2, normalizeRectangle);
+                Vector256<int> row1 = FinishForward(tempOut[column + 1], -shift2, normalizeRectangle);
+                Vector256<int> row2 = FinishForward(tempOut[column + 2], -shift2, normalizeRectangle);
+                Vector256<int> row3 = FinishForward(tempOut[column + 3], -shift2, normalizeRectangle);
+                Vector256<int> row4 = FinishForward(tempOut[column + 4], -shift2, normalizeRectangle);
+                Vector256<int> row5 = FinishForward(tempOut[column + 5], -shift2, normalizeRectangle);
+                Vector256<int> row6 = FinishForward(tempOut[column + 6], -shift2, normalizeRectangle);
+                Vector256<int> row7 = FinishForward(tempOut[column + 7], -shift2, normalizeRectangle);
+                Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3, ref row4, ref row5, ref row6, ref row7);
+                row0.StoreUnsafe(ref outputBase, (nuint)(((row + 0) * width) + column));
+                row1.StoreUnsafe(ref outputBase, (nuint)(((row + 1) * width) + column));
+                row2.StoreUnsafe(ref outputBase, (nuint)(((row + 2) * width) + column));
+                row3.StoreUnsafe(ref outputBase, (nuint)(((row + 3) * width) + column));
+                row4.StoreUnsafe(ref outputBase, (nuint)(((row + 4) * width) + column));
+                row5.StoreUnsafe(ref outputBase, (nuint)(((row + 5) * width) + column));
+                row6.StoreUnsafe(ref outputBase, (nuint)(((row + 6) * width) + column));
+                row7.StoreUnsafe(ref outputBase, (nuint)(((row + 7) * width) + column));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Applies both transform axes with four samples packed into each SIMD vector.
+    /// </summary>
+    /// <typeparam name="TColumnOperator">The one-dimensional operator applied down each column.</typeparam>
+    /// <typeparam name="TRowOperator">The one-dimensional operator applied across each row.</typeparam>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="output">The destination transform coefficients.</param>
+    /// <param name="inputStride">The number of input samples between rows.</param>
+    /// <param name="config">The transform dimensions, operators, flips, and fixed-point settings.</param>
+    /// <param name="workspace">The reusable storage for SIMD vectors and transposed coefficients.</param>
+    public static void Transform2dVector128<TColumnOperator, TRowOperator>(
+        Span<short> input,
+        Span<int> output,
+        uint inputStride,
+        ref Av1Transform2dFlipConfiguration config,
+        Span<int> workspace)
+        where TColumnOperator : struct, IAv1Transform1dOperator
+        where TRowOperator : struct, IAv1Transform1dOperator
+    {
+        const int laneCount = 4;
+        const int vectorLength = Av1Constants.MaxTransformSize * laneCount;
+
+        int width = config.TransformSize.GetWidth();
+        int height = config.TransformSize.GetHeight();
+        int shift0 = config.Shift0;
+        int shift1 = config.Shift1;
+        int shift2 = config.Shift2;
+        bool normalizeRectangle = Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1;
+
+        ref int workspaceBase = ref MemoryMarshal.GetReference(workspace);
+        ref Av1TransformVector<Vector128<int>> tempIn = ref Unsafe.As<int, Av1TransformVector<Vector128<int>>>(ref workspaceBase);
+        ref Av1TransformVector<Vector128<int>> tempOut = ref Unsafe.As<int, Av1TransformVector<Vector128<int>>>(ref Unsafe.Add(ref workspaceBase, vectorLength));
+        ref Av1TransformVector<Vector128<int>> step = ref Unsafe.As<int, Av1TransformVector<Vector128<int>>>(ref Unsafe.Add(ref workspaceBase, 2 * vectorLength));
+        Span<int> buffer = workspace.Slice(Av1TransformWorkspace.Vector128StorageLength, width * height);
+        ref short inputBase = ref MemoryMarshal.GetReference(input);
+        ref int bufferBase = ref MemoryMarshal.GetReference(buffer);
+
+        for (int column = 0; column < width; column += laneCount)
+        {
+            for (int row = 0; row < height; row++)
+            {
+                int sourceRow = config.FlipUpsideDown ? height - row - 1 : row;
+                ref short source = ref Unsafe.Add(ref inputBase, (sourceRow * (int)inputStride) + column);
+                tempIn[row] = Av1Transform2dOperations.RoundShift(Av1Transform2dOperations.Load4Int16(ref source), -shift0);
+            }
+
+            TColumnOperator.Transform(ref tempIn, ref tempOut, ref step, config.CosBitColumn, config.StageRangeColumn);
+            int destinationColumn = config.FlipLeftToRight ? width - column - laneCount : column;
+
+            for (int row = 0; row < height; row++)
+            {
+                Vector128<int> value = Av1Transform2dOperations.RoundShift(tempOut[row], -shift1);
+                value = config.FlipLeftToRight ? Av1Transform2dOperations.Reverse(value) : value;
+                value.StoreUnsafe(ref bufferBase, (nuint)((row * width) + destinationColumn));
+            }
+        }
+
+        ref int outputBase = ref MemoryMarshal.GetReference(output);
+
+        for (int row = 0; row < height; row += laneCount)
+        {
+            for (int column = 0; column < width; column += laneCount)
+            {
+                Vector128<int> row0 = Vector128.LoadUnsafe(ref bufferBase, (nuint)(((row + 0) * width) + column));
+                Vector128<int> row1 = Vector128.LoadUnsafe(ref bufferBase, (nuint)(((row + 1) * width) + column));
+                Vector128<int> row2 = Vector128.LoadUnsafe(ref bufferBase, (nuint)(((row + 2) * width) + column));
+                Vector128<int> row3 = Vector128.LoadUnsafe(ref bufferBase, (nuint)(((row + 3) * width) + column));
+                Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
+                tempIn[column + 0] = row0;
+                tempIn[column + 1] = row1;
+                tempIn[column + 2] = row2;
+                tempIn[column + 3] = row3;
+            }
+
+            TRowOperator.Transform(ref tempIn, ref tempOut, ref step, config.CosBitRow, config.StageRangeRow);
+
+            for (int column = 0; column < width; column += laneCount)
+            {
+                Vector128<int> row0 = FinishForward(tempOut[column + 0], -shift2, normalizeRectangle);
+                Vector128<int> row1 = FinishForward(tempOut[column + 1], -shift2, normalizeRectangle);
+                Vector128<int> row2 = FinishForward(tempOut[column + 2], -shift2, normalizeRectangle);
+                Vector128<int> row3 = FinishForward(tempOut[column + 3], -shift2, normalizeRectangle);
+                Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
+                row0.StoreUnsafe(ref outputBase, (nuint)(((row + 0) * width) + column));
+                row1.StoreUnsafe(ref outputBase, (nuint)(((row + 1) * width) + column));
+                row2.StoreUnsafe(ref outputBase, (nuint)(((row + 2) * width) + column));
+                row3.StoreUnsafe(ref outputBase, (nuint)(((row + 3) * width) + column));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Applies both transform axes when hardware vectorization is unavailable.
+    /// </summary>
+    /// <typeparam name="TColumnOperator">The one-dimensional operator applied down each column.</typeparam>
+    /// <typeparam name="TRowOperator">The one-dimensional operator applied across each row.</typeparam>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="output">The destination transform coefficients.</param>
+    /// <param name="inputStride">The number of input samples between rows.</param>
+    /// <param name="config">The transform dimensions, operators, flips, and fixed-point settings.</param>
+    /// <param name="workspace">The reusable storage for transform stages and transposed coefficients.</param>
+    public static void Transform2dScalar<TColumnOperator, TRowOperator>(
+        Span<short> input,
+        Span<int> output,
+        uint inputStride,
+        ref Av1Transform2dFlipConfiguration config,
+        Span<int> workspace)
+        where TColumnOperator : struct, IAv1Transform1dOperator
+        where TRowOperator : struct, IAv1Transform1dOperator
+    {
+        int width = config.TransformSize.GetWidth();
+        int height = config.TransformSize.GetHeight();
+        int vectorLength = Math.Max(width, height);
+        int shift0 = config.Shift0;
+        int shift1 = config.Shift1;
+        int shift2 = config.Shift2;
+        bool normalizeRectangle = Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1;
+        Span<int> tempIn = workspace[..vectorLength];
+        Span<int> tempOut = workspace.Slice(vectorLength, vectorLength);
+        Span<int> step = workspace.Slice(2 * vectorLength, vectorLength);
+        Span<int> buffer = workspace.Slice(3 * vectorLength, width * height);
+
+        for (int column = 0; column < width; column++)
+        {
+            int inputOffset = config.FlipUpsideDown ? column + ((height - 1) * (int)inputStride) : column;
+            int inputStep = config.FlipUpsideDown ? -(int)inputStride : (int)inputStride;
+
+            for (int row = 0; row < height; row++)
+            {
+                tempIn[row] = input[inputOffset];
+                inputOffset += inputStep;
+            }
+
+            Av1InverseTransformMath.RoundShiftArray(tempIn, height, -shift0);
+            TColumnOperator.Transform(tempIn, tempOut, step, config.CosBitColumn, config.StageRangeColumn);
+            Av1InverseTransformMath.RoundShiftArray(tempOut, height, -shift1);
+            int outputColumn = config.FlipLeftToRight ? width - column - 1 : column;
+
+            for (int row = 0; row < height; row++)
+            {
+                buffer[(row * width) + outputColumn] = tempOut[row];
+            }
+        }
+
+        for (int row = 0; row < height; row++)
+        {
+            int rowOffset = row * width;
+            Span<int> outputRow = output.Slice(rowOffset, width);
+            TRowOperator.Transform(buffer.Slice(rowOffset, width), outputRow, step, config.CosBitRow, config.StageRangeRow);
+            Av1InverseTransformMath.RoundShiftArray(outputRow, width, -shift2);
+
+            if (normalizeRectangle)
+            {
+                for (int column = 0; column < width; column++)
                 {
-                    ref int a = ref Unsafe.Add(ref arr, i);
-                    a *= 1 << (-bit);
+                    outputRow[column] = Av1Math.RoundShift((long)outputRow[column] * Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
                 }
             }
         }
     }
 
     /// <summary>
-    /// Gets the signed base-two ratio between transform columns and rows.
+    /// Applies the terminal shift and optional rectangular normalization to four coefficients.
     /// </summary>
-    /// <param name="col">The transform width.</param>
-    /// <param name="row">The transform height.</param>
-    /// <returns>Zero for square transforms, positive when wider, or negative when taller.</returns>
-    /// <remarks>Corresponds to <c>get_rect_tx_log_ratio</c> in the original WIP reference.</remarks>
-    public static int GetRectangularRatio(int col, int row)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<int> FinishForward(Vector128<int> value, int shift, bool normalizeRectangle)
     {
-        if (col == row)
-        {
-            return 0;
-        }
+        value = Av1Transform2dOperations.RoundShift(value, shift);
+        return normalizeRectangle
+            ? Av1Transform1dMath.MultiplyRound(value, Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits)
+            : value;
+    }
 
-        if (col > row)
-        {
-            if (col == row * 2)
-            {
-                return 1;
-            }
-
-            if (col == row * 4)
-            {
-                return 2;
-            }
-
-            Guard.IsTrue(false, nameof(row), "Unsupported transform size");
-        }
-        else
-        {
-            if (row == col * 2)
-            {
-                return -1;
-            }
-
-            if (row == col * 4)
-            {
-                return -2;
-            }
-
-            Guard.IsTrue(false, nameof(row), "Unsupported transform size");
-        }
-
-        return 0; // Invalid
+    /// <summary>
+    /// Applies the terminal shift and optional rectangular normalization to eight coefficients.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector256<int> FinishForward(Vector256<int> value, int shift, bool normalizeRectangle)
+    {
+        value = Av1Transform2dOperations.RoundShift(value, shift);
+        return normalizeRectangle
+            ? Av1Transform1dMath.MultiplyRound(value, Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits)
+            : value;
     }
 }

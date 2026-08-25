@@ -49,11 +49,6 @@ internal enum Av1TransformFunctionType
     Adst16,
 
     /// <summary>
-    /// A thirty-two-sample asymmetric discrete sine transform.
-    /// </summary>
-    Adst32,
-
-    /// <summary>
     /// A four-sample identity transform.
     /// </summary>
     Identity4,
@@ -72,11 +67,6 @@ internal enum Av1TransformFunctionType
     /// A thirty-two-sample identity transform.
     /// </summary>
     Identity32,
-
-    /// <summary>
-    /// A sixty-four-sample identity transform.
-    /// </summary>
-    Identity64,
 
     /// <summary>
     /// No valid transform function.

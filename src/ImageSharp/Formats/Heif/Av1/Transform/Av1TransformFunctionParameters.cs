@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <summary>
 /// Carries the syntax and sample-storage parameters required to reconstruct one AV1 transform block.
 /// </summary>
-internal class Av1TransformFunctionParameters
+internal struct Av1TransformFunctionParameters
 {
     /// <summary>
     /// Gets or sets the compound transform type.

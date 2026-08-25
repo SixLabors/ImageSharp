@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Globalization;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
@@ -9,262 +9,147 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
-/// <summary>
-/// SVT: test/InvTxfm1dTest.cc
-/// SVT: test/InvTxfm2dAsmTest.cc
-/// </summary>
 [Trait("Format", "Avif")]
 public class Av1InverseTransformTests
 {
     [Fact]
-    public void AccuracyOfDct1dTransformSize4Test()
-        => AssertAccuracy1d(Av1TransformType.DctDct, Av1TransformSize.Size4x4, 1);
-
-    [Fact]
-    public void AccuracyOfDct1dTransformSize8Test()
-        => AssertAccuracy1d(Av1TransformType.DctDct, Av1TransformSize.Size8x8, 2, 2);
-
-    [Fact]
-    public void AccuracyOfDct1dTransformSize16Test()
-        => AssertAccuracy1d(Av1TransformType.DctDct, Av1TransformSize.Size16x16, 3, 3);
-
-    [Fact]
-    public void AccuracyOfDct1dTransformSize32Test()
-        => AssertAccuracy1d(Av1TransformType.DctDct, Av1TransformSize.Size32x32, 4, 4);
-
-    [Fact]
-    public void AccuracyOfDct1dTransformSize64Test()
-        => AssertAccuracy1d(Av1TransformType.DctDct, Av1TransformSize.Size64x64, 5, 5);
-
-    [Fact]
-    public void AccuracyOfAdst1dTransformSize4Test()
-        => AssertAccuracy1d(Av1TransformType.AdstAdst, Av1TransformSize.Size4x4, 1);
-
-    [Fact]
-    public void AccuracyOfAdst1dTransformSize8Test()
-        => AssertAccuracy1d(Av1TransformType.AdstAdst, Av1TransformSize.Size8x8, 2, 2);
-
-    [Fact]
-    public void AccuracyOfAdst1dTransformSize16Test()
-        => AssertAccuracy1d(Av1TransformType.AdstAdst, Av1TransformSize.Size16x16, 3, 3);
-
-    // Not mentioned in the spec.
-    public void AccuracyOfAdst1dTransformSize32Test()
-        => AssertAccuracy1d(Av1TransformType.AdstAdst, Av1TransformSize.Size32x32, 4, 3);
-
-    [Fact]
-    public void AccuracyOfIdentity1dTransformSize4Test()
-        => AssertAccuracy1d(Av1TransformType.Identity, Av1TransformSize.Size4x4, 1);
-
-    [Fact]
-    public void AccuracyOfIdentity1dTransformSize8Test()
-        => AssertAccuracy1d(Av1TransformType.Identity, Av1TransformSize.Size8x8, 2);
-
-    [Fact]
-    public void AccuracyOfIdentity1dTransformSize16Test()
-        => AssertAccuracy1d(Av1TransformType.Identity, Av1TransformSize.Size16x16, 1);
-
-    [Fact]
-    public void AccuracyOfIdentity1dTransformSize32Test()
-        => AssertAccuracy1d(Av1TransformType.Identity, Av1TransformSize.Size32x32, 4);
-
-    [Fact]
-    public void AccuracyOfIdentity1dTransformSize64Test()
-        => AssertAccuracy1d(Av1TransformType.Identity, Av1TransformSize.Size64x64, 1);
-
-    [Fact]
-    public void AccuracyOfEchoTransformSize4Test()
-        => AssertAccuracy1d(Av1TransformType.Identity, Av1TransformSize.Size4x4, 0, new Av1EchoTestTransformer(), new Av1EchoTestTransformer());
-
-    [Fact]
-    public void FlipNothingTest()
+    public void DctOperatorsProduceIdenticalScalarAndSimdResults()
     {
-        // Arrange
-        int[] input = [
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            9, 10, 11, 12,
-            13, 14, 15, 16];
-        short[] expected = [
-            2, 4, 6, 8,
-            10, 12, 14, 16,
-            18, 20, 22, 24,
-            26, 28, 30, 32];
-        int[] temp = new int[16 + 8];
-        short[] actual = new short[16];
-        Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
-        config.GenerateStageRange(8);
-        config.SetFlip(false, false);
-        config.SetShift(0, 0, 0);
-        IAv1Transformer1d transformer = new Av1EchoTestTransformer();
-
-        // Act
-        Av1Inverse2dTransformer.Transform2dAdd(
-            input,
-            actual,
-            4,
-            actual,
-            4,
-            config,
-            temp,
-            8);
-
-        // Assert
-        Assert.True(CompareWithError<short>(expected, actual, 1));
+        AssertOperatorParity<Av1Dct4Inverse1dOperator>(4);
+        AssertOperatorParity<Av1Dct8Inverse1dOperator>(8);
+        AssertOperatorParity<Av1Dct16Inverse1dOperator>(16);
+        AssertOperatorParity<Av1Dct32Inverse1dOperator>(32);
+        AssertOperatorParity<Av1Dct64Inverse1dOperator>(64);
     }
 
     [Fact]
-    public void FlipHorizontalTest()
+    public void AdstOperatorsProduceIdenticalScalarAndSimdResults()
     {
-        // Arrange
-        short[] expected = [
-            8, 6, 4, 2,
-            16, 14, 12, 10,
-            24, 22, 20, 18,
-            32, 30, 28, 26];
-        int[] input = [
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            9, 10, 11, 12,
-            13, 14, 15, 16];
-        int[] temp = new int[16 + 8];
-        short[] actual = new short[16];
-        Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
-        config.SetFlip(false, true);
-        config.SetShift(0, 0, 0);
-        IAv1Transformer1d transformer = new Av1EchoTestTransformer();
-
-        // Act
-        Av1Inverse2dTransformer.Transform2dAdd(
-            input,
-            actual,
-            4,
-            actual,
-            4,
-            config,
-            temp,
-            8);
-
-        // Assert
-        Assert.True(CompareWithError<short>(expected, actual, 1));
+        AssertOperatorParity<Av1Adst4Inverse1dOperator>(4);
+        AssertOperatorParity<Av1Adst8Inverse1dOperator>(8);
+        AssertOperatorParity<Av1Adst16Inverse1dOperator>(16);
     }
 
     [Fact]
-    public void FlipVerticalTest()
+    public void IdentityOperatorsProduceIdenticalScalarAndSimdResults()
     {
-        // Arrange
-        short[] expected = [
-            26, 28, 30, 32,
-            18, 20, 22, 24,
-            10, 12, 14, 16,
-            2, 4, 6, 8];
-        int[] input = [
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            9, 10, 11, 12,
-            13, 14, 15, 16];
-        int[] temp = new int[16 + 8];
-        short[] actual = new short[16];
-        Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
-        config.SetFlip(true, false);
-        config.SetShift(0, 0, 0);
-        IAv1Transformer1d transformer = new Av1EchoTestTransformer();
-
-        // Act
-        Av1Inverse2dTransformer.Transform2dAdd(
-            input,
-            actual,
-            4,
-            actual,
-            4,
-            config,
-            temp,
-            8);
-
-        // Assert
-        Assert.True(CompareWithError<short>(expected, actual, 1));
-    }
-
-    [Fact]
-    public void FlipHorizontalAndVerticalTest()
-    {
-        // Arrange
-        short[] expected = [
-            32, 30, 28, 26,
-            24, 22, 20, 18,
-            16, 14, 12, 10,
-            8, 6, 4, 2];
-        int[] input = [
-            1, 2, 3, 4,
-            5, 6, 7, 8,
-            9, 10, 11, 12,
-            13, 14, 15, 16];
-        int[] temp = new int[16 + 8];
-        short[] actual = new short[16];
-        Av1Transform2dFlipConfiguration config = new(Av1TransformType.Identity, Av1TransformSize.Size4x4);
-        config.SetFlip(true, true);
-        config.SetShift(0, 0, 0);
-        IAv1Transformer1d transformer = new Av1EchoTestTransformer();
-
-        // Act
-        Av1Inverse2dTransformer.Transform2dAdd(
-            input,
-            actual,
-            4,
-            actual,
-            4,
-            config,
-            temp,
-            8);
-
-        // Assert
-        Assert.True(CompareWithError<short>(expected, actual, 1));
+        AssertOperatorParity<Av1Identity4Inverse1dOperator>(4);
+        AssertOperatorParity<Av1Identity8Inverse1dOperator>(8);
+        AssertOperatorParity<Av1Identity16Inverse1dOperator>(16);
+        AssertOperatorParity<Av1Identity32Inverse1dOperator>(32);
     }
 
     [Theory]
-    [InlineData((int)Av1TransformType.DctDct)]
-    [InlineData((int)Av1TransformType.AdstAdst)]
-    [InlineData((int)Av1TransformType.Identity)]
-    public void EightBitTransformMatchesSixteenBitPipeline(int transformTypeIndex)
+    [InlineData((int)Av1TransformSize.Size4x4, 0, -4)]
+    [InlineData((int)Av1TransformSize.Size8x8, -1, -4)]
+    [InlineData((int)Av1TransformSize.Size16x16, -2, -4)]
+    [InlineData((int)Av1TransformSize.Size32x32, -2, -4)]
+    [InlineData((int)Av1TransformSize.Size64x64, -2, -4)]
+    [InlineData((int)Av1TransformSize.Size4x8, 0, -4)]
+    [InlineData((int)Av1TransformSize.Size8x4, 0, -4)]
+    [InlineData((int)Av1TransformSize.Size8x16, -1, -4)]
+    [InlineData((int)Av1TransformSize.Size16x8, -1, -4)]
+    [InlineData((int)Av1TransformSize.Size16x32, -1, -4)]
+    [InlineData((int)Av1TransformSize.Size32x16, -1, -4)]
+    [InlineData((int)Av1TransformSize.Size32x64, -1, -4)]
+    [InlineData((int)Av1TransformSize.Size64x32, -1, -4)]
+    [InlineData((int)Av1TransformSize.Size4x16, -1, -4)]
+    [InlineData((int)Av1TransformSize.Size16x4, -1, -4)]
+    [InlineData((int)Av1TransformSize.Size8x32, -2, -4)]
+    [InlineData((int)Av1TransformSize.Size32x8, -2, -4)]
+    [InlineData((int)Av1TransformSize.Size16x64, -2, -4)]
+    [InlineData((int)Av1TransformSize.Size64x16, -2, -4)]
+    public void InverseConfigurationUsesNormativeShifts(int transformSizeValue, int firstShift, int secondShift)
     {
-        const int width = 4;
-        Av1TransformType transformType = (Av1TransformType)transformTypeIndex;
-        int[] coefficients =
-        [
-            48, -15, 7, 3,
-            11, 5, -9, 2,
-            -6, 8, 4, -3,
-            9, -2, 6, 1,
-        ];
-        byte[] actual = new byte[width * width];
-        short[] expected = new short[width * width];
-        Array.Fill(actual, (byte)96);
-        Array.Fill(expected, (short)96);
-        int[] actualBuffer = new int[(width * width) + (2 * width)];
-        int[] expectedBuffer = new int[(width * width) + (2 * width)];
-        Av1Transform2dFlipConfiguration actualConfig = new(transformType, Av1TransformSize.Size4x4);
-        Av1Transform2dFlipConfiguration expectedConfig = new(transformType, Av1TransformSize.Size4x4);
+        Av1TransformSize transformSize = (Av1TransformSize)transformSizeValue;
+        Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(Av1TransformType.DctDct, transformSize, 8);
 
-        Av1Inverse2dTransformer.Transform2dAdd(
-            coefficients,
-            actual,
-            width,
-            actual,
-            width,
-            actualConfig,
-            actualBuffer);
+        Assert.Equal(firstShift, config.Shift0);
+        Assert.Equal(secondShift, config.Shift1);
+        Assert.Equal(0, config.Shift2);
+        Assert.Equal(12, config.CosBitColumn);
+        Assert.Equal(12, config.CosBitRow);
+    }
 
-        Av1Inverse2dTransformer.Transform2dAdd(
-            coefficients,
-            expected,
-            width,
-            expected,
-            width,
-            expectedConfig,
-            expectedBuffer,
-            8);
+    [Theory]
+    [InlineData(8, 16, 16)]
+    [InlineData(10, 18, 16)]
+    [InlineData(12, 20, 18)]
+    public void InverseConfigurationUsesNormativeStageRanges(int bitDepth, byte rowRange, byte columnRange)
+    {
+        Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(
+            Av1TransformType.AdstAdst,
+            Av1TransformSize.Size16x16,
+            bitDepth);
 
-        Assert.Equal(expected.Select(value => (byte)value), actual);
+        Av1TransformStageRange configuredRowRange = config.StageRangeRow;
+        Av1TransformStageRange configuredColumnRange = config.StageRangeColumn;
+
+        for (int index = 0; index < config.StageNumberRow; index++)
+        {
+            Assert.Equal(rowRange, configuredRowRange[index]);
+        }
+
+        for (int index = 0; index < config.StageNumberColumn; index++)
+        {
+            Assert.Equal(columnRange, configuredColumnRange[index]);
+        }
+    }
+
+    [Fact]
+    public void ForwardAndInverseOperatorPairsReconstructTheirInput()
+    {
+        AssertRoundTrip<Av1Dct4Forward1dOperator, Av1Dct4Inverse1dOperator>(Av1TransformType.DctDct, Av1TransformSize.Size4x4, 1, 1);
+        AssertRoundTrip<Av1Dct8Forward1dOperator, Av1Dct8Inverse1dOperator>(Av1TransformType.DctDct, Av1TransformSize.Size8x8, 2, 2);
+        AssertRoundTrip<Av1Dct16Forward1dOperator, Av1Dct16Inverse1dOperator>(Av1TransformType.DctDct, Av1TransformSize.Size16x16, 3, 3);
+        AssertRoundTrip<Av1Dct32Forward1dOperator, Av1Dct32Inverse1dOperator>(Av1TransformType.DctDct, Av1TransformSize.Size32x32, 4, 4);
+        AssertRoundTrip<Av1Dct64Forward1dOperator, Av1Dct64Inverse1dOperator>(Av1TransformType.DctDct, Av1TransformSize.Size64x64, 5, 5);
+        AssertRoundTrip<Av1Adst4Forward1dOperator, Av1Adst4Inverse1dOperator>(Av1TransformType.AdstAdst, Av1TransformSize.Size4x4, 1, 1);
+        AssertRoundTrip<Av1Adst8Forward1dOperator, Av1Adst8Inverse1dOperator>(Av1TransformType.AdstAdst, Av1TransformSize.Size8x8, 2, 2);
+        AssertRoundTrip<Av1Adst16Forward1dOperator, Av1Adst16Inverse1dOperator>(Av1TransformType.AdstAdst, Av1TransformSize.Size16x16, 3, 3);
+        AssertRoundTrip<Av1Identity4Forward1dOperator, Av1Identity4Inverse1dOperator>(Av1TransformType.Identity, Av1TransformSize.Size4x4, 1, 1);
+        AssertRoundTrip<Av1Identity8Forward1dOperator, Av1Identity8Inverse1dOperator>(Av1TransformType.Identity, Av1TransformSize.Size8x8, 2, 1);
+        AssertRoundTrip<Av1Identity16Forward1dOperator, Av1Identity16Inverse1dOperator>(Av1TransformType.Identity, Av1TransformSize.Size16x16, 3, 1);
+        AssertRoundTrip<Av1Identity32Forward1dOperator, Av1Identity32Inverse1dOperator>(Av1TransformType.Identity, Av1TransformSize.Size32x32, 4, 1);
+    }
+
+    [Fact]
+    public void Dct8TwoDimensionalByteSimdKernelsMatchScalar()
+        => AssertByteTransform2dParity<Av1Dct8Inverse1dOperator, Av1Dct8Inverse1dOperator>(Av1TransformType.DctDct, Av1TransformSize.Size8x8);
+
+    [Fact]
+    public void Adst16TwoDimensionalByteSimdKernelsMatchScalarWithBothFlips()
+        => AssertByteTransform2dParity<Av1Adst16Inverse1dOperator, Av1Adst16Inverse1dOperator>(Av1TransformType.FlipAdstFlipAdst, Av1TransformSize.Size16x16);
+
+    [Fact]
+    public void RectangularDctTwoDimensionalByteSimdKernelsMatchScalar()
+        => AssertByteTransform2dParity<Av1Dct8Inverse1dOperator, Av1Dct16Inverse1dOperator>(Av1TransformType.DctDct, Av1TransformSize.Size16x8);
+
+    [Fact]
+    public void Identity32TwoDimensionalHighBitDepthSimdKernelsMatchScalar()
+        => AssertHighBitDepthTransform2dParity<Av1Identity32Inverse1dOperator, Av1Identity32Inverse1dOperator>(Av1TransformType.Identity, Av1TransformSize.Size32x32);
+
+    [Fact]
+    public void ReconstructionDispatchDoesNotAllocatePerBlock()
+    {
+        const int width = 8;
+        int[] coefficients = new int[width * width];
+        byte[] reconstruction = new byte[coefficients.Length];
+        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
+
+        Av1InverseTransformer.Reconstruct8Bit(
+            coefficients, reconstruction, width, Av1TransformSize.Size8x8, Av1TransformType.DctDct, 0, coefficients.Length, false, workspace);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+
+        for (int iteration = 0; iteration < 32; iteration++)
+        {
+            Av1InverseTransformer.Reconstruct8Bit(
+                coefficients, reconstruction, width, Av1TransformSize.Size8x8, Av1TransformType.DctDct, 0, coefficients.Length, false, workspace);
+        }
+
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.Equal(0, allocated);
     }
 
     [Theory]
@@ -277,6 +162,7 @@ public class Av1InverseTransformTests
         coefficients[0] = 64;
         short[] reconstruction = new short[width * width];
         Array.Fill(reconstruction, (short)(maximum - 1));
+        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
 
         Av1InverseTransformer.ReconstructHighBitDepth(
             coefficients,
@@ -287,7 +173,8 @@ public class Av1InverseTransformTests
             0,
             1,
             false,
-            (Av1BitDepth)bitDepthIndex);
+            (Av1BitDepth)bitDepthIndex,
+            workspace);
 
         Assert.All(reconstruction, value => Assert.Equal(maximum, value));
     }
@@ -302,6 +189,7 @@ public class Av1InverseTransformTests
         coefficients[0] = -64;
         short[] reconstruction = new short[width * width];
         Array.Fill(reconstruction, (short)1);
+        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
 
         Av1InverseTransformer.ReconstructHighBitDepth(
             coefficients,
@@ -312,278 +200,193 @@ public class Av1InverseTransformTests
             0,
             1,
             false,
-            (Av1BitDepth)bitDepthIndex);
+            (Av1BitDepth)bitDepthIndex,
+            workspace);
 
         Assert.All(reconstruction, value => Assert.Equal((short)0, value));
     }
 
-    private static void AssertAccuracy1d(
-        Av1TransformType transformType,
-        Av1TransformSize transformSize,
-        int scaleLog2,
-        int allowedError = 1)
+    private static void AssertOperatorParity<TOperator>(int length)
+        where TOperator : struct, IAv1Transform1dOperator
     {
-        Av1Transform2dFlipConfiguration config = new(transformType, transformSize);
-        IAv1Transformer1d forward = GetForwardTransformer(config.TransformFunctionTypeColumn);
-        IAv1Transformer1d inverse = GetInverseTransformer(config.TransformFunctionTypeColumn);
-        AssertAccuracy1d(transformType, transformSize, scaleLog2, forward, inverse, allowedError);
-    }
+        const int cosBit = 12;
+        Av1TransformStageRange stageRange = default;
 
-    private static void AssertAccuracy1d(
-        Av1TransformType transformType,
-        Av1TransformSize transformSize,
-        int scaleLog2,
-        IAv1Transformer1d forwardTransformer,
-        IAv1Transformer1d inverseTransformer,
-        int allowedError = 1)
-    {
-        const int bitDepth = 10;
-        Random rnd = new(0);
-        const int testBlockCount = 30; // Originally set to: 5000
-        Av1Transform2dFlipConfiguration config = new(transformType, transformSize);
-        config.GenerateStageRange(bitDepth);
-        int width = config.TransformSize.GetWidth();
-
-        int[] inputOfTest = new int[width];
-        int[] outputOfTest = new int[width];
-        int[] outputReference = new int[width];
-        for (int ti = 0; ti < testBlockCount; ++ti)
+        for (int index = 0; index < Av1Transform2dFlipConfiguration.MaxStageNumber; index++)
         {
-            // prepare random test data
-            for (int ni = 0; ni < width; ++ni)
+            stageRange[index] = 24;
+        }
+
+        Av1TransformVector<Vector128<int>> input128 = default;
+        Av1TransformVector<Vector128<int>> output128 = default;
+        Av1TransformVector<Vector128<int>> step128 = default;
+        Av1TransformVector<Vector256<int>> input256 = default;
+        Av1TransformVector<Vector256<int>> output256 = default;
+        Av1TransformVector<Vector256<int>> step256 = default;
+
+        for (int index = 0; index < length; index++)
+        {
+            input128[index] = Vector128.Create(
+                GetInputValue(index, 0),
+                GetInputValue(index, 1),
+                GetInputValue(index, 2),
+                GetInputValue(index, 3));
+
+            input256[index] = Vector256.Create(
+                GetInputValue(index, 0),
+                GetInputValue(index, 1),
+                GetInputValue(index, 2),
+                GetInputValue(index, 3),
+                GetInputValue(index, 4),
+                GetInputValue(index, 5),
+                GetInputValue(index, 6),
+                GetInputValue(index, 7));
+        }
+
+        TOperator.Transform(ref input128, ref output128, ref step128, cosBit, stageRange);
+        TOperator.Transform(ref input256, ref output256, ref step256, cosBit, stageRange);
+
+        int[] scalarInput = new int[length];
+        int[] scalarOutput = new int[length];
+        int[] scalarStep = new int[length];
+
+        for (int lane = 0; lane < Vector256<int>.Count; lane++)
+        {
+            for (int index = 0; index < length; index++)
             {
-                inputOfTest[ni] = (short)rnd.Next((1 << bitDepth) - 1);
-                outputReference[ni] = 0;
-                outputOfTest[ni] = 255;
+                scalarInput[index] = GetInputValue(index, lane);
             }
 
-            // calculate in forward transform functions
-            forwardTransformer.Transform(
-                inputOfTest,
-                outputReference,
-                config.CosBitColumn,
-                config.StageRangeColumn);
+            TOperator.Transform(scalarInput, scalarOutput, scalarStep, cosBit, stageRange);
 
-            // calculate in inverse transform functions
-            inverseTransformer.Transform(
-                outputReference,
-                outputOfTest,
-                config.CosBitColumn,
-                config.StageRangeColumn);
-
-            // Assert
-            Assert.True(CompareWithError<int>(inputOfTest, outputOfTest.Select(x => x >> scaleLog2).ToArray(), allowedError), $"Error: {GetMaximumError<int>(inputOfTest, outputOfTest)}");
-        }
-    }
-
-    // [Theory]
-    // [MemberData(nameof(Generate2dCombinations))]
-    public void Test2dTransformAdd(int txSize, int txType, bool isLossless)
-    {
-        const int bitDepth = 8;
-        Av1TransformType transformType = (Av1TransformType)txType;
-        Av1TransformSize transformSize = (Av1TransformSize)txSize;
-        Av1TransformFunctionParameters transformFunctionParams = new()
-        {
-            BitDepth = bitDepth,
-            IsLossless = isLossless,
-            TransformSize = transformSize,
-            EndOfBuffer = Av1InverseTransformMath.GetMaxEndOfBuffer(transformSize)
-        };
-
-        if (bitDepth > 8 && !isLossless)
-        {
-            // Not support 10 bit with not lossless
-            return;
-        }
-
-        int width = transformSize.GetWidth();
-        int height = transformSize.GetHeight();
-        uint stride = (uint)width;
-        short[] input = new short[width * height];
-        int[] referenceOutput = new int[width * height];
-        short[] outputOfTest = new short[width * height];
-        int[] transformActual = new int[width * height];
-        int[] tempBuffer = new int[(width * height) + 128];
-
-        transformFunctionParams.TransformType = transformType;
-        Av1Transform2dFlipConfiguration config = new(transformType, transformSize);
-        config.GenerateStageRange(bitDepth);
-
-        const int loops = 1; // Initially: 10;
-        for (int k = 0; k < loops; k++)
-        {
-            PopulateWithRandomValues(input, bitDepth);
-
-            Av1ForwardTransformer.Transform2d(
-                input,
-                referenceOutput,
-                stride,
-                transformType,
-                transformSize,
-                bitDepth);
-            Av1Inverse2dTransformer.Transform2dAdd(
-                referenceOutput.Select(x => x >> 3).ToArray(),
-                outputOfTest,
-                width,
-                outputOfTest,
-                width,
-                config,
-                tempBuffer,
-                bitDepth);
-            Av1ForwardTransformer.Transform2d(
-                outputOfTest.Select(x => (short)(x >> 1)).ToArray(),
-                transformActual,
-                stride,
-                transformType,
-                transformSize,
-                bitDepth);
-
-            Assert.True(CompareWithError<int>(referenceOutput, transformActual, 1), $"Error: {GetMaximumError<int>(referenceOutput, transformActual)}");
-        }
-    }
-
-    private static void DivideArray(Span<int> list, int factor)
-    {
-        for (int i = 0; i < list.Length; i++)
-        {
-            list[i] = list[i] / factor;
-        }
-    }
-
-    private static void DivideArray(Span<short> list, int factor)
-    {
-        for (int i = 0; i < list.Length; i++)
-        {
-            list[i] = (short)(list[i] / factor);
-        }
-    }
-
-    public static TheoryData<int, int, bool> Generate2dCombinations()
-    {
-        int[][] transformFunctionSupportMatrix = [
-
-            // [Size][type]" // O - No; 1 - lossless; 2 - !lossless; 3 - any
-            /*0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15*/
-            [3, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2], // 0  TX_4X4,
-            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 1  TX_8X8,
-            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 2  TX_16X16,
-            [3, 0, 0, 0, 0, 0, 0, 0, 0, 3, 0, 0, 0, 0, 0, 0], // 3  TX_32X32,
-            [3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // 4  TX_64X64,
-            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 5  TX_4X8,
-            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 6  TX_8X4,
-            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 7  TX_8X16,
-            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 8  TX_16X8,
-            [3, 1, 3, 1, 1, 3, 1, 1, 1, 3, 3, 3, 1, 3, 1, 3], // 9  TX_16X32,
-            [3, 3, 1, 1, 3, 1, 1, 1, 1, 3, 3, 3, 3, 1, 3, 1], // 10 TX_32X16,
-            [3, 0, 1, 0, 0, 1, 0, 0, 0, 3, 3, 3, 0, 1, 0, 1], // 11 TX_32X64,
-            [3, 1, 0, 0, 1, 0, 0, 0, 0, 3, 3, 3, 1, 0, 1, 0], // 12 TX_64X32,
-            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 13 TX_4X16,
-            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3], // 14 TX_16X4,
-            [3, 1, 3, 1, 1, 3, 1, 1, 1, 3, 3, 3, 1, 3, 1, 3], // 15 TX_8X32,
-            [3, 3, 1, 1, 3, 1, 1, 1, 1, 3, 3, 3, 3, 1, 3, 1], // 16 TX_32X8,
-            [3, 0, 3, 0, 0, 3, 0, 0, 0, 3, 3, 3, 0, 3, 0, 3], // 17 TX_16X64,
-            [3, 3, 0, 0, 3, 0, 0, 0, 0, 3, 3, 3, 3, 0, 3, 0], // 18 TX_64X16,
-            /*0  1  2  3  4  5  6  7  8  9 10 11 12 13 14 15*/
-        ];
-
-        TheoryData<int, int, bool> data = [];
-        for (int size = 0; size < (int)Av1TransformSize.AllSizes; size++)
-        {
-            for (int type = 0; type < (int)Av1TransformType.AllTransformTypes; type++)
+            for (int index = 0; index < length; index++)
             {
-                for (int i = 0; i < 2; i++)
-                {
-                    bool isLossless = i == 1;
-                    if ((isLossless && ((transformFunctionSupportMatrix[size][type] & 1) == 0)) ||
-                        (!isLossless && ((transformFunctionSupportMatrix[size][type] & 2) == 0)))
-                    {
-                        continue;
-                    }
+                Assert.Equal(scalarOutput[index], output256[index].GetElement(lane));
 
-                    if (IsTransformTypeImplemented((Av1TransformType)type, (Av1TransformSize)size))
-                    {
-                        data.Add(size, type, isLossless);
-                    }
+                if (lane < Vector128<int>.Count)
+                {
+                    Assert.Equal(scalarOutput[index], output128[index].GetElement(lane));
                 }
             }
         }
-
-        return data;
     }
 
-    private static void PopulateWithRandomValues(Span<short> input, int bitDepth)
+    private static void AssertRoundTrip<TForwardOperator, TInverseOperator>(Av1TransformType transformType, Av1TransformSize transformSize, int scaleLog2, int allowedError)
+        where TForwardOperator : struct, IAv1Transform1dOperator
+        where TInverseOperator : struct, IAv1Transform1dOperator
     {
-        Random rnd = new(42);
-        int maxValue = (1 << (bitDepth - 1)) - 1;
-        int minValue = -maxValue;
-        for (int i = 0; i < input.Length; i++)
+        const int bitDepth = 10;
+        const int testBlockCount = 30;
+        Av1Transform2dFlipConfiguration forwardConfig = Av1Transform2dFlipConfiguration.CreateForward(transformType, transformSize, bitDepth);
+        Av1Transform2dFlipConfiguration inverseConfig = Av1Transform2dFlipConfiguration.CreateInverse(transformType, transformSize, bitDepth);
+        int length = transformSize.GetWidth();
+        Random random = new(0);
+        int[] input = new int[length];
+        int[] forward = new int[length];
+        int[] inverse = new int[length];
+        int[] step = new int[length];
+
+        for (int block = 0; block < testBlockCount; block++)
         {
-            input[i] = (short)rnd.Next(minValue, maxValue);
+            for (int index = 0; index < length; index++)
+            {
+                input[index] = random.Next((1 << bitDepth) - 1);
+            }
+
+            TForwardOperator.Transform(input, forward, step, forwardConfig.CosBitColumn, forwardConfig.StageRangeColumn);
+            TInverseOperator.Transform(forward, inverse, step, inverseConfig.CosBitColumn, inverseConfig.StageRangeColumn);
+
+            for (int index = 0; index < length; index++)
+            {
+                int reconstructed = inverse[index] >> scaleLog2;
+                Assert.InRange(Math.Abs(input[index] - reconstructed), 0, allowedError);
+            }
         }
     }
 
-    private static bool IsTransformTypeImplemented(Av1TransformType transformType, Av1TransformSize transformSize)
-        => transformSize == Av1TransformSize.Size4x4;
-
-    private static IAv1Transformer1d GetForwardTransformer(Av1TransformFunctionType func) =>
-        func switch
-        {
-            Av1TransformFunctionType.Dct4 => new Av1Dct4Forward1dTransformer(),
-            Av1TransformFunctionType.Dct8 => new Av1Dct8Forward1dTransformer(),
-            Av1TransformFunctionType.Dct16 => new Av1Dct16Forward1dTransformer(),
-            Av1TransformFunctionType.Dct32 => new Av1Dct32Forward1dTransformer(),
-            Av1TransformFunctionType.Dct64 => new Av1Dct64Forward1dTransformer(),
-            Av1TransformFunctionType.Adst4 => new Av1Adst4Forward1dTransformer(),
-            Av1TransformFunctionType.Adst8 => new Av1Adst8Forward1dTransformer(),
-            Av1TransformFunctionType.Adst16 => new Av1Adst16Forward1dTransformer(),
-            Av1TransformFunctionType.Adst32 => new Av1Adst32Forward1dTransformer(),
-            Av1TransformFunctionType.Identity4 => new Av1Identity4Forward1dTransformer(),
-            Av1TransformFunctionType.Identity8 => new Av1Identity8Forward1dTransformer(),
-            Av1TransformFunctionType.Identity16 => new Av1Identity16Forward1dTransformer(),
-            Av1TransformFunctionType.Identity32 => new Av1Identity32Forward1dTransformer(),
-            Av1TransformFunctionType.Identity64 => new Av1Identity64Forward1dTransformer(),
-            Av1TransformFunctionType.Invalid => null,
-            _ => null,
-        };
-
-    private static IAv1Transformer1d GetInverseTransformer(Av1TransformFunctionType func) =>
-        func switch
-        {
-            Av1TransformFunctionType.Dct4 => new Av1Dct4Inverse1dTransformer(),
-            Av1TransformFunctionType.Dct8 => new Av1Dct8Inverse1dTransformer(),
-            Av1TransformFunctionType.Dct16 => new Av1Dct16Inverse1dTransformer(),
-            Av1TransformFunctionType.Dct32 => new Av1Dct32Inverse1dTransformer(),
-            Av1TransformFunctionType.Dct64 => new Av1Dct64Inverse1dTransformer(),
-            Av1TransformFunctionType.Adst4 => new Av1Adst4Inverse1dTransformer(),
-            Av1TransformFunctionType.Adst8 => new Av1Adst8Inverse1dTransformer(),
-            Av1TransformFunctionType.Adst16 => new Av1Adst16Inverse1dTransformer(),
-            Av1TransformFunctionType.Adst32 => new Av1Adst32Inverse1dTransformer(),
-            Av1TransformFunctionType.Identity4 => new Av1Identity4Inverse1dTransformer(),
-            Av1TransformFunctionType.Identity8 => new Av1Identity8Inverse1dTransformer(),
-            Av1TransformFunctionType.Identity16 => new Av1Identity16Inverse1dTransformer(),
-            Av1TransformFunctionType.Identity32 => new Av1Identity32Inverse1dTransformer(),
-            Av1TransformFunctionType.Identity64 => new Av1Identity64Inverse1dTransformer(),
-            Av1TransformFunctionType.Invalid => null,
-            _ => null,
-        };
-
-    private static bool CompareWithError<T>(Span<T> expected, Span<T> actual, int allowedError)
-        where T : unmanaged
+    private static void AssertByteTransform2dParity<TColumnOperator, TRowOperator>(Av1TransformType transformType, Av1TransformSize transformSize)
+        where TColumnOperator : struct, IAv1Transform1dOperator
+        where TRowOperator : struct, IAv1Transform1dOperator
     {
-        // compare for the result is within accuracy
-        int maximumErrorInTest = GetMaximumError(expected, actual);
-        return maximumErrorInTest <= allowedError;
-    }
+        const int bitDepth = 8;
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        int[] coefficients = CreateCoefficients(width * height);
+        byte[] prediction = new byte[coefficients.Length];
 
-    private static int GetMaximumError<T>(Span<T> expected, Span<T> actual)
-    {
-        int maximumErrorInTest = 0;
-        for (int ni = 0; ni < expected.Length; ++ni)
+        for (int index = 0; index < prediction.Length; index++)
         {
-            maximumErrorInTest = Math.Max(maximumErrorInTest, Math.Abs(Convert.ToInt32(actual[ni], CultureInfo.InvariantCulture) - Convert.ToInt32(expected[ni], CultureInfo.InvariantCulture)));
+            prediction[index] = (byte)(64 + ((index * 29) % 128));
         }
 
-        return maximumErrorInTest;
+        byte[] scalar = new byte[prediction.Length];
+        byte[] vector128 = new byte[prediction.Length];
+        byte[] vector256 = new byte[prediction.Length];
+        int[] scalarWorkspace = new int[Av1TransformWorkspace.MaximumLength];
+        int[] vector128Workspace = new int[Av1TransformWorkspace.MaximumLength];
+        int[] vector256Workspace = new int[Av1TransformWorkspace.MaximumLength];
+        Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(transformType, transformSize, bitDepth);
+
+        Av1Inverse2dTransformer.Transform2dScalar<byte, Av1ByteInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
+            coefficients, prediction, width, scalar, width, ref config, scalarWorkspace, bitDepth);
+
+        Av1Inverse2dTransformer.Transform2dVector128<byte, Av1ByteInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
+            coefficients, prediction, width, vector128, width, ref config, vector128Workspace, bitDepth);
+
+        Av1Inverse2dTransformer.Transform2dVector256<byte, Av1ByteInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
+            coefficients, prediction, width, vector256, width, ref config, vector256Workspace, bitDepth);
+
+        Assert.Equal(scalar, vector128);
+        Assert.Equal(scalar, vector256);
     }
+
+    private static void AssertHighBitDepthTransform2dParity<TColumnOperator, TRowOperator>(Av1TransformType transformType, Av1TransformSize transformSize)
+        where TColumnOperator : struct, IAv1Transform1dOperator
+        where TRowOperator : struct, IAv1Transform1dOperator
+    {
+        const int bitDepth = 10;
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        int[] coefficients = CreateCoefficients(width * height);
+        short[] prediction = new short[coefficients.Length];
+
+        for (int index = 0; index < prediction.Length; index++)
+        {
+            prediction[index] = (short)(256 + ((index * 47) % 512));
+        }
+
+        short[] scalar = new short[prediction.Length];
+        short[] vector128 = new short[prediction.Length];
+        short[] vector256 = new short[prediction.Length];
+        int[] scalarWorkspace = new int[Av1TransformWorkspace.MaximumLength];
+        int[] vector128Workspace = new int[Av1TransformWorkspace.MaximumLength];
+        int[] vector256Workspace = new int[Av1TransformWorkspace.MaximumLength];
+        Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(transformType, transformSize, bitDepth);
+
+        Av1Inverse2dTransformer.Transform2dScalar<short, Av1HighBitDepthInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
+            coefficients, prediction, width, scalar, width, ref config, scalarWorkspace, bitDepth);
+
+        Av1Inverse2dTransformer.Transform2dVector128<short, Av1HighBitDepthInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
+            coefficients, prediction, width, vector128, width, ref config, vector128Workspace, bitDepth);
+
+        Av1Inverse2dTransformer.Transform2dVector256<short, Av1HighBitDepthInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
+            coefficients, prediction, width, vector256, width, ref config, vector256Workspace, bitDepth);
+
+        Assert.Equal(scalar, vector128);
+        Assert.Equal(scalar, vector256);
+    }
+
+    private static int[] CreateCoefficients(int length)
+    {
+        int[] coefficients = new int[length];
+
+        for (int index = 0; index < coefficients.Length; index++)
+        {
+            coefficients[index] = ((index * 37) % 129) - 64;
+        }
+
+        return coefficients;
+    }
+
+    private static int GetInputValue(int index, int lane) => (((index * 73) + (lane * 151)) % 1023) - 511;
 }

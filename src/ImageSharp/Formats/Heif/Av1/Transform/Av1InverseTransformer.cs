@@ -19,8 +19,17 @@ internal class Av1InverseTransformer
     /// <param name="plane">The zero-based Y, U, or V plane index.</param>
     /// <param name="numberOfCoefficients">The decoded coefficient end position.</param>
     /// <param name="isLossless">Whether the segment uses lossless transform rules.</param>
-    /// <remarks>Corresponds to <c>svt_aom_inv_transform_recon8bit</c> in the original WIP reference.</remarks>
-    public static void Reconstruct8Bit(Span<int> coefficientsBuffer, Span<byte> reconstructionBuffer, int reconstructionStride, Av1TransformSize transformSize, Av1TransformType transformType, int plane, int numberOfCoefficients, bool isLossless)
+    /// <param name="workspace">The reusable transform workspace for the containing block decode.</param>
+    public static void Reconstruct8Bit(
+        Span<int> coefficientsBuffer,
+        Span<byte> reconstructionBuffer,
+        int reconstructionStride,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        int plane,
+        int numberOfCoefficients,
+        bool isLossless,
+        Span<int> workspace)
     {
         Av1TransformFunctionParameters transformFunctionParameters = new()
         {
@@ -33,7 +42,7 @@ internal class Av1InverseTransformer
         };
 
         Av1InverseTransformerFactory.InverseTransformAdd(
-            coefficientsBuffer, reconstructionBuffer, reconstructionStride, reconstructionBuffer, reconstructionStride, transformFunctionParameters);
+            coefficientsBuffer, reconstructionBuffer, reconstructionStride, reconstructionBuffer, reconstructionStride, transformFunctionParameters, workspace);
     }
 
     /// <summary>
@@ -49,8 +58,19 @@ internal class Av1InverseTransformer
     /// <param name="plane">The zero-based Y, U, or V plane index.</param>
     /// <param name="numberOfCoefficients">The decoded coefficient end position.</param>
     /// <param name="isLossless">Whether the segment uses lossless transform rules.</param>
-    /// <remarks>Corresponds to <c>svt_aom_inv_transform_recon8bit</c> in the original WIP reference.</remarks>
-    public static void Reconstruct8Bit(Span<int> coefficientsBuffer, Span<byte> reconstructionBufferRead, int reconstructionReadStride, Span<byte> reconstructionBufferWrite, int reconstructionWriteStride, Av1TransformSize transformSize, Av1TransformType transformType, int plane, int numberOfCoefficients, bool isLossless)
+    /// <param name="workspace">The reusable transform workspace for the containing block decode.</param>
+    public static void Reconstruct8Bit(
+        Span<int> coefficientsBuffer,
+        Span<byte> reconstructionBufferRead,
+        int reconstructionReadStride,
+        Span<byte> reconstructionBufferWrite,
+        int reconstructionWriteStride,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        int plane,
+        int numberOfCoefficients,
+        bool isLossless,
+        Span<int> workspace)
     {
         Av1TransformFunctionParameters transformFunctionParameters = new()
         {
@@ -67,7 +87,13 @@ internal class Av1InverseTransformer
         transformFunctionParameters.EndOfBuffer = Av1InverseTransformMath.GetMaxEndOfBuffer(transformSize);
 
         Av1InverseTransformerFactory.InverseTransformAdd(
-            coefficientsBuffer, reconstructionBufferRead, reconstructionReadStride, reconstructionBufferWrite, reconstructionWriteStride, transformFunctionParameters);
+            coefficientsBuffer,
+            reconstructionBufferRead,
+            reconstructionReadStride,
+            reconstructionBufferWrite,
+            reconstructionWriteStride,
+            transformFunctionParameters,
+            workspace);
     }
 
     /// <summary>
@@ -82,8 +108,19 @@ internal class Av1InverseTransformer
     /// <param name="numberOfCoefficients">The decoded coefficient end position.</param>
     /// <param name="isLossless">Whether the segment uses lossless transform rules.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="workspace">The reusable transform workspace for the containing block decode.</param>
     /// <remarks>Implements the reconstruction operation in AV1 section 7.11.2.</remarks>
-    public static void ReconstructHighBitDepth(Span<int> coefficientsBuffer, Span<short> reconstructionBuffer, int reconstructionStride, Av1TransformSize transformSize, Av1TransformType transformType, int plane, int numberOfCoefficients, bool isLossless, Av1BitDepth bitDepth)
+    public static void ReconstructHighBitDepth(
+        Span<int> coefficientsBuffer,
+        Span<short> reconstructionBuffer,
+        int reconstructionStride,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        int plane,
+        int numberOfCoefficients,
+        bool isLossless,
+        Av1BitDepth bitDepth,
+        Span<int> workspace)
     {
         Av1TransformFunctionParameters transformFunctionParameters = new()
         {
@@ -96,6 +133,6 @@ internal class Av1InverseTransformer
         };
 
         Av1InverseTransformerFactory.InverseTransformAdd(
-            coefficientsBuffer, reconstructionBuffer, reconstructionStride, reconstructionBuffer, reconstructionStride, transformFunctionParameters);
+            coefficientsBuffer, reconstructionBuffer, reconstructionStride, reconstructionBuffer, reconstructionStride, transformFunctionParameters, workspace);
     }
 }

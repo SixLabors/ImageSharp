@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
@@ -110,9 +111,11 @@ internal class Av1BlockDecoder
     /// <param name="blockSize">The decoded block size.</param>
     /// <param name="superblockInfo">The owning superblock's transform and coefficient storage.</param>
     /// <param name="tileInfo">The tile boundaries used to determine neighbor availability.</param>
-    /// <remarks>Corresponds to <c>svt_aom_decode_block</c> in the original WIP reference.</remarks>
     public void DecodeBlock(Av1BlockModeInfo modeInfo, Point modeInfoPosition, Av1BlockSize blockSize, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
+        using IMemoryOwner<int> transformWorkspaceOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(Av1TransformWorkspace.MaximumLength);
+        Span<int> transformWorkspace = transformWorkspaceOwner.Memory.Span;
+
         ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
         Av1TransformType transformType;
         Av1TransformSize transformSize;
@@ -245,35 +248,33 @@ internal class Av1BlockDecoder
                     }
                 }
 
-                // if (!inter_block)
+                // The bounded image-item decoder reconstructs intra-only AV1 still pictures, so every transform unit
+                // predicts its samples before any coded residual is added.
+                if (highBitDepth)
                 {
-                    // SVT: svt_av1_predict_intra
-                    if (highBitDepth)
-                    {
-                        predictionDecoder.Decode(
-                            partitionInfo,
-                            (Av1Plane)plane,
-                            transformSize,
-                            tileInfo,
-                            highBitDepthTransformBlockReconstructionBuffer,
-                            reconstructionStride,
-                            this.frameBuffer.BitDepth,
-                            transformInfo[0].OffsetX,
-                            transformInfo[0].OffsetY);
-                    }
-                    else
-                    {
-                        predictionDecoder.Decode(
-                            partitionInfo,
-                            (Av1Plane)plane,
-                            transformSize,
-                            tileInfo,
-                            transformBlockReconstructionBuffer,
-                            reconstructionStride,
-                            this.frameBuffer.BitDepth,
-                            transformInfo[0].OffsetX,
-                            transformInfo[0].OffsetY);
-                    }
+                    predictionDecoder.Decode(
+                        partitionInfo,
+                        (Av1Plane)plane,
+                        transformSize,
+                        tileInfo,
+                        highBitDepthTransformBlockReconstructionBuffer,
+                        reconstructionStride,
+                        this.frameBuffer.BitDepth,
+                        transformInfo[0].OffsetX,
+                        transformInfo[0].OffsetY);
+                }
+                else
+                {
+                    predictionDecoder.Decode(
+                        partitionInfo,
+                        (Av1Plane)plane,
+                        transformSize,
+                        tileInfo,
+                        transformBlockReconstructionBuffer,
+                        reconstructionStride,
+                        this.frameBuffer.BitDepth,
+                        transformInfo[0].OffsetX,
+                        transformInfo[0].OffsetY);
                 }
 
                 int numberOfCoefficients = 0;
@@ -285,7 +286,7 @@ internal class Av1BlockDecoder
                     quantizationCoefficients[..inverseQuantizationSize].Clear();
                     transformType = transformInfo[0].Type;
 
-                    // SVT: svt_aom_inverse_quantize
+                    // Inverse quantization writes raster coefficients into the reusable superblock scratch plane.
                     numberOfCoefficients = inverseQuantizer.InverseQuantize(
                         modeInfo, coefficients, quantizationCoefficients, transformType, transformSize, (Av1Plane)plane);
                     if (numberOfCoefficients != 0)
@@ -306,11 +307,12 @@ internal class Av1BlockDecoder
                                 plane,
                                 numberOfCoefficients,
                                 isLossless,
-                                this.frameBuffer.BitDepth);
+                                this.frameBuffer.BitDepth,
+                                transformWorkspace);
                         }
                         else
                         {
-                            // SVT: svt_aom_inv_transform_recon8bit
+                            // The byte pipeline adds the inverse-transform residual directly to the prediction block.
                             Av1InverseTransformer.Reconstruct8Bit(
                                 quantizationCoefficients,
                                 transformBlockReconstructionBuffer,
@@ -319,7 +321,8 @@ internal class Av1BlockDecoder
                                 transformType,
                                 plane,
                                 numberOfCoefficients,
-                                isLossless);
+                                isLossless,
+                                transformWorkspace);
                         }
                     }
                 }
@@ -372,7 +375,15 @@ internal class Av1BlockDecoder
     /// <param name="reconstructionStride">The number of logical samples between rows.</param>
     /// <param name="subX">The chroma horizontal subsampling shift.</param>
     /// <param name="subY">The chroma vertical subsampling shift.</param>
-    private static void DeriveBlockPointers(Av1FrameBuffer<byte> frameBuffer, int plane, int blockColumnInPixels, int blockRowInPixels, out Span<byte> blockReconstructionBuffer, out int reconstructionStride, int subX, int subY)
+    private static void DeriveBlockPointers(
+        Av1FrameBuffer<byte> frameBuffer,
+        int plane,
+        int blockColumnInPixels,
+        int blockRowInPixels,
+        out Span<byte> blockReconstructionBuffer,
+        out int reconstructionStride,
+        int subX,
+        int subY)
     {
         int blockOffset;
 

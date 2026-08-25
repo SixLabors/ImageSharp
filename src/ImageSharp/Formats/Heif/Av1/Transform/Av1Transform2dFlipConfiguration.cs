@@ -1,12 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 /// <summary>
 /// Resolves an AV1 compound transform into its per-axis functions, flips, shifts, and stage ranges.
 /// </summary>
-internal class Av1Transform2dFlipConfiguration
+internal ref struct Av1Transform2dFlipConfiguration
 {
     /// <summary>
     /// The maximum number of fixed-point stages in any supported one-dimensional transform.
@@ -19,9 +21,76 @@ internal class Av1Transform2dFlipConfiguration
     private const int SmallestTransformSizeLog2 = 2;
 
     /// <summary>
-    /// Maps each compound transform type to the function applied down the transform columns.
+    /// The fixed-point cosine precision used by every inverse transform.
     /// </summary>
-    private static readonly Av1TransformType1d[] VerticalType =
+    private const int InverseCosBit = 12;
+
+    /// <summary>
+    /// The fixed-point shifts applied between successive stages of the configured transform pipeline.
+    /// </summary>
+    private ShiftBuffer shift;
+
+    /// <summary>
+    /// The signed-bit ranges produced by the column transform stages.
+    /// </summary>
+    private Av1TransformStageRange stageRangeColumn;
+
+    /// <summary>
+    /// The signed-bit ranges produced by the row transform stages.
+    /// </summary>
+    private Av1TransformStageRange stageRangeRow;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1Transform2dFlipConfiguration"/> struct.
+    /// </summary>
+    /// <param name="transformType">The compound horizontal and vertical transform type.</param>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="isForward">Whether to configure the forward transform pipeline.</param>
+    private Av1Transform2dFlipConfiguration(Av1TransformType transformType, Av1TransformSize transformSize, int bitDepth, bool isForward)
+    {
+        this = default;
+
+        // Resolve the axis operators and fixed-point settings once so the hot traversal contains no per-row
+        // transform-type lookup or flip decision.
+        this.TransformSize = transformSize;
+        this.TransformType = transformType;
+        this.SetFlip(transformType);
+        this.TransformTypeColumn = VerticalType[(int)transformType];
+        this.TransformTypeRow = HorizontalType[(int)transformType];
+        int transformWidthIndex = transformSize.GetBlockWidthLog2() - SmallestTransformSizeLog2;
+        int transformHeightIndex = transformSize.GetBlockHeightLog2() - SmallestTransformSizeLog2;
+        this.TransformFunctionTypeColumn = TransformFunctionTypeMap[(transformHeightIndex * 4) + (int)this.TransformTypeColumn];
+        this.TransformFunctionTypeRow = TransformFunctionTypeMap[(transformWidthIndex * 4) + (int)this.TransformTypeRow];
+        this.StageNumberColumn = this.TransformFunctionTypeColumn != Av1TransformFunctionType.Invalid ? StageNumberList[(int)this.TransformFunctionTypeColumn] : -1;
+        this.StageNumberRow = this.TransformFunctionTypeRow != Av1TransformFunctionType.Invalid ? StageNumberList[(int)this.TransformFunctionTypeRow] : -1;
+
+        if (isForward)
+        {
+            int shiftIndex = (int)transformSize * 3;
+            this.shift[0] = ForwardShiftMap[shiftIndex];
+            this.shift[1] = ForwardShiftMap[shiftIndex + 1];
+            this.shift[2] = ForwardShiftMap[shiftIndex + 2];
+            this.CosBitColumn = ForwardCosBitColumnMap[(transformWidthIndex * 5) + transformHeightIndex];
+            this.CosBitRow = ForwardCosBitRowMap[(transformWidthIndex * 5) + transformHeightIndex];
+            this.InitializeForwardStageRange();
+            this.GenerateForwardStageRange(bitDepth);
+        }
+        else
+        {
+            int shiftIndex = (int)transformSize * 2;
+            this.shift[0] = InverseShiftMap[shiftIndex];
+            this.shift[1] = InverseShiftMap[shiftIndex + 1];
+            this.CosBitColumn = InverseCosBit;
+            this.CosBitRow = InverseCosBit;
+            this.GenerateInverseStageRange(bitDepth);
+        }
+    }
+
+    /// <summary>
+    /// Gets the function applied down the transform columns for each compound transform type.
+    /// </summary>
+    private static ReadOnlySpan<Av1TransformType1d> VerticalType =>
         [
             Av1TransformType1d.Dct,
             Av1TransformType1d.Adst,
@@ -42,9 +111,9 @@ internal class Av1Transform2dFlipConfiguration
         ];
 
     /// <summary>
-    /// Maps each compound transform type to the function applied across the transform rows.
+    /// Gets the function applied across the transform rows for each compound transform type.
     /// </summary>
-    private static readonly Av1TransformType1d[] HorizontalType =
+    private static ReadOnlySpan<Av1TransformType1d> HorizontalType =>
         [
             Av1TransformType1d.Dct,
             Av1TransformType1d.Dct,
@@ -65,59 +134,97 @@ internal class Av1Transform2dFlipConfiguration
         ];
 
     /// <summary>
-    /// Contains the three normative fixed-point shifts for every transform size.
+    /// Gets the three normative forward fixed-point shifts for every transform size.
     /// </summary>
-    private static readonly int[][] ShiftMap =
+    private static ReadOnlySpan<int> ForwardShiftMap =>
         [
-            [2, 0, 0], // 4x4
-            [2, -1, 0], // 8x8
-            [2, -2, 0], // 16x16
-            [2, -4, 0], // 32x32
-            [0, -2, -2], // 64x64
-            [2, -1, 0], // 4x8
-            [2, -1, 0], // 8x4
-            [2, -2, 0], // 8x16
-            [2, -2, 0], // 16x8
-            [2, -4, 0], // 16x32
-            [2, -4, 0], // 32x16
-            [0, -2, -2], // 32x64
-            [2, -4, -2], // 64x32
-            [2, -1, 0], // 4x16
-            [2, -1, 0], // 16x4
-            [2, -2, 0], // 8x32
-            [2, -2, 0], // 32x8
-            [0, -2, 0], // 16x64
-            [2, -4, 0], // 64x16
+            2, 0, 0, // 4x4
+            2, -1, 0, // 8x8
+            2, -2, 0, // 16x16
+            2, -4, 0, // 32x32
+            0, -2, -2, // 64x64
+            2, -1, 0, // 4x8
+            2, -1, 0, // 8x4
+            2, -2, 0, // 8x16
+            2, -2, 0, // 16x8
+            2, -4, 0, // 16x32
+            2, -4, 0, // 32x16
+            0, -2, -2, // 32x64
+            2, -4, -2, // 64x32
+            2, -1, 0, // 4x16
+            2, -1, 0, // 16x4
+            2, -2, 0, // 8x32
+            2, -2, 0, // 32x8
+            0, -2, 0, // 16x64
+            2, -4, 0, // 64x16
         ];
 
     /// <summary>
-    /// Selects column-transform cosine precision by width and height logarithm.
+    /// Gets the two normative inverse fixed-point shifts for every transform size.
     /// </summary>
-    private static readonly int[][] CosBitColumnMap =
-        [[13, 13, 13, 0, 0], [13, 13, 13, 12, 0], [13, 13, 13, 12, 13], [0, 13, 13, 12, 13], [0, 0, 13, 12, 13]];
-
-    /// <summary>
-    /// Selects row-transform cosine precision by width and height logarithm.
-    /// </summary>
-    private static readonly int[][] CosBitRowMap =
-        [[13, 13, 12, 0, 0], [13, 13, 13, 12, 0], [13, 13, 12, 13, 12], [0, 12, 13, 12, 11], [0, 0, 12, 11, 10]];
-
-    /// <summary>
-    /// Maps a transform dimension and one-dimensional type to its concrete staged function.
-    /// </summary>
-    private static readonly Av1TransformFunctionType[][] TransformFunctionTypeMap =
+    private static ReadOnlySpan<int> InverseShiftMap =>
         [
-            [Av1TransformFunctionType.Dct4, Av1TransformFunctionType.Adst4, Av1TransformFunctionType.Adst4, Av1TransformFunctionType.Identity4],
-            [Av1TransformFunctionType.Dct8, Av1TransformFunctionType.Adst8, Av1TransformFunctionType.Adst8, Av1TransformFunctionType.Identity8],
-            [Av1TransformFunctionType.Dct16, Av1TransformFunctionType.Adst16, Av1TransformFunctionType.Adst16, Av1TransformFunctionType.Identity16],
-            [Av1TransformFunctionType.Dct32, Av1TransformFunctionType.Adst32, Av1TransformFunctionType.Adst32, Av1TransformFunctionType.Identity32],
-            [Av1TransformFunctionType.Dct64, Av1TransformFunctionType.Invalid, Av1TransformFunctionType.Invalid, Av1TransformFunctionType.Identity64]
+            0, -4, // 4x4
+            -1, -4, // 8x8
+            -2, -4, // 16x16
+            -2, -4, // 32x32
+            -2, -4, // 64x64
+            0, -4, // 4x8
+            0, -4, // 8x4
+            -1, -4, // 8x16
+            -1, -4, // 16x8
+            -1, -4, // 16x32
+            -1, -4, // 32x16
+            -1, -4, // 32x64
+            -1, -4, // 64x32
+            -1, -4, // 4x16
+            -1, -4, // 16x4
+            -2, -4, // 8x32
+            -2, -4, // 32x8
+            -2, -4, // 16x64
+            -2, -4, // 64x16
         ];
 
     /// <summary>
-    /// Contains the number of fixed-point stages executed by each concrete transform function.
+    /// Gets column-transform cosine precision by width and height logarithm.
     /// </summary>
-    private static readonly int[] StageNumberList =
+    private static ReadOnlySpan<int> ForwardCosBitColumnMap =>
+    [
+        13, 13, 13, 0, 0,
+        13, 13, 13, 12, 0,
+        13, 13, 13, 12, 13,
+        0, 13, 13, 12, 13,
+        0, 0, 13, 12, 13,
+    ];
+
+    /// <summary>
+    /// Gets row-transform cosine precision by width and height logarithm.
+    /// </summary>
+    private static ReadOnlySpan<int> ForwardCosBitRowMap =>
+    [
+        13, 13, 12, 0, 0,
+        13, 13, 13, 12, 0,
+        13, 13, 12, 13, 12,
+        0, 12, 13, 12, 11,
+        0, 0, 12, 11, 10,
+    ];
+
+    /// <summary>
+    /// Gets the concrete staged function for each transform dimension and one-dimensional type.
+    /// </summary>
+    private static ReadOnlySpan<Av1TransformFunctionType> TransformFunctionTypeMap =>
+        [
+            Av1TransformFunctionType.Dct4, Av1TransformFunctionType.Adst4, Av1TransformFunctionType.Adst4, Av1TransformFunctionType.Identity4,
+            Av1TransformFunctionType.Dct8, Av1TransformFunctionType.Adst8, Av1TransformFunctionType.Adst8, Av1TransformFunctionType.Identity8,
+            Av1TransformFunctionType.Dct16, Av1TransformFunctionType.Adst16, Av1TransformFunctionType.Adst16, Av1TransformFunctionType.Identity16,
+            Av1TransformFunctionType.Dct32, Av1TransformFunctionType.Invalid, Av1TransformFunctionType.Invalid, Av1TransformFunctionType.Identity32,
+            Av1TransformFunctionType.Dct64, Av1TransformFunctionType.Invalid, Av1TransformFunctionType.Invalid, Av1TransformFunctionType.Invalid,
+        ];
+
+    /// <summary>
+    /// Gets the number of fixed-point stages executed by each concrete transform function.
+    /// </summary>
+    private static ReadOnlySpan<int> StageNumberList =>
         [
             4, // TXFM_TYPE_DCT4
             6, // TXFM_TYPE_DCT8
@@ -127,67 +234,30 @@ internal class Av1Transform2dFlipConfiguration
             7, // TXFM_TYPE_ADST4
             8, // TXFM_TYPE_ADST8
             10, // TXFM_TYPE_ADST16
-            12, // TXFM_TYPE_ADST32
             1, // TXFM_TYPE_IDENTITY4
             1, // TXFM_TYPE_IDENTITY8
             1, // TXFM_TYPE_IDENTITY16
             1, // TXFM_TYPE_IDENTITY32
-            1, // TXFM_TYPE_IDENTITY64
         ];
 
     /// <summary>
-    /// Contains twice the non-scaled bit range required after every transform stage.
+    /// Gets twice the non-scaled bit range required after every transform stage.
     /// </summary>
-    private static readonly int[][] RangeMulti2List =
+    private static ReadOnlySpan<int> RangeMulti2Map =>
         [
-            [0, 2, 3, 3], // fdct4_range_mult2
-            [0, 2, 4, 5, 5, 5], // fdct8_range_mult2
-            [0, 2, 4, 6, 7, 7, 7, 7], // fdct16_range_mult2
-            [0, 2, 4, 6, 8, 9, 9, 9, 9, 9], // fdct32_range_mult2
-            [0, 2, 4, 6, 8, 10, 11, 11, 11, 11, 11, 11], // fdct64_range_mult2
-            [0, 2, 4, 3, 3, 3, 3], // fadst4_range_mult2
-            [0, 0, 1, 3, 3, 5, 5, 5], // fadst8_range_mult2
-            [0, 0, 1, 3, 3, 5, 5, 7, 7, 7], // fadst16_range_mult2
-            [0, 0, 1, 3, 3, 5, 5, 7, 7, 9, 9, 9], // fadst32_range_mult2
-            [1], // fidtx4_range_mult2
-            [2], // fidtx8_range_mult2
-            [3], // fidtx16_range_mult2
-            [4], // fidtx32_range_mult2
-            [5], // fidtx64_range_mult2
+            0, 2, 3, 3, 0, 0, 0, 0, 0, 0, 0, 0, // fdct4_range_mult2
+            0, 2, 4, 5, 5, 5, 0, 0, 0, 0, 0, 0, // fdct8_range_mult2
+            0, 2, 4, 6, 7, 7, 7, 7, 0, 0, 0, 0, // fdct16_range_mult2
+            0, 2, 4, 6, 8, 9, 9, 9, 9, 9, 0, 0, // fdct32_range_mult2
+            0, 2, 4, 6, 8, 10, 11, 11, 11, 11, 11, 11, // fdct64_range_mult2
+            0, 2, 4, 3, 3, 3, 3, 0, 0, 0, 0, 0, // fadst4_range_mult2
+            0, 0, 1, 3, 3, 5, 5, 5, 0, 0, 0, 0, // fadst8_range_mult2
+            0, 0, 1, 3, 3, 5, 5, 7, 7, 7, 0, 0, // fadst16_range_mult2
+            1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // fidtx4_range_mult2
+            2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // fidtx8_range_mult2
+            3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // fidtx16_range_mult2
+            4, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // fidtx32_range_mult2
         ];
-
-    /// <summary>
-    /// The three fixed-point shifts applied before the column transform, between axes, and after the row transform.
-    /// </summary>
-    private int[] shift;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="Av1Transform2dFlipConfiguration"/> class.
-    /// </summary>
-    /// <param name="transformType">The compound horizontal and vertical transform type.</param>
-    /// <param name="transformSize">The transform-block dimensions.</param>
-    public Av1Transform2dFlipConfiguration(Av1TransformType transformType, Av1TransformSize transformSize)
-    {
-        // SVT: svt_av1_get_inv_txfm_cfg
-        // SVT: svt_aom_transform_config
-        this.TransformSize = transformSize;
-        this.TransformType = transformType;
-        this.SetFlip(transformType);
-        this.TransformTypeColumn = VerticalType[(int)transformType];
-        this.TransformTypeRow = HorizontalType[(int)transformType];
-        int transformWidthIndex = transformSize.GetBlockWidthLog2() - SmallestTransformSizeLog2;
-        int transformHeightIndex = transformSize.GetBlockHeightLog2() - SmallestTransformSizeLog2;
-        this.shift = ShiftMap[(int)transformSize];
-        this.CosBitColumn = CosBitColumnMap[transformWidthIndex][transformHeightIndex];
-        this.CosBitRow = CosBitRowMap[transformWidthIndex][transformHeightIndex];
-        this.TransformFunctionTypeColumn = TransformFunctionTypeMap[transformHeightIndex][(int)this.TransformTypeColumn];
-        this.TransformFunctionTypeRow = TransformFunctionTypeMap[transformWidthIndex][(int)this.TransformTypeRow];
-        this.StageNumberColumn = this.TransformFunctionTypeColumn != Av1TransformFunctionType.Invalid ? StageNumberList[(int)this.TransformFunctionTypeColumn] : -1;
-        this.StageNumberRow = this.TransformFunctionTypeRow != Av1TransformFunctionType.Invalid ? StageNumberList[(int)this.TransformFunctionTypeRow] : -1;
-        this.StageRangeColumn = new byte[12];
-        this.StageRangeRow = new byte[12];
-        this.NonScaleRange();
-    }
 
     /// <summary>
     /// Gets the fixed-point cosine precision used by the column transform.
@@ -250,116 +320,64 @@ internal class Av1Transform2dFlipConfiguration
     public bool FlipLeftToRight { get; private set; }
 
     /// <summary>
-    /// Gets the three fixed-point shifts applied by the two-dimensional transform pipeline.
+    /// Gets the first fixed-point pipeline shift.
     /// </summary>
-    public Span<int> Shift => this.shift;
+    public readonly int Shift0 => this.shift[0];
+
+    /// <summary>
+    /// Gets the second fixed-point pipeline shift.
+    /// </summary>
+    public readonly int Shift1 => this.shift[1];
+
+    /// <summary>
+    /// Gets the terminal forward-transform shift, or zero for an inverse transform.
+    /// </summary>
+    public readonly int Shift2 => this.shift[2];
 
     /// <summary>
     /// Gets the allowed signed-bit range after each column-transform stage.
     /// </summary>
-    public byte[] StageRangeColumn { get; }
+    public readonly Av1TransformStageRange StageRangeColumn => this.stageRangeColumn;
 
     /// <summary>
     /// Gets the allowed signed-bit range after each row-transform stage.
     /// </summary>
-    public byte[] StageRangeRow { get; }
+    public readonly Av1TransformStageRange StageRangeRow => this.stageRangeRow;
 
     /// <summary>
-    /// Adds input bit depth and inter-stage shifts to the non-scaled stage ranges.
+    /// Creates the configuration used to transform spatial residuals into coefficients.
     /// </summary>
+    /// <param name="transformType">The compound horizontal and vertical transform type.</param>
+    /// <param name="transformSize">The transform-block dimensions.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
-    /// <remarks>
-    /// Corresponds to <c>svt_av1_gen_fwd_stage_range</c> and <c>svt_av1_gen_inv_stage_range</c>
-    /// in the original WIP reference.
-    /// </remarks>
-    public void GenerateStageRange(int bitDepth)
-    {
-        // Take the shift from the larger dimension in the rectangular case.
-        Span<int> shift = this.Shift;
+    /// <returns>The forward transform configuration.</returns>
+    public static Av1Transform2dFlipConfiguration CreateForward(Av1TransformType transformType, Av1TransformSize transformSize, int bitDepth)
+        => new(transformType, transformSize, bitDepth, true);
 
-        // i < MAX_TXFM_STAGE_NUM will mute above array bounds warning
-        for (int i = 0; i < this.StageNumberColumn && i < MaxStageNumber; ++i)
-        {
-            this.StageRangeColumn[i] = (byte)(this.StageRangeColumn[i] + shift[0] + bitDepth + 1);
-        }
-
-        // i < MAX_TXFM_STAGE_NUM will mute above array bounds warning
-        for (int i = 0; i < this.StageNumberRow && i < MaxStageNumber; ++i)
-        {
-            this.StageRangeRow[i] = (byte)(this.StageRangeRow[i] + shift[0] + shift[1] + bitDepth + 1);
-        }
-    }
+    /// <summary>
+    /// Creates the configuration used to reconstruct samples from transform coefficients.
+    /// </summary>
+    /// <param name="transformType">The compound horizontal and vertical transform type.</param>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <returns>The inverse transform configuration.</returns>
+    public static Av1Transform2dFlipConfiguration CreateInverse(Av1TransformType transformType, Av1TransformSize transformSize, int bitDepth)
+        => new(transformType, transformSize, bitDepth, false);
 
     /// <summary>
     /// Determines whether the transform type is permitted for the configured dimensions.
     /// </summary>
     /// <returns><see langword="true"/> when the transform combination is valid for the transform size.</returns>
-    /// <remarks>Corresponds to <c>is_txfm_allowed</c> in the original WIP reference.</remarks>
     public bool IsAllowed()
-    {
-        Av1TransformType[] supportedTypes =
-            [
-                Av1TransformType.DctDct,
-                Av1TransformType.AdstDct,
-                Av1TransformType.DctAdst,
-                Av1TransformType.AdstAdst,
-                Av1TransformType.FlipAdstDct,
-                Av1TransformType.DctFlipAdst,
-                Av1TransformType.FlipAdstFlipAdst,
-                Av1TransformType.AdstFlipAdst,
-                Av1TransformType.FlipAdstAdst,
-                Av1TransformType.Identity,
-                Av1TransformType.VerticalDct,
-                Av1TransformType.HorizontalDct,
-                Av1TransformType.VerticalAdst,
-                Av1TransformType.HorizontalAdst,
-                Av1TransformType.VerticalFlipAdst,
-                Av1TransformType.HorizontalFlipAdst,
-            ];
-
-        switch (this.TransformSize)
+        => this.TransformSize switch
         {
-            case Av1TransformSize.Size32x32:
-                supportedTypes = [Av1TransformType.DctDct, Av1TransformType.Identity, Av1TransformType.VerticalDct, Av1TransformType.HorizontalDct];
-                break;
-            case Av1TransformSize.Size32x64:
-            case Av1TransformSize.Size64x32:
-            case Av1TransformSize.Size16x64:
-            case Av1TransformSize.Size64x16:
-                supportedTypes = [Av1TransformType.DctDct];
-                break;
-            case Av1TransformSize.Size16x32:
-            case Av1TransformSize.Size32x16:
-            case Av1TransformSize.Size64x64:
-            case Av1TransformSize.Size8x32:
-            case Av1TransformSize.Size32x8:
-                supportedTypes = [Av1TransformType.DctDct, Av1TransformType.Identity];
-                break;
-            default:
-                break;
-        }
-
-        return supportedTypes.Contains(this.TransformType);
-    }
-
-    /// <summary>
-    /// Replaces the three transform-pipeline shifts.
-    /// </summary>
-    /// <param name="shift0">The pre-column-transform shift.</param>
-    /// <param name="shift1">The shift between the column and row transforms.</param>
-    /// <param name="shift2">The post-row-transform shift.</param>
-    internal void SetShift(int shift0, int shift1, int shift2) => this.shift = [shift0, shift1, shift2];
-
-    /// <summary>
-    /// Overrides the axis traversal directions.
-    /// </summary>
-    /// <param name="upsideDown">Whether column input is traversed from bottom to top.</param>
-    /// <param name="leftToRight">Whether row output is written from right to left.</param>
-    internal void SetFlip(bool upsideDown, bool leftToRight)
-    {
-        this.FlipUpsideDown = upsideDown;
-        this.FlipLeftToRight = leftToRight;
-    }
+            Av1TransformSize.Size32x32 =>
+                this.TransformType is Av1TransformType.DctDct or Av1TransformType.Identity or Av1TransformType.VerticalDct or Av1TransformType.HorizontalDct,
+            Av1TransformSize.Size32x64 or Av1TransformSize.Size64x32 or Av1TransformSize.Size16x64 or Av1TransformSize.Size64x16 => this.TransformType == Av1TransformType.DctDct,
+            Av1TransformSize.Size16x32 or Av1TransformSize.Size32x16 or Av1TransformSize.Size64x64 or Av1TransformSize.Size8x32 or Av1TransformSize.Size32x8 =>
+                this.TransformType is Av1TransformType.DctDct or Av1TransformType.Identity,
+            _ => true,
+        };
 
     /// <summary>
     /// Derives the axis traversal directions encoded by a compound transform type.
@@ -409,27 +427,84 @@ internal class Av1Transform2dFlipConfiguration
     /// <summary>
     /// Initializes the per-stage signed-bit ranges before input depth and pipeline shifts are applied.
     /// </summary>
-    /// <remarks>Corresponds to <c>set_fwd_txfm_non_scale_range</c> in the original WIP reference.</remarks>
-    private void NonScaleRange()
+    private void InitializeForwardStageRange()
     {
         if (this.TransformFunctionTypeColumn != Av1TransformFunctionType.Invalid)
         {
-            Span<int> columnRangeTimesTwo = RangeMulti2List[(int)this.TransformFunctionTypeColumn];
+            int columnRangeOffset = (int)this.TransformFunctionTypeColumn * MaxStageNumber;
             int columnStageCount = this.StageNumberColumn;
+
             for (int i = 0; i < columnStageCount; ++i)
             {
-                this.StageRangeColumn[i] = (byte)((columnRangeTimesTwo[i] + 1) >> 1);
+                this.stageRangeColumn[i] = (byte)((RangeMulti2Map[columnRangeOffset + i] + 1) >> 1);
             }
 
             if (this.TransformFunctionTypeRow != Av1TransformFunctionType.Invalid)
             {
                 int rowStageCount = this.StageNumberRow;
-                Span<int> rowRangeTimesTwo = RangeMulti2List[(int)this.TransformFunctionTypeRow];
+                int rowRangeOffset = (int)this.TransformFunctionTypeRow * MaxStageNumber;
+                int columnRange = RangeMulti2Map[columnRangeOffset + this.StageNumberColumn - 1];
+
                 for (int i = 0; i < rowStageCount; ++i)
                 {
-                    this.StageRangeRow[i] = (byte)((columnRangeTimesTwo[this.StageNumberColumn - 1] + rowRangeTimesTwo[i] + 1) >> 1);
+                    this.stageRangeRow[i] = (byte)((columnRange + RangeMulti2Map[rowRangeOffset + i] + 1) >> 1);
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Adds input bit depth and inter-stage shifts to the non-scaled forward stage ranges.
+    /// </summary>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    private void GenerateForwardStageRange(int bitDepth)
+    {
+        for (int i = 0; i < this.StageNumberColumn; ++i)
+        {
+            this.stageRangeColumn[i] = (byte)(this.stageRangeColumn[i] + this.Shift0 + bitDepth + 1);
+        }
+
+        for (int i = 0; i < this.StageNumberRow; ++i)
+        {
+            this.stageRangeRow[i] = (byte)(this.stageRangeRow[i] + this.Shift0 + this.Shift1 + bitDepth + 1);
+        }
+    }
+
+    /// <summary>
+    /// Sets the optimized inverse stage ranges used to clamp intermediate values at the coded bit depth.
+    /// </summary>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    private void GenerateInverseStageRange(int bitDepth)
+    {
+        byte rowRange = bitDepth switch
+        {
+            8 => 16,
+            10 => 18,
+            _ => 20,
+        };
+
+        byte columnRange = bitDepth == 12 ? (byte)18 : (byte)16;
+
+        for (int i = 0; i < this.StageNumberColumn; ++i)
+        {
+            this.stageRangeColumn[i] = columnRange;
+        }
+
+        for (int i = 0; i < this.StageNumberRow; ++i)
+        {
+            this.stageRangeRow[i] = rowRange;
+        }
+    }
+
+    /// <summary>
+    /// Stores the three fixed-point shifts without allocating an array for each transform block.
+    /// </summary>
+    [InlineArray(3)]
+    private struct ShiftBuffer
+    {
+        /// <summary>
+        /// The first fixed-point shift.
+        /// </summary>
+        private int element0;
     }
 }

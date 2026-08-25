@@ -641,22 +641,6 @@ internal static class Av1TransferVectorOperators
         /// <param name="value">The input vector.</param>
         /// <returns>The lane-wise square root.</returns>
         public static abstract TVector Sqrt(TVector value);
-
-        /// <summary>
-        /// Converts nonlinear signal lanes to their H.273 linear-domain values.
-        /// </summary>
-        /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
-        /// <param name="value">The nonlinear signal values.</param>
-        /// <returns>The corresponding linear-domain values.</returns>
-        public static abstract TVector ToLinear(ObuTransferCharacteristics transferCharacteristics, TVector value);
-
-        /// <summary>
-        /// Converts linear signal lanes to their H.273 nonlinear-domain values.
-        /// </summary>
-        /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
-        /// <param name="value">The linear signal values.</param>
-        /// <returns>The corresponding nonlinear-domain values.</returns>
-        public static abstract TVector ToGamma(ObuTransferCharacteristics transferCharacteristics, TVector value);
     }
 
     /// <summary>
@@ -710,14 +694,6 @@ internal static class Av1TransferVectorOperators
 
         /// <inheritdoc/>
         public static Vector128<float> Sqrt(Vector128<float> value) => Vector128.Sqrt(value);
-
-        /// <inheritdoc/>
-        public static Vector128<float> ToLinear(ObuTransferCharacteristics transferCharacteristics, Vector128<float> value)
-            => Av1TransferFunctions.ToLinear(transferCharacteristics, value);
-
-        /// <inheritdoc/>
-        public static Vector128<float> ToGamma(ObuTransferCharacteristics transferCharacteristics, Vector128<float> value)
-            => Av1TransferFunctions.ToGamma(transferCharacteristics, value);
     }
 
     /// <summary>
@@ -771,14 +747,6 @@ internal static class Av1TransferVectorOperators
 
         /// <inheritdoc/>
         public static Vector256<float> Sqrt(Vector256<float> value) => Vector256.Sqrt(value);
-
-        /// <inheritdoc/>
-        public static Vector256<float> ToLinear(ObuTransferCharacteristics transferCharacteristics, Vector256<float> value)
-            => Av1TransferFunctions.ToLinear(transferCharacteristics, value);
-
-        /// <inheritdoc/>
-        public static Vector256<float> ToGamma(ObuTransferCharacteristics transferCharacteristics, Vector256<float> value)
-            => Av1TransferFunctions.ToGamma(transferCharacteristics, value);
     }
 
     /// <summary>
@@ -832,13 +800,5 @@ internal static class Av1TransferVectorOperators
 
         /// <inheritdoc/>
         public static Vector512<float> Sqrt(Vector512<float> value) => Vector512.Sqrt(value);
-
-        /// <inheritdoc/>
-        public static Vector512<float> ToLinear(ObuTransferCharacteristics transferCharacteristics, Vector512<float> value)
-            => Av1TransferFunctions.ToLinear(transferCharacteristics, value);
-
-        /// <inheritdoc/>
-        public static Vector512<float> ToGamma(ObuTransferCharacteristics transferCharacteristics, Vector512<float> value)
-            => Av1TransferFunctions.ToGamma(transferCharacteristics, value);
     }
 }

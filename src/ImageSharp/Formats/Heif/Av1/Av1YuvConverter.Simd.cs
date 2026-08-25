@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.PixelFormats;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 /// <content>
-/// Provides SIMD sample widening, chroma reconstruction, color traversal, and packed output for AV1 decoding.
+/// Provides SIMD sample widening, chroma reconstruction, planar storage, and packed output for AV1 color conversion.
 /// </content>
 internal static partial class Av1YuvConverter
 {
@@ -41,6 +41,35 @@ internal static partial class Av1YuvConverter
         /// <param name="source">The first source sample.</param>
         /// <returns>The widened samples.</returns>
         public static abstract Vector512<float> LoadVector512(ref TSample source);
+    }
+
+    /// <summary>
+    /// Defines the SIMD narrowing and storage operations for one encoded AV1 sample type.
+    /// </summary>
+    /// <typeparam name="TSample">The encoded sample type.</typeparam>
+    private interface ISampleStorer<TSample>
+        where TSample : unmanaged
+    {
+        /// <summary>
+        /// Narrows and stores four integer samples.
+        /// </summary>
+        /// <param name="source">The integer samples.</param>
+        /// <param name="destination">The first destination sample.</param>
+        public static abstract void Store(Vector128<int> source, ref TSample destination);
+
+        /// <summary>
+        /// Narrows and stores eight integer samples.
+        /// </summary>
+        /// <param name="source">The integer samples.</param>
+        /// <param name="destination">The first destination sample.</param>
+        public static abstract void Store(Vector256<int> source, ref TSample destination);
+
+        /// <summary>
+        /// Narrows and stores sixteen integer samples.
+        /// </summary>
+        /// <param name="source">The integer samples.</param>
+        /// <param name="destination">The first destination sample.</param>
+        public static abstract void Store(Vector512<int> source, ref TSample destination);
     }
 
     /// <summary>
@@ -357,158 +386,218 @@ internal static partial class Av1YuvConverter
     }
 
     /// <summary>
-    /// Dispatches one normalized component row to its matrix-specific scalar and SIMD operator.
+    /// Deinterleaves high-bit-depth RGB pixels into planar component rows.
     /// </summary>
-    /// <param name="red">The luma row, replaced by red.</param>
-    /// <param name="green">The blue-difference row, replaced by green.</param>
-    /// <param name="blue">The red-difference row, replaced by blue.</param>
-    /// <param name="isMonochrome">Whether the frame contains only luma samples.</param>
-    /// <param name="mode">The resolved H.273 conversion mode.</param>
-    /// <param name="parameters">The resolved H.273 conversion parameters.</param>
-    private static void ConvertYuvToRgbRow(
-        Span<float> red,
-        Span<float> green,
-        Span<float> blue,
-        bool isMonochrome,
-        ConversionMode mode,
-        in YuvToRgbParameters parameters)
-    {
-        if (isMonochrome)
-        {
-            ConvertYuvToRgbRow<MonochromeOperator>(red, green, blue, in parameters);
-            return;
-        }
-
-        switch (mode)
-        {
-            case ConversionMode.Identity:
-                ConvertYuvToRgbRow<IdentityOperator>(red, green, blue, in parameters);
-                break;
-            case ConversionMode.YCgCo:
-                ConvertYuvToRgbRow<YCgCoOperator>(red, green, blue, in parameters);
-                break;
-            case ConversionMode.Smpte2085:
-                ConvertYuvToRgbRow<Smpte2085Operator>(red, green, blue, in parameters);
-                break;
-            case ConversionMode.ConstantLuminance:
-                ConvertYuvToRgbRow<ConstantLuminanceOperator>(red, green, blue, in parameters);
-                break;
-            case ConversionMode.ICtCp when parameters.TransferCharacteristics == OpenBitstreamUnit.ObuTransferCharacteristics.Hlg:
-                ConvertYuvToRgbRow<ICtCpHlgOperator>(red, green, blue, in parameters);
-                break;
-            case ConversionMode.ICtCp:
-                ConvertYuvToRgbRow<ICtCpOperator>(red, green, blue, in parameters);
-                break;
-            default:
-                ConvertYuvToRgbRow<CoefficientsOperator>(red, green, blue, in parameters);
-                break;
-        }
-    }
-
-    /// <summary>
-    /// Converts one component row using the selected static scalar and SIMD operator.
-    /// </summary>
-    /// <typeparam name="TOperator">The matrix-specific conversion operator.</typeparam>
-    /// <param name="red">The luma row, replaced by red.</param>
-    /// <param name="green">The blue-difference row, replaced by green.</param>
-    /// <param name="blue">The red-difference row, replaced by blue.</param>
-    /// <param name="parameters">The resolved H.273 conversion parameters.</param>
-    private static void ConvertYuvToRgbRow<TOperator>(Span<float> red, Span<float> green, Span<float> blue, in YuvToRgbParameters parameters)
-        where TOperator : struct, IYuvToRgbOperator
+    /// <param name="source">The packed RGBA pixels.</param>
+    /// <param name="red">The destination red components.</param>
+    /// <param name="green">The destination green components.</param>
+    /// <param name="blue">The destination blue components.</param>
+    private static void DeinterleaveRgb48(ReadOnlySpan<Rgb48> source, Span<float> red, Span<float> green, Span<float> blue)
     {
         ref float redBase = ref MemoryMarshal.GetReference(red);
         ref float greenBase = ref MemoryMarshal.GetReference(green);
         ref float blueBase = ref MemoryMarshal.GetReference(blue);
-        int length = red.Length;
+        ref Rgb48 sourceBase = ref MemoryMarshal.GetReference(source);
+        int length = source.Length;
         int i = 0;
-
-        if (Vector512.IsHardwareAccelerated)
-        {
-            Vector512<float> lumaBias = Vector512.Create(parameters.LumaBias);
-            Vector512<float> inverseLumaScale = Vector512.Create(1F / parameters.LumaScale);
-            Vector512<float> chromaBias = Vector512.Create(parameters.ChromaBias);
-            Vector512<float> inverseChromaScale = Vector512.Create(1F / parameters.ChromaScale);
-            int oneVectorFromEnd = length - Vector512<float>.Count;
-            for (; i <= oneVectorFromEnd; i += Vector512<float>.Count)
-            {
-                ref Vector512<float> redVector = ref Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref redBase, i));
-                Vector512<float> y = (redVector - lumaBias) * inverseLumaScale;
-                Vector512<float> cb = default;
-                Vector512<float> cr = default;
-                if (TOperator.UsesChroma)
-                {
-                    cb = (Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref greenBase, i)) - chromaBias) * inverseChromaScale;
-                    cr = (Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref blueBase, i)) - chromaBias) * inverseChromaScale;
-                }
-
-                TOperator.Convert(ref y, ref cb, ref cr, in parameters);
-                redVector = y;
-                Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref greenBase, i)) = cb;
-                Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref blueBase, i)) = cr;
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            Vector256<float> lumaBias = Vector256.Create(parameters.LumaBias);
-            Vector256<float> inverseLumaScale = Vector256.Create(1F / parameters.LumaScale);
-            Vector256<float> chromaBias = Vector256.Create(parameters.ChromaBias);
-            Vector256<float> inverseChromaScale = Vector256.Create(1F / parameters.ChromaScale);
-            int oneVectorFromEnd = length - Vector256<float>.Count;
-            for (; i <= oneVectorFromEnd; i += Vector256<float>.Count)
-            {
-                ref Vector256<float> redVector = ref Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref redBase, i));
-                Vector256<float> y = (redVector - lumaBias) * inverseLumaScale;
-                Vector256<float> cb = default;
-                Vector256<float> cr = default;
-                if (TOperator.UsesChroma)
-                {
-                    cb = (Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref greenBase, i)) - chromaBias) * inverseChromaScale;
-                    cr = (Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref blueBase, i)) - chromaBias) * inverseChromaScale;
-                }
-
-                TOperator.Convert(ref y, ref cb, ref cr, in parameters);
-                redVector = y;
-                Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref greenBase, i)) = cb;
-                Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref blueBase, i)) = cr;
-            }
-        }
 
         if (Vector128.IsHardwareAccelerated)
         {
-            Vector128<float> lumaBias = Vector128.Create(parameters.LumaBias);
-            Vector128<float> inverseLumaScale = Vector128.Create(1F / parameters.LumaScale);
-            Vector128<float> chromaBias = Vector128.Create(parameters.ChromaBias);
-            Vector128<float> inverseChromaScale = Vector128.Create(1F / parameters.ChromaScale);
             int oneVectorFromEnd = length - Vector128<float>.Count;
             for (; i <= oneVectorFromEnd; i += Vector128<float>.Count)
             {
-                ref Vector128<float> redVector = ref Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref redBase, i));
-                Vector128<float> y = (redVector - lumaBias) * inverseLumaScale;
-                Vector128<float> cb = default;
-                Vector128<float> cr = default;
-                if (TOperator.UsesChroma)
-                {
-                    cb = (Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref greenBase, i)) - chromaBias) * inverseChromaScale;
-                    cr = (Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref blueBase, i)) - chromaBias) * inverseChromaScale;
-                }
+                ref Rgb48 pixel0 = ref Unsafe.Add(ref sourceBase, i);
+                ref Rgb48 pixel1 = ref Unsafe.Add(ref sourceBase, i + 1);
+                ref Rgb48 pixel2 = ref Unsafe.Add(ref sourceBase, i + 2);
+                ref Rgb48 pixel3 = ref Unsafe.Add(ref sourceBase, i + 3);
 
-                TOperator.Convert(ref y, ref cb, ref cr, in parameters);
-                redVector = y;
-                Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref greenBase, i)) = cb;
-                Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref blueBase, i)) = cr;
+                // Widen each UInt16 channel to a UInt32 lane before converting to Single. This avoids
+                // reinterpreting adjacent 16-bit samples as one unrelated 32-bit integer.
+                Vector128<float> redVector = Vector128.ConvertToSingle(
+                    Vector128.Create((uint)pixel0.R, pixel1.R, pixel2.R, pixel3.R));
+                Vector128<float> greenVector = Vector128.ConvertToSingle(
+                    Vector128.Create((uint)pixel0.G, pixel1.G, pixel2.G, pixel3.G));
+                Vector128<float> blueVector = Vector128.ConvertToSingle(
+                    Vector128.Create((uint)pixel0.B, pixel1.B, pixel2.B, pixel3.B));
+
+                Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref redBase, i)) = redVector;
+                Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref greenBase, i)) = greenVector;
+                Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref blueBase, i)) = blueVector;
             }
         }
 
         for (; i < length; i++)
         {
-            float y = (Unsafe.Add(ref redBase, i) - parameters.LumaBias) / parameters.LumaScale;
-            float cb = TOperator.UsesChroma ? (Unsafe.Add(ref greenBase, i) - parameters.ChromaBias) / parameters.ChromaScale : 0F;
-            float cr = TOperator.UsesChroma ? (Unsafe.Add(ref blueBase, i) - parameters.ChromaBias) / parameters.ChromaScale : 0F;
-            TOperator.Convert(ref y, ref cb, ref cr, in parameters);
-            Unsafe.Add(ref redBase, i) = y;
-            Unsafe.Add(ref greenBase, i) = cb;
-            Unsafe.Add(ref blueBase, i) = cr;
+            Rgb48 pixel = Unsafe.Add(ref sourceBase, i);
+            Unsafe.Add(ref redBase, i) = pixel.R;
+            Unsafe.Add(ref greenBase, i) = pixel.G;
+            Unsafe.Add(ref blueBase, i) = pixel.B;
+        }
+    }
+
+    /// <summary>
+    /// Scales, quantizes, and stores one planar row using the widest available SIMD width.
+    /// </summary>
+    /// <typeparam name="TSample">The encoded sample type.</typeparam>
+    /// <typeparam name="TStorer">The narrowing and storage operations for the sample type.</typeparam>
+    /// <param name="source">The normalized source values.</param>
+    /// <param name="destination">The encoded destination samples.</param>
+    /// <param name="scale">The encoded range scale.</param>
+    /// <param name="bias">The encoded range bias.</param>
+    /// <param name="maximum">The largest encoded sample value.</param>
+    private static void WriteSamples<TSample, TStorer>(ReadOnlySpan<float> source, Span<TSample> destination, float scale, float bias, float maximum)
+        where TSample : unmanaged
+        where TStorer : struct, ISampleStorer<TSample>
+    {
+        ref float sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TSample destinationBase = ref MemoryMarshal.GetReference(destination);
+        int length = destination.Length;
+        int i = 0;
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            int oneVectorFromEnd = length - Vector512<float>.Count;
+            for (; i <= oneVectorFromEnd; i += Vector512<float>.Count)
+            {
+                Vector512<float> values = Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref sourceBase, i));
+                TStorer.Store(ScaleBiasRoundAndClampToInt32(values, scale, bias, maximum), ref Unsafe.Add(ref destinationBase, i));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            int oneVectorFromEnd = length - Vector256<float>.Count;
+            for (; i <= oneVectorFromEnd; i += Vector256<float>.Count)
+            {
+                Vector256<float> values = Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref sourceBase, i));
+                TStorer.Store(ScaleBiasRoundAndClampToInt32(values, scale, bias, maximum), ref Unsafe.Add(ref destinationBase, i));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            int oneVectorFromEnd = length - Vector128<float>.Count;
+            for (; i <= oneVectorFromEnd; i += Vector128<float>.Count)
+            {
+                Vector128<float> values = Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref sourceBase, i));
+                TStorer.Store(ScaleBiasRoundAndClampToInt32(values, scale, bias, maximum), ref Unsafe.Add(ref destinationBase, i));
+            }
+        }
+
+        for (; i < length; i++)
+        {
+            Unsafe.Add(ref destinationBase, i) = ToSample<TSample>((Unsafe.Add(ref sourceBase, i) * scale) + bias, maximum);
+        }
+    }
+
+    /// <summary>
+    /// Averages one or two planar rows into horizontally subsampled encoded samples.
+    /// </summary>
+    /// <typeparam name="TSample">The encoded sample type.</typeparam>
+    /// <typeparam name="TStorer">The narrowing and storage operations for the sample type.</typeparam>
+    /// <param name="row0">The first normalized source row.</param>
+    /// <param name="row1">The optional second normalized source row.</param>
+    /// <param name="destination">The encoded subsampled destination row.</param>
+    /// <param name="scale">The encoded range scale.</param>
+    /// <param name="bias">The encoded range bias.</param>
+    /// <param name="maximum">The largest encoded sample value.</param>
+    private static void WriteSubsampledSamples<TSample, TStorer>(
+        ReadOnlySpan<float> row0,
+        ReadOnlySpan<float> row1,
+        Span<TSample> destination,
+        float scale,
+        float bias,
+        float maximum)
+        where TSample : unmanaged
+        where TStorer : struct, ISampleStorer<TSample>
+    {
+        ref float row0Base = ref MemoryMarshal.GetReference(row0);
+        ref float row1Base = ref MemoryMarshal.GetReference(row1);
+        ref TSample destinationBase = ref MemoryMarshal.GetReference(destination);
+        bool hasSecondRow = !row1.IsEmpty;
+        float averageScale = hasSecondRow ? 0.25F : 0.5F;
+        int length = row0.Length;
+        int i = 0;
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<int> evenOdd = Vector512.Create(0, 2, 4, 6, 8, 10, 12, 14, 1, 3, 5, 7, 9, 11, 13, 15);
+            int oneVectorFromEnd = length - Vector512<float>.Count;
+            for (; i <= oneVectorFromEnd; i += Vector512<float>.Count)
+            {
+                Vector512<float> sum = Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref row0Base, i));
+                if (hasSecondRow)
+                {
+                    sum += Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref row1Base, i));
+                }
+
+                Vector512<float> shuffled = Vector512.Shuffle(sum, evenOdd);
+                Vector256<float> average = (shuffled.GetLower() + shuffled.GetUpper()) * Vector256.Create(averageScale);
+                TStorer.Store(ScaleBiasRoundAndClampToInt32(average, scale, bias, maximum), ref Unsafe.Add(ref destinationBase, i >> 1));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<int> evenOdd = Vector256.Create(0, 2, 4, 6, 1, 3, 5, 7);
+            int oneVectorFromEnd = length - Vector256<float>.Count;
+            for (; i <= oneVectorFromEnd; i += Vector256<float>.Count)
+            {
+                Vector256<float> sum = Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref row0Base, i));
+                if (hasSecondRow)
+                {
+                    sum += Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref row1Base, i));
+                }
+
+                Vector256<float> shuffled = Vector256.Shuffle(sum, evenOdd);
+                Vector128<float> average = (shuffled.GetLower() + shuffled.GetUpper()) * Vector128.Create(averageScale);
+                TStorer.Store(ScaleBiasRoundAndClampToInt32(average, scale, bias, maximum), ref Unsafe.Add(ref destinationBase, i >> 1));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<int> evenOdd = Vector128.Create(0, 2, 1, 3);
+            int twoVectorsFromEnd = length - (Vector128<float>.Count * 2);
+            for (; i <= twoVectorsFromEnd; i += Vector128<float>.Count * 2)
+            {
+                Vector128<float> sum0 = Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref row0Base, i));
+                Vector128<float> sum1 = Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref row0Base, i + Vector128<float>.Count));
+                if (hasSecondRow)
+                {
+                    sum0 += Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref row1Base, i));
+                    sum1 += Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref row1Base, i + Vector128<float>.Count));
+                }
+
+                Vector128<float> shuffled0 = Vector128.Shuffle(sum0, evenOdd);
+                Vector128<float> shuffled1 = Vector128.Shuffle(sum1, evenOdd);
+                Vector64<float> average0 = (shuffled0.GetLower() + shuffled0.GetUpper()) * Vector64.Create(averageScale);
+                Vector64<float> average1 = (shuffled1.GetLower() + shuffled1.GetUpper()) * Vector64.Create(averageScale);
+                Vector128<float> average = Vector128.Create(average0, average1);
+                TStorer.Store(ScaleBiasRoundAndClampToInt32(average, scale, bias, maximum), ref Unsafe.Add(ref destinationBase, i >> 1));
+            }
+        }
+
+        for (; i < length; i += 2)
+        {
+            int columnCount = Math.Min(2, length - i);
+            float sum = Unsafe.Add(ref row0Base, i);
+            if (columnCount == 2)
+            {
+                sum += Unsafe.Add(ref row0Base, i + 1);
+            }
+
+            if (hasSecondRow)
+            {
+                sum += Unsafe.Add(ref row1Base, i);
+                if (columnCount == 2)
+                {
+                    sum += Unsafe.Add(ref row1Base, i + 1);
+                }
+            }
+
+            float sampleCount = columnCount * (hasSecondRow ? 2 : 1);
+            Unsafe.Add(ref destinationBase, i >> 1) = ToSample<TSample>(((sum / sampleCount) * scale) + bias, maximum);
         }
     }
 
@@ -641,6 +730,51 @@ internal static partial class Av1YuvConverter
                 ToSample<ushort>(Unsafe.Add(ref blueBase, i) * UShortMaximum, UShortMaximum),
                 ushort.MaxValue);
         }
+    }
+
+    /// <summary>
+    /// Applies the encoded component range and converts four lanes to bounded integer samples.
+    /// </summary>
+    /// <param name="value">The normalized component values.</param>
+    /// <param name="scale">The encoded range scale.</param>
+    /// <param name="bias">The encoded range bias.</param>
+    /// <param name="maximum">The largest encoded sample value.</param>
+    /// <returns>The bounded integer samples.</returns>
+    private static Vector128<int> ScaleBiasRoundAndClampToInt32(Vector128<float> value, float scale, float bias, float maximum)
+    {
+        Vector128<float> encoded = (value * Vector128.Create(scale)) + Vector128.Create(bias);
+        Vector128<float> bounded = Vector128.Clamp(encoded, Vector128<float>.Zero, Vector128.Create(maximum));
+        return Vector128.ConvertToInt32(Vector128.Round(bounded, MidpointRounding.AwayFromZero));
+    }
+
+    /// <summary>
+    /// Applies the encoded component range and converts eight lanes to bounded integer samples.
+    /// </summary>
+    /// <param name="value">The normalized component values.</param>
+    /// <param name="scale">The encoded range scale.</param>
+    /// <param name="bias">The encoded range bias.</param>
+    /// <param name="maximum">The largest encoded sample value.</param>
+    /// <returns>The bounded integer samples.</returns>
+    private static Vector256<int> ScaleBiasRoundAndClampToInt32(Vector256<float> value, float scale, float bias, float maximum)
+    {
+        Vector256<float> encoded = (value * Vector256.Create(scale)) + Vector256.Create(bias);
+        Vector256<float> bounded = Vector256.Clamp(encoded, Vector256<float>.Zero, Vector256.Create(maximum));
+        return Vector256.ConvertToInt32(Vector256.Round(bounded, MidpointRounding.AwayFromZero));
+    }
+
+    /// <summary>
+    /// Applies the encoded component range and converts sixteen lanes to bounded integer samples.
+    /// </summary>
+    /// <param name="value">The normalized component values.</param>
+    /// <param name="scale">The encoded range scale.</param>
+    /// <param name="bias">The encoded range bias.</param>
+    /// <param name="maximum">The largest encoded sample value.</param>
+    /// <returns>The bounded integer samples.</returns>
+    private static Vector512<int> ScaleBiasRoundAndClampToInt32(Vector512<float> value, float scale, float bias, float maximum)
+    {
+        Vector512<float> encoded = (value * Vector512.Create(scale)) + Vector512.Create(bias);
+        Vector512<float> bounded = Vector512.Clamp(encoded, Vector512<float>.Zero, Vector512.Create(maximum));
+        return Vector512.ConvertToInt32(Vector512.Round(bounded, MidpointRounding.AwayFromZero));
     }
 
     /// <summary>
@@ -785,6 +919,65 @@ internal static partial class Av1YuvConverter
             Vector256<ushort> samples16 = Unsafe.ReadUnaligned<Vector256<ushort>>(ref Unsafe.As<ushort, byte>(ref source));
             (Vector256<uint> lower32, Vector256<uint> upper32) = Vector256.Widen(samples16);
             return Vector512.ConvertToSingle(Vector512.Create(lower32, upper32));
+        }
+    }
+
+    /// <summary>
+    /// Narrows encoded integer lanes to eight-bit samples.
+    /// </summary>
+    private readonly struct ByteSampleStorer : ISampleStorer<byte>
+    {
+        /// <inheritdoc/>
+        public static void Store(Vector128<int> source, ref byte destination)
+        {
+            Vector128<ushort> samples16 = Vector128.Narrow(source.AsUInt32(), Vector128<uint>.Zero);
+            Vector128<byte> samples8 = Vector128.Narrow(samples16, Vector128<ushort>.Zero);
+
+            // The lower four bytes contain the four source lanes after the two narrowing stages.
+            Unsafe.WriteUnaligned(ref destination, samples8.AsUInt32().ToScalar());
+        }
+
+        /// <inheritdoc/>
+        public static void Store(Vector256<int> source, ref byte destination)
+        {
+            Store(source.GetLower(), ref destination);
+            Store(source.GetUpper(), ref Unsafe.Add(ref destination, Vector128<int>.Count));
+        }
+
+        /// <inheritdoc/>
+        public static void Store(Vector512<int> source, ref byte destination)
+        {
+            Store(source.GetLower(), ref destination);
+            Store(source.GetUpper(), ref Unsafe.Add(ref destination, Vector256<int>.Count));
+        }
+    }
+
+    /// <summary>
+    /// Narrows encoded integer lanes to unsigned 16-bit samples.
+    /// </summary>
+    private readonly struct UShortSampleStorer : ISampleStorer<ushort>
+    {
+        /// <inheritdoc/>
+        public static void Store(Vector128<int> source, ref ushort destination)
+        {
+            Vector128<ushort> samples = Vector128.Narrow(source.AsUInt32(), Vector128<uint>.Zero);
+
+            // The lower four UInt16 values are contiguous and can be committed with one unaligned store.
+            Unsafe.WriteUnaligned(ref Unsafe.As<ushort, byte>(ref destination), samples.AsUInt64().ToScalar());
+        }
+
+        /// <inheritdoc/>
+        public static void Store(Vector256<int> source, ref ushort destination)
+        {
+            Store(source.GetLower(), ref destination);
+            Store(source.GetUpper(), ref Unsafe.Add(ref destination, Vector128<int>.Count));
+        }
+
+        /// <inheritdoc/>
+        public static void Store(Vector512<int> source, ref ushort destination)
+        {
+            Store(source.GetLower(), ref destination);
+            Store(source.GetUpper(), ref Unsafe.Add(ref destination, Vector256<int>.Count));
         }
     }
 }

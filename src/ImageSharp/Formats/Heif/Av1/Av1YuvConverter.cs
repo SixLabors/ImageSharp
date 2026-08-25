@@ -27,42 +27,6 @@ internal static partial class Av1YuvConverter
     private const float UShortMaximum = ushort.MaxValue;
 
     /// <summary>
-    /// Identifies the matrix operation used between encoded planes and RGB components.
-    /// </summary>
-    private enum ConversionMode
-    {
-        /// <summary>
-        /// A coefficient-based YCbCr matrix conversion.
-        /// </summary>
-        Coefficients,
-
-        /// <summary>
-        /// Direct G, B, and R component mapping from the Y, U, and V planes.
-        /// </summary>
-        Identity,
-
-        /// <summary>
-        /// The reversible-style YCgCo color transform.
-        /// </summary>
-        YCgCo,
-
-        /// <summary>
-        /// The SMPTE ST 2085 YDzDx color transform.
-        /// </summary>
-        Smpte2085,
-
-        /// <summary>
-        /// A constant-luminance transform using the signaled transfer characteristics.
-        /// </summary>
-        ConstantLuminance,
-
-        /// <summary>
-        /// The BT.2100 ICtCp color transform.
-        /// </summary>
-        ICtCp,
-    }
-
-    /// <summary>
     /// Converts the reconstructed YUV planes to packed pixels.
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel type.</typeparam>
@@ -74,7 +38,7 @@ internal static partial class Av1YuvConverter
     {
         GetConversionParameters(
             frameBuffer,
-            out ConversionMode mode,
+            out Av1ColorConversionMode mode,
             out float kr,
             out float kg,
             out float kb,
@@ -85,20 +49,41 @@ internal static partial class Av1YuvConverter
             out float sampleMaximum);
 
         ObuTransferCharacteristics transferCharacteristics = frameBuffer.ColorConfig.TransferCharacteristics;
-        ConstantLuminanceScales constantLuminanceScales = mode == ConversionMode.ConstantLuminance
-            ? new ConstantLuminanceScales(transferCharacteristics, kr, kb)
+        Av1ConstantLuminanceScales constantLuminanceScales = mode == Av1ColorConversionMode.ConstantLuminance
+            ? new Av1ConstantLuminanceScales(transferCharacteristics, kr, kb)
             : default;
 
-        YuvToRgbParameters parameters = new(kr, kg, kb, transferCharacteristics, in constantLuminanceScales, lumaBias, lumaScale, chromaBias, chromaScale);
+        Av1ColorConversionParameters parameters = new(
+            kr,
+            kg,
+            kb,
+            transferCharacteristics,
+            in constantLuminanceScales,
+            lumaBias,
+            lumaScale,
+            chromaBias,
+            chromaScale);
+
+        Av1ColorConverterBase colorConverter = Av1ColorConverterBase.Create(mode, in parameters, frameBuffer.ColorFormat == Av1ColorFormat.Yuv400);
         if (frameBuffer.BitDepth == Av1BitDepth.EightBit)
         {
-            YuvToRgbRowOperation<TPixel, byte, ByteSampleLoader> operation = new(configuration, frameBuffer, image, mode, in parameters);
-            ParallelRowIterator.IterateRows<YuvToRgbRowOperation<TPixel, byte, ByteSampleLoader>, float>(configuration, image.Bounds, in operation);
+            YuvToRgbRowConverter<TPixel, byte, ByteSampleLoader> converter = new(configuration, frameBuffer, image, colorConverter);
+            using IMemoryOwner<float> owner = configuration.MemoryAllocator.Allocate<float>(converter.BufferLength);
+            Span<float> scratch = owner.GetSpan();
+            for (int y = 0; y < image.Height; y++)
+            {
+                converter.Convert(y, scratch);
+            }
         }
         else
         {
-            YuvToRgbRowOperation<TPixel, ushort, UShortSampleLoader> operation = new(configuration, frameBuffer, image, mode, in parameters);
-            ParallelRowIterator.IterateRows<YuvToRgbRowOperation<TPixel, ushort, UShortSampleLoader>, float>(configuration, image.Bounds, in operation);
+            YuvToRgbRowConverter<TPixel, ushort, UShortSampleLoader> converter = new(configuration, frameBuffer, image, colorConverter);
+            using IMemoryOwner<float> owner = configuration.MemoryAllocator.Allocate<float>(converter.BufferLength);
+            Span<float> scratch = owner.GetSpan();
+            for (int y = 0; y < image.Height; y++)
+            {
+                converter.Convert(y, scratch);
+            }
         }
     }
 
@@ -114,7 +99,7 @@ internal static partial class Av1YuvConverter
     {
         GetConversionParameters(
             frameBuffer,
-            out ConversionMode mode,
+            out Av1ColorConversionMode mode,
             out float kr,
             out float kg,
             out float kb,
@@ -125,165 +110,45 @@ internal static partial class Av1YuvConverter
             out float sampleMaximum);
 
         ObuTransferCharacteristics transferCharacteristics = frameBuffer.ColorConfig.TransferCharacteristics;
-        ConstantLuminanceScales constantLuminanceScales = mode == ConversionMode.ConstantLuminance
-            ? new ConstantLuminanceScales(transferCharacteristics, kr, kb)
+        Av1ConstantLuminanceScales constantLuminanceScales = mode == Av1ColorConversionMode.ConstantLuminance
+            ? new Av1ConstantLuminanceScales(transferCharacteristics, kr, kb)
             : default;
 
+        Av1ColorConversionParameters parameters = new(
+            kr,
+            kg,
+            kb,
+            transferCharacteristics,
+            in constantLuminanceScales,
+            lumaBias,
+            lumaScale,
+            chromaBias,
+            chromaScale);
+
         bool isMonochrome = frameBuffer.ColorFormat == Av1ColorFormat.Yuv400;
-        int subX = frameBuffer.ColorConfig.SubSamplingX ? 1 : 0;
-        int subY = frameBuffer.ColorConfig.SubSamplingY ? 1 : 0;
-        Buffer2DRegion<byte> yPlane = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0);
-        Buffer2DRegion<byte> uPlane = isMonochrome ? default : frameBuffer.DeriveBlockPointer(Av1Plane.U, subX, subY);
-        Buffer2DRegion<byte> vPlane = isMonochrome ? default : frameBuffer.DeriveBlockPointer(Av1Plane.V, subX, subY);
-        int sourceRowsPerIteration = !isMonochrome && subY != 0 ? 2 : 1;
-        bool isEightBit = frameBuffer.BitDepth == Av1BitDepth.EightBit;
-        int rowBufferLength = image.Width * sourceRowsPerIteration;
-        using IMemoryOwner<Rgb24>? rowOwner = isEightBit
-            ? configuration.MemoryAllocator.Allocate<Rgb24>(rowBufferLength)
-            : null;
-
-        using IMemoryOwner<Rgb48>? highBitDepthRowOwner = isEightBit
-            ? null
-            : configuration.MemoryAllocator.Allocate<Rgb48>(rowBufferLength);
-
-        Span<Rgb24> rgbRow0 = rowOwner is null ? Span<Rgb24>.Empty : rowOwner.GetSpan()[..image.Width];
-        Span<Rgb24> rgbRow1 = sourceRowsPerIteration == 2 && rowOwner is not null
-            ? rowOwner.GetSpan().Slice(image.Width, image.Width)
-            : Span<Rgb24>.Empty;
-
-        Span<Rgb48> highBitDepthRgbRow0 = highBitDepthRowOwner is null
-            ? Span<Rgb48>.Empty
-            : highBitDepthRowOwner.GetSpan()[..image.Width];
-
-        Span<Rgb48> highBitDepthRgbRow1 = sourceRowsPerIteration == 2 && highBitDepthRowOwner is not null
-            ? highBitDepthRowOwner.GetSpan().Slice(image.Width, image.Width)
-            : Span<Rgb48>.Empty;
-
-        for (int y = 0; y < image.Height; y += sourceRowsPerIteration)
+        Av1ColorConverterBase colorConverter = Av1ColorConverterBase.Create(mode, in parameters, isMonochrome);
+        int rowShift = !isMonochrome && frameBuffer.ColorConfig.SubSamplingY ? 1 : 0;
+        int iterationCount = (image.Height + rowShift) >> rowShift;
+        if (frameBuffer.BitDepth == Av1BitDepth.EightBit)
         {
-            if (isEightBit)
+            RgbToYuvRowConverter<TPixel, byte, ByteSampleStorer> converter = new(configuration, frameBuffer, image, colorConverter, sampleMaximum);
+            using IMemoryOwner<float> componentOwner = configuration.MemoryAllocator.Allocate<float>(converter.ComponentBufferLength);
+            Span<float> components = componentOwner.GetSpan();
+            for (int y = 0; y < iterationCount; y++)
             {
-                PixelOperations<TPixel>.Instance.ToRgb24(
-                    configuration,
-                    image.PixelBuffer.DangerousGetRowSpan(y),
-                    rgbRow0);
+                converter.Convert(y, Span<Rgb48>.Empty, components);
             }
-            else
+        }
+        else
+        {
+            RgbToYuvRowConverter<TPixel, ushort, UShortSampleStorer> converter = new(configuration, frameBuffer, image, colorConverter, sampleMaximum);
+            using IMemoryOwner<Rgb48> packedOwner = configuration.MemoryAllocator.Allocate<Rgb48>(image.Width);
+            using IMemoryOwner<float> componentOwner = configuration.MemoryAllocator.Allocate<float>(converter.ComponentBufferLength);
+            Span<Rgb48> packed = packedOwner.GetSpan()[..image.Width];
+            Span<float> components = componentOwner.GetSpan();
+            for (int y = 0; y < iterationCount; y++)
             {
-                // Rgb48 retains source component precision before the values are quantized to the requested
-                // 10-bit or 12-bit AV1 sample range.
-                PixelOperations<TPixel>.Instance.ToRgb48(
-                    configuration,
-                    image.PixelBuffer.DangerousGetRowSpan(y),
-                    highBitDepthRgbRow0);
-            }
-
-            bool hasSecondSourceRow = sourceRowsPerIteration == 2 && y + 1 < image.Height;
-            if (hasSecondSourceRow)
-            {
-                if (isEightBit)
-                {
-                    PixelOperations<TPixel>.Instance.ToRgb24(
-                        configuration,
-                        image.PixelBuffer.DangerousGetRowSpan(y + 1),
-                        rgbRow1);
-                }
-                else
-                {
-                    PixelOperations<TPixel>.Instance.ToRgb48(
-                        configuration,
-                        image.PixelBuffer.DangerousGetRowSpan(y + 1),
-                        highBitDepthRgbRow1);
-                }
-            }
-
-            if (isEightBit)
-            {
-                Span<byte> yRow0 = yPlane.DangerousGetRowSpan(y);
-                if (isMonochrome || subX == 0)
-                {
-                    ConvertRgbToYuvRow(
-                        rgbRow0,
-                        yRow0,
-                        isMonochrome ? Span<byte>.Empty : uPlane.DangerousGetRowSpan(y),
-                        isMonochrome ? Span<byte>.Empty : vPlane.DangerousGetRowSpan(y),
-                        mode,
-                        kr,
-                        kg,
-                        kb,
-                        transferCharacteristics,
-                        in constantLuminanceScales,
-                        lumaBias,
-                        lumaScale,
-                        chromaBias,
-                        chromaScale,
-                        sampleMaximum);
-                }
-                else
-                {
-                    ConvertRgbToSubsampledYuvRows(
-                        rgbRow0,
-                        hasSecondSourceRow ? rgbRow1 : ReadOnlySpan<Rgb24>.Empty,
-                        yRow0,
-                        hasSecondSourceRow ? yPlane.DangerousGetRowSpan(y + 1) : Span<byte>.Empty,
-                        uPlane.DangerousGetRowSpan(y >> subY),
-                        vPlane.DangerousGetRowSpan(y >> subY),
-                        mode,
-                        kr,
-                        kg,
-                        kb,
-                        transferCharacteristics,
-                        in constantLuminanceScales,
-                        lumaBias,
-                        lumaScale,
-                        chromaBias,
-                        chromaScale,
-                        sampleMaximum);
-                }
-            }
-            else
-            {
-                Span<ushort> yRow0 = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, y, 0, 0);
-                if (isMonochrome || subX == 0)
-                {
-                    ConvertRgbToYuvRow(
-                        highBitDepthRgbRow0,
-                        yRow0,
-                        isMonochrome ? Span<ushort>.Empty : frameBuffer.GetHighBitDepthRowSpan(Av1Plane.U, y, 0, 0),
-                        isMonochrome ? Span<ushort>.Empty : frameBuffer.GetHighBitDepthRowSpan(Av1Plane.V, y, 0, 0),
-                        mode,
-                        kr,
-                        kg,
-                        kb,
-                        transferCharacteristics,
-                        in constantLuminanceScales,
-                        lumaBias,
-                        lumaScale,
-                        chromaBias,
-                        chromaScale,
-                        sampleMaximum);
-                }
-                else
-                {
-                    ConvertRgbToSubsampledYuvRows(
-                        highBitDepthRgbRow0,
-                        hasSecondSourceRow ? highBitDepthRgbRow1 : ReadOnlySpan<Rgb48>.Empty,
-                        yRow0,
-                        hasSecondSourceRow ? frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, y + 1, 0, 0) : Span<ushort>.Empty,
-                        frameBuffer.GetHighBitDepthRowSpan(Av1Plane.U, y >> subY, subX, subY),
-                        frameBuffer.GetHighBitDepthRowSpan(Av1Plane.V, y >> subY, subX, subY),
-                        mode,
-                        kr,
-                        kg,
-                        kb,
-                        transferCharacteristics,
-                        in constantLuminanceScales,
-                        lumaBias,
-                        lumaScale,
-                        chromaBias,
-                        chromaScale,
-                        sampleMaximum);
-                }
+                converter.Convert(y, packed, components);
             }
         }
     }
@@ -303,7 +168,7 @@ internal static partial class Av1YuvConverter
     /// <param name="sampleMaximum">The largest encoded sample value.</param>
     private static void GetConversionParameters(
         Av1FrameBuffer<byte> frameBuffer,
-        out ConversionMode mode,
+        out Av1ColorConversionMode mode,
         out float kr,
         out float kg,
         out float kb,
@@ -313,7 +178,7 @@ internal static partial class Av1YuvConverter
         out float chromaScale,
         out float sampleMaximum)
     {
-        mode = ConversionMode.Coefficients;
+        mode = Av1ColorConversionMode.Coefficients;
         kr = 0F;
         kb = 0F;
 
@@ -321,7 +186,7 @@ internal static partial class Av1YuvConverter
         switch (frameBuffer.ColorConfig.MatrixCoefficients)
         {
             case ObuMatrixCoefficients.Identity:
-                mode = ConversionMode.Identity;
+                mode = Av1ColorConversionMode.Identity;
                 break;
             case ObuMatrixCoefficients.Bt709:
                 kr = 0.2126F;
@@ -343,29 +208,29 @@ internal static partial class Av1YuvConverter
                 kb = 0.087F;
                 break;
             case ObuMatrixCoefficients.SmpteYCgCo:
-                mode = ConversionMode.YCgCo;
+                mode = Av1ColorConversionMode.YCgCo;
                 break;
             case ObuMatrixCoefficients.Bt2020NonConstantLuminance:
                 kr = 0.2627F;
                 kb = 0.0593F;
                 break;
             case ObuMatrixCoefficients.Bt2020ConstantLuminance:
-                mode = ConversionMode.ConstantLuminance;
+                mode = Av1ColorConversionMode.ConstantLuminance;
                 kr = 0.2627F;
                 kb = 0.0593F;
                 break;
             case ObuMatrixCoefficients.Smpte2085:
-                mode = ConversionMode.Smpte2085;
+                mode = Av1ColorConversionMode.Smpte2085;
                 break;
             case ObuMatrixCoefficients.ChromaticityDerivedNonConstantLuminance:
                 GetChromaticityDerivedCoefficients(frameBuffer.ColorConfig.ColorPrimaries, out kr, out kb);
                 break;
             case ObuMatrixCoefficients.ChromaticityDerivedConstantLuminance:
-                mode = ConversionMode.ConstantLuminance;
+                mode = Av1ColorConversionMode.ConstantLuminance;
                 GetChromaticityDerivedCoefficients(frameBuffer.ColorConfig.ColorPrimaries, out kr, out kb);
                 break;
             case ObuMatrixCoefficients.Bt2100ICtCp:
-                mode = ConversionMode.ICtCp;
+                mode = Av1ColorConversionMode.ICtCp;
                 break;
             default:
                 throw new NotSupportedException($"AV1 matrix coefficients '{frameBuffer.ColorConfig.MatrixCoefficients}' are not currently supported.");
@@ -374,7 +239,7 @@ internal static partial class Av1YuvConverter
         kg = 1F - kr - kb;
         bool isMonochrome = frameBuffer.ColorFormat == Av1ColorFormat.Yuv400;
         bool isFullRange = frameBuffer.ColorConfig.ColorRange;
-        if (mode == ConversionMode.Identity && !isMonochrome && frameBuffer.ColorFormat != Av1ColorFormat.Yuv444)
+        if (mode == Av1ColorConversionMode.Identity && !isMonochrome && frameBuffer.ColorFormat != Av1ColorFormat.Yuv444)
         {
             throw new InvalidImageContentException("AV1 identity matrix coefficients require YUV 4:4:4 sampling.");
         }
@@ -393,7 +258,7 @@ internal static partial class Av1YuvConverter
 
         // H.273 limited-range YCgCo first maps R, G, and B through the 219-code luma range, so its
         // difference components inherit that scale instead of the 224-code scale used by YCbCr.
-        chromaScale = isFullRange || mode == ConversionMode.YCgCo
+        chromaScale = isFullRange || mode == Av1ColorConversionMode.YCgCo
             ? lumaScale
             : 224F * depthScale;
     }
@@ -549,227 +414,6 @@ internal static partial class Av1YuvConverter
     }
 
     /// <summary>
-    /// Converts one YUV row to packed RGB using the resolved H.273 conversion state.
-    /// </summary>
-    /// <typeparam name="TSample">The encoded sample type.</typeparam>
-    /// <typeparam name="TRgb">The packed RGB staging type.</typeparam>
-    /// <param name="ySource">The luma samples.</param>
-    /// <param name="uRow0">The upper blue-difference chroma row.</param>
-    /// <param name="uRow1">The lower blue-difference chroma row.</param>
-    /// <param name="vRow0">The upper red-difference chroma row.</param>
-    /// <param name="vRow1">The lower red-difference chroma row.</param>
-    /// <param name="y1Weight">The lower chroma-row weight with a denominator of four.</param>
-    /// <param name="destination">The destination RGB pixels.</param>
-    /// <param name="isMonochrome">Whether the frame contains only luma samples.</param>
-    /// <param name="subX">The horizontal chroma subsampling shift.</param>
-    /// <param name="subY">The vertical chroma subsampling shift.</param>
-    /// <param name="chromaSamplePosition">The spatial position of subsampled chroma.</param>
-    /// <param name="mode">The conversion mode.</param>
-    /// <param name="kr">The red luma coefficient.</param>
-    /// <param name="kg">The green luma coefficient.</param>
-    /// <param name="kb">The blue luma coefficient.</param>
-    /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
-    /// <param name="constantLuminanceScales">The constant-luminance chroma scales.</param>
-    /// <param name="lumaBias">The encoded luma bias.</param>
-    /// <param name="lumaScale">The encoded luma range.</param>
-    /// <param name="chromaBias">The encoded chroma midpoint.</param>
-    /// <param name="chromaScale">The encoded chroma range.</param>
-    /// <param name="sampleMaximum">The largest encoded sample value.</param>
-    private static void ConvertYuvToRgbRow<TSample, TRgb>(
-        ReadOnlySpan<TSample> ySource,
-        ReadOnlySpan<TSample> uRow0,
-        ReadOnlySpan<TSample> uRow1,
-        ReadOnlySpan<TSample> vRow0,
-        ReadOnlySpan<TSample> vRow1,
-        int y1Weight,
-        Span<TRgb> destination,
-        bool isMonochrome,
-        int subX,
-        int subY,
-        ObuChromoSamplePosition chromaSamplePosition,
-        ConversionMode mode,
-        float kr,
-        float kg,
-        float kb,
-        ObuTransferCharacteristics transferCharacteristics,
-        in ConstantLuminanceScales constantLuminanceScales,
-        float lumaBias,
-        float lumaScale,
-        float chromaBias,
-        float chromaScale,
-        float sampleMaximum)
-        where TSample : unmanaged
-        where TRgb : unmanaged
-    {
-        for (int x = 0; x < destination.Length; x++)
-        {
-            float y = (GetSample(ySource, x) - lumaBias) / lumaScale;
-            float r;
-            float g;
-            float b;
-
-            if (isMonochrome)
-            {
-                r = y;
-                g = y;
-                b = y;
-            }
-            else
-            {
-                float u = SampleChroma(uRow0, uRow1, x, subX, subY, chromaSamplePosition, y1Weight);
-                float v = SampleChroma(vRow0, vRow1, x, subX, subY, chromaSamplePosition, y1Weight);
-                float cb = (u - chromaBias) / chromaScale;
-                float cr = (v - chromaBias) / chromaScale;
-
-                switch (mode)
-                {
-                    case ConversionMode.Identity:
-                        // H.273 identity coding stores the nonlinear G, B, and R signals in Y, U, and V order.
-                        r = (v - lumaBias) / lumaScale;
-                        g = y;
-                        b = (u - lumaBias) / lumaScale;
-                        break;
-                    case ConversionMode.YCgCo:
-                        float temporary = y - cb;
-                        r = temporary + cr;
-                        g = y + cb;
-                        b = temporary - cr;
-                        break;
-                    case ConversionMode.Smpte2085:
-                        // H.273 equations 76 to 78 store green as luma and use the ST 2085 scale factors for
-                        // the blue and red difference components.
-                        g = y;
-                        b = ((2F * cb) + y) / 0.986566F;
-                        r = (2F * cr) + (0.991902F * y);
-                        break;
-                    case ConversionMode.ConstantLuminance:
-                        // H.273 equations 66 to 75 define luma in linear light, while the stored luma and
-                        // difference signals remain nonlinear. Reconstruct red and blue before solving green.
-                        float nonlinearBlue = y +
-                            (2F * (cb <= 0F ? constantLuminanceScales.NegativeBlue : constantLuminanceScales.PositiveBlue) * cb);
-
-                        float nonlinearRed = y +
-                            (2F * (cr <= 0F ? constantLuminanceScales.NegativeRed : constantLuminanceScales.PositiveRed) * cr);
-
-                        float linearY = Av1TransferFunctions.ToLinear(transferCharacteristics, y);
-                        float linearBlue = Av1TransferFunctions.ToLinear(transferCharacteristics, nonlinearBlue);
-                        float linearRed = Av1TransferFunctions.ToLinear(transferCharacteristics, nonlinearRed);
-                        float linearGreen = (linearY - (kr * linearRed) - (kb * linearBlue)) / kg;
-
-                        r = nonlinearRed;
-                        g = Av1TransferFunctions.ToGamma(transferCharacteristics, linearGreen);
-                        b = nonlinearBlue;
-                        break;
-                    case ConversionMode.ICtCp:
-                        float nonlinearL;
-                        float nonlinearM;
-                        float nonlinearS;
-                        if (transferCharacteristics == ObuTransferCharacteristics.Hlg)
-                        {
-                            // This is the exact inverse of H.273 equations 82 to 84. The first column is one
-                            // because intensity is defined as the average of the L and M components.
-                            nonlinearL = y + (0.015718580108730413F * cb) + (0.2095810681164055F * cr);
-                            nonlinearM = y - (0.015718580108730413F * cb) - (0.2095810681164055F * cr);
-                            nonlinearS = y + (1.0212710798422342F * cb) - (0.6052744909924315F * cr);
-                        }
-                        else
-                        {
-                            // H.273 equations 79 to 81 are the ICtCp matrix selected for PQ and every transfer
-                            // code other than HLG. These constants are the exact inverse of its integer matrix.
-                            nonlinearL = y + (0.008609037037932756F * cb) + (0.11102962500302596F * cr);
-                            nonlinearM = y - (0.008609037037932756F * cb) - (0.11102962500302596F * cr);
-                            nonlinearS = y + (0.5600313357106791F * cb) - (0.32062717498731885F * cr);
-                        }
-
-                        float linearL = Av1TransferFunctions.ToLinear(transferCharacteristics, nonlinearL);
-                        float linearM = Av1TransferFunctions.ToLinear(transferCharacteristics, nonlinearM);
-                        float linearS = Av1TransferFunctions.ToLinear(transferCharacteristics, nonlinearS);
-
-                        // This cofactor inverse of H.273 equations 14 to 16 recovers linear RGB from LMS.
-                        // Applying the transfer curve last returns the nonlinear RGB values stored by ImageSharp.
-                        float ictcpLinearRed =
-                            (3.4366066943330784F * linearL) -
-                            (2.50645211865627F * linearM) +
-                            (0.06984542432319148F * linearS);
-
-                        float ictcpLinearGreen =
-                            (-0.7913295555989287F * linearL) +
-                            (1.9836004517922907F * linearM) -
-                            (0.192270896193362F * linearS);
-
-                        float ictcpLinearBlue =
-                            (-0.025949899690592672F * linearL) -
-                            (0.09891371471172644F * linearM) +
-                            (1.1248636144023192F * linearS);
-
-                        r = Av1TransferFunctions.ToGamma(transferCharacteristics, ictcpLinearRed);
-                        g = Av1TransferFunctions.ToGamma(transferCharacteristics, ictcpLinearGreen);
-                        b = Av1TransferFunctions.ToGamma(transferCharacteristics, ictcpLinearBlue);
-                        break;
-                    default:
-                        r = y + (2F * (1F - kr) * cr);
-                        g = y - (2F * ((kr * (1F - kr) * cr) + (kb * (1F - kb) * cb)) / kg);
-                        b = y + (2F * (1F - kb) * cb);
-                        break;
-                }
-            }
-
-            // The generic staging type is controlled by the frame bit depth. The JIT removes the inactive branch,
-            // retaining direct component access without routing every pixel through Vector4 or interface dispatch.
-            if (typeof(TRgb) == typeof(Rgb24))
-            {
-                Rgb24 pixel = new(
-                    ToSample<byte>(r * ByteMaximum, ByteMaximum),
-                    ToSample<byte>(g * ByteMaximum, ByteMaximum),
-                    ToSample<byte>(b * ByteMaximum, ByteMaximum));
-
-                destination[x] = Unsafe.As<Rgb24, TRgb>(ref pixel);
-            }
-            else
-            {
-                Rgb48 pixel = new(
-                    ToSample<ushort>(r * UShortMaximum, UShortMaximum),
-                    ToSample<ushort>(g * UShortMaximum, UShortMaximum),
-                    ToSample<ushort>(b * UShortMaximum, UShortMaximum));
-
-                destination[x] = Unsafe.As<Rgb48, TRgb>(ref pixel);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Bilinearly reconstructs a chroma sample at a luma coordinate.
-    /// </summary>
-    /// <typeparam name="TSample">The encoded sample type.</typeparam>
-    /// <param name="row0">The upper chroma row.</param>
-    /// <param name="row1">The lower chroma row.</param>
-    /// <param name="x">The luma column coordinate.</param>
-    /// <param name="subX">The horizontal chroma subsampling shift.</param>
-    /// <param name="subY">The vertical chroma subsampling shift.</param>
-    /// <param name="chromaSamplePosition">The spatial position of subsampled chroma.</param>
-    /// <param name="y1Weight">The lower chroma-row weight with a denominator of four.</param>
-    /// <returns>The reconstructed encoded chroma sample.</returns>
-    private static float SampleChroma<TSample>(
-        ReadOnlySpan<TSample> row0,
-        ReadOnlySpan<TSample> row1,
-        int x,
-        int subX,
-        int subY,
-        ObuChromoSamplePosition chromaSamplePosition,
-        int y1Weight)
-        where TSample : unmanaged
-    {
-        // Unknown 4:2:0 and all 4:2:2 input use the centered convention employed by libavif.
-        bool isCenteredX = subX != 0 && (subY == 0 || chromaSamplePosition == ObuChromoSamplePosition.Unknown);
-        GetChromaCoordinates(x, subX, isCenteredX, row0.Length - 1, out int x0, out int x1, out int x1Weight);
-
-        float top = (GetSample(row0, x0) * (4 - x1Weight)) + (GetSample(row0, x1) * x1Weight);
-        float bottom = (GetSample(row1, x0) * (4 - x1Weight)) + (GetSample(row1, x1) * x1Weight);
-
-        return ((top * (4 - y1Weight)) + (bottom * y1Weight)) / 16F;
-    }
-
-    /// <summary>
     /// Resolves the two chroma samples and quarter-sample weight surrounding a luma coordinate.
     /// </summary>
     /// <param name="coordinate">The luma coordinate.</param>
@@ -812,287 +456,6 @@ internal static partial class Av1YuvConverter
     }
 
     /// <summary>
-    /// Converts one packed RGB row to luma and optional full-resolution chroma using the resolved H.273 conversion state.
-    /// </summary>
-    /// <typeparam name="TSample">The encoded sample type.</typeparam>
-    /// <typeparam name="TRgb">The packed RGB staging type.</typeparam>
-    /// <param name="source">The source RGB pixels.</param>
-    /// <param name="yDestination">The destination luma samples.</param>
-    /// <param name="uDestination">The destination blue-difference chroma samples.</param>
-    /// <param name="vDestination">The destination red-difference chroma samples.</param>
-    /// <param name="mode">The conversion mode.</param>
-    /// <param name="kr">The red luma coefficient.</param>
-    /// <param name="kg">The green luma coefficient.</param>
-    /// <param name="kb">The blue luma coefficient.</param>
-    /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
-    /// <param name="constantLuminanceScales">The constant-luminance chroma scales.</param>
-    /// <param name="lumaBias">The encoded luma bias.</param>
-    /// <param name="lumaScale">The encoded luma range.</param>
-    /// <param name="chromaBias">The encoded chroma midpoint.</param>
-    /// <param name="chromaScale">The encoded chroma range.</param>
-    /// <param name="sampleMaximum">The largest encoded sample value.</param>
-    private static void ConvertRgbToYuvRow<TSample, TRgb>(
-        ReadOnlySpan<TRgb> source,
-        Span<TSample> yDestination,
-        Span<TSample> uDestination,
-        Span<TSample> vDestination,
-        ConversionMode mode,
-        float kr,
-        float kg,
-        float kb,
-        ObuTransferCharacteristics transferCharacteristics,
-        in ConstantLuminanceScales constantLuminanceScales,
-        float lumaBias,
-        float lumaScale,
-        float chromaBias,
-        float chromaScale,
-        float sampleMaximum)
-        where TSample : unmanaged
-        where TRgb : unmanaged
-    {
-        for (int x = 0; x < source.Length; x++)
-        {
-            ConvertRgbToYuv(
-                source[x],
-                mode,
-                kr,
-                kg,
-                kb,
-                transferCharacteristics,
-                in constantLuminanceScales,
-                out float y,
-                out float cb,
-                out float cr);
-
-            yDestination[x] = ToSample<TSample>((y * lumaScale) + lumaBias, sampleMaximum);
-            if (!uDestination.IsEmpty)
-            {
-                if (mode == ConversionMode.Identity)
-                {
-                    uDestination[x] = ToSample<TSample>((cb * lumaScale) + lumaBias, sampleMaximum);
-                    vDestination[x] = ToSample<TSample>((cr * lumaScale) + lumaBias, sampleMaximum);
-                }
-                else
-                {
-                    uDestination[x] = ToSample<TSample>((cb * chromaScale) + chromaBias, sampleMaximum);
-                    vDestination[x] = ToSample<TSample>((cr * chromaScale) + chromaBias, sampleMaximum);
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Converts one or two packed RGB rows to luma and horizontally subsampled chroma.
-    /// </summary>
-    /// <typeparam name="TSample">The encoded sample type.</typeparam>
-    /// <typeparam name="TRgb">The packed RGB staging type.</typeparam>
-    /// <param name="sourceRow0">The first source row.</param>
-    /// <param name="sourceRow1">The optional second source row for 4:2:0 conversion.</param>
-    /// <param name="yDestination0">The first destination luma row.</param>
-    /// <param name="yDestination1">The optional second destination luma row.</param>
-    /// <param name="uDestination">The destination blue-difference chroma row.</param>
-    /// <param name="vDestination">The destination red-difference chroma row.</param>
-    /// <param name="mode">The conversion mode.</param>
-    /// <param name="kr">The red luma coefficient.</param>
-    /// <param name="kg">The green luma coefficient.</param>
-    /// <param name="kb">The blue luma coefficient.</param>
-    /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
-    /// <param name="constantLuminanceScales">The constant-luminance chroma scales.</param>
-    /// <param name="lumaBias">The encoded luma bias.</param>
-    /// <param name="lumaScale">The encoded luma range.</param>
-    /// <param name="chromaBias">The encoded chroma midpoint.</param>
-    /// <param name="chromaScale">The encoded chroma range.</param>
-    /// <param name="sampleMaximum">The largest encoded sample value.</param>
-    private static void ConvertRgbToSubsampledYuvRows<TSample, TRgb>(
-        ReadOnlySpan<TRgb> sourceRow0,
-        ReadOnlySpan<TRgb> sourceRow1,
-        Span<TSample> yDestination0,
-        Span<TSample> yDestination1,
-        Span<TSample> uDestination,
-        Span<TSample> vDestination,
-        ConversionMode mode,
-        float kr,
-        float kg,
-        float kb,
-        ObuTransferCharacteristics transferCharacteristics,
-        in ConstantLuminanceScales constantLuminanceScales,
-        float lumaBias,
-        float lumaScale,
-        float chromaBias,
-        float chromaScale,
-        float sampleMaximum)
-        where TSample : unmanaged
-        where TRgb : unmanaged
-    {
-        int rowCount = sourceRow1.IsEmpty ? 1 : 2;
-        for (int x = 0; x < sourceRow0.Length; x += 2)
-        {
-            int columnCount = Math.Min(2, sourceRow0.Length - x);
-            float cbSum = 0F;
-            float crSum = 0F;
-            for (int row = 0; row < rowCount; row++)
-            {
-                ReadOnlySpan<TRgb> source = row == 0 ? sourceRow0 : sourceRow1;
-                Span<TSample> yDestination = row == 0 ? yDestination0 : yDestination1;
-                for (int column = 0; column < columnCount; column++)
-                {
-                    int sourceIndex = x + column;
-                    ConvertRgbToYuv(
-                        source[sourceIndex],
-                        mode,
-                        kr,
-                        kg,
-                        kb,
-                        transferCharacteristics,
-                        in constantLuminanceScales,
-                        out float y,
-                        out float cb,
-                        out float cr);
-
-                    yDestination[sourceIndex] = ToSample<TSample>((y * lumaScale) + lumaBias, sampleMaximum);
-                    cbSum += cb;
-                    crSum += cr;
-                }
-            }
-
-            // libavif's scalar average path divides by the actual edge-block dimensions, so odd widths and heights
-            // do not replicate a missing RGB sample into the chroma average.
-            float sampleCount = columnCount * rowCount;
-            float cbAverage = cbSum / sampleCount;
-            float crAverage = crSum / sampleCount;
-            int chromaIndex = x >> 1;
-            uDestination[chromaIndex] = ToSample<TSample>((cbAverage * chromaScale) + chromaBias, sampleMaximum);
-            vDestination[chromaIndex] = ToSample<TSample>((crAverage * chromaScale) + chromaBias, sampleMaximum);
-        }
-    }
-
-    /// <summary>
-    /// Converts one packed RGB pixel to normalized luma and chroma values.
-    /// </summary>
-    /// <typeparam name="TRgb">The packed RGB staging type.</typeparam>
-    /// <param name="pixel">The source RGB pixel.</param>
-    /// <param name="mode">The conversion mode.</param>
-    /// <param name="kr">The red luma coefficient.</param>
-    /// <param name="kg">The green luma coefficient.</param>
-    /// <param name="kb">The blue luma coefficient.</param>
-    /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
-    /// <param name="constantLuminanceScales">The constant-luminance chroma scales.</param>
-    /// <param name="y">The normalized luma result.</param>
-    /// <param name="cb">The normalized blue-difference chroma result.</param>
-    /// <param name="cr">The normalized red-difference chroma result.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ConvertRgbToYuv<TRgb>(
-        TRgb pixel,
-        ConversionMode mode,
-        float kr,
-        float kg,
-        float kb,
-        ObuTransferCharacteristics transferCharacteristics,
-        in ConstantLuminanceScales constantLuminanceScales,
-        out float y,
-        out float cb,
-        out float cr)
-        where TRgb : unmanaged
-    {
-        float r;
-        float g;
-        float b;
-
-        // These are the only staging formats selected by the owning conversion methods. Keeping the format choice
-        // generic lets the JIT specialize the hot loop and preserves high-bit-depth input without boxing or copies.
-        if (typeof(TRgb) == typeof(Rgb24))
-        {
-            Rgb24 rgb24 = Unsafe.As<TRgb, Rgb24>(ref pixel);
-            r = rgb24.R / ByteMaximum;
-            g = rgb24.G / ByteMaximum;
-            b = rgb24.B / ByteMaximum;
-        }
-        else
-        {
-            Rgb48 rgb48 = Unsafe.As<TRgb, Rgb48>(ref pixel);
-            r = rgb48.R / UShortMaximum;
-            g = rgb48.G / UShortMaximum;
-            b = rgb48.B / UShortMaximum;
-        }
-
-        switch (mode)
-        {
-            case ConversionMode.Identity:
-                // H.273 identity coding stores the nonlinear G, B, and R signals in Y, U, and V order.
-                y = g;
-                cb = b;
-                cr = r;
-                break;
-            case ConversionMode.YCgCo:
-                y = (0.5F * g) + (0.25F * (r + b));
-                cb = (0.5F * g) - (0.25F * (r + b));
-                cr = 0.5F * (r - b);
-                break;
-            case ConversionMode.Smpte2085:
-                // ST 2085 uses green directly as luma, so this path must remain separate from Kr/Kb YCbCr.
-                y = g;
-                cb = ((0.986566F * b) - y) * 0.5F;
-                cr = (r - (0.991902F * y)) * 0.5F;
-                break;
-            case ConversionMode.ConstantLuminance:
-                // The packed RGB values are nonlinear signal components. H.273 constant luminance derives Y
-                // after applying the inverse transfer curve to each component.
-                float linearRed = Av1TransferFunctions.ToLinear(transferCharacteristics, r);
-                float linearGreen = Av1TransferFunctions.ToLinear(transferCharacteristics, g);
-                float linearBlue = Av1TransferFunctions.ToLinear(transferCharacteristics, b);
-                float linearY = (kr * linearRed) + (kg * linearGreen) + (kb * linearBlue);
-                y = Av1TransferFunctions.ToGamma(transferCharacteristics, linearY);
-
-                float blueDifference = b - y;
-                float redDifference = r - y;
-                cb = blueDifference /
-                    (2F * (blueDifference <= 0F ? constantLuminanceScales.NegativeBlue : constantLuminanceScales.PositiveBlue));
-
-                cr = redDifference /
-                    (2F * (redDifference <= 0F ? constantLuminanceScales.NegativeRed : constantLuminanceScales.PositiveRed));
-
-                break;
-            case ConversionMode.ICtCp:
-                float ictcpLinearRed = Av1TransferFunctions.ToLinear(transferCharacteristics, r);
-                float ictcpLinearGreen = Av1TransferFunctions.ToLinear(transferCharacteristics, g);
-                float ictcpLinearBlue = Av1TransferFunctions.ToLinear(transferCharacteristics, b);
-
-                // H.273 equations 14 to 16 convert linear BT.2100 RGB into the LMS cone-response domain
-                // before the signaled transfer curve is applied to each component.
-                float nonlinearL = Av1TransferFunctions.ToGamma(
-                    transferCharacteristics,
-                    ((1688F * ictcpLinearRed) + (2146F * ictcpLinearGreen) + (262F * ictcpLinearBlue)) / 4096F);
-
-                float nonlinearM = Av1TransferFunctions.ToGamma(
-                    transferCharacteristics,
-                    ((683F * ictcpLinearRed) + (2951F * ictcpLinearGreen) + (462F * ictcpLinearBlue)) / 4096F);
-
-                float nonlinearS = Av1TransferFunctions.ToGamma(
-                    transferCharacteristics,
-                    ((99F * ictcpLinearRed) + (309F * ictcpLinearGreen) + (3688F * ictcpLinearBlue)) / 4096F);
-
-                y = 0.5F * (nonlinearL + nonlinearM);
-                if (transferCharacteristics == ObuTransferCharacteristics.Hlg)
-                {
-                    cb = ((3625F * nonlinearL) - (7465F * nonlinearM) + (3840F * nonlinearS)) / 4096F;
-                    cr = ((9500F * nonlinearL) - (9212F * nonlinearM) - (288F * nonlinearS)) / 4096F;
-                }
-                else
-                {
-                    cb = ((6610F * nonlinearL) - (13613F * nonlinearM) + (7003F * nonlinearS)) / 4096F;
-                    cr = ((17933F * nonlinearL) - (17390F * nonlinearM) - (543F * nonlinearS)) / 4096F;
-                }
-
-                break;
-            default:
-                y = (kr * r) + (kg * g) + (kb * b);
-                cb = (b - y) / (2F * (1F - kb));
-                cr = (r - y) / (2F * (1F - kr));
-                break;
-        }
-    }
-
-    /// <summary>
     /// Reads an 8-bit or 16-bit unsigned sample without introducing a separate conversion buffer.
     /// </summary>
     /// <typeparam name="TSample">The encoded sample type.</typeparam>
@@ -1129,48 +492,5 @@ internal static partial class Av1YuvConverter
 
         ushort highBitDepthResult = (ushort)sample;
         return Unsafe.As<ushort, TSample>(ref highBitDepthResult);
-    }
-
-    /// <summary>
-    /// Stores the H.273 chroma normalization constants for constant-luminance conversion.
-    /// </summary>
-    private readonly struct ConstantLuminanceScales
-    {
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ConstantLuminanceScales"/> struct.
-        /// </summary>
-        /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
-        /// <param name="kr">The red luma coefficient.</param>
-        /// <param name="kb">The blue luma coefficient.</param>
-        public ConstantLuminanceScales(
-            ObuTransferCharacteristics transferCharacteristics,
-            float kr,
-            float kb)
-        {
-            this.NegativeBlue = Av1TransferFunctions.ToGamma(transferCharacteristics, 1F - kb);
-            this.PositiveBlue = 1F - Av1TransferFunctions.ToGamma(transferCharacteristics, kb);
-            this.NegativeRed = Av1TransferFunctions.ToGamma(transferCharacteristics, 1F - kr);
-            this.PositiveRed = 1F - Av1TransferFunctions.ToGamma(transferCharacteristics, kr);
-        }
-
-        /// <summary>
-        /// Gets the scale for a non-positive blue difference.
-        /// </summary>
-        public float NegativeBlue { get; }
-
-        /// <summary>
-        /// Gets the scale for a positive blue difference.
-        /// </summary>
-        public float PositiveBlue { get; }
-
-        /// <summary>
-        /// Gets the scale for a non-positive red difference.
-        /// </summary>
-        public float NegativeRed { get; }
-
-        /// <summary>
-        /// Gets the scale for a positive red difference.
-        /// </summary>
-        public float PositiveRed { get; }
     }
 }

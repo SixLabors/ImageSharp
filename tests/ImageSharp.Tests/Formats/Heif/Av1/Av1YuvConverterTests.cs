@@ -10,9 +10,23 @@ using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
+/// <summary>
+/// Verifies AV1 color conversion, sample-range handling, chroma reconstruction, and encoder downsampling.
+/// </summary>
 [Trait("Format", "Avif")]
 public class Av1YuvConverterTests
 {
+    /// <summary>
+    /// Verifies known RGB-to-YUV values across coefficient, identity, and YCgCo matrices and sample ranges.
+    /// </summary>
+    /// <param name="r">The source red component.</param>
+    /// <param name="g">The source green component.</param>
+    /// <param name="b">The source blue component.</param>
+    /// <param name="y">The expected luma or first encoded component.</param>
+    /// <param name="u">The expected first chroma or second encoded component.</param>
+    /// <param name="v">The expected second chroma or third encoded component.</param>
+    /// <param name="fullRange">Whether the encoded samples use the full range.</param>
+    /// <param name="matrixCoefficients">The matrix coefficients used for conversion.</param>
     [Theory]
     [InlineData(255, 255, 255, 255, 128, 128, true, ObuMatrixCoefficients.Bt709)]
     [InlineData(0, 0, 0, 0, 128, 128, true, ObuMatrixCoefficients.Bt709)]
@@ -52,6 +66,17 @@ public class Av1YuvConverterTests
         Assert.Equal(v, actualV);
     }
 
+    /// <summary>
+    /// Verifies known YUV-to-RGB values across coefficient, identity, and YCgCo matrices and sample ranges.
+    /// </summary>
+    /// <param name="r">The expected red component.</param>
+    /// <param name="g">The expected green component.</param>
+    /// <param name="b">The expected blue component.</param>
+    /// <param name="y">The source luma or first encoded component.</param>
+    /// <param name="u">The source first chroma or second encoded component.</param>
+    /// <param name="v">The source second chroma or third encoded component.</param>
+    /// <param name="fullRange">Whether the encoded samples use the full range.</param>
+    /// <param name="matrixCoefficients">The matrix coefficients used for conversion.</param>
     [Theory]
     [InlineData(255, 255, 255, 255, 128, 128, true, ObuMatrixCoefficients.Bt709)]
     [InlineData(0, 0, 0, 0, 128, 128, true, ObuMatrixCoefficients.Bt709)]
@@ -91,6 +116,9 @@ public class Av1YuvConverterTests
         Assert.Equal(b, actual.B, 1d);
     }
 
+    /// <summary>
+    /// Verifies that limited-range monochrome samples expand to the complete RGB output range.
+    /// </summary>
     [Fact]
     public void Yuv400ToRgbExpandsLimitedRangeLuma()
     {
@@ -117,6 +145,48 @@ public class Av1YuvConverterTests
         Assert.Equal(new Rgb24(255, 255, 255), actual[1]);
     }
 
+    /// <summary>
+    /// Verifies RGB-to-monochrome conversion and range quantization for every supported AV1 bit depth.
+    /// </summary>
+    /// <param name="bitDepth">The encoded AV1 bit depth.</param>
+    /// <param name="fullRange">Whether the luma samples use the full range.</param>
+    /// <param name="expectedLuma">The expected encoded luma sample.</param>
+    [Theory]
+    [InlineData(Av1BitDepth.EightBit, true, 107)]
+    [InlineData(Av1BitDepth.EightBit, false, 108)]
+    [InlineData(Av1BitDepth.TenBit, true, 429)]
+    [InlineData(Av1BitDepth.TenBit, false, 432)]
+    [InlineData(Av1BitDepth.TwelveBit, true, 1719)]
+    [InlineData(Av1BitDepth.TwelveBit, false, 1727)]
+    public void RgbToYuv400WritesQuantizedLuma(int bitDepth, bool fullRange, int expectedLuma)
+    {
+        // Rgb48 values scaled from eight-bit components exercise the precision-preserving high-bit-depth path.
+        using Image<Rgb48> image = new(1, 1);
+        image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0)[0] = new Rgb48(150 * 257, 100 * 257, 50 * 257);
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(
+            1,
+            1,
+            fullRange,
+            colorFormat: Av1ColorFormat.Yuv400,
+            bitDepth: (Av1BitDepth)bitDepth);
+
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv400, false);
+
+        Av1YuvConverter.ConvertFromRgb(Configuration.Default, image.Frames.RootFrame, frameBuffer);
+
+        Assert.Equal(expectedLuma, GetPlaneSample(frameBuffer, Av1Plane.Y, 0, 0, 0, 0));
+        Assert.Null(frameBuffer.BufferCb);
+        Assert.Null(frameBuffer.BufferCr);
+    }
+
+    /// <summary>
+    /// Verifies full- and limited-range expansion for 10-bit and 12-bit reconstructed samples.
+    /// </summary>
+    /// <param name="bitDepth">The reconstructed AV1 bit depth.</param>
+    /// <param name="fullRange">Whether the samples use the full range.</param>
+    /// <param name="black">The encoded black luma sample.</param>
+    /// <param name="white">The encoded white luma sample.</param>
+    /// <param name="neutralChroma">The neutral encoded chroma sample.</param>
     [Theory]
     [InlineData(Av1BitDepth.TenBit, true, 0, 1023, 512)]
     [InlineData(Av1BitDepth.TenBit, false, 64, 940, 512)]
@@ -148,6 +218,10 @@ public class Av1YuvConverterTests
         Assert.Equal(new Rgb24(255, 255, 255), actual[1]);
     }
 
+    /// <summary>
+    /// Verifies that high-bit-depth frame strides and row access use 16-bit sample units consistently.
+    /// </summary>
+    /// <param name="bitDepth">The reconstructed AV1 bit depth.</param>
     [Theory]
     [InlineData(Av1BitDepth.TenBit)]
     [InlineData(Av1BitDepth.TwelveBit)]
@@ -175,6 +249,9 @@ public class Av1YuvConverterTests
         Assert.Equal(2, chromaRow.Length);
     }
 
+    /// <summary>
+    /// Verifies centered horizontal chroma reconstruction for a YUV 4:2:2 frame.
+    /// </summary>
     [Fact]
     public void Yuv422ToRgbBilinearlyUpsamplesCenteredChroma()
     {
@@ -199,6 +276,12 @@ public class Av1YuvConverterTests
         Assert.Equal(new Rgb24(128, 116, 247), actual[3]);
     }
 
+    /// <summary>
+    /// Verifies vertical and horizontal YUV 4:2:0 reconstruction at every AV1 chroma sample position.
+    /// </summary>
+    /// <param name="chromaSamplePosition">The signaled AV1 chroma sample position.</param>
+    /// <param name="expectedTopBlue">The expected blue component in the top-row probe pixel.</param>
+    /// <param name="expectedLeftBlue">The expected blue component in the left-column probe pixel.</param>
     [Theory]
     [InlineData(ObuChromoSamplePosition.Unknown, 158, 98)]
     [InlineData(ObuChromoSamplePosition.Vertical, 187, 98)]
@@ -237,6 +320,9 @@ public class Av1YuvConverterTests
         Assert.Equal(expectedLeftBlue, image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(1)[0].B);
     }
 
+    /// <summary>
+    /// Verifies that odd image dimensions retain the final YUV 4:2:0 chroma row and column.
+    /// </summary>
     [Fact]
     public void Yuv420UsesCeilingChromaPlaneDimensions()
     {
@@ -253,6 +339,9 @@ public class Av1YuvConverterTests
         Assert.Equal(new Size(2, 2), vPlane.Size);
     }
 
+    /// <summary>
+    /// Compares SIMD-first RGB-to-YUV conversion with the independent scalar reference over randomized pixels.
+    /// </summary>
     [Fact]
     public void RgbToYuvCompareToReferenceRandomPixels()
     {
@@ -290,6 +379,9 @@ public class Av1YuvConverterTests
         Compare(referenceOutput, actual, 3);
     }
 
+    /// <summary>
+    /// Compares SIMD-first YUV-to-RGB conversion with the independent scalar reference over randomized samples.
+    /// </summary>
     [Fact]
     public void YuvToRgbCompareToReferenceRandomPixels()
     {
@@ -315,6 +407,12 @@ public class Av1YuvConverterTests
         Compare(referenceOutput, actual, 3);
     }
 
+    /// <summary>
+    /// Compares packed RGB rows within the permitted per-component tolerance.
+    /// </summary>
+    /// <param name="referenceOutput">The independently converted reference pixels.</param>
+    /// <param name="actual">The pixels produced by the implementation under test.</param>
+    /// <param name="allowedDifference">The permitted absolute component difference.</param>
     private static void Compare(Span<Rgb24> referenceOutput, Span<Rgb24> actual, int allowedDifference)
     {
         for (int i = 0; i < actual.Length; i++)
@@ -328,6 +426,12 @@ public class Av1YuvConverterTests
         }
     }
 
+    /// <summary>
+    /// Fills one reconstructed plane with deterministic pseudo-random test samples.
+    /// </summary>
+    /// <param name="rnd">The deterministic random number generator.</param>
+    /// <param name="frameBuffer">The frame containing the destination plane.</param>
+    /// <param name="plane">The destination plane.</param>
     private static void CreateTestData(Random rnd, Av1FrameBuffer<byte> frameBuffer, Av1Plane plane)
     {
         const int bitCount = 8;
@@ -338,6 +442,12 @@ public class Av1YuvConverterTests
         }
     }
 
+    /// <summary>
+    /// Fills an eight-bit sample span with deterministic pseudo-random values.
+    /// </summary>
+    /// <param name="rnd">The deterministic random number generator.</param>
+    /// <param name="span">The destination sample span.</param>
+    /// <param name="bitCount">The number of significant sample bits.</param>
     private static void CreateTestData(Random rnd, Span<byte> span, int bitCount = 8)
     {
         int max = (1 << bitCount) - 1;
@@ -348,6 +458,12 @@ public class Av1YuvConverterTests
         }
     }
 
+    /// <summary>
+    /// Fills a high-bit-depth sample span with deterministic pseudo-random values.
+    /// </summary>
+    /// <param name="rnd">The deterministic random number generator.</param>
+    /// <param name="span">The destination sample span.</param>
+    /// <param name="bitCount">The number of significant sample bits.</param>
     private static void CreateTestData(Random rnd, Span<ushort> span, int bitCount)
     {
         int max = (1 << bitCount) - 1;
@@ -358,6 +474,12 @@ public class Av1YuvConverterTests
         }
     }
 
+    /// <summary>
+    /// Verifies RGB-to-YUV-to-RGB conversion for representative single-pixel colors.
+    /// </summary>
+    /// <param name="r">The source red component.</param>
+    /// <param name="g">The source green component.</param>
+    /// <param name="b">The source blue component.</param>
     [Theory]
     [InlineData(255, 255, 255)]
     [InlineData(0, 0, 0)]
@@ -391,6 +513,11 @@ public class Av1YuvConverterTests
         Assert.Equal(b, actualPixel.B, 2d);
     }
 
+    /// <summary>
+    /// Verifies 10-bit and 12-bit round trips for coefficient, identity, and YCgCo matrices.
+    /// </summary>
+    /// <param name="bitDepth">The encoded AV1 bit depth.</param>
+    /// <param name="matrixCoefficients">The matrix coefficients used for conversion.</param>
     [Theory]
     [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.Bt709)]
     [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.Identity)]
@@ -429,6 +556,108 @@ public class Av1YuvConverterTests
         }
     }
 
+    /// <summary>
+    /// Verifies that every H.273 operator produces the same result in SIMD batches and the scalar row tail.
+    /// </summary>
+    /// <param name="matrixCoefficients">The matrix coefficients selecting the color operator.</param>
+    /// <param name="transferCharacteristics">The transfer characteristics used by nonlinear operators.</param>
+    [Theory]
+    [InlineData(ObuMatrixCoefficients.Bt709, ObuTransferCharacteristics.Bt709)]
+    [InlineData(ObuMatrixCoefficients.Identity, ObuTransferCharacteristics.Bt709)]
+    [InlineData(ObuMatrixCoefficients.SmpteYCgCo, ObuTransferCharacteristics.Bt709)]
+    [InlineData(ObuMatrixCoefficients.Bt2020ConstantLuminance, ObuTransferCharacteristics.Bt202010Bit)]
+    [InlineData(ObuMatrixCoefficients.Smpte2085, ObuTransferCharacteristics.Bt709)]
+    [InlineData(ObuMatrixCoefficients.ChromaticityDerivedNonConstantLuminance, ObuTransferCharacteristics.Bt709)]
+    [InlineData(ObuMatrixCoefficients.ChromaticityDerivedConstantLuminance, ObuTransferCharacteristics.Bt709)]
+    [InlineData(ObuMatrixCoefficients.Bt2100ICtCp, ObuTransferCharacteristics.Smpte2084)]
+    [InlineData(ObuMatrixCoefficients.Bt2100ICtCp, ObuTransferCharacteristics.Hlg)]
+    public void ColorOperatorSimdBatchesMatchScalarTail(int matrixCoefficients, int transferCharacteristics)
+    {
+        const int width = 31;
+
+        // Thirty-one samples exercise Vector512, Vector256, Vector128, and scalar stages on AVX-512 hardware.
+        // The same row still reaches the widest available stages and scalar tail on narrower SIMD hardware.
+        using Image<Rgb48> source = new(width, 1);
+        source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0).Fill(new Rgb48(39999, 27777, 12345));
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(
+            width,
+            1,
+            matrixCoefficients: (ObuMatrixCoefficients)matrixCoefficients,
+            bitDepth: Av1BitDepth.TwelveBit,
+            transferCharacteristics: (ObuTransferCharacteristics)transferCharacteristics,
+            colorPrimaries: ObuColorPrimaries.Bt2020);
+
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv444, false);
+        using Image<Rgb48> destination = new(width, 1);
+
+        Av1YuvConverter.ConvertFromRgb(Configuration.Default, source.Frames.RootFrame, frameBuffer);
+        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, destination.Frames.RootFrame);
+
+        AssertPlaneContainsRepeatedSample(frameBuffer, Av1Plane.Y, 0, 0);
+        AssertPlaneContainsRepeatedSample(frameBuffer, Av1Plane.U, 0, 0);
+        AssertPlaneContainsRepeatedSample(frameBuffer, Av1Plane.V, 0, 0);
+
+        Span<Rgb48> pixels = destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0);
+        for (int x = 1; x < pixels.Length; x++)
+        {
+            Assert.Equal(pixels[0], pixels[x]);
+        }
+    }
+
+    /// <summary>
+    /// Verifies horizontal and vertical chroma downsampling against full-resolution encoded components.
+    /// </summary>
+    /// <param name="colorFormat">The subsampled AV1 color format.</param>
+    /// <param name="bitDepth">The encoded AV1 bit depth.</param>
+    [Theory]
+    [InlineData(Av1ColorFormat.Yuv422, Av1BitDepth.EightBit)]
+    [InlineData(Av1ColorFormat.Yuv422, Av1BitDepth.TwelveBit)]
+    [InlineData(Av1ColorFormat.Yuv420, Av1BitDepth.EightBit)]
+    [InlineData(Av1ColorFormat.Yuv420, Av1BitDepth.TwelveBit)]
+    public void RgbToYuvSubsamplingAveragesFullResolutionChroma(int colorFormat, int bitDepth)
+    {
+        const int width = 35;
+        const int height = 3;
+
+        using Image<Rgb48> source = new(width, height);
+        for (int y = 0; y < height; y++)
+        {
+            Span<Rgb48> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < width; x++)
+            {
+                row[x] = new Rgb48(
+                    (ushort)((x * 1879) + (y * 791)),
+                    (ushort)((x * 977) + (y * 3251)),
+                    (ushort)((x * 613) + (y * 4987)));
+            }
+        }
+
+        ObuSequenceHeader fullResolutionHeader = CreateSequenceHeader(
+            width,
+            height,
+            colorFormat: Av1ColorFormat.Yuv444,
+            bitDepth: (Av1BitDepth)bitDepth);
+
+        ObuSequenceHeader subsampledHeader = CreateSequenceHeader(
+            width,
+            height,
+            colorFormat: (Av1ColorFormat)colorFormat,
+            bitDepth: (Av1BitDepth)bitDepth);
+
+        using Av1FrameBuffer<byte> fullResolution = new(Configuration.Default, fullResolutionHeader, Av1ColorFormat.Yuv444, false);
+        using Av1FrameBuffer<byte> subsampled = new(Configuration.Default, subsampledHeader, (Av1ColorFormat)colorFormat, false);
+
+        Av1YuvConverter.ConvertFromRgb(Configuration.Default, source.Frames.RootFrame, fullResolution);
+        Av1YuvConverter.ConvertFromRgb(Configuration.Default, source.Frames.RootFrame, subsampled);
+
+        AssertSubsampledPlaneMatchesAverage(fullResolution, subsampled, Av1Plane.U);
+        AssertSubsampledPlaneMatchesAverage(fullResolution, subsampled, Av1Plane.V);
+    }
+
+    /// <summary>
+    /// Verifies an image-wide RGB-to-YUV-to-RGB conversion against the configured similarity tolerance.
+    /// </summary>
+    /// <param name="provider">The source test-image provider.</param>
     // [Theory]
     // [WithFile(TestImages.Jpeg.Baseline.Winter444_Interleaved, PixelTypes.Rgb24)]
     public void RoundTrip(TestImageProvider<Rgb24> provider)
@@ -448,6 +677,19 @@ public class Av1YuvConverterTests
         ImageComparer.Tolerant(0.002F).VerifySimilarity(image, actual);
     }
 
+    /// <summary>
+    /// Creates a sequence header containing the color signaling required by a conversion test.
+    /// </summary>
+    /// <param name="width">The frame width.</param>
+    /// <param name="height">The frame height.</param>
+    /// <param name="fullRange">Whether encoded samples use the full range.</param>
+    /// <param name="matrixCoefficients">The matrix coefficients used for conversion.</param>
+    /// <param name="colorFormat">The encoded plane layout.</param>
+    /// <param name="chromaSamplePosition">The signaled chroma sample position.</param>
+    /// <param name="bitDepth">The encoded sample bit depth.</param>
+    /// <param name="transferCharacteristics">The transfer characteristics used by nonlinear matrices.</param>
+    /// <param name="colorPrimaries">The color primaries used by derived matrices.</param>
+    /// <returns>The configured sequence header.</returns>
     private static ObuSequenceHeader CreateSequenceHeader(
         int width,
         int height,
@@ -455,7 +697,9 @@ public class Av1YuvConverterTests
         ObuMatrixCoefficients matrixCoefficients = ObuMatrixCoefficients.Bt709,
         Av1ColorFormat colorFormat = Av1ColorFormat.Yuv444,
         ObuChromoSamplePosition chromaSamplePosition = ObuChromoSamplePosition.Unknown,
-        Av1BitDepth bitDepth = Av1BitDepth.EightBit)
+        Av1BitDepth bitDepth = Av1BitDepth.EightBit,
+        ObuTransferCharacteristics transferCharacteristics = ObuTransferCharacteristics.Bt709,
+        ObuColorPrimaries colorPrimaries = ObuColorPrimaries.Bt709)
         => new()
         {
             MaxFrameWidth = width,
@@ -465,10 +709,83 @@ public class Av1YuvConverterTests
                 IsMonochrome = colorFormat == Av1ColorFormat.Yuv400,
                 BitDepth = bitDepth,
                 MatrixCoefficients = matrixCoefficients,
+                TransferCharacteristics = transferCharacteristics,
+                ColorPrimaries = colorPrimaries,
                 ColorRange = fullRange,
                 SubSamplingX = colorFormat is Av1ColorFormat.Yuv400 or Av1ColorFormat.Yuv420 or Av1ColorFormat.Yuv422,
                 SubSamplingY = colorFormat is Av1ColorFormat.Yuv400 or Av1ColorFormat.Yuv420,
                 ChromaSamplePosition = chromaSamplePosition,
             },
         };
+
+    /// <summary>
+    /// Verifies that every high-bit-depth sample in a plane matches its first sample.
+    /// </summary>
+    /// <param name="frameBuffer">The encoded frame buffer.</param>
+    /// <param name="plane">The plane to inspect.</param>
+    /// <param name="subX">The horizontal subsampling shift.</param>
+    /// <param name="subY">The vertical subsampling shift.</param>
+    private static void AssertPlaneContainsRepeatedSample(Av1FrameBuffer<byte> frameBuffer, Av1Plane plane, int subX, int subY)
+    {
+        Span<ushort> samples = frameBuffer.GetHighBitDepthRowSpan(plane, 0, subX, subY);
+        for (int x = 1; x < samples.Length; x++)
+        {
+            Assert.Equal(samples[0], samples[x]);
+        }
+    }
+
+    /// <summary>
+    /// Verifies that a subsampled plane contains the rounded mean of the corresponding full-resolution samples.
+    /// </summary>
+    /// <param name="fullResolution">The full-resolution encoded frame.</param>
+    /// <param name="subsampled">The subsampled encoded frame.</param>
+    /// <param name="plane">The chroma plane to compare.</param>
+    private static void AssertSubsampledPlaneMatchesAverage(
+        Av1FrameBuffer<byte> fullResolution,
+        Av1FrameBuffer<byte> subsampled,
+        Av1Plane plane)
+    {
+        int subY = subsampled.ColorConfig.SubSamplingY ? 1 : 0;
+        int chromaHeight = (subsampled.Height + subY) >> subY;
+        int chromaWidth = (subsampled.Width + 1) >> 1;
+        for (int y = 0; y < chromaHeight; y++)
+        {
+            int sourceY = y << subY;
+            int rowCount = subY == 0 ? 1 : Math.Min(2, fullResolution.Height - sourceY);
+            for (int x = 0; x < chromaWidth; x++)
+            {
+                int sourceX = x << 1;
+                int columnCount = Math.Min(2, fullResolution.Width - sourceX);
+                int sum = 0;
+                for (int row = 0; row < rowCount; row++)
+                {
+                    for (int column = 0; column < columnCount; column++)
+                    {
+                        sum += GetPlaneSample(fullResolution, plane, sourceX + column, sourceY + row, 0, 0);
+                    }
+                }
+
+                int expected = (int)MathF.Round((float)sum / (rowCount * columnCount), MidpointRounding.AwayFromZero);
+                int actual = GetPlaneSample(subsampled, plane, x, y, 1, subY);
+                Assert.True(
+                    actual >= expected - 1 && actual <= expected + 1,
+                    $"Plane {plane}, sample ({x}, {y}): expected {expected} +/- 1 from sum {sum} over {rowCount * columnCount} samples but found {actual}.");
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets one encoded sample from an eight-bit or high-bit-depth frame plane.
+    /// </summary>
+    /// <param name="frameBuffer">The encoded frame buffer.</param>
+    /// <param name="plane">The plane containing the sample.</param>
+    /// <param name="x">The horizontal sample coordinate.</param>
+    /// <param name="y">The vertical sample coordinate.</param>
+    /// <param name="subX">The horizontal subsampling shift.</param>
+    /// <param name="subY">The vertical subsampling shift.</param>
+    /// <returns>The encoded sample value.</returns>
+    private static int GetPlaneSample(Av1FrameBuffer<byte> frameBuffer, Av1Plane plane, int x, int y, int subX, int subY)
+        => frameBuffer.BitDepth == Av1BitDepth.EightBit
+            ? frameBuffer.DeriveBlockPointer(plane, subX, subY).DangerousGetRowSpan(y)[x]
+            : frameBuffer.GetHighBitDepthRowSpan(plane, y, subX, subY)[x];
 }

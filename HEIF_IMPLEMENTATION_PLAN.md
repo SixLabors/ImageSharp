@@ -34,12 +34,19 @@ Checkboxes may be marked complete only when the implementation and the verificat
   - [x] Preserve the exact ICC payload from an independently encoded AVIF primary item.
   - [x] Prove that a genuine non-sRGB AVIF profile changes decoded pixels and matches the independently converted source image within the documented AV1 tolerance.
   - [x] Verify canonical-sRGB compaction and metadata skipping independently from ICC preservation and color conversion.
+  - [x] Replace the AV1 RGB/YUV arithmetic layer with JPEG's closed-generic static operator pattern in both directions: frame-scoped operator selection, in-place planar decode, RGB inputs with `out` component planes for encode, `Vector512`/`Vector256`/`Vector128` traversal, and one scalar tail.
+  - [x] Keep codec row scheduling sequential and reuse frame-scoped allocator-backed buffers. Reuse JPEG's optimized `UnpackIntoRgbPlanes` contract for 8-bit encoding and pooled `Rgb48` staging for 10/12-bit encoding so high-precision input is not truncated through an eight-bit or `Vector4` intermediate.
+  - [x] Implement SIMD range expansion, chroma reconstruction, matrix/transfer conversion, clamping, and RGB packing for coefficient YCbCr, identity GBR, YCgCo, constant luminance, SMPTE ST 2085, and PQ/HLG ICtCp, with focused SIMD-lane/scalar-tail parity coverage.
+  - [x] Implement SIMD 4:2:0 and 4:2:2 encoder downsampling with odd-width and odd-height tails, and verify the stored 8/12-bit chroma samples against independently encoded full-resolution planes.
   - [ ] Complete the SIMD YUV/CICP paths for every supported AV1 bit depth, chroma format, range, matrix, transfer function, color primary, and chroma position, with scalar fallback only when hardware vectorization is unavailable or the operation is inherently non-vectorizable.
   - [x] Apply ICC conversion only after the SIMD YUV/CICP stage, alpha composition, grid assembly, and presentation transforms have produced the presented RGB image; retain ImageSharp's shared ICC converter and optimize reusable bulk kernels rather than creating a HEIF-specific color-management implementation.
   - [ ] Verify ICC preservation, conversion, compaction, and metadata skipping for grids, alpha-composited images, every presented sequence frame, and the completed HEVC path.
     - [x] Independently encode AVIF primary, grid, alpha-auxiliary, and two-frame sequence vectors with libavif 1.4.2/libaom 3.14.1; verify exact profile preservation, non-sRGB conversion, canonical-sRGB compaction, non-sRGB compact preservation, metadata skipping, every presented frame, and unchanged composed alpha.
     - [ ] Repeat the same matrix for HEVC primary, grid, alpha-auxiliary, and sequence paths after HEVC reconstruction is complete.
   - [ ] Benchmark representative 8/10/12-bit end-to-end AVIF and HEIC color pipelines with and without ICC conversion, recording absolute timings and allocations before marking Phase 5 complete.
+    - [x] Add permanent frame-wide `Av1ColorConversionBenchmarks` coverage for sequential 1920x1080 YUV 4:2:0 conversion in both directions at 8, 10, and 12 bits, including managed-allocation reporting.
+    - [x] Record the .NET 10 short-run AV1 baseline on 2026-08-25. SIMD decode measured 4.025/2.803/2.742 ms and encode measured 3.750/2.555/2.450 ms at 8/10/12 bits with 488-744 B allocated per frame. Forced-scalar decode measured 31.15/29.47/28.40 ms and encode measured 19.19/15.77/15.14 ms, making the normal SIMD pipeline 7.7-10.5 times faster for decode and 5.1-6.2 times faster for encode on this machine.
+    - [ ] Add representative ICC-enabled AVIF cases and the equivalent HEVC cases after the HEVC reconstruction path is complete.
 - [x] **Completed:** remove production `ToArray()` materializations from the HEIF implementation and make every retained copy an explicit ownership decision.
   - [x] Store AV1 palette colors and HEVC short-term reference-picture state inline at their normative fixed bounds.
   - [x] Retain only the AV1 configuration sequence-header payload required for item/sample equivalence instead of every configuration OBU.
@@ -458,9 +465,17 @@ Exit gate:
 Tasks:
 
 - [ ] Implement monochrome, 4:2:0, 4:2:2, and 4:4:4 plane access with every valid signaled chroma sample position.
+  - [x] Implement SIMD AV1 4:2:0 and 4:2:2 chroma reconstruction and downsampling, including centered/colocated reconstruction and odd image edges.
+  - [ ] Complete the HEVC plane paths and the exhaustive AV1/HEVC chroma-position matrix before closing this item.
 - [ ] Implement full- and limited-range expansion for 8, 10, and 12-bit samples across every supported plane layout.
+  - [x] Implement AV1 range expansion and quantization with SIMD-first byte/ushort loaders and storers and pooled planar rows.
+  - [ ] Complete the equivalent HEVC paths and independently verify the full cross-product.
 - [ ] Implement every non-reserved HEVC/AV1 color-primary, transfer-characteristic, and matrix-coefficient signaling path, including identity conversion, with correct fixed-point rounding and clipping.
+  - [x] Implement the AV1 H.273 matrix and transfer-function operators in both directions, including identity, derived coefficients, constant luminance, SMPTE ST 2085, and PQ/HLG ICtCp.
+  - [ ] Add independent conformance vectors for signaling combinations that libavif deliberately rejects, then complete and verify the HEVC operator set.
 - [ ] Make SIMD the default decode path for YUV range expansion, chroma reconstruction, H.273 matrix and transfer conversion, clamping, and 8/10/12-bit RGB packing. Use the established static operator pattern with `Vector512`, `Vector256`, and `Vector128` dispatch followed by one scalar tail that remains the behavioral oracle.
+  - [x] AV1 uses the JPEG-style static operator contract and descending SIMD-width traversal for decode and encode, with scalar execution limited to the remaining lanes or hardware without vector support.
+  - [ ] Complete the same default SIMD pipeline for HEVC and record end-to-end measurements for both codecs.
 - [ ] Apply embedded ICC profiles after codec YUV/CICP conversion and image composition through ImageSharp's existing color-profile converter. Cover preserve, convert, compact, and ignore behavior for primary items, grids, alpha-composited images, and every presented sequence frame; never substitute CICP or an assumed sRGB profile for an embedded ICC profile.
   - Primary AVIF verification passes four independently scoped cases: exact profile preservation, non-sRGB conversion with changed pixels and paired-source comparison, canonical-sRGB compaction without pixel changes, and metadata skipping. Grid, auxiliary-alpha, sequence, and HEVC cases remain open.
 - [ ] Decode alpha auxiliary items as monochrome planes, validate dimensions and bit depth, and compose them without losing precision. Define premultiplication behavior from AVIF signaling and ImageSharp's pixel contract.
@@ -479,6 +494,8 @@ Delete the JPEG payload path from the production encoder. Keep the synchronous I
 Implement in vertical slices that always produce a decodable AV1 bitstream:
 
 - [ ] Convert RGB/RGBA to AV1 planes for every 8, 10, and 12-bit output, range, matrix, and monochrome/4:2:0/4:2:2/4:4:4 combination permitted by the selected AV1 profile.
+  - [x] Implement the pooled sequential RGB-to-planar pipeline, 8/10/12-bit quantization, every implemented H.273 operator, and SIMD 4:2:0/4:2:2 downsampling with odd-edge handling.
+  - [ ] Complete the exhaustive format/range/matrix/transfer/primary cross-product and validate encoded planes against an independent implementation before closing this item.
 - [ ] Write sequence, frame, tile-group, and metadata OBUs for a reduced still picture.
 - [ ] Implement a temporary smallest-valid intra-only vertical slice using existing partition, prediction, transform, quantization, coefficient, and entropy structures.
 - [ ] Complete block geometry, neighbor/context updates, transform selection and forward transforms, quantization, coefficient tokenization, and range coding.

@@ -130,55 +130,89 @@ internal sealed class HevcSliceSegmentHeader
         }
     }
 
-    /// <summary>Gets the complete decoded NAL unit containing this slice segment.</summary>
+    /// <summary>
+    /// Gets the complete decoded NAL unit containing this slice segment.
+    /// </summary>
     public HevcNalUnit NalUnit { get; }
 
-    /// <summary>Gets a value indicating whether this is the first slice segment of the coded picture.</summary>
+    /// <summary>
+    /// Gets a value indicating whether this is the first slice segment of the coded picture.
+    /// </summary>
     public bool FirstSliceSegmentInPicture { get; }
 
-    /// <summary>Gets a value indicating whether this segment inherits syntax from an earlier independent slice.</summary>
+    /// <summary>
+    /// Gets a value indicating whether this segment inherits syntax from an earlier independent slice.
+    /// </summary>
     public bool DependentSliceSegment { get; }
 
-    /// <summary>Gets the picture parameters selected by this slice segment.</summary>
+    /// <summary>
+    /// Gets the picture parameters selected by this slice segment.
+    /// </summary>
     public HevcPictureParameterSet PictureParameterSet { get; }
 
-    /// <summary>Gets the raster-scan address of the first coding-tree block in this slice segment.</summary>
+    /// <summary>
+    /// Gets the raster-scan address of the first coding-tree block in this slice segment.
+    /// </summary>
     public int SliceSegmentAddress { get; }
 
-    /// <summary>Gets the independent slice prediction type, or <see langword="null"/> for a dependent segment.</summary>
+    /// <summary>
+    /// Gets the independent slice prediction type, or <see langword="null"/> for a dependent segment.
+    /// </summary>
     public HevcSliceType? SliceType { get; private set; }
 
-    /// <summary>Gets the selected color-plane identifier for separate-plane 4:4:4 coding.</summary>
+    /// <summary>
+    /// Gets the selected color-plane identifier for separate-plane 4:4:4 coding.
+    /// </summary>
     public byte ColorPlaneId { get; private set; }
 
-    /// <summary>Gets a value indicating whether luma sample-adaptive offset filtering is enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether luma sample-adaptive offset filtering is enabled.
+    /// </summary>
     public bool? SampleAdaptiveOffsetLumaEnabled { get; private set; }
 
-    /// <summary>Gets a value indicating whether chroma sample-adaptive offset filtering is enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether chroma sample-adaptive offset filtering is enabled.
+    /// </summary>
     public bool? SampleAdaptiveOffsetChromaEnabled { get; private set; }
 
-    /// <summary>Gets the effective luma quantization parameter, or <see langword="null"/> for a dependent segment.</summary>
+    /// <summary>
+    /// Gets the effective luma quantization parameter, or <see langword="null"/> for a dependent segment.
+    /// </summary>
     public int? QuantizationParameter { get; private set; }
 
-    /// <summary>Gets the slice-level Cb quantization-parameter offset.</summary>
+    /// <summary>
+    /// Gets the slice-level Cb quantization-parameter offset.
+    /// </summary>
     public int ChromaCbQuantizationParameterOffset { get; private set; }
 
-    /// <summary>Gets the slice-level Cr quantization-parameter offset.</summary>
+    /// <summary>
+    /// Gets the slice-level Cr quantization-parameter offset.
+    /// </summary>
     public int ChromaCrQuantizationParameterOffset { get; private set; }
 
-    /// <summary>Gets a value indicating whether coding units can select the PPS chroma-offset list.</summary>
+    /// <summary>
+    /// Gets a value indicating whether coding units can select the PPS chroma-offset list.
+    /// </summary>
     public bool? ChromaQuantizationParameterOffsetListEnabled { get; private set; }
 
-    /// <summary>Gets a value indicating whether deblocking is disabled for this independent slice.</summary>
+    /// <summary>
+    /// Gets a value indicating whether deblocking is disabled for this independent slice.
+    /// </summary>
     public bool? DeblockingFilterDisabled { get; private set; }
 
-    /// <summary>Gets half the effective deblocking beta-threshold offset.</summary>
+    /// <summary>
+    /// Gets half the effective deblocking beta-threshold offset.
+    /// </summary>
     public int DeblockingFilterBetaOffsetDiv2 { get; private set; }
 
-    /// <summary>Gets half the effective deblocking clipping-threshold offset.</summary>
+    /// <summary>
+    /// Gets half the effective deblocking clipping-threshold offset.
+    /// </summary>
     public int DeblockingFilterTcOffsetDiv2 { get; private set; }
 
-    /// <summary>Gets a value indicating whether in-loop filtering crosses slice boundaries.</summary>
+    /// <summary>
+    /// Gets a value indicating whether in-loop filtering crosses slice boundaries.
+    /// </summary>
     public bool? LoopFilterAcrossSlicesEnabled { get; private set; }
 
     /// <summary>
@@ -186,10 +220,14 @@ internal sealed class HevcSliceSegmentHeader
     /// </summary>
     public IReadOnlyList<int> EntryPointOffsets { get; private set; } = Array.Empty<int>();
 
-    /// <summary>Gets the slice-header length in decoded raw-byte-sequence payload bytes.</summary>
+    /// <summary>
+    /// Gets the slice-header length in decoded raw-byte-sequence payload bytes.
+    /// </summary>
     public int HeaderLength { get; }
 
-    /// <summary>Gets the entropy-coded slice data following byte alignment.</summary>
+    /// <summary>
+    /// Gets the entropy-coded slice data following byte alignment.
+    /// </summary>
     public ReadOnlyMemory<byte> SliceData { get; }
 
     /// <summary>

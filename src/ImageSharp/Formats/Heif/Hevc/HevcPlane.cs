@@ -8,12 +8,18 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 /// </summary>
 internal enum HevcPlane
 {
-    /// <summary>The luma or first separate-color plane.</summary>
+    /// <summary>
+    /// The luma or first separate-color plane.
+    /// </summary>
     Y = 0,
 
-    /// <summary>The blue-difference chroma or second separate-color plane.</summary>
+    /// <summary>
+    /// The blue-difference chroma or second separate-color plane.
+    /// </summary>
     Cb = 1,
 
-    /// <summary>The red-difference chroma or third separate-color plane.</summary>
+    /// <summary>
+    /// The red-difference chroma or third separate-color plane.
+    /// </summary>
     Cr = 2,
 }

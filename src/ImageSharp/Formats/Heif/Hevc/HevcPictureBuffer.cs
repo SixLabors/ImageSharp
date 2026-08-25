@@ -10,10 +10,14 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 /// </summary>
 internal sealed class HevcPictureBuffer : IDisposable
 {
-    /// <summary>The horizontal chroma subsampling shift.</summary>
+    /// <summary>
+    /// The horizontal chroma subsampling shift.
+    /// </summary>
     private readonly int chromaSubsamplingX;
 
-    /// <summary>The vertical chroma subsampling shift.</summary>
+    /// <summary>
+    /// The vertical chroma subsampling shift.
+    /// </summary>
     private readonly int chromaSubsamplingY;
 
     /// <summary>
@@ -44,54 +48,82 @@ internal sealed class HevcPictureBuffer : IDisposable
         }
     }
 
-    /// <summary>Gets the coded luma width in samples.</summary>
+    /// <summary>
+    /// Gets the coded luma width in samples.
+    /// </summary>
     public int Width { get; }
 
-    /// <summary>Gets the coded luma height in samples.</summary>
+    /// <summary>
+    /// Gets the coded luma height in samples.
+    /// </summary>
     public int Height { get; }
 
-    /// <summary>Gets the luma sample precision in bits.</summary>
+    /// <summary>
+    /// Gets the luma sample precision in bits.
+    /// </summary>
     public int BitDepthLuma { get; }
 
-    /// <summary>Gets the chroma sample precision in bits.</summary>
+    /// <summary>
+    /// Gets the chroma sample precision in bits.
+    /// </summary>
     public int BitDepthChroma { get; }
 
-    /// <summary>Gets the HEVC chroma-format identifier.</summary>
+    /// <summary>
+    /// Gets the HEVC chroma-format identifier.
+    /// </summary>
     public byte ChromaFormat { get; }
 
-    /// <summary>Gets a value indicating whether the three planes are coded as independent full-resolution color planes.</summary>
+    /// <summary>
+    /// Gets a value indicating whether the three planes are coded as independent full-resolution color planes.
+    /// </summary>
     public bool SeparateColorPlane { get; }
 
-    /// <summary>Gets the luma or first separate-color-plane allocation.</summary>
+    /// <summary>
+    /// Gets the luma or first separate-color-plane allocation.
+    /// </summary>
     public Buffer2D<ushort> Luma { get; }
 
-    /// <summary>Gets the blue-difference chroma or second separate-color-plane allocation.</summary>
+    /// <summary>
+    /// Gets the blue-difference chroma or second separate-color-plane allocation.
+    /// </summary>
     public Buffer2D<ushort>? ChromaBlue { get; }
 
-    /// <summary>Gets the red-difference chroma or third separate-color-plane allocation.</summary>
+    /// <summary>
+    /// Gets the red-difference chroma or third separate-color-plane allocation.
+    /// </summary>
     public Buffer2D<ushort>? ChromaRed { get; }
 
-    /// <summary>Gets the horizontal chroma subsampling shift for the selected plane.</summary>
+    /// <summary>
+    /// Gets the horizontal chroma subsampling shift for the selected plane.
+    /// </summary>
     /// <param name="plane">The reconstruction plane.</param>
     /// <returns>Zero for luma and full-resolution planes; otherwise, the chroma shift.</returns>
     public int GetSubsamplingX(HevcPlane plane) => plane == HevcPlane.Y ? 0 : this.chromaSubsamplingX;
 
-    /// <summary>Gets the vertical chroma subsampling shift for the selected plane.</summary>
+    /// <summary>
+    /// Gets the vertical chroma subsampling shift for the selected plane.
+    /// </summary>
     /// <param name="plane">The reconstruction plane.</param>
     /// <returns>Zero for luma and full-resolution planes; otherwise, the chroma shift.</returns>
     public int GetSubsamplingY(HevcPlane plane) => plane == HevcPlane.Y ? 0 : this.chromaSubsamplingY;
 
-    /// <summary>Gets the selected plane width in samples.</summary>
+    /// <summary>
+    /// Gets the selected plane width in samples.
+    /// </summary>
     /// <param name="plane">The reconstruction plane.</param>
     /// <returns>The coded plane width.</returns>
     public int GetWidth(HevcPlane plane) => DivideCeilingByPowerOfTwo(this.Width, this.GetSubsamplingX(plane));
 
-    /// <summary>Gets the selected plane height in samples.</summary>
+    /// <summary>
+    /// Gets the selected plane height in samples.
+    /// </summary>
     /// <param name="plane">The reconstruction plane.</param>
     /// <returns>The coded plane height.</returns>
     public int GetHeight(HevcPlane plane) => DivideCeilingByPowerOfTwo(this.Height, this.GetSubsamplingY(plane));
 
-    /// <summary>Gets one coded row from the selected reconstruction plane.</summary>
+    /// <summary>
+    /// Gets one coded row from the selected reconstruction plane.
+    /// </summary>
     /// <param name="plane">The reconstruction plane.</param>
     /// <param name="row">The zero-based row index in plane samples.</param>
     /// <returns>The complete coded plane row.</returns>
@@ -103,7 +135,9 @@ internal sealed class HevcPictureBuffer : IDisposable
             _ => this.ChromaRed!.DangerousGetRowSpan(row),
         };
 
-    /// <summary>Releases the owned luma and chroma plane allocations.</summary>
+    /// <summary>
+    /// Releases the owned luma and chroma plane allocations.
+    /// </summary>
     public void Dispose()
     {
         this.Luma.Dispose();
@@ -111,7 +145,9 @@ internal sealed class HevcPictureBuffer : IDisposable
         this.ChromaRed?.Dispose();
     }
 
-    /// <summary>Divides a nonnegative sample count by a power of two with upward rounding.</summary>
+    /// <summary>
+    /// Divides a nonnegative sample count by a power of two with upward rounding.
+    /// </summary>
     /// <param name="value">The sample count.</param>
     /// <param name="shift">The base-two divisor logarithm.</param>
     /// <returns>The upward-rounded quotient.</returns>

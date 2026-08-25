@@ -220,139 +220,229 @@ internal sealed class HevcPictureParameterSet
         reader.ReadRbspTrailingBits();
     }
 
-    /// <summary>Gets the picture-parameter-set identifier.</summary>
+    /// <summary>
+    /// Gets the picture-parameter-set identifier.
+    /// </summary>
     public byte Id { get; }
 
-    /// <summary>Gets the referenced sequence-parameter-set identifier.</summary>
+    /// <summary>
+    /// Gets the referenced sequence-parameter-set identifier.
+    /// </summary>
     public byte SequenceParameterSetId { get; }
 
-    /// <summary>Gets the sequence parameters governing this picture parameter set.</summary>
+    /// <summary>
+    /// Gets the sequence parameters governing this picture parameter set.
+    /// </summary>
     public HevcSequenceParameterSet SequenceParameterSet { get; }
 
-    /// <summary>Gets a value indicating whether dependent slice segments can occur.</summary>
+    /// <summary>
+    /// Gets a value indicating whether dependent slice segments can occur.
+    /// </summary>
     public bool DependentSliceSegmentsEnabled { get; }
 
-    /// <summary>Gets a value indicating whether slice headers contain the picture-output flag.</summary>
+    /// <summary>
+    /// Gets a value indicating whether slice headers contain the picture-output flag.
+    /// </summary>
     public bool OutputFlagPresent { get; }
 
-    /// <summary>Gets the number of reserved extra bits at the start of each independent slice header.</summary>
+    /// <summary>
+    /// Gets the number of reserved extra bits at the start of each independent slice header.
+    /// </summary>
     public int ExtraSliceHeaderBitCount { get; }
 
-    /// <summary>Gets a value indicating whether transform-coefficient sign hiding is enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether transform-coefficient sign hiding is enabled.
+    /// </summary>
     public bool SignDataHidingEnabled { get; }
 
-    /// <summary>Gets a value indicating whether slices can select an alternate CABAC initialization table.</summary>
+    /// <summary>
+    /// Gets a value indicating whether slices can select an alternate CABAC initialization table.
+    /// </summary>
     public bool CabacInitializationPresent { get; }
 
-    /// <summary>Gets the default active reference-index count for reference list zero.</summary>
+    /// <summary>
+    /// Gets the default active reference-index count for reference list zero.
+    /// </summary>
     public int DefaultReferenceIndexCountList0 { get; }
 
-    /// <summary>Gets the default active reference-index count for reference list one.</summary>
+    /// <summary>
+    /// Gets the default active reference-index count for reference list one.
+    /// </summary>
     public int DefaultReferenceIndexCountList1 { get; }
 
-    /// <summary>Gets the picture quantization-parameter initializer relative to 26.</summary>
+    /// <summary>
+    /// Gets the picture quantization-parameter initializer relative to 26.
+    /// </summary>
     public int InitialQuantizationParameterMinus26 { get; }
 
-    /// <summary>Gets a value indicating whether inter-coded neighbors are excluded from intra prediction.</summary>
+    /// <summary>
+    /// Gets a value indicating whether inter-coded neighbors are excluded from intra prediction.
+    /// </summary>
     public bool ConstrainedIntraPredictionEnabled { get; }
 
-    /// <summary>Gets a value indicating whether residual transform skipping can be selected.</summary>
+    /// <summary>
+    /// Gets a value indicating whether residual transform skipping can be selected.
+    /// </summary>
     public bool TransformSkipEnabled { get; }
 
-    /// <summary>Gets a value indicating whether coding units can change the quantization parameter.</summary>
+    /// <summary>
+    /// Gets a value indicating whether coding units can change the quantization parameter.
+    /// </summary>
     public bool CodingUnitQuantizationParameterDeltaEnabled { get; }
 
-    /// <summary>Gets the coding-tree depth at which quantization-parameter deltas are signaled.</summary>
+    /// <summary>
+    /// Gets the coding-tree depth at which quantization-parameter deltas are signaled.
+    /// </summary>
     public int QuantizationParameterDeltaDepth { get; }
 
-    /// <summary>Gets the picture-level Cb quantization-parameter offset.</summary>
+    /// <summary>
+    /// Gets the picture-level Cb quantization-parameter offset.
+    /// </summary>
     public int ChromaCbQuantizationParameterOffset { get; }
 
-    /// <summary>Gets the picture-level Cr quantization-parameter offset.</summary>
+    /// <summary>
+    /// Gets the picture-level Cr quantization-parameter offset.
+    /// </summary>
     public int ChromaCrQuantizationParameterOffset { get; }
 
-    /// <summary>Gets a value indicating whether slices can add Cb and Cr quantization-parameter offsets.</summary>
+    /// <summary>
+    /// Gets a value indicating whether slices can add Cb and Cr quantization-parameter offsets.
+    /// </summary>
     public bool SliceChromaQuantizationParameterOffsetsPresent { get; }
 
-    /// <summary>Gets a value indicating whether weighted prediction can be used by predictive slices.</summary>
+    /// <summary>
+    /// Gets a value indicating whether weighted prediction can be used by predictive slices.
+    /// </summary>
     public bool WeightedPredictionEnabled { get; }
 
-    /// <summary>Gets a value indicating whether weighted prediction can be used by bidirectional slices.</summary>
+    /// <summary>
+    /// Gets a value indicating whether weighted prediction can be used by bidirectional slices.
+    /// </summary>
     public bool WeightedBiPredictionEnabled { get; }
 
-    /// <summary>Gets a value indicating whether coding units can bypass transform and quantization.</summary>
+    /// <summary>
+    /// Gets a value indicating whether coding units can bypass transform and quantization.
+    /// </summary>
     public bool TransquantizationBypassEnabled { get; }
 
-    /// <summary>Gets a value indicating whether the coded picture is partitioned into tiles.</summary>
+    /// <summary>
+    /// Gets a value indicating whether the coded picture is partitioned into tiles.
+    /// </summary>
     public bool TilesEnabled { get; }
 
-    /// <summary>Gets a value indicating whether wavefront entropy-coding synchronization is enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether wavefront entropy-coding synchronization is enabled.
+    /// </summary>
     public bool EntropyCodingSynchronizationEnabled { get; }
 
-    /// <summary>Gets a value indicating whether the tile grid uses uniform proportional spacing.</summary>
+    /// <summary>
+    /// Gets a value indicating whether the tile grid uses uniform proportional spacing.
+    /// </summary>
     public bool UniformTileSpacing { get; }
 
-    /// <summary>Gets the tile-column widths in coding-tree blocks.</summary>
+    /// <summary>
+    /// Gets the tile-column widths in coding-tree blocks.
+    /// </summary>
     public IReadOnlyList<int> TileColumnWidths { get; }
 
-    /// <summary>Gets the tile-row heights in coding-tree blocks.</summary>
+    /// <summary>
+    /// Gets the tile-row heights in coding-tree blocks.
+    /// </summary>
     public IReadOnlyList<int> TileRowHeights { get; }
 
-    /// <summary>Gets a value indicating whether in-loop filtering crosses tile boundaries.</summary>
+    /// <summary>
+    /// Gets a value indicating whether in-loop filtering crosses tile boundaries.
+    /// </summary>
     public bool LoopFilterAcrossTilesEnabled { get; }
 
-    /// <summary>Gets a value indicating whether in-loop filtering crosses slice boundaries.</summary>
+    /// <summary>
+    /// Gets a value indicating whether in-loop filtering crosses slice boundaries.
+    /// </summary>
     public bool LoopFilterAcrossSlicesEnabled { get; }
 
-    /// <summary>Gets a value indicating whether picture or slice syntax controls deblocking.</summary>
+    /// <summary>
+    /// Gets a value indicating whether picture or slice syntax controls deblocking.
+    /// </summary>
     public bool DeblockingFilterControlPresent { get; }
 
-    /// <summary>Gets a value indicating whether slice headers can override picture-level deblocking.</summary>
+    /// <summary>
+    /// Gets a value indicating whether slice headers can override picture-level deblocking.
+    /// </summary>
     public bool DeblockingFilterOverrideEnabled { get; }
 
-    /// <summary>Gets a value indicating whether deblocking is disabled by default for the picture.</summary>
+    /// <summary>
+    /// Gets a value indicating whether deblocking is disabled by default for the picture.
+    /// </summary>
     public bool DeblockingFilterDisabled { get; }
 
-    /// <summary>Gets half the picture-level deblocking beta-threshold offset.</summary>
+    /// <summary>
+    /// Gets half the picture-level deblocking beta-threshold offset.
+    /// </summary>
     public int DeblockingFilterBetaOffsetDiv2 { get; }
 
-    /// <summary>Gets half the picture-level deblocking clipping-threshold offset.</summary>
+    /// <summary>
+    /// Gets half the picture-level deblocking clipping-threshold offset.
+    /// </summary>
     public int DeblockingFilterTcOffsetDiv2 { get; }
 
-    /// <summary>Gets a value indicating whether this picture parameter set supplies scaling-list data.</summary>
+    /// <summary>
+    /// Gets a value indicating whether this picture parameter set supplies scaling-list data.
+    /// </summary>
     public bool ScalingListDataPresent { get; }
 
-    /// <summary>Gets the effective quantization scaling matrices for slices using this picture parameter set.</summary>
+    /// <summary>
+    /// Gets the effective quantization scaling matrices for slices using this picture parameter set.
+    /// </summary>
     public HevcScalingList ScalingList { get; }
 
-    /// <summary>Gets a value indicating whether slice headers can modify the initial reference-picture lists.</summary>
+    /// <summary>
+    /// Gets a value indicating whether slice headers can modify the initial reference-picture lists.
+    /// </summary>
     public bool ReferenceListModificationPresent { get; }
 
-    /// <summary>Gets the base-two logarithm of the parallel merge-estimation region width and height.</summary>
+    /// <summary>
+    /// Gets the base-two logarithm of the parallel merge-estimation region width and height.
+    /// </summary>
     public int ParallelMergeLevelLog2 { get; }
 
-    /// <summary>Gets a value indicating whether slice-segment headers carry extension bytes.</summary>
+    /// <summary>
+    /// Gets a value indicating whether slice-segment headers carry extension bytes.
+    /// </summary>
     public bool SliceSegmentHeaderExtensionPresent { get; }
 
-    /// <summary>Gets the base-two logarithm of the maximum transform-skip block width and height.</summary>
+    /// <summary>
+    /// Gets the base-two logarithm of the maximum transform-skip block width and height.
+    /// </summary>
     public int MaxTransformSkipBlockLog2 { get; private set; }
 
-    /// <summary>Gets a value indicating whether cross-component residual prediction is enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether cross-component residual prediction is enabled.
+    /// </summary>
     public bool CrossComponentPredictionEnabled { get; private set; }
 
-    /// <summary>Gets the coding-tree depth at which chroma quantization-offset indices are signaled.</summary>
+    /// <summary>
+    /// Gets the coding-tree depth at which chroma quantization-offset indices are signaled.
+    /// </summary>
     public int ChromaQuantizationParameterOffsetDepth { get; private set; }
 
-    /// <summary>Gets the Cb offsets in the selectable chroma quantization-parameter offset list.</summary>
+    /// <summary>
+    /// Gets the Cb offsets in the selectable chroma quantization-parameter offset list.
+    /// </summary>
     public IReadOnlyList<int> ChromaQuantizationParameterOffsetsCb { get; private set; } = Array.Empty<int>();
 
-    /// <summary>Gets the Cr offsets in the selectable chroma quantization-parameter offset list.</summary>
+    /// <summary>
+    /// Gets the Cr offsets in the selectable chroma quantization-parameter offset list.
+    /// </summary>
     public IReadOnlyList<int> ChromaQuantizationParameterOffsetsCr { get; private set; } = Array.Empty<int>();
 
-    /// <summary>Gets the base-two logarithm of the luma sample-adaptive-offset value scale.</summary>
+    /// <summary>
+    /// Gets the base-two logarithm of the luma sample-adaptive-offset value scale.
+    /// </summary>
     public int SampleAdaptiveOffsetScaleLumaLog2 { get; private set; }
 
-    /// <summary>Gets the base-two logarithm of the chroma sample-adaptive-offset value scale.</summary>
+    /// <summary>
+    /// Gets the base-two logarithm of the chroma sample-adaptive-offset value scale.
+    /// </summary>
     public int SampleAdaptiveOffsetScaleChromaLog2 { get; private set; }
 
     /// <summary>

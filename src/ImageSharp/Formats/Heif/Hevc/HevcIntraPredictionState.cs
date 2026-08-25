@@ -10,31 +10,49 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 /// </summary>
 internal sealed class HevcIntraPredictionState : IDisposable
 {
-    /// <summary>The base-two logarithm of the minimum luma prediction-block size.</summary>
+    /// <summary>
+    /// The base-two logarithm of the minimum luma prediction-block size.
+    /// </summary>
     private const int MinPredictionBlockLog2 = 2;
 
-    /// <summary>The planar intra prediction mode.</summary>
+    /// <summary>
+    /// The planar intra prediction mode.
+    /// </summary>
     private const byte PlanarMode = 0;
 
-    /// <summary>The DC intra prediction mode.</summary>
+    /// <summary>
+    /// The DC intra prediction mode.
+    /// </summary>
     private const byte DcMode = 1;
 
-    /// <summary>The horizontal intra prediction mode.</summary>
+    /// <summary>
+    /// The horizontal intra prediction mode.
+    /// </summary>
     private const byte HorizontalMode = 10;
 
-    /// <summary>The vertical intra prediction mode.</summary>
+    /// <summary>
+    /// The vertical intra prediction mode.
+    /// </summary>
     private const byte VerticalMode = 26;
 
-    /// <summary>The replacement chroma mode used when an explicit chroma candidate equals the luma mode.</summary>
+    /// <summary>
+    /// The replacement chroma mode used when an explicit chroma candidate equals the luma mode.
+    /// </summary>
     private const byte ChromaReplacementMode = 34;
 
-    /// <summary>The chroma mode that derives its direction from the colocated luma prediction block.</summary>
+    /// <summary>
+    /// The chroma mode that derives its direction from the colocated luma prediction block.
+    /// </summary>
     private const byte DerivedChromaMode = 36;
 
-    /// <summary>The luma intra mode at minimum-prediction-block resolution.</summary>
+    /// <summary>
+    /// The luma intra mode at minimum-prediction-block resolution.
+    /// </summary>
     private readonly Buffer2D<byte> lumaModes;
 
-    /// <summary>The coded chroma intra mode at minimum-prediction-block resolution in luma coordinates.</summary>
+    /// <summary>
+    /// The coded chroma intra mode at minimum-prediction-block resolution in luma coordinates.
+    /// </summary>
     private readonly Buffer2D<byte> chromaModes;
 
     /// <summary>
@@ -61,13 +79,19 @@ internal sealed class HevcIntraPredictionState : IDisposable
             this.HeightInMinPredictionBlocks);
     }
 
-    /// <summary>Gets the map width in minimum luma prediction blocks.</summary>
+    /// <summary>
+    /// Gets the map width in minimum luma prediction blocks.
+    /// </summary>
     public int WidthInMinPredictionBlocks { get; }
 
-    /// <summary>Gets the map height in minimum luma prediction blocks.</summary>
+    /// <summary>
+    /// Gets the map height in minimum luma prediction blocks.
+    /// </summary>
     public int HeightInMinPredictionBlocks { get; }
 
-    /// <summary>Decodes and records the luma intra modes of one leaf coding unit.</summary>
+    /// <summary>
+    /// Decodes and records the luma intra modes of one leaf coding unit.
+    /// </summary>
     /// <param name="reader">The current entropy-substream syntax reader.</param>
     /// <param name="x">The coding-unit left coordinate in luma samples.</param>
     /// <param name="y">The coding-unit top coordinate in luma samples.</param>
@@ -134,7 +158,9 @@ internal sealed class HevcIntraPredictionState : IDisposable
         }
     }
 
-    /// <summary>Decodes and records the chroma intra mode of one leaf coding unit.</summary>
+    /// <summary>
+    /// Decodes and records the chroma intra mode of one leaf coding unit.
+    /// </summary>
     /// <param name="reader">The current entropy-substream syntax reader.</param>
     /// <param name="x">The coding-unit left coordinate in luma samples.</param>
     /// <param name="y">The coding-unit top coordinate in luma samples.</param>
@@ -160,21 +186,27 @@ internal sealed class HevcIntraPredictionState : IDisposable
         this.SetMode(this.chromaModes, x, y, log2Size, mode);
     }
 
-    /// <summary>Gets the luma intra mode at a luma sample coordinate.</summary>
+    /// <summary>
+    /// Gets the luma intra mode at a luma sample coordinate.
+    /// </summary>
     /// <param name="x">The luma sample X coordinate.</param>
     /// <param name="y">The luma sample Y coordinate.</param>
     /// <returns>The luma intra mode in the inclusive range zero through thirty-four.</returns>
     public byte GetLumaMode(int x, int y)
         => this.lumaModes.DangerousGetRowSpan(y >> MinPredictionBlockLog2)[x >> MinPredictionBlockLog2];
 
-    /// <summary>Gets the coded chroma intra mode at a luma sample coordinate.</summary>
+    /// <summary>
+    /// Gets the coded chroma intra mode at a luma sample coordinate.
+    /// </summary>
     /// <param name="x">The luma sample X coordinate.</param>
     /// <param name="y">The luma sample Y coordinate.</param>
     /// <returns>An explicit chroma direction or the derived-mode value.</returns>
     public byte GetChromaMode(int x, int y)
         => this.chromaModes.DangerousGetRowSpan(y >> MinPredictionBlockLog2)[x >> MinPredictionBlockLog2];
 
-    /// <summary>Gets the effective chroma intra mode at a luma sample coordinate.</summary>
+    /// <summary>
+    /// Gets the effective chroma intra mode at a luma sample coordinate.
+    /// </summary>
     /// <param name="x">The luma sample X coordinate.</param>
     /// <param name="y">The luma sample Y coordinate.</param>
     /// <returns>The explicit chroma mode, or the colocated luma mode when chroma uses derived mode.</returns>
@@ -184,14 +216,18 @@ internal sealed class HevcIntraPredictionState : IDisposable
         return mode == DerivedChromaMode ? this.GetLumaMode(x, y) : mode;
     }
 
-    /// <summary>Releases the owned intra-mode maps.</summary>
+    /// <summary>
+    /// Releases the owned intra-mode maps.
+    /// </summary>
     public void Dispose()
     {
         this.lumaModes.Dispose();
         this.chromaModes.Dispose();
     }
 
-    /// <summary>Derives the three most-probable luma intra modes from available spatial neighbors.</summary>
+    /// <summary>
+    /// Derives the three most-probable luma intra modes from available spatial neighbors.
+    /// </summary>
     /// <param name="x">The prediction-block left coordinate in luma samples.</param>
     /// <param name="y">The prediction-block top coordinate in luma samples.</param>
     /// <param name="leftAvailable">A value indicating whether the left prediction block is available.</param>
@@ -236,7 +272,9 @@ internal sealed class HevcIntraPredictionState : IDisposable
         }
     }
 
-    /// <summary>Records one prediction mode over a square luma-coordinate region.</summary>
+    /// <summary>
+    /// Records one prediction mode over a square luma-coordinate region.
+    /// </summary>
     /// <param name="map">The luma or chroma mode map.</param>
     /// <param name="x">The region left coordinate in luma samples.</param>
     /// <param name="y">The region top coordinate in luma samples.</param>
@@ -255,7 +293,9 @@ internal sealed class HevcIntraPredictionState : IDisposable
         }
     }
 
-    /// <summary>Sorts three intra-mode values into ascending order.</summary>
+    /// <summary>
+    /// Sorts three intra-mode values into ascending order.
+    /// </summary>
     /// <param name="values">The three-element mode span.</param>
     private static void SortThree(Span<byte> values)
     {
@@ -275,7 +315,9 @@ internal sealed class HevcIntraPredictionState : IDisposable
         }
     }
 
-    /// <summary>Divides a nonnegative sample count by a power of two with upward rounding.</summary>
+    /// <summary>
+    /// Divides a nonnegative sample count by a power of two with upward rounding.
+    /// </summary>
     /// <param name="value">The sample count.</param>
     /// <param name="shift">The base-two divisor logarithm.</param>
     /// <returns>The upward-rounded quotient.</returns>

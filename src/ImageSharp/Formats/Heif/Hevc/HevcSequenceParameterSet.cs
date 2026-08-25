@@ -280,151 +280,249 @@ internal sealed class HevcSequenceParameterSet
         reader.ReadRbspTrailingBits();
     }
 
-    /// <summary>Gets the referenced video-parameter-set identifier.</summary>
+    /// <summary>
+    /// Gets the referenced video-parameter-set identifier.
+    /// </summary>
     public byte VideoParameterSetId { get; }
 
-    /// <summary>Gets the sequence-parameter-set identifier.</summary>
+    /// <summary>
+    /// Gets the sequence-parameter-set identifier.
+    /// </summary>
     public byte Id { get; }
 
-    /// <summary>Gets the declared number of temporal sublayers.</summary>
+    /// <summary>
+    /// Gets the declared number of temporal sublayers.
+    /// </summary>
     public int MaxSubLayers { get; }
 
-    /// <summary>Gets a value indicating whether temporal identifiers are nested.</summary>
+    /// <summary>
+    /// Gets a value indicating whether temporal identifiers are nested.
+    /// </summary>
     public bool TemporalIdNestingFlag { get; }
 
-    /// <summary>Gets the general profile, tier, constraint, and level description.</summary>
+    /// <summary>
+    /// Gets the general profile, tier, constraint, and level description.
+    /// </summary>
     public HevcProfileTierLevel ProfileTierLevel { get; }
 
-    /// <summary>Gets the coded chroma format, from monochrome through YUV 4:4:4.</summary>
+    /// <summary>
+    /// Gets the coded chroma format, from monochrome through YUV 4:4:4.
+    /// </summary>
     public byte ChromaFormat { get; }
 
-    /// <summary>Gets a value indicating whether 4:4:4 components are coded as separate color planes.</summary>
+    /// <summary>
+    /// Gets a value indicating whether 4:4:4 components are coded as separate color planes.
+    /// </summary>
     public bool SeparateColorPlaneFlag { get; }
 
-    /// <summary>Gets the coded luma width before conformance cropping.</summary>
+    /// <summary>
+    /// Gets the coded luma width before conformance cropping.
+    /// </summary>
     public int Width { get; }
 
-    /// <summary>Gets the coded luma height before conformance cropping.</summary>
+    /// <summary>
+    /// Gets the coded luma height before conformance cropping.
+    /// </summary>
     public int Height { get; }
 
-    /// <summary>Gets the displayed width after conformance cropping.</summary>
+    /// <summary>
+    /// Gets the displayed width after conformance cropping.
+    /// </summary>
     public int DisplayWidth { get; }
 
-    /// <summary>Gets the displayed height after conformance cropping.</summary>
+    /// <summary>
+    /// Gets the displayed height after conformance cropping.
+    /// </summary>
     public int DisplayHeight { get; }
 
-    /// <summary>Gets the conformance-window left offset in luma samples.</summary>
+    /// <summary>
+    /// Gets the conformance-window left offset in luma samples.
+    /// </summary>
     public int ConformanceWindowLeftOffset { get; }
 
-    /// <summary>Gets the conformance-window right offset in luma samples.</summary>
+    /// <summary>
+    /// Gets the conformance-window right offset in luma samples.
+    /// </summary>
     public int ConformanceWindowRightOffset { get; }
 
-    /// <summary>Gets the conformance-window top offset in luma samples.</summary>
+    /// <summary>
+    /// Gets the conformance-window top offset in luma samples.
+    /// </summary>
     public int ConformanceWindowTopOffset { get; }
 
-    /// <summary>Gets the conformance-window bottom offset in luma samples.</summary>
+    /// <summary>
+    /// Gets the conformance-window bottom offset in luma samples.
+    /// </summary>
     public int ConformanceWindowBottomOffset { get; }
 
-    /// <summary>Gets the luma sample precision in bits.</summary>
+    /// <summary>
+    /// Gets the luma sample precision in bits.
+    /// </summary>
     public int BitDepthLuma { get; }
 
-    /// <summary>Gets the chroma sample precision in bits.</summary>
+    /// <summary>
+    /// Gets the chroma sample precision in bits.
+    /// </summary>
     public int BitDepthChroma { get; }
 
-    /// <summary>Gets the coded picture-order-count least-significant-bit width.</summary>
+    /// <summary>
+    /// Gets the coded picture-order-count least-significant-bit width.
+    /// </summary>
     public int PictureOrderCountLsbBits { get; }
 
-    /// <summary>Gets the base-two logarithm of the minimum luma coding-block size.</summary>
+    /// <summary>
+    /// Gets the base-two logarithm of the minimum luma coding-block size.
+    /// </summary>
     public int MinCodingBlockLog2 { get; }
 
-    /// <summary>Gets the base-two logarithm of the coding-tree-block size.</summary>
+    /// <summary>
+    /// Gets the base-two logarithm of the coding-tree-block size.
+    /// </summary>
     public int CodingTreeBlockLog2 { get; }
 
-    /// <summary>Gets the base-two logarithm of the minimum luma transform-block size.</summary>
+    /// <summary>
+    /// Gets the base-two logarithm of the minimum luma transform-block size.
+    /// </summary>
     public int MinTransformBlockLog2 { get; }
 
-    /// <summary>Gets the base-two logarithm of the maximum luma transform-block size.</summary>
+    /// <summary>
+    /// Gets the base-two logarithm of the maximum luma transform-block size.
+    /// </summary>
     public int MaxTransformBlockLog2 { get; }
 
-    /// <summary>Gets the maximum inter-predicted transform hierarchy depth.</summary>
+    /// <summary>
+    /// Gets the maximum inter-predicted transform hierarchy depth.
+    /// </summary>
     public int MaxTransformHierarchyDepthInter { get; }
 
-    /// <summary>Gets the maximum intra-predicted transform hierarchy depth.</summary>
+    /// <summary>
+    /// Gets the maximum intra-predicted transform hierarchy depth.
+    /// </summary>
     public int MaxTransformHierarchyDepthIntra { get; }
 
-    /// <summary>Gets a value indicating whether scaling lists affect inverse quantization.</summary>
+    /// <summary>
+    /// Gets a value indicating whether scaling lists affect inverse quantization.
+    /// </summary>
     public bool ScalingListEnabled { get; }
 
-    /// <summary>Gets the effective quantization scaling matrices.</summary>
+    /// <summary>
+    /// Gets the effective quantization scaling matrices.
+    /// </summary>
     public HevcScalingList ScalingList { get; }
 
-    /// <summary>Gets a value indicating whether asymmetric motion partitions are enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether asymmetric motion partitions are enabled.
+    /// </summary>
     public bool AsymmetricMotionPartitionsEnabled { get; }
 
-    /// <summary>Gets a value indicating whether sample-adaptive offset filtering is enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether sample-adaptive offset filtering is enabled.
+    /// </summary>
     public bool SampleAdaptiveOffsetEnabled { get; }
 
-    /// <summary>Gets a value indicating whether pulse-code-modulated coding blocks are enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether pulse-code-modulated coding blocks are enabled.
+    /// </summary>
     public bool PcmEnabled { get; }
 
-    /// <summary>Gets the PCM luma sample precision in bits.</summary>
+    /// <summary>
+    /// Gets the PCM luma sample precision in bits.
+    /// </summary>
     public int PcmBitDepthLuma { get; }
 
-    /// <summary>Gets the PCM chroma sample precision in bits.</summary>
+    /// <summary>
+    /// Gets the PCM chroma sample precision in bits.
+    /// </summary>
     public int PcmBitDepthChroma { get; }
 
-    /// <summary>Gets the base-two logarithm of the minimum PCM coding-block size.</summary>
+    /// <summary>
+    /// Gets the base-two logarithm of the minimum PCM coding-block size.
+    /// </summary>
     public int MinPcmCodingBlockLog2 { get; }
 
-    /// <summary>Gets the base-two logarithm of the maximum PCM coding-block size.</summary>
+    /// <summary>
+    /// Gets the base-two logarithm of the maximum PCM coding-block size.
+    /// </summary>
     public int MaxPcmCodingBlockLog2 { get; }
 
-    /// <summary>Gets a value indicating whether in-loop filtering is disabled for PCM blocks.</summary>
+    /// <summary>
+    /// Gets a value indicating whether in-loop filtering is disabled for PCM blocks.
+    /// </summary>
     public bool PcmLoopFilterDisabled { get; }
 
-    /// <summary>Gets the SPS short-term reference-picture sets.</summary>
+    /// <summary>
+    /// Gets the SPS short-term reference-picture sets.
+    /// </summary>
     public IReadOnlyList<HevcShortTermReferencePictureSet> ShortTermReferencePictureSets { get; }
 
-    /// <summary>Gets the long-term reference picture-order-count values.</summary>
+    /// <summary>
+    /// Gets the long-term reference picture-order-count values.
+    /// </summary>
     public IReadOnlyList<uint> LongTermReferencePictureOrderCounts { get; }
 
-    /// <summary>Gets the long-term reference-picture current-usage flags.</summary>
+    /// <summary>
+    /// Gets the long-term reference-picture current-usage flags.
+    /// </summary>
     public IReadOnlyList<bool> LongTermReferencePicturesUsedByCurrent { get; }
 
-    /// <summary>Gets a value indicating whether temporal motion-vector prediction is enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether temporal motion-vector prediction is enabled.
+    /// </summary>
     public bool TemporalMotionVectorPredictionEnabled { get; }
 
-    /// <summary>Gets a value indicating whether strong intra smoothing is enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether strong intra smoothing is enabled.
+    /// </summary>
     public bool StrongIntraSmoothingEnabled { get; }
 
-    /// <summary>Gets the optional still-image VUI presentation description.</summary>
+    /// <summary>
+    /// Gets the optional still-image VUI presentation description.
+    /// </summary>
     public HevcVideoUsabilityInformation? VideoUsabilityInformation { get; }
 
-    /// <summary>Gets a value indicating whether transform-skip coefficient rotation is enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether transform-skip coefficient rotation is enabled.
+    /// </summary>
     public bool TransformSkipRotationEnabled { get; }
 
-    /// <summary>Gets a value indicating whether transform-skip-specific entropy contexts are enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether transform-skip-specific entropy contexts are enabled.
+    /// </summary>
     public bool TransformSkipContextEnabled { get; }
 
-    /// <summary>Gets a value indicating whether implicit residual DPCM is enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether implicit residual DPCM is enabled.
+    /// </summary>
     public bool ImplicitResidualDpcmEnabled { get; }
 
-    /// <summary>Gets a value indicating whether explicit residual DPCM is enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether explicit residual DPCM is enabled.
+    /// </summary>
     public bool ExplicitResidualDpcmEnabled { get; }
 
-    /// <summary>Gets a value indicating whether extended-precision processing is enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether extended-precision processing is enabled.
+    /// </summary>
     public bool ExtendedPrecisionProcessingEnabled { get; }
 
-    /// <summary>Gets a value indicating whether intra smoothing is disabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether intra smoothing is disabled.
+    /// </summary>
     public bool IntraSmoothingDisabled { get; }
 
-    /// <summary>Gets a value indicating whether high-precision prediction offsets are enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether high-precision prediction offsets are enabled.
+    /// </summary>
     public bool HighPrecisionOffsetsEnabled { get; }
 
-    /// <summary>Gets a value indicating whether persistent Rice adaptation is enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether persistent Rice adaptation is enabled.
+    /// </summary>
     public bool PersistentRiceAdaptationEnabled { get; }
 
-    /// <summary>Gets a value indicating whether CABAC bypass alignment is enabled.</summary>
+    /// <summary>
+    /// Gets a value indicating whether CABAC bypass alignment is enabled.
+    /// </summary>
     public bool CabacBypassAlignmentEnabled { get; }
 
     /// <summary>

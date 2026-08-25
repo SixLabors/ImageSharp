@@ -10,19 +10,29 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 /// </summary>
 internal sealed class HevcCodingTreeState : IDisposable
 {
-    /// <summary>The coding-unit flag indicating transform and quantization bypass.</summary>
+    /// <summary>
+    /// The coding-unit flag indicating transform and quantization bypass.
+    /// </summary>
     private const byte TransquantBypassFlag = 1 << 0;
 
-    /// <summary>The coding-unit flag indicating pulse-code-modulated samples.</summary>
+    /// <summary>
+    /// The coding-unit flag indicating pulse-code-modulated samples.
+    /// </summary>
     private const byte PcmFlag = 1 << 1;
 
-    /// <summary>The decoded coding-unit depth at minimum-coding-block resolution.</summary>
+    /// <summary>
+    /// The decoded coding-unit depth at minimum-coding-block resolution.
+    /// </summary>
     private readonly Buffer2D<byte> depths;
 
-    /// <summary>The effective luma quantization parameter at minimum-coding-block resolution.</summary>
+    /// <summary>
+    /// The effective luma quantization parameter at minimum-coding-block resolution.
+    /// </summary>
     private readonly Buffer2D<sbyte> quantizationParameters;
 
-    /// <summary>The packed bypass and PCM flags at minimum-coding-block resolution.</summary>
+    /// <summary>
+    /// The packed bypass and PCM flags at minimum-coding-block resolution.
+    /// </summary>
     private readonly Buffer2D<byte> flags;
 
     /// <summary>
@@ -54,16 +64,24 @@ internal sealed class HevcCodingTreeState : IDisposable
             this.HeightInMinCodingBlocks);
     }
 
-    /// <summary>Gets the base-two logarithm of the state map's luma sample unit.</summary>
+    /// <summary>
+    /// Gets the base-two logarithm of the state map's luma sample unit.
+    /// </summary>
     public int MinCodingBlockLog2 { get; }
 
-    /// <summary>Gets the state-map width in minimum coding blocks.</summary>
+    /// <summary>
+    /// Gets the state-map width in minimum coding blocks.
+    /// </summary>
     public int WidthInMinCodingBlocks { get; }
 
-    /// <summary>Gets the state-map height in minimum coding blocks.</summary>
+    /// <summary>
+    /// Gets the state-map height in minimum coding blocks.
+    /// </summary>
     public int HeightInMinCodingBlocks { get; }
 
-    /// <summary>Gets the split-flag context derived from available left and above coding units.</summary>
+    /// <summary>
+    /// Gets the split-flag context derived from available left and above coding units.
+    /// </summary>
     /// <param name="x">The current coding-unit left coordinate in luma samples.</param>
     /// <param name="y">The current coding-unit top coordinate in luma samples.</param>
     /// <param name="depth">The current coding-tree depth.</param>
@@ -88,7 +106,9 @@ internal sealed class HevcCodingTreeState : IDisposable
         return context;
     }
 
-    /// <summary>Records the state shared by every minimum coding block covered by one leaf coding unit.</summary>
+    /// <summary>
+    /// Records the state shared by every minimum coding block covered by one leaf coding unit.
+    /// </summary>
     /// <param name="x">The coding-unit left coordinate in luma samples.</param>
     /// <param name="y">The coding-unit top coordinate in luma samples.</param>
     /// <param name="log2Size">The base-two logarithm of the square coding-unit size.</param>
@@ -122,21 +142,27 @@ internal sealed class HevcCodingTreeState : IDisposable
         }
     }
 
-    /// <summary>Gets the recorded coding-tree depth at a luma sample coordinate.</summary>
+    /// <summary>
+    /// Gets the recorded coding-tree depth at a luma sample coordinate.
+    /// </summary>
     /// <param name="x">The luma sample X coordinate.</param>
     /// <param name="y">The luma sample Y coordinate.</param>
     /// <returns>The leaf coding-unit depth.</returns>
     public int GetDepth(int x, int y)
         => this.depths.DangerousGetRowSpan(y >> this.MinCodingBlockLog2)[x >> this.MinCodingBlockLog2];
 
-    /// <summary>Gets the effective luma quantization parameter at a luma sample coordinate.</summary>
+    /// <summary>
+    /// Gets the effective luma quantization parameter at a luma sample coordinate.
+    /// </summary>
     /// <param name="x">The luma sample X coordinate.</param>
     /// <param name="y">The luma sample Y coordinate.</param>
     /// <returns>The effective luma quantization parameter.</returns>
     public int GetQuantizationParameter(int x, int y)
         => this.quantizationParameters.DangerousGetRowSpan(y >> this.MinCodingBlockLog2)[x >> this.MinCodingBlockLog2];
 
-    /// <summary>Gets a value indicating whether the coding unit at a luma sample coordinate bypasses transform and quantization.</summary>
+    /// <summary>
+    /// Gets a value indicating whether the coding unit at a luma sample coordinate bypasses transform and quantization.
+    /// </summary>
     /// <param name="x">The luma sample X coordinate.</param>
     /// <param name="y">The luma sample Y coordinate.</param>
     /// <returns><see langword="true"/> when bypass is enabled; otherwise, <see langword="false"/>.</returns>
@@ -144,7 +170,9 @@ internal sealed class HevcCodingTreeState : IDisposable
         => (this.flags.DangerousGetRowSpan(y >> this.MinCodingBlockLog2)[x >> this.MinCodingBlockLog2]
             & TransquantBypassFlag) != 0;
 
-    /// <summary>Gets a value indicating whether the coding unit at a luma sample coordinate contains PCM samples.</summary>
+    /// <summary>
+    /// Gets a value indicating whether the coding unit at a luma sample coordinate contains PCM samples.
+    /// </summary>
     /// <param name="x">The luma sample X coordinate.</param>
     /// <param name="y">The luma sample Y coordinate.</param>
     /// <returns><see langword="true"/> for pulse-code-modulated samples; otherwise, <see langword="false"/>.</returns>
@@ -152,7 +180,9 @@ internal sealed class HevcCodingTreeState : IDisposable
         => (this.flags.DangerousGetRowSpan(y >> this.MinCodingBlockLog2)[x >> this.MinCodingBlockLog2]
             & PcmFlag) != 0;
 
-    /// <summary>Releases the owned coding-tree state maps.</summary>
+    /// <summary>
+    /// Releases the owned coding-tree state maps.
+    /// </summary>
     public void Dispose()
     {
         this.depths.Dispose();
@@ -160,7 +190,9 @@ internal sealed class HevcCodingTreeState : IDisposable
         this.flags.Dispose();
     }
 
-    /// <summary>Divides a nonnegative sample count by a power of two with upward rounding.</summary>
+    /// <summary>
+    /// Divides a nonnegative sample count by a power of two with upward rounding.
+    /// </summary>
     /// <param name="value">The sample count.</param>
     /// <param name="shift">The base-two divisor logarithm.</param>
     /// <returns>The upward-rounded quotient.</returns>

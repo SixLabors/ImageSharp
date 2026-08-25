@@ -8,16 +8,24 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 /// </summary>
 internal ref struct HevcCabacSyntaxReader
 {
-    /// <summary>The truncated-unary cutoff for a coding-unit luma quantization delta.</summary>
+    /// <summary>
+    /// The truncated-unary cutoff for a coding-unit luma quantization delta.
+    /// </summary>
     private const int DeltaQuantizationCutoff = 5;
 
-    /// <summary>The prefix length at which coefficient levels switch from Rice to exponential-Golomb coding.</summary>
+    /// <summary>
+    /// The prefix length at which coefficient levels switch from Rice to exponential-Golomb coding.
+    /// </summary>
     private const int CoefficientRemainingReduction = 3;
 
-    /// <summary>The binary arithmetic decoder for the current entropy substream.</summary>
+    /// <summary>
+    /// The binary arithmetic decoder for the current entropy substream.
+    /// </summary>
     private HevcCabacDecoder decoder;
 
-    /// <summary>The adaptive intra-picture probability contexts for the current entropy substream.</summary>
+    /// <summary>
+    /// The adaptive intra-picture probability contexts for the current entropy substream.
+    /// </summary>
     private readonly HevcCabacContexts contexts;
 
     /// <summary>
@@ -32,10 +40,14 @@ internal ref struct HevcCabacSyntaxReader
         this.contexts = new HevcCabacContexts(quantizationParameter);
     }
 
-    /// <summary>Gets the number of entropy-substream bytes loaded by the arithmetic decoder.</summary>
+    /// <summary>
+    /// Gets the number of entropy-substream bytes loaded by the arithmetic decoder.
+    /// </summary>
     public readonly int BytesConsumed => this.decoder.BytesConsumed;
 
-    /// <summary>Decodes the coding-unit transquant-bypass flag.</summary>
+    /// <summary>
+    /// Decodes the coding-unit transquant-bypass flag.
+    /// </summary>
     /// <returns>The decoded flag value.</returns>
     public bool ReadTransquantBypass()
     {
@@ -43,7 +55,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadDecision(ref selectedContexts[0]);
     }
 
-    /// <summary>Decodes a coding-unit split flag.</summary>
+    /// <summary>
+    /// Decodes a coding-unit split flag.
+    /// </summary>
     /// <param name="contextIndex">The context derived from the available neighboring coding-unit depths.</param>
     /// <returns>The decoded flag value.</returns>
     public bool ReadSplit(int contextIndex)
@@ -53,7 +67,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadDecision(ref selectedContexts[contextIndex]);
     }
 
-    /// <summary>Decodes whether a minimum-size intra coding unit uses four square prediction partitions.</summary>
+    /// <summary>
+    /// Decodes whether a minimum-size intra coding unit uses four square prediction partitions.
+    /// </summary>
     /// <param name="isMinimumCodingBlockSize">
     /// A value indicating whether the coding unit is at the minimum coding-block size.
     /// </param>
@@ -71,7 +87,9 @@ internal ref struct HevcCabacSyntaxReader
         return !this.decoder.ReadDecision(ref selectedContexts[0]);
     }
 
-    /// <summary>Decodes whether a luma intra mode is selected from the three most-probable modes.</summary>
+    /// <summary>
+    /// Decodes whether a luma intra mode is selected from the three most-probable modes.
+    /// </summary>
     /// <returns>The decoded flag value.</returns>
     public bool ReadPreviousIntraLumaPredictionFlag()
     {
@@ -79,7 +97,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadDecision(ref selectedContexts[0]);
     }
 
-    /// <summary>Decodes the zero-based selector for one of the three most-probable luma intra modes.</summary>
+    /// <summary>
+    /// Decodes the zero-based selector for one of the three most-probable luma intra modes.
+    /// </summary>
     /// <returns>The selector in the inclusive range zero through two.</returns>
     public int ReadMostProbableIntraLumaPredictionIndex()
     {
@@ -91,11 +111,15 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadBypass() ? 2 : 1;
     }
 
-    /// <summary>Decodes the five-bit selector for a luma intra mode outside the most-probable set.</summary>
+    /// <summary>
+    /// Decodes the five-bit selector for a luma intra mode outside the most-probable set.
+    /// </summary>
     /// <returns>The decoded selector in the inclusive range zero through thirty-one.</returns>
     public int ReadRemainingIntraLumaPredictionMode() => (int)this.decoder.ReadBypassBits(5);
 
-    /// <summary>Decodes the chroma intra prediction selector.</summary>
+    /// <summary>
+    /// Decodes the chroma intra prediction selector.
+    /// </summary>
     /// <returns>
     /// Negative one when chroma derives its mode from luma; otherwise, the decoded selector in the inclusive range
     /// zero through three.
@@ -111,7 +135,9 @@ internal ref struct HevcCabacSyntaxReader
         return (int)this.decoder.ReadBypassBits(2);
     }
 
-    /// <summary>Decodes a transform-tree subdivision flag.</summary>
+    /// <summary>
+    /// Decodes a transform-tree subdivision flag.
+    /// </summary>
     /// <param name="log2TransformBlockSize">The base-two logarithm of the current transform-block size.</param>
     /// <returns>The decoded flag value.</returns>
     public bool ReadTransformSubdivision(int log2TransformBlockSize)
@@ -121,7 +147,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadDecision(ref selectedContexts[5 - log2TransformBlockSize]);
     }
 
-    /// <summary>Decodes a transform-tree coded-block flag.</summary>
+    /// <summary>
+    /// Decodes a transform-tree coded-block flag.
+    /// </summary>
     /// <param name="isChroma">A value indicating whether the flag describes a chroma transform block.</param>
     /// <param name="contextIndex">The transform-depth-derived context index.</param>
     /// <returns>The decoded flag value.</returns>
@@ -133,7 +161,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadDecision(ref selectedContexts[channelOffset + contextIndex]);
     }
 
-    /// <summary>Decodes whether a transform block bypasses the inverse transform.</summary>
+    /// <summary>
+    /// Decodes whether a transform block bypasses the inverse transform.
+    /// </summary>
     /// <param name="isChroma">A value indicating whether the transform block belongs to a chroma channel.</param>
     /// <returns>The decoded flag value.</returns>
     public bool ReadTransformSkip(bool isChroma)
@@ -142,7 +172,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadDecision(ref selectedContexts[isChroma ? 1 : 0]);
     }
 
-    /// <summary>Decodes the signed coding-unit luma quantization-parameter delta.</summary>
+    /// <summary>
+    /// Decodes the signed coding-unit luma quantization-parameter delta.
+    /// </summary>
     /// <returns>The signed delta value.</returns>
     /// <exception cref="InvalidImageContentException">The coded magnitude exceeds a 32-bit signed value.</exception>
     public int ReadDeltaQuantizationParameter()
@@ -168,7 +200,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadBypass() ? -signedMagnitude : signedMagnitude;
     }
 
-    /// <summary>Decodes the coding-unit chroma quantization-adjustment selector.</summary>
+    /// <summary>
+    /// Decodes the coding-unit chroma quantization-adjustment selector.
+    /// </summary>
     /// <param name="listLength">The number of chroma offset pairs declared by the picture parameters.</param>
     /// <returns>Zero when no adjustment applies; otherwise, the one-based offset-list selector.</returns>
     public int ReadChromaQuantizationAdjustment(int listLength)
@@ -188,7 +222,9 @@ internal ref struct HevcCabacSyntaxReader
         return (int)this.ReadTruncatedUnary(indexContexts, 0, 0, listLength - 1) + 1;
     }
 
-    /// <summary>Decodes the cross-component residual-prediction scale for one chroma plane.</summary>
+    /// <summary>
+    /// Decodes the cross-component residual-prediction scale for one chroma plane.
+    /// </summary>
     /// <param name="chromaPlaneIndex">Zero for Cb or one for Cr.</param>
     /// <returns>Zero when prediction is disabled; otherwise, a signed power of two from one through eight.</returns>
     public int ReadCrossComponentPredictionScale(int chromaPlaneIndex)
@@ -212,7 +248,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadDecision(ref selectedContexts[contextOffset + 4]) ? -magnitude : magnitude;
     }
 
-    /// <summary>Decodes a sample-adaptive-offset merge flag.</summary>
+    /// <summary>
+    /// Decodes a sample-adaptive-offset merge flag.
+    /// </summary>
     /// <returns>The decoded flag value.</returns>
     public bool ReadSampleAdaptiveOffsetMerge()
     {
@@ -220,7 +258,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadDecision(ref selectedContexts[0]);
     }
 
-    /// <summary>Decodes the sample-adaptive-offset mode selector.</summary>
+    /// <summary>
+    /// Decodes the sample-adaptive-offset mode selector.
+    /// </summary>
     /// <returns>Zero for off, one for band offset, or two for edge offset.</returns>
     public int ReadSampleAdaptiveOffsetType()
     {
@@ -233,7 +273,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadBypass() ? 2 : 1;
     }
 
-    /// <summary>Decodes a truncated-unary absolute sample-adaptive-offset value.</summary>
+    /// <summary>
+    /// Decodes a truncated-unary absolute sample-adaptive-offset value.
+    /// </summary>
     /// <param name="maximumValue">The inclusive maximum offset magnitude.</param>
     /// <returns>The decoded offset magnitude.</returns>
     public int ReadSampleAdaptiveOffsetAbsolute(int maximumValue)
@@ -252,19 +294,27 @@ internal ref struct HevcCabacSyntaxReader
         return value;
     }
 
-    /// <summary>Decodes the five-bit sample-adaptive band-offset starting position.</summary>
+    /// <summary>
+    /// Decodes the five-bit sample-adaptive band-offset starting position.
+    /// </summary>
     /// <returns>The decoded band position.</returns>
     public int ReadSampleAdaptiveOffsetBandPosition() => (int)this.decoder.ReadBypassBits(5);
 
-    /// <summary>Decodes the two-bit sample-adaptive edge-offset class.</summary>
+    /// <summary>
+    /// Decodes the two-bit sample-adaptive edge-offset class.
+    /// </summary>
     /// <returns>The decoded edge class.</returns>
     public int ReadSampleAdaptiveOffsetEdgeClass() => (int)this.decoder.ReadBypassBits(2);
 
-    /// <summary>Decodes a sample-adaptive band-offset sign.</summary>
+    /// <summary>
+    /// Decodes a sample-adaptive band-offset sign.
+    /// </summary>
     /// <returns><see langword="true"/> for a negative offset; otherwise, <see langword="false"/>.</returns>
     public bool ReadSampleAdaptiveOffsetSign() => this.decoder.ReadBypass();
 
-    /// <summary>Decodes a horizontal last-significant-coefficient prefix flag.</summary>
+    /// <summary>
+    /// Decodes a horizontal last-significant-coefficient prefix flag.
+    /// </summary>
     /// <param name="isChroma">A value indicating whether the coefficient belongs to a chroma channel.</param>
     /// <param name="contextIndex">The block-size and prefix-derived context index within the channel.</param>
     /// <returns>The decoded flag value.</returns>
@@ -274,7 +324,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadDecision(ref selectedContexts[(isChroma ? 15 : 0) + contextIndex]);
     }
 
-    /// <summary>Decodes a vertical last-significant-coefficient prefix flag.</summary>
+    /// <summary>
+    /// Decodes a vertical last-significant-coefficient prefix flag.
+    /// </summary>
     /// <param name="isChroma">A value indicating whether the coefficient belongs to a chroma channel.</param>
     /// <param name="contextIndex">The block-size and prefix-derived context index within the channel.</param>
     /// <returns>The decoded flag value.</returns>
@@ -284,7 +336,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadDecision(ref selectedContexts[(isChroma ? 15 : 0) + contextIndex]);
     }
 
-    /// <summary>Decodes a significant-coefficient-group flag.</summary>
+    /// <summary>
+    /// Decodes a significant-coefficient-group flag.
+    /// </summary>
     /// <param name="isChroma">A value indicating whether the coefficient group belongs to a chroma channel.</param>
     /// <param name="contextIndex">The neighboring-group-derived context index.</param>
     /// <returns>The decoded flag value.</returns>
@@ -294,7 +348,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadDecision(ref selectedContexts[(isChroma ? 2 : 0) + contextIndex]);
     }
 
-    /// <summary>Decodes a significant-coefficient flag.</summary>
+    /// <summary>
+    /// Decodes a significant-coefficient flag.
+    /// </summary>
     /// <param name="isChroma">A value indicating whether the coefficient belongs to a chroma channel.</param>
     /// <param name="contextIndex">The scan-position-derived context index within the channel.</param>
     /// <returns>The decoded flag value.</returns>
@@ -304,7 +360,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadDecision(ref selectedContexts[(isChroma ? 28 : 0) + contextIndex]);
     }
 
-    /// <summary>Decodes whether a significant coefficient has an absolute level greater than one.</summary>
+    /// <summary>
+    /// Decodes whether a significant coefficient has an absolute level greater than one.
+    /// </summary>
     /// <param name="isChroma">A value indicating whether the coefficient belongs to a chroma channel.</param>
     /// <param name="contextIndex">The coefficient-group and preceding-level-derived context index.</param>
     /// <returns>The decoded flag value.</returns>
@@ -314,7 +372,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadDecision(ref selectedContexts[(isChroma ? 16 : 0) + contextIndex]);
     }
 
-    /// <summary>Decodes whether the first eligible coefficient has an absolute level greater than two.</summary>
+    /// <summary>
+    /// Decodes whether the first eligible coefficient has an absolute level greater than two.
+    /// </summary>
     /// <param name="isChroma">A value indicating whether the coefficient belongs to a chroma channel.</param>
     /// <param name="contextIndex">The coefficient-group-derived context index within the channel.</param>
     /// <returns>The decoded flag value.</returns>
@@ -324,7 +384,9 @@ internal ref struct HevcCabacSyntaxReader
         return this.decoder.ReadDecision(ref selectedContexts[(isChroma ? 4 : 0) + contextIndex]);
     }
 
-    /// <summary>Decodes an absolute coefficient-level remainder.</summary>
+    /// <summary>
+    /// Decodes an absolute coefficient-level remainder.
+    /// </summary>
     /// <param name="riceParameter">The current Golomb-Rice parameter.</param>
     /// <param name="useLimitedPrefixLength">
     /// A value indicating whether extended-precision processing limits the prefix length.
@@ -396,23 +458,33 @@ internal ref struct HevcCabacSyntaxReader
         return (uint)result;
     }
 
-    /// <summary>Decodes a most-significant-bit-first sequence of equal-probability flags.</summary>
+    /// <summary>
+    /// Decodes a most-significant-bit-first sequence of equal-probability flags.
+    /// </summary>
     /// <param name="bitCount">The number of flags to decode.</param>
     /// <returns>The decoded unsigned value.</returns>
     public uint ReadBypassBits(int bitCount) => this.decoder.ReadBypassBits(bitCount);
 
-    /// <summary>Selects the byte-aligned range used by aligned bypass syntax.</summary>
+    /// <summary>
+    /// Selects the byte-aligned range used by aligned bypass syntax.
+    /// </summary>
     public void AlignBypass() => this.decoder.AlignBypass();
 
-    /// <summary>Decodes the flag that terminates a coding-tree block or entropy substream.</summary>
+    /// <summary>
+    /// Decodes the flag that terminates a coding-tree block or entropy substream.
+    /// </summary>
     /// <returns>The decoded termination flag.</returns>
     public bool ReadTerminate() => this.decoder.ReadTerminate();
 
-    /// <summary>Validates the stop bit and zero padding after a terminating entropy-coded value.</summary>
+    /// <summary>
+    /// Validates the stop bit and zero padding after a terminating entropy-coded value.
+    /// </summary>
     /// <exception cref="InvalidImageContentException">The entropy substream has invalid termination alignment.</exception>
     public readonly void ValidateTerminationAlignment() => this.decoder.ValidateTerminationAlignment();
 
-    /// <summary>Decodes a context-adaptive truncated-unary value.</summary>
+    /// <summary>
+    /// Decodes a context-adaptive truncated-unary value.
+    /// </summary>
     /// <param name="selectedContexts">The context set selected for the syntax element.</param>
     /// <param name="firstContextIndex">The context used by the first binary decision.</param>
     /// <param name="continuationContextIndex">The context used by each subsequent decision.</param>
@@ -440,7 +512,9 @@ internal ref struct HevcCabacSyntaxReader
         return value;
     }
 
-    /// <summary>Decodes an equal-probability exponential-Golomb value.</summary>
+    /// <summary>
+    /// Decodes an equal-probability exponential-Golomb value.
+    /// </summary>
     /// <param name="order">The initial suffix width.</param>
     /// <returns>The decoded unsigned value.</returns>
     /// <exception cref="InvalidImageContentException">The coded value exceeds a 32-bit unsigned value.</exception>

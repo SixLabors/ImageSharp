@@ -363,6 +363,137 @@ public class HeifDecoderTests
         Assert.Same(configuration, image.Configuration);
     }
 
+    /// <summary>
+    /// Verifies that invalid optional alpha payloads remain fatal when image-data errors cannot be ignored.
+    /// </summary>
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    public void DecodeRejectsInvalidAlphaPayloadUnlessImageDataErrorsAreIgnored(SegmentIntegrityHandling handling)
+    {
+        byte[] data = [.. TestFile.Create(TestImages.Heif.DuckyRommIccAlphaAvif).Bytes];
+        uint alphaItemId = FindFirstItemReferenceSourceId(data, Heif4CharCode.Auxl);
+        ClearItemPayload(data, alphaItemId);
+        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
+
+        Assert.ThrowsAny<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="SegmentIntegrityHandling.IgnoreImageData"/> omits a corrupt optional alpha item while
+    /// retaining the independently decodable color item.
+    /// </summary>
+    [Fact]
+    public void DecodeOmitsInvalidAlphaPayloadWhenImageDataErrorsAreIgnored()
+    {
+        byte[] source = TestFile.Create(TestImages.Heif.DuckyRommIccAlphaAvif).Bytes;
+        byte[] data = [.. source];
+        uint alphaItemId = FindFirstItemReferenceSourceId(data, Heif4CharCode.Auxl);
+        ClearItemPayload(data, alphaItemId);
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(source);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+
+        AssertOpaqueRgbMatches(expected, actual);
+    }
+
+    /// <summary>
+    /// Verifies that a malformed alpha relationship remains fatal when image-data errors cannot be ignored.
+    /// </summary>
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    public void DecodeRejectsMalformedAlphaReferenceUnlessImageDataErrorsAreIgnored(SegmentIntegrityHandling handling)
+    {
+        byte[] data = [.. TestFile.Create(TestImages.Heif.DuckyRommIccAlphaAvif).Bytes];
+        InvalidateFirstItemReferenceSource(data, Heif4CharCode.Auxl);
+        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that <see cref="SegmentIntegrityHandling.IgnoreImageData"/> omits a malformed optional alpha
+    /// relationship while retaining the independently decodable color item.
+    /// </summary>
+    [Fact]
+    public void DecodeOmitsMalformedAlphaReferenceWhenImageDataErrorsAreIgnored()
+    {
+        byte[] source = TestFile.Create(TestImages.Heif.DuckyRommIccAlphaAvif).Bytes;
+        byte[] data = [.. source];
+        InvalidateFirstItemReferenceSource(data, Heif4CharCode.Auxl);
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(source);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(options, data);
+
+        AssertOpaqueRgbMatches(expected, actual);
+    }
+
+    /// <summary>
+    /// Verifies that strict validation rejects a malformed descriptive metadata relationship.
+    /// </summary>
+    [Fact]
+    public void DecodeRejectsMalformedMetadataReferenceInStrictMode()
+    {
+        byte[] data = [.. TestFile.Create(TestImages.Heif.ParisIccExifXmpAvif).Bytes];
+        InvalidateFirstItemReferenceSource(data, Heif4CharCode.Cdsc);
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that non-strict validation omits a malformed descriptive relationship without weakening image-data
+    /// validation.
+    /// </summary>
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
+    public void DecodeOmitsMalformedMetadataReferenceWhenAncillaryErrorsAreIgnored(SegmentIntegrityHandling handling)
+    {
+        byte[] data = [.. TestFile.Create(TestImages.Heif.ParisIccExifXmpAvif).Bytes];
+        InvalidateFirstItemReferenceSource(data, Heif4CharCode.Cdsc);
+        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+
+        Assert.Null(image.Metadata.ExifProfile);
+        Assert.NotNull(image.Metadata.XmpProfile);
+        Assert.NotNull(image.Metadata.IccProfile);
+    }
+
+    /// <summary>
+    /// Verifies that skipped metadata is neither retained nor validated through its optional descriptive links.
+    /// </summary>
+    [Fact]
+    public void DecodeDoesNotValidateSkippedMetadataReference()
+    {
+        byte[] data = [.. TestFile.Create(TestImages.Heif.ParisIccExifXmpAvif).Bytes];
+        InvalidateFirstItemReferenceSource(data, Heif4CharCode.Cdsc);
+        DecoderOptions options = new()
+        {
+            SkipMetadata = true,
+            SegmentIntegrityHandling = SegmentIntegrityHandling.Strict
+        };
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+
+        Assert.Null(image.Metadata.ExifProfile);
+        Assert.Null(image.Metadata.XmpProfile);
+        Assert.Null(image.Metadata.IccProfile);
+    }
+
     [Fact]
     public void IdentifyIgnoresUnknownMetadataBox()
     {
@@ -881,6 +1012,177 @@ public class HeifDecoderTests
         }
 
         return -1;
+    }
+
+    /// <summary>
+    /// Reads the source item identifier from the first registered relationship of the requested type.
+    /// </summary>
+    /// <param name="data">The complete HEIF container.</param>
+    /// <param name="referenceType">The item-reference child type.</param>
+    /// <returns>The source item identifier.</returns>
+    private static uint FindFirstItemReferenceSourceId(ReadOnlySpan<byte> data, Heif4CharCode referenceType)
+    {
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        Assert.True(metaOffset >= 0);
+
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data[metaOffset..]);
+        int itemReferenceOffset = FindBoxOffset(data, Heif4CharCode.Iref, metaOffset + 12, metaSize - 12);
+        Assert.True(itemReferenceOffset >= 0);
+
+        int itemReferenceSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data[itemReferenceOffset..]);
+        int relationshipOffset = FindBoxOffset(data, referenceType, itemReferenceOffset + 12, itemReferenceSize - 12);
+        Assert.True(relationshipOffset >= 0);
+
+        byte version = data[itemReferenceOffset + 8];
+
+        Assert.InRange(version, (byte)0, (byte)1);
+
+        return version == 0
+            ? BinaryPrimitives.ReadUInt16BigEndian(data[(relationshipOffset + 8)..])
+            : BinaryPrimitives.ReadUInt32BigEndian(data[(relationshipOffset + 8)..]);
+    }
+
+    /// <summary>
+    /// Replaces the source item identifier of the first requested relationship with an undeclared value.
+    /// </summary>
+    /// <param name="data">The complete mutable HEIF container.</param>
+    /// <param name="referenceType">The item-reference child type.</param>
+    private static void InvalidateFirstItemReferenceSource(Span<byte> data, Heif4CharCode referenceType)
+    {
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        Assert.True(metaOffset >= 0);
+
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data[metaOffset..]);
+        int itemReferenceOffset = FindBoxOffset(data, Heif4CharCode.Iref, metaOffset + 12, metaSize - 12);
+        Assert.True(itemReferenceOffset >= 0);
+
+        int itemReferenceSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data[itemReferenceOffset..]);
+        int relationshipOffset = FindBoxOffset(data, referenceType, itemReferenceOffset + 12, itemReferenceSize - 12);
+        Assert.True(relationshipOffset >= 0);
+
+        byte version = data[itemReferenceOffset + 8];
+
+        Assert.InRange(version, (byte)0, (byte)1);
+
+        if (version == 0)
+        {
+            BinaryPrimitives.WriteUInt16BigEndian(data[(relationshipOffset + 8)..], ushort.MaxValue);
+        }
+        else
+        {
+            BinaryPrimitives.WriteUInt32BigEndian(data[(relationshipOffset + 8)..], uint.MaxValue);
+        }
+    }
+
+    /// <summary>
+    /// Clears every file-relative extent belonging to the requested item while retaining the container structure.
+    /// </summary>
+    /// <param name="data">The complete mutable HEIF container.</param>
+    /// <param name="itemId">The item whose coded payload is cleared.</param>
+    private static void ClearItemPayload(Span<byte> data, uint itemId)
+    {
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        Assert.True(metaOffset >= 0);
+
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data[metaOffset..]);
+        int itemLocationOffset = FindBoxOffset(data, Heif4CharCode.Iloc, metaOffset + 12, metaSize - 12);
+        Assert.True(itemLocationOffset >= 0);
+
+        int offset = itemLocationOffset + 8;
+        byte version = data[offset];
+        offset += 4;
+
+        int extentOffsetSize = data[offset] >> 4;
+        int extentLengthSize = data[offset] & 0x0F;
+        offset++;
+        int baseOffsetSize = data[offset] >> 4;
+        int extentIndexSize = version is 1 or 2 ? data[offset] & 0x0F : 0;
+        offset++;
+
+        uint itemCount = version == 2
+            ? BinaryPrimitives.ReadUInt32BigEndian(data[offset..])
+            : BinaryPrimitives.ReadUInt16BigEndian(data[offset..]);
+
+        offset += version == 2 ? 4 : 2;
+        bool found = false;
+        for (uint itemIndex = 0; itemIndex < itemCount; itemIndex++)
+        {
+            uint currentItemId = version == 2
+                ? BinaryPrimitives.ReadUInt32BigEndian(data[offset..])
+                : BinaryPrimitives.ReadUInt16BigEndian(data[offset..]);
+
+            offset += version == 2 ? 4 : 2;
+            if (version is 1 or 2)
+            {
+                ushort constructionMethod = BinaryPrimitives.ReadUInt16BigEndian(data[offset..]);
+                Assert.Equal(0, constructionMethod & 0x0F);
+                offset += 2;
+            }
+
+            // The data-reference index is zero for the self-contained image items used by the fixture.
+            Assert.Equal(0, BinaryPrimitives.ReadUInt16BigEndian(data[offset..]));
+            offset += 2;
+            ulong baseOffset = ReadVariableUnsigned(data, baseOffsetSize, ref offset);
+            int extentCount = BinaryPrimitives.ReadUInt16BigEndian(data[offset..]);
+            offset += 2;
+            for (int extentIndex = 0; extentIndex < extentCount; extentIndex++)
+            {
+                _ = ReadVariableUnsigned(data, extentIndexSize, ref offset);
+                ulong extentOffset = ReadVariableUnsigned(data, extentOffsetSize, ref offset);
+                ulong extentLength = ReadVariableUnsigned(data, extentLengthSize, ref offset);
+                if (currentItemId == itemId)
+                {
+                    data.Slice(checked((int)(baseOffset + extentOffset)), checked((int)extentLength)).Clear();
+                    found = true;
+                }
+            }
+        }
+
+        Assert.True(found);
+    }
+
+    /// <summary>
+    /// Reads one zero-width, 32-bit, or 64-bit unsigned item-location field.
+    /// </summary>
+    /// <param name="data">The complete HEIF container.</param>
+    /// <param name="size">The field width in bytes.</param>
+    /// <param name="offset">The current read offset, advanced past the field.</param>
+    /// <returns>The decoded field value.</returns>
+    private static ulong ReadVariableUnsigned(ReadOnlySpan<byte> data, int size, ref int offset)
+    {
+        ulong value = size switch
+        {
+            0 => 0,
+            4 => BinaryPrimitives.ReadUInt32BigEndian(data[offset..]),
+            8 => BinaryPrimitives.ReadUInt64BigEndian(data[offset..]),
+            _ => throw new InvalidOperationException($"Unexpected item-location field width {size} in the test fixture.")
+        };
+
+        offset += size;
+        return value;
+    }
+
+    /// <summary>
+    /// Verifies that omitting an invalid alpha item preserves color channels and produces opaque output.
+    /// </summary>
+    /// <param name="expected">The image decoded with its valid alpha item.</param>
+    /// <param name="actual">The image decoded after the alpha item or relationship was invalidated.</param>
+    private static void AssertOpaqueRgbMatches(Image<Rgba32> expected, Image<Rgba32> actual)
+    {
+        Assert.False(actual.Metadata.GetHeifMetadata().HasAlpha);
+        Assert.Equal(expected.Size, actual.Size);
+        for (int y = 0; y < actual.Height; y++)
+        {
+            Span<Rgba32> expectedRow = expected.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            Span<Rgba32> actualRow = actual.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < actualRow.Length; x++)
+            {
+                Assert.Equal(expectedRow[x].R, actualRow[x].R);
+                Assert.Equal(expectedRow[x].G, actualRow[x].G);
+                Assert.Equal(expectedRow[x].B, actualRow[x].B);
+                Assert.Equal(byte.MaxValue, actualRow[x].A);
+            }
+        }
     }
 
     private static byte[] InsertBytes(byte[] data, int offset, ReadOnlySpan<byte> inserted)

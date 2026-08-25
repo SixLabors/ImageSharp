@@ -1002,34 +1002,69 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             int referenceEnd = checked(bytesRead + referenceHeaderLength + (int)referenceLength);
             Span<byte> referenceBuffer = boxBuffer[..referenceEnd];
             bytesRead += referenceHeaderLength;
-            uint sourceId = ReadUInt16Or32(referenceBuffer, largeIds, ref bytesRead);
-            if (this.FindItemById(sourceId) is null)
+
+            if (linkType is not Heif4CharCode.Dimg
+                and not Heif4CharCode.Auxl
+                and not Heif4CharCode.Prem
+                and not Heif4CharCode.Thmb
+                and not Heif4CharCode.Cdsc)
             {
-                throw new InvalidImageContentException($"The item reference box references unknown source item ID {sourceId}.");
+                // Unknown reference types do not participate in the bounded image model. Their child-box boundary
+                // was validated above, so skip the payload without imposing semantics from a general ISOBMFF reader.
+                bytesRead = referenceEnd;
+                continue;
             }
 
-            HeifItemLink link = new(linkType, sourceId);
-
-            EnsureBufferRemaining(referenceBuffer, bytesRead, 2, "item reference");
-            int count = BinaryPrimitives.ReadUInt16BigEndian(referenceBuffer[bytesRead..]);
-            bytesRead += 2;
-            for (uint i = 0; i < count; i++)
+            if (this.Options.SkipMetadata && linkType == Heif4CharCode.Cdsc)
             {
-                uint destId = ReadUInt16Or32(referenceBuffer, largeIds, ref bytesRead);
-                if (this.FindItemById(destId) is null)
+                // Descriptive metadata links have no effect when their payloads are not requested. Avoid validating
+                // their optional item graph while preserving the surrounding image relationships.
+                bytesRead = referenceEnd;
+                continue;
+            }
+
+            try
+            {
+                uint sourceId = ReadUInt16Or32(referenceBuffer, largeIds, ref bytesRead);
+                if (this.FindItemById(sourceId) is null)
                 {
-                    throw new InvalidImageContentException($"The item reference box references unknown destination item ID {destId}.");
+                    throw new InvalidImageContentException($"The item reference box references unknown source item ID {sourceId}.");
                 }
 
-                link.DestinationIds.Add(destId);
-            }
+                HeifItemLink link = new(linkType, sourceId);
 
-            if (bytesRead != referenceEnd)
+                EnsureBufferRemaining(referenceBuffer, bytesRead, 2, "item reference");
+                int count = BinaryPrimitives.ReadUInt16BigEndian(referenceBuffer[bytesRead..]);
+                bytesRead += 2;
+                for (uint i = 0; i < count; i++)
+                {
+                    uint destId = ReadUInt16Or32(referenceBuffer, largeIds, ref bytesRead);
+                    if (this.FindItemById(destId) is null)
+                    {
+                        throw new InvalidImageContentException($"The item reference box references unknown destination item ID {destId}.");
+                    }
+
+                    link.DestinationIds.Add(destId);
+                }
+
+                if (bytesRead != referenceEnd)
+                {
+                    throw new InvalidImageContentException($"The '{linkType}' item reference length does not match its entry count.");
+                }
+
+                this.itemLinks.Add(link);
+            }
+            catch (Exception ex) when (linkType == Heif4CharCode.Cdsc && ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
             {
-                throw new InvalidImageContentException($"The '{linkType}' item reference length does not match its entry count.");
+                // A malformed descriptive link cannot change reconstructed pixels, so non-strict modes omit it.
+                bytesRead = referenceEnd;
             }
-
-            this.itemLinks.Add(link);
+            catch (Exception ex) when (linkType != Heif4CharCode.Cdsc && ImageDecoderCore.ShouldIgnoreImageDataSegmentError(this.Options, ex))
+            {
+                // IgnoreImageData permits a malformed optional image relationship to be omitted while retaining
+                // independently reconstructable items and thumbnail fallbacks.
+                bytesRead = referenceEnd;
+            }
         }
     }
 
@@ -2034,6 +2069,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 // A failed optional metadata extent is discarded without weakening image-item extent validation.
                 extentMemory?.Dispose();
             }
+            catch (Exception ex) when (!isMetadataItem && ImageDecoderCore.ShouldIgnoreImageDataSegmentError(this.Options, ex))
+            {
+                // Keep the item declaration but omit its unreadable payload. The presentation can still use a valid
+                // thumbnail, omit an auxiliary plane, or reject the file later when no decodable color item remains.
+                extentMemory?.Dispose();
+            }
             catch
             {
                 // The dictionary takes ownership only after every declared extent has been assembled successfully.
@@ -2048,32 +2089,57 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             throw new ImageFormatException("No primary HEIF item defined.");
         }
 
-        IHeifItemDecoder<TPixel>? itemDecoder = this.GetItemDecoder<TPixel>(rootItem, buffers);
-
+        Image<TPixel>? image = null;
         HeifItem itemToDecode = rootItem;
-        if (itemDecoder is null)
+        IHeifItemDecoder<TPixel>? itemDecoder = this.GetItemDecoder<TPixel>(rootItem, buffers);
+        bool supportedItemFound = itemDecoder is not null;
+        if (itemDecoder is not null)
         {
-            // Unable to decode the primary image, decode the thumbnail instead.
+            this.ExecuteImageDataSegmentAction(
+                () => image = this.DecodeImageItem(rootItem, itemDecoder, buffers, cancellationToken));
+        }
+
+        if (image is null)
+        {
+            // An unsupported primary item always permits its registered thumbnail fallback. IgnoreImageData also
+            // reaches this branch after a recoverable primary payload failure, matching other multi-image decoders.
             HeifItem? thumbnailItem = this.FindDecodableThumbnail<TPixel>(rootItem);
             if (thumbnailItem is not null)
             {
                 itemDecoder = HeifCompressionFactory.GetDecoder<TPixel>(thumbnailItem.Type);
-                itemToDecode = thumbnailItem;
+                supportedItemFound |= itemDecoder is not null;
+                if (itemDecoder is not null)
+                {
+                    itemToDecode = thumbnailItem;
+                    this.ExecuteImageDataSegmentAction(
+                        () => image = this.DecodeImageItem(thumbnailItem, itemDecoder, buffers, cancellationToken));
+                }
             }
         }
 
-        if (itemDecoder is null)
+        if (image is null || itemDecoder is null)
         {
-            throw new ImageFormatException("No decodable item found inside this HEIF container.");
+            if (!supportedItemFound)
+            {
+                throw new ImageFormatException("No supported image item was found inside this HEIF container.");
+            }
+
+            throw new InvalidImageContentException("The HEIF container does not contain a decodable image item.");
         }
 
-        Image<TPixel> image = this.DecodeImageItem(itemToDecode, itemDecoder, buffers, cancellationToken);
         try
         {
-            using Image<L16>? alphaImage = this.DecodeAlphaPlane(itemToDecode, buffers, cancellationToken, out bool alphaPremultiplied);
-            if (alphaImage is not null)
+            Image<L16>? alphaImage = null;
+            bool alphaPremultiplied = false;
+            this.ExecuteImageDataSegmentAction(
+                () => alphaImage = this.DecodeAlphaPlane(itemToDecode, buffers, cancellationToken, out alphaPremultiplied));
+
+            using (alphaImage)
             {
-                this.ApplyAlpha(image, alphaImage, alphaPremultiplied);
+                if (alphaImage is not null)
+                {
+                    this.ApplyAlpha(image, alphaImage, alphaPremultiplied);
+                }
             }
 
             if (!this.Options.SkipMetadata)

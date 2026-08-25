@@ -93,6 +93,8 @@ Checkboxes may be marked complete only when the implementation and the verificat
       - [x] Require unity movie and track matrices so image presentation remains on the optimized `clap`/`irot`/`imir` path without a movie compositor.
       - [x] Apply the shared `DecoderOptions` contract consistently to still items, nested payload codecs, grids, metadata properties, and sequence samples.
         - `Strict` rejects recoverable ancillary and image-data errors, `IgnoreAncillary` suppresses only ancillary failures, and `IgnoreImageData` additionally permits failed image properties or samples to be omitted. `SkipMetadata` avoids optional property and item-payload validation, while cancellation and the caller configuration flow into nested JPEG and AV1 decoders. Target scaling and ICC conversion remain presentation-level operations after item or grid composition. The focused Release matrix passes all 19 new still-image policy cases, all 3 new sequence-sample cases, and the complete 37-test sequence-parser suite; the Release test-project build completes with zero errors.
+        - [x] Apply the same recovery boundary to still-image item relationships, coded payloads, primary-item thumbnail fallback, and optional alpha composition.
+          - Unknown item-reference types are skipped within their validated child boundaries. `cdsc` failures follow ancillary policy and are not parsed when metadata is skipped. `dimg`, `auxl`, `prem`, and `thmb` failures follow image-data policy. `IgnoreImageData` can omit an unreadable alpha plane or recover from a failed primary payload through a valid registered thumbnail, but decoding still fails when no color presentation remains. Real AVIF fixtures cover corrupt alpha payloads, corrupt alpha relationships, malformed Exif relationships, and strict, ancillary-only, image-data, and metadata-skipping behavior.
       - [ ] Complete reference-dependent AV1 and HEVC sample reconstruction and independent sequence vectors.
     - [ ] Write the same bounded movie, track, sample-description, location, dependency, timing, repetition, alpha, and metadata syntax from ImageSharp frames.
   - [ ] Decode frame dependencies, durations, repetition, frame-local auxiliary images, and frame-local metadata into the existing ImageSharp multi-frame model.
@@ -393,9 +395,11 @@ Tasks:
 - [ ] Define distinct HEIC and AVIF public format types over the shared internal HEIF container and register the correct brands, MIME types, and extensions.
 - [ ] Add generated `SaveAsHeic` and `SaveAsAvif` APIs and format metadata integration through the same mechanisms as established codecs. Define generic `SaveAsHeif` only if its options require an explicit supported payload codec.
 - [ ] Define decoder options using existing `DecoderOptions` behavior, including target pixel type, metadata handling, cancellation, and image-size limits.
+  - [x] Generic decode selects the caller's pixel type and the non-generic entry point defaults to `Rgba32`. `TargetSize` and `Sampler` are applied once after HEIF presentation composition. `MaxFrames` bounds retained sequence samples. `SkipMetadata`, `SegmentIntegrityHandling`, `ColorProfileHandling`, `Configuration`, and cancellation flow through the container, item, sequence, and nested-codec boundaries.
+  - [ ] Complete adversarial dimension and allocation-limit coverage for still items, grids, auxiliary images, and sequence tracks before closing this contract item. Large payload and image buffers already use the configured allocator, but the complete cross-product has not been verified.
 - [ ] Define codec-specific encoder options with observable semantics for quality, speed/effort, lossless mode, chroma subsampling, bit depth, alpha quality, and metadata handling. Avoid exposing internal HEVC or AV1 tuning knobs without a stable user-facing meaning.
-- [ ] Make `Rgba32` the default 8-bit decode output so alpha is not silently lost.
-- [ ] Remove unsupported JPEG 2000, JPEG-XR, JPEG-XS, and AVC capability claims unless those payload codecs are added to the completion matrix. Retain legacy JPEG as an explicit supported HEIF image-item codec.
+- [x] Make `Rgba32` the default 8-bit decode output so alpha is not silently lost.
+- [x] Remove unsupported JPEG 2000, JPEG-XR, JPEG-XS, and AVC capability claims unless those payload codecs are added to the completion matrix. Retain legacy JPEG as an explicit supported HEIF image-item codec.
 
 Exit gate:
 

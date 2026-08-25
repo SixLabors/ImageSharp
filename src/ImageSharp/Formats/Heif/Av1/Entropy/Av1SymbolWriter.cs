@@ -96,6 +96,13 @@ internal class Av1SymbolWriter : IDisposable
     }
 
     /// <summary>
+    /// Writes one non-adaptive binary symbol using the supplied Q15 probability for <see langword="true"/>.
+    /// </summary>
+    /// <param name="value">The binary symbol.</param>
+    /// <param name="frequency">The probability that the symbol is <see langword="true"/>, scaled by 32768.</param>
+    public void WriteBoolean(bool value, uint frequency) => this.EncodeBoolQ15(value, frequency);
+
+    /// <summary>
     /// Writes one equiprobable literal bit.
     /// </summary>
     /// <param name="value">The literal bit.</param>

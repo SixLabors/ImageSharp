@@ -171,7 +171,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             this.SequenceHeader.ColorConfig.GetColorFormat(),
             false);
 
-        Av1FrameDecoder frameDecoder = new(this.SequenceHeader, this.FrameHeader, this.FrameInfo, frameBuffer);
+        using Av1FrameDecoder frameDecoder = new(this.SequenceHeader, this.FrameHeader, this.FrameInfo, frameBuffer);
         frameDecoder.DecodeFrame();
 
         ImageFrame<TPixel>? resultFrame = null;

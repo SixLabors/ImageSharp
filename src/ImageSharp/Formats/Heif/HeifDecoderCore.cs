@@ -2079,7 +2079,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 this.ApplyItemColorMetadata(image.Metadata, itemToDecode);
                 this.ApplyItemHdrMetadata(image.Metadata, itemToDecode);
                 this.ApplyAssociatedMetadata(image.Metadata, rootItem, buffers);
-                _ = this.TryConvertIccProfile(image);
             }
 
             // MIAF defines crop, rotation, and mirror as presentation operations in that order. Applying the
@@ -2089,6 +2088,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             if (!this.Options.SkipMetadata)
             {
                 this.ApplyItemPixelAspectRatioMetadata(image.Metadata, itemToDecode);
+
+                // ICC conversion belongs to the presented RGB image. Running it after alpha, grid composition, crop,
+                // rotation, and mirroring keeps still images aligned with the sequence path and avoids converting
+                // pixels removed by a clean-aperture crop.
+                _ = this.TryConvertIccProfile(image);
             }
 
             // The decoder determines the compression of the pixels that were actually returned, including grid tiles

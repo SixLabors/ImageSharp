@@ -4,6 +4,7 @@
 using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -13,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 /// <summary>
 /// Converts between reconstructed AV1 YUV planes and packed ImageSharp pixels.
 /// </summary>
-internal static class Av1YuvConverter
+internal static partial class Av1YuvConverter
 {
     /// <summary>
     /// The largest value represented by an eight-bit packed RGB component.
@@ -88,112 +89,16 @@ internal static class Av1YuvConverter
             ? new ConstantLuminanceScales(transferCharacteristics, kr, kb)
             : default;
 
-        Buffer2DRegion<byte> yPlane = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0);
-        bool isMonochrome = frameBuffer.ColorFormat == Av1ColorFormat.Yuv400;
-        int subX = frameBuffer.ColorConfig.SubSamplingX ? 1 : 0;
-        int subY = frameBuffer.ColorConfig.SubSamplingY ? 1 : 0;
-        Buffer2DRegion<byte> uPlane = isMonochrome ? default : frameBuffer.DeriveBlockPointer(Av1Plane.U, subX, subY);
-        Buffer2DRegion<byte> vPlane = isMonochrome ? default : frameBuffer.DeriveBlockPointer(Av1Plane.V, subX, subY);
-        bool isEightBit = frameBuffer.BitDepth == Av1BitDepth.EightBit;
-        using IMemoryOwner<Rgb24>? rowOwner = isEightBit
-            ? configuration.MemoryAllocator.Allocate<Rgb24>(image.Width)
-            : null;
-
-        using IMemoryOwner<Rgb48>? highBitDepthRowOwner = isEightBit
-            ? null
-            : configuration.MemoryAllocator.Allocate<Rgb48>(image.Width);
-
-        Span<Rgb24> rgbRow = rowOwner is null ? Span<Rgb24>.Empty : rowOwner.GetSpan()[..image.Width];
-        Span<Rgb48> highBitDepthRgbRow = highBitDepthRowOwner is null
-            ? Span<Rgb48>.Empty
-            : highBitDepthRowOwner.GetSpan()[..image.Width];
-
-        for (int y = 0; y < image.Height; y++)
+        YuvToRgbParameters parameters = new(kr, kg, kb, transferCharacteristics, in constantLuminanceScales, lumaBias, lumaScale, chromaBias, chromaScale);
+        if (frameBuffer.BitDepth == Av1BitDepth.EightBit)
         {
-            int y0 = 0;
-            int y1 = 0;
-            int y1Weight = 0;
-            if (!isMonochrome)
-            {
-                GetChromaCoordinates(
-                    y,
-                    subY,
-                    subY != 0 && frameBuffer.ColorConfig.ChromaSamplePosition != ObuChromoSamplePosition.Colocated,
-                    uPlane.Height - 1,
-                    out y0,
-                    out y1,
-                    out y1Weight);
-            }
-
-            if (isEightBit)
-            {
-                ConvertYuvToRgbRow(
-                    yPlane.DangerousGetRowSpan(y),
-                    isMonochrome ? default : uPlane.DangerousGetRowSpan(y0),
-                    isMonochrome ? default : uPlane.DangerousGetRowSpan(y1),
-                    isMonochrome ? default : vPlane.DangerousGetRowSpan(y0),
-                    isMonochrome ? default : vPlane.DangerousGetRowSpan(y1),
-                    y1Weight,
-                    rgbRow,
-                    isMonochrome,
-                    subX,
-                    subY,
-                    frameBuffer.ColorConfig.ChromaSamplePosition,
-                    mode,
-                    kr,
-                    kg,
-                    kb,
-                    transferCharacteristics,
-                    in constantLuminanceScales,
-                    lumaBias,
-                    lumaScale,
-                    chromaBias,
-                    chromaScale,
-                    sampleMaximum);
-            }
-            else
-            {
-                // Staging high-bit-depth samples through Rgb48 preserves their precision while still using the
-                // optimized packed-pixel conversion paths shared by the rest of ImageSharp.
-                ConvertYuvToRgbRow(
-                    frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, y, 0, 0),
-                    isMonochrome ? default : frameBuffer.GetHighBitDepthRowSpan(Av1Plane.U, y0, subX, subY),
-                    isMonochrome ? default : frameBuffer.GetHighBitDepthRowSpan(Av1Plane.U, y1, subX, subY),
-                    isMonochrome ? default : frameBuffer.GetHighBitDepthRowSpan(Av1Plane.V, y0, subX, subY),
-                    isMonochrome ? default : frameBuffer.GetHighBitDepthRowSpan(Av1Plane.V, y1, subX, subY),
-                    y1Weight,
-                    highBitDepthRgbRow,
-                    isMonochrome,
-                    subX,
-                    subY,
-                    frameBuffer.ColorConfig.ChromaSamplePosition,
-                    mode,
-                    kr,
-                    kg,
-                    kb,
-                    transferCharacteristics,
-                    in constantLuminanceScales,
-                    lumaBias,
-                    lumaScale,
-                    chromaBias,
-                    chromaScale,
-                    sampleMaximum);
-            }
-
-            if (isEightBit)
-            {
-                PixelOperations<TPixel>.Instance.FromRgb24(
-                    configuration,
-                    rgbRow,
-                    image.PixelBuffer.DangerousGetRowSpan(y));
-            }
-            else
-            {
-                PixelOperations<TPixel>.Instance.FromRgb48(
-                    configuration,
-                    highBitDepthRgbRow,
-                    image.PixelBuffer.DangerousGetRowSpan(y));
-            }
+            YuvToRgbRowOperation<TPixel, byte, ByteSampleLoader> operation = new(configuration, frameBuffer, image, mode, in parameters);
+            ParallelRowIterator.IterateRows<YuvToRgbRowOperation<TPixel, byte, ByteSampleLoader>, float>(configuration, image.Bounds, in operation);
+        }
+        else
+        {
+            YuvToRgbRowOperation<TPixel, ushort, UShortSampleLoader> operation = new(configuration, frameBuffer, image, mode, in parameters);
+            ParallelRowIterator.IterateRows<YuvToRgbRowOperation<TPixel, ushort, UShortSampleLoader>, float>(configuration, image.Bounds, in operation);
         }
     }
 

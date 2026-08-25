@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// <summary>
 /// Reconstructs the coded blocks of one AV1 still-image frame into planar sample buffers.
 /// </summary>
-internal class Av1FrameDecoder : IAv1FrameDecoder
+internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
 {
     /// <summary>
     /// The sequence-level superblock and color configuration.
@@ -74,8 +74,13 @@ internal class Av1FrameDecoder : IAv1FrameDecoder
         this.inverseQuantizer = new(sequenceHeader, frameHeader);
         this.deQuants = new(sequenceHeader, frameHeader);
         this.loopFilterContext = new(sequenceHeader);
-        this.blockDecoder = new(this.sequenceHeader, this.frameHeader, this.frameBuffer, this.loopFilterContext);
+        this.blockDecoder = new(this.sequenceHeader, this.frameHeader, this.frameBuffer, this.loopFilterContext, this.inverseQuantizer);
     }
+
+    /// <summary>
+    /// Releases the pooled block-reconstruction workspaces owned by this decoder.
+    /// </summary>
+    public void Dispose() => this.blockDecoder.Dispose();
 
     /// <summary>
     /// Reconstructs every coded tile and applies the implemented in-loop frame stages in normative order.

@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 
@@ -58,6 +59,88 @@ public class HeifDecoderTests
 
         image.CompareToReferenceOutput(provider);
         Assert.Equal(HeifCompressionMethod.LegacyJpeg, heicMetadata.CompressionMethod);
+    }
+
+    /// <summary>
+    /// Verifies that AVIF decoding preserves the exact embedded ICC profile bytes.
+    /// </summary>
+    [Theory]
+    [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
+    public void DecodeAvifPreservesEmbeddedIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+
+        using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
+        using Image<TPixel> expectedPreserved = Image.Load<TPixel>(preserveOptions, TestFile.Create(TestImages.Heif.ParisIccExifXmpPng).Bytes);
+
+        Assert.NotNull(preserved.Metadata.IccProfile);
+        Assert.NotNull(expectedPreserved.Metadata.IccProfile);
+        Assert.Equal(expectedPreserved.Metadata.IccProfile.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+    }
+
+    /// <summary>
+    /// Verifies that AVIF decoding converts pixels from an embedded non-sRGB ICC profile to sRGB.
+    /// </summary>
+    [Theory]
+    [WithFile(TestImages.Heif.PerceptualIccAvif, PixelTypes.Rgba32)]
+    public void DecodeAvifConvertsEmbeddedNonSrgbIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+
+        using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
+        using Image<TPixel> converted = provider.GetImage(HeifDecoder.Instance, convertOptions);
+        using Image<TPixel> expected = Image.Load<TPixel>(convertOptions, TestFile.Create(TestImages.Png.Icc.Perceptual).Bytes);
+
+        Assert.NotNull(preserved.Metadata.IccProfile);
+        Assert.Null(converted.Metadata.IccProfile);
+        Assert.NotEmpty(ImageComparer.Exact.CompareImages(preserved, converted));
+
+        converted.DebugSave(provider, testOutputDetails: "IccConverted");
+
+        // The PNG is the independent RGB source used by libavif's avifenc. A tolerant comparison accounts for the
+        // AV1 loss while proving the AVIF ICC stage produces the same target-profile interpretation.
+        ImageComparer.TolerantPercentage(1F, 20).VerifySimilarity(expected, converted);
+    }
+
+    /// <summary>
+    /// Verifies that compact profile handling removes a canonical sRGB ICC profile without changing pixels.
+    /// </summary>
+    [Theory]
+    [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
+    public void DecodeAvifCompactsCanonicalSrgbIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions compactOptions = new() { ColorProfileHandling = ColorProfileHandling.Compact };
+
+        using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
+        using Image<TPixel> compact = provider.GetImage(HeifDecoder.Instance, compactOptions);
+
+        Assert.NotNull(preserved.Metadata.IccProfile);
+        Assert.Null(compact.Metadata.IccProfile);
+        Assert.Empty(ImageComparer.Exact.CompareImages(preserved, compact));
+    }
+
+    /// <summary>
+    /// Verifies that metadata skipping omits the embedded AVIF ICC profile.
+    /// </summary>
+    [Theory]
+    [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
+    public void DecodeAvifSkipsEmbeddedIccProfileWithMetadata<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions options = new()
+        {
+            ColorProfileHandling = ColorProfileHandling.Preserve,
+            SkipMetadata = true
+        };
+
+        using Image<TPixel> image = provider.GetImage(HeifDecoder.Instance, options);
+
+        Assert.Null(image.Metadata.IccProfile);
     }
 
     [Fact]

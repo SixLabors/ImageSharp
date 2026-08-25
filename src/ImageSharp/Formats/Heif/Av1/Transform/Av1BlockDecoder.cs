@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <summary>
 /// Reconstructs AV1 transform blocks by combining prediction, inverse quantization, and inverse transforms.
 /// </summary>
-internal class Av1BlockDecoder
+internal sealed class Av1BlockDecoder : IDisposable
 {
     /// <summary>
     /// The sequence-level syntax that determines superblock size, plane layout, and sample depth.
@@ -36,6 +36,21 @@ internal class Av1BlockDecoder
     /// The per-plane transform-size map consumed after reconstruction by the deblocking stage.
     /// </summary>
     private readonly Av1LoopFilterContext loopFilterContext;
+
+    /// <summary>
+    /// The frame-owned inverse quantizer carrying the active superblock delta-Q state.
+    /// </summary>
+    private readonly Av1InverseQuantizer inverseQuantizer;
+
+    /// <summary>
+    /// Owns the reusable raster-order inverse-quantization buffer.
+    /// </summary>
+    private readonly IMemoryOwner<int> inverseQuantizationOwner;
+
+    /// <summary>
+    /// Owns the reusable two-dimensional inverse-transform workspace.
+    /// </summary>
+    private readonly IMemoryOwner<int> transformWorkspaceOwner;
 
     /// <summary>
     /// Indicates whether transform traversal must also populate loop-filter parameters.
@@ -59,16 +74,19 @@ internal class Av1BlockDecoder
     /// <param name="frameHeader">The decoded frame header.</param>
     /// <param name="frameBuffer">The frame buffer receiving reconstructed samples.</param>
     /// <param name="loopFilterContext">The transform-size map populated while reconstructing blocks.</param>
+    /// <param name="inverseQuantizer">The inverse quantizer carrying the active superblock delta-Q state.</param>
     public Av1BlockDecoder(
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1FrameBuffer<byte> frameBuffer,
-        Av1LoopFilterContext loopFilterContext)
+        Av1LoopFilterContext loopFilterContext,
+        Av1InverseQuantizer inverseQuantizer)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
         this.frameBuffer = frameBuffer;
         this.loopFilterContext = loopFilterContext;
+        this.inverseQuantizer = inverseQuantizer;
         int ySize = (1 << this.sequenceHeader.SuperblockSizeLog2) * (1 << this.sequenceHeader.SuperblockSizeLog2);
 
         // One scratch plane is reused for every transform unit. Its maximum size must cover a complete superblock
@@ -77,7 +95,8 @@ internal class Av1BlockDecoder
             (this.sequenceHeader.ColorConfig.SubSamplingX ? ySize >> 2 : ySize) +
             (this.sequenceHeader.ColorConfig.SubSamplingY ? ySize >> 2 : ySize);
 
-        this.CurrentInverseQuantizationCoefficients = new int[inverseQuantizationSize];
+        this.inverseQuantizationOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(inverseQuantizationSize);
+        this.transformWorkspaceOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(Av1TransformWorkspace.MaximumLength);
         this.isLoopFilterEnabled = frameHeader.LoopFilterParameters.FilterLevel[0] != 0 ||
             frameHeader.LoopFilterParameters.FilterLevel[1] != 0;
 
@@ -88,7 +107,16 @@ internal class Av1BlockDecoder
     /// <summary>
     /// Gets the reusable raster-order coefficient buffer populated by inverse quantization.
     /// </summary>
-    public int[] CurrentInverseQuantizationCoefficients { get; private set; }
+    public Span<int> CurrentInverseQuantizationCoefficients => this.inverseQuantizationOwner.Memory.Span;
+
+    /// <summary>
+    /// Releases the pooled reconstruction workspaces owned by this decoder.
+    /// </summary>
+    public void Dispose()
+    {
+        this.transformWorkspaceOwner.Dispose();
+        this.inverseQuantizationOwner.Dispose();
+    }
 
     /// <summary>
     /// Resets the per-plane packed coefficient cursors before reconstructing a superblock.
@@ -113,8 +141,7 @@ internal class Av1BlockDecoder
     /// <param name="tileInfo">The tile boundaries used to determine neighbor availability.</param>
     public void DecodeBlock(Av1BlockModeInfo modeInfo, Point modeInfoPosition, Av1BlockSize blockSize, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
-        using IMemoryOwner<int> transformWorkspaceOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(Av1TransformWorkspace.MaximumLength);
-        Span<int> transformWorkspace = transformWorkspaceOwner.Memory.Span;
+        Span<int> transformWorkspace = this.transformWorkspaceOwner.Memory.Span;
 
         ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
         Av1TransformType transformType;
@@ -158,8 +185,6 @@ internal class Av1BlockDecoder
 
         bool highBitDepth = this.frameBuffer.BytesPerSample == 2;
         Av1PredictionDecoder predictionDecoder = new(this.sequenceHeader, this.frameHeader);
-        Av1InverseQuantizer inverseQuantizer = new(this.sequenceHeader, this.frameHeader);
-
         for (int plane = 0; plane < colorConfig.PlaneCount; plane++)
         {
             int subX = (plane > 0) && colorConfig.SubSamplingX ? 1 : 0;
@@ -287,7 +312,7 @@ internal class Av1BlockDecoder
                     transformType = transformInfo[0].Type;
 
                     // Inverse quantization writes raster coefficients into the reusable superblock scratch plane.
-                    numberOfCoefficients = inverseQuantizer.InverseQuantize(
+                    numberOfCoefficients = this.inverseQuantizer.InverseQuantize(
                         modeInfo, coefficients, quantizationCoefficients, transformType, transformSize, (Av1Plane)plane);
                     if (numberOfCoefficients != 0)
                     {
@@ -297,10 +322,11 @@ internal class Av1BlockDecoder
 
                         if (highBitDepth)
                         {
-                            // AV1 high-bit-depth reconstruction stores unsigned samples in the existing signed 16-bit transform representation.
+                            // Prediction receives a reference-prefixed span beginning on the previous row. Inverse
+                            // reconstruction operates on the transform itself, so advance to the first destination row.
                             Av1InverseTransformer.ReconstructHighBitDepth(
                                 quantizationCoefficients,
-                                highBitDepthTransformBlockReconstructionBuffer,
+                                highBitDepthTransformBlockReconstructionBuffer[reconstructionStride..],
                                 reconstructionStride,
                                 transformSize,
                                 transformType,
@@ -312,10 +338,11 @@ internal class Av1BlockDecoder
                         }
                         else
                         {
-                            // The byte pipeline adds the inverse-transform residual directly to the prediction block.
+                            // Keep the reference-prefix convention local to prediction; residuals are added at the
+                            // first reconstructed row rather than the top-neighbor row.
                             Av1InverseTransformer.Reconstruct8Bit(
                                 quantizationCoefficients,
-                                transformBlockReconstructionBuffer,
+                                transformBlockReconstructionBuffer[reconstructionStride..],
                                 reconstructionStride,
                                 transformSize,
                                 transformType,

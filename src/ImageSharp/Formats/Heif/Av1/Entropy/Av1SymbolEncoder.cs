@@ -199,31 +199,31 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Writes the split-versus-horizontal boundary decision for a block clipped at the right tile edge.
+    /// Writes the split-versus-horizontal boundary decision for a block clipped at the bottom tile edge.
     /// </summary>
     /// <param name="partitionType">The split or horizontal partition outcome.</param>
     /// <param name="blockSize">The current block size.</param>
     /// <param name="context">The partition probability context.</param>
     public void WriteSplitOrHorizontal(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
     {
-        Av1Distribution distribution = Av1SymbolDecoder.GetSplitOrHorizontalDistribution(this.tilePartitionTypes, blockSize, context);
-        int value = partitionType == Av1PartitionType.Split ? 1 : 0;
+        uint frequency = Av1SymbolDecoder.GetSplitOrHorizontalFrequency(this.tilePartitionTypes, blockSize, context);
+        bool value = partitionType == Av1PartitionType.Split;
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(value, distribution);
+        w.WriteBoolean(value, frequency);
     }
 
     /// <summary>
-    /// Writes the split-versus-vertical boundary decision for a block clipped at the bottom tile edge.
+    /// Writes the split-versus-vertical boundary decision for a block clipped at the right tile edge.
     /// </summary>
     /// <param name="partitionType">The split or vertical partition outcome.</param>
     /// <param name="blockSize">The current block size.</param>
     /// <param name="context">The partition probability context.</param>
     public void WriteSplitOrVertical(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
     {
-        Av1Distribution distribution = Av1SymbolDecoder.GetSplitOrVerticalDistribution(this.tilePartitionTypes, blockSize, context);
-        int value = partitionType == Av1PartitionType.Split ? 1 : 0;
+        uint frequency = Av1SymbolDecoder.GetSplitOrVerticalFrequency(this.tilePartitionTypes, blockSize, context);
+        bool value = partitionType == Av1PartitionType.Split;
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(value, distribution);
+        w.WriteBoolean(value, frequency);
     }
 
     /// <summary>

@@ -666,12 +666,12 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         {
             if (this.SequenceHeader.ColorConfig.SubSamplingY && block4x4Height == 1)
             {
-                partitionInfo.AvailableAboveForChroma = this.IsInside(rowIndex - 2, columnIndex);
+                partitionInfo.AvailableAboveForChroma = IsInside(tileInfo, rowIndex - 2, columnIndex);
             }
 
             if (this.SequenceHeader.ColorConfig.SubSamplingX && block4x4Width == 1)
             {
-                partitionInfo.AvailableLeftForChroma = this.IsInside(rowIndex, columnIndex - 2);
+                partitionInfo.AvailableLeftForChroma = IsInside(tileInfo, rowIndex, columnIndex - 2);
             }
         }
 
@@ -1267,7 +1267,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 stepColumn = transformSizeUv.Get4x4WideCount();
                 stepRow = transformSizeUv.Get4x4HighCount();
 
-                unitHeight = Av1Math.RoundPowerOf2(Math.Min(height + idx, maxBlockHigh), subY ? 1 : 0);
+                unitHeight = Av1Math.RoundPowerOf2(Math.Min(height + idy, maxBlockHigh), subY ? 1 : 0);
                 unitWidth = Av1Math.RoundPowerOf2(Math.Min(width + idx, maxBlockWide), subX ? 1 : 0);
                 for (int blockRow = idy; blockRow < unitHeight; blockRow += stepRow)
                 {
@@ -2246,14 +2246,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <summary>
     /// Determines whether a frame-relative mode-information position lies inside the active tile.
     /// </summary>
+    /// <param name="tileInfo">The active tile boundaries.</param>
     /// <param name="rowIndex">The frame-relative mode-information row.</param>
     /// <param name="columnIndex">The frame-relative mode-information column.</param>
     /// <returns><see langword="true"/> when the position lies within the active tile; otherwise, <see langword="false"/>.</returns>
-    private bool IsInside(int rowIndex, int columnIndex) =>
-        columnIndex >= this.FrameHeader.TilesInfo.TileColumnCount &&
-        columnIndex < this.FrameHeader.TilesInfo.TileColumnCount &&
-        rowIndex >= this.FrameHeader.TilesInfo.TileRowCount &&
-        rowIndex < this.FrameHeader.TilesInfo.TileRowCount;
+    private static bool IsInside(Av1TileInfo tileInfo, int rowIndex, int columnIndex) =>
+        columnIndex >= tileInfo.ModeInfoColumnStart &&
+        columnIndex < tileInfo.ModeInfoColumnEnd &&
+        rowIndex >= tileInfo.ModeInfoRowStart &&
+        rowIndex < tileInfo.ModeInfoRowEnd;
 
     /// <summary>
     /// Derives the partition entropy context from the current split bit of the above and left neighbors.

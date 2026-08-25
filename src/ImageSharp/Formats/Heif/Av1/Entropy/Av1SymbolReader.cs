@@ -87,6 +87,13 @@ internal ref struct Av1SymbolReader
     }
 
     /// <summary>
+    /// Reads one non-adaptive binary symbol using the supplied Q15 probability for <see langword="true"/>.
+    /// </summary>
+    /// <param name="frequency">The probability that the symbol is <see langword="true"/>, scaled by 32768.</param>
+    /// <returns>The decoded binary symbol.</returns>
+    public bool ReadBoolean(uint frequency) => this.DecodeBoolQ15(frequency);
+
+    /// <summary>
     /// Reads an unsigned literal in most-significant-bit-first order.
     /// </summary>
     /// <param name="bitCount">The number of literal bits to read.</param>

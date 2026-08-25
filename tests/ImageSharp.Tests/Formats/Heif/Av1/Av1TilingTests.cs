@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -14,6 +15,52 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 [Trait("Format", "Avif")]
 public class Av1TilingTests
 {
+    /// <summary>
+    /// Verifies the decoded block geometry and prediction modes against libaom inspection output for a real AVIF image item.
+    /// </summary>
+    [Fact]
+    public void ParsedRealAvifModeMapMatchesLibaom()
+    {
+        string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Heif.ParisIccExifXmpAvif);
+        byte[] content = File.ReadAllBytes(filePath);
+
+        // The fixture's iloc box identifies item 1 as the AV1 payload at offset 0x17A8 with length 0x3AE4.
+        const int codedItemOffset = 0x17A8;
+        const int codedItemLength = 0x3AE4;
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Image<Rgba32> image = decoder.Decode<Rgba32>(content.AsSpan(codedItemOffset, codedItemLength));
+        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+        ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
+        Span<int> blockSizeCounts = stackalloc int[(int)Av1BlockSize.AllSizes];
+        Span<int> modeCounts = stackalloc int[(int)Av1PredictionMode.IntraModes];
+
+        for (int row = 0; row < frameHeader.ModeInfoRowCount; row++)
+        {
+            for (int column = 0; column < frameHeader.ModeInfoColumnCount; column++)
+            {
+                Av1BlockModeInfo modeInfo = frameInfo.GetModeInfoAt(new Point(column, row));
+                blockSizeCounts[(int)modeInfo.BlockSize]++;
+                modeCounts[(int)modeInfo.YMode]++;
+            }
+        }
+
+        // These counts come from the 102 by 76 mode-info maps emitted by libaom 3.14.1's inspect tool.
+        int[] expectedBlockSizeCounts = new int[(int)Av1BlockSize.AllSizes];
+        expectedBlockSizeCounts[(int)Av1BlockSize.Block8x8] = 3176;
+        expectedBlockSizeCounts[(int)Av1BlockSize.Block8x16] = 48;
+        expectedBlockSizeCounts[(int)Av1BlockSize.Block16x16] = 4080;
+        expectedBlockSizeCounts[(int)Av1BlockSize.Block32x32] = 448;
+
+        int[] expectedModeCounts = new int[(int)Av1PredictionMode.IntraModes];
+        expectedModeCounts[(int)Av1PredictionMode.DC] = 3020;
+        expectedModeCounts[(int)Av1PredictionMode.Vertical] = 228;
+        expectedModeCounts[(int)Av1PredictionMode.Horizontal] = 2360;
+        expectedModeCounts[(int)Av1PredictionMode.Smooth] = 2144;
+
+        Assert.Equal(expectedBlockSizeCounts, blockSizeCounts.ToArray());
+        Assert.Equal(expectedModeCounts, modeCounts.ToArray());
+    }
+
     [Fact]
     public void DecoderReadsFirstTile()
     {

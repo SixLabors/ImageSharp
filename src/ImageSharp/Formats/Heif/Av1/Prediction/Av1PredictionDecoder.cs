@@ -597,12 +597,14 @@ internal class Av1PredictionDecoder
         // so the right half can consume references that already belong to the left half.
         if (blockSize.GetWidth() > 64 && blockModeInfoColumnOffset > 0)
         {
-            int planeBlockWidthInUnits64 = 64 >> subX;
+            int block64WidthInUnits = Av1BlockSize.Block64x64.Get4x4WideCount();
+            int planeBlockWidthInUnits64 = block64WidthInUnits >> subX;
             int columnOffset64 = blockModeInfoColumnOffset % planeBlockWidthInUnits64;
             if (columnOffset64 == 0)
             {
                 // We are at the left edge of top-right or bottom-right 64x* block.
-                int planeBlockHeightInUnits64 = 64 >> subY;
+                int block64HeightInUnits = Av1BlockSize.Block64x64.Get4x4HighCount();
+                int planeBlockHeightInUnits64 = block64HeightInUnits >> subY;
                 int rowOffset64 = blockModeInfoRowOffset % planeBlockHeightInUnits64;
                 int planeBlockHeightInUnits = Math.Min(blockSize.Get4x4HighCount() >> subY, planeBlockHeightInUnits64);
 
@@ -696,13 +698,15 @@ internal class Av1PredictionDecoder
                 // Special case: For 128x128 blocks, the transform unit whose
                 // top-right corner is at the center of the block does in fact have
                 // pixels available at its top-right corner.
-                if (blockModeInfoRowOffset == 64 >> subY &&
-                    blockModeInfoColumnOffset + topRightUnitCount == 64 >> subX)
+                int block64WidthInUnits = Av1BlockSize.Block64x64.Get4x4WideCount();
+                int block64HeightInUnits = Av1BlockSize.Block64x64.Get4x4HighCount();
+                if (blockModeInfoRowOffset == block64HeightInUnits >> subY &&
+                    blockModeInfoColumnOffset + topRightUnitCount == block64WidthInUnits >> subX)
                 {
                     return true;
                 }
 
-                int planeBlockWidthInUnits64 = 64 >> subX;
+                int planeBlockWidthInUnits64 = block64WidthInUnits >> subX;
                 int blockModeInfoColumnOffset64 = blockModeInfoColumnOffset % planeBlockWidthInUnits64;
                 return blockModeInfoColumnOffset64 + topRightUnitCount < planeBlockWidthInUnits64;
             }
@@ -933,7 +937,7 @@ internal class Av1PredictionDecoder
             {
                 aboveNeighbor[..topPixelCount].CopyTo(aboveRow);
                 int i = topPixelCount;
-                if (needRight && topPixelCount > 0)
+                if (topRightPixelCount > 0)
                 {
                     Guard.IsTrue(topPixelCount == transformWidth, nameof(topPixelCount), string.Empty);
                     aboveNeighbor.Slice(transformWidth, topRightPixelCount).CopyTo(aboveRow[transformWidth..]);

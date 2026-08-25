@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 /// <summary>
 /// Applies the H.273 transfer characteristics used by AV1 color conversion.
 /// </summary>
-internal static class Av1TransferFunctions
+internal static partial class Av1TransferFunctions
 {
     /// <summary>
     /// The BT.709 and BT.2020 nonlinear scale factor.

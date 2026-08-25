@@ -460,29 +460,29 @@ internal ref struct Av1SymbolDecoder
     }
 
     /// <summary>
-    /// Reads the binary split-versus-horizontal decision used at a clipped right tile boundary.
+    /// Reads the binary split-versus-horizontal decision used at a clipped bottom tile boundary.
     /// </summary>
     /// <param name="blockSize">The current block size.</param>
     /// <param name="context">The partition probability context.</param>
     /// <returns><see cref="Av1PartitionType.Split"/> or <see cref="Av1PartitionType.Horizontal"/>.</returns>
     public Av1PartitionType ReadSplitOrHorizontal(Av1BlockSize blockSize, int context)
     {
-        Av1Distribution distribution = GetSplitOrHorizontalDistribution(this.tilePartitionTypes, blockSize, context);
+        uint frequency = GetSplitOrHorizontalFrequency(this.tilePartitionTypes, blockSize, context);
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(distribution) > 0 ? Av1PartitionType.Split : Av1PartitionType.Horizontal;
+        return r.ReadBoolean(frequency) ? Av1PartitionType.Split : Av1PartitionType.Horizontal;
     }
 
     /// <summary>
-    /// Reads the binary split-versus-vertical decision used at a clipped bottom tile boundary.
+    /// Reads the binary split-versus-vertical decision used at a clipped right tile boundary.
     /// </summary>
     /// <param name="blockSize">The current block size.</param>
     /// <param name="context">The partition probability context.</param>
     /// <returns><see cref="Av1PartitionType.Split"/> or <see cref="Av1PartitionType.Vertical"/>.</returns>
     public Av1PartitionType ReadSplitOrVertical(Av1BlockSize blockSize, int context)
     {
-        Av1Distribution distribution = GetSplitOrVerticalDistribution(this.tilePartitionTypes, blockSize, context);
+        uint frequency = GetSplitOrVerticalFrequency(this.tilePartitionTypes, blockSize, context);
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(distribution) > 0 ? Av1PartitionType.Split : Av1PartitionType.Vertical;
+        return r.ReadBoolean(frequency) ? Av1PartitionType.Split : Av1PartitionType.Vertical;
     }
 
     /// <summary>
@@ -1259,24 +1259,24 @@ internal ref struct Av1SymbolDecoder
     /// <param name="inputs">The full partition distributions.</param>
     /// <param name="blockSize">The current block size.</param>
     /// <param name="context">The partition probability context.</param>
-    /// <returns>The binary cumulative distribution for split versus the horizontal-like partition group.</returns>
-    internal static Av1Distribution GetSplitOrHorizontalDistribution(Av1Distribution[] inputs, Av1BlockSize blockSize, int context)
+    /// <returns>The Q15 probability of the split outcome.</returns>
+    internal static uint GetSplitOrHorizontalFrequency(Av1Distribution[] inputs, Av1BlockSize blockSize, int context)
     {
         Av1Distribution input = inputs[context];
 
-        // At a clipped right edge, all syntax choices that advance horizontally collapse into one binary outcome.
-        uint p = Av1Distribution.ProbabilityTop;
-        p -= GetElementProbability(input, Av1PartitionType.Horizontal);
-        p -= GetElementProbability(input, Av1PartitionType.Split);
-        p -= GetElementProbability(input, Av1PartitionType.HorizontalA);
-        p -= GetElementProbability(input, Av1PartitionType.HorizontalB);
-        p -= GetElementProbability(input, Av1PartitionType.VerticalA);
+        // At the bottom edge, AV1 gathers every vertical-like partition mass into the split branch of the
+        // temporary binary CDF. Reading the frequency directly avoids allocating an adaptive distribution.
+        uint frequency = GetElementProbability(input, Av1PartitionType.Vertical);
+        frequency += GetElementProbability(input, Av1PartitionType.Split);
+        frequency += GetElementProbability(input, Av1PartitionType.HorizontalA);
+        frequency += GetElementProbability(input, Av1PartitionType.VerticalA);
+        frequency += GetElementProbability(input, Av1PartitionType.VerticalB);
         if (blockSize != Av1BlockSize.Block128x128)
         {
-            p -= GetElementProbability(input, Av1PartitionType.Horizontal4);
+            frequency += GetElementProbability(input, Av1PartitionType.Vertical4);
         }
 
-        return new(Av1Distribution.ProbabilityTop - p);
+        return frequency;
     }
 
     /// <summary>
@@ -1285,24 +1285,24 @@ internal ref struct Av1SymbolDecoder
     /// <param name="inputs">The full partition distributions.</param>
     /// <param name="blockSize">The current block size.</param>
     /// <param name="context">The partition probability context.</param>
-    /// <returns>The binary cumulative distribution for split versus the vertical-like partition group.</returns>
-    internal static Av1Distribution GetSplitOrVerticalDistribution(Av1Distribution[] inputs, Av1BlockSize blockSize, int context)
+    /// <returns>The Q15 probability of the split outcome.</returns>
+    internal static uint GetSplitOrVerticalFrequency(Av1Distribution[] inputs, Av1BlockSize blockSize, int context)
     {
         Av1Distribution input = inputs[context];
 
-        // At a clipped bottom edge, all syntax choices that advance vertically collapse into one binary outcome.
-        uint p = Av1Distribution.ProbabilityTop;
-        p -= GetElementProbability(input, Av1PartitionType.Vertical);
-        p -= GetElementProbability(input, Av1PartitionType.Split);
-        p -= GetElementProbability(input, Av1PartitionType.HorizontalA);
-        p -= GetElementProbability(input, Av1PartitionType.VerticalA);
-        p -= GetElementProbability(input, Av1PartitionType.VerticalB);
+        // At the right edge, AV1 gathers every horizontal-like partition mass into the split branch of the
+        // temporary binary CDF. Reading the frequency directly avoids allocating an adaptive distribution.
+        uint frequency = GetElementProbability(input, Av1PartitionType.Horizontal);
+        frequency += GetElementProbability(input, Av1PartitionType.Split);
+        frequency += GetElementProbability(input, Av1PartitionType.HorizontalA);
+        frequency += GetElementProbability(input, Av1PartitionType.HorizontalB);
+        frequency += GetElementProbability(input, Av1PartitionType.VerticalA);
         if (blockSize != Av1BlockSize.Block128x128)
         {
-            p -= GetElementProbability(input, Av1PartitionType.Vertical4);
+            frequency += GetElementProbability(input, Av1PartitionType.Horizontal4);
         }
 
-        return new(Av1Distribution.ProbabilityTop - p);
+        return frequency;
     }
 
     /// <summary>

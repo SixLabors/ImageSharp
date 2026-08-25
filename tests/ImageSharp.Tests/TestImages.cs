@@ -1296,6 +1296,15 @@ public static class TestImages
         // Extremely small image, 4x4 pixels with a single solid color.
         public const string Orange4x4 = "Heif/Orange4x4.avif";
 
+        // Sourced from libavif/tests/data under libavif's BSD-2-Clause license. The AVIF was independently
+        // encoded from the paired PNG with avifenc and carries the same ICC, Exif, and XMP metadata.
+        public const string ParisIccExifXmpAvif = "Heif/paris_icc_exif_xmp.avif";
+        public const string ParisIccExifXmpPng = "Heif/paris_icc_exif_xmp.png";
+
+        // Independently encoded from Png.Icc.Perceptual with libavif 1.4.2 and libaom 3.14.1. Unlike the
+        // canonical-sRGB Paris profile, this perceptual profile requires an observable color conversion.
+        public const string PerceptualIccAvif = "Heif/perceptual_icc.avif";
+
         // Sourced from libavif/tests/data under libavif's BSD-2-Clause license.
         public const string Animated8Bit = "Heif/colors-animated-8bpc.avif";
         public const string Animated8BitWithAudio = "Heif/colors-animated-8bpc-audio.avif";

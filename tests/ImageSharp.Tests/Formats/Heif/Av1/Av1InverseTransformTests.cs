@@ -113,21 +113,24 @@ public class Av1InverseTransformTests
         AssertRoundTrip<Av1Identity32Forward1dOperator, Av1Identity32Inverse1dOperator>(Av1TransformType.Identity, Av1TransformSize.Size32x32, 4, 1);
     }
 
-    [Fact]
-    public void Dct8TwoDimensionalByteSimdKernelsMatchScalar()
-        => AssertByteTransform2dParity<Av1Dct8Inverse1dOperator, Av1Dct8Inverse1dOperator>(Av1TransformType.DctDct, Av1TransformSize.Size8x8);
-
-    [Fact]
-    public void Adst16TwoDimensionalByteSimdKernelsMatchScalarWithBothFlips()
-        => AssertByteTransform2dParity<Av1Adst16Inverse1dOperator, Av1Adst16Inverse1dOperator>(Av1TransformType.FlipAdstFlipAdst, Av1TransformSize.Size16x16);
-
-    [Fact]
-    public void RectangularDctTwoDimensionalByteSimdKernelsMatchScalar()
-        => AssertByteTransform2dParity<Av1Dct8Inverse1dOperator, Av1Dct16Inverse1dOperator>(Av1TransformType.DctDct, Av1TransformSize.Size16x8);
-
-    [Fact]
-    public void Identity32TwoDimensionalHighBitDepthSimdKernelsMatchScalar()
-        => AssertHighBitDepthTransform2dParity<Av1Identity32Inverse1dOperator, Av1Identity32Inverse1dOperator>(Av1TransformType.Identity, Av1TransformSize.Size32x32);
+    /// <summary>
+    /// Verifies that every applicable SIMD traversal reconstructs the same samples as the scalar traversal.
+    /// </summary>
+    /// <param name="transformTypeValue">The integral <see cref="Av1TransformType"/> value.</param>
+    /// <param name="transformSizeValue">The integral <see cref="Av1TransformSize"/> value.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    [Theory]
+    [MemberData(nameof(Av1ForwardTransformTests.ValidTransformCases), MemberType = typeof(Av1ForwardTransformTests))]
+    public void TwoDimensionalSimdKernelsMatchScalarForEveryValidConfiguration(
+        int transformTypeValue,
+        int transformSizeValue,
+        int bitDepth)
+    {
+        Av1TransformType transformType = (Av1TransformType)transformTypeValue;
+        Av1TransformSize transformSize = (Av1TransformSize)transformSizeValue;
+        Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(transformType, transformSize, bitDepth);
+        DispatchColumn(transformType, transformSize, bitDepth, ref config);
+    }
 
     [Fact]
     public void ReconstructionDispatchDoesNotAllocatePerBlock()
@@ -304,88 +307,293 @@ public class Av1InverseTransformTests
         }
     }
 
-    private static void AssertByteTransform2dParity<TColumnOperator, TRowOperator>(Av1TransformType transformType, Av1TransformSize transformSize)
+    /// <summary>
+    /// Closes the static-generic inverse column operator selected by a transform configuration.
+    /// </summary>
+    /// <param name="transformType">The compound transform type.</param>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="config">The inverse transform configuration.</param>
+    private static void DispatchColumn(
+        Av1TransformType transformType,
+        Av1TransformSize transformSize,
+        int bitDepth,
+        ref Av1Transform2dFlipConfiguration config)
+    {
+        switch (config.TransformFunctionTypeColumn)
+        {
+            case Av1TransformFunctionType.Dct4:
+                DispatchRow<Av1Dct4Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Dct8:
+                DispatchRow<Av1Dct8Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Dct16:
+                DispatchRow<Av1Dct16Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Dct32:
+                DispatchRow<Av1Dct32Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Dct64:
+                DispatchRow<Av1Dct64Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Adst4:
+                DispatchRow<Av1Adst4Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Adst8:
+                DispatchRow<Av1Adst8Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Adst16:
+                DispatchRow<Av1Adst16Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Identity4:
+                DispatchRow<Av1Identity4Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Identity8:
+                DispatchRow<Av1Identity8Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Identity16:
+                DispatchRow<Av1Identity16Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Identity32:
+                DispatchRow<Av1Identity32Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            default:
+                Assert.Fail($"Unexpected column function {config.TransformFunctionTypeColumn} for {transformType} {transformSize}.");
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Closes the static-generic inverse row operator after the column operator has been selected.
+    /// </summary>
+    /// <typeparam name="TColumnOperator">The selected inverse column operator.</typeparam>
+    /// <param name="transformType">The compound transform type.</param>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="config">The inverse transform configuration.</param>
+    private static void DispatchRow<TColumnOperator>(
+        Av1TransformType transformType,
+        Av1TransformSize transformSize,
+        int bitDepth,
+        ref Av1Transform2dFlipConfiguration config)
+        where TColumnOperator : struct, IAv1Transform1dOperator
+    {
+        switch (config.TransformFunctionTypeRow)
+        {
+            case Av1TransformFunctionType.Dct4:
+                AssertTransform2dParity<TColumnOperator, Av1Dct4Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Dct8:
+                AssertTransform2dParity<TColumnOperator, Av1Dct8Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Dct16:
+                AssertTransform2dParity<TColumnOperator, Av1Dct16Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Dct32:
+                AssertTransform2dParity<TColumnOperator, Av1Dct32Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Dct64:
+                AssertTransform2dParity<TColumnOperator, Av1Dct64Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Adst4:
+                AssertTransform2dParity<TColumnOperator, Av1Adst4Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Adst8:
+                AssertTransform2dParity<TColumnOperator, Av1Adst8Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Adst16:
+                AssertTransform2dParity<TColumnOperator, Av1Adst16Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Identity4:
+                AssertTransform2dParity<TColumnOperator, Av1Identity4Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Identity8:
+                AssertTransform2dParity<TColumnOperator, Av1Identity8Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Identity16:
+                AssertTransform2dParity<TColumnOperator, Av1Identity16Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            case Av1TransformFunctionType.Identity32:
+                AssertTransform2dParity<TColumnOperator, Av1Identity32Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                break;
+            default:
+                Assert.Fail($"Unexpected row function {config.TransformFunctionTypeRow} for {transformType} {transformSize}.");
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Produces bounded conformant coefficients and selects byte or high-bit-depth reconstruction verification.
+    /// </summary>
+    /// <typeparam name="TColumnOperator">The selected inverse column operator.</typeparam>
+    /// <typeparam name="TRowOperator">The selected inverse row operator.</typeparam>
+    /// <param name="transformType">The compound transform type.</param>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="config">The inverse transform configuration.</param>
+    private static void AssertTransform2dParity<TColumnOperator, TRowOperator>(
+        Av1TransformType transformType,
+        Av1TransformSize transformSize,
+        int bitDepth,
+        ref Av1Transform2dFlipConfiguration config)
+        where TColumnOperator : struct, IAv1Transform1dOperator
+        where TRowOperator : struct, IAv1Transform1dOperator
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        int inputStride = width + 5;
+        int maximum = (1 << bitDepth) - 1;
+        short[] residual = new short[inputStride * height];
+
+        for (int row = 0; row < height; row++)
+        {
+            for (int column = 0; column < width; column++)
+            {
+                int index = (row * width) + column;
+                residual[(row * inputStride) + column] = (short)((index & 3) switch
+                {
+                    0 => maximum,
+                    1 => -maximum,
+                    2 => ((index * 73) % ((maximum * 2) + 1)) - maximum,
+                    _ => 0,
+                });
+            }
+        }
+
+        // A conformant forward transform supplies coefficient magnitudes at the exact fixed-point bounds expected by
+        // the inverse kernels. This is stronger than arbitrary small coefficients and avoids impossible stress inputs.
+        int[] coefficients = new int[width * height];
+        int[] forwardWorkspace = new int[Av1TransformWorkspace.GetRequiredLength(transformSize)];
+        Av1ForwardTransformer.Transform2d(residual, coefficients, (uint)inputStride, transformType, transformSize, bitDepth, forwardWorkspace);
+
+        if (bitDepth == 8)
+        {
+            AssertByteTransform2dParity<TColumnOperator, TRowOperator>(coefficients, transformSize, ref config);
+            return;
+        }
+
+        AssertHighBitDepthTransform2dParity<TColumnOperator, TRowOperator>(coefficients, transformSize, bitDepth, ref config);
+    }
+
+    /// <summary>
+    /// Compares eight-bit scalar and SIMD reconstruction with independently padded read and write rows.
+    /// </summary>
+    /// <typeparam name="TColumnOperator">The selected inverse column operator.</typeparam>
+    /// <typeparam name="TRowOperator">The selected inverse row operator.</typeparam>
+    /// <param name="coefficients">The conformant forward-transform coefficients.</param>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <param name="config">The inverse transform configuration.</param>
+    private static void AssertByteTransform2dParity<TColumnOperator, TRowOperator>(
+        int[] coefficients,
+        Av1TransformSize transformSize,
+        ref Av1Transform2dFlipConfiguration config)
         where TColumnOperator : struct, IAv1Transform1dOperator
         where TRowOperator : struct, IAv1Transform1dOperator
     {
         const int bitDepth = 8;
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
-        int[] coefficients = CreateCoefficients(width * height);
-        byte[] prediction = new byte[coefficients.Length];
+        int readStride = width + 3;
+        int writeStride = width + 7;
+        int workspaceLength = Av1TransformWorkspace.GetRequiredLength(transformSize);
+        byte[] prediction = new byte[readStride * height];
 
-        for (int index = 0; index < prediction.Length; index++)
+        for (int row = 0; row < height; row++)
         {
-            prediction[index] = (byte)(64 + ((index * 29) % 128));
+            for (int column = 0; column < width; column++)
+            {
+                prediction[(row * readStride) + column] = (byte)(((row * width) + column) * 29);
+            }
         }
 
-        byte[] scalar = new byte[prediction.Length];
-        byte[] vector128 = new byte[prediction.Length];
-        byte[] vector256 = new byte[prediction.Length];
-        int[] scalarWorkspace = new int[Av1TransformWorkspace.MaximumLength];
-        int[] vector128Workspace = new int[Av1TransformWorkspace.MaximumLength];
-        int[] vector256Workspace = new int[Av1TransformWorkspace.MaximumLength];
-        Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(transformType, transformSize, bitDepth);
+        byte[] scalar = new byte[writeStride * height];
+        byte[] vector128 = new byte[writeStride * height];
+        int[] scalarWorkspace = new int[workspaceLength];
+        int[] vector128Workspace = new int[workspaceLength];
+        Array.Fill(scalar, byte.MaxValue);
+        Array.Fill(vector128, byte.MaxValue);
 
         Av1Inverse2dTransformer.Transform2dScalar<byte, Av1ByteInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
-            coefficients, prediction, width, scalar, width, ref config, scalarWorkspace, bitDepth);
+            coefficients, prediction, readStride, scalar, writeStride, ref config, scalarWorkspace, bitDepth);
 
         Av1Inverse2dTransformer.Transform2dVector128<byte, Av1ByteInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
-            coefficients, prediction, width, vector128, width, ref config, vector128Workspace, bitDepth);
-
-        Av1Inverse2dTransformer.Transform2dVector256<byte, Av1ByteInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
-            coefficients, prediction, width, vector256, width, ref config, vector256Workspace, bitDepth);
+            coefficients, prediction, readStride, vector128, writeStride, ref config, vector128Workspace, bitDepth);
 
         Assert.Equal(scalar, vector128);
-        Assert.Equal(scalar, vector256);
+
+        if (width >= Vector256<int>.Count && height >= Vector256<int>.Count)
+        {
+            byte[] vector256 = new byte[writeStride * height];
+            int[] vector256Workspace = new int[workspaceLength];
+            Array.Fill(vector256, byte.MaxValue);
+
+            Av1Inverse2dTransformer.Transform2dVector256<byte, Av1ByteInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
+                coefficients, prediction, readStride, vector256, writeStride, ref config, vector256Workspace, bitDepth);
+
+            Assert.Equal(scalar, vector256);
+        }
     }
 
-    private static void AssertHighBitDepthTransform2dParity<TColumnOperator, TRowOperator>(Av1TransformType transformType, Av1TransformSize transformSize)
+    /// <summary>
+    /// Compares high-bit-depth scalar and SIMD reconstruction with independently padded read and write rows.
+    /// </summary>
+    /// <typeparam name="TColumnOperator">The selected inverse column operator.</typeparam>
+    /// <typeparam name="TRowOperator">The selected inverse row operator.</typeparam>
+    /// <param name="coefficients">The conformant forward-transform coefficients.</param>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="config">The inverse transform configuration.</param>
+    private static void AssertHighBitDepthTransform2dParity<TColumnOperator, TRowOperator>(
+        int[] coefficients,
+        Av1TransformSize transformSize,
+        int bitDepth,
+        ref Av1Transform2dFlipConfiguration config)
         where TColumnOperator : struct, IAv1Transform1dOperator
         where TRowOperator : struct, IAv1Transform1dOperator
     {
-        const int bitDepth = 10;
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
-        int[] coefficients = CreateCoefficients(width * height);
-        short[] prediction = new short[coefficients.Length];
+        int readStride = width + 3;
+        int writeStride = width + 7;
+        int maximum = (1 << bitDepth) - 1;
+        int workspaceLength = Av1TransformWorkspace.GetRequiredLength(transformSize);
+        short[] prediction = new short[readStride * height];
 
-        for (int index = 0; index < prediction.Length; index++)
+        for (int row = 0; row < height; row++)
         {
-            prediction[index] = (short)(256 + ((index * 47) % 512));
+            for (int column = 0; column < width; column++)
+            {
+                prediction[(row * readStride) + column] = (short)((((row * width) + column) * 47) & maximum);
+            }
         }
 
-        short[] scalar = new short[prediction.Length];
-        short[] vector128 = new short[prediction.Length];
-        short[] vector256 = new short[prediction.Length];
-        int[] scalarWorkspace = new int[Av1TransformWorkspace.MaximumLength];
-        int[] vector128Workspace = new int[Av1TransformWorkspace.MaximumLength];
-        int[] vector256Workspace = new int[Av1TransformWorkspace.MaximumLength];
-        Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(transformType, transformSize, bitDepth);
+        short[] scalar = new short[writeStride * height];
+        short[] vector128 = new short[writeStride * height];
+        int[] scalarWorkspace = new int[workspaceLength];
+        int[] vector128Workspace = new int[workspaceLength];
+        Array.Fill(scalar, short.MinValue);
+        Array.Fill(vector128, short.MinValue);
 
         Av1Inverse2dTransformer.Transform2dScalar<short, Av1HighBitDepthInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
-            coefficients, prediction, width, scalar, width, ref config, scalarWorkspace, bitDepth);
+            coefficients, prediction, readStride, scalar, writeStride, ref config, scalarWorkspace, bitDepth);
 
         Av1Inverse2dTransformer.Transform2dVector128<short, Av1HighBitDepthInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
-            coefficients, prediction, width, vector128, width, ref config, vector128Workspace, bitDepth);
-
-        Av1Inverse2dTransformer.Transform2dVector256<short, Av1HighBitDepthInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
-            coefficients, prediction, width, vector256, width, ref config, vector256Workspace, bitDepth);
+            coefficients, prediction, readStride, vector128, writeStride, ref config, vector128Workspace, bitDepth);
 
         Assert.Equal(scalar, vector128);
-        Assert.Equal(scalar, vector256);
-    }
 
-    private static int[] CreateCoefficients(int length)
-    {
-        int[] coefficients = new int[length];
-
-        for (int index = 0; index < coefficients.Length; index++)
+        if (width >= Vector256<int>.Count && height >= Vector256<int>.Count)
         {
-            coefficients[index] = ((index * 37) % 129) - 64;
-        }
+            short[] vector256 = new short[writeStride * height];
+            int[] vector256Workspace = new int[workspaceLength];
+            Array.Fill(vector256, short.MinValue);
 
-        return coefficients;
+            Av1Inverse2dTransformer.Transform2dVector256<short, Av1HighBitDepthInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
+                coefficients, prediction, readStride, vector256, writeStride, ref config, vector256Workspace, bitDepth);
+
+            Assert.Equal(scalar, vector256);
+        }
     }
 
     private static int GetInputValue(int index, int lane) => (((index * 73) + (lane * 151)) % 1023) - 511;

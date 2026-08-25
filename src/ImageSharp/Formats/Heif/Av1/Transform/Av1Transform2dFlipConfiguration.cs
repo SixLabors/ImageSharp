@@ -369,15 +369,19 @@ internal ref struct Av1Transform2dFlipConfiguration
     /// </summary>
     /// <returns><see langword="true"/> when the transform combination is valid for the transform size.</returns>
     public bool IsAllowed()
-        => this.TransformSize switch
+    {
+        // AV1 selects the legal transform set from the block's square-up size: blocks up to 16x16 allow all sixteen
+        // types, a 32x32 square-up allows DCT and identity, and larger square-up sizes allow DCT only.
+        return this.TransformSize switch
         {
-            Av1TransformSize.Size32x32 =>
-                this.TransformType is Av1TransformType.DctDct or Av1TransformType.Identity or Av1TransformType.VerticalDct or Av1TransformType.HorizontalDct,
-            Av1TransformSize.Size32x64 or Av1TransformSize.Size64x32 or Av1TransformSize.Size16x64 or Av1TransformSize.Size64x16 => this.TransformType == Av1TransformType.DctDct,
-            Av1TransformSize.Size16x32 or Av1TransformSize.Size32x16 or Av1TransformSize.Size64x64 or Av1TransformSize.Size8x32 or Av1TransformSize.Size32x8 =>
+            Av1TransformSize.Size32x32 or Av1TransformSize.Size16x32 or Av1TransformSize.Size32x16 or
+                Av1TransformSize.Size8x32 or Av1TransformSize.Size32x8 =>
                 this.TransformType is Av1TransformType.DctDct or Av1TransformType.Identity,
+            Av1TransformSize.Size64x64 or Av1TransformSize.Size32x64 or Av1TransformSize.Size64x32 or
+                Av1TransformSize.Size16x64 or Av1TransformSize.Size64x16 => this.TransformType == Av1TransformType.DctDct,
             _ => true,
         };
+    }
 
     /// <summary>
     /// Derives the axis traversal directions encoded by a compound transform type.

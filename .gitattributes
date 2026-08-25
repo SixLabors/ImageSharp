@@ -141,6 +141,7 @@
 *.hvc1              filter=lfs diff=lfs merge=lfs -text
 *.hvcc              filter=lfs diff=lfs merge=lfs -text
 *.yuv               filter=lfs diff=lfs merge=lfs -text
+*.bit               filter=lfs diff=lfs merge=lfs -text
 ###############################################################################
 # Handle ICC files by git lfs
 ###############################################################################

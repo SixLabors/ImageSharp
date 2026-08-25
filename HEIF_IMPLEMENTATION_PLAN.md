@@ -12,18 +12,52 @@ This plan has one PR completion gate. The phases below are dependency order and 
 
 Full completion includes:
 
-- XML documentation for every type and contract in the HEIF implementation, including the AV1 and HEVC codec internals, together with inline comments that explain non-obvious container layouts, bitstream rules, numerical algorithms, SIMD choices, and interoperability constraints;
-- correct still-image HEIF, HEIC, and AVIF brand and item-type detection without relying on file extensions, while rejecting sequence/movie brands that are outside this image-codec scope.
-- still-image decode and encode for HEVC/HEIC and AV1/AVIF.
-- standards-compliant legacy JPEG image-item decode and encode for HEIF/HIF files.
-- every bit depth and chroma format permitted by the HEVC profiles exposed for HEIC and the AV1 profiles exposed for AVIF, including 8, 10, and 12-bit and monochrome, YUV 4:2:0, 4:2:2, and 4:4:4 paths.
-- full- and limited-range conversion using every valid signaled color-primary, transfer-characteristic, matrix-coefficient, and chroma-sample-position combination, including identity RGB signaling.
-- decoding every normative AV1 compression tool that can occur in a conforming, independently decodable AVIF still-image item; valid still-image syntax cannot terminate in an unsupported branch or silently skip reconstruction.
-- a real lossy and lossless AV1 encoder with working quality and effort controls, complete mode decision, prediction, transform, quantization, entropy coding, and legal in-loop filter decisions. A permanently fixed smallest-valid coding subset is not complete.
-- decoding every normative HEVC compression tool that can occur in a conforming, independently decodable HEIC still-image item across the exposed profiles, including the range-extension tools required for high bit depth and 4:2:2/4:4:4.
-- a real HEVC encoder with working lossless/lossy quality and effort controls, complete coding-tree, prediction, transform, quantization, CABAC, deblocking, and sample-adaptive-offset decisions. A permanently fixed smallest-valid coding subset is not complete.
-- primary images, alpha auxiliary images, image grids, ICC and CICP color information, Exif, XMP, pixel aspect ratio, clean aperture, rotation, and mirroring.
-- independent AVIF interoperability with libavif and libaom, and independent HEIC interoperability with a separately selected HEVC/HEIF implementation.
+- [ ] XML documentation covers every type and contract in the HEIF implementation, including the AV1 and HEVC codec internals, and inline comments explain non-obvious container layouts, bitstream rules, numerical algorithms, SIMD choices, and interoperability constraints.
+- [ ] HEIF, HEIC, and AVIF brands and item types are detected without relying on file extensions.
+- [ ] HEVC/HEIC and AV1/AVIF decode and encode are complete for every image behavior included in the final scope.
+- [ ] Legacy JPEG image-item decode and encode are standards compliant for HEIF/HIF files.
+- [ ] Every bit depth and chroma format permitted by the exposed HEVC and AV1 profiles is supported, including 8, 10, and 12-bit and monochrome, YUV 4:2:0, 4:2:2, and 4:4:4 paths.
+- [ ] Full- and limited-range conversion supports every valid signaled color-primary, transfer-characteristic, matrix-coefficient, and chroma-sample-position combination, including identity RGB signaling.
+- [ ] Every normative AV1 compression tool permitted by the final image scope decodes without an unsupported branch or silently skipped reconstruction.
+- [ ] The AV1 encoder implements real lossy and lossless compression with working quality and effort controls, complete mode decision, prediction, transform, quantization, entropy coding, and legal in-loop filter decisions.
+- [ ] Every normative HEVC compression tool permitted by the final image scope decodes across the exposed profiles, including the range-extension tools required for high bit depth and 4:2:2/4:4:4.
+- [ ] The HEVC encoder implements real lossy and lossless compression with working quality and effort controls, complete coding-tree, prediction, transform, quantization, CABAC, deblocking, and sample-adaptive-offset decisions.
+- [ ] Primary images, alpha auxiliary images, image grids, ICC and CICP color information, Exif, XMP, pixel aspect ratio, clean aperture, rotation, and mirroring are complete.
+- [ ] AVIF interoperability is independently verified with libavif and libaom, and HEIC interoperability is independently verified with a separately selected HEVC/HEIF implementation.
+
+Checkboxes may be marked complete only when the implementation and the verification required by the corresponding phase exit gate are both recorded. Source presence, compilation, self-roundtrip, or a temporary vertical slice is not completion evidence.
+
+## Active and queued work
+
+- [ ] **Active:** eliminate per-call scratch allocation across every AV1 forward and inverse 1-D transform, replace shared mutable transform scratch with operation-owned workspace, and implement libaom-shaped bulk transform paths with scalar parity.
+  - [x] Inventory the existing hot-path scratch use: 15 forward/inverse transformer types contain 30 `stackalloc int[...]` sites.
+  - [ ] Refactor every affected forward transform to reuse caller-owned workspace and its output buffer for staged ping-pong storage.
+  - [ ] Refactor every affected inverse transform to reuse caller-owned workspace and its output buffer for staged ping-pong storage.
+  - [ ] Remove the shared mutable `Av1ForwardTransformer.TemporaryCoefficientsBuffer` and give each concurrent transform operation exclusive workspace ownership.
+  - [ ] Select transform type, size, bit depth, and ISA once at the 2-D block boundary rather than dispatching through an interface for every row and column.
+  - [ ] Port the applicable libaom bulk forward-transform kernels using the existing ImageSharp `Vector128`, `Vector256`, and `Vector512` infrastructure while retaining the scalar oracle.
+  - [ ] Port the applicable libaom bulk inverse-transform kernels using the same tables, rounding, saturation, and clipping rules as the scalar oracle.
+  - [ ] Document scratch ownership, stage-buffer alternation, fixed-point rounding, lane layout, transposition, and scalar fallback decisions at their implementation points.
+  - [ ] Verify every scalar and hardware path across all transform types, sizes, bit depths, edge blocks, and overflow cases, then record representative end-to-end timings and allocations.
+- [ ] **Queued:** restore bounded animated HEIC and AVIF image-sequence scope, including the required image-level and per-frame metadata contracts, without introducing unrelated ISO BMFF surfaces.
+  - [ ] Reconcile the still-image-only statements in this plan with the required animated HEIC and AVIF completion scope before sequence implementation begins.
+  - [ ] Define the ImageSharp image-level sequence metadata and per-frame metadata contracts, including observable timing, repetition, color, alpha, orientation, and profile behavior.
+  - [ ] Identify and document the minimum normative ISO BMFF track, sample-description, sample-location, dependency, and timing syntax required by conforming HEIC and AVIF image sequences.
+  - [ ] Parse and write only that bounded image-sequence syntax; do not add audio, arbitrary media, editing, fragmentation, streaming, or general presentation APIs.
+  - [ ] Decode frame dependencies, durations, repetition, frame-local auxiliary images, and frame-local metadata into the existing ImageSharp multi-frame model.
+  - [ ] Encode ImageSharp frames, durations, repetition, frame-local auxiliary images, and frame-local metadata as independently decodable HEIC and AVIF image sequences.
+  - [ ] Add malformed-sequence boundary coverage and independently verify animated inputs and outputs with pinned HEIC and AVIF implementations.
+- [ ] **Queued:** complete the AV1 and HEVC encoding paths and remove the explicit `HeifEncoderCore` encoding stubs only after each emitted payload passes independent decode.
+  - [ ] Complete every AV1 encoder task and exit gate in Phase 6; a smallest-valid fixed coding subset is only an intermediate milestone.
+  - [ ] Complete every HEVC encoder task and exit gate in Phase 7; a smallest-valid fixed coding subset is only an intermediate milestone.
+  - [ ] Connect both payload encoders to the bounded HEIF writer with the selected bit depth, chroma layout, range, color signaling, alpha, metadata, and animation state.
+  - [ ] Replace each `NotSupportedException` branch only when the corresponding payload is accepted by the pinned independent decoder and the ImageSharp decoder.
+  - [ ] Verify that every public quality, effort, lossless, bit-depth, chroma, alpha, and metadata option changes or constrains the encoded output exactly as documented.
+- [ ] **Queued:** complete `IHeifEncoderOptions` documentation, including all observable limits, and use `<inheritdoc/>` consistently from `HeifEncoder` if the interface remains justified.
+  - [ ] Confirm that the interface is required by multiple concrete HEIF-family encoders and remove it if it does not represent a genuine shared public contract.
+  - [ ] Document the default, valid range, special values, invalid-value behavior, and format-dependent restrictions of every retained option using observable API behavior only.
+  - [ ] Keep the complete contract on `IHeifEncoderOptions` and use `<inheritdoc/>` on matching `HeifEncoder` members instead of maintaining duplicate documentation.
+  - [ ] Verify option validation and API shape against the established ImageSharp encoder patterns before the Phase 1 API-review gate is marked complete.
 
 Gain maps, progressive/layered images, sample transforms, and experimental extension brands require explicit conformance and API decisions. They do not create permission to omit any valid color, compression, or bit-depth path from the PR. The container reader must skip unsupported optional extensions safely and reject an unsupported essential property with a useful error.
 
@@ -262,106 +296,106 @@ Every phase exit gate is an internal prerequisite for the next phase. Only the P
 
 Tasks:
 
-1. Build the merged solution in Release and record compile errors and warnings attributable to the WIP.
-2. Run only the existing HEIF/HEVC/AV1 tests first, then record disabled tests and unexecuted asset coverage.
-3. Record the pinned official libaom, local libavif, HM, and Android `libhevc` revisions, then pin the independent HEIC container interoperability oracle and external fixture toolchain.
-4. Create a provenance map from each WIP codec file to its specification section and exact upstream source. Preserve the current SVT-AV1 origins where applicable and identify which missing paths will use libaom.
-5. Convert the completion boundary above into a feature matrix with `unsupported`, `parses`, `decodes`, `encodes`, and `verified independently` states.
-6. Audit every source file under `src/ImageSharp/Formats/Heif`. Document every type and shared contract, and add technical comments wherever the code depends on non-obvious specification syntax, fixed-point arithmetic, transform staging, entropy state, buffer layout, or SIMD behavior. Keep public XML documentation limited to observable API behavior.
+- [ ] Build the merged solution in Release and record compile errors and warnings attributable to the WIP.
+- [ ] Run only the existing HEIF/HEVC/AV1 tests first, then record disabled tests and unexecuted asset coverage.
+- [ ] Record the pinned official libaom, local libavif, HM, and Android `libhevc` revisions, then pin the independent HEIC container interoperability oracle and external fixture toolchain.
+- [ ] Create a provenance map from each WIP codec file to its specification section and exact upstream source. Preserve the current SVT-AV1 origins where applicable and identify which missing paths will use libaom.
+- [ ] Convert the completion boundary above into a feature matrix with `unsupported`, `parses`, `decodes`, `encodes`, and `verified independently` states.
+- [ ] Audit every source file under `src/ImageSharp/Formats/Heif`. Document every type and shared contract, and add technical comments wherever the code depends on non-obvious specification syntax, fixed-point arithmetic, transform staging, entropy state, buffer layout, or SIMD behavior. Keep public XML documentation limited to observable API behavior.
 
 Exit gate:
 
-- The post-merge branch has a recorded Release baseline, every existing failure is classified, all upstream code origins are known, and the complete HEIF source tree passes the documentation audit before additional porting begins.
+- [ ] The post-merge branch has a recorded Release baseline, every existing failure is classified, all upstream code origins are known, and the complete HEIF source tree passes the documentation audit before additional porting begins.
 
 ### Phase 1: correct the format contract
 
 Tasks:
 
-1. Define distinct HEIC and AVIF public format types over the shared internal HEIF container and register the correct brands, MIME types, and extensions.
-2. Add generated `SaveAsHeic` and `SaveAsAvif` APIs and format metadata integration through the same mechanisms as established codecs. Define generic `SaveAsHeif` only if its options require an explicit supported payload codec.
-3. Define decoder options using existing `DecoderOptions` behavior, including target pixel type, metadata handling, cancellation, and image-size limits.
-4. Define codec-specific encoder options with observable semantics for quality, speed/effort, lossless mode, chroma subsampling, bit depth, alpha quality, and metadata handling. Avoid exposing internal HEVC or AV1 tuning knobs without a stable user-facing meaning.
-5. Make `Rgba32` the default 8-bit decode output so alpha is not silently lost.
-6. Remove unsupported JPEG 2000, JPEG-XR, JPEG-XS, and AVC capability claims unless those payload codecs are added to the completion matrix. Retain legacy JPEG as an explicit supported HEIF image-item codec.
+- [ ] Define distinct HEIC and AVIF public format types over the shared internal HEIF container and register the correct brands, MIME types, and extensions.
+- [ ] Add generated `SaveAsHeic` and `SaveAsAvif` APIs and format metadata integration through the same mechanisms as established codecs. Define generic `SaveAsHeif` only if its options require an explicit supported payload codec.
+- [ ] Define decoder options using existing `DecoderOptions` behavior, including target pixel type, metadata handling, cancellation, and image-size limits.
+- [ ] Define codec-specific encoder options with observable semantics for quality, speed/effort, lossless mode, chroma subsampling, bit depth, alpha quality, and metadata handling. Avoid exposing internal HEVC or AV1 tuning knobs without a stable user-facing meaning.
+- [ ] Make `Rgba32` the default 8-bit decode output so alpha is not silently lost.
+- [ ] Remove unsupported JPEG 2000, JPEG-XR, JPEG-XS, and AVC capability claims unless those payload codecs are added to the completion matrix. Retain legacy JPEG as an explicit supported HEIF image-item codec.
 
 Exit gate:
 
-- API review confirms that names and documented behavior match existing ImageSharp patterns and promise only the completed HEVC, AV1, and legacy JPEG HEIF payload paths. Capabilities must not be registered before their implementation reaches the final PR gate.
+- [ ] API review confirms that names and documented behavior match existing ImageSharp patterns and promise only the completed HEVC, AV1, and legacy JPEG HEIF payload paths. Capabilities must not be registered before their implementation reaches the final PR gate.
 
 ### Phase 2: rebuild the bounded HEIF still-image reader around validated items
 
 Tasks:
 
-1. Implement a bounded box reader supporting 32-bit, 64-bit, and to-end box sizes where allowed, with overflow-safe arithmetic and correct parent bounds.
-2. Accept the applicable HEIF, HEIC, and AVIF still-image brands through the major or compatible brand rules. Recognize and reject sequence/movie brands without implementing their track surface.
-3. Skip unknown non-essential boxes and properties. Reject unknown essential properties attached to a decoded item.
-4. Parse meta children independently of physical order and build the item/property/reference model described above.
-5. Correct item ID lookup, one-based property indices, association flag masks, full-box versions, and large IDs/offsets.
-6. Resolve `idat` and `mdat` item data, multiple extents, construction methods, and 64-bit offsets through bounded item streams.
-7. Parse and associate HEVC and AV1 configuration, dimensions, plane information, ICC/CICP color, alpha auxiliary type, grids, transforms, Exif, XMP, and thumbnails.
-8. Make Identify return dimensions, bit depth, color type, alpha presence, profiles, and metadata from the parsed model without decoding AV1 tiles.
-9. Add malformed-container tests for every external length, offset, count, ID, association, extent, and relationship boundary.
+- [ ] Implement a bounded box reader supporting 32-bit, 64-bit, and to-end box sizes where allowed, with overflow-safe arithmetic and correct parent bounds.
+- [ ] Accept the applicable HEIF, HEIC, and AVIF still-image brands through the major or compatible brand rules. Recognize and reject sequence/movie brands without implementing their track surface.
+- [ ] Skip unknown non-essential boxes and properties. Reject unknown essential properties attached to a decoded item.
+- [ ] Parse meta children independently of physical order and build the item/property/reference model described above.
+- [ ] Correct item ID lookup, one-based property indices, association flag masks, full-box versions, and large IDs/offsets.
+- [ ] Resolve `idat` and `mdat` item data, multiple extents, construction methods, and 64-bit offsets through bounded item streams.
+- [ ] Parse and associate HEVC and AV1 configuration, dimensions, plane information, ICC/CICP color, alpha auxiliary type, grids, transforms, Exif, XMP, and thumbnails.
+- [ ] Make Identify return dimensions, bit depth, color type, alpha presence, profiles, and metadata from the parsed model without decoding AV1 tiles.
+- [ ] Add malformed-container tests for every external length, offset, count, ID, association, extent, and relationship boundary.
 
 Exit gate:
 
-- The parser resolves each current HEIC, HIF, and AVIF asset into a stable logical model, malformed inputs fail without escaping bounds or allocating attacker-controlled sizes, and Identify has reference-verified metadata and payload classification.
+- [ ] The parser resolves each current HEIC, HIF, and AVIF asset into a stable logical model, malformed inputs fail without escaping bounds or allocating attacker-controlled sizes, and Identify has reference-verified metadata and payload classification.
 
 ### Phase 3: complete scalar AV1 still-image reconstruction
 
 Implement and verify in dependency order:
 
-1. OBU framing, sequence headers, frame headers, tile groups, byte alignment, and trailing bits.
-2. One coherent decoder lifecycle that retains parsed frame and tile state and disposes all buffers deterministically.
-3. Tile partitioning, mode information, segmentation, delta quantization, transform-size selection, coefficient token decode, inverse quantization, and inverse transforms.
-4. Intra prediction, including every directional, smooth, Paeth, CFL, filter-intra, and palette case permitted by AV1.
-5. Lossless and high-bit-depth reconstruction with correct clipping and intermediate precision.
-6. Deblocking loop filter.
-7. CDEF.
-8. Super-resolution scaling.
-9. Loop restoration.
-10. Frame padding and film-grain synthesis when signaled.
+- [ ] OBU framing, sequence headers, frame headers, tile groups, byte alignment, and trailing bits.
+- [ ] One coherent decoder lifecycle that retains parsed frame and tile state and disposes all buffers deterministically.
+- [ ] Tile partitioning, mode information, segmentation, delta quantization, transform-size selection, coefficient token decode, inverse quantization, and inverse transforms.
+- [ ] Intra prediction, including every directional, smooth, Paeth, CFL, filter-intra, and palette case permitted by AV1.
+- [ ] Lossless and high-bit-depth reconstruction with correct clipping and intermediate precision.
+- [ ] Deblocking loop filter.
+- [ ] CDEF.
+- [ ] Super-resolution scaling.
+- [ ] Loop restoration.
+- [ ] Frame padding and film-grain synthesis when signaled.
 
 For each item, first add a small scalar unit test against normative or independent vectors, then enable it in the frame pipeline. Remove constant feature-disable flags and unsupported branches only when their replacement is verified. Unsupported syntax must produce a codec-specific invalid-image error; it must never silently skip a normative reconstruction stage.
 
 Exit gate:
 
-- Independently encoded, opaque, single-item AVIF files reconstruct correctly across all AVIF profiles, bit depths, subsampling modes, and normative still-image compression tools. Pixel comparisons are made after applying the same signaled color conversion in the reference path.
+- [ ] Independently encoded, opaque, single-item AVIF files reconstruct correctly across all AVIF profiles, bit depths, subsampling modes, and normative still-image compression tools. Pixel comparisons are made after applying the same signaled color conversion in the reference path.
 
 ### Phase 4: complete scalar HEVC still-image reconstruction
 
 Implement and verify in dependency order:
 
-1. HEIF item-local length-delimited NAL units, `hvcC`, VPS, SPS, PPS, and the parameter-set and slice-header syntax needed to decode the one independently coded picture carried by a supported still-image item. Do not add an Annex B byte-stream API or an access-unit/timeline abstraction.
-2. One bounded decoder lifecycle that owns only the parameter sets, current-picture state, slice/tile entropy state, and reconstructed planes required by that image item.
-3. CABAC arithmetic decoding and every required context transition.
-4. Coding-tree, coding-unit, prediction-unit, and transform-unit traversal across all permitted sizes and partition modes.
-5. Intra prediction for every luma and chroma mode, including strong intra smoothing and constrained prediction rules.
-6. Scaling lists, inverse quantization, transform skip, every required inverse transform, range-extension precision, and lossless reconstruction.
-7. Deblocking and sample-adaptive offset for every signaled luma/chroma and bit-depth path.
-8. Tiles, wavefront entry points, dependent slices, and all other parallelization syntax permitted by the exposed still-image profiles.
-9. Supplemental enhancement information that changes image presentation or metadata exposed by ImageSharp.
+- [ ] HEIF item-local length-delimited NAL units, `hvcC`, VPS, SPS, PPS, and the parameter-set and slice-header syntax needed to decode the one independently coded picture carried by a supported still-image item. Do not add an Annex B byte-stream API or an access-unit/timeline abstraction.
+- [ ] One bounded decoder lifecycle that owns only the parameter sets, current-picture state, slice/tile entropy state, and reconstructed planes required by that image item.
+- [ ] CABAC arithmetic decoding and every required context transition.
+- [ ] Coding-tree, coding-unit, prediction-unit, and transform-unit traversal across all permitted sizes and partition modes.
+- [ ] Intra prediction for every luma and chroma mode, including strong intra smoothing and constrained prediction rules.
+- [ ] Scaling lists, inverse quantization, transform skip, every required inverse transform, range-extension precision, and lossless reconstruction.
+- [ ] Deblocking and sample-adaptive offset for every signaled luma/chroma and bit-depth path.
+- [ ] Tiles, wavefront entry points, dependent slices, and all other parallelization syntax permitted by the exposed still-image profiles.
+- [ ] Supplemental enhancement information that changes image presentation or metadata exposed by ImageSharp.
 
 Each subsystem starts with scalar conformance vectors derived from the HEVC specification and the pinned implementation reference. No valid syntax in the exposed HEIC profiles may terminate in an unsupported branch or silently omit a normative reconstruction stage.
 
 Exit gate:
 
-- Independently encoded HEIC files reconstruct correctly across every exposed HEVC profile, chroma format, bit depth, range-extension tool, and normative still-image compression path.
+- [ ] Independently encoded HEIC files reconstruct correctly across every exposed HEVC profile, chroma format, bit depth, range-extension tool, and normative still-image compression path.
 
 ### Phase 5: shared color conversion, alpha, grids, and presentation transforms
 
 Tasks:
 
-1. Implement monochrome, 4:2:0, 4:2:2, and 4:4:4 plane access with every valid signaled chroma sample position.
-2. Implement full- and limited-range expansion for 8, 10, and 12-bit samples across every supported plane layout.
-3. Implement every non-reserved HEVC/AV1 color-primary, transfer-characteristic, and matrix-coefficient signaling path, including identity conversion, with correct fixed-point rounding and clipping.
-4. Decode alpha auxiliary items as monochrome planes, validate dimensions and bit depth, and compose them without losing precision. Define premultiplication behavior from AVIF signaling and ImageSharp's pixel contract.
-5. Validate grid tile type, dimensions, properties, order, and canvas coverage. Compose directly into the destination frame, cropping only the permitted right and bottom tile overlap.
-6. Apply clean aperture, rotation, mirroring, and pixel aspect ratio according to the container property order and ImageSharp metadata/processing conventions.
-7. Preserve ICC, CICP, Exif, and XMP metadata using existing ImageSharp profile types.
+- [ ] Implement monochrome, 4:2:0, 4:2:2, and 4:4:4 plane access with every valid signaled chroma sample position.
+- [ ] Implement full- and limited-range expansion for 8, 10, and 12-bit samples across every supported plane layout.
+- [ ] Implement every non-reserved HEVC/AV1 color-primary, transfer-characteristic, and matrix-coefficient signaling path, including identity conversion, with correct fixed-point rounding and clipping.
+- [ ] Decode alpha auxiliary items as monochrome planes, validate dimensions and bit depth, and compose them without losing precision. Define premultiplication behavior from AVIF signaling and ImageSharp's pixel contract.
+- [ ] Validate grid tile type, dimensions, properties, order, and canvas coverage. Compose directly into the destination frame, cropping only the permitted right and bottom tile overlap.
+- [ ] Apply clean aperture, rotation, mirroring, and pixel aspect ratio according to the container property order and ImageSharp metadata/processing conventions.
+- [ ] Preserve ICC, CICP, Exif, and XMP metadata using existing ImageSharp profile types.
 
 Exit gate:
 
-- The complete cross-product of valid HEVC/AV1 bit depths, subsampling modes, ranges, color signaling, alpha, grids, and transforms is covered by focused vectors and representative HEIC/AVIF integration files and matches independently decoded references within a documented conversion tolerance. Integer identity/lossless cases must match exactly.
+- [ ] The complete cross-product of valid HEVC/AV1 bit depths, subsampling modes, ranges, color signaling, alpha, grids, and transforms is covered by focused vectors and representative HEIC/AVIF integration files and matches independently decoded references within a documented conversion tolerance. Integer identity/lossless cases must match exactly.
 
 ### Phase 6: implement a real AV1 still-image encoder
 
@@ -369,39 +403,39 @@ Delete the JPEG payload path from the production encoder. Keep the synchronous I
 
 Implement in vertical slices that always produce a decodable AV1 bitstream:
 
-1. RGB/RGBA to AV1 planes for every 8, 10, and 12-bit output, range, matrix, and monochrome/4:2:0/4:2:2/4:4:4 combination permitted by the selected AV1 profile.
-2. Sequence, frame, tile-group, and metadata OBU writing for a reduced still picture.
-3. A temporary smallest-valid intra-only vertical slice using existing partition, prediction, transform, quantization, coefficient, and entropy structures.
-4. Complete block geometry, neighbor/context updates, transform selection and forward transforms, quantization, coefficient tokenization, and range coding.
-5. Add mode decision and rate/distortion selection in increasing effort levels. Reuse computed prediction and transform results instead of duplicating analysis across stages.
-6. Add lossless mode and validate the exact lossless constraints rather than treating quality 100 as lossless.
-7. Add in-loop filter decisions and signaling. A legal choice to disable an encoder feature is distinct from a decoder skipping a signaled feature.
-8. Add alpha as an auxiliary AV1 item with independently controllable quality where the public option warrants it.
-9. Write the AVIF item graph, extents, `av1C`, pixel information, color properties, metadata, and alpha relationships with correct brands.
-10. Make output deterministic for identical pixels, metadata, options, and configuration.
-11. Complete the partition, prediction, transform, quantization, entropy, filter, and rate/distortion choices needed for quality and effort settings to provide a genuine compression tradeoff rather than selecting from a fixed coding subset.
-12. Exercise every encoder bit-depth, plane-layout, range, color, alpha, lossless/lossy, quality, and effort combination through independent decode.
+- [ ] Convert RGB/RGBA to AV1 planes for every 8, 10, and 12-bit output, range, matrix, and monochrome/4:2:0/4:2:2/4:4:4 combination permitted by the selected AV1 profile.
+- [ ] Write sequence, frame, tile-group, and metadata OBUs for a reduced still picture.
+- [ ] Implement a temporary smallest-valid intra-only vertical slice using existing partition, prediction, transform, quantization, coefficient, and entropy structures.
+- [ ] Complete block geometry, neighbor/context updates, transform selection and forward transforms, quantization, coefficient tokenization, and range coding.
+- [ ] Add mode decision and rate/distortion selection in increasing effort levels. Reuse computed prediction and transform results instead of duplicating analysis across stages.
+- [ ] Add lossless mode and validate the exact lossless constraints rather than treating quality 100 as lossless.
+- [ ] Add in-loop filter decisions and signaling. A legal choice to disable an encoder feature is distinct from a decoder skipping a signaled feature.
+- [ ] Add alpha as an auxiliary AV1 item with independently controllable quality where the public option warrants it.
+- [ ] Write the AVIF item graph, extents, `av1C`, pixel information, color properties, metadata, and alpha relationships with correct brands.
+- [ ] Make output deterministic for identical pixels, metadata, options, and configuration.
+- [ ] Complete the partition, prediction, transform, quantization, entropy, filter, and rate/distortion choices needed for quality and effort settings to provide a genuine compression tradeoff rather than selecting from a fixed coding subset.
+- [ ] Exercise every encoder bit-depth, plane-layout, range, color, alpha, lossless/lossy, quality, and effort combination through independent decode.
 
 Every vertical slice must be decoded by libavif before additional compression features are added. Self-round-trip tests are supplementary because matching encoder and decoder bugs can otherwise hide invalid bitstreams.
 
 Exit gate:
 
-- libavif and another independent AV1 decoder accept ImageSharp output across the complete encoder matrix, and ImageSharp reconstructs the same files. Lossless output is pixel-exact; lossy output demonstrates effective quality/effort tradeoffs and meets recorded quality and size expectations without malformed or non-AV1 payloads.
+- [ ] libavif and another independent AV1 decoder accept ImageSharp output across the complete encoder matrix, and ImageSharp reconstructs the same files. Lossless output is pixel-exact; lossy output demonstrates effective quality/effort tradeoffs and meets recorded quality and size expectations without malformed or non-AV1 payloads.
 
 ### Phase 7: implement a real HEVC still-image encoder
 
 Implement in vertical slices that always produce a HEVC bitstream accepted by an independent HEIC decoder:
 
-1. Convert ImageSharp pixels into every exposed HEVC bit depth, range, and monochrome/4:2:0/4:2:2/4:4:4 combination.
-2. Write VPS, SPS, PPS, slice headers, parameter arrays in `hvcC`, and a smallest-valid intra picture as a temporary vertical slice.
-3. Complete coding-tree partitioning, intra prediction selection, forward transforms, scaling/quantization, coefficient scanning, and CABAC encoding.
-4. Add real rate/distortion mode decision, quality and effort controls, lossless mode, deblocking decisions, and sample-adaptive-offset decisions.
-5. Add alpha auxiliary images, grids, metadata, color properties, image relationships, and correct HEIC brands.
-6. Exercise every encoder profile, bit depth, chroma format, range, color, alpha, lossless/lossy, quality, and effort combination through independent decode.
+- [ ] Convert ImageSharp pixels into every exposed HEVC bit depth, range, and monochrome/4:2:0/4:2:2/4:4:4 combination.
+- [ ] Write VPS, SPS, PPS, slice headers, parameter arrays in `hvcC`, and a smallest-valid intra picture as a temporary vertical slice.
+- [ ] Complete coding-tree partitioning, intra prediction selection, forward transforms, scaling/quantization, coefficient scanning, and CABAC encoding.
+- [ ] Add real rate/distortion mode decision, quality and effort controls, lossless mode, deblocking decisions, and sample-adaptive-offset decisions.
+- [ ] Add alpha auxiliary images, grids, metadata, color properties, image relationships, and correct HEIC brands.
+- [ ] Exercise every encoder profile, bit depth, chroma format, range, color, alpha, lossless/lossy, quality, and effort combination through independent decode.
 
 Exit gate:
 
-- Independent HEIC decoders accept ImageSharp output across the complete encoder matrix. Lossless output is pixel-exact; lossy output demonstrates effective quality/effort tradeoffs and meets recorded quality and size expectations.
+- [ ] Independent HEIC decoders accept ImageSharp output across the complete encoder matrix. Lossless output is pixel-exact; lossy output demonstrates effective quality/effort tradeoffs and meets recorded quality and size expectations.
 
 ### Phase 8: SIMD and allocation optimization
 
@@ -409,56 +443,57 @@ SIMD work begins after the corresponding scalar stage has independent correctnes
 
 Tasks:
 
-1. Remove known avoidable allocations first: per-transform arrays, the intermediate RGB image, repeated block scratch arrays, and file-sized buffering.
-2. Benchmark codec-specific costs for CABAC/range decode, inverse transforms, still-image prediction, deblocking, SAO, CDEF, restoration, chroma upsampling, color conversion, alpha packing, and grid copies.
-3. Implement vector paths only for confirmed hot loops, using existing `Vector128`, `Vector256`, and `Vector512` helper and dispatch patterns where supported.
-4. Prioritize shared color conversion and pixel packing, chroma upsampling, inverse-transform add-and-clip, intra predictors, HEVC deblock/SAO, AV1 loop filter/CDEF/restoration, and contiguous grid copies.
-5. Port upstream SIMD algorithms only after mapping lane width, signedness, intermediate precision, rounding, saturation, edge extension, and high-bit-depth behavior to the scalar oracle.
-6. Keep one scalar implementation as the specification-shaped reference. Vector paths must share tables and constants with it rather than duplicate codec policy.
-7. Test scalar and each available hardware path with intrinsics explicitly enabled and disabled, including widths shorter than a vector, exact-vector widths, non-multiples, edges, maximum sample values, and high-bit-depth overflow cases.
-8. Remove dead or commented SIMD experiments once a verified production path replaces them.
+- [ ] Remove known avoidable allocations first: per-transform arrays, the intermediate RGB image, repeated block scratch arrays, and file-sized buffering.
+  - [ ] Complete the active AV1 forward and inverse transform-family checklist above.
+- [ ] Benchmark codec-specific costs for CABAC/range decode, inverse transforms, still-image prediction, deblocking, SAO, CDEF, restoration, chroma upsampling, color conversion, alpha packing, and grid copies.
+- [ ] Implement vector paths only for confirmed hot loops, using existing `Vector128`, `Vector256`, and `Vector512` helper and dispatch patterns where supported.
+- [ ] Prioritize shared color conversion and pixel packing, chroma upsampling, inverse-transform add-and-clip, intra predictors, HEVC deblock/SAO, AV1 loop filter/CDEF/restoration, and contiguous grid copies.
+- [ ] Port upstream SIMD algorithms only after mapping lane width, signedness, intermediate precision, rounding, saturation, edge extension, and high-bit-depth behavior to the scalar oracle.
+- [ ] Keep one scalar implementation as the specification-shaped reference. Vector paths must share tables and constants with it rather than duplicate codec policy.
+- [ ] Test scalar and each available hardware path with intrinsics explicitly enabled and disabled, including widths shorter than a vector, exact-vector widths, non-multiples, edges, maximum sample values, and high-bit-depth overflow cases.
+- [ ] Remove dead or commented SIMD experiments once a verified production path replaces them.
 
 Exit gate:
 
-- Benchmarks show a material improvement on representative AVIF files, allocation measurements meet an agreed budget, and every vector path is behaviorally identical to the scalar path for integer reconstruction or within the documented color-conversion tolerance.
+- [ ] Benchmarks show a material improvement on representative AVIF files, allocation measurements meet an agreed budget, and every vector path is behaviorally identical to the scalar path for integer reconstruction or within the documented color-conversion tolerance.
 
 ### Phase 9: hardening, documentation, and release readiness
 
 Tasks:
 
-1. Fuzz the box parser, AV1 OBU parser, HEVC NAL/parser, entropy decoders, and dimension/allocation boundaries using the same safety expectations as established ImageSharp codecs.
-2. Test seekable and non-seekable streams, short reads, cancellation, truncated data, unknown optional boxes, unknown essential properties, oversized dimensions, malicious counts, and offset arithmetic overflow.
-3. Run the focused HEIF/HEIC/AVIF suite after every final codec edit, then the full ImageSharp suite in Release.
-4. Build all supported target frameworks and run packaging/API compatibility checks used by the repository.
-5. Update public documentation, format tables, MIME/extension lists, samples, and `THIRD-PARTY-NOTICES.TXT`.
-6. Remove placeholder images, legacy JPEG-in-HEIF production paths, stale TODO-only code, disabled tests that now have coverage, and unsupported capability claims.
+- [ ] Fuzz the box parser, AV1 OBU parser, HEVC NAL/parser, entropy decoders, and dimension/allocation boundaries using the same safety expectations as established ImageSharp codecs.
+- [ ] Test seekable and non-seekable streams, short reads, cancellation, truncated data, unknown optional boxes, unknown essential properties, oversized dimensions, malicious counts, and offset arithmetic overflow.
+- [ ] Run the focused HEIF/HEIC/AVIF suite after every final codec edit, then the full ImageSharp suite in Release.
+- [ ] Build all supported target frameworks and run packaging/API compatibility checks used by the repository.
+- [ ] Update public documentation, format tables, MIME/extension lists, samples, and `THIRD-PARTY-NOTICES.TXT`.
+- [ ] Remove placeholder images, legacy JPEG-in-HEIF production paths, stale TODO-only code, disabled tests that now have coverage, and unsupported capability claims.
 
 Exit gate:
 
-- The full Release build and test matrix passes, every valid HEVC/AV1 color/compression/bit-depth entry is implemented, independent HEIC and AVIF interoperability is recorded for the complete feature matrix, the public API has been reviewed, provenance and patent/license obligations are complete, and no advertised feature depends on a placeholder, narrow temporary subset, silent fallback, disabled normative stage, or unsupported valid syntax branch.
+- [ ] The full Release build and test matrix passes, every valid HEVC/AV1 color/compression/bit-depth entry is implemented, independent HEIC and AVIF interoperability is recorded for the complete feature matrix, the public API has been reviewed, provenance and patent/license obligations are complete, and no advertised feature depends on a placeholder, narrow temporary subset, silent fallback, disabled normative stage, or unsupported valid syntax branch.
 
 ## Verification matrix
 
 Every valid combination in the HEVC and AV1 profiles exposed by the final public contract needs focused coverage and representative integration coverage. Each axis needs independently produced HEIC/AVIF inputs and ImageSharp-produced outputs; pairwise and targeted cross-product cases must cover interactions where exhaustive media fixtures would be redundant.
 
-| Area | Required coverage |
-| --- | --- |
-| Container/payload | HEIC with HEVC, AVIF with AV1, and generic HEIF/HIF with supported HEVC, AV1, or legacy JPEG items; detection by brands/items. |
-| Bit depth | Every bit depth permitted by the exposed HEVC and AV1 profiles, including 8, 10, and 12-bit decode and encode. |
-| Planes | monochrome, 4:2:0, 4:2:2, and 4:4:4 decode and encode in every valid HEVC/AV1 profile and depth combination. |
-| Range | full and limited decode and encode. |
-| Color | every valid non-reserved color-primary, transfer-characteristic, matrix-coefficient, and chroma-position signaling path; identity RGB; ICC; CICP defaults and overrides. |
-| Alpha | opaque, binary, gradient, different alpha quality, high bit depth, malformed relationship. |
-| Structure | single item, multiple extents, `idat`, `mdat`, grids with cropped edge tiles, metadata items. |
-| Transform | `pasp`, `clap`, `irot`, `imir`, and valid combinations. |
-| AV1 decode tools | every normative transform type/size, still-image predictor, partition, palette, segmentation, quantization, entropy/context, lossless, deblock, CDEF, super-resolution, restoration, and film-grain path valid in independently decodable AVIF still-image items. |
-| AV1 encode compression | real mode decision and rate/distortion selection across partitions, predictions, transforms, quantization, entropy coding, filters, lossless/lossy quality, and effort settings; no permanent fixed coding subset. |
-| HEVC decode tools | every normative NAL/parameter/slice, CABAC, coding-tree, intra prediction, transform, quantization, range-extension, lossless, tile/wavefront, deblock, and SAO path valid in independently decodable still-image items for the exposed HEIC profiles. |
-| HEVC encode compression | real coding-tree, prediction, transform, quantization, CABAC, filter, and rate/distortion decisions across lossless/lossy quality and effort settings; no permanent fixed coding subset. |
-| Streams | file, memory, non-seekable, short-read wrapper, cancellation. |
-| Failure | truncation at every box/OBU layer, invalid sizes/offsets/counts, unknown essential properties, unsupported profile. |
-| Interop | libavif and libaom for AVIF/AV1; a pinned independent HEIC container and HEVC codec implementation for HEIC/HEVC. |
-| SIMD | scalar, 128, 256, and 512-bit paths where supported; tails and edge blocks. |
+| Status | Area | Required coverage |
+| --- | --- | --- |
+| - [ ] | Container/payload | HEIC with HEVC, AVIF with AV1, and generic HEIF/HIF with supported HEVC, AV1, or legacy JPEG items; detection by brands/items. |
+| - [ ] | Bit depth | Every bit depth permitted by the exposed HEVC and AV1 profiles, including 8, 10, and 12-bit decode and encode. |
+| - [ ] | Planes | monochrome, 4:2:0, 4:2:2, and 4:4:4 decode and encode in every valid HEVC/AV1 profile and depth combination. |
+| - [ ] | Range | full and limited decode and encode. |
+| - [ ] | Color | every valid non-reserved color-primary, transfer-characteristic, matrix-coefficient, and chroma-position signaling path; identity RGB; ICC; CICP defaults and overrides. |
+| - [ ] | Alpha | opaque, binary, gradient, different alpha quality, high bit depth, malformed relationship. |
+| - [ ] | Structure | single item, multiple extents, `idat`, `mdat`, grids with cropped edge tiles, metadata items. |
+| - [ ] | Transform | `pasp`, `clap`, `irot`, `imir`, and valid combinations. |
+| - [ ] | AV1 decode tools | every normative transform type/size, still-image predictor, partition, palette, segmentation, quantization, entropy/context, lossless, deblock, CDEF, super-resolution, restoration, and film-grain path valid in independently decodable AVIF still-image items. |
+| - [ ] | AV1 encode compression | real mode decision and rate/distortion selection across partitions, predictions, transforms, quantization, entropy coding, filters, lossless/lossy quality, and effort settings; no permanent fixed coding subset. |
+| - [ ] | HEVC decode tools | every normative NAL/parameter/slice, CABAC, coding-tree, intra prediction, transform, quantization, range-extension, lossless, tile/wavefront, deblock, and SAO path valid in independently decodable still-image items for the exposed HEIC profiles. |
+| - [ ] | HEVC encode compression | real coding-tree, prediction, transform, quantization, CABAC, filter, and rate/distortion decisions across lossless/lossy quality and effort settings; no permanent fixed coding subset. |
+| - [ ] | Streams | file, memory, non-seekable, short-read wrapper, cancellation. |
+| - [ ] | Failure | truncation at every box/OBU layer, invalid sizes/offsets/counts, unknown essential properties, unsupported profile. |
+| - [ ] | Interop | libavif and libaom for AVIF/AV1; a pinned independent HEIC container and HEVC codec implementation for HEIC/HEVC. |
+| - [ ] | SIMD | scalar, 128, 256, and 512-bit paths where supported; tails and edge blocks. |
 
 Reference outputs must be versioned artifacts or generated by a pinned reference command whose exact tool version and arguments are recorded. Do not use ImageSharp's own decoder to establish the expected pixels for its encoder, and do not replace final-image assertions with internal buffer or non-zero checks.
 
@@ -478,15 +513,15 @@ No valid HEVC or AV1 color, compression, or bit-depth row may remain `unsupporte
 
 The critical path is:
 
-1. Baseline and provenance.
-2. Public HEIC/AVIF boundaries and the shared parsed HEIF container model.
-3. Scalar AV1 still decode, starting with 8-bit 4:2:0 and completing every AVIF profile/tool.
-4. Scalar HEVC still decode, starting with 8-bit 4:2:0 and completing every exposed HEIC profile/tool.
-5. Shared color, alpha, grids, metadata, and presentation transforms across all bit depths and chroma formats.
-6. Real AV1 encoder and libavif/libaom cross-decode across the complete matrix.
-7. Real HEVC encoder and independent HEIC cross-decode across the complete matrix.
-8. Measured SIMD/allocation work integrated after each scalar subsystem stabilizes.
-9. Hardening and release gates.
+- [ ] Baseline and provenance.
+- [ ] Public HEIC/AVIF boundaries and the shared parsed HEIF container model.
+- [ ] Scalar AV1 still decode, starting with 8-bit 4:2:0 and completing every AVIF profile/tool.
+- [ ] Scalar HEVC still decode, starting with 8-bit 4:2:0 and completing every exposed HEIC profile/tool.
+- [ ] Shared color, alpha, grids, metadata, and presentation transforms across all bit depths and chroma formats.
+- [ ] Real AV1 encoder and libavif/libaom cross-decode across the complete matrix.
+- [ ] Real HEVC encoder and independent HEIC cross-decode across the complete matrix.
+- [ ] Measured SIMD/allocation work integrated after each scalar subsystem stabilizes.
+- [ ] Hardening and release gates.
 
 This sequence does not define partial PR completion. The early 8-bit 4:2:0 decoders and smallest-valid encoders are temporary vertical slices, but the PR remains incomplete until all nine steps and the complete still-image verification matrix pass.
 

@@ -53,7 +53,9 @@ Checkboxes may be marked complete only when the implementation and the verificat
     - [x] Select one enabled `pict` master track without materializing unrelated tracks, then parse its `mvhd`/`tkhd`/`mdhd`/`hdlr`, self-contained `dref`, `av01` or `hvc1` sample entry, codec configuration, mandatory `ccst`, and bounded repetition edit.
     - [x] Resolve `stsc`, `stco`/`co64`, `stsz`/`stz2`, `stts`, and `stss` into one exact value-type descriptor array capped by `DecoderOptions.MaxFrames`; validate complete run/count syntax through one allocator-owned sequential scratch buffer.
       - Release verification passes the libavif-shaped two-sample parser fixture, the one-frame retention boundary, and a sample offset/length beyond the file. The parser performs no per-entry allocation and does not buffer `moov`, `mdat`, or complete attacker-sized tables.
-    - [ ] Parse composition offsets and hidden samples from `ctts`/`cslg`, optional direct dependencies from `refs` sample groups, track presentation/color/HDR properties, and bounded sequence metadata items.
+    - [x] Parse HEVC composition offsets and hidden samples from `ctts`/`cslg`, while rejecting the `ctts` box prohibited for AV1 tracks.
+      - Release verification covers signed and unsigned composition-offset syntax, hidden-sample visibility, composition-time calculation, required `cslg` and edit-list signaling, complete run counts, and the AV1 prohibition without buffering either table.
+    - [ ] Parse optional direct dependencies from `refs` sample groups, track presentation/color/HDR properties, and bounded sequence metadata items.
     - [ ] Connect the parsed sequence index to HEIF detection, Identify, frame decode, alpha matching, and frame metadata without changing still-image source selection.
     - [ ] Write the same bounded movie, track, sample-description, location, dependency, timing, repetition, alpha, and metadata syntax from ImageSharp frames.
   - [ ] Decode frame dependencies, durations, repetition, frame-local auxiliary images, and frame-local metadata into the existing ImageSharp multi-frame model.

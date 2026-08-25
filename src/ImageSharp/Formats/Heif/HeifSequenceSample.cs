@@ -24,6 +24,21 @@ internal struct HeifSequenceSample
     public uint Duration { get; set; }
 
     /// <summary>
+    /// Gets or sets the signed offset from decode time to composition time in media-time-scale units.
+    /// </summary>
+    public long CompositionOffset { get; set; }
+
+    /// <summary>
+    /// Gets or sets the computed composition time in media-time-scale units.
+    /// </summary>
+    public long CompositionTime { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the sample is decoded only as a reference and is not presented.
+    /// </summary>
+    public bool IsHidden { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether decoding can begin at this sample.
     /// </summary>
     public bool IsSync { get; set; }

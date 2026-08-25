@@ -127,4 +127,9 @@ internal sealed class HeifSequenceTrack
     /// Gets or sets the track duration in movie-time-scale units.
     /// </summary>
     public ulong TrackDuration { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the track contains the edit list required for hidden samples.
+    /// </summary>
+    public bool HasEditList { get; set; }
 }

@@ -645,6 +645,8 @@ internal sealed class HeifSequenceParser
         BoxReference sampleSizes = default;
         BoxReference chunkOffsets = default;
         BoxReference syncSamples = default;
+        BoxReference compositionOffsets = default;
+        BoxReference compositionToDecode = default;
 
         while (stream.Position < tableEnd)
         {
@@ -675,9 +677,11 @@ internal sealed class HeifSequenceParser
                     SetUnique(ref syncSamples, childStart, childLength, "sample table", childType);
                     break;
                 case Heif4CharCode.Ctts:
+                    SetUnique(ref compositionOffsets, childStart, childLength, "sample table", childType);
+                    break;
                 case Heif4CharCode.Cslg:
-                    throw new InvalidImageContentException(
-                        "Composition-offset image sequences are not yet supported by the bounded HEIF presentation model.");
+                    SetUnique(ref compositionToDecode, childStart, childLength, "sample table", childType);
+                    break;
             }
 
             stream.Position = checked(childStart + childLength);
@@ -730,6 +734,34 @@ internal sealed class HeifSequenceParser
                 samples[i].IsSync = true;
             }
         }
+
+        if (compositionOffsets.IsPresent)
+        {
+            if (track.CodecType == Heif4CharCode.Av01)
+            {
+                // AV1-ISOBMFF defines AV1 sample composition time as decode time and explicitly prohibits ctts.
+                throw new InvalidImageContentException("An AV1 image-sequence track contains a prohibited composition-offset box.");
+            }
+
+            stream.Position = compositionOffsets.Offset;
+            CompositionSummary composition = ParseCompositionOffsets(stream, compositionOffsets.Length, track, scratch);
+            if (composition.HasHiddenSamples && (!compositionToDecode.IsPresent || !track.HasEditList))
+            {
+                throw new InvalidImageContentException("A HEVC image-sequence track has hidden samples without the required composition and edit boxes.");
+            }
+
+            if (compositionToDecode.IsPresent)
+            {
+                stream.Position = compositionToDecode.Offset;
+                ParseCompositionToDecode(stream, compositionToDecode.Length, composition, scratch);
+            }
+        }
+        else if (compositionToDecode.IsPresent)
+        {
+            throw new InvalidImageContentException("The composition-to-decode box has no composition-offset table.");
+        }
+
+        SetCompositionTimes(track);
     }
 
     /// <summary>
@@ -1291,6 +1323,139 @@ internal sealed class HeifSequenceParser
     }
 
     /// <summary>
+    /// Parses HEVC decode-to-composition offsets and marks non-output reference samples.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the composition-offset payload.</param>
+    /// <param name="boxLength">The validated composition-offset payload length.</param>
+    /// <param name="track">The selected HEVC track receiving retained composition offsets.</param>
+    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <returns>The complete visible-offset range and hidden-sample state.</returns>
+    private static CompositionSummary ParseCompositionOffsets(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> scratch)
+    {
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 8, "composition offsets");
+        byte version = prefix[0];
+        if (version is not 0 and not 1 || ReadFlags(prefix) != 0)
+        {
+            throw new InvalidImageContentException("The composition-offset box has an unsupported version or flags.");
+        }
+
+        uint entryCount = BinaryPrimitives.ReadUInt32BigEndian(prefix[4..]);
+        long entryBytes = checked((long)entryCount * 8);
+        if (entryCount == 0 || boxLength != 8 + entryBytes)
+        {
+            throw new InvalidImageContentException("The composition-offset table is empty or has an invalid length.");
+        }
+
+        TableReader reader = new(stream, entryBytes, scratch, "composition offsets");
+        ulong describedSamples = 0;
+        int retainedOffset = 0;
+        long leastOffset = long.MaxValue;
+        long greatestOffset = long.MinValue;
+        bool hasHiddenSamples = false;
+        for (uint entry = 0; entry < entryCount; entry++)
+        {
+            uint sampleCount = reader.ReadUInt32();
+            uint rawOffset = reader.ReadUInt32();
+            if (sampleCount == 0)
+            {
+                throw new InvalidImageContentException("The composition-offset table contains a zero-length run.");
+            }
+
+            bool hidden = version == 1 && rawOffset == 0x80000000;
+            long compositionOffset = version == 0 ? rawOffset : unchecked((int)rawOffset);
+            describedSamples = checked(describedSamples + sampleCount);
+            hasHiddenSamples |= hidden;
+            if (!hidden)
+            {
+                leastOffset = Math.Min(leastOffset, compositionOffset);
+                greatestOffset = Math.Max(greatestOffset, compositionOffset);
+            }
+
+            int retainedRun = Math.Min((int)Math.Min(sampleCount, int.MaxValue), track.Samples.Length - retainedOffset);
+            Span<HeifSequenceSample> samples = track.Samples;
+            for (int i = 0; i < retainedRun; i++)
+            {
+                samples[retainedOffset + i].CompositionOffset = compositionOffset;
+                samples[retainedOffset + i].IsHidden = hidden;
+            }
+
+            retainedOffset += retainedRun;
+        }
+
+        if (describedSamples != track.TotalSampleCount || leastOffset == long.MaxValue)
+        {
+            throw new InvalidImageContentException("The composition-offset table does not describe every sample or contains no output sample.");
+        }
+
+        return new CompositionSummary(leastOffset, greatestOffset, hasHiddenSamples);
+    }
+
+    /// <summary>
+    /// Validates the track-wide composition bounds associated with HEVC non-output and reordered samples.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the composition-to-decode payload.</param>
+    /// <param name="boxLength">The validated composition-to-decode payload length.</param>
+    /// <param name="composition">The offset range derived from the complete composition-offset table.</param>
+    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    private static void ParseCompositionToDecode(Stream stream, long boxLength, CompositionSummary composition, Span<byte> scratch)
+    {
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 4, "composition-to-decode");
+        byte version = prefix[0];
+        int fieldSize = version switch
+        {
+            0 => 4,
+            1 => 8,
+            _ => throw new InvalidImageContentException($"The composition-to-decode box has unsupported version {version}.")
+        };
+
+        int requiredLength = 4 + (fieldSize * 5);
+        prefix = ReadPrefixFromStart(stream, boxLength, scratch, requiredLength, "composition-to-decode");
+        if (boxLength != requiredLength || ReadFlags(prefix) != 0)
+        {
+            throw new InvalidImageContentException("The composition-to-decode box has unsupported flags or length.");
+        }
+
+        long shift = ReadSignedInteger(prefix[4..], fieldSize);
+        long leastOffset = ReadSignedInteger(prefix[(4 + fieldSize)..], fieldSize);
+        long greatestOffset = ReadSignedInteger(prefix[(4 + (fieldSize * 2))..], fieldSize);
+        long compositionStart = ReadSignedInteger(prefix[(4 + (fieldSize * 3))..], fieldSize);
+        long compositionEnd = ReadSignedInteger(prefix[(4 + (fieldSize * 4))..], fieldSize);
+        long requiredShift = composition.LeastOffset < 0 ? checked(-composition.LeastOffset) : 0;
+        if (shift < requiredShift
+            || leastOffset != composition.LeastOffset
+            || greatestOffset != composition.GreatestOffset
+            || (compositionEnd != 0 && compositionEnd < compositionStart))
+        {
+            throw new InvalidImageContentException("The composition-to-decode box does not match the track's composition offsets.");
+        }
+    }
+
+    /// <summary>
+    /// Computes retained sample composition times while preserving decode-order storage.
+    /// </summary>
+    /// <param name="track">The selected track whose durations and offsets have been validated.</param>
+    private static void SetCompositionTimes(HeifSequenceTrack track)
+    {
+        long decodeTime = 0;
+        Span<HeifSequenceSample> samples = track.Samples;
+        for (int i = 0; i < samples.Length; i++)
+        {
+            ref HeifSequenceSample sample = ref samples[i];
+            sample.CompositionTime = sample.IsHidden ? long.MinValue : checked(decodeTime + sample.CompositionOffset);
+            decodeTime = checked(decodeTime + sample.Duration);
+        }
+    }
+
+    /// <summary>
+    /// Reads one signed composition field of the version-selected fixed width.
+    /// </summary>
+    /// <param name="data">The field bytes.</param>
+    /// <param name="fieldSize">The four-byte or eight-byte field width.</param>
+    /// <returns>The signed field value.</returns>
+    private static long ReadSignedInteger(ReadOnlySpan<byte> data, int fieldSize)
+        => fieldSize == 4 ? BinaryPrimitives.ReadInt32BigEndian(data) : BinaryPrimitives.ReadInt64BigEndian(data);
+
+    /// <summary>
     /// Parses the single normal-rate edit list used to signal image-sequence repetition.
     /// </summary>
     /// <param name="stream">The stream positioned at the edit-container payload.</param>
@@ -1378,6 +1543,8 @@ internal sealed class HeifSequenceParser
             // indefinite rather than wrapping the observable ushort play count.
             track.RepeatCount = plays is 0 or > ushort.MaxValue ? (ushort)0 : (ushort)plays;
         }
+
+        track.HasEditList = true;
     }
 
     /// <summary>
@@ -1650,6 +1817,40 @@ internal sealed class HeifSequenceParser
         /// Gets the number of samples stored in each run chunk.
         /// </summary>
         public uint SamplesPerChunk { get; }
+    }
+
+    /// <summary>
+    /// Contains the visible composition-offset range derived from a complete HEVC track.
+    /// </summary>
+    private readonly struct CompositionSummary
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CompositionSummary"/> struct.
+        /// </summary>
+        /// <param name="leastOffset">The smallest visible composition offset.</param>
+        /// <param name="greatestOffset">The greatest visible composition offset.</param>
+        /// <param name="hasHiddenSamples">Whether the track contains non-output samples.</param>
+        public CompositionSummary(long leastOffset, long greatestOffset, bool hasHiddenSamples)
+        {
+            this.LeastOffset = leastOffset;
+            this.GreatestOffset = greatestOffset;
+            this.HasHiddenSamples = hasHiddenSamples;
+        }
+
+        /// <summary>
+        /// Gets the smallest visible composition offset.
+        /// </summary>
+        public long LeastOffset { get; }
+
+        /// <summary>
+        /// Gets the greatest visible composition offset.
+        /// </summary>
+        public long GreatestOffset { get; }
+
+        /// <summary>
+        /// Gets a value indicating whether the track contains non-output samples.
+        /// </summary>
+        public bool HasHiddenSamples { get; }
     }
 
     /// <summary>

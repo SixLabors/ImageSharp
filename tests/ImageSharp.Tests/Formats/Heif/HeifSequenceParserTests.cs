@@ -79,7 +79,36 @@ public class HeifSequenceParserTests
         Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
     }
 
-    private static byte[] CreateSequenceFile(uint chunkOffset)
+    [Fact]
+    public void ParseMarksHiddenHevcSamples()
+    {
+        byte[] data = CreateSequenceFile(1024, hevc: true, compositionOffsets: true);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = new(Configuration.Default.MemoryAllocator, 2);
+        stream.Position = 8;
+
+        HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data));
+
+        Assert.Equal(Heif4CharCode.Hvc1, sequence.ColorTrack.CodecType);
+        Assert.NotNull(sequence.ColorTrack.HevcCodecConfiguration);
+        Assert.True(sequence.ColorTrack.Samples[0].IsHidden);
+        Assert.Equal(long.MinValue, sequence.ColorTrack.Samples[0].CompositionTime);
+        Assert.False(sequence.ColorTrack.Samples[1].IsHidden);
+        Assert.Equal(100, sequence.ColorTrack.Samples[1].CompositionTime);
+    }
+
+    [Fact]
+    public void ParseRejectsCompositionOffsetsForAv1()
+    {
+        byte[] data = CreateSequenceFile(1024, compositionOffsets: true);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = new(Configuration.Default.MemoryAllocator, 2);
+        stream.Position = 8;
+
+        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
+    }
+
+    private static byte[] CreateSequenceFile(uint chunkOffset, bool hevc = false, bool compositionOffsets = false)
     {
         using MemoryStream stream = new();
         using BinaryWriter writer = new(stream, Encoding.UTF8, true);
@@ -104,7 +133,7 @@ public class HeifSequenceParserTests
 
         long mediaInformation = BeginBox(writer, Heif4CharCode.Minf);
         WriteDataInformation(writer);
-        WriteSampleTable(writer, chunkOffset);
+        WriteSampleTable(writer, chunkOffset, hevc, compositionOffsets);
         EndBox(writer, mediaInformation);
         EndBox(writer, media);
         EndBox(writer, track);
@@ -192,10 +221,10 @@ public class HeifSequenceParserTests
         EndBox(writer, dataInformation);
     }
 
-    private static void WriteSampleTable(BinaryWriter writer, uint chunkOffset)
+    private static void WriteSampleTable(BinaryWriter writer, uint chunkOffset, bool hevc, bool compositionOffsets)
     {
         long sampleTable = BeginBox(writer, Heif4CharCode.Stbl);
-        WriteSampleDescription(writer);
+        WriteSampleDescription(writer, hevc);
 
         long timing = BeginBox(writer, Heif4CharCode.Stts);
         WriteFullBoxHeader(writer, 0, 0);
@@ -231,15 +260,37 @@ public class HeifSequenceParserTests
         WriteUInt32(writer, 1);
         WriteUInt32(writer, 1);
         EndBox(writer, syncSamples);
+
+        if (compositionOffsets)
+        {
+            long offsets = BeginBox(writer, Heif4CharCode.Ctts);
+            WriteFullBoxHeader(writer, 1, 0);
+            WriteUInt32(writer, 2);
+            WriteUInt32(writer, 1);
+            WriteUInt32(writer, 0x80000000);
+            WriteUInt32(writer, 1);
+            WriteUInt32(writer, 0);
+            EndBox(writer, offsets);
+
+            long compositionToDecode = BeginBox(writer, Heif4CharCode.Cslg);
+            WriteFullBoxHeader(writer, 0, 0);
+            WriteUInt32(writer, 0);
+            WriteUInt32(writer, 0);
+            WriteUInt32(writer, 0);
+            WriteUInt32(writer, 100);
+            WriteUInt32(writer, 200);
+            EndBox(writer, compositionToDecode);
+        }
+
         EndBox(writer, sampleTable);
     }
 
-    private static void WriteSampleDescription(BinaryWriter writer)
+    private static void WriteSampleDescription(BinaryWriter writer, bool hevc)
     {
         long description = BeginBox(writer, Heif4CharCode.Stsd);
         WriteFullBoxHeader(writer, 0, 0);
         WriteUInt32(writer, 1);
-        long sampleEntry = BeginBox(writer, Heif4CharCode.Av01);
+        long sampleEntry = BeginBox(writer, hevc ? Heif4CharCode.Hvc1 : Heif4CharCode.Av01);
         WriteZeros(writer, 6);
         WriteUInt16(writer, 1);
         WriteZeros(writer, 16);
@@ -253,9 +304,16 @@ public class HeifSequenceParserTests
         WriteUInt16(writer, 0x18);
         WriteUInt16(writer, ushort.MaxValue);
 
-        long configuration = BeginBox(writer, Heif4CharCode.Av1C);
-        writer.Write(new byte[] { 0x81, 0, 0, 0 });
-        EndBox(writer, configuration);
+        if (hevc)
+        {
+            WriteHevcConfiguration(writer);
+        }
+        else
+        {
+            long configuration = BeginBox(writer, Heif4CharCode.Av1C);
+            writer.Write(new byte[] { 0x81, 0, 0, 0 });
+            EndBox(writer, configuration);
+        }
 
         long codingConstraints = BeginBox(writer, Heif4CharCode.Ccst);
         WriteFullBoxHeader(writer, 0, 0);
@@ -263,6 +321,25 @@ public class HeifSequenceParserTests
         EndBox(writer, codingConstraints);
         EndBox(writer, sampleEntry);
         EndBox(writer, description);
+    }
+
+    private static void WriteHevcConfiguration(BinaryWriter writer)
+    {
+        long configuration = BeginBox(writer, Heif4CharCode.HvcC);
+        writer.Write((byte)1);
+        writer.Write((byte)1);
+        WriteUInt32(writer, 0);
+        WriteZeros(writer, 6);
+        writer.Write((byte)0);
+        WriteUInt16(writer, 0xF000);
+        writer.Write((byte)0xFC);
+        writer.Write((byte)0xFD);
+        writer.Write((byte)0xF8);
+        writer.Write((byte)0xF8);
+        WriteUInt16(writer, 0);
+        writer.Write((byte)3);
+        writer.Write((byte)0);
+        EndBox(writer, configuration);
     }
 
     private static long BeginBox(BinaryWriter writer, Heif4CharCode type)

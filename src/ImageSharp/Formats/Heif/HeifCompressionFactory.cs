@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Hevc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Heif;
@@ -21,6 +22,7 @@ internal static class HeifCompressionFactory
         {
             Heif4CharCode.Jpeg => new JpegHeifItemDecoder<TPixel>(),
             Heif4CharCode.Av01 => new Av1HeifItemDecoder<TPixel>(),
+            Heif4CharCode.Hvc1 => new HevcHeifItemDecoder<TPixel>(),
             _ => null
         };
 }

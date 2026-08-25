@@ -47,17 +47,21 @@ internal static class HevcYuvConverter
     /// <param name="image">The destination image frame.</param>
     /// <param name="colorProfile">The effective H.273 color description.</param>
     /// <param name="chromaSampleLocation">The progressive-frame 4:2:0 chroma sample location.</param>
+    /// <param name="sourceX">The horizontal luma-sample offset of the first converted pixel.</param>
+    /// <param name="sourceY">The vertical luma-sample offset of the first converted pixel.</param>
     public static void ConvertToRgb<TPixel>(
         Configuration configuration,
         HevcPictureBuffer picture,
         ImageFrame<TPixel> image,
         CicpProfile colorProfile,
-        HevcChromaSampleLocation chromaSampleLocation)
+        HevcChromaSampleLocation chromaSampleLocation,
+        int sourceX = 0,
+        int sourceY = 0)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         HeifColorConversionParameters parameters = GetConversionParameters(picture, colorProfile, out HeifColorConversionMode mode);
         HeifColorConverterBase colorConverter = HeifColorConverterBase.Create(mode, in parameters, picture.ChromaFormat == 0);
-        YuvToRgbRowConverter<TPixel> converter = new(configuration, picture, image, colorConverter, chromaSampleLocation);
+        YuvToRgbRowConverter<TPixel> converter = new(configuration, picture, image, colorConverter, chromaSampleLocation, sourceX, sourceY);
         using IMemoryOwner<float> scratchOwner = configuration.MemoryAllocator.Allocate<float>(converter.BufferLength);
         Span<float> scratch = scratchOwner.GetSpan();
 
@@ -244,6 +248,16 @@ internal static class HevcYuvConverter
         private readonly int subY;
 
         /// <summary>
+        /// The horizontal luma-sample offset of the output window.
+        /// </summary>
+        private readonly int sourceX;
+
+        /// <summary>
+        /// The vertical luma-sample offset of the output window.
+        /// </summary>
+        private readonly int sourceY;
+
+        /// <summary>
         /// Initializes a new instance of the <see cref="YuvToRgbRowConverter{TPixel}"/> struct.
         /// </summary>
         /// <param name="configuration">The configuration used for pixel conversion.</param>
@@ -251,12 +265,16 @@ internal static class HevcYuvConverter
         /// <param name="image">The destination image frame.</param>
         /// <param name="colorConverter">The selected H.273 color converter.</param>
         /// <param name="chromaSampleLocation">The progressive-frame 4:2:0 chroma sample location.</param>
+        /// <param name="sourceX">The horizontal luma-sample offset of the output window.</param>
+        /// <param name="sourceY">The vertical luma-sample offset of the output window.</param>
         public YuvToRgbRowConverter(
             Configuration configuration,
             HevcPictureBuffer picture,
             ImageFrame<TPixel> image,
             HeifColorConverterBase colorConverter,
-            HevcChromaSampleLocation chromaSampleLocation)
+            HevcChromaSampleLocation chromaSampleLocation,
+            int sourceX,
+            int sourceY)
         {
             this.configuration = configuration;
             this.picture = picture;
@@ -264,6 +282,8 @@ internal static class HevcYuvConverter
             this.colorConverter = colorConverter;
             this.subX = picture.GetSubsamplingX(HevcPlane.Cb);
             this.subY = picture.GetSubsamplingY(HevcPlane.Cb);
+            this.sourceX = sourceX;
+            this.sourceY = sourceY;
             GetChromaPosition(picture, chromaSampleLocation, out this.horizontalPosition, out this.verticalPosition);
         }
 
@@ -279,9 +299,16 @@ internal static class HevcYuvConverter
         {
             get
             {
-                int componentRowCount = this.picture.ChromaFormat == 0 ? 3 : 5;
+                int componentLength = this.image.Width * 3;
+                if (this.picture.ChromaFormat != 0 && this.subX != 0)
+                {
+                    // Cropped output can begin between subsampled chroma positions. Reconstructing one complete
+                    // coded-width row preserves the edge interpolation before selecting the visible window.
+                    componentLength += this.picture.Width + (this.picture.GetWidth(HevcPlane.Cb) * 2);
+                }
+
                 int packedRowCount = this.UsesBytePacking ? 1 : 2;
-                return this.image.Width * (componentRowCount + packedRowCount);
+                return componentLength + (this.image.Width * packedRowCount);
             }
         }
 
@@ -297,23 +324,56 @@ internal static class HevcYuvConverter
             Span<float> red = scratch[..width];
             Span<float> green = scratch.Slice(width, width);
             Span<float> blue = scratch.Slice(width * 2, width);
-            ConvertSamplesToFloat<ushort, HeifUShortSampleLoader>(this.picture.GetRowSpan(HevcPlane.Y, y), red);
+            int sourceY = y + this.sourceY;
+            ReadOnlySpan<ushort> luma = this.picture.GetRowSpan(HevcPlane.Y, sourceY).Slice(this.sourceX, width);
+            ConvertSamplesToFloat<ushort, HeifUShortSampleLoader>(luma, red);
 
             int packedOffset = width * 3;
             if (this.picture.ChromaFormat != 0)
             {
                 int chromaHeight = this.picture.GetHeight(HevcPlane.Cb);
-                GetChromaCoordinates(y, this.subY, this.verticalPosition, chromaHeight - 1, out int y0, out int y1, out int y1Weight);
+                GetChromaCoordinates(sourceY, this.subY, this.verticalPosition, chromaHeight - 1, out int y0, out int y1, out int y1Weight);
                 ReadOnlySpan<ushort> cb0 = this.picture.GetRowSpan(HevcPlane.Cb, y0);
                 ReadOnlySpan<ushort> cb1 = this.picture.GetRowSpan(HevcPlane.Cb, y1);
                 ReadOnlySpan<ushort> cr0 = this.picture.GetRowSpan(HevcPlane.Cr, y0);
                 ReadOnlySpan<ushort> cr1 = this.picture.GetRowSpan(HevcPlane.Cr, y1);
-                Span<float> chroma0 = scratch.Slice(width * 3, width);
-                Span<float> chroma1 = scratch.Slice(width * 4, width);
-                bool isCenteredX = this.subX != 0 && this.horizontalPosition == 1;
-                ReconstructChromaRow<ushort, HeifUShortSampleLoader>(cb0, cb1, y1Weight, this.subX, isCenteredX, green, chroma0, chroma1);
-                ReconstructChromaRow<ushort, HeifUShortSampleLoader>(cr0, cr1, y1Weight, this.subX, isCenteredX, blue, chroma0, chroma1);
-                packedOffset = width * 5;
+                if (this.subX == 0)
+                {
+                    ConvertSamplesToFloat<ushort, HeifUShortSampleLoader>(cb0.Slice(this.sourceX, width), green);
+                    ConvertSamplesToFloat<ushort, HeifUShortSampleLoader>(cr0.Slice(this.sourceX, width), blue);
+                }
+                else
+                {
+                    int chromaWidth = this.picture.GetWidth(HevcPlane.Cb);
+                    Span<float> reconstructed = scratch.Slice(packedOffset, this.picture.Width);
+                    Span<float> chroma0 = scratch.Slice(packedOffset + this.picture.Width, chromaWidth);
+                    Span<float> chroma1 = scratch.Slice(packedOffset + this.picture.Width + chromaWidth, chromaWidth);
+                    bool isCenteredX = this.horizontalPosition == 1;
+
+                    ReconstructChromaRow<ushort, HeifUShortSampleLoader>(
+                        cb0,
+                        cb1,
+                        y1Weight,
+                        this.subX,
+                        isCenteredX,
+                        reconstructed,
+                        chroma0,
+                        chroma1);
+
+                    reconstructed.Slice(this.sourceX, width).CopyTo(green);
+                    ReconstructChromaRow<ushort, HeifUShortSampleLoader>(
+                        cr0,
+                        cr1,
+                        y1Weight,
+                        this.subX,
+                        isCenteredX,
+                        reconstructed,
+                        chroma0,
+                        chroma1);
+
+                    reconstructed.Slice(this.sourceX, width).CopyTo(blue);
+                    packedOffset += this.picture.Width + (chromaWidth * 2);
+                }
             }
 
             this.colorConverter.ConvertToRgbInPlace(red, green, blue);

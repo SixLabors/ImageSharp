@@ -91,6 +91,32 @@ public class HeifSequenceParserTests
     }
 
     [Fact]
+    public void DecodeComposesFrameAlignedAv1AlphaSamples()
+    {
+        byte[] source = TestFile.Create(TestImages.Heif.Orange4x4).Bytes;
+        byte[] data = CreateDecodableAv1SequenceWithAlphaContainer(source.AsSpan(0x10E, 0x1D), source.AsSpan(0xC7, 4));
+
+        using Image<Rgba32> expectedColor = Image.Load<Rgba32>(source);
+        using Image<L16> expectedAlpha = Image.Load<L16>(source);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(data);
+
+        Assert.Equal(2, actual.Frames.Count);
+        Assert.True(actual.Metadata.GetHeifMetadata().HasAlpha);
+        foreach (ImageFrame<Rgba32> frame in actual.Frames)
+        {
+            for (int y = 0; y < frame.Height; y++)
+            {
+                for (int x = 0; x < frame.Width; x++)
+                {
+                    Rgba64 expected = Rgba64.FromRgba32(expectedColor[x, y]);
+                    expected.A = expectedAlpha[x, y].PackedValue;
+                    Assert.Equal(expected.ToRgba32(), frame[x, y]);
+                }
+            }
+        }
+    }
+
+    [Fact]
     public void ParseResolvesLibavifShapedSampleTable()
     {
         byte[] data = CreateSequenceFile(1024);
@@ -475,18 +501,29 @@ public class HeifSequenceParserTests
         uint alphaTimescale,
         uint premultipliedByTrackId,
         bool colorTransforms = false,
-        bool alphaTransforms = false)
+        bool alphaTransforms = false,
+        uint? alphaChunkOffset = null,
+        int width = 320,
+        int height = 240,
+        byte[] av1Configuration = null,
+        int? sampleSize = null,
+        bool allSamplesSync = false)
     {
         byte[] colorFile = CreateSequenceFile(
             chunkOffset,
             trackProperties: colorTransforms,
+            width: width,
+            height: height,
+            av1Configuration: av1Configuration,
+            sampleSize: sampleSize,
+            allSamplesSync: allSamplesSync,
             premultipliedByTrackId: premultipliedByTrackId);
 
         int movieLength = (int)BinaryPrimitives.ReadUInt32BigEndian(colorFile);
         using MemoryStream stream = new();
         using BinaryWriter writer = new(stream, Encoding.UTF8, true);
         long track = BeginBox(writer, Heif4CharCode.Trak);
-        WriteTrackHeader(writer, 320, 240, 2);
+        WriteTrackHeader(writer, width, height, 2);
         WriteTrackReference(writer, Heif4CharCode.Auxl, 1);
 
         long media = BeginBox(writer, Heif4CharCode.Mdia);
@@ -495,7 +532,10 @@ public class HeifSequenceParserTests
 
         long mediaInformation = BeginBox(writer, Heif4CharCode.Minf);
         WriteDataInformation(writer);
-        WriteSampleTable(writer, chunkOffset, false, false, false, 1, alphaTransforms, false, 320, 240, null, null, false, true);
+        WriteSampleTable(
+            writer, alphaChunkOffset ?? chunkOffset, false, false, false, 1, alphaTransforms, false,
+            width, height, av1Configuration, sampleSize, allSamplesSync, true);
+
         EndBox(writer, mediaInformation);
         EndBox(writer, media);
         EndBox(writer, track);
@@ -550,6 +590,38 @@ public class HeifSequenceParserTests
         movie.CopyTo(data, fileTypeLength);
         sample.CopyTo(data.AsSpan((int)chunkOffset));
         sample.CopyTo(data.AsSpan((int)chunkOffset + sample.Length));
+        return data;
+    }
+
+    private static byte[] CreateDecodableAv1SequenceWithAlphaContainer(ReadOnlySpan<byte> sample, ReadOnlySpan<byte> configuration)
+    {
+        const int fileTypeLength = 24;
+        const int movieStorageLength = 2048;
+        uint colorChunkOffset = fileTypeLength + movieStorageLength;
+        uint alphaChunkOffset = colorChunkOffset + (uint)(sample.Length * 2);
+        byte[] movie = CreateSequenceFileWithAlpha(
+            colorChunkOffset,
+            1000,
+            0,
+            alphaChunkOffset: alphaChunkOffset,
+            width: 4,
+            height: 4,
+            av1Configuration: configuration.ToArray(),
+            sampleSize: sample.Length,
+            allSamplesSync: true);
+
+        byte[] data = new byte[alphaChunkOffset + (sample.Length * 2)];
+        BinaryPrimitives.WriteUInt32BigEndian(data, fileTypeLength);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(4), (uint)Heif4CharCode.Ftyp);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), (uint)Heif4CharCode.Avis);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(12), 0);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(16), (uint)Heif4CharCode.Avif);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(20), (uint)Heif4CharCode.Mif1);
+        movie.CopyTo(data, fileTypeLength);
+        sample.CopyTo(data.AsSpan((int)colorChunkOffset));
+        sample.CopyTo(data.AsSpan((int)colorChunkOffset + sample.Length));
+        sample.CopyTo(data.AsSpan((int)alphaChunkOffset));
+        sample.CopyTo(data.AsSpan((int)alphaChunkOffset + sample.Length));
         return data;
     }
 

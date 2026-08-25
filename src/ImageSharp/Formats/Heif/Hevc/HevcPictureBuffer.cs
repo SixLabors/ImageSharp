@@ -137,6 +137,13 @@ internal sealed class HevcPictureBuffer : IDisposable
     public int GetSubsamplingY(HevcPlane plane) => plane == HevcPlane.Y ? 0 : this.chromaSubsamplingY;
 
     /// <summary>
+    /// Gets the sample precision for the selected reconstruction plane.
+    /// </summary>
+    /// <param name="plane">The reconstruction plane.</param>
+    /// <returns>The plane sample precision in bits.</returns>
+    public int GetBitDepth(HevcPlane plane) => plane == HevcPlane.Y ? this.BitDepthLuma : this.BitDepthChroma;
+
+    /// <summary>
     /// Gets the selected plane width in samples.
     /// </summary>
     /// <param name="plane">The reconstruction plane.</param>

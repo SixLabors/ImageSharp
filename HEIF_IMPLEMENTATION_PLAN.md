@@ -43,7 +43,8 @@ Checkboxes may be marked complete only when the implementation and the verificat
   - [x] Move the H.273 parameter resolver, closed color operators, transfer functions, sample loading/storage, chroma filtering, and RGB packing into one shared HEIF color pipeline used by both AV1 and HEVC rather than maintaining codec-specific arithmetic copies.
   - [x] Implement sequential pooled HEVC conversion in both directions for monochrome, 4:2:0, 4:2:2, and 4:4:4; independent luma/chroma precision; 8/10/12-bit full/limited ranges; and all six progressive 4:2:0 chroma sample locations. Eight-bit paths use JPEG's optimized RGB plane contracts, while high-bit-depth paths retain 16-bit packed pixels.
   - [x] Implement allocation-free SIMD-first HEVC intra prediction for all 35 modes, 4/8/16/32 blocks, and 8/10/12-bit samples, including three-tap and strong-bilinear reference filtering, negative-angle reference extension, luma boundary filters, and SIMD horizontal transposition. Verify the normal and forced-scalar paths against one scalar oracle.
-  - [ ] Connect prediction to coding-tree and transform-unit traversal, reconstructed-plane reference availability, and the bounded item decoder lifecycle.
+  - [x] Implement allocation-free reconstructed-plane reference collection and normative substitution for complete, empty, and partially available borders, including asymmetric 4:2:2 availability units and the HEVC mode/size/component filter-selection rules.
+  - [ ] Derive each reference-unit availability flag from coding-tree, slice, tile, constrained-intra, and picture-boundary state, then connect prediction to transform-unit traversal and the bounded item decoder lifecycle.
   - [ ] Complete the SIMD YUV/CICP paths for every supported AV1 bit depth, chroma format, range, matrix, transfer function, color primary, and chroma position, with scalar fallback only when hardware vectorization is unavailable or the operation is inherently non-vectorizable.
   - [x] Apply ICC conversion only after the SIMD YUV/CICP stage, alpha composition, grid assembly, and presentation transforms have produced the presented RGB image; retain ImageSharp's shared ICC converter and optimize reusable bulk kernels rather than creating a HEIF-specific color-management implementation.
   - [ ] Verify ICC preservation, conversion, compaction, and metadata skipping for grids, alpha-composited images, every presented sequence frame, and the completed HEVC path.
@@ -462,7 +463,8 @@ Implement and verify in dependency order:
 - [ ] Coding-tree, coding-unit, prediction-unit, and transform-unit traversal across all permitted sizes and partition modes.
 - [ ] Intra prediction for every luma and chroma mode, including strong intra smoothing and constrained prediction rules.
   - [x] Implement and verify the allocation-free SIMD-first predictor primitive for all 35 modes, 4/8/16/32 blocks, and 8/10/12-bit samples.
-  - [ ] Build reference availability from reconstructed-plane and coding state, and connect the predictor to transform-unit traversal.
+  - [x] Implement reconstructed-plane reference collection, substitution, asymmetric chroma-unit handling, and reference-filter selection from caller-owned availability and scratch spans.
+  - [ ] Build each availability flag from reconstructed-plane and coding state, and connect the predictor to transform-unit traversal.
 - [ ] Scaling lists, inverse quantization, transform skip, every required inverse transform, range-extension precision, and lossless reconstruction.
 - [ ] Deblocking and sample-adaptive offset for every signaled luma/chroma and bit-depth path.
 - [ ] Tiles, wavefront entry points, dependent slices, and all other parallelization syntax permitted by the exposed still-image profiles.
@@ -558,6 +560,7 @@ Tasks:
   - [x] Complete the active AV1 forward and inverse transform-family checklist above.
 - [ ] Benchmark codec-specific costs for CABAC/range decode, inverse transforms, still-image prediction, deblocking, SAO, CDEF, restoration, chroma upsampling, color conversion, alpha packing, and grid copies.
   - [x] Add a permanent frame-wide HEVC intra-prediction benchmark. On .NET 10, SIMD planar, vertical-angular, and horizontal-angular prediction measured 155.2, 150.7, and 255.0 microseconds per padded 1920x1088 frame, compared with forced-scalar timings of 1.890, 1.081, and 0.979 milliseconds: 12.2, 7.2, and 3.8 times faster with zero managed allocations.
+  - [x] Add a permanent frame-wide HEVC reference-preparation benchmark. On .NET 10, complete and partially substituted borders measured 465.3 and 566.7 microseconds per 2,040-block padded 1920x1088 frame, compared with forced-scalar timings of 477.5 and 608.0 microseconds, with zero managed allocations.
 - [ ] Implement vector paths only for confirmed hot loops, using existing `Vector128`, `Vector256`, and `Vector512` helper and dispatch patterns where supported.
 - [ ] Prioritize shared color conversion and pixel packing, chroma upsampling, inverse-transform add-and-clip, intra predictors, HEVC deblock/SAO, AV1 loop filter/CDEF/restoration, and contiguous grid copies.
 - [ ] Benchmark the complete decode color pipeline on representative 8/10/12-bit AVIF and HEIC images with and without embedded ICC profiles. Report absolute end-to-end timings and allocations in addition to the isolated YUV/CICP and ICC stage costs.

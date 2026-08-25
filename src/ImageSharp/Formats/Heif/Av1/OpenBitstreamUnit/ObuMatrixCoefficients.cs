@@ -77,4 +77,19 @@ internal enum ObuMatrixCoefficients
     /// ITU-R BT.2100 ICtCp coefficients.
     /// </summary>
     Bt2100ICtCp = 14,
+
+    /// <summary>
+    /// IPT-C2 coefficients.
+    /// </summary>
+    IptC2 = 15,
+
+    /// <summary>
+    /// Reversible YCgCo coefficients with two additional encoded bits.
+    /// </summary>
+    YCgCoRe = 16,
+
+    /// <summary>
+    /// Reversible YCgCo coefficients with one additional encoded bit.
+    /// </summary>
+    YCgCoRo = 17,
 }

@@ -22,6 +22,10 @@ internal readonly struct Av1ColorConversionParameters
     /// <param name="lumaScale">The encoded luma range.</param>
     /// <param name="chromaBias">The encoded chroma midpoint.</param>
     /// <param name="chromaScale">The encoded chroma range.</param>
+    /// <param name="encodedSampleMaximum">The largest encoded sample value.</param>
+    /// <param name="rgbBias">The reversible transform's RGB code-value bias.</param>
+    /// <param name="rgbScale">The reversible transform's RGB code-value range.</param>
+    /// <param name="rgbSampleMaximum">The largest reversible transform RGB code value.</param>
     public Av1ColorConversionParameters(
         float kr,
         float kg,
@@ -31,7 +35,11 @@ internal readonly struct Av1ColorConversionParameters
         float lumaBias,
         float lumaScale,
         float chromaBias,
-        float chromaScale)
+        float chromaScale,
+        float encodedSampleMaximum,
+        float rgbBias,
+        float rgbScale,
+        float rgbSampleMaximum)
     {
         this.Kr = kr;
         this.Kg = kg;
@@ -46,6 +54,10 @@ internal readonly struct Av1ColorConversionParameters
         this.LumaScale = lumaScale;
         this.ChromaBias = chromaBias;
         this.ChromaScale = chromaScale;
+        this.EncodedSampleMaximum = encodedSampleMaximum;
+        this.RgbBias = rgbBias;
+        this.RgbScale = rgbScale;
+        this.RgbSampleMaximum = rgbSampleMaximum;
     }
 
     /// <summary>
@@ -112,6 +124,26 @@ internal readonly struct Av1ColorConversionParameters
     /// Gets the encoded chroma range.
     /// </summary>
     public float ChromaScale { get; }
+
+    /// <summary>
+    /// Gets the largest encoded sample value.
+    /// </summary>
+    public float EncodedSampleMaximum { get; }
+
+    /// <summary>
+    /// Gets the reversible transform's RGB code-value bias.
+    /// </summary>
+    public float RgbBias { get; }
+
+    /// <summary>
+    /// Gets the reversible transform's RGB code-value range.
+    /// </summary>
+    public float RgbScale { get; }
+
+    /// <summary>
+    /// Gets the largest reversible transform RGB code value.
+    /// </summary>
+    public float RgbSampleMaximum { get; }
 }
 
 /// <summary>

@@ -36,43 +36,19 @@ internal static partial class Av1YuvConverter
     public static void ConvertToRgb<TPixel>(Configuration configuration, Av1FrameBuffer<byte> frameBuffer, ImageFrame<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        GetConversionParameters(
-            frameBuffer,
-            out Av1ColorConversionMode mode,
-            out float kr,
-            out float kg,
-            out float kb,
-            out float lumaBias,
-            out float lumaScale,
-            out float chromaBias,
-            out float chromaScale,
-            out float sampleMaximum);
-
-        ObuTransferCharacteristics transferCharacteristics = frameBuffer.ColorConfig.TransferCharacteristics;
-        Av1ConstantLuminanceScales constantLuminanceScales = mode == Av1ColorConversionMode.ConstantLuminance
-            ? new Av1ConstantLuminanceScales(transferCharacteristics, kr, kb)
-            : default;
-
-        Av1ColorConversionParameters parameters = new(
-            kr,
-            kg,
-            kb,
-            transferCharacteristics,
-            in constantLuminanceScales,
-            lumaBias,
-            lumaScale,
-            chromaBias,
-            chromaScale);
+        Av1ColorConversionParameters parameters = GetConversionParameters(frameBuffer, out Av1ColorConversionMode mode);
 
         Av1ColorConverterBase colorConverter = Av1ColorConverterBase.Create(mode, in parameters, frameBuffer.ColorFormat == Av1ColorFormat.Yuv400);
         if (frameBuffer.BitDepth == Av1BitDepth.EightBit)
         {
             YuvToRgbRowConverter<TPixel, byte, ByteSampleLoader> converter = new(configuration, frameBuffer, image, colorConverter);
-            using IMemoryOwner<float> owner = configuration.MemoryAllocator.Allocate<float>(converter.BufferLength);
-            Span<float> scratch = owner.GetSpan();
+            using IMemoryOwner<float> scratchOwner = configuration.MemoryAllocator.Allocate<float>(converter.BufferLength);
+            using IMemoryOwner<TPixel> proxyOwner = configuration.MemoryAllocator.Allocate<TPixel>(image.Width + 3);
+            Span<float> scratch = scratchOwner.GetSpan();
+            Span<TPixel> proxy = proxyOwner.GetSpan()[..(image.Width + 3)];
             for (int y = 0; y < image.Height; y++)
             {
-                converter.Convert(y, scratch);
+                converter.Convert(y, scratch, proxy);
             }
         }
         else
@@ -82,7 +58,7 @@ internal static partial class Av1YuvConverter
             Span<float> scratch = owner.GetSpan();
             for (int y = 0; y < image.Height; y++)
             {
-                converter.Convert(y, scratch);
+                converter.Convert(y, scratch, Span<TPixel>.Empty);
             }
         }
     }
@@ -97,33 +73,8 @@ internal static partial class Av1YuvConverter
     public static void ConvertFromRgb<TPixel>(Configuration configuration, ImageFrame<TPixel> image, Av1FrameBuffer<byte> frameBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        GetConversionParameters(
-            frameBuffer,
-            out Av1ColorConversionMode mode,
-            out float kr,
-            out float kg,
-            out float kb,
-            out float lumaBias,
-            out float lumaScale,
-            out float chromaBias,
-            out float chromaScale,
-            out float sampleMaximum);
-
-        ObuTransferCharacteristics transferCharacteristics = frameBuffer.ColorConfig.TransferCharacteristics;
-        Av1ConstantLuminanceScales constantLuminanceScales = mode == Av1ColorConversionMode.ConstantLuminance
-            ? new Av1ConstantLuminanceScales(transferCharacteristics, kr, kb)
-            : default;
-
-        Av1ColorConversionParameters parameters = new(
-            kr,
-            kg,
-            kb,
-            transferCharacteristics,
-            in constantLuminanceScales,
-            lumaBias,
-            lumaScale,
-            chromaBias,
-            chromaScale);
+        Av1ColorConversionParameters parameters = GetConversionParameters(frameBuffer, out Av1ColorConversionMode mode);
+        float sampleMaximum = parameters.EncodedSampleMaximum;
 
         bool isMonochrome = frameBuffer.ColorFormat == Av1ColorFormat.Yuv400;
         Av1ColorConverterBase colorConverter = Av1ColorConverterBase.Create(mode, in parameters, isMonochrome);
@@ -158,31 +109,14 @@ internal static partial class Av1YuvConverter
     /// </summary>
     /// <param name="frameBuffer">The AV1 frame containing the signaled color configuration.</param>
     /// <param name="mode">The resolved conversion mode.</param>
-    /// <param name="kr">The red luma coefficient.</param>
-    /// <param name="kg">The green luma coefficient.</param>
-    /// <param name="kb">The blue luma coefficient.</param>
-    /// <param name="lumaBias">The encoded luma bias.</param>
-    /// <param name="lumaScale">The encoded luma range.</param>
-    /// <param name="chromaBias">The encoded chroma midpoint.</param>
-    /// <param name="chromaScale">The encoded chroma range.</param>
-    /// <param name="sampleMaximum">The largest encoded sample value.</param>
-    private static void GetConversionParameters(
-        Av1FrameBuffer<byte> frameBuffer,
-        out Av1ColorConversionMode mode,
-        out float kr,
-        out float kg,
-        out float kb,
-        out float lumaBias,
-        out float lumaScale,
-        out float chromaBias,
-        out float chromaScale,
-        out float sampleMaximum)
+    /// <returns>The resolved conversion parameters.</returns>
+    private static Av1ColorConversionParameters GetConversionParameters(Av1FrameBuffer<byte> frameBuffer, out Av1ColorConversionMode mode)
     {
         mode = Av1ColorConversionMode.Coefficients;
-        kr = 0F;
-        kb = 0F;
+        float kr = 0F;
+        float kb = 0F;
 
-        // These values are the matrix table used by libavif and are defined by H.273.
+        // These code points and fixed coefficient matrices are defined by H.273.
         switch (frameBuffer.ColorConfig.MatrixCoefficients)
         {
             case ObuMatrixCoefficients.Identity:
@@ -232,16 +166,24 @@ internal static partial class Av1YuvConverter
             case ObuMatrixCoefficients.Bt2100ICtCp:
                 mode = Av1ColorConversionMode.ICtCp;
                 break;
+            case ObuMatrixCoefficients.IptC2:
+                mode = Av1ColorConversionMode.IptC2;
+                break;
+            case ObuMatrixCoefficients.YCgCoRe:
+            case ObuMatrixCoefficients.YCgCoRo:
+                mode = Av1ColorConversionMode.YCgCoReversible;
+                break;
             default:
                 throw new NotSupportedException($"AV1 matrix coefficients '{frameBuffer.ColorConfig.MatrixCoefficients}' are not currently supported.");
         }
 
-        kg = 1F - kr - kb;
+        float kg = 1F - kr - kb;
         bool isMonochrome = frameBuffer.ColorFormat == Av1ColorFormat.Yuv400;
         bool isFullRange = frameBuffer.ColorConfig.ColorRange;
-        if (mode == Av1ColorConversionMode.Identity && !isMonochrome && frameBuffer.ColorFormat != Av1ColorFormat.Yuv444)
+        bool requiresFullChroma = mode is Av1ColorConversionMode.Identity or Av1ColorConversionMode.YCgCoReversible;
+        if (requiresFullChroma && !isMonochrome && frameBuffer.ColorFormat != Av1ColorFormat.Yuv444)
         {
-            throw new InvalidImageContentException("AV1 identity matrix coefficients require YUV 4:4:4 sampling.");
+            throw new InvalidImageContentException($"AV1 {frameBuffer.ColorConfig.MatrixCoefficients} matrix coefficients require YUV 4:4:4 sampling.");
         }
 
         if (frameBuffer.ColorConfig.ChromaSamplePosition == ObuChromoSamplePosition.Reserved)
@@ -251,16 +193,55 @@ internal static partial class Av1YuvConverter
 
         int bitCount = frameBuffer.BitDepth.GetBitCount();
         int depthScale = 1 << (bitCount - 8);
-        sampleMaximum = (1 << bitCount) - 1;
-        chromaBias = 128F * depthScale;
-        lumaBias = isFullRange ? 0F : 16F * depthScale;
-        lumaScale = isFullRange ? sampleMaximum : 219F * depthScale;
+        float sampleMaximum = (1 << bitCount) - 1;
+        float chromaBias = 128F * depthScale;
+        float lumaBias = isFullRange ? 0F : 16F * depthScale;
+        float lumaScale = isFullRange ? sampleMaximum : 219F * depthScale;
 
         // H.273 limited-range YCgCo first maps R, G, and B through the 219-code luma range, so its
         // difference components inherit that scale instead of the 224-code scale used by YCbCr.
-        chromaScale = isFullRange || mode == Av1ColorConversionMode.YCgCo
+        float chromaScale = isFullRange || mode == Av1ColorConversionMode.YCgCo
             ? lumaScale
             : 224F * depthScale;
+
+        float rgbBias = 0F;
+        float rgbScale = 1F;
+        float rgbSampleMaximum = 1F;
+        if (mode == Av1ColorConversionMode.YCgCoReversible)
+        {
+            int bitOffset = frameBuffer.ColorConfig.MatrixCoefficients == ObuMatrixCoefficients.YCgCoRe ? 2 : 1;
+            int rgbBitCount = bitCount - bitOffset;
+            float rgbDepthScale = MathF.ScaleB(1F, rgbBitCount - 8);
+            rgbSampleMaximum = (1 << rgbBitCount) - 1;
+            rgbBias = isFullRange ? 0F : 16F * rgbDepthScale;
+            rgbScale = isFullRange ? rgbSampleMaximum : 219F * rgbDepthScale;
+
+            // The reversible lifting transform operates on raw integer code values. Range adjustment therefore
+            // belongs inside the operator, while the row converter only normalizes the encoded Y, Cg, and Co planes.
+            lumaBias = 0F;
+            lumaScale = sampleMaximum;
+            chromaScale = sampleMaximum;
+        }
+
+        ObuTransferCharacteristics transferCharacteristics = frameBuffer.ColorConfig.TransferCharacteristics;
+        Av1ConstantLuminanceScales constantLuminanceScales = mode == Av1ColorConversionMode.ConstantLuminance
+            ? new Av1ConstantLuminanceScales(transferCharacteristics, kr, kb)
+            : default;
+
+        return new Av1ColorConversionParameters(
+            kr,
+            kg,
+            kb,
+            transferCharacteristics,
+            in constantLuminanceScales,
+            lumaBias,
+            lumaScale,
+            chromaBias,
+            chromaScale,
+            sampleMaximum,
+            rgbBias,
+            rgbScale,
+            rgbSampleMaximum);
     }
 
     /// <summary>

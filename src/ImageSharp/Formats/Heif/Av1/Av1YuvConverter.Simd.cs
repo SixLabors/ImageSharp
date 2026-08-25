@@ -602,71 +602,6 @@ internal static partial class Av1YuvConverter
     }
 
     /// <summary>
-    /// Packs normalized RGB component rows into opaque eight-bit RGBA pixels.
-    /// </summary>
-    /// <param name="red">The normalized red components.</param>
-    /// <param name="green">The normalized green components.</param>
-    /// <param name="blue">The normalized blue components.</param>
-    /// <param name="destination">The destination pixels.</param>
-    private static void PackRgba32(ReadOnlySpan<float> red, ReadOnlySpan<float> green, ReadOnlySpan<float> blue, Span<Rgba32> destination)
-    {
-        ref float redBase = ref MemoryMarshal.GetReference(red);
-        ref float greenBase = ref MemoryMarshal.GetReference(green);
-        ref float blueBase = ref MemoryMarshal.GetReference(blue);
-        ref Rgba32 destinationBase = ref MemoryMarshal.GetReference(destination);
-        int length = destination.Length;
-        int i = 0;
-
-        if (Vector512.IsHardwareAccelerated)
-        {
-            int oneVectorFromEnd = length - Vector512<float>.Count;
-            for (; i <= oneVectorFromEnd; i += Vector512<float>.Count)
-            {
-                Vector512<int> r = ScaleRoundAndClampToInt32(Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref redBase, i)), ByteMaximum);
-                Vector512<int> g = ScaleRoundAndClampToInt32(Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref greenBase, i)), ByteMaximum);
-                Vector512<int> b = ScaleRoundAndClampToInt32(Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref blueBase, i)), ByteMaximum);
-                StoreRgba32Batch(r.GetLower().GetLower(), g.GetLower().GetLower(), b.GetLower().GetLower(), ref Unsafe.Add(ref destinationBase, i));
-                StoreRgba32Batch(r.GetLower().GetUpper(), g.GetLower().GetUpper(), b.GetLower().GetUpper(), ref Unsafe.Add(ref destinationBase, i + 4));
-                StoreRgba32Batch(r.GetUpper().GetLower(), g.GetUpper().GetLower(), b.GetUpper().GetLower(), ref Unsafe.Add(ref destinationBase, i + 8));
-                StoreRgba32Batch(r.GetUpper().GetUpper(), g.GetUpper().GetUpper(), b.GetUpper().GetUpper(), ref Unsafe.Add(ref destinationBase, i + 12));
-            }
-        }
-
-        if (Vector256.IsHardwareAccelerated)
-        {
-            int oneVectorFromEnd = length - Vector256<float>.Count;
-            for (; i <= oneVectorFromEnd; i += Vector256<float>.Count)
-            {
-                Vector256<int> r = ScaleRoundAndClampToInt32(Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref redBase, i)), ByteMaximum);
-                Vector256<int> g = ScaleRoundAndClampToInt32(Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref greenBase, i)), ByteMaximum);
-                Vector256<int> b = ScaleRoundAndClampToInt32(Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref blueBase, i)), ByteMaximum);
-                StoreRgba32Batch(r.GetLower(), g.GetLower(), b.GetLower(), ref Unsafe.Add(ref destinationBase, i));
-                StoreRgba32Batch(r.GetUpper(), g.GetUpper(), b.GetUpper(), ref Unsafe.Add(ref destinationBase, i + 4));
-            }
-        }
-
-        if (Vector128.IsHardwareAccelerated)
-        {
-            int oneVectorFromEnd = length - Vector128<float>.Count;
-            for (; i <= oneVectorFromEnd; i += Vector128<float>.Count)
-            {
-                Vector128<int> r = ScaleRoundAndClampToInt32(Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref redBase, i)), ByteMaximum);
-                Vector128<int> g = ScaleRoundAndClampToInt32(Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref greenBase, i)), ByteMaximum);
-                Vector128<int> b = ScaleRoundAndClampToInt32(Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref blueBase, i)), ByteMaximum);
-                StoreRgba32Batch(r, g, b, ref Unsafe.Add(ref destinationBase, i));
-            }
-        }
-
-        for (; i < length; i++)
-        {
-            Unsafe.Add(ref destinationBase, i) = new Rgba32(
-                ToSample<byte>(Unsafe.Add(ref redBase, i) * ByteMaximum, ByteMaximum),
-                ToSample<byte>(Unsafe.Add(ref greenBase, i) * ByteMaximum, ByteMaximum),
-                ToSample<byte>(Unsafe.Add(ref blueBase, i) * ByteMaximum, ByteMaximum));
-        }
-    }
-
-    /// <summary>
     /// Packs normalized RGB component rows into opaque 16-bit RGBA pixels.
     /// </summary>
     /// <param name="red">The normalized red components.</param>
@@ -814,28 +749,6 @@ internal static partial class Av1YuvConverter
         Vector512<float> scaled = value * Vector512.Create(maximum);
         Vector512<float> bounded = Vector512.Min(Vector512.Max(scaled, Vector512<float>.Zero), Vector512.Create(maximum));
         return Vector512.ConvertToInt32(Vector512.Round(bounded, MidpointRounding.AwayFromZero));
-    }
-
-    /// <summary>
-    /// Interleaves four red, green, and blue integer lanes into four opaque eight-bit RGBA pixels.
-    /// </summary>
-    /// <param name="red">The red component values.</param>
-    /// <param name="green">The green component values.</param>
-    /// <param name="blue">The blue component values.</param>
-    /// <param name="destination">The first destination pixel.</param>
-    private static void StoreRgba32Batch(Vector128<int> red, Vector128<int> green, Vector128<int> blue, ref Rgba32 destination)
-    {
-        Vector128<byte> red8 = Vector128.Narrow(Vector128.Narrow(red.AsUInt32(), Vector128<uint>.Zero), Vector128<ushort>.Zero);
-        Vector128<byte> green8 = Vector128.Narrow(Vector128.Narrow(green.AsUInt32(), Vector128<uint>.Zero), Vector128<ushort>.Zero);
-        Vector128<byte> blue8 = Vector128.Narrow(Vector128.Narrow(blue.AsUInt32(), Vector128<uint>.Zero), Vector128<ushort>.Zero);
-        Vector128<byte> alpha8 = Vector128.Create(byte.MaxValue);
-        Vector128<byte> redGreen = Vector128_.UnpackLow(red8, green8);
-        Vector128<byte> blueAlpha = Vector128_.UnpackLow(blue8, alpha8);
-
-        // Interleaving the byte pairs as 16-bit lanes produces RGBA memory order on every supported
-        // architecture without relying on the host integer endianness of Rgba32.PackedValue.
-        Vector128<byte> rgba = Vector128_.UnpackLow(redGreen.AsInt16(), blueAlpha.AsInt16()).AsByte();
-        Unsafe.As<Rgba32, Vector128<byte>>(ref destination) = rgba;
     }
 
     /// <summary>

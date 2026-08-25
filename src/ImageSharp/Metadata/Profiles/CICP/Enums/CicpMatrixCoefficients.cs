@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 #pragma warning disable CA1707 // Underscores in enum members
 
 /// <summary>
-/// Matrix coefficients according to ITU-T H.273 / ISO/IEC 23091-2_2019 subclause 8.3
+/// Matrix coefficients according to ITU-T H.273.
 /// </summary>
 public enum CicpMatrixCoefficients : byte
 {
@@ -91,6 +91,21 @@ public enum CicpMatrixCoefficients : byte
     /// Rec. ITU-R BT.2100-2 ICtCp
     /// </summary>
     ICtCp = 14,
+
+    /// <summary>
+    /// IPT-C2.
+    /// </summary>
+    IptC2 = 15,
+
+    /// <summary>
+    /// Reversible YCgCo with two additional encoded bits.
+    /// </summary>
+    YCgCoRe = 16,
+
+    /// <summary>
+    /// Reversible YCgCo with one additional encoded bit.
+    /// </summary>
+    YCgCoRo = 17,
 }
 
 #pragma warning restore CA1707 // Underscores in enum members

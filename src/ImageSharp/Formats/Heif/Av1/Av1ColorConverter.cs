@@ -37,6 +37,16 @@ internal enum Av1ColorConversionMode
     /// The BT.2100 ICtCp color transform.
     /// </summary>
     ICtCp,
+
+    /// <summary>
+    /// The IPT-C2 color transform.
+    /// </summary>
+    IptC2,
+
+    /// <summary>
+    /// The YCgCo-Re or YCgCo-Ro reversible color transform.
+    /// </summary>
+    YCgCoReversible,
 }
 
 /// <summary>
@@ -121,6 +131,8 @@ internal abstract partial class Av1ColorConverterBase
             Av1ColorConversionMode.Smpte2085 => new Av1ColorConverter<Av1Smpte2085ColorOperator>(in parameters, isMonochrome),
             Av1ColorConversionMode.ConstantLuminance => new Av1ColorConverter<Av1ConstantLuminanceColorOperator>(in parameters, isMonochrome),
             Av1ColorConversionMode.ICtCp => new Av1ColorConverter<Av1ICtCpColorOperator>(in parameters, isMonochrome),
+            Av1ColorConversionMode.IptC2 => new Av1ColorConverter<Av1IptC2ColorOperator>(in parameters, isMonochrome),
+            Av1ColorConversionMode.YCgCoReversible => new Av1ColorConverter<Av1YCgCoReversibleColorOperator>(in parameters, isMonochrome),
             _ => new Av1ColorConverter<Av1CoefficientColorOperator>(in parameters, isMonochrome),
         };
 }

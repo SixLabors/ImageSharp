@@ -522,9 +522,15 @@ public class Av1YuvConverterTests
     [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.Bt709)]
     [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.Identity)]
     [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.SmpteYCgCo)]
+    [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.IptC2)]
+    [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.YCgCoRe)]
+    [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.YCgCoRo)]
     [InlineData(Av1BitDepth.TwelveBit, ObuMatrixCoefficients.Bt709)]
     [InlineData(Av1BitDepth.TwelveBit, ObuMatrixCoefficients.Identity)]
     [InlineData(Av1BitDepth.TwelveBit, ObuMatrixCoefficients.SmpteYCgCo)]
+    [InlineData(Av1BitDepth.TwelveBit, ObuMatrixCoefficients.IptC2)]
+    [InlineData(Av1BitDepth.TwelveBit, ObuMatrixCoefficients.YCgCoRe)]
+    [InlineData(Av1BitDepth.TwelveBit, ObuMatrixCoefficients.YCgCoRo)]
     public void HighBitDepthRoundTrip(int bitDepth, int matrixCoefficients)
     {
         // Assign
@@ -557,6 +563,203 @@ public class Av1YuvConverterTests
     }
 
     /// <summary>
+    /// Verifies the H.273 IPT-C2 matrices in both directions against independently calculated code values.
+    /// </summary>
+    [Fact]
+    public void IptC2MatchesKnownLinearTransferValuesInBothDirections()
+    {
+        // Assign
+        // The linear transfer characteristic isolates the two normative IPT-C2 matrices from transfer-curve error.
+        using Image<Rgb24> source = new(1, 1);
+        source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0)[0] = new Rgb24(150, 100, 50);
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(
+            1,
+            1,
+            matrixCoefficients: ObuMatrixCoefficients.IptC2,
+            transferCharacteristics: ObuTransferCharacteristics.Linear);
+
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv444, false);
+
+        // Act
+        Av1YuvConverter.ConvertFromRgb(Configuration.Default, source.Frames.RootFrame, frameBuffer);
+
+        // Assert
+        Assert.Equal(100, frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(0)[0]);
+        Assert.Equal(178, frameBuffer.DeriveBlockPointer(Av1Plane.U, 0, 0).DangerousGetRowSpan(0)[0]);
+        Assert.Equal(198, frameBuffer.DeriveBlockPointer(Av1Plane.V, 0, 0).DangerousGetRowSpan(0)[0]);
+
+        using Image<Rgb24> destination = new(1, 1);
+        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, destination.Frames.RootFrame);
+
+        Assert.Equal(new Rgb24(150, 100, 51), destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0)[0]);
+    }
+
+    /// <summary>
+    /// Verifies the reversible YCgCo lifting stages against known pure-red code values in both directions.
+    /// </summary>
+    /// <param name="bitDepth">The encoded AV1 bit depth.</param>
+    /// <param name="matrixCoefficients">The reversible YCgCo variant.</param>
+    /// <param name="expectedY">The expected encoded luma value.</param>
+    /// <param name="expectedU">The expected encoded Cg value.</param>
+    /// <param name="expectedV">The expected encoded Co value.</param>
+    [Theory]
+    [InlineData(Av1BitDepth.EightBit, ObuMatrixCoefficients.YCgCoRe, 15, 97, 191)]
+    [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.YCgCoRe, 63, 385, 767)]
+    [InlineData(Av1BitDepth.TwelveBit, ObuMatrixCoefficients.YCgCoRe, 255, 1537, 3071)]
+    [InlineData(Av1BitDepth.EightBit, ObuMatrixCoefficients.YCgCoRo, 31, 65, 255)]
+    [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.YCgCoRo, 127, 257, 1023)]
+    [InlineData(Av1BitDepth.TwelveBit, ObuMatrixCoefficients.YCgCoRo, 511, 1025, 4095)]
+    public void ReversibleYCgCoMatchesKnownPureRedValuesInBothDirections(
+        int bitDepth,
+        int matrixCoefficients,
+        int expectedY,
+        int expectedU,
+        int expectedV)
+    {
+        // Assign
+        // Pure red exercises positive odd Co and negative odd Cg. The expected samples come directly from
+        // the H.273 integer lifting equations at the logical RGB precision selected by each matrix code point.
+        using Image<Rgb48> source = new(1, 1);
+        source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0)[0] = new Rgb48(ushort.MaxValue, 0, 0);
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(
+            1,
+            1,
+            matrixCoefficients: (ObuMatrixCoefficients)matrixCoefficients,
+            bitDepth: (Av1BitDepth)bitDepth);
+
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv444, false);
+
+        // Act
+        Av1YuvConverter.ConvertFromRgb(Configuration.Default, source.Frames.RootFrame, frameBuffer);
+
+        // Assert
+        int actualY;
+        int actualU;
+        int actualV;
+        if ((Av1BitDepth)bitDepth == Av1BitDepth.EightBit)
+        {
+            actualY = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(0)[0];
+            actualU = frameBuffer.DeriveBlockPointer(Av1Plane.U, 0, 0).DangerousGetRowSpan(0)[0];
+            actualV = frameBuffer.DeriveBlockPointer(Av1Plane.V, 0, 0).DangerousGetRowSpan(0)[0];
+        }
+        else
+        {
+            actualY = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, 0, 0, 0)[0];
+            actualU = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.U, 0, 0, 0)[0];
+            actualV = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.V, 0, 0, 0)[0];
+        }
+
+        Assert.Equal(expectedY, actualY);
+        Assert.Equal(expectedU, actualU);
+        Assert.Equal(expectedV, actualV);
+
+        using Image<Rgb48> destination = new(1, 1);
+        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, destination.Frames.RootFrame);
+
+        Assert.Equal(new Rgb48(ushort.MaxValue, 0, 0), destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0)[0]);
+    }
+
+    /// <summary>
+    /// Verifies that limited-range reversible YCgCo applies range adjustment to RGB code values before lifting.
+    /// </summary>
+    /// <param name="bitDepth">The encoded AV1 bit depth.</param>
+    /// <param name="matrixCoefficients">The reversible YCgCo variant.</param>
+    /// <param name="expectedBlack">The expected black luma code value.</param>
+    /// <param name="expectedWhite">The expected white luma code value.</param>
+    [Theory]
+    [InlineData(Av1BitDepth.EightBit, ObuMatrixCoefficients.YCgCoRe, 4, 59)]
+    [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.YCgCoRe, 16, 235)]
+    [InlineData(Av1BitDepth.TwelveBit, ObuMatrixCoefficients.YCgCoRe, 64, 940)]
+    [InlineData(Av1BitDepth.EightBit, ObuMatrixCoefficients.YCgCoRo, 8, 118)]
+    [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.YCgCoRo, 32, 470)]
+    [InlineData(Av1BitDepth.TwelveBit, ObuMatrixCoefficients.YCgCoRo, 128, 1880)]
+    public void ReversibleYCgCoAppliesLimitedRangeBeforeLifting(
+        int bitDepth,
+        int matrixCoefficients,
+        int expectedBlack,
+        int expectedWhite)
+    {
+        // Assign
+        // Black and white have zero Cg and Co, exposing the RGB-domain range mapping without opponent-axis noise.
+        using Image<Rgb48> source = new(2, 1);
+        Span<Rgb48> sourcePixels = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0);
+        sourcePixels[0] = new Rgb48(0, 0, 0);
+        sourcePixels[1] = new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(
+            2,
+            1,
+            fullRange: false,
+            matrixCoefficients: (ObuMatrixCoefficients)matrixCoefficients,
+            bitDepth: (Av1BitDepth)bitDepth);
+
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv444, false);
+
+        // Act
+        Av1YuvConverter.ConvertFromRgb(Configuration.Default, source.Frames.RootFrame, frameBuffer);
+
+        // Assert
+        int expectedChromaBias = 1 << (((Av1BitDepth)bitDepth).GetBitCount() - 1);
+        if ((Av1BitDepth)bitDepth == Av1BitDepth.EightBit)
+        {
+            Span<byte> y = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(0);
+            Span<byte> u = frameBuffer.DeriveBlockPointer(Av1Plane.U, 0, 0).DangerousGetRowSpan(0);
+            Span<byte> v = frameBuffer.DeriveBlockPointer(Av1Plane.V, 0, 0).DangerousGetRowSpan(0);
+            Assert.Equal(expectedBlack, y[0]);
+            Assert.Equal(expectedWhite, y[1]);
+            Assert.Equal(expectedChromaBias, u[0]);
+            Assert.Equal(expectedChromaBias, u[1]);
+            Assert.Equal(expectedChromaBias, v[0]);
+            Assert.Equal(expectedChromaBias, v[1]);
+        }
+        else
+        {
+            Span<ushort> y = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, 0, 0, 0);
+            Span<ushort> u = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.U, 0, 0, 0);
+            Span<ushort> v = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.V, 0, 0, 0);
+            Assert.Equal(expectedBlack, y[0]);
+            Assert.Equal(expectedWhite, y[1]);
+            Assert.Equal(expectedChromaBias, u[0]);
+            Assert.Equal(expectedChromaBias, u[1]);
+            Assert.Equal(expectedChromaBias, v[0]);
+            Assert.Equal(expectedChromaBias, v[1]);
+        }
+
+        using Image<Rgb48> destination = new(2, 1);
+        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, destination.Frames.RootFrame);
+
+        Span<Rgb48> destinationPixels = destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0);
+        Assert.Equal(new Rgb48(0, 0, 0), destinationPixels[0]);
+        Assert.Equal(new Rgb48(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue), destinationPixels[1]);
+    }
+
+    /// <summary>
+    /// Verifies that reversible YCgCo rejects chroma subsampling in both conversion directions.
+    /// </summary>
+    /// <param name="matrixCoefficients">The reversible YCgCo variant.</param>
+    [Theory]
+    [InlineData(ObuMatrixCoefficients.YCgCoRe)]
+    [InlineData(ObuMatrixCoefficients.YCgCoRo)]
+    public void ReversibleYCgCoRequiresFullChroma(int matrixCoefficients)
+    {
+        // Assign
+        using Image<Rgb24> image = new(2, 2);
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(
+            2,
+            2,
+            matrixCoefficients: (ObuMatrixCoefficients)matrixCoefficients,
+            colorFormat: Av1ColorFormat.Yuv420);
+
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv420, false);
+
+        // Act and assert
+        Assert.Throws<InvalidImageContentException>(
+            () => Av1YuvConverter.ConvertFromRgb(Configuration.Default, image.Frames.RootFrame, frameBuffer));
+
+        Assert.Throws<InvalidImageContentException>(
+            () => Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, image.Frames.RootFrame));
+    }
+
+    /// <summary>
     /// Verifies that every H.273 operator produces the same result in SIMD batches and the scalar row tail.
     /// </summary>
     /// <param name="matrixCoefficients">The matrix coefficients selecting the color operator.</param>
@@ -571,6 +774,9 @@ public class Av1YuvConverterTests
     [InlineData(ObuMatrixCoefficients.ChromaticityDerivedConstantLuminance, ObuTransferCharacteristics.Bt709)]
     [InlineData(ObuMatrixCoefficients.Bt2100ICtCp, ObuTransferCharacteristics.Smpte2084)]
     [InlineData(ObuMatrixCoefficients.Bt2100ICtCp, ObuTransferCharacteristics.Hlg)]
+    [InlineData(ObuMatrixCoefficients.IptC2, ObuTransferCharacteristics.Bt709)]
+    [InlineData(ObuMatrixCoefficients.YCgCoRe, ObuTransferCharacteristics.Bt709)]
+    [InlineData(ObuMatrixCoefficients.YCgCoRo, ObuTransferCharacteristics.Bt709)]
     public void ColorOperatorSimdBatchesMatchScalarTail(int matrixCoefficients, int transferCharacteristics)
     {
         const int width = 31;

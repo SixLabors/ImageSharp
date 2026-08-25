@@ -3,6 +3,7 @@
 
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -114,7 +115,7 @@ internal static partial class Av1YuvConverter
             get
             {
                 // Three float component rows are converted in place. Color input adds two reusable chroma scratch
-                // rows, and the final one or two float-sized slots per pixel back an Rgba32 or Rgba64 staging row.
+                // rows, and the final one or two float-sized slots per pixel back RGB byte planes or an Rgba64 row.
                 int rowCount = this.isMonochrome ? 3 : 5;
                 int packedRowCount = typeof(TSample) == typeof(byte) ? 1 : 2;
                 return this.image.Width * (rowCount + packedRowCount);
@@ -126,7 +127,8 @@ internal static partial class Av1YuvConverter
         /// </summary>
         /// <param name="y">The row index.</param>
         /// <param name="span">The reusable conversion buffer.</param>
-        public void Convert(int y, Span<float> span)
+        /// <param name="proxy">The padded destination used when an eight-bit image row cannot expose sufficient padding.</param>
+        public void Convert(int y, Span<float> span, Span<TPixel> proxy)
         {
             int width = this.image.Width;
             Span<float> red = span[..width];
@@ -189,9 +191,25 @@ internal static partial class Av1YuvConverter
             Span<TPixel> destination = this.image.PixelBuffer.DangerousGetRowSpan(y);
             if (typeof(TSample) == typeof(byte))
             {
-                Span<Rgba32> packed = MemoryMarshal.Cast<float, Rgba32>(packedStorage)[..width];
-                PackRgba32(red, green, blue, packed);
-                PixelOperations<TPixel>.Instance.FromRgba32(this.configuration, packed, destination);
+                // Match JPEG's byte-plane packing contract so optimized pixel types use the existing RGB packer.
+                // The final float row provides enough byte storage for three tightly packed component planes.
+                Span<byte> byteStorage = MemoryMarshal.AsBytes(packedStorage)[..(width * 3)];
+                Span<byte> redBytes = byteStorage[..width];
+                Span<byte> greenBytes = byteStorage.Slice(width, width);
+                Span<byte> blueBytes = byteStorage.Slice(width * 2, width);
+                SimdUtils.NormalizedFloatToByteSaturate(red, redBytes);
+                SimdUtils.NormalizedFloatToByteSaturate(green, greenBytes);
+                SimdUtils.NormalizedFloatToByteSaturate(blue, blueBytes);
+
+                if (this.image.PixelBuffer.DangerousTryGetPaddedRowSpan(y, 3, out Span<TPixel> paddedDestination))
+                {
+                    PixelOperations<TPixel>.Instance.PackFromRgbPlanes(redBytes, greenBytes, blueBytes, paddedDestination);
+                }
+                else
+                {
+                    PixelOperations<TPixel>.Instance.PackFromRgbPlanes(redBytes, greenBytes, blueBytes, proxy);
+                    proxy[..width].CopyTo(destination);
+                }
             }
             else
             {

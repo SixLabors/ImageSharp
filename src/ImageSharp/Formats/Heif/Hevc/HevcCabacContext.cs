@@ -11,7 +11,9 @@ internal struct HevcCabacContext
     /// <summary>
     /// Maps each packed context state to the state that follows its most-probable symbol.
     /// </summary>
-    private static readonly byte[] MostProbableStateTransitions =
+    // ReadOnlySpan allows the compiler to embed both normative tables in static data instead of allocating
+    // mutable arrays when this type is initialized.
+    private static ReadOnlySpan<byte> MostProbableStateTransitions =>
     [
         2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
         18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33,
@@ -26,7 +28,7 @@ internal struct HevcCabacContext
     /// <summary>
     /// Maps each packed context state to the state that follows its least-probable symbol.
     /// </summary>
-    private static readonly byte[] LeastProbableStateTransitions =
+    private static ReadOnlySpan<byte> LeastProbableStateTransitions =>
     [
         1, 0, 0, 1, 2, 3, 4, 5, 4, 5, 8, 9, 8, 9, 10, 11,
         12, 13, 14, 15, 16, 17, 18, 19, 18, 19, 22, 23, 22, 23, 24, 25,

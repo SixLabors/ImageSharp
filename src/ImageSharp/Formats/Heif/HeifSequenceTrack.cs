@@ -141,6 +141,11 @@ internal sealed class HeifSequenceTrack
     public byte? MirrorAxis { get; set; }
 
     /// <summary>
+    /// Gets or sets the Exif and XMP item payloads implicitly associated with the image-sequence track.
+    /// </summary>
+    public HeifSequenceMetadata? Metadata { get; set; }
+
+    /// <summary>
     /// Gets or sets the retained sample descriptors in decode order.
     /// </summary>
     public HeifSequenceSample[] Samples { get; set; } = [];

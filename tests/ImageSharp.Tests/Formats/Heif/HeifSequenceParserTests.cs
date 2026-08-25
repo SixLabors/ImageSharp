@@ -3,6 +3,7 @@
 
 using System.Buffers.Binary;
 using System.Text;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif;
@@ -11,12 +12,19 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 [ValidateDisposedMemoryAllocations]
 public class HeifSequenceParserTests
 {
+    private const int TrackExifOffset = 1800;
+    private const int TrackXmpOffset = 1840;
+
+    private static ReadOnlySpan<byte> TrackExifData => [0, 0, 0, 0, 0x49, 0x49, 0x2A, 0, 8, 0, 0, 0];
+
+    private static ReadOnlySpan<byte> TrackXmpData => "<x:xmpmeta/>"u8;
+
     [Fact]
     public void ParseResolvesLibavifShapedSampleTable()
     {
         byte[] data = CreateSequenceFile(1024);
         using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = new(Configuration.Default.MemoryAllocator, 2);
+        HeifSequenceParser parser = CreateParser(2);
         stream.Position = 8;
 
         HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data));
@@ -56,7 +64,7 @@ public class HeifSequenceParserTests
     {
         byte[] data = CreateSequenceFile(1024);
         using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = new(Configuration.Default.MemoryAllocator, 1);
+        HeifSequenceParser parser = CreateParser(1);
         stream.Position = 8;
 
         HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data));
@@ -73,7 +81,7 @@ public class HeifSequenceParserTests
     {
         byte[] data = CreateSequenceFile(2040);
         using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = new(Configuration.Default.MemoryAllocator, 2);
+        HeifSequenceParser parser = CreateParser(2);
         stream.Position = 8;
 
         Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
@@ -84,7 +92,7 @@ public class HeifSequenceParserTests
     {
         byte[] data = CreateSequenceFile(1024, hevc: true, compositionOffsets: true);
         using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = new(Configuration.Default.MemoryAllocator, 2);
+        HeifSequenceParser parser = CreateParser(2);
         stream.Position = 8;
 
         HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data));
@@ -102,7 +110,7 @@ public class HeifSequenceParserTests
     {
         byte[] data = CreateSequenceFile(1024, compositionOffsets: true);
         using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = new(Configuration.Default.MemoryAllocator, 2);
+        HeifSequenceParser parser = CreateParser(2);
         stream.Position = 8;
 
         Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
@@ -113,7 +121,7 @@ public class HeifSequenceParserTests
     {
         byte[] data = CreateSequenceFile(1024, directReferences: true);
         using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = new(Configuration.Default.MemoryAllocator, 2);
+        HeifSequenceParser parser = CreateParser(2);
         stream.Position = 8;
 
         HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data));
@@ -131,7 +139,7 @@ public class HeifSequenceParserTests
     {
         byte[] data = CreateSequenceFile(1024, directReferences: true, directReferenceSampleId: 2);
         using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = new(Configuration.Default.MemoryAllocator, 2);
+        HeifSequenceParser parser = CreateParser(2);
         stream.Position = 8;
 
         Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
@@ -142,7 +150,7 @@ public class HeifSequenceParserTests
     {
         byte[] data = CreateSequenceFile(1024, trackProperties: true);
         using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = new(Configuration.Default.MemoryAllocator, 2);
+        HeifSequenceParser parser = CreateParser(2);
         stream.Position = 8;
 
         HeifSequenceTrack track = parser.Parse(stream, GetMoviePayloadLength(data)).ColorTrack;
@@ -161,13 +169,96 @@ public class HeifSequenceParserTests
         Assert.NotNull(track.NominalDiffuseWhite);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ParseRetainsBoundedTrackMetadata(bool useItemData)
+    {
+        byte[] data = CreateSequenceFile(1024, trackMetadata: true, metadataInItemData: useItemData);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = CreateParser(2);
+        stream.Position = 8;
+
+        HeifSequenceTrack track = parser.Parse(stream, GetMoviePayloadLength(data)).ColorTrack;
+
+        Assert.NotNull(track.Metadata);
+        Assert.Equal(TrackExifData.ToArray(), track.Metadata.ExifData);
+        Assert.Equal(TrackXmpData.ToArray(), track.Metadata.XmpData);
+    }
+
+    [Fact]
+    public void ParseDoesNotValidateOrRetainSkippedTrackMetadata()
+    {
+        byte[] data = CreateSequenceFile(1024, trackMetadata: true, invalidTrackMetadata: true);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = CreateParser(2, skipMetadata: true);
+        stream.Position = 8;
+
+        HeifSequenceTrack track = parser.Parse(stream, GetMoviePayloadLength(data)).ColorTrack;
+
+        Assert.Null(track.Metadata);
+        Assert.Equal(2, track.Samples.Length);
+    }
+
+    [Fact]
+    public void ParseUsesAncillaryIntegrityPolicyForTrackMetadata()
+    {
+        byte[] data = CreateSequenceFile(1024, trackMetadata: true, invalidTrackMetadata: true);
+        using MemoryStream strictStream = new(data, false);
+        HeifSequenceParser strictParser = CreateParser(2);
+        strictStream.Position = 8;
+
+        Assert.Throws<InvalidImageContentException>(() => strictParser.Parse(strictStream, GetMoviePayloadLength(data)));
+
+        using MemoryStream tolerantStream = new(data, false);
+        HeifSequenceParser tolerantParser = CreateParser(2, segmentIntegrityHandling: SegmentIntegrityHandling.IgnoreAncillary);
+        tolerantStream.Position = 8;
+
+        HeifSequenceTrack track = tolerantParser.Parse(tolerantStream, GetMoviePayloadLength(data)).ColorTrack;
+
+        Assert.Null(track.Metadata);
+        Assert.Equal(2, track.Samples.Length);
+    }
+
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    public void ParseRejectsInvalidPresentationPropertyUnlessImageDataErrorsAreIgnored(SegmentIntegrityHandling handling)
+    {
+        byte[] data = CreateSequenceFile(1024, trackProperties: true, invalidRotation: true);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = CreateParser(2, segmentIntegrityHandling: handling);
+        stream.Position = 8;
+
+        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
+    }
+
+    [Fact]
+    public void ParseOmitsInvalidPresentationPropertyWhenImageDataErrorsAreIgnored()
+    {
+        byte[] data = CreateSequenceFile(1024, trackProperties: true, invalidRotation: true);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = CreateParser(2, segmentIntegrityHandling: SegmentIntegrityHandling.IgnoreImageData);
+        stream.Position = 8;
+
+        HeifSequenceTrack track = parser.Parse(stream, GetMoviePayloadLength(data)).ColorTrack;
+
+        Assert.Null(track.RotationAngle);
+        Assert.NotNull(track.PixelAspectRatio);
+        Assert.Equal(2, track.Samples.Length);
+    }
+
     private static byte[] CreateSequenceFile(
         uint chunkOffset,
         bool hevc = false,
         bool compositionOffsets = false,
         bool directReferences = false,
         uint directReferenceSampleId = 1,
-        bool trackProperties = false)
+        bool trackProperties = false,
+        bool trackMetadata = false,
+        bool metadataInItemData = false,
+        bool invalidTrackMetadata = false,
+        bool invalidRotation = false)
     {
         using MemoryStream stream = new();
         using BinaryWriter writer = new(stream, Encoding.UTF8, true);
@@ -185,6 +276,10 @@ public class HeifSequenceParserTests
         long track = BeginBox(writer, Heif4CharCode.Trak);
         WriteTrackHeader(writer);
         WriteEditList(writer);
+        if (trackMetadata)
+        {
+            WriteTrackMetadata(writer, metadataInItemData, invalidTrackMetadata);
+        }
 
         long media = BeginBox(writer, Heif4CharCode.Mdia);
         WriteMediaHeader(writer);
@@ -192,7 +287,16 @@ public class HeifSequenceParserTests
 
         long mediaInformation = BeginBox(writer, Heif4CharCode.Minf);
         WriteDataInformation(writer);
-        WriteSampleTable(writer, chunkOffset, hevc, compositionOffsets, directReferences, directReferenceSampleId, trackProperties);
+        WriteSampleTable(
+            writer,
+            chunkOffset,
+            hevc,
+            compositionOffsets,
+            directReferences,
+            directReferenceSampleId,
+            trackProperties,
+            invalidRotation);
+
         EndBox(writer, mediaInformation);
         EndBox(writer, media);
         EndBox(writer, track);
@@ -202,6 +306,12 @@ public class HeifSequenceParserTests
         byte[] file = new byte[2048];
 
         movieBytes.CopyTo(file, 0);
+        if (trackMetadata && !metadataInItemData)
+        {
+            TrackExifData.CopyTo(file.AsSpan(TrackExifOffset));
+            TrackXmpData.CopyTo(file.AsSpan(TrackXmpOffset));
+        }
+
         return file;
     }
 
@@ -280,6 +390,76 @@ public class HeifSequenceParserTests
         EndBox(writer, dataInformation);
     }
 
+    private static void WriteTrackMetadata(BinaryWriter writer, bool useItemData, bool invalidHandler)
+    {
+        long metadata = BeginBox(writer, Heif4CharCode.Meta);
+        WriteFullBoxHeader(writer, 0, 0);
+        WriteHandler(writer, invalidHandler ? Heif4CharCode.Vide : Heif4CharCode.Pict);
+
+        long itemLocations = BeginBox(writer, Heif4CharCode.Iloc);
+        WriteFullBoxHeader(writer, useItemData ? (byte)1 : (byte)0, 0);
+        writer.Write((byte)0x44);
+        writer.Write((byte)0);
+        WriteUInt16(writer, 2);
+        WriteTrackMetadataLocation(writer, 1, useItemData, useItemData ? 0U : TrackExifOffset, (uint)TrackExifData.Length);
+        WriteTrackMetadataLocation(
+            writer,
+            2,
+            useItemData,
+            useItemData ? (uint)TrackExifData.Length : TrackXmpOffset,
+            (uint)TrackXmpData.Length);
+
+        EndBox(writer, itemLocations);
+
+        long itemInformation = BeginBox(writer, Heif4CharCode.Iinf);
+        WriteFullBoxHeader(writer, 0, 0);
+        WriteUInt16(writer, 2);
+        WriteTrackMetadataItem(writer, 1, Heif4CharCode.Exif);
+        WriteTrackMetadataItem(writer, 2, Heif4CharCode.Mime);
+        EndBox(writer, itemInformation);
+
+        if (useItemData)
+        {
+            long itemData = BeginBox(writer, Heif4CharCode.Idat);
+            writer.Write(TrackExifData);
+            writer.Write(TrackXmpData);
+            EndBox(writer, itemData);
+        }
+
+        EndBox(writer, metadata);
+    }
+
+    private static void WriteTrackMetadataLocation(BinaryWriter writer, ushort itemId, bool useItemData, uint offset, uint length)
+    {
+        WriteUInt16(writer, itemId);
+        if (useItemData)
+        {
+            WriteUInt16(writer, 1);
+        }
+
+        WriteUInt16(writer, 0);
+        WriteUInt16(writer, 1);
+        WriteUInt32(writer, offset);
+        WriteUInt32(writer, length);
+    }
+
+    private static void WriteTrackMetadataItem(BinaryWriter writer, ushort itemId, Heif4CharCode itemType)
+    {
+        long itemInformationEntry = BeginBox(writer, Heif4CharCode.Infe);
+        WriteFullBoxHeader(writer, 2, 0);
+        WriteUInt16(writer, itemId);
+        WriteUInt16(writer, 0);
+        WriteUInt32(writer, (uint)itemType);
+        writer.Write((byte)0);
+        if (itemType == Heif4CharCode.Mime)
+        {
+            writer.Write("application/rdf+xml"u8);
+            writer.Write((byte)0);
+        }
+
+        EndBox(writer, itemInformationEntry);
+    }
+
     private static void WriteSampleTable(
         BinaryWriter writer,
         uint chunkOffset,
@@ -287,10 +467,11 @@ public class HeifSequenceParserTests
         bool compositionOffsets,
         bool directReferences,
         uint directReferenceSampleId,
-        bool trackProperties)
+        bool trackProperties,
+        bool invalidRotation)
     {
         long sampleTable = BeginBox(writer, Heif4CharCode.Stbl);
-        WriteSampleDescription(writer, hevc, trackProperties);
+        WriteSampleDescription(writer, hevc, trackProperties, invalidRotation);
 
         long timing = BeginBox(writer, Heif4CharCode.Stts);
         WriteFullBoxHeader(writer, 0, 0);
@@ -383,7 +564,7 @@ public class HeifSequenceParserTests
         EndBox(writer, sampleMap);
     }
 
-    private static void WriteSampleDescription(BinaryWriter writer, bool hevc, bool trackProperties)
+    private static void WriteSampleDescription(BinaryWriter writer, bool hevc, bool trackProperties, bool invalidRotation)
     {
         long description = BeginBox(writer, Heif4CharCode.Stsd);
         WriteFullBoxHeader(writer, 0, 0);
@@ -415,7 +596,7 @@ public class HeifSequenceParserTests
 
         if (trackProperties)
         {
-            WriteTrackImageProperties(writer);
+            WriteTrackImageProperties(writer, invalidRotation);
         }
 
         long codingConstraints = BeginBox(writer, Heif4CharCode.Ccst);
@@ -426,7 +607,7 @@ public class HeifSequenceParserTests
         EndBox(writer, description);
     }
 
-    private static void WriteTrackImageProperties(BinaryWriter writer)
+    private static void WriteTrackImageProperties(BinaryWriter writer, bool invalidRotation)
     {
         long color = BeginBox(writer, Heif4CharCode.Colr);
         WriteUInt32(writer, (uint)Heif4CharCode.Nclx);
@@ -453,7 +634,7 @@ public class HeifSequenceParserTests
         EndBox(writer, cleanAperture);
 
         long rotation = BeginBox(writer, Heif4CharCode.Irot);
-        writer.Write((byte)1);
+        writer.Write(invalidRotation ? (byte)0xFC : (byte)1);
         EndBox(writer, rotation);
 
         long mirror = BeginBox(writer, Heif4CharCode.Imir);
@@ -555,4 +736,15 @@ public class HeifSequenceParserTests
 
     private static int GetMoviePayloadLength(byte[] data)
         => checked((int)BinaryPrimitives.ReadUInt32BigEndian(data) - 8);
+
+    private static HeifSequenceParser CreateParser(
+        uint maxFrames,
+        bool skipMetadata = false,
+        SegmentIntegrityHandling segmentIntegrityHandling = SegmentIntegrityHandling.Strict)
+        => new(new DecoderOptions
+        {
+            MaxFrames = maxFrames,
+            SkipMetadata = skipMetadata,
+            SegmentIntegrityHandling = segmentIntegrityHandling
+        });
 }

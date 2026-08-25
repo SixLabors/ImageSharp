@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Hevc;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Heif;
 
@@ -30,20 +31,31 @@ internal sealed class HeifSequenceParser
     private readonly HeifBoxReader boxReader;
 
     /// <summary>
+    /// The bounded parser for Exif and XMP items embedded in selected image tracks.
+    /// </summary>
+    private readonly HeifTrackMetadataParser metadataParser;
+
+    /// <summary>
     /// The maximum number of sample descriptors retained for decoding or identification.
     /// </summary>
     private readonly int maxFrames;
 
     /// <summary>
+    /// The general decoder options controlling frame limits, metadata loading, and recoverable segment errors.
+    /// </summary>
+    private readonly DecoderOptions options;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="HeifSequenceParser"/> class.
     /// </summary>
-    /// <param name="allocator">The configured ImageSharp memory allocator.</param>
-    /// <param name="maxFrames">The maximum number of image-sequence frames to retain.</param>
-    public HeifSequenceParser(MemoryAllocator allocator, uint maxFrames)
+    /// <param name="options">The general decoder options.</param>
+    public HeifSequenceParser(DecoderOptions options)
     {
-        this.allocator = allocator;
-        this.boxReader = new HeifBoxReader(allocator);
-        this.maxFrames = (int)maxFrames;
+        this.options = options;
+        this.allocator = options.Configuration.MemoryAllocator;
+        this.boxReader = new HeifBoxReader(this.allocator);
+        this.metadataParser = new HeifTrackMetadataParser(this.allocator);
+        this.maxFrames = (int)options.MaxFrames;
     }
 
     /// <summary>
@@ -208,6 +220,7 @@ internal sealed class HeifSequenceParser
     {
         long trackEnd = checked(stream.Position + boxLength);
         BoxReference edit = default;
+        BoxReference metadata = default;
         BoxReference media = default;
 
         while (stream.Position < trackEnd)
@@ -217,6 +230,10 @@ internal sealed class HeifSequenceParser
             if (childType == Heif4CharCode.Edts)
             {
                 SetUnique(ref edit, childStart, childLength, "track", childType);
+            }
+            else if (childType == Heif4CharCode.Meta)
+            {
+                SetUnique(ref metadata, childStart, childLength, "track", childType);
             }
             else if (childType == Heif4CharCode.Mdia)
             {
@@ -247,6 +264,19 @@ internal sealed class HeifSequenceParser
         {
             stream.Position = edit.Offset;
             ParseEdit(stream, edit.Length, track, scratch);
+        }
+
+        if (metadata.IsPresent && !this.options.SkipMetadata)
+        {
+            try
+            {
+                stream.Position = metadata.Offset;
+                track.Metadata = this.metadataParser.Parse(stream, metadata.Length, scratch);
+            }
+            catch (Exception ex) when (this.ShouldIgnoreAncillarySegmentError(ex))
+            {
+                // The validated parent range lets decoding continue safely without this optional metadata box.
+            }
         }
 
         stream.Position = media.Offset;
@@ -888,18 +918,41 @@ internal sealed class HeifSequenceParser
                     track.IsAlpha = this.ParseAuxiliaryType(stream, childLength);
                     auxiliaryTypeSeen = true;
                     break;
-                case Heif4CharCode.Pasp:
                 case Heif4CharCode.Colr:
+                    this.ParseTrackColorInformation(stream, childLength, track, scratch);
+                    break;
+                case Heif4CharCode.Pasp:
                 case Heif4CharCode.Clli:
                 case Heif4CharCode.Mdcv:
                 case Heif4CharCode.Cclv:
                 case Heif4CharCode.Amve:
                 case Heif4CharCode.Reve:
                 case Heif4CharCode.Ndwt:
+                    if (!this.options.SkipMetadata)
+                    {
+                        try
+                        {
+                            ParseTrackImageProperty(stream, childLength, childType, track, scratch);
+                        }
+                        catch (Exception ex) when (this.ShouldIgnoreAncillarySegmentError(ex))
+                        {
+                            // The complete child range remains known, so optional metadata can be discarded safely.
+                        }
+                    }
+
+                    break;
                 case Heif4CharCode.Clap:
                 case Heif4CharCode.Irot:
                 case Heif4CharCode.Imir:
-                    this.ParseTrackImageProperty(stream, childLength, childType, track, scratch);
+                    try
+                    {
+                        ParseTrackImageProperty(stream, childLength, childType, track, scratch);
+                    }
+                    catch (Exception ex) when (this.ShouldIgnoreImageDataSegmentError(ex))
+                    {
+                        // IgnoreImageData permits a recoverable presentation property to be omitted.
+                    }
+
                     break;
             }
 
@@ -920,19 +973,13 @@ internal sealed class HeifSequenceParser
     /// <param name="boxType">The registered image property type.</param>
     /// <param name="track">The selected image track receiving the property.</param>
     /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private void ParseTrackImageProperty(
+    private static void ParseTrackImageProperty(
         Stream stream,
         long boxLength,
         Heif4CharCode boxType,
         HeifSequenceTrack track,
         Span<byte> scratch)
     {
-        if (boxType == Heif4CharCode.Colr)
-        {
-            this.ParseTrackColorInformation(stream, boxLength, track, scratch);
-            return;
-        }
-
         ReadOnlySpan<byte> data = ReadPropertyPayload(stream, boxLength, scratch, boxType);
         switch (boxType)
         {
@@ -1034,35 +1081,49 @@ internal sealed class HeifSequenceParser
         Heif4CharCode profileType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(prefix);
         if (profileType == Heif4CharCode.Nclx)
         {
-            if (track.CicpProfile is not null)
+            try
             {
-                throw new InvalidImageContentException("The image-sequence sample entry has duplicate CICP color properties.");
-            }
+                if (track.CicpProfile is not null)
+                {
+                    throw new InvalidImageContentException("The image-sequence sample entry has duplicate CICP color properties.");
+                }
 
-            if (boxLength != 11)
+                if (boxLength != 11)
+                {
+                    throw new InvalidImageContentException("The CICP color-information property has an invalid length.");
+                }
+
+                prefix = ReadPrefixFromStart(stream, boxLength, scratch, 11, "color information");
+                track.CicpProfile = HeifPropertyParser.ParseCicpProfile(prefix[4..]);
+            }
+            catch (Exception ex) when (this.ShouldIgnoreImageDataSegmentError(ex))
             {
-                throw new InvalidImageContentException("The CICP color-information property has an invalid length.");
+                // IgnoreImageData permits the decoder to fall back to the coded sequence's color description.
             }
-
-            prefix = ReadPrefixFromStart(stream, boxLength, scratch, 11, "color information");
-            track.CicpProfile = HeifPropertyParser.ParseCicpProfile(prefix[4..]);
         }
-        else if (profileType is Heif4CharCode.RICC or Heif4CharCode.Prof)
+        else if ((profileType is Heif4CharCode.RICC or Heif4CharCode.Prof) && !this.options.SkipMetadata)
         {
-            if (track.IccProfile is not null)
+            try
             {
-                throw new InvalidImageContentException("The image-sequence sample entry has duplicate ICC color properties.");
-            }
+                if (track.IccProfile is not null)
+                {
+                    throw new InvalidImageContentException("The image-sequence sample entry has duplicate ICC color properties.");
+                }
 
-            if (boxLength <= 4 || boxLength > int.MaxValue)
+                if (boxLength <= 4 || boxLength > int.MaxValue)
+                {
+                    throw new InvalidImageContentException("The ICC color-information property is empty or too large.");
+                }
+
+                stream.Position -= 4;
+                using IMemoryOwner<byte> payload = this.boxReader.ReadPayload(stream, boxLength);
+                byte[] profileData = payload.GetSpan()[4..].ToArray();
+                track.IccProfile = HeifPropertyParser.ParseIccProfile(profileData);
+            }
+            catch (Exception ex) when (this.ShouldIgnoreAncillarySegmentError(ex))
             {
-                throw new InvalidImageContentException("The ICC color-information property is empty or too large.");
+                // A malformed optional ICC profile does not invalidate the coded image outside strict mode.
             }
-
-            stream.Position -= 4;
-            using IMemoryOwner<byte> payload = this.boxReader.ReadPayload(stream, boxLength);
-            byte[] profileData = payload.GetSpan()[4..].ToArray();
-            track.IccProfile = HeifPropertyParser.ParseIccProfile(profileData);
         }
     }
 
@@ -1197,7 +1258,7 @@ internal sealed class HeifSequenceParser
             return;
         }
 
-        TableReader reader = new(stream, entryBytes, scratch, "sample sizes");
+        HeifBoxPayloadReader reader = new(stream, entryBytes, scratch, "sample sizes");
         for (uint i = 0; i < sampleCount; i++)
         {
             int size = ValidateSampleSize(reader.ReadUInt32());
@@ -1240,7 +1301,7 @@ internal sealed class HeifSequenceParser
         int retainedCount = (int)Math.Min(sampleCount, (uint)this.maxFrames);
         track.TotalSampleCount = sampleCount;
         track.Samples = new HeifSequenceSample[retainedCount];
-        TableReader reader = new(stream, entryBytes, scratch, "compact sample sizes");
+        HeifBoxPayloadReader reader = new(stream, entryBytes, scratch, "compact sample sizes");
         for (uint i = 0; i < sampleCount; i++)
         {
             uint size;
@@ -1298,7 +1359,7 @@ internal sealed class HeifSequenceParser
             throw new InvalidImageContentException("The image-sequence timing table is empty or has an invalid length.");
         }
 
-        TableReader reader = new(stream, entryBytes, scratch, "sample timing");
+        HeifBoxPayloadReader reader = new(stream, entryBytes, scratch, "sample timing");
         ulong describedSamples = 0;
         ulong decodedDuration = 0;
         int retainedOffset = 0;
@@ -1383,7 +1444,7 @@ internal sealed class HeifSequenceParser
         int retainedCapacity = (int)Math.Min(entryCount, (uint)track.Samples.Length);
         IMemoryOwner<SampleToChunkEntry> owner = this.allocator.Allocate<SampleToChunkEntry>(retainedCapacity);
         Span<SampleToChunkEntry> retainedEntries = owner.GetSpan();
-        TableReader reader = new(stream, entryBytes, scratch, "sample-to-chunk");
+        HeifBoxPayloadReader reader = new(stream, entryBytes, scratch, "sample-to-chunk");
         uint previousFirstChunk = 0;
         uint previousSamplesPerChunk = 0;
         ulong describedSamples = 0;
@@ -1452,7 +1513,7 @@ internal sealed class HeifSequenceParser
     {
         _ = ReadChunkCount(stream, boxLength, boxType, scratch);
         int entrySize = boxType == Heif4CharCode.Co64 ? 8 : 4;
-        TableReader reader = new(stream, checked((long)chunkCount * entrySize), scratch, "chunk offsets");
+        HeifBoxPayloadReader reader = new(stream, checked((long)chunkCount * entrySize), scratch, "chunk offsets");
         int retainedSample = 0;
         int runIndex = 0;
         for (uint chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
@@ -1509,7 +1570,7 @@ internal sealed class HeifSequenceParser
             throw new InvalidImageContentException("The sync-sample table is empty or has an invalid length.");
         }
 
-        TableReader reader = new(stream, entryBytes, scratch, "sync samples");
+        HeifBoxPayloadReader reader = new(stream, entryBytes, scratch, "sync samples");
         uint previousSample = 0;
         for (uint i = 0; i < entryCount; i++)
         {
@@ -1661,7 +1722,7 @@ internal sealed class HeifSequenceParser
             throw new InvalidImageContentException("The direct-reference sample map is empty or has an invalid length.");
         }
 
-        TableReader reader = new(stream, entryBytes, scratch, "direct-reference sample map");
+        HeifBoxPayloadReader reader = new(stream, entryBytes, scratch, "direct-reference sample map");
         ulong describedSamples = 0;
         int retainedOffset = 0;
         uint greatestGroupIndex = 0;
@@ -1737,7 +1798,7 @@ internal sealed class HeifSequenceParser
         }
 
         long entryBytes = boxLength - headerLength;
-        TableReader reader = new(stream, entryBytes, scratch, "direct-reference descriptions");
+        HeifBoxPayloadReader reader = new(stream, entryBytes, scratch, "direct-reference descriptions");
         long consumedBytes = 0;
         int assignmentOffset = 0;
         int directReferenceCount = 0;
@@ -1898,7 +1959,7 @@ internal sealed class HeifSequenceParser
             throw new InvalidImageContentException("The composition-offset table is empty or has an invalid length.");
         }
 
-        TableReader reader = new(stream, entryBytes, scratch, "composition offsets");
+        HeifBoxPayloadReader reader = new(stream, entryBytes, scratch, "composition offsets");
         ulong describedSamples = 0;
         int retainedOffset = 0;
         long leastOffset = long.MaxValue;
@@ -2141,6 +2202,34 @@ internal sealed class HeifSequenceParser
 
         return (int)size;
     }
+
+    /// <summary>
+    /// Determines whether a recoverable ancillary-segment error should be ignored by the configured decoder policy.
+    /// </summary>
+    /// <param name="exception">The exception raised while parsing the ancillary segment.</param>
+    /// <returns><see langword="true"/> when decoding may continue without the segment.</returns>
+    private bool ShouldIgnoreAncillarySegmentError(Exception exception)
+        => this.options.SegmentIntegrityHandling is not SegmentIntegrityHandling.Strict && IsRecoverableSegmentError(exception);
+
+    /// <summary>
+    /// Determines whether a recoverable image-data-segment error should be ignored by the configured decoder policy.
+    /// </summary>
+    /// <param name="exception">The exception raised while parsing the image-data segment.</param>
+    /// <returns><see langword="true"/> when decoding may continue without the segment.</returns>
+    private bool ShouldIgnoreImageDataSegmentError(Exception exception)
+        => this.options.SegmentIntegrityHandling is SegmentIntegrityHandling.IgnoreImageData && IsRecoverableSegmentError(exception);
+
+    /// <summary>
+    /// Identifies the recoverable exception types handled by <see cref="DecoderOptions.SegmentIntegrityHandling"/>.
+    /// </summary>
+    /// <param name="exception">The exception raised while parsing a segment.</param>
+    /// <returns><see langword="true"/> when the exception represents a recoverable segment error.</returns>
+    private static bool IsRecoverableSegmentError(Exception exception)
+        => exception is ImageFormatException
+            or InvalidIccProfileException
+            or InvalidImageContentException
+            or InvalidOperationException
+            or NotSupportedException;
 
     /// <summary>
     /// Records one unique child box while retaining only its stream range.
@@ -2475,142 +2564,5 @@ internal sealed class HeifSequenceParser
         /// Gets a value indicating whether the track contains non-output samples.
         /// </summary>
         public bool HasHiddenSamples { get; }
-    }
-
-    /// <summary>
-    /// Reads fixed-width sample-table values through one bounded reusable buffer.
-    /// </summary>
-    private ref struct TableReader
-    {
-        /// <summary>
-        /// The source stream shared by the container parser.
-        /// </summary>
-        private readonly Stream stream;
-
-        /// <summary>
-        /// The parser-owned buffer reused for sequential values.
-        /// </summary>
-        private readonly Span<byte> buffer;
-
-        /// <summary>
-        /// The table name used in malformed-image diagnostics.
-        /// </summary>
-        private readonly string name;
-
-        /// <summary>
-        /// The number of bytes not yet loaded from the bounded table payload.
-        /// </summary>
-        private long remaining;
-
-        /// <summary>
-        /// The next unread byte in <see cref="buffer"/>.
-        /// </summary>
-        private int offset;
-
-        /// <summary>
-        /// The number of valid bytes currently stored in <see cref="buffer"/>.
-        /// </summary>
-        private int count;
-
-        /// <summary>
-        /// Initializes a new instance of the <see cref="TableReader"/> struct.
-        /// </summary>
-        /// <param name="stream">The stream positioned at the table entries.</param>
-        /// <param name="length">The exact number of bounded entry bytes.</param>
-        /// <param name="buffer">The parser-owned reusable buffer.</param>
-        /// <param name="name">The table name used in malformed-image diagnostics.</param>
-        public TableReader(Stream stream, long length, Span<byte> buffer, string name)
-        {
-            this.stream = stream;
-            this.buffer = buffer;
-            this.name = name;
-            this.remaining = length;
-            this.offset = 0;
-            this.count = 0;
-        }
-
-        /// <summary>
-        /// Reads one unsigned byte from the bounded table.
-        /// </summary>
-        /// <returns>The next byte.</returns>
-        public byte ReadByte()
-        {
-            this.Ensure(1);
-            return this.buffer[this.offset++];
-        }
-
-        /// <summary>
-        /// Reads one big-endian unsigned 16-bit value from the bounded table.
-        /// </summary>
-        /// <returns>The next 16-bit value.</returns>
-        public ushort ReadUInt16()
-        {
-            this.Ensure(2);
-            ushort value = BinaryPrimitives.ReadUInt16BigEndian(this.buffer[this.offset..]);
-            this.offset += 2;
-            return value;
-        }
-
-        /// <summary>
-        /// Reads one big-endian unsigned 32-bit value from the bounded table.
-        /// </summary>
-        /// <returns>The next 32-bit value.</returns>
-        public uint ReadUInt32()
-        {
-            this.Ensure(4);
-            uint value = BinaryPrimitives.ReadUInt32BigEndian(this.buffer[this.offset..]);
-            this.offset += 4;
-            return value;
-        }
-
-        /// <summary>
-        /// Reads one big-endian unsigned 64-bit value from the bounded table.
-        /// </summary>
-        /// <returns>The next 64-bit value.</returns>
-        public ulong ReadUInt64()
-        {
-            this.Ensure(8);
-            ulong value = BinaryPrimitives.ReadUInt64BigEndian(this.buffer[this.offset..]);
-            this.offset += 8;
-            return value;
-        }
-
-        /// <summary>
-        /// Refills the reusable buffer without reading beyond the bounded table payload.
-        /// </summary>
-        /// <param name="required">The number of contiguous bytes required by the next value.</param>
-        private void Ensure(int required)
-        {
-            int buffered = this.count - this.offset;
-            if (buffered >= required)
-            {
-                return;
-            }
-
-            if (buffered > 0)
-            {
-                this.buffer.Slice(this.offset, buffered).CopyTo(this.buffer);
-            }
-
-            this.offset = 0;
-            this.count = buffered;
-            while (this.count < required && this.remaining > 0)
-            {
-                int requested = (int)Math.Min(this.buffer.Length - this.count, this.remaining);
-                int read = this.stream.Read(this.buffer.Slice(this.count, requested));
-                if (read == 0)
-                {
-                    throw new InvalidImageContentException($"The {this.name} table is truncated.");
-                }
-
-                this.count += read;
-                this.remaining -= read;
-            }
-
-            if (this.count < required)
-            {
-                throw new InvalidImageContentException($"The {this.name} table is truncated.");
-            }
-        }
     }
 }

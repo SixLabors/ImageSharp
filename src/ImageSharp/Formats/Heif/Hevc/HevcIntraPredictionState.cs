@@ -111,7 +111,7 @@ internal sealed class HevcIntraPredictionState : IDisposable
         int predictionBlockLog2 = usesNxNPartitions ? log2Size - 1 : log2Size;
         int predictionBlockSize = 1 << predictionBlockLog2;
         int predictionBlockCount = usesNxNPartitions ? 4 : 1;
-        Span<byte> mostProbableFlags = stackalloc byte[4];
+        InlineArray4<byte> mostProbableFlags = default;
 
         // HEVC codes every prev_intra_luma_pred_flag before any associated mode suffix. Preserve that two-pass
         // ordering because decoding one complete mode at a time would consume a different CABAC bit sequence.
@@ -120,7 +120,9 @@ internal sealed class HevcIntraPredictionState : IDisposable
             mostProbableFlags[index] = reader.ReadPreviousIntraLumaPredictionFlag() ? (byte)1 : (byte)0;
         }
 
-        Span<byte> mostProbableModes = stackalloc byte[3];
+        InlineArray4<byte> mostProbableModes = default;
+        Span<byte> mostProbableModeSpan = mostProbableModes[..3];
+
         for (int index = 0; index < predictionBlockCount; index++)
         {
             int offsetX = (index & 1) * predictionBlockSize;
@@ -135,22 +137,22 @@ internal sealed class HevcIntraPredictionState : IDisposable
                 predictionY,
                 predictionLeftAvailable,
                 predictionAboveAvailable,
-                mostProbableModes);
+                mostProbableModeSpan);
 
             int mode;
             if (mostProbableFlags[index] != 0)
             {
-                mode = mostProbableModes[reader.ReadMostProbableIntraLumaPredictionIndex()];
+                mode = mostProbableModeSpan[reader.ReadMostProbableIntraLumaPredictionIndex()];
             }
             else
             {
-                SortThree(mostProbableModes);
+                SortThree(mostProbableModeSpan);
                 mode = reader.ReadRemainingIntraLumaPredictionMode();
-                for (int candidate = 0; candidate < mostProbableModes.Length; candidate++)
+                for (int candidate = 0; candidate < mostProbableModeSpan.Length; candidate++)
                 {
                     // The remaining-mode code omits the three probable values, so each candidate at or below the
                     // provisional result advances the decoded mode over that omitted slot.
-                    mode += mode >= mostProbableModes[candidate] ? 1 : 0;
+                    mode += mode >= mostProbableModeSpan[candidate] ? 1 : 0;
                 }
             }
 

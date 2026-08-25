@@ -114,9 +114,27 @@ internal sealed class HevcCabacContexts
     private const int ContextCount = 178;
 
     /// <summary>
-    /// The HEVC intra-slice initialization values in the same order as the owned context ranges.
+    /// The contiguous adaptive context storage owned by the entropy substream.
     /// </summary>
-    private static readonly byte[] IntraInitializationValues =
+    private readonly HevcCabacContext[] contexts;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HevcCabacContexts"/> class for an intra-coded slice.
+    /// </summary>
+    /// <param name="quantizationParameter">The slice luma quantization parameter.</param>
+    public HevcCabacContexts(int quantizationParameter)
+    {
+        this.contexts = new HevcCabacContext[ContextCount];
+        for (int index = 0; index < this.contexts.Length; index++)
+        {
+            this.contexts[index] = new HevcCabacContext(quantizationParameter, IntraInitializationValues[index]);
+        }
+    }
+
+    /// <summary>
+    /// Gets the HEVC intra-slice initialization values in the same order as the owned context ranges.
+    /// </summary>
+    private static ReadOnlySpan<byte> IntraInitializationValues =>
     [
 
         // cu_transquant_bypass_flag
@@ -177,24 +195,6 @@ internal sealed class HevcCabacContexts
         // cross_comp_pred: five sign/magnitude contexts for Cb followed by five for Cr
         154, 154, 154, 154, 154, 154, 154, 154, 154, 154
     ];
-
-    /// <summary>
-    /// The contiguous adaptive context storage owned by the entropy substream.
-    /// </summary>
-    private readonly HevcCabacContext[] contexts;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="HevcCabacContexts"/> class for an intra-coded slice.
-    /// </summary>
-    /// <param name="quantizationParameter">The slice luma quantization parameter.</param>
-    public HevcCabacContexts(int quantizationParameter)
-    {
-        this.contexts = new HevcCabacContext[ContextCount];
-        for (int index = 0; index < this.contexts.Length; index++)
-        {
-            this.contexts[index] = new HevcCabacContext(quantizationParameter, IntraInitializationValues[index]);
-        }
-    }
 
     /// <summary>
     /// Gets the coding-unit transquant-bypass context.

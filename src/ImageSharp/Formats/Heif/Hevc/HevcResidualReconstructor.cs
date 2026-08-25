@@ -13,16 +13,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 internal static class HevcResidualReconstructor
 {
     /// <summary>
-    /// The horizontal intra-prediction mode defined by H.265.
-    /// </summary>
-    private const int HorizontalIntraPredictionMode = 10;
-
-    /// <summary>
-    /// The vertical intra-prediction mode defined by H.265.
-    /// </summary>
-    private const int VerticalIntraPredictionMode = 26;
-
-    /// <summary>
     /// The minimum residual sample represented by the decoder reconstruction pipeline.
     /// </summary>
     private const int ResidualMinimum = short.MinValue;
@@ -69,14 +59,6 @@ internal static class HevcResidualReconstructor
         /// <returns>The reconstructed residual.</returns>
         static abstract int Invoke(int value, int shift);
     }
-
-    /// <summary>
-    /// Gets the 4:2:2 chroma intra-angle remapping defined by H.265 Table 8-4.
-    /// </summary>
-    private static ReadOnlySpan<byte> Chroma422IntraAngleMap =>
-    [
-        0, 1, 2, 2, 2, 2, 3, 5, 7, 8, 10, 12, 13, 15, 17, 18, 19, 20, 21, 22, 23, 23, 24, 24, 25, 25, 26, 27, 27, 28, 28, 29, 29, 30, 31,
-    ];
 
     /// <summary>
     /// Copies one transquant-bypass coefficient block into residual sample order.
@@ -154,11 +136,11 @@ internal static class HevcResidualReconstructor
     /// <returns>The residual differential mode selected by the prediction direction.</returns>
     public static HevcResidualDpcmMode GetImplicitResidualDpcmMode(int intraPredictionMode, bool remapChroma422)
     {
-        int predictionMode = remapChroma422 ? Chroma422IntraAngleMap[intraPredictionMode] : intraPredictionMode;
+        int predictionMode = remapChroma422 ? HevcIntraPredictionMode.RemapChroma422(intraPredictionMode) : intraPredictionMode;
         return predictionMode switch
         {
-            HorizontalIntraPredictionMode => HevcResidualDpcmMode.Horizontal,
-            VerticalIntraPredictionMode => HevcResidualDpcmMode.Vertical,
+            HevcIntraPredictionMode.Horizontal => HevcResidualDpcmMode.Horizontal,
+            HevcIntraPredictionMode.Vertical => HevcResidualDpcmMode.Vertical,
             _ => HevcResidualDpcmMode.None,
         };
     }

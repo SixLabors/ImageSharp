@@ -55,6 +55,16 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     private readonly ImageMetadata metadata;
 
     /// <summary>
+    /// The shared bounded box reader used by the item and image-sequence container paths.
+    /// </summary>
+    private readonly HeifBoxReader boxReader;
+
+    /// <summary>
+    /// The fixed scratch buffer reused for all item-container box headers in this decode operation.
+    /// </summary>
+    private readonly byte[] boxHeaderScratch;
+
+    /// <summary>
     /// The item identifier selected by the primary-item box.
     /// </summary>
     private uint primaryItem;
@@ -88,6 +98,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     {
         this.configuration = options.Configuration;
         this.metadata = new ImageMetadata();
+        this.boxReader = new HeifBoxReader(this.configuration.MemoryAllocator);
+        this.boxHeaderScratch = new byte[8];
         this.items = [];
         this.itemLinks = [];
     }
@@ -109,7 +121,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         // the metadata box. Complete the top-level scan before resolving and decoding the primary item.
         while (stream.Position < stream.Length)
         {
-            long boxLength = this.ReadBoxHeader(stream, stream.Length, out Heif4CharCode boxType, true);
+            long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderScratch, out Heif4CharCode boxType, true);
             switch (boxType)
             {
                 case Heif4CharCode.Meta:
@@ -117,14 +129,14 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     break;
                 case Heif4CharCode.Mdat:
                 case Heif4CharCode.Free:
-                    SkipBox(stream, boxLength);
+                    HeifBoxReader.Skip(stream, boxLength);
                     break;
                 case 0U:
                     // Some files have trailing zeros, skiping to EOF.
-                    SkipBox(stream, stream.Length - stream.Position);
+                    HeifBoxReader.Skip(stream, stream.Length - stream.Position);
                     break;
                 default:
-                    SkipBox(stream, boxLength);
+                    HeifBoxReader.Skip(stream, boxLength);
                     break;
             }
         }
@@ -149,7 +161,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         // metadata come from item declarations and associated properties rather than reconstructed pixels.
         while (stream.Position < stream.Length)
         {
-            long boxLength = this.ReadBoxHeader(stream, stream.Length, out Heif4CharCode boxType, true);
+            long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderScratch, out Heif4CharCode boxType, true);
             switch (boxType)
             {
                 case Heif4CharCode.Meta:
@@ -157,7 +169,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     break;
                 default:
                     // Silently skip all other box types.
-                    SkipBox(stream, boxLength);
+                    HeifBoxReader.Skip(stream, boxLength);
                     break;
             }
         }
@@ -181,7 +193,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <returns><see langword="true"/> when the complete file-type payload advertises a supported still-image brand.</returns>
     private bool CheckFileTypeBox(BufferedReadStream stream)
     {
-        long boxLength = this.ReadBoxHeader(stream, stream.Length, out Heif4CharCode boxType, true);
+        long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderScratch, out Heif4CharCode boxType, true);
         if (boxType != Heif4CharCode.Ftyp)
         {
             return false;
@@ -192,7 +204,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             return false;
         }
 
-        using IMemoryOwner<byte> boxMemory = this.ReadIntoBuffer(stream, boxLength);
+        using IMemoryOwner<byte> boxMemory = this.boxReader.ReadPayload(stream, boxLength);
         Span<byte> boxBuffer = boxMemory.GetSpan();
         return HeifConstants.IsSupportedFileType(boxBuffer);
     }
@@ -301,145 +313,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Reads an ISO BMFF box header and resolves its validated payload length.
-    /// </summary>
-    /// <param name="stream">The stream positioned at the box size field.</param>
-    /// <param name="parentEndPosition">The absolute end position of the containing box or file.</param>
-    /// <param name="boxType">Receives the box four-character code.</param>
-    /// <param name="topLevel">Indicates whether a size-zero box may extend to the end of the file.</param>
-    /// <returns>The number of payload bytes following the complete variable-length header.</returns>
-    private long ReadBoxHeader(BufferedReadStream stream, long parentEndPosition, out Heif4CharCode boxType, bool topLevel = false)
-    {
-        if (parentEndPosition - stream.Position < 8)
-        {
-            throw new InvalidImageContentException("Not enough data to read the box header.");
-        }
-
-        Span<byte> buf = stackalloc byte[8];
-        int bytesRead = stream.Read(buf);
-        if (bytesRead != 8)
-        {
-            throw new InvalidImageContentException("Not enough data to read the box header.");
-        }
-
-        ulong boxSize = BinaryPrimitives.ReadUInt32BigEndian(buf);
-        int headerSize = 8;
-        boxType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(buf[4..]);
-
-        if (boxSize == 1)
-        {
-            // A 32-bit size value of one replaces the size field with the following unsigned 64-bit largesize value.
-            if (parentEndPosition - stream.Position < 8)
-            {
-                throw new InvalidImageContentException("Not enough data to read the extended box size.");
-            }
-
-            bytesRead = stream.Read(buf);
-            if (bytesRead != 8)
-            {
-                throw new InvalidImageContentException("Not enough data to read the extended box size.");
-            }
-
-            boxSize = BinaryPrimitives.ReadUInt64BigEndian(buf);
-            headerSize += 8;
-        }
-
-        if (boxType == Heif4CharCode.Uuid)
-        {
-            if (parentEndPosition - stream.Position < 16)
-            {
-                throw new InvalidImageContentException("Not enough data to read the UUID box user type.");
-            }
-
-            // The UUID user type is part of the variable-sized box header, even though this decoder skips its value.
-            SkipBox(stream, 16);
-            headerSize += 16;
-        }
-
-        if (boxSize == 0)
-        {
-            // ISO BMFF permits a size-zero box only at file level, where it consumes the rest of the file.
-            if (!topLevel)
-            {
-                throw new InvalidImageContentException("A nested box cannot extend to the end of the file.");
-            }
-
-            return parentEndPosition - stream.Position;
-        }
-
-        if (boxSize < (ulong)headerSize)
-        {
-            throw new InvalidImageContentException("Box size is smaller than its header.");
-        }
-
-        ulong contentLength = boxSize - (ulong)headerSize;
-        if (contentLength > (ulong)(parentEndPosition - stream.Position))
-        {
-            throw new InvalidImageContentException("Box size extends beyond its parent boundary.");
-        }
-
-        return (long)contentLength;
-    }
-
-    /// <summary>
-    /// Parses an ISO BMFF child-box header from a bounded parent payload.
-    /// </summary>
-    /// <param name="buffer">The remaining bytes in the parent payload, beginning at the child size field.</param>
-    /// <param name="length">Receives the validated child payload length.</param>
-    /// <param name="boxType">Receives the child box four-character code.</param>
-    /// <returns>The number of bytes occupied by the complete child header.</returns>
-    private static int ParseBoxHeader(Span<byte> buffer, out long length, out Heif4CharCode boxType)
-    {
-        if (buffer.Length < 8)
-        {
-            throw new InvalidImageContentException("Not enough data to read the box header.");
-        }
-
-        ulong boxSize = BinaryPrimitives.ReadUInt32BigEndian(buffer);
-        int bytesRead = 8;
-        boxType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(buffer[4..]);
-        if (boxSize == 1)
-        {
-            if (buffer.Length < 16)
-            {
-                throw new InvalidImageContentException("Not enough data to read the extended box size.");
-            }
-
-            boxSize = BinaryPrimitives.ReadUInt64BigEndian(buffer[bytesRead..]);
-            bytesRead += 8;
-        }
-
-        if (boxType == Heif4CharCode.Uuid)
-        {
-            if (buffer.Length - bytesRead < 16)
-            {
-                throw new InvalidImageContentException("Not enough data to read the UUID box user type.");
-            }
-
-            bytesRead += 16;
-        }
-
-        if (boxSize == 0)
-        {
-            throw new InvalidImageContentException("A nested box cannot extend to the end of the file.");
-        }
-
-        if (boxSize < (ulong)bytesRead)
-        {
-            throw new InvalidImageContentException("Box size is smaller than its header.");
-        }
-
-        ulong contentLength = boxSize - (ulong)bytesRead;
-        if (contentLength > (ulong)(buffer.Length - bytesRead))
-        {
-            throw new InvalidImageContentException("Box size extends beyond its parent boundary.");
-        }
-
-        length = (long)contentLength;
-        return bytesRead;
-    }
-
-    /// <summary>
     /// Indexes and parses the recognized children of a metadata box.
     /// </summary>
     /// <param name="stream">The stream positioned at the metadata full-box header.</param>
@@ -459,7 +332,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         Dictionary<Heif4CharCode, (long Offset, long Length)> boxes = [];
         while (stream.Position < endPosition)
         {
-            long length = this.ReadBoxHeader(stream, endPosition, out Heif4CharCode boxType);
+            long length = HeifBoxReader.ReadHeader(stream, endPosition, this.boxHeaderScratch, out Heif4CharCode boxType);
             if (Array.IndexOf(MetadataParseOrder, boxType) >= 0)
             {
                 // Association and location boxes can precede the item declarations they reference.
@@ -469,7 +342,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 }
             }
 
-            SkipBox(stream, length);
+            HeifBoxReader.Skip(stream, length);
         }
 
         foreach (Heif4CharCode boxType in MetadataParseOrder)
@@ -523,7 +396,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="boxLength">The bounded handler payload length.</param>
     private void ParseHandler(BufferedReadStream stream, long boxLength)
     {
-        using IMemoryOwner<byte> boxMemory = this.ReadIntoBuffer(stream, boxLength);
+        using IMemoryOwner<byte> boxMemory = this.boxReader.ReadPayload(stream, boxLength);
         Span<byte> boxBuffer = boxMemory.GetSpan();
 
         EnsureBufferRemaining(boxBuffer, 0, 12, "handler");
@@ -545,7 +418,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="boxLength">The bounded item-information payload length.</param>
     private void ParseItemInfo(BufferedReadStream stream, long boxLength)
     {
-        using IMemoryOwner<byte> boxMemory = this.ReadIntoBuffer(stream, boxLength);
+        using IMemoryOwner<byte> boxMemory = this.boxReader.ReadPayload(stream, boxLength);
         Span<byte> boxBuffer = boxMemory.GetSpan();
         EnsureBufferRemaining(boxBuffer, 0, 4, "item info");
 
@@ -577,7 +450,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <returns>The complete item-information-entry box length.</returns>
     private int ParseItemInfoEntry(Span<byte> buffer)
     {
-        int headerLength = ParseBoxHeader(buffer, out long boxLength, out Heif4CharCode boxType);
+        int headerLength = HeifBoxReader.ParseHeader(buffer, out long boxLength, out Heif4CharCode boxType);
         if (boxType != Heif4CharCode.Infe)
         {
             throw new InvalidImageContentException($"The item info box contains unexpected child '{boxType}'.");
@@ -699,7 +572,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="boxLength">The bounded item-reference payload length.</param>
     private void ParseItemReference(BufferedReadStream stream, long boxLength)
     {
-        using IMemoryOwner<byte> boxMemory = this.ReadIntoBuffer(stream, boxLength);
+        using IMemoryOwner<byte> boxMemory = this.boxReader.ReadPayload(stream, boxLength);
         Span<byte> boxBuffer = boxMemory.GetSpan();
         EnsureBufferRemaining(boxBuffer, 0, 4, "item reference");
 
@@ -714,7 +587,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         bytesRead += 4;
         while (bytesRead < boxLength)
         {
-            int referenceHeaderLength = ParseBoxHeader(boxBuffer[bytesRead..], out long referenceLength, out Heif4CharCode linkType);
+            int referenceHeaderLength = HeifBoxReader.ParseHeader(boxBuffer[bytesRead..], out long referenceLength, out Heif4CharCode linkType);
             int referenceEnd = checked(bytesRead + referenceHeaderLength + (int)referenceLength);
             Span<byte> referenceBuffer = boxBuffer[..referenceEnd];
             bytesRead += referenceHeaderLength;
@@ -756,7 +629,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="boxLength">The bounded primary-item payload length.</param>
     private void ParsePrimaryItem(BufferedReadStream stream, long boxLength)
     {
-        using IMemoryOwner<byte> boxMemory = this.ReadIntoBuffer(stream, boxLength);
+        using IMemoryOwner<byte> boxMemory = this.boxReader.ReadPayload(stream, boxLength);
         Span<byte> boxBuffer = boxMemory.GetSpan();
         EnsureBufferRemaining(boxBuffer, 0, 4, "primary item");
 
@@ -789,7 +662,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         List<(long Offset, long Length)> associations = [];
         while (stream.Position < endBoxPosition)
         {
-            long containerLength = this.ReadBoxHeader(stream, endBoxPosition, out Heif4CharCode containerType);
+            long containerLength = HeifBoxReader.ReadHeader(stream, endBoxPosition, this.boxHeaderScratch, out Heif4CharCode containerType);
             if (containerType == Heif4CharCode.Ipco)
             {
                 if (propertyContainer.HasValue)
@@ -805,7 +678,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             }
 
             // Unknown optional children remain bounded by iprp and do not expand the still-image model.
-            SkipBox(stream, containerLength);
+            HeifBoxReader.Skip(stream, containerLength);
         }
 
         if (!propertyContainer.HasValue)
@@ -835,8 +708,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         long endPosition = stream.Position + boxLength;
         while (stream.Position < endPosition)
         {
-            long itemLength = this.ReadBoxHeader(stream, endPosition, out Heif4CharCode itemType);
-            using IMemoryOwner<byte> boxMemory = this.ReadIntoBuffer(stream, itemLength);
+            long itemLength = HeifBoxReader.ReadHeader(stream, endPosition, this.boxHeaderScratch, out Heif4CharCode itemType);
+            using IMemoryOwner<byte> boxMemory = this.boxReader.ReadPayload(stream, itemLength);
             Span<byte> boxBuffer = boxMemory.GetSpan();
             switch (itemType)
             {
@@ -1345,7 +1218,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="properties">The properties in the order used by association indices.</param>
     private void ParsePropertyAssociation(BufferedReadStream stream, long boxLength, List<KeyValuePair<Heif4CharCode, object>> properties)
     {
-        using IMemoryOwner<byte> boxMemory = this.ReadIntoBuffer(stream, boxLength);
+        using IMemoryOwner<byte> boxMemory = this.boxReader.ReadPayload(stream, boxLength);
         Span<byte> boxBuffer = boxMemory.GetSpan();
         EnsureBufferRemaining(boxBuffer, 0, 8, "item property association");
         byte version = boxBuffer[0];
@@ -1593,7 +1466,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="boxLength">The bounded item-location payload length.</param>
     private void ParseItemLocation(BufferedReadStream stream, long boxLength)
     {
-        using IMemoryOwner<byte> boxMemory = this.ReadIntoBuffer(stream, boxLength);
+        using IMemoryOwner<byte> boxMemory = this.boxReader.ReadPayload(stream, boxLength);
         Span<byte> boxBuffer = boxMemory.GetSpan();
         int bytesRead = 0;
         EnsureBufferRemaining(boxBuffer, bytesRead, 6, "item location");
@@ -1826,7 +1699,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     throw new InvalidImageContentException($"Item {item.Id} uses an unsupported location origin.");
                 }
 
-                EnsureBoxInsideParent(loc.Length, sourceBytesRemaining);
+                HeifBoxReader.EnsureInsideParent(loc.Length, sourceBytesRemaining);
                 stream.Position = sourceOffset;
                 int extentLength = (int)loc.Length;
                 int bytesRead = stream.Read(itemBuffer.Slice(writeOffset, extentLength));
@@ -2345,59 +2218,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         if ((uint)offset > (uint)buffer.Length || (uint)count > (uint)(buffer.Length - offset))
         {
             throw new InvalidImageContentException($"The {boxName} box is truncated.");
-        }
-    }
-
-    /// <summary>
-    /// Advances over a box payload without narrowing its 64-bit length.
-    /// </summary>
-    /// <param name="stream">The seekable container stream.</param>
-    /// <param name="boxLength">The validated payload length.</param>
-    private static void SkipBox(Stream stream, long boxLength)
-        => stream.Seek(boxLength, SeekOrigin.Current);
-
-    /// <summary>
-    /// Reads a complete bounded box payload into allocator-owned memory.
-    /// </summary>
-    /// <param name="stream">The stream positioned at the payload start.</param>
-    /// <param name="length">The validated payload length.</param>
-    /// <returns>An owner containing exactly the requested payload bytes.</returns>
-    private IMemoryOwner<byte> ReadIntoBuffer(Stream stream, long length)
-    {
-        if ((ulong)length > int.MaxValue)
-        {
-            throw new InvalidImageContentException("Box content is too large to buffer.");
-        }
-
-        int bufferLength = (int)length;
-        IMemoryOwner<byte> buffer = this.configuration.MemoryAllocator.Allocate<byte>(bufferLength);
-        int bytesRead = stream.Read(buffer.GetSpan());
-        if (bytesRead != bufferLength)
-        {
-            throw new InvalidImageContentException("Stream length is not sufficient for box content.");
-        }
-
-        return buffer;
-    }
-
-    /// <summary>
-    /// Validates a box payload length against the bytes remaining in the file.
-    /// </summary>
-    /// <param name="boxLength">The declared box payload length.</param>
-    /// <param name="stream">The stream positioned at the payload start.</param>
-    private static void EnsureBoxBoundary(long boxLength, Stream stream)
-        => EnsureBoxInsideParent(boxLength, stream.Length - stream.Position);
-
-    /// <summary>
-    /// Validates a child payload length against its remaining parent payload.
-    /// </summary>
-    /// <param name="boxLength">The declared child payload length.</param>
-    /// <param name="parentLength">The number of bytes remaining in the parent.</param>
-    private static void EnsureBoxInsideParent(long boxLength, long parentLength)
-    {
-        if (boxLength < 0 || parentLength < 0 || boxLength > parentLength)
-        {
-            throw new InvalidImageContentException("Box size extends beyond its parent boundary.");
         }
     }
 

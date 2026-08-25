@@ -29,6 +29,136 @@ public enum Heif4CharCode : uint
     Mdat = 0x6D646174U,
 
     /// <summary>
+    /// Movie container for an image sequence.
+    /// </summary>
+    Moov = 0x6D6F6F76U,
+
+    /// <summary>
+    /// Movie header for an image sequence.
+    /// </summary>
+    Mvhd = 0x6D766864U,
+
+    /// <summary>
+    /// Image sequence track.
+    /// </summary>
+    Trak = 0x7472616BU,
+
+    /// <summary>
+    /// Image sequence track header.
+    /// </summary>
+    Tkhd = 0x746B6864U,
+
+    /// <summary>
+    /// Image sequence track references.
+    /// </summary>
+    Tref = 0x74726566U,
+
+    /// <summary>
+    /// Image sequence edit container.
+    /// </summary>
+    Edts = 0x65647473U,
+
+    /// <summary>
+    /// Image sequence edit list.
+    /// </summary>
+    Elst = 0x656C7374U,
+
+    /// <summary>
+    /// Image sequence media container.
+    /// </summary>
+    Mdia = 0x6D646961U,
+
+    /// <summary>
+    /// Image sequence media header.
+    /// </summary>
+    Mdhd = 0x6D646864U,
+
+    /// <summary>
+    /// Image sequence media information.
+    /// </summary>
+    Minf = 0x6D696E66U,
+
+    /// <summary>
+    /// Image sequence sample table.
+    /// </summary>
+    Stbl = 0x7374626CU,
+
+    /// <summary>
+    /// Image sequence sample descriptions.
+    /// </summary>
+    Stsd = 0x73747364U,
+
+    /// <summary>
+    /// Image sequence sample timing.
+    /// </summary>
+    Stts = 0x73747473U,
+
+    /// <summary>
+    /// Image sequence composition offsets.
+    /// </summary>
+    Ctts = 0x63747473U,
+
+    /// <summary>
+    /// Image sequence composition-to-decode timing.
+    /// </summary>
+    Cslg = 0x63736C67U,
+
+    /// <summary>
+    /// Image sequence sample-to-chunk map.
+    /// </summary>
+    Stsc = 0x73747363U,
+
+    /// <summary>
+    /// Image sequence sample sizes.
+    /// </summary>
+    Stsz = 0x7374737AU,
+
+    /// <summary>
+    /// Compact image sequence sample sizes.
+    /// </summary>
+    Stz2 = 0x73747A32U,
+
+    /// <summary>
+    /// Image sequence 32-bit chunk offsets.
+    /// </summary>
+    Stco = 0x7374636FU,
+
+    /// <summary>
+    /// Image sequence 64-bit chunk offsets.
+    /// </summary>
+    Co64 = 0x636F3634U,
+
+    /// <summary>
+    /// Image sequence sync samples.
+    /// </summary>
+    Stss = 0x73747373U,
+
+    /// <summary>
+    /// Image sequence sample group descriptions.
+    /// </summary>
+    Sgpd = 0x73677064U,
+
+    /// <summary>
+    /// Image sequence sample-to-group map.
+    /// </summary>
+    Sbgp = 0x73626770U,
+
+    /// <summary>
+    /// Image sequence coding constraints.
+    /// </summary>
+    Ccst = 0x63637374U,
+
+    /// <summary>
+    /// Auxiliary image sequence type.
+    /// </summary>
+    Auxi = 0x61757869U,
+
+    /// <summary>
+    /// Self-contained data location.
+    /// </summary>
+    Url  = 0x75726C20U,
+
+    /// <summary>
     /// Item Information Entry.
     /// </summary>
     Infe = 0x696E6665U,
@@ -219,9 +349,34 @@ public enum Heif4CharCode : uint
     Avis = 0x61766973U,
 
     /// <summary>
+    /// AVIF intra-only image sequence brand.
+    /// </summary>
+    Avio = 0x6176696FU,
+
+    /// <summary>
+    /// HEIF image sequence structural brand.
+    /// </summary>
+    Msf1 = 0x6D736631U,
+
+    /// <summary>
+    /// ISO base media version 8 structural brand.
+    /// </summary>
+    Iso8 = 0x69736F38U,
+
+    /// <summary>
     /// HEVC-coded image item.
     /// </summary>
     Hvc1 = 0x68766331U,
+
+    /// <summary>
+    /// Layered High Efficiency Coding sample.
+    /// </summary>
+    Hvc2 = 0x68766332U,
+
+    /// <summary>
+    /// Layered High Efficiency Coding sample.
+    /// </summary>
+    Lhv1 = 0x6C687631U,
 
     /// <summary>
     /// Legacy JPEG coded tile.
@@ -317,6 +472,16 @@ public enum Heif4CharCode : uint
     /// Picture handler type.
     /// </summary>
     Pict = 0x70696374U,
+
+    /// <summary>
+    /// Auxiliary image sequence handler type.
+    /// </summary>
+    Auxv = 0x61757876U,
+
+    /// <summary>
+    /// Video handler type.
+    /// </summary>
+    Vide = 0x76696465U,
 
     /// <summary>
     /// Unique Identifier.

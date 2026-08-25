@@ -166,6 +166,11 @@ internal sealed class HeifSequenceTrack
     public bool IsAlpha { get; set; }
 
     /// <summary>
+    /// Gets or sets the identifier of the alpha track that premultiplies this color track, or zero when color is unassociated.
+    /// </summary>
+    public uint PremultipliedByTrackId { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether the color track is premultiplied by this auxiliary alpha track.
     /// </summary>
     public bool IsPremultiplied { get; set; }

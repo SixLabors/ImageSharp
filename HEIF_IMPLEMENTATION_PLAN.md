@@ -65,7 +65,8 @@ Checkboxes may be marked complete only when the implementation and the verificat
       - [x] Recognize supported `avis`, `hevc`, and `hevx` sequence brands while continuing to reject layered HEVC and JPEG sequence brands.
       - [x] Identify bounded sequence dimensions, frame count, timing, repetition, codec precision, color, HDR, pixel aspect ratio, Exif, and XMP state.
       - [x] Decode all-sync independently decodable AV1 samples into directly adopted ImageSharp frames without cloning complete pixel buffers.
-      - [ ] Complete reference-dependent AV1 and HEVC sample reconstruction, exact alpha-track time matching, track-matrix presentation, and independent vectors.
+      - [x] Match auxiliary alpha samples by exact decode duration, visibility, and presentation time, and validate premultiplication track identity.
+      - [ ] Complete reference-dependent AV1 and HEVC sample reconstruction, track-matrix presentation, and independent sequence vectors.
     - [ ] Write the same bounded movie, track, sample-description, location, dependency, timing, repetition, alpha, and metadata syntax from ImageSharp frames.
   - [ ] Decode frame dependencies, durations, repetition, frame-local auxiliary images, and frame-local metadata into the existing ImageSharp multi-frame model.
   - [ ] Encode ImageSharp frames, durations, repetition, frame-local auxiliary images, and frame-local metadata as independently decodable HEIC and AVIF image sequences.

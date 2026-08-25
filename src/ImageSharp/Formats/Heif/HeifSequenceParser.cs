@@ -152,7 +152,18 @@ internal sealed class HeifSequenceParser
             throw new InvalidImageContentException("The selected HEIF picture track could not be parsed.");
         }
 
-        ValidateAlphaTrack(colorTrack, alphaTrack);
+        try
+        {
+            ValidateAlphaTrack(colorTrack, alphaTrack);
+        }
+        catch (Exception ex) when (this.ShouldIgnoreImageDataSegmentError(ex))
+        {
+            // Alpha is optional image data. IgnoreImageData permits a malformed auxiliary sequence to be omitted while
+            // retaining the independently decodable color presentation.
+            alphaTrack = null;
+            colorTrack.IsPremultiplied = false;
+        }
+
         return new HeifSequence(colorTrack, alphaTrack, movieTimescale);
     }
 
@@ -257,7 +268,7 @@ internal sealed class HeifSequenceParser
             HandlerType = identity.HandlerType,
             TrackDuration = identity.TrackDuration,
             AuxiliaryForTrackId = identity.AuxiliaryForTrackId,
-            IsPremultiplied = identity.PremultipliedByTrackId != 0
+            PremultipliedByTrackId = identity.PremultipliedByTrackId
         };
 
         if (edit.IsPresent)
@@ -2167,6 +2178,16 @@ internal sealed class HeifSequenceParser
     /// <param name="alphaTrack">The optional linked alpha track.</param>
     private static void ValidateAlphaTrack(HeifSequenceTrack colorTrack, HeifSequenceTrack? alphaTrack)
     {
+        if (colorTrack.PremultipliedByTrackId != 0)
+        {
+            if (alphaTrack is null || colorTrack.PremultipliedByTrackId != alphaTrack.Id)
+            {
+                throw new InvalidImageContentException("The color image-sequence track references an unrelated premultiplication track.");
+            }
+
+            colorTrack.IsPremultiplied = true;
+        }
+
         if (alphaTrack is null)
         {
             return;
@@ -2179,12 +2200,41 @@ internal sealed class HeifSequenceParser
 
         for (int i = 0; i < colorTrack.Samples.Length; i++)
         {
-            ulong colorDuration = (ulong)colorTrack.Samples[i].Duration * alphaTrack.MediaTimescale;
-            ulong alphaDuration = (ulong)alphaTrack.Samples[i].Duration * colorTrack.MediaTimescale;
+            HeifSequenceSample colorSample = colorTrack.Samples[i];
+            HeifSequenceSample alphaSample = alphaTrack.Samples[i];
+            ulong colorDuration = (ulong)colorSample.Duration * alphaTrack.MediaTimescale;
+            ulong alphaDuration = (ulong)alphaSample.Duration * colorTrack.MediaTimescale;
             if (colorDuration != alphaDuration)
             {
                 throw new InvalidImageContentException("The alpha and color image-sequence samples have different presentation durations.");
             }
+
+            if (colorSample.IsHidden != alphaSample.IsHidden)
+            {
+                throw new InvalidImageContentException("The alpha and color image-sequence samples have different presentation visibility.");
+            }
+
+            if (!colorSample.IsHidden)
+            {
+                // Cross-multiplication retains exact signed presentation times without floating-point rounding or overflow.
+                Int128 colorCompositionTime = (Int128)colorSample.CompositionTime * alphaTrack.MediaTimescale;
+                Int128 alphaCompositionTime = (Int128)alphaSample.CompositionTime * colorTrack.MediaTimescale;
+                if (colorCompositionTime != alphaCompositionTime)
+                {
+                    throw new InvalidImageContentException("The alpha and color image-sequence samples have different presentation times.");
+                }
+            }
+        }
+
+        bool alphaHasPresentationProperties = alphaTrack.CleanAperture is not null || alphaTrack.RotationAngle is not null || alphaTrack.MirrorAxis is not null;
+        if (alphaHasPresentationProperties &&
+            (!Nullable.Equals(colorTrack.CleanAperture, alphaTrack.CleanAperture) ||
+             colorTrack.RotationAngle != alphaTrack.RotationAngle ||
+             colorTrack.MirrorAxis != alphaTrack.MirrorAxis))
+        {
+            // libavif accepts legacy alpha tracks with no transform properties, but requires exact equality when any
+            // alpha transform is declared because composition occurs before the shared color-track presentation step.
+            throw new NotSupportedException("The alpha and color image-sequence tracks use different presentation transforms.");
         }
     }
 

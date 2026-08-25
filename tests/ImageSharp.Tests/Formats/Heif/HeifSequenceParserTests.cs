@@ -176,6 +176,74 @@ public class HeifSequenceParserTests
         Assert.Equal(100, sequence.ColorTrack.Samples[1].CompositionTime);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void ParseMatchesAlphaTrackAndPremultiplicationByTrackId(bool colorTransforms, bool alphaTransforms)
+    {
+        byte[] data = CreateSequenceFileWithAlpha(1024, 1000, 2, colorTransforms, alphaTransforms);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = CreateParser(2);
+        stream.Position = 8;
+
+        HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data));
+
+        Assert.NotNull(sequence.AlphaTrack);
+        Assert.Equal(2U, sequence.AlphaTrack.Id);
+        Assert.True(sequence.AlphaTrack.IsAlpha);
+        Assert.True(sequence.ColorTrack.IsPremultiplied);
+    }
+
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    public void ParseRejectsAlphaTrackWithDifferentDecodeTiming(SegmentIntegrityHandling handling)
+    {
+        byte[] data = CreateSequenceFileWithAlpha(1024, 2000, 0);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = CreateParser(2, segmentIntegrityHandling: handling);
+        stream.Position = 8;
+
+        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
+    }
+
+    [Fact]
+    public void ParseDropsAlphaTrackWithDifferentDecodeTimingWhenImageDataErrorsAreIgnored()
+    {
+        byte[] data = CreateSequenceFileWithAlpha(1024, 2000, 0);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = CreateParser(2, segmentIntegrityHandling: SegmentIntegrityHandling.IgnoreImageData);
+        stream.Position = 8;
+
+        HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data));
+
+        Assert.Null(sequence.AlphaTrack);
+        Assert.False(sequence.ColorTrack.IsPremultiplied);
+    }
+
+    [Fact]
+    public void ParseRejectsPremultiplicationReferenceToUnrelatedTrack()
+    {
+        byte[] data = CreateSequenceFileWithAlpha(1024, 1000, 3);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = CreateParser(2);
+        stream.Position = 8;
+
+        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
+    }
+
+    [Fact]
+    public void ParseRejectsMismatchedAlphaPresentationTransforms()
+    {
+        byte[] data = CreateSequenceFileWithAlpha(1024, 1000, 0, false, true);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = CreateParser(2);
+        stream.Position = 8;
+
+        Assert.Throws<NotSupportedException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
+    }
+
     [Fact]
     public void ParseRejectsCompositionOffsetsForAv1()
     {
@@ -334,7 +402,8 @@ public class HeifSequenceParserTests
         int height = 240,
         byte[] av1Configuration = null,
         int? sampleSize = null,
-        bool allSamplesSync = false)
+        bool allSamplesSync = false,
+        uint premultipliedByTrackId = 0)
     {
         using MemoryStream stream = new();
         using BinaryWriter writer = new(stream, Encoding.UTF8, true);
@@ -351,6 +420,11 @@ public class HeifSequenceParserTests
 
         long track = BeginBox(writer, Heif4CharCode.Trak);
         WriteTrackHeader(writer, width, height);
+        if (premultipliedByTrackId != 0)
+        {
+            WriteTrackReference(writer, Heif4CharCode.Prem, premultipliedByTrackId);
+        }
+
         WriteEditList(writer);
         if (trackMetadata)
         {
@@ -393,6 +467,44 @@ public class HeifSequenceParserTests
             TrackXmpData.CopyTo(file.AsSpan(TrackXmpOffset));
         }
 
+        return file;
+    }
+
+    private static byte[] CreateSequenceFileWithAlpha(
+        uint chunkOffset,
+        uint alphaTimescale,
+        uint premultipliedByTrackId,
+        bool colorTransforms = false,
+        bool alphaTransforms = false)
+    {
+        byte[] colorFile = CreateSequenceFile(
+            chunkOffset,
+            trackProperties: colorTransforms,
+            premultipliedByTrackId: premultipliedByTrackId);
+
+        int movieLength = (int)BinaryPrimitives.ReadUInt32BigEndian(colorFile);
+        using MemoryStream stream = new();
+        using BinaryWriter writer = new(stream, Encoding.UTF8, true);
+        long track = BeginBox(writer, Heif4CharCode.Trak);
+        WriteTrackHeader(writer, 320, 240, 2);
+        WriteTrackReference(writer, Heif4CharCode.Auxl, 1);
+
+        long media = BeginBox(writer, Heif4CharCode.Mdia);
+        WriteMediaHeader(writer, alphaTimescale);
+        WriteHandler(writer, Heif4CharCode.Auxv);
+
+        long mediaInformation = BeginBox(writer, Heif4CharCode.Minf);
+        WriteDataInformation(writer);
+        WriteSampleTable(writer, chunkOffset, false, false, false, 1, alphaTransforms, false, 320, 240, null, null, false, true);
+        EndBox(writer, mediaInformation);
+        EndBox(writer, media);
+        EndBox(writer, track);
+
+        byte[] alphaTrack = stream.ToArray();
+        byte[] file = new byte[2048];
+        colorFile.AsSpan(0, movieLength).CopyTo(file);
+        alphaTrack.CopyTo(file, movieLength);
+        BinaryPrimitives.WriteUInt32BigEndian(file, (uint)(movieLength + alphaTrack.Length));
         return file;
     }
 
@@ -441,13 +553,13 @@ public class HeifSequenceParserTests
         return data;
     }
 
-    private static void WriteTrackHeader(BinaryWriter writer, int width, int height)
+    private static void WriteTrackHeader(BinaryWriter writer, int width, int height, uint trackId = 1)
     {
         long trackHeader = BeginBox(writer, Heif4CharCode.Tkhd);
         WriteFullBoxHeader(writer, 0, 3);
         WriteUInt32(writer, 0);
         WriteUInt32(writer, 0);
-        WriteUInt32(writer, 1);
+        WriteUInt32(writer, trackId);
         WriteUInt32(writer, 0);
         WriteUInt32(writer, 600);
         WriteZeros(writer, 16);
@@ -465,6 +577,15 @@ public class HeifSequenceParserTests
         EndBox(writer, trackHeader);
     }
 
+    private static void WriteTrackReference(BinaryWriter writer, Heif4CharCode referenceType, uint trackId)
+    {
+        long references = BeginBox(writer, Heif4CharCode.Tref);
+        long reference = BeginBox(writer, referenceType);
+        WriteUInt32(writer, trackId);
+        EndBox(writer, reference);
+        EndBox(writer, references);
+    }
+
     private static void WriteEditList(BinaryWriter writer)
     {
         long edit = BeginBox(writer, Heif4CharCode.Edts);
@@ -479,13 +600,13 @@ public class HeifSequenceParserTests
         EndBox(writer, edit);
     }
 
-    private static void WriteMediaHeader(BinaryWriter writer)
+    private static void WriteMediaHeader(BinaryWriter writer, uint timescale = 1000)
     {
         long mediaHeader = BeginBox(writer, Heif4CharCode.Mdhd);
         WriteFullBoxHeader(writer, 0, 0);
         WriteUInt32(writer, 0);
         WriteUInt32(writer, 0);
-        WriteUInt32(writer, 1000);
+        WriteUInt32(writer, timescale);
         WriteUInt32(writer, 200);
         WriteUInt16(writer, 21956);
         WriteUInt16(writer, 0);
@@ -599,10 +720,11 @@ public class HeifSequenceParserTests
         int height,
         byte[] av1Configuration,
         int? sampleSize,
-        bool allSamplesSync)
+        bool allSamplesSync,
+        bool alpha = false)
     {
         long sampleTable = BeginBox(writer, Heif4CharCode.Stbl);
-        WriteSampleDescription(writer, hevc, trackProperties, invalidRotation, width, height, av1Configuration, allSamplesSync);
+        WriteSampleDescription(writer, hevc, trackProperties, invalidRotation, width, height, av1Configuration, allSamplesSync, alpha);
 
         long timing = BeginBox(writer, Heif4CharCode.Stts);
         WriteFullBoxHeader(writer, 0, 0);
@@ -708,7 +830,8 @@ public class HeifSequenceParserTests
         int width,
         int height,
         byte[] av1Configuration,
-        bool allSamplesSync)
+        bool allSamplesSync,
+        bool alpha)
     {
         long description = BeginBox(writer, Heif4CharCode.Stsd);
         WriteFullBoxHeader(writer, 0, 0);
@@ -736,6 +859,15 @@ public class HeifSequenceParserTests
             long configuration = BeginBox(writer, Heif4CharCode.Av1C);
             writer.Write(av1Configuration ?? [0x81, 0, 0, 0]);
             EndBox(writer, configuration);
+        }
+
+        if (alpha)
+        {
+            long auxiliaryType = BeginBox(writer, Heif4CharCode.Auxi);
+            WriteFullBoxHeader(writer, 0, 0);
+            writer.Write(Encoding.UTF8.GetBytes(HeifConstants.AlphaAuxiliaryType));
+            writer.Write((byte)0);
+            EndBox(writer, auxiliaryType);
         }
 
         if (trackProperties)

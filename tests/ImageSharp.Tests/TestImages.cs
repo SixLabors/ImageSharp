@@ -1295,6 +1295,12 @@ public static class TestImages
 
         // Extremely small image, 4x4 pixels with a single solid color.
         public const string Orange4x4 = "Heif/Orange4x4.avif";
+
+        // Sourced from libavif/tests/data under libavif's BSD-2-Clause license.
+        public const string Animated8Bit = "Heif/colors-animated-8bpc.avif";
+        public const string Animated8BitWithAudio = "Heif/colors-animated-8bpc-audio.avif";
+        public const string Animated8BitWithAlphaExifXmp = "Heif/colors-animated-8bpc-alpha-exif-xmp.avif";
+        public const string Animated12BitWithKeyframes = "Heif/colors-animated-12bpc-keyframes-0-2-3.avif";
     }
 
     public static class Ico

@@ -89,7 +89,7 @@ internal sealed class HeifSequenceParser
             {
                 TrackIdentity identity = ScanTrackIdentity(stream, childLength, scratch);
                 if (colorTrackId == 0
-                    && identity.IsEnabledInMovie
+                    && identity.IsEnabled
                     && identity.HandlerType == Heif4CharCode.Pict
                     && identity.AuxiliaryForTrackId == 0)
                 {
@@ -201,9 +201,25 @@ internal sealed class HeifSequenceParser
             stream.Position = checked(childStart + childLength);
         }
 
-        if (!trackHeader.IsPresent || !media.IsPresent)
+        if (!media.IsPresent)
         {
-            throw new InvalidImageContentException("A HEIF image-sequence track is missing its header or media box.");
+            throw new InvalidImageContentException("A HEIF track is missing its media box.");
+        }
+
+        stream.Position = media.Offset;
+        Heif4CharCode handlerType = ScanMediaHandler(stream, media.Length, scratch);
+        if (handlerType is not Heif4CharCode.Pict and not Heif4CharCode.Auxv)
+        {
+            // Non-image tracks are outside this parser's retained ISOBMFF surface. Do not impose image dimensions,
+            // matrices, or reference semantics on audio and other unrelated media carried by a valid image file.
+            TrackIdentity unrelatedIdentity = default;
+            unrelatedIdentity.HandlerType = handlerType;
+            return unrelatedIdentity;
+        }
+
+        if (!trackHeader.IsPresent)
+        {
+            throw new InvalidImageContentException("A HEIF image-sequence track is missing its track header.");
         }
 
         stream.Position = trackHeader.Offset;
@@ -214,8 +230,7 @@ internal sealed class HeifSequenceParser
             ParseTrackReferences(stream, trackReferences.Length, ref identity, scratch);
         }
 
-        stream.Position = media.Offset;
-        identity.HandlerType = ScanMediaHandler(stream, media.Length, scratch);
+        identity.HandlerType = handlerType;
         return identity;
     }
 
@@ -351,7 +366,6 @@ internal sealed class HeifSequenceParser
         const int dimensionsLength = 2 * sizeof(uint);
         const int fixedPointFractionalBits = 16;
         const uint trackEnabledFlag = 1 << 0;
-        const uint trackInMovieFlag = 1 << 1;
 
         ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, fullBoxHeaderLength, "track header");
         byte version = prefix[0];
@@ -418,13 +432,11 @@ internal sealed class HeifSequenceParser
             throw new NotSupportedException("The HEIF image-sequence track requires an unsupported movie presentation matrix.");
         }
 
-        // Bits 0 and 1 are track_enabled and track_in_movie respectively. A primary image-sequence candidate must
-        // participate in movie playback as well as being enabled; preview-only and disabled tracks remain available
-        // for explicit references but are not selected as the primary color track.
-        uint enabledInMovieFlags = trackEnabledFlag | trackInMovieFlag;
-        bool isEnabledInMovie = (flags & enabledInMovieFlags) == enabledInMovieFlags;
+        // ISO/IEC 14496-12 Section 8.3.2 assigns bit zero to track_enabled. Image sequences, including files written
+        // by libavif, do not require track_in_movie to be set, so only the enabled bit participates in selection.
+        bool isEnabled = (flags & trackEnabledFlag) != 0;
 
-        return new TrackIdentity(id, isEnabledInMovie, width, height, duration);
+        return new TrackIdentity(id, isEnabled, width, height, duration);
     }
 
     /// <summary>
@@ -2384,14 +2396,14 @@ internal sealed class HeifSequenceParser
         /// Initializes a new instance of the <see cref="TrackIdentity"/> struct.
         /// </summary>
         /// <param name="id">The file-defined track identifier.</param>
-        /// <param name="isEnabledInMovie">Whether the track is enabled and used in the movie presentation.</param>
+        /// <param name="isEnabled">Whether the track is enabled.</param>
         /// <param name="width">The displayed track width.</param>
         /// <param name="height">The displayed track height.</param>
         /// <param name="trackDuration">The track duration in movie-time-scale units.</param>
-        public TrackIdentity(uint id, bool isEnabledInMovie, int width, int height, ulong trackDuration)
+        public TrackIdentity(uint id, bool isEnabled, int width, int height, ulong trackDuration)
         {
             this.Id = id;
-            this.IsEnabledInMovie = isEnabledInMovie;
+            this.IsEnabled = isEnabled;
             this.Width = width;
             this.Height = height;
             this.TrackDuration = trackDuration;
@@ -2406,9 +2418,9 @@ internal sealed class HeifSequenceParser
         public uint Id { get; }
 
         /// <summary>
-        /// Gets a value indicating whether the track is enabled and used in the movie presentation.
+        /// Gets a value indicating whether the track is enabled.
         /// </summary>
-        public bool IsEnabledInMovie { get; }
+        public bool IsEnabled { get; }
 
         /// <summary>
         /// Gets the displayed track width.

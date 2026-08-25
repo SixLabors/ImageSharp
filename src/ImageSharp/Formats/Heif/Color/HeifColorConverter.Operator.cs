@@ -8,7 +8,7 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Color;
 
 /// <content>
-/// Provides the static operator contract and SIMD traversal used by AV1 color converters.
+/// Provides the static operator contract and SIMD traversal used by HEIF color converters.
 /// </content>
 internal abstract partial class HeifColorConverterBase
 {
@@ -23,7 +23,7 @@ internal abstract partial class HeifColorConverterBase
         public static abstract bool ChromaUsesLumaRange { get; }
 
         /// <summary>
-        /// Converts one normalized AV1 sample to RGB.
+        /// Converts one normalized encoded sample to RGB.
         /// </summary>
         /// <param name="component0">The first encoded component, replaced by red.</param>
         /// <param name="component1">The second encoded component, replaced by green.</param>
@@ -36,7 +36,7 @@ internal abstract partial class HeifColorConverterBase
             in HeifColorConversionParameters parameters);
 
         /// <summary>
-        /// Converts four normalized AV1 samples to RGB.
+        /// Converts four normalized encoded samples to RGB.
         /// </summary>
         /// <param name="component0">The first encoded component lanes, replaced by red.</param>
         /// <param name="component1">The second encoded component lanes, replaced by green.</param>
@@ -49,7 +49,7 @@ internal abstract partial class HeifColorConverterBase
             in HeifColorConversionParameters parameters);
 
         /// <summary>
-        /// Converts eight normalized AV1 samples to RGB.
+        /// Converts eight normalized encoded samples to RGB.
         /// </summary>
         /// <param name="component0">The first encoded component lanes, replaced by red.</param>
         /// <param name="component1">The second encoded component lanes, replaced by green.</param>
@@ -62,7 +62,7 @@ internal abstract partial class HeifColorConverterBase
             in HeifColorConversionParameters parameters);
 
         /// <summary>
-        /// Converts sixteen normalized AV1 samples to RGB.
+        /// Converts sixteen normalized encoded samples to RGB.
         /// </summary>
         /// <param name="component0">The first encoded component lanes, replaced by red.</param>
         /// <param name="component1">The second encoded component lanes, replaced by green.</param>

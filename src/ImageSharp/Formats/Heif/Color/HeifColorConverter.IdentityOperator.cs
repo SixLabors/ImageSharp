@@ -20,7 +20,7 @@ internal abstract partial class HeifColorConverterBase
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ConvertToRgb(ref float green, ref float blue, ref float red, in HeifColorConversionParameters parameters)
         {
-            // Identity-matrix AV1 stores the planes in G, B, R order. Rotate the three references in place
+            // H.273 identity-matrix signaling stores the planes in G, B, R order. Rotate the three references in place
             // so the shared traversal always leaves component0/component1/component2 as R, G, B.
             float g = green;
             green = red;
@@ -81,7 +81,7 @@ internal abstract partial class HeifColorConverterBase
             out float component1,
             out float component2)
         {
-            // Identity-matrix AV1 stores RGB input as G, B, R without matrix arithmetic.
+            // H.273 identity-matrix signaling stores RGB input as G, B, R without matrix arithmetic.
             component0 = green;
             component1 = blue;
             component2 = red;

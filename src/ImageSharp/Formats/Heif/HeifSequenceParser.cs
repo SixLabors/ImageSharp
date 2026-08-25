@@ -156,7 +156,7 @@ internal sealed class HeifSequenceParser
         {
             ValidateAlphaTrack(colorTrack, alphaTrack);
         }
-        catch (Exception ex) when (this.ShouldIgnoreImageDataSegmentError(ex))
+        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreImageDataSegmentError(this.options, ex))
         {
             // Alpha is optional image data. IgnoreImageData permits a malformed auxiliary sequence to be omitted while
             // retaining the independently decodable color presentation.
@@ -283,7 +283,7 @@ internal sealed class HeifSequenceParser
                 stream.Position = metadata.Offset;
                 track.Metadata = this.metadataParser.Parse(stream, metadata.Length, scratch);
             }
-            catch (Exception ex) when (this.ShouldIgnoreAncillarySegmentError(ex))
+            catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.options, ex))
             {
                 // The validated parent range lets decoding continue safely without this optional metadata box.
             }
@@ -889,7 +889,7 @@ internal sealed class HeifSequenceParser
 
                     using (IMemoryOwner<byte> configuration = this.boxReader.ReadPayload(stream, childLength))
                     {
-                        track.Av1CodecConfiguration = new Av1CodecConfiguration(configuration.GetSpan());
+                        track.Av1CodecConfiguration = new Av1CodecConfiguration(configuration.GetSpan(), this.options);
                     }
 
                     configurationSeen = true;
@@ -941,7 +941,7 @@ internal sealed class HeifSequenceParser
                         {
                             ParseTrackImageProperty(stream, childLength, childType, track, scratch);
                         }
-                        catch (Exception ex) when (this.ShouldIgnoreAncillarySegmentError(ex))
+                        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.options, ex))
                         {
                             // The complete child range remains known, so optional metadata can be discarded safely.
                         }
@@ -955,7 +955,7 @@ internal sealed class HeifSequenceParser
                     {
                         ParseTrackImageProperty(stream, childLength, childType, track, scratch);
                     }
-                    catch (Exception ex) when (this.ShouldIgnoreImageDataSegmentError(ex))
+                    catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreImageDataSegmentError(this.options, ex))
                     {
                         // IgnoreImageData permits a recoverable presentation property to be omitted.
                     }
@@ -1103,7 +1103,7 @@ internal sealed class HeifSequenceParser
                 prefix = ReadPrefixFromStart(stream, boxLength, scratch, 11, "color information");
                 track.CicpProfile = HeifPropertyParser.ParseCicpProfile(prefix[4..]);
             }
-            catch (Exception ex) when (this.ShouldIgnoreImageDataSegmentError(ex))
+            catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreImageDataSegmentError(this.options, ex))
             {
                 // IgnoreImageData permits the decoder to fall back to the coded sequence's color description.
             }
@@ -1127,7 +1127,7 @@ internal sealed class HeifSequenceParser
                 byte[] profileData = payload.GetSpan()[4..].ToArray();
                 track.IccProfile = HeifPropertyParser.ParseIccProfile(profileData);
             }
-            catch (Exception ex) when (this.ShouldIgnoreAncillarySegmentError(ex))
+            catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.options, ex))
             {
                 // A malformed optional ICC profile does not invalidate the coded image outside strict mode.
             }
@@ -2248,22 +2248,6 @@ internal sealed class HeifSequenceParser
 
         return (int)size;
     }
-
-    /// <summary>
-    /// Determines whether a recoverable ancillary-segment error should be ignored by the configured decoder policy.
-    /// </summary>
-    /// <param name="exception">The exception raised while parsing the ancillary segment.</param>
-    /// <returns><see langword="true"/> when decoding may continue without the segment.</returns>
-    private bool ShouldIgnoreAncillarySegmentError(Exception exception)
-        => this.options.SegmentIntegrityHandling is not SegmentIntegrityHandling.Strict && ImageDecoderCore.IsRecoverableSegmentError(exception);
-
-    /// <summary>
-    /// Determines whether a recoverable image-data-segment error should be ignored by the configured decoder policy.
-    /// </summary>
-    /// <param name="exception">The exception raised while parsing the image-data segment.</param>
-    /// <returns><see langword="true"/> when decoding may continue without the segment.</returns>
-    private bool ShouldIgnoreImageDataSegmentError(Exception exception)
-        => this.options.SegmentIntegrityHandling is SegmentIntegrityHandling.IgnoreImageData && ImageDecoderCore.IsRecoverableSegmentError(exception);
 
     /// <summary>
     /// Records one unique child box while retaining only its stream range.

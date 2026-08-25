@@ -39,7 +39,7 @@ internal abstract class ImageDecoderCore
     /// <param name="action">The action.</param>
     protected void ExecuteAncillarySegmentAction(Action action)
     {
-        if (this.Options.SegmentIntegrityHandling is SegmentIntegrityHandling.Strict)
+        if (!ShouldIgnoreAncillarySegmentErrors(this.Options))
         {
             action();
             return;
@@ -61,7 +61,7 @@ internal abstract class ImageDecoderCore
     /// <param name="action">The action.</param>
     protected void ExecuteImageDataSegmentAction(Action action)
     {
-        if (this.Options.SegmentIntegrityHandling is not SegmentIntegrityHandling.IgnoreImageData)
+        if (!ShouldIgnoreImageDataSegmentErrors(this.Options))
         {
             action();
             return;
@@ -90,14 +90,60 @@ internal abstract class ImageDecoderCore
             or NotSupportedException;
 
     /// <summary>
+    /// Determines whether the configured policy permits recoverable ancillary-segment errors to be ignored.
+    /// </summary>
+    /// <param name="options">The general decoder options.</param>
+    /// <returns><see langword="true"/> when recoverable ancillary-segment errors may be ignored.</returns>
+    public static bool ShouldIgnoreAncillarySegmentErrors(DecoderOptions options)
+        => options.SegmentIntegrityHandling is not SegmentIntegrityHandling.Strict;
+
+    /// <summary>
+    /// Determines whether the configured policy permits recoverable image-data-segment errors to be ignored.
+    /// </summary>
+    /// <param name="options">The general decoder options.</param>
+    /// <returns><see langword="true"/> when recoverable image-data-segment errors may be ignored.</returns>
+    public static bool ShouldIgnoreImageDataSegmentErrors(DecoderOptions options)
+        => options.SegmentIntegrityHandling is SegmentIntegrityHandling.IgnoreImageData;
+
+    /// <summary>
+    /// Determines whether an ancillary-segment exception may be ignored by the configured decoder policy.
+    /// </summary>
+    /// <param name="options">The general decoder options.</param>
+    /// <param name="exception">The exception raised while processing an ancillary segment.</param>
+    /// <returns><see langword="true"/> when decoding may continue without the ancillary segment.</returns>
+    public static bool ShouldIgnoreAncillarySegmentError(DecoderOptions options, Exception exception)
+        => ShouldIgnoreAncillarySegmentErrors(options) && IsRecoverableSegmentError(exception);
+
+    /// <summary>
+    /// Determines whether an image-data-segment exception may be ignored by the configured decoder policy.
+    /// </summary>
+    /// <param name="options">The general decoder options.</param>
+    /// <param name="exception">The exception raised while processing an image-data segment.</param>
+    /// <returns><see langword="true"/> when decoding may continue without the image-data segment.</returns>
+    public static bool ShouldIgnoreImageDataSegmentError(DecoderOptions options, Exception exception)
+        => ShouldIgnoreImageDataSegmentErrors(options) && IsRecoverableSegmentError(exception);
+
+    /// <summary>
     /// Throws unless the decoder is running in a non-strict segment integrity mode.
-    /// Use this only from within <see cref="ExecuteAncillarySegmentAction"/> when local control flow
-    /// must continue after the error.
+    /// Use this when ancillary parsing must continue locally after the error rather than returning through
+    /// <see cref="ExecuteAncillarySegmentAction"/>.
     /// </summary>
     /// <param name="message">The exception message.</param>
     protected void ThrowOrIgnoreNonStrictSegmentError(string message)
     {
         if (this.Options.SegmentIntegrityHandling is SegmentIntegrityHandling.Strict)
+        {
+            throw new InvalidImageContentException(message);
+        }
+    }
+
+    /// <summary>
+    /// Throws unless the decoder permits recoverable image-data segment errors to be ignored.
+    /// </summary>
+    /// <param name="message">The exception message.</param>
+    protected void ThrowOrIgnoreImageDataSegmentError(string message)
+    {
+        if (!ShouldIgnoreImageDataSegmentErrors(this.Options))
         {
             throw new InvalidImageContentException(message);
         }

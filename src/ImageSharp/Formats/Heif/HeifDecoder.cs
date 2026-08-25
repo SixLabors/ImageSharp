@@ -39,6 +39,7 @@ public sealed class HeifDecoder : ImageDecoder
 
         HeifDecoderCore decoder = new(options);
         Image<TPixel> image = decoder.Decode<TPixel>(options.Configuration, stream, cancellationToken);
+        ScaleToTargetSize(options, image);
 
         return image;
     }

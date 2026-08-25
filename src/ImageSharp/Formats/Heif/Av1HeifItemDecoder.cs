@@ -27,19 +27,22 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
     /// <summary>
     /// Decodes the encoded AV1 payload of an image item.
     /// </summary>
-    /// <param name="configuration">The configuration that supplies memory allocation and codec services.</param>
+    /// <param name="options">The general options governing the containing HEIF decode.</param>
     /// <param name="item">The HEIF item whose encoded payload is being decoded.</param>
     /// <param name="data">The encoded AV1 payload.</param>
     /// <param name="colorProfile">
     /// The container color description that supplies unspecified color information in the AV1 sequence header.
     /// </param>
+    /// <param name="cancellationToken">The token used to cancel the payload decode.</param>
     /// <returns>The decoded image.</returns>
     public Image<TPixel> DecodeItemData(
-        Configuration configuration,
+        DecoderOptions options,
         HeifItem item,
         Span<byte> data,
-        CicpProfile? colorProfile)
+        CicpProfile? colorProfile,
+        CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         Av1CodecConfiguration codecConfiguration = item.Av1CodecConfiguration
             ?? throw new InvalidImageContentException($"AV1 image item {item.Id} has no codec configuration property.");
 
@@ -49,7 +52,8 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
             {
                 if (channelBitDepth != (byte)codecConfiguration.BitDepth)
                 {
-                    throw new InvalidImageContentException($"AV1 image item {item.Id} has mismatched pixel-information and codec-configuration bit depths.");
+                    throw new InvalidImageContentException(
+                        $"AV1 image item {item.Id} has mismatched pixel-information and codec-configuration bit depths.");
                 }
             }
         }
@@ -58,10 +62,11 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
             data,
             item.ContentLightLevel,
             item.MasteringDisplayColorVolume,
+            options,
             out HeifContentLightLevel? obuContentLightLevel,
             out HeifMasteringDisplayColorVolume? obuMasteringDisplayColorVolume);
 
-        using Av1Decoder decoder = new(configuration);
+        using Av1Decoder decoder = new(options.Configuration);
         Image<TPixel> image = decoder.Decode<TPixel>(data, colorProfile, codecConfiguration);
         HeifMetadata metadata = image.Metadata.GetHeifMetadata();
         metadata.CompressionMethod = this.CompressionMethod;

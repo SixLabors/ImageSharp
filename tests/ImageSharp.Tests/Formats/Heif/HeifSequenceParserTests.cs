@@ -90,6 +90,31 @@ public class HeifSequenceParserTests
         }
     }
 
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    public void DecodeRejectsInvalidAv1SampleUnlessImageDataErrorsAreIgnored(SegmentIntegrityHandling handling)
+    {
+        byte[] source = TestFile.Create(TestImages.Heif.Orange4x4).Bytes;
+        byte[] data = CreateDecodableAv1SequenceContainer(source.AsSpan(0x10E, 0x1D), [0x80], source.AsSpan(0xC7, 4), false);
+        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(options, data));
+    }
+
+    [Fact]
+    public void DecodeSkipsInvalidAv1SampleWhenImageDataErrorsAreIgnored()
+    {
+        byte[] source = TestFile.Create(TestImages.Heif.Orange4x4).Bytes;
+        byte[] data = CreateDecodableAv1SequenceContainer(source.AsSpan(0x10E, 0x1D), [0x80], source.AsSpan(0xC7, 4), false);
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+
+        Assert.Equal(new Size(4, 4), image.Size);
+        Assert.Single(image.Frames);
+    }
+
     [Fact]
     public void DecodeComposesFrameAlignedAv1AlphaSamples()
     {
@@ -445,6 +470,7 @@ public class HeifSequenceParserTests
         int height = 240,
         byte[] av1Configuration = null,
         int? sampleSize = null,
+        int? secondSampleSize = null,
         bool allSamplesSync = false,
         uint premultipliedByTrackId = 0,
         bool nonIdentityMovieMatrix = false,
@@ -501,6 +527,7 @@ public class HeifSequenceParserTests
             height,
             av1Configuration,
             sampleSize,
+            secondSampleSize,
             allSamplesSync);
 
         EndBox(writer, mediaInformation);
@@ -558,8 +585,21 @@ public class HeifSequenceParserTests
         long mediaInformation = BeginBox(writer, Heif4CharCode.Minf);
         WriteDataInformation(writer);
         WriteSampleTable(
-            writer, alphaChunkOffset ?? chunkOffset, false, false, false, 1, alphaTransforms, false,
-            width, height, av1Configuration, sampleSize, allSamplesSync, true);
+            writer,
+            alphaChunkOffset ?? chunkOffset,
+            false,
+            false,
+            false,
+            1,
+            alphaTransforms,
+            false,
+            width,
+            height,
+            av1Configuration,
+            sampleSize,
+            null,
+            allSamplesSync,
+            true);
 
         EndBox(writer, mediaInformation);
         EndBox(writer, media);
@@ -593,6 +633,13 @@ public class HeifSequenceParserTests
     }
 
     private static byte[] CreateDecodableAv1SequenceContainer(ReadOnlySpan<byte> sample, ReadOnlySpan<byte> configuration)
+        => CreateDecodableAv1SequenceContainer(sample, sample, configuration, true);
+
+    private static byte[] CreateDecodableAv1SequenceContainer(
+        ReadOnlySpan<byte> firstSample,
+        ReadOnlySpan<byte> secondSample,
+        ReadOnlySpan<byte> configuration,
+        bool allSamplesSync)
     {
         const int fileTypeLength = 24;
         const int movieStorageLength = 2048;
@@ -602,10 +649,11 @@ public class HeifSequenceParserTests
             width: 4,
             height: 4,
             av1Configuration: configuration.ToArray(),
-            sampleSize: sample.Length,
-            allSamplesSync: true);
+            sampleSize: firstSample.Length,
+            secondSampleSize: secondSample.Length,
+            allSamplesSync: allSamplesSync);
 
-        byte[] data = new byte[chunkOffset + (sample.Length * 2)];
+        byte[] data = new byte[chunkOffset + firstSample.Length + secondSample.Length];
         BinaryPrimitives.WriteUInt32BigEndian(data, fileTypeLength);
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(4), (uint)Heif4CharCode.Ftyp);
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), (uint)Heif4CharCode.Avis);
@@ -613,8 +661,8 @@ public class HeifSequenceParserTests
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(16), (uint)Heif4CharCode.Avif);
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(20), (uint)Heif4CharCode.Mif1);
         movie.CopyTo(data, fileTypeLength);
-        sample.CopyTo(data.AsSpan((int)chunkOffset));
-        sample.CopyTo(data.AsSpan((int)chunkOffset + sample.Length));
+        firstSample.CopyTo(data.AsSpan((int)chunkOffset));
+        secondSample.CopyTo(data.AsSpan((int)chunkOffset + firstSample.Length));
         return data;
     }
 
@@ -822,6 +870,7 @@ public class HeifSequenceParserTests
         int height,
         byte[] av1Configuration,
         int? sampleSize,
+        int? secondSampleSize,
         bool allSamplesSync,
         bool alpha = false)
     {
@@ -848,7 +897,7 @@ public class HeifSequenceParserTests
         WriteUInt32(writer, 0);
         WriteUInt32(writer, 2);
         WriteUInt32(writer, (uint)(sampleSize ?? 10));
-        WriteUInt32(writer, (uint)(sampleSize ?? 12));
+        WriteUInt32(writer, (uint)(secondSampleSize ?? sampleSize ?? 12));
         EndBox(writer, sampleSizes);
 
         long chunkOffsets = BeginBox(writer, Heif4CharCode.Stco);

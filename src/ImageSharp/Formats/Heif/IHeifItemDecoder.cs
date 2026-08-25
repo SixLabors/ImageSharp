@@ -26,16 +26,18 @@ internal interface IHeifItemDecoder<TPixel>
     /// <summary>
     /// Decodes the compressed payload of an image item.
     /// </summary>
-    /// <param name="configuration">The configuration that supplies memory allocation and codec services.</param>
+    /// <param name="options">The general options governing the containing HEIF decode.</param>
     /// <param name="item">The HEIF item whose encoded payload is being decoded.</param>
     /// <param name="data">The encoded image payload.</param>
     /// <param name="colorProfile">
     /// The container color description that overrides matching color information in the encoded image payload.
     /// </param>
+    /// <param name="cancellationToken">The token used to cancel the payload decode.</param>
     /// <returns>The decoded image.</returns>
     public Image<TPixel> DecodeItemData(
-        Configuration configuration,
+        DecoderOptions options,
         HeifItem item,
         Span<byte> data,
-        CicpProfile? colorProfile);
+        CicpProfile? colorProfile,
+        CancellationToken cancellationToken);
 }

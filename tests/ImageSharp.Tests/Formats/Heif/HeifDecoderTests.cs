@@ -4,7 +4,9 @@
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 
@@ -13,6 +15,16 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 public class HeifDecoderTests
 {
     private const uint UnknownBoxType = 0x74657374U;
+
+    private static ReadOnlySpan<byte> MalformedJpegApp13 =>
+    [
+        0xFF, 0xED,
+        0x00, 0x1D,
+        (byte)'P', (byte)'h', (byte)'o', (byte)'t', (byte)'o', (byte)'s', (byte)'h', (byte)'o', (byte)'p', (byte)' ', (byte)'3', (byte)'.',
+        (byte)'0', 0x00,
+        (byte)'B', (byte)'a', (byte)'d', (byte)'R', (byte)'e', (byte)'s', (byte)'o', (byte)'u', (byte)'r', (byte)'c', (byte)'e', (byte)'!',
+        (byte)'!'
+    ];
 
     [Theory]
     [InlineData(TestImages.Heif.Image1, HeifCompressionMethod.Hevc, HeifBitDepth.Bit8, 3992, 2992)]
@@ -60,6 +72,90 @@ public class HeifDecoderTests
     }
 
     [Fact]
+    public void DecodeAppliesTargetSizeOnceToThePresentedHeifImage()
+    {
+        using Image<Rgba32> source = new(64, 48);
+        for (int y = 0; y < source.Height; y++)
+        {
+            Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < row.Length; x++)
+            {
+                row[x] = new Rgba32((byte)(x * 3), (byte)(y * 5), (byte)((x * 7) + (y * 11)));
+            }
+        }
+
+        using MemoryStream stream = new();
+        source.Save(stream, new HeifEncoder());
+        byte[] data = stream.ToArray();
+        Size targetSize = new(17, 17);
+        DecoderOptions options = new() { TargetSize = targetSize };
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(data);
+        expected.Mutate(context => context.Resize(new ResizeOptions { Size = targetSize, Mode = ResizeMode.Max, Sampler = options.Sampler }));
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+
+        Assert.Equal(expected.Size, image.Size);
+        for (int y = 0; y < image.Height; y++)
+        {
+            Assert.True(image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y).SequenceEqual(
+                expected.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y)));
+        }
+    }
+
+    [Fact]
+    public void DecodePropagatesStrictValidationToLegacyJpegItems()
+    {
+        byte[] data = CreateContainerWithMalformedJpegMetadata();
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+        });
+    }
+
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
+    public void DecodePropagatesRecoverableMetadataValidationToLegacyJpegItems(SegmentIntegrityHandling handling)
+    {
+        byte[] data = CreateContainerWithMalformedJpegMetadata();
+        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+
+        Assert.Equal(new Size(2, 3), image.Size);
+    }
+
+    [Fact]
+    public void DecodePropagatesSkipMetadataToLegacyJpegItems()
+    {
+        byte[] data = CreateContainerWithMalformedJpegMetadata();
+        DecoderOptions options = new()
+        {
+            SkipMetadata = true,
+            SegmentIntegrityHandling = SegmentIntegrityHandling.Strict
+        };
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+
+        Assert.Equal(new Size(2, 3), image.Size);
+    }
+
+    [Fact]
+    public void DecodePropagatesConfigurationToLegacyJpegItems()
+    {
+        byte[] data = CreateEncodedContainer();
+        Configuration configuration = Configuration.CreateDefaultInstance();
+        DecoderOptions options = new() { Configuration = configuration };
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
+
+        Assert.Same(configuration, image.Configuration);
+    }
+
+    [Fact]
     public void IdentifyIgnoresUnknownMetadataBox()
     {
         byte[] data = CreateEncodedContainer();
@@ -91,6 +187,115 @@ public class HeifDecoderTests
         InvalidImageContentException exception = Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
 
         Assert.Contains("essential", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void IdentifyRejectsMalformedAncillaryPropertyInStrictMode()
+    {
+        byte[] data = CreateContainerWithProperty(CreateEmptyBox(Heif4CharCode.Pasp), false);
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+    }
+
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
+    public void IdentifyIgnoresMalformedAncillaryPropertyWhenPermitted(SegmentIntegrityHandling handling)
+    {
+        byte[] data = CreateContainerWithProperty(CreateEmptyBox(Heif4CharCode.Pasp), false);
+        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
+
+        ImageInfo imageInfo = Image.Identify(options, data);
+
+        Assert.Equal(new Size(2, 3), imageInfo.Size);
+        Assert.Equal(PixelResolutionUnit.PixelsPerInch, imageInfo.Metadata.ResolutionUnits);
+        Assert.Equal(96D, imageInfo.Metadata.HorizontalResolution);
+        Assert.Equal(96D, imageInfo.Metadata.VerticalResolution);
+    }
+
+    [Fact]
+    public void IdentifyDoesNotValidateSkippedAncillaryPropertyMetadata()
+    {
+        byte[] data = CreateContainerWithProperty(CreateEmptyBox(Heif4CharCode.Pasp), false);
+        DecoderOptions options = new()
+        {
+            SkipMetadata = true,
+            SegmentIntegrityHandling = SegmentIntegrityHandling.Strict
+        };
+
+        ImageInfo imageInfo = Image.Identify(options, data);
+
+        Assert.Equal(new Size(2, 3), imageInfo.Size);
+    }
+
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    public void IdentifyRejectsMalformedImagePropertyUnlessImageDataErrorsAreIgnored(SegmentIntegrityHandling handling)
+    {
+        byte[] data = CreateContainerWithProperty(CreateEmptyBox(Heif4CharCode.Irot), true);
+        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+    }
+
+    [Fact]
+    public void IdentifyIgnoresMalformedImagePropertyWhenImageDataErrorsAreIgnored()
+    {
+        byte[] data = CreateContainerWithProperty(CreateEmptyBox(Heif4CharCode.Irot), true);
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+
+        ImageInfo imageInfo = Image.Identify(options, data);
+
+        Assert.Equal(new Size(2, 3), imageInfo.Size);
+    }
+
+    [Fact]
+    public void IdentifyRejectsDuplicateAncillaryPropertyAssociationInStrictMode()
+    {
+        byte[] data = CreateContainerWithDuplicatePropertyAssociation(CreatePixelAspectRatioBox(), false);
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+    }
+
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData)]
+    public void IdentifyIgnoresDuplicateAncillaryPropertyAssociationWhenPermitted(SegmentIntegrityHandling handling)
+    {
+        byte[] data = CreateContainerWithDuplicatePropertyAssociation(CreatePixelAspectRatioBox(), false);
+        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
+
+        ImageInfo imageInfo = Image.Identify(options, data);
+
+        Assert.Equal(new Size(2, 3), imageInfo.Size);
+        Assert.Equal(PixelResolutionUnit.AspectRatio, imageInfo.Metadata.ResolutionUnits);
+        Assert.Equal(1D, imageInfo.Metadata.HorizontalResolution);
+        Assert.Equal(2D, imageInfo.Metadata.VerticalResolution);
+    }
+
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary)]
+    public void IdentifyRejectsDuplicateImagePropertyAssociationUnlessImageDataErrorsAreIgnored(SegmentIntegrityHandling handling)
+    {
+        byte[] data = CreateContainerWithDuplicatePropertyAssociation(CreateRotationBox(), true);
+        DecoderOptions options = new() { SegmentIntegrityHandling = handling };
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, data));
+    }
+
+    [Fact]
+    public void IdentifyIgnoresDuplicateImagePropertyAssociationWhenImageDataErrorsAreIgnored()
+    {
+        byte[] data = CreateContainerWithDuplicatePropertyAssociation(CreateRotationBox(), true);
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+
+        ImageInfo imageInfo = Image.Identify(options, data);
+
+        Assert.Equal(new Size(3, 2), imageInfo.Size);
     }
 
     [Theory]
@@ -357,6 +562,9 @@ public class HeifDecoderTests
     }
 
     private static byte[] CreateContainerWithUnknownProperty(bool essential)
+        => CreateContainerWithProperty(CreateUnknownBox(), essential);
+
+    private static byte[] CreateContainerWithProperty(ReadOnlySpan<byte> property, bool essential)
     {
         byte[] data = CreateEncodedContainer();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
@@ -368,13 +576,13 @@ public class HeifDecoderTests
         int ipmaOffset = FindBoxOffset(data, Heif4CharCode.Ipma, iprpOffset + 8, iprpSize - 8);
 
         // Insert the property before ipma so its one-based index is 2 and all parent box sizes remain explicit.
-        data = InsertBytes(data, ipcoOffset + ipcoSize, CreateUnknownBox());
-        IncrementBoxSize(data, metaOffset, 8);
-        IncrementBoxSize(data, iprpOffset, 8);
-        IncrementBoxSize(data, ipcoOffset, 8);
-        ipmaOffset += 8;
+        data = InsertBytes(data, ipcoOffset + ipcoSize, property);
+        IncrementBoxSize(data, metaOffset, property.Length);
+        IncrementBoxSize(data, iprpOffset, property.Length);
+        IncrementBoxSize(data, ipcoOffset, property.Length);
+        ipmaOffset += property.Length;
 
-        // The generated container has one item with one property association; append the unknown property to that entry.
+        // The generated container has one item with one property association; append the inserted property to that entry.
         int associationCountOffset = ipmaOffset + 18;
         data[associationCountOffset]++;
         int associationOffset = ipmaOffset + (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(ipmaOffset));
@@ -386,11 +594,66 @@ public class HeifDecoderTests
         return data;
     }
 
-    private static byte[] CreateUnknownBox()
+    private static byte[] CreateContainerWithMalformedJpegMetadata()
     {
-        byte[] box = new byte[8];
+        byte[] data = CreateEncodedContainer();
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
+        int itemLocationOffset = FindBoxOffset(data, Heif4CharCode.Iloc, metaOffset + 12, metaSize - 12);
+        int mediaDataOffset = FindBoxOffset(data, Heif4CharCode.Mdat, 0, data.Length);
+
+        // The generated item uses one file-relative extent. Insert the malformed JPEG application segment after its
+        // start-of-image marker, then update the enclosing media-data size and the exact declared extent length.
+        data = InsertBytes(data, mediaDataOffset + 10, MalformedJpegApp13);
+        IncrementBoxSize(data, mediaDataOffset, MalformedJpegApp13.Length);
+        uint extentLength = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(itemLocationOffset + 32));
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(itemLocationOffset + 32), extentLength + (uint)MalformedJpegApp13.Length);
+        return data;
+    }
+
+    private static byte[] CreateContainerWithDuplicatePropertyAssociation(ReadOnlySpan<byte> property, bool essential)
+    {
+        byte[] data = CreateContainerWithProperty(property, essential);
+        int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
+        int iprpOffset = FindBoxOffset(data, Heif4CharCode.Iprp, metaOffset + 12, metaSize - 12);
+        int iprpSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(iprpOffset));
+        int ipmaOffset = FindBoxOffset(data, Heif4CharCode.Ipma, iprpOffset + 8, iprpSize - 8);
+        int associationCountOffset = ipmaOffset + 18;
+
+        // Repeat the inserted property's one-based index in the existing item entry without changing box structure.
+        data[associationCountOffset]++;
+        int associationOffset = ipmaOffset + (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(ipmaOffset));
+        byte association = (byte)(2 | (essential ? 0x80 : 0));
+        data = InsertBytes(data, associationOffset, new byte[] { association });
+        IncrementBoxSize(data, metaOffset, 1);
+        IncrementBoxSize(data, iprpOffset, 1);
+        IncrementBoxSize(data, ipmaOffset, 1);
+        return data;
+    }
+
+    private static byte[] CreateUnknownBox()
+        => CreateEmptyBox((Heif4CharCode)UnknownBoxType);
+
+    private static byte[] CreateEmptyBox(Heif4CharCode type)
+        => CreateBox(type, []);
+
+    private static byte[] CreatePixelAspectRatioBox()
+    {
+        byte[] payload = new byte[8];
+        BinaryPrimitives.WriteUInt32BigEndian(payload, 2);
+        BinaryPrimitives.WriteUInt32BigEndian(payload.AsSpan(4), 1);
+        return CreateBox(Heif4CharCode.Pasp, payload);
+    }
+
+    private static byte[] CreateRotationBox() => CreateBox(Heif4CharCode.Irot, [1]);
+
+    private static byte[] CreateBox(Heif4CharCode type, ReadOnlySpan<byte> payload)
+    {
+        byte[] box = new byte[8 + payload.Length];
         BinaryPrimitives.WriteUInt32BigEndian(box, (uint)box.Length);
-        BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), UnknownBoxType);
+        BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), (uint)type);
+        payload.CopyTo(box.AsSpan(8));
         return box;
     }
 

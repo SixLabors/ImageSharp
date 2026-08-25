@@ -30,23 +30,19 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     private static readonly object UnknownProperty = new();
 
     /// <summary>
-    /// Defines the dependency order in which recognized metadata children are interpreted.
+    /// Marks an understood item property whose value was skipped or discarded by decoder policy.
     /// </summary>
-    private static readonly Heif4CharCode[] MetadataParseOrder =
-    [
-        Heif4CharCode.Hdlr,
-        Heif4CharCode.Iinf,
-        Heif4CharCode.Pitm,
-        Heif4CharCode.Iref,
-        Heif4CharCode.Iloc,
-        Heif4CharCode.Iprp,
-        Heif4CharCode.Idat
-    ];
+    private static readonly object IgnoredProperty = new();
 
     /// <summary>
     /// The general configuration.
     /// </summary>
     private readonly Configuration configuration;
+
+    /// <summary>
+    /// The general options passed to nested coded-image decoders without presentation-level target scaling.
+    /// </summary>
+    private readonly DecoderOptions payloadOptions;
 
     /// <summary>
     /// The <see cref="ImageMetadata"/> decoded by this decoder instance.
@@ -101,6 +97,21 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         : base(options)
     {
         this.configuration = options.Configuration;
+
+        // HEIF owns final presentation resizing and ICC conversion after item/grid composition and container-profile
+        // selection. Nested codecs retain every other general policy but must not apply either operation independently.
+        this.payloadOptions = options.TargetSize is null && options.ColorProfileHandling == ColorProfileHandling.Preserve
+            ? options
+            : new DecoderOptions
+            {
+                Configuration = options.Configuration,
+                Sampler = options.Sampler,
+                SkipMetadata = options.SkipMetadata,
+                MaxFrames = options.MaxFrames,
+                SegmentIntegrityHandling = options.SegmentIntegrityHandling,
+                ColorProfileHandling = ColorProfileHandling.Preserve
+            };
+
         this.metadata = new ImageMetadata();
         this.boxReader = new HeifBoxReader(this.configuration.MemoryAllocator);
         this.sequenceParser = new HeifSequenceParser(options);
@@ -108,6 +119,20 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         this.items = [];
         this.itemLinks = [];
     }
+
+    /// <summary>
+    /// Gets the dependency order in which recognized metadata children are interpreted.
+    /// </summary>
+    private static ReadOnlySpan<Heif4CharCode> MetadataParseOrder =>
+    [
+        Heif4CharCode.Hdlr,
+        Heif4CharCode.Iinf,
+        Heif4CharCode.Pitm,
+        Heif4CharCode.Iref,
+        Heif4CharCode.Iloc,
+        Heif4CharCode.Iprp,
+        Heif4CharCode.Idat
+    ];
 
     /// <inheritdoc/>
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
@@ -153,7 +178,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             }
         }
 
-        return this.DecodePrimaryItem<TPixel>(stream);
+        return this.DecodePrimaryItem<TPixel>(stream, cancellationToken);
     }
 
     /// <inheritdoc/>
@@ -401,41 +426,55 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         ImageFrame<TPixel>[] frames = new ImageFrame<TPixel>[visibleFrameCount];
         sampleIndices = new int[visibleFrameCount];
         int decodedFrameCount = 0;
-        for (int sampleIndex = 0; sampleIndex < track.Samples.Length; sampleIndex++)
+        try
         {
-            HeifSequenceSample sample = track.Samples[sampleIndex];
-            if (sample.IsHidden)
+            for (int sampleIndex = 0; sampleIndex < track.Samples.Length; sampleIndex++)
             {
-                continue;
+                HeifSequenceSample sample = track.Samples[sampleIndex];
+                if (sample.IsHidden)
+                {
+                    continue;
+                }
+
+                cancellationToken.ThrowIfCancellationRequested();
+                ImageFrame<TPixel>? frame = null;
+                this.ExecuteImageDataSegmentAction(() => frame = this.DecodeSequenceFrame<TPixel>(stream, track, sample));
+                if (frame is null)
+                {
+                    continue;
+                }
+
+                frame.Metadata.GetHeifMetadata().FrameDelay = new Rational(sample.Duration, track.MediaTimescale);
+                frames[decodedFrameCount] = frame;
+                sampleIndices[decodedFrameCount] = sampleIndex;
+                decodedFrameCount++;
             }
 
-            cancellationToken.ThrowIfCancellationRequested();
-            ImageFrame<TPixel>? frame = null;
-            this.ExecuteImageDataSegmentAction(() => frame = this.DecodeSequenceFrame<TPixel>(stream, track, sample));
-            if (frame is null)
+            if (decodedFrameCount == 0)
             {
-                continue;
+                throw new InvalidImageContentException("The HEIF image sequence contains no decodable visible samples.");
             }
 
-            frame.Metadata.GetHeifMetadata().FrameDelay = new Rational(sample.Duration, track.MediaTimescale);
-            frames[decodedFrameCount] = frame;
-            sampleIndices[decodedFrameCount] = sampleIndex;
-            decodedFrameCount++;
-        }
+            if (decodedFrameCount != frames.Length)
+            {
+                // Compaction occurs only in IgnoreImageData mode after a recoverable coded-sample failure.
+                Array.Resize(ref frames, decodedFrameCount);
+                Array.Resize(ref sampleIndices, decodedFrameCount);
+            }
 
-        if (decodedFrameCount == 0)
+            return frames;
+        }
+        catch
         {
-            throw new InvalidImageContentException("The HEIF image sequence contains no decodable visible samples.");
-        }
+            // Frames are independently allocated before the final Image adopts them. Retain ownership until this
+            // method returns so a later sample failure cannot leak the successfully decoded prefix.
+            for (int frameIndex = 0; frameIndex < decodedFrameCount; frameIndex++)
+            {
+                frames[frameIndex].Dispose();
+            }
 
-        if (decodedFrameCount != frames.Length)
-        {
-            // Compaction occurs only in IgnoreImageData mode after a recoverable coded-sample failure.
-            Array.Resize(ref frames, decodedFrameCount);
-            Array.Resize(ref sampleIndices, decodedFrameCount);
+            throw;
         }
-
-        return frames;
     }
 
     /// <summary>
@@ -465,10 +504,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         stream.Position = sample.Offset;
         HeifBoxReader.ReadExactly(stream, sampleData, "The HEIF image-sequence sample is truncated.");
 
-        codecConfiguration.ValidateItemData(
+        codecConfiguration.ValidateSampleData(
             sampleData,
+            sample.IsSync,
             track.ContentLightLevel,
             track.MasteringDisplayColorVolume,
+            this.Options,
             out _,
             out _);
 
@@ -703,7 +744,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         while (stream.Position < endPosition)
         {
             long length = HeifBoxReader.ReadHeader(stream, endPosition, this.boxHeaderScratch, out Heif4CharCode boxType);
-            if (Array.IndexOf(MetadataParseOrder, boxType) >= 0)
+            if (MetadataParseOrder.Contains(boxType))
             {
                 // Association and location boxes can precede the item declarations they reference.
                 if (!boxes.TryAdd(boxType, (stream.Position, length)))
@@ -1079,180 +1120,277 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         while (stream.Position < endPosition)
         {
             long itemLength = HeifBoxReader.ReadHeader(stream, endPosition, this.boxHeaderScratch, out Heif4CharCode itemType);
+            if (this.Options.SkipMetadata && itemType is Heif4CharCode.Pasp
+                or Heif4CharCode.Clli
+                or Heif4CharCode.Mdcv
+                or Heif4CharCode.Cclv
+                or Heif4CharCode.Amve
+                or Heif4CharCode.Reve
+                or Heif4CharCode.Ndwt)
+            {
+                // These properties affect only exposed image metadata. Preserve their physical ipco positions while
+                // avoiding payload allocation and validation when the caller requested no metadata.
+                HeifBoxReader.Skip(stream, itemLength);
+                properties.Add(new KeyValuePair<Heif4CharCode, object>(itemType, IgnoredProperty));
+                continue;
+            }
+
+            if (this.Options.SkipMetadata && itemType == Heif4CharCode.Colr && itemLength >= 4)
+            {
+                Span<byte> profileTypeBuffer = this.boxHeaderScratch.AsSpan(0, 4);
+                HeifBoxReader.ReadExactly(stream, profileTypeBuffer, "The HEIF color-information property is truncated.");
+                Heif4CharCode profileType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(profileTypeBuffer);
+                if (profileType is Heif4CharCode.RICC or Heif4CharCode.Prof)
+                {
+                    // ICC bytes cannot affect reconstruction when metadata is skipped. Retain only the property index
+                    // and leave the potentially large profile payload out of the allocator entirely.
+                    HeifBoxReader.Skip(stream, itemLength - 4);
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Colr, IgnoredProperty));
+                    continue;
+                }
+
+                stream.Position -= 4;
+            }
+
             using IMemoryOwner<byte> boxMemory = this.boxReader.ReadPayload(stream, itemLength);
             Span<byte> boxBuffer = boxMemory.GetSpan();
-            switch (itemType)
+            try
             {
-                case Heif4CharCode.Ispe:
-                    EnsureBufferRemaining(boxBuffer, 0, 12, "image spatial extents");
+                switch (itemType)
+                {
+                    case Heif4CharCode.Ispe:
+                        EnsureBufferRemaining(boxBuffer, 0, 12, "image spatial extents");
 
-                    // The full-box header precedes the unsigned display width and height.
-                    uint width = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[4..]);
-                    uint height = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[8..]);
-                    if (width is 0 or > int.MaxValue || height is 0 or > int.MaxValue)
-                    {
-                        throw new InvalidImageContentException("The image spatial extents property has invalid dimensions.");
-                    }
-
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Ispe, new Size((int)width, (int)height)));
-                    break;
-                case Heif4CharCode.Pasp:
-                    properties.Add(
-                        new KeyValuePair<Heif4CharCode, object>(
-                            Heif4CharCode.Pasp,
-                            HeifPropertyParser.ParsePixelAspectRatio(boxBuffer)));
-
-                    break;
-                case Heif4CharCode.Pixi:
-                    EnsureBufferRemaining(boxBuffer, 0, 5, "pixel information");
-                    if (boxBuffer[0] != 0 || boxBuffer[1] != 0 || boxBuffer[2] != 0 || boxBuffer[3] != 0)
-                    {
-                        throw new InvalidImageContentException("The pixel information property has an unsupported version or flags.");
-                    }
-
-                    // The full-box header precedes one bit-depth byte for each channel.
-                    int channelCount = boxBuffer[4];
-                    if (channelCount == 0)
-                    {
-                        throw new InvalidImageContentException("The pixel information property has no channels.");
-                    }
-
-                    int offset = 5;
-                    EnsureBufferRemaining(boxBuffer, offset, channelCount, "pixel information");
-                    if (boxBuffer.Length != offset + channelCount)
-                    {
-                        throw new InvalidImageContentException("The pixel information property contains unexpected trailing data.");
-                    }
-
-                    byte[] channelBitDepths = boxBuffer.Slice(offset, channelCount).ToArray();
-                    for (int i = 0; i < channelBitDepths.Length; i++)
-                    {
-                        if (channelBitDepths[i] == 0)
+                        // The full-box header precedes the unsigned display width and height.
+                        uint width = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[4..]);
+                        uint height = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[8..]);
+                        if (width is 0 or > int.MaxValue || height is 0 or > int.MaxValue)
                         {
-                            throw new InvalidImageContentException($"The pixel information property declares zero precision for channel {i}.");
+                            throw new InvalidImageContentException("The image spatial extents property has invalid dimensions.");
                         }
-                    }
 
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Pixi, channelBitDepths));
+                        properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Ispe, new Size((int)width, (int)height)));
+                        break;
+                    case Heif4CharCode.Pasp:
+                        object pixelAspectRatio = IgnoredProperty;
+                        try
+                        {
+                            pixelAspectRatio = HeifPropertyParser.ParsePixelAspectRatio(boxBuffer);
+                        }
+                        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        {
+                            // Keep the understood property index without retaining invalid ancillary metadata.
+                        }
 
-                    break;
-                case Heif4CharCode.AuxC:
-                    EnsureBufferRemaining(boxBuffer, 0, 5, "auxiliary type");
-                    if (boxBuffer[0] != 0)
-                    {
-                        throw new InvalidImageContentException($"The auxiliary type property has unsupported version {boxBuffer[0]}.");
-                    }
+                        properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Pasp, pixelAspectRatio));
+                        break;
+                    case Heif4CharCode.Pixi:
+                        EnsureBufferRemaining(boxBuffer, 0, 5, "pixel information");
+                        if (boxBuffer[0] != 0 || boxBuffer[1] != 0 || boxBuffer[2] != 0 || boxBuffer[3] != 0)
+                        {
+                            throw new InvalidImageContentException("The pixel information property has an unsupported version or flags.");
+                        }
 
-                    // aux_type is a required null-terminated string. Any remaining bytes are the registered
-                    // auxiliary subtype payload, which is not needed to identify an alpha image plane.
-                    string auxiliaryType = ReadNullTerminatedString(boxBuffer[4..], out _);
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.AuxC, auxiliaryType));
-                    break;
-                case Heif4CharCode.Colr:
-                    EnsureBufferRemaining(boxBuffer, 0, 4, "color information");
-                    Heif4CharCode profileType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer);
-                    object colorInformation = UnknownProperty;
-                    if (profileType is Heif4CharCode.RICC or Heif4CharCode.Prof)
-                    {
-                        EnsureBufferRemaining(boxBuffer, 4, 1, "ICC color information");
-                        byte[] iccData = boxBuffer[4..].ToArray();
-                        IccProfile? iccProfile = null;
-                        this.ExecuteAncillarySegmentAction(() => iccProfile = HeifPropertyParser.ParseIccProfile(iccData));
+                        // The full-box header precedes one bit-depth byte for each channel.
+                        int channelCount = boxBuffer[4];
+                        if (channelCount == 0)
+                        {
+                            throw new InvalidImageContentException("The pixel information property has no channels.");
+                        }
 
-                        // A malformed ancillary profile can be ignored by policy while the physical property still
-                        // occupies its ipco index and remains understood for essential-association handling.
-                        colorInformation = iccProfile ?? new object();
-                    }
-                    else if (profileType == Heif4CharCode.Nclx)
-                    {
-                        colorInformation = HeifPropertyParser.ParseCicpProfile(boxBuffer[4..]);
-                    }
+                        int offset = 5;
+                        EnsureBufferRemaining(boxBuffer, offset, channelCount, "pixel information");
+                        if (boxBuffer.Length != offset + channelCount)
+                        {
+                            throw new InvalidImageContentException("The pixel information property contains unexpected trailing data.");
+                        }
 
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Colr, colorInformation));
+                        byte[] channelBitDepths = boxBuffer.Slice(offset, channelCount).ToArray();
+                        for (int i = 0; i < channelBitDepths.Length; i++)
+                        {
+                            if (channelBitDepths[i] == 0)
+                            {
+                                throw new InvalidImageContentException($"The pixel information property declares zero precision for channel {i}.");
+                            }
+                        }
 
-                    break;
-                case Heif4CharCode.Clli:
-                    properties.Add(
-                        new KeyValuePair<Heif4CharCode, object>(
-                            Heif4CharCode.Clli,
-                            HeifPropertyParser.ParseContentLightLevel(boxBuffer)));
+                        properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Pixi, channelBitDepths));
 
-                    break;
-                case Heif4CharCode.Mdcv:
-                    properties.Add(
-                        new KeyValuePair<Heif4CharCode, object>(
-                            Heif4CharCode.Mdcv,
-                            HeifPropertyParser.ParseMasteringDisplayColorVolume(boxBuffer)));
+                        break;
+                    case Heif4CharCode.AuxC:
+                        EnsureBufferRemaining(boxBuffer, 0, 5, "auxiliary type");
+                        if (boxBuffer[0] != 0)
+                        {
+                            throw new InvalidImageContentException($"The auxiliary type property has unsupported version {boxBuffer[0]}.");
+                        }
 
-                    break;
-                case Heif4CharCode.Cclv:
-                    properties.Add(
-                        new KeyValuePair<Heif4CharCode, object>(
-                            Heif4CharCode.Cclv,
-                            HeifPropertyParser.ParseContentColorVolume(boxBuffer)));
+                        // aux_type is a required null-terminated string. Any remaining bytes are the registered
+                        // auxiliary subtype payload, which is not needed to identify an alpha image plane.
+                        string auxiliaryType = ReadNullTerminatedString(boxBuffer[4..], out _);
+                        properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.AuxC, auxiliaryType));
+                        break;
+                    case Heif4CharCode.Colr:
+                        EnsureBufferRemaining(boxBuffer, 0, 4, "color information");
+                        Heif4CharCode profileType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer);
+                        object colorInformation = UnknownProperty;
+                        if (profileType is Heif4CharCode.RICC or Heif4CharCode.Prof)
+                        {
+                            if (!this.Options.SkipMetadata)
+                            {
+                                EnsureBufferRemaining(boxBuffer, 4, 1, "ICC color information");
+                                byte[] iccData = boxBuffer[4..].ToArray();
+                                IccProfile? iccProfile = null;
+                                try
+                                {
+                                    iccProfile = HeifPropertyParser.ParseIccProfile(iccData);
+                                }
+                                catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                                {
+                                    // Keep the understood property index without retaining invalid ancillary metadata.
+                                }
 
-                    break;
-                case Heif4CharCode.Amve:
-                    properties.Add(
-                        new KeyValuePair<Heif4CharCode, object>(
-                            Heif4CharCode.Amve,
-                            HeifPropertyParser.ParseAmbientViewingEnvironment(boxBuffer)));
+                                // A malformed ancillary profile can be ignored by policy while the physical property still
+                                // occupies its ipco index and remains understood for essential-association handling.
+                                colorInformation = iccProfile ?? IgnoredProperty;
+                            }
+                            else
+                            {
+                                colorInformation = IgnoredProperty;
+                            }
+                        }
+                        else if (profileType == Heif4CharCode.Nclx)
+                        {
+                            colorInformation = HeifPropertyParser.ParseCicpProfile(boxBuffer[4..]);
+                        }
 
-                    break;
-                case Heif4CharCode.Reve:
-                    properties.Add(
-                        new KeyValuePair<Heif4CharCode, object>(
-                            Heif4CharCode.Reve,
-                            HeifPropertyParser.ParseReferenceViewingEnvironment(boxBuffer)));
+                        properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Colr, colorInformation));
 
-                    break;
-                case Heif4CharCode.Ndwt:
-                    properties.Add(
-                        new KeyValuePair<Heif4CharCode, object>(
-                            Heif4CharCode.Ndwt,
-                            HeifPropertyParser.ParseNominalDiffuseWhite(boxBuffer)));
+                        break;
+                    case Heif4CharCode.Clli:
+                        object contentLightLevel = IgnoredProperty;
+                        try
+                        {
+                            contentLightLevel = HeifPropertyParser.ParseContentLightLevel(boxBuffer);
+                        }
+                        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        {
+                            // Keep the understood property index without retaining invalid ancillary metadata.
+                        }
 
-                    break;
-                case Heif4CharCode.Av1C:
-                    EnsureBufferRemaining(boxBuffer, 0, 4, "AV1 codec configuration");
-                    properties.Add(
-                        new KeyValuePair<Heif4CharCode, object>(
-                            Heif4CharCode.Av1C,
-                            new Av1CodecConfiguration(boxBuffer)));
+                        properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Clli, contentLightLevel));
+                        break;
+                    case Heif4CharCode.Mdcv:
+                        object masteringDisplayColorVolume = IgnoredProperty;
+                        try
+                        {
+                            masteringDisplayColorVolume = HeifPropertyParser.ParseMasteringDisplayColorVolume(boxBuffer);
+                        }
+                        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        {
+                            // Keep the understood property index without retaining invalid ancillary metadata.
+                        }
 
-                    break;
-                case Heif4CharCode.HvcC:
-                    properties.Add(
-                        new KeyValuePair<Heif4CharCode, object>(
-                            Heif4CharCode.HvcC,
-                            new HevcCodecConfiguration(boxBuffer)));
+                        properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Mdcv, masteringDisplayColorVolume));
+                        break;
+                    case Heif4CharCode.Cclv:
+                        object contentColorVolume = IgnoredProperty;
+                        try
+                        {
+                            contentColorVolume = HeifPropertyParser.ParseContentColorVolume(boxBuffer);
+                        }
+                        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        {
+                            // Keep the understood property index without retaining invalid ancillary metadata.
+                        }
 
-                    break;
-                case Heif4CharCode.Clap:
-                    properties.Add(
-                        new KeyValuePair<Heif4CharCode, object>(
-                            Heif4CharCode.Clap,
-                            HeifPropertyParser.ParseCleanAperture(boxBuffer)));
+                        properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Cclv, contentColorVolume));
+                        break;
+                    case Heif4CharCode.Amve:
+                        object ambientViewingEnvironment = IgnoredProperty;
+                        try
+                        {
+                            ambientViewingEnvironment = HeifPropertyParser.ParseAmbientViewingEnvironment(boxBuffer);
+                        }
+                        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        {
+                            // Keep the understood property index without retaining invalid ancillary metadata.
+                        }
 
-                    break;
-                case Heif4CharCode.Irot:
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Irot, HeifPropertyParser.ParseRotation(boxBuffer)));
-                    break;
-                case Heif4CharCode.Imir:
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Imir, HeifPropertyParser.ParseMirrorAxis(boxBuffer)));
-                    break;
-                case Heif4CharCode.Altt:
-                case Heif4CharCode.Iscl:
-                case Heif4CharCode.Rloc:
-                case Heif4CharCode.Udes:
-                    // These registered image properties are not arbitrary unknown boxes. Preserve their indices so
-                    // container identification remains available while their owning image stage handles the value.
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(itemType, new object()));
-                    break;
-                default:
-                    // Unknown properties still occupy an ipco index and become an error only when marked essential.
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(itemType, UnknownProperty));
-                    break;
+                        properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Amve, ambientViewingEnvironment));
+                        break;
+                    case Heif4CharCode.Reve:
+                        object referenceViewingEnvironment = IgnoredProperty;
+                        try
+                        {
+                            referenceViewingEnvironment = HeifPropertyParser.ParseReferenceViewingEnvironment(boxBuffer);
+                        }
+                        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        {
+                            // Keep the understood property index without retaining invalid ancillary metadata.
+                        }
+
+                        properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Reve, referenceViewingEnvironment));
+                        break;
+                    case Heif4CharCode.Ndwt:
+                        object nominalDiffuseWhite = IgnoredProperty;
+                        try
+                        {
+                            nominalDiffuseWhite = HeifPropertyParser.ParseNominalDiffuseWhite(boxBuffer);
+                        }
+                        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        {
+                            // Keep the understood property index without retaining invalid ancillary metadata.
+                        }
+
+                        properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Ndwt, nominalDiffuseWhite));
+                        break;
+                    case Heif4CharCode.Av1C:
+                        EnsureBufferRemaining(boxBuffer, 0, 4, "AV1 codec configuration");
+                        properties.Add(
+                            new KeyValuePair<Heif4CharCode, object>(
+                                Heif4CharCode.Av1C,
+                                new Av1CodecConfiguration(boxBuffer, this.Options)));
+
+                        break;
+                    case Heif4CharCode.HvcC:
+                        properties.Add(
+                            new KeyValuePair<Heif4CharCode, object>(
+                                Heif4CharCode.HvcC,
+                                new HevcCodecConfiguration(boxBuffer)));
+
+                        break;
+                    case Heif4CharCode.Clap:
+                        properties.Add(
+                            new KeyValuePair<Heif4CharCode, object>(
+                                Heif4CharCode.Clap,
+                                HeifPropertyParser.ParseCleanAperture(boxBuffer)));
+
+                        break;
+                    case Heif4CharCode.Irot:
+                        properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Irot, HeifPropertyParser.ParseRotation(boxBuffer)));
+                        break;
+                    case Heif4CharCode.Imir:
+                        properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Imir, HeifPropertyParser.ParseMirrorAxis(boxBuffer)));
+                        break;
+                    case Heif4CharCode.Altt:
+                    case Heif4CharCode.Iscl:
+                    case Heif4CharCode.Rloc:
+                    case Heif4CharCode.Udes:
+                        // These registered image properties are not arbitrary unknown boxes. Preserve their indices so
+                        // container identification remains available while their owning image stage handles the value.
+                        properties.Add(new KeyValuePair<Heif4CharCode, object>(itemType, IgnoredProperty));
+                        break;
+                    default:
+                        // Unknown properties still occupy an ipco index and become an error only when marked essential.
+                        properties.Add(new KeyValuePair<Heif4CharCode, object>(itemType, UnknownProperty));
+                        break;
+                }
+            }
+            catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreImageDataSegmentError(this.Options, ex))
+            {
+                // Invalid image properties retain their physical association index. Typed association handling ignores
+                // the placeholder so another decodable item or the coded-image defaults can remain usable.
+                properties.Add(new KeyValuePair<Heif4CharCode, object>(itemType, IgnoredProperty));
             }
         }
     }
@@ -1337,81 +1475,129 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                 if (!essential && prop.Key is Heif4CharCode.Clap or Heif4CharCode.Irot or Heif4CharCode.Imir)
                 {
-                    throw new InvalidImageContentException($"Item {itemId} associates nonessential transformative property '{prop.Key}'.");
+                    this.ThrowOrIgnoreImageDataSegmentError(
+                        $"Item {itemId} associates nonessential transformative property '{prop.Key}'.");
+
+                    continue;
                 }
 
                 switch (prop.Key)
                 {
                     case Heif4CharCode.Ispe:
-                        item.SetExtent((Size)prop.Value);
+                        if (prop.Value is Size extent)
+                        {
+                            item.SetExtent(extent);
+                        }
+
                         break;
                     case Heif4CharCode.Pasp:
-                        if (item.PixelAspectRatio is not null)
+                        if (prop.Value is HeifPixelAspectRatio pixelAspectRatio)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates more than one pixel aspect ratio property.");
+                            if (item.PixelAspectRatio is not null)
+                            {
+                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                    $"Item {itemId} associates more than one pixel aspect ratio property.");
+
+                                break;
+                            }
+
+                            item.PixelAspectRatio = pixelAspectRatio;
                         }
 
-                        item.PixelAspectRatio = (HeifPixelAspectRatio)prop.Value;
                         break;
                     case Heif4CharCode.Pixi:
-                        if (item.ChannelBitDepths is not null)
+                        if (prop.Value is byte[] channelBitDepths)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates more than one pixel information property.");
+                            if (item.ChannelBitDepths is not null)
+                            {
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates more than one pixel information property.");
+
+                                break;
+                            }
+
+                            int bitsPerPixel = 0;
+                            for (int channel = 0; channel < channelBitDepths.Length; channel++)
+                            {
+                                bitsPerPixel += channelBitDepths[channel];
+                            }
+
+                            item.ChannelCount = channelBitDepths.Length;
+                            item.ChannelBitDepths = channelBitDepths;
+                            item.BitsPerPixel = bitsPerPixel;
                         }
 
-                        byte[] channelBitDepths = (byte[])prop.Value;
-                        int bitsPerPixel = 0;
-                        for (int channel = 0; channel < channelBitDepths.Length; channel++)
-                        {
-                            bitsPerPixel += channelBitDepths[channel];
-                        }
-
-                        item.ChannelCount = channelBitDepths.Length;
-                        item.ChannelBitDepths = channelBitDepths;
-                        item.BitsPerPixel = bitsPerPixel;
                         break;
                     case Heif4CharCode.Av1C:
-                        if (item.Type != Heif4CharCode.Av01)
+                        if (prop.Value is Av1CodecConfiguration av1CodecConfiguration)
                         {
-                            throw new InvalidImageContentException(
-                                $"Item {itemId} associates an AV1 codec configuration with non-AV1 item type '{item.Type}'.");
+                            if (item.Type != Heif4CharCode.Av01)
+                            {
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates an AV1 codec configuration with non-AV1 item type '{item.Type}'.");
+
+                                break;
+                            }
+
+                            if (item.Av1CodecConfiguration is not null)
+                            {
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates more than one AV1 codec configuration property.");
+
+                                break;
+                            }
+
+                            item.Av1CodecConfiguration = av1CodecConfiguration;
                         }
 
-                        if (item.Av1CodecConfiguration is not null)
-                        {
-                            throw new InvalidImageContentException($"Item {itemId} associates more than one AV1 codec configuration property.");
-                        }
-
-                        item.Av1CodecConfiguration = (Av1CodecConfiguration)prop.Value;
                         break;
                     case Heif4CharCode.HvcC:
-                        if (item.Type != Heif4CharCode.Hvc1)
+                        if (prop.Value is HevcCodecConfiguration hevcCodecConfiguration)
                         {
-                            throw new InvalidImageContentException(
-                                $"Item {itemId} associates an HEVC codec configuration with non-HEVC item type '{item.Type}'.");
+                            if (item.Type != Heif4CharCode.Hvc1)
+                            {
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates an HEVC codec configuration with non-HEVC item type '{item.Type}'.");
+
+                                break;
+                            }
+
+                            if (item.HevcCodecConfiguration is not null)
+                            {
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates more than one HEVC codec configuration property.");
+
+                                break;
+                            }
+
+                            item.HevcCodecConfiguration = hevcCodecConfiguration;
                         }
 
-                        if (item.HevcCodecConfiguration is not null)
-                        {
-                            throw new InvalidImageContentException($"Item {itemId} associates more than one HEVC codec configuration property.");
-                        }
-
-                        item.HevcCodecConfiguration = (HevcCodecConfiguration)prop.Value;
                         break;
                     case Heif4CharCode.AuxC:
-                        if (item.AuxiliaryType is not null)
+                        if (prop.Value is string auxiliaryType)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates more than one auxiliary type property.");
+                            if (item.AuxiliaryType is not null)
+                            {
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates more than one auxiliary type property.");
+
+                                break;
+                            }
+
+                            item.AuxiliaryType = auxiliaryType;
                         }
 
-                        item.AuxiliaryType = (string)prop.Value;
                         break;
                     case Heif4CharCode.Colr:
                         if (prop.Value is IccProfile iccProfile)
                         {
                             if (item.IccProfile is not null)
                             {
-                                throw new InvalidImageContentException($"Item {itemId} associates more than one ICC color property.");
+                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                    $"Item {itemId} associates more than one ICC color property.");
+
+                                break;
                             }
 
                             item.IccProfile = iccProfile;
@@ -1420,7 +1606,10 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             if (item.CicpProfile is not null)
                             {
-                                throw new InvalidImageContentException($"Item {itemId} associates more than one CICP color property.");
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates more than one CICP color property.");
+
+                                break;
                             }
 
                             item.CicpProfile = cicpProfile;
@@ -1428,76 +1617,139 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                         break;
                     case Heif4CharCode.Clli:
-                        if (item.ContentLightLevel is not null)
+                        if (prop.Value is HeifContentLightLevel contentLightLevel)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates more than one content light level property.");
+                            if (item.ContentLightLevel is not null)
+                            {
+                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                    $"Item {itemId} associates more than one content light level property.");
+
+                                break;
+                            }
+
+                            item.ContentLightLevel = contentLightLevel;
                         }
 
-                        item.ContentLightLevel = (HeifContentLightLevel)prop.Value;
                         break;
                     case Heif4CharCode.Mdcv:
-                        if (item.MasteringDisplayColorVolume is not null)
+                        if (prop.Value is HeifMasteringDisplayColorVolume masteringDisplayColorVolume)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates more than one mastering display color-volume property.");
+                            if (item.MasteringDisplayColorVolume is not null)
+                            {
+                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                    $"Item {itemId} associates more than one mastering display color-volume property.");
+
+                                break;
+                            }
+
+                            item.MasteringDisplayColorVolume = masteringDisplayColorVolume;
                         }
 
-                        item.MasteringDisplayColorVolume = (HeifMasteringDisplayColorVolume)prop.Value;
                         break;
                     case Heif4CharCode.Cclv:
-                        if (item.ContentColorVolume is not null)
+                        if (prop.Value is HeifContentColorVolume contentColorVolume)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates more than one content color-volume property.");
+                            if (item.ContentColorVolume is not null)
+                            {
+                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                    $"Item {itemId} associates more than one content color-volume property.");
+
+                                break;
+                            }
+
+                            item.ContentColorVolume = contentColorVolume;
                         }
 
-                        item.ContentColorVolume = (HeifContentColorVolume)prop.Value;
                         break;
                     case Heif4CharCode.Amve:
-                        if (item.AmbientViewingEnvironment is not null)
+                        if (prop.Value is HeifAmbientViewingEnvironment ambientViewingEnvironment)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates more than one ambient viewing-environment property.");
+                            if (item.AmbientViewingEnvironment is not null)
+                            {
+                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                    $"Item {itemId} associates more than one ambient viewing-environment property.");
+
+                                break;
+                            }
+
+                            item.AmbientViewingEnvironment = ambientViewingEnvironment;
                         }
 
-                        item.AmbientViewingEnvironment = (HeifAmbientViewingEnvironment)prop.Value;
                         break;
                     case Heif4CharCode.Reve:
-                        if (item.ReferenceViewingEnvironment is not null)
+                        if (prop.Value is HeifReferenceViewingEnvironment referenceViewingEnvironment)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates more than one reference viewing-environment property.");
+                            if (item.ReferenceViewingEnvironment is not null)
+                            {
+                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                    $"Item {itemId} associates more than one reference viewing-environment property.");
+
+                                break;
+                            }
+
+                            item.ReferenceViewingEnvironment = referenceViewingEnvironment;
                         }
 
-                        item.ReferenceViewingEnvironment = (HeifReferenceViewingEnvironment)prop.Value;
                         break;
                     case Heif4CharCode.Ndwt:
-                        if (item.NominalDiffuseWhite is not null)
+                        if (prop.Value is HeifNominalDiffuseWhite nominalDiffuseWhite)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates more than one nominal diffuse-white property.");
+                            if (item.NominalDiffuseWhite is not null)
+                            {
+                                this.ThrowOrIgnoreNonStrictSegmentError(
+                                    $"Item {itemId} associates more than one nominal diffuse-white property.");
+
+                                break;
+                            }
+
+                            item.NominalDiffuseWhite = nominalDiffuseWhite;
                         }
 
-                        item.NominalDiffuseWhite = (HeifNominalDiffuseWhite)prop.Value;
                         break;
                     case Heif4CharCode.Clap:
-                        if (item.CleanAperture is not null)
+                        if (prop.Value is HeifCleanAperture cleanAperture)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates more than one clean aperture property.");
+                            if (item.CleanAperture is not null)
+                            {
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates more than one clean aperture property.");
+
+                                break;
+                            }
+
+                            item.CleanAperture = cleanAperture;
                         }
 
-                        item.CleanAperture = (HeifCleanAperture)prop.Value;
                         break;
                     case Heif4CharCode.Irot:
-                        if (item.RotationAngle is not null)
+                        if (prop.Value is byte rotationAngle)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates more than one image rotation property.");
+                            if (item.RotationAngle is not null)
+                            {
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates more than one image rotation property.");
+
+                                break;
+                            }
+
+                            item.RotationAngle = rotationAngle;
                         }
 
-                        item.RotationAngle = (byte)prop.Value;
                         break;
                     case Heif4CharCode.Imir:
-                        if (item.MirrorAxis is not null)
+                        if (prop.Value is byte mirrorAxis)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates more than one image mirror property.");
+                            if (item.MirrorAxis is not null)
+                            {
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates more than one image mirror property.");
+
+                                break;
+                            }
+
+                            item.MirrorAxis = mirrorAxis;
                         }
 
-                        item.MirrorAxis = (byte)prop.Value;
                         break;
                 }
             }
@@ -1687,78 +1939,104 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel format.</typeparam>
     /// <param name="stream">The complete seekable HEIF container stream.</param>
+    /// <param name="cancellationToken">The token used to cancel item assembly and payload decoding.</param>
     /// <returns>The image reconstructed from the selected item.</returns>
-    private Image<TPixel> DecodePrimaryItem<TPixel>(BufferedReadStream stream)
+    private Image<TPixel> DecodePrimaryItem<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using DisposableDictionary<uint, IMemoryOwner<byte>> buffers = new(this.items.Count);
         foreach (HeifItem item in this.items)
         {
-            long itemLength = 0;
-            foreach (HeifLocation loc in item.DataLocations)
+            cancellationToken.ThrowIfCancellationRequested();
+            bool isMetadataItem = item.Type is Heif4CharCode.Exif or Heif4CharCode.Mime;
+            if (this.Options.SkipMetadata && isMetadataItem)
             {
-                if (loc.Length < 0 || itemLength > int.MaxValue - loc.Length)
-                {
-                    throw new InvalidImageContentException($"Item {item.Id} data is too large to buffer.");
-                }
-
-                itemLength += loc.Length;
-            }
-
-            if (itemLength == 0)
-            {
+                // Metadata items are not codec inputs. Leave their extents on the stream when metadata loading is disabled.
                 continue;
             }
 
-            // One logical item is the concatenation of its extents in declared order. Materialize only that item data,
-            // never the enclosing file or mdat box, so codec readers receive the contiguous payload they expect.
-            int bufferLength = (int)itemLength;
-            IMemoryOwner<byte> extentMemory = this.configuration.MemoryAllocator.Allocate<byte>(bufferLength);
-            buffers.Add(item.Id, extentMemory);
-            Span<byte> itemBuffer = extentMemory.GetSpan()[..bufferLength];
-            int writeOffset = 0;
-            foreach (HeifLocation loc in item.DataLocations)
+            IMemoryOwner<byte>? extentMemory = null;
+            try
             {
-                if (loc.BaseOffset < 0 || loc.Offset < 0 || loc.BaseOffset > long.MaxValue - loc.Offset)
+                long itemLength = 0;
+                foreach (HeifLocation loc in item.DataLocations)
                 {
-                    throw new InvalidImageContentException($"Item {item.Id} has an invalid extent offset.");
-                }
-
-                long relativeOffset = loc.BaseOffset + loc.Offset;
-                long sourceOffset;
-                long sourceBytesRemaining;
-                if (loc.Origin == HeifLocationOffsetOrigin.FileOffset)
-                {
-                    // Construction method zero resolves base_offset + extent_offset from the start of the file.
-                    sourceOffset = relativeOffset;
-                    sourceBytesRemaining = stream.Length - sourceOffset;
-                }
-                else if (loc.Origin == HeifLocationOffsetOrigin.ItemDataOffset)
-                {
-                    if (this.itemDataOffset < 0 || relativeOffset > this.itemDataLength)
+                    if (loc.Length < 0 || itemLength > int.MaxValue - loc.Length)
                     {
-                        throw new InvalidImageContentException($"Item {item.Id} has an extent outside its item data box.");
+                        throw new InvalidImageContentException($"Item {item.Id} data is too large to buffer.");
                     }
 
-                    // Construction method one resolves the same relative value from the idat payload start.
-                    sourceOffset = this.itemDataOffset + relativeOffset;
-                    sourceBytesRemaining = this.itemDataLength - relativeOffset;
-                }
-                else
-                {
-                    throw new InvalidImageContentException($"Item {item.Id} uses an unsupported location origin.");
+                    itemLength += loc.Length;
                 }
 
-                HeifBoxReader.EnsureInsideParent(loc.Length, sourceBytesRemaining);
-                stream.Position = sourceOffset;
-                int extentLength = (int)loc.Length;
-                int bytesRead = stream.Read(itemBuffer.Slice(writeOffset, extentLength));
-                if (bytesRead != extentLength)
+                if (itemLength == 0)
                 {
-                    throw new InvalidImageContentException($"Item {item.Id} extent is truncated.");
+                    continue;
                 }
 
-                writeOffset += extentLength;
+                // One logical item is the concatenation of its extents in declared order. Materialize only that item data,
+                // never the enclosing file or mdat box, so codec readers receive the contiguous payload they expect.
+                int bufferLength = (int)itemLength;
+                extentMemory = this.configuration.MemoryAllocator.Allocate<byte>(bufferLength);
+                Span<byte> itemBuffer = extentMemory.GetSpan()[..bufferLength];
+                int writeOffset = 0;
+                foreach (HeifLocation loc in item.DataLocations)
+                {
+                    if (loc.BaseOffset < 0 || loc.Offset < 0 || loc.BaseOffset > long.MaxValue - loc.Offset)
+                    {
+                        throw new InvalidImageContentException($"Item {item.Id} has an invalid extent offset.");
+                    }
+
+                    long relativeOffset = loc.BaseOffset + loc.Offset;
+                    long sourceOffset;
+                    long sourceBytesRemaining;
+                    if (loc.Origin == HeifLocationOffsetOrigin.FileOffset)
+                    {
+                        // Construction method zero resolves base_offset + extent_offset from the start of the file.
+                        sourceOffset = relativeOffset;
+                        sourceBytesRemaining = stream.Length - sourceOffset;
+                    }
+                    else if (loc.Origin == HeifLocationOffsetOrigin.ItemDataOffset)
+                    {
+                        if (this.itemDataOffset < 0 || relativeOffset > this.itemDataLength)
+                        {
+                            throw new InvalidImageContentException($"Item {item.Id} has an extent outside its item data box.");
+                        }
+
+                        // Construction method one resolves the same relative value from the idat payload start.
+                        sourceOffset = this.itemDataOffset + relativeOffset;
+                        sourceBytesRemaining = this.itemDataLength - relativeOffset;
+                    }
+                    else
+                    {
+                        throw new InvalidImageContentException($"Item {item.Id} uses an unsupported location origin.");
+                    }
+
+                    HeifBoxReader.EnsureInsideParent(loc.Length, sourceBytesRemaining);
+                    stream.Position = sourceOffset;
+                    int extentLength = (int)loc.Length;
+                    int bytesRead = stream.Read(itemBuffer.Slice(writeOffset, extentLength));
+                    if (bytesRead != extentLength)
+                    {
+                        throw new InvalidImageContentException($"Item {item.Id} extent is truncated.");
+                    }
+
+                    writeOffset += extentLength;
+                }
+
+                buffers.Add(item.Id, extentMemory);
+                extentMemory = null;
+            }
+            catch (Exception ex) when (isMetadataItem && ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+            {
+                // A failed optional metadata extent is discarded without weakening image-item extent validation.
+                extentMemory?.Dispose();
+            }
+            catch
+            {
+                // The dictionary takes ownership only after every declared extent has been assembled successfully.
+                extentMemory?.Dispose();
+                throw;
             }
         }
 
@@ -1787,10 +2065,10 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             throw new ImageFormatException("No decodable item found inside this HEIF container.");
         }
 
-        Image<TPixel> image = this.DecodeImageItem(itemToDecode, itemDecoder, buffers);
+        Image<TPixel> image = this.DecodeImageItem(itemToDecode, itemDecoder, buffers, cancellationToken);
         try
         {
-            using Image<L16>? alphaImage = this.DecodeAlphaPlane(itemToDecode, buffers, out bool alphaPremultiplied);
+            using Image<L16>? alphaImage = this.DecodeAlphaPlane(itemToDecode, buffers, cancellationToken, out bool alphaPremultiplied);
             if (alphaImage is not null)
             {
                 this.ApplyAlpha(image, alphaImage, alphaPremultiplied);
@@ -2065,7 +2343,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     private IHeifItemDecoder<TPixel>? GetItemDecoder<TPixel>(HeifItem item, DisposableDictionary<uint, IMemoryOwner<byte>> buffers)
         where TPixel : unmanaged, IPixel<TPixel>
         => item.Type == Heif4CharCode.Grid && this.FindDecodableGridTile<TPixel>(item) is not null
-            ? new GridHeifItemDecoder<TPixel>(this.configuration, this.items, this.itemLinks, buffers)
+            ? new GridHeifItemDecoder<TPixel>(this.items, this.itemLinks, buffers)
             : HeifCompressionFactory.GetDecoder<TPixel>(item.Type);
 
     /// <summary>
@@ -2075,11 +2353,13 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="item">The image item to decode.</param>
     /// <param name="decoder">The decoder selected for the item.</param>
     /// <param name="buffers">The assembled item payloads.</param>
+    /// <param name="cancellationToken">The token used to cancel the payload decode.</param>
     /// <returns>The decoded image.</returns>
     private Image<TPixel> DecodeImageItem<TPixel>(
         HeifItem item,
         IHeifItemDecoder<TPixel> decoder,
-        DisposableDictionary<uint, IMemoryOwner<byte>> buffers)
+        DisposableDictionary<uint, IMemoryOwner<byte>> buffers,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (!buffers.TryGetValue(item.Id, out IMemoryOwner<byte>? itemMemory))
@@ -2088,10 +2368,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         }
 
         Image<TPixel> image = decoder.DecodeItemData(
-            this.configuration,
+            this.payloadOptions,
             item,
             itemMemory.GetSpan(),
-            item.CicpProfile);
+            item.CicpProfile,
+            cancellationToken);
 
         try
         {
@@ -2196,11 +2477,13 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// </summary>
     /// <param name="colorItem">The color image item whose alpha plane is requested.</param>
     /// <param name="buffers">The assembled item payloads.</param>
+    /// <param name="cancellationToken">The token used to cancel the auxiliary payload decode.</param>
     /// <param name="premultiplied">Indicates whether the color samples are premultiplied by the decoded alpha.</param>
     /// <returns>The normalized 16-bit alpha plane, or <see langword="null"/> when the item has no alpha auxiliary.</returns>
     private Image<L16>? DecodeAlphaPlane(
         HeifItem colorItem,
         DisposableDictionary<uint, IMemoryOwner<byte>> buffers,
+        CancellationToken cancellationToken,
         out bool premultiplied)
     {
         premultiplied = false;
@@ -2234,7 +2517,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     && link.SourceId == colorItem.Id
                     && link.DestinationIds.Contains(alphaItem.Id));
 
-            return this.DecodeImageItem(alphaItem, decoder, buffers);
+            return this.DecodeImageItem(alphaItem, decoder, buffers, cancellationToken);
         }
 
         if (colorItem.Type != Heif4CharCode.Grid)
@@ -2256,13 +2539,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         // The color grid descriptor defines the same row/column layout and output canvas for per-tile alpha
         // auxiliaries. Supplying their IDs lets the existing grid compositor preserve that normative ordering.
         GridHeifItemDecoder<L16> gridDecoder = new(
-            this.configuration,
             this.items,
             this.itemLinks,
             buffers,
             alphaTileIds);
 
-        return gridDecoder.DecodeItemData(this.configuration, colorItem, gridMemory.GetSpan(), null);
+        return gridDecoder.DecodeItemData(this.payloadOptions, colorItem, gridMemory.GetSpan(), null, cancellationToken);
     }
 
     /// <summary>

@@ -19,11 +19,6 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     /// <summary>
-    /// The configuration used to decode each compressed grid tile.
-    /// </summary>
-    private readonly Configuration configuration;
-
-    /// <summary>
     /// The item definitions available to the grid.
     /// </summary>
     private readonly IList<HeifItem> items;
@@ -46,7 +41,6 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
     /// <summary>
     /// Initializes a new instance of the <see cref="GridHeifItemDecoder{TPixel}"/> class.
     /// </summary>
-    /// <param name="configuration">The configuration used to decode compressed grid tiles.</param>
     /// <param name="items">The item definitions in the containing HEIF file.</param>
     /// <param name="itemLinks">The item-reference relationships in the containing HEIF file.</param>
     /// <param name="buffers">The assembled encoded payload for each image item.</param>
@@ -54,13 +48,11 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
     /// Optional row-major tile identifiers that replace the grid item's own derived-image references.
     /// </param>
     public GridHeifItemDecoder(
-        Configuration configuration,
         IList<HeifItem> items,
         IList<HeifItemLink> itemLinks,
         IDictionary<uint, IMemoryOwner<byte>> buffers,
         IReadOnlyList<uint>? tileItemIds = null)
     {
-        this.configuration = configuration;
         this.items = items;
         this.itemLinks = itemLinks;
         this.buffers = buffers;
@@ -80,16 +72,18 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
     /// <summary>
     /// Decodes the tiles referenced by a grid derived-image item.
     /// </summary>
-    /// <param name="configuration">The configuration associated with the containing HEIF decode.</param>
+    /// <param name="options">The general options governing the containing HEIF decode.</param>
     /// <param name="gridItem">The grid derived-image item.</param>
     /// <param name="data">The grid descriptor payload.</param>
     /// <param name="colorProfile">The container color description inherited by tiles that do not declare one.</param>
+    /// <param name="cancellationToken">The token used to cancel between tile payloads.</param>
     /// <returns>The image reconstructed from the referenced grid tiles.</returns>
     public Image<TPixel> DecodeItemData(
-        Configuration configuration,
+        DecoderOptions options,
         HeifItem gridItem,
         Span<byte> data,
-        CicpProfile? colorProfile)
+        CicpProfile? colorProfile,
+        CancellationToken cancellationToken)
     {
         if (data.Length < 8)
         {
@@ -157,6 +151,7 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
         Av1CodecConfiguration? av1GridConfiguration = null;
         foreach (uint id in linked)
         {
+            cancellationToken.ThrowIfCancellationRequested();
             HeifItem item = this.items.First(item => item.Id == id);
             if (tileType == default)
             {
@@ -197,10 +192,11 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
 
             this.CompressionMethod = decoder.CompressionMethod;
             Image<TPixel> tile = decoder.DecodeItemData(
-                this.configuration,
+                options,
                 item,
                 itemMemory.GetSpan(),
-                item.CicpProfile ?? colorProfile);
+                item.CicpProfile ?? colorProfile,
+                cancellationToken);
 
             try
             {
@@ -227,7 +223,7 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>
             throw new InvalidImageContentException("The HEIF image grid edge tiles do not overlap the output canvas.");
         }
 
-        Image<TPixel> result = new(configuration, (int)outputWidth, (int)outputHeight, firstTile.Metadata.DeepClone());
+        Image<TPixel> result = new(options.Configuration, (int)outputWidth, (int)outputHeight, firstTile.Metadata.DeepClone());
         ImageFrame<TPixel> destination = result.Frames.RootFrame;
         for (int tileIndex = 0; tileIndex < gridTiles.Count; tileIndex++)
         {

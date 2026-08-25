@@ -41,6 +41,19 @@ public sealed partial class IccProfile : IDeepCloneable<IccProfile>
     public IccProfile(byte[] data) => this.data = data;
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="IccProfile"/> class from raw ICC profile data whose source storage does not need to
+    /// remain valid for the lifetime of the profile.
+    /// </summary>
+    /// <param name="data">The raw ICC profile data.</param>
+    public IccProfile(ReadOnlySpan<byte> data)
+    {
+        // A span cannot transfer ownership, while IccProfile retains the exact bytes for lazy parsing and byte-for-byte serialization.
+        // The destination has exactly data.Length elements, so CopyTo immediately overwrites every byte of the uninitialized array.
+        this.data = GC.AllocateUninitializedArray<byte>(data.Length);
+        data.CopyTo(this.data);
+    }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="IccProfile"/> class.
     /// </summary>
     /// <param name="header">The profile header</param>

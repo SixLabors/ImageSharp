@@ -137,12 +137,37 @@ public class HeifSequenceParserTests
         Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
     }
 
+    [Fact]
+    public void ParseRetainsTrackImageProperties()
+    {
+        byte[] data = CreateSequenceFile(1024, trackProperties: true);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = new(Configuration.Default.MemoryAllocator, 2);
+        stream.Position = 8;
+
+        HeifSequenceTrack track = parser.Parse(stream, GetMoviePayloadLength(data)).ColorTrack;
+
+        Assert.NotNull(track.CicpProfile);
+        Assert.Equal(4U, track.PixelAspectRatio!.HorizontalSpacing);
+        Assert.Equal(3U, track.PixelAspectRatio.VerticalSpacing);
+        Assert.Equal(new Rectangle(0, 0, 320, 240), track.CleanAperture!.Value.ToRectangle(new Size(320, 240)));
+        Assert.Equal((byte)1, track.RotationAngle);
+        Assert.Equal((byte)1, track.MirrorAxis);
+        Assert.Equal((ushort)1000, track.ContentLightLevel!.Value.MaximumContentLightLevel);
+        Assert.NotNull(track.MasteringDisplayColorVolume);
+        Assert.NotNull(track.ContentColorVolume);
+        Assert.NotNull(track.AmbientViewingEnvironment);
+        Assert.NotNull(track.ReferenceViewingEnvironment);
+        Assert.NotNull(track.NominalDiffuseWhite);
+    }
+
     private static byte[] CreateSequenceFile(
         uint chunkOffset,
         bool hevc = false,
         bool compositionOffsets = false,
         bool directReferences = false,
-        uint directReferenceSampleId = 1)
+        uint directReferenceSampleId = 1,
+        bool trackProperties = false)
     {
         using MemoryStream stream = new();
         using BinaryWriter writer = new(stream, Encoding.UTF8, true);
@@ -167,7 +192,7 @@ public class HeifSequenceParserTests
 
         long mediaInformation = BeginBox(writer, Heif4CharCode.Minf);
         WriteDataInformation(writer);
-        WriteSampleTable(writer, chunkOffset, hevc, compositionOffsets, directReferences, directReferenceSampleId);
+        WriteSampleTable(writer, chunkOffset, hevc, compositionOffsets, directReferences, directReferenceSampleId, trackProperties);
         EndBox(writer, mediaInformation);
         EndBox(writer, media);
         EndBox(writer, track);
@@ -261,10 +286,11 @@ public class HeifSequenceParserTests
         bool hevc,
         bool compositionOffsets,
         bool directReferences,
-        uint directReferenceSampleId)
+        uint directReferenceSampleId,
+        bool trackProperties)
     {
         long sampleTable = BeginBox(writer, Heif4CharCode.Stbl);
-        WriteSampleDescription(writer, hevc);
+        WriteSampleDescription(writer, hevc, trackProperties);
 
         long timing = BeginBox(writer, Heif4CharCode.Stts);
         WriteFullBoxHeader(writer, 0, 0);
@@ -357,7 +383,7 @@ public class HeifSequenceParserTests
         EndBox(writer, sampleMap);
     }
 
-    private static void WriteSampleDescription(BinaryWriter writer, bool hevc)
+    private static void WriteSampleDescription(BinaryWriter writer, bool hevc, bool trackProperties)
     {
         long description = BeginBox(writer, Heif4CharCode.Stsd);
         WriteFullBoxHeader(writer, 0, 0);
@@ -387,12 +413,98 @@ public class HeifSequenceParserTests
             EndBox(writer, configuration);
         }
 
+        if (trackProperties)
+        {
+            WriteTrackImageProperties(writer);
+        }
+
         long codingConstraints = BeginBox(writer, Heif4CharCode.Ccst);
         WriteFullBoxHeader(writer, 0, 0);
         WriteUInt32(writer, 0x7C000000);
         EndBox(writer, codingConstraints);
         EndBox(writer, sampleEntry);
         EndBox(writer, description);
+    }
+
+    private static void WriteTrackImageProperties(BinaryWriter writer)
+    {
+        long color = BeginBox(writer, Heif4CharCode.Colr);
+        WriteUInt32(writer, (uint)Heif4CharCode.Nclx);
+        WriteUInt16(writer, 1);
+        WriteUInt16(writer, 13);
+        WriteUInt16(writer, 6);
+        writer.Write((byte)0x80);
+        EndBox(writer, color);
+
+        long pixelAspectRatio = BeginBox(writer, Heif4CharCode.Pasp);
+        WriteUInt32(writer, 4);
+        WriteUInt32(writer, 3);
+        EndBox(writer, pixelAspectRatio);
+
+        long cleanAperture = BeginBox(writer, Heif4CharCode.Clap);
+        WriteUInt32(writer, 320);
+        WriteUInt32(writer, 1);
+        WriteUInt32(writer, 240);
+        WriteUInt32(writer, 1);
+        WriteUInt32(writer, 0);
+        WriteUInt32(writer, 1);
+        WriteUInt32(writer, 0);
+        WriteUInt32(writer, 1);
+        EndBox(writer, cleanAperture);
+
+        long rotation = BeginBox(writer, Heif4CharCode.Irot);
+        writer.Write((byte)1);
+        EndBox(writer, rotation);
+
+        long mirror = BeginBox(writer, Heif4CharCode.Imir);
+        writer.Write((byte)1);
+        EndBox(writer, mirror);
+
+        long contentLightLevel = BeginBox(writer, Heif4CharCode.Clli);
+        WriteUInt16(writer, 1000);
+        WriteUInt16(writer, 400);
+        EndBox(writer, contentLightLevel);
+
+        long masteringDisplay = BeginBox(writer, Heif4CharCode.Mdcv);
+        WriteUInt16(writer, 15000);
+        WriteUInt16(writer, 30000);
+        WriteUInt16(writer, 7500);
+        WriteUInt16(writer, 3000);
+        WriteUInt16(writer, 34000);
+        WriteUInt16(writer, 16000);
+        WriteUInt16(writer, 15635);
+        WriteUInt16(writer, 16450);
+        WriteUInt32(writer, 10_000_000);
+        WriteUInt32(writer, 50);
+        EndBox(writer, masteringDisplay);
+
+        long contentColorVolume = BeginBox(writer, Heif4CharCode.Cclv);
+        writer.Write((byte)0x1C);
+        WriteUInt32(writer, 1_000_000);
+        WriteUInt32(writer, 10_000_000);
+        WriteUInt32(writer, 5_000_000);
+        EndBox(writer, contentColorVolume);
+
+        long ambientViewing = BeginBox(writer, Heif4CharCode.Amve);
+        WriteUInt32(writer, 10_000);
+        WriteUInt16(writer, 15_635);
+        WriteUInt16(writer, 16_450);
+        EndBox(writer, ambientViewing);
+
+        long referenceViewing = BeginBox(writer, Heif4CharCode.Reve);
+        WriteFullBoxHeader(writer, 0, 0);
+        WriteUInt32(writer, 10_000);
+        WriteUInt16(writer, 3_127);
+        WriteUInt16(writer, 3_290);
+        WriteUInt32(writer, 5_000);
+        WriteUInt16(writer, 3_127);
+        WriteUInt16(writer, 3_290);
+        EndBox(writer, referenceViewing);
+
+        long nominalDiffuseWhite = BeginBox(writer, Heif4CharCode.Ndwt);
+        WriteFullBoxHeader(writer, 0, 0);
+        WriteUInt32(writer, 2_030_000);
+        EndBox(writer, nominalDiffuseWhite);
     }
 
     private static void WriteHevcConfiguration(BinaryWriter writer)

@@ -4,7 +4,7 @@
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Describes the relative horizontal and vertical spacing of pixels in a HEIF still-image item.
+/// Describes the relative horizontal and vertical spacing of pixels in a HEIF image.
 /// </summary>
 /// <param name="horizontalSpacing">The relative horizontal pixel spacing.</param>
 /// <param name="verticalSpacing">The relative vertical pixel spacing.</param>

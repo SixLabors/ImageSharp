@@ -4,7 +4,6 @@
 using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
-using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Hevc;
@@ -727,18 +726,10 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Ispe, new Size((int)width, (int)height)));
                     break;
                 case Heif4CharCode.Pasp:
-                    EnsureBufferRemaining(boxBuffer, 0, 8, "pixel aspect ratio");
-                    uint horizontalSpacing = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer);
-                    uint verticalSpacing = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[4..]);
-                    if (horizontalSpacing == 0 || verticalSpacing == 0)
-                    {
-                        throw new InvalidImageContentException("The pixel aspect ratio property has zero spacing.");
-                    }
-
                     properties.Add(
                         new KeyValuePair<Heif4CharCode, object>(
                             Heif4CharCode.Pasp,
-                            new HeifPixelAspectRatio(horizontalSpacing, verticalSpacing)));
+                            HeifPropertyParser.ParsePixelAspectRatio(boxBuffer)));
 
                     break;
                 case Heif4CharCode.Pixi:
@@ -795,16 +786,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         EnsureBufferRemaining(boxBuffer, 4, 1, "ICC color information");
                         byte[] iccData = boxBuffer[4..].ToArray();
                         IccProfile? iccProfile = null;
-                        this.ExecuteAncillarySegmentAction(() =>
-                        {
-                            IccProfile candidate = new(iccData);
-                            if (!candidate.CheckIsValid())
-                            {
-                                throw new InvalidIccProfileException("Invalid HEIF ICC profile.");
-                            }
-
-                            iccProfile = candidate;
-                        });
+                        this.ExecuteAncillarySegmentAction(() => iccProfile = HeifPropertyParser.ParseIccProfile(iccData));
 
                         // A malformed ancillary profile can be ignored by policy while the physical property still
                         // occupies its ipco index and remains understood for essential-association handling.
@@ -812,339 +794,52 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     }
                     else if (profileType == Heif4CharCode.Nclx)
                     {
-                        EnsureBufferRemaining(boxBuffer, 4, 7, "CICP color information");
-                        ushort colorPrimaries = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[4..]);
-                        ushort transferCharacteristics = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[6..]);
-                        ushort matrixCoefficients = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[8..]);
-                        byte rangeAndReserved = boxBuffer[10];
-                        if ((rangeAndReserved & 0x7F) != 0)
-                        {
-                            throw new InvalidImageContentException("The HEIF CICP color property has nonzero reserved bits.");
-                        }
-
-                        // The box fields are 16-bit so future registrations remain representable. ImageSharp's CICP
-                        // profile exposes the currently registered byte-sized H.273 values and maps others to unspecified.
-                        byte colorPrimariesValue = colorPrimaries <= byte.MaxValue
-                            ? (byte)colorPrimaries
-                            : (byte)CicpColorPrimaries.Unspecified;
-
-                        byte transferCharacteristicsValue = transferCharacteristics <= byte.MaxValue
-                            ? (byte)transferCharacteristics
-                            : (byte)CicpTransferCharacteristics.Unspecified;
-
-                        byte matrixCoefficientsValue = matrixCoefficients <= byte.MaxValue
-                            ? (byte)matrixCoefficients
-                            : (byte)CicpMatrixCoefficients.Unspecified;
-
-                        colorInformation = new CicpProfile(
-                            colorPrimariesValue,
-                            transferCharacteristicsValue,
-                            matrixCoefficientsValue,
-                            (rangeAndReserved & 0x80) != 0);
+                        colorInformation = HeifPropertyParser.ParseCicpProfile(boxBuffer[4..]);
                     }
 
                     properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Colr, colorInformation));
 
                     break;
                 case Heif4CharCode.Clli:
-                    EnsureBufferRemaining(boxBuffer, 0, 4, "content light level information");
-                    if (boxBuffer.Length != 4)
-                    {
-                        throw new InvalidImageContentException("The content light level property has an invalid length.");
-                    }
-
                     properties.Add(
                         new KeyValuePair<Heif4CharCode, object>(
                             Heif4CharCode.Clli,
-                            new HeifContentLightLevel(
-                                BinaryPrimitives.ReadUInt16BigEndian(boxBuffer),
-                                BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[2..]))));
+                            HeifPropertyParser.ParseContentLightLevel(boxBuffer)));
 
                     break;
                 case Heif4CharCode.Mdcv:
-                    EnsureBufferRemaining(boxBuffer, 0, 24, "mastering display color volume");
-                    if (boxBuffer.Length != 24)
-                    {
-                        throw new InvalidImageContentException("The mastering display color-volume property has an invalid length.");
-                    }
-
-                    const float chromaticityScale = 1F / 50000F;
-                    const double luminanceScale = 1D / 10000D;
-
-                    // The registered mastering-display payload inherits the G, B, R primary order used by its
-                    // mastering-display source syntax. Reorder it into ImageSharp's existing RGB coordinate type.
-                    CieXyChromaticityCoordinates greenPrimary = new(
-                        BinaryPrimitives.ReadUInt16BigEndian(boxBuffer) * chromaticityScale,
-                        BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[2..]) * chromaticityScale);
-
-                    CieXyChromaticityCoordinates bluePrimary = new(
-                        BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[4..]) * chromaticityScale,
-                        BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[6..]) * chromaticityScale);
-
-                    CieXyChromaticityCoordinates redPrimary = new(
-                        BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[8..]) * chromaticityScale,
-                        BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[10..]) * chromaticityScale);
-
                     properties.Add(
                         new KeyValuePair<Heif4CharCode, object>(
                             Heif4CharCode.Mdcv,
-                            new HeifMasteringDisplayColorVolume(
-                                new RgbPrimariesChromaticityCoordinates(redPrimary, greenPrimary, bluePrimary),
-                                new CieXyChromaticityCoordinates(
-                                    BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[12..]) * chromaticityScale,
-                                    BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[14..]) * chromaticityScale),
-                                BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[16..]) * luminanceScale,
-                                BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[20..]) * luminanceScale)));
+                            HeifPropertyParser.ParseMasteringDisplayColorVolume(boxBuffer)));
 
                     break;
                 case Heif4CharCode.Cclv:
-                    EnsureBufferRemaining(boxBuffer, 0, 1, "content color volume");
-                    byte contentColorVolumeFlags = boxBuffer[0];
-                    if ((contentColorVolumeFlags & 0xC3) != 0)
-                    {
-                        throw new InvalidImageContentException("The content color-volume property has nonzero reserved flags.");
-                    }
-
-                    bool contentPrimariesPresent = (contentColorVolumeFlags & 0x20) != 0;
-                    bool minimumLuminancePresent = (contentColorVolumeFlags & 0x10) != 0;
-                    bool maximumLuminancePresent = (contentColorVolumeFlags & 0x08) != 0;
-                    bool averageLuminancePresent = (contentColorVolumeFlags & 0x04) != 0;
-                    if (!contentPrimariesPresent
-                        && !minimumLuminancePresent
-                        && !maximumLuminancePresent
-                        && !averageLuminancePresent)
-                    {
-                        throw new InvalidImageContentException("The content color-volume property does not describe any values.");
-                    }
-
-                    int expectedContentColorVolumeLength = 1
-                        + (contentPrimariesPresent ? 24 : 0)
-                        + (minimumLuminancePresent ? 4 : 0)
-                        + (maximumLuminancePresent ? 4 : 0)
-                        + (averageLuminancePresent ? 4 : 0);
-
-                    if (boxBuffer.Length != expectedContentColorVolumeLength)
-                    {
-                        throw new InvalidImageContentException("The content color-volume property has an invalid length.");
-                    }
-
-                    int contentColorVolumeOffset = 1;
-                    RgbPrimariesChromaticityCoordinates? contentPrimaries = null;
-                    if (contentPrimariesPresent)
-                    {
-                        int greenPrimaryX = BinaryPrimitives.ReadInt32BigEndian(boxBuffer[contentColorVolumeOffset..]);
-                        int greenPrimaryY = BinaryPrimitives.ReadInt32BigEndian(boxBuffer[(contentColorVolumeOffset + 4)..]);
-                        int bluePrimaryX = BinaryPrimitives.ReadInt32BigEndian(boxBuffer[(contentColorVolumeOffset + 8)..]);
-                        int bluePrimaryY = BinaryPrimitives.ReadInt32BigEndian(boxBuffer[(contentColorVolumeOffset + 12)..]);
-                        int redPrimaryX = BinaryPrimitives.ReadInt32BigEndian(boxBuffer[(contentColorVolumeOffset + 16)..]);
-                        int redPrimaryY = BinaryPrimitives.ReadInt32BigEndian(boxBuffer[(contentColorVolumeOffset + 20)..]);
-
-                        const int maximumContentChromaticityValue = 5_000_000;
-                        if (greenPrimaryX < -maximumContentChromaticityValue
-                            || greenPrimaryX > maximumContentChromaticityValue
-                            || greenPrimaryY < -maximumContentChromaticityValue
-                            || greenPrimaryY > maximumContentChromaticityValue
-                            || bluePrimaryX < -maximumContentChromaticityValue
-                            || bluePrimaryX > maximumContentChromaticityValue
-                            || bluePrimaryY < -maximumContentChromaticityValue
-                            || bluePrimaryY > maximumContentChromaticityValue
-                            || redPrimaryX < -maximumContentChromaticityValue
-                            || redPrimaryX > maximumContentChromaticityValue
-                            || redPrimaryY < -maximumContentChromaticityValue
-                            || redPrimaryY > maximumContentChromaticityValue)
-                        {
-                            throw new InvalidImageContentException("The content color-volume property has an out-of-range primary coordinate.");
-                        }
-
-                        const float contentChromaticityScale = 1F / 50000F;
-
-                        // Content-color-volume syntax stores signed coordinates in G, B, R order. Reorder the
-                        // optional primaries into ImageSharp's existing RGB coordinate representation.
-                        contentPrimaries = new RgbPrimariesChromaticityCoordinates(
-                            new CieXyChromaticityCoordinates(
-                                redPrimaryX * contentChromaticityScale,
-                                redPrimaryY * contentChromaticityScale),
-                            new CieXyChromaticityCoordinates(
-                                greenPrimaryX * contentChromaticityScale,
-                                greenPrimaryY * contentChromaticityScale),
-                            new CieXyChromaticityCoordinates(
-                                bluePrimaryX * contentChromaticityScale,
-                                bluePrimaryY * contentChromaticityScale));
-
-                        contentColorVolumeOffset += 24;
-                    }
-
-                    uint? minimumLuminanceValue = null;
-                    if (minimumLuminancePresent)
-                    {
-                        minimumLuminanceValue = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[contentColorVolumeOffset..]);
-                        contentColorVolumeOffset += 4;
-                    }
-
-                    uint? maximumLuminanceValue = null;
-                    if (maximumLuminancePresent)
-                    {
-                        maximumLuminanceValue = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[contentColorVolumeOffset..]);
-                        contentColorVolumeOffset += 4;
-                    }
-
-                    uint? averageLuminanceValue = null;
-                    if (averageLuminancePresent)
-                    {
-                        averageLuminanceValue = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[contentColorVolumeOffset..]);
-                    }
-
-                    if (minimumLuminanceValue is not null
-                        && averageLuminanceValue is not null
-                        && minimumLuminanceValue.Value > averageLuminanceValue.Value)
-                    {
-                        throw new InvalidImageContentException("The content color-volume minimum luminance exceeds its average luminance.");
-                    }
-
-                    if (averageLuminanceValue is not null
-                        && maximumLuminanceValue is not null
-                        && averageLuminanceValue.Value > maximumLuminanceValue.Value)
-                    {
-                        throw new InvalidImageContentException("The content color-volume average luminance exceeds its maximum luminance.");
-                    }
-
-                    if (minimumLuminanceValue is not null
-                        && maximumLuminanceValue is not null
-                        && minimumLuminanceValue.Value > maximumLuminanceValue.Value)
-                    {
-                        throw new InvalidImageContentException("The content color-volume minimum luminance exceeds its maximum luminance.");
-                    }
-
-                    const double contentLuminanceScale = 1D / 10000000D;
-
-                    // These values are normalized according to the signaled transfer characteristics. Preserve
-                    // that unitless meaning instead of presenting them as physical display luminance.
-                    double? minimumContentLuminance = minimumLuminanceValue is not null
-                        ? minimumLuminanceValue.Value * contentLuminanceScale
-                        : null;
-
-                    double? maximumContentLuminance = maximumLuminanceValue is not null
-                        ? maximumLuminanceValue.Value * contentLuminanceScale
-                        : null;
-
-                    double? averageContentLuminance = averageLuminanceValue is not null
-                        ? averageLuminanceValue.Value * contentLuminanceScale
-                        : null;
-
                     properties.Add(
                         new KeyValuePair<Heif4CharCode, object>(
                             Heif4CharCode.Cclv,
-                            new HeifContentColorVolume(
-                                contentPrimaries,
-                                minimumContentLuminance,
-                                maximumContentLuminance,
-                                averageContentLuminance)));
+                            HeifPropertyParser.ParseContentColorVolume(boxBuffer)));
 
                     break;
                 case Heif4CharCode.Amve:
-                    EnsureBufferRemaining(boxBuffer, 0, 8, "ambient viewing environment");
-                    if (boxBuffer.Length != 8)
-                    {
-                        throw new InvalidImageContentException("The ambient viewing-environment property has an invalid length.");
-                    }
-
-                    uint ambientIlluminanceValue = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer);
-                    ushort ambientLightX = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[4..]);
-                    ushort ambientLightY = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[6..]);
-                    if (ambientIlluminanceValue == 0)
-                    {
-                        throw new InvalidImageContentException("The ambient viewing-environment property has zero illuminance.");
-                    }
-
-                    if (ambientLightX > 50000 || ambientLightY > 50000)
-                    {
-                        throw new InvalidImageContentException("The ambient viewing-environment property has an out-of-range chromaticity coordinate.");
-                    }
-
-                    const double ambientIlluminanceScale = 1D / 10000D;
-                    const float ambientChromaticityScale = 1F / 50000F;
-
-                    // The item property inherits H.274's fixed-point units: 0.0001 lux for illuminance and
-                    // 0.00002 for each normalized CIE chromaticity coordinate.
                     properties.Add(
                         new KeyValuePair<Heif4CharCode, object>(
                             Heif4CharCode.Amve,
-                            new HeifAmbientViewingEnvironment(
-                                ambientIlluminanceValue * ambientIlluminanceScale,
-                                new CieXyChromaticityCoordinates(
-                                    ambientLightX * ambientChromaticityScale,
-                                    ambientLightY * ambientChromaticityScale))));
+                            HeifPropertyParser.ParseAmbientViewingEnvironment(boxBuffer)));
 
                     break;
                 case Heif4CharCode.Reve:
-                    EnsureBufferRemaining(boxBuffer, 0, 20, "reference viewing environment");
-                    if (boxBuffer.Length != 20)
-                    {
-                        throw new InvalidImageContentException("The reference viewing-environment property has an invalid length.");
-                    }
-
-                    if (BinaryPrimitives.ReadUInt32BigEndian(boxBuffer) != 0)
-                    {
-                        throw new InvalidImageContentException("The reference viewing-environment property has an unsupported version or flags.");
-                    }
-
-                    ushort surroundLightX = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[8..]);
-                    ushort surroundLightY = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[10..]);
-                    ushort peripheryLightX = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[16..]);
-                    ushort peripheryLightY = BinaryPrimitives.ReadUInt16BigEndian(boxBuffer[18..]);
-                    if (surroundLightX > 10000
-                        || surroundLightY > 10000
-                        || peripheryLightX > 10000
-                        || peripheryLightY > 10000)
-                    {
-                        throw new InvalidImageContentException("The reference viewing-environment property has an out-of-range chromaticity coordinate.");
-                    }
-
-                    const double viewingEnvironmentLuminanceScale = 1D / 10000D;
-                    const float referenceChromaticityScale = 1F / 10000F;
-
-                    // The full-box header is followed by the display surround and then the wider periphery.
-                    // Both field groups use 0.0001 increments, but luminance is physical cd/m2 while the CIE
-                    // coordinates are normalized. Keep the regions distinct because they affect different areas.
                     properties.Add(
                         new KeyValuePair<Heif4CharCode, object>(
                             Heif4CharCode.Reve,
-                            new HeifReferenceViewingEnvironment(
-                                BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[4..]) * viewingEnvironmentLuminanceScale,
-                                new CieXyChromaticityCoordinates(
-                                    surroundLightX * referenceChromaticityScale,
-                                    surroundLightY * referenceChromaticityScale),
-                                BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[12..]) * viewingEnvironmentLuminanceScale,
-                                new CieXyChromaticityCoordinates(
-                                    peripheryLightX * referenceChromaticityScale,
-                                    peripheryLightY * referenceChromaticityScale))));
+                            HeifPropertyParser.ParseReferenceViewingEnvironment(boxBuffer)));
 
                     break;
                 case Heif4CharCode.Ndwt:
-                    EnsureBufferRemaining(boxBuffer, 0, 8, "nominal diffuse white");
-                    if (boxBuffer.Length != 8)
-                    {
-                        throw new InvalidImageContentException("The nominal diffuse-white property has an invalid length.");
-                    }
-
-                    if (BinaryPrimitives.ReadUInt32BigEndian(boxBuffer) != 0)
-                    {
-                        throw new InvalidImageContentException("The nominal diffuse-white property has an unsupported version or flags.");
-                    }
-
-                    uint diffuseWhiteLuminanceValue = BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[4..]);
-                    const double diffuseWhiteLuminanceScale = 1D / 10000D;
-
-                    // A zero coded value requests the standard-defined default; it does not describe a black
-                    // diffuse white. Preserve that distinction separately from an absent item property.
-                    double? diffuseWhiteLuminance = diffuseWhiteLuminanceValue == 0
-                        ? null
-                        : diffuseWhiteLuminanceValue * diffuseWhiteLuminanceScale;
-
                     properties.Add(
                         new KeyValuePair<Heif4CharCode, object>(
                             Heif4CharCode.Ndwt,
-                            new HeifNominalDiffuseWhite(diffuseWhiteLuminance)));
+                            HeifPropertyParser.ParseNominalDiffuseWhite(boxBuffer)));
 
                     break;
                 case Heif4CharCode.Av1C:
@@ -1163,36 +858,17 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                     break;
                 case Heif4CharCode.Clap:
-                    EnsureBufferRemaining(boxBuffer, 0, 32, "clean aperture");
-                    HeifCleanAperture cleanAperture = new(
-                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer)),
-                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[4..])),
-                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[8..])),
-                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[12..])),
-                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[16..])),
-                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[20..])),
-                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[24..])),
-                        unchecked((int)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer[28..])));
+                    properties.Add(
+                        new KeyValuePair<Heif4CharCode, object>(
+                            Heif4CharCode.Clap,
+                            HeifPropertyParser.ParseCleanAperture(boxBuffer)));
 
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Clap, cleanAperture));
                     break;
                 case Heif4CharCode.Irot:
-                    EnsureBufferRemaining(boxBuffer, 0, 1, "image rotation");
-                    if ((boxBuffer[0] & 0xFC) != 0)
-                    {
-                        throw new InvalidImageContentException("The image rotation property has nonzero reserved bits.");
-                    }
-
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Irot, (byte)(boxBuffer[0] & 3)));
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Irot, HeifPropertyParser.ParseRotation(boxBuffer)));
                     break;
                 case Heif4CharCode.Imir:
-                    EnsureBufferRemaining(boxBuffer, 0, 1, "image mirror");
-                    if ((boxBuffer[0] & 0xFE) != 0)
-                    {
-                        throw new InvalidImageContentException("The image mirror property has nonzero reserved bits.");
-                    }
-
-                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Imir, (byte)(boxBuffer[0] & 1)));
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(Heif4CharCode.Imir, HeifPropertyParser.ParseMirrorAxis(boxBuffer)));
                     break;
                 case Heif4CharCode.Altt:
                 case Heif4CharCode.Iscl:
@@ -1278,7 +954,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 propertyIndex--;
                 if (propertyIndex >= properties.Count)
                 {
-                    throw new InvalidImageContentException($"Item {itemId} references property index {propertyIndex + 1}, but only {properties.Count} properties exist.");
+                    throw new InvalidImageContentException(
+                        $"Item {itemId} references property index {propertyIndex + 1}, but only {properties.Count} properties exist.");
                 }
 
                 KeyValuePair<Heif4CharCode, object> prop = properties[(int)propertyIndex];
@@ -1325,7 +1002,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     case Heif4CharCode.Av1C:
                         if (item.Type != Heif4CharCode.Av01)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates an AV1 codec configuration with non-AV1 item type '{item.Type}'.");
+                            throw new InvalidImageContentException(
+                                $"Item {itemId} associates an AV1 codec configuration with non-AV1 item type '{item.Type}'.");
                         }
 
                         if (item.Av1CodecConfiguration is not null)
@@ -1338,7 +1016,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     case Heif4CharCode.HvcC:
                         if (item.Type != Heif4CharCode.Hvc1)
                         {
-                            throw new InvalidImageContentException($"Item {itemId} associates an HEVC codec configuration with non-HEVC item type '{item.Type}'.");
+                            throw new InvalidImageContentException(
+                                $"Item {itemId} associates an HEVC codec configuration with non-HEVC item type '{item.Type}'.");
                         }
 
                         if (item.HevcCodecConfiguration is not null)

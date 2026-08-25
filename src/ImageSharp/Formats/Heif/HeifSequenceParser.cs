@@ -888,6 +888,19 @@ internal sealed class HeifSequenceParser
                     track.IsAlpha = this.ParseAuxiliaryType(stream, childLength);
                     auxiliaryTypeSeen = true;
                     break;
+                case Heif4CharCode.Pasp:
+                case Heif4CharCode.Colr:
+                case Heif4CharCode.Clli:
+                case Heif4CharCode.Mdcv:
+                case Heif4CharCode.Cclv:
+                case Heif4CharCode.Amve:
+                case Heif4CharCode.Reve:
+                case Heif4CharCode.Ndwt:
+                case Heif4CharCode.Clap:
+                case Heif4CharCode.Irot:
+                case Heif4CharCode.Imir:
+                    this.ParseTrackImageProperty(stream, childLength, childType, track, scratch);
+                    break;
             }
 
             stream.Position = checked(childStart + childLength);
@@ -897,6 +910,178 @@ internal sealed class HeifSequenceParser
         {
             throw new InvalidImageContentException("The image-sequence sample description is incomplete or has trailing entries.");
         }
+    }
+
+    /// <summary>
+    /// Parses one presentation, color, or HDR property carried by a visual sample entry.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the property payload.</param>
+    /// <param name="boxLength">The validated property payload length.</param>
+    /// <param name="boxType">The registered image property type.</param>
+    /// <param name="track">The selected image track receiving the property.</param>
+    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    private void ParseTrackImageProperty(
+        Stream stream,
+        long boxLength,
+        Heif4CharCode boxType,
+        HeifSequenceTrack track,
+        Span<byte> scratch)
+    {
+        if (boxType == Heif4CharCode.Colr)
+        {
+            this.ParseTrackColorInformation(stream, boxLength, track, scratch);
+            return;
+        }
+
+        ReadOnlySpan<byte> data = ReadPropertyPayload(stream, boxLength, scratch, boxType);
+        switch (boxType)
+        {
+            case Heif4CharCode.Pasp:
+                if (track.PixelAspectRatio is not null)
+                {
+                    throw new InvalidImageContentException("The image-sequence sample entry has duplicate pixel-aspect-ratio properties.");
+                }
+
+                track.PixelAspectRatio = HeifPropertyParser.ParsePixelAspectRatio(data);
+                break;
+            case Heif4CharCode.Clli:
+                if (track.ContentLightLevel is not null)
+                {
+                    throw new InvalidImageContentException("The image-sequence sample entry has duplicate content-light-level properties.");
+                }
+
+                track.ContentLightLevel = HeifPropertyParser.ParseContentLightLevel(data);
+                break;
+            case Heif4CharCode.Mdcv:
+                if (track.MasteringDisplayColorVolume is not null)
+                {
+                    throw new InvalidImageContentException("The image-sequence sample entry has duplicate mastering-display properties.");
+                }
+
+                track.MasteringDisplayColorVolume = HeifPropertyParser.ParseMasteringDisplayColorVolume(data);
+                break;
+            case Heif4CharCode.Cclv:
+                if (track.ContentColorVolume is not null)
+                {
+                    throw new InvalidImageContentException("The image-sequence sample entry has duplicate content-color-volume properties.");
+                }
+
+                track.ContentColorVolume = HeifPropertyParser.ParseContentColorVolume(data);
+                break;
+            case Heif4CharCode.Amve:
+                if (track.AmbientViewingEnvironment is not null)
+                {
+                    throw new InvalidImageContentException("The image-sequence sample entry has duplicate ambient-viewing properties.");
+                }
+
+                track.AmbientViewingEnvironment = HeifPropertyParser.ParseAmbientViewingEnvironment(data);
+                break;
+            case Heif4CharCode.Reve:
+                if (track.ReferenceViewingEnvironment is not null)
+                {
+                    throw new InvalidImageContentException("The image-sequence sample entry has duplicate reference-viewing properties.");
+                }
+
+                track.ReferenceViewingEnvironment = HeifPropertyParser.ParseReferenceViewingEnvironment(data);
+                break;
+            case Heif4CharCode.Ndwt:
+                if (track.NominalDiffuseWhite is not null)
+                {
+                    throw new InvalidImageContentException("The image-sequence sample entry has duplicate nominal-diffuse-white properties.");
+                }
+
+                track.NominalDiffuseWhite = HeifPropertyParser.ParseNominalDiffuseWhite(data);
+                break;
+            case Heif4CharCode.Clap:
+                if (track.CleanAperture is not null)
+                {
+                    throw new InvalidImageContentException("The image-sequence sample entry has duplicate clean-aperture properties.");
+                }
+
+                HeifCleanAperture cleanAperture = HeifPropertyParser.ParseCleanAperture(data);
+                _ = cleanAperture.ToRectangle(new Size(track.CodedWidth, track.CodedHeight));
+                track.CleanAperture = cleanAperture;
+                break;
+            case Heif4CharCode.Irot:
+                if (track.RotationAngle is not null)
+                {
+                    throw new InvalidImageContentException("The image-sequence sample entry has duplicate rotation properties.");
+                }
+
+                track.RotationAngle = HeifPropertyParser.ParseRotation(data);
+                break;
+            case Heif4CharCode.Imir:
+                if (track.MirrorAxis is not null)
+                {
+                    throw new InvalidImageContentException("The image-sequence sample entry has duplicate mirror properties.");
+                }
+
+                track.MirrorAxis = HeifPropertyParser.ParseMirrorAxis(data);
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Parses one ICC or CICP color-information property from a visual sample entry.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the color-information payload.</param>
+    /// <param name="boxLength">The validated color-information payload length.</param>
+    /// <param name="track">The selected image track receiving the color description.</param>
+    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    private void ParseTrackColorInformation(Stream stream, long boxLength, HeifSequenceTrack track, Span<byte> scratch)
+    {
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 4, "color information");
+        Heif4CharCode profileType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(prefix);
+        if (profileType == Heif4CharCode.Nclx)
+        {
+            if (track.CicpProfile is not null)
+            {
+                throw new InvalidImageContentException("The image-sequence sample entry has duplicate CICP color properties.");
+            }
+
+            if (boxLength != 11)
+            {
+                throw new InvalidImageContentException("The CICP color-information property has an invalid length.");
+            }
+
+            prefix = ReadPrefixFromStart(stream, boxLength, scratch, 11, "color information");
+            track.CicpProfile = HeifPropertyParser.ParseCicpProfile(prefix[4..]);
+        }
+        else if (profileType is Heif4CharCode.RICC or Heif4CharCode.Prof)
+        {
+            if (track.IccProfile is not null)
+            {
+                throw new InvalidImageContentException("The image-sequence sample entry has duplicate ICC color properties.");
+            }
+
+            if (boxLength <= 4 || boxLength > int.MaxValue)
+            {
+                throw new InvalidImageContentException("The ICC color-information property is empty or too large.");
+            }
+
+            stream.Position -= 4;
+            using IMemoryOwner<byte> payload = this.boxReader.ReadPayload(stream, boxLength);
+            byte[] profileData = payload.GetSpan()[4..].ToArray();
+            track.IccProfile = HeifPropertyParser.ParseIccProfile(profileData);
+        }
+    }
+
+    /// <summary>
+    /// Reads a bounded fixed-size image property through the parser's reusable scratch buffer.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the property payload.</param>
+    /// <param name="boxLength">The validated property payload length.</param>
+    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <param name="boxType">The property type used in malformed-image diagnostics.</param>
+    /// <returns>The complete property payload within <paramref name="scratch"/>.</returns>
+    private static ReadOnlySpan<byte> ReadPropertyPayload(Stream stream, long boxLength, Span<byte> scratch, Heif4CharCode boxType)
+    {
+        if (boxLength > scratch.Length)
+        {
+            throw new InvalidImageContentException($"The '{boxType}' image-sequence property exceeds its registered bounded size.");
+        }
+
+        return ReadPrefix(stream, boxLength, scratch, (int)boxLength, $"{boxType} image-sequence property");
     }
 
     /// <summary>

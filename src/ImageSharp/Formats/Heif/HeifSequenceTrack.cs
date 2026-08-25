@@ -3,6 +3,8 @@
 
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Hevc;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
 namespace SixLabors.ImageSharp.Formats.Heif;
 
@@ -77,6 +79,66 @@ internal sealed class HeifSequenceTrack
     /// Gets or sets the parsed HEVC configuration when <see cref="CodecType"/> is <see cref="Heif4CharCode.Hvc1"/>.
     /// </summary>
     public HevcCodecConfiguration? HevcCodecConfiguration { get; set; }
+
+    /// <summary>
+    /// Gets or sets the ICC profile associated with the image sequence.
+    /// </summary>
+    public IccProfile? IccProfile { get; set; }
+
+    /// <summary>
+    /// Gets or sets the CICP color description associated with the image sequence.
+    /// </summary>
+    public CicpProfile? CicpProfile { get; set; }
+
+    /// <summary>
+    /// Gets or sets the content light-level information associated with the image sequence.
+    /// </summary>
+    public HeifContentLightLevel? ContentLightLevel { get; set; }
+
+    /// <summary>
+    /// Gets or sets the mastering-display color volume associated with the image sequence.
+    /// </summary>
+    public HeifMasteringDisplayColorVolume? MasteringDisplayColorVolume { get; set; }
+
+    /// <summary>
+    /// Gets or sets the content color volume associated with the image sequence.
+    /// </summary>
+    public HeifContentColorVolume? ContentColorVolume { get; set; }
+
+    /// <summary>
+    /// Gets or sets the nominal ambient viewing environment associated with the image sequence.
+    /// </summary>
+    public HeifAmbientViewingEnvironment? AmbientViewingEnvironment { get; set; }
+
+    /// <summary>
+    /// Gets or sets the reference mastering environment associated with the image sequence.
+    /// </summary>
+    public HeifReferenceViewingEnvironment? ReferenceViewingEnvironment { get; set; }
+
+    /// <summary>
+    /// Gets or sets the nominal diffuse-white description associated with the image sequence.
+    /// </summary>
+    public HeifNominalDiffuseWhite? NominalDiffuseWhite { get; set; }
+
+    /// <summary>
+    /// Gets or sets the relative pixel spacing associated with the image sequence.
+    /// </summary>
+    public HeifPixelAspectRatio? PixelAspectRatio { get; set; }
+
+    /// <summary>
+    /// Gets or sets the clean-aperture crop applied to each decoded sample.
+    /// </summary>
+    public HeifCleanAperture? CleanAperture { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of 90-degree counter-clockwise rotations applied to each decoded sample.
+    /// </summary>
+    public byte? RotationAngle { get; set; }
+
+    /// <summary>
+    /// Gets or sets the image-mirror axis, where zero is horizontal and one is vertical.
+    /// </summary>
+    public byte? MirrorAxis { get; set; }
 
     /// <summary>
     /// Gets or sets the retained sample descriptors in decode order.

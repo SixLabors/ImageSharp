@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.PixelFormats.Utils;
@@ -73,6 +74,44 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         Av1CodecConfiguration? codecConfiguration = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(buffer, containerColorProfile, codecConfiguration, out CicpProfile effectiveColorProfile);
+        ImageMetadata metadata = new()
+        {
+            CicpProfile = effectiveColorProfile
+        };
+
+        try
+        {
+            return new Image<TPixel>(this.configuration, metadata, [frame]);
+        }
+        catch
+        {
+            // Ownership transfers only after the image constructor accepts the decoded frame.
+            frame.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Decodes an AV1 elementary-stream payload into one independently owned ImageSharp frame.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel type.</typeparam>
+    /// <param name="buffer">The complete AV1 elementary-stream payload.</param>
+    /// <param name="containerColorProfile">
+    /// The container color description that supplies unspecified sequence-header color information.
+    /// </param>
+    /// <param name="codecConfiguration">
+    /// The AV1 codec configuration validated against the coded sequence header.
+    /// </param>
+    /// <param name="effectiveColorProfile">Receives the effective CICP description used for conversion.</param>
+    /// <returns>The decoded frame. Ownership transfers to the caller.</returns>
+    public ImageFrame<TPixel> DecodeFrame<TPixel>(
+        Span<byte> buffer,
+        CicpProfile? containerColorProfile,
+        Av1CodecConfiguration? codecConfiguration,
+        out CicpProfile effectiveColorProfile)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         Av1BitStreamReader reader = new(buffer);
         this.obuReader.ReadAll(ref reader, buffer.Length, () => this, false);
         Guard.NotNull(this.tileReader, nameof(this.tileReader));
@@ -135,32 +174,31 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         Av1FrameDecoder frameDecoder = new(this.SequenceHeader, this.FrameHeader, this.FrameInfo, frameBuffer);
         frameDecoder.DecodeFrame();
 
-        Image<TPixel>? resultImage = null;
+        ImageFrame<TPixel>? resultFrame = null;
         try
         {
-            resultImage = new Image<TPixel>(
+            resultFrame = new ImageFrame<TPixel>(
                 this.configuration,
                 this.FrameHeader.FrameSize.SuperResolutionUpscaledWidth,
-                this.FrameHeader.FrameSize.FrameHeight,
-                null);
+                this.FrameHeader.FrameSize.FrameHeight);
 
-            ImageFrame<TPixel> resultFrame = resultImage.Frames.RootFrame;
             Av1YuvConverter.ConvertToRgb(this.configuration, frameBuffer, resultFrame);
 
             // Preserve the effective CICP description used for conversion, including container values that legally
             // supplied unspecified bitstream fields. This also exposes bitstream-only color metadata to callers.
             ObuColorConfig effectiveColorConfig = this.SequenceHeader.ColorConfig;
-            resultImage.Metadata.CicpProfile = new CicpProfile(
+            effectiveColorProfile = new CicpProfile(
                 (byte)effectiveColorConfig.ColorPrimaries,
                 (byte)effectiveColorConfig.TransferCharacteristics,
                 (byte)effectiveColorConfig.MatrixCoefficients,
                 effectiveColorConfig.ColorRange);
 
-            return resultImage;
+            resultFrame.Metadata.CicpProfile = effectiveColorProfile.DeepClone();
+            return resultFrame;
         }
         catch
         {
-            resultImage?.Dispose();
+            resultFrame?.Dispose();
             throw;
         }
     }

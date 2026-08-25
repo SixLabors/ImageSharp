@@ -5,6 +5,7 @@ using System.Buffers.Binary;
 using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 
@@ -18,6 +19,76 @@ public class HeifSequenceParserTests
     private static ReadOnlySpan<byte> TrackExifData => [0, 0, 0, 0, 0x49, 0x49, 0x2A, 0, 8, 0, 0, 0];
 
     private static ReadOnlySpan<byte> TrackXmpData => "<x:xmpmeta/>"u8;
+
+    [Fact]
+    public void IdentifyReturnsBoundedSequenceAndFrameMetadata()
+    {
+        byte[] data = CreateSequenceContainer(trackProperties: true, trackMetadata: true);
+
+        ImageInfo info = Image.Identify(data);
+        HeifMetadata metadata = info.Metadata.GetHeifMetadata();
+
+        Assert.Equal(new Size(240, 320), info.Size);
+        Assert.Equal(2, info.FrameCount);
+        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
+        Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
+        Assert.Equal(3, metadata.RepeatCount);
+        Assert.False(metadata.HasAlpha);
+        Assert.NotNull(info.Metadata.CicpProfile);
+        Assert.NotNull(info.Metadata.ExifProfile);
+        Assert.NotNull(info.Metadata.XmpProfile);
+        Assert.NotNull(metadata.ContentLightLevel);
+        Assert.Equal(4D, info.Metadata.HorizontalResolution);
+        Assert.Equal(3D, info.Metadata.VerticalResolution);
+        Assert.All(
+            info.FrameMetadataCollection,
+            frame => Assert.Equal(new Rational(1, 10), frame.GetHeifMetadata().FrameDelay));
+    }
+
+    [Fact]
+    public void IdentifySkipsAncillarySequenceMetadataWithoutDroppingImageMetadata()
+    {
+        byte[] data = CreateSequenceContainer(trackProperties: true, trackMetadata: true);
+        using MemoryStream stream = new(data, false);
+        DecoderOptions options = new() { SkipMetadata = true };
+
+        ImageInfo info = Image.Identify(options, stream);
+        HeifMetadata metadata = info.Metadata.GetHeifMetadata();
+
+        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
+        Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
+        Assert.Equal(3, metadata.RepeatCount);
+        Assert.Null(info.Metadata.CicpProfile);
+        Assert.Null(info.Metadata.IccProfile);
+        Assert.Null(info.Metadata.ExifProfile);
+        Assert.Null(info.Metadata.XmpProfile);
+        Assert.Null(metadata.ContentLightLevel);
+        Assert.All(
+            info.FrameMetadataCollection,
+            frame => Assert.Equal(new Rational(1, 10), frame.GetHeifMetadata().FrameDelay));
+    }
+
+    [Fact]
+    public void DecodeAdoptsIndependentAv1SamplesAsImageFrames()
+    {
+        byte[] source = TestFile.Create(TestImages.Heif.Orange4x4).Bytes;
+        byte[] data = CreateDecodableAv1SequenceContainer(source.AsSpan(0x10E, 0x1D), source.AsSpan(0xC7, 4));
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(source);
+        using Image<Rgba32> actual = Image.Load<Rgba32>(data);
+
+        Assert.Equal(new Size(4, 4), actual.Size);
+        Assert.Equal(2, actual.Frames.Count);
+        foreach (ImageFrame<Rgba32> frame in actual.Frames)
+        {
+            Assert.Equal(new Rational(1, 10), frame.Metadata.GetHeifMetadata().FrameDelay);
+
+            for (int y = 0; y < frame.Height; y++)
+            {
+                Assert.True(frame.PixelBuffer.DangerousGetRowSpan(y).SequenceEqual(expected.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y)));
+            }
+        }
+    }
 
     [Fact]
     public void ParseResolvesLibavifShapedSampleTable()
@@ -258,7 +329,12 @@ public class HeifSequenceParserTests
         bool trackMetadata = false,
         bool metadataInItemData = false,
         bool invalidTrackMetadata = false,
-        bool invalidRotation = false)
+        bool invalidRotation = false,
+        int width = 320,
+        int height = 240,
+        byte[] av1Configuration = null,
+        int? sampleSize = null,
+        bool allSamplesSync = false)
     {
         using MemoryStream stream = new();
         using BinaryWriter writer = new(stream, Encoding.UTF8, true);
@@ -274,7 +350,7 @@ public class HeifSequenceParserTests
         EndBox(writer, movieHeader);
 
         long track = BeginBox(writer, Heif4CharCode.Trak);
-        WriteTrackHeader(writer);
+        WriteTrackHeader(writer, width, height);
         WriteEditList(writer);
         if (trackMetadata)
         {
@@ -295,7 +371,12 @@ public class HeifSequenceParserTests
             directReferences,
             directReferenceSampleId,
             trackProperties,
-            invalidRotation);
+            invalidRotation,
+            width,
+            height,
+            av1Configuration,
+            sampleSize,
+            allSamplesSync);
 
         EndBox(writer, mediaInformation);
         EndBox(writer, media);
@@ -315,7 +396,52 @@ public class HeifSequenceParserTests
         return file;
     }
 
-    private static void WriteTrackHeader(BinaryWriter writer)
+    private static byte[] CreateSequenceContainer(bool trackProperties, bool trackMetadata)
+    {
+        byte[] movie = CreateSequenceFile(
+            1024,
+            trackProperties: trackProperties,
+            trackMetadata: trackMetadata,
+            metadataInItemData: true);
+
+        byte[] data = new byte[movie.Length + 24];
+        BinaryPrimitives.WriteUInt32BigEndian(data, 24);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(4), (uint)Heif4CharCode.Ftyp);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), (uint)Heif4CharCode.Avis);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(12), 0);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(16), (uint)Heif4CharCode.Avif);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(20), (uint)Heif4CharCode.Mif1);
+        movie.CopyTo(data, 24);
+        return data;
+    }
+
+    private static byte[] CreateDecodableAv1SequenceContainer(ReadOnlySpan<byte> sample, ReadOnlySpan<byte> configuration)
+    {
+        const int fileTypeLength = 24;
+        const int movieStorageLength = 2048;
+        uint chunkOffset = fileTypeLength + movieStorageLength;
+        byte[] movie = CreateSequenceFile(
+            chunkOffset,
+            width: 4,
+            height: 4,
+            av1Configuration: configuration.ToArray(),
+            sampleSize: sample.Length,
+            allSamplesSync: true);
+
+        byte[] data = new byte[chunkOffset + (sample.Length * 2)];
+        BinaryPrimitives.WriteUInt32BigEndian(data, fileTypeLength);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(4), (uint)Heif4CharCode.Ftyp);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), (uint)Heif4CharCode.Avis);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(12), 0);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(16), (uint)Heif4CharCode.Avif);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(20), (uint)Heif4CharCode.Mif1);
+        movie.CopyTo(data, fileTypeLength);
+        sample.CopyTo(data.AsSpan((int)chunkOffset));
+        sample.CopyTo(data.AsSpan((int)chunkOffset + sample.Length));
+        return data;
+    }
+
+    private static void WriteTrackHeader(BinaryWriter writer, int width, int height)
     {
         long trackHeader = BeginBox(writer, Heif4CharCode.Tkhd);
         WriteFullBoxHeader(writer, 0, 3);
@@ -334,8 +460,8 @@ public class HeifSequenceParserTests
         WriteUInt32(writer, 0);
         WriteUInt32(writer, 0);
         WriteUInt32(writer, 0x40000000);
-        WriteUInt32(writer, 320U << 16);
-        WriteUInt32(writer, 240U << 16);
+        WriteUInt32(writer, (uint)width << 16);
+        WriteUInt32(writer, (uint)height << 16);
         EndBox(writer, trackHeader);
     }
 
@@ -468,10 +594,15 @@ public class HeifSequenceParserTests
         bool directReferences,
         uint directReferenceSampleId,
         bool trackProperties,
-        bool invalidRotation)
+        bool invalidRotation,
+        int width,
+        int height,
+        byte[] av1Configuration,
+        int? sampleSize,
+        bool allSamplesSync)
     {
         long sampleTable = BeginBox(writer, Heif4CharCode.Stbl);
-        WriteSampleDescription(writer, hevc, trackProperties, invalidRotation);
+        WriteSampleDescription(writer, hevc, trackProperties, invalidRotation, width, height, av1Configuration, allSamplesSync);
 
         long timing = BeginBox(writer, Heif4CharCode.Stts);
         WriteFullBoxHeader(writer, 0, 0);
@@ -492,8 +623,8 @@ public class HeifSequenceParserTests
         WriteFullBoxHeader(writer, 0, 0);
         WriteUInt32(writer, 0);
         WriteUInt32(writer, 2);
-        WriteUInt32(writer, 10);
-        WriteUInt32(writer, 12);
+        WriteUInt32(writer, (uint)(sampleSize ?? 10));
+        WriteUInt32(writer, (uint)(sampleSize ?? 12));
         EndBox(writer, sampleSizes);
 
         long chunkOffsets = BeginBox(writer, Heif4CharCode.Stco);
@@ -504,8 +635,13 @@ public class HeifSequenceParserTests
 
         long syncSamples = BeginBox(writer, Heif4CharCode.Stss);
         WriteFullBoxHeader(writer, 0, 0);
+        WriteUInt32(writer, allSamplesSync ? 2U : 1U);
         WriteUInt32(writer, 1);
-        WriteUInt32(writer, 1);
+        if (allSamplesSync)
+        {
+            WriteUInt32(writer, 2);
+        }
+
         EndBox(writer, syncSamples);
 
         if (compositionOffsets)
@@ -564,7 +700,15 @@ public class HeifSequenceParserTests
         EndBox(writer, sampleMap);
     }
 
-    private static void WriteSampleDescription(BinaryWriter writer, bool hevc, bool trackProperties, bool invalidRotation)
+    private static void WriteSampleDescription(
+        BinaryWriter writer,
+        bool hevc,
+        bool trackProperties,
+        bool invalidRotation,
+        int width,
+        int height,
+        byte[] av1Configuration,
+        bool allSamplesSync)
     {
         long description = BeginBox(writer, Heif4CharCode.Stsd);
         WriteFullBoxHeader(writer, 0, 0);
@@ -573,8 +717,8 @@ public class HeifSequenceParserTests
         WriteZeros(writer, 6);
         WriteUInt16(writer, 1);
         WriteZeros(writer, 16);
-        WriteUInt16(writer, 320);
-        WriteUInt16(writer, 240);
+        WriteUInt16(writer, (ushort)width);
+        WriteUInt16(writer, (ushort)height);
         WriteUInt32(writer, 0x00480000);
         WriteUInt32(writer, 0x00480000);
         WriteUInt32(writer, 0);
@@ -590,24 +734,24 @@ public class HeifSequenceParserTests
         else
         {
             long configuration = BeginBox(writer, Heif4CharCode.Av1C);
-            writer.Write(new byte[] { 0x81, 0, 0, 0 });
+            writer.Write(av1Configuration ?? [0x81, 0, 0, 0]);
             EndBox(writer, configuration);
         }
 
         if (trackProperties)
         {
-            WriteTrackImageProperties(writer, invalidRotation);
+            WriteTrackImageProperties(writer, invalidRotation, width, height);
         }
 
         long codingConstraints = BeginBox(writer, Heif4CharCode.Ccst);
         WriteFullBoxHeader(writer, 0, 0);
-        WriteUInt32(writer, 0x7C000000);
+        WriteUInt32(writer, allSamplesSync ? 0xFC000000U : 0x7C000000U);
         EndBox(writer, codingConstraints);
         EndBox(writer, sampleEntry);
         EndBox(writer, description);
     }
 
-    private static void WriteTrackImageProperties(BinaryWriter writer, bool invalidRotation)
+    private static void WriteTrackImageProperties(BinaryWriter writer, bool invalidRotation, int width, int height)
     {
         long color = BeginBox(writer, Heif4CharCode.Colr);
         WriteUInt32(writer, (uint)Heif4CharCode.Nclx);
@@ -623,9 +767,9 @@ public class HeifSequenceParserTests
         EndBox(writer, pixelAspectRatio);
 
         long cleanAperture = BeginBox(writer, Heif4CharCode.Clap);
-        WriteUInt32(writer, 320);
+        WriteUInt32(writer, (uint)width);
         WriteUInt32(writer, 1);
-        WriteUInt32(writer, 240);
+        WriteUInt32(writer, (uint)height);
         WriteUInt32(writer, 1);
         WriteUInt32(writer, 0);
         WriteUInt32(writer, 1);

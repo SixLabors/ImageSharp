@@ -2209,7 +2209,7 @@ internal sealed class HeifSequenceParser
     /// <param name="exception">The exception raised while parsing the ancillary segment.</param>
     /// <returns><see langword="true"/> when decoding may continue without the segment.</returns>
     private bool ShouldIgnoreAncillarySegmentError(Exception exception)
-        => this.options.SegmentIntegrityHandling is not SegmentIntegrityHandling.Strict && IsRecoverableSegmentError(exception);
+        => this.options.SegmentIntegrityHandling is not SegmentIntegrityHandling.Strict && ImageDecoderCore.IsRecoverableSegmentError(exception);
 
     /// <summary>
     /// Determines whether a recoverable image-data-segment error should be ignored by the configured decoder policy.
@@ -2217,19 +2217,7 @@ internal sealed class HeifSequenceParser
     /// <param name="exception">The exception raised while parsing the image-data segment.</param>
     /// <returns><see langword="true"/> when decoding may continue without the segment.</returns>
     private bool ShouldIgnoreImageDataSegmentError(Exception exception)
-        => this.options.SegmentIntegrityHandling is SegmentIntegrityHandling.IgnoreImageData && IsRecoverableSegmentError(exception);
-
-    /// <summary>
-    /// Identifies the recoverable exception types handled by <see cref="DecoderOptions.SegmentIntegrityHandling"/>.
-    /// </summary>
-    /// <param name="exception">The exception raised while parsing a segment.</param>
-    /// <returns><see langword="true"/> when the exception represents a recoverable segment error.</returns>
-    private static bool IsRecoverableSegmentError(Exception exception)
-        => exception is ImageFormatException
-            or InvalidIccProfileException
-            or InvalidImageContentException
-            or InvalidOperationException
-            or NotSupportedException;
+        => this.options.SegmentIntegrityHandling is SegmentIntegrityHandling.IgnoreImageData && ImageDecoderCore.IsRecoverableSegmentError(exception);
 
     /// <summary>
     /// Records one unique child box while retaining only its stream range.

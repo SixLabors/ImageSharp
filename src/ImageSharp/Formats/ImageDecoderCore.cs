@@ -49,12 +49,7 @@ internal abstract class ImageDecoderCore
         {
             action();
         }
-        catch (Exception ex) when (ex
-            is ImageFormatException
-            or InvalidIccProfileException
-            or InvalidImageContentException
-            or InvalidOperationException
-            or NotSupportedException)
+        catch (Exception ex) when (IsRecoverableSegmentError(ex))
         {
             // Intentionally ignored in non-strict segment integrity modes.
         }
@@ -76,16 +71,23 @@ internal abstract class ImageDecoderCore
         {
             action();
         }
-        catch (Exception ex) when (ex
-            is ImageFormatException
-            or InvalidIccProfileException
-            or InvalidImageContentException
-            or InvalidOperationException
-            or NotSupportedException)
+        catch (Exception ex) when (IsRecoverableSegmentError(ex))
         {
             // Intentionally ignored when image data integrity handling is set to IgnoreImageData.
         }
     }
+
+    /// <summary>
+    /// Determines whether an exception represents a recoverable image segment error.
+    /// </summary>
+    /// <param name="exception">The exception raised while processing an image segment.</param>
+    /// <returns><see langword="true"/> when a segment integrity policy may ignore the exception.</returns>
+    public static bool IsRecoverableSegmentError(Exception exception)
+        => exception is ImageFormatException
+            or InvalidIccProfileException
+            or InvalidImageContentException
+            or InvalidOperationException
+            or NotSupportedException;
 
     /// <summary>
     /// Throws unless the decoder is running in a non-strict segment integrity mode.

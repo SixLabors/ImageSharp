@@ -62,6 +62,10 @@ Checkboxes may be marked complete only when the implementation and the verificat
     - [x] Parse bounded sequence metadata items.
       - Selected image tracks now retain implicitly associated Exif and unencoded `application/rdf+xml` XMP items from bounded `iinf`/`infe` and `iloc` declarations, including file-relative and `idat`-relative extents. Item identifiers and extent descriptors use allocator-owned temporary storage; only the exact retained profile payloads survive parsing. `DecoderOptions.SkipMetadata` bypasses metadata parsing, `SegmentIntegrityHandling` follows the shared ancillary/image-data policy, and structural errors that prevent safe track parsing remain fatal. The focused Release sequence-parser suite passes all 15 tests.
     - [ ] Connect the parsed sequence index to HEIF detection, Identify, frame decode, alpha matching, and frame metadata without changing still-image source selection.
+      - [x] Recognize supported `avis`, `hevc`, and `hevx` sequence brands while continuing to reject layered HEVC and JPEG sequence brands.
+      - [x] Identify bounded sequence dimensions, frame count, timing, repetition, codec precision, color, HDR, pixel aspect ratio, Exif, and XMP state.
+      - [x] Decode all-sync independently decodable AV1 samples into directly adopted ImageSharp frames without cloning complete pixel buffers.
+      - [ ] Complete reference-dependent AV1 and HEVC sample reconstruction, exact alpha-track time matching, track-matrix presentation, and independent vectors.
     - [ ] Write the same bounded movie, track, sample-description, location, dependency, timing, repetition, alpha, and metadata syntax from ImageSharp frames.
   - [ ] Decode frame dependencies, durations, repetition, frame-local auxiliary images, and frame-local metadata into the existing ImageSharp multi-frame model.
   - [ ] Encode ImageSharp frames, durations, repetition, frame-local auxiliary images, and frame-local metadata as independently decodable HEIC and AVIF image sequences.

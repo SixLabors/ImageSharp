@@ -36,17 +36,17 @@ internal static class HeifConstants
     public static readonly IEnumerable<string> FileExtensions = new[] { "heic", "heif", "hif", "avif" };
 
     /// <summary>
-    /// Determines whether a file-type box describes a supported still-image container.
+    /// Determines the supported image presentation declared by a file-type box.
     /// </summary>
     /// <param name="boxContent">
     /// The file-type box payload, beginning with the major brand and minor version and followed by compatible brands.
     /// </param>
-    /// <returns>
-    /// <see langword="true"/> when the major brand is a supported still-image brand, or when an otherwise unknown
-    /// major brand declares a supported compatible still-image brand; otherwise, <see langword="false"/>.
-    /// </returns>
-    public static bool IsSupportedFileType(ReadOnlySpan<byte> boxContent)
+    /// <param name="fileType">Receives the supported still-image or image-sequence presentation.</param>
+    /// <returns><see langword="true"/> when the payload declares a supported HEIF image presentation.</returns>
+    public static bool TryGetFileType(ReadOnlySpan<byte> boxContent, out HeifFileType fileType)
     {
+        fileType = HeifFileType.Unsupported;
+
         // Every brand is a four-character code. The payload must contain the major brand and minor version before
         // any compatible brands, otherwise accepting a partial trailing code could produce a false detection.
         if (boxContent.Length < 8 || (boxContent.Length & 3) != 0)
@@ -55,28 +55,43 @@ internal static class HeifConstants
         }
 
         Heif4CharCode majorBrand = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(boxContent);
-        if (IsSequenceBrand(majorBrand))
+        if (IsUnsupportedSequenceBrand(majorBrand))
         {
-            // Sequence major brands describe timed image sequences, which the still-image decoder cannot expose.
+            // A sequence major brand controls the presentation even if a still-image compatible brand is present.
             return false;
+        }
+
+        if (IsSupportedSequenceBrand(majorBrand))
+        {
+            fileType = HeifFileType.ImageSequence;
+            return true;
         }
 
         if (IsSupportedStillImageBrand(majorBrand))
         {
+            fileType = HeifFileType.StillImage;
             return true;
         }
 
         // The minor-version field follows the major brand; compatible brands start at byte eight.
+        bool hasStillImageBrand = false;
         for (int offset = 8; offset < boxContent.Length; offset += 4)
         {
             Heif4CharCode compatibleBrand = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(boxContent[offset..]);
+            if (IsSupportedSequenceBrand(compatibleBrand))
+            {
+                fileType = HeifFileType.ImageSequence;
+                return true;
+            }
+
             if (IsSupportedStillImageBrand(compatibleBrand))
             {
-                return true;
+                hasStillImageBrand = true;
             }
         }
 
-        return false;
+        fileType = hasStillImageBrand ? HeifFileType.StillImage : HeifFileType.Unsupported;
+        return hasStillImageBrand;
     }
 
     /// <summary>
@@ -100,15 +115,22 @@ internal static class HeifConstants
             or Heif4CharCode.Jpeg;
 
     /// <summary>
-    /// Determines whether <paramref name="brand"/> identifies a timed image sequence.
+    /// Determines whether <paramref name="brand"/> identifies a supported timed image sequence.
     /// </summary>
     /// <param name="brand">The registered file-type brand.</param>
-    /// <returns><see langword="true"/> when the brand identifies a timed image sequence.</returns>
-    private static bool IsSequenceBrand(Heif4CharCode brand)
+    /// <returns><see langword="true"/> when the brand identifies a supported timed image sequence.</returns>
+    private static bool IsSupportedSequenceBrand(Heif4CharCode brand)
         => brand is Heif4CharCode.Hevc
             or Heif4CharCode.Hevx
-            or Heif4CharCode.Hevm
+            or Heif4CharCode.Avis;
+
+    /// <summary>
+    /// Determines whether <paramref name="brand"/> requires an image-sequence profile outside the implemented scope.
+    /// </summary>
+    /// <param name="brand">The registered file-type brand.</param>
+    /// <returns><see langword="true"/> when the major brand requires layered HEVC or JPEG sequence support.</returns>
+    private static bool IsUnsupportedSequenceBrand(Heif4CharCode brand)
+        => brand is Heif4CharCode.Hevm
             or Heif4CharCode.Hevs
-            or Heif4CharCode.Avis
             or Heif4CharCode.Jpgs;
 }

@@ -22,10 +22,10 @@ public sealed class HeifImageFormatDetector : IImageFormatDetector
     }
 
     /// <summary>
-    /// Determines whether the available header begins with a supported still-image HEIF file-type box.
+    /// Determines whether the available header begins with a supported HEIF image file-type box.
     /// </summary>
     /// <param name="header">The fixed-size header prefix supplied by format detection.</param>
-    /// <returns><see langword="true"/> when the prefix declares a supported still-image brand; otherwise, <see langword="false"/>.</returns>
+    /// <returns><see langword="true"/> when the prefix declares a supported image or image-sequence brand.</returns>
     private static bool IsSupportedFileFormat(ReadOnlySpan<byte> header)
     {
         // Detection is intentionally limited to files beginning with ftyp. Other valid top-level boxes can precede
@@ -45,6 +45,6 @@ public sealed class HeifImageFormatDetector : IImageFormatDetector
         // sufficient for detection; the decoder validates the complete box before reading the rest of the container.
         int availableContentLength = (int)Math.Min(boxSize - 8, (uint)header.Length - 8);
         availableContentLength &= ~3;
-        return HeifConstants.IsSupportedFileType(header.Slice(8, availableContentLength));
+        return HeifConstants.TryGetFileType(header.Slice(8, availableContentLength), out _);
     }
 }

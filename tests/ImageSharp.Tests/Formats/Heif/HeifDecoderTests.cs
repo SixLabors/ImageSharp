@@ -125,11 +125,24 @@ public class HeifDecoderTests
     [Theory]
     [InlineData(Heif4CharCode.Hevc)]
     [InlineData(Heif4CharCode.Hevx)]
+    [InlineData(Heif4CharCode.Avis)]
+    public void DetectorRecognizesSupportedSequenceMajorBrand(Heif4CharCode brand)
+    {
+        byte[] data = CreateEncodedContainer();
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), (uint)brand);
+        HeifImageFormatDetector detector = new();
+
+        bool detected = detector.TryDetectFormat(data.AsSpan(0, detector.HeaderSize), out IImageFormat format);
+
+        Assert.True(detected);
+        Assert.Same(HeifFormat.Instance, format);
+    }
+
+    [Theory]
     [InlineData(Heif4CharCode.Hevm)]
     [InlineData(Heif4CharCode.Hevs)]
-    [InlineData(Heif4CharCode.Avis)]
     [InlineData(Heif4CharCode.Jpgs)]
-    public void DetectorRejectsSequenceMajorBrand(Heif4CharCode brand)
+    public void DetectorRejectsUnsupportedSequenceMajorBrand(Heif4CharCode brand)
     {
         byte[] data = CreateEncodedContainer();
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), (uint)brand);

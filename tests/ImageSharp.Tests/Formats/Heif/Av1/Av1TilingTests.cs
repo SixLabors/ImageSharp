@@ -255,8 +255,8 @@ public class Av1TilingTests
                             continue;
                         }
 
-                        int transformUnitCount = modeInfo.TransformUnitsCount[Math.Min(plane, 1)];
-                        int transformInfoIndex = modeInfo.FirstTransformLocation[Math.Min(plane, 1)];
+                        int transformUnitCount = modeInfo.GetTransformUnitCount((Av1Plane)plane);
+                        int transformInfoIndex = modeInfo.GetFirstTransformLocation((Av1Plane)plane);
                         if (plane == (int)Av1Plane.V)
                         {
                             transformInfoIndex += transformUnitCount;

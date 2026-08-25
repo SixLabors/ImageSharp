@@ -1205,7 +1205,10 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                             throw new InvalidImageContentException("The pixel information property contains unexpected trailing data.");
                         }
 
-                        byte[] channelBitDepths = boxBuffer.Slice(offset, channelCount).ToArray();
+                        // Property associations are resolved after the pooled box buffer is reused, so retain the
+                        // exact channel vector once at this ownership boundary.
+                        byte[] channelBitDepths = GC.AllocateUninitializedArray<byte>(channelCount);
+                        boxBuffer.Slice(offset, channelCount).CopyTo(channelBitDepths);
                         for (int i = 0; i < channelBitDepths.Length; i++)
                         {
                             if (channelBitDepths[i] == 0)
@@ -1238,11 +1241,10 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                             if (!this.Options.SkipMetadata)
                             {
                                 EnsureBufferRemaining(boxBuffer, 4, 1, "ICC color information");
-                                byte[] iccData = boxBuffer[4..].ToArray();
                                 IccProfile? iccProfile = null;
                                 try
                                 {
-                                    iccProfile = HeifPropertyParser.ParseIccProfile(iccData);
+                                    iccProfile = HeifPropertyParser.ParseIccProfile(boxBuffer[4..]);
                                 }
                                 catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
                                 {
@@ -2279,15 +2281,22 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 continue;
             }
 
-            byte[] itemData = itemMemory.GetSpan().ToArray();
             if (metadataItem.Type == Heif4CharCode.Exif)
             {
-                this.ExecuteAncillarySegmentAction(() => ApplyExifProfile(metadata, itemData));
+                this.ExecuteAncillarySegmentAction(() => ApplyExifProfile(metadata, itemMemory.GetSpan()));
             }
             else if (metadataItem.Type == Heif4CharCode.Mime &&
                 string.Equals(metadataItem.ContentType, "application/rdf+xml", StringComparison.Ordinal))
             {
-                this.ExecuteAncillarySegmentAction(() => metadata.XmpProfile = new XmpProfile(itemData));
+                this.ExecuteAncillarySegmentAction(() =>
+                {
+                    Span<byte> itemData = itemMemory.GetSpan();
+
+                    // XmpProfile retains its input array after the assembled item buffer is returned to its pool.
+                    byte[] ownedData = GC.AllocateUninitializedArray<byte>(itemData.Length);
+                    itemData.CopyTo(ownedData);
+                    metadata.XmpProfile = new XmpProfile(ownedData);
+                });
             }
         }
     }
@@ -2297,7 +2306,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// </summary>
     /// <param name="metadata">The image metadata receiving the Exif profile.</param>
     /// <param name="itemData">The complete HEIF Exif item including its four-byte offset field.</param>
-    private static void ApplyExifProfile(ImageMetadata metadata, byte[] itemData)
+    private static void ApplyExifProfile(ImageMetadata metadata, ReadOnlySpan<byte> itemData)
     {
         if (itemData.Length < 8)
         {
@@ -2305,7 +2314,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         }
 
         uint declaredTiffHeaderOffset = BinaryPrimitives.ReadUInt32BigEndian(itemData);
-        Span<byte> exifData = itemData.AsSpan(4);
+        ReadOnlySpan<byte> exifData = itemData[4..];
         int actualTiffHeaderOffset = -1;
 
         // Annex A stores the offset to the first TIFF byte-order marker. Match libavif by finding the first valid
@@ -2334,7 +2343,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             throw new InvalidImageContentException("The HEIF Exif item has an invalid TIFF-header offset.");
         }
 
-        metadata.ExifProfile = new ExifProfile(exifData[actualTiffHeaderOffset..].ToArray());
+        ReadOnlySpan<byte> tiffData = exifData[actualTiffHeaderOffset..];
+
+        // ExifProfile retains its input array after the assembled item buffers are disposed at the end of decode.
+        byte[] ownedData = GC.AllocateUninitializedArray<byte>(tiffData.Length);
+        tiffData.CopyTo(ownedData);
+        metadata.ExifProfile = new ExifProfile(ownedData);
     }
 
     /// <summary>

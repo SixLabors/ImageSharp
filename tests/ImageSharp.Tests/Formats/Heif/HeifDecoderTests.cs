@@ -2,11 +2,14 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif;
@@ -106,6 +109,125 @@ public class HeifDecoderTests
     }
 
     /// <summary>
+    /// Verifies that AVIF grid composition retains and converts the presented image's non-sRGB ICC profile.
+    /// </summary>
+    [Theory]
+    [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
+    public void DecodeAvifGridConvertsEmbeddedNonSrgbIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+
+        using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
+        using Image<TPixel> converted = provider.GetImage(HeifDecoder.Instance, convertOptions);
+        using Image<TPixel> expectedPreserved = Image.Load<TPixel>(preserveOptions, TestFile.Create(TestImages.Png.Icc.Perceptual).Bytes);
+        using Image<TPixel> expected = Image.Load<TPixel>(convertOptions, TestFile.Create(TestImages.Png.Icc.Perceptual).Bytes);
+
+        Assert.NotNull(preserved.Metadata.IccProfile);
+        Assert.Null(converted.Metadata.IccProfile);
+        Assert.Equal(expectedPreserved.Metadata.IccProfile!.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+        Assert.NotEmpty(ImageComparer.Exact.CompareImages(preserved, converted));
+        ImageComparer.TolerantPercentage(1F, 20).VerifySimilarity(expected, converted);
+    }
+
+    /// <summary>
+    /// Verifies that AVIF sequence ICC conversion is applied to every presented frame.
+    /// </summary>
+    [Theory]
+    [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
+    public void DecodeAvifSequenceConvertsEveryFrameWithEmbeddedNonSrgbIccProfile<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+
+        using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
+        using Image<TPixel> converted = provider.GetImage(HeifDecoder.Instance, convertOptions);
+        using Image<TPixel> expectedPreserved = Image.Load<TPixel>(preserveOptions, TestFile.Create(TestImages.Png.Icc.Perceptual).Bytes);
+        using Image<TPixel> expected = Image.Load<TPixel>(convertOptions, TestFile.Create(TestImages.Png.Icc.Perceptual).Bytes);
+
+        Assert.Equal(2, preserved.Frames.Count);
+        Assert.Equal(preserved.Frames.Count, converted.Frames.Count);
+        Assert.NotNull(preserved.Metadata.IccProfile);
+        Assert.Null(converted.Metadata.IccProfile);
+        Assert.Equal(expectedPreserved.Metadata.IccProfile!.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+
+        for (int i = 0; i < converted.Frames.Count; i++)
+        {
+            Assert.False(ImageComparer.Exact.CompareImagesOrFrames(i, preserved.Frames[i], converted.Frames[i]).IsEmpty);
+            Assert.True(ImageComparer.TolerantPercentage(1F, 20).CompareImagesOrFrames(i, expected.Frames.RootFrame, converted.Frames[i]).IsEmpty);
+        }
+    }
+
+    /// <summary>
+    /// Verifies that non-sRGB ICC conversion follows auxiliary-alpha composition and preserves the composed alpha values.
+    /// </summary>
+    [Fact]
+    public void DecodeAvifAlphaImageConvertsEmbeddedIccProfileWithoutChangingAlpha()
+    {
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions convertOptions = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+        byte[] encoded = TestFile.Create(TestImages.Heif.DuckyRommIccAlphaAvif).Bytes;
+
+        using Image<Rgba32> preserved = Image.Load<Rgba32>(preserveOptions, encoded);
+        using Image<Rgba32> converted = Image.Load<Rgba32>(convertOptions, encoded);
+        using Image<Rgba32> expected = preserved.Clone();
+
+        ColorProfileConverter converter = new(new ColorConversionOptions
+        {
+            SourceIccProfile = expected.Metadata.IccProfile,
+            TargetIccProfile = CompactSrgbV4Profile.Profile,
+            MemoryAllocator = expected.Configuration.MemoryAllocator,
+        });
+
+        // Build the oracle from the fully composed preserved decode so that only ICC ordering and alpha retention
+        // are under test; the independently encoded AV1 color and alpha payloads remain identical in both paths.
+        converter.Convert(expected);
+
+        Assert.NotNull(preserved.Metadata.IccProfile);
+        Assert.Null(converted.Metadata.IccProfile);
+        Assert.Equal(TestIccProfiles.GetProfile(TestIccProfiles.RommRgb).ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+        Assert.NotEmpty(ImageComparer.Exact.CompareImages(preserved, converted));
+
+        for (int y = 0; y < converted.Height; y++)
+        {
+            Span<Rgba32> preservedRow = preserved.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            Span<Rgba32> convertedRow = converted.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+
+            for (int x = 0; x < convertedRow.Length; x++)
+            {
+                Assert.Equal(preservedRow[x].A, convertedRow[x].A);
+            }
+        }
+
+        ImageComparer.Exact.VerifySimilarity(expected, converted);
+    }
+
+    /// <summary>
+    /// Verifies that compact profile handling retains non-sRGB ICC profiles and leaves their pixels unconverted.
+    /// </summary>
+    [Theory]
+    [WithFile(TestImages.Heif.PerceptualIccAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
+    public void DecodeAvifRetainsNonSrgbIccProfileWhenCompacting<TPixel>(TestImageProvider<TPixel> provider)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        DecoderOptions compactOptions = new() { ColorProfileHandling = ColorProfileHandling.Compact };
+
+        using Image<TPixel> preserved = provider.GetImage(HeifDecoder.Instance, preserveOptions);
+        using Image<TPixel> compact = provider.GetImage(HeifDecoder.Instance, compactOptions);
+
+        Assert.NotNull(preserved.Metadata.IccProfile);
+        Assert.NotNull(compact.Metadata.IccProfile);
+        Assert.Equal(preserved.Metadata.IccProfile.ToByteArray(), compact.Metadata.IccProfile.ToByteArray());
+        Assert.Empty(ImageComparer.Exact.CompareImages(preserved, compact));
+    }
+
+    /// <summary>
     /// Verifies that compact profile handling removes a canonical sRGB ICC profile without changing pixels.
     /// </summary>
     [Theory]
@@ -129,6 +251,9 @@ public class HeifDecoderTests
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.ParisIccExifXmpAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.PerceptualIccGridAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.PerceptualIccSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.DuckyRommIccAlphaAvif, PixelTypes.Rgba32)]
     public void DecodeAvifSkipsEmbeddedIccProfileWithMetadata<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel>
     {

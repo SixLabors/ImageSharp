@@ -1304,6 +1304,12 @@ public static class TestImages
         // Independently encoded from Png.Icc.Perceptual with libavif 1.4.2 and libaom 3.14.1. Unlike the
         // canonical-sRGB Paris profile, this perceptual profile requires an observable color conversion.
         public const string PerceptualIccAvif = "Heif/perceptual_icc.avif";
+        public const string PerceptualIccGridAvif = "Heif/perceptual_icc_grid.avif";
+        public const string PerceptualIccSequenceAvif = "Heif/perceptual_icc_sequence.avif";
+
+        // Independently encoded from Png.Ducky with libavif 1.4.2 and libaom 3.14.1. The ROMM RGB profile is
+        // deliberately non-sRGB so that color conversion is observable while the auxiliary alpha item is composed.
+        public const string DuckyRommIccAlphaAvif = "Heif/ducky_romm_icc_alpha.avif";
 
         // Sourced from libavif/tests/data under libavif's BSD-2-Clause license.
         public const string Animated8Bit = "Heif/colors-animated-8bpc.avif";

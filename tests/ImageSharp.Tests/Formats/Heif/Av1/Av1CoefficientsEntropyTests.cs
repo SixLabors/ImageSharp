@@ -27,7 +27,7 @@ public class Av1CoefficientsEntropyTests
         Av1ComponentType componentType = Av1ComponentType.Luminance;
         Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
         ushort endOfBlock = 0;
-        Av1BlockModeInfo modeInfo = new(Av1Constants.MaxPlanes, blockSize, new Point(0, 0));
+        Av1BlockModeInfo modeInfo = new(blockSize, new Point(0, 0));
         Av1TransformInfo transformInfo = new(transformSize, 0, 0);
         int[] aboveContexts = new int[1];
         int[] leftContexts = new int[1];
@@ -77,7 +77,7 @@ public class Av1CoefficientsEntropyTests
         const Av1PredictionMode intraDirection = Av1PredictionMode.DC;
         const Av1ComponentType componentType = Av1ComponentType.Luminance;
         const Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
-        Av1BlockModeInfo modeInfo = new(Av1Constants.MaxPlanes, blockSize, new Point(0, 0));
+        Av1BlockModeInfo modeInfo = new(blockSize, new Point(0, 0));
         Av1TransformInfo transformInfo = new(transformSize, 0, 0);
         int[] aboveContexts = new int[1];
         int[] leftContexts = new int[1];
@@ -132,7 +132,7 @@ public class Av1CoefficientsEntropyTests
 
     private static void RoundTripCoefficientsCore(ushort endOfBlock, Av1ComponentType componentType, Av1BlockSize blockSize, Av1TransformSize transformSize, Av1TransformType transformType, Av1PredictionMode intraDirection, Av1FilterIntraMode filterIntraMode)
     {
-        Av1BlockModeInfo modeInfo = new(Av1Constants.MaxPlanes, blockSize, new Point(0, 0));
+        Av1BlockModeInfo modeInfo = new(blockSize, new Point(0, 0));
         Av1TransformInfo transformInfo = new(transformSize, 0, 0);
         int[] aboveContexts = new int[transformSize.Get4x4WideCount()];
         int[] leftContexts = new int[transformSize.Get4x4HighCount()];

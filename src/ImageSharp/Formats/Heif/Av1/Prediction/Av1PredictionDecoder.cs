@@ -397,10 +397,10 @@ internal class Av1PredictionDecoder
             return;
         }
 
-        Av1FilterIntraMode filterIntraMode = (plane == Av1Plane.Y && modeInfo.FilterIntraModeInfo.UseFilterIntra)
-            ? modeInfo.FilterIntraModeInfo.Mode : Av1FilterIntraMode.AllFilterIntraModes;
+        Av1FilterIntraMode filterIntraMode = (plane == Av1Plane.Y && modeInfo.UseFilterIntra)
+            ? modeInfo.FilterIntraMode : Av1FilterIntraMode.AllFilterIntraModes;
 
-        int angleDelta = modeInfo.AngleDelta[Math.Min(1, (int)plane)];
+        int angleDelta = modeInfo.GetAngleDelta(plane);
 
         Av1BlockSize blockSize = modeInfo.BlockSize;
         bool haveTop = blockModeInfoRowOffset > 0 || (subY > 0 ? partitionInfo.AvailableAboveForChroma : partitionInfo.AvailableAbove);

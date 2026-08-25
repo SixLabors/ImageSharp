@@ -9,30 +9,40 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 internal sealed class HevcShortTermReferencePictureSet
 {
     /// <summary>
+    /// Stores the bounded signed picture-order differences in HEVC reference order.
+    /// </summary>
+    private InlineArray16<int> deltaPictureOrders;
+
+    /// <summary>
+    /// Stores the bounded current-picture usage flags corresponding to <see cref="deltaPictureOrders"/>.
+    /// </summary>
+    private InlineArray16<bool> usedByCurrentPicture;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="HevcShortTermReferencePictureSet"/> class.
     /// </summary>
-    /// <param name="deltaPictureOrders">The signed picture-order differences in HEVC reference order.</param>
-    /// <param name="usedByCurrentPicture">The corresponding current-picture usage flags.</param>
-    private HevcShortTermReferencePictureSet(int[] deltaPictureOrders, bool[] usedByCurrentPicture)
+    private HevcShortTermReferencePictureSet()
     {
-        this.DeltaPictureOrders = deltaPictureOrders;
-        this.UsedByCurrentPicture = usedByCurrentPicture;
     }
-
-    /// <summary>
-    /// Gets the signed picture-order differences in HEVC reference order.
-    /// </summary>
-    public IReadOnlyList<int> DeltaPictureOrders { get; }
-
-    /// <summary>
-    /// Gets the flags indicating which reference pictures are used by the current picture.
-    /// </summary>
-    public IReadOnlyList<bool> UsedByCurrentPicture { get; }
 
     /// <summary>
     /// Gets the number of pictures declared by the reference-picture set.
     /// </summary>
-    public int Count => this.DeltaPictureOrders.Count;
+    public int Count { get; private set; }
+
+    /// <summary>
+    /// Gets a signed picture-order difference in HEVC reference order.
+    /// </summary>
+    /// <param name="index">The zero-based reference-picture index.</param>
+    /// <returns>The signed picture-order difference.</returns>
+    public int GetDeltaPictureOrder(int index) => this.deltaPictureOrders[index];
+
+    /// <summary>
+    /// Gets whether a reference picture is used by the current picture.
+    /// </summary>
+    /// <param name="index">The zero-based reference-picture index.</param>
+    /// <returns><see langword="true"/> when the reference is used by the current picture.</returns>
+    public bool IsUsedByCurrentPicture(int index) => this.usedByCurrentPicture[index];
 
     /// <summary>
     /// Reads one SPS short-term reference-picture set.
@@ -47,8 +57,9 @@ internal sealed class HevcShortTermReferencePictureSet
         IReadOnlyList<HevcShortTermReferencePictureSet> previousSets,
         int index)
     {
-        Span<int> deltaPictureOrders = stackalloc int[16];
-        Span<bool> usedByCurrentPicture = stackalloc bool[16];
+        HevcShortTermReferencePictureSet result = new();
+        Span<int> deltaPictureOrders = result.deltaPictureOrders;
+        Span<bool> usedByCurrentPicture = result.usedByCurrentPicture;
         int pictureCount = 0;
         bool interSetPrediction = index > 0 && reader.ReadFlag();
         if (interSetPrediction)
@@ -79,7 +90,7 @@ internal sealed class HevcShortTermReferencePictureSet
                 }
 
                 int referenceDelta = referenceIndex < referenceSet.Count
-                    ? referenceSet.DeltaPictureOrders[referenceIndex]
+                    ? referenceSet.GetDeltaPictureOrder(referenceIndex)
                     : 0;
 
                 long deltaPictureOrder = (long)deltaReferencePictureSet + referenceDelta;
@@ -171,8 +182,7 @@ internal sealed class HevcShortTermReferencePictureSet
             }
         }
 
-        return new HevcShortTermReferencePictureSet(
-            deltaPictureOrders[..pictureCount].ToArray(),
-            usedByCurrentPicture[..pictureCount].ToArray());
+        result.Count = pictureCount;
+        return result;
     }
 }

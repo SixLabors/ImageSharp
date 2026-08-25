@@ -819,7 +819,13 @@ internal ref struct Av1SymbolDecoder
 
         if (plane == (int)Av1Plane.Y)
         {
-            transformInfo.Type = this.ReadTransformType(transformSize, useReducedTransformSet, modeInfo.FilterIntraModeInfo.UseFilterIntra, this.baseQIndex, modeInfo.FilterIntraModeInfo.Mode, modeInfo.YMode);
+            transformInfo.Type = this.ReadTransformType(
+                transformSize,
+                useReducedTransformSet,
+                modeInfo.UseFilterIntra,
+                this.baseQIndex,
+                modeInfo.FilterIntraMode,
+                modeInfo.YMode);
         }
 
         transformInfo.Type = ComputeTransformType(planeType, modeInfo, isLossless, transformSize, transformInfo, useReducedTransformSet);

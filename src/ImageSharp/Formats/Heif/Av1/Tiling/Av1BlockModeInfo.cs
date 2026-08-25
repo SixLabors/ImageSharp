@@ -11,35 +11,79 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 internal class Av1BlockModeInfo
 {
     /// <summary>
-    /// Stores the palette size for luma and for the shared chroma mode.
+    /// The palette size for the luma plane.
     /// </summary>
-    private int[] paletteSize;
+    private int lumaPaletteSize;
 
     /// <summary>
-    /// Stores the decoded palette colors for the Y, U, and V planes.
+    /// The palette size shared by both chroma planes.
     /// </summary>
-    private readonly ushort[][] paletteColors = [[], [], []];
+    private int chromaPaletteSize;
 
     /// <summary>
-    /// Stores the luma and shared chroma palette color-index maps.
+    /// Stores the decoded luma palette colors.
     /// </summary>
-    private readonly byte[][] paletteColorIndexMaps = [[], []];
+    private InlineArray8<ushort> lumaPaletteColors;
+
+    /// <summary>
+    /// Stores the decoded blue-difference chroma palette colors.
+    /// </summary>
+    private InlineArray8<ushort> chromaBluePaletteColors;
+
+    /// <summary>
+    /// Stores the decoded red-difference chroma palette colors.
+    /// </summary>
+    private InlineArray8<ushort> chromaRedPaletteColors;
+
+    /// <summary>
+    /// Stores the luma palette color-index map.
+    /// </summary>
+    private byte[] lumaPaletteColorIndexMap = [];
+
+    /// <summary>
+    /// Stores the shared chroma palette color-index map.
+    /// </summary>
+    private byte[] chromaPaletteColorIndexMap = [];
+
+    /// <summary>
+    /// The directional prediction angle adjustment for luma.
+    /// </summary>
+    private int lumaAngleDelta;
+
+    /// <summary>
+    /// The directional prediction angle adjustment shared by both chroma planes.
+    /// </summary>
+    private int chromaAngleDelta;
+
+    /// <summary>
+    /// The plane-relative index of the first luma transform.
+    /// </summary>
+    private int firstLumaTransformLocation;
+
+    /// <summary>
+    /// The plane-relative index of the first chroma transform.
+    /// </summary>
+    private int firstChromaTransformLocation;
+
+    /// <summary>
+    /// The number of luma transform units.
+    /// </summary>
+    private int lumaTransformUnitCount;
+
+    /// <summary>
+    /// The number of transform units for one chroma plane.
+    /// </summary>
+    private int chromaTransformUnitCount;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1BlockModeInfo"/> class.
     /// </summary>
-    /// <param name="numPlanes">The number of color planes in the decoded frame.</param>
     /// <param name="blockSize">The decoded block size.</param>
     /// <param name="positionInSuperblock">The block origin relative to its superblock in 4x4 mode-information units.</param>
-    public Av1BlockModeInfo(int numPlanes, Av1BlockSize blockSize, Point positionInSuperblock)
+    public Av1BlockModeInfo(Av1BlockSize blockSize, Point positionInSuperblock)
     {
         this.BlockSize = blockSize;
         this.PositionInSuperblock = positionInSuperblock;
-        this.AngleDelta = new int[numPlanes - 1];
-        this.paletteSize = new int[numPlanes - 1];
-        this.FilterIntraModeInfo = new();
-        this.FirstTransformLocation = new int[numPlanes - 1];
-        this.TransformUnitsCount = new int[numPlanes - 1];
     }
 
     /// <summary>
@@ -93,9 +137,9 @@ internal class Av1BlockModeInfo
     public int ChromaFromLumaAlphaSign { get; set; }
 
     /// <summary>
-    /// Gets or sets the directional prediction angle adjustments for the chroma planes.
+    /// Gets or sets a value indicating whether filter-intra prediction is enabled for the block.
     /// </summary>
-    public int[] AngleDelta { get; set; }
+    public bool UseFilterIntra { get; set; }
 
     /// <summary>
     /// Gets the position relative to the superblock in 4x4 mode-information units.
@@ -103,47 +147,141 @@ internal class Av1BlockModeInfo
     public Point PositionInSuperblock { get; }
 
     /// <summary>
-    /// Gets or sets the filter-intra syntax for the block.
+    /// Gets or sets the filter-intra mode selected for the block.
     /// </summary>
-    public Av1IntraFilterModeInfo FilterIntraModeInfo { get; internal set; }
+    public Av1FilterIntraMode FilterIntraMode { get; set; }
 
     /// <summary>
-    /// Gets the plane-relative index of the first <see cref="Av1TransformInfo"/> for this block.
+    /// Gets the directional prediction angle adjustment for a color plane.
     /// </summary>
-    public int[] FirstTransformLocation { get; }
+    /// <param name="plane">The color plane.</param>
+    /// <returns>The luma adjustment or the adjustment shared by both chroma planes.</returns>
+    public int GetAngleDelta(Av1Plane plane) => plane == Av1Plane.Y ? this.lumaAngleDelta : this.chromaAngleDelta;
 
     /// <summary>
-    /// Gets or sets the number of transform units for luma and for each chroma plane.
+    /// Sets the directional prediction angle adjustment for a plane class.
     /// </summary>
-    public int[] TransformUnitsCount { get; internal set; }
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <param name="value">The directional prediction angle adjustment.</param>
+    public void SetAngleDelta(Av1PlaneType planeType, int value)
+    {
+        if (planeType == Av1PlaneType.Y)
+        {
+            this.lumaAngleDelta = value;
+        }
+        else
+        {
+            this.chromaAngleDelta = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets the plane-relative index of the first transform for a color plane.
+    /// </summary>
+    /// <param name="plane">The color plane.</param>
+    /// <returns>The first transform index for luma or the selected chroma plane.</returns>
+    public int GetFirstTransformLocation(Av1Plane plane)
+        => plane == Av1Plane.Y ? this.firstLumaTransformLocation : this.firstChromaTransformLocation;
+
+    /// <summary>
+    /// Gets the plane-relative index of the first transform for a plane class.
+    /// </summary>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <returns>The first transform index for the plane class.</returns>
+    public int GetFirstTransformLocation(Av1PlaneType planeType)
+        => planeType == Av1PlaneType.Y ? this.firstLumaTransformLocation : this.firstChromaTransformLocation;
+
+    /// <summary>
+    /// Sets the plane-relative index of the first transform for a plane class.
+    /// </summary>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <param name="value">The first transform index.</param>
+    public void SetFirstTransformLocation(Av1PlaneType planeType, int value)
+    {
+        if (planeType == Av1PlaneType.Y)
+        {
+            this.firstLumaTransformLocation = value;
+        }
+        else
+        {
+            this.firstChromaTransformLocation = value;
+        }
+    }
+
+    /// <summary>
+    /// Gets the number of transform units for a color plane.
+    /// </summary>
+    /// <param name="plane">The color plane.</param>
+    /// <returns>The luma count or the count for one chroma plane.</returns>
+    public int GetTransformUnitCount(Av1Plane plane)
+        => plane == Av1Plane.Y ? this.lumaTransformUnitCount : this.chromaTransformUnitCount;
+
+    /// <summary>
+    /// Gets the number of transform units for a plane class.
+    /// </summary>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <returns>The transform-unit count for the plane class.</returns>
+    public int GetTransformUnitCount(Av1PlaneType planeType)
+        => planeType == Av1PlaneType.Y ? this.lumaTransformUnitCount : this.chromaTransformUnitCount;
+
+    /// <summary>
+    /// Sets the number of transform units for a plane class.
+    /// </summary>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <param name="value">The transform-unit count.</param>
+    public void SetTransformUnitCount(Av1PlaneType planeType, int value)
+    {
+        if (planeType == Av1PlaneType.Y)
+        {
+            this.lumaTransformUnitCount = value;
+        }
+        else
+        {
+            this.chromaTransformUnitCount = value;
+        }
+    }
 
     /// <summary>
     /// Gets the palette size for the specified color plane.
     /// </summary>
     /// <param name="plane">The color plane.</param>
     /// <returns>The palette size for the plane.</returns>
-    public int GetPaletteSize(Av1Plane plane) => this.paletteSize[Math.Min(1, (int)plane)];
+    public int GetPaletteSize(Av1Plane plane) => plane == Av1Plane.Y ? this.lumaPaletteSize : this.chromaPaletteSize;
 
     /// <summary>
     /// Gets the palette size for the specified plane class.
     /// </summary>
     /// <param name="planeType">The luma or chroma plane class.</param>
     /// <returns>The palette size for the plane class.</returns>
-    public int GetPaletteSize(Av1PlaneType planeType) => this.paletteSize[(int)planeType];
+    public int GetPaletteSize(Av1PlaneType planeType) => planeType == Av1PlaneType.Y ? this.lumaPaletteSize : this.chromaPaletteSize;
 
     /// <summary>
     /// Sets the luma and shared chroma palette sizes.
     /// </summary>
     /// <param name="ySize">The luma palette size.</param>
     /// <param name="uvSize">The palette size shared by the chroma planes.</param>
-    public void SetPaletteSizes(int ySize, int uvSize) => this.paletteSize = [ySize, uvSize];
+    public void SetPaletteSizes(int ySize, int uvSize)
+    {
+        this.lumaPaletteSize = ySize;
+        this.chromaPaletteSize = uvSize;
+    }
 
     /// <summary>
     /// Gets the decoded palette colors for a color plane.
     /// </summary>
     /// <param name="plane">The color plane.</param>
     /// <returns>The palette colors in prediction-index order.</returns>
-    public ReadOnlySpan<ushort> GetPaletteColors(Av1Plane plane) => this.paletteColors[(int)plane];
+    public ReadOnlySpan<ushort> GetPaletteColors(Av1Plane plane)
+    {
+        if (plane == Av1Plane.Y)
+        {
+            return this.lumaPaletteColors[..this.lumaPaletteSize];
+        }
+
+        return plane == Av1Plane.U
+            ? this.chromaBluePaletteColors[..this.chromaPaletteSize]
+            : this.chromaRedPaletteColors[..this.chromaPaletteSize];
+    }
 
     /// <summary>
     /// Stores the decoded palette colors for a color plane.
@@ -151,7 +289,20 @@ internal class Av1BlockModeInfo
     /// <param name="plane">The color plane.</param>
     /// <param name="colors">The palette colors in prediction-index order.</param>
     public void SetPaletteColors(Av1Plane plane, ReadOnlySpan<ushort> colors)
-        => this.paletteColors[(int)plane] = colors.ToArray();
+    {
+        if (plane == Av1Plane.Y)
+        {
+            colors.CopyTo(this.lumaPaletteColors);
+        }
+        else if (plane == Av1Plane.U)
+        {
+            colors.CopyTo(this.chromaBluePaletteColors);
+        }
+        else
+        {
+            colors.CopyTo(this.chromaRedPaletteColors);
+        }
+    }
 
     /// <summary>
     /// Gets the palette color-index map for a color plane.
@@ -159,7 +310,7 @@ internal class Av1BlockModeInfo
     /// <param name="plane">The color plane.</param>
     /// <returns>The luma map for <see cref="Av1Plane.Y"/> or the shared chroma map for either chroma plane.</returns>
     public ReadOnlySpan<byte> GetPaletteColorIndexMap(Av1Plane plane)
-        => this.paletteColorIndexMaps[Math.Min(1, (int)plane)];
+        => plane == Av1Plane.Y ? this.lumaPaletteColorIndexMap : this.chromaPaletteColorIndexMap;
 
     /// <summary>
     /// Stores the palette color-index map for a plane class.
@@ -167,5 +318,14 @@ internal class Av1BlockModeInfo
     /// <param name="planeType">The luma or shared chroma plane class.</param>
     /// <param name="colorIndexMap">The row-major color-index map including coded-block edge padding.</param>
     public void SetPaletteColorIndexMap(Av1PlaneType planeType, byte[] colorIndexMap)
-        => this.paletteColorIndexMaps[(int)planeType] = colorIndexMap;
+    {
+        if (planeType == Av1PlaneType.Y)
+        {
+            this.lumaPaletteColorIndexMap = colorIndexMap;
+        }
+        else
+        {
+            this.chromaPaletteColorIndexMap = colorIndexMap;
+        }
+    }
 }

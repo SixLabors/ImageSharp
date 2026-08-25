@@ -1173,8 +1173,7 @@ internal sealed class HeifSequenceParser
 
                 stream.Position -= 4;
                 using IMemoryOwner<byte> payload = this.boxReader.ReadPayload(stream, boxLength);
-                byte[] profileData = payload.GetSpan()[4..].ToArray();
-                track.IccProfile = HeifPropertyParser.ParseIccProfile(profileData);
+                track.IccProfile = HeifPropertyParser.ParseIccProfile(payload.GetSpan()[4..]);
             }
             catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.options, ex))
             {

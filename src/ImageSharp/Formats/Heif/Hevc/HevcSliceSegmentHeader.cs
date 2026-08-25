@@ -115,7 +115,7 @@ internal sealed class HevcSliceSegmentHeader
 
         int encodedHeaderLength = GetEncodedPayloadOffset(
             this.HeaderLength,
-            nalUnit.EmulationPreventionBytePositions);
+            nalUnit.EmulationPreventionBytePositions.Span);
 
         int availableEncodedData = nalUnit.EncodedPayloadLength - encodedHeaderLength;
         int cumulativeEntryPointOffset = 0;
@@ -409,7 +409,7 @@ internal sealed class HevcSliceSegmentHeader
     /// <returns>The encoded byte-sequence payload offset at the same syntax boundary.</returns>
     private static int GetEncodedPayloadOffset(
         int rbspOffset,
-        IReadOnlyList<int> emulationPreventionBytePositions)
+        ReadOnlySpan<int> emulationPreventionBytePositions)
     {
         int encodedOffset = rbspOffset;
         foreach (int preventionBytePosition in emulationPreventionBytePositions)

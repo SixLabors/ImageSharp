@@ -13,20 +13,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 internal sealed class Av1CodecConfiguration
 {
     /// <summary>
-    /// The optional open bitstream units following the fixed four-byte configuration record.
+    /// The optional sequence-header payload retained from the configuration open bitstream units.
     /// </summary>
-    private readonly byte[] configObus;
-
-    /// <summary>
-    /// The byte offset of the optional sequence-header payload within <see cref="configObus"/>, or <c>-1</c> when
-    /// the configuration contains no sequence header.
-    /// </summary>
-    private readonly int configSequenceHeaderOffset;
-
-    /// <summary>
-    /// The byte length of the optional sequence-header payload within <see cref="configObus"/>.
-    /// </summary>
-    private readonly int configSequenceHeaderLength;
+    private readonly byte[] configSequenceHeader;
 
     /// <summary>
     /// The sequence-header OBU extension byte, or <c>-1</c> when its header has no extension.
@@ -94,15 +83,15 @@ internal sealed class Av1CodecConfiguration
 
         // The delay syntax is consumed to validate the fixed record, but it describes sample presentation and has
         // no meaning for the independently presented image item supported by this bounded container implementation.
-        this.configObus = boxBuffer[4..].ToArray();
+        ReadOnlySpan<byte> configObus = boxBuffer[4..];
         int sequenceHeaderCount = ScanObus(
-            this.configObus,
+            configObus,
             true,
             true,
             "AV1 codec configuration",
             options,
-            out this.configSequenceHeaderOffset,
-            out this.configSequenceHeaderLength,
+            out int configSequenceHeaderOffset,
+            out int configSequenceHeaderLength,
             out this.configSequenceHeaderExtension,
             out this.configContentLightLevel,
             out this.configMasteringDisplayColorVolume);
@@ -110,6 +99,18 @@ internal sealed class Av1CodecConfiguration
         if (sequenceHeaderCount > 1)
         {
             throw new InvalidImageContentException("The AV1 codec configuration contains more than one sequence header OBU.");
+        }
+
+        if (configSequenceHeaderOffset < 0)
+        {
+            this.configSequenceHeader = [];
+        }
+        else
+        {
+            // The property-reader span is pooled and reused. Retain only the sequence-header bytes required for
+            // item/sample equivalence instead of materializing every optional configuration OBU.
+            this.configSequenceHeader = GC.AllocateUninitializedArray<byte>(configSequenceHeaderLength);
+            configObus.Slice(configSequenceHeaderOffset, configSequenceHeaderLength).CopyTo(this.configSequenceHeader);
         }
     }
 
@@ -162,11 +163,6 @@ internal sealed class Av1CodecConfiguration
     /// Gets the position of vertically subsampled chroma samples relative to luma samples.
     /// </summary>
     public byte ChromaSamplePosition { get; }
-
-    /// <summary>
-    /// Gets the optional configuration open bitstream units following the fixed record.
-    /// </summary>
-    public ReadOnlyMemory<byte> ConfigObus => this.configObus;
 
     /// <summary>
     /// Validates the AV1 image item OBU layout and metadata against its item properties and configuration record.
@@ -277,12 +273,8 @@ internal sealed class Av1CodecConfiguration
             throw new InvalidImageContentException($"The {sourceName} contains {sequenceHeaderCount} sequence header OBUs instead of {requirement}.");
         }
 
-        if (this.configSequenceHeaderOffset >= 0 && dataSequenceHeaderOffset >= 0)
+        if (this.configSequenceHeader.Length != 0 && dataSequenceHeaderOffset >= 0)
         {
-            ReadOnlySpan<byte> configSequenceHeader = this.configObus.AsSpan(
-                this.configSequenceHeaderOffset,
-                this.configSequenceHeaderLength);
-
             ReadOnlySpan<byte> dataSequenceHeader = data.Slice(
                 dataSequenceHeaderOffset,
                 dataSequenceHeaderLength);
@@ -291,7 +283,7 @@ internal sealed class Av1CodecConfiguration
             // size field while a payload's final OBU may omit one, and different legal LEB128 widths do not alter
             // the Sequence Header OBU being repeated.
             if (this.configSequenceHeaderExtension != dataSequenceHeaderExtension
-                || !configSequenceHeader.SequenceEqual(dataSequenceHeader))
+                || !this.configSequenceHeader.AsSpan().SequenceEqual(dataSequenceHeader))
             {
                 throw new InvalidImageContentException(
                     $"The AV1 codec configuration sequence header does not match the {sourceName} sequence header.");

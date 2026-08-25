@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 
 /// <summary>
@@ -24,7 +26,7 @@ internal sealed class HevcNalUnit
         int rbspLength = HevcRbspDecoder.Decode(
             encodedPayload,
             rbspBuffer,
-            out int[] emulationPreventionBytePositions);
+            out ReadOnlyMemory<int> emulationPreventionBytePositions);
 
         this.EncodedPayloadLength = encodedPayload.Length;
         this.Rbsp = rbspBuffer.AsMemory(0, rbspLength);
@@ -49,7 +51,7 @@ internal sealed class HevcNalUnit
     /// <summary>
     /// Gets the zero-based encoded-payload positions of removed emulation-prevention bytes.
     /// </summary>
-    public IReadOnlyList<int> EmulationPreventionBytePositions { get; }
+    public ReadOnlyMemory<int> EmulationPreventionBytePositions { get; }
 }
 
 /// <summary>
@@ -72,47 +74,75 @@ internal static class HevcRbspDecoder
     public static int Decode(
         ReadOnlySpan<byte> encodedPayload,
         Span<byte> destination,
-        out int[] emulationPreventionBytePositions)
+        out ReadOnlyMemory<int> emulationPreventionBytePositions)
     {
         DebugGuard.MustBeGreaterThanOrEqualTo(destination.Length, encodedPayload.Length, nameof(destination));
 
         int destinationOffset = 0;
+        int preventionByteCount = 0;
         int consecutiveZeroBytes = 0;
-        List<int>? preventionBytePositions = null;
-        for (int sourceOffset = 0; sourceOffset < encodedPayload.Length; sourceOffset++)
+        int[]? rentedPositions = null;
+        Span<int> preventionBytePositions = [];
+        try
         {
-            byte value = encodedPayload[sourceOffset];
-
-            // HEVC section 7.3.1.1 forbids 00 00 00 through 00 00 02 in EBSP form. A 03 after two zeros is an
-            // emulation-prevention byte only when another byte in the range 00 through 03 follows it.
-            if (consecutiveZeroBytes == 2)
+            for (int sourceOffset = 0; sourceOffset < encodedPayload.Length; sourceOffset++)
             {
-                if (value < 3)
-                {
-                    throw new InvalidImageContentException("The HEVC NAL unit contains a forbidden start-code-like byte sequence.");
-                }
+                byte value = encodedPayload[sourceOffset];
 
-                if (value == 3)
+                // HEVC section 7.3.1.1 forbids 00 00 00 through 00 00 02 in EBSP form. A 03 after two zeros is an
+                // emulation-prevention byte only when another byte in the range 00 through 03 follows it.
+                if (consecutiveZeroBytes == 2)
                 {
-                    (preventionBytePositions ??= []).Add(sourceOffset);
-                    sourceOffset++;
-                    if (sourceOffset == encodedPayload.Length || encodedPayload[sourceOffset] > 3)
+                    if (value < 3)
                     {
-                        throw new InvalidImageContentException("The HEVC NAL unit contains an invalid emulation-prevention byte.");
+                        throw new InvalidImageContentException("The HEVC NAL unit contains a forbidden start-code-like byte sequence.");
                     }
 
-                    // Removal depends on the preceding two decoded bytes, so this deliberately remains a single
-                    // scalar pass rather than introducing a second SIMD behavior model for a non-hot syntax path.
-                    value = encodedPayload[sourceOffset];
-                    consecutiveZeroBytes = 0;
+                    if (value == 3)
+                    {
+                        sourceOffset++;
+                        if (sourceOffset == encodedPayload.Length || encodedPayload[sourceOffset] > 3)
+                        {
+                            throw new InvalidImageContentException("The HEVC NAL unit contains an invalid emulation-prevention byte.");
+                        }
+
+                        if (preventionByteCount == preventionBytePositions.Length)
+                        {
+                            int[] expandedPositions = ArrayPool<int>.Shared.Rent(preventionBytePositions.IsEmpty ? 16 : preventionBytePositions.Length * 2);
+                            preventionBytePositions.CopyTo(expandedPositions);
+                            if (rentedPositions is not null)
+                            {
+                                ArrayPool<int>.Shared.Return(rentedPositions);
+                            }
+
+                            rentedPositions = expandedPositions;
+                            preventionBytePositions = rentedPositions;
+                        }
+
+                        preventionBytePositions[preventionByteCount++] = sourceOffset - 1;
+                        value = encodedPayload[sourceOffset];
+                        consecutiveZeroBytes = 0;
+                    }
                 }
+
+                destination[destinationOffset++] = value;
+                consecutiveZeroBytes = value == 0 ? consecutiveZeroBytes + 1 : 0;
             }
 
-            destination[destinationOffset++] = value;
-            consecutiveZeroBytes = value == 0 ? consecutiveZeroBytes + 1 : 0;
-        }
+            int[] retainedPositions = preventionByteCount == 0
+                ? []
+                : GC.AllocateUninitializedArray<int>(preventionByteCount);
 
-        emulationPreventionBytePositions = preventionBytePositions?.ToArray() ?? Array.Empty<int>();
-        return destinationOffset;
+            preventionBytePositions[..preventionByteCount].CopyTo(retainedPositions);
+            emulationPreventionBytePositions = retainedPositions;
+            return destinationOffset;
+        }
+        finally
+        {
+            if (rentedPositions is not null)
+            {
+                ArrayPool<int>.Shared.Return(rentedPositions);
+            }
+        }
     }
 }

@@ -78,7 +78,7 @@ public sealed class DecoderOptions
             return false;
         }
 
-        if (this.ColorProfileHandling == ColorProfileHandling.Preserve)
+        if (this.ColorProfileHandling != ColorProfileHandling.Convert)
         {
             return false;
         }

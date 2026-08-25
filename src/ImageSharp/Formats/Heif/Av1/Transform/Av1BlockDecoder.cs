@@ -181,7 +181,7 @@ internal sealed class Av1BlockDecoder : IDisposable
         bool isLosslessBlock = isLossless && ((blockSize >= Av1BlockSize.Block64x64) && (blockSize <= Av1BlockSize.Block128x128));
         int chromaTransformUnitCount = isLosslessBlock
             ? (maxBlocksWide * maxBlocksHigh) >> ((colorConfig.SubSamplingX ? 1 : 0) + (colorConfig.SubSamplingY ? 1 : 0))
-            : modeInfo.TransformUnitsCount[(int)Av1Plane.U];
+            : modeInfo.GetTransformUnitCount(Av1Plane.U);
 
         bool highBitDepth = this.frameBuffer.BytesPerSample == 2;
         Av1PredictionDecoder predictionDecoder = new(this.sequenceHeader, this.frameHeader);
@@ -199,9 +199,9 @@ internal sealed class Av1BlockDecoder : IDisposable
             // following the U descriptors for this block, so the V base includes the complete U transform-unit count.
             int transformInfoIndex = plane switch
             {
-                2 => superblockInfo.TransformInfoIndexUv + modeInfo.FirstTransformLocation[plane - 1] + chromaTransformUnitCount,
-                1 => superblockInfo.TransformInfoIndexUv + modeInfo.FirstTransformLocation[plane],
-                0 => superblockInfo.TransformInfoIndexY + modeInfo.FirstTransformLocation[plane],
+                2 => superblockInfo.TransformInfoIndexUv + modeInfo.GetFirstTransformLocation(Av1Plane.V) + chromaTransformUnitCount,
+                1 => superblockInfo.TransformInfoIndexUv + modeInfo.GetFirstTransformLocation(Av1Plane.U),
+                0 => superblockInfo.TransformInfoIndexY + modeInfo.GetFirstTransformLocation(Av1Plane.Y),
                 _ => throw new InvalidImageContentException("Maximum of 3 color planes")
             };
             Span<Av1TransformInfo> transformInfo = superblockInfo.GetTransformInfo(plane)[transformInfoIndex..];
@@ -214,7 +214,7 @@ internal sealed class Av1BlockDecoder : IDisposable
             }
             else
             {
-                transformUnitCount = modeInfo.TransformUnitsCount[Math.Min(1, plane)];
+                transformUnitCount = modeInfo.GetTransformUnitCount((Av1Plane)plane);
             }
 
             Guard.IsFalse(transformUnitCount == 0, nameof(transformUnitCount), "Must have at least a single transform unit to decode.");

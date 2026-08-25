@@ -471,6 +471,8 @@ Implement and verify in dependency order:
   - [x] Implement allocation-free SIMD-first inverse DCT for every 4/8/16/32 width and height combination, the four-by-four intra-luma inverse DST, normative intermediate and residual clipping, and saturated prediction addition for 8/10/12-bit samples. Verify normal and forced-scalar execution against fixed results and a dense scalar oracle.
   - [x] Implement the SIMD-first inverse-quantization primitive for flat and scaling-list paths across every transform size, component matrix, prediction mode, transform-skip scaling rule, signed normalization direction, and range-extension precision path.
   - [ ] Derive effective luma and chroma quantization parameters, including bit-depth offsets and chroma-format mapping, then connect scaling-list selection and inverse quantization to transform-unit traversal.
+    - [x] Implement the immutable effective-QP value used by reconstruction, including independent luma/chroma bit-depth offsets, the normative 4:2:0 mapping plateaus, the 4:2:2/4:4:4 saturation rule, and combined picture/slice/coding-unit chroma offsets.
+    - [ ] Select each transform unit's coding-unit luma QP and chroma-adjustment-list entry, then pass the derived component QP into inverse quantization.
   - [ ] Implement transform skip, coefficient rotation, implicit and explicit residual DPCM, transquant bypass, and lossless reconstruction.
   - [ ] Connect coefficient decoding, inverse quantization, transform selection, reusable scratch, and add/clip to transform-unit traversal.
 - [ ] Deblocking and sample-adaptive offset for every signaled luma/chroma and bit-depth path.

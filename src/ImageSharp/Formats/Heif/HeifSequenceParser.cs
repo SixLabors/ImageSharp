@@ -264,7 +264,6 @@ internal sealed class HeifSequenceParser
             Id = identity.Id,
             Width = identity.Width,
             Height = identity.Height,
-            Matrix = identity.Matrix,
             HandlerType = identity.HandlerType,
             TrackDuration = identity.TrackDuration,
             AuxiliaryForTrackId = identity.AuxiliaryForTrackId,
@@ -292,11 +291,6 @@ internal sealed class HeifSequenceParser
 
         stream.Position = media.Offset;
         this.ParseMedia(stream, media.Length, track, scratch);
-        if (track.Matrix.HasPerspective)
-        {
-            throw new InvalidImageContentException("The HEIF image-sequence track uses an unsupported perspective matrix.");
-        }
-
         if (track.TotalSampleCount == 0 || track.Samples.Length == 0)
         {
             throw new InvalidImageContentException("The HEIF image-sequence track contains no retained image samples.");
@@ -306,7 +300,7 @@ internal sealed class HeifSequenceParser
     }
 
     /// <summary>
-    /// Parses the movie time scale required to interpret track edit durations.
+    /// Parses the movie time scale and validates that no general movie-canvas transformation is required.
     /// </summary>
     /// <param name="stream">The stream positioned at the movie-header payload.</param>
     /// <param name="boxLength">The validated movie-header payload length.</param>
@@ -318,8 +312,8 @@ internal sealed class HeifSequenceParser
         byte version = prefix[0];
         int requiredLength = version switch
         {
-            0 => 20,
-            1 => 32,
+            0 => 100,
+            1 => 112,
             _ => throw new InvalidImageContentException($"The movie header has unsupported version {version}.")
         };
 
@@ -329,6 +323,13 @@ internal sealed class HeifSequenceParser
         if (timescale == 0)
         {
             throw new InvalidImageContentException("The movie header has a zero time scale.");
+        }
+
+        int matrixOffset = version == 0 ? 36 : 48;
+        HeifTrackMatrix matrix = HeifTrackMatrix.Parse(prefix.Slice(matrixOffset, 36));
+        if (!matrix.IsIdentity)
+        {
+            throw new NotSupportedException("The HEIF image sequence requires an unsupported movie presentation matrix.");
         }
 
         return timescale;
@@ -380,18 +381,13 @@ internal sealed class HeifSequenceParser
             throw new InvalidImageContentException("A HEIF image-sequence track has zero dimensions.");
         }
 
-        HeifTrackMatrix matrix = new(
-            BinaryPrimitives.ReadInt32BigEndian(prefix[matrixOffset..]),
-            BinaryPrimitives.ReadInt32BigEndian(prefix[(matrixOffset + 4)..]),
-            BinaryPrimitives.ReadInt32BigEndian(prefix[(matrixOffset + 8)..]),
-            BinaryPrimitives.ReadInt32BigEndian(prefix[(matrixOffset + 12)..]),
-            BinaryPrimitives.ReadInt32BigEndian(prefix[(matrixOffset + 16)..]),
-            BinaryPrimitives.ReadInt32BigEndian(prefix[(matrixOffset + 20)..]),
-            BinaryPrimitives.ReadInt32BigEndian(prefix[(matrixOffset + 24)..]),
-            BinaryPrimitives.ReadInt32BigEndian(prefix[(matrixOffset + 28)..]),
-            BinaryPrimitives.ReadInt32BigEndian(prefix[(matrixOffset + 32)..]));
+        HeifTrackMatrix matrix = HeifTrackMatrix.Parse(prefix.Slice(matrixOffset, 36));
+        if (!matrix.IsIdentity)
+        {
+            throw new NotSupportedException("The HEIF image-sequence track requires an unsupported movie presentation matrix.");
+        }
 
-        return new TrackIdentity(id, (flags & 3) == 3, width, height, duration, matrix);
+        return new TrackIdentity(id, (flags & 3) == 3, width, height, duration);
     }
 
     /// <summary>
@@ -2371,15 +2367,13 @@ internal sealed class HeifSequenceParser
         /// <param name="width">The displayed track width.</param>
         /// <param name="height">The displayed track height.</param>
         /// <param name="trackDuration">The track duration in movie-time-scale units.</param>
-        /// <param name="matrix">The track presentation matrix.</param>
-        public TrackIdentity(uint id, bool isEnabledInMovie, int width, int height, ulong trackDuration, HeifTrackMatrix matrix)
+        public TrackIdentity(uint id, bool isEnabledInMovie, int width, int height, ulong trackDuration)
         {
             this.Id = id;
             this.IsEnabledInMovie = isEnabledInMovie;
             this.Width = width;
             this.Height = height;
             this.TrackDuration = trackDuration;
-            this.Matrix = matrix;
             this.HandlerType = default;
             this.AuxiliaryForTrackId = 0;
             this.PremultipliedByTrackId = 0;
@@ -2409,11 +2403,6 @@ internal sealed class HeifSequenceParser
         /// Gets the track duration in movie-time-scale units.
         /// </summary>
         public ulong TrackDuration { get; }
-
-        /// <summary>
-        /// Gets the track presentation matrix.
-        /// </summary>
-        public HeifTrackMatrix Matrix { get; }
 
         /// <summary>
         /// Gets or sets the media handler type.

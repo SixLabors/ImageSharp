@@ -66,7 +66,8 @@ Checkboxes may be marked complete only when the implementation and the verificat
       - [x] Identify bounded sequence dimensions, frame count, timing, repetition, codec precision, color, HDR, pixel aspect ratio, Exif, and XMP state.
       - [x] Decode all-sync independently decodable AV1 samples into directly adopted ImageSharp frames without cloning complete pixel buffers.
       - [x] Match auxiliary alpha samples by exact decode duration, visibility, and presentation time, and validate premultiplication track identity.
-      - [ ] Complete reference-dependent AV1 and HEVC sample reconstruction, track-matrix presentation, and independent sequence vectors.
+      - [x] Require unity movie and track matrices so image presentation remains on the optimized `clap`/`irot`/`imir` path without a movie compositor.
+      - [ ] Complete reference-dependent AV1 and HEVC sample reconstruction and independent sequence vectors.
     - [ ] Write the same bounded movie, track, sample-description, location, dependency, timing, repetition, alpha, and metadata syntax from ImageSharp frames.
   - [ ] Decode frame dependencies, durations, repetition, frame-local auxiliary images, and frame-local metadata into the existing ImageSharp multi-frame model.
   - [ ] Encode ImageSharp frames, durations, repetition, frame-local auxiliary images, and frame-local metadata as independently decodable HEIC and AVIF image sequences.
@@ -123,7 +124,7 @@ The sequence reader and writer may retain only the following syntax and the reso
 | Syntax | Required image behavior |
 | --- | --- |
 | `ftyp` sequence and structural brands | Recognize `avis` AV1 sequences and the non-layered `hevc`/`hevx` HEVC sequence profiles. `avio` can additionally signal an all-sync AV1 sequence. Layered `hevm`/`hevs`, JPEG `jpgs`, arbitrary video brands, and brands for unimplemented codecs remain unsupported until their image payload and presentation requirements are implemented. |
-| `moov`/`mvhd`, `trak`/`tkhd`, and `mdia`/`mdhd`/`hdlr` | Select an enabled, in-movie `pict` master image-sequence track; retain its displayed dimensions, presentation matrix, media time scale, media duration, and movie-time-scale track duration. Ignore unrelated tracks rather than exposing them. |
+| `moov`/`mvhd`, `trak`/`tkhd`, and `mdia`/`mdhd`/`hdlr` | Select an enabled, in-movie `pict` master image-sequence track; retain its displayed dimensions, media time scale, media duration, and movie-time-scale track duration. Require unity movie and track matrices because arbitrary movie-canvas composition is outside image-format scope; use `clap`/`irot`/`imir` for supported image presentation. Ignore unrelated tracks rather than exposing them. |
 | `minf`/`dinf`/`dref` and `stbl` | Accept only self-contained sample data references and own the bounded sample-table state for one selected image sequence plus an optional linked auxiliary-alpha sequence. No reusable data-reference, media-information, or sample-table API is created. |
 | `stsd` and one supported visual sample entry | Require exactly one `av01` entry for AVIF or one non-layered `hvc1` entry for HEIC. Retain only its dimensions, codec configuration (`av1C` or `hvcC`), image presentation/color/HDR properties, and mandatory version-zero `ccst` coding constraints. Reject an unsupported essential configuration rather than treating it as generic video. |
 | `stsc`, `stco`/`co64`, and `stsz`/`stz2` | Resolve each declared image sample directly to a validated file offset and length. Expand run tables once into a compact frame-owned descriptor array bounded by `DecoderOptions.MaxFrames`; never buffer the movie or complete `mdat`. |

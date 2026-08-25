@@ -184,6 +184,23 @@ public class HeifSequenceParserTests
         Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
     }
 
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, true)]
+    public void ParseRejectsNonIdentityMoviePresentationMatrix(bool nonIdentityMovieMatrix, bool nonIdentityTrackMatrix)
+    {
+        byte[] data = CreateSequenceFile(
+            1024,
+            nonIdentityMovieMatrix: nonIdentityMovieMatrix,
+            nonIdentityTrackMatrix: nonIdentityTrackMatrix);
+
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = CreateParser(2);
+        stream.Position = 8;
+
+        Assert.Throws<NotSupportedException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
+    }
+
     [Fact]
     public void ParseMarksHiddenHevcSamples()
     {
@@ -429,7 +446,9 @@ public class HeifSequenceParserTests
         byte[] av1Configuration = null,
         int? sampleSize = null,
         bool allSamplesSync = false,
-        uint premultipliedByTrackId = 0)
+        uint premultipliedByTrackId = 0,
+        bool nonIdentityMovieMatrix = false,
+        bool nonIdentityTrackMatrix = false)
     {
         using MemoryStream stream = new();
         using BinaryWriter writer = new(stream, Encoding.UTF8, true);
@@ -441,11 +460,17 @@ public class HeifSequenceParserTests
         WriteUInt32(writer, 0);
         WriteUInt32(writer, 1000);
         WriteUInt32(writer, 600);
-        WriteZeros(writer, 80);
+        WriteUInt32(writer, 0x00010000);
+        WriteUInt16(writer, 0x0100);
+        WriteUInt16(writer, 0);
+        WriteZeros(writer, 8);
+        WritePresentationMatrix(writer, nonIdentityMovieMatrix);
+        WriteZeros(writer, 24);
+        WriteUInt32(writer, 3);
         EndBox(writer, movieHeader);
 
         long track = BeginBox(writer, Heif4CharCode.Trak);
-        WriteTrackHeader(writer, width, height);
+        WriteTrackHeader(writer, width, height, 1, nonIdentityTrackMatrix);
         if (premultipliedByTrackId != 0)
         {
             WriteTrackReference(writer, Heif4CharCode.Prem, premultipliedByTrackId);
@@ -625,7 +650,7 @@ public class HeifSequenceParserTests
         return data;
     }
 
-    private static void WriteTrackHeader(BinaryWriter writer, int width, int height, uint trackId = 1)
+    private static void WriteTrackHeader(BinaryWriter writer, int width, int height, uint trackId = 1, bool nonIdentityMatrix = false)
     {
         long trackHeader = BeginBox(writer, Heif4CharCode.Tkhd);
         WriteFullBoxHeader(writer, 0, 3);
@@ -635,7 +660,15 @@ public class HeifSequenceParserTests
         WriteUInt32(writer, 0);
         WriteUInt32(writer, 600);
         WriteZeros(writer, 16);
-        WriteUInt32(writer, 0x00010000);
+        WritePresentationMatrix(writer, nonIdentityMatrix);
+        WriteUInt32(writer, (uint)width << 16);
+        WriteUInt32(writer, (uint)height << 16);
+        EndBox(writer, trackHeader);
+    }
+
+    private static void WritePresentationMatrix(BinaryWriter writer, bool nonIdentityMatrix)
+    {
+        WriteUInt32(writer, nonIdentityMatrix ? 0x00020000U : 0x00010000U);
         WriteUInt32(writer, 0);
         WriteUInt32(writer, 0);
         WriteUInt32(writer, 0);
@@ -644,9 +677,6 @@ public class HeifSequenceParserTests
         WriteUInt32(writer, 0);
         WriteUInt32(writer, 0);
         WriteUInt32(writer, 0x40000000);
-        WriteUInt32(writer, (uint)width << 16);
-        WriteUInt32(writer, (uint)height << 16);
-        EndBox(writer, trackHeader);
     }
 
     private static void WriteTrackReference(BinaryWriter writer, Heif4CharCode referenceType, uint trackId)

@@ -46,11 +46,6 @@ internal sealed class HeifSequenceTrack
     public int CodedHeight { get; set; }
 
     /// <summary>
-    /// Gets or sets the track transformation matrix.
-    /// </summary>
-    public HeifTrackMatrix Matrix { get; set; }
-
-    /// <summary>
     /// Gets or sets the media time scale in units per second.
     /// </summary>
     public uint MediaTimescale { get; set; }

@@ -144,6 +144,11 @@ public enum Heif4CharCode : uint
     Sbgp = 0x73626770U,
 
     /// <summary>
+    /// Direct reference samples group type.
+    /// </summary>
+    Refs = 0x72656673U,
+
+    /// <summary>
     /// Image sequence coding constraints.
     /// </summary>
     Ccst = 0x63637374U,

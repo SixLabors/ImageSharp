@@ -42,4 +42,19 @@ internal struct HeifSequenceSample
     /// Gets or sets a value indicating whether decoding can begin at this sample.
     /// </summary>
     public bool IsSync { get; set; }
+
+    /// <summary>
+    /// Gets or sets the positive identifier used when another retained sample directly references this sample.
+    /// </summary>
+    public uint SampleId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the first direct reference in the owning track's compact reference-index array.
+    /// </summary>
+    public int DirectReferenceOffset { get; set; }
+
+    /// <summary>
+    /// Gets or sets the number of direct reference indices belonging to this sample.
+    /// </summary>
+    public byte DirectReferenceCount { get; set; }
 }

@@ -108,7 +108,41 @@ public class HeifSequenceParserTests
         Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
     }
 
-    private static byte[] CreateSequenceFile(uint chunkOffset, bool hevc = false, bool compositionOffsets = false)
+    [Fact]
+    public void ParseResolvesDirectReferenceSamples()
+    {
+        byte[] data = CreateSequenceFile(1024, directReferences: true);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = new(Configuration.Default.MemoryAllocator, 2);
+        stream.Position = 8;
+
+        HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data));
+
+        Assert.Equal(new[] { 0 }, sequence.ColorTrack.DirectReferenceSampleIndices);
+        Assert.Equal(1U, sequence.ColorTrack.Samples[0].SampleId);
+        Assert.Equal(0, sequence.ColorTrack.Samples[0].DirectReferenceCount);
+        Assert.Equal(0U, sequence.ColorTrack.Samples[1].SampleId);
+        Assert.Equal(0, sequence.ColorTrack.Samples[1].DirectReferenceOffset);
+        Assert.Equal(1, sequence.ColorTrack.Samples[1].DirectReferenceCount);
+    }
+
+    [Fact]
+    public void ParseRejectsUnknownDirectReferenceSampleId()
+    {
+        byte[] data = CreateSequenceFile(1024, directReferences: true, directReferenceSampleId: 2);
+        using MemoryStream stream = new(data, false);
+        HeifSequenceParser parser = new(Configuration.Default.MemoryAllocator, 2);
+        stream.Position = 8;
+
+        Assert.Throws<InvalidImageContentException>(() => parser.Parse(stream, GetMoviePayloadLength(data)));
+    }
+
+    private static byte[] CreateSequenceFile(
+        uint chunkOffset,
+        bool hevc = false,
+        bool compositionOffsets = false,
+        bool directReferences = false,
+        uint directReferenceSampleId = 1)
     {
         using MemoryStream stream = new();
         using BinaryWriter writer = new(stream, Encoding.UTF8, true);
@@ -133,7 +167,7 @@ public class HeifSequenceParserTests
 
         long mediaInformation = BeginBox(writer, Heif4CharCode.Minf);
         WriteDataInformation(writer);
-        WriteSampleTable(writer, chunkOffset, hevc, compositionOffsets);
+        WriteSampleTable(writer, chunkOffset, hevc, compositionOffsets, directReferences, directReferenceSampleId);
         EndBox(writer, mediaInformation);
         EndBox(writer, media);
         EndBox(writer, track);
@@ -221,7 +255,13 @@ public class HeifSequenceParserTests
         EndBox(writer, dataInformation);
     }
 
-    private static void WriteSampleTable(BinaryWriter writer, uint chunkOffset, bool hevc, bool compositionOffsets)
+    private static void WriteSampleTable(
+        BinaryWriter writer,
+        uint chunkOffset,
+        bool hevc,
+        bool compositionOffsets,
+        bool directReferences,
+        uint directReferenceSampleId)
     {
         long sampleTable = BeginBox(writer, Heif4CharCode.Stbl);
         WriteSampleDescription(writer, hevc);
@@ -282,7 +322,39 @@ public class HeifSequenceParserTests
             EndBox(writer, compositionToDecode);
         }
 
+        if (directReferences)
+        {
+            WriteDirectReferenceSampleGroup(writer, directReferenceSampleId);
+        }
+
         EndBox(writer, sampleTable);
+    }
+
+    private static void WriteDirectReferenceSampleGroup(BinaryWriter writer, uint directReferenceSampleId)
+    {
+        long descriptions = BeginBox(writer, Heif4CharCode.Sgpd);
+        WriteFullBoxHeader(writer, 1, 0);
+        WriteUInt32(writer, (uint)Heif4CharCode.Refs);
+        WriteUInt32(writer, 0);
+        WriteUInt32(writer, 2);
+        WriteUInt32(writer, 5);
+        WriteUInt32(writer, 1);
+        writer.Write((byte)0);
+        WriteUInt32(writer, 9);
+        WriteUInt32(writer, 0);
+        writer.Write((byte)1);
+        WriteUInt32(writer, directReferenceSampleId);
+        EndBox(writer, descriptions);
+
+        long sampleMap = BeginBox(writer, Heif4CharCode.Sbgp);
+        WriteFullBoxHeader(writer, 0, 0);
+        WriteUInt32(writer, (uint)Heif4CharCode.Refs);
+        WriteUInt32(writer, 2);
+        WriteUInt32(writer, 1);
+        WriteUInt32(writer, 1);
+        WriteUInt32(writer, 1);
+        WriteUInt32(writer, 2);
+        EndBox(writer, sampleMap);
     }
 
     private static void WriteSampleDescription(BinaryWriter writer, bool hevc)

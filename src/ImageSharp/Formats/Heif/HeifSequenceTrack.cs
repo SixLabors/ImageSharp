@@ -84,6 +84,11 @@ internal sealed class HeifSequenceTrack
     public HeifSequenceSample[] Samples { get; set; } = [];
 
     /// <summary>
+    /// Gets or sets the compact zero-based sample indices referenced by retained samples.
+    /// </summary>
+    public int[] DirectReferenceSampleIndices { get; set; } = [];
+
+    /// <summary>
     /// Gets or sets the identifier of the master track served by this auxiliary track, or zero for a master track.
     /// </summary>
     public uint AuxiliaryForTrackId { get; set; }

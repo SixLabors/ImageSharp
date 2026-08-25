@@ -33,6 +33,7 @@
         "stss", "Image sequence sync samples",
         "sgpd", "Image sequence sample group descriptions",
         "sbgp", "Image sequence sample-to-group map",
+        "refs", "Direct reference samples group type",
         "ccst", "Image sequence coding constraints",
         "auxi", "Auxiliary image sequence type",
         "url ", "Self-contained data location",

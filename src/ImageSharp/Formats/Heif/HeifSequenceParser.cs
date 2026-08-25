@@ -647,6 +647,8 @@ internal sealed class HeifSequenceParser
         BoxReference syncSamples = default;
         BoxReference compositionOffsets = default;
         BoxReference compositionToDecode = default;
+        BoxReference sampleGroupDescriptions = default;
+        BoxReference sampleToGroup = default;
 
         while (stream.Position < tableEnd)
         {
@@ -681,6 +683,20 @@ internal sealed class HeifSequenceParser
                     break;
                 case Heif4CharCode.Cslg:
                     SetUnique(ref compositionToDecode, childStart, childLength, "sample table", childType);
+                    break;
+                case Heif4CharCode.Sgpd:
+                    if (ReadSampleGroupType(stream, childLength, scratch) == Heif4CharCode.Refs)
+                    {
+                        SetUnique(ref sampleGroupDescriptions, childStart, childLength, "sample table", childType);
+                    }
+
+                    break;
+                case Heif4CharCode.Sbgp:
+                    if (ReadSampleGroupType(stream, childLength, scratch) == Heif4CharCode.Refs)
+                    {
+                        SetUnique(ref sampleToGroup, childStart, childLength, "sample table", childType);
+                    }
+
                     break;
             }
 
@@ -733,6 +749,16 @@ internal sealed class HeifSequenceParser
             {
                 samples[i].IsSync = true;
             }
+        }
+
+        if (sampleGroupDescriptions.IsPresent != sampleToGroup.IsPresent)
+        {
+            throw new InvalidImageContentException("The direct-reference sample group is missing its description or sample map.");
+        }
+
+        if (sampleGroupDescriptions.IsPresent)
+        {
+            this.ParseDirectReferences(stream, sampleGroupDescriptions, sampleToGroup, track, scratch);
         }
 
         if (compositionOffsets.IsPresent)
@@ -1323,6 +1349,347 @@ internal sealed class HeifSequenceParser
     }
 
     /// <summary>
+    /// Resolves the image-specific direct-reference sample group into compact zero-based sample indices.
+    /// </summary>
+    /// <param name="stream">The seekable source stream.</param>
+    /// <param name="descriptions">The validated direct-reference group-description payload.</param>
+    /// <param name="sampleMap">The validated direct-reference sample-map payload.</param>
+    /// <param name="track">The selected image track receiving its dependency graph.</param>
+    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    private void ParseDirectReferences(
+        Stream stream,
+        BoxReference descriptions,
+        BoxReference sampleMap,
+        HeifSequenceTrack track,
+        Span<byte> scratch)
+    {
+        using IMemoryOwner<SampleGroupAssignment> assignmentOwner = this.allocator.Allocate<SampleGroupAssignment>(track.Samples.Length);
+        Span<SampleGroupAssignment> assignments = assignmentOwner.GetSpan()[..track.Samples.Length];
+        stream.Position = sampleMap.Offset;
+        uint greatestGroupIndex = ParseSampleToGroup(stream, sampleMap.Length, track, assignments, scratch);
+
+        // Sorting the retained value-type assignments lets each group description be applied in one sequential pass.
+        // This avoids a dictionary and prevents attacker-controlled group counts from causing quadratic lookup work.
+        assignments.Sort();
+        stream.Position = descriptions.Offset;
+        int directReferenceCount = ParseDirectReferenceDescriptions(
+            stream,
+            descriptions.Length,
+            greatestGroupIndex,
+            track,
+            assignments,
+            [],
+            false,
+            scratch);
+
+        using IMemoryOwner<SampleIdIndexEntry> sampleIdOwner = this.allocator.Allocate<SampleIdIndexEntry>(track.Samples.Length);
+        Span<SampleIdIndexEntry> sampleIds = sampleIdOwner.GetSpan()[..track.Samples.Length];
+        int sampleIdCount = 0;
+        Span<HeifSequenceSample> samples = track.Samples;
+        for (int i = 0; i < samples.Length; i++)
+        {
+            uint sampleId = samples[i].SampleId;
+            if (sampleId != 0)
+            {
+                sampleIds[sampleIdCount++] = new SampleIdIndexEntry(sampleId, i);
+            }
+        }
+
+        sampleIds = sampleIds[..sampleIdCount];
+        sampleIds.Sort();
+        for (int i = 1; i < sampleIds.Length; i++)
+        {
+            if (sampleIds[i - 1].Id == sampleIds[i].Id)
+            {
+                throw new InvalidImageContentException("The direct-reference sample group contains a duplicate positive sample identifier.");
+            }
+        }
+
+        if (directReferenceCount == 0)
+        {
+            return;
+        }
+
+        track.DirectReferenceSampleIndices = new int[directReferenceCount];
+        stream.Position = descriptions.Offset;
+        _ = ParseDirectReferenceDescriptions(
+            stream,
+            descriptions.Length,
+            greatestGroupIndex,
+            track,
+            assignments,
+            sampleIds,
+            true,
+            scratch);
+
+        if (track.AllReferencePicturesIntra)
+        {
+            ReadOnlySpan<int> referenceIndices = track.DirectReferenceSampleIndices;
+            for (int i = 0; i < referenceIndices.Length; i++)
+            {
+                if (samples[referenceIndices[i]].DirectReferenceCount != 0)
+                {
+                    throw new InvalidImageContentException("The direct-reference sample group contradicts its all-reference-pictures-intra constraint.");
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Expands the run-length sample-to-group map only for samples retained by the decoder.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the sample-to-group payload.</param>
+    /// <param name="boxLength">The validated sample-to-group payload length.</param>
+    /// <param name="track">The selected track whose complete sample count is validated.</param>
+    /// <param name="assignments">The exact retained assignment span.</param>
+    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <returns>The greatest group-description index used by any declared sample.</returns>
+    private static uint ParseSampleToGroup(
+        Stream stream,
+        long boxLength,
+        HeifSequenceTrack track,
+        Span<SampleGroupAssignment> assignments,
+        Span<byte> scratch)
+    {
+        long payloadStart = stream.Position;
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 8, "sample-to-group");
+        byte version = prefix[0];
+        if (version is not 0 and not 1 || ReadFlags(prefix) != 0
+            || (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(prefix[4..]) != Heif4CharCode.Refs)
+        {
+            throw new InvalidImageContentException("The direct-reference sample-to-group box has an unsupported version, flags, or grouping type.");
+        }
+
+        int headerLength = version == 0 ? 12 : 16;
+        stream.Position = payloadStart;
+        prefix = ReadPrefix(stream, boxLength, scratch, headerLength, "sample-to-group");
+        if (version == 1 && BinaryPrimitives.ReadUInt32BigEndian(prefix[8..]) != 0)
+        {
+            throw new InvalidImageContentException("The direct-reference sample group has a nonzero grouping-type parameter.");
+        }
+
+        int entryCountOffset = version == 0 ? 8 : 12;
+        uint entryCount = BinaryPrimitives.ReadUInt32BigEndian(prefix[entryCountOffset..]);
+        long entryBytes = checked((long)entryCount * 8);
+        if (entryCount == 0 || boxLength != headerLength + entryBytes)
+        {
+            throw new InvalidImageContentException("The direct-reference sample map is empty or has an invalid length.");
+        }
+
+        TableReader reader = new(stream, entryBytes, scratch, "direct-reference sample map");
+        ulong describedSamples = 0;
+        int retainedOffset = 0;
+        uint greatestGroupIndex = 0;
+        for (uint i = 0; i < entryCount; i++)
+        {
+            uint sampleCount = reader.ReadUInt32();
+            uint groupDescriptionIndex = reader.ReadUInt32();
+            if (sampleCount == 0)
+            {
+                throw new InvalidImageContentException("The direct-reference sample map contains a zero-length run.");
+            }
+
+            describedSamples = checked(describedSamples + sampleCount);
+            greatestGroupIndex = Math.Max(greatestGroupIndex, groupDescriptionIndex);
+            int retainedRun = Math.Min((int)Math.Min(sampleCount, int.MaxValue), assignments.Length - retainedOffset);
+            for (int j = 0; j < retainedRun; j++)
+            {
+                assignments[retainedOffset + j] = new SampleGroupAssignment(groupDescriptionIndex, retainedOffset + j);
+            }
+
+            retainedOffset += retainedRun;
+        }
+
+        if (describedSamples != track.TotalSampleCount || retainedOffset != assignments.Length)
+        {
+            throw new InvalidImageContentException("The direct-reference sample map does not describe every sample.");
+        }
+
+        return greatestGroupIndex;
+    }
+
+    /// <summary>
+    /// Parses direct-reference descriptions, first sizing and then resolving the retained dependency graph.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the sample-group-description payload.</param>
+    /// <param name="boxLength">The validated sample-group-description payload length.</param>
+    /// <param name="greatestGroupIndex">The greatest description index used by the complete sample map.</param>
+    /// <param name="track">The selected track receiving sample identifiers and dependency indices.</param>
+    /// <param name="assignments">The retained sample assignments sorted by group-description index.</param>
+    /// <param name="sampleIds">The sorted positive sample identifiers, or an empty span during the sizing pass.</param>
+    /// <param name="resolveReferences">Whether this pass resolves reference identifiers into compact sample indices.</param>
+    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <returns>The exact number of retained direct-reference indices.</returns>
+    private static int ParseDirectReferenceDescriptions(
+        Stream stream,
+        long boxLength,
+        uint greatestGroupIndex,
+        HeifSequenceTrack track,
+        ReadOnlySpan<SampleGroupAssignment> assignments,
+        ReadOnlySpan<SampleIdIndexEntry> sampleIds,
+        bool resolveReferences,
+        Span<byte> scratch)
+    {
+        long payloadStart = stream.Position;
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 8, "sample-group descriptions");
+        byte version = prefix[0];
+        if (version is not 1 and not 2 || ReadFlags(prefix) != 0
+            || (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(prefix[4..]) != Heif4CharCode.Refs)
+        {
+            throw new InvalidImageContentException("The direct-reference sample-group-description box has an unsupported version, flags, or grouping type.");
+        }
+
+        int headerLength = version == 1 ? 16 : 20;
+        stream.Position = payloadStart;
+        prefix = ReadPrefix(stream, boxLength, scratch, headerLength, "sample-group descriptions");
+        uint defaultLength = BinaryPrimitives.ReadUInt32BigEndian(prefix[8..]);
+        uint defaultGroupIndex = version == 2 ? BinaryPrimitives.ReadUInt32BigEndian(prefix[12..]) : 0;
+        int entryCountOffset = version == 1 ? 12 : 16;
+        uint entryCount = BinaryPrimitives.ReadUInt32BigEndian(prefix[entryCountOffset..]);
+        if (greatestGroupIndex > entryCount || defaultGroupIndex > entryCount)
+        {
+            throw new InvalidImageContentException("The direct-reference sample map uses an undefined group-description index.");
+        }
+
+        long entryBytes = boxLength - headerLength;
+        TableReader reader = new(stream, entryBytes, scratch, "direct-reference descriptions");
+        long consumedBytes = 0;
+        int assignmentOffset = 0;
+        int directReferenceCount = 0;
+        while (assignmentOffset < assignments.Length && assignments[assignmentOffset].GroupDescriptionIndex == 0)
+        {
+            assignmentOffset++;
+        }
+
+        for (uint entry = 0; entry < entryCount; entry++)
+        {
+            uint descriptionIndex = entry + 1;
+            uint descriptionLength = defaultLength;
+            if (descriptionLength == 0)
+            {
+                if (entryBytes - consumedBytes < 4)
+                {
+                    throw new InvalidImageContentException("The direct-reference sample-group description is truncated.");
+                }
+
+                descriptionLength = reader.ReadUInt32();
+                consumedBytes += 4;
+            }
+
+            if (descriptionLength < 5 || descriptionLength > entryBytes - consumedBytes)
+            {
+                throw new InvalidImageContentException("The direct-reference sample-group description has an invalid length.");
+            }
+
+            uint sampleId = reader.ReadUInt32();
+            byte referenceCount = reader.ReadByte();
+            uint requiredLength = 5U + ((uint)referenceCount * 4U);
+            if (descriptionLength != requiredLength)
+            {
+                throw new InvalidImageContentException("The direct-reference sample-group entry has an invalid length.");
+            }
+
+            int firstAssignment = assignmentOffset;
+            while (assignmentOffset < assignments.Length && assignments[assignmentOffset].GroupDescriptionIndex == descriptionIndex)
+            {
+                int sampleIndex = assignments[assignmentOffset].SampleIndex;
+                ref HeifSequenceSample sample = ref track.Samples[sampleIndex];
+                if (!resolveReferences)
+                {
+                    if (referenceCount > track.MaximumReferencesPerPicture || directReferenceCount > int.MaxValue - referenceCount)
+                    {
+                        throw new InvalidImageContentException("The direct-reference sample group exceeds its coding constraints or supported size.");
+                    }
+
+                    sample.SampleId = sampleId;
+                    sample.DirectReferenceOffset = directReferenceCount;
+                    sample.DirectReferenceCount = referenceCount;
+                    directReferenceCount += referenceCount;
+                }
+                else if (sample.SampleId != sampleId || sample.DirectReferenceCount != referenceCount)
+                {
+                    throw new InvalidImageContentException("The direct-reference sample group changed between parser passes.");
+                }
+
+                assignmentOffset++;
+            }
+
+            for (int reference = 0; reference < referenceCount; reference++)
+            {
+                uint referenceSampleId = reader.ReadUInt32();
+                if (referenceSampleId == 0)
+                {
+                    throw new InvalidImageContentException("The direct-reference sample group contains identifier zero in a reference list.");
+                }
+
+                if (resolveReferences)
+                {
+                    int low = 0;
+                    int high = sampleIds.Length - 1;
+                    while (low <= high)
+                    {
+                        int middle = low + ((high - low) >> 1);
+                        uint candidate = sampleIds[middle].Id;
+                        if (candidate < referenceSampleId)
+                        {
+                            low = middle + 1;
+                        }
+                        else if (candidate > referenceSampleId)
+                        {
+                            high = middle - 1;
+                        }
+                        else
+                        {
+                            low = middle;
+                            break;
+                        }
+                    }
+
+                    if (low >= sampleIds.Length || sampleIds[low].Id != referenceSampleId)
+                    {
+                        throw new InvalidImageContentException("A direct-reference sample identifier does not name a retained sample.");
+                    }
+
+                    int referencedSampleIndex = sampleIds[low].SampleIndex;
+                    for (int assignment = firstAssignment; assignment < assignmentOffset; assignment++)
+                    {
+                        int sampleIndex = assignments[assignment].SampleIndex;
+                        HeifSequenceSample sample = track.Samples[sampleIndex];
+                        if (sample.IsSync || referencedSampleIndex >= sampleIndex)
+                        {
+                            throw new InvalidImageContentException("A direct-reference sample is not earlier in decode order or is attached to a sync sample.");
+                        }
+
+                        track.DirectReferenceSampleIndices[sample.DirectReferenceOffset + reference] = referencedSampleIndex;
+                    }
+                }
+            }
+
+            consumedBytes += descriptionLength;
+        }
+
+        if (consumedBytes != entryBytes || assignmentOffset != assignments.Length)
+        {
+            throw new InvalidImageContentException("The direct-reference sample-group descriptions do not cover the retained sample map.");
+        }
+
+        return directReferenceCount;
+    }
+
+    /// <summary>
+    /// Reads the grouping type shared by a sample map or sample-group-description box.
+    /// </summary>
+    /// <param name="stream">The stream positioned at the full-box payload.</param>
+    /// <param name="boxLength">The validated payload length.</param>
+    /// <param name="scratch">The parser-owned reusable scratch span.</param>
+    /// <returns>The declared grouping type.</returns>
+    private static Heif4CharCode ReadSampleGroupType(Stream stream, long boxLength, Span<byte> scratch)
+    {
+        ReadOnlySpan<byte> prefix = ReadPrefix(stream, boxLength, scratch, 8, "sample group");
+        return (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(prefix[4..]);
+    }
+
+    /// <summary>
     /// Parses HEVC decode-to-composition offsets and marks non-output reference samples.
     /// </summary>
     /// <param name="stream">The stream positioned at the composition-offset payload.</param>
@@ -1817,6 +2184,78 @@ internal sealed class HeifSequenceParser
         /// Gets the number of samples stored in each run chunk.
         /// </summary>
         public uint SamplesPerChunk { get; }
+    }
+
+    /// <summary>
+    /// Associates one retained sample with its one-based direct-reference group description.
+    /// </summary>
+    private readonly struct SampleGroupAssignment : IComparable<SampleGroupAssignment>
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SampleGroupAssignment"/> struct.
+        /// </summary>
+        /// <param name="groupDescriptionIndex">The one-based group-description index, or zero for no group.</param>
+        /// <param name="sampleIndex">The zero-based retained sample index.</param>
+        public SampleGroupAssignment(uint groupDescriptionIndex, int sampleIndex)
+        {
+            this.GroupDescriptionIndex = groupDescriptionIndex;
+            this.SampleIndex = sampleIndex;
+        }
+
+        /// <summary>
+        /// Gets the one-based group-description index, or zero for no group.
+        /// </summary>
+        public uint GroupDescriptionIndex { get; }
+
+        /// <summary>
+        /// Gets the zero-based retained sample index.
+        /// </summary>
+        public int SampleIndex { get; }
+
+        /// <summary>
+        /// Compares this assignment with another assignment in group-description and sample order.
+        /// </summary>
+        /// <param name="other">The other assignment.</param>
+        /// <returns>A value indicating the relative sort order.</returns>
+        public int CompareTo(SampleGroupAssignment other)
+        {
+            int result = this.GroupDescriptionIndex.CompareTo(other.GroupDescriptionIndex);
+            return result != 0 ? result : this.SampleIndex.CompareTo(other.SampleIndex);
+        }
+    }
+
+    /// <summary>
+    /// Maps one positive direct-reference identifier to its retained decode-order sample index.
+    /// </summary>
+    private readonly struct SampleIdIndexEntry : IComparable<SampleIdIndexEntry>
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SampleIdIndexEntry"/> struct.
+        /// </summary>
+        /// <param name="id">The positive file-defined sample identifier.</param>
+        /// <param name="sampleIndex">The zero-based retained sample index.</param>
+        public SampleIdIndexEntry(uint id, int sampleIndex)
+        {
+            this.Id = id;
+            this.SampleIndex = sampleIndex;
+        }
+
+        /// <summary>
+        /// Gets the positive file-defined sample identifier.
+        /// </summary>
+        public uint Id { get; }
+
+        /// <summary>
+        /// Gets the zero-based retained sample index.
+        /// </summary>
+        public int SampleIndex { get; }
+
+        /// <summary>
+        /// Compares this entry with another entry by sample identifier.
+        /// </summary>
+        /// <param name="other">The other identifier entry.</param>
+        /// <returns>A value indicating the relative sort order.</returns>
+        public int CompareTo(SampleIdIndexEntry other) => this.Id.CompareTo(other.Id);
     }
 
     /// <summary>

@@ -14,9 +14,60 @@ internal sealed class HevcScalingList
     private const int MatrixCount = 6;
 
     /// <summary>
-    /// The flat default matrix used by four-by-four transforms.
+    /// The number of decoded scaling coefficients stored for every transform-size category.
     /// </summary>
-    private static readonly byte[] Default4x4 =
+    private const int CompactCoefficientCount = (16 * MatrixCount) + (64 * MatrixCount * 3);
+
+    /// <summary>
+    /// The number of separately coded DC coefficients.
+    /// </summary>
+    private const int DcCoefficientCount = 4 * MatrixCount;
+
+    /// <summary>
+    /// The first separately coded DC coefficient in the contiguous coefficient store.
+    /// </summary>
+    private const int DcCoefficientOffset = CompactCoefficientCount;
+
+    /// <summary>
+    /// The first transform-sized matrix in the contiguous coefficient store.
+    /// </summary>
+    private const int ExpandedCoefficientOffset = DcCoefficientOffset + DcCoefficientCount;
+
+    /// <summary>
+    /// The number of transform-sized coefficients stored across every size and matrix identifier.
+    /// </summary>
+    private const int ExpandedCoefficientCount = MatrixCount * ((4 * 4) + (8 * 8) + (16 * 16) + (32 * 32));
+
+    /// <summary>
+    /// The compact syntax matrices, separately coded DC values, and transform-sized matrices.
+    /// </summary>
+    private readonly byte[] coefficients = new byte[ExpandedCoefficientOffset + ExpandedCoefficientCount];
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="HevcScalingList"/> class with the normative default matrices.
+    /// </summary>
+    public HevcScalingList()
+    {
+        for (int sizeId = 0; sizeId < 4; sizeId++)
+        {
+            for (int matrixId = 0; matrixId < MatrixCount; matrixId++)
+            {
+                ReadOnlySpan<byte> source = sizeId == 0
+                    ? Default4x4
+                    : matrixId < 3 ? DefaultIntra8x8 : DefaultInter8x8;
+
+                source.CopyTo(this.GetWritableMatrix(sizeId, matrixId));
+                this.coefficients[GetDcCoefficientOffset(sizeId, matrixId)] = 16;
+            }
+        }
+
+        this.ExpandMatrices();
+    }
+
+    /// <summary>
+    /// Gets the flat default matrix used by four-by-four transforms.
+    /// </summary>
+    private static ReadOnlySpan<byte> Default4x4 =>
     [
         16, 16, 16, 16,
         16, 16, 16, 16,
@@ -25,9 +76,9 @@ internal sealed class HevcScalingList
     ];
 
     /// <summary>
-    /// The default intra-predicted matrix used by transforms of eight-by-eight and larger.
+    /// Gets the default intra-predicted matrix used by transforms of eight-by-eight and larger.
     /// </summary>
-    private static readonly byte[] DefaultIntra8x8 =
+    private static ReadOnlySpan<byte> DefaultIntra8x8 =>
     [
         16, 16, 16, 16, 17, 18, 21, 24,
         16, 16, 16, 16, 17, 19, 22, 25,
@@ -40,9 +91,9 @@ internal sealed class HevcScalingList
     ];
 
     /// <summary>
-    /// The default inter-predicted matrix used by transforms of eight-by-eight and larger.
+    /// Gets the default inter-predicted matrix used by transforms of eight-by-eight and larger.
     /// </summary>
-    private static readonly byte[] DefaultInter8x8 =
+    private static ReadOnlySpan<byte> DefaultInter8x8 =>
     [
         16, 16, 16, 16, 17, 18, 20, 24,
         16, 16, 16, 17, 18, 20, 24, 25,
@@ -55,46 +106,23 @@ internal sealed class HevcScalingList
     ];
 
     /// <summary>
-    /// The diagonal coefficient order for four-by-four matrices.
+    /// Gets the diagonal coefficient order for four-by-four matrices.
     /// </summary>
-    private static readonly byte[] DiagonalScan4x4 = CreateDiagonalScan(4);
+    private static ReadOnlySpan<byte> DiagonalScan4x4 =>
+    [
+        0, 4, 1, 8, 5, 2, 12, 9, 6, 3, 13, 10, 7, 14, 11, 15
+    ];
 
     /// <summary>
-    /// The diagonal coefficient order for matrices of eight-by-eight and larger.
+    /// Gets the diagonal coefficient order for matrices of eight-by-eight and larger.
     /// </summary>
-    private static readonly byte[] DiagonalScan8x8 = CreateDiagonalScan(8);
-
-    /// <summary>
-    /// The decoded matrices, indexed by transform-size category and matrix identifier.
-    /// </summary>
-    private readonly byte[][] matrices = new byte[4 * MatrixCount][];
-
-    /// <summary>
-    /// The DC coefficients for sixteen-by-sixteen and thirty-two-by-thirty-two matrices.
-    /// </summary>
-    private readonly byte[] dcCoefficients = new byte[4 * MatrixCount];
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="HevcScalingList"/> class with the normative default matrices.
-    /// </summary>
-    public HevcScalingList()
-    {
-        for (int sizeId = 0; sizeId < 4; sizeId++)
-        {
-            int coefficientCount = sizeId == 0 ? 16 : 64;
-            for (int matrixId = 0; matrixId < MatrixCount; matrixId++)
-            {
-                byte[] matrix = new byte[coefficientCount];
-                ReadOnlySpan<byte> source = sizeId == 0
-                    ? Default4x4
-                    : matrixId < 3 ? DefaultIntra8x8 : DefaultInter8x8;
-
-                source.CopyTo(matrix);
-                this.matrices[GetIndex(sizeId, matrixId)] = matrix;
-                this.dcCoefficients[GetIndex(sizeId, matrixId)] = 16;
-            }
-        }
-    }
+    private static ReadOnlySpan<byte> DiagonalScan8x8 =>
+    [
+        0, 8, 1, 16, 9, 2, 24, 17, 10, 3, 32, 25, 18, 11, 4, 40,
+        33, 26, 19, 12, 5, 48, 41, 34, 27, 20, 13, 6, 56, 49, 42, 35,
+        28, 21, 14, 7, 57, 50, 43, 36, 29, 22, 15, 58, 51, 44, 37, 30,
+        23, 59, 52, 45, 38, 31, 60, 53, 46, 39, 61, 54, 47, 62, 55, 63
+    ];
 
     /// <summary>
     /// Reads a complete scaling-list-data structure.
@@ -110,7 +138,6 @@ internal sealed class HevcScalingList
             int matrixStep = sizeId == 3 ? 3 : 1;
             for (int matrixId = 0; matrixId < MatrixCount; matrixId += matrixStep)
             {
-                int destinationIndex = GetIndex(sizeId, matrixId);
                 bool predictionMode = reader.ReadFlag();
                 if (!predictionMode)
                 {
@@ -133,12 +160,12 @@ internal sealed class HevcScalingList
                     int referenceMatrixId = matrixId - (int)matrixIdDelta;
                     if (referenceMatrixId != matrixId)
                     {
-                        int referenceIndex = GetIndex(sizeId, referenceMatrixId);
-
                         // Span copying uses ImageSharp's runtime-optimized memory path and preserves one scalar
                         // behavior model for these small, infrequently parsed coefficient tables.
-                        scalingList.matrices[referenceIndex].CopyTo(scalingList.matrices[destinationIndex], 0);
-                        scalingList.dcCoefficients[destinationIndex] = scalingList.dcCoefficients[referenceIndex];
+                        scalingList.GetMatrix(sizeId, referenceMatrixId).CopyTo(scalingList.GetWritableMatrix(sizeId, matrixId));
+                        byte dcCoefficient = scalingList.coefficients[GetDcCoefficientOffset(sizeId, referenceMatrixId)];
+
+                        scalingList.coefficients[GetDcCoefficientOffset(sizeId, matrixId)] = dcCoefficient;
                     }
 
                     continue;
@@ -148,11 +175,11 @@ internal sealed class HevcScalingList
                 if (sizeId > 1)
                 {
                     nextCoefficient = (int)(((long)reader.ReadSignedExpGolomb() + 8) & 255);
-                    scalingList.dcCoefficients[destinationIndex] = (byte)(nextCoefficient & 255);
+                    scalingList.coefficients[GetDcCoefficientOffset(sizeId, matrixId)] = (byte)(nextCoefficient & 255);
                 }
 
-                byte[] scan = sizeId == 0 ? DiagonalScan4x4 : DiagonalScan8x8;
-                byte[] matrix = scalingList.matrices[destinationIndex];
+                ReadOnlySpan<byte> scan = sizeId == 0 ? DiagonalScan4x4 : DiagonalScan8x8;
+                Span<byte> matrix = scalingList.GetWritableMatrix(sizeId, matrixId);
                 for (int coefficient = 0; coefficient < matrix.Length; coefficient++)
                 {
                     nextCoefficient = (int)(((long)nextCoefficient + reader.ReadSignedExpGolomb()) & 255);
@@ -170,14 +197,13 @@ internal sealed class HevcScalingList
                         continue;
                     }
 
-                    int destinationIndex = GetIndex(sizeId, matrixId);
-                    int referenceIndex = GetIndex(sizeId - 1, matrixId);
-                    scalingList.matrices[referenceIndex].CopyTo(scalingList.matrices[destinationIndex], 0);
-                    scalingList.dcCoefficients[destinationIndex] = scalingList.dcCoefficients[referenceIndex];
+                    scalingList.GetMatrix(sizeId - 1, matrixId).CopyTo(scalingList.GetWritableMatrix(sizeId, matrixId));
+                    scalingList.coefficients[GetDcCoefficientOffset(sizeId, matrixId)] = scalingList.coefficients[GetDcCoefficientOffset(sizeId - 1, matrixId)];
                 }
             }
         }
 
+        scalingList.ExpandMatrices();
         return scalingList;
     }
 
@@ -191,7 +217,22 @@ internal sealed class HevcScalingList
     {
         DebugGuard.MustBeBetweenOrEqualTo(sizeId, 0, 3, nameof(sizeId));
         DebugGuard.MustBeBetweenOrEqualTo(matrixId, 0, MatrixCount - 1, nameof(matrixId));
-        return this.matrices[GetIndex(sizeId, matrixId)];
+        int coefficientCount = GetCompactMatrixLength(sizeId);
+        return this.coefficients.AsSpan(GetCompactMatrixOffset(sizeId, matrixId), coefficientCount);
+    }
+
+    /// <summary>
+    /// Gets a scaling matrix expanded to its transform dimensions.
+    /// </summary>
+    /// <param name="sizeId">The transform-size category from zero for 4x4 through three for 32x32.</param>
+    /// <param name="matrixId">The prediction and color-component matrix identifier.</param>
+    /// <returns>The transform-sized scaling coefficients in raster order.</returns>
+    public ReadOnlySpan<byte> GetExpandedMatrix(int sizeId, int matrixId)
+    {
+        DebugGuard.MustBeBetweenOrEqualTo(sizeId, 0, 3, nameof(sizeId));
+        DebugGuard.MustBeBetweenOrEqualTo(matrixId, 0, MatrixCount - 1, nameof(matrixId));
+        int coefficientCount = GetExpandedMatrixLength(sizeId);
+        return this.coefficients.AsSpan(GetExpandedMatrixOffset(sizeId, matrixId), coefficientCount);
     }
 
     /// <summary>
@@ -204,47 +245,108 @@ internal sealed class HevcScalingList
     {
         DebugGuard.MustBeBetweenOrEqualTo(sizeId, 0, 3, nameof(sizeId));
         DebugGuard.MustBeBetweenOrEqualTo(matrixId, 0, MatrixCount - 1, nameof(matrixId));
-        return this.dcCoefficients[GetIndex(sizeId, matrixId)];
+        return this.coefficients[GetDcCoefficientOffset(sizeId, matrixId)];
     }
 
     /// <summary>
-    /// Gets the flattened storage index for a size and matrix identifier.
+    /// Expands every syntax matrix once so inverse quantization can consume consecutive weights without coordinate division.
+    /// </summary>
+    private void ExpandMatrices()
+    {
+        for (int sizeId = 0; sizeId < 4; sizeId++)
+        {
+            int size = 1 << (sizeId + 2);
+            int ratio = Math.Max(1, size >> 3);
+            int sourceSide = Math.Min(size, 8);
+            for (int matrixId = 0; matrixId < MatrixCount; matrixId++)
+            {
+                ReadOnlySpan<byte> source = this.GetMatrix(sizeId, matrixId);
+                Span<byte> destination = this.coefficients.AsSpan(GetExpandedMatrixOffset(sizeId, matrixId), size * size);
+                for (int y = 0; y < size; y++)
+                {
+                    int sourceRowOffset = (y / ratio) * sourceSide;
+                    int destinationRowOffset = y * size;
+                    for (int x = 0; x < size; x++)
+                    {
+                        destination[destinationRowOffset + x] = source[sourceRowOffset + (x / ratio)];
+                    }
+                }
+
+                if (sizeId > 1)
+                {
+                    // Sixteen- and thirty-two-point matrices code their DC weight separately from the 8x8 body.
+                    destination[0] = this.coefficients[GetDcCoefficientOffset(sizeId, matrixId)];
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Gets a writable compact syntax matrix.
     /// </summary>
     /// <param name="sizeId">The transform-size category.</param>
     /// <param name="matrixId">The matrix identifier.</param>
-    /// <returns>The flattened storage index.</returns>
-    private static int GetIndex(int sizeId, int matrixId) => (sizeId * MatrixCount) + matrixId;
+    /// <returns>The writable compact matrix.</returns>
+    private Span<byte> GetWritableMatrix(int sizeId, int matrixId)
+        => this.coefficients.AsSpan(GetCompactMatrixOffset(sizeId, matrixId), GetCompactMatrixLength(sizeId));
 
     /// <summary>
-    /// Creates the HEVC up-right diagonal scan for a square coefficient block.
+    /// Gets the number of coefficients coded for one syntax matrix.
     /// </summary>
-    /// <param name="size">The coefficient block width and height.</param>
-    /// <returns>The raster indices in coded order.</returns>
-    private static byte[] CreateDiagonalScan(int size)
-    {
-        byte[] scan = new byte[size * size];
-        int row = 0;
-        int column = 0;
-        for (int position = 0; position < scan.Length; position++)
-        {
-            scan[position] = (byte)((row * size) + column);
-            if (column == size - 1 || row == 0)
-            {
-                row += column + 1;
-                column = 0;
-                if (row >= size)
-                {
-                    column += row - (size - 1);
-                    row = size - 1;
-                }
-            }
-            else
-            {
-                column++;
-                row--;
-            }
-        }
+    /// <param name="sizeId">The transform-size category.</param>
+    /// <returns>The compact coefficient count.</returns>
+    private static int GetCompactMatrixLength(int sizeId) => sizeId == 0 ? 16 : 64;
 
-        return scan;
+    /// <summary>
+    /// Gets the number of coefficients in one transform-sized matrix.
+    /// </summary>
+    /// <param name="sizeId">The transform-size category.</param>
+    /// <returns>The expanded coefficient count.</returns>
+    private static int GetExpandedMatrixLength(int sizeId) => 1 << ((sizeId + 2) * 2);
+
+    /// <summary>
+    /// Gets the compact-matrix offset for a size and matrix identifier.
+    /// </summary>
+    /// <param name="sizeId">The transform-size category.</param>
+    /// <param name="matrixId">The matrix identifier.</param>
+    /// <returns>The compact-matrix offset.</returns>
+    private static int GetCompactMatrixOffset(int sizeId, int matrixId)
+    {
+        int sizeOffset = sizeId switch
+        {
+            0 => 0,
+            1 => 16 * MatrixCount,
+            2 => (16 * MatrixCount) + (64 * MatrixCount),
+            _ => (16 * MatrixCount) + (64 * MatrixCount * 2),
+        };
+
+        return sizeOffset + (matrixId * GetCompactMatrixLength(sizeId));
     }
+
+    /// <summary>
+    /// Gets the expanded-matrix offset for a size and matrix identifier.
+    /// </summary>
+    /// <param name="sizeId">The transform-size category.</param>
+    /// <param name="matrixId">The matrix identifier.</param>
+    /// <returns>The expanded-matrix offset.</returns>
+    private static int GetExpandedMatrixOffset(int sizeId, int matrixId)
+    {
+        int sizeOffset = sizeId switch
+        {
+            0 => 0,
+            1 => 16 * MatrixCount,
+            2 => (16 * MatrixCount) + (64 * MatrixCount),
+            _ => (16 * MatrixCount) + (64 * MatrixCount) + (256 * MatrixCount),
+        };
+
+        return ExpandedCoefficientOffset + sizeOffset + (matrixId * GetExpandedMatrixLength(sizeId));
+    }
+
+    /// <summary>
+    /// Gets the separately coded DC-coefficient offset for a size and matrix identifier.
+    /// </summary>
+    /// <param name="sizeId">The transform-size category.</param>
+    /// <param name="matrixId">The matrix identifier.</param>
+    /// <returns>The DC-coefficient offset.</returns>
+    private static int GetDcCoefficientOffset(int sizeId, int matrixId) => DcCoefficientOffset + (sizeId * MatrixCount) + matrixId;
 }

@@ -35,100 +35,218 @@ internal class ObuReader
     /// <param name="isAnnexB">A value indicating whether each OBU is prefixed by an Annex B length field.</param>
     public void ReadAll(ref Av1BitStreamReader reader, int dataSize, Func<IAv1TileReader> creator, bool isAnnexB = false)
     {
-        bool seenFrameHeader = false;
-        bool frameDecodingFinished = false;
-        while (!frameDecodingFinished)
+        try
         {
-            int lengthSize = 0;
-            int payloadSize = 0;
-            if (isAnnexB)
+            int availableByteCount = reader.Length - Av1Math.DivideBy8Floor(reader.BitPosition);
+            if ((reader.BitPosition & 0x7) != 0 || (uint)dataSize > (uint)availableByteCount)
             {
-                ReadObuSize(ref reader, out payloadSize, out lengthSize);
+                throw new InvalidImageContentException("The AV1 OBU data boundary is invalid.");
             }
 
-            ObuHeader header = ReadObuHeaderSize(ref reader, out lengthSize);
-            if (isAnnexB)
+            bool seenFrameHeader = false;
+            bool frameDecodingFinished = false;
+            Span<byte> primaryFrameHeaderPayload = default;
+            while (dataSize > 0 && !frameDecodingFinished)
             {
-                header.PayloadSize -= header.Size;
-                dataSize -= lengthSize;
-                lengthSize = 0;
-            }
-
-            payloadSize = header.PayloadSize;
-            dataSize -= header.Size + lengthSize;
-            if (isAnnexB && dataSize < payloadSize)
-            {
-                throw new InvalidImageContentException("Corrupt frame");
-            }
-
-            switch (header.Type)
-            {
-                case ObuType.SequenceHeader:
-                    this.SequenceHeader = new();
-                    ReadSequenceHeader(ref reader, this.SequenceHeader);
-                    break;
-                case ObuType.FrameHeader:
-                case ObuType.RedundantFrameHeader:
-                case ObuType.Frame:
-                    if (header.Type != ObuType.Frame)
+                int annexObuSize = 0;
+                if (isAnnexB)
+                {
+                    ReadObuSize(ref reader, out annexObuSize, out int annexLengthSize);
+                    if (annexLengthSize > dataSize || annexObuSize < 1)
                     {
-                        // Nothing to do here.
-                    }
-                    else if (header.Type != ObuType.FrameHeader)
-                    {
-                        Guard.IsFalse(seenFrameHeader, nameof(seenFrameHeader), "Frame header expected");
-                    }
-                    else
-                    {
-                        Guard.IsTrue(seenFrameHeader, nameof(seenFrameHeader), "Already decoded a frame header");
+                        throw new InvalidImageContentException("The Annex B AV1 OBU length is invalid.");
                     }
 
-                    if (!seenFrameHeader)
+                    dataSize -= annexLengthSize;
+                    if (annexObuSize > dataSize)
                     {
+                        throw new InvalidImageContentException("The Annex B AV1 OBU exceeds its temporal-unit boundary.");
+                    }
+                }
+                else if (dataSize < 1)
+                {
+                    throw new InvalidImageContentException("The AV1 OBU header is truncated.");
+                }
+
+                int obuStartBitPosition = reader.BitPosition;
+                ObuHeader header = ReadObuHeaderSize(ref reader, out _);
+                if (!isAnnexB && !header.HasSize)
+                {
+                    // AV1 section 5 requires every low-overhead OBU to carry its own payload size. Only Annex B may
+                    // derive the payload length from the outer obu_length field.
+                    throw new InvalidImageContentException("A low-overhead AV1 OBU is missing its payload-size field.");
+                }
+
+                int headerAndLengthSize = (reader.BitPosition - obuStartBitPosition) >> 3;
+                int boundedObuSize = isAnnexB ? annexObuSize : dataSize;
+                if (headerAndLengthSize > boundedObuSize)
+                {
+                    throw new InvalidImageContentException("The AV1 OBU header exceeds its declared boundary.");
+                }
+
+                int payloadSize = header.HasSize ? header.PayloadSize : boundedObuSize - headerAndLengthSize;
+                if ((uint)payloadSize > (uint)(boundedObuSize - headerAndLengthSize))
+                {
+                    throw new InvalidImageContentException("The AV1 OBU payload exceeds its declared boundary.");
+                }
+
+                int completeObuSize = headerAndLengthSize + payloadSize;
+                if (isAnnexB && completeObuSize != annexObuSize)
+                {
+                    throw new InvalidImageContentException("The nested and Annex B AV1 OBU lengths do not match.");
+                }
+
+                dataSize -= isAnnexB ? annexObuSize : completeObuSize;
+                header.PayloadSize = payloadSize;
+
+                // A dedicated payload reader prevents malformed syntax from consuming the following OBU. The parent
+                // advances once here, so ignored metadata, padding, and reserved OBUs are skipped without copying.
+                Span<byte> obuPayload = reader.ReadBytes(payloadSize);
+                Av1BitStreamReader payloadReader = new(obuPayload);
+                int decodedPayloadSize;
+
+                switch (header.Type)
+                {
+                    case ObuType.SequenceHeader:
+                        this.SequenceHeader = new();
+                        ReadSequenceHeader(ref payloadReader, this.SequenceHeader);
+                        decodedPayloadSize = Av1Math.DivideBy8Floor(payloadReader.BitPosition);
+                        break;
+                    case ObuType.FrameHeader:
+                        if (this.SequenceHeader is null)
+                        {
+                            throw new InvalidImageContentException("An AV1 frame header appears before its sequence header.");
+                        }
+
+                        if (seenFrameHeader)
+                        {
+                            throw new InvalidImageContentException("An AV1 frame contains more than one primary frame header.");
+                        }
+
                         seenFrameHeader = true;
                         this.FrameHeader = new();
-                        this.ReadFrameHeader(ref reader, header, header.Type != ObuType.Frame);
-                    }
+                        this.ReadFrameHeader(ref payloadReader, header, trailingBit: true);
+                        decodedPayloadSize = Av1Math.DivideBy8Floor(payloadReader.BitPosition);
+                        primaryFrameHeaderPayload = obuPayload[..decodedPayloadSize];
+                        break;
+                    case ObuType.RedundantFrameHeader:
+                        if (!seenFrameHeader)
+                        {
+                            throw new InvalidImageContentException("A redundant AV1 frame header appears before its primary frame header.");
+                        }
 
-                    if (header.Type != ObuType.Frame)
-                    {
-                        break; // For OBU_TILE_GROUP comes under OBU_FRAME
-                    }
+                        if (primaryFrameHeaderPayload.Length > obuPayload.Length
+                            || !obuPayload[..primaryFrameHeaderPayload.Length].SequenceEqual(primaryFrameHeaderPayload))
+                        {
+                            throw new InvalidImageContentException("The redundant AV1 frame header does not match its primary header.");
+                        }
 
-                    goto TILE_GROUP;
-                case ObuType.TileGroup:
-                    TILE_GROUP:
-                    if (!seenFrameHeader)
-                    {
-                        throw new InvalidImageContentException("Corrupt frame");
-                    }
+                        // The primary header already owns the decoded frame state. Matching its encoded bytes avoids
+                        // parsing the same adaptive frame-header syntax twice, as in libaom's decoder.
+                        decodedPayloadSize = primaryFrameHeaderPayload.Length;
+                        break;
+                    case ObuType.Frame:
+                        if (this.SequenceHeader is null)
+                        {
+                            throw new InvalidImageContentException("An AV1 frame appears before its sequence header.");
+                        }
 
-                    this.decoder ??= creator();
+                        if (seenFrameHeader)
+                        {
+                            throw new InvalidImageContentException("A combined AV1 frame OBU follows a separate frame header.");
+                        }
 
-                    // A combined frame OBU reaches this label after its frame-header portion has
-                    // been consumed, leaving the same tile-group syntax as a standalone tile OBU.
-                    this.ReadTileGroup(ref reader, this.decoder, header, out frameDecodingFinished);
-                    if (frameDecodingFinished)
-                    {
+                        seenFrameHeader = true;
+                        this.FrameHeader = new();
+                        this.ReadFrameHeader(ref payloadReader, header, trailingBit: false);
+                        primaryFrameHeaderPayload = obuPayload[..Av1Math.DivideBy8Floor(payloadReader.BitPosition)];
+                        goto TILE_GROUP;
+                    case ObuType.TileGroup:
+                        TILE_GROUP:
+                        if (!seenFrameHeader)
+                        {
+                            throw new InvalidImageContentException("An AV1 tile group appears before its frame header.");
+                        }
+
+                        this.decoder ??= creator();
+
+                        // A combined frame OBU reaches this label after its frame-header portion has
+                        // been consumed, leaving the same tile-group syntax as a standalone tile OBU.
+                        this.ReadTileGroup(ref payloadReader, this.decoder, header, out frameDecodingFinished);
+                        decodedPayloadSize = Av1Math.DivideBy8Floor(payloadReader.BitPosition);
+                        if (frameDecodingFinished)
+                        {
+                            seenFrameHeader = false;
+                        }
+
+                        break;
+                    case ObuType.TemporalDelimiter:
+                        // AV1 section 5.6 defines no delimiter syntax. The common post-switch validation still permits
+                        // zero bytes between the empty syntax and the declared payload boundary, matching libaom.
                         seenFrameHeader = false;
+                        decodedPayloadSize = 0;
+                        break;
+                    case ObuType.Padding:
+                        int lastNonzeroIndex = obuPayload.Length - 1;
+                        while (lastNonzeroIndex >= 0 && obuPayload[lastNonzeroIndex] == 0)
+                        {
+                            lastNonzeroIndex--;
+                        }
+
+                        // AV1 padding contains only its trailing one bit and optional zero bytes. A header-only
+                        // padding OBU is also valid, so the empty payload bypasses this final-byte check.
+                        if (lastNonzeroIndex >= 0 && obuPayload[lastNonzeroIndex] != 0x80)
+                        {
+                            throw new InvalidImageContentException("The AV1 padding OBU has invalid trailing bits.");
+                        }
+
+                        if (obuPayload.Length > 0 && lastNonzeroIndex < 0)
+                        {
+                            throw new InvalidImageContentException("The AV1 padding OBU is missing its trailing one bit.");
+                        }
+
+                        decodedPayloadSize = payloadSize;
+                        break;
+                    default:
+                        // Metadata, tile-list, and reserved OBUs do not contribute to this still-image reconstruction
+                        // pass. Their declared payload has already been skipped by the parent reader. libaom rejects a
+                        // nonempty unrecognized payload that contains only zeros because it has no trailing one bit.
+                        if (payloadSize > 0)
+                        {
+                            int ignoredLastNonzeroIndex = payloadSize - 1;
+                            while (ignoredLastNonzeroIndex >= 0 && obuPayload[ignoredLastNonzeroIndex] == 0)
+                            {
+                                ignoredLastNonzeroIndex--;
+                            }
+
+                            if (ignoredLastNonzeroIndex < 0)
+                            {
+                                throw new InvalidImageContentException("The ignored AV1 OBU is missing its trailing one bit.");
+                            }
+                        }
+
+                        decodedPayloadSize = payloadSize;
+                        break;
+                }
+
+                // Parsed syntax may be followed only by zero bytes within its declared OBU payload. Ignored metadata
+                // and reserved OBUs set decodedPayloadSize to the full payload because their syntax is not consumed here.
+                for (int i = decodedPayloadSize; i < obuPayload.Length; i++)
+                {
+                    if (obuPayload[i] != 0)
+                    {
+                        throw new InvalidImageContentException("The AV1 OBU contains nonzero data after its decoded syntax.");
                     }
-
-                    break;
-                case ObuType.TemporalDelimiter:
-                    // 5.6. Temporal delimiter obu syntax.
-                    seenFrameHeader = false;
-                    break;
-                default:
-                    // Ignore unknown OBU types.
-                    // throw new InvalidImageContentException($"Unknown OBU header found: {header.Type.ToString()}");
-                    break;
+                }
             }
-
-            dataSize -= payloadSize;
-            if (dataSize <= 0)
-            {
-                frameDecodingFinished = true;
-            }
+        }
+        catch (IndexOutOfRangeException exception)
+        {
+            throw new InvalidImageContentException("The AV1 OBU syntax exceeds its payload boundary.", exception);
+        }
+        catch (ArgumentOutOfRangeException exception)
+        {
+            throw new InvalidImageContentException("The AV1 OBU syntax exceeds its payload boundary.", exception);
         }
     }
 
@@ -182,9 +300,9 @@ internal class ObuReader
     private static void ReadObuSize(ref Av1BitStreamReader reader, out int obuSize, out int lengthSize)
     {
         ulong rawSize = reader.ReadLittleEndianBytes128(out lengthSize);
-        if (rawSize > uint.MaxValue)
+        if (rawSize > int.MaxValue)
         {
-            throw new ImageFormatException("OBU block too large.");
+            throw new InvalidImageContentException("The AV1 OBU size exceeds the supported image payload limit.");
         }
 
         obuSize = (int)rawSize;

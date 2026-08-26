@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 internal class ObuHeader
 {
     /// <summary>
-    /// Gets or sets the number of bytes occupied by the OBU header and its size field.
+    /// Gets or sets the number of bytes occupied by the fixed OBU header and optional extension.
     /// </summary>
     public int Size { get; set; }
 

@@ -87,18 +87,20 @@ internal ref struct Av1BitStreamReader
 
         ulong value = 0;
         length = 0;
-        for (int i = 0; i < 56; i += 7)
+        for (int shift = 0; shift < 56; shift += 7)
         {
             uint leb128Byte = this.ReadLiteral(8);
-            value |= (leb128Byte & 0x7FUL) << i;
+            value |= (leb128Byte & 0x7FUL) << shift;
             length++;
             if ((leb128Byte & 0x80U) == 0)
             {
-                break;
+                return value;
             }
         }
 
-        return value;
+        // AV1 limits unsigned LEB128 fields to eight bytes. A continuation bit in the eighth byte does not describe
+        // another value byte; accepting it would move the following OBU header into the declared size field.
+        throw new InvalidImageContentException("The AV1 LEB128 value is not terminated within eight bytes.");
     }
 
     /// <summary>
@@ -204,11 +206,24 @@ internal ref struct Av1BitStreamReader
     /// <param name="tileDataSize">The tile payload length in bytes.</param>
     /// <returns>The tile payload span.</returns>
     public Span<byte> GetSymbolReader(int tileDataSize)
+        => this.ReadBytes(tileDataSize);
+
+    /// <summary>
+    /// Gets the next byte-aligned portion of the encoded data and advances past it.
+    /// </summary>
+    /// <param name="byteCount">The number of bytes to read.</param>
+    /// <returns>The requested bytes.</returns>
+    public Span<byte> ReadBytes(int byteCount)
     {
-        DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Symbol reading needs to start on byte boundary.");
-        int bytesRead = Av1Math.DivideBy8Floor(this.BitPosition);
-        Span<byte> span = this.data.Slice(bytesRead, tileDataSize);
-        this.Skip(tileDataSize << 3);
-        return span;
+        DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Byte spans must start on a byte boundary.");
+        int byteOffset = Av1Math.DivideBy8Floor(this.BitPosition);
+        if ((uint)byteOffset > (uint)this.data.Length || (uint)byteCount > (uint)(this.data.Length - byteOffset))
+        {
+            throw new InvalidImageContentException("The AV1 payload exceeds its declared data boundary.");
+        }
+
+        Span<byte> payload = this.data.Slice(byteOffset, byteCount);
+        this.Skip(byteCount << 3);
+        return payload;
     }
 }

@@ -496,6 +496,7 @@ Exit gate:
 Implement and verify in dependency order:
 
 - [ ] OBU framing, sequence headers, frame headers, tile groups, byte alignment, and trailing bits.
+  - [x] Isolate every declared OBU payload with a zero-copy bounded span reader, advance ignored metadata and reserved units without parsing their bytes as headers, validate padding and trailing bytes, enforce primary/redundant/combined frame-header order, and reject lengths that cross the containing image-item boundary. Focused malformed-input tests and independent 8/10/12-bit AVIF reconstruction pass in Release.
 - [ ] One coherent decoder lifecycle that retains parsed frame and tile state and disposes all buffers deterministically.
 - [ ] Tile partitioning, mode information, segmentation, delta quantization, transform-size selection, coefficient token decode, inverse quantization, and inverse transforms.
   - [x] Match libaom's depth-first traversal and frame-edge behavior for all ten AV1 partition types. Independent 8/10/12-bit streams collectively select every terminal partition shape and contain nested block geometry that requires recursive `Split` traversal; their complete native planes remain byte-exact under normal hardware dispatch and the scalar fallback.

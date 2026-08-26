@@ -12,8 +12,6 @@ public class ObuFrameHeaderTests
     private static readonly byte[] DefaultSequenceHeaderBitStream =
         [0x0a, 0x06, 0b001_1_1_000, 0b00_1000_01, 0b11_110101, 0b001_11101, 0b111_1_1_1_0_1, 0b1_0_0_1_1_1_10];
 
-    private static readonly byte[] KeyFrameHeaderBitStream = [0x32, 0x06, 0x10, 0x00];
-
     // Bits  Syntax element                  Value
     // 1     obu_forbidden_bit               0
     // 4     obu_type                        2 (OBU_TEMPORAL_DELIMITER)
@@ -133,16 +131,17 @@ public class ObuFrameHeaderTests
     }
 
     [Fact]
-    public void ReadHeaderWithoutSizeField()
+    public void ReadAnnexBHeaderWithoutSizeField()
     {
         // Arrange
-        byte[] bitStream = [0x10];
+        // Annex B's outer obu_length is one byte and covers the size-less temporal-delimiter header.
+        byte[] bitStream = [0x01, 0x10];
         Av1BitStreamReader reader = new(bitStream);
         ObuReader obuReader = new();
         IAv1TileReader tileDecoder = new Av1TileDecoderStub();
 
         // Act
-        obuReader.ReadAll(ref reader, bitStream.Length, () => tileDecoder);
+        obuReader.ReadAll(ref reader, bitStream.Length, () => tileDecoder, isAnnexB: true);
 
         // Assert
         Assert.Null(obuReader.SequenceHeader);
@@ -166,6 +165,54 @@ public class ObuFrameHeaderTests
         Assert.NotNull(obuReader.SequenceHeader);
         Assert.Null(obuReader.FrameHeader);
         Assert.Equal(ObuPrettyPrint.PrettyPrintProperties(expected), ObuPrettyPrint.PrettyPrintProperties(obuReader.SequenceHeader));
+    }
+
+    /// <summary>
+    /// Verifies that ignored OBU payloads are bounded and skipped before parsing the following sequence header.
+    /// </summary>
+    [Fact]
+    public void ReadIgnoredObusSkipsEachDeclaredPayload()
+    {
+        // 0x7A identifies padding and 0x4A identifies reserved OBU type 9. Both carry explicit sizes so their payload
+        // bytes must never be interpreted as another OBU header.
+        byte[] bitStream =
+        [
+            0x7A, 0x02, 0x80, 0x00,
+            0x4A, 0x01, 0x80,
+            .. DefaultSequenceHeaderBitStream
+        ];
+
+        Av1BitStreamReader reader = new(bitStream);
+        ObuReader obuReader = new();
+        IAv1TileReader tileDecoder = new Av1TileDecoderStub();
+
+        obuReader.ReadAll(ref reader, bitStream.Length, () => tileDecoder);
+
+        Assert.NotNull(obuReader.SequenceHeader);
+        Assert.Equal(bitStream.Length * 8, reader.BitPosition);
+    }
+
+    /// <summary>
+    /// Verifies that invalid OBU boundaries, size fields, and trailing bytes are rejected.
+    /// </summary>
+    /// <param name="bitStream">The malformed OBU stream.</param>
+    [Theory]
+    [InlineData(new byte[] { 0x7A, 0x02, 0x11 })]
+    [InlineData(new byte[] { 0x7A, 0x01, 0x00 })]
+    [InlineData(new byte[] { 0x12, 0x01, 0x01 })]
+    [InlineData(new byte[] { 0x10 })]
+    [InlineData(new byte[] { 0x7A, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 })]
+    public void ReadInvalidObuBoundaryThrows(byte[] bitStream)
+        => Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream));
+
+    /// <summary>
+    /// Verifies that an empty temporal delimiter may occupy a payload containing only zero padding bytes.
+    /// </summary>
+    [Fact]
+    public void ReadTemporalDelimiterAllowsZeroPayloadPadding()
+    {
+        byte[] bitStream = [0x12, 0x02, 0x00, 0x00];
+        ReadObuStream(bitStream);
     }
 
     [Fact]
@@ -201,6 +248,9 @@ public class ObuFrameHeaderTests
         Assert.Equal(DefaultSequenceHeaderBitStream, actual);
     }
 
+    /// <summary>
+    /// Verifies that the combined frame OBU declares exactly the payload bytes emitted by the writer.
+    /// </summary>
     [Fact]
     public void WriteFrameHeader()
     {
@@ -215,12 +265,25 @@ public class ObuFrameHeaderTests
 
         // Act
         obuWriter.WriteAll(Configuration.Default, stream, sequenceInput, frameInput, tileStub);
-        byte[] buffer = stream.GetBuffer();
+        byte[] bitStream = stream.ToArray();
 
         // Assert
-        // Skip over Temporal Delimiter and Sequence header.
-        byte[] actual = buffer.AsSpan().Slice(DefaultTemporalDelimiterBitStream.Length + DefaultSequenceHeaderBitStream.Length, KeyFrameHeaderBitStream.Length).ToArray();
-        Assert.Equal(KeyFrameHeaderBitStream, actual);
+        int frameOffset = DefaultTemporalDelimiterBitStream.Length + DefaultSequenceHeaderBitStream.Length;
+        Span<byte> frameObu = bitStream.AsSpan(frameOffset);
+        byte expectedHeader = (byte)(((byte)ObuType.Frame << 3) | 0x02);
+        Assert.Equal(expectedHeader, frameObu[0]);
+
+        Av1BitStreamReader sizeReader = new(frameObu[1..]);
+        ulong declaredPayloadSize = sizeReader.ReadLittleEndianBytes128(out int encodedSizeLength);
+        Assert.Equal(frameObu.Length - 1 - encodedSizeLength, (int)declaredPayloadSize);
+
+        Av1BitStreamReader reader = new(bitStream);
+        ObuReader obuReader = new();
+        obuReader.ReadAll(ref reader, bitStream.Length, () => new Av1TileDecoderStub());
+
+        Assert.NotNull(obuReader.SequenceHeader);
+        Assert.NotNull(obuReader.FrameHeader);
+        Assert.Equal(bitStream.Length * 8, reader.BitPosition);
     }
 
     private static ObuSequenceHeader GetDefaultSequenceHeader()
@@ -289,6 +352,19 @@ public class ObuFrameHeaderTests
                 },
                 AreFilmGrainingParametersPresent = true,
             };
+
+    /// <summary>
+    /// Reads one complete OBU stream for malformed-input assertions that cannot capture a ref-struct reader.
+    /// </summary>
+    /// <param name="bitStream">The complete encoded OBU stream.</param>
+    private static void ReadObuStream(byte[] bitStream)
+    {
+        Av1BitStreamReader reader = new(bitStream);
+        ObuReader obuReader = new();
+        IAv1TileReader tileDecoder = new Av1TileDecoderStub();
+
+        obuReader.ReadAll(ref reader, bitStream.Length, () => tileDecoder);
+    }
 
     private static ObuFrameHeader GetKeyFrameHeader()
         => new()

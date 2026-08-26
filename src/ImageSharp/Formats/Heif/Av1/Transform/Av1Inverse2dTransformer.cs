@@ -33,7 +33,7 @@ internal static class Av1Inverse2dTransformer
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace,
         int bitDepth)
-        => Transform2dAdd<short, Av1HighBitDepthInverseTransformOutputOperator>(
+        => Transform2dAdd<short, Av1InverseTransformOutputOperator<short>>(
             input,
             outputForRead,
             strideForRead,
@@ -61,7 +61,7 @@ internal static class Av1Inverse2dTransformer
         int strideForWrite,
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace)
-        => Transform2dAdd<byte, Av1ByteInverseTransformOutputOperator>(
+        => Transform2dAdd<byte, Av1InverseTransformOutputOperator<byte>>(
             input,
             outputForRead,
             strideForRead,

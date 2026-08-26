@@ -788,10 +788,10 @@ public class Av1InverseTransformTests
         Array.Fill(scalar, byte.MaxValue);
         Array.Fill(vector128, byte.MaxValue);
 
-        Av1Inverse2dTransformer.Transform2dScalar<byte, Av1ByteInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
+        Av1Inverse2dTransformer.Transform2dScalar<byte, Av1InverseTransformOutputOperator<byte>, TColumnOperator, TRowOperator>(
             coefficients, prediction, readStride, scalar, writeStride, ref config, scalarWorkspace, bitDepth);
 
-        Av1Inverse2dTransformer.Transform2dVector128<byte, Av1ByteInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
+        Av1Inverse2dTransformer.Transform2dVector128<byte, Av1InverseTransformOutputOperator<byte>, TColumnOperator, TRowOperator>(
             coefficients, prediction, readStride, vector128, writeStride, ref config, vector128Workspace, bitDepth);
 
         Assert.Equal(scalar, vector128);
@@ -802,7 +802,7 @@ public class Av1InverseTransformTests
             int[] vector256Workspace = new int[workspaceLength];
             Array.Fill(vector256, byte.MaxValue);
 
-            Av1Inverse2dTransformer.Transform2dVector256<byte, Av1ByteInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
+            Av1Inverse2dTransformer.Transform2dVector256<byte, Av1InverseTransformOutputOperator<byte>, TColumnOperator, TRowOperator>(
                 coefficients, prediction, readStride, vector256, writeStride, ref config, vector256Workspace, bitDepth);
 
             Assert.Equal(scalar, vector256);
@@ -849,10 +849,10 @@ public class Av1InverseTransformTests
         Array.Fill(scalar, short.MinValue);
         Array.Fill(vector128, short.MinValue);
 
-        Av1Inverse2dTransformer.Transform2dScalar<short, Av1HighBitDepthInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
+        Av1Inverse2dTransformer.Transform2dScalar<short, Av1InverseTransformOutputOperator<short>, TColumnOperator, TRowOperator>(
             coefficients, prediction, readStride, scalar, writeStride, ref config, scalarWorkspace, bitDepth);
 
-        Av1Inverse2dTransformer.Transform2dVector128<short, Av1HighBitDepthInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
+        Av1Inverse2dTransformer.Transform2dVector128<short, Av1InverseTransformOutputOperator<short>, TColumnOperator, TRowOperator>(
             coefficients, prediction, readStride, vector128, writeStride, ref config, vector128Workspace, bitDepth);
 
         Assert.Equal(scalar, vector128);
@@ -863,7 +863,7 @@ public class Av1InverseTransformTests
             int[] vector256Workspace = new int[workspaceLength];
             Array.Fill(vector256, short.MinValue);
 
-            Av1Inverse2dTransformer.Transform2dVector256<short, Av1HighBitDepthInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
+            Av1Inverse2dTransformer.Transform2dVector256<short, Av1InverseTransformOutputOperator<short>, TColumnOperator, TRowOperator>(
                 coefficients, prediction, readStride, vector256, writeStride, ref config, vector256Workspace, bitDepth);
 
             Assert.Equal(scalar, vector256);

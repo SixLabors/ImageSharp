@@ -35,7 +35,7 @@ internal static class Av1InverseWalshHadamardTransformer
         int writeStride,
         int coefficientCount,
         Span<int> workspace)
-        => TransformAdd<byte, Av1ByteInverseTransformOutputOperator>(
+        => TransformAdd<byte, Av1InverseTransformOutputOperator<byte>>(
             coefficients,
             readBuffer,
             readStride,
@@ -65,7 +65,7 @@ internal static class Av1InverseWalshHadamardTransformer
         int coefficientCount,
         Span<int> workspace,
         int bitDepth)
-        => TransformAdd<short, Av1HighBitDepthInverseTransformOutputOperator>(
+        => TransformAdd<short, Av1InverseTransformOutputOperator<short>>(
             coefficients,
             readBuffer,
             readStride,

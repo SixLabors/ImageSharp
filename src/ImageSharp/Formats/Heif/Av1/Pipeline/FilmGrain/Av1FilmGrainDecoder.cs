@@ -10,8 +10,11 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 
 /// <summary>
-/// Synthesizes the film-grain signal carried by one independently decodable AV1 still-image frame.
+/// Synthesizes the film-grain signal carried by one displayed AV1 image frame.
 /// </summary>
+/// <remarks>
+/// Grain is applied after loop restoration to presentation samples and is not part of reference reconstruction.
+/// </remarks>
 internal sealed class Av1FilmGrainDecoder
 {
     /// <summary>
@@ -73,7 +76,7 @@ internal sealed class Av1FilmGrainDecoder
     /// Initializes a new instance of the <see cref="Av1FilmGrainDecoder"/> class.
     /// </summary>
     /// <param name="sequenceHeader">The sequence header defining bit depth and chroma sampling.</param>
-    /// <param name="frameHeader">The frame header containing the complete still-frame grain parameters.</param>
+    /// <param name="frameHeader">The frame header containing the complete grain parameters.</param>
     /// <param name="frameBuffer">The restored frame samples to which grain is added.</param>
     public Av1FilmGrainDecoder(
         ObuSequenceHeader sequenceHeader,
@@ -91,6 +94,9 @@ internal sealed class Av1FilmGrainDecoder
     public void DecodeFrame()
     {
         ObuFilmGrainParameters parameters = this.frameHeader.FilmGrainParameters;
+
+        // Film grain is a presentation process. A frame which does not signal it must retain the restored samples
+        // byte-for-byte, so the decoder does not allocate templates or touch the padded frame planes in this case.
         if (!parameters.ApplyGrain)
         {
             return;
@@ -102,15 +108,23 @@ internal sealed class Av1FilmGrainDecoder
         int subsamplingY = !isMonochrome && colorConfig.SubSamplingY ? 1 : 0;
         int visibleWidth = this.frameBuffer.Width;
         int visibleHeight = this.frameBuffer.Height;
+
+        // Grain blocks are traversed in half-resolution luma coordinates and expanded in 2x2 sample groups.
+        // Replicating an odd final row or column makes that traversal complete without changing the visible extent.
         int alignedWidth = Av1Math.AlignPowerOf2(visibleWidth, 1);
         int alignedHeight = Av1Math.AlignPowerOf2(visibleHeight, 1);
 
         Buffer2D<byte> lumaBuffer = this.frameBuffer.BufferY!;
+
+        // Frame planes are allocated as bytes even for high-bit-depth pictures. Convert their byte strides to
+        // native sample strides once so every later offset is expressed consistently in samples.
         int lumaStride = lumaBuffer.Width / this.frameBuffer.BytesPerSample;
         int chromaStride = isMonochrome
             ? 0
             : this.frameBuffer.BufferCb!.Width / this.frameBuffer.BytesPerSample;
 
+        // Closing ApplyGrain over byte or ushort keeps synthesis in the frame buffer's native representation.
+        // This avoids an intermediate converted image while allowing the JIT to remove the sample-type branches.
         if (this.frameBuffer.BytesPerSample == 2)
         {
             Span<ushort> luma = GetPlaneSamples<ushort>(
@@ -216,6 +230,9 @@ internal sealed class Av1FilmGrainDecoder
     {
         Span<TSample> samples = MemoryMarshal.Cast<byte, TSample>(buffer.DangerousGetSingleSpan());
         int stride = buffer.Width / Unsafe.SizeOf<TSample>();
+
+        // The returned span intentionally retains the allocation beyond the visible rectangle. Film-grain overlap
+        // and odd-dimension extension use the frame buffer's existing right and bottom padding through this stride.
         return samples[((originY * stride) + originX)..];
     }
 
@@ -240,6 +257,7 @@ internal sealed class Av1FilmGrainDecoder
     {
         if (visibleWidth != alignedWidth)
         {
+            // The synthetic column is consumed only as the partner of the final visible sample in a 2x2 group.
             for (int row = 0; row < visibleHeight; row++)
             {
                 int rowOffset = row * stride;
@@ -284,6 +302,8 @@ internal sealed class Av1FilmGrainDecoder
         bool isMonochrome)
         where TSample : unmanaged
     {
+        // A template contains a selectable 64x64 luma region, the maximum three-sample autoregressive history,
+        // and the fixed margins required by the block-offset process. Chroma dimensions contract with sampling.
         int chromaSubblockHeight = LumaSubblockSize >> subsamplingY;
         int chromaSubblockWidth = LumaSubblockSize >> subsamplingX;
         int lumaBlockHeight = TemplatePadding + (2 * AutoregressivePadding) + (2 * LumaSubblockSize);
@@ -299,6 +319,9 @@ internal sealed class Av1FilmGrainDecoder
         int lumaGrainLength = lumaBlockHeight * lumaBlockWidth;
         int chromaGrainLength = isMonochrome ? 0 : chromaBlockHeight * chromaBlockWidth;
         int scalingLength = isMonochrome ? 256 : 768;
+
+        // Overlap keeps the outgoing two luma rows/columns, or their subsampled chroma equivalents, until the
+        // adjacent block is selected. Frames without overlap do not reserve these line and column workspaces.
         int lumaLineLength = parameters.OverlapFlag ? lumaStride * 2 : 0;
         int chromaLineLength = parameters.OverlapFlag && !isMonochrome
             ? chromaStride * (2 >> subsamplingY)
@@ -312,6 +335,8 @@ internal sealed class Av1FilmGrainDecoder
         int scratchLength = scalingLength + lumaGrainLength + (2 * chromaGrainLength) +
             lumaLineLength + (2 * chromaLineLength) + lumaColumnLength + (2 * chromaColumnLength);
 
+        // All frame-lifetime film-grain state shares one allocator-backed owner. The slices below are disjoint,
+        // and their logical ordering mirrors lookup tables, templates, horizontal boundaries, then vertical boundaries.
         using IMemoryOwner<int> scratchOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(scratchLength);
         Span<int> scratch = scratchOwner.GetSpan()[..scratchLength];
         int scratchOffset = 0;
@@ -362,6 +387,9 @@ internal sealed class Av1FilmGrainDecoder
 
         int bitDepth = this.sequenceHeader.ColorConfig.BitDepth.GetBitCount();
         ushort randomRegister = (ushort)parameters.GrainSeed;
+
+        // Luma consumes the seed's initial pseudo-random sequence. Chroma generation subsequently reinitializes
+        // the same register with plane-specific row identities so its two templates remain deterministic and distinct.
         GenerateLumaGrain(
             parameters,
             ref randomRegister,
@@ -388,6 +416,8 @@ internal sealed class Av1FilmGrainDecoder
                 bitDepth);
         }
 
+        // Signaled points describe piecewise-linear functions over the eight-bit domain. High-bit-depth samples
+        // interpolate between these 256 entries later, rather than allocating larger per-depth lookup tables.
         InitializeScalingFunction(parameters.PointYValue, parameters.PointYScaling, (int)parameters.NumYPoints, scalingY);
         if (!isMonochrome)
         {
@@ -415,12 +445,19 @@ internal sealed class Av1FilmGrainDecoder
         int grainMinimum = -(1 << (bitDepth - 1));
         int grainMaximum = (1 << (bitDepth - 1)) - 1;
         bool isIdentityMatrix = this.sequenceHeader.ColorConfig.MatrixCoefficients == ObuMatrixCoefficients.Identity;
+
+        // Coordinates are halved because each iteration owns one 32x32 luma block but all frame offsets are even.
+        // Keeping the loop in this domain also makes one-unit boundary adjustments represent two luma samples.
         for (int halfY = 0; halfY < height / 2; halfY += LumaSubblockSize >> 1)
         {
+            // Block rows restart from a seed mixed with their luma row number. This makes a block's selection
+            // independent of decoder traversal outside its row while remaining reproducible from the bitstream.
             InitializeRandomGenerator(ref randomRegister, halfY << 1, (ushort)parameters.GrainSeed);
 
             for (int halfX = 0; halfX < width / 2; halfX += LumaSubblockSize >> 1)
             {
+                // The high and low nibbles choose an even luma offset inside the reusable 64x64 template region.
+                // Chroma offsets use the corresponding subsampled position so all planes share the same selection.
                 int randomOffset = GetRandomNumber(ref randomRegister, 8);
                 int offsetX = (randomOffset >> 4) & 15;
                 int offsetY = randomOffset & 15;
@@ -434,6 +471,8 @@ internal sealed class Av1FilmGrainDecoder
 
                 if (parameters.OverlapFlag && halfX != 0)
                 {
+                    // Blend the incoming template columns with the outgoing columns saved by the block on the left.
+                    // Writing back to the column buffers produces the exact grain region applied at this boundary.
                     VerticalOverlap(
                         yColumnBuffer,
                         2,
@@ -479,6 +518,9 @@ internal sealed class Av1FilmGrainDecoder
                     }
 
                     int rowAdjustment = halfY != 0 ? 1 : 0;
+
+                    // The top overlap row, when present, is owned by the horizontal-boundary pass below. Skip it here
+                    // so the corner and vertical boundary are each added to the decoded samples exactly once.
                     int destinationLumaOffset = (((halfY + rowAdjustment) << 1) * lumaStride) + (halfX << 1);
                     int destinationChromaOffset = (((halfY + rowAdjustment) << (1 - subsamplingY)) * chromaStride) +
                         (halfX << (1 - subsamplingX));
@@ -528,6 +570,8 @@ internal sealed class Av1FilmGrainDecoder
                 {
                     if (halfX != 0)
                     {
+                        // At an interior corner, first combine the saved top boundary with the already blended left
+                        // boundary. The resulting corner is then part of the horizontal boundary applied below.
                         HorizontalOverlap(
                             yLineBuffer[(halfX << 1)..],
                             lumaStride,
@@ -573,6 +617,9 @@ internal sealed class Av1FilmGrainDecoder
 
                     int overlappedColumn = halfX != 0 ? halfX + 1 : 0;
                     int templateColumnAdjustment = halfX != 0 ? 2 : 0;
+
+                    // The horizontal boundary excludes the two luma columns already emitted by vertical overlap.
+                    // The same adjustment contracts to one column for horizontally subsampled chroma.
                     int horizontalWidth = Math.Min(
                         LumaSubblockSize - templateColumnAdjustment,
                         width - (overlappedColumn << 1));
@@ -642,6 +689,8 @@ internal sealed class Av1FilmGrainDecoder
                         ? Span<int>.Empty
                         : crLineBuffer[(halfX << (1 - subsamplingX))..];
 
+                    // Apply the completed top boundary as a one-unit half-height strip, which is two luma rows and
+                    // one or two chroma rows depending on vertical subsampling.
                     AddNoiseToBlock(
                         parameters,
                         scalingY,
@@ -668,6 +717,9 @@ internal sealed class Av1FilmGrainDecoder
 
                 int interiorRowAdjustment = parameters.OverlapFlag && halfY != 0 ? 1 : 0;
                 int interiorColumnAdjustment = parameters.OverlapFlag && halfX != 0 ? 1 : 0;
+
+                // Move both the destination and template origins past boundary strips already applied above. This
+                // leaves a disjoint interior rectangle, including clipped partial blocks at the right and bottom edges.
                 int lumaGrainOffset = ((lumaOffsetY + (interiorRowAdjustment << 1)) * lumaBlockWidth) +
                     lumaOffsetX + (interiorColumnAdjustment << 1);
 
@@ -713,6 +765,8 @@ internal sealed class Av1FilmGrainDecoder
                 {
                     if (halfX != 0)
                     {
+                        // Preserve the completed corner in the line buffers before the column buffers are overwritten.
+                        // It becomes the top input for the block at this column position on the next block row.
                         CopyArea(
                             yColumnBuffer[(LumaSubblockSize << 1)..],
                             2,
@@ -747,6 +801,9 @@ internal sealed class Av1FilmGrainDecoder
 
                     int lineDestinationColumn = halfX != 0 ? halfX + 1 : 0;
                     int lineTemplateAdjustment = halfX != 0 ? 2 : 0;
+
+                    // Save the template's bottom boundary for the block directly below. Columns already represented
+                    // by the corner are skipped so the line buffer remains one contiguous frame-width boundary.
                     int lineWidth = Math.Min(LumaSubblockSize, width - (halfX << 1)) - lineTemplateAdjustment;
                     CopyArea(
                         lumaGrain[(((lumaOffsetY + LumaSubblockSize) * lumaBlockWidth) +
@@ -784,6 +841,8 @@ internal sealed class Av1FilmGrainDecoder
                             2 >> subsamplingY);
                     }
 
+                    // Finally retain the template's right boundary for the next block in this row. The extra two rows
+                    // extend beyond the nominal block so a later corner blend has both horizontal overlap rows available.
                     CopyArea(
                         lumaGrain[((lumaOffsetY * lumaBlockWidth) + lumaOffsetX + LumaSubblockSize)..],
                         lumaBlockWidth,
@@ -843,10 +902,14 @@ internal sealed class Av1FilmGrainDecoder
     {
         if (parameters.NumYPoints == 0)
         {
+            // Without a luma scaling function no luma grain is ever applied. A zero template is still required when
+            // chroma autoregression is present because its optional luma predictor must then contribute zero.
             grain.Clear();
             return;
         }
 
+        // The fixed Gaussian table has 12-bit amplitude. GrainScaleShift and the decoded bit depth reduce it to
+        // the signed working range before the causal autoregressive filter changes its spatial correlation.
         int gaussianShift = 12 - bitDepth + (int)parameters.GrainScaleShift;
         int gaussianRounding = (1 << gaussianShift) >> 1;
         ReadOnlySpan<short> gaussian = Av1FilmGrainGaussianSequence.Samples;
@@ -865,6 +928,9 @@ internal sealed class Av1FilmGrainDecoder
         int grainMinimum = -(1 << (bitDepth - 1));
         int grainMaximum = (1 << (bitDepth - 1)) - 1;
         uint[] coefficients = parameters.ArCoeffsYPlus128!;
+
+        // TemplatePadding leaves every lag-one through lag-three predecessor addressable without a boundary branch.
+        // Raster order guarantees that all rows above and all samples to the left have already been filtered.
         for (int row = TemplatePadding; row < height; row++)
         {
             for (int column = TemplatePadding; column < width - TemplatePadding; column++)
@@ -934,6 +1000,8 @@ internal sealed class Av1FilmGrainDecoder
         ReadOnlySpan<short> gaussian = Av1FilmGrainGaussianSequence.Samples;
         if (applyCb)
         {
+            // The fixed luma-line identities seven and eleven decorrelate the two chroma pseudo-random sequences
+            // from each other and from the luma template while retaining deterministic generation from GrainSeed.
             InitializeRandomGenerator(ref randomRegister, 7 << 5, (ushort)parameters.GrainSeed);
             FillGaussianGrain(ref randomRegister, cbGrain, height, width, stride, gaussian, gaussianShift, gaussianRounding);
         }
@@ -959,6 +1027,9 @@ internal sealed class Av1FilmGrainDecoder
         int grainMaximum = (1 << (bitDepth - 1)) - 1;
         uint[]? cbCoefficients = parameters.ArCoeffsCbPlus128;
         uint[]? crCoefficients = parameters.ArCoeffsCrPlus128;
+
+        // Cb and Cr share the same causal predecessor walk, so both accumulators advance one coefficient index
+        // together. A disabled plane stays zero but does not alter the coefficient ordering of the enabled plane.
         for (int row = TemplatePadding; row < height; row++)
         {
             for (int column = TemplatePadding; column < width - TemplatePadding; column++)
@@ -1003,6 +1074,8 @@ internal sealed class Av1FilmGrainDecoder
 
                 if (parameters.NumYPoints != 0)
                 {
+                    // Chroma has one additional autoregressive predictor when luma grain exists. Average the luma
+                    // template footprint represented by this chroma sample before applying that final coefficient.
                     int lumaRow = ((row - TemplatePadding) << subsamplingY) + TemplatePadding;
                     int lumaColumn = ((column - TemplatePadding) << subsamplingX) + TemplatePadding;
                     int averageLuma = 0;
@@ -1069,6 +1142,7 @@ internal sealed class Av1FilmGrainDecoder
         int gaussianShift,
         int gaussianRounding)
     {
+        // Eleven pseudo-random bits address all 2,048 Gaussian entries with no modulo operation or distribution skew.
         for (int row = 0; row < height; row++)
         {
             for (int column = 0; column < width; column++)
@@ -1099,11 +1173,16 @@ internal sealed class Av1FilmGrainDecoder
 
         uint[] values = pointValues!;
         uint[] scalings = pointScalings!;
+
+        // Values outside the first and last control points extend their nearest endpoint rather than extrapolating.
         lookup[..(int)values[0]].Fill((int)scalings[0]);
         for (int point = 0; point < pointCount - 1; point++)
         {
             int deltaY = (int)scalings[point + 1] - (int)scalings[point];
             int deltaX = (int)values[point + 1] - (int)values[point];
+
+            // A rounded Q16 reciprocal performs the piecewise-linear interpolation using integer arithmetic. The
+            // 32768 bias below rounds each reconstructed scaling value when it returns to integer precision.
             long delta = deltaY * ((65536 + (deltaX >> 1)) / deltaX);
             for (int x = 0; x < deltaX; x++)
             {
@@ -1164,6 +1243,8 @@ internal sealed class Av1FilmGrainDecoder
         bool isIdentityMatrix)
         where TSample : unmanaged
     {
+        // GrainScalingMinus8 stores a shift in the range eight through eleven. The half-unit bias makes the
+        // signed scaled-grain contribution round before it is added to the restored sample.
         int scalingShift = (int)parameters.GrainScalingMinus8 + 8;
         int roundingOffset = 1 << (scalingShift - 1);
         int depthScale = 1 << (bitDepth - 8);
@@ -1174,6 +1255,8 @@ internal sealed class Av1FilmGrainDecoder
         int chromaMaximum = sampleMaximum;
         if (parameters.ClipToRestrictedRange)
         {
+            // Legal-range constants are specified at eight-bit precision and scale exactly for 10- and 12-bit data.
+            // Identity matrices carry RGB-like planes, so every plane uses the luma legal range rather than YUV chroma.
             lumaMinimum = RestrictedLumaMinimum * depthScale;
             lumaMaximum = RestrictedLumaMaximum * depthScale;
             chromaMinimum = (isIdentityMatrix ? RestrictedLumaMinimum : RestrictedChromaMinimum) * depthScale;
@@ -1182,6 +1265,8 @@ internal sealed class Av1FilmGrainDecoder
 
         if (!isMonochrome)
         {
+            // Chroma multipliers are biased by 128 in the bitstream, and offsets are biased by 256 after conversion
+            // to the active bit depth. Restoring those signed values keeps the scaling-index equation entirely integral.
             int cbMultiplier = (int)parameters.CbMult - 128;
             int cbLumaMultiplier = (int)parameters.CbLumaMult - 128;
             int cbOffset = ((int)parameters.CbOffset * depthScale) - (256 * depthScale);
@@ -1190,6 +1275,8 @@ internal sealed class Av1FilmGrainDecoder
             int crOffset = ((int)parameters.CrOffset * depthScale) - (256 * depthScale);
             if (parameters.ChromaScalingFromLuma)
             {
+                // A luma-derived chroma function selects the luma coordinate directly: 64 is unity in the Q6
+                // multiplier domain, while the chroma sample multiplier and both offsets are forced to zero.
                 cbMultiplier = 0;
                 cbLumaMultiplier = 64;
                 cbOffset = 0;
@@ -1202,6 +1289,9 @@ internal sealed class Av1FilmGrainDecoder
             bool applyCr = parameters.NumCrPoints != 0 || parameters.ChromaScalingFromLuma;
             int chromaHeight = halfLumaHeight << (1 - subsamplingY);
             int chromaWidth = halfLumaWidth << (1 - subsamplingX);
+
+            // Chroma is processed before luma so its scaling coordinate observes restored luma, not luma after grain.
+            // This ordering also makes Cb and Cr independent of whether a luma scaling function is present.
             for (int row = 0; row < chromaHeight; row++)
             {
                 for (int column = 0; column < chromaWidth; column++)
@@ -1210,6 +1300,8 @@ internal sealed class Av1FilmGrainDecoder
                     int averageLuma = GetSample(luma, lumaIndex);
                     if (subsamplingX != 0)
                     {
+                        // Horizontally subsampled chroma is centered over two luma columns. Vertical subsampling
+                        // changes which luma row is selected but does not introduce a second-row average here.
                         averageLuma = (averageLuma + GetSample(luma, lumaIndex + 1) + 1) >> 1;
                     }
 
@@ -1256,6 +1348,8 @@ internal sealed class Av1FilmGrainDecoder
 
         if (parameters.NumYPoints != 0)
         {
+            // The half-dimension contract expands back to the exact luma rectangle owned by this boundary or interior
+            // pass. Each sample uses its restored value as the scaling coordinate before grain is added in place.
             int lumaHeight = halfLumaHeight << 1;
             int lumaWidth = halfLumaWidth << 1;
             for (int row = 0; row < lumaHeight; row++)
@@ -1292,9 +1386,12 @@ internal sealed class Av1FilmGrainDecoder
         int lookupIndex = index >> depthShift;
         if (depthShift == 0 || lookupIndex == 255)
         {
+            // Eight-bit coordinates address the table directly. The last high-bit-depth interval has no following
+            // entry, so endpoint extension returns entry 255 without attempting interpolation.
             return lookup[lookupIndex];
         }
 
+        // The low depthShift bits are the fractional position between adjacent eight-bit lookup coordinates.
         int fraction = index & ((1 << depthShift) - 1);
         return lookup[lookupIndex] +
             ((((lookup[lookupIndex + 1] - lookup[lookupIndex]) * fraction) + (1 << (depthShift - 1))) >> depthShift);
@@ -1332,6 +1429,7 @@ internal sealed class Av1FilmGrainDecoder
             int destinationOffset = row * destinationStride;
             if (width == 1)
             {
+                // A subsampled one-column boundary uses the dedicated 23:22 overlap weights.
                 destination[destinationOffset] = Av1Math.Clamp(
                     ((left[leftOffset] * 23) + (right[rightOffset] * 22) + 16) >> 5,
                     minimum,
@@ -1339,6 +1437,8 @@ internal sealed class Av1FilmGrainDecoder
             }
             else
             {
+                // The two-column kernel biases the outer samples toward their originating block and crosses the
+                // 27:17 weights for the inner samples. These fixed weights are part of AV1 grain synthesis.
                 destination[destinationOffset] = Av1Math.Clamp(
                     ((left[leftOffset] * 27) + (right[rightOffset] * 17) + 16) >> 5,
                     minimum,
@@ -1381,6 +1481,7 @@ internal sealed class Av1FilmGrainDecoder
         {
             if (height == 1)
             {
+                // Vertically subsampled chroma collapses the overlap to the single-row 23:22 kernel.
                 destination[column] = Av1Math.Clamp(
                     ((top[column] * 23) + (bottom[column] * 22) + 16) >> 5,
                     minimum,
@@ -1388,6 +1489,7 @@ internal sealed class Av1FilmGrainDecoder
             }
             else
             {
+                // Luma and full-height chroma use the crossed two-row 27:17 overlap kernel.
                 destination[column] = Av1Math.Clamp(
                     ((top[column] * 27) + (bottom[column] * 17) + 16) >> 5,
                     minimum,
@@ -1436,6 +1538,8 @@ internal sealed class Av1FilmGrainDecoder
     {
         randomRegister = seed;
         int lumaBlock = lumaLine >> 5;
+
+        // The two affine mixes inject the block-row identity into both bytes of the 16-bit LFSR state.
         randomRegister ^= (ushort)((((lumaBlock * 37) + 178) & 255) << 8);
         randomRegister ^= (ushort)(((lumaBlock * 173) + 105) & 255);
     }
@@ -1449,6 +1553,8 @@ internal sealed class Av1FilmGrainDecoder
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetRandomNumber(ref ushort randomRegister, int bitCount)
     {
+        // AV1 uses taps 0, 1, 3, and 12 of the current register. Shifting right exposes the requested high bits
+        // after feedback has entered bit 15, matching both Gaussian indexing and block-offset selection.
         int feedback = (randomRegister ^ (randomRegister >> 1) ^ (randomRegister >> 3) ^
             (randomRegister >> 12)) & 1;
 
@@ -1468,6 +1574,8 @@ internal sealed class Av1FilmGrainDecoder
         where TSample : unmanaged
     {
         ref TSample sample = ref samples[index];
+
+        // Callers close TSample over byte or ushort, so the JIT removes this branch and emits a native unsigned load.
         return typeof(TSample) == typeof(byte)
             ? Unsafe.As<TSample, byte>(ref sample)
             : Unsafe.As<TSample, ushort>(ref sample);
@@ -1484,6 +1592,7 @@ internal sealed class Av1FilmGrainDecoder
     private static void SetSample<TSample>(Span<TSample> samples, int index, int value)
         where TSample : unmanaged
     {
+        // As in GetSample, the closed generic type leaves only the matching native store in generated code.
         if (typeof(TSample) == typeof(byte))
         {
             byte byteValue = (byte)value;

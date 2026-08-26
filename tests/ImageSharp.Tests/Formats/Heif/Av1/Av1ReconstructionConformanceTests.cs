@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -23,6 +24,22 @@ public class Av1ReconstructionConformanceTests
     /// The hardware configurations covering normal SIMD dispatch and the scalar fallback.
     /// </summary>
     private const HwIntrinsics ReconstructionConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
+
+    /// <summary>
+    /// The hardware configurations covering the 256-bit, 128-bit, and scalar loop-restoration paths.
+    /// </summary>
+    private const HwIntrinsics LoopRestorationConfigurations =
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+
+    /// <summary>
+    /// The coverage bit representing an active Wiener restoration unit.
+    /// </summary>
+    private const int WienerRestorationCoverage = 1 << (int)Av1RestorationFilterType.Wiener;
+
+    /// <summary>
+    /// The coverage bit representing an active self-guided restoration unit.
+    /// </summary>
+    private const int SelfGuidedRestorationCoverage = 1 << (int)Av1RestorationFilterType.SgrProjection;
 
     /// <summary>
     /// The hardware configurations covering the available vector widths and the scalar color-conversion fallback.
@@ -93,6 +110,63 @@ public class Av1ReconstructionConformanceTests
     [Fact]
     public void DecodeWithSuperResolutionMatchesPinnedLibaomReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSuperResolutionFixtures, ReconstructionConfigurations);
+
+    /// <summary>
+    /// Verifies active normative loop restoration and exact native samples against scalar libaom for independently
+    /// encoded eight-, ten-, and twelve-bit still-picture streams.
+    /// </summary>
+    [Fact]
+    public void DecodeWithLoopRestorationMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateLoopRestorationFixtures, LoopRestorationConfigurations);
+
+    /// <summary>
+    /// Verifies combined super-resolution and loop-restoration geometry for independently encoded 8-bit 4:2:0 content.
+    /// </summary>
+    [Fact]
+    public void DecodeWithLoopRestorationAndSuperResolutionMatchesPinnedLibaomReference8Bit420()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateLoopRestorationAndSuperResolution8Bit420,
+            LoopRestorationConfigurations);
+
+    /// <summary>
+    /// Verifies combined super-resolution and loop-restoration geometry for independently encoded 10-bit 4:2:2 content.
+    /// </summary>
+    [Fact]
+    public void DecodeWithLoopRestorationAndSuperResolutionMatchesPinnedLibaomReference10Bit422()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateLoopRestorationAndSuperResolution10Bit422,
+            LoopRestorationConfigurations);
+
+    /// <summary>
+    /// Verifies combined super-resolution and loop-restoration geometry for independently encoded 12-bit 4:4:4 content.
+    /// </summary>
+    [Fact]
+    public void DecodeWithLoopRestorationAndSuperResolutionMatchesPinnedLibaomReference12Bit444()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateLoopRestorationAndSuperResolution12Bit444,
+            LoopRestorationConfigurations);
+
+    /// <summary>
+    /// Verifies exact presented pixels and public metadata for independently encoded eight-, ten-, and twelve-bit
+    /// active-restoration AVIF images across the available vector widths and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void DecodeWithLoopRestorationMatchesPinnedLibavifPresentation()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateRestorationPresentedFixtures, PresentationConfigurations);
+
+    /// <summary>
+    /// Verifies that the independently encoded AVIF presentation fixtures collectively select both restoration algorithms.
+    /// </summary>
+    [Fact]
+    public void LoopRestorationPresentationFixturesSelectBothAlgorithms()
+    {
+        int restorationCoverage = GetRestorationCoverageFromAvif(TestFile.Create(TestImages.Heif.Av1Restoration8BitAvif).Bytes);
+        restorationCoverage |= GetRestorationCoverageFromAvif(TestFile.Create(TestImages.Heif.Av1Restoration10BitAvif).Bytes);
+        restorationCoverage |= GetRestorationCoverageFromAvif(TestFile.Create(TestImages.Heif.Av1Restoration12BitAvif).Bytes);
+
+        int requiredCoverage = WienerRestorationCoverage | SelfGuidedRestorationCoverage;
+        Assert.Equal(requiredCoverage, restorationCoverage & requiredCoverage);
+    }
 
     /// <summary>
     /// Validates every active-CDEF fixture under the hardware configuration selected by <see cref="FeatureTestRunner"/>.
@@ -184,6 +258,109 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
+    /// Validates every active loop-restoration fixture under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidateLoopRestorationFixtures()
+    {
+        int restorationCoverage = ValidateLoopRestorationFixture(
+            TestImages.Heif.Av1Restoration8BitPayload,
+            TestImages.Heif.Av1Restoration8BitReference,
+            768,
+            512,
+            Av1BitDepth.EightBit,
+            Av1ColorFormat.Yuv420);
+
+        restorationCoverage |= ValidateLoopRestorationFixture(
+            TestImages.Heif.Av1Restoration10BitPayload,
+            TestImages.Heif.Av1Restoration10BitReference,
+            1024,
+            428,
+            Av1BitDepth.TenBit,
+            Av1ColorFormat.Yuv444);
+
+        restorationCoverage |= ValidateLoopRestorationFixture(
+            TestImages.Heif.Av1Restoration12BitPayload,
+            TestImages.Heif.Av1Restoration12BitReference,
+            1024,
+            428,
+            Av1BitDepth.TwelveBit,
+            Av1ColorFormat.Yuv444);
+
+        // Exact output only proves both restoration algorithms when the independent fixture set
+        // actually selects at least one unit of each type during every feature-runner invocation.
+        int requiredCoverage = WienerRestorationCoverage | SelfGuidedRestorationCoverage;
+        Assert.Equal(requiredCoverage, restorationCoverage & requiredCoverage);
+    }
+
+    /// <summary>
+    /// Validates active restoration after super-resolution for 8-bit 4:2:0 content.
+    /// </summary>
+    private static void ValidateLoopRestorationAndSuperResolution8Bit420()
+        => ValidateLoopRestorationFixture(
+            TestImages.Heif.Av1RestorationSuperResolution8BitPayload,
+            TestImages.Heif.Av1RestorationSuperResolution8BitReference,
+            768,
+            512,
+            Av1BitDepth.EightBit,
+            Av1ColorFormat.Yuv420,
+            requireSuperResolution: true);
+
+    /// <summary>
+    /// Validates active restoration after super-resolution for 10-bit 4:2:2 content.
+    /// </summary>
+    private static void ValidateLoopRestorationAndSuperResolution10Bit422()
+        => ValidateLoopRestorationFixture(
+            TestImages.Heif.Av1RestorationSuperResolution10BitPayload,
+            TestImages.Heif.Av1RestorationSuperResolution10BitReference,
+            512,
+            256,
+            Av1BitDepth.TenBit,
+            Av1ColorFormat.Yuv422,
+            requireSuperResolution: true);
+
+    /// <summary>
+    /// Validates active restoration after super-resolution for 12-bit 4:4:4 content.
+    /// </summary>
+    private static void ValidateLoopRestorationAndSuperResolution12Bit444()
+        => ValidateLoopRestorationFixture(
+            TestImages.Heif.Av1RestorationSuperResolution12BitPayload,
+            TestImages.Heif.Av1RestorationSuperResolution12BitReference,
+            1024,
+            428,
+            Av1BitDepth.TwelveBit,
+            Av1ColorFormat.Yuv444,
+            requireSuperResolution: true);
+
+    /// <summary>
+    /// Validates every active-restoration presentation fixture under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidateRestorationPresentedFixtures()
+    {
+        ValidatePresentedFixture(
+            TestImages.Heif.Av1Restoration8BitAvif,
+            TestImages.Heif.Av1Restoration8BitPresentationReference,
+            768,
+            512,
+            HeifBitDepth.Bit8);
+
+        ValidatePresentedFixture(
+            TestImages.Heif.Av1Restoration10BitAvif,
+            TestImages.Heif.Av1Restoration10BitPresentationReference,
+            1024,
+            428,
+            HeifBitDepth.Bit10);
+
+        ValidatePresentedFixture(
+            TestImages.Heif.Av1Restoration12BitAvif,
+            TestImages.Heif.Av1Restoration12BitPresentationReference,
+            1024,
+            428,
+            HeifBitDepth.Bit12);
+    }
+
+    /// <summary>
     /// Validates one elementary-stream sample and its containing AVIF image.
     /// </summary>
     /// <param name="imagePath">The complete AVIF container.</param>
@@ -219,7 +396,9 @@ public class Av1ReconstructionConformanceTests
     /// <param name="colorFormat">The expected native chroma-sampling layout.</param>
     /// <param name="requireActiveCdef">Indicates whether the stream must signal and select nonzero CDEF strengths.</param>
     /// <param name="requireSuperResolution">Indicates whether the stream must use normative horizontal upscaling.</param>
-    private static void ValidateNativeFixture(
+    /// <param name="requireLoopRestoration">Indicates whether the stream must select at least one loop-restoration unit.</param>
+    /// <returns>A bit mask containing every selected loop-restoration filter type.</returns>
+    private static int ValidateNativeFixture(
         string payloadPath,
         string referencePath,
         int width,
@@ -227,8 +406,10 @@ public class Av1ReconstructionConformanceTests
         Av1BitDepth bitDepth,
         Av1ColorFormat colorFormat,
         bool requireActiveCdef,
-        bool requireSuperResolution = false)
+        bool requireSuperResolution = false,
+        bool requireLoopRestoration = false)
     {
+        int restorationCoverage = 0;
         byte[] payload = TestFile.Create(payloadPath).Bytes;
         byte[] reference = TestFile.Create(referencePath).Bytes;
         using Av1Decoder decoder = new(Configuration.Default);
@@ -245,7 +426,11 @@ public class Av1ReconstructionConformanceTests
             ObuFrameSize frameSize = decoder.FrameHeader.FrameSize;
             Assert.True(frameSize.FrameWidth < frameSize.SuperResolutionUpscaledWidth);
             Assert.Equal(width, frameSize.SuperResolutionUpscaledWidth);
-            Assert.False(decoder.FrameHeader.LoopRestorationParameters.UsesLoopRestoration);
+            if (!requireLoopRestoration)
+            {
+                // The original super-resolution fixtures isolate upscaling by disabling restoration.
+                Assert.False(decoder.FrameHeader.LoopRestorationParameters.UsesLoopRestoration);
+            }
         }
 
         ObuLoopFilterParameters filterParameters = decoder.FrameHeader.LoopFilterParameters;
@@ -290,7 +475,16 @@ public class Av1ReconstructionConformanceTests
             Assert.True(hasActiveStrength);
         }
 
+        if (requireLoopRestoration)
+        {
+            Assert.True(decoder.FrameHeader.LoopRestorationParameters.UsesLoopRestoration);
+            Assert.NotNull(decoder.FrameInfo);
+            restorationCoverage = GetRestorationCoverage(decoder);
+            Assert.NotEqual(0, restorationCoverage);
+        }
+
         AssertNativePlanesEqual(frameBuffer, reference);
+        return restorationCoverage;
     }
 
     /// <summary>
@@ -336,6 +530,36 @@ public class Av1ReconstructionConformanceTests
             colorFormat,
             requireActiveCdef: false,
             requireSuperResolution: true);
+
+    /// <summary>
+    /// Validates one independently encoded stream that activates normative loop restoration.
+    /// </summary>
+    /// <param name="payloadPath">The AV1 elementary-stream sample.</param>
+    /// <param name="referencePath">The native planar output produced by the pinned scalar libaom decoder.</param>
+    /// <param name="width">The expected reconstructed width.</param>
+    /// <param name="height">The expected reconstructed height.</param>
+    /// <param name="bitDepth">The expected AV1 sample precision.</param>
+    /// <param name="colorFormat">The expected native chroma-sampling layout.</param>
+    /// <param name="requireSuperResolution">Whether the stream must upscale from a narrower coded frame.</param>
+    /// <returns>A bit mask containing every selected loop-restoration filter type.</returns>
+    private static int ValidateLoopRestorationFixture(
+        string payloadPath,
+        string referencePath,
+        int width,
+        int height,
+        Av1BitDepth bitDepth,
+        Av1ColorFormat colorFormat,
+        bool requireSuperResolution = false)
+        => ValidateNativeFixture(
+            payloadPath,
+            referencePath,
+            width,
+            height,
+            bitDepth,
+            colorFormat,
+            requireActiveCdef: false,
+            requireSuperResolution: requireSuperResolution,
+            requireLoopRestoration: true);
 
     /// <summary>
     /// Validates the public presentation and metadata produced from one complete AVIF container.
@@ -386,6 +610,71 @@ public class Av1ReconstructionConformanceTests
         Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
         Assert.Equal(metadataBitDepth, metadata.BitDepth);
         ImageComparer.Exact.VerifySimilarity(reference, image);
+    }
+
+    /// <summary>
+    /// Decodes the sole image item in an independently generated AVIF fixture and returns its restoration coverage.
+    /// </summary>
+    /// <param name="imageBytes">The complete AVIF file.</param>
+    /// <returns>A bit mask containing every selected loop-restoration filter type.</returns>
+    private static int GetRestorationCoverageFromAvif(Span<byte> imageBytes)
+    {
+        int offset = 0;
+        while (offset < imageBytes.Length)
+        {
+            int headerLength = HeifBoxReader.ParseHeader(imageBytes[offset..], out long payloadLength, out Heif4CharCode boxType);
+            Assert.InRange(payloadLength, 0, int.MaxValue);
+            int payloadLength32 = (int)payloadLength;
+
+            if (boxType == Heif4CharCode.Mdat)
+            {
+                // These single-item fixtures deliberately make the complete mdat payload the AV1 item. Decoding
+                // those exact bytes proves the container used for pixel comparison actually selects restoration.
+                Span<byte> payload = imageBytes.Slice(offset + headerLength, payloadLength32);
+                using Av1Decoder decoder = new(Configuration.Default);
+                using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
+
+                Assert.NotNull(decoder.FrameHeader);
+                Assert.True(decoder.FrameHeader.LoopRestorationParameters.UsesLoopRestoration);
+                Assert.NotNull(decoder.FrameInfo);
+                int restorationCoverage = GetRestorationCoverage(decoder);
+                Assert.NotEqual(0, restorationCoverage);
+                return restorationCoverage;
+            }
+
+            offset = checked(offset + headerLength + payloadLength32);
+        }
+
+        Assert.Fail("The AVIF fixture does not contain a media-data box.");
+        return 0;
+    }
+
+    /// <summary>
+    /// Returns the restoration algorithms selected by the decoded frame's unit grids.
+    /// </summary>
+    /// <param name="decoder">The decoder after tile parsing and reconstruction.</param>
+    /// <returns>A bit mask containing every selected loop-restoration filter type.</returns>
+    private static int GetRestorationCoverage(Av1Decoder decoder)
+    {
+        int restorationCoverage = 0;
+        for (int plane = 0; plane < decoder.SequenceHeader!.ColorConfig.PlaneCount; plane++)
+        {
+            int rowCount = decoder.FrameInfo!.GetLoopRestorationUnitRowCount(plane);
+            int columnCount = decoder.FrameInfo.GetLoopRestorationUnitColumnCount(plane);
+            for (int row = 0; row < rowCount; row++)
+            {
+                for (int column = 0; column < columnCount; column++)
+                {
+                    Av1RestorationFilterType filterType = decoder.FrameInfo.GetLoopRestorationUnit(plane, row, column).FilterType;
+                    if (filterType != Av1RestorationFilterType.None)
+                    {
+                        restorationCoverage |= 1 << (int)filterType;
+                    }
+                }
+            }
+        }
+
+        return restorationCoverage;
     }
 
     /// <summary>

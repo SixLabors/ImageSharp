@@ -2,13 +2,15 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.CompilerServices;
+using System.Runtime.Intrinsics;
+using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 
 /// <summary>
 /// Applies the normative AV1 self-guided restoration filter and projection.
 /// </summary>
-internal static class Av1SelfGuidedFilter
+internal static partial class Av1SelfGuidedFilter
 {
     /// <summary>
     /// The number of source samples required on every side of a filtered processing unit.
@@ -41,6 +43,16 @@ internal static class Av1SelfGuidedFilter
     private const int ReciprocalBits = 12;
 
     /// <summary>
+    /// The base-two exponent used to align work-buffer rows for every supported vector width.
+    /// </summary>
+    private const int BufferAlignmentLog2 = 4;
+
+    /// <summary>
+    /// The extra columns separating integral-image rows to avoid adverse cache aliasing.
+    /// </summary>
+    private const int BufferPadding = 16;
+
+    /// <summary>
     /// The complete fixed-point self-guided blend range.
     /// </summary>
     private const int SelfGuidedScale = 1 << SelfGuidedBits;
@@ -70,7 +82,7 @@ internal static class Av1SelfGuidedFilter
     /// <summary>
     /// Gets the table mapping a bounded variance measure to its fixed-point local sample blend factor.
     /// </summary>
-    private static ReadOnlySpan<ushort> XByXPlusOne =>
+    private static ReadOnlySpan<int> XByXPlusOne =>
     [
         1, 128, 171, 192, 205, 213, 219, 224, 228, 230, 233, 235, 236, 238, 239,
         240, 241, 242, 243, 243, 244, 244, 245, 245, 246, 246, 247, 247, 247, 247,
@@ -110,8 +122,8 @@ internal static class Av1SelfGuidedFilter
     public static int GetScratchLength(int width, int height)
     {
         int filteredLength = width * height;
-        int coefficientLength = GetCoefficientBufferLength(width, height);
-        return (filteredLength * 2) + (coefficientLength * 2);
+        int bufferLength = GetBufferLength(width, height);
+        return (filteredLength * 2) + (bufferLength * 4);
     }
 
     /// <summary>
@@ -139,6 +151,42 @@ internal static class Av1SelfGuidedFilter
         ReadOnlySpan<int> projectionCoefficients,
         Span<int> scratch)
     {
+        if (Avx2.IsSupported)
+        {
+            FilterBlock(
+                source,
+                sourceStride,
+                destination,
+                destinationStride,
+                width,
+                height,
+                bitDepth,
+                parameterSetIndex,
+                projectionCoefficients,
+                scratch,
+                Vector256<int>.Zero);
+
+            return;
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            FilterBlock(
+                source,
+                sourceStride,
+                destination,
+                destinationStride,
+                width,
+                height,
+                bitDepth,
+                parameterSetIndex,
+                projectionCoefficients,
+                scratch,
+                Vector128<int>.Zero);
+
+            return;
+        }
+
         int filteredLength = width * height;
         Span<int> filtered0 = scratch[..filteredLength];
         Span<int> filtered1 = scratch.Slice(filteredLength, filteredLength);
@@ -261,7 +309,7 @@ internal static class Av1SelfGuidedFilter
         int windowDiameter = (radius * 2) + 1;
         int windowArea = windowDiameter * windowDiameter;
         int rowStep = skipAlternateRows ? 2 : 1;
-        ReadOnlySpan<ushort> xByXPlusOne = XByXPlusOne;
+        ReadOnlySpan<int> xByXPlusOne = XByXPlusOne;
         ReadOnlySpan<ushort> oneByX = OneByX;
 
         for (int row = -1; row < height + 1; row += rowStep)
@@ -465,6 +513,23 @@ internal static class Av1SelfGuidedFilter
     /// <returns>The number of required integer entries.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int GetCoefficientBufferLength(int width, int height) => (width + 2) * (height + 2);
+
+    /// <summary>
+    /// Gets the padded row stride shared by coefficient and integral-image buffers.
+    /// </summary>
+    /// <param name="width">The filtered processing-unit width.</param>
+    /// <returns>The aligned number of integers reserved for each work-buffer row.</returns>
+    private static int GetBufferStride(int width)
+        => Av1Math.AlignPowerOf2(width + (Border * 2) + BufferPadding, BufferAlignmentLog2);
+
+    /// <summary>
+    /// Gets the number of integers reserved for one padded work buffer.
+    /// </summary>
+    /// <param name="width">The filtered processing-unit width.</param>
+    /// <param name="height">The filtered processing-unit height.</param>
+    /// <returns>The required work-buffer length.</returns>
+    private static int GetBufferLength(int width, int height)
+        => GetBufferStride(width) * (height + (Border * 2) + 1);
 
     /// <summary>
     /// Rounds a signed fixed-point value to the requested lower precision.

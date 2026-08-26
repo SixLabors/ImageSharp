@@ -1290,9 +1290,14 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
                 unitHeight = Av1Math.RoundPowerOf2(Math.Min(height + idy, maxBlockHigh), subY ? 1 : 0);
                 unitWidth = Av1Math.RoundPowerOf2(Math.Min(width + idx, maxBlockWide), subX ? 1 : 0);
-                for (int blockRow = idy; blockRow < unitHeight; blockRow += stepRow)
+                int planeRow = idy >> (subY ? 1 : 0);
+                int planeColumn = idx >> (subX ? 1 : 0);
+
+                // The 64x64 region cursor is expressed on the luma grid. Chroma transform offsets use the
+                // target plane's 4x4 grid, matching libaom's row/column subsampling before transform traversal.
+                for (int blockRow = planeRow; blockRow < unitHeight; blockRow += stepRow)
                 {
-                    for (int blockColumn = idx; blockColumn < unitWidth; blockColumn += stepColumn)
+                    for (int blockColumn = planeColumn; blockColumn < unitWidth; blockColumn += stepColumn)
                     {
                         chromaTransformInfo[transformInfoUvIndex] = new Av1TransformInfo(
                             transformSizeUv, blockColumn, blockRow);

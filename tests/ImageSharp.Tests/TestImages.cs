@@ -1371,6 +1371,24 @@ public static class TestImages
         public const string Av1SuperResolution10BitReference = "Heif/Av1/Conformance/libaom-superres-cosmos-10b-libaom.yuv";
         public const string Av1SuperResolution12BitPayload = "Heif/Av1/Conformance/libaom-superres-cosmos-12b.bit";
         public const string Av1SuperResolution12BitReference = "Heif/Av1/Conformance/libaom-superres-cosmos-12b-libaom.yuv";
+        public const string Av1Restoration8BitPayload = "Heif/Av1/Conformance/libaom-restoration-kodim23-8b.bit";
+        public const string Av1Restoration8BitReference = "Heif/Av1/Conformance/libaom-restoration-kodim23-8b-libaom.yuv";
+        public const string Av1Restoration8BitAvif = "Heif/Av1/Conformance/libavif-restoration-kodim23-8b.avif";
+        public const string Av1Restoration8BitPresentationReference = "Heif/Av1/Conformance/libavif-restoration-kodim23-8b.png";
+        public const string Av1Restoration10BitPayload = "Heif/Av1/Conformance/libaom-restoration-cosmos-10b.bit";
+        public const string Av1Restoration10BitReference = "Heif/Av1/Conformance/libaom-restoration-cosmos-10b-libaom.yuv";
+        public const string Av1Restoration10BitAvif = "Heif/Av1/Conformance/libavif-restoration-cosmos-10b.avif";
+        public const string Av1Restoration10BitPresentationReference = "Heif/Av1/Conformance/libavif-restoration-cosmos-10b.png";
+        public const string Av1Restoration12BitPayload = "Heif/Av1/Conformance/libaom-restoration-cosmos-12b.bit";
+        public const string Av1Restoration12BitReference = "Heif/Av1/Conformance/libaom-restoration-cosmos-12b-libaom.yuv";
+        public const string Av1Restoration12BitAvif = "Heif/Av1/Conformance/libavif-restoration-cosmos-12b.avif";
+        public const string Av1Restoration12BitPresentationReference = "Heif/Av1/Conformance/libavif-restoration-cosmos-12b.png";
+        public const string Av1RestorationSuperResolution8BitPayload = "Heif/Av1/Conformance/libaom-restoration-superres-kodim23-8b.bit";
+        public const string Av1RestorationSuperResolution8BitReference = "Heif/Av1/Conformance/libaom-restoration-superres-kodim23-8b-libaom.yuv";
+        public const string Av1RestorationSuperResolution10BitPayload = "Heif/Av1/Conformance/libaom-restoration-superres-abc-10b-422.bit";
+        public const string Av1RestorationSuperResolution10BitReference = "Heif/Av1/Conformance/libaom-restoration-superres-abc-10b-422-libaom.yuv";
+        public const string Av1RestorationSuperResolution12BitPayload = "Heif/Av1/Conformance/libaom-restoration-superres-cosmos-12b.bit";
+        public const string Av1RestorationSuperResolution12BitReference = "Heif/Av1/Conformance/libaom-restoration-superres-cosmos-12b-libaom.yuv";
     }
 
     public static class Ico

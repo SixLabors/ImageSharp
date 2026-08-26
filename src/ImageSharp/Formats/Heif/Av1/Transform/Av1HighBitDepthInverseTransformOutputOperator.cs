@@ -37,18 +37,4 @@ internal readonly struct Av1HighBitDepthInverseTransformOutputOperator : IAv1Inv
         Vector128<short> narrowed = Vector128.Narrow(reconstructed.GetLower(), reconstructed.GetUpper());
         narrowed.StoreUnsafe(ref destination);
     }
-
-    /// <inheritdoc/>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static void Add(ref short prediction, ref short destination, Vector512<int> residual, int bitDepth)
-    {
-        // AV1 high-bit-depth samples are nonnegative Int16 values. Widening before the residual add preserves signed
-        // arithmetic, and the bit-depth clamp makes the final narrowing exact for both 10-bit and 12-bit output.
-        Vector256<short> packed = Vector256.LoadUnsafe(ref prediction);
-        (Vector256<int> predictedLower, Vector256<int> predictedUpper) = Vector256.Widen(packed);
-        Vector512<int> predicted = Vector512.Create(predictedLower, predictedUpper);
-        Vector512<int> reconstructed = Vector512.Clamp(predicted + residual, Vector512<int>.Zero, Vector512.Create((1 << bitDepth) - 1));
-        Vector256<short> narrowed = Vector256.Narrow(reconstructed.GetLower(), reconstructed.GetUpper());
-        narrowed.StoreUnsafe(ref destination);
-    }
 }

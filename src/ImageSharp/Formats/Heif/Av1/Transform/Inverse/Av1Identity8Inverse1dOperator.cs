@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.Intrinsics;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 
 /// <summary>
@@ -27,5 +29,33 @@ internal readonly partial struct Av1Identity8Inverse1dOperator : IAv1Transform1d
         {
             output[i] = input[i] * 2;
         }
+    }
+
+    /// <inheritdoc/>
+    public static void Transform(
+        ref Av1TransformVector<Vector128<int>> input,
+        ref Av1TransformVector<Vector128<int>> output,
+        ref Av1TransformVector<Vector128<int>> step,
+        int cosBit,
+        Av1TransformStageRange stageRange)
+    {
+        Av1IdentityTransform1d.Transform(ref input, ref output, 8, 2, 0);
+        _ = step;
+        _ = cosBit;
+        _ = stageRange;
+    }
+
+    /// <inheritdoc/>
+    public static void Transform(
+        ref Av1TransformVector<Vector256<int>> input,
+        ref Av1TransformVector<Vector256<int>> output,
+        ref Av1TransformVector<Vector256<int>> step,
+        int cosBit,
+        Av1TransformStageRange stageRange)
+    {
+        Av1IdentityTransform1d.Transform(ref input, ref output, 8, 2, 0);
+        _ = step;
+        _ = cosBit;
+        _ = stageRange;
     }
 }

@@ -73,13 +73,6 @@ public class Av1InverseTransformTests
         AssertOperatorParity<Av1Identity32Inverse1dOperator>(32);
     }
 
-    /// <summary>
-    /// Verifies the complete sixteen-lane two-dimensional inverse traversal matrix across hardware feature levels.
-    /// </summary>
-    [Fact]
-    public void Vector512KernelsMatchScalarForEveryApplicableConfiguration()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertVector512TransformParity, TransformConfigurations);
-
     [Theory]
     [InlineData((int)Av1TransformSize.Size4x4, 0, -4)]
     [InlineData((int)Av1TransformSize.Size8x8, -1, -4)]
@@ -251,7 +244,7 @@ public class Av1InverseTransformTests
     }
 
     /// <summary>
-    /// Compares one inverse transform operator across scalar and all SIMD lane widths.
+    /// Compares one inverse transform operator across scalar and the supported SIMD lane widths.
     /// </summary>
     /// <typeparam name="TOperator">The inverse transform operator.</typeparam>
     /// <param name="length">The transform length.</param>
@@ -272,9 +265,6 @@ public class Av1InverseTransformTests
         Av1TransformVector<Vector256<int>> input256 = default;
         Av1TransformVector<Vector256<int>> output256 = default;
         Av1TransformVector<Vector256<int>> step256 = default;
-        Av1TransformVector<Vector512<int>> input512 = default;
-        Av1TransformVector<Vector512<int>> output512 = default;
-        Av1TransformVector<Vector512<int>> step512 = default;
 
         for (int index = 0; index < length; index++)
         {
@@ -293,36 +283,16 @@ public class Av1InverseTransformTests
                 GetInputValue(index, 5),
                 GetInputValue(index, 6),
                 GetInputValue(index, 7));
-
-            input512[index] = Vector512.Create(
-                GetInputValue(index, 0),
-                GetInputValue(index, 1),
-                GetInputValue(index, 2),
-                GetInputValue(index, 3),
-                GetInputValue(index, 4),
-                GetInputValue(index, 5),
-                GetInputValue(index, 6),
-                GetInputValue(index, 7),
-                GetInputValue(index, 8),
-                GetInputValue(index, 9),
-                GetInputValue(index, 10),
-                GetInputValue(index, 11),
-                GetInputValue(index, 12),
-                GetInputValue(index, 13),
-                GetInputValue(index, 14),
-                GetInputValue(index, 15));
-
         }
 
         TOperator.Transform(ref input128, ref output128, ref step128, cosBit, stageRange);
         TOperator.Transform(ref input256, ref output256, ref step256, cosBit, stageRange);
-        TOperator.Transform(ref input512, ref output512, ref step512, cosBit, stageRange);
 
         int[] scalarInput = new int[length];
         int[] scalarOutput = new int[length];
         int[] scalarStep = new int[length];
 
-        for (int lane = 0; lane < Vector512<int>.Count; lane++)
+        for (int lane = 0; lane < Vector256<int>.Count; lane++)
         {
             for (int index = 0; index < length; index++)
             {
@@ -333,45 +303,11 @@ public class Av1InverseTransformTests
 
             for (int index = 0; index < length; index++)
             {
-                Assert.Equal(scalarOutput[index], output512[index].GetElement(lane));
-
-                if (lane < Vector256<int>.Count)
-                {
-                    Assert.Equal(scalarOutput[index], output256[index].GetElement(lane));
-                }
+                Assert.Equal(scalarOutput[index], output256[index].GetElement(lane));
 
                 if (lane < Vector128<int>.Count)
                 {
                     Assert.Equal(scalarOutput[index], output128[index].GetElement(lane));
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Runs every valid inverse transform configuration capable of filling a sixteen-lane tile.
-    /// </summary>
-    private static void AssertVector512TransformParity()
-    {
-        for (Av1TransformSize transformSize = 0; transformSize < Av1TransformSize.AllSizes; transformSize++)
-        {
-            if (transformSize.GetWidth() < Vector512<int>.Count || transformSize.GetHeight() < Vector512<int>.Count)
-            {
-                continue;
-            }
-
-            for (Av1TransformType transformType = 0; transformType < Av1TransformType.AllTransformTypes; transformType++)
-            {
-                Av1Transform2dFlipConfiguration allowedConfig = Av1Transform2dFlipConfiguration.CreateInverse(transformType, transformSize, 8);
-                if (!allowedConfig.IsAllowed())
-                {
-                    continue;
-                }
-
-                for (int bitDepth = 8; bitDepth <= 12; bitDepth += 2)
-                {
-                    Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(transformType, transformSize, bitDepth);
-                    DispatchColumn(transformType, transformSize, bitDepth, ref config);
                 }
             }
         }
@@ -387,7 +323,7 @@ public class Av1InverseTransformTests
     /// <param name="scaleLog2">The power-of-two scale applied by the operator pair.</param>
     /// <param name="allowedError">The maximum permitted reconstruction error.</param>
     private static void AssertRoundTrip<TForwardOperator, TInverseOperator>(Av1TransformType transformType, Av1TransformSize transformSize, int scaleLog2, int allowedError)
-        where TForwardOperator : struct, IAv1Transform1dOperator
+        where TForwardOperator : struct, IAv1ForwardTransform1dOperator
         where TInverseOperator : struct, IAv1Transform1dOperator
     {
         const int bitDepth = 10;
@@ -400,15 +336,25 @@ public class Av1InverseTransformTests
         int[] forward = new int[length];
         int[] inverse = new int[length];
         int[] step = new int[length];
+        Av1TransformVector<int> values = default;
+        Av1TransformVector<int> buffer0 = default;
+        Av1TransformVector<int> buffer1 = default;
 
         for (int block = 0; block < testBlockCount; block++)
         {
             for (int index = 0; index < length; index++)
             {
                 input[index] = random.Next((1 << bitDepth) - 1);
+                values[index] = input[index];
             }
 
-            TForwardOperator.Transform(input, forward, step, forwardConfig.CosBitColumn, forwardConfig.StageRangeColumn);
+            TForwardOperator.Transform(ref values, ref buffer0, ref buffer1, forwardConfig.CosBitColumn);
+
+            for (int index = 0; index < length; index++)
+            {
+                forward[index] = buffer0[index];
+            }
+
             TInverseOperator.Transform(forward, inverse, step, inverseConfig.CosBitColumn, inverseConfig.StageRangeColumn);
 
             for (int index = 0; index < length; index++)
@@ -645,18 +591,6 @@ public class Av1InverseTransformTests
 
             Assert.Equal(scalar, vector256);
         }
-
-        if (width >= Vector512<int>.Count && height >= Vector512<int>.Count)
-        {
-            byte[] vector512 = new byte[writeStride * height];
-            int[] vector512Workspace = new int[workspaceLength];
-            Array.Fill(vector512, byte.MaxValue);
-
-            Av1Inverse2dTransformer.Transform2dVector512<byte, Av1ByteInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
-                coefficients, prediction, readStride, vector512, writeStride, ref config, vector512Workspace, bitDepth);
-
-            Assert.Equal(scalar, vector512);
-        }
     }
 
     /// <summary>
@@ -717,18 +651,6 @@ public class Av1InverseTransformTests
                 coefficients, prediction, readStride, vector256, writeStride, ref config, vector256Workspace, bitDepth);
 
             Assert.Equal(scalar, vector256);
-        }
-
-        if (width >= Vector512<int>.Count && height >= Vector512<int>.Count)
-        {
-            short[] vector512 = new short[writeStride * height];
-            int[] vector512Workspace = new int[workspaceLength];
-            Array.Fill(vector512, short.MinValue);
-
-            Av1Inverse2dTransformer.Transform2dVector512<short, Av1HighBitDepthInverseTransformOutputOperator, TColumnOperator, TRowOperator>(
-                coefficients, prediction, readStride, vector512, writeStride, ref config, vector512Workspace, bitDepth);
-
-            Assert.Equal(scalar, vector512);
         }
     }
 

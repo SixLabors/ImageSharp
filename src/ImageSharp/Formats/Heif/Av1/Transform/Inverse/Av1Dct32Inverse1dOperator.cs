@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.Intrinsics;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 
 /// <summary>
@@ -342,5 +344,680 @@ internal readonly partial struct Av1Dct32Inverse1dOperator : IAv1Transform1dOper
         output[29] = Av1Transform1dMath.Clamp(step[2] - step[29], range);
         output[30] = Av1Transform1dMath.Clamp(step[1] - step[30], range);
         output[31] = Av1Transform1dMath.Clamp(step[0] - step[31], range);
+    }
+
+    /// <inheritdoc/>
+    public static void Transform(
+        ref Av1TransformVector<Vector256<int>> input,
+        ref Av1TransformVector<Vector256<int>> output,
+        ref Av1TransformVector<Vector256<int>> step,
+        int cosBit,
+        Av1TransformStageRange stageRange)
+    {
+        ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
+        int stage = 0;
+
+        // Stage 1 permutes frequency-ordered coefficients into the recursive DCT factorization order.
+        stage++;
+        output.V0 = input.V0;
+        output.V1 = input.V16;
+        output.V2 = input.V8;
+        output.V3 = input.V24;
+        output.V4 = input.V4;
+        output.V5 = input.V20;
+        output.V6 = input.V12;
+        output.V7 = input.V28;
+        output.V8 = input.V2;
+        output.V9 = input.V18;
+        output.V10 = input.V10;
+        output.V11 = input.V26;
+        output.V12 = input.V6;
+        output.V13 = input.V22;
+        output.V14 = input.V14;
+        output.V15 = input.V30;
+        output.V16 = input.V1;
+        output.V17 = input.V17;
+        output.V18 = input.V9;
+        output.V19 = input.V25;
+        output.V20 = input.V5;
+        output.V21 = input.V21;
+        output.V22 = input.V13;
+        output.V23 = input.V29;
+        output.V24 = input.V3;
+        output.V25 = input.V19;
+        output.V26 = input.V11;
+        output.V27 = input.V27;
+        output.V28 = input.V7;
+        output.V29 = input.V23;
+        output.V30 = input.V15;
+        output.V31 = input.V31;
+
+        // Stage 2 rotates the highest odd-frequency coefficient pairs by their pi/64 angles.
+        stage++;
+        step.V0 = output.V0;
+        step.V1 = output.V1;
+        step.V2 = output.V2;
+        step.V3 = output.V3;
+        step.V4 = output.V4;
+        step.V5 = output.V5;
+        step.V6 = output.V6;
+        step.V7 = output.V7;
+        step.V8 = output.V8;
+        step.V9 = output.V9;
+        step.V10 = output.V10;
+        step.V11 = output.V11;
+        step.V12 = output.V12;
+        step.V13 = output.V13;
+        step.V14 = output.V14;
+        step.V15 = output.V15;
+        step.V16 = Av1Transform1dMath.HalfButterfly(cospi[62], output.V16, -cospi[2], output.V31, cosBit);
+        step.V17 = Av1Transform1dMath.HalfButterfly(cospi[30], output.V17, -cospi[34], output.V30, cosBit);
+        step.V18 = Av1Transform1dMath.HalfButterfly(cospi[46], output.V18, -cospi[18], output.V29, cosBit);
+        step.V19 = Av1Transform1dMath.HalfButterfly(cospi[14], output.V19, -cospi[50], output.V28, cosBit);
+        step.V20 = Av1Transform1dMath.HalfButterfly(cospi[54], output.V20, -cospi[10], output.V27, cosBit);
+        step.V21 = Av1Transform1dMath.HalfButterfly(cospi[22], output.V21, -cospi[42], output.V26, cosBit);
+        step.V22 = Av1Transform1dMath.HalfButterfly(cospi[38], output.V22, -cospi[26], output.V25, cosBit);
+        step.V23 = Av1Transform1dMath.HalfButterfly(cospi[6], output.V23, -cospi[58], output.V24, cosBit);
+        step.V24 = Av1Transform1dMath.HalfButterfly(cospi[58], output.V23, cospi[6], output.V24, cosBit);
+        step.V25 = Av1Transform1dMath.HalfButterfly(cospi[26], output.V22, cospi[38], output.V25, cosBit);
+        step.V26 = Av1Transform1dMath.HalfButterfly(cospi[42], output.V21, cospi[22], output.V26, cosBit);
+        step.V27 = Av1Transform1dMath.HalfButterfly(cospi[10], output.V20, cospi[54], output.V27, cosBit);
+        step.V28 = Av1Transform1dMath.HalfButterfly(cospi[50], output.V19, cospi[14], output.V28, cosBit);
+        step.V29 = Av1Transform1dMath.HalfButterfly(cospi[18], output.V18, cospi[46], output.V29, cosBit);
+        step.V30 = Av1Transform1dMath.HalfButterfly(cospi[34], output.V17, cospi[30], output.V30, cosBit);
+        step.V31 = Av1Transform1dMath.HalfButterfly(cospi[2], output.V16, cospi[62], output.V31, cosBit);
+
+        // Stage 3 reconstructs the first nested groups and combines their adjacent odd terms.
+        stage++;
+        byte range = stageRange[stage];
+        output.V0 = step.V0;
+        output.V1 = step.V1;
+        output.V2 = step.V2;
+        output.V3 = step.V3;
+        output.V4 = step.V4;
+        output.V5 = step.V5;
+        output.V6 = step.V6;
+        output.V7 = step.V7;
+        output.V8 = Av1Transform1dMath.HalfButterfly(cospi[60], step.V8, -cospi[4], step.V15, cosBit);
+        output.V9 = Av1Transform1dMath.HalfButterfly(cospi[28], step.V9, -cospi[36], step.V14, cosBit);
+        output.V10 = Av1Transform1dMath.HalfButterfly(cospi[44], step.V10, -cospi[20], step.V13, cosBit);
+        output.V11 = Av1Transform1dMath.HalfButterfly(cospi[12], step.V11, -cospi[52], step.V12, cosBit);
+        output.V12 = Av1Transform1dMath.HalfButterfly(cospi[52], step.V11, cospi[12], step.V12, cosBit);
+        output.V13 = Av1Transform1dMath.HalfButterfly(cospi[20], step.V10, cospi[44], step.V13, cosBit);
+        output.V14 = Av1Transform1dMath.HalfButterfly(cospi[36], step.V9, cospi[28], step.V14, cosBit);
+        output.V15 = Av1Transform1dMath.HalfButterfly(cospi[4], step.V8, cospi[60], step.V15, cosBit);
+        output.V16 = Av1Transform1dMath.Clamp(step.V16 + step.V17, range);
+        output.V17 = Av1Transform1dMath.Clamp(step.V16 - step.V17, range);
+        output.V18 = Av1Transform1dMath.Clamp(-step.V18 + step.V19, range);
+        output.V19 = Av1Transform1dMath.Clamp(step.V18 + step.V19, range);
+        output.V20 = Av1Transform1dMath.Clamp(step.V20 + step.V21, range);
+        output.V21 = Av1Transform1dMath.Clamp(step.V20 - step.V21, range);
+        output.V22 = Av1Transform1dMath.Clamp(-step.V22 + step.V23, range);
+        output.V23 = Av1Transform1dMath.Clamp(step.V22 + step.V23, range);
+        output.V24 = Av1Transform1dMath.Clamp(step.V24 + step.V25, range);
+        output.V25 = Av1Transform1dMath.Clamp(step.V24 - step.V25, range);
+        output.V26 = Av1Transform1dMath.Clamp(-step.V26 + step.V27, range);
+        output.V27 = Av1Transform1dMath.Clamp(step.V26 + step.V27, range);
+        output.V28 = Av1Transform1dMath.Clamp(step.V28 + step.V29, range);
+        output.V29 = Av1Transform1dMath.Clamp(step.V28 - step.V29, range);
+        output.V30 = Av1Transform1dMath.Clamp(-step.V30 + step.V31, range);
+        output.V31 = Av1Transform1dMath.Clamp(step.V30 + step.V31, range);
+
+        // Stage 4 rotates the next odd-frequency level while preserving completed low-frequency lanes.
+        stage++;
+        range = stageRange[stage];
+        step.V0 = output.V0;
+        step.V1 = output.V1;
+        step.V2 = output.V2;
+        step.V3 = output.V3;
+        step.V4 = Av1Transform1dMath.HalfButterfly(cospi[56], output.V4, -cospi[8], output.V7, cosBit);
+        step.V5 = Av1Transform1dMath.HalfButterfly(cospi[24], output.V5, -cospi[40], output.V6, cosBit);
+        step.V6 = Av1Transform1dMath.HalfButterfly(cospi[40], output.V5, cospi[24], output.V6, cosBit);
+        step.V7 = Av1Transform1dMath.HalfButterfly(cospi[8], output.V4, cospi[56], step.V7, cosBit);
+        step.V8 = Av1Transform1dMath.Clamp(output.V8 + output.V9, range);
+        step.V9 = Av1Transform1dMath.Clamp(output.V8 - output.V9, range);
+        step.V10 = Av1Transform1dMath.Clamp(-output.V10 + output.V11, range);
+        step.V11 = Av1Transform1dMath.Clamp(output.V10 + output.V11, range);
+        step.V12 = Av1Transform1dMath.Clamp(output.V12 + output.V13, range);
+        step.V13 = Av1Transform1dMath.Clamp(output.V12 - output.V13, range);
+        step.V14 = Av1Transform1dMath.Clamp(-output.V14 + output.V15, range);
+        step.V15 = Av1Transform1dMath.Clamp(output.V14 + output.V15, range);
+        step.V16 = output.V16;
+        step.V17 = Av1Transform1dMath.HalfButterfly(-cospi[8], output.V17, cospi[56], output.V30, cosBit);
+        step.V18 = Av1Transform1dMath.HalfButterfly(-cospi[56], output.V18, -cospi[8], output.V29, cosBit);
+        step.V19 = output.V19;
+        step.V20 = output.V20;
+        step.V21 = Av1Transform1dMath.HalfButterfly(-cospi[40], output.V21, cospi[24], output.V26, cosBit);
+        step.V22 = Av1Transform1dMath.HalfButterfly(-cospi[24], output.V22, -cospi[40], output.V25, cosBit);
+        step.V23 = output.V23;
+        step.V24 = output.V24;
+        step.V25 = Av1Transform1dMath.HalfButterfly(-cospi[40], output.V22, cospi[24], output.V25, cosBit);
+        step.V26 = Av1Transform1dMath.HalfButterfly(cospi[24], output.V21, cospi[40], output.V26, cosBit);
+        step.V27 = output.V27;
+        step.V28 = output.V28;
+        step.V29 = Av1Transform1dMath.HalfButterfly(-cospi[8], output.V18, cospi[56], output.V29, cosBit);
+        step.V30 = Av1Transform1dMath.HalfButterfly(cospi[56], output.V17, cospi[8], output.V30, cosBit);
+        step.V31 = output.V31;
+
+        // Stage 5 reconstructs the embedded eight-point groups and combines adjacent odd terms.
+        stage++;
+        range = stageRange[stage];
+        output.V0 = Av1Transform1dMath.HalfButterfly(cospi[32], step.V0, cospi[32], step.V1, cosBit);
+        output.V1 = Av1Transform1dMath.HalfButterfly(cospi[32], step.V0, -cospi[32], step.V1, cosBit);
+        output.V2 = Av1Transform1dMath.HalfButterfly(cospi[48], step.V2, -cospi[16], step.V3, cosBit);
+        output.V3 = Av1Transform1dMath.HalfButterfly(cospi[16], step.V2, cospi[48], step.V3, cosBit);
+        output.V4 = Av1Transform1dMath.Clamp(step.V4 + step.V5, range);
+        output.V5 = Av1Transform1dMath.Clamp(step.V4 - step.V5, range);
+        output.V6 = Av1Transform1dMath.Clamp(-step.V6 + step.V7, range);
+        output.V7 = Av1Transform1dMath.Clamp(step.V6 + step.V7, range);
+        output.V8 = step.V8;
+        output.V9 = Av1Transform1dMath.HalfButterfly(-cospi[16], step.V9, cospi[48], step.V14, cosBit);
+        output.V10 = Av1Transform1dMath.HalfButterfly(-cospi[48], step.V10, -cospi[16], step.V13, cosBit);
+        output.V11 = step.V11;
+        output.V12 = step.V12;
+        output.V13 = Av1Transform1dMath.HalfButterfly(-cospi[16], step.V10, cospi[48], step.V13, cosBit);
+        output.V14 = Av1Transform1dMath.HalfButterfly(cospi[48], step.V9, cospi[16], step.V14, cosBit);
+        output.V15 = step.V15;
+        output.V16 = Av1Transform1dMath.Clamp(step.V16 + step.V19, range);
+        output.V17 = Av1Transform1dMath.Clamp(step.V17 + step.V18, range);
+        output.V18 = Av1Transform1dMath.Clamp(step.V17 - step.V18, range);
+        output.V19 = Av1Transform1dMath.Clamp(step.V16 - step.V19, range);
+        output.V20 = Av1Transform1dMath.Clamp(-step.V20 + step.V23, range);
+        output.V21 = Av1Transform1dMath.Clamp(-step.V21 + step.V22, range);
+        output.V22 = Av1Transform1dMath.Clamp(step.V21 + step.V22, range);
+        output.V23 = Av1Transform1dMath.Clamp(step.V20 + step.V23, range);
+        output.V24 = Av1Transform1dMath.Clamp(step.V24 + step.V27, range);
+        output.V25 = Av1Transform1dMath.Clamp(step.V25 + step.V26, range);
+        output.V26 = Av1Transform1dMath.Clamp(step.V25 - step.V26, range);
+        output.V27 = Av1Transform1dMath.Clamp(step.V24 - step.V27, range);
+        output.V28 = Av1Transform1dMath.Clamp(-step.V28 + step.V31, range);
+        output.V29 = Av1Transform1dMath.Clamp(-step.V29 + step.V30, range);
+        output.V30 = Av1Transform1dMath.Clamp(step.V29 + step.V30, range);
+        output.V31 = Av1Transform1dMath.Clamp(step.V28 + step.V31, range);
+
+        // Stage 6 completes the low-frequency four-point DCT and rotates the next odd-frequency pairs.
+        stage++;
+        range = stageRange[stage];
+        step.V0 = Av1Transform1dMath.Clamp(output.V0 + output.V3, range);
+        step.V1 = Av1Transform1dMath.Clamp(output.V1 + output.V2, range);
+        step.V2 = Av1Transform1dMath.Clamp(output.V1 - output.V2, range);
+        step.V3 = Av1Transform1dMath.Clamp(output.V0 - output.V3, range);
+        step.V4 = output.V4;
+        step.V5 = Av1Transform1dMath.HalfButterfly(-cospi[32], output.V5, cospi[32], output.V6, cosBit);
+        step.V6 = Av1Transform1dMath.HalfButterfly(cospi[32], output.V5, cospi[32], output.V6, cosBit);
+        step.V7 = output.V7;
+        step.V8 = Av1Transform1dMath.Clamp(output.V8 + output.V11, range);
+        step.V9 = Av1Transform1dMath.Clamp(output.V9 + output.V10, range);
+        step.V10 = Av1Transform1dMath.Clamp(output.V9 - output.V10, range);
+        step.V11 = Av1Transform1dMath.Clamp(output.V8 - output.V11, range);
+        step.V12 = Av1Transform1dMath.Clamp(-output.V12 + output.V15, range);
+        step.V13 = Av1Transform1dMath.Clamp(-output.V13 + output.V14, range);
+        step.V14 = Av1Transform1dMath.Clamp(output.V13 + output.V14, range);
+        step.V15 = Av1Transform1dMath.Clamp(output.V12 + output.V15, range);
+        step.V16 = output.V16;
+        step.V17 = output.V17;
+        step.V18 = Av1Transform1dMath.HalfButterfly(-cospi[16], output.V18, cospi[48], output.V29, cosBit);
+        step.V19 = Av1Transform1dMath.HalfButterfly(-cospi[16], output.V19, cospi[48], output.V28, cosBit);
+        step.V20 = Av1Transform1dMath.HalfButterfly(-cospi[48], output.V20, -cospi[16], output.V27, cosBit);
+        step.V21 = Av1Transform1dMath.HalfButterfly(-cospi[48], output.V21, -cospi[16], output.V26, cosBit);
+        step.V22 = output.V22;
+        step.V23 = output.V23;
+        step.V24 = output.V24;
+        step.V25 = output.V25;
+        step.V26 = Av1Transform1dMath.HalfButterfly(-cospi[16], output.V21, cospi[48], output.V26, cosBit);
+        step.V27 = Av1Transform1dMath.HalfButterfly(-cospi[16], output.V20, cospi[48], output.V27, cosBit);
+        step.V28 = Av1Transform1dMath.HalfButterfly(cospi[48], output.V19, cospi[16], output.V28, cosBit);
+        step.V29 = Av1Transform1dMath.HalfButterfly(cospi[48], output.V18, cospi[16], output.V29, cosBit);
+        step.V30 = output.V30;
+        step.V31 = output.V31;
+
+        // Stage 7 widens the reconstructed groups through their next butterfly level.
+        stage++;
+        range = stageRange[stage];
+        output.V0 = Av1Transform1dMath.Clamp(step.V0 + step.V7, range);
+        output.V1 = Av1Transform1dMath.Clamp(step.V1 + step.V6, range);
+        output.V2 = Av1Transform1dMath.Clamp(step.V2 + step.V5, range);
+        output.V3 = Av1Transform1dMath.Clamp(step.V3 + step.V4, range);
+        output.V4 = Av1Transform1dMath.Clamp(step.V3 - step.V4, range);
+        output.V5 = Av1Transform1dMath.Clamp(step.V2 - step.V5, range);
+        output.V6 = Av1Transform1dMath.Clamp(step.V1 - step.V6, range);
+        output.V7 = Av1Transform1dMath.Clamp(step.V0 - step.V7, range);
+        output.V8 = step.V8;
+        output.V9 = step.V9;
+        output.V10 = Av1Transform1dMath.HalfButterfly(-cospi[32], step.V10, cospi[32], step.V13, cosBit);
+        output.V11 = Av1Transform1dMath.HalfButterfly(-cospi[32], step.V11, cospi[32], step.V12, cosBit);
+        output.V12 = Av1Transform1dMath.HalfButterfly(cospi[32], step.V11, cospi[32], step.V12, cosBit);
+        output.V13 = Av1Transform1dMath.HalfButterfly(cospi[32], step.V10, cospi[32], step.V13, cosBit);
+        output.V14 = step.V14;
+        output.V15 = step.V15;
+        output.V16 = Av1Transform1dMath.Clamp(step.V16 + step.V23, range);
+        output.V17 = Av1Transform1dMath.Clamp(step.V17 + step.V22, range);
+        output.V18 = Av1Transform1dMath.Clamp(step.V18 + step.V21, range);
+        output.V19 = Av1Transform1dMath.Clamp(step.V19 + step.V20, range);
+        output.V20 = Av1Transform1dMath.Clamp(step.V19 - step.V20, range);
+        output.V21 = Av1Transform1dMath.Clamp(step.V18 - step.V21, range);
+        output.V22 = Av1Transform1dMath.Clamp(step.V17 - step.V22, range);
+        output.V23 = Av1Transform1dMath.Clamp(step.V16 - step.V23, range);
+        output.V24 = Av1Transform1dMath.Clamp(-step.V24 + step.V31, range);
+        output.V25 = Av1Transform1dMath.Clamp(-step.V25 + step.V30, range);
+        output.V26 = Av1Transform1dMath.Clamp(-step.V26 + step.V29, range);
+        output.V27 = Av1Transform1dMath.Clamp(-step.V27 + step.V28, range);
+        output.V28 = Av1Transform1dMath.Clamp(step.V27 + step.V28, range);
+        output.V29 = Av1Transform1dMath.Clamp(step.V26 + step.V29, range);
+        output.V30 = Av1Transform1dMath.Clamp(step.V25 + step.V30, range);
+        output.V31 = Av1Transform1dMath.Clamp(step.V24 + step.V31, range);
+
+        // Stage 8 applies the remaining pi/4 rotations before the terminal spatial merge.
+        stage++;
+        range = stageRange[stage];
+        step.V0 = Av1Transform1dMath.Clamp(output.V0 + output.V15, range);
+        step.V1 = Av1Transform1dMath.Clamp(output.V1 + output.V14, range);
+        step.V2 = Av1Transform1dMath.Clamp(output.V2 + output.V13, range);
+        step.V3 = Av1Transform1dMath.Clamp(output.V3 + output.V12, range);
+        step.V4 = Av1Transform1dMath.Clamp(output.V4 + output.V11, range);
+        step.V5 = Av1Transform1dMath.Clamp(output.V5 + output.V10, range);
+        step.V6 = Av1Transform1dMath.Clamp(output.V6 + output.V9, range);
+        step.V7 = Av1Transform1dMath.Clamp(output.V7 + output.V8, range);
+        step.V8 = Av1Transform1dMath.Clamp(output.V7 - output.V8, range);
+        step.V9 = Av1Transform1dMath.Clamp(output.V6 - output.V9, range);
+        step.V10 = Av1Transform1dMath.Clamp(output.V5 - output.V10, range);
+        step.V11 = Av1Transform1dMath.Clamp(output.V4 - output.V11, range);
+        step.V12 = Av1Transform1dMath.Clamp(output.V3 - output.V12, range);
+        step.V13 = Av1Transform1dMath.Clamp(output.V2 - output.V13, range);
+        step.V14 = Av1Transform1dMath.Clamp(output.V1 - output.V14, range);
+        step.V15 = Av1Transform1dMath.Clamp(output.V0 - output.V15, range);
+        step.V16 = output.V16;
+        step.V17 = output.V17;
+        step.V18 = output.V18;
+        step.V19 = output.V19;
+        step.V20 = Av1Transform1dMath.HalfButterfly(-cospi[32], output.V20, cospi[32], output.V27, cosBit);
+        step.V21 = Av1Transform1dMath.HalfButterfly(-cospi[32], output.V21, cospi[32], output.V26, cosBit);
+        step.V22 = Av1Transform1dMath.HalfButterfly(-cospi[32], output.V22, cospi[32], output.V25, cosBit);
+        step.V23 = Av1Transform1dMath.HalfButterfly(-cospi[32], output.V23, cospi[32], output.V24, cosBit);
+        step.V24 = Av1Transform1dMath.HalfButterfly(cospi[32], output.V23, cospi[32], output.V24, cosBit);
+        step.V25 = Av1Transform1dMath.HalfButterfly(cospi[32], output.V22, cospi[32], output.V25, cosBit);
+        step.V26 = Av1Transform1dMath.HalfButterfly(cospi[32], output.V21, cospi[32], output.V26, cosBit);
+        step.V27 = Av1Transform1dMath.HalfButterfly(cospi[32], output.V20, cospi[32], output.V27, cosBit);
+        step.V28 = output.V28;
+        step.V29 = output.V29;
+        step.V30 = output.V30;
+        step.V31 = output.V31;
+
+        // Stage 9 merges the even and odd halves into spatial order and clamps every result.
+        stage++;
+        range = stageRange[stage];
+        output.V0 = Av1Transform1dMath.Clamp(step.V0 + step.V31, range);
+        output.V1 = Av1Transform1dMath.Clamp(step.V1 + step.V30, range);
+        output.V2 = Av1Transform1dMath.Clamp(step.V2 + step.V29, range);
+        output.V3 = Av1Transform1dMath.Clamp(step.V3 + step.V28, range);
+        output.V4 = Av1Transform1dMath.Clamp(step.V4 + step.V27, range);
+        output.V5 = Av1Transform1dMath.Clamp(step.V5 + step.V26, range);
+        output.V6 = Av1Transform1dMath.Clamp(step.V6 + step.V25, range);
+        output.V7 = Av1Transform1dMath.Clamp(step.V7 + step.V24, range);
+        output.V8 = Av1Transform1dMath.Clamp(step.V8 + step.V23, range);
+        output.V9 = Av1Transform1dMath.Clamp(step.V9 + step.V22, range);
+        output.V10 = Av1Transform1dMath.Clamp(step.V10 + step.V21, range);
+        output.V11 = Av1Transform1dMath.Clamp(step.V11 + step.V20, range);
+        output.V12 = Av1Transform1dMath.Clamp(step.V12 + step.V19, range);
+        output.V13 = Av1Transform1dMath.Clamp(step.V13 + step.V18, range);
+        output.V14 = Av1Transform1dMath.Clamp(step.V14 + step.V17, range);
+        output.V15 = Av1Transform1dMath.Clamp(step.V15 + step.V16, range);
+        output.V16 = Av1Transform1dMath.Clamp(step.V15 - step.V16, range);
+        output.V17 = Av1Transform1dMath.Clamp(step.V14 - step.V17, range);
+        output.V18 = Av1Transform1dMath.Clamp(step.V13 - step.V18, range);
+        output.V19 = Av1Transform1dMath.Clamp(step.V12 - step.V19, range);
+        output.V20 = Av1Transform1dMath.Clamp(step.V11 - step.V20, range);
+        output.V21 = Av1Transform1dMath.Clamp(step.V10 - step.V21, range);
+        output.V22 = Av1Transform1dMath.Clamp(step.V9 - step.V22, range);
+        output.V23 = Av1Transform1dMath.Clamp(step.V8 - step.V23, range);
+        output.V24 = Av1Transform1dMath.Clamp(step.V7 - step.V24, range);
+        output.V25 = Av1Transform1dMath.Clamp(step.V6 - step.V25, range);
+        output.V26 = Av1Transform1dMath.Clamp(step.V5 - step.V26, range);
+        output.V27 = Av1Transform1dMath.Clamp(step.V4 - step.V27, range);
+        output.V28 = Av1Transform1dMath.Clamp(step.V3 - step.V28, range);
+        output.V29 = Av1Transform1dMath.Clamp(step.V2 - step.V29, range);
+        output.V30 = Av1Transform1dMath.Clamp(step.V1 - step.V30, range);
+        output.V31 = Av1Transform1dMath.Clamp(step.V0 - step.V31, range);
+    }
+
+    /// <summary>
+    /// Applies the transform to four independent axes in parallel.
+    /// </summary>
+    /// <param name="input">The source values for the parallel transform axes.</param>
+    /// <param name="output">The destination values for the parallel transform axes.</param>
+    /// <param name="step">The fixed stage storage for the parallel transform axes.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    /// <param name="stageRange">The signed-bit range assigned to each transform stage.</param>
+    public static void Transform(
+        ref Av1TransformVector<Vector128<int>> input,
+        ref Av1TransformVector<Vector128<int>> output,
+        ref Av1TransformVector<Vector128<int>> step,
+        int cosBit,
+        Av1TransformStageRange stageRange)
+    {
+        ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
+        int stage = 0;
+
+        // Stage 1 permutes frequency-ordered coefficients into the recursive DCT factorization order.
+        stage++;
+        output.V0 = input.V0;
+        output.V1 = input.V16;
+        output.V2 = input.V8;
+        output.V3 = input.V24;
+        output.V4 = input.V4;
+        output.V5 = input.V20;
+        output.V6 = input.V12;
+        output.V7 = input.V28;
+        output.V8 = input.V2;
+        output.V9 = input.V18;
+        output.V10 = input.V10;
+        output.V11 = input.V26;
+        output.V12 = input.V6;
+        output.V13 = input.V22;
+        output.V14 = input.V14;
+        output.V15 = input.V30;
+        output.V16 = input.V1;
+        output.V17 = input.V17;
+        output.V18 = input.V9;
+        output.V19 = input.V25;
+        output.V20 = input.V5;
+        output.V21 = input.V21;
+        output.V22 = input.V13;
+        output.V23 = input.V29;
+        output.V24 = input.V3;
+        output.V25 = input.V19;
+        output.V26 = input.V11;
+        output.V27 = input.V27;
+        output.V28 = input.V7;
+        output.V29 = input.V23;
+        output.V30 = input.V15;
+        output.V31 = input.V31;
+
+        // Stage 2 rotates the highest odd-frequency coefficient pairs by their pi/64 angles.
+        stage++;
+        step.V0 = output.V0;
+        step.V1 = output.V1;
+        step.V2 = output.V2;
+        step.V3 = output.V3;
+        step.V4 = output.V4;
+        step.V5 = output.V5;
+        step.V6 = output.V6;
+        step.V7 = output.V7;
+        step.V8 = output.V8;
+        step.V9 = output.V9;
+        step.V10 = output.V10;
+        step.V11 = output.V11;
+        step.V12 = output.V12;
+        step.V13 = output.V13;
+        step.V14 = output.V14;
+        step.V15 = output.V15;
+        step.V16 = Av1Transform1dMath.HalfButterfly(cospi[62], output.V16, -cospi[2], output.V31, cosBit);
+        step.V17 = Av1Transform1dMath.HalfButterfly(cospi[30], output.V17, -cospi[34], output.V30, cosBit);
+        step.V18 = Av1Transform1dMath.HalfButterfly(cospi[46], output.V18, -cospi[18], output.V29, cosBit);
+        step.V19 = Av1Transform1dMath.HalfButterfly(cospi[14], output.V19, -cospi[50], output.V28, cosBit);
+        step.V20 = Av1Transform1dMath.HalfButterfly(cospi[54], output.V20, -cospi[10], output.V27, cosBit);
+        step.V21 = Av1Transform1dMath.HalfButterfly(cospi[22], output.V21, -cospi[42], output.V26, cosBit);
+        step.V22 = Av1Transform1dMath.HalfButterfly(cospi[38], output.V22, -cospi[26], output.V25, cosBit);
+        step.V23 = Av1Transform1dMath.HalfButterfly(cospi[6], output.V23, -cospi[58], output.V24, cosBit);
+        step.V24 = Av1Transform1dMath.HalfButterfly(cospi[58], output.V23, cospi[6], output.V24, cosBit);
+        step.V25 = Av1Transform1dMath.HalfButterfly(cospi[26], output.V22, cospi[38], output.V25, cosBit);
+        step.V26 = Av1Transform1dMath.HalfButterfly(cospi[42], output.V21, cospi[22], output.V26, cosBit);
+        step.V27 = Av1Transform1dMath.HalfButterfly(cospi[10], output.V20, cospi[54], output.V27, cosBit);
+        step.V28 = Av1Transform1dMath.HalfButterfly(cospi[50], output.V19, cospi[14], output.V28, cosBit);
+        step.V29 = Av1Transform1dMath.HalfButterfly(cospi[18], output.V18, cospi[46], output.V29, cosBit);
+        step.V30 = Av1Transform1dMath.HalfButterfly(cospi[34], output.V17, cospi[30], output.V30, cosBit);
+        step.V31 = Av1Transform1dMath.HalfButterfly(cospi[2], output.V16, cospi[62], output.V31, cosBit);
+
+        // Stage 3 reconstructs the first nested groups and combines their adjacent odd terms.
+        stage++;
+        byte range = stageRange[stage];
+        output.V0 = step.V0;
+        output.V1 = step.V1;
+        output.V2 = step.V2;
+        output.V3 = step.V3;
+        output.V4 = step.V4;
+        output.V5 = step.V5;
+        output.V6 = step.V6;
+        output.V7 = step.V7;
+        output.V8 = Av1Transform1dMath.HalfButterfly(cospi[60], step.V8, -cospi[4], step.V15, cosBit);
+        output.V9 = Av1Transform1dMath.HalfButterfly(cospi[28], step.V9, -cospi[36], step.V14, cosBit);
+        output.V10 = Av1Transform1dMath.HalfButterfly(cospi[44], step.V10, -cospi[20], step.V13, cosBit);
+        output.V11 = Av1Transform1dMath.HalfButterfly(cospi[12], step.V11, -cospi[52], step.V12, cosBit);
+        output.V12 = Av1Transform1dMath.HalfButterfly(cospi[52], step.V11, cospi[12], step.V12, cosBit);
+        output.V13 = Av1Transform1dMath.HalfButterfly(cospi[20], step.V10, cospi[44], step.V13, cosBit);
+        output.V14 = Av1Transform1dMath.HalfButterfly(cospi[36], step.V9, cospi[28], step.V14, cosBit);
+        output.V15 = Av1Transform1dMath.HalfButterfly(cospi[4], step.V8, cospi[60], step.V15, cosBit);
+        output.V16 = Av1Transform1dMath.Clamp(step.V16 + step.V17, range);
+        output.V17 = Av1Transform1dMath.Clamp(step.V16 - step.V17, range);
+        output.V18 = Av1Transform1dMath.Clamp(-step.V18 + step.V19, range);
+        output.V19 = Av1Transform1dMath.Clamp(step.V18 + step.V19, range);
+        output.V20 = Av1Transform1dMath.Clamp(step.V20 + step.V21, range);
+        output.V21 = Av1Transform1dMath.Clamp(step.V20 - step.V21, range);
+        output.V22 = Av1Transform1dMath.Clamp(-step.V22 + step.V23, range);
+        output.V23 = Av1Transform1dMath.Clamp(step.V22 + step.V23, range);
+        output.V24 = Av1Transform1dMath.Clamp(step.V24 + step.V25, range);
+        output.V25 = Av1Transform1dMath.Clamp(step.V24 - step.V25, range);
+        output.V26 = Av1Transform1dMath.Clamp(-step.V26 + step.V27, range);
+        output.V27 = Av1Transform1dMath.Clamp(step.V26 + step.V27, range);
+        output.V28 = Av1Transform1dMath.Clamp(step.V28 + step.V29, range);
+        output.V29 = Av1Transform1dMath.Clamp(step.V28 - step.V29, range);
+        output.V30 = Av1Transform1dMath.Clamp(-step.V30 + step.V31, range);
+        output.V31 = Av1Transform1dMath.Clamp(step.V30 + step.V31, range);
+
+        // Stage 4 rotates the next odd-frequency level while preserving completed low-frequency lanes.
+        stage++;
+        range = stageRange[stage];
+        step.V0 = output.V0;
+        step.V1 = output.V1;
+        step.V2 = output.V2;
+        step.V3 = output.V3;
+        step.V4 = Av1Transform1dMath.HalfButterfly(cospi[56], output.V4, -cospi[8], output.V7, cosBit);
+        step.V5 = Av1Transform1dMath.HalfButterfly(cospi[24], output.V5, -cospi[40], output.V6, cosBit);
+        step.V6 = Av1Transform1dMath.HalfButterfly(cospi[40], output.V5, cospi[24], output.V6, cosBit);
+        step.V7 = Av1Transform1dMath.HalfButterfly(cospi[8], output.V4, cospi[56], step.V7, cosBit);
+        step.V8 = Av1Transform1dMath.Clamp(output.V8 + output.V9, range);
+        step.V9 = Av1Transform1dMath.Clamp(output.V8 - output.V9, range);
+        step.V10 = Av1Transform1dMath.Clamp(-output.V10 + output.V11, range);
+        step.V11 = Av1Transform1dMath.Clamp(output.V10 + output.V11, range);
+        step.V12 = Av1Transform1dMath.Clamp(output.V12 + output.V13, range);
+        step.V13 = Av1Transform1dMath.Clamp(output.V12 - output.V13, range);
+        step.V14 = Av1Transform1dMath.Clamp(-output.V14 + output.V15, range);
+        step.V15 = Av1Transform1dMath.Clamp(output.V14 + output.V15, range);
+        step.V16 = output.V16;
+        step.V17 = Av1Transform1dMath.HalfButterfly(-cospi[8], output.V17, cospi[56], output.V30, cosBit);
+        step.V18 = Av1Transform1dMath.HalfButterfly(-cospi[56], output.V18, -cospi[8], output.V29, cosBit);
+        step.V19 = output.V19;
+        step.V20 = output.V20;
+        step.V21 = Av1Transform1dMath.HalfButterfly(-cospi[40], output.V21, cospi[24], output.V26, cosBit);
+        step.V22 = Av1Transform1dMath.HalfButterfly(-cospi[24], output.V22, -cospi[40], output.V25, cosBit);
+        step.V23 = output.V23;
+        step.V24 = output.V24;
+        step.V25 = Av1Transform1dMath.HalfButterfly(-cospi[40], output.V22, cospi[24], output.V25, cosBit);
+        step.V26 = Av1Transform1dMath.HalfButterfly(cospi[24], output.V21, cospi[40], output.V26, cosBit);
+        step.V27 = output.V27;
+        step.V28 = output.V28;
+        step.V29 = Av1Transform1dMath.HalfButterfly(-cospi[8], output.V18, cospi[56], output.V29, cosBit);
+        step.V30 = Av1Transform1dMath.HalfButterfly(cospi[56], output.V17, cospi[8], output.V30, cosBit);
+        step.V31 = output.V31;
+
+        // Stage 5 reconstructs the embedded eight-point groups and combines adjacent odd terms.
+        stage++;
+        range = stageRange[stage];
+        output.V0 = Av1Transform1dMath.HalfButterfly(cospi[32], step.V0, cospi[32], step.V1, cosBit);
+        output.V1 = Av1Transform1dMath.HalfButterfly(cospi[32], step.V0, -cospi[32], step.V1, cosBit);
+        output.V2 = Av1Transform1dMath.HalfButterfly(cospi[48], step.V2, -cospi[16], step.V3, cosBit);
+        output.V3 = Av1Transform1dMath.HalfButterfly(cospi[16], step.V2, cospi[48], step.V3, cosBit);
+        output.V4 = Av1Transform1dMath.Clamp(step.V4 + step.V5, range);
+        output.V5 = Av1Transform1dMath.Clamp(step.V4 - step.V5, range);
+        output.V6 = Av1Transform1dMath.Clamp(-step.V6 + step.V7, range);
+        output.V7 = Av1Transform1dMath.Clamp(step.V6 + step.V7, range);
+        output.V8 = step.V8;
+        output.V9 = Av1Transform1dMath.HalfButterfly(-cospi[16], step.V9, cospi[48], step.V14, cosBit);
+        output.V10 = Av1Transform1dMath.HalfButterfly(-cospi[48], step.V10, -cospi[16], step.V13, cosBit);
+        output.V11 = step.V11;
+        output.V12 = step.V12;
+        output.V13 = Av1Transform1dMath.HalfButterfly(-cospi[16], step.V10, cospi[48], step.V13, cosBit);
+        output.V14 = Av1Transform1dMath.HalfButterfly(cospi[48], step.V9, cospi[16], step.V14, cosBit);
+        output.V15 = step.V15;
+        output.V16 = Av1Transform1dMath.Clamp(step.V16 + step.V19, range);
+        output.V17 = Av1Transform1dMath.Clamp(step.V17 + step.V18, range);
+        output.V18 = Av1Transform1dMath.Clamp(step.V17 - step.V18, range);
+        output.V19 = Av1Transform1dMath.Clamp(step.V16 - step.V19, range);
+        output.V20 = Av1Transform1dMath.Clamp(-step.V20 + step.V23, range);
+        output.V21 = Av1Transform1dMath.Clamp(-step.V21 + step.V22, range);
+        output.V22 = Av1Transform1dMath.Clamp(step.V21 + step.V22, range);
+        output.V23 = Av1Transform1dMath.Clamp(step.V20 + step.V23, range);
+        output.V24 = Av1Transform1dMath.Clamp(step.V24 + step.V27, range);
+        output.V25 = Av1Transform1dMath.Clamp(step.V25 + step.V26, range);
+        output.V26 = Av1Transform1dMath.Clamp(step.V25 - step.V26, range);
+        output.V27 = Av1Transform1dMath.Clamp(step.V24 - step.V27, range);
+        output.V28 = Av1Transform1dMath.Clamp(-step.V28 + step.V31, range);
+        output.V29 = Av1Transform1dMath.Clamp(-step.V29 + step.V30, range);
+        output.V30 = Av1Transform1dMath.Clamp(step.V29 + step.V30, range);
+        output.V31 = Av1Transform1dMath.Clamp(step.V28 + step.V31, range);
+
+        // Stage 6 completes the low-frequency four-point DCT and rotates the next odd-frequency pairs.
+        stage++;
+        range = stageRange[stage];
+        step.V0 = Av1Transform1dMath.Clamp(output.V0 + output.V3, range);
+        step.V1 = Av1Transform1dMath.Clamp(output.V1 + output.V2, range);
+        step.V2 = Av1Transform1dMath.Clamp(output.V1 - output.V2, range);
+        step.V3 = Av1Transform1dMath.Clamp(output.V0 - output.V3, range);
+        step.V4 = output.V4;
+        step.V5 = Av1Transform1dMath.HalfButterfly(-cospi[32], output.V5, cospi[32], output.V6, cosBit);
+        step.V6 = Av1Transform1dMath.HalfButterfly(cospi[32], output.V5, cospi[32], output.V6, cosBit);
+        step.V7 = output.V7;
+        step.V8 = Av1Transform1dMath.Clamp(output.V8 + output.V11, range);
+        step.V9 = Av1Transform1dMath.Clamp(output.V9 + output.V10, range);
+        step.V10 = Av1Transform1dMath.Clamp(output.V9 - output.V10, range);
+        step.V11 = Av1Transform1dMath.Clamp(output.V8 - output.V11, range);
+        step.V12 = Av1Transform1dMath.Clamp(-output.V12 + output.V15, range);
+        step.V13 = Av1Transform1dMath.Clamp(-output.V13 + output.V14, range);
+        step.V14 = Av1Transform1dMath.Clamp(output.V13 + output.V14, range);
+        step.V15 = Av1Transform1dMath.Clamp(output.V12 + output.V15, range);
+        step.V16 = output.V16;
+        step.V17 = output.V17;
+        step.V18 = Av1Transform1dMath.HalfButterfly(-cospi[16], output.V18, cospi[48], output.V29, cosBit);
+        step.V19 = Av1Transform1dMath.HalfButterfly(-cospi[16], output.V19, cospi[48], output.V28, cosBit);
+        step.V20 = Av1Transform1dMath.HalfButterfly(-cospi[48], output.V20, -cospi[16], output.V27, cosBit);
+        step.V21 = Av1Transform1dMath.HalfButterfly(-cospi[48], output.V21, -cospi[16], output.V26, cosBit);
+        step.V22 = output.V22;
+        step.V23 = output.V23;
+        step.V24 = output.V24;
+        step.V25 = output.V25;
+        step.V26 = Av1Transform1dMath.HalfButterfly(-cospi[16], output.V21, cospi[48], output.V26, cosBit);
+        step.V27 = Av1Transform1dMath.HalfButterfly(-cospi[16], output.V20, cospi[48], output.V27, cosBit);
+        step.V28 = Av1Transform1dMath.HalfButterfly(cospi[48], output.V19, cospi[16], output.V28, cosBit);
+        step.V29 = Av1Transform1dMath.HalfButterfly(cospi[48], output.V18, cospi[16], output.V29, cosBit);
+        step.V30 = output.V30;
+        step.V31 = output.V31;
+
+        // Stage 7 widens the reconstructed groups through their next butterfly level.
+        stage++;
+        range = stageRange[stage];
+        output.V0 = Av1Transform1dMath.Clamp(step.V0 + step.V7, range);
+        output.V1 = Av1Transform1dMath.Clamp(step.V1 + step.V6, range);
+        output.V2 = Av1Transform1dMath.Clamp(step.V2 + step.V5, range);
+        output.V3 = Av1Transform1dMath.Clamp(step.V3 + step.V4, range);
+        output.V4 = Av1Transform1dMath.Clamp(step.V3 - step.V4, range);
+        output.V5 = Av1Transform1dMath.Clamp(step.V2 - step.V5, range);
+        output.V6 = Av1Transform1dMath.Clamp(step.V1 - step.V6, range);
+        output.V7 = Av1Transform1dMath.Clamp(step.V0 - step.V7, range);
+        output.V8 = step.V8;
+        output.V9 = step.V9;
+        output.V10 = Av1Transform1dMath.HalfButterfly(-cospi[32], step.V10, cospi[32], step.V13, cosBit);
+        output.V11 = Av1Transform1dMath.HalfButterfly(-cospi[32], step.V11, cospi[32], step.V12, cosBit);
+        output.V12 = Av1Transform1dMath.HalfButterfly(cospi[32], step.V11, cospi[32], step.V12, cosBit);
+        output.V13 = Av1Transform1dMath.HalfButterfly(cospi[32], step.V10, cospi[32], step.V13, cosBit);
+        output.V14 = step.V14;
+        output.V15 = step.V15;
+        output.V16 = Av1Transform1dMath.Clamp(step.V16 + step.V23, range);
+        output.V17 = Av1Transform1dMath.Clamp(step.V17 + step.V22, range);
+        output.V18 = Av1Transform1dMath.Clamp(step.V18 + step.V21, range);
+        output.V19 = Av1Transform1dMath.Clamp(step.V19 + step.V20, range);
+        output.V20 = Av1Transform1dMath.Clamp(step.V19 - step.V20, range);
+        output.V21 = Av1Transform1dMath.Clamp(step.V18 - step.V21, range);
+        output.V22 = Av1Transform1dMath.Clamp(step.V17 - step.V22, range);
+        output.V23 = Av1Transform1dMath.Clamp(step.V16 - step.V23, range);
+        output.V24 = Av1Transform1dMath.Clamp(-step.V24 + step.V31, range);
+        output.V25 = Av1Transform1dMath.Clamp(-step.V25 + step.V30, range);
+        output.V26 = Av1Transform1dMath.Clamp(-step.V26 + step.V29, range);
+        output.V27 = Av1Transform1dMath.Clamp(-step.V27 + step.V28, range);
+        output.V28 = Av1Transform1dMath.Clamp(step.V27 + step.V28, range);
+        output.V29 = Av1Transform1dMath.Clamp(step.V26 + step.V29, range);
+        output.V30 = Av1Transform1dMath.Clamp(step.V25 + step.V30, range);
+        output.V31 = Av1Transform1dMath.Clamp(step.V24 + step.V31, range);
+
+        // Stage 8 applies the remaining pi/4 rotations before the terminal spatial merge.
+        stage++;
+        range = stageRange[stage];
+        step.V0 = Av1Transform1dMath.Clamp(output.V0 + output.V15, range);
+        step.V1 = Av1Transform1dMath.Clamp(output.V1 + output.V14, range);
+        step.V2 = Av1Transform1dMath.Clamp(output.V2 + output.V13, range);
+        step.V3 = Av1Transform1dMath.Clamp(output.V3 + output.V12, range);
+        step.V4 = Av1Transform1dMath.Clamp(output.V4 + output.V11, range);
+        step.V5 = Av1Transform1dMath.Clamp(output.V5 + output.V10, range);
+        step.V6 = Av1Transform1dMath.Clamp(output.V6 + output.V9, range);
+        step.V7 = Av1Transform1dMath.Clamp(output.V7 + output.V8, range);
+        step.V8 = Av1Transform1dMath.Clamp(output.V7 - output.V8, range);
+        step.V9 = Av1Transform1dMath.Clamp(output.V6 - output.V9, range);
+        step.V10 = Av1Transform1dMath.Clamp(output.V5 - output.V10, range);
+        step.V11 = Av1Transform1dMath.Clamp(output.V4 - output.V11, range);
+        step.V12 = Av1Transform1dMath.Clamp(output.V3 - output.V12, range);
+        step.V13 = Av1Transform1dMath.Clamp(output.V2 - output.V13, range);
+        step.V14 = Av1Transform1dMath.Clamp(output.V1 - output.V14, range);
+        step.V15 = Av1Transform1dMath.Clamp(output.V0 - output.V15, range);
+        step.V16 = output.V16;
+        step.V17 = output.V17;
+        step.V18 = output.V18;
+        step.V19 = output.V19;
+        step.V20 = Av1Transform1dMath.HalfButterfly(-cospi[32], output.V20, cospi[32], output.V27, cosBit);
+        step.V21 = Av1Transform1dMath.HalfButterfly(-cospi[32], output.V21, cospi[32], output.V26, cosBit);
+        step.V22 = Av1Transform1dMath.HalfButterfly(-cospi[32], output.V22, cospi[32], output.V25, cosBit);
+        step.V23 = Av1Transform1dMath.HalfButterfly(-cospi[32], output.V23, cospi[32], output.V24, cosBit);
+        step.V24 = Av1Transform1dMath.HalfButterfly(cospi[32], output.V23, cospi[32], output.V24, cosBit);
+        step.V25 = Av1Transform1dMath.HalfButterfly(cospi[32], output.V22, cospi[32], output.V25, cosBit);
+        step.V26 = Av1Transform1dMath.HalfButterfly(cospi[32], output.V21, cospi[32], output.V26, cosBit);
+        step.V27 = Av1Transform1dMath.HalfButterfly(cospi[32], output.V20, cospi[32], output.V27, cosBit);
+        step.V28 = output.V28;
+        step.V29 = output.V29;
+        step.V30 = output.V30;
+        step.V31 = output.V31;
+
+        // Stage 9 merges the even and odd halves into spatial order and clamps every result.
+        stage++;
+        range = stageRange[stage];
+        output.V0 = Av1Transform1dMath.Clamp(step.V0 + step.V31, range);
+        output.V1 = Av1Transform1dMath.Clamp(step.V1 + step.V30, range);
+        output.V2 = Av1Transform1dMath.Clamp(step.V2 + step.V29, range);
+        output.V3 = Av1Transform1dMath.Clamp(step.V3 + step.V28, range);
+        output.V4 = Av1Transform1dMath.Clamp(step.V4 + step.V27, range);
+        output.V5 = Av1Transform1dMath.Clamp(step.V5 + step.V26, range);
+        output.V6 = Av1Transform1dMath.Clamp(step.V6 + step.V25, range);
+        output.V7 = Av1Transform1dMath.Clamp(step.V7 + step.V24, range);
+        output.V8 = Av1Transform1dMath.Clamp(step.V8 + step.V23, range);
+        output.V9 = Av1Transform1dMath.Clamp(step.V9 + step.V22, range);
+        output.V10 = Av1Transform1dMath.Clamp(step.V10 + step.V21, range);
+        output.V11 = Av1Transform1dMath.Clamp(step.V11 + step.V20, range);
+        output.V12 = Av1Transform1dMath.Clamp(step.V12 + step.V19, range);
+        output.V13 = Av1Transform1dMath.Clamp(step.V13 + step.V18, range);
+        output.V14 = Av1Transform1dMath.Clamp(step.V14 + step.V17, range);
+        output.V15 = Av1Transform1dMath.Clamp(step.V15 + step.V16, range);
+        output.V16 = Av1Transform1dMath.Clamp(step.V15 - step.V16, range);
+        output.V17 = Av1Transform1dMath.Clamp(step.V14 - step.V17, range);
+        output.V18 = Av1Transform1dMath.Clamp(step.V13 - step.V18, range);
+        output.V19 = Av1Transform1dMath.Clamp(step.V12 - step.V19, range);
+        output.V20 = Av1Transform1dMath.Clamp(step.V11 - step.V20, range);
+        output.V21 = Av1Transform1dMath.Clamp(step.V10 - step.V21, range);
+        output.V22 = Av1Transform1dMath.Clamp(step.V9 - step.V22, range);
+        output.V23 = Av1Transform1dMath.Clamp(step.V8 - step.V23, range);
+        output.V24 = Av1Transform1dMath.Clamp(step.V7 - step.V24, range);
+        output.V25 = Av1Transform1dMath.Clamp(step.V6 - step.V25, range);
+        output.V26 = Av1Transform1dMath.Clamp(step.V5 - step.V26, range);
+        output.V27 = Av1Transform1dMath.Clamp(step.V4 - step.V27, range);
+        output.V28 = Av1Transform1dMath.Clamp(step.V3 - step.V28, range);
+        output.V29 = Av1Transform1dMath.Clamp(step.V2 - step.V29, range);
+        output.V30 = Av1Transform1dMath.Clamp(step.V1 - step.V30, range);
+        output.V31 = Av1Transform1dMath.Clamp(step.V0 - step.V31, range);
     }
 }

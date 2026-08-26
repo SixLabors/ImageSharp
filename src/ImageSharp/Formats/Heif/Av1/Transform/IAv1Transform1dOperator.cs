@@ -53,19 +53,4 @@ internal interface IAv1Transform1dOperator
         ref Av1TransformVector<Vector256<int>> step,
         int cosBit,
         Av1TransformStageRange stageRange);
-
-    /// <summary>
-    /// Transforms sixteen independent axes in parallel.
-    /// </summary>
-    /// <param name="input">The source values for sixteen transform axes.</param>
-    /// <param name="output">The destination values for sixteen transform axes.</param>
-    /// <param name="step">The fixed stage storage for sixteen transform axes.</param>
-    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
-    /// <param name="stageRange">The signed-bit range assigned to each transform stage.</param>
-    public static abstract void Transform(
-        ref Av1TransformVector<Vector512<int>> input,
-        ref Av1TransformVector<Vector512<int>> output,
-        ref Av1TransformVector<Vector512<int>> step,
-        int cosBit,
-        Av1TransformStageRange stageRange);
 }

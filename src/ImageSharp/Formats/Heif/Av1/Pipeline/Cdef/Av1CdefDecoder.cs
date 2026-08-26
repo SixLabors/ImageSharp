@@ -130,7 +130,7 @@ internal class Av1CdefDecoder
         // CDEF output must never become input to a later block. The sentinel border also makes
         // frame-edge taps follow AV1 without exposing the frame buffer's prediction padding.
         ushort[] source = new ushort[(planeHeight + (SourceBorder * 2)) * sourceStride];
-        Array.Fill(source, Av1CdefKernels.VeryLarge);
+        Array.Fill(source, Av1CdefFilter.VeryLarge);
 
         Span<byte> lowBitDepthDestination = default;
         Span<ushort> highBitDepthDestination = default;
@@ -236,7 +236,7 @@ internal class Av1CdefDecoder
 
                         if (plane == Av1Plane.Y)
                         {
-                            directions[directionIndex] = Av1CdefKernels.FindDirection(
+                            directions[directionIndex] = Av1CdefFilter.FindDirection(
                                 source,
                                 sourceOffset,
                                 sourceStride,
@@ -250,7 +250,7 @@ internal class Av1CdefDecoder
                         }
 
                         int filteredPrimaryStrength = plane == Av1Plane.Y
-                            ? Av1CdefKernels.AdjustStrength(primaryStrength, variances[directionIndex])
+                            ? Av1CdefFilter.AdjustStrength(primaryStrength, variances[directionIndex])
                             : primaryStrength;
 
                         if (filteredPrimaryStrength == 0 && secondaryStrength == 0)
@@ -261,10 +261,10 @@ internal class Av1CdefDecoder
                         // Secondary-only filtering uses direction zero; otherwise chroma remaps the
                         // luma direction into its asymmetrically subsampled sample grid when required.
                         int direction = primaryStrength != 0
-                            ? Av1CdefKernels.ConvertDirection(directions[directionIndex], subsamplingX, subsamplingY)
+                            ? Av1CdefFilter.ConvertDirection(directions[directionIndex], subsamplingX, subsamplingY)
                             : 0;
 
-                        Av1CdefKernels.FilterBlock(
+                        Av1CdefFilter.FilterBlock(
                             source,
                             sourceOffset,
                             sourceStride,

@@ -87,6 +87,14 @@ public class Av1ReconstructionConformanceTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePresentedFixtures, PresentationConfigurations);
 
     /// <summary>
+    /// Verifies active normative super-resolution, chroma-width rounding, replicated edges, and exact native samples
+    /// against scalar libaom for independently encoded eight-, ten-, and twelve-bit still-picture streams.
+    /// </summary>
+    [Fact]
+    public void DecodeWithSuperResolutionMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSuperResolutionFixtures, ReconstructionConfigurations);
+
+    /// <summary>
     /// Validates every active-CDEF fixture under the hardware configuration selected by <see cref="FeatureTestRunner"/>.
     /// </summary>
     private static void ValidateActiveCdefFixtures()
@@ -145,6 +153,37 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
+    /// Validates every active super-resolution fixture under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidateSuperResolutionFixtures()
+    {
+        ValidateSuperResolutionFixture(
+            TestImages.Heif.Av1SuperResolution8BitPayload,
+            TestImages.Heif.Av1SuperResolution8BitReference,
+            768,
+            512,
+            Av1BitDepth.EightBit,
+            Av1ColorFormat.Yuv420);
+
+        ValidateSuperResolutionFixture(
+            TestImages.Heif.Av1SuperResolution10BitPayload,
+            TestImages.Heif.Av1SuperResolution10BitReference,
+            1024,
+            428,
+            Av1BitDepth.TenBit,
+            Av1ColorFormat.Yuv444);
+
+        ValidateSuperResolutionFixture(
+            TestImages.Heif.Av1SuperResolution12BitPayload,
+            TestImages.Heif.Av1SuperResolution12BitReference,
+            1024,
+            428,
+            Av1BitDepth.TwelveBit,
+            Av1ColorFormat.Yuv444);
+    }
+
+    /// <summary>
     /// Validates one elementary-stream sample and its containing AVIF image.
     /// </summary>
     /// <param name="imagePath">The complete AVIF container.</param>
@@ -179,6 +218,7 @@ public class Av1ReconstructionConformanceTests
     /// <param name="bitDepth">The expected AV1 sample precision.</param>
     /// <param name="colorFormat">The expected native chroma-sampling layout.</param>
     /// <param name="requireActiveCdef">Indicates whether the stream must signal and select nonzero CDEF strengths.</param>
+    /// <param name="requireSuperResolution">Indicates whether the stream must use normative horizontal upscaling.</param>
     private static void ValidateNativeFixture(
         string payloadPath,
         string referencePath,
@@ -186,7 +226,8 @@ public class Av1ReconstructionConformanceTests
         int height,
         Av1BitDepth bitDepth,
         Av1ColorFormat colorFormat,
-        bool requireActiveCdef)
+        bool requireActiveCdef,
+        bool requireSuperResolution = false)
     {
         byte[] payload = TestFile.Create(payloadPath).Bytes;
         byte[] reference = TestFile.Create(referencePath).Bytes;
@@ -198,6 +239,15 @@ public class Av1ReconstructionConformanceTests
         Assert.Equal(bitDepth, frameBuffer.BitDepth);
         Assert.Equal(colorFormat, frameBuffer.ColorFormat);
         Assert.NotNull(decoder.FrameHeader);
+
+        if (requireSuperResolution)
+        {
+            ObuFrameSize frameSize = decoder.FrameHeader.FrameSize;
+            Assert.True(frameSize.FrameWidth < frameSize.SuperResolutionUpscaledWidth);
+            Assert.Equal(width, frameSize.SuperResolutionUpscaledWidth);
+            Assert.False(decoder.FrameHeader.LoopRestorationParameters.UsesLoopRestoration);
+        }
+
         ObuLoopFilterParameters filterParameters = decoder.FrameHeader.LoopFilterParameters;
         Assert.True(
             filterParameters.FilterLevel[0] != 0
@@ -260,6 +310,32 @@ public class Av1ReconstructionConformanceTests
         Av1BitDepth bitDepth,
         Av1ColorFormat colorFormat)
         => ValidateNativeFixture(payloadPath, referencePath, width, height, bitDepth, colorFormat, requireActiveCdef: true);
+
+    /// <summary>
+    /// Validates one independently encoded stream that activates normative super-resolution.
+    /// </summary>
+    /// <param name="payloadPath">The AV1 elementary-stream sample.</param>
+    /// <param name="referencePath">The native planar output produced by the pinned scalar libaom decoder.</param>
+    /// <param name="width">The expected upscaled width.</param>
+    /// <param name="height">The expected reconstructed height.</param>
+    /// <param name="bitDepth">The expected AV1 sample precision.</param>
+    /// <param name="colorFormat">The expected native chroma-sampling layout.</param>
+    private static void ValidateSuperResolutionFixture(
+        string payloadPath,
+        string referencePath,
+        int width,
+        int height,
+        Av1BitDepth bitDepth,
+        Av1ColorFormat colorFormat)
+        => ValidateNativeFixture(
+            payloadPath,
+            referencePath,
+            width,
+            height,
+            bitDepth,
+            colorFormat,
+            requireActiveCdef: false,
+            requireSuperResolution: true);
 
     /// <summary>
     /// Validates the public presentation and metadata produced from one complete AVIF container.

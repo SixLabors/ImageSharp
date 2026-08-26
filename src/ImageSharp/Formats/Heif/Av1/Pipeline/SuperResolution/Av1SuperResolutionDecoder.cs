@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
@@ -52,13 +53,16 @@ internal class Av1SuperResolutionDecoder
         int upscaledWidth = frameSize.SuperResolutionUpscaledWidth;
         if (codedWidth != upscaledWidth)
         {
+            int outputLength = upscaledWidth * this.frameBuffer.BytesPerSample;
+            using IMemoryOwner<byte> outputOwner = this.frameBuffer.MemoryAllocator.Allocate<byte>(outputLength);
+            Span<byte> output = outputOwner.Memory.Span[..outputLength];
             ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
             for (int planeIndex = 0; planeIndex < colorConfig.PlaneCount; planeIndex++)
             {
                 Av1Plane plane = (Av1Plane)planeIndex;
                 int subsamplingX = plane != Av1Plane.Y && colorConfig.SubSamplingX ? 1 : 0;
                 int subsamplingY = plane != Av1Plane.Y && colorConfig.SubSamplingY ? 1 : 0;
-                this.UpscalePlane(plane, subsamplingX, subsamplingY, codedWidth, upscaledWidth, frameSize.FrameHeight);
+                this.UpscalePlane(plane, subsamplingX, subsamplingY, codedWidth, upscaledWidth, frameSize.FrameHeight, output);
             }
         }
 
@@ -77,22 +81,22 @@ internal class Av1SuperResolutionDecoder
     /// <param name="codedLumaWidth">The coded luma width before upscaling.</param>
     /// <param name="upscaledLumaWidth">The luma width after upscaling.</param>
     /// <param name="lumaHeight">The unchanged luma height.</param>
+    /// <param name="outputBuffer">The allocator-owned row used to prevent source and destination overlap.</param>
     private void UpscalePlane(
         Av1Plane plane,
         int subsamplingX,
         int subsamplingY,
         int codedLumaWidth,
         int upscaledLumaWidth,
-        int lumaHeight)
+        int lumaHeight,
+        Span<byte> outputBuffer)
     {
         int codedWidth = Av1Math.DivideLog2Ceiling(codedLumaWidth, subsamplingX);
         int upscaledWidth = Av1Math.DivideLog2Ceiling(upscaledLumaWidth, subsamplingX);
         int reconstructedWidth = this.frameHeader.ModeInfoColumnCount << (Av1Constants.ModeInfoSizeLog2 - subsamplingX);
         int height = Av1Math.DivideLog2Ceiling(lumaHeight, subsamplingY);
-        int step = Av1SuperResolutionKernels.GetConvolveStep(codedWidth, upscaledWidth);
-        int initialSubpixel = Av1SuperResolutionKernels.GetInitialSubpixel(codedWidth, upscaledWidth, step);
-        ushort[] sourceRow = new ushort[reconstructedWidth + (Av1SuperResolutionKernels.SourceBorder * 2)];
-        ushort[] outputRow = new ushort[upscaledWidth];
+        int step = Av1SuperResolutionFilter.GetConvolveStep(codedWidth, upscaledWidth);
+        int initialSubpixel = Av1SuperResolutionFilter.GetInitialSubpixel(codedWidth, upscaledWidth, step);
 
         Span<byte> lowBitDepthPlane = default;
         Span<ushort> highBitDepthPlane = default;
@@ -101,7 +105,7 @@ internal class Av1SuperResolutionDecoder
         {
             Span<short> signedPlane = this.frameBuffer.DeriveBlockPointer16(
                 plane,
-                Point.Empty,
+                new Point(-Av1SuperResolutionFilter.SourceBorder, 0),
                 subsamplingX,
                 subsamplingY,
                 out stride);
@@ -112,51 +116,48 @@ internal class Av1SuperResolutionDecoder
         {
             lowBitDepthPlane = this.frameBuffer.DeriveBlockPointer(
                 plane,
-                Point.Empty,
+                new Point(-Av1SuperResolutionFilter.SourceBorder, 0),
                 subsamplingX,
                 subsamplingY,
                 out stride);
         }
 
-        int sourceStart = Av1SuperResolutionKernels.SourceBorder;
+        int sourceStart = Av1SuperResolutionFilter.SourceBorder;
         int bitDepth = this.frameBuffer.BitDepth.GetBitCount();
 
         // libaom partitions the same continuous phase progression by tile column but does not pad
         // internal boundaries. Filtering the complete row therefore produces the identical samples.
         for (int row = 0; row < height; row++)
         {
-            Span<ushort> reconstructedSamples = sourceRow.AsSpan(sourceStart, reconstructedWidth);
             int planeOffset = stride + (row * stride);
             if (this.frameBuffer.BytesPerSample == 2)
             {
-                highBitDepthPlane.Slice(planeOffset, reconstructedWidth).CopyTo(reconstructedSamples);
+                Span<ushort> sourceRow = highBitDepthPlane.Slice(planeOffset, reconstructedWidth + (sourceStart * 2));
+                Span<ushort> reconstructedSamples = sourceRow.Slice(sourceStart, reconstructedWidth);
+                Span<ushort> destinationSamples = highBitDepthPlane.Slice(planeOffset + sourceStart, upscaledWidth);
+                Span<ushort> outputRow = MemoryMarshal.Cast<byte, ushort>(outputBuffer)[..upscaledWidth];
+
+                // The frame allocation already reserves decoder padding. Replicating its edge samples in place avoids
+                // copying the reconstructed row into a second working buffer before every filter pass.
+                sourceRow[..sourceStart].Fill(reconstructedSamples[0]);
+                sourceRow[(sourceStart + reconstructedWidth)..].Fill(reconstructedSamples[^1]);
+                Av1SuperResolutionFilter.UpscaleRow(sourceRow, outputRow, step, initialSubpixel, bitDepth);
+
+                // Horizontal expansion cannot write directly over its input because later taps still address samples
+                // to the right. The single pooled row is copied back only after all of its source samples are consumed.
+                outputRow.CopyTo(destinationSamples);
             }
             else
             {
-                Span<byte> input = lowBitDepthPlane.Slice(planeOffset, reconstructedWidth);
-                for (int column = 0; column < reconstructedWidth; column++)
-                {
-                    reconstructedSamples[column] = input[column];
-                }
-            }
+                Span<byte> sourceRow = lowBitDepthPlane.Slice(planeOffset, reconstructedWidth + (sourceStart * 2));
+                Span<byte> reconstructedSamples = sourceRow.Slice(sourceStart, reconstructedWidth);
+                Span<byte> destinationSamples = lowBitDepthPlane.Slice(planeOffset + sourceStart, upscaledWidth);
+                Span<byte> outputRow = outputBuffer[..upscaledWidth];
 
-            // Phase derives from the exact coded width, but taps consume reconstruction through the
-            // enclosing 8-sample mode-info edge. Only samples beyond that aligned edge are replicated.
-            sourceRow.AsSpan(0, sourceStart).Fill(reconstructedSamples[0]);
-            sourceRow.AsSpan(sourceStart + reconstructedWidth, sourceStart).Fill(reconstructedSamples[^1]);
-            Av1SuperResolutionKernels.UpscaleRow(sourceRow, outputRow, step, initialSubpixel, bitDepth);
-
-            if (this.frameBuffer.BytesPerSample == 2)
-            {
-                outputRow.CopyTo(highBitDepthPlane.Slice(planeOffset, upscaledWidth));
-            }
-            else
-            {
-                Span<byte> output = lowBitDepthPlane.Slice(planeOffset, upscaledWidth);
-                for (int column = 0; column < upscaledWidth; column++)
-                {
-                    output[column] = (byte)outputRow[column];
-                }
+                sourceRow[..sourceStart].Fill(reconstructedSamples[0]);
+                sourceRow[(sourceStart + reconstructedWidth)..].Fill(reconstructedSamples[^1]);
+                Av1SuperResolutionFilter.UpscaleRow(sourceRow, outputRow, step, initialSubpixel);
+                outputRow.CopyTo(destinationSamples);
             }
         }
     }

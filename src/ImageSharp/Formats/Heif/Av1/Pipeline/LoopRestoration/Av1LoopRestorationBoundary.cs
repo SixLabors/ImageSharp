@@ -160,17 +160,7 @@ internal class Av1LoopRestorationBoundary : IDisposable
             int planeHeight = Av1Math.DivideLog2Ceiling(frameSize.FrameHeight, subsamplingY);
             int stripeHeight = ProcessingStripeSize >> subsamplingY;
             int stripeOffset = ProcessingStripeOffset >> subsamplingY;
-            int upscaleSourceLength = usesSuperResolution
-                ? reconstructedWidth + (Av1SuperResolutionKernels.SourceBorder * 2)
-                : 0;
-
-            using IMemoryOwner<ushort>? upscaleSourceOwner = usesSuperResolution
-                ? this.frameBuffer.MemoryAllocator.Allocate<ushort>(upscaleSourceLength)
-                : null;
-
-            Span<ushort> upscaleSource = upscaleSourceOwner is not null
-                ? upscaleSourceOwner.Memory.Span[..upscaleSourceLength]
-                : Span<ushort>.Empty;
+            int sourceBorder = usesSuperResolution ? Av1SuperResolutionFilter.SourceBorder : 0;
 
             Span<byte> lowBitDepthPlane = default;
             Span<ushort> highBitDepthPlane = default;
@@ -179,7 +169,7 @@ internal class Av1LoopRestorationBoundary : IDisposable
             {
                 Span<short> signedPlane = this.frameBuffer.DeriveBlockPointer16(
                     plane,
-                    Point.Empty,
+                    new Point(-sourceBorder, 0),
                     subsamplingX,
                     subsamplingY,
                     out sourceStride);
@@ -190,18 +180,18 @@ internal class Av1LoopRestorationBoundary : IDisposable
             {
                 lowBitDepthPlane = this.frameBuffer.DeriveBlockPointer(
                     plane,
-                    Point.Empty,
+                    new Point(-sourceBorder, 0),
                     subsamplingX,
                     subsamplingY,
                     out sourceStride);
             }
 
             int step = usesSuperResolution
-                ? Av1SuperResolutionKernels.GetConvolveStep(codedWidth, upscaledWidth)
+                ? Av1SuperResolutionFilter.GetConvolveStep(codedWidth, upscaledWidth)
                 : 0;
 
             int initialSubpixel = usesSuperResolution
-                ? Av1SuperResolutionKernels.GetInitialSubpixel(codedWidth, upscaledWidth, step)
+                ? Av1SuperResolutionFilter.GetInitialSubpixel(codedWidth, upscaledWidth, step)
                 : 0;
 
             for (int stripe = 0; stripe < this.stripeCounts[planeIndex]; stripe++)
@@ -220,7 +210,7 @@ internal class Av1LoopRestorationBoundary : IDisposable
                         reconstructedWidth,
                         step,
                         initialSubpixel,
-                        upscaleSource,
+                        sourceBorder,
                         this.GetBoundaryRow(this.rowsAbove, planeIndex, stripe, 0));
 
                     this.SaveDeblockedRow(
@@ -231,7 +221,7 @@ internal class Av1LoopRestorationBoundary : IDisposable
                         reconstructedWidth,
                         step,
                         initialSubpixel,
-                        upscaleSource,
+                        sourceBorder,
                         this.GetBoundaryRow(this.rowsAbove, planeIndex, stripe, 1));
                 }
 
@@ -247,7 +237,7 @@ internal class Av1LoopRestorationBoundary : IDisposable
                         reconstructedWidth,
                         step,
                         initialSubpixel,
-                        upscaleSource,
+                        sourceBorder,
                         this.GetBoundaryRow(this.rowsBelow, planeIndex, stripe, 0));
 
                     this.SaveDeblockedRow(
@@ -258,7 +248,7 @@ internal class Av1LoopRestorationBoundary : IDisposable
                         reconstructedWidth,
                         step,
                         initialSubpixel,
-                        upscaleSource,
+                        sourceBorder,
                         this.GetBoundaryRow(this.rowsBelow, planeIndex, stripe, 1));
                 }
             }
@@ -310,7 +300,7 @@ internal class Av1LoopRestorationBoundary : IDisposable
 
             Span<ushort> topRow0 = this.GetBoundaryRow(this.rowsAbove, planeIndex, 0, 0);
             Span<ushort> topRow1 = this.GetBoundaryRow(this.rowsAbove, planeIndex, 0, 1);
-            CopyFrameRow(lowBitDepthPlane, highBitDepthPlane, sourceStride, 0, topRow0);
+            CopyFrameRow(lowBitDepthPlane, highBitDepthPlane, sourceStride, 0, 0, topRow0);
 
             // Frame boundaries use post-CDEF/post-super-resolution samples and replicate the outer row.
             topRow0.CopyTo(topRow1);
@@ -318,7 +308,7 @@ internal class Av1LoopRestorationBoundary : IDisposable
             int lastStripe = stripeCount - 1;
             Span<ushort> bottomRow0 = this.GetBoundaryRow(this.rowsBelow, planeIndex, lastStripe, 0);
             Span<ushort> bottomRow1 = this.GetBoundaryRow(this.rowsBelow, planeIndex, lastStripe, 1);
-            CopyFrameRow(lowBitDepthPlane, highBitDepthPlane, sourceStride, planeHeight - 1, bottomRow0);
+            CopyFrameRow(lowBitDepthPlane, highBitDepthPlane, sourceStride, planeHeight - 1, 0, bottomRow0);
             bottomRow0.CopyTo(bottomRow1);
         }
     }
@@ -353,39 +343,51 @@ internal class Av1LoopRestorationBoundary : IDisposable
     /// <param name="reconstructedWidth">The mode-info-aligned width supplying super-resolution taps.</param>
     /// <param name="step">The fixed-point super-resolution source-position increment, or zero when unscaled.</param>
     /// <param name="initialSubpixel">The first super-resolution source position, or zero when unscaled.</param>
-    /// <param name="upscaleSource">The replicated-edge super-resolution work row.</param>
+    /// <param name="sourceBorder">The decoder-padding samples preceding the visible source row.</param>
     /// <param name="destination">The preserved upscaled boundary row.</param>
     private void SaveDeblockedRow(
-        ReadOnlySpan<byte> lowBitDepthPlane,
-        ReadOnlySpan<ushort> highBitDepthPlane,
+        Span<byte> lowBitDepthPlane,
+        Span<ushort> highBitDepthPlane,
         int sourceStride,
         int row,
         int reconstructedWidth,
         int step,
         int initialSubpixel,
-        Span<ushort> upscaleSource,
+        int sourceBorder,
         Span<ushort> destination)
     {
-        if (upscaleSource.IsEmpty)
+        if (sourceBorder == 0)
         {
-            CopyFrameRow(lowBitDepthPlane, highBitDepthPlane, sourceStride, row, destination);
+            CopyFrameRow(lowBitDepthPlane, highBitDepthPlane, sourceStride, row, 0, destination);
             return;
         }
 
-        int sourceStart = Av1SuperResolutionKernels.SourceBorder;
-        Span<ushort> reconstructedSamples = upscaleSource.Slice(sourceStart, reconstructedWidth);
-        CopyFrameRow(lowBitDepthPlane, highBitDepthPlane, sourceStride, row, reconstructedSamples);
-
         // Boundary rows must follow the same continuous phase and aligned right-edge behavior as
         // the full-frame super-resolution stage or restoration would see different stripe context.
-        upscaleSource[..sourceStart].Fill(reconstructedSamples[0]);
-        upscaleSource[(sourceStart + reconstructedWidth)..].Fill(reconstructedSamples[^1]);
-        Av1SuperResolutionKernels.UpscaleRow(
-            upscaleSource,
-            destination,
-            step,
-            initialSubpixel,
-            this.frameBuffer.BitDepth.GetBitCount());
+        int sourceOffset = sourceStride + (row * sourceStride);
+        if (!highBitDepthPlane.IsEmpty)
+        {
+            Span<ushort> source = highBitDepthPlane.Slice(sourceOffset, reconstructedWidth + (sourceBorder * 2));
+            Span<ushort> reconstructedSamples = source.Slice(sourceBorder, reconstructedWidth);
+
+            source[..sourceBorder].Fill(reconstructedSamples[0]);
+            source[(sourceBorder + reconstructedWidth)..].Fill(reconstructedSamples[^1]);
+            Av1SuperResolutionFilter.UpscaleRow(
+                source,
+                destination,
+                step,
+                initialSubpixel,
+                this.frameBuffer.BitDepth.GetBitCount());
+
+            return;
+        }
+
+        Span<byte> lowBitDepthSource = lowBitDepthPlane.Slice(sourceOffset, reconstructedWidth + (sourceBorder * 2));
+        Span<byte> lowBitDepthReconstructedSamples = lowBitDepthSource.Slice(sourceBorder, reconstructedWidth);
+
+        lowBitDepthSource[..sourceBorder].Fill(lowBitDepthReconstructedSamples[0]);
+        lowBitDepthSource[(sourceBorder + reconstructedWidth)..].Fill(lowBitDepthReconstructedSamples[^1]);
+        Av1SuperResolutionFilter.UpscaleRow(lowBitDepthSource, destination, step, initialSubpixel);
     }
 
     /// <summary>
@@ -395,15 +397,17 @@ internal class Av1LoopRestorationBoundary : IDisposable
     /// <param name="highBitDepthPlane">The native 16-bit plane when the frame uses high-bit-depth samples.</param>
     /// <param name="sourceStride">The number of samples between reconstructed rows.</param>
     /// <param name="row">The zero-based visible row index.</param>
+    /// <param name="sourceBorder">The decoder-padding samples preceding the visible source row.</param>
     /// <param name="destination">The destination row whose length determines the copied width.</param>
     private static void CopyFrameRow(
         ReadOnlySpan<byte> lowBitDepthPlane,
         ReadOnlySpan<ushort> highBitDepthPlane,
         int sourceStride,
         int row,
+        int sourceBorder,
         Span<ushort> destination)
     {
-        int sourceOffset = sourceStride + (row * sourceStride);
+        int sourceOffset = sourceStride + (row * sourceStride) + sourceBorder;
         if (!highBitDepthPlane.IsEmpty)
         {
             highBitDepthPlane.Slice(sourceOffset, destination.Length).CopyTo(destination);

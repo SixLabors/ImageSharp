@@ -369,7 +369,7 @@ internal sealed partial class HevcPictureDecoder
         Span<int> dequantized = integerScratch.Slice(MaximumTransformSampleCount, MaximumTransformSampleCount);
         Span<int> residual = integerScratch.Slice(MaximumTransformSampleCount * 2, MaximumTransformSampleCount);
         Span<int> transformScratch = integerScratch.Slice(MaximumTransformSampleCount * 4, MaximumTransformSampleCount * 2);
-        Span<ushort> prediction = this.PredictComponentBlock(plane, x, y, log2Size, regionId, colorPlaneIndex);
+        Span<ushort> prediction = this.PredictComponentBlock(plane, x, y, log2Size, regionId, colorPlaneIndex, transquantBypass);
         residual[..sampleCount].Clear();
         bool useLumaSyntax = this.sequenceParameterSet.SeparateColorPlaneFlag;
         HevcPlane codingPlane = useLumaSyntax ? HevcPlane.Y : plane;

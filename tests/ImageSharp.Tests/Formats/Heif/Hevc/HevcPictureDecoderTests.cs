@@ -21,6 +21,7 @@ public class HevcPictureDecoderTests
     [InlineData(TestImages.Heif.Image1TileHvcConfiguration, TestImages.Heif.Image1Tile1Payload, TestImages.Heif.Image1Tile1ReferenceYuv)]
     [InlineData(TestImages.Heif.Image1TileHvcConfiguration, TestImages.Heif.Image1Tile2Payload, TestImages.Heif.Image1Tile2ReferenceYuv)]
     [InlineData(TestImages.Heif.Image2TileHvcConfiguration, TestImages.Heif.Image2Tile1Payload, TestImages.Heif.Image2Tile1ReferenceYuv)]
+    [InlineData(TestImages.Heif.Image2TileHvcConfiguration, TestImages.Heif.Image2Tile7Payload, TestImages.Heif.Image2Tile7ReferenceYuv)]
     [InlineData(TestImages.Heif.DwsampleTileHvcConfiguration, TestImages.Heif.DwsampleTilePayload, TestImages.Heif.DwsampleTileReferenceYuv)]
     public void DecodeRealHeicTileMatchesHmReference(string configurationPath, string itemPath, string referencePath)
     {

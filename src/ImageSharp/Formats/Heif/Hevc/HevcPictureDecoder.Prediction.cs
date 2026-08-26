@@ -17,8 +17,9 @@ internal sealed partial class HevcPictureDecoder
     /// <param name="log2Size">The base-two logarithm of the square prediction-block side.</param>
     /// <param name="regionId">The current independent-slice and tile prediction region.</param>
     /// <param name="colorPlaneIndex">The selected separate-color plane, or zero for combined coding.</param>
+    /// <param name="transquantBypass">Whether the governing coding unit bypasses inverse quantization and transform.</param>
     /// <returns>The packed predicted samples.</returns>
-    private Span<ushort> PredictComponentBlock(HevcPlane plane, int x, int y, int log2Size, int regionId, int colorPlaneIndex)
+    private Span<ushort> PredictComponentBlock(HevcPlane plane, int x, int y, int log2Size, int regionId, int colorPlaneIndex, bool transquantBypass)
     {
         int size = 1 << log2Size;
         int sampleCount = size * size;
@@ -69,6 +70,14 @@ internal sealed partial class HevcPictureDecoder
             mode = HevcIntraPredictionMode.RemapChroma422(mode);
         }
 
+        // H.265 8.4.4.2.3 and 8.4.4.2.6 restrict prediction-edge filtering to luma blocks no larger than 16 samples.
+        // Implicit RDPCM bypasses that filtering for the lossless horizontal and vertical prediction modes.
+        bool filterPredictionEdges = useLumaSyntax
+            && size <= 16
+            && !(transquantBypass
+                && this.sequenceParameterSet.ImplicitResidualDpcmEnabled
+                && (mode == HevcIntraPredictionMode.Horizontal || mode == HevcIntraPredictionMode.Vertical));
+
         bool filterReferences = HevcIntraPredictor.ShouldFilterReferenceSamples(
             useLumaSyntax ? HevcPlane.Y : plane,
             mode,
@@ -101,7 +110,7 @@ internal sealed partial class HevcPictureDecoder
             log2Size,
             mode,
             this.Picture.GetBitDepth(plane),
-            useLumaSyntax,
+            filterPredictionEdges,
             operationScratch);
 
         return prediction;

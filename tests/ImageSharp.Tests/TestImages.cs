@@ -1289,6 +1289,8 @@ public static class TestImages
         public const string Image2TileHvcConfiguration = "Heif/Hevc/image2-tile.hvcc";
         public const string Image2Tile1Payload = "Heif/Hevc/image2-tile1.hvc1";
         public const string Image2Tile1ReferenceYuv = "Heif/Hevc/image2-tile1-hm.yuv";
+        public const string Image2Tile7Payload = "Heif/Hevc/image2-tile7.hvc1";
+        public const string Image2Tile7ReferenceYuv = "Heif/Hevc/image2-tile7-hm.yuv";
         public const string DwsampleTileHvcConfiguration = "Heif/Hevc/dwsample-tile.hvcc";
         public const string DwsampleTilePayload = "Heif/Hevc/dwsample-tile.hvc1";
         public const string DwsampleTileReferenceYuv = "Heif/Hevc/dwsample-tile-hm.yuv";

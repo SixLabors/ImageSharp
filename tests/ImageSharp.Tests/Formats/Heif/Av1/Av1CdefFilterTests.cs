@@ -16,7 +16,7 @@ public class Av1CdefFilterTests
     /// <summary>
     /// The hardware configurations required to exercise packed filtering and the scalar fallback.
     /// </summary>
-    private const HwIntrinsics Configurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
+    private const HwIntrinsics Configurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// The row stride of the bordered source plane used by the filter tests.
@@ -41,6 +41,13 @@ public class Av1CdefFilterTests
     [Fact]
     public void FilterBlockMatchesIndependentDefinitionAcrossIntrinsicTiers()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilters, Configurations);
+
+    /// <summary>
+    /// Verifies eight-bit widening and 16-bit copying across packed and scalar execution tiers.
+    /// </summary>
+    [Fact]
+    public void CopyPlaneMatchesIndependentDefinitionAcrossIntrinsicTiers()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePlaneCopies, Configurations);
 
     /// <summary>
     /// Verifies the complete asymmetric chroma direction mappings and the unchanged symmetric mappings.
@@ -137,6 +144,64 @@ public class Av1CdefFilterTests
                 Assert.Equal(secondExpectedDirection, secondActualDirection);
                 Assert.Equal(secondExpectedVariance, secondActualVariance);
             }
+        }
+    }
+
+    /// <summary>
+    /// Exercises CDEF source-plane preparation across vector boundaries and row padding.
+    /// </summary>
+    private static void ValidatePlaneCopies()
+    {
+        const int height = 6;
+
+        foreach (int width in new[] { 4, 7, 8, 15, 16, 31, 32, 37 })
+        {
+            int sourceStride = width + 9;
+            int destinationStride = width + 11;
+            int sourceOffset = sourceStride + 3;
+            int destinationOffset = destinationStride + 5;
+            byte[] byteSource = new byte[(height + 2) * sourceStride];
+            ushort[] ushortSource = new ushort[byteSource.Length];
+            ushort[] expectedByteDestination = Enumerable.Repeat((ushort)0x7A7A, (height + 2) * destinationStride).ToArray();
+            ushort[] expectedUShortDestination = Enumerable.Repeat((ushort)0x5A5A, expectedByteDestination.Length).ToArray();
+
+            for (int row = 0; row < height; row++)
+            {
+                for (int column = 0; column < width; column++)
+                {
+                    int index = sourceOffset + (row * sourceStride) + column;
+                    byteSource[index] = (byte)((row * 47) + (column * 13));
+                    ushortSource[index] = (ushort)(byteSource[index] * 17);
+                    expectedByteDestination[destinationOffset + (row * destinationStride) + column] = byteSource[index];
+                    expectedUShortDestination[destinationOffset + (row * destinationStride) + column] = ushortSource[index];
+                }
+            }
+
+            ushort[] actualByteDestination = Enumerable.Repeat((ushort)0x7A7A, expectedByteDestination.Length).ToArray();
+            ushort[] actualUShortDestination = Enumerable.Repeat((ushort)0x5A5A, expectedUShortDestination.Length).ToArray();
+
+            Av1CdefFilter.CopyPlane(
+                byteSource,
+                sourceOffset,
+                sourceStride,
+                actualByteDestination,
+                destinationOffset,
+                destinationStride,
+                width,
+                height);
+
+            Av1CdefFilter.CopyPlane(
+                ushortSource,
+                sourceOffset,
+                sourceStride,
+                actualUShortDestination,
+                destinationOffset,
+                destinationStride,
+                width,
+                height);
+
+            Assert.Equal(expectedByteDestination, actualByteDestination);
+            Assert.Equal(expectedUShortDestination, actualUShortDestination);
         }
     }
 

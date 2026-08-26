@@ -61,6 +61,93 @@ internal static class Av1CdefFilter
     }
 
     /// <summary>
+    /// Copies an eight-bit sample rectangle into the 16-bit CDEF working plane.
+    /// </summary>
+    /// <param name="source">The source sample plane.</param>
+    /// <param name="sourceOffset">The offset of the rectangle's top-left source sample.</param>
+    /// <param name="sourceStride">The number of samples between adjacent source rows.</param>
+    /// <param name="destination">The destination CDEF working plane.</param>
+    /// <param name="destinationOffset">The offset of the rectangle's top-left destination sample.</param>
+    /// <param name="destinationStride">The number of samples between adjacent destination rows.</param>
+    /// <param name="width">The rectangle width in samples.</param>
+    /// <param name="height">The even rectangle height in samples.</param>
+    public static void CopyPlane(
+        ReadOnlySpan<byte> source,
+        int sourceOffset,
+        int sourceStride,
+        Span<ushort> destination,
+        int destinationOffset,
+        int destinationStride,
+        int width,
+        int height)
+    {
+        ref byte sourceBase = ref MemoryMarshal.GetReference(source);
+        ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
+
+        if (Avx2.IsSupported)
+        {
+            // AV1 plane dimensions are multiples of four, so the CDEF copy has an even row count. Processing two rows
+            // together follows libaom's AVX2 scheduling while each conversion widens sixteen unsigned samples exactly.
+            for (int row = 0; row < height; row += 2)
+            {
+                int firstSourceRow = sourceOffset + (row * sourceStride);
+                int secondSourceRow = firstSourceRow + sourceStride;
+                int firstDestinationRow = destinationOffset + (row * destinationStride);
+                int secondDestinationRow = firstDestinationRow + destinationStride;
+                int column = 0;
+                for (; column <= width - Vector128<byte>.Count; column += Vector128<byte>.Count)
+                {
+                    Vector128<byte> first = Vector128.LoadUnsafe(ref sourceBase, (nuint)(firstSourceRow + column));
+                    Vector128<byte> second = Vector128.LoadUnsafe(ref sourceBase, (nuint)(secondSourceRow + column));
+                    Avx2.ConvertToVector256Int16(first).AsUInt16().StoreUnsafe(ref destinationBase, (nuint)(firstDestinationRow + column));
+                    Avx2.ConvertToVector256Int16(second).AsUInt16().StoreUnsafe(ref destinationBase, (nuint)(secondDestinationRow + column));
+                }
+
+                CopyRemainingSamples(ref sourceBase, firstSourceRow, ref destinationBase, firstDestinationRow, column, width);
+                CopyRemainingSamples(ref sourceBase, secondSourceRow, ref destinationBase, secondDestinationRow, column, width);
+            }
+
+            return;
+        }
+
+        for (int row = 0; row < height; row++)
+        {
+            int sourceRow = sourceOffset + (row * sourceStride);
+            int destinationRow = destinationOffset + (row * destinationStride);
+            CopyRemainingSamples(ref sourceBase, sourceRow, ref destinationBase, destinationRow, 0, width);
+        }
+    }
+
+    /// <summary>
+    /// Copies a 16-bit sample rectangle into the CDEF working plane.
+    /// </summary>
+    /// <param name="source">The source sample plane.</param>
+    /// <param name="sourceOffset">The offset of the rectangle's top-left source sample.</param>
+    /// <param name="sourceStride">The number of samples between adjacent source rows.</param>
+    /// <param name="destination">The destination CDEF working plane.</param>
+    /// <param name="destinationOffset">The offset of the rectangle's top-left destination sample.</param>
+    /// <param name="destinationStride">The number of samples between adjacent destination rows.</param>
+    /// <param name="width">The rectangle width in samples.</param>
+    /// <param name="height">The rectangle height in samples.</param>
+    public static void CopyPlane(
+        ReadOnlySpan<ushort> source,
+        int sourceOffset,
+        int sourceStride,
+        Span<ushort> destination,
+        int destinationOffset,
+        int destinationStride,
+        int width,
+        int height)
+    {
+        for (int row = 0; row < height; row++)
+        {
+            ReadOnlySpan<ushort> sourceRow = source.Slice(sourceOffset + (row * sourceStride), width);
+
+            sourceRow.CopyTo(destination.Slice(destinationOffset + (row * destinationStride), width));
+        }
+    }
+
+    /// <summary>
     /// Finds the dominant direction of an 8x8 luma block and its directional variance.
     /// </summary>
     /// <param name="source">The bordered, deblocked source plane.</param>
@@ -1440,6 +1527,41 @@ internal static class Av1CdefFilter
         // Four-wide chroma blocks load exactly 64 bits so the final block never reads beyond its two-sample sentinel border.
         ref byte sourceBytes = ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref source, offset));
         return Vector128.Create(Unsafe.ReadUnaligned<ulong>(ref sourceBytes), 0UL).AsInt16();
+    }
+
+    /// <summary>
+    /// Widens the remaining samples in one eight-bit source row into the CDEF working plane.
+    /// </summary>
+    /// <param name="source">The first element in the source plane.</param>
+    /// <param name="sourceRow">The offset of the first source sample in the row.</param>
+    /// <param name="destination">The first element in the destination plane.</param>
+    /// <param name="destinationRow">The offset of the first destination sample in the row.</param>
+    /// <param name="column">The first column not already processed by a wider vector path.</param>
+    /// <param name="width">The rectangle width in samples.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void CopyRemainingSamples(
+        ref byte source,
+        int sourceRow,
+        ref ushort destination,
+        int destinationRow,
+        int column,
+        int width)
+    {
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (; column <= width - Vector64<byte>.Count; column += Vector64<byte>.Count)
+            {
+                ref byte sourceBytes = ref Unsafe.Add(ref source, sourceRow + column);
+                ulong packed = Unsafe.ReadUnaligned<ulong>(ref sourceBytes);
+                Vector128<ushort> widened = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsByte());
+                widened.StoreUnsafe(ref destination, (nuint)(destinationRow + column));
+            }
+        }
+
+        for (; column < width; column++)
+        {
+            Unsafe.Add(ref destination, destinationRow + column) = Unsafe.Add(ref source, sourceRow + column);
+        }
     }
 
     /// <summary>

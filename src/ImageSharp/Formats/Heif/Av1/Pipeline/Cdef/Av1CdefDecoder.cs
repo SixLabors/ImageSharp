@@ -1,9 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 
@@ -21,6 +24,11 @@ internal class Av1CdefDecoder
     /// The number of unavailable samples reserved on each source-plane edge.
     /// </summary>
     private const int SourceBorder = 2;
+
+    /// <summary>
+    /// The maximum number of non-skipped 8x8 luma blocks in one 64x64 CDEF unit.
+    /// </summary>
+    private const int MaximumBlocksPerUnit = 8 * 8;
 
     /// <summary>
     /// The sequence-level superblock, bit-depth, and color configuration.
@@ -91,8 +99,12 @@ internal class Av1CdefDecoder
 
         int lumaBlockColumnCount = this.frameHeader.ModeInfoColumnCount >> 1;
         int lumaBlockRowCount = this.frameHeader.ModeInfoRowCount >> 1;
-        int[] directions = new int[lumaBlockColumnCount * lumaBlockRowCount];
-        int[] variances = new int[directions.Length];
+        int mapLength = lumaBlockColumnCount * lumaBlockRowCount;
+        MemoryAllocator allocator = this.frameBuffer.MemoryAllocator;
+        using IMemoryOwner<int> directionOwner = allocator.Allocate<int>(mapLength, AllocationOptions.Clean);
+        using IMemoryOwner<int> varianceOwner = allocator.Allocate<int>(mapLength, AllocationOptions.Clean);
+        Span<int> directions = directionOwner.Memory.Span[..mapLength];
+        Span<int> variances = varianceOwner.Memory.Span[..mapLength];
         ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
 
         // Luma must be processed first even when its strengths are zero because chroma CDEF
@@ -119,18 +131,21 @@ internal class Av1CdefDecoder
         Av1Plane plane,
         int subsamplingX,
         int subsamplingY,
-        int[] directions,
-        int[] variances,
+        Span<int> directions,
+        Span<int> variances,
         int lumaBlockColumnCount)
     {
         int planeWidth = this.frameHeader.ModeInfoColumnCount << (Av1Constants.ModeInfoSizeLog2 - subsamplingX);
         int planeHeight = this.frameHeader.ModeInfoRowCount << (Av1Constants.ModeInfoSizeLog2 - subsamplingY);
         int sourceStride = planeWidth + (SourceBorder * 2);
+        int sourceLength = (planeHeight + (SourceBorder * 2)) * sourceStride;
+        using IMemoryOwner<ushort> sourceOwner = this.frameBuffer.MemoryAllocator.Allocate<ushort>(sourceLength);
+        Span<ushort> source = sourceOwner.Memory.Span[..sourceLength];
 
         // CDEF output must never become input to a later block. The sentinel border also makes
-        // frame-edge taps follow AV1 without exposing the frame buffer's prediction padding.
-        ushort[] source = new ushort[(planeHeight + (SourceBorder * 2)) * sourceStride];
-        Array.Fill(source, Av1CdefFilter.VeryLarge);
+        // frame-edge taps follow AV1 without exposing the frame buffer's prediction padding. Every
+        // sample in the requested working allocation is initialized before any filter can read it.
+        source.Fill(Av1CdefFilter.VeryLarge);
 
         Span<byte> lowBitDepthDestination = default;
         Span<ushort> highBitDepthDestination = default;
@@ -156,25 +171,31 @@ internal class Av1CdefDecoder
                 out destinationStride);
         }
 
-        for (int row = 0; row < planeHeight; row++)
+        int sourceOffset = (SourceBorder * sourceStride) + SourceBorder;
+        int destinationOffset = destinationStride;
+        if (this.frameBuffer.BytesPerSample == 2)
         {
-            Span<ushort> sourceRow = source.AsSpan(
-                ((row + SourceBorder) * sourceStride) + SourceBorder,
-                planeWidth);
-
-            int destinationOffset = destinationStride + (row * destinationStride);
-            if (this.frameBuffer.BytesPerSample == 2)
-            {
-                highBitDepthDestination.Slice(destinationOffset, planeWidth).CopyTo(sourceRow);
-            }
-            else
-            {
-                Span<byte> destinationRow = lowBitDepthDestination.Slice(destinationOffset, planeWidth);
-                for (int column = 0; column < planeWidth; column++)
-                {
-                    sourceRow[column] = destinationRow[column];
-                }
-            }
+            Av1CdefFilter.CopyPlane(
+                highBitDepthDestination,
+                destinationOffset,
+                destinationStride,
+                source,
+                sourceOffset,
+                sourceStride,
+                planeWidth,
+                planeHeight);
+        }
+        else
+        {
+            Av1CdefFilter.CopyPlane(
+                lowBitDepthDestination,
+                destinationOffset,
+                destinationStride,
+                source,
+                sourceOffset,
+                sourceStride,
+                planeWidth,
+                planeHeight);
         }
 
         ObuConstraintDirectionalEnhancementFilterParameters parameters = this.frameHeader.CdefParameters;
@@ -183,7 +204,6 @@ internal class Av1CdefDecoder
         int blockHeight = 8 >> subsamplingY;
         int unitColumnCount = (this.frameHeader.ModeInfoColumnCount + CdefUnitModeInfoSize - 1) / CdefUnitModeInfoSize;
         int unitRowCount = (this.frameHeader.ModeInfoRowCount + CdefUnitModeInfoSize - 1) / CdefUnitModeInfoSize;
-        Span<ushort> filteredBlock = stackalloc ushort[8 * 8];
 
         for (int unitRow = 0; unitRow < unitRowCount; unitRow++)
         {
@@ -217,6 +237,8 @@ internal class Av1CdefDecoder
                 int damping = parameters.Damping + coefficientShift - (plane == Av1Plane.Y ? 0 : 1);
                 int unitModeInfoRowEnd = Math.Min(unitModeInfoRow + CdefUnitModeInfoSize, this.frameHeader.ModeInfoRowCount);
                 int unitModeInfoColumnEnd = Math.Min(unitModeInfoColumn + CdefUnitModeInfoSize, this.frameHeader.ModeInfoColumnCount);
+                CdefBlockList blocks = default;
+                int blockCount = 0;
 
                 for (int blockModeInfoRow = unitModeInfoRow; blockModeInfoRow < unitModeInfoRowEnd; blockModeInfoRow += 2)
                 {
@@ -227,50 +249,87 @@ internal class Av1CdefDecoder
                             continue;
                         }
 
-                        int lumaBlockRow = blockModeInfoRow >> 1;
-                        int lumaBlockColumn = blockModeInfoColumn >> 1;
-                        int directionIndex = (lumaBlockRow * lumaBlockColumnCount) + lumaBlockColumn;
-                        int planeColumn = (blockModeInfoColumn << Av1Constants.ModeInfoSizeLog2) >> subsamplingX;
-                        int planeRow = (blockModeInfoRow << Av1Constants.ModeInfoSizeLog2) >> subsamplingY;
-                        int sourceOffset = ((planeRow + SourceBorder) * sourceStride) + planeColumn + SourceBorder;
+                        blocks[blockCount++] = new CdefBlock(blockModeInfoColumn, blockModeInfoRow);
+                    }
+                }
 
-                        if (plane == Av1Plane.Y)
-                        {
-                            directions[directionIndex] = Av1CdefFilter.FindDirection(
-                                source,
-                                sourceOffset,
-                                sourceStride,
-                                coefficientShift,
-                                out variances[directionIndex]);
-                        }
+                if (plane == Av1Plane.Y)
+                {
+                    int blockIndex = 0;
 
-                        if (codedStrength == 0)
-                        {
-                            continue;
-                        }
+                    // libaom analyzes two listed 8x8 blocks together. The per-unit fixed list preserves that traversal
+                    // without allocating a managed block list or repeating four skip-map lookups during filtering.
+                    for (; blockIndex < blockCount - 1; blockIndex += 2)
+                    {
+                        CdefBlock firstBlock = blocks[blockIndex];
+                        CdefBlock secondBlock = blocks[blockIndex + 1];
+                        int firstDirectionIndex = firstBlock.GetDirectionIndex(lumaBlockColumnCount);
+                        int secondDirectionIndex = secondBlock.GetDirectionIndex(lumaBlockColumnCount);
 
-                        int filteredPrimaryStrength = plane == Av1Plane.Y
-                            ? Av1CdefFilter.AdjustStrength(primaryStrength, variances[directionIndex])
-                            : primaryStrength;
+                        Av1CdefFilter.FindDirections(
+                            source,
+                            firstBlock.GetSourceOffset(sourceStride, SourceBorder),
+                            secondBlock.GetSourceOffset(sourceStride, SourceBorder),
+                            sourceStride,
+                            coefficientShift,
+                            out directions[firstDirectionIndex],
+                            out variances[firstDirectionIndex],
+                            out directions[secondDirectionIndex],
+                            out variances[secondDirectionIndex]);
+                    }
 
-                        if (filteredPrimaryStrength == 0 && secondaryStrength == 0)
-                        {
-                            continue;
-                        }
+                    if (blockIndex < blockCount)
+                    {
+                        CdefBlock block = blocks[blockIndex];
+                        int directionIndex = block.GetDirectionIndex(lumaBlockColumnCount);
 
-                        // Secondary-only filtering uses direction zero; otherwise chroma remaps the
-                        // luma direction into its asymmetrically subsampled sample grid when required.
-                        int direction = primaryStrength != 0
-                            ? Av1CdefFilter.ConvertDirection(directions[directionIndex], subsamplingX, subsamplingY)
-                            : 0;
+                        directions[directionIndex] = Av1CdefFilter.FindDirection(
+                            source,
+                            block.GetSourceOffset(sourceStride, SourceBorder),
+                            sourceStride,
+                            coefficientShift,
+                            out variances[directionIndex]);
+                    }
+                }
 
+                for (int blockIndex = 0; blockIndex < blockCount; blockIndex++)
+                {
+                    CdefBlock block = blocks[blockIndex];
+                    int directionIndex = block.GetDirectionIndex(lumaBlockColumnCount);
+
+                    if (codedStrength == 0)
+                    {
+                        continue;
+                    }
+
+                    int filteredPrimaryStrength = plane == Av1Plane.Y
+                        ? Av1CdefFilter.AdjustStrength(primaryStrength, variances[directionIndex])
+                        : primaryStrength;
+
+                    if (filteredPrimaryStrength == 0 && secondaryStrength == 0)
+                    {
+                        continue;
+                    }
+
+                    // Secondary-only filtering uses direction zero; otherwise chroma remaps the
+                    // luma direction into its asymmetrically subsampled sample grid when required.
+                    int direction = primaryStrength != 0
+                        ? Av1CdefFilter.ConvertDirection(directions[directionIndex], subsamplingX, subsamplingY)
+                        : 0;
+                    int planeColumn = (block.ModeInfoColumn << Av1Constants.ModeInfoSizeLog2) >> subsamplingX;
+                    int planeRow = (block.ModeInfoRow << Av1Constants.ModeInfoSizeLog2) >> subsamplingY;
+                    int blockSourceOffset = ((planeRow + SourceBorder) * sourceStride) + planeColumn + SourceBorder;
+                    int blockDestinationOffset = destinationStride + (planeRow * destinationStride) + planeColumn;
+
+                    if (this.frameBuffer.BytesPerSample == 2)
+                    {
                         Av1CdefFilter.FilterBlock(
                             source,
-                            sourceOffset,
+                            blockSourceOffset,
                             sourceStride,
-                            filteredBlock,
-                            0,
-                            blockWidth,
+                            highBitDepthDestination,
+                            blockDestinationOffset,
+                            destinationStride,
                             filteredPrimaryStrength,
                             secondaryStrength,
                             direction,
@@ -279,27 +338,24 @@ internal class Av1CdefDecoder
                             coefficientShift,
                             blockWidth,
                             blockHeight);
-
-                        int destinationOffset = destinationStride + (planeRow * destinationStride) + planeColumn;
-                        for (int row = 0; row < blockHeight; row++)
-                        {
-                            ReadOnlySpan<ushort> filteredRow = filteredBlock.Slice(row * blockWidth, blockWidth);
-                            if (this.frameBuffer.BytesPerSample == 2)
-                            {
-                                filteredRow.CopyTo(highBitDepthDestination.Slice(destinationOffset + (row * destinationStride), blockWidth));
-                            }
-                            else
-                            {
-                                Span<byte> destinationRow = lowBitDepthDestination.Slice(
-                                    destinationOffset + (row * destinationStride),
-                                    blockWidth);
-
-                                for (int column = 0; column < blockWidth; column++)
-                                {
-                                    destinationRow[column] = (byte)filteredRow[column];
-                                }
-                            }
-                        }
+                    }
+                    else
+                    {
+                        Av1CdefFilter.FilterBlock(
+                            source,
+                            blockSourceOffset,
+                            sourceStride,
+                            lowBitDepthDestination,
+                            blockDestinationOffset,
+                            destinationStride,
+                            filteredPrimaryStrength,
+                            secondaryStrength,
+                            direction,
+                            damping,
+                            damping,
+                            coefficientShift,
+                            blockWidth,
+                            blockHeight);
                     }
                 }
             }
@@ -348,5 +404,65 @@ internal class Av1CdefDecoder
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Stores the non-skipped blocks in one CDEF unit without a managed allocation.
+    /// </summary>
+    [InlineArray(MaximumBlocksPerUnit)]
+    private struct CdefBlockList
+    {
+        /// <summary>
+        /// The first block in the inline storage.
+        /// </summary>
+        private CdefBlock element0;
+    }
+
+    /// <summary>
+    /// Identifies one 8x8 luma block by its frame-relative mode-information coordinates.
+    /// </summary>
+    private readonly struct CdefBlock
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="CdefBlock"/> struct.
+        /// </summary>
+        /// <param name="modeInfoColumn">The frame-relative column in 4x4 luma units.</param>
+        /// <param name="modeInfoRow">The frame-relative row in 4x4 luma units.</param>
+        public CdefBlock(int modeInfoColumn, int modeInfoRow)
+        {
+            this.ModeInfoColumn = modeInfoColumn;
+            this.ModeInfoRow = modeInfoRow;
+        }
+
+        /// <summary>
+        /// Gets the frame-relative column in 4x4 luma units.
+        /// </summary>
+        public int ModeInfoColumn { get; }
+
+        /// <summary>
+        /// Gets the frame-relative row in 4x4 luma units.
+        /// </summary>
+        public int ModeInfoRow { get; }
+
+        /// <summary>
+        /// Gets the frame-wide direction-map index for this block.
+        /// </summary>
+        /// <param name="lumaBlockColumnCount">The number of 8x8 blocks in an aligned luma row.</param>
+        /// <returns>The direction-map index.</returns>
+        public int GetDirectionIndex(int lumaBlockColumnCount)
+            => ((this.ModeInfoRow >> 1) * lumaBlockColumnCount) + (this.ModeInfoColumn >> 1);
+
+        /// <summary>
+        /// Gets the offset of this luma block in the bordered CDEF source plane.
+        /// </summary>
+        /// <param name="sourceStride">The number of samples between adjacent source rows.</param>
+        /// <param name="sourceBorder">The number of unavailable samples surrounding the source.</param>
+        /// <returns>The source-plane offset.</returns>
+        public int GetSourceOffset(int sourceStride, int sourceBorder)
+        {
+            int planeColumn = this.ModeInfoColumn << Av1Constants.ModeInfoSizeLog2;
+            int planeRow = this.ModeInfoRow << Av1Constants.ModeInfoSizeLog2;
+            return ((planeRow + sourceBorder) * sourceStride) + planeColumn + sourceBorder;
+        }
     }
 }

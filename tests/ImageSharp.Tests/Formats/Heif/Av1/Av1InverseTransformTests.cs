@@ -562,11 +562,13 @@ public class Av1InverseTransformTests
                 values[index] = input[index];
             }
 
-            TForwardOperator.Transform(ref values, ref buffer0, ref buffer1, forwardConfig.CosBitColumn);
+            ref byte valuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<int>, byte>(ref values);
+
+            TForwardOperator.Transform<int>(ref valuesBase, sizeof(int), sizeof(int), ref buffer0, ref buffer1, forwardConfig.CosBitColumn);
 
             for (int index = 0; index < length; index++)
             {
-                forward[index] = buffer0[index];
+                forward[index] = values[index];
             }
 
             TInverseOperator.Transform(forward, inverse, step, inverseConfig.CosBitColumn, inverseConfig.StageRangeColumn);

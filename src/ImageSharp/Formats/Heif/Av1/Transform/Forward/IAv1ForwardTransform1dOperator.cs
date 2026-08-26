@@ -17,14 +17,18 @@ internal interface IAv1ForwardTransform1dOperator
     /// Transforms the independent axes stored in each value lane.
     /// </summary>
     /// <typeparam name="TValue">The scalar or SIMD value containing the independent transform axes.</typeparam>
-    /// <param name="input">The spatial-domain transform values.</param>
-    /// <param name="output">The frequency-domain transform values.</param>
-    /// <param name="step">The fixed transform-stage buffer.</param>
+    /// <param name="values">The first value in the strided transform block.</param>
+    /// <param name="inputStride">The byte distance between consecutive input positions.</param>
+    /// <param name="outputStride">The byte distance between consecutive output positions.</param>
+    /// <param name="buffer0">The first fixed transform-stage buffer.</param>
+    /// <param name="buffer1">The second fixed transform-stage buffer.</param>
     /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
     public static abstract void Transform<TValue>(
-        ref Av1TransformVector<TValue> input,
-        ref Av1TransformVector<TValue> output,
-        ref Av1TransformVector<TValue> step,
+        ref byte values,
+        nint inputStride,
+        nint outputStride,
+        ref Av1TransformVector<TValue> buffer0,
+        ref Av1TransformVector<TValue> buffer1,
         int cosBit)
         where TValue : struct;
 }

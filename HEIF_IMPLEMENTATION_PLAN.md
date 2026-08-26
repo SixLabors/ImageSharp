@@ -29,7 +29,7 @@ Checkboxes may be marked complete only when the implementation and the verificat
 
 ## Delivery dashboard
 
-Last reconciled with the source tree on 2026-08-27 against the worktree based on commit `2bd81bb7c`, including the completed AV1 transform architecture checkpoint. This dashboard is the authoritative delivery order. The detailed phase checklists below provide subsystem evidence; they do not override the current-stage marker or permit work to skip ahead.
+Last reconciled with the source tree on 2026-08-27 against the worktree based on commit `20df9115d`, including the completed AV1 transform architecture checkpoint. This dashboard is the authoritative delivery order. The detailed phase checklists below provide subsystem evidence; they do not override the current-stage marker or permit work to skip ahead.
 
 Status meanings:
 
@@ -38,7 +38,7 @@ Status meanings:
 - **Not started:** supporting primitives may exist, but the production format path is absent.
 - **Current:** the only work item that should be advanced before taking the next queued item.
 
-Current development stage: **Stage 3 — complete AV1 still-image decoding.** The transform checkpoint is closed: forward transforms use one libaom-shaped operator architecture across scalar, `Vector128`, `Vector256`, and `Vector512`, inverse production traversal uses the verified scalar, `Vector128`, and `Vector256` tiers, and implementation-mechanic type and file suffixes have been removed. Neither AV1 nor HEVC production encoding is implemented.
+Current development stage: **Stage 3 — complete AV1 still-image decoding.** The transform checkpoint is closed: forward transforms use one libaom-shaped SIMD-first operator architecture across `Vector512`, `Vector256`, and `Vector128`, with scalar fallback; inverse production traversal uses the verified `Vector256` and `Vector128` tiers with scalar fallback; and implementation-mechanic type and file suffixes have been removed. Neither AV1 nor HEVC production encoding is implemented.
 
 Immediate checkpoint: **remove every remaining valid AV1 still-image unsupported branch and prove the complete decode matrix.** Each syntax tool must be implemented through the established SIMD-first architecture with scalar fallback and verified with independent AVIF/libaom evidence across supported bit depths, chroma layouts, filters, grain, and color signaling.
 
@@ -119,15 +119,16 @@ Performance, allocation, documentation, and independent test work are part of ea
   - [x] Select transform type, size, bit depth, and ISA once at the 2-D block boundary rather than dispatching through an interface for every row and column.
   - [x] Port the DCT4/8/16/32/64, ADST4/8/16, and identity4/8/16/32 stage networks from the pinned libaom scalar and Highway sources into one static-generic operator architecture.
   - [x] Implement paired add/subtract and whole-butterfly primitives for scalar, `Vector128`, `Vector256`, and `Vector512` values, including saturated packed arithmetic and shared widening work at each supported SIMD width.
-  - [x] Implement the complete libaom two-dimensional load, flip, shift, axis-transform, transpose, rectangle-normalization, promotion, and 64-point coefficient-retention pipeline without per-block allocation.
+  - [x] Implement the complete libaom two-dimensional load, flip, shift, axis-transform, transpose, rectangle-normalization, promotion, and 64-point coefficient-retention pipeline without per-block allocation. The axis driver passes independent input and output strides directly to the two fixed stage buffers, and the 64x64 row transform retires only the retained 32 coefficients without a transform-sized copy pass.
   - [x] Port the applicable libaom bulk inverse-transform kernels using the same tables, rounding, saturation, and clipping rules as the scalar oracle.
   - [x] Use normal ImageSharp descending-width dispatch and require the actual packed arithmetic ISA when selecting packed `Vector512<short>` traversal.
   - [x] Document scratch ownership, stage-buffer alternation, fixed-point rounding, lane layout, transposition, and scalar fallback decisions at their implementation points.
   - [x] Remove the separate SIMD files, width-specific forward contracts, and sample-representation suffixes so each transform operator owns one behavior model.
   - [x] Verify every 1-D operator representation and every valid 2-D size/type/bit-depth combination through `FeatureTestRunner` with normal hardware, AVX-512 disabled, AVX disabled, and all hardware intrinsics disabled.
     - The focused Release run passes all 511 forward and inverse transform cases. The suite covers DCT, ADST, and identity operators, packed overflow-sensitive inputs, padded 2-D input strides, all valid transform configurations, 8/10/12-bit dispatch, inverse reconstruction, and the zero-allocation block contract.
+  - [x] Verify DCT4/8/16/32/64, ADST4/8/16, and identity4/8/16/32 independently against the analytical transform oracle and coefficient-error bound used by the pinned libaom forward-transform tests.
   - [x] Benchmark the production 32x32 DCT path after the complete paired stage port with preferred 256-bit and 512-bit widths.
-    - On the measured .NET 10 AVX-512 host, the 8-bit path measured 1.334 microseconds at 256 bits and 1.349 microseconds at 512 bits. The 12-bit path measured 2.977 microseconds at 256 bits and 2.008 microseconds at 512 bits. BenchmarkDotNet reported no managed allocation for any measured path, so production retains the normal runtime-selected width instead of a transform-type or bit-depth patch table.
+    - On the measured .NET 10 AVX-512 host, the packed 8-bit path measured 856.6 nanoseconds at 256 bits and 639.8 nanoseconds at 512 bits, making AVX-512BW 25.3% faster. The expanded 12-bit path measured 976.2 nanoseconds at 256 bits and 1019.8 nanoseconds at 512 bits, making the runtime-preferred 256-bit width 4.5% faster. BenchmarkDotNet reported no managed allocation. Production therefore follows Highway's AVX-512BW capability dispatch for packed stages and the runtime-preferred width for expanded stages.
 - [ ] **Queued:** restore bounded animated HEIC and AVIF image-sequence scope, including the required image-level and per-frame metadata contracts, without introducing unrelated ISO BMFF surfaces.
   - [x] Reconcile the top-level still-image-only scope with the required animated HEIC and AVIF completion boundary before sequence implementation begins.
   - [x] Define the ImageSharp image-level sequence metadata and per-frame metadata contracts, including observable timing, repetition, color, alpha, orientation, and profile behavior.

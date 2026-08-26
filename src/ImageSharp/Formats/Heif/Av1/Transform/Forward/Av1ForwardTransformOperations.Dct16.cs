@@ -12,109 +12,207 @@ internal static partial class Av1ForwardTransformOperations
     /// Applies the sixteen-point forward discrete cosine transform to every independent lane.
     /// </summary>
     /// <typeparam name="TValue">The scalar or SIMD value containing the independent transform axes.</typeparam>
-    /// <param name="input">The spatial-domain values.</param>
-    /// <param name="output">The frequency-domain values.</param>
-    /// <param name="step">The fixed transform-stage buffer.</param>
+    /// <param name="values">The first value in the strided transform block.</param>
+    /// <param name="inputStride">The byte distance between consecutive input positions.</param>
+    /// <param name="outputStride">The byte distance between consecutive output positions.</param>
+    /// <param name="buffer0">The first fixed transform-stage buffer.</param>
+    /// <param name="buffer1">The second fixed transform-stage buffer.</param>
     /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
     public static void Dct16<TValue>(
-        ref Av1TransformVector<TValue> input,
-        ref Av1TransformVector<TValue> output,
-        ref Av1TransformVector<TValue> step,
+        ref byte values,
+        nint inputStride,
+        nint outputStride,
+        ref Av1TransformVector<TValue> buffer0,
+        ref Av1TransformVector<TValue> buffer1,
         int cosBit)
         where TValue : struct
     {
-        // Stage 1 forms mirror-symmetric sums and differences, separating the even and odd DCT terms.
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(input[0], input[15], out output[0], out output[15]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(input[1], input[14], out output[1], out output[14]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(input[2], input[13], out output[2], out output[13]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(input[3], input[12], out output[3], out output[12]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(input[4], input[11], out output[4], out output[11]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(input[5], input[10], out output[5], out output[10]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(input[6], input[9], out output[6], out output[9]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(input[7], input[8], out output[7], out output[8]);
-
-        // Stage 2 factorizes the even half and rotates the central odd pairs by pi/4.
         ReadOnlySpan<int> cospi = Av1SinusConstants.CosinusPi(cosBit);
         Av1TransformRounding rounding = Av1ForwardTransformArithmetic<TValue>.CreateRounding(cosBit);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(output[0], output[7], out step[0], out step[7]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(output[1], output[6], out step[1], out step[6]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(output[2], output[5], out step[2], out step[5]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(output[3], output[4], out step[3], out step[4]);
 
-        step[8] = output[8];
-        step[9] = output[9];
-        Av1ForwardTransformArithmetic<TValue>.Butterfly(-cospi[32], cospi[32], output[10], output[13], out step[10], out step[13], cosBit, in rounding);
-        Av1ForwardTransformArithmetic<TValue>.Butterfly(-cospi[32], cospi[32], output[11], output[12], out step[11], out step[12], cosBit, in rounding);
-        step[14] = output[14];
-        step[15] = output[15];
+        // Stage 1 forms the mirror-symmetric pairs consumed by the recursive even and odd factorizations.
+        for (int i = 0; i < 8; i++)
+        {
+            Av1ForwardTransformArithmetic<TValue>.AddSubtract(
+                Load<TValue>(ref values, inputStride, i),
+                Load<TValue>(ref values, inputStride, 15 - i),
+                out buffer0[i],
+                out buffer0[15 - i]);
+        }
 
-        // Stage 3 recursively factorizes both eight-sample groups into four-sample butterflies.
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(step[0], step[3], out output[0], out output[3]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(step[1], step[2], out output[1], out output[2]);
+        // Stage 2 begins the recursive factorization of the even half and rotates the central odd pairs by pi/4.
+        for (int i = 0; i < 4; i++)
+        {
+            Av1ForwardTransformArithmetic<TValue>.AddSubtract(buffer0[i], buffer0[7 - i], out buffer1[i], out buffer1[7 - i]);
+        }
 
-        output[4] = step[4];
-        Av1ForwardTransformArithmetic<TValue>.Butterfly(-cospi[32], cospi[32], step[5], step[6], out output[5], out output[6], cosBit, in rounding);
-        output[7] = step[7];
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(step[8], step[11], out output[8], out output[11]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(step[9], step[10], out output[9], out output[10]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(step[14], step[13], out output[14], out output[13]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(step[15], step[12], out output[15], out output[12]);
+        Av1ForwardTransformArithmetic<TValue>.Butterfly(
+            -cospi[32],
+            cospi[32],
+            buffer0[10],
+            buffer0[13],
+            out buffer1[10],
+            out buffer1[13],
+            cosBit,
+            in rounding);
 
-        // Stage 4 completes the low-frequency four-point DCT and rotates the first odd-frequency pairs.
-        Av1ForwardTransformArithmetic<TValue>.Butterfly(cospi[32], cospi[32], output[0], output[1], out step[0], out step[1], cosBit, in rounding);
-        Av1ForwardTransformArithmetic<TValue>.Butterfly(cospi[16], cospi[48], output[3], output[2], out step[2], out step[3], cosBit, in rounding);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(output[4], output[5], out step[4], out step[5]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(output[7], output[6], out step[7], out step[6]);
+        Av1ForwardTransformArithmetic<TValue>.Butterfly(
+            -cospi[32],
+            cospi[32],
+            buffer0[11],
+            buffer0[12],
+            out buffer1[11],
+            out buffer1[12],
+            cosBit,
+            in rounding);
 
-        step[8] = output[8];
-        Av1ForwardTransformArithmetic<TValue>.Butterfly(-cospi[16], cospi[48], output[9], output[14], out step[9], out step[14], cosBit, in rounding);
-        Av1ForwardTransformArithmetic<TValue>.Butterfly(-cospi[48], -cospi[16], output[10], output[13], out step[10], out step[13], cosBit, in rounding);
-        step[11] = output[11];
-        step[12] = output[12];
-        step[15] = output[15];
+        // Stage 3 reduces both eight-value groups into the four-value units consumed by the terminal rotations.
+        for (int i = 0; i < 2; i++)
+        {
+            Av1ForwardTransformArithmetic<TValue>.AddSubtract(buffer1[i], buffer1[3 - i], out buffer0[i], out buffer0[3 - i]);
+        }
 
-        // Stage 5 combines the remaining odd terms into the sign pattern required by the next rotations.
-        output[0] = step[0];
-        output[1] = step[1];
-        output[2] = step[2];
-        output[3] = step[3];
-        Av1ForwardTransformArithmetic<TValue>.Butterfly(cospi[8], cospi[56], step[7], step[4], out output[4], out output[7], cosBit, in rounding);
-        Av1ForwardTransformArithmetic<TValue>.Butterfly(cospi[40], cospi[24], step[6], step[5], out output[5], out output[6], cosBit, in rounding);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(step[8], step[9], out output[8], out output[9]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(step[11], step[10], out output[11], out output[10]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(step[12], step[13], out output[12], out output[13]);
-        Av1ForwardTransformArithmetic<TValue>.AddSubtract(step[15], step[14], out output[15], out output[14]);
+        Av1ForwardTransformArithmetic<TValue>.Butterfly(
+            -cospi[32],
+            cospi[32],
+            buffer1[5],
+            buffer1[6],
+            out buffer0[5],
+            out buffer0[6],
+            cosBit,
+            in rounding);
 
-        // Stage 6 applies the final pi/32 odd-frequency rotations.
-        step[0] = output[0];
-        step[1] = output[1];
-        step[2] = output[2];
-        step[3] = output[3];
-        step[4] = output[4];
-        step[5] = output[5];
-        step[6] = output[6];
-        step[7] = output[7];
-        Av1ForwardTransformArithmetic<TValue>.Butterfly(cospi[4], cospi[60], output[15], output[8], out step[8], out step[15], cosBit, in rounding);
-        Av1ForwardTransformArithmetic<TValue>.Butterfly(cospi[36], cospi[28], output[14], output[9], out step[9], out step[14], cosBit, in rounding);
-        Av1ForwardTransformArithmetic<TValue>.Butterfly(cospi[20], cospi[44], output[13], output[10], out step[10], out step[13], cosBit, in rounding);
-        Av1ForwardTransformArithmetic<TValue>.Butterfly(cospi[52], cospi[12], output[12], output[11], out step[11], out step[12], cosBit, in rounding);
+        for (int i = 0; i < 2; i++)
+        {
+            Av1ForwardTransformArithmetic<TValue>.AddSubtract(buffer0[8 + i], buffer1[11 - i], out buffer0[8 + i], out buffer0[11 - i]);
+            Av1ForwardTransformArithmetic<TValue>.AddSubtract(buffer0[15 - i], buffer1[12 + i], out buffer0[15 - i], out buffer0[12 + i]);
+        }
 
-        // Stage 7 permutes the staged values into ascending AV1 coefficient order.
-        output[0] = step[0];
-        output[1] = step[8];
-        output[2] = step[4];
-        output[3] = step[12];
-        output[4] = step[2];
-        output[5] = step[10];
-        output[6] = step[6];
-        output[7] = step[14];
-        output[8] = step[1];
-        output[9] = step[9];
-        output[10] = step[5];
-        output[11] = step[13];
-        output[12] = step[3];
-        output[13] = step[11];
-        output[14] = step[7];
-        output[15] = step[15];
+        // The even coefficients become final at stages 4 and 5, so they are written directly to their AV1 order.
+        Av1ForwardTransformArithmetic<TValue>.Butterfly(
+            cospi[32],
+            cospi[32],
+            buffer0[0],
+            buffer0[1],
+            out TValue output0,
+            out TValue output8,
+            cosBit,
+            in rounding);
+
+        Av1ForwardTransformArithmetic<TValue>.Butterfly(
+            cospi[16],
+            cospi[48],
+            buffer0[3],
+            buffer0[2],
+            out TValue output4,
+            out TValue output12,
+            cosBit,
+            in rounding);
+
+        Av1ForwardTransformArithmetic<TValue>.AddSubtract(buffer1[4], buffer0[5], out buffer1[4], out buffer1[5]);
+        Av1ForwardTransformArithmetic<TValue>.AddSubtract(buffer1[7], buffer0[6], out buffer1[7], out buffer1[6]);
+        Av1ForwardTransformArithmetic<TValue>.Butterfly(
+            -cospi[16],
+            cospi[48],
+            buffer0[9],
+            buffer0[14],
+            out buffer1[9],
+            out buffer1[14],
+            cosBit,
+            in rounding);
+
+        Av1ForwardTransformArithmetic<TValue>.Butterfly(
+            -cospi[48],
+            -cospi[16],
+            buffer0[10],
+            buffer0[13],
+            out buffer1[10],
+            out buffer1[13],
+            cosBit,
+            in rounding);
+
+        Av1ForwardTransformArithmetic<TValue>.Butterfly(
+            cospi[8],
+            cospi[56],
+            buffer1[7],
+            buffer1[4],
+            out TValue output2,
+            out TValue output14,
+            cosBit,
+            in rounding);
+
+        Av1ForwardTransformArithmetic<TValue>.Butterfly(
+            cospi[40],
+            cospi[24],
+            buffer1[6],
+            buffer1[5],
+            out TValue output10,
+            out TValue output6,
+            cosBit,
+            in rounding);
+
+        Av1ForwardTransformArithmetic<TValue>.AddSubtract(buffer0[8], buffer1[9], out buffer0[8], out buffer0[9]);
+        Av1ForwardTransformArithmetic<TValue>.AddSubtract(buffer0[11], buffer1[10], out buffer0[11], out buffer0[10]);
+        Av1ForwardTransformArithmetic<TValue>.AddSubtract(buffer0[12], buffer1[13], out buffer0[12], out buffer0[13]);
+        Av1ForwardTransformArithmetic<TValue>.AddSubtract(buffer0[15], buffer1[14], out buffer0[15], out buffer0[14]);
+
+        // Stage 6 applies the final pi/32 odd-frequency rotations. The following stores perform only the normative
+        // coefficient permutation, so each rotation result is named by its final destination.
+        Av1ForwardTransformArithmetic<TValue>.Butterfly(
+            cospi[4],
+            cospi[60],
+            buffer0[15],
+            buffer0[8],
+            out TValue output1,
+            out TValue output15,
+            cosBit,
+            in rounding);
+
+        Av1ForwardTransformArithmetic<TValue>.Butterfly(
+            cospi[36],
+            cospi[28],
+            buffer0[14],
+            buffer0[9],
+            out TValue output9,
+            out TValue output7,
+            cosBit,
+            in rounding);
+
+        Av1ForwardTransformArithmetic<TValue>.Butterfly(
+            cospi[20],
+            cospi[44],
+            buffer0[13],
+            buffer0[10],
+            out TValue output5,
+            out TValue output11,
+            cosBit,
+            in rounding);
+
+        Av1ForwardTransformArithmetic<TValue>.Butterfly(
+            cospi[52],
+            cospi[12],
+            buffer0[12],
+            buffer0[11],
+            out TValue output13,
+            out TValue output3,
+            cosBit,
+            in rounding);
+
+        Store(ref values, outputStride, 0, output0);
+        Store(ref values, outputStride, 1, output1);
+        Store(ref values, outputStride, 2, output2);
+        Store(ref values, outputStride, 3, output3);
+        Store(ref values, outputStride, 4, output4);
+        Store(ref values, outputStride, 5, output5);
+        Store(ref values, outputStride, 6, output6);
+        Store(ref values, outputStride, 7, output7);
+        Store(ref values, outputStride, 8, output8);
+        Store(ref values, outputStride, 9, output9);
+        Store(ref values, outputStride, 10, output10);
+        Store(ref values, outputStride, 11, output11);
+        Store(ref values, outputStride, 12, output12);
+        Store(ref values, outputStride, 13, output13);
+        Store(ref values, outputStride, 14, output14);
+        Store(ref values, outputStride, 15, output15);
     }
 }

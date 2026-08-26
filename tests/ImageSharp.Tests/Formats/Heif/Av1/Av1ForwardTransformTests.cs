@@ -10,6 +10,9 @@ using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
+/// <summary>
+/// Verifies AV1 forward transform arithmetic, dispatch, layout, and allocation behavior.
+/// </summary>
 [Trait("Format", "Avif")]
 public class Av1ForwardTransformTests
 {
@@ -30,6 +33,26 @@ public class Av1ForwardTransformTests
     [Fact]
     public void OneDimensionalOperatorsMatchAcrossHardwareWidths()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertOneDimensionalOperators, TransformConfigurations);
+
+    /// <summary>
+    /// Verifies every one-dimensional stage network against the independent analytical transform definition.
+    /// </summary>
+    [Fact]
+    public void OneDimensionalOperatorsMatchAnalyticalReference()
+    {
+        AssertOperatorAccuracy<Av1Dct4Forward1dOperator>(Av1TransformType1d.Dct, 4);
+        AssertOperatorAccuracy<Av1Dct8Forward1dOperator>(Av1TransformType1d.Dct, 8);
+        AssertOperatorAccuracy<Av1Dct16Forward1dOperator>(Av1TransformType1d.Dct, 16);
+        AssertOperatorAccuracy<Av1Dct32Forward1dOperator>(Av1TransformType1d.Dct, 32);
+        AssertOperatorAccuracy<Av1Dct64Forward1dOperator>(Av1TransformType1d.Dct, 64);
+        AssertOperatorAccuracy<Av1Adst4Forward1dOperator>(Av1TransformType1d.Adst, 4);
+        AssertOperatorAccuracy<Av1Adst8Forward1dOperator>(Av1TransformType1d.Adst, 8);
+        AssertOperatorAccuracy<Av1Adst16Forward1dOperator>(Av1TransformType1d.Adst, 16);
+        AssertOperatorAccuracy<Av1Identity4Forward1dOperator>(Av1TransformType1d.Identity, 4);
+        AssertOperatorAccuracy<Av1Identity8Forward1dOperator>(Av1TransformType1d.Identity, 8);
+        AssertOperatorAccuracy<Av1Identity16Forward1dOperator>(Av1TransformType1d.Identity, 16);
+        AssertOperatorAccuracy<Av1Identity32Forward1dOperator>(Av1TransformType1d.Identity, 32);
+    }
 
     /// <summary>
     /// Verifies every permitted size, type, and bit-depth combination against the direct scalar two-axis definition.
@@ -115,8 +138,58 @@ public class Av1ForwardTransformTests
     }
 
     /// <summary>
+    /// Compares one integer stage network with the analytical transform used by the libaom forward-transform tests.
+    /// </summary>
+    /// <typeparam name="TOperator">The transform operator.</typeparam>
+    /// <param name="transformType">The analytical transform definition.</param>
+    /// <param name="length">The transform length.</param>
+    private static void AssertOperatorAccuracy<TOperator>(Av1TransformType1d transformType, int length)
+        where TOperator : struct, IAv1ForwardTransform1dOperator
+    {
+        const int cosBit = 13;
+        const int testBlockCount = 500;
+        const int maximumCoefficientError = 7;
+        Random random = new(0);
+        double[] referenceInput = new double[length];
+        double[] referenceOutput = new double[length];
+        Av1TransformVector<int> values = default;
+        Av1TransformVector<int> buffer0 = default;
+        Av1TransformVector<int> buffer1 = default;
+
+        for (int block = 0; block < testBlockCount; block++)
+        {
+            for (int index = 0; index < length; index++)
+            {
+                int input = random.Next(1024) - random.Next(1024);
+                values[index] = input;
+                referenceInput[index] = input;
+            }
+
+            ref byte valuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<int>, byte>(ref values);
+
+            TOperator.Transform<int>(ref valuesBase, sizeof(int), sizeof(int), ref buffer0, ref buffer1, cosBit);
+            Av1ReferenceTransform.ReferenceTransform1d(transformType, referenceInput, referenceOutput, length);
+
+            // libaom permits seven integer coefficient units because each fixed-point butterfly rounds independently.
+            for (int index = 0; index < length; index++)
+            {
+                int expected = (int)Math.Round(referenceOutput[index], MidpointRounding.AwayFromZero);
+                int error = Math.Abs(values[index] - expected);
+
+                Assert.True(
+                    error <= maximumCoefficientError,
+                    $"{typeof(TOperator).Name} coefficient {index}: expected {expected}, actual {values[index]}, error {error}.");
+            }
+        }
+    }
+
+    /// <summary>
     /// Compares one Int32 vector representation with the scalar Int32 stage network lane by lane.
     /// </summary>
+    /// <typeparam name="TOperator">The transform operator.</typeparam>
+    /// <typeparam name="TVector">The SIMD value containing independent transform axes.</typeparam>
+    /// <param name="length">The transform length.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
     private static void AssertInt32Operator<TOperator, TVector>(int length, int cosBit)
         where TOperator : struct, IAv1ForwardTransform1dOperator
         where TVector : struct
@@ -136,7 +209,10 @@ public class Av1ForwardTransformTests
             }
         }
 
-        TOperator.Transform(ref vectorValues, ref vectorBuffer0, ref vectorBuffer1, cosBit);
+        ref byte vectorValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<TVector>, byte>(ref vectorValues);
+        nint vectorStride = System.Runtime.CompilerServices.Unsafe.SizeOf<TVector>();
+
+        TOperator.Transform<TVector>(ref vectorValuesBase, vectorStride, vectorStride, ref vectorBuffer0, ref vectorBuffer1, cosBit);
 
         for (int lane = 0; lane < laneCount; lane++)
         {
@@ -149,12 +225,14 @@ public class Av1ForwardTransformTests
                 scalarValues[index] = GetInputValue(index, lane);
             }
 
-            TOperator.Transform(ref scalarValues, ref scalarBuffer0, ref scalarBuffer1, cosBit);
+            ref byte scalarValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<int>, byte>(ref scalarValues);
+
+            TOperator.Transform<int>(ref scalarValuesBase, sizeof(int), sizeof(int), ref scalarBuffer0, ref scalarBuffer1, cosBit);
 
             for (int index = 0; index < length; index++)
             {
-                ref int firstLane = ref System.Runtime.CompilerServices.Unsafe.As<TVector, int>(ref vectorBuffer0[index]);
-                Assert.Equal(scalarBuffer0[index], System.Runtime.CompilerServices.Unsafe.Add(ref firstLane, lane));
+                ref int firstLane = ref System.Runtime.CompilerServices.Unsafe.As<TVector, int>(ref vectorValues[index]);
+                Assert.Equal(scalarValues[index], System.Runtime.CompilerServices.Unsafe.Add(ref firstLane, lane));
             }
         }
     }
@@ -162,6 +240,10 @@ public class Av1ForwardTransformTests
     /// <summary>
     /// Compares one Int16 vector representation with the scalar Int16 stage network lane by lane.
     /// </summary>
+    /// <typeparam name="TOperator">The transform operator.</typeparam>
+    /// <typeparam name="TVector">The SIMD value containing independent transform axes.</typeparam>
+    /// <param name="length">The transform length.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
     private static void AssertInt16Operator<TOperator, TVector>(int length, int cosBit)
         where TOperator : struct, IAv1ForwardTransform1dOperator
         where TVector : struct
@@ -181,7 +263,10 @@ public class Av1ForwardTransformTests
             }
         }
 
-        TOperator.Transform(ref vectorValues, ref vectorBuffer0, ref vectorBuffer1, cosBit);
+        ref byte vectorValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<TVector>, byte>(ref vectorValues);
+        nint vectorStride = System.Runtime.CompilerServices.Unsafe.SizeOf<TVector>();
+
+        TOperator.Transform<TVector>(ref vectorValuesBase, vectorStride, vectorStride, ref vectorBuffer0, ref vectorBuffer1, cosBit);
 
         for (int lane = 0; lane < laneCount; lane++)
         {
@@ -194,12 +279,14 @@ public class Av1ForwardTransformTests
                 scalarValues[index] = GetPackedInputValue(index, lane);
             }
 
-            TOperator.Transform(ref scalarValues, ref scalarBuffer0, ref scalarBuffer1, cosBit);
+            ref byte scalarValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<short>, byte>(ref scalarValues);
+
+            TOperator.Transform<short>(ref scalarValuesBase, sizeof(short), sizeof(short), ref scalarBuffer0, ref scalarBuffer1, cosBit);
 
             for (int index = 0; index < length; index++)
             {
-                ref short firstLane = ref System.Runtime.CompilerServices.Unsafe.As<TVector, short>(ref vectorBuffer0[index]);
-                Assert.Equal(scalarBuffer0[index], System.Runtime.CompilerServices.Unsafe.Add(ref firstLane, lane));
+                ref short firstLane = ref System.Runtime.CompilerServices.Unsafe.As<TVector, short>(ref vectorValues[index]);
+                Assert.Equal(scalarValues[index], System.Runtime.CompilerServices.Unsafe.Add(ref firstLane, lane));
             }
         }
     }
@@ -231,6 +318,9 @@ public class Av1ForwardTransformTests
     /// <summary>
     /// Compares one complete transform with the direct scalar two-axis definition.
     /// </summary>
+    /// <param name="transformType">The compound transform type.</param>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <param name="bitDepth">The source sample bit depth.</param>
     private static void AssertTwoDimensionalCase(Av1TransformType transformType, Av1TransformSize transformSize, int bitDepth)
     {
         int width = transformSize.GetWidth();
@@ -269,6 +359,10 @@ public class Av1ForwardTransformTests
     /// <summary>
     /// Selects the scalar reference column operator.
     /// </summary>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="stride">The number of input samples between rows.</param>
+    /// <param name="output">The destination reference coefficients.</param>
+    /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
     private static void DispatchReferenceColumn(Span<short> input, int stride, Span<int> output, ref Av1Transform2dFlipConfiguration config)
     {
         switch (config.TransformFunctionTypeColumn)
@@ -315,6 +409,11 @@ public class Av1ForwardTransformTests
     /// <summary>
     /// Selects the scalar reference row operator.
     /// </summary>
+    /// <typeparam name="TColumnOperator">The column transform operator.</typeparam>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="stride">The number of input samples between rows.</param>
+    /// <param name="output">The destination reference coefficients.</param>
+    /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
     private static void DispatchReferenceRow<TColumnOperator>(Span<short> input, int stride, Span<int> output, ref Av1Transform2dFlipConfiguration config)
         where TColumnOperator : struct, IAv1ForwardTransform1dOperator
     {
@@ -362,6 +461,12 @@ public class Av1ForwardTransformTests
     /// <summary>
     /// Applies the direct scalar column and row transform definition used as the layout and dispatch oracle.
     /// </summary>
+    /// <typeparam name="TColumnOperator">The column transform operator.</typeparam>
+    /// <typeparam name="TRowOperator">The row transform operator.</typeparam>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="stride">The number of input samples between rows.</param>
+    /// <param name="output">The destination reference coefficients.</param>
+    /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
     private static void TransformReference<TColumnOperator, TRowOperator>(
         Span<short> input,
         int stride,
@@ -387,12 +492,14 @@ public class Av1ForwardTransformTests
                 values[row] = input[(sourceRow * stride) + column] << config.Shift0;
             }
 
-            TColumnOperator.Transform(ref values, ref buffer0, ref buffer1, config.CosBitColumn);
+            ref byte valuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<int>, byte>(ref values);
+
+            TColumnOperator.Transform<int>(ref valuesBase, sizeof(int), sizeof(int), ref buffer0, ref buffer1, config.CosBitColumn);
             int destinationColumn = config.FlipLeftToRight ? width - column - 1 : column;
 
             for (int row = 0; row < height; row++)
             {
-                intermediate[(row * width) + destinationColumn] = Av1Math.RoundShift(buffer0[row], -config.Shift1);
+                intermediate[(row * width) + destinationColumn] = Av1Math.RoundShift(values[row], -config.Shift1);
             }
         }
 
@@ -405,11 +512,13 @@ public class Av1ForwardTransformTests
                 values[column] = intermediate[(row * width) + column];
             }
 
-            TRowOperator.Transform(ref values, ref buffer0, ref buffer1, config.CosBitRow);
+            ref byte valuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<int>, byte>(ref values);
+
+            TRowOperator.Transform<int>(ref valuesBase, sizeof(int), sizeof(int), ref buffer0, ref buffer1, config.CosBitRow);
 
             for (int column = 0; column < outputWidth; column++)
             {
-                int value = Av1Math.RoundShift(buffer0[column], -config.Shift2);
+                int value = Av1Math.RoundShift(values[column], -config.Shift2);
                 output[(row * outputWidth) + column] = normalizeRectangle
                     ? Av1Transform1dMath.HalfButterfly(Av1Transform1dMath.NewSqrt2, value, 0, 0, Av1Transform1dMath.NewSqrt2Bits)
                     : value;
@@ -420,12 +529,18 @@ public class Av1ForwardTransformTests
     /// <summary>
     /// Gets a deterministic signed thirty-two-bit transform input.
     /// </summary>
+    /// <param name="index">The transform position.</param>
+    /// <param name="lane">The independent SIMD lane.</param>
+    /// <returns>The deterministic input value.</returns>
     private static int GetInputValue(int index, int lane)
         => (((index * 73) + (lane * 151)) % 8191) - 4095;
 
     /// <summary>
     /// Gets a deterministic signed sixteen-bit input including overflow-sensitive edge values.
     /// </summary>
+    /// <param name="index">The transform position.</param>
+    /// <param name="lane">The independent SIMD lane.</param>
+    /// <returns>The deterministic packed input value.</returns>
     private static short GetPackedInputValue(int index, int lane)
         => (short)((index + lane) % 5 switch
         {
@@ -439,6 +554,7 @@ public class Av1ForwardTransformTests
     /// <summary>
     /// Creates the complete normative transform matrix shared by the forward and inverse tests.
     /// </summary>
+    /// <returns>Every permitted transform type, transform size, and AV1 image bit depth.</returns>
     private static TheoryData<int, int, int> CreateValidTransformCases()
     {
         TheoryData<int, int, int> cases = [];

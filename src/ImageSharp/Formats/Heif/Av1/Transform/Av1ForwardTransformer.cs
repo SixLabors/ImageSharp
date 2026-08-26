@@ -42,6 +42,12 @@ internal static class Av1ForwardTransformer
     /// <summary>
     /// Selects the concrete column operator for a transform block.
     /// </summary>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="coefficients">The destination transform coefficients.</param>
+    /// <param name="stride">The number of input samples between rows.</param>
+    /// <param name="bitDepth">The source sample bit depth.</param>
+    /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
+    /// <param name="workspace">The reusable transform workspace.</param>
     private static void DispatchColumn(
         Span<short> input,
         Span<int> coefficients,
@@ -96,6 +102,13 @@ internal static class Av1ForwardTransformer
     /// <summary>
     /// Selects the concrete row operator after the column operator has been specialized.
     /// </summary>
+    /// <typeparam name="TColumnOperator">The column transform operator selected for the block.</typeparam>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="coefficients">The destination transform coefficients.</param>
+    /// <param name="stride">The number of input samples between rows.</param>
+    /// <param name="bitDepth">The source sample bit depth.</param>
+    /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
+    /// <param name="workspace">The reusable transform workspace.</param>
     private static void DispatchRow<TColumnOperator>(
         Span<short> input,
         Span<int> coefficients,
@@ -151,6 +164,14 @@ internal static class Av1ForwardTransformer
     /// <summary>
     /// Applies the specialized operator pair using the sample representation selected for the coded bit depth.
     /// </summary>
+    /// <typeparam name="TColumnOperator">The column transform operator.</typeparam>
+    /// <typeparam name="TRowOperator">The row transform operator.</typeparam>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="coefficients">The destination transform coefficients.</param>
+    /// <param name="stride">The number of input samples between rows.</param>
+    /// <param name="bitDepth">The source sample bit depth.</param>
+    /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
+    /// <param name="workspace">The reusable transform workspace.</param>
     private static void Transform2d<TColumnOperator, TRowOperator>(
         Span<short> input,
         Span<int> coefficients,
@@ -175,6 +196,13 @@ internal static class Av1ForwardTransformer
     /// <summary>
     /// Applies the libaom Int16 stage pipeline used for eight-bit residuals.
     /// </summary>
+    /// <typeparam name="TColumnOperator">The column transform operator.</typeparam>
+    /// <typeparam name="TRowOperator">The row transform operator.</typeparam>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="coefficients">The destination transform coefficients.</param>
+    /// <param name="stride">The number of input samples between rows.</param>
+    /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
+    /// <param name="workspace">The reusable transform workspace.</param>
     private static void TransformPacked<TColumnOperator, TRowOperator>(
         Span<short> input,
         Span<int> coefficients,
@@ -186,7 +214,13 @@ internal static class Av1ForwardTransformer
     {
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
-        int blockLaneCount = Avx512BW.IsSupported ? Vector512<short>.Count : Avx2.IsSupported ? Vector256<short>.Count : Vector128<short>.Count;
+
+        // Packed short stages halve the arithmetic width and AVX-512BW doubles their lane count. Highway selects
+        // this representation by ISA capability, independently of the runtime preference used for generic vectors.
+        int blockLaneCount = Avx512BW.IsSupported
+            ? Vector512<short>.Count
+            : Avx2.IsSupported ? Vector256<short>.Count : Vector128<short>.Count;
+
         int blockWidth = Math.Max(width, blockLaneCount);
         int blockHeight = Math.Max(height, blockLaneCount);
         int blockArea = blockWidth * blockHeight;
@@ -197,7 +231,7 @@ internal static class Av1ForwardTransformer
         ref short buffer0Base = ref MemoryMarshal.GetReference(buffer0);
 
         LoadPacked(input, stride, ref buffer0Base, blockWidth, width, height, config.Shift0, config.FlipUpsideDown, config.FlipLeftToRight);
-        TransformPackedAxis<TColumnOperator>(buffer0, height, width, blockWidth, config.CosBitColumn, workspace);
+        TransformPackedAxis<TColumnOperator>(buffer0, width, blockWidth, blockWidth, config.CosBitColumn, workspace);
 
         int retainedHeight = Math.Min(height, 32);
         int retainedWidth = Math.Min(width, 32);
@@ -220,12 +254,14 @@ internal static class Av1ForwardTransformer
                 -config.Shift1,
                 scratch);
 
-            TransformExpandedAxis<TRowOperator>(buffer1, width, retainedHeight, blockHeight, config.CosBitRow, workspace);
+            int rowOutputStride = width == 64 && height == 64 ? 32 : blockHeight;
+
+            TransformExpandedAxis<TRowOperator>(buffer1, retainedHeight, blockHeight, rowOutputStride, config.CosBitRow, workspace);
             ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
 
             TransposeExpanded(
                 ref buffer1Base,
-                blockHeight,
+                rowOutputStride,
                 ref coefficientBase,
                 retainedWidth,
                 retainedHeight,
@@ -253,7 +289,7 @@ internal static class Av1ForwardTransformer
             false,
             packedScratch);
 
-        TransformPackedAxis<TRowOperator>(buffer1Packed, width, height, blockHeight, config.CosBitRow, workspace);
+        TransformPackedAxis<TRowOperator>(buffer1Packed, height, blockHeight, blockHeight, config.CosBitRow, workspace);
 
         // The second transform produces horizontal frequency in rows and vertical frequency in lanes. Transposing
         // once more adapts libaom's native layout to the row-major coefficient contract used by ImageSharp.
@@ -274,6 +310,13 @@ internal static class Av1ForwardTransformer
     /// <summary>
     /// Applies the libaom Int32 stage pipeline used for high-bit-depth residuals and scalar fallback.
     /// </summary>
+    /// <typeparam name="TColumnOperator">The column transform operator.</typeparam>
+    /// <typeparam name="TRowOperator">The row transform operator.</typeparam>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="coefficients">The destination transform coefficients.</param>
+    /// <param name="stride">The number of input samples between rows.</param>
+    /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
+    /// <param name="workspace">The reusable transform workspace.</param>
     private static void TransformExpanded<TColumnOperator, TRowOperator>(
         Span<short> input,
         Span<int> coefficients,
@@ -285,7 +328,10 @@ internal static class Av1ForwardTransformer
     {
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
-        int blockLaneCount = Vector512.IsHardwareAccelerated ? Vector512<int>.Count : Vector256.IsHardwareAccelerated ? Vector256<int>.Count : Vector128.IsHardwareAccelerated ? Vector128<int>.Count : 1;
+        int blockLaneCount = Vector512.IsHardwareAccelerated
+            ? Vector512<int>.Count
+            : Vector256.IsHardwareAccelerated ? Vector256<int>.Count : Vector128.IsHardwareAccelerated ? Vector128<int>.Count : 1;
+
         int blockWidth = Math.Max(width, blockLaneCount);
         int blockHeight = Math.Max(height, blockLaneCount);
         int blockArea = blockWidth * blockHeight;
@@ -297,7 +343,7 @@ internal static class Av1ForwardTransformer
         ref int buffer1Base = ref MemoryMarshal.GetReference(buffer1);
 
         LoadExpanded(input, stride, ref buffer0Base, blockWidth, width, height, config.Shift0, config.FlipUpsideDown, config.FlipLeftToRight);
-        TransformExpandedAxis<TColumnOperator>(buffer0, height, width, blockWidth, config.CosBitColumn, workspace);
+        TransformExpandedAxis<TColumnOperator>(buffer0, width, blockWidth, blockWidth, config.CosBitColumn, workspace);
 
         TransposeExpanded(
             ref buffer0Base,
@@ -312,13 +358,15 @@ internal static class Av1ForwardTransformer
 
         int retainedHeight = Math.Min(height, 32);
         int retainedWidth = Math.Min(width, 32);
-        TransformExpandedAxis<TRowOperator>(buffer1, width, retainedHeight, blockHeight, config.CosBitRow, workspace);
+        int rowOutputStride = width == 64 && height == 64 ? 32 : blockHeight;
+
+        TransformExpandedAxis<TRowOperator>(buffer1, retainedHeight, blockHeight, rowOutputStride, config.CosBitRow, workspace);
         bool normalizeRectangle = Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1;
         ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
 
         TransposeExpanded(
             ref buffer1Base,
-            blockHeight,
+            rowOutputStride,
             ref coefficientBase,
             retainedWidth,
             retainedHeight,
@@ -331,6 +379,15 @@ internal static class Av1ForwardTransformer
     /// <summary>
     /// Loads, flips, and scales one eight-bit residual block into packed transform storage.
     /// </summary>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="inputStride">The number of input samples between rows.</param>
+    /// <param name="destination">The first value in the packed transform block.</param>
+    /// <param name="destinationStride">The number of packed values between destination rows.</param>
+    /// <param name="width">The transform-block width.</param>
+    /// <param name="height">The transform-block height.</param>
+    /// <param name="shift">The initial transform scaling shift.</param>
+    /// <param name="flipUpsideDown">Whether to reverse the input row order.</param>
+    /// <param name="flipLeftToRight">Whether to reverse the samples within each row.</param>
     private static void LoadPacked(
         Span<short> input,
         uint inputStride,
@@ -403,6 +460,15 @@ internal static class Av1ForwardTransformer
     /// <summary>
     /// Loads, flips, widens, and scales one residual block into signed thirty-two-bit transform storage.
     /// </summary>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="inputStride">The number of input samples between rows.</param>
+    /// <param name="destination">The first value in the expanded transform block.</param>
+    /// <param name="destinationStride">The number of expanded values between destination rows.</param>
+    /// <param name="width">The transform-block width.</param>
+    /// <param name="height">The transform-block height.</param>
+    /// <param name="shift">The initial transform scaling shift.</param>
+    /// <param name="flipUpsideDown">Whether to reverse the input row order.</param>
+    /// <param name="flipLeftToRight">Whether to reverse the samples within each row.</param>
     private static void LoadExpanded(
         Span<short> input,
         uint inputStride,
@@ -473,71 +539,94 @@ internal static class Av1ForwardTransformer
     /// <summary>
     /// Applies one packed transform axis using the widest efficient lane count available for the block.
     /// </summary>
+    /// <typeparam name="TOperator">The transform operator applied to each independent axis.</typeparam>
+    /// <param name="buffer">The packed transform block.</param>
+    /// <param name="transformCount">The number of independent axes.</param>
+    /// <param name="inputStride">The number of packed values between input positions.</param>
+    /// <param name="outputStride">The number of packed values between output positions.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    /// <param name="workspace">The reusable transform-stage workspace.</param>
     private static void TransformPackedAxis<TOperator>(
         Span<short> buffer,
-        int transformLength,
         int transformCount,
-        int stride,
+        int inputStride,
+        int outputStride,
         int cosBit,
         Span<int> workspace)
         where TOperator : struct, IAv1ForwardTransform1dOperator
     {
         if (Avx512BW.IsSupported && transformCount >= Vector512<short>.Count)
         {
-            TransformAxis<TOperator, short, Vector512<short>>(buffer, transformLength, transformCount, stride, cosBit, workspace);
+            TransformAxis<TOperator, short, Vector512<short>>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
             return;
         }
 
         if (Avx2.IsSupported && transformCount >= Vector256<short>.Count)
         {
-            TransformAxis<TOperator, short, Vector256<short>>(buffer, transformLength, transformCount, stride, cosBit, workspace);
+            TransformAxis<TOperator, short, Vector256<short>>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
             return;
         }
 
-        TransformAxis<TOperator, short, Vector128<short>>(buffer, transformLength, transformCount, stride, cosBit, workspace);
+        TransformAxis<TOperator, short, Vector128<short>>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
     }
 
     /// <summary>
     /// Applies one signed thirty-two-bit transform axis using the widest efficient lane count available for the block.
     /// </summary>
+    /// <typeparam name="TOperator">The transform operator applied to each independent axis.</typeparam>
+    /// <param name="buffer">The expanded transform block.</param>
+    /// <param name="transformCount">The number of independent axes.</param>
+    /// <param name="inputStride">The number of expanded values between input positions.</param>
+    /// <param name="outputStride">The number of expanded values between output positions.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    /// <param name="workspace">The reusable transform-stage workspace.</param>
     private static void TransformExpandedAxis<TOperator>(
         Span<int> buffer,
-        int transformLength,
         int transformCount,
-        int stride,
+        int inputStride,
+        int outputStride,
         int cosBit,
         Span<int> workspace)
         where TOperator : struct, IAv1ForwardTransform1dOperator
     {
         if (Vector512.IsHardwareAccelerated && transformCount >= Vector512<int>.Count)
         {
-            TransformAxis<TOperator, int, Vector512<int>>(buffer, transformLength, transformCount, stride, cosBit, workspace);
+            TransformAxis<TOperator, int, Vector512<int>>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
             return;
         }
 
         if (Vector256.IsHardwareAccelerated && transformCount >= Vector256<int>.Count)
         {
-            TransformAxis<TOperator, int, Vector256<int>>(buffer, transformLength, transformCount, stride, cosBit, workspace);
+            TransformAxis<TOperator, int, Vector256<int>>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
             return;
         }
 
         if (Vector128.IsHardwareAccelerated && transformCount >= Vector128<int>.Count)
         {
-            TransformAxis<TOperator, int, Vector128<int>>(buffer, transformLength, transformCount, stride, cosBit, workspace);
+            TransformAxis<TOperator, int, Vector128<int>>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
             return;
         }
 
-        TransformAxis<TOperator, int, int>(buffer, transformLength, transformCount, stride, cosBit, workspace);
+        TransformAxis<TOperator, int, int>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
     }
 
     /// <summary>
     /// Applies one transform stage network to independent axes held in scalar or SIMD lanes.
     /// </summary>
+    /// <typeparam name="TOperator">The transform operator applied to each independent axis.</typeparam>
+    /// <typeparam name="TElement">The scalar storage element.</typeparam>
+    /// <typeparam name="TValue">The scalar or SIMD value containing independent transform axes.</typeparam>
+    /// <param name="buffer">The transform block.</param>
+    /// <param name="transformCount">The number of independent axes.</param>
+    /// <param name="inputStride">The number of storage elements between input positions.</param>
+    /// <param name="outputStride">The number of storage elements between output positions.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    /// <param name="workspace">The reusable transform-stage workspace.</param>
     private static void TransformAxis<TOperator, TElement, TValue>(
         Span<TElement> buffer,
-        int transformLength,
         int transformCount,
-        int stride,
+        int inputStride,
+        int outputStride,
         int cosBit,
         Span<int> workspace)
         where TOperator : struct, IAv1ForwardTransform1dOperator
@@ -547,34 +636,36 @@ internal static class Av1ForwardTransformer
         int vectorByteLength = Unsafe.SizeOf<Av1TransformVector<TValue>>();
         int laneCount = Unsafe.SizeOf<TValue>() / Unsafe.SizeOf<TElement>();
         ref byte workspaceBase = ref Unsafe.As<int, byte>(ref MemoryMarshal.GetReference(workspace));
-        ref Av1TransformVector<TValue> input = ref Unsafe.As<byte, Av1TransformVector<TValue>>(ref workspaceBase);
-        ref Av1TransformVector<TValue> output = ref Unsafe.As<byte, Av1TransformVector<TValue>>(ref Unsafe.Add(ref workspaceBase, vectorByteLength));
-        ref Av1TransformVector<TValue> step = ref Unsafe.As<byte, Av1TransformVector<TValue>>(ref Unsafe.Add(ref workspaceBase, 2 * vectorByteLength));
-        ref TElement sourceBase = ref MemoryMarshal.GetReference(buffer);
+        ref Av1TransformVector<TValue> buffer0 = ref Unsafe.As<byte, Av1TransformVector<TValue>>(ref workspaceBase);
+        ref Av1TransformVector<TValue> buffer1 =
+            ref Unsafe.As<byte, Av1TransformVector<TValue>>(ref Unsafe.Add(ref workspaceBase, vectorByteLength));
 
-        // Each lane is an independent row or column. Reusing the three caller-owned vectors for every batch keeps
-        // the complete 1-D stage network in registers without creating a transform-sized stack frame per axis.
+        ref TElement sourceBase = ref MemoryMarshal.GetReference(buffer);
+        nint inputByteStride = inputStride * Unsafe.SizeOf<TElement>();
+        nint outputByteStride = outputStride * Unsafe.SizeOf<TElement>();
+
+        // Each lane is an independent row or column. The operators load from and retire coefficients directly to
+        // the strided block, matching Highway's two-buffer stage network without a separate input/output copy pass.
         for (int batch = 0; batch < transformCount; batch += laneCount)
         {
-            for (int index = 0; index < transformLength; index++)
-            {
-                ref TElement source = ref Unsafe.Add(ref sourceBase, (index * stride) + batch);
-                input[index] = Unsafe.ReadUnaligned<TValue>(ref Unsafe.As<TElement, byte>(ref source));
-            }
+            ref byte values = ref Unsafe.As<TElement, byte>(ref Unsafe.Add(ref sourceBase, batch));
 
-            TOperator.Transform(ref input, ref output, ref step, cosBit);
-
-            for (int index = 0; index < transformLength; index++)
-            {
-                ref TElement destination = ref Unsafe.Add(ref sourceBase, (index * stride) + batch);
-                Unsafe.WriteUnaligned(ref Unsafe.As<TElement, byte>(ref destination), output[index]);
-            }
+            TOperator.Transform<TValue>(ref values, inputByteStride, outputByteStride, ref buffer0, ref buffer1, cosBit);
         }
     }
 
     /// <summary>
     /// Transposes packed transform storage while applying an AV1 pipeline shift and optional rectangle scaling.
     /// </summary>
+    /// <param name="source">The first value in the source block.</param>
+    /// <param name="sourceStride">The number of packed values between source rows.</param>
+    /// <param name="destination">The first value in the destination block.</param>
+    /// <param name="destinationStride">The number of packed values between destination rows.</param>
+    /// <param name="sourceWidth">The number of source columns.</param>
+    /// <param name="sourceHeight">The number of source rows.</param>
+    /// <param name="roundShift">The signed AV1 scaling shift.</param>
+    /// <param name="normalizeRectangle">Whether to apply the square-root-of-two rectangle normalization.</param>
+    /// <param name="scratch">The reusable transpose workspace.</param>
     private static void TransposePacked(
         ref short source,
         int sourceStride,
@@ -634,6 +725,14 @@ internal static class Av1ForwardTransformer
     /// <summary>
     /// Promotes and transposes the large packed layouts at the same axis boundary as libaom.
     /// </summary>
+    /// <param name="source">The first packed value in the source block.</param>
+    /// <param name="sourceStride">The number of packed values between source rows.</param>
+    /// <param name="destination">The first expanded value in the destination block.</param>
+    /// <param name="destinationStride">The number of expanded values between destination rows.</param>
+    /// <param name="sourceWidth">The number of source columns.</param>
+    /// <param name="sourceHeight">The number of source rows.</param>
+    /// <param name="roundShift">The signed AV1 scaling shift.</param>
+    /// <param name="scratch">The reusable conversion and transpose workspace.</param>
     private static void TransposeAndPromote(
         ref short source,
         int sourceStride,
@@ -694,6 +793,15 @@ internal static class Av1ForwardTransformer
     /// <summary>
     /// Transposes signed thirty-two-bit transform storage while applying the configured terminal operations.
     /// </summary>
+    /// <param name="source">The first value in the source block.</param>
+    /// <param name="sourceStride">The number of expanded values between source rows.</param>
+    /// <param name="destination">The first value in the destination block.</param>
+    /// <param name="destinationStride">The number of expanded values between destination rows.</param>
+    /// <param name="sourceWidth">The number of source columns.</param>
+    /// <param name="sourceHeight">The number of source rows.</param>
+    /// <param name="roundShift">The signed AV1 scaling shift.</param>
+    /// <param name="normalizeRectangle">Whether to apply the square-root-of-two rectangle normalization.</param>
+    /// <param name="scratch">The reusable transpose workspace.</param>
     private static void TransposeExpanded(
         ref int source,
         int sourceStride,
@@ -706,7 +814,10 @@ internal static class Av1ForwardTransformer
         Span<int> scratch)
     {
         bool useVector512 = Vector512.IsHardwareAccelerated && Math.Min(sourceWidth, sourceHeight) >= 16;
-        int tileSize = useVector512 ? 16 : Vector256.IsHardwareAccelerated && Math.Min(sourceWidth, sourceHeight) >= 8 ? 8 : Vector128.IsHardwareAccelerated ? 4 : 1;
+        int tileSize = useVector512
+            ? 16
+            : Vector256.IsHardwareAccelerated && Math.Min(sourceWidth, sourceHeight) >= 8 ? 8 : Vector128.IsHardwareAccelerated ? 4 : 1;
+
         Span<long> transposeScratch = MemoryMarshal.Cast<int, long>(scratch);
 
         for (int row = 0; row < sourceHeight; row += tileSize)
@@ -761,6 +872,10 @@ internal static class Av1ForwardTransformer
     /// <summary>
     /// Widens the completed packed coefficient matrix into its external signed thirty-two-bit representation.
     /// </summary>
+    /// <param name="source">The first packed transform coefficient.</param>
+    /// <param name="width">The coefficient matrix width.</param>
+    /// <param name="height">The coefficient matrix height.</param>
+    /// <param name="destination">The destination signed thirty-two-bit coefficients.</param>
     private static void StorePacked(ref short source, int width, int height, Span<int> destination)
     {
         ref int destinationBase = ref MemoryMarshal.GetReference(destination);
@@ -803,7 +918,9 @@ internal static class Av1ForwardTransformer
 
             if (column < width)
             {
-                Vector128<int> value = Vector128.WidenLower(Vector128.Create(Unsafe.As<short, ulong>(ref Unsafe.Add(ref sourceRow, column)), 0UL).AsInt16());
+                Vector128<int> value = Vector128.WidenLower(
+                    Vector128.Create(Unsafe.As<short, ulong>(ref Unsafe.Add(ref sourceRow, column)), 0UL).AsInt16());
+
                 value.StoreUnsafe(ref destinationRow, (nuint)column);
             }
         }

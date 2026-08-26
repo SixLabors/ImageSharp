@@ -10,10 +10,12 @@ internal readonly struct Av1Dct8Forward1dOperator : IAv1ForwardTransform1dOperat
 {
     /// <inheritdoc/>
     public static void Transform<TValue>(
-        ref Av1TransformVector<TValue> input,
-        ref Av1TransformVector<TValue> output,
-        ref Av1TransformVector<TValue> step,
+        ref byte values,
+        nint inputStride,
+        nint outputStride,
+        ref Av1TransformVector<TValue> buffer0,
+        ref Av1TransformVector<TValue> buffer1,
         int cosBit)
         where TValue : struct
-        => Av1ForwardTransformOperations.Dct8(ref input, ref output, ref step, cosBit);
+        => Av1ForwardTransformOperations.Dct8(ref values, inputStride, outputStride, ref buffer0, ref buffer1, cosBit);
 }

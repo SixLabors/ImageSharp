@@ -129,8 +129,7 @@ internal static partial class Av1YuvConverter
         /// </summary>
         /// <param name="y">The row index.</param>
         /// <param name="span">The reusable conversion buffer.</param>
-        /// <param name="proxy">The padded destination used when an eight-bit image row cannot expose sufficient padding.</param>
-        public void Convert(int y, Span<float> span, Span<TPixel> proxy)
+        public void Convert(int y, Span<float> span)
         {
             int width = this.image.Width;
             Span<float> red = span[..width];
@@ -203,15 +202,7 @@ internal static partial class Av1YuvConverter
                 SimdUtils.NormalizedFloatToByteSaturate(green, greenBytes);
                 SimdUtils.NormalizedFloatToByteSaturate(blue, blueBytes);
 
-                if (this.image.PixelBuffer.DangerousTryGetPaddedRowSpan(y, 3, out Span<TPixel> paddedDestination))
-                {
-                    PixelOperations<TPixel>.Instance.PackFromRgbPlanes(redBytes, greenBytes, blueBytes, paddedDestination);
-                }
-                else
-                {
-                    PixelOperations<TPixel>.Instance.PackFromRgbPlanes(redBytes, greenBytes, blueBytes, proxy);
-                    proxy[..width].CopyTo(destination);
-                }
+                PixelOperations<TPixel>.Instance.PackFromRgbPlanes(redBytes, greenBytes, blueBytes, destination);
             }
             else
             {

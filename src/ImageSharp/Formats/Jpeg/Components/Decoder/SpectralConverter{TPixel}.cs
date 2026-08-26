@@ -43,11 +43,6 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
     private IMemoryOwner<byte> rgbBuffer;
 
     /// <summary>
-    /// Proxy buffer used in packing from RGB to target TPixel pixels.
-    /// </summary>
-    private IMemoryOwner<TPixel> paddedProxyPixelRow;
-
-    /// <summary>
     /// Resulting 2D pixel buffer.
     /// </summary>
     private Buffer2D<TPixel> pixelBuffer;
@@ -163,19 +158,8 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             SimdUtils.NormalizedFloatToByteSaturate(values.Component1, g);
             SimdUtils.NormalizedFloatToByteSaturate(values.Component2, b);
 
-            // PackFromRgbPlanes expects the destination to be padded, so try to get padded span containing extra elements from the next row.
-            // If we can't get such a padded row because we are on a MemoryGroup boundary or at the last row,
-            // pack pixels to a temporary, padded proxy buffer, then copy the relevant values to the destination row.
-            if (this.pixelBuffer.DangerousTryGetPaddedRowSpan(yy, 3, out Span<TPixel> destRow))
-            {
-                PixelOperations<TPixel>.Instance.PackFromRgbPlanes(r, g, b, destRow);
-            }
-            else
-            {
-                Span<TPixel> proxyRow = this.paddedProxyPixelRow.GetSpan();
-                PixelOperations<TPixel>.Instance.PackFromRgbPlanes(r, g, b, proxyRow);
-                proxyRow[..width].CopyTo(this.pixelBuffer.DangerousGetRowSpan(yy));
-            }
+            Span<TPixel> destination = this.pixelBuffer.DangerousGetRowSpan(yy);
+            PixelOperations<TPixel>.Instance.PackFromRgbPlanes(r, g, b, destination);
         }
 
         this.pixelRowCounter += this.pixelRowsPerStep;
@@ -214,7 +198,6 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
             pixelSize.Height,
             this.Configuration.PreferContiguousImageBuffers,
             AllocationOptions.Clean);
-        this.paddedProxyPixelRow = allocator.Allocate<TPixel>(pixelSize.Width + 3);
 
         // Component processors from spectral to RGB
         int bufferWidth = majorBlockWidth * blockPixelSize;
@@ -275,7 +258,6 @@ internal class SpectralConverter<TPixel> : SpectralConverter, IDisposable
         }
 
         this.rgbBuffer?.Dispose();
-        this.paddedProxyPixelRow?.Dispose();
         this.pixelBuffer?.Dispose();
     }
 }

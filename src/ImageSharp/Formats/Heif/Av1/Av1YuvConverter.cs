@@ -44,12 +44,10 @@ internal static partial class Av1YuvConverter
         {
             YuvToRgbRowConverter<TPixel, byte, HeifByteSampleLoader> converter = new(configuration, frameBuffer, image, colorConverter);
             using IMemoryOwner<float> scratchOwner = configuration.MemoryAllocator.Allocate<float>(converter.BufferLength);
-            using IMemoryOwner<TPixel> proxyOwner = configuration.MemoryAllocator.Allocate<TPixel>(image.Width + 3);
             Span<float> scratch = scratchOwner.GetSpan();
-            Span<TPixel> proxy = proxyOwner.GetSpan()[..(image.Width + 3)];
             for (int y = 0; y < image.Height; y++)
             {
-                converter.Convert(y, scratch, proxy);
+                converter.Convert(y, scratch);
             }
         }
         else
@@ -59,7 +57,7 @@ internal static partial class Av1YuvConverter
             Span<float> scratch = owner.GetSpan();
             for (int y = 0; y < image.Height; y++)
             {
-                converter.Convert(y, scratch, Span<TPixel>.Empty);
+                converter.Convert(y, scratch);
             }
         }
     }

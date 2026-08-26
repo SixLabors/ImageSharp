@@ -11,6 +11,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 /// <summary>
 /// Blends grain samples across adjacent synthesis blocks.
 /// </summary>
+/// <remarks>
+/// Vertical boundaries contain only one or two strided columns and use the fixed scalar kernels. Horizontal boundaries
+/// are contiguous and progress from the runtime's preferred native width through smaller vector widths before the
+/// scalar tail. Every lane applies the same Q5 overlap weights, rounding offset, and signed grain clamp.
+/// </remarks>
 internal static class Av1FilmGrainOverlap
 {
     /// <summary>

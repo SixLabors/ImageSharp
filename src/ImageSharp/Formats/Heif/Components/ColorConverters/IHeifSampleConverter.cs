@@ -10,6 +10,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Components;
 /// Defines SIMD widening and narrowing operations for one native HEIF sample representation.
 /// </summary>
 /// <typeparam name="TSample">The native sample type.</typeparam>
+/// <remarks>
+/// Every vector lane represents one consecutive planar sample. Implementations widen native integer storage to
+/// normalized single-precision arithmetic and narrow only values already scaled and clipped for the destination sample
+/// type. The containing row traversal selects vector width; these operators do not reorder pixels or cross row bounds.
+/// </remarks>
 internal interface IHeifSampleConverter<TSample>
     where TSample : unmanaged
 {

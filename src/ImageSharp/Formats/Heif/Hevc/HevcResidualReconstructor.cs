@@ -10,6 +10,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 /// <summary>
 /// Reconstructs HEVC transform-skipped, bypassed, and differential residual blocks.
 /// </summary>
+/// <remarks>
+/// Consecutive residual samples are widened to signed 32-bit lanes for normalization and prediction addition. Closed
+/// static operators encode the selected transform-skip shift so the JIT specializes left-shift, rounded-right-shift,
+/// and identity cases outside the row loops. Saturation to the residual range and clipping to sample depth occur at the
+/// same stage in every vector width and in the scalar tail.
+/// </remarks>
 internal static class HevcResidualReconstructor
 {
     /// <summary>
@@ -287,6 +293,8 @@ internal static class HevcResidualReconstructor
         int count = coefficients.Length;
         int index = 0;
 
+        // Rotation reverses the complete raster sequence, not the lanes of independently loaded forward chunks. Each
+        // load therefore starts at the mirrored chunk and shuffles its lanes before the common destination traversal.
         if (Vector512.IsHardwareAccelerated)
         {
             for (; index <= count - Vector512<int>.Count; index += Vector512<int>.Count)
@@ -333,6 +341,8 @@ internal static class HevcResidualReconstructor
         int count = source.Length;
         int index = 0;
 
+        // The descending source loads and ascending destination stores never overlap because callers provide distinct
+        // coefficient and residual spans. The shared index permits a scalar tail for non-vector-sized blocks.
         if (Vector512.IsHardwareAccelerated)
         {
             for (; index <= count - Vector512<int>.Count; index += Vector512<int>.Count)
@@ -433,6 +443,9 @@ internal static class HevcResidualReconstructor
     {
         ref int residualBase = ref MemoryMarshal.GetReference(residual);
         int x = 0;
+
+        // Lanes are independent columns. Carrying the reconstructed row above in the accumulator removes the need for
+        // a horizontal shuffle while preserving the top-to-bottom dependency of residual DPCM.
         if (Vector512.IsHardwareAccelerated)
         {
             Vector512<int> minimum = Vector512.Create(ResidualMinimum);
@@ -508,6 +521,8 @@ internal static class HevcResidualReconstructor
             int x = 0;
             int accumulator = 0;
 
+            // PrefixSum resolves dependencies inside a vector. The final lane then seeds the next vector width or the
+            // scalar tail, so changing SIMD width cannot change the left-to-right accumulation order.
             if (Vector512.IsHardwareAccelerated)
             {
                 Vector512<int> minimum = Vector512.Create(ResidualMinimum);
@@ -564,6 +579,8 @@ internal static class HevcResidualReconstructor
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector512<int> PrefixSum(Vector512<int> values)
     {
+        // Out-of-range shuffle indices create zero lanes. Distances 1, 2, 4, and 8 form an inclusive Hillis-Steele
+        // scan without carrying values backward across the start of the vector.
         values += Vector512.Shuffle(values, Vector512.Create(16, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14));
         values += Vector512.Shuffle(values, Vector512.Create(16, 16, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13));
         values += Vector512.Shuffle(values, Vector512.Create(16, 16, 16, 16, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11));
@@ -578,6 +595,7 @@ internal static class HevcResidualReconstructor
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<int> PrefixSum(Vector256<int> values)
     {
+        // Out-of-range index eight supplies the zero lanes needed at each doubling step.
         values += Vector256.Shuffle(values, Vector256.Create(8, 0, 1, 2, 3, 4, 5, 6));
         values += Vector256.Shuffle(values, Vector256.Create(8, 8, 0, 1, 2, 3, 4, 5));
         return values + Vector256.Shuffle(values, Vector256.Create(8, 8, 8, 8, 0, 1, 2, 3));
@@ -591,6 +609,7 @@ internal static class HevcResidualReconstructor
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<int> PrefixSum(Vector128<int> values)
     {
+        // Out-of-range index four supplies the zero lanes needed at distances one and two.
         values += Vector128.Shuffle(values, Vector128.Create(4, 0, 1, 2));
         return values + Vector128.Shuffle(values, Vector128.Create(4, 4, 0, 1));
     }

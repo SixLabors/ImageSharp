@@ -8,6 +8,12 @@ using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 
+/// <content>
+/// Provides the 128- and 256-bit self-guided restoration pipelines. Consecutive lanes represent neighboring output
+/// columns throughout integral-image construction, coefficient generation, filtering, and projection. Each vector
+/// loop passes its final horizontal prefix to the scalar tail, preserving one continuous summed-area row without
+/// recomputing already processed samples.
+/// </content>
 internal static partial class Av1SelfGuidedFilter
 {
     /// <summary>
@@ -37,6 +43,9 @@ internal static partial class Av1SelfGuidedFilter
         Span<int> scratch,
         Vector256<int> vector)
     {
+        // The caller-owned span contains two visible filtered planes followed by four identically strided coefficient
+        // planes. Keeping these regions disjoint allows projection to read either radius after the integral buffers
+        // have been reused as immutable inputs, without per-unit allocation or copying.
         int filteredLength = width * height;
         int bufferLength = GetBufferLength(width, height);
         int bufferStride = GetBufferStride(width);
@@ -134,6 +143,8 @@ internal static partial class Av1SelfGuidedFilter
         Span<int> scratch,
         Vector128<int> vector)
     {
+        // Use the same scratch partition as the 256-bit path. Vector width changes only the number of adjacent columns
+        // advanced by each stage; all offsets and fixed-point representations remain identical.
         int filteredLength = width * height;
         int bufferLength = GetBufferLength(width, height);
         int bufferStride = GetBufferStride(width);
@@ -671,6 +682,8 @@ internal static partial class Av1SelfGuidedFilter
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe Vector256<int> LookupBlendFactors(Vector256<uint> indices)
     {
+        // Variance normalization bounds every index to the 256-entry table. AVX2 gather keeps the eight independent
+        // column lookups in the vector pipeline instead of materializing an intermediate scalar scale buffer.
         fixed (int* table = XByXPlusOne)
         {
             return Avx2.GatherVector256(table, indices.AsInt32(), sizeof(int));
@@ -685,6 +698,8 @@ internal static partial class Av1SelfGuidedFilter
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<int> LookupBlendFactors(Vector128<uint> indices)
     {
+        // Portable 128-bit APIs do not provide indexed loads. Four bounded scalar reads are assembled directly into
+        // the result vector, avoiding both an allocation and a second pass over the coefficient row.
         ReadOnlySpan<int> table = XByXPlusOne;
         return Vector128.Create(
             table[(int)indices.GetElement(0)],
@@ -787,6 +802,9 @@ internal static partial class Av1SelfGuidedFilter
             Vector256<int> rounding = Vector256.Create(1 << (roundingBits - 1));
             int column = 0;
             int vectorEnd = width - Vector256<int>.Count;
+
+            // Filtered signals use Q4 precision. Projection applies the signaled Q7 weights to their difference from
+            // the unfiltered Q4 sample, then performs the combined Q11 rounding shift once before clipping.
             for (; column <= vectorEnd; column += Vector256<int>.Count)
             {
                 Vector256<int> factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride, row, vector);
@@ -843,6 +861,9 @@ internal static partial class Av1SelfGuidedFilter
             Vector128<int> rounding = Vector128.Create(1 << (roundingBits - 1));
             int column = 0;
             int vectorEnd = width - Vector128<int>.Count;
+
+            // The 128-bit path uses the same Q4/Q7 projection equation. The four-sample load and store are deliberately
+            // 64 bits wide so a tightly strided destination row never requires writable padding.
             for (; column <= vectorEnd; column += Vector128<int>.Count)
             {
                 Vector128<int> factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride, row, vector);

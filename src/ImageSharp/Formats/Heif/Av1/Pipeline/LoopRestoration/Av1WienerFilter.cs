@@ -11,6 +11,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 /// <summary>
 /// Applies the normative separable Wiener filter used by AV1 loop restoration.
 /// </summary>
+/// <remarks>
+/// The horizontal pass consumes one contiguous eight-tap window at a time. SIMD pairwise multiply-add widens adjacent
+/// unsigned-sample and signed-coefficient products into four 32-bit partial sums, which are reduced before normative
+/// rounding and clipping. The resulting caller-owned intermediate plane supplies contiguous columns to the vertical
+/// pass without allocating per stripe.
+/// </remarks>
 internal static class Av1WienerFilter
 {
     /// <summary>

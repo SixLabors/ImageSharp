@@ -8,6 +8,11 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 
+/// <content>
+/// Provides the shared HEVC inverse-transform stage and transpose operations. Vector lanes represent independent
+/// transform lines, while consecutive scratch rows represent frequency groups in the partial-butterfly factorization.
+/// Arithmetic never mixes lines; transposition is the only operation that exchanges row and column coordinates.
+/// </content>
 internal static partial class HevcInverseTransformer
 {
     /// <summary>
@@ -77,6 +82,8 @@ internal static partial class HevcInverseTransformer
         ref int destinationBase = ref MemoryMarshal.GetReference(destination);
         int x = 0;
 
+        // Source storage is frequency-major: advancing one lane moves to the same frequency in another independent
+        // transform line. The shared X offset lets each narrower width continue exactly where the wider loop stopped.
         if (Vector512.IsHardwareAccelerated)
         {
             int oneVectorFromEnd = lineCount - Vector512<int>.Count;
@@ -168,6 +175,8 @@ internal static partial class HevcInverseTransformer
             ReadOnlySpan<int> even = currentIsInitial ? initial : alternate;
             Span<int> destination = currentIsInitial ? alternate : initial;
 
+            // Odd rows remain in the initial disjoint-group buffer while expanded even rows alternate buffers. This
+            // preserves every source row needed by later hierarchy levels without allocating another transform block.
             for (int position = 0; position < combinedSize; position++)
             {
                 ReadOnlySpan<int> evenRow = even.Slice((combinedStart + position) * lineCount, lineCount);
@@ -385,6 +394,9 @@ internal static partial class HevcInverseTransformer
         {
             ref int sourceBase = ref MemoryMarshal.GetReference(source);
             ref int destinationBase = ref MemoryMarshal.GetReference(destination);
+
+            // Every supported HEVC transform dimension is a multiple of four. Complete four-by-four tiles therefore
+            // transpose the rectangular block without masked loads, partial stores, or access to row padding.
             for (int y = 0; y < sourceHeight; y += 4)
             {
                 for (int x = 0; x < sourceWidth; x += 4)
@@ -435,6 +447,8 @@ internal static partial class HevcInverseTransformer
 
             if (Vector256.IsHardwareAccelerated)
             {
+                // Eight UInt16 predictions widen into one Int32 vector so residual addition cannot overflow sample
+                // storage. Narrowing occurs only after clipping and stores exactly the eight logical destination values.
                 int oneVectorFromEnd = width - Vector256<int>.Count;
                 for (; x <= oneVectorFromEnd; x += Vector256<int>.Count)
                 {
@@ -451,6 +465,7 @@ internal static partial class HevcInverseTransformer
 
             if (Vector128.IsHardwareAccelerated)
             {
+                // The four-sample path uses exact 64-bit loads and stores; it does not depend on writable row padding.
                 int oneVectorFromEnd = width - Vector128<int>.Count;
                 for (; x <= oneVectorFromEnd; x += Vector128<int>.Count)
                 {

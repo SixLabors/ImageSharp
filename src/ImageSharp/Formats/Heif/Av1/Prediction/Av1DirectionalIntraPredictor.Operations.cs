@@ -8,7 +8,11 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
 /// <content>
-/// Provides packed projection kernels for AV1 directional intra prediction.
+/// Provides packed projection kernels for AV1 directional intra prediction. Contiguous zone-one references map one
+/// output sample to each lane. Upsampled references use native byte or 16-bit table shuffles to select alternating
+/// half-sample positions, while zone-two left projections construct four independent coordinates per vector because
+/// their bases advance by the directional derivative rather than by a fixed memory stride. Every interpolation uses
+/// Q5 weights and the scalar continuation preserves the same rounding and endpoint-extension rules.
 /// </content>
 internal static partial class Av1DirectionalIntraPredictor
 {
@@ -189,6 +193,8 @@ internal static partial class Av1DirectionalIntraPredictor
 
         if (!upsample)
         {
+            // A single index is advanced through all supported widths. A narrower path consumes only the remainder
+            // left by the wider path, so the row is written once without requiring padded destination storage.
             if (Vector512.IsHardwareAccelerated)
             {
                 int oneVectorFromEnd = validCount - Vector512<byte>.Count;
@@ -240,6 +246,8 @@ internal static partial class Av1DirectionalIntraPredictor
 
         if (Vector128.IsHardwareAccelerated)
         {
+            // Four-lane construction covers both the final non-upsampled remainder and targets without a native
+            // gather. Each lane carries an independently projected coordinate but shares the row's interpolation weight.
             int oneVectorFromEnd = validCount - 4;
             for (; index <= oneVectorFromEnd; index += 4)
             {
@@ -293,6 +301,8 @@ internal static partial class Av1DirectionalIntraPredictor
 
         if (!upsample)
         {
+            // High-bit-depth samples stay in signed 16-bit storage, but interpolation widens to Int32 before the Q5
+            // weighted sum. The largest supported 12-bit sample therefore cannot overflow an intermediate lane.
             if (Vector512.IsHardwareAccelerated)
             {
                 int oneVectorFromEnd = validCount - Vector512<short>.Count;
@@ -391,6 +401,8 @@ internal static partial class Av1DirectionalIntraPredictor
 
         if (Vector128.IsHardwareAccelerated)
         {
+            // Zone-two left references are not contiguous across output columns. Constructing the four source pairs
+            // directly avoids a temporary gather-index buffer and keeps the scalar continuation at the same offset.
             int oneVectorFromEnd = destination.Length - 4;
             for (; index <= oneVectorFromEnd; index += 4)
             {

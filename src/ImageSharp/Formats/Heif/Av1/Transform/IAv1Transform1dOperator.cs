@@ -9,8 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Defines the scalar and SIMD arithmetic for one AV1 one-dimensional transform.
 /// </summary>
 /// <remarks>
-/// Each overload performs the same transform. The two-dimensional traversal selects a concrete operator and the
-/// widest supported lane width once per block, allowing the JIT to specialize every static interface call.
+/// Each overload performs the same staged fixed-point transform. In the SIMD overloads, each vector field identifies
+/// one coefficient position and each lane identifies an independent row or column. Butterfly arithmetic is therefore
+/// lane-local: vectorization changes only how many axes advance together, not coefficient order, rounding, or stage
+/// clamping. The two-dimensional traversal selects the concrete operator and lane width once per block, allowing the
+/// JIT to specialize every static interface call outside the stage network.
 /// </remarks>
 internal interface IAv1Transform1dOperator
 {

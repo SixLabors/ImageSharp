@@ -9,6 +9,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 /// <summary>
 /// Applies the HEVC luma and chroma deblocking kernels to four-sample edge segments.
 /// </summary>
+/// <remarks>
+/// Each 32-bit lane represents one position along an edge segment. Orientation-specific operators gather the samples
+/// at a common signed distance across that edge; the luma and chroma masks and adjustments then execute lane-wise.
+/// Loads with fewer than four valid positions populate only the low lanes, which the matching store writes without
+/// touching samples beyond the picture boundary.
+/// </remarks>
 internal static class HevcDeblockingFilter
 {
     /// <summary>

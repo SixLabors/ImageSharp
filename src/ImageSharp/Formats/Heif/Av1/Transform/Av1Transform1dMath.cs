@@ -10,6 +10,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <summary>
 /// Provides the fixed-point arithmetic shared by the scalar and SIMD AV1 one-dimensional transform kernels.
 /// </summary>
+/// <remarks>
+/// The general transform path keeps one independent axis in each signed 32-bit lane. Low-bit-depth forward transforms
+/// additionally use signed 16-bit lanes and whole-butterfly AVX2 or AVX-512 multiply-add operations, matching AV1's
+/// stage saturation points before packing. Scalar overloads preserve the same rounding and serve as the fallback.
+/// </remarks>
 internal static class Av1Transform1dMath
 {
     /// <summary>

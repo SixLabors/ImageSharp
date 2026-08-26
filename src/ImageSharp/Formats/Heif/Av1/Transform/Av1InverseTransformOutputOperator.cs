@@ -10,6 +10,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <summary>
 /// Reconstructs AV1 samples from predicted values and inverse-transform residuals.
 /// </summary>
+/// <remarks>
+/// Each SIMD lane represents one consecutive reconstructed sample. Packed byte or 16-bit predictions are widened to
+/// signed 32-bit lanes before residual addition, clipped to the coded sample range, and narrowed into exact-width
+/// stores. The closed <typeparamref name="TSample"/> specialization removes storage-type branches from hot loops.
+/// </remarks>
 /// <typeparam name="TSample">The decoded sample storage type.</typeparam>
 internal readonly struct Av1InverseTransformOutputOperator<TSample> : IAv1InverseTransformOutputOperator<TSample>
     where TSample : unmanaged
@@ -36,6 +41,8 @@ internal readonly struct Av1InverseTransformOutputOperator<TSample> : IAv1Invers
     {
         if (typeof(TSample) == typeof(byte))
         {
+            // Read and write exactly four bytes. The unused upper lanes only participate in narrowing and never reach
+            // memory, which keeps reconstruction valid at a tightly packed row boundary.
             ref byte source = ref Unsafe.As<TSample, byte>(ref prediction);
             uint packed = Unsafe.ReadUnaligned<uint>(ref source);
             Vector128<ushort> predicted16 = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsByte());
@@ -63,6 +70,8 @@ internal readonly struct Av1InverseTransformOutputOperator<TSample> : IAv1Invers
     {
         if (typeof(TSample) == typeof(byte))
         {
+            // Eight byte predictions widen through UInt16 into the eight Int32 residual lanes. The final 64-bit store
+            // covers only those reconstructed samples and does not require destination padding.
             ref byte source = ref Unsafe.As<TSample, byte>(ref prediction);
             ulong packed = Unsafe.ReadUnaligned<ulong>(ref source);
             Vector128<ushort> predicted16 = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsByte());

@@ -8,6 +8,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <summary>
 /// Describes the reusable storage required by an AV1 two-dimensional transform operation.
 /// </summary>
+/// <remarks>
+/// The workspace reserves three maximum-length transform vectors for input, output, and stage exchange, followed by
+/// full-block raster buffers and the fixed AVX-512 transpose area. All storage is expressed as integers so callers can
+/// rent one buffer and reinterpret aligned prefixes for 16-bit or 32-bit SIMD lanes without per-block allocations.
+/// </remarks>
 internal static class Av1TransformWorkspace
 {
     /// <summary>

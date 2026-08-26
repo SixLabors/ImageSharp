@@ -6,6 +6,9 @@ using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
+/// <content>
+/// Provides IPT-C2 transfer-domain matrix conversion for scalar and SIMD lanes.
+/// </content>
 internal abstract partial class HeifColorConverterBase
 {
     /// <summary>

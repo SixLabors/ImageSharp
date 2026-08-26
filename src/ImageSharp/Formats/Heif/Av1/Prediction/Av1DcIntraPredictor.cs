@@ -10,6 +10,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// <summary>
 /// Reconstructs AV1 DC intra-prediction blocks from the available neighboring samples.
 /// </summary>
+/// <remarks>
+/// Reference reduction uses the widest available integer lanes, then one rounded scalar mean is broadcast across each
+/// destination row. Row filling is delegated to span operations so the runtime supplies its native vectorized store;
+/// explicit scalar entry points remain available for feature-disabled conformance tests.
+/// </remarks>
 internal static class Av1DcIntraPredictor
 {
     /// <summary>
@@ -124,6 +129,8 @@ internal static class Av1DcIntraPredictor
         int sum = 0;
         int index = 0;
 
+        // Widening prevents the packed-byte reduction from overflowing before the horizontal sum. The shared index
+        // advances through every available vector width and leaves only the incomplete final group to the scalar loop.
         if (Vector512.IsHardwareAccelerated)
         {
             int oneVectorFromEnd = samples.Length - Vector512<byte>.Count;
@@ -173,6 +180,8 @@ internal static class Av1DcIntraPredictor
         int sum = 0;
         int index = 0;
 
+        // Signed 16-bit storage is nonnegative for supported bit depths. Widening to Int32 preserves the exact sum of
+        // the largest permitted reference edge before the rounded mean is calculated once outside this loop.
         if (Vector512.IsHardwareAccelerated)
         {
             int oneVectorFromEnd = samples.Length - Vector512<short>.Count;

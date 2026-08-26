@@ -12,6 +12,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 /// <summary>
 /// Applies AV1 constrained directional enhancement filtering and derives the dominant direction of reconstructed blocks.
 /// </summary>
+/// <remarks>
+/// Filtering uses signed 16-bit working samples. The 256-bit kernel packs either two complete eight-sample rows or
+/// four complete four-sample rows, keeping directional offsets within 128-bit lanes. Direction analysis instead packs
+/// one eight-by-eight block per 128-bit lane so AVX2 can evaluate two independent blocks together. Scalar kernels retain
+/// the same constrain, clipping, and tie-breaking rules for unsupported hardware and partial edge blocks.
+/// </remarks>
 internal static class Av1CdefFilter
 {
     /// <summary>

@@ -6,6 +6,9 @@ using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
+/// <content>
+/// Provides identity-matrix component reordering for scalar and SIMD color conversion.
+/// </content>
 internal abstract partial class HeifColorConverterBase
 {
     /// <summary>

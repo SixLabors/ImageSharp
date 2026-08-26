@@ -7,6 +7,9 @@ using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
+/// <content>
+/// Provides ICtCp transfer-domain matrix conversion for scalar and SIMD lanes.
+/// </content>
 internal abstract partial class HeifColorConverterBase
 {
     /// <summary>

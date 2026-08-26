@@ -8,12 +8,21 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
+/// <content>
+/// Provides recursive filter-intra traversal for the closed coefficient operators.
+/// </content>
 internal abstract partial class Av1FilterIntraPredictorBase
 {
     /// <summary>
     /// Applies one closed filter-intra coefficient operator using the widest useful SIMD width.
     /// </summary>
     /// <typeparam name="TOperator">The filter-intra coefficient set.</typeparam>
+    /// <remarks>
+    /// AV1 filter-intra predicts a two-row by four-column group from seven samples that may include previously
+    /// predicted groups. The fixed-stride scratch surface preserves those dependencies with a one-sample top and left
+    /// border. SIMD lanes hold the eight outputs of one group in row-major order; they do not span independent groups,
+    /// because the next group can depend on the values just produced.
+    /// </remarks>
     internal sealed class Av1FilterIntraPredictor<TOperator> : Av1FilterIntraPredictorBase
         where TOperator : struct, IAv1FilterIntraPredictionOperator
     {
@@ -32,6 +41,8 @@ internal abstract partial class Av1FilterIntraPredictorBase
 
             if (Vector256.IsHardwareAccelerated)
             {
+                // Each tap vector contains the coefficient at one tap position for the eight row-major outputs in a
+                // 2-by-4 group. Broadcasting the seven reconstructed inputs therefore evaluates all outputs together.
                 Vector256<int> tap0 = CreateTapVector256(ref taps, 0);
                 Vector256<int> tap1 = CreateTapVector256(ref taps, 1);
                 Vector256<int> tap2 = CreateTapVector256(ref taps, 2);
@@ -70,6 +81,8 @@ internal abstract partial class Av1FilterIntraPredictorBase
             }
             else if (Vector128.IsHardwareAccelerated)
             {
+                // A 128-bit vector covers one four-sample output row. Low and high coefficient vectors describe the
+                // first and second rows respectively while sharing the same seven reconstructed input broadcasts.
                 Vector128<int> tap0Low = CreateTapVector128(ref taps, 0, 0);
                 Vector128<int> tap1Low = CreateTapVector128(ref taps, 1, 0);
                 Vector128<int> tap2Low = CreateTapVector128(ref taps, 2, 0);
@@ -128,6 +141,8 @@ internal abstract partial class Av1FilterIntraPredictorBase
 
             if (Vector256.IsHardwareAccelerated)
             {
+                // High-bit-depth storage changes only the final clamp and narrowing. The Int32 accumulator layout is
+                // identical to the eight-bit path, preserving all signed coefficient products before Q4 rounding.
                 Vector256<int> tap0 = CreateTapVector256(ref taps, 0);
                 Vector256<int> tap1 = CreateTapVector256(ref taps, 1);
                 Vector256<int> tap2 = CreateTapVector256(ref taps, 2);
@@ -245,6 +260,8 @@ internal abstract partial class Av1FilterIntraPredictorBase
         /// <param name="topLeft">The shared top-left reference.</param>
         private static void Initialize(Span<byte> buffer, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left, int width, int height, byte topLeft)
         {
+            // Predictions use one-based coordinates in the workspace. Row zero and column zero retain the prepared
+            // references while later groups overwrite only the interior values on which following groups depend.
             buffer[0] = topLeft;
             above[..width].CopyTo(buffer[1..]);
             for (int row = 0; row < height; row++)
@@ -264,6 +281,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
         /// <param name="topLeft">The shared top-left reference.</param>
         private static void Initialize(Span<short> buffer, ReadOnlySpan<short> above, ReadOnlySpan<short> left, int width, int height, short topLeft)
         {
+            // Match the eight-bit one-based workspace so the recursive source offsets remain representation-agnostic.
             buffer[0] = topLeft;
             above[..width].CopyTo(buffer[1..]);
             for (int row = 0; row < height; row++)

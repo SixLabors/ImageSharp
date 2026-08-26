@@ -9,7 +9,9 @@ using SixLabors.ImageSharp.Common.Helpers;
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <content>
-/// Defines fixed-point operators and row traversal for eight-bit 4:2:0 conversion.
+/// Defines fixed-point operators and row traversal for eight-bit 4:2:0 conversion. Consecutive lanes represent output
+/// pixels; each native chroma sample is duplicated into the two lanes covered by horizontal subsampling before the
+/// closed color operator runs. All products remain in signed 32-bit lanes until clipped RGB values are narrowed.
 /// </content>
 internal static partial class HeifYuv420ToRgb8Converter
 {

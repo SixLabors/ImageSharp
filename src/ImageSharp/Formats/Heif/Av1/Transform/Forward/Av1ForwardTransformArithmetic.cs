@@ -11,6 +11,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
 /// Provides the sample-type and vector-width arithmetic used by the shared AV1 forward-transform stage networks.
 /// </summary>
 /// <typeparam name="TValue">The scalar or SIMD value containing independent transform axes.</typeparam>
+/// <remarks>
+/// Each closed <typeparamref name="TValue"/> is either one scalar axis or a vector of independent axes. The
+/// <see langword="typeof"/> branches are resolved when the generic type is compiled, so they select arithmetic once
+/// without adding per-stage runtime dispatch. Signed 16-bit representations use the saturating operations required by
+/// the packed transform pipeline; 32-bit representations retain the normative wrapping fixed-point arithmetic.
+/// </remarks>
 internal static class Av1ForwardTransformArithmetic<TValue>
     where TValue : struct
 {
@@ -25,6 +31,8 @@ internal static class Av1ForwardTransformArithmetic<TValue>
         int value = 1 << (cosBit - 1);
         Av1TransformRounding rounding = default;
 
+        // The closed TValue makes this a compile-time shape selection. Only the matching explicit-layout field is
+        // initialized and subsequently read, keeping the broadcast outside every butterfly in the stage network.
         if (typeof(TValue) == typeof(Vector128<short>) || typeof(TValue) == typeof(Vector128<int>))
         {
             rounding.Vector128 = Vector128.Create(value);
@@ -740,6 +748,8 @@ internal static class Av1ForwardTransformArithmetic<TValue>
         int cosBit,
         Vector512<int> rounding)
     {
+        // Unpacking forms adjacent (input0, input1) pairs independently inside each 128-bit lane. Pairwise multiply-add
+        // widens those pairs to Int32 for rounding, and the final pack restores original lane order with saturation.
         Vector512<short> lowerInputs = Avx512BW.UnpackLow(input0, input1);
         Vector512<short> upperInputs = Avx512BW.UnpackHigh(input0, input1);
         Vector512<short> weights = Avx512BW.UnpackLow(Vector512.Create((short)weight0), Vector512.Create((short)weight1));
@@ -764,6 +774,8 @@ internal static class Av1ForwardTransformArithmetic<TValue>
         int cosBit,
         Vector128<int> rounding)
     {
+        // Four products can exceed Int16 even though the completed stage value cannot. Widening each input first keeps
+        // the full fixed-point sum until rounding; explicit clamping supplies the required saturating demotion.
         (Vector128<int> input0Lower, Vector128<int> input0Upper) = Vector128.Widen(input0);
         (Vector128<int> input1Lower, Vector128<int> input1Upper) = Vector128.Widen(input1);
         (Vector128<int> input2Lower, Vector128<int> input2Upper) = Vector128.Widen(input2);
@@ -804,6 +816,8 @@ internal static class Av1ForwardTransformArithmetic<TValue>
         int cosBit,
         Vector256<int> rounding)
     {
+        // The two unpack streams contain alternating input pairs for the lower and upper lane groups. Adding the two
+        // pairwise products completes each four-term dot product before the rounded saturating pack restores Int16.
         Vector256<short> weights01 = Avx2.UnpackLow(Vector256.Create((short)weight0), Vector256.Create((short)weight1));
         Vector256<short> weights23 = Avx2.UnpackLow(Vector256.Create((short)weight2), Vector256.Create((short)weight3));
         Vector256<int> lower = Avx2.MultiplyAddAdjacent(Avx2.UnpackLow(input0, input1), weights01)
@@ -833,6 +847,8 @@ internal static class Av1ForwardTransformArithmetic<TValue>
         int cosBit,
         Vector512<int> rounding)
     {
+        // AVX-512BW preserves the same lane-local pair layout as the 256-bit path. Two pairwise dot products form each
+        // four-term result in Int32, after which rounding and signed saturation return thirty-two independent axes.
         Vector512<short> weights01 = Avx512BW.UnpackLow(Vector512.Create((short)weight0), Vector512.Create((short)weight1));
         Vector512<short> weights23 = Avx512BW.UnpackLow(Vector512.Create((short)weight2), Vector512.Create((short)weight3));
         Vector512<int> lower = Avx512BW.MultiplyAddAdjacent(Avx512BW.UnpackLow(input0, input1), weights01)

@@ -11,12 +11,18 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Stores the fixed set of SIMD values used by one bulk AV1 transform axis.
 /// </summary>
 /// <typeparam name="TVector">The SIMD vector type used for parallel transform lanes.</typeparam>
+/// <remarks>
+/// Field <c>Vn</c> stores transform position <c>n</c> for every independent axis in the vector lanes. A
+/// <see cref="System.Runtime.Intrinsics.Vector128{T}"/> therefore carries four 32-bit axes, while a
+/// <see cref="System.Runtime.Intrinsics.Vector256{T}"/> carries eight. Transform stages operate vertically through
+/// these fields and never mix lanes, so their scalar fixed-point rounding and clamping rules remain unchanged.
+/// </remarks>
 [StructLayout(LayoutKind.Sequential)]
 internal struct Av1TransformVector<TVector>
     where TVector : struct
 {
-    // Explicit fields give the JIT constant offsets inside large transform operators. The previous inline-array
-    // helpers were not inlined once those operators exceeded the JIT's expansion budget, causing a call per access.
+    // Explicit fields make each transform position a constant field offset. An indexed inline-array accessor was not
+    // expanded inside the larger stage networks, which introduced a helper call for every coefficient access.
     public TVector V0;
     public TVector V1;
     public TVector V2;

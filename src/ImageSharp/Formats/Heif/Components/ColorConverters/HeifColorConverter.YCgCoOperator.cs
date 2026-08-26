@@ -6,6 +6,9 @@ using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
+/// <content>
+/// Provides YCgCo matrix conversion for scalar and SIMD lanes.
+/// </content>
 internal abstract partial class HeifColorConverterBase
 {
     /// <summary>

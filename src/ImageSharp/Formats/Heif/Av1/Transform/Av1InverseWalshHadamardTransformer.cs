@@ -10,6 +10,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <summary>
 /// Applies the reversible four-by-four inverse Walsh-Hadamard transform used by lossless AV1 segments.
 /// </summary>
+/// <remarks>
+/// The vector path stores one transform row in each <see cref="Vector128{T}"/> and one column position in each lane.
+/// Register transposes exchange the two transform dimensions between identical reversible butterflies. Reconstruction
+/// then adds four consecutive residual lanes to each prediction row with exact-width output stores.
+/// </remarks>
 internal static class Av1InverseWalshHadamardTransformer
 {
     /// <summary>

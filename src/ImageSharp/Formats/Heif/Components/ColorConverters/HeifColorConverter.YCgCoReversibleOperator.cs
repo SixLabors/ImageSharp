@@ -6,6 +6,9 @@ using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
+/// <content>
+/// Provides reversible YCgCo integer lifting for scalar and SIMD lanes.
+/// </content>
 internal abstract partial class HeifColorConverterBase
 {
     /// <summary>

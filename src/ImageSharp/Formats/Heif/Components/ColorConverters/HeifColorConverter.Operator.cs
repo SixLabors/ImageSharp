@@ -8,13 +8,19 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <content>
-/// Provides the static operator contract and SIMD traversal used by HEIF color converters.
+/// Provides the static operator contract and SIMD traversal used by HEIF color converters. Each lane carries one pixel
+/// and the three vectors remain planar component rows throughout conversion. Descending vector widths consume a single
+/// shared offset, preserving SIMD execution for the remainder without overlapping stores or requiring row padding.
 /// </content>
 internal abstract partial class HeifColorConverterBase
 {
     /// <summary>
     /// Defines color-model arithmetic for scalar and SIMD lanes in both conversion directions.
     /// </summary>
+    /// <remarks>
+    /// Operator methods are lane-local and must preserve input order. The closed operator type lets the JIT bind the
+    /// matrix or lifting transform once per converter, keeping color-model dispatch outside every row loop.
+    /// </remarks>
     internal interface IHeifColorOperator
     {
         /// <summary>

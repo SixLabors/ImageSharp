@@ -10,6 +10,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 /// <summary>
 /// Applies the normative AV1 self-guided restoration filter and projection.
 /// </summary>
+/// <remarks>
+/// The accelerated paths process adjacent output columns in SIMD lanes and use the caller-provided scratch span for
+/// filtered samples, local coefficients, and padded integral images. AVX2 is selected where variance-to-blend lookup
+/// can use a native gather; the portable 128-bit path performs four scalar table reads while retaining vectorized
+/// window and projection arithmetic. The scalar path uses the same fixed-point units and scratch partition.
+/// </remarks>
 internal static partial class Av1SelfGuidedFilter
 {
     /// <summary>
@@ -151,6 +157,8 @@ internal static partial class Av1SelfGuidedFilter
         ReadOnlySpan<int> projectionCoefficients,
         Span<int> scratch)
     {
+        // The closed vector overloads share the same scratch layout and fixed-point equations. AVX2 is preferred here
+        // because its coefficient stage can gather four noncontiguous entries from the 256-value blend table.
         if (Avx2.IsSupported)
         {
             FilterBlock(

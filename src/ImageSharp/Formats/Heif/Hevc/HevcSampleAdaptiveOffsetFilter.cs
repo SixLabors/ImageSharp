@@ -10,6 +10,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 /// <summary>
 /// Applies HEVC sample-adaptive offsets to reconstructed component blocks.
 /// </summary>
+/// <remarks>
+/// Each SIMD lane classifies one reconstructed sample. Band-offset operators derive the class directly from the current
+/// value, while edge-offset operators compare aligned lanes from the two neighboring coordinates. The resulting class
+/// indices select one of the signaled offsets, after which addition and bit-depth clipping remain lane-wise. A scalar
+/// continuation handles only incomplete vectors at picture edges.
+/// </remarks>
 internal static class HevcSampleAdaptiveOffsetFilter
 {
     /// <summary>
@@ -508,6 +514,8 @@ internal static class HevcSampleAdaptiveOffsetFilter
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector512<short> SelectOffset(Vector512<short> classes, in KernelParameters kernel)
     {
+        // The table contains only five values and there is no portable 16-bit gather. A comparison chain keeps every
+        // class lane in registers and leaves unrecognized classes at the required zero offset.
         Vector512<short> selected = Vector512<short>.Zero;
         selected = Vector512.ConditionalSelect(Vector512.Equals(classes, Vector512.Create((short)0)), Vector512.Create(kernel.Offset0), selected);
         selected = Vector512.ConditionalSelect(Vector512.Equals(classes, Vector512.Create((short)1)), Vector512.Create(kernel.Offset1), selected);
@@ -625,6 +633,8 @@ internal static class HevcSampleAdaptiveOffsetFilter
             Vector512<short> neighbor1,
             in KernelParameters kernel)
         {
+            // Each comparison pair produces -1, 0, or 1. Adding two maps the normative edge classes onto the
+            // contiguous zero-through-four offset-table indices used by the selection kernel.
             Vector512<short> one = Vector512.Create((short)1);
             Vector512<short> sign0 = (Vector512.GreaterThan(current, neighbor0) & one) - (Vector512.LessThan(current, neighbor0) & one);
             Vector512<short> sign1 = (Vector512.GreaterThan(current, neighbor1) & one) - (Vector512.LessThan(current, neighbor1) & one);

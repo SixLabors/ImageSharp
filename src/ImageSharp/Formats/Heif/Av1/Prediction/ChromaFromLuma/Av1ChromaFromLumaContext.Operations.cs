@@ -12,7 +12,9 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 
 /// <content>
-/// Provides packed luma subsampling and mean-subtraction operations for chroma-from-luma prediction.
+/// Provides packed luma subsampling and mean-subtraction operations for chroma-from-luma prediction. Consecutive lanes
+/// represent chroma coordinates. Horizontal and vertical luma sums are converted directly to Q3, after which a vector
+/// reduction derives the common rounded mean and lane-wise subtraction leaves the zero-mean AC predictor surface.
 /// </content>
 internal partial class Av1ChromaFromLumaContext
 {

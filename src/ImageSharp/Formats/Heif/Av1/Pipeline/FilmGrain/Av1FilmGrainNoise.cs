@@ -12,6 +12,13 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 /// <summary>
 /// Applies selected AV1 grain blocks to restored luma and chroma samples.
 /// </summary>
+/// <remarks>
+/// SIMD lanes follow consecutive samples within one plane row. Grain values and native samples are widened to signed
+/// 32-bit lanes before the scaling-table lookup and fixed-point addition, then clipped and narrowed only once. AVX2
+/// uses indexed gathers for the 256-entry scaling table. Portable 128-bit traversal is retained where high-bit-depth
+/// interpolation provides enough arithmetic to offset its scalar table reads; all remaining columns use the identical
+/// scalar equation.
+/// </remarks>
 internal static class Av1FilmGrainNoise
 {
     /// <summary>
@@ -186,6 +193,8 @@ internal static class Av1FilmGrainNoise
         int maximum)
         where TSample : unmanaged
     {
+        // Scaling is an indexed lookup, so AVX2 is selected by gather support rather than generic preferred vector
+        // width. The portable path is deliberately limited by CanVectorizeWithoutGather for the same reason.
         if (Avx2.IsSupported)
         {
             ApplyLuma(
@@ -256,6 +265,9 @@ internal static class Av1FilmGrainNoise
             int grainRowOffset = row * grainStride;
             int column = 0;
             int vectorEnd = width - Vector256<int>.Count;
+
+            // Samples, grain, and scale indices share the same lane coordinate. No permutation is required between
+            // the lookup, fixed-point multiply, clipping, and native-sample store.
             for (; column <= vectorEnd; column += Vector256<int>.Count)
             {
                 ref TSample destination = ref Unsafe.Add(ref sampleBase, sampleRowOffset + column);
@@ -308,6 +320,9 @@ internal static class Av1FilmGrainNoise
             int grainRowOffset = row * grainStride;
             int column = 0;
             int vectorEnd = width - Vector128<int>.Count;
+
+            // Four scalar table reads assemble the scale vector; the rest of the normative grain equation remains
+            // lane-wise, including interpolation for 10- and 12-bit coordinates.
             for (; column <= vectorEnd; column += Vector128<int>.Count)
             {
                 ref TSample destination = ref Unsafe.Add(ref sampleBase, sampleRowOffset + column);
@@ -402,6 +417,8 @@ internal static class Av1FilmGrainNoise
         int maximum)
         where TSample : unmanaged
     {
+        // Chroma uses the same indexed scaling-table constraint as luma, so gather support determines the primary
+        // width and the portable path remains restricted to workloads that amortize scalar table reads.
         if (Avx2.IsSupported)
         {
             ApplyChroma(
@@ -554,6 +571,9 @@ internal static class Av1FilmGrainNoise
             int grainRowOffset = row * grainStride;
             int column = 0;
             int vectorEnd = width - Vector256<int>.Count;
+
+            // Each lane represents one chroma coordinate and its corresponding reconstructed-luma coordinate. The Q6
+            // luma/chroma blend is clamped to a legal sample code before it becomes a scaling-table index.
             for (; column <= vectorEnd; column += Vector256<int>.Count)
             {
                 ref TSample lumaSource = ref Unsafe.Add(ref lumaRow, column << subsamplingX);
@@ -682,6 +702,9 @@ internal static class Av1FilmGrainNoise
             int grainRowOffset = row * grainStride;
             int column = 0;
             int vectorEnd = width - Vector128<int>.Count;
+
+            // The four-lane path preserves the same coordinate alignment and Q6 scaling-index arithmetic. Only the
+            // table read changes from a hardware gather to four scalar reads assembled into a vector.
             for (; column <= vectorEnd; column += Vector128<int>.Count)
             {
                 ref TSample lumaSource = ref Unsafe.Add(ref lumaRow, column << subsamplingX);

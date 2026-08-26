@@ -12,6 +12,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <summary>
 /// Converts spatial residual samples into AV1 transform coefficients.
 /// </summary>
+/// <remarks>
+/// The SIMD pipeline transposes rows into lanes before invoking the one-dimensional operators. One vector then holds
+/// the same transform position from several independent axes, allowing the complete stage network to run lane-wise.
+/// Eight-bit blocks use saturating 16-bit stages where their normative ranges permit it; high-bit-depth and scalar
+/// fallback paths retain 32-bit stages. Both representations produce the same row-major coefficient contract.
+/// </remarks>
 internal static class Av1ForwardTransformer
 {
     /// <summary>

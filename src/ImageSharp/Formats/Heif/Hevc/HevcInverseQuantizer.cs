@@ -11,6 +11,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 /// <summary>
 /// Reconstructs dequantized HEVC transform coefficients.
 /// </summary>
+/// <remarks>
+/// Consecutive quantized coefficients occupy consecutive 32-bit lanes. Scaling-list values are widened to the same lane
+/// shape before the inverse scale, quantization shift, rounding, and transform-range clamp are applied. Vector-width
+/// loops advance the complete coefficient prefix and leave only the final incomplete group to the scalar equation.
+/// </remarks>
 internal static class HevcInverseQuantizer
 {
     /// <summary>
@@ -130,6 +135,8 @@ internal static class HevcInverseQuantizer
         ref int destinationBase = ref MemoryMarshal.GetReference(destination);
         int i = 0;
 
+        // Descending widths advance one shared coefficient offset. Smaller registers consume complete groups left by a
+        // wider path, so the scalar loop sees fewer than four values without any overlapping dequantization stores.
         if (Vector512.IsHardwareAccelerated)
         {
             int oneVectorFromEnd = source.Length - Vector512<int>.Count;
@@ -197,6 +204,8 @@ internal static class HevcInverseQuantizer
         ref byte matrixBase = ref MemoryMarshal.GetReference(matrix);
         int i = 0;
 
+        // Scaling matrices use one unsigned byte per coefficient. Each width loads exactly its matching byte count,
+        // widens in source order, and multiplies by the common inverse-quantization scale before signed arithmetic.
         if (Vector512.IsHardwareAccelerated)
         {
             int oneVectorFromEnd = source.Length - Vector512<int>.Count;
@@ -304,6 +313,8 @@ internal static class HevcInverseQuantizer
         int outputMinimum,
         int outputMaximum)
     {
+        // A positive rightShift applies nearest-integer rounding before division. A nonpositive value represents an
+        // exact left shift; the earlier input clamp guarantees that multiplication and shifting remain in Int32 range.
         values = Vector512.Clamp(values, Vector512.Create(inputMinimum), Vector512.Create(inputMaximum));
         Vector512<int> result = values * weights;
         result = rightShift > 0

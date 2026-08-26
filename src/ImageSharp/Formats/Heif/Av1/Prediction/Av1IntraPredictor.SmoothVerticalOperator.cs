@@ -6,11 +6,18 @@ using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
+/// <content>
+/// Provides vertical smooth intra prediction for scalar and SIMD sample representations.
+/// </content>
 internal abstract partial class Av1IntraPredictorBase
 {
     /// <summary>
     /// Implements vertical AV1 smooth intra prediction for scalar and SIMD lanes.
     /// </summary>
+    /// <remarks>
+    /// The row's Q8 weight is common to every lane, while top references vary by column. Rewriting the complementary
+    /// weight around 256 leaves one product per lane plus a broadcast bottom-left endpoint and rounding bias.
+    /// </remarks>
     internal readonly struct SmoothVerticalOperator : IAv1IntraPredictionOperator
     {
         /// <summary>

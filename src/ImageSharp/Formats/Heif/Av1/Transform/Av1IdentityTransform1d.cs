@@ -9,6 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <summary>
 /// Provides the shared SIMD arithmetic for AV1 identity-transform operators.
 /// </summary>
+/// <remarks>
+/// Transform-vector fields represent positions along an identity transform and lanes represent independent axes.
+/// Scaling is lane-local; a zero fractional-bit count uses exact multiplication, while fixed-point variants use the
+/// same rounded butterfly primitive as DCT and ADST operators.
+/// </remarks>
 internal static class Av1IdentityTransform1d
 {
     /// <summary>

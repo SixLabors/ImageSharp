@@ -12,6 +12,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 /// <summary>
 /// Applies an AV1 chroma-from-luma residual to a DC-predicted chroma block.
 /// </summary>
+/// <remarks>
+/// Each signed 16-bit lane contains one zero-mean Q3 luma value. Packed rounded-high multiplication converts the product
+/// with the Q3 alpha parameter directly to a signed integer adjustment; the alpha/luma sign mask restores the product
+/// sign after the magnitude operation. The common DC prediction is broadcast, then results are clipped and narrowed to
+/// the destination sample representation.
+/// </remarks>
 internal static class Av1ChromaFromLumaPredictor
 {
     /// <summary>

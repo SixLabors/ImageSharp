@@ -12,6 +12,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 /// <summary>
 /// Reconstructs HEVC intra-prediction blocks from prepared neighboring samples.
 /// </summary>
+/// <remarks>
+/// Closed static operators select planar, DC, or angular arithmetic once per block. SIMD rows keep neighboring output
+/// columns in consecutive lanes; broadcast left endpoints and vector top references then evaluate the interpolation
+/// without per-sample mode dispatch. Horizontal angular prediction reuses the vertical kernel in contiguous scratch
+/// storage and transposes once into the strided destination.
+/// </remarks>
 internal static partial class HevcIntraPredictor
 {
     /// <summary>

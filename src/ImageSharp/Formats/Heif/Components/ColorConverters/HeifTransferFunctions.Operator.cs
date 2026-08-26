@@ -8,7 +8,10 @@ using static SixLabors.ImageSharp.Formats.Heif.Components.HeifTransferVectorOper
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <content>
-/// Provides fixed-width vector overloads and shared H.273 transfer operations for HEIF color conversion.
+/// Provides fixed-width vector overloads and shared H.273 transfer operations for HEIF color conversion. One lane
+/// represents one normalized color component. Closed vector operators bind the 128-, 256-, or 512-bit implementation
+/// once per row kernel, while conditional selection evaluates piecewise transfer curves without per-lane branches.
+/// Inputs to logarithms and powers are bounded before evaluation because SIMD selection evaluates both branches.
 /// </content>
 internal static partial class HeifTransferFunctions
 {

@@ -10,6 +10,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// <summary>
 /// Reconstructs AV1 palette-predicted sample blocks from decoded color-index maps.
 /// </summary>
+/// <remarks>
+/// AV1 palettes contain at most eight entries, so a complete 8-bit palette fits in each native shuffle lane and a
+/// complete high-bit-depth palette fits as sixteen bytes. Color indices become byte-shuffle controls; replicating the
+/// table per 128-bit lane keeps every lookup lane-local at 128, 256, and 512 bits. Exact-width tail loads and stores
+/// avoid requiring writable padding around small transform blocks.
+/// </remarks>
 internal static class Av1PalettePredictor
 {
     /// <summary>

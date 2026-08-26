@@ -8,6 +8,10 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 /// <summary>
 /// Defines the thirty-two-point AV1 inverse identity transform operator.
 /// </summary>
+/// <remarks>
+/// Vector fields represent transform positions and vector lanes represent independent axes. Scaling is lane-local,
+/// so the SIMD overloads preserve the scalar fixed-point multiplier and rounding for every axis.
+/// </remarks>
 internal readonly partial struct Av1Identity32Inverse1dOperator : IAv1Transform1dOperator
 {
     /// <summary>

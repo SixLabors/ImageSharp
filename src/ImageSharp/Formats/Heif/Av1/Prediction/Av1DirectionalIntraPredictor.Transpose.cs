@@ -9,7 +9,10 @@ using SixLabors.ImageSharp.Common.Helpers;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
 /// <content>
-/// Provides SIMD block transposition for zone 3 directional prediction.
+/// Provides SIMD block transposition for zone 3 directional prediction. AV1 block dimensions are multiples of four,
+/// allowing the traversal to use complete eight-by-eight tiles where possible and complete four-by-four tiles for the
+/// remaining small blocks. Unpack stages exchange coordinate bits inside registers; exact-width loads and stores keep
+/// every access within the logical block even when the destination has no writable row padding.
 /// </content>
 internal static partial class Av1DirectionalIntraPredictor
 {
@@ -25,6 +28,8 @@ internal static partial class Av1DirectionalIntraPredictor
     {
         if (Vector128.IsHardwareAccelerated)
         {
+            // Selecting one tile size for the complete block keeps both loop increments aligned with the AV1 block
+            // dimensions. No partial SIMD tile reaches a neighboring prediction block.
             int tileSize = sourceWidth >= 8 && sourceHeight >= 8 ? 8 : 4;
             for (int y = 0; y < sourceHeight; y += tileSize)
             {
@@ -65,6 +70,7 @@ internal static partial class Av1DirectionalIntraPredictor
     {
         if (Vector128.IsHardwareAccelerated)
         {
+            // The same tiling invariant applies to two-byte samples; only the register unpack granularity differs.
             int tileSize = sourceWidth >= 8 && sourceHeight >= 8 ? 8 : 4;
             for (int y = 0; y < sourceHeight; y += tileSize)
             {

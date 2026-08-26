@@ -13,6 +13,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.SuperResolution;
 /// <summary>
 /// Applies the normative horizontal filter used by AV1 super-resolution upscaling.
 /// </summary>
+/// <remarks>
+/// Four output coordinates are evaluated together, but each coordinate starts as its own eight-lane vector of source
+/// taps. Pairwise multiply-add produces four partial sums per output, and two horizontal reductions transpose those
+/// four independent dot products into consecutive output lanes. This layout supports arbitrary fixed-point source
+/// steps and filter phases without gathers or a temporary coefficient matrix.
+/// </remarks>
 internal static class Av1SuperResolutionFilter
 {
     /// <summary>
@@ -245,6 +251,9 @@ internal static class Av1SuperResolutionFilter
         GetOffsets(sourcePosition + (step * 3), out int sourceOffset3, out int filterOffset3);
 
         ref short filter = ref MemoryMarshal.GetReference(Filters);
+
+        // Replicated edge storage guarantees all eight taps are contiguous even for the first and last output. Exact
+        // 64-bit reads avoid depending on additional row padding before widening each tap set to signed Int16 lanes.
         Vector128<short> samples0 = Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref source, sourceOffset0))).AsByte()).AsInt16();
         Vector128<short> samples1 = Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref source, sourceOffset1))).AsByte()).AsInt16();
         Vector128<short> samples2 = Vector128.WidenLower(Vector128.CreateScalarUnsafe(Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref source, sourceOffset2))).AsByte()).AsInt16();
@@ -276,6 +285,9 @@ internal static class Av1SuperResolutionFilter
         GetOffsets(sourcePosition + (step * 3), out int sourceOffset3, out int filterOffset3);
 
         ref short filter = ref MemoryMarshal.GetReference(Filters);
+
+        // AV1 high-bit-depth samples are at most twelve bits, so their signed Int16 view remains positive. Keeping the
+        // tap and coefficient types equal enables the same pairwise multiply-add reduction as the eight-bit path.
         return FilterFour(
             Vector128.LoadUnsafe(ref source, (nuint)sourceOffset0).AsInt16(),
             Vector128.LoadUnsafe(ref source, (nuint)sourceOffset1).AsInt16(),
@@ -348,6 +360,8 @@ internal static class Av1SuperResolutionFilter
             return Vector128.Create(leftPairs, rightPairs);
         }
 
+        // The portable fallback selects even and odd lanes separately. ShuffleNative is valid here because every index
+        // is in range; adding the two permutations forms [x0+x1, x2+x3] for each source vector.
         Vector128<int> evenIndices = Vector128.Create(0, 2, 0, 2);
         Vector128<int> oddIndices = Vector128.Create(1, 3, 1, 3);
         Vector128<int> leftPairsFallback = Vector128.ShuffleNative(left, evenIndices) + Vector128.ShuffleNative(left, oddIndices);

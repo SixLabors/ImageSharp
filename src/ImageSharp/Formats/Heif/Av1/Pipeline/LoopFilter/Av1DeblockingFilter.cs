@@ -10,6 +10,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 /// <summary>
 /// Applies the AV1 deblocking kernels to four-sample edge segments.
 /// </summary>
+/// <remarks>
+/// Each 32-bit vector lane represents one sample position along the edge. The orientation-specific operators gather or
+/// load the corresponding p6..p0,q0..q6 neighborhood, after which masks, flatness tests, and filter equations remain
+/// lane-wise. Conditional selection preserves unfiltered lanes while allowing four adjacent edge positions to share
+/// one kernel invocation.
+/// </remarks>
 internal static class Av1DeblockingFilter
 {
     /// <summary>

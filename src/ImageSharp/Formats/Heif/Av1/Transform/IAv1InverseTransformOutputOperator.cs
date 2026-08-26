@@ -8,6 +8,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <summary>
 /// Defines how inverse-transform residuals are added to a decoded sample representation.
 /// </summary>
+/// <remarks>
+/// Residual lanes correspond to consecutive reconstructed samples. Implementations must widen packed predictions,
+/// add and clip in signed 32-bit lanes, then store exactly four or eight results so callers do not require writable
+/// padding beyond the transform block. The closed sample type allows byte and high-bit-depth storage to specialize.
+/// </remarks>
 /// <typeparam name="TSample">The decoded sample storage type.</typeparam>
 internal interface IAv1InverseTransformOutputOperator<TSample>
     where TSample : unmanaged

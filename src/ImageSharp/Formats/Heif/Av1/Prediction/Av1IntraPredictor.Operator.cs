@@ -7,12 +7,20 @@ using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
+/// <content>
+/// Provides the width-progressive SIMD traversal shared by closed non-directional prediction operators.
+/// </content>
 internal abstract partial class Av1IntraPredictorBase
 {
     /// <summary>
     /// Applies one closed non-directional AV1 prediction operator using the widest available SIMD width.
     /// </summary>
     /// <typeparam name="TOperator">The prediction-mode-specific arithmetic.</typeparam>
+    /// <remarks>
+    /// Each lane produces one output column. Top samples and column weights vary by lane, while the current row's
+    /// left sample and row weight are broadcast. <typeparamref name="TOperator"/> declares which references it uses;
+    /// because the operator type is closed, the JIT can remove unused loads and broadcasts from each prediction mode.
+    /// </remarks>
     internal sealed class Av1IntraPredictor<TOperator> : Av1IntraPredictorBase
         where TOperator : struct, IAv1IntraPredictionOperator
     {
@@ -41,6 +49,8 @@ internal abstract partial class Av1IntraPredictorBase
             byte bottomLeft = usesBottomLeft ? Unsafe.Add(ref leftBase, height - 1) : default;
             int processedColumns = 0;
 
+            // Widths are cumulative rather than mutually exclusive. A wide vector advances the row prefix, then the
+            // narrower paths consume any complete vectors left before the scalar tail handles the final columns.
             if (Vector512.IsHardwareAccelerated)
             {
                 int vectorizedColumns = width - (width % Vector512<byte>.Count);
@@ -168,6 +178,8 @@ internal abstract partial class Av1IntraPredictorBase
             short bottomLeft = usesBottomLeft ? Unsafe.Add(ref leftBase, height - 1) : default;
             int processedColumns = 0;
 
+            // High-bit-depth samples use signed storage but remain nonnegative. Each vector lane follows one output
+            // column, so the same width-progressive traversal is valid without inter-lane packing or saturation.
             if (Vector512.IsHardwareAccelerated)
             {
                 int vectorizedColumns = width - (width % Vector512<short>.Count);
@@ -256,6 +268,8 @@ internal abstract partial class Av1IntraPredictorBase
                 }
             }
 
+            // Retain a scalar continuation for widths smaller than the available vectors and for forced-scalar test
+            // execution. AV1 block dimensions keep this tail short during normal hardware-accelerated decoding.
             for (int row = 0; row < height; row++)
             {
                 short leftSample = usesLeft ? Unsafe.Add(ref leftBase, row) : default;

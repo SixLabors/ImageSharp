@@ -10,7 +10,10 @@ using SixLabors.ImageSharp.Common.Helpers;
 namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 
 /// <content>
-/// Provides shared SIMD operations used by the closed prediction operators.
+/// Provides shared SIMD operations used by the closed prediction operators. Each lane represents one output column;
+/// planar and angular interpolation widen 16-bit references before their Q5 weighted sums, then narrow only after the
+/// normative rounding shift. Horizontal prediction reuses the vertical row kernel through a caller-owned contiguous
+/// block and an eight-by-eight transpose, keeping the arithmetic identical without gathering strided destination rows.
 /// </content>
 internal static partial class HevcIntraPredictor
 {
@@ -120,6 +123,9 @@ internal static partial class HevcIntraPredictor
         ref ushort samplesBase = ref MemoryMarshal.GetReference(samples);
         uint sum = 0;
         int i = 0;
+
+        // Widen before reduction because a complete 64-sample, 12-bit reference edge exceeds UInt16. The shared index
+        // lets narrower vectors consume only the remainder from the widest available path.
         if (Vector512.IsHardwareAccelerated)
         {
             int oneVectorFromEnd = samples.Length - Vector512<ushort>.Count;
@@ -275,6 +281,8 @@ internal static partial class HevcIntraPredictor
         uint rightWeight = (uint)fraction;
         int i = 0;
 
+        // Adjacent source vectors overlap by one sample, aligning each left/right reference pair in the same lane.
+        // Widening keeps the largest 12-bit Q5 weighted sum below the UInt32 limit before narrowing to sample storage.
         if (Vector512.IsHardwareAccelerated)
         {
             int oneVectorFromEnd = destination.Length - Vector512<ushort>.Count;

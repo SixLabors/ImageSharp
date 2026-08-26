@@ -12,6 +12,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <summary>
 /// Provides the SIMD data-layout operations shared by AV1 two-dimensional transforms.
 /// </summary>
+/// <remarks>
+/// The one-dimensional operators expect one transform position per vector and one independent axis per lane. These
+/// routines transpose rectangular sample tiles into that structure, then transpose the completed axes back to raster
+/// order. Every shuffle is consequently an index-bit exchange between row and column coordinates; it does not alter
+/// the signed fixed-point sample representation.
+/// </remarks>
 internal static class Av1Transform2dOperations
 {
     /// <summary>

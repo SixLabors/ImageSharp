@@ -11,6 +11,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <summary>
 /// Applies separable two-dimensional AV1 inverse transforms and reconstructs decoded samples.
 /// </summary>
+/// <remarks>
+/// Coefficients are transposed so that each SIMD lane represents an independent transform axis and each vector field
+/// represents one coefficient position. The column and row operators can then use the scalar stage graph without
+/// cross-lane permutations. Reconstruction adds the final residuals to their matching prediction lanes before
+/// narrowing to the decoded sample depth.
+/// </remarks>
 internal static class Av1Inverse2dTransformer
 {
     /// <summary>
@@ -320,6 +326,9 @@ internal static class Av1Inverse2dTransformer
         byte rowClampBits = (byte)(bitDepth + 8);
         byte columnClampBits = (byte)Math.Max(bitDepth + 6, 16);
 
+        // Three transform vectors occupy the fixed prefix of the caller-owned workspace. Reinterpreting that storage
+        // gives constant field offsets to the one-dimensional operators; the remaining raster buffer holds the first
+        // axis result without allocating or aliasing any active stage vector.
         ref int workspaceBase = ref MemoryMarshal.GetReference(workspace);
         ref Av1TransformVector<Vector256<int>> tempIn = ref Unsafe.As<int, Av1TransformVector<Vector256<int>>>(ref workspaceBase);
         ref Av1TransformVector<Vector256<int>> tempOut = ref Unsafe.As<int, Av1TransformVector<Vector256<int>>>(ref Unsafe.Add(ref workspaceBase, vectorLength));
@@ -404,7 +413,8 @@ internal static class Av1Inverse2dTransformer
         ref TSample readBase = ref MemoryMarshal.GetReference(outputForRead);
         ref TSample writeBase = ref MemoryMarshal.GetReference(outputForWrite);
 
-        // The intermediate rows already contain contiguous column groups, avoiding a second transpose.
+        // The intermediate rows already contain contiguous column groups, avoiding a second transpose. Horizontal and
+        // vertical flips are folded into these loads and row selections so flipped transforms need no reversal pass.
         for (int column = 0; column < width; column += laneCount)
         {
             int sourceColumn = config.FlipLeftToRight ? width - column - laneCount : column;
@@ -472,6 +482,8 @@ internal static class Av1Inverse2dTransformer
         byte rowClampBits = (byte)(bitDepth + 8);
         byte columnClampBits = (byte)Math.Max(bitDepth + 6, 16);
 
+        // The 128-bit workspace has the same three-vector plus raster-buffer layout as the 256-bit path. Only the
+        // number of independent axes represented by each vector changes from eight to four.
         ref int workspaceBase = ref MemoryMarshal.GetReference(workspace);
         ref Av1TransformVector<Vector128<int>> tempIn = ref Unsafe.As<int, Av1TransformVector<Vector128<int>>>(ref workspaceBase);
         ref Av1TransformVector<Vector128<int>> tempOut = ref Unsafe.As<int, Av1TransformVector<Vector128<int>>>(ref Unsafe.Add(ref workspaceBase, vectorLength));
@@ -480,6 +492,8 @@ internal static class Av1Inverse2dTransformer
         ref int inputBase = ref MemoryMarshal.GetReference(input);
         ref int bufferBase = ref MemoryMarshal.GetReference(buffer);
 
+        // A 4-by-4 transpose changes four raster rows into four coefficient-position vectors. Each lane then remains
+        // one independent row throughout the complete first-axis stage network.
         for (int row = 0; row < height; row += laneCount)
         {
             for (int column = 0; column < width; column += laneCount)
@@ -531,6 +545,8 @@ internal static class Av1Inverse2dTransformer
         ref TSample readBase = ref MemoryMarshal.GetReference(outputForRead);
         ref TSample writeBase = ref MemoryMarshal.GetReference(outputForWrite);
 
+        // Contiguous four-column groups become the independent lanes for the second axis. Flip selection is applied
+        // while reading the intermediate block and selecting completed rows, avoiding any extra copy or reversal.
         for (int column = 0; column < width; column += laneCount)
         {
             int sourceColumn = config.FlipLeftToRight ? width - column - laneCount : column;

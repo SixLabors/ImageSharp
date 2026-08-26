@@ -5,6 +5,9 @@ using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
+/// <content>
+/// Defines the neighbor-usage flags and scalar/SIMD contract for closed intra-prediction operators.
+/// </content>
 internal abstract partial class Av1IntraPredictorBase
 {
     /// <summary>

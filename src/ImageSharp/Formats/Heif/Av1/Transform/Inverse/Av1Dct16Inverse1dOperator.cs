@@ -8,6 +8,10 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 /// <summary>
 /// Defines the 16-point AV1 inverse discrete cosine transform operator.
 /// </summary>
+/// <remarks>
+/// Vector fields represent transform positions and vector lanes represent independent axes. The SIMD overloads apply
+/// the same staged butterflies, fixed-point rounding, and range clamps as the scalar overload without mixing axes.
+/// </remarks>
 internal readonly partial struct Av1Dct16Inverse1dOperator : IAv1Transform1dOperator
 {
     /// <summary>

@@ -7,7 +7,9 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <content>
-/// Provides full-range fixed-point coefficient conversion.
+/// Provides full-range fixed-point coefficient conversion. Each signed 32-bit lane carries one luma or duplicated
+/// chroma sample. Matrix coefficients use a common fixed-point scale; every component rounds once after its complete
+/// weighted sum, then clips before the enclosing row kernel narrows and packs the RGB result.
 /// </content>
 internal static partial class HeifYuv420ToRgb8Converter
 {

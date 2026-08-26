@@ -17,7 +17,10 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// Reconstructs AV1 intra-predicted transform blocks from neighboring samples and decoded mode information.
 /// </summary>
 /// <remarks>
-/// This type implements the intra prediction portion of the AV1 reconstruction process for 8-, 10-, and 12-bit samples.
+/// This type implements the intra prediction portion of the AV1 reconstruction process for 8-, 10-, and 12-bit
+/// samples. Intra-edge filtering and upsampling operate on caller-owned padded scratch: adjacent reference samples map
+/// to adjacent SIMD lanes, exact-width stores interleave filtered half samples with the original edge, and scalar
+/// continuations handle only incomplete vectors. The completed edges then feed the closed prediction operators.
 /// </remarks>
 internal class Av1PredictionDecoder
 {

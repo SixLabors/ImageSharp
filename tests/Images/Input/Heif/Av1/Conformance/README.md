@@ -51,6 +51,12 @@ The palette fixture was encoded independently from ImageSharp using `tests/data/
 
 `libaom-palette-draw-points-8b-444.bit` is the exact sole AV1 item extracted from `libavif-palette-draw-points-8b.avif`. The matching native YUV reference was decoded from that payload by the pinned scalar `aomdec --rawvideo` build. The presented PNG was decoded from the complete AVIF container by the pinned scalar `avifdec -j 1 -d 8` build. The tests require both palette planes to be selected, compare every native YUV sample exactly, and compare every presented RGBA byte exactly across the available vector widths and scalar fallback. No tolerance is used.
 
+## Lossless coverage
+
+The lossless fixtures were encoded independently from ImageSharp using `tests/data/circle-trns-after-plte.png` from the pinned libavif revision. Alpha was intentionally ignored so the native references isolate color-plane reconstruction. The 8-bit input uses CICP 1/13/0; the 10- and 12-bit YUV 4:4:4 inputs use CICP 12/16/0. The material `avifenc` options were `-j 1 -s 0 -l --ignore-alpha -y 444 -a enable-palette=0 -a enable-intrabc=0`, together with the matching depth and CICP values. Disabling palette and intra-block copy ensures the exact result traverses ordinary prediction, coefficient decoding, inverse quantization, and the reversible lossless transform.
+
+The `libavif-lossless-circle-*-444-libaom.yuv` files contain the headerless native planes decoded from the complete AVIF containers by the pinned generic `avifdec -j 1` build. Each file stores one 100x60 full-range YUV 4:4:4 frame at 8, 10, or 12 bits. The matching PNG files were decoded by the same build with `-d 8`. Tests require coded and complete losslessness, base quantizer zero, identity matrix coefficients, disabled palette and intra-block copy, and at least one coded residual. Every native Y, U, and V sample and every presented RGBA byte is compared exactly across normal hardware dispatch and the scalar fallback. No tolerance is used.
+
 ## Film-grain coverage
 
 The film-grain pairs were generated independently from ImageSharp. Each `.bit` file is an AV1 still-picture OBU stream, and the matching `-libaom.yuv` file is the exact visible planar output from the pinned scalar libaom decoder.

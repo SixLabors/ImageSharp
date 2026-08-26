@@ -83,12 +83,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2];
 
     /// <summary>
-    /// Maps the minimum and union of luma neighbor levels to a transform-block skip context.
-    /// </summary>
-    private static readonly int[][] SkipContexts = [
-        [1, 2, 2, 2, 3], [1, 4, 4, 4, 5], [1, 4, 4, 4, 5], [1, 4, 4, 4, 5], [1, 4, 4, 4, 6]];
-
-    /// <summary>
     /// Maps the weighted palette-neighbor score hash to its color-index entropy context.
     /// </summary>
     private static readonly int[] PaletteColorIndexContexts = [-1, -1, 0, -1, -1, 4, 3, 2, 1];
@@ -1080,10 +1074,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 while (++k < transformBlockUnitHighCount);
                 left &= mask;
 
-                int max = Math.Min(top | left, 4);
-                int min = Math.Min(Math.Min(top, left), 4);
-
-                transformBlockContext.SkipContext = SkipContexts[min][max];
+                transformBlockContext.SkipContext = Av1SymbolContextHelper.GetTransformBlockSkipContext(top, left);
             }
         }
         else

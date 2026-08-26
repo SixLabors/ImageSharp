@@ -504,7 +504,7 @@ Implement and verify in dependency order:
   - [x] Verify palette mode syntax and presented reconstruction with an independently encoded palette AVIF fixture.
 - [ ] Lossless and high-bit-depth reconstruction with correct clipping and intermediate precision.
   - [x] Route lossless 4x4 blocks through allocation-free reversible inverse Walsh-Hadamard reconstruction for 8/10/12-bit samples, including the DC-only specialization, `Vector128` production traversal, scalar fallback, exact clipping, and `FeatureTestRunner` parity.
-  - [ ] Verify lossless syntax, inverse quantization, prediction, and presented reconstruction with independently encoded 8/10/12-bit AVIF fixtures.
+  - [x] Verify lossless syntax, inverse quantization, prediction, and presented reconstruction with independently encoded 8/10/12-bit AVIF fixtures. The tests require coded residuals with palette and intra-block copy disabled, compare every native YUV sample with the pinned generic libaom-backed decoder, and compare every presented RGBA byte with pinned generic libavif exactly under normal hardware dispatch and the scalar fallback.
 - [x] Deblocking loop filter.
   - [x] Implement allocation-free SIMD-first 4-, 6-, 8-, and 14-tap filtering for vertical and horizontal edges in 8/10/12-bit storage through closed edge operators, with exact scalar fallback and `FeatureTestRunner` parity against an independent definition.
   - [x] Verify deblocking syntax, filter-level derivation, and boundary traversal with independently encoded 8/10/12-bit AV1 samples and exact scalar-libaom planes; verify presented reconstruction and public precision with genuine AVIF containers at every supported bit depth.

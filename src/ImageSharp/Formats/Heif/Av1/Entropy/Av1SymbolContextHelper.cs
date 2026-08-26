@@ -13,6 +13,18 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 internal static class Av1SymbolContextHelper
 {
     /// <summary>
+    /// Maps clipped top and left coefficient-level classes to the transform-block skip context.
+    /// </summary>
+    private static ReadOnlySpan<byte> TransformBlockSkipContexts =>
+    [
+        1, 2, 2, 2, 3,
+        2, 4, 4, 4, 5,
+        2, 4, 4, 4, 5,
+        2, 4, 4, 4, 5,
+        3, 5, 5, 5, 6
+    ];
+
+    /// <summary>
     /// Maps each transform set and transform type to its coded symbol index.
     /// </summary>
     public static readonly int[][] ExtendedTransformIndices = [
@@ -92,6 +104,22 @@ internal static class Av1SymbolContextHelper
     /// <returns>The square transform-size context.</returns>
     internal static Av1TransformSize GetTransformSizeContext(Av1TransformSize originalSize)
         => (Av1TransformSize)(((int)originalSize.GetSquareSize() + (int)originalSize.GetSquareUpSize() + 1) >> 1);
+
+    /// <summary>
+    /// Derives the luma transform-block skip context from the neighboring coefficient levels.
+    /// </summary>
+    /// <param name="top">The union of the packed coefficient contexts above the transform.</param>
+    /// <param name="left">The union of the packed coefficient contexts to the left of the transform.</param>
+    /// <returns>The transform-block skip context.</returns>
+    public static int GetTransformBlockSkipContext(int top, int left)
+    {
+        int topClass = Math.Min(top, 4);
+        int leftClass = Math.Min(left, 4);
+
+        // AV1 groups each edge into zero, low, or high coefficient-level classes. Retaining libaom's complete table
+        // lets the reader and writer share one compile-time mapping without an encoder-side jagged-array allocation.
+        return TransformBlockSkipContexts[(topClass * 5) + leftClass];
+    }
 
     /// <summary>
     /// Reconstructs an end-of-block coefficient position from its token and extra offset.

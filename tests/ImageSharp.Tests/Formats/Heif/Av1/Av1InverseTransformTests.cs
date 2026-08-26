@@ -411,18 +411,19 @@ public class Av1InverseTransformTests
         }
 
         int[] intermediateValues = new int[16];
-        for (int column = 0; column < 4; column++)
+        for (int row = 0; row < 4; row++)
         {
-            int a = coefficients[column] >> 2;
-            int c = coefficients[4 + column] >> 2;
-            int d = coefficients[8 + column] >> 2;
-            int b = coefficients[12 + column] >> 2;
+            int coefficientOffset = row * 4;
+            int a = coefficients[coefficientOffset] >> 2;
+            int c = coefficients[coefficientOffset + 1] >> 2;
+            int d = coefficients[coefficientOffset + 2] >> 2;
+            int b = coefficients[coefficientOffset + 3] >> 2;
 
             ApplyWalshHadamardReference(ref a, ref b, ref c, ref d);
-            intermediateValues[column] = a;
-            intermediateValues[4 + column] = b;
-            intermediateValues[8 + column] = c;
-            intermediateValues[12 + column] = d;
+            intermediateValues[row] = a;
+            intermediateValues[4 + row] = b;
+            intermediateValues[8 + row] = c;
+            intermediateValues[12 + row] = d;
         }
 
         for (int column = 0; column < 4; column++)

@@ -1406,10 +1406,6 @@ internal partial class Av1TileWriter
             }
             else
             {
-                // Luma skip contexts depend on the minimum and union of the clipped edge levels.
-                byte[][] skip_contexts = [
-                    [1, 2, 2, 2, 3], [1, 4, 4, 4, 5], [1, 4, 4, 4, 5], [1, 4, 4, 4, 5], [1, 4, 4, 4, 6]
-                ];
                 int top = 0;
                 int left = 0;
 
@@ -1438,10 +1434,7 @@ internal partial class Av1TileWriter
                 }
 
                 left &= Av1Constants.CoefficientContextMask;
-                int max = Math.Min(top | left, 4);
-                int min = Math.Min(Math.Min(top, left), 4);
-
-                blockContext.SkipContext = skip_contexts[min][max];
+                blockContext.SkipContext = Av1SymbolContextHelper.GetTransformBlockSkipContext(top, left);
             }
         }
         else

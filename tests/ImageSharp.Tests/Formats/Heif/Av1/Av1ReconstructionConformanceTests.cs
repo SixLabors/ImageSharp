@@ -32,6 +32,11 @@ public class Av1ReconstructionConformanceTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
+    /// The hardware configurations covering the 128-bit and scalar lossless inverse-transform paths.
+    /// </summary>
+    private const HwIntrinsics LosslessConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
+
+    /// <summary>
     /// The hardware configurations covering the 256-bit, 128-bit, and scalar loop-restoration paths.
     /// </summary>
     private const HwIntrinsics LoopRestorationConfigurations =
@@ -61,6 +66,16 @@ public class Av1ReconstructionConformanceTests
     /// The luma and chroma syntax coverage required from the independent palette fixture.
     /// </summary>
     private const int RequiredPaletteCoverage = LumaPaletteCoverage | ChromaPaletteCoverage;
+
+    /// <summary>
+    /// The displayed width shared by the independent lossless fixtures.
+    /// </summary>
+    private const int LosslessFixtureWidth = 100;
+
+    /// <summary>
+    /// The displayed height shared by the independent lossless fixtures.
+    /// </summary>
+    private const int LosslessFixtureHeight = 60;
 
     /// <summary>
     /// The hardware configurations covering the available vector widths and the scalar color-conversion fallback.
@@ -139,6 +154,22 @@ public class Av1ReconstructionConformanceTests
     [Fact]
     public void DecodeWithPaletteMatchesPinnedLibavifPresentation()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePalettePresentedFixture, PresentationConfigurations);
+
+    /// <summary>
+    /// Verifies lossless syntax, residual reconstruction, and exact native samples against scalar libaom for
+    /// independently encoded eight-, ten-, and twelve-bit AVIF images.
+    /// </summary>
+    [Fact]
+    public void DecodeLosslessMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateLosslessFixtures, LosslessConfigurations);
+
+    /// <summary>
+    /// Verifies exact presented pixels for independently encoded lossless eight-, ten-, and twelve-bit AVIF images
+    /// across the available vector widths and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void DecodeLosslessMatchesPinnedLibavifPresentation()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateLosslessPresentedFixtures, PresentationConfigurations);
 
     /// <summary>
     /// Verifies active normative super-resolution, chroma-width rounding, replicated edges, and exact native samples
@@ -307,6 +338,56 @@ public class Av1ReconstructionConformanceTests
             requireActiveCdef: false,
             requireActiveLoopFilter: false,
             requirePalette: true);
+
+    /// <summary>
+    /// Validates every lossless native fixture under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidateLosslessFixtures()
+    {
+        ValidateLosslessFixture(
+            TestImages.Heif.Av1Lossless8BitAvif,
+            TestImages.Heif.Av1Lossless8BitReference,
+            Av1BitDepth.EightBit);
+
+        ValidateLosslessFixture(
+            TestImages.Heif.Av1Lossless10BitAvif,
+            TestImages.Heif.Av1Lossless10BitReference,
+            Av1BitDepth.TenBit);
+
+        ValidateLosslessFixture(
+            TestImages.Heif.Av1Lossless12BitAvif,
+            TestImages.Heif.Av1Lossless12BitReference,
+            Av1BitDepth.TwelveBit);
+    }
+
+    /// <summary>
+    /// Validates every lossless presentation fixture under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidateLosslessPresentedFixtures()
+    {
+        ValidatePresentedFixture(
+            TestImages.Heif.Av1Lossless8BitAvif,
+            TestImages.Heif.Av1Lossless8BitPresentationReference,
+            LosslessFixtureWidth,
+            LosslessFixtureHeight,
+            HeifBitDepth.Bit8);
+
+        ValidatePresentedFixture(
+            TestImages.Heif.Av1Lossless10BitAvif,
+            TestImages.Heif.Av1Lossless10BitPresentationReference,
+            LosslessFixtureWidth,
+            LosslessFixtureHeight,
+            HeifBitDepth.Bit10);
+
+        ValidatePresentedFixture(
+            TestImages.Heif.Av1Lossless12BitAvif,
+            TestImages.Heif.Av1Lossless12BitPresentationReference,
+            LosslessFixtureWidth,
+            LosslessFixtureHeight,
+            HeifBitDepth.Bit12);
+    }
 
     /// <summary>
     /// Validates every active super-resolution fixture under the hardware configuration selected by
@@ -699,6 +780,78 @@ public class Av1ReconstructionConformanceTests
 
         AssertNativePlanesEqual(frameBuffer, reference);
         return restorationCoverage;
+    }
+
+    /// <summary>
+    /// Validates lossless frame syntax and complete native reconstruction for one AVIF image.
+    /// </summary>
+    /// <param name="imagePath">The independently encoded AVIF container.</param>
+    /// <param name="referencePath">The raw planar output produced by the pinned scalar libaom decoder.</param>
+    /// <param name="bitDepth">The expected AV1 sample precision.</param>
+    private static void ValidateLosslessFixture(string imagePath, string referencePath, Av1BitDepth bitDepth)
+    {
+        byte[] imageBytes = TestFile.Create(imagePath).Bytes;
+        byte[] referenceBytes = TestFile.Create(referencePath).Bytes;
+        Span<byte> payload = GetSoleAv1ItemPayload(imageBytes);
+        ReadOnlySpan<byte> nativeReference = referenceBytes;
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
+
+        Assert.Equal(LosslessFixtureWidth, frameBuffer.Width);
+        Assert.Equal(LosslessFixtureHeight, frameBuffer.Height);
+        Assert.Equal(bitDepth, frameBuffer.BitDepth);
+        Assert.Equal(Av1ColorFormat.Yuv444, frameBuffer.ColorFormat);
+        Assert.NotNull(decoder.SequenceHeader);
+        Assert.NotNull(decoder.FrameHeader);
+        Assert.NotNull(decoder.FrameInfo);
+        Assert.True(decoder.FrameHeader.CodedLossless);
+        Assert.True(decoder.FrameHeader.AllLossless);
+        Assert.Equal(0, decoder.FrameHeader.QuantizationParameters.BaseQIndex);
+        Assert.Equal(ObuMatrixCoefficients.Identity, decoder.SequenceHeader.ColorConfig.MatrixCoefficients);
+        Assert.False(decoder.FrameHeader.AllowIntraBlockCopy);
+        Assert.Equal(0, GetPaletteCoverage(decoder));
+
+        bool hasCodedResidual = false;
+        int superblockSizeLog2 = decoder.SequenceHeader.SuperblockSizeLog2;
+        int superblockColumnCount = Av1Math.AlignPowerOf2(decoder.SequenceHeader.MaxFrameWidth, superblockSizeLog2) >> superblockSizeLog2;
+        int superblockRowCount = Av1Math.AlignPowerOf2(decoder.SequenceHeader.MaxFrameHeight, superblockSizeLog2) >> superblockSizeLog2;
+        ReadOnlySpan<Av1Plane> planes = [Av1Plane.Y, Av1Plane.U, Av1Plane.V];
+        for (int superblockRow = 0; superblockRow < superblockRowCount && !hasCodedResidual; superblockRow++)
+        {
+            for (int superblockColumn = 0; superblockColumn < superblockColumnCount && !hasCodedResidual; superblockColumn++)
+            {
+                Point superblock = new(superblockColumn, superblockRow);
+                foreach (Av1Plane plane in planes)
+                {
+                    Span<int> coefficients = plane switch
+                    {
+                        Av1Plane.Y => decoder.FrameInfo.GetCoefficientsY(superblock),
+                        Av1Plane.U => decoder.FrameInfo.GetCoefficientsU(superblock),
+                        _ => decoder.FrameInfo.GetCoefficientsV(superblock)
+                    };
+
+                    // Each transform reserves an end index followed by its coefficients. Any nonzero stored value
+                    // proves that exact output traversed coefficient decoding, inverse quantization, and lossless WHT.
+                    foreach (int coefficient in coefficients)
+                    {
+                        if (coefficient != 0)
+                        {
+                            hasCodedResidual = true;
+                            break;
+                        }
+                    }
+
+                    if (hasCodedResidual)
+                    {
+                        break;
+                    }
+                }
+            }
+        }
+
+        Assert.True(hasCodedResidual);
+
+        AssertNativePlanesEqual(frameBuffer, nativeReference);
     }
 
     /// <summary>

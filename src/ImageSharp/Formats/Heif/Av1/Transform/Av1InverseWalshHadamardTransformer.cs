@@ -139,10 +139,14 @@ internal static class Av1InverseWalshHadamardTransformer
             row2 = Vector128.LoadUnsafe(ref coefficientBase, 8) >> UnitQuantizationShift;
             row3 = Vector128.LoadUnsafe(ref coefficientBase, 12) >> UnitQuantizationShift;
 
+            // Entropy decoding normalizes AV1's column-major coefficient positions to the row-major transform
+            // workspace. Restore the normative dimension order before either reversible butterfly performs its
+            // signed half shift; swapping the dimensions after those shifts would not preserve lossless rounding.
+            Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
             Transform(ref row0, ref row1, ref row2, ref row3);
 
-            // The first pass operates down four columns in parallel. Transposition turns those intermediate columns
-            // into packed rows so the same reversible butterfly implements the second dimension without scratch.
+            // The first pass produces four packed intermediate columns. Transposition turns those columns into rows
+            // so the same reversible butterfly implements the second dimension without scratch.
             Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
             Transform(ref row0, ref row1, ref row2, ref row3);
         }
@@ -196,20 +200,22 @@ internal static class Av1InverseWalshHadamardTransformer
         ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
         ref int intermediateBase = ref MemoryMarshal.GetReference(workspace);
 
-        // The scalar fallback retains the column-first traversal. The caller-owned transform workspace keeps the
-        // complete first dimension without introducing per-block stack or managed allocations.
-        for (int column = 0; column < 4; column++)
+        // Entropy decoding stores the transposed scan in row-major order, so each contiguous local row is one
+        // normative transform column. Writing those results down the intermediate columns preserves libaom's
+        // dimension order without a separate transpose or per-block allocation.
+        for (int row = 0; row < 4; row++)
         {
-            int a = Unsafe.Add(ref coefficientBase, column) >> UnitQuantizationShift;
-            int c = Unsafe.Add(ref coefficientBase, 4 + column) >> UnitQuantizationShift;
-            int d = Unsafe.Add(ref coefficientBase, 8 + column) >> UnitQuantizationShift;
-            int b = Unsafe.Add(ref coefficientBase, 12 + column) >> UnitQuantizationShift;
+            int coefficientOffset = row * 4;
+            int a = Unsafe.Add(ref coefficientBase, coefficientOffset) >> UnitQuantizationShift;
+            int c = Unsafe.Add(ref coefficientBase, coefficientOffset + 1) >> UnitQuantizationShift;
+            int d = Unsafe.Add(ref coefficientBase, coefficientOffset + 2) >> UnitQuantizationShift;
+            int b = Unsafe.Add(ref coefficientBase, coefficientOffset + 3) >> UnitQuantizationShift;
 
             Transform(ref a, ref b, ref c, ref d);
-            Unsafe.Add(ref intermediateBase, column) = a;
-            Unsafe.Add(ref intermediateBase, 4 + column) = b;
-            Unsafe.Add(ref intermediateBase, 8 + column) = c;
-            Unsafe.Add(ref intermediateBase, 12 + column) = d;
+            Unsafe.Add(ref intermediateBase, row) = a;
+            Unsafe.Add(ref intermediateBase, 4 + row) = b;
+            Unsafe.Add(ref intermediateBase, 8 + row) = c;
+            Unsafe.Add(ref intermediateBase, 12 + row) = d;
         }
 
         for (int column = 0; column < 4; column++)

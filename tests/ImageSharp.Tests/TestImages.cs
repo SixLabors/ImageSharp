@@ -1369,6 +1369,15 @@ public static class TestImages
         public const string Av1Palette8BitReference = "Heif/Av1/Conformance/libaom-palette-draw-points-8b-444-libaom.yuv";
         public const string Av1Palette8BitAvif = "Heif/Av1/Conformance/libavif-palette-draw-points-8b.avif";
         public const string Av1Palette8BitPresentationReference = "Heif/Av1/Conformance/libavif-palette-draw-points-8b.png";
+        public const string Av1Lossless8BitAvif = "Heif/Av1/Conformance/libavif-lossless-circle-8b-444.avif";
+        public const string Av1Lossless8BitReference = "Heif/Av1/Conformance/libavif-lossless-circle-8b-444-libaom.yuv";
+        public const string Av1Lossless8BitPresentationReference = "Heif/Av1/Conformance/libavif-lossless-circle-8b-444.png";
+        public const string Av1Lossless10BitAvif = "Heif/Av1/Conformance/libavif-lossless-circle-10b-444.avif";
+        public const string Av1Lossless10BitReference = "Heif/Av1/Conformance/libavif-lossless-circle-10b-444-libaom.yuv";
+        public const string Av1Lossless10BitPresentationReference = "Heif/Av1/Conformance/libavif-lossless-circle-10b-444.png";
+        public const string Av1Lossless12BitAvif = "Heif/Av1/Conformance/libavif-lossless-circle-12b-444.avif";
+        public const string Av1Lossless12BitReference = "Heif/Av1/Conformance/libavif-lossless-circle-12b-444-libaom.yuv";
+        public const string Av1Lossless12BitPresentationReference = "Heif/Av1/Conformance/libavif-lossless-circle-12b-444.png";
         public const string Av1SuperResolution8BitPayload = "Heif/Av1/Conformance/libaom-superres-kodim23-8b.bit";
         public const string Av1SuperResolution8BitReference = "Heif/Av1/Conformance/libaom-superres-kodim23-8b-libaom.yuv";
         public const string Av1SuperResolution8BitAvif = "Heif/Av1/Conformance/libavif-superres-kodim23-8b.avif";

@@ -10,6 +10,9 @@ using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
+/// <summary>
+/// Verifies AV1 forward and inverse transform reconstruction across supported sizes, precisions, and intrinsic tiers.
+/// </summary>
 [Trait("Format", "Avif")]
 public class Av1InverseTransformTests
 {
@@ -166,6 +169,80 @@ public class Av1InverseTransformTests
         DispatchColumn(transformType, transformSize, bitDepth, ref config);
     }
 
+    /// <summary>
+    /// Verifies lossless inverse Walsh-Hadamard reconstruction against an independent definition.
+    /// </summary>
+    [Fact]
+    public void LosslessWalshHadamardMatchesReferenceAcrossIntrinsicTiers()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertLosslessWalshHadamardParity, TransformConfigurations);
+
+    /// <summary>
+    /// Exercises DC-only and complete lossless blocks at every supported sample precision.
+    /// </summary>
+    private static void AssertLosslessWalshHadamardParity()
+    {
+        const int stride = 7;
+        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
+        int[][] coefficientCases =
+        [
+            [512, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [-516, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [320, -192, 64, -448, 128, 256, -320, 96, -224, 160, 384, -128, 448, -64, -256, 192]
+        ];
+
+        for (int coefficientCase = 0; coefficientCase < coefficientCases.Length; coefficientCase++)
+        {
+            int[] coefficients = coefficientCases[coefficientCase];
+            int coefficientCount = coefficientCase < 2 ? 1 : coefficients.Length;
+            byte[] expectedBytes = new byte[stride * 4];
+
+            Array.Fill(expectedBytes, (byte)233);
+
+            PopulatePrediction(expectedBytes, stride, byte.MaxValue);
+            byte[] actualBytes = (byte[])expectedBytes.Clone();
+
+            ApplyWalshHadamardReference(coefficients, expectedBytes, stride, coefficientCount, 8);
+            Av1InverseTransformer.Reconstruct8Bit(
+                coefficients,
+                actualBytes,
+                stride,
+                Av1TransformSize.Size4x4,
+                Av1TransformType.DctDct,
+                0,
+                coefficientCount,
+                true,
+                workspace);
+
+            Assert.Equal(expectedBytes, actualBytes);
+
+            foreach (int bitDepth in new[] { 10, 12 })
+            {
+                int maximum = (1 << bitDepth) - 1;
+                short[] expected = new short[stride * 4];
+
+                Array.Fill(expected, (short)-1);
+
+                PopulatePrediction(expected, stride, maximum);
+                short[] actual = (short[])expected.Clone();
+
+                ApplyWalshHadamardReference(coefficients, expected, stride, coefficientCount, bitDepth);
+                Av1InverseTransformer.ReconstructHighBitDepth(
+                    coefficients,
+                    actual,
+                    stride,
+                    Av1TransformSize.Size4x4,
+                    Av1TransformType.DctDct,
+                    0,
+                    coefficientCount,
+                    true,
+                    bitDepth == 10 ? Av1BitDepth.TenBit : Av1BitDepth.TwelveBit,
+                    workspace);
+
+                Assert.Equal(expected, actual);
+            }
+        }
+    }
+
     [Fact]
     public void ReconstructionDispatchDoesNotAllocatePerBlock()
     {
@@ -241,6 +318,143 @@ public class Av1InverseTransformTests
             workspace);
 
         Assert.All(reconstruction, value => Assert.Equal((short)0, value));
+    }
+
+    /// <summary>
+    /// Populates active eight-bit prediction samples while preserving row-padding sentinels.
+    /// </summary>
+    private static void PopulatePrediction(Span<byte> prediction, int stride, int maximum)
+    {
+        for (int row = 0; row < 4; row++)
+        {
+            for (int column = 0; column < 4; column++)
+            {
+                prediction[(row * stride) + column] = (byte)(((row * 101) + (column * 67) + 19) & maximum);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Populates active high-bit-depth prediction samples while preserving row-padding sentinels.
+    /// </summary>
+    private static void PopulatePrediction(Span<short> prediction, int stride, int maximum)
+    {
+        for (int row = 0; row < 4; row++)
+        {
+            for (int column = 0; column < 4; column++)
+            {
+                prediction[(row * stride) + column] = (short)(((row * 911) + (column * 593) + 37) & maximum);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Applies the normative inverse Walsh-Hadamard definition to an eight-bit prediction block.
+    /// </summary>
+    private static void ApplyWalshHadamardReference(ReadOnlySpan<int> coefficients, Span<byte> destination, int stride, int coefficientCount, int bitDepth)
+    {
+        int[] residuals = CalculateWalshHadamardReference(coefficients, coefficientCount);
+        int maximum = (1 << bitDepth) - 1;
+
+        for (int row = 0; row < 4; row++)
+        {
+            for (int column = 0; column < 4; column++)
+            {
+                int offset = (row * stride) + column;
+                destination[offset] = (byte)Math.Clamp(destination[offset] + residuals[(row * 4) + column], 0, maximum);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Applies the normative inverse Walsh-Hadamard definition to a high-bit-depth prediction block.
+    /// </summary>
+    private static void ApplyWalshHadamardReference(ReadOnlySpan<int> coefficients, Span<short> destination, int stride, int coefficientCount, int bitDepth)
+    {
+        int[] residuals = CalculateWalshHadamardReference(coefficients, coefficientCount);
+        int maximum = (1 << bitDepth) - 1;
+
+        for (int row = 0; row < 4; row++)
+        {
+            for (int column = 0; column < 4; column++)
+            {
+                int offset = (row * stride) + column;
+                destination[offset] = (short)Math.Clamp(destination[offset] + residuals[(row * 4) + column], 0, maximum);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Calculates the exact four-by-four residual matrix defined by AV1's reversible transform.
+    /// </summary>
+    private static int[] CalculateWalshHadamardReference(ReadOnlySpan<int> coefficients, int coefficientCount)
+    {
+        int[] residuals = new int[16];
+
+        if (coefficientCount == 1)
+        {
+            int first = coefficients[0] >> 2;
+            int half = first >> 1;
+            int firstIntermediate = first - half;
+
+            for (int column = 0; column < 4; column++)
+            {
+                int intermediate = column == 0 ? firstIntermediate : half;
+                int repeatedResidual = intermediate >> 1;
+                residuals[column] = intermediate - repeatedResidual;
+                residuals[4 + column] = repeatedResidual;
+                residuals[8 + column] = repeatedResidual;
+                residuals[12 + column] = repeatedResidual;
+            }
+
+            return residuals;
+        }
+
+        int[] intermediateValues = new int[16];
+        for (int column = 0; column < 4; column++)
+        {
+            int a = coefficients[column] >> 2;
+            int c = coefficients[4 + column] >> 2;
+            int d = coefficients[8 + column] >> 2;
+            int b = coefficients[12 + column] >> 2;
+
+            ApplyWalshHadamardReference(ref a, ref b, ref c, ref d);
+            intermediateValues[column] = a;
+            intermediateValues[4 + column] = b;
+            intermediateValues[8 + column] = c;
+            intermediateValues[12 + column] = d;
+        }
+
+        for (int column = 0; column < 4; column++)
+        {
+            int offset = column * 4;
+            int a = intermediateValues[offset];
+            int c = intermediateValues[offset + 1];
+            int d = intermediateValues[offset + 2];
+            int b = intermediateValues[offset + 3];
+
+            ApplyWalshHadamardReference(ref a, ref b, ref c, ref d);
+            residuals[column] = a;
+            residuals[4 + column] = b;
+            residuals[8 + column] = c;
+            residuals[12 + column] = d;
+        }
+
+        return residuals;
+    }
+
+    /// <summary>
+    /// Applies one scalar four-point reversible Walsh-Hadamard dimension for the independent test definition.
+    /// </summary>
+    private static void ApplyWalshHadamardReference(ref int a, ref int b, ref int c, ref int d)
+    {
+        a += c;
+        d -= b;
+        int middle = (a - d) >> 1;
+        b = middle - b;
+        c = middle - c;
+        a -= b;
+        d += c;
     }
 
     /// <summary>

@@ -29,6 +29,21 @@ internal static class Av1InverseTransformerFactory
     {
         Guard.MustBeLessThanOrEqualTo(transformFunctionParameters.BitDepth, 8, nameof(transformFunctionParameters));
         Guard.IsFalse(transformFunctionParameters.Is16BitPipeline, nameof(transformFunctionParameters), "Calling 8-bit pipeline while 16-bit is requested.");
+
+        if (transformFunctionParameters.IsLossless)
+        {
+            Av1InverseWalshHadamardTransformer.TransformAdd(
+                coefficients,
+                readBuffer,
+                readStride,
+                writeBuffer,
+                writeStride,
+                transformFunctionParameters.EndOfBuffer,
+                workspace);
+
+            return;
+        }
+
         Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(
             transformFunctionParameters.TransformType,
             transformFunctionParameters.TransformSize,
@@ -57,6 +72,22 @@ internal static class Av1InverseTransformerFactory
         Span<int> workspace)
     {
         Guard.IsTrue(transformFunctionParameters.Is16BitPipeline, nameof(transformFunctionParameters), "Calling 16-bit pipeline while 8-bit is requested.");
+
+        if (transformFunctionParameters.IsLossless)
+        {
+            Av1InverseWalshHadamardTransformer.TransformAdd(
+                coefficients,
+                readBuffer,
+                readStride,
+                writeBuffer,
+                writeStride,
+                transformFunctionParameters.EndOfBuffer,
+                workspace,
+                transformFunctionParameters.BitDepth);
+
+            return;
+        }
+
         Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(
             transformFunctionParameters.TransformType,
             transformFunctionParameters.TransformSize,

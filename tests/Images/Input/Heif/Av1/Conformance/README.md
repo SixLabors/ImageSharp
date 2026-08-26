@@ -27,6 +27,8 @@ The native reference layouts are:
 
 The conformance tests compare every visible reconstructed sample with these files. The deblocking corpus verifies nonzero loop-filter levels. The CDEF corpus additionally verifies sequence-level CDEF enablement, a selected nonzero frame strength, and disabled loop restoration, so a disabled or bypassed CDEF stage cannot satisfy the exact native-plane comparison accidentally.
 
+Across the three active-CDEF elementary streams, the decoded mode records select every terminal AV1 partition shape. Their nested blocks also require recursive square splits, which produce no terminal mode record of their own. The tests verify that complete ten-type coverage before relying on the exact native-plane comparisons.
+
 The `libaom-superres-*` streams were encoded from the same Kodak and Cosmos sources with the pinned generic libaom build. Their material options were `--usage=2 --passes=1 --limit=1 --obu --end-usage=q --cq-level=30 --cpu-used=4 --threads=1 --lag-in-frames=0 --full-still-picture-hdr --enable-cdef=0 --enable-restoration=0 --superres-mode=1 --superres-denominator=12 --superres-kf-denominator=12`, together with the matching input depth, output depth, and profile. Disabling CDEF and restoration isolates the normative horizontal upscaling result, while the tests separately require a coded width smaller than the displayed width so an unscaled stream cannot satisfy the reference comparison.
 
 The matching `libaom-superres-*-libaom.yuv` files were decoded by `aomdec --rawvideo` from that exact generic build. They retain the displayed 768x512 8-bit YUV 4:2:0 and 1024x428 10/12-bit YUV 4:4:4 layouts described above.

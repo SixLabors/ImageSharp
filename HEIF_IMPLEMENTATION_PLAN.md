@@ -498,6 +498,7 @@ Implement and verify in dependency order:
 - [ ] OBU framing, sequence headers, frame headers, tile groups, byte alignment, and trailing bits.
 - [ ] One coherent decoder lifecycle that retains parsed frame and tile state and disposes all buffers deterministically.
 - [ ] Tile partitioning, mode information, segmentation, delta quantization, transform-size selection, coefficient token decode, inverse quantization, and inverse transforms.
+  - [x] Match libaom's depth-first traversal and frame-edge behavior for all ten AV1 partition types. Independent 8/10/12-bit streams collectively select every terminal partition shape and contain nested block geometry that requires recursive `Split` traversal; their complete native planes remain byte-exact under normal hardware dispatch and the scalar fallback.
 - [ ] Intra prediction, including every directional, smooth, Paeth, CFL, filter-intra, and palette case permitted by AV1.
   - [x] Implement SIMD-first chroma-from-luma storage, 4:4:4/4:2:2/4:2:0 subsampling, rounded mean subtraction, and 8/10/12-bit prediction with exact scalar fallback and `FeatureTestRunner` parity.
   - [x] Implement allocation-free SIMD-first palette reconstruction for palette sizes 2-8, transform widths 4-64, and 8/10/12-bit samples with exact scalar fallback and `FeatureTestRunner` parity.

@@ -622,7 +622,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
                 break;
             default:
-                throw new NotImplementedException($"Partition type: {partitionType} is not supported.");
+                throw new InvalidImageContentException($"The decoded AV1 partition type {partitionType} is invalid.");
         }
 
         this.UpdatePartitionContext(new Point(columnIndex, rowIndex), tileInfo, superblockInfo, subSize, blockSize, partitionType);

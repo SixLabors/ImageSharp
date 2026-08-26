@@ -68,6 +68,11 @@ public class Av1ReconstructionConformanceTests
     private const int RequiredPaletteCoverage = LumaPaletteCoverage | ChromaPaletteCoverage;
 
     /// <summary>
+    /// The bit mask containing every AV1 partition type defined for a coding block.
+    /// </summary>
+    private const int RequiredPartitionCoverage = (1 << ((int)Av1PartitionType.Vertical4 + 1)) - 1;
+
+    /// <summary>
     /// The displayed width shared by the independent lossless fixtures.
     /// </summary>
     private const int LosslessFixtureWidth = 100;
@@ -251,6 +256,19 @@ public class Av1ReconstructionConformanceTests
     [Fact]
     public void DecodeWithFilmGrainMatchesPinnedLibaomReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilmGrainFixtures, LoopRestorationConfigurations);
+
+    /// <summary>
+    /// Verifies that independently encoded AV1 streams exercise every normative coding-block partition shape.
+    /// </summary>
+    [Fact]
+    public void IndependentFixturesCoverEveryPartitionType()
+    {
+        int coverage = GetPartitionCoverage(TestImages.Heif.Av1Cdef8BitPayload);
+        coverage |= GetPartitionCoverage(TestImages.Heif.Av1Cdef10BitPayload);
+        coverage |= GetPartitionCoverage(TestImages.Heif.Av1Cdef12BitPayload);
+
+        Assert.Equal(RequiredPartitionCoverage, coverage & RequiredPartitionCoverage);
+    }
 
     /// <summary>
     /// Validates every active-CDEF fixture under the hardware configuration selected by <see cref="FeatureTestRunner"/>.
@@ -1073,6 +1091,48 @@ public class Av1ReconstructionConformanceTests
         int restorationCoverage = GetRestorationCoverage(decoder);
         Assert.NotEqual(0, restorationCoverage);
         return restorationCoverage;
+    }
+
+    /// <summary>
+    /// Gets the partition types selected by one independently encoded AV1 elementary stream.
+    /// </summary>
+    /// <param name="payloadPath">The AV1 elementary-stream sample.</param>
+    /// <returns>A bit mask containing every selected partition type.</returns>
+    private static int GetPartitionCoverage(string payloadPath)
+    {
+        byte[] payload = TestFile.Create(payloadPath).Bytes;
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
+
+        Assert.NotNull(decoder.SequenceHeader);
+        Assert.NotNull(decoder.FrameInfo);
+        int superblockSizeLog2 = decoder.SequenceHeader.SuperblockSizeLog2;
+        int superblockColumnCount = Av1Math.AlignPowerOf2(decoder.SequenceHeader.MaxFrameWidth, superblockSizeLog2) >> superblockSizeLog2;
+        int superblockRowCount = Av1Math.AlignPowerOf2(decoder.SequenceHeader.MaxFrameHeight, superblockSizeLog2) >> superblockSizeLog2;
+        int halfSuperblockSize = 1 << (superblockSizeLog2 - 1);
+        int coverage = 0;
+
+        // Mode records retain their bitstream traversal order and store each final coding block once, so iterating
+        // the parsed count observes every selected leaf partition without repeatedly visiting its covered 4x4 cells.
+        // Split itself creates no mode record. All other partition types are terminal, so a leaf below half the
+        // superblock size on both axes proves that the parser reached it through at least one recursive split.
+        for (int superblockRow = 0; superblockRow < superblockRowCount; superblockRow++)
+        {
+            for (int superblockColumn = 0; superblockColumn < superblockColumnCount; superblockColumn++)
+            {
+                Av1SuperblockInfo superblock = decoder.FrameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
+                foreach (Av1BlockModeInfo modeInfo in superblock.GetModeInfos())
+                {
+                    coverage |= 1 << (int)modeInfo.PartitionType;
+                    if (modeInfo.BlockSize.GetWidth() < halfSuperblockSize && modeInfo.BlockSize.GetHeight() < halfSuperblockSize)
+                    {
+                        coverage |= 1 << (int)Av1PartitionType.Split;
+                    }
+                }
+            }
+        }
+
+        return coverage;
     }
 
     /// <summary>

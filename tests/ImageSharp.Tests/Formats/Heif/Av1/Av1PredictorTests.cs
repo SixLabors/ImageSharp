@@ -1,640 +1,770 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Heif.Av1;
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
-[Trait("Format", "Avif")]
+/// <summary>
+/// Verifies AV1 intra prediction against scalar definitions across the supported hardware-intrinsic configurations.
+/// </summary>
+[Trait("Format", "Heif")]
 public class Av1PredictorTests
 {
-    private static string[] Digests4x4 = [
-              "7b1c762e28747f885d2b7d83cb8aa75c", "73353f179207f1432d40a132809e3a50",
-              "80c9237c838b0ec0674ccb070df633d5", "1cd79116b41fda884e7fa047f5eb14df",
-              "33211425772ee539a59981a2e9dc10c1", "d6f5f65a267f0e9a2752e8151cc1dcd7",
-              "7ff8c762cb766eb0665682152102ce4b", "2276b861ae4599de15938651961907ec",
-              "766982bc69f4aaaa8e71014c2dc219bc", "04401B397D702F853B12407EBFB91027",
-          ];
+    /// <summary>
+    /// The offset within directional reference storage that leaves readable samples before both edge origins.
+    /// </summary>
+    private const int ReferenceOrigin = 128;
 
-    private static string[] Digests4x8 = [
-              "0a0d8641ecfa0e82f541acdc894d5574", "1a40371af6cff9c278c5b0def9e4b3e7",
-              "3631a7a99569663b514f15b590523822", "646c7b592136285bd31501494e7393e7",
-              "ecbe89cc64dc2688123d3cfe865b5237", "79048e70ecbb7d43a4703f62718588c0",
-              "f3de11bf1198a00675d806d29c41d676", "32bb6cd018f6e871c342fcc21c7180cf",
-              "6f076a1e5ab3d69cf08811d62293e4be", "F94348B0D3E2B1F2FC061232831E8B9B",
-          ];
+    /// <summary>
+    /// The hardware configurations required to exercise each SIMD tier and the complete scalar fallback.
+    /// </summary>
+    private const HwIntrinsics PredictorConfigurations =
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
-    private static string[] Digests4x16 = [
-              "cb8240be98444ede5ae98ca94afc1557", "460acbcf825a1fa0d8f2aa6bf2d6a21c",
-              "7896fdbbfe538dce1dc3a5b0873d74b0", "504aea29c6b27f21555d5516b8de2d8a",
-              "c5738e7fa82b91ea0e39232120da56ea", "19abbd934c243a6d9df7585d81332dd5",
-              "9e42b7b342e45c842dfa8aedaddbdfaa", "0e9eb07a89f8bf96bc219d5d1c3d9f6d",
-              "659393c31633e0f498bae384c9df5c7b", "812DFE5C38F2B837529C5A918756E8B8",
-          ];
+    /// <summary>
+    /// Cardinal, base, and adjusted angles covering every directional projection zone.
+    /// </summary>
+    private static ReadOnlySpan<int> DirectionalAngles => [36, 45, 54, 67, 90, 104, 113, 126, 135, 148, 157, 166, 180, 194, 203, 212];
 
-    private static string[] Digests8x4 = [
-              "5950744064518f77867c8e14ebd8b5d7", "46b6cbdc76efd03f4ac77870d54739f7",
-              "efe21fd1b98cb1663950e0bf49483b3b", "3c647b64760b298092cbb8e2f5c06bfd",
-              "c3595929687ffb04c59b128d56e2632f", "d89ad2ddf8a74a520fdd1d7019fd75b4",
-              "53907cb70ad597ee5885f6c58201f98b", "09d2282a29008b7fb47eb60ed6653d06",
-              "e341fc1c910d7cb2dac5dbc58b9c9af9", "93D67CD49B07CE3870526E5C12F00EBF",
-          ];
+    /// <summary>
+    /// The complete set of AV1 filter-intra coefficient modes.
+    /// </summary>
+    private static ReadOnlySpan<Av1FilterIntraMode> FilterIntraModes =>
+    [
+        Av1FilterIntraMode.DC,
+        Av1FilterIntraMode.Vertical,
+        Av1FilterIntraMode.Horizontal,
+        Av1FilterIntraMode.Directional157,
+        Av1FilterIntraMode.Paeth,
+    ];
 
-    private static string[] Digests8x8 = [
-              "06fb7cb52719855a38b4883b4b241749", "2013aafd42a4303efb553e42264ab8b0",
-              "2f070511d5680c12ca73a20e47fd6e23", "9923705af63e454392625794d5459fe0",
-              "04007a0d39778621266e2208a22c4fac", "2d296c202d36b4a53f1eaddda274e4a1",
-              "c87806c220d125c7563c2928e836fbbd", "339b49710a0099087e51ab5afc8d8713",
-              "c90fbc020afd9327bf35dccae099bf77", "BAB0E5918AB2F7354D9BCA4E9A927C0F",
-          ];
-
-    private static string[] Digests8x16 = [
-              "3c5a4574d96b5bb1013429636554e761", "8cf56b17c52d25eb785685f2ab48b194",
-              "7911e2e02abfbe226f17529ac5db08fc", "064e509948982f66a14293f406d88d42",
-              "5c443aa713891406d5be3af4b3cf67c6", "5d2cb98e532822ca701110cda9ada968",
-              "3d58836e17918b8890012dd96b95bb9d", "20e8d61ddc451b9e553a294073349ffd",
-              "a9aa6cf9d0dcf1977a1853ccc264e40b", "D84707DAAF6CA99F041A670F16885CBA",
-          ];
-
-    private static string[] Digests8x32 = [
-              "b393a2db7a76acaccc39e04d9dc3e8ac", "bbda713ee075a7ef095f0f479b5a1f82",
-              "f337dce3980f70730d6f6c2c756e3b62", "796189b05dc026e865c9e95491b255d1",
-              "ea932c21e7189eeb215c1990491320ab", "a9fffdf9455eba5e3b01317cae140289",
-              "9525dbfdbf5fba61ef9c7aa5fe887503", "8c6a7e3717ff8a459f415c79bb17341c",
-              "3761071bfaa2363a315fe07223f95a2d", "25DADBA40EBC6C4616A7A536AC48CAA6",
-          ];
-
-    private static string[] Digests16x4 = [
-              "1c0a950b3ac500def73b165b6a38467c", "95e7f7300f19da280c6a506e40304462",
-              "28a6af15e31f76d3ff189012475d78f5", "e330d67b859bceef62b96fc9e1f49a34",
-              "36eca3b8083ce2fb5f7e6227dfc34e71", "08f567d2abaa8e83e4d9b33b3f709538",
-              "dc2d0ba13aa9369446932f03b53dc77d", "9ab342944c4b1357aa79d39d7bebdd3a",
-              "77ec278c5086c88b91d68eef561ed517", "E4726C9838383FAC75A028303808EABF",
-          ];
-
-    private static string[] Digests16x8 = [
-              "053a2bc4b5b7287fee524af4e77f077a", "619b720b13f14f32391a99ea7ff550d5",
-              "728d61c11b06baf7fe77881003a918b9", "889997b89a44c9976cb34f573e2b1eea",
-              "b43bfc31d1c770bb9ca5ca158c9beec4", "9d3fe9f762e0c6e4f114042147c50c7f",
-              "c74fdd7c9938603b01e7ecf9fdf08d61", "870c7336db1102f80f74526bd5a7cf4e",
-              "3fd5354a6190903d6a0b661fe177daf6", "02BB1B12EC2CD3D9E08706D177309B25",
-          ];
-
-    private static string[] Digests16x16 = [
-              "1fa9e2086f6594bda60c30384fbf1635", "2098d2a030cd7c6be613edc74dc2faf8",
-              "f3c72b0c8e73f1ddca04d14f52d194d8", "6b31f2ee24cf88d3844a2fc67e1f39f3",
-              "d91a22a83575e9359c5e4871ab30ddca", "24c32a0d38b4413d2ef9bf1f842c8634",
-              "6e9e47bf9da9b2b9ae293e0bbd8ff086", "968b82804b5200b074bcdba9718140d4",
-              "4e6d7e612c5ae0bbdcc51a453cd1db3f", "D182AFFEC5DBD0C7C0BD945AF090C48D",
-          ];
-
-    private static string[] Digests16x32 = [
-              "01afd04432026ff56327d6226b720be2", "a6e7be906cc6f1e7a520151bfa7c303d",
-              "bc05c46f18d0638f0228f1de64f07cd5", "204e613e429935f721a5b29cec7d44bb",
-              "aa0a7c9a7482dfc06d9685072fc5bafd", "ffb60f090d83c624bb4f7dc3a630ac4f",
-              "36bcb9ca9bb5eac520b050409de25da5", "34d9a5dd3363668391bc3bd05b468182",
-              "1e149c28db8b234e43931c347a523794", "1C0AF3C1B39A4C1866440D4C80A8CE8E",
-          ];
-
-    private static string[] Digests16x64 = [
-              "727797ef15ccd8d325476fe8f12006a3", "f77c544ac8035e01920deae40cee7b07",
-              "12b0c69595328c465e0b25e0c9e3e9fc", "3b2a053ee8b05a8ac35ad23b0422a151",
-              "f3be77c0fe67eb5d9d515e92bec21eb7", "f1ece6409e01e9dd98b800d49628247d",
-              "efd2ec9bfbbd4fd1f6604ea369df1894", "ec703de918422b9e03197ba0ed60a199",
-              "739418efb89c07f700895deaa5d0b3e3", "272C2EAFEABCDA41F27EFBB48B938211",
-          ];
-
-    private static string[] Digests32x8 = [
-              "4da55401331ed98acec0c516d7307513", "0ae6f3974701a5e6c20baccd26b4ca52",
-              "79b799f1eb77d5189535dc4e18873a0e", "90e943adf3de4f913864dce4e52b4894",
-              "5e1b9cc800a89ef45f5bdcc9e99e4e96", "3103405df20d254cbf32ac30872ead4b",
-              "648550e369b77687bff3c7d6f249b02f", "f9f73bcd8aadfc059fa260325df957a1",
-              "204cef70d741c25d4fe2b1d10d2649a5", "A71D39B79759B44AF95E3C03D2D72C56",
-          ];
-
-    private static string[] Digests32x16 = [
-              "86ad1e1047abaf9959150222e8f19593", "1908cbe04eb4e5c9d35f1af7ffd7ee72",
-              "6ad3bb37ebe8374b0a4c2d18fe3ebb6a", "08d3cfe7a1148bff55eb6166da3378c6",
-              "656a722394764d17b6c42401b9e0ad3b", "4aa00c192102efeb325883737e562f0d",
-              "9881a90ca88bca4297073e60b3bb771a", "8cd74aada398a3d770fc3ace38ecd311",
-              "0a927e3f5ff8e8338984172cc0653b13", "B48D4391B5637D085F128C7137739400",
-          ];
-
-    private static string[] Digests32x32 = [
-              "1303ca680644e3d8c9ffd4185bb2835b", "2a4d9f5cc8da307d4cf7dc021df10ba9",
-              "ced60d3f4e4b011a6a0314dd8a4b1fd8", "ced60d3f4e4b011a6a0314dd8a4b1fd8",
-              "1464b01aa928e9bd82c66bad0f921693", "90deadfb13d7c3b855ba21b326c1e202",
-              "af96a74f8033dff010e53a8521bc6f63", "9f1039f2ef082aaee69fcb7d749037c2",
-              "3f82893e478e204f2d254b34222d14dc", "9B2A16A6331AA6EC41636B8F709B39C7",
-          ];
-
-    private static string[] Digests32x64 = [
-              "e1e8ed803236367821981500a3d9eebe", "0f46d124ba9f48cdd5d5290acf786d6d",
-              "4e2a2cfd8f56f15939bdfc753145b303", "0ce332b343934b34cd4417725faa85cb",
-              "1d2f8e48e3adb7c448be05d9f66f4954", "9fb2e176636a5689b26f73ca73fcc512",
-              "e720ebccae7e25e36f23da53ae5b5d6a", "86fe4364734169aaa4520d799890d530",
-              "b1870290764bb1b100d1974e2bd70f1d", "2579B3CD9B1252A282C79C36B47FA186",
-          ];
-
-    private static string[] Digests64x16 = [
-              "de1b736e9d99129609d6ef3a491507a0", "516d8f6eb054d74d150e7b444185b6b9",
-              "69e462c3338a9aaf993c3f7cfbc15649", "821b76b1494d4f84d20817840f719a1a",
-              "fd9b4276e7affe1e0e4ce4f428058994", "cd82fd361a4767ac29a9f406b480b8f3",
-              "2792c2f810157a4a6cb13c28529ff779", "1220442d90c4255ba0969d28b91e93a6",
-              "c7253e10b45f7f67dfee3256c9b94825", "103DA3694F8D5C6F79CA854418F3E3F9",
-          ];
-
-    private static string[] Digests64x32 = [
-              "e48e1ac15e97191a8fda08d62fff343e", "80c15b303235f9bc2259027bb92dfdc4",
-              "538424b24bd0830f21788e7238ca762f", "a6c5aeb722615089efbca80b02951ceb",
-              "12604b37875533665078405ef4582e35", "0048afa17bd3e1632d68b96048836530",
-              "07a0cfcb56a5eed50c4bd6c26814336b", "529d8a070de5bc6531fa3ee8f450c233",
-              "33c50a11c7d78f72434064f634305e95", "98BEB315BF0A9B734D4FB137FDE00DF4",
-          ];
-
-    private static string[] Digests64x64 = [
-              "a1650dbcd56e10288c3e269eca37967d", "be91585259bc37bf4dc1651936e90b3e",
-              "afe020786b83b793c2bbd9468097ff6e", "6e1094fa7b50bc813aa2ba29f5df8755",
-              "9e5c34f3797e0cdd3cd9d4c05b0d8950", "bc87be7ac899cc6a28f399d7516c49fe",
-              "9811fd0d2dd515f06122f5d1bd18b784", "3c140e466f2c2c0d9cb7d2157ab8dc27",
-              "9543de76c925a8f6adc884cc7f98dc91", "73BBEC1CDFFF6D66318FB43628EA42C2",
-          ];
-
-    [Theory]
-    [MemberData(nameof(GetTransformSizes))]
-    public void VerifyDcFill(int _, int width, int height)
-    {
-        // Assign
-        byte[] destination = new byte[width * height];
-        byte[] left = new byte[1];
-        byte[] above = new byte[1];
-        byte expected = 0x80;
-
-        // Act
-        Av1DcFillPredictor predictor = new(new Size(width, height));
-        predictor.PredictScalar(destination, (nuint)width, above, left);
-
-        // Assert
-        Assert.All(destination, (b) => AssertValue(expected, b));
-    }
-
-    [Theory]
-    [MemberData(nameof(GetTransformSizes))]
-    public void VerifyDc(int _, int width, int height)
-    {
-        // Assign
-        byte[] destination = new byte[width * height];
-        byte[] left = new byte[height];
-        byte[] above = new byte[width];
-        Array.Fill(left, (byte)5);
-        Array.Fill(above, (byte)28);
-        int count = width + height;
-        int sum = Sum(left, height) + Sum(above, width);
-        byte expected = (byte)((sum + (count >> 1)) / count);
-
-        // Act
-        Av1DcPredictor predictor = new(new Size(width, height));
-        predictor.PredictScalar(destination, (nuint)width, above, left);
-
-        // Assert
-        Assert.Equal((5 * height) + (28 * width), sum);
-        Assert.All(destination, (b) => AssertValue(expected, b));
-    }
-
-    [Theory]
-    [MemberData(nameof(GetTransformSizes))]
-    public void VerifyDcLeft(int _, int width, int height)
-    {
-        // Assign
-        byte[] destination = new byte[width * height];
-        byte[] left = new byte[height];
-        byte[] above = new byte[width];
-        Array.Fill(left, (byte)5);
-        Array.Fill(above, (byte)28);
-        byte expected = left[0];
-
-        // Act
-        Av1DcLeftPredictor predictor = new(new Size(width, height));
-        predictor.PredictScalar(destination, (nuint)width, above, left);
-
-        // Assert
-        Assert.All(destination, (b) => AssertValue(expected, b));
-    }
-
-    [Theory]
-    [MemberData(nameof(GetTransformSizes))]
-    public void VerifyDcTop(int _, int width, int height)
-    {
-        // Assign
-        byte[] destination = new byte[width * height];
-        byte[] left = new byte[height];
-        byte[] above = new byte[width];
-        Array.Fill(left, (byte)5);
-        Array.Fill(above, (byte)28);
-        byte expected = above[0];
-
-        // Act
-        Av1DcTopPredictor predictor = new(new Size(width, height));
-        predictor.PredictScalar(destination, (nuint)width, above, left);
-
-        // Assert
-        Assert.All(destination, (b) => AssertValue(expected, b));
-    }
-
-    [Theory]
-    [MemberData(nameof(GetTransformSizes))]
-    public void VerifySmooth(int index, int width, int height)
-    {
-        // Arrange
-        string expectedDigest = GetExpectedDigext((Av1TransformSize)index, Av1PredictionMode.Smooth);
-        Av1IntraPredictionMemory predictorMemory = new(8);
-        predictorMemory.Scramble(new Random(42));
-        predictorMemory.CopySourceToDestination();
-        const int stride = 1 << (Av1Constants.MaxSuperBlockSizeLog2 - 1);
-        Av1SmoothPredictor predictor = new(new Size(width, height));
-
-        // Act
-        predictor.PredictScalar(predictorMemory.Destination, stride, predictorMemory.Top, predictorMemory.Left);
-
-        // Assert
-        Assert.Equal(expectedDigest, predictorMemory.GetDestinationDigest());
-    }
-
+    /// <summary>
+    /// Verifies DC prediction with each register-width tier and the scalar fallback.
+    /// </summary>
     [Fact]
-    public void PaethFactoryUsesNearestNeighborPrediction()
-    {
-        byte[] destination = new byte[16];
-        byte[] aboveData = [50, 60, 10, 90, 40];
-        Span<byte> above = aboveData.AsSpan(1);
-        byte[] left = [20, 80, 30, 100];
-        byte[] expected =
-        [
-            20, 10, 50, 20,
-            80, 50, 90, 80,
-            30, 10, 90, 30,
-            100, 50, 100, 100,
-        ];
+    public void DcPredictorsMatchScalarDefinitionsAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateDcPredictors, PredictorConfigurations);
 
-        Av1PredictorFactory.GeneralPredictor(
-            Av1PredictionMode.Paeth,
-            Av1TransformSize.Size4x4,
-            destination,
-            4,
-            above,
-            left);
-
-        Assert.Equal(expected, destination);
-    }
-
+    /// <summary>
+    /// Verifies horizontal prediction with each register-width tier and the scalar fallback.
+    /// </summary>
     [Fact]
-    public void SmoothHorizontalUsesSingleAxisNormalization()
-    {
-        byte[] destination = new byte[16];
-        byte[] above = [20, 40, 60, 80];
-        byte[] left = [20, 40, 60, 80];
-        byte[] expected =
-        [
-            20, 45, 60, 65,
-            40, 57, 67, 70,
-            60, 68, 73, 75,
-            80, 80, 80, 80,
-        ];
+    public void HorizontalPredictorMatchesScalarDefinitionAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHorizontalPredictor, PredictorConfigurations);
 
-        Av1SmoothHorizontalPredictor.PredictScalar(
-            Av1TransformSize.Size4x4,
-            destination,
-            4,
-            above,
-            left);
-
-        Assert.Equal(expected, destination);
-    }
-
+    /// <summary>
+    /// Verifies vertical prediction with each register-width tier and the scalar fallback.
+    /// </summary>
     [Fact]
-    public void SmoothVerticalUsesSingleAxisNormalization()
-    {
-        byte[] destination = new byte[16];
-        byte[] above = [20, 40, 60, 80];
-        byte[] left = [20, 40, 60, 80];
-        byte[] expected =
-        [
-            20, 40, 60, 80,
-            45, 57, 68, 80,
-            60, 67, 73, 80,
-            65, 70, 75, 80,
-        ];
+    public void VerticalPredictorMatchesScalarDefinitionAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateVerticalPredictor, PredictorConfigurations);
 
-        Av1SmoothVerticalPredictor.PredictScalar(
-            Av1TransformSize.Size4x4,
-            destination,
-            4,
-            above,
-            left);
-
-        Assert.Equal(expected, destination);
-    }
-
+    /// <summary>
+    /// Verifies Paeth prediction with each register-width tier and the scalar fallback.
+    /// </summary>
     [Fact]
-    public void DirectionalZone2StaticPredictorForwardsLeftUpsampling()
+    public void PaethPredictorMatchesScalarDefinitionAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePaethPredictor, PredictorConfigurations);
+
+    /// <summary>
+    /// Verifies smooth prediction with each register-width tier and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void SmoothPredictorMatchesScalarDefinitionAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSmoothPredictor, PredictorConfigurations);
+
+    /// <summary>
+    /// Verifies horizontal smooth prediction with each register-width tier and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void SmoothHorizontalPredictorMatchesScalarDefinitionAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSmoothHorizontalPredictor, PredictorConfigurations);
+
+    /// <summary>
+    /// Verifies vertical smooth prediction with each register-width tier and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void SmoothVerticalPredictorMatchesScalarDefinitionAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSmoothVerticalPredictor, PredictorConfigurations);
+
+    /// <summary>
+    /// Verifies directional prediction with each register-width tier and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void DirectionalPredictorsMatchScalarDefinitionsAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateDirectionalPredictors, PredictorConfigurations);
+
+    /// <summary>
+    /// Verifies filter-intra prediction with each register-width tier and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void FilterIntraPredictorsMatchScalarDefinitionsAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilterIntraPredictors, PredictorConfigurations);
+
+    /// <summary>
+    /// Verifies intra-edge upsampling with Vector128 and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void EdgeUpsamplingMatchesScalarDefinitionsAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateEdgeUpsampling, HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Verifies intra-edge filtering with Vector128 and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void EdgeFilteringMatchesScalarDefinitionsAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateEdgeFiltering, HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Verifies all four DC neighbor-availability combinations at every AV1 transform size.
+    /// </summary>
+    private static void ValidateDcPredictors()
     {
-        byte[] actual = new byte[16];
-        byte[] expected = new byte[16];
-        byte[] aboveData = new byte[128];
-        byte[] leftData = new byte[128];
-        for (int i = 0; i < aboveData.Length; i++)
+        for (int sizeIndex = 0; sizeIndex < (int)Av1TransformSize.AllSizes; sizeIndex++)
         {
-            aboveData[i] = (byte)((i * 5) + 1);
-            leftData[i] = (byte)((i * 7) + 3);
-        }
+            Av1TransformSize transformSize = (Av1TransformSize)sizeIndex;
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+            int stride = width + 5;
+            byte[] above = CreateByteSamples(width, 17);
+            byte[] left = CreateByteSamples(height, 43);
+            short[] aboveHigh = CreateHighBitDepthSamples(width, 17);
+            short[] leftHigh = CreateHighBitDepthSamples(height, 43);
 
-        Span<byte> above = aboveData.AsSpan(64);
-        Span<byte> left = leftData.AsSpan(64);
-        Av1DirectionalZone2Predictor predictor = new(Av1TransformSize.Size4x4);
-        predictor.PredictScalar(expected, 4, above, left, false, true, 64, 64);
-
-        Av1DirectionalZone2Predictor.PredictScalar(
-            Av1TransformSize.Size4x4,
-            actual,
-            4,
-            above,
-            left,
-            false,
-            true,
-            64,
-            64);
-
-        Assert.Equal(expected, actual);
-    }
-
-    [Theory]
-    [MemberData(nameof(GetFilterIntraPredictions))]
-    public void FilterIntraMatchesLibaomScalarVector(int mode, byte[] expected)
-    {
-        byte[] destination = new byte[16];
-        byte[] aboveData = [17, 30, 70, 110, 150];
-        Span<byte> above = aboveData.AsSpan(1);
-        byte[] left = [40, 80, 120, 160];
-
-        Av1PredictorFactory.FilterIntraPredictor(
-            destination,
-            4,
-            Av1TransformSize.Size4x4,
-            above,
-            left,
-            (Av1FilterIntraMode)mode);
-
-        Assert.Equal(expected, destination);
-    }
-
-    [Theory]
-    [MemberData(nameof(GetFilterIntraTransformSizes))]
-    public void FilterIntraSupportsEveryPermittedTransformSize(int transformSizeIndex)
-    {
-        Av1TransformSize transformSize = (Av1TransformSize)transformSizeIndex;
-        int width = transformSize.GetWidth();
-        int height = transformSize.GetHeight();
-        byte[] destination = new byte[width * height];
-        byte[] aboveData = new byte[width + 1];
-        byte[] left = new byte[height];
-        Array.Fill(aboveData, (byte)73);
-        Array.Fill(left, (byte)73);
-
-        Av1PredictorFactory.FilterIntraPredictor(
-            destination,
-            (nuint)width,
-            transformSize,
-            aboveData.AsSpan(1),
-            left,
-            Av1FilterIntraMode.DC);
-
-        Assert.All(destination, value => Assert.Equal(73, value));
-    }
-
-    [Theory]
-    [InlineData(true, true, 800)]
-    [InlineData(true, false, 700)]
-    [InlineData(false, true, 900)]
-    [InlineData(false, false, 512)]
-    public void HighBitDepthDcPredictionUsesAvailableEdges(bool hasLeft, bool hasAbove, short expected)
-    {
-        short[] destination = new short[16];
-        short[] above = [900, 900, 900, 900];
-        short[] left = [700, 700, 700, 700];
-
-        Av1PredictorFactory.DcPredictor(
-            hasLeft,
-            hasAbove,
-            Av1TransformSize.Size4x4,
-            destination,
-            4,
-            above,
-            left,
-            10);
-
-        Assert.All(destination, value => Assert.Equal(expected, value));
-    }
-
-    [Theory]
-    [InlineData((int)Av1PredictionMode.Horizontal)]
-    [InlineData((int)Av1PredictionMode.Vertical)]
-    [InlineData((int)Av1PredictionMode.Paeth)]
-    [InlineData((int)Av1PredictionMode.Smooth)]
-    [InlineData((int)Av1PredictionMode.SmoothHorizontal)]
-    [InlineData((int)Av1PredictionMode.SmoothVertical)]
-    public void HighBitDepthGeneralPredictionMatchesTranslatedEightBitOracle(int modeIndex)
-    {
-        const int offset = 512;
-        Av1PredictionMode mode = (Av1PredictionMode)modeIndex;
-        byte[] aboveData = [50, 60, 10, 90, 40];
-        byte[] left = [20, 80, 30, 100];
-        short[] highAboveData = aboveData.Select(value => (short)(value + offset)).ToArray();
-        short[] highLeft = left.Select(value => (short)(value + offset)).ToArray();
-        byte[] expected = new byte[16];
-        short[] actual = new short[16];
-
-        Av1PredictorFactory.GeneralPredictor(
-            mode,
-            Av1TransformSize.Size4x4,
-            expected,
-            4,
-            aboveData.AsSpan(1),
-            left);
-
-        Av1PredictorFactory.GeneralPredictor(
-            mode,
-            Av1TransformSize.Size4x4,
-            actual,
-            4,
-            highAboveData.AsSpan(1),
-            highLeft);
-
-        Assert.Equal(expected.Select(value => (short)(value + offset)), actual);
-    }
-
-    [Theory]
-    [InlineData(45)]
-    [InlineData(67)]
-    [InlineData(90)]
-    [InlineData(113)]
-    [InlineData(135)]
-    [InlineData(157)]
-    [InlineData(180)]
-    [InlineData(203)]
-    public void HighBitDepthDirectionalPredictionMatchesTranslatedEightBitOracle(int angle)
-    {
-        const int offset = 512;
-        byte[] aboveData = new byte[256];
-        byte[] leftData = new byte[256];
-        for (int i = 0; i < aboveData.Length; i++)
-        {
-            aboveData[i] = (byte)(20 + (i % 180));
-            leftData[i] = (byte)(30 + (i % 170));
-        }
-
-        short[] highAboveData = aboveData.Select(value => (short)(value + offset)).ToArray();
-        short[] highLeftData = leftData.Select(value => (short)(value + offset)).ToArray();
-        byte[] expected = new byte[16];
-        short[] actual = new short[16];
-
-        Av1PredictorFactory.DirectionalPredictor(
-            expected,
-            4,
-            Av1TransformSize.Size4x4,
-            aboveData.AsSpan(128),
-            leftData.AsSpan(128),
-            false,
-            false,
-            angle);
-
-        Av1PredictorFactory.DirectionalPredictor(
-            actual,
-            4,
-            Av1TransformSize.Size4x4,
-            highAboveData.AsSpan(128),
-            highLeftData.AsSpan(128),
-            false,
-            false,
-            angle,
-            10);
-
-        Assert.Equal(expected.Select(value => (short)(value + offset)), actual);
-    }
-
-    [Theory]
-    [MemberData(nameof(GetFilterIntraPredictions))]
-    public void HighBitDepthFilterIntraMatchesTranslatedLibaomVector(int mode, byte[] expected)
-    {
-        const int offset = 512;
-        short[] destination = new short[16];
-        short[] aboveData = [529, 542, 582, 622, 662];
-        short[] left = [552, 592, 632, 672];
-
-        Av1PredictorFactory.FilterIntraPredictor(
-            destination,
-            4,
-            Av1TransformSize.Size4x4,
-            aboveData.AsSpan(1),
-            left,
-            (Av1FilterIntraMode)mode,
-            10);
-
-        Assert.Equal(expected.Select(value => (short)(value + offset)), destination);
-    }
-
-    private static void AssertValue(byte expected, byte actual)
-    {
-        Assert.NotEqual(0, actual);
-        Assert.Equal(expected, actual);
-    }
-
-    private static int Sum(Span<byte> values, int length)
-    {
-        int sum = 0;
-        for (int i = 0; i < length; i++)
-        {
-            sum += values[i];
-        }
-
-        return sum;
-    }
-
-    public static TheoryData<int, int, int> GetTransformSizes()
-    {
-        TheoryData<int, int, int> combinations = [];
-        for (int s = 0; s < (int)Av1TransformSize.AllSizes; s++)
-        {
-            Av1TransformSize size = (Av1TransformSize)s;
-            int width = size.GetWidth();
-            int height = size.GetHeight();
-            combinations.Add(s, width, height);
-        }
-
-        return combinations;
-    }
-
-    public static TheoryData<int, byte[]> GetFilterIntraPredictions() => new()
-    {
-        {
-            (int)Av1FilterIntraMode.DC,
-            [42, 65, 89, 123, 72, 77, 91, 110, 105, 100, 104, 112, 142, 128, 123, 124]
-        },
-        {
-            (int)Av1FilterIntraMode.Vertical,
-            [44, 79, 116, 153, 69, 94, 126, 158, 94, 109, 136, 163, 119, 124, 146, 168]
-        },
-        {
-            (int)Av1FilterIntraMode.Horizontal,
-            [47, 67, 87, 107, 83, 93, 103, 113, 122, 127, 132, 137, 161, 163, 166, 168]
-        },
-        {
-            (int)Av1FilterIntraMode.Directional157,
-            [38, 55, 81, 111, 64, 62, 73, 92, 97, 83, 81, 86, 134, 113, 103, 100]
-        },
-        {
-            (int)Av1FilterIntraMode.Paeth,
-            [49, 81, 114, 148, 82, 105, 132, 159, 117, 132, 153, 174, 152, 159, 177, 190]
-        },
-    };
-
-    public static TheoryData<int> GetFilterIntraTransformSizes()
-    {
-        TheoryData<int> transformSizes = [];
-        for (int i = 0; i < (int)Av1TransformSize.AllSizes; i++)
-        {
-            Av1TransformSize transformSize = (Av1TransformSize)i;
-            if (transformSize.GetWidth() <= 32 && transformSize.GetHeight() <= 32)
+            for (int availability = 0; availability < 4; availability++)
             {
-                transformSizes.Add(i);
+                bool hasLeft = (availability & 1) != 0;
+                bool hasAbove = (availability & 2) != 0;
+                byte[] expected = CreateByteDestination(stride, height);
+                byte[] actual = CreateByteDestination(stride, height);
+                short[] expectedHigh = CreateHighBitDepthDestination(stride, height);
+                short[] actualHigh = CreateHighBitDepthDestination(stride, height);
+
+                Av1DcIntraPredictor.PredictScalar(hasLeft, hasAbove, expected, stride, above, left, width, height);
+                Av1DcIntraPredictor.Predict(hasLeft, hasAbove, actual, stride, above, left, width, height);
+                Av1DcIntraPredictor.PredictScalar(hasLeft, hasAbove, expectedHigh, stride, aboveHigh, leftHigh, width, height, 12);
+                Av1DcIntraPredictor.Predict(hasLeft, hasAbove, actualHigh, stride, aboveHigh, leftHigh, width, height, 12);
+
+                Assert.Equal(expected, actual);
+                Assert.Equal(expectedHigh, actualHigh);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Verifies horizontal prediction at every AV1 transform size and sample precision.
+    /// </summary>
+    private static void ValidateHorizontalPredictor() => ValidateNonDirectionalPredictor(Av1PredictionMode.Horizontal);
+
+    /// <summary>
+    /// Verifies vertical prediction at every AV1 transform size and sample precision.
+    /// </summary>
+    private static void ValidateVerticalPredictor() => ValidateNonDirectionalPredictor(Av1PredictionMode.Vertical);
+
+    /// <summary>
+    /// Verifies Paeth prediction at every AV1 transform size and sample precision.
+    /// </summary>
+    private static void ValidatePaethPredictor() => ValidateNonDirectionalPredictor(Av1PredictionMode.Paeth);
+
+    /// <summary>
+    /// Verifies smooth prediction at every AV1 transform size and sample precision.
+    /// </summary>
+    private static void ValidateSmoothPredictor() => ValidateNonDirectionalPredictor(Av1PredictionMode.Smooth);
+
+    /// <summary>
+    /// Verifies horizontal smooth prediction at every AV1 transform size and sample precision.
+    /// </summary>
+    private static void ValidateSmoothHorizontalPredictor() => ValidateNonDirectionalPredictor(Av1PredictionMode.SmoothHorizontal);
+
+    /// <summary>
+    /// Verifies vertical smooth prediction at every AV1 transform size and sample precision.
+    /// </summary>
+    private static void ValidateSmoothVerticalPredictor() => ValidateNonDirectionalPredictor(Av1PredictionMode.SmoothVertical);
+
+    /// <summary>
+    /// Verifies one closed non-directional operator at every AV1 transform size and sample precision.
+    /// </summary>
+    /// <param name="mode">The prediction mode to verify.</param>
+    private static void ValidateNonDirectionalPredictor(Av1PredictionMode mode)
+    {
+        Av1IntraPredictorBase predictor = Av1IntraPredictorBase.GetPredictor(mode);
+        for (int sizeIndex = 0; sizeIndex < (int)Av1TransformSize.AllSizes; sizeIndex++)
+        {
+            Av1TransformSize transformSize = (Av1TransformSize)sizeIndex;
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+            int stride = width + 5;
+            byte[] aboveStorage = CreateByteSamples(width + 1, 19);
+            byte[] left = CreateByteSamples(height, 71);
+            short[] aboveHighStorage = CreateHighBitDepthSamples(width + 1, 19);
+            short[] leftHigh = CreateHighBitDepthSamples(height, 71);
+            byte[] expected = CreateByteDestination(stride, height);
+            byte[] actual = CreateByteDestination(stride, height);
+            short[] expectedHigh = CreateHighBitDepthDestination(stride, height);
+            short[] actualHigh = CreateHighBitDepthDestination(stride, height);
+
+            predictor.PredictScalar(expected, stride, aboveStorage.AsSpan(1), left, width, height);
+            predictor.Predict(actual, stride, aboveStorage.AsSpan(1), left, width, height);
+            predictor.PredictScalar(expectedHigh, stride, aboveHighStorage.AsSpan(1), leftHigh, width, height);
+            predictor.Predict(actualHigh, stride, aboveHighStorage.AsSpan(1), leftHigh, width, height);
+
+            Assert.Equal(expected, actual);
+            Assert.Equal(expectedHigh, actualHigh);
+        }
+
+        ValidateKnownNonDirectionalVector(mode, predictor);
+    }
+
+    /// <summary>
+    /// Verifies one non-directional operator against a byte-exact reference block and its translated high-bit-depth equivalent.
+    /// </summary>
+    /// <param name="mode">The prediction mode being verified.</param>
+    /// <param name="predictor">The closed operator-driven predictor.</param>
+    private static void ValidateKnownNonDirectionalVector(Av1PredictionMode mode, Av1IntraPredictorBase predictor)
+    {
+        byte[] aboveStorage;
+        byte[] left;
+        byte[] expected;
+
+        if (mode == Av1PredictionMode.Paeth)
+        {
+            aboveStorage = [50, 60, 10, 90, 40];
+            left = [20, 80, 30, 100];
+            expected =
+            [
+                20, 10, 50, 20,
+                80, 50, 90, 80,
+                30, 10, 90, 30,
+                100, 50, 100, 100,
+            ];
+        }
+        else
+        {
+            aboveStorage = [0, 20, 40, 60, 80];
+            left = [20, 40, 60, 80];
+            expected = mode switch
+            {
+                Av1PredictionMode.Horizontal =>
+                [
+                    20, 20, 20, 20,
+                    40, 40, 40, 40,
+                    60, 60, 60, 60,
+                    80, 80, 80, 80,
+                ],
+                Av1PredictionMode.Vertical =>
+                [
+                    20, 40, 60, 80,
+                    20, 40, 60, 80,
+                    20, 40, 60, 80,
+                    20, 40, 60, 80,
+                ],
+                Av1PredictionMode.Smooth =>
+                [
+                    20, 43, 60, 73,
+                    43, 57, 68, 75,
+                    60, 68, 73, 78,
+                    73, 75, 78, 80,
+                ],
+                Av1PredictionMode.SmoothHorizontal =>
+                [
+                    20, 45, 60, 65,
+                    40, 57, 67, 70,
+                    60, 68, 73, 75,
+                    80, 80, 80, 80,
+                ],
+                _ =>
+                [
+                    20, 40, 60, 80,
+                    45, 57, 68, 80,
+                    60, 67, 73, 80,
+                    65, 70, 75, 80,
+                ],
+            };
+        }
+
+        byte[] actual = new byte[16];
+        predictor.Predict(actual, 4, aboveStorage.AsSpan(1), left, 4, 4);
+
+        Assert.Equal(expected, actual);
+
+        const int offset = 512;
+        short[] aboveHighStorage = new short[aboveStorage.Length];
+        short[] leftHigh = new short[left.Length];
+        short[] expectedHigh = new short[expected.Length];
+        short[] actualHigh = new short[16];
+
+        for (int i = 0; i < aboveStorage.Length; i++)
+        {
+            aboveHighStorage[i] = (short)(aboveStorage[i] + offset);
+        }
+
+        for (int i = 0; i < left.Length; i++)
+        {
+            leftHigh[i] = (short)(left[i] + offset);
+        }
+
+        for (int i = 0; i < expected.Length; i++)
+        {
+            expectedHigh[i] = (short)(expected[i] + offset);
+        }
+
+        predictor.Predict(actualHigh, 4, aboveHighStorage.AsSpan(1), leftHigh, 4, 4);
+
+        Assert.Equal(expectedHigh, actualHigh);
+    }
+
+    /// <summary>
+    /// Verifies every directional zone, rectangular transpose, and edge-upsampling index rule.
+    /// </summary>
+    private static void ValidateDirectionalPredictors()
+    {
+        byte[] aboveStorage = CreateByteSamples(512, 23);
+        byte[] leftStorage = CreateByteSamples(512, 89);
+        short[] aboveHighStorage = CreateHighBitDepthSamples(512, 23);
+        short[] leftHighStorage = CreateHighBitDepthSamples(512, 89);
+        ReadOnlySpan<byte> above = aboveStorage.AsSpan(ReferenceOrigin);
+        ReadOnlySpan<byte> left = leftStorage.AsSpan(ReferenceOrigin);
+        ReadOnlySpan<short> aboveHigh = aboveHighStorage.AsSpan(ReferenceOrigin);
+        ReadOnlySpan<short> leftHigh = leftHighStorage.AsSpan(ReferenceOrigin);
+
+        foreach (int angle in DirectionalAngles)
+        {
+            for (int sizeIndex = 0; sizeIndex < (int)Av1TransformSize.AllSizes; sizeIndex++)
+            {
+                ValidateDirectionalCase((Av1TransformSize)sizeIndex, angle, false, false, above, left, aboveHigh, leftHigh);
             }
         }
 
-        return transformSizes;
+        // Edge upsampling is permitted only for small blocks. These cases exercise top-only, both-edge,
+        // and left-only indexing without asking an invalid large transform to consume an upsampled edge.
+        ValidateDirectionalCase(Av1TransformSize.Size4x4, 45, true, false, above, left, aboveHigh, leftHigh);
+        ValidateDirectionalCase(Av1TransformSize.Size4x4, 135, true, true, above, left, aboveHigh, leftHigh);
+        ValidateDirectionalCase(Av1TransformSize.Size4x4, 203, false, true, above, left, aboveHigh, leftHigh);
+        ValidateKnownDirectionalVectors();
     }
 
-    private static string GetExpectedDigext(Av1TransformSize size, Av1PredictionMode mode) => size switch
+    /// <summary>
+    /// Verifies all three projection zones against byte-exact reference blocks.
+    /// </summary>
+    private static void ValidateKnownDirectionalVectors()
     {
-        Av1TransformSize.Size4x4 => Digests4x4[(int)mode],
-        Av1TransformSize.Size8x4 => Digests8x4[(int)mode],
-        Av1TransformSize.Size4x8 => Digests4x8[(int)mode],
-        Av1TransformSize.Size8x8 => Digests8x8[(int)mode],
-        Av1TransformSize.Size4x16 => Digests4x16[(int)mode],
-        Av1TransformSize.Size16x4 => Digests16x4[(int)mode],
-        Av1TransformSize.Size8x16 => Digests8x16[(int)mode],
-        Av1TransformSize.Size16x8 => Digests16x8[(int)mode],
-        Av1TransformSize.Size16x16 => Digests16x16[(int)mode],
-        Av1TransformSize.Size8x32 => Digests8x32[(int)mode],
-        Av1TransformSize.Size32x8 => Digests32x8[(int)mode],
-        Av1TransformSize.Size16x32 => Digests16x32[(int)mode],
-        Av1TransformSize.Size32x16 => Digests32x16[(int)mode],
-        Av1TransformSize.Size32x32 => Digests32x32[(int)mode],
-        Av1TransformSize.Size16x64 => Digests16x64[(int)mode],
-        Av1TransformSize.Size64x16 => Digests64x16[(int)mode],
-        Av1TransformSize.Size32x64 => Digests32x64[(int)mode],
-        Av1TransformSize.Size64x32 => Digests64x32[(int)mode],
-        Av1TransformSize.Size64x64 => Digests64x64[(int)mode],
-        _ => string.Empty,
-    };
+        ValidateKnownDirectionalVector(
+            45,
+            [0, 10, 20, 30, 40, 50, 60, 70, 80, 90],
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [
+                20, 30, 40, 50,
+                30, 40, 50, 60,
+                40, 50, 60, 70,
+                50, 60, 70, 80,
+            ]);
+
+        ValidateKnownDirectionalVector(
+            135,
+            [5, 10, 20, 30, 40, 50, 60, 70, 80, 90],
+            [5, 50, 60, 70, 80, 90, 100, 110, 120, 130],
+            [
+                5, 10, 20, 30,
+                50, 5, 10, 20,
+                60, 50, 5, 10,
+                70, 60, 50, 5,
+            ]);
+
+        ValidateKnownDirectionalVector(
+            203,
+            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [0, 10, 20, 30, 40, 50, 60, 70, 80, 90],
+            [
+                14, 18, 23, 27,
+                24, 28, 33, 37,
+                34, 38, 43, 47,
+                44, 48, 53, 57,
+            ]);
+    }
+
+    /// <summary>
+    /// Verifies one directional projection and its translated high-bit-depth equivalent.
+    /// </summary>
+    /// <param name="angle">The adjusted directional angle.</param>
+    /// <param name="aboveStorage">The top-left prefix followed by the top reference.</param>
+    /// <param name="leftStorage">The top-left prefix followed by the left reference.</param>
+    /// <param name="expected">The byte-exact predicted block.</param>
+    private static void ValidateKnownDirectionalVector(
+        int angle,
+        ReadOnlySpan<byte> aboveStorage,
+        ReadOnlySpan<byte> leftStorage,
+        ReadOnlySpan<byte> expected)
+    {
+        ReadOnlySpan<byte> above = aboveStorage[1..];
+        ReadOnlySpan<byte> left = leftStorage[1..];
+
+        byte[] actual = new byte[16];
+        byte[] scratch = new byte[Av1DirectionalIntraPredictor.ScratchLength];
+        Av1DirectionalIntraPredictor.Predict(actual, 4, Av1TransformSize.Size4x4, above, left, false, false, angle, scratch);
+
+        Assert.Equal(expected, actual);
+
+        const int offset = 512;
+        short[] aboveHighStorage = new short[aboveStorage.Length];
+        short[] leftHighStorage = new short[leftStorage.Length];
+        short[] expectedHigh = new short[expected.Length];
+        short[] actualHigh = new short[16];
+        short[] scratchHigh = new short[Av1DirectionalIntraPredictor.ScratchLength];
+
+        for (int i = 0; i < aboveStorage.Length; i++)
+        {
+            aboveHighStorage[i] = (short)(aboveStorage[i] + offset);
+        }
+
+        for (int i = 0; i < leftStorage.Length; i++)
+        {
+            leftHighStorage[i] = (short)(leftStorage[i] + offset);
+        }
+
+        for (int i = 0; i < expected.Length; i++)
+        {
+            expectedHigh[i] = (short)(expected[i] + offset);
+        }
+
+        Av1DirectionalIntraPredictor.Predict(
+            actualHigh,
+            4,
+            Av1TransformSize.Size4x4,
+            aboveHighStorage.AsSpan(1),
+            leftHighStorage.AsSpan(1),
+            false,
+            false,
+            angle,
+            scratchHigh);
+
+        Assert.Equal(expectedHigh, actualHigh);
+    }
+
+    /// <summary>
+    /// Verifies one directional prediction configuration for both native sample representations.
+    /// </summary>
+    private static void ValidateDirectionalCase(
+        Av1TransformSize transformSize,
+        int angle,
+        bool upsampleAbove,
+        bool upsampleLeft,
+        ReadOnlySpan<byte> above,
+        ReadOnlySpan<byte> left,
+        ReadOnlySpan<short> aboveHigh,
+        ReadOnlySpan<short> leftHigh)
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        int stride = width + 5;
+        byte[] expected = CreateByteDestination(stride, height);
+        byte[] actual = CreateByteDestination(stride, height);
+        short[] expectedHigh = CreateHighBitDepthDestination(stride, height);
+        short[] actualHigh = CreateHighBitDepthDestination(stride, height);
+        byte[] scratch = new byte[Av1DirectionalIntraPredictor.ScratchLength];
+        short[] scratchHigh = new short[Av1DirectionalIntraPredictor.ScratchLength];
+
+        Av1DirectionalIntraPredictor.PredictScalar(expected, stride, transformSize, above, left, upsampleAbove, upsampleLeft, angle);
+        Av1DirectionalIntraPredictor.Predict(actual, stride, transformSize, above, left, upsampleAbove, upsampleLeft, angle, scratch);
+        Av1DirectionalIntraPredictor.PredictScalar(expectedHigh, stride, transformSize, aboveHigh, leftHigh, upsampleAbove, upsampleLeft, angle);
+        Av1DirectionalIntraPredictor.Predict(actualHigh, stride, transformSize, aboveHigh, leftHigh, upsampleAbove, upsampleLeft, angle, scratchHigh);
+
+        Assert.Equal(expected, actual);
+        Assert.Equal(expectedHigh, actualHigh);
+    }
+
+    /// <summary>
+    /// Verifies every filter-intra operator at each transform size permitted by the AV1 syntax.
+    /// </summary>
+    private static void ValidateFilterIntraPredictors()
+    {
+        foreach (Av1FilterIntraMode mode in FilterIntraModes)
+        {
+            Av1FilterIntraPredictorBase predictor = Av1FilterIntraPredictorBase.GetPredictor(mode);
+            for (int sizeIndex = 0; sizeIndex < (int)Av1TransformSize.AllSizes; sizeIndex++)
+            {
+                Av1TransformSize transformSize = (Av1TransformSize)sizeIndex;
+                int width = transformSize.GetWidth();
+                int height = transformSize.GetHeight();
+                if (width > 32 || height > 32)
+                {
+                    continue;
+                }
+
+                int stride = width + 5;
+                byte[] aboveStorage = CreateByteSamples(width + 1, 29);
+                byte[] left = CreateByteSamples(height, 97);
+                short[] aboveHighStorage = CreateHighBitDepthSamples(width + 1, 29);
+                short[] leftHigh = CreateHighBitDepthSamples(height, 97);
+                byte[] expected = CreateByteDestination(stride, height);
+                byte[] actual = CreateByteDestination(stride, height);
+                short[] expectedHigh = CreateHighBitDepthDestination(stride, height);
+                short[] actualHigh = CreateHighBitDepthDestination(stride, height);
+                byte[] expectedScratch = new byte[Av1FilterIntraPredictorBase.ScratchLength];
+                byte[] actualScratch = new byte[Av1FilterIntraPredictorBase.ScratchLength];
+                short[] expectedHighScratch = new short[Av1FilterIntraPredictorBase.ScratchLength];
+                short[] actualHighScratch = new short[Av1FilterIntraPredictorBase.ScratchLength];
+
+                predictor.PredictScalar(expected, stride, aboveStorage.AsSpan(1), left, width, height, expectedScratch);
+                predictor.Predict(actual, stride, aboveStorage.AsSpan(1), left, width, height, actualScratch);
+                predictor.PredictScalar(expectedHigh, stride, aboveHighStorage.AsSpan(1), leftHigh, width, height, 12, expectedHighScratch);
+                predictor.Predict(actualHigh, stride, aboveHighStorage.AsSpan(1), leftHigh, width, height, 12, actualHighScratch);
+
+                Assert.Equal(expected, actual);
+                Assert.Equal(expectedHigh, actualHigh);
+            }
+        }
+
+        ValidateKnownFilterIntraVectors();
+    }
+
+    /// <summary>
+    /// Retains byte-exact libaom vectors so scalar and SIMD code cannot share the same mistranslation unnoticed.
+    /// </summary>
+    private static void ValidateKnownFilterIntraVectors()
+    {
+        byte[][] expectedByMode =
+        [
+            [42, 65, 89, 123, 72, 77, 91, 110, 105, 100, 104, 112, 142, 128, 123, 124],
+            [44, 79, 116, 153, 69, 94, 126, 158, 94, 109, 136, 163, 119, 124, 146, 168],
+            [47, 67, 87, 107, 83, 93, 103, 113, 122, 127, 132, 137, 161, 163, 166, 168],
+            [38, 55, 81, 111, 64, 62, 73, 92, 97, 83, 81, 86, 134, 113, 103, 100],
+            [49, 81, 114, 148, 82, 105, 132, 159, 117, 132, 153, 174, 152, 159, 177, 190],
+        ];
+
+        // These edge values are the input to the five reference vectors above. The leading top value is the
+        // shared top-left sample addressed through above[-1] by the normative recursive filter process.
+        byte[] aboveStorage = [17, 30, 70, 110, 150];
+        byte[] left = [40, 80, 120, 160];
+        short[] aboveHighStorage = [529, 542, 582, 622, 662];
+        short[] leftHigh = [552, 592, 632, 672];
+
+        for (int modeIndex = 0; modeIndex < FilterIntraModes.Length; modeIndex++)
+        {
+            byte[] actual = new byte[16];
+            byte[] scratch = new byte[Av1FilterIntraPredictorBase.ScratchLength];
+            short[] actualHigh = new short[16];
+            short[] expectedHigh = new short[16];
+            short[] scratchHigh = new short[Av1FilterIntraPredictorBase.ScratchLength];
+            Av1FilterIntraPredictorBase predictor = Av1FilterIntraPredictorBase.GetPredictor(FilterIntraModes[modeIndex]);
+
+            predictor.Predict(actual, 4, aboveStorage.AsSpan(1), left, 4, 4, scratch);
+
+            for (int i = 0; i < expectedHigh.Length; i++)
+            {
+                expectedHigh[i] = (short)(expectedByMode[modeIndex][i] + 512);
+            }
+
+            predictor.Predict(actualHigh, 4, aboveHighStorage.AsSpan(1), leftHigh, 4, 4, 10, scratchHigh);
+
+            Assert.Equal(expectedByMode[modeIndex], actual);
+            Assert.Equal(expectedHigh, actualHigh);
+        }
+    }
+
+    /// <summary>
+    /// Verifies vector interleaving, endpoint extension, clamping, and scalar tails in edge upsampling.
+    /// </summary>
+    private static void ValidateEdgeUpsampling()
+    {
+        ReadOnlySpan<int> counts = [4, 8, 12, 16];
+        foreach (int count in counts)
+        {
+            byte[] actual = CreateUpsampleByteEdge(count);
+            byte[] expected = (byte[])actual.Clone();
+            byte[] scratch = new byte[160];
+
+            UpsampleEdgeScalar(expected, count, 8);
+            Av1PredictionDecoder.UpsampleIntraEdge(actual.AsSpan(2), count, scratch);
+
+            Assert.Equal(expected, actual);
+
+            ReadOnlySpan<int> bitDepths = [10, 12];
+
+            foreach (int bitDepth in bitDepths)
+            {
+                short[] actualHigh = CreateUpsampleHighBitDepthEdge(count, bitDepth);
+                short[] expectedHigh = (short[])actualHigh.Clone();
+                short[] scratchHigh = new short[160];
+
+                UpsampleEdgeScalar(expectedHigh, count, bitDepth);
+                Av1PredictionDecoder.UpsampleIntraEdge(actualHigh.AsSpan(2), count, bitDepth, scratchHigh);
+
+                Assert.Equal(expectedHigh, actualHigh);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Verifies all three edge-filter kernels across vector boundaries and the maximum normative edge length.
+    /// </summary>
+    private static void ValidateEdgeFiltering()
+    {
+        ReadOnlySpan<int> counts = [4, 8, 9, 16, 31, 64, 129];
+        foreach (int count in counts)
+        {
+            for (int strength = 1; strength <= 3; strength++)
+            {
+                byte[] actual = CreateByteSamples(count, 31);
+                byte[] expected = (byte[])actual.Clone();
+                byte[] source = (byte[])actual.Clone();
+                byte[] scratch = new byte[160];
+
+                FilterEdgeScalar(source, expected, strength);
+                Av1PredictionDecoder.FilterIntraEdge(ref actual[0], count, strength, scratch);
+
+                Assert.Equal(expected, actual);
+
+                short[] actualHigh = CreateHighBitDepthSamples(count, 31);
+                short[] expectedHigh = (short[])actualHigh.Clone();
+                short[] sourceHigh = (short[])actualHigh.Clone();
+                short[] scratchHigh = new short[160];
+
+                FilterEdgeScalar(sourceHigh, expectedHigh, strength);
+                Av1PredictionDecoder.FilterIntraEdge(ref actualHigh[0], count, strength, scratchHigh);
+
+                Assert.Equal(expectedHigh, actualHigh);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Creates deterministic 8-bit samples with enough variation to expose lane-order mistakes.
+    /// </summary>
+    private static byte[] CreateByteSamples(int length, int seed)
+    {
+        byte[] samples = new byte[length];
+        for (int i = 0; i < samples.Length; i++)
+        {
+            samples[i] = (byte)(((i * 73) + (seed * 29) + ((i * i) * 7)) & 255);
+        }
+
+        return samples;
+    }
+
+    /// <summary>
+    /// Creates deterministic 12-bit samples with values spanning the full reconstructed range.
+    /// </summary>
+    private static short[] CreateHighBitDepthSamples(int length, int seed)
+    {
+        short[] samples = new short[length];
+        for (int i = 0; i < samples.Length; i++)
+        {
+            samples[i] = (short)(((i * 977) + (seed * 131) + ((i * i) * 37)) & 4095);
+        }
+
+        return samples;
+    }
+
+    /// <summary>
+    /// Creates a strided byte destination initialized with a padding sentinel.
+    /// </summary>
+    private static byte[] CreateByteDestination(int stride, int height)
+    {
+        byte[] destination = new byte[stride * height];
+        Array.Fill(destination, (byte)0xCD);
+        return destination;
+    }
+
+    /// <summary>
+    /// Creates a strided high-bit-depth destination initialized with a padding sentinel.
+    /// </summary>
+    private static short[] CreateHighBitDepthDestination(int stride, int height)
+    {
+        short[] destination = new short[stride * height];
+        Array.Fill(destination, (short)-1234);
+        return destination;
+    }
+
+    /// <summary>
+    /// Creates an 8-bit edge with two prefix samples and room for all interleaved outputs.
+    /// </summary>
+    private static byte[] CreateUpsampleByteEdge(int count)
+    {
+        byte[] edge = new byte[(2 * count) + 4];
+        Array.Fill(edge, (byte)0xA5);
+        edge[1] = 231;
+        for (int i = 0; i < count; i++)
+        {
+            edge[i + 2] = (byte)(((i * 97) + 41) & 255);
+        }
+
+        return edge;
+    }
+
+    /// <summary>
+    /// Creates a high-bit-depth edge containing extrema that exercise interpolation clamping.
+    /// </summary>
+    private static short[] CreateUpsampleHighBitDepthEdge(int count, int bitDepth)
+    {
+        int maximum = (1 << bitDepth) - 1;
+        short[] edge = new short[(2 * count) + 4];
+        Array.Fill(edge, (short)-1);
+        edge[1] = (short)maximum;
+        for (int i = 0; i < count; i++)
+        {
+            edge[i + 2] = (short)((i & 1) == 0 ? 0 : maximum);
+        }
+
+        return edge;
+    }
+
+    /// <summary>
+    /// Applies the normative four-tap upsampling formula to an edge stored at index two.
+    /// </summary>
+    private static void UpsampleEdgeScalar<T>(T[] edge, int count, int bitDepth)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        T[] input = new T[count + 3];
+        input[0] = edge[1];
+        input[1] = edge[1];
+        for (int i = 0; i < count; i++)
+        {
+            input[i + 2] = edge[i + 2];
+        }
+
+        input[count + 2] = input[count + 1];
+        edge[0] = input[0];
+        int maximum = (1 << bitDepth) - 1;
+        for (int i = 0; i < count; i++)
+        {
+            int value = -int.CreateChecked(input[i])
+                + (9 * int.CreateChecked(input[i + 1]))
+                + (9 * int.CreateChecked(input[i + 2]))
+                - int.CreateChecked(input[i + 3]);
+
+            edge[(2 * i) + 1] = T.CreateChecked(Math.Clamp((value + 8) >> 4, 0, maximum));
+            edge[(2 * i) + 2] = input[i + 2];
+        }
+    }
+
+    /// <summary>
+    /// Applies the normative AV1 edge-filter definition to an independent source copy.
+    /// </summary>
+    private static void FilterEdgeScalar<T>(T[] source, T[] destination, int strength)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        ReadOnlySpan<int> kernel = strength switch
+        {
+            1 => [0, 4, 8, 4, 0],
+            2 => [0, 5, 6, 5, 0],
+            _ => [2, 4, 4, 4, 2],
+        };
+
+        for (int i = 1; i < source.Length; i++)
+        {
+            int sum = 0;
+            for (int tap = 0; tap < kernel.Length; tap++)
+            {
+                int sourceIndex = Math.Clamp(i - 2 + tap, 0, source.Length - 1);
+                sum += int.CreateChecked(source[sourceIndex]) * kernel[tap];
+            }
+
+            destination[i] = T.CreateChecked((sum + 8) >> 4);
+        }
+    }
 }

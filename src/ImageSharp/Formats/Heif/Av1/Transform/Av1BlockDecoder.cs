@@ -53,6 +53,16 @@ internal sealed class Av1BlockDecoder : IDisposable
     private readonly IMemoryOwner<int> transformWorkspaceOwner;
 
     /// <summary>
+    /// Owns the reusable directional and filter-intra prediction workspace.
+    /// </summary>
+    private readonly IMemoryOwner<short> predictionScratchOwner;
+
+    /// <summary>
+    /// Reconstructs intra-predicted blocks using the frame-owned prediction workspace.
+    /// </summary>
+    private readonly Av1PredictionDecoder predictionDecoder;
+
+    /// <summary>
     /// Indicates whether transform traversal must also populate loop-filter parameters.
     /// </summary>
     private readonly bool isLoopFilterEnabled;
@@ -97,6 +107,8 @@ internal sealed class Av1BlockDecoder : IDisposable
 
         this.inverseQuantizationOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(inverseQuantizationSize);
         this.transformWorkspaceOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(Av1TransformWorkspace.MaximumLength);
+        this.predictionScratchOwner = this.frameBuffer.MemoryAllocator.Allocate<short>(Av1PredictionDecoder.ScratchLength);
+        this.predictionDecoder = new(sequenceHeader, frameHeader, this.predictionScratchOwner.Memory);
         this.isLoopFilterEnabled = frameHeader.LoopFilterParameters.FilterLevel[0] != 0 ||
             frameHeader.LoopFilterParameters.FilterLevel[1] != 0;
 
@@ -114,6 +126,7 @@ internal sealed class Av1BlockDecoder : IDisposable
     /// </summary>
     public void Dispose()
     {
+        this.predictionScratchOwner.Dispose();
         this.transformWorkspaceOwner.Dispose();
         this.inverseQuantizationOwner.Dispose();
     }
@@ -184,7 +197,6 @@ internal sealed class Av1BlockDecoder : IDisposable
             : modeInfo.GetTransformUnitCount(Av1Plane.U);
 
         bool highBitDepth = this.frameBuffer.BytesPerSample == 2;
-        Av1PredictionDecoder predictionDecoder = new(this.sequenceHeader, this.frameHeader);
         for (int plane = 0; plane < colorConfig.PlaneCount; plane++)
         {
             int subX = (plane > 0) && colorConfig.SubSamplingX ? 1 : 0;
@@ -277,7 +289,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                 // predicts its samples before any coded residual is added.
                 if (highBitDepth)
                 {
-                    predictionDecoder.Decode(
+                    this.predictionDecoder.Decode(
                         partitionInfo,
                         (Av1Plane)plane,
                         transformSize,
@@ -290,7 +302,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                 }
                 else
                 {
-                    predictionDecoder.Decode(
+                    this.predictionDecoder.Decode(
                         partitionInfo,
                         (Av1Plane)plane,
                         transformSize,

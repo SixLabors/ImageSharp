@@ -4,6 +4,8 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -25,6 +27,21 @@ internal class Av1PredictionDecoder
     private const int MaxUpsampleSize = 16;
 
     /// <summary>
+    /// The number of samples reserved for one prepared AV1 intra-prediction edge.
+    /// </summary>
+    private const int ReferenceBufferLength = (Av1Constants.MaxTransformSize * 2) + 32;
+
+    /// <summary>
+    /// The padded sample count required by the widest intra-edge SIMD loads.
+    /// </summary>
+    private const int EdgeScratchLength = 160;
+
+    /// <summary>
+    /// The number of high-bit-depth samples required by the reusable prediction workspace.
+    /// </summary>
+    public const int ScratchLength = Av1DirectionalIntraPredictor.ScratchLength + (2 * ReferenceBufferLength) + EdgeScratchLength;
+
+    /// <summary>
     /// The sequence-level syntax that controls chroma sampling, bit depth, superblock size, and intra-edge filtering.
     /// </summary>
     private readonly ObuSequenceHeader sequenceHeader;
@@ -35,14 +52,21 @@ internal class Av1PredictionDecoder
     private readonly ObuFrameHeader frameHeader;
 
     /// <summary>
+    /// The frame-owned workspace shared by directional and filter-intra predictors.
+    /// </summary>
+    private readonly Memory<short> predictorScratch;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1PredictionDecoder"/> class.
     /// </summary>
     /// <param name="sequenceHeader">The decoded sequence header for the current image.</param>
     /// <param name="frameHeader">The decoded frame header for the current image.</param>
-    public Av1PredictionDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
+    /// <param name="predictorScratch">The reusable predictor workspace owned by the containing block decoder.</param>
+    public Av1PredictionDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Memory<short> predictorScratch)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
+        this.predictorScratch = predictorScratch;
     }
 
     /// <summary>
@@ -791,10 +815,15 @@ internal class Av1PredictionDecoder
     {
         int baseValue = 128 << (bitDepth - 8);
 
+        // The frame-owned allocation is sized in high-bit-depth samples. Reinterpreting it as T gives the byte
+        // path additional capacity while preserving the same sample offsets for the larger short representation.
+        Span<T> scratch = MemoryMarshal.Cast<short, T>(this.predictorScratch.Span);
+        Span<T> aboveData = scratch.Slice(Av1DirectionalIntraPredictor.ScratchLength, ReferenceBufferLength);
+        Span<T> leftData = scratch.Slice(Av1DirectionalIntraPredictor.ScratchLength + ReferenceBufferLength, ReferenceBufferLength);
+        Span<T> edgeScratch = scratch.Slice(Av1DirectionalIntraPredictor.ScratchLength + (2 * ReferenceBufferLength), EdgeScratchLength);
+
         // Prefix storage is required because AV1 addresses the shared top-left sample at -1
         // and writes upsampled edge samples as far back as -2.
-        Span<T> aboveData = stackalloc T[(Av1Constants.MaxTransformSize * 2) + 32];
-        Span<T> leftData = stackalloc T[(Av1Constants.MaxTransformSize * 2) + 32];
         aboveData.Fill(T.CreateChecked(baseValue - 1));
         leftData.Fill(T.CreateChecked(baseValue + 1));
         Span<T> aboveRow = aboveData[16..];
@@ -989,7 +1018,7 @@ internal class Av1PredictionDecoder
 
         if (useFilterIntra)
         {
-            FilterIntraPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, filterIntraMode, bitDepth);
+            this.FilterIntraPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, filterIntraMode, bitDepth);
             return;
         }
 
@@ -1016,14 +1045,14 @@ internal class Av1PredictionDecoder
                     {
                         int strength = IntraEdgeFilterStrength(transformWidth, transformHeight, angle - 90, filterType);
                         int pixelCount = topPixelCount + ab_le + (needRight ? transformHeight : 0);
-                        FilterIntraEdge(ref Unsafe.Subtract(ref aboveRow[0], ab_le), pixelCount, strength);
+                        FilterIntraEdge(ref Unsafe.Subtract(ref aboveRow[0], ab_le), pixelCount, strength, edgeScratch);
                     }
 
                     if (needLeft && leftPixelCount > 0)
                     {
                         int strength = IntraEdgeFilterStrength(transformHeight, transformWidth, angle - 180, filterType);
                         int pixelCount = leftPixelCount + ab_le + (needBottom ? transformWidth : 0);
-                        FilterIntraEdge(ref Unsafe.Subtract(ref leftColumn[0], ab_le), pixelCount, strength);
+                        FilterIntraEdge(ref Unsafe.Subtract(ref leftColumn[0], ab_le), pixelCount, strength, edgeScratch);
                     }
                 }
 
@@ -1032,7 +1061,7 @@ internal class Av1PredictionDecoder
                 {
                     int pixelCount = transformWidth + (needRight ? transformHeight : 0);
 
-                    UpsampleIntraEdge(aboveRow, pixelCount, bitDepth);
+                    UpsampleIntraEdge(aboveRow, pixelCount, bitDepth, edgeScratch);
                 }
 
                 upsampleLeft = UseIntraEdgeUpsample(transformHeight, transformWidth, angle - 180, filterType);
@@ -1040,11 +1069,11 @@ internal class Av1PredictionDecoder
                 {
                     int pixelCount = transformHeight + (needBottom ? transformWidth : 0);
 
-                    UpsampleIntraEdge(leftColumn, pixelCount, bitDepth);
+                    UpsampleIntraEdge(leftColumn, pixelCount, bitDepth, edgeScratch);
                 }
             }
 
-            DirectionalPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, upsampleAbove, upsampleLeft, angle, bitDepth);
+            this.DirectionalPredictor(destination, destinationStride, transformSize, aboveRow, leftColumn, upsampleAbove, upsampleLeft, angle);
             return;
         }
 
@@ -1073,29 +1102,34 @@ internal class Av1PredictionDecoder
     private static void DcPredictor<T>(bool hasLeft, bool hasAbove, Av1TransformSize transformSize, Span<T> destination, nuint destinationStride, Span<T> above, Span<T> left, int bitDepth)
         where T : unmanaged
     {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+
         // DecodeCore is reachable only through byte and short overloads, so this type
         // dispatch permits shared reference preparation without boxing or allocating.
         if (typeof(T) == typeof(byte))
         {
-            Av1PredictorFactory.DcPredictor(
+            Av1DcIntraPredictor.Predict(
                 hasLeft,
                 hasAbove,
-                transformSize,
                 MemoryMarshal.Cast<T, byte>(destination),
-                destinationStride,
+                (int)destinationStride,
                 MemoryMarshal.Cast<T, byte>(above),
-                MemoryMarshal.Cast<T, byte>(left));
+                MemoryMarshal.Cast<T, byte>(left),
+                width,
+                height);
         }
         else
         {
-            Av1PredictorFactory.DcPredictor(
+            Av1DcIntraPredictor.Predict(
                 hasLeft,
                 hasAbove,
-                transformSize,
                 MemoryMarshal.Cast<T, short>(destination),
-                destinationStride,
+                (int)destinationStride,
                 MemoryMarshal.Cast<T, short>(above),
                 MemoryMarshal.Cast<T, short>(left),
+                width,
+                height,
                 bitDepth);
         }
     }
@@ -1113,25 +1147,29 @@ internal class Av1PredictionDecoder
     private static void GeneralPredictor<T>(Av1PredictionMode mode, Av1TransformSize transformSize, Span<T> destination, nuint destinationStride, Span<T> above, Span<T> left)
         where T : unmanaged
     {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        Av1IntraPredictorBase predictor = Av1IntraPredictorBase.GetPredictor(mode);
+
         if (typeof(T) == typeof(byte))
         {
-            Av1PredictorFactory.GeneralPredictor(
-                mode,
-                transformSize,
+            predictor.Predict(
                 MemoryMarshal.Cast<T, byte>(destination),
-                destinationStride,
+                (int)destinationStride,
                 MemoryMarshal.Cast<T, byte>(above),
-                MemoryMarshal.Cast<T, byte>(left));
+                MemoryMarshal.Cast<T, byte>(left),
+                width,
+                height);
         }
         else
         {
-            Av1PredictorFactory.GeneralPredictor(
-                mode,
-                transformSize,
+            predictor.Predict(
                 MemoryMarshal.Cast<T, short>(destination),
-                destinationStride,
+                (int)destinationStride,
                 MemoryMarshal.Cast<T, short>(above),
-                MemoryMarshal.Cast<T, short>(left));
+                MemoryMarshal.Cast<T, short>(left),
+                width,
+                height);
         }
     }
 
@@ -1147,34 +1185,35 @@ internal class Av1PredictionDecoder
     /// <param name="upsampleAbove">A value indicating whether the top edge was upsampled.</param>
     /// <param name="upsampleLeft">A value indicating whether the left edge was upsampled.</param>
     /// <param name="angle">The adjusted prediction angle in degrees.</param>
-    /// <param name="bitDepth">The number of bits used to represent each sample.</param>
-    private static void DirectionalPredictor<T>(Span<T> destination, nuint destinationStride, Av1TransformSize transformSize, Span<T> above, Span<T> left, bool upsampleAbove, bool upsampleLeft, int angle, int bitDepth)
+    private void DirectionalPredictor<T>(Span<T> destination, nuint destinationStride, Av1TransformSize transformSize, Span<T> above, Span<T> left, bool upsampleAbove, bool upsampleLeft, int angle)
         where T : unmanaged
     {
         if (typeof(T) == typeof(byte))
         {
-            Av1PredictorFactory.DirectionalPredictor(
+            Span<byte> scratch = MemoryMarshal.AsBytes(this.predictorScratch.Span)[..Av1DirectionalIntraPredictor.ScratchLength];
+            Av1DirectionalIntraPredictor.Predict(
                 MemoryMarshal.Cast<T, byte>(destination),
-                destinationStride,
+                (int)destinationStride,
                 transformSize,
                 MemoryMarshal.Cast<T, byte>(above),
                 MemoryMarshal.Cast<T, byte>(left),
                 upsampleAbove,
                 upsampleLeft,
-                angle);
+                angle,
+                scratch);
         }
         else
         {
-            Av1PredictorFactory.DirectionalPredictor(
+            Av1DirectionalIntraPredictor.Predict(
                 MemoryMarshal.Cast<T, short>(destination),
-                destinationStride,
+                (int)destinationStride,
                 transformSize,
                 MemoryMarshal.Cast<T, short>(above),
                 MemoryMarshal.Cast<T, short>(left),
                 upsampleAbove,
                 upsampleLeft,
                 angle,
-                bitDepth);
+                this.predictorScratch.Span);
         }
     }
 
@@ -1189,29 +1228,36 @@ internal class Av1PredictionDecoder
     /// <param name="left">The prepared left reference samples.</param>
     /// <param name="mode">The filter intra mode whose coefficient set is applied.</param>
     /// <param name="bitDepth">The number of bits used to represent each sample.</param>
-    private static void FilterIntraPredictor<T>(Span<T> destination, nuint destinationStride, Av1TransformSize transformSize, Span<T> above, Span<T> left, Av1FilterIntraMode mode, int bitDepth)
+    private void FilterIntraPredictor<T>(Span<T> destination, nuint destinationStride, Av1TransformSize transformSize, Span<T> above, Span<T> left, Av1FilterIntraMode mode, int bitDepth)
         where T : unmanaged
     {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        Av1FilterIntraPredictorBase predictor = Av1FilterIntraPredictorBase.GetPredictor(mode);
+
         if (typeof(T) == typeof(byte))
         {
-            Av1PredictorFactory.FilterIntraPredictor(
+            Span<byte> scratch = MemoryMarshal.AsBytes(this.predictorScratch.Span)[..Av1FilterIntraPredictorBase.ScratchLength];
+            predictor.Predict(
                 MemoryMarshal.Cast<T, byte>(destination),
-                destinationStride,
-                transformSize,
+                (int)destinationStride,
                 MemoryMarshal.Cast<T, byte>(above),
                 MemoryMarshal.Cast<T, byte>(left),
-                mode);
+                width,
+                height,
+                scratch);
         }
         else
         {
-            Av1PredictorFactory.FilterIntraPredictor(
+            predictor.Predict(
                 MemoryMarshal.Cast<T, short>(destination),
-                destinationStride,
-                transformSize,
+                (int)destinationStride,
                 MemoryMarshal.Cast<T, short>(above),
                 MemoryMarshal.Cast<T, short>(left),
-                mode,
-                bitDepth);
+                width,
+                height,
+                bitDepth,
+                this.predictorScratch.Span[..Av1FilterIntraPredictorBase.ScratchLength]);
         }
     }
 
@@ -1222,36 +1268,199 @@ internal class Av1PredictionDecoder
     /// <param name="buffer">The edge buffer, including writable prefix storage at indices -2 and -1.</param>
     /// <param name="count">The number of original edge samples to upsample.</param>
     /// <param name="bitDepth">The number of bits used to clamp interpolated samples.</param>
-    private static void UpsampleIntraEdge<T>(Span<T> buffer, int count, int bitDepth)
+    /// <param name="scratch">The reusable padded source workspace.</param>
+    private static void UpsampleIntraEdge<T>(Span<T> buffer, int count, int bitDepth, Span<T> scratch)
         where T : unmanaged, IBinaryInteger<T>
     {
-        // TODO: Consider creating SIMD version
         DebugGuard.MustBeLessThanOrEqualTo(count, MaxUpsampleSize, nameof(count));
 
-        Span<T> input = stackalloc T[MaxUpsampleSize + 3];
-        T beforeBuffer = Unsafe.Subtract(ref buffer[0], 1);
-
-        // Duplicate both endpoints so the four-tap interpolation kernel can run at
-        // the edge without a separate boundary branch for its outer samples.
-        input[0] = beforeBuffer;
-        input[1] = beforeBuffer;
-        for (int i = 0; i < count; i++)
+        // DecodeBuildIntraPredictors is closed only over byte and short. Keeping that dispatch outside the
+        // kernels gives the JIT concrete vector element types and removes generic arithmetic from their loops.
+        if (typeof(T) == typeof(byte))
         {
-            input[i + 2] = buffer[i];
+            UpsampleIntraEdge(MemoryMarshal.Cast<T, byte>(buffer), count, MemoryMarshal.Cast<T, byte>(scratch));
+        }
+        else
+        {
+            UpsampleIntraEdge(MemoryMarshal.Cast<T, short>(buffer), count, bitDepth, MemoryMarshal.Cast<T, short>(scratch));
+        }
+    }
+
+    /// <summary>
+    /// Inserts half-sample positions into an 8-bit intra-prediction edge.
+    /// </summary>
+    /// <param name="buffer">The edge buffer, including writable prefix storage at indices -2 and -1.</param>
+    /// <param name="count">The number of original edge samples to upsample.</param>
+    /// <param name="scratch">The reusable padded source workspace.</param>
+    public static void UpsampleIntraEdge(Span<byte> buffer, int count, Span<byte> scratch)
+    {
+        ref byte bufferBase = ref MemoryMarshal.GetReference(buffer);
+        ref byte inputBase = ref MemoryMarshal.GetReference(scratch);
+        byte beforeBuffer = Unsafe.Subtract(ref bufferBase, 1);
+        byte finalSample = Unsafe.Add(ref bufferBase, count - 1);
+
+        // Vector loads intentionally extend past the logical edge. Initializing the complete load window with
+        // the final sample provides the AV1 endpoint extension and keeps every unaligned read inside scratch.
+        scratch[..32].Fill(finalSample);
+        inputBase = beforeBuffer;
+        Unsafe.Add(ref inputBase, 1) = beforeBuffer;
+        buffer[..count].CopyTo(scratch[2..]);
+        Unsafe.Subtract(ref bufferBase, 2) = beforeBuffer;
+
+        int i = 0;
+        if (Vector128.IsHardwareAccelerated)
+        {
+            int eightSamplesFromEnd = count - 8;
+            for (; i <= eightSamplesFromEnd; i += 8)
+            {
+                Vector128<byte> interpolated = InterpolateEightBytes(ref inputBase, i);
+                Vector128<byte> originals = Vector128.LoadUnsafe(ref inputBase, (nuint)(i + 2));
+                Vector128<byte> interleaved = Vector128_.UnpackLow(interpolated, originals);
+                interleaved.StoreUnsafe(ref Unsafe.Add(ref bufferBase, (2 * i) - 1));
+            }
+
+            // AV1 upsampled edges are normally multiples of four. A half-vector store handles that common
+            // remainder without overwriting the prepared extension beyond the logical output edge.
+            if (i <= count - 4)
+            {
+                Vector128<byte> interpolated = InterpolateEightBytes(ref inputBase, i);
+                Vector128<byte> originals = Vector128.LoadUnsafe(ref inputBase, (nuint)(i + 2));
+                Vector128<byte> interleaved = Vector128_.UnpackLow(interpolated, originals);
+                Unsafe.As<byte, ulong>(ref Unsafe.Add(ref bufferBase, (2 * i) - 1)) = interleaved.AsUInt64().GetElement(0);
+                i += 4;
+            }
         }
 
-        input[count + 2] = buffer[count - 1];
+        UpsampleIntraEdgeScalar(ref bufferBase, ref inputBase, i, count, 255);
+    }
 
-        Unsafe.Subtract(ref buffer[0], 2) = input[0];
-        ref T output = ref buffer[0];
-        for (int i = 0; i < count; i++)
+    /// <summary>
+    /// Inserts half-sample positions into a high-bit-depth intra-prediction edge.
+    /// </summary>
+    /// <param name="buffer">The edge buffer, including writable prefix storage at indices -2 and -1.</param>
+    /// <param name="count">The number of original edge samples to upsample.</param>
+    /// <param name="bitDepth">The number of bits used to clamp interpolated samples.</param>
+    /// <param name="scratch">The reusable padded source workspace.</param>
+    public static void UpsampleIntraEdge(Span<short> buffer, int count, int bitDepth, Span<short> scratch)
+    {
+        ref short bufferBase = ref MemoryMarshal.GetReference(buffer);
+        ref short inputBase = ref MemoryMarshal.GetReference(scratch);
+        short beforeBuffer = Unsafe.Subtract(ref bufferBase, 1);
+        short finalSample = Unsafe.Add(ref bufferBase, count - 1);
+
+        // The same padded layout is used for 10- and 12-bit edges. Arithmetic widens to Int32 before applying
+        // the four-tap kernel because the 12-bit intermediate exceeds the unsigned 16-bit range.
+        scratch[..32].Fill(finalSample);
+        inputBase = beforeBuffer;
+        Unsafe.Add(ref inputBase, 1) = beforeBuffer;
+        buffer[..count].CopyTo(scratch[2..]);
+        Unsafe.Subtract(ref bufferBase, 2) = beforeBuffer;
+
+        int maximum = (1 << bitDepth) - 1;
+        int i = 0;
+        if (Vector128.IsHardwareAccelerated)
         {
-            int s = -int.CreateChecked(input[i]) + (9 * int.CreateChecked(input[i + 1])) + (9 * int.CreateChecked(input[i + 2])) - int.CreateChecked(input[i + 3]);
-            s = Av1Math.Clamp((s + 8) >> 4, 0, (1 << bitDepth) - 1);
+            int eightSamplesFromEnd = count - 8;
+            for (; i <= eightSamplesFromEnd; i += 8)
+            {
+                Vector128<short> interpolated = InterpolateEightHighBitDepthSamples(ref inputBase, i, maximum);
+                Vector128<short> originals = Vector128.LoadUnsafe(ref inputBase, (nuint)(i + 2));
+                Vector128<short> interleavedLow = Vector128_.UnpackLow(interpolated, originals);
+                Vector128<short> interleavedHigh = Vector128_.UnpackHigh(interpolated, originals);
+                ref short destination = ref Unsafe.Add(ref bufferBase, (2 * i) - 1);
 
-            // The AOM edge buffer reserves prefix storage for the samples at indices -2 and -1.
-            Unsafe.Add(ref output, (2 * i) - 1) = T.CreateChecked(s);
-            Unsafe.Add(ref output, 2 * i) = input[i + 2];
+                interleavedLow.StoreUnsafe(ref destination);
+                interleavedHigh.StoreUnsafe(ref destination, (nuint)Vector128<short>.Count);
+            }
+
+            if (i <= count - 4)
+            {
+                Vector128<short> interpolated = InterpolateEightHighBitDepthSamples(ref inputBase, i, maximum);
+                Vector128<short> originals = Vector128.LoadUnsafe(ref inputBase, (nuint)(i + 2));
+                Vector128<short> interleaved = Vector128_.UnpackLow(interpolated, originals);
+                interleaved.StoreUnsafe(ref Unsafe.Add(ref bufferBase, (2 * i) - 1));
+                i += 4;
+            }
+        }
+
+        UpsampleIntraEdgeScalar(ref bufferBase, ref inputBase, i, count, maximum);
+    }
+
+    /// <summary>
+    /// Calculates eight 8-bit half-sample values in parallel.
+    /// </summary>
+    /// <param name="input">The first padded input sample.</param>
+    /// <param name="offset">The first output sample index.</param>
+    /// <returns>The interpolated samples in the lower eight lanes.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<byte> InterpolateEightBytes(ref byte input, int offset)
+    {
+        Vector128<byte> source0 = Vector128.LoadUnsafe(ref input, (nuint)offset);
+        Vector128<byte> source1 = Vector128.LoadUnsafe(ref input, (nuint)(offset + 1));
+        Vector128<byte> source2 = Vector128.LoadUnsafe(ref input, (nuint)(offset + 2));
+        Vector128<byte> source3 = Vector128.LoadUnsafe(ref input, (nuint)(offset + 3));
+        (Vector128<ushort> source0Low, _) = Vector128.Widen(source0);
+        (Vector128<ushort> source1Low, _) = Vector128.Widen(source1);
+        (Vector128<ushort> source2Low, _) = Vector128.Widen(source2);
+        (Vector128<ushort> source3Low, _) = Vector128.Widen(source3);
+        Vector128<short> interpolation = (((source1Low + source2Low) * Vector128.Create((ushort)9)) - (source0Low + source3Low)).AsInt16();
+
+        interpolation = Vector128.Clamp((interpolation + Vector128.Create((short)8)) >> 4, Vector128<short>.Zero, Vector128.Create((short)255));
+        return Vector128.Narrow(interpolation.AsUInt16(), Vector128<ushort>.Zero);
+    }
+
+    /// <summary>
+    /// Calculates eight high-bit-depth half-sample values in parallel.
+    /// </summary>
+    /// <param name="input">The first padded input sample.</param>
+    /// <param name="offset">The first output sample index.</param>
+    /// <param name="maximum">The maximum reconstructed sample value.</param>
+    /// <returns>The interpolated samples.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<short> InterpolateEightHighBitDepthSamples(ref short input, int offset, int maximum)
+    {
+        Vector128<short> source0 = Vector128.LoadUnsafe(ref input, (nuint)offset);
+        Vector128<short> source1 = Vector128.LoadUnsafe(ref input, (nuint)(offset + 1));
+        Vector128<short> source2 = Vector128.LoadUnsafe(ref input, (nuint)(offset + 2));
+        Vector128<short> source3 = Vector128.LoadUnsafe(ref input, (nuint)(offset + 3));
+        (Vector128<int> source0Low, Vector128<int> source0High) = Vector128.Widen(source0);
+        (Vector128<int> source1Low, Vector128<int> source1High) = Vector128.Widen(source1);
+        (Vector128<int> source2Low, Vector128<int> source2High) = Vector128.Widen(source2);
+        (Vector128<int> source3Low, Vector128<int> source3High) = Vector128.Widen(source3);
+        Vector128<int> coefficient = Vector128.Create(9);
+        Vector128<int> rounding = Vector128.Create(8);
+        Vector128<int> maximumVector = Vector128.Create(maximum);
+        Vector128<int> low = ((((source1Low + source2Low) * coefficient) - (source0Low + source3Low)) + rounding) >> 4;
+        Vector128<int> high = ((((source1High + source2High) * coefficient) - (source0High + source3High)) + rounding) >> 4;
+
+        low = Vector128.Clamp(low, Vector128<int>.Zero, maximumVector);
+        high = Vector128.Clamp(high, Vector128<int>.Zero, maximumVector);
+        return Vector128.Narrow(low, high);
+    }
+
+    /// <summary>
+    /// Inserts the scalar remainder of an intra-edge upsample operation.
+    /// </summary>
+    /// <typeparam name="T">The byte or 16-bit sample type.</typeparam>
+    /// <param name="buffer">The first original edge sample.</param>
+    /// <param name="input">The first padded input sample.</param>
+    /// <param name="start">The first sample not processed by SIMD.</param>
+    /// <param name="count">The number of original edge samples.</param>
+    /// <param name="maximum">The maximum reconstructed sample value.</param>
+    private static void UpsampleIntraEdgeScalar<T>(ref T buffer, ref T input, int start, int count, int maximum)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        for (int i = start; i < count; i++)
+        {
+            int interpolation = -int.CreateChecked(Unsafe.Add(ref input, i))
+                + (9 * int.CreateChecked(Unsafe.Add(ref input, i + 1)))
+                + (9 * int.CreateChecked(Unsafe.Add(ref input, i + 2)))
+                - int.CreateChecked(Unsafe.Add(ref input, i + 3));
+
+            interpolation = Av1Math.Clamp((interpolation + 8) >> 4, 0, maximum);
+
+            Unsafe.Add(ref buffer, (2 * i) - 1) = T.CreateChecked(interpolation);
+            Unsafe.Add(ref buffer, 2 * i) = Unsafe.Add(ref input, i + 2);
         }
     }
 
@@ -1283,38 +1492,261 @@ internal class Av1PredictionDecoder
     /// <param name="buffer">A reference to the first edge sample to filter.</param>
     /// <param name="count">The number of edge samples.</param>
     /// <param name="strength">The AV1 filter-strength index from zero through three.</param>
+    /// <param name="scratch">The reusable padded source workspace.</param>
     /// <remarks>Corresponds to <c>svt_av1_filter_intra_edge_c</c> in SVT-AV1.</remarks>
-    private static void FilterIntraEdge<T>(ref T buffer, int count, int strength)
+    private static void FilterIntraEdge<T>(ref T buffer, int count, int strength, Span<T> scratch)
         where T : unmanaged, IBinaryInteger<T>
     {
-        // TODO: Consider creating SIMD version
         if (strength == 0)
         {
             return;
         }
 
-        int[][] kernel = [
-            [0, 4, 8, 4, 0], [0, 5, 6, 5, 0], [2, 4, 4, 4, 2]
-        ];
-        int filt = strength - 1;
-        Span<T> edge = stackalloc T[129];
-
-        // Filtering must read the original edge throughout the convolution, so retain
-        // a scratch copy rather than feeding earlier filtered samples into later outputs.
-        MemoryMarshal.CreateSpan(ref buffer, count).CopyTo(edge);
-        for (int i = 1; i < count; i++)
+        // As with edge upsampling, closing the kernel over a concrete sample type keeps vector arithmetic
+        // outside the generic decoder while the valid strength-zero no-op remains at the owning boundary.
+        if (typeof(T) == typeof(byte))
         {
-            int s = 0;
-            for (int j = 0; j < 5; j++)
-            {
-                int k = i - 2 + j;
-                k = (k < 0) ? 0 : k;
-                k = (k > count - 1) ? count - 1 : k;
-                s += int.CreateChecked(edge[k]) * kernel[filt][j];
-            }
+            FilterIntraEdge(ref Unsafe.As<T, byte>(ref buffer), count, strength, MemoryMarshal.Cast<T, byte>(scratch));
+        }
+        else
+        {
+            FilterIntraEdge(ref Unsafe.As<T, short>(ref buffer), count, strength, MemoryMarshal.Cast<T, short>(scratch));
+        }
+    }
 
-            s = (s + 8) >> 4;
-            Unsafe.Add(ref buffer, i) = T.CreateChecked(s);
+    /// <summary>
+    /// Applies an AV1 intra-edge smoothing kernel to 8-bit samples.
+    /// </summary>
+    /// <param name="buffer">A reference to the first edge sample to filter.</param>
+    /// <param name="count">The number of edge samples.</param>
+    /// <param name="strength">The AV1 filter-strength index from one through three.</param>
+    /// <param name="scratch">The reusable padded source workspace.</param>
+    public static void FilterIntraEdge(ref byte buffer, int count, int strength, Span<byte> scratch)
+    {
+        byte finalSample = Unsafe.Add(ref buffer, count - 1);
+
+        // The original edge is retained because each convolution window must observe unfiltered neighbors.
+        // Padding both endpoints also makes every complete vector use the same contiguous load pattern.
+        scratch[..EdgeScratchLength].Fill(finalSample);
+        scratch[0] = buffer;
+        MemoryMarshal.CreateReadOnlySpan(ref buffer, count).CopyTo(scratch[1..]);
+
+        ref byte edge = ref MemoryMarshal.GetReference(scratch);
+        int outputCount = count - 1;
+        int processed = 0;
+        if (Vector128.IsHardwareAccelerated)
+        {
+            int eightSamplesFromEnd = outputCount - 8;
+            switch (strength)
+            {
+                case 1:
+                    for (; processed <= eightSamplesFromEnd; processed += 8)
+                    {
+                        Vector128<ushort> source0 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 1)));
+                        Vector128<ushort> source1 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 2)));
+                        Vector128<ushort> source2 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 3)));
+                        Vector128<byte> result = Vector128.Narrow(FilterEdgeStrength1(source0, source1, source2), Vector128<ushort>.Zero);
+                        Unsafe.As<byte, ulong>(ref Unsafe.Add(ref buffer, processed + 1)) = result.AsUInt64().GetElement(0);
+                    }
+
+                    break;
+                case 2:
+                    for (; processed <= eightSamplesFromEnd; processed += 8)
+                    {
+                        Vector128<ushort> source0 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 1)));
+                        Vector128<ushort> source1 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 2)));
+                        Vector128<ushort> source2 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 3)));
+                        Vector128<byte> result = Vector128.Narrow(FilterEdgeStrength2(source0, source1, source2), Vector128<ushort>.Zero);
+                        Unsafe.As<byte, ulong>(ref Unsafe.Add(ref buffer, processed + 1)) = result.AsUInt64().GetElement(0);
+                    }
+
+                    break;
+                default:
+                    for (; processed <= eightSamplesFromEnd; processed += 8)
+                    {
+                        Vector128<ushort> source0 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)processed));
+                        Vector128<ushort> source1 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 1)));
+                        Vector128<ushort> source2 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 2)));
+                        Vector128<ushort> source3 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 3)));
+                        Vector128<ushort> source4 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 4)));
+                        Vector128<byte> result = Vector128.Narrow(FilterEdgeStrength3(source0, source1, source2, source3, source4), Vector128<ushort>.Zero);
+                        Unsafe.As<byte, ulong>(ref Unsafe.Add(ref buffer, processed + 1)) = result.AsUInt64().GetElement(0);
+                    }
+
+                    break;
+            }
+        }
+
+        FilterIntraEdgeScalar(ref buffer, ref edge, processed, outputCount, strength);
+    }
+
+    /// <summary>
+    /// Applies an AV1 intra-edge smoothing kernel to high-bit-depth samples.
+    /// </summary>
+    /// <param name="buffer">A reference to the first edge sample to filter.</param>
+    /// <param name="count">The number of edge samples.</param>
+    /// <param name="strength">The AV1 filter-strength index from one through three.</param>
+    /// <param name="scratch">The reusable padded source workspace.</param>
+    public static void FilterIntraEdge(ref short buffer, int count, int strength, Span<short> scratch)
+    {
+        short finalSample = Unsafe.Add(ref buffer, count - 1);
+
+        scratch[..EdgeScratchLength].Fill(finalSample);
+        scratch[0] = buffer;
+        MemoryMarshal.CreateReadOnlySpan(ref buffer, count).CopyTo(scratch[1..]);
+
+        ref short edge = ref MemoryMarshal.GetReference(scratch);
+        int outputCount = count - 1;
+        int processed = 0;
+
+        // The largest 12-bit weighted sum is 65520; the greatest rounding bias raises that only to 65528.
+        // Unsigned 16-bit lanes therefore preserve every normative strength without widening to 32-bit vectors.
+        if (Vector128.IsHardwareAccelerated)
+        {
+            int eightSamplesFromEnd = outputCount - Vector128<short>.Count;
+            switch (strength)
+            {
+                case 1:
+                    for (; processed <= eightSamplesFromEnd; processed += Vector128<short>.Count)
+                    {
+                        Vector128<ushort> source0 = Vector128.LoadUnsafe(ref edge, (nuint)(processed + 1)).AsUInt16();
+                        Vector128<ushort> source1 = Vector128.LoadUnsafe(ref edge, (nuint)(processed + 2)).AsUInt16();
+                        Vector128<ushort> source2 = Vector128.LoadUnsafe(ref edge, (nuint)(processed + 3)).AsUInt16();
+                        FilterEdgeStrength1(source0, source1, source2).AsInt16().StoreUnsafe(ref buffer, (nuint)(processed + 1));
+                    }
+
+                    break;
+                case 2:
+                    for (; processed <= eightSamplesFromEnd; processed += Vector128<short>.Count)
+                    {
+                        Vector128<ushort> source0 = Vector128.LoadUnsafe(ref edge, (nuint)(processed + 1)).AsUInt16();
+                        Vector128<ushort> source1 = Vector128.LoadUnsafe(ref edge, (nuint)(processed + 2)).AsUInt16();
+                        Vector128<ushort> source2 = Vector128.LoadUnsafe(ref edge, (nuint)(processed + 3)).AsUInt16();
+                        FilterEdgeStrength2(source0, source1, source2).AsInt16().StoreUnsafe(ref buffer, (nuint)(processed + 1));
+                    }
+
+                    break;
+                default:
+                    for (; processed <= eightSamplesFromEnd; processed += Vector128<short>.Count)
+                    {
+                        Vector128<ushort> source0 = Vector128.LoadUnsafe(ref edge, (nuint)processed).AsUInt16();
+                        Vector128<ushort> source1 = Vector128.LoadUnsafe(ref edge, (nuint)(processed + 1)).AsUInt16();
+                        Vector128<ushort> source2 = Vector128.LoadUnsafe(ref edge, (nuint)(processed + 2)).AsUInt16();
+                        Vector128<ushort> source3 = Vector128.LoadUnsafe(ref edge, (nuint)(processed + 3)).AsUInt16();
+                        Vector128<ushort> source4 = Vector128.LoadUnsafe(ref edge, (nuint)(processed + 4)).AsUInt16();
+                        FilterEdgeStrength3(source0, source1, source2, source3, source4).AsInt16().StoreUnsafe(ref buffer, (nuint)(processed + 1));
+                    }
+
+                    break;
+            }
+        }
+
+        FilterIntraEdgeScalar(ref buffer, ref edge, processed, outputCount, strength);
+    }
+
+    /// <summary>
+    /// Widens the lower eight lanes of a byte vector for edge-filter arithmetic.
+    /// </summary>
+    /// <param name="source">The packed source samples.</param>
+    /// <returns>The widened samples.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<ushort> WidenLower(Vector128<byte> source)
+    {
+        (Vector128<ushort> lower, _) = Vector128.Widen(source);
+        return lower;
+    }
+
+    /// <summary>
+    /// Applies the strength-one three-tap edge filter to eight samples.
+    /// </summary>
+    /// <param name="source0">The preceding samples.</param>
+    /// <param name="source1">The centered samples.</param>
+    /// <param name="source2">The following samples.</param>
+    /// <returns>The filtered samples.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<ushort> FilterEdgeStrength1(Vector128<ushort> source0, Vector128<ushort> source1, Vector128<ushort> source2)
+        => (source0 + (source1 << 1) + source2 + Vector128.Create((ushort)2)) >> 2;
+
+    /// <summary>
+    /// Applies the strength-two three-tap edge filter to eight samples.
+    /// </summary>
+    /// <param name="source0">The preceding samples.</param>
+    /// <param name="source1">The centered samples.</param>
+    /// <param name="source2">The following samples.</param>
+    /// <returns>The filtered samples.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<ushort> FilterEdgeStrength2(Vector128<ushort> source0, Vector128<ushort> source1, Vector128<ushort> source2)
+        => (((source0 + source2) * Vector128.Create((ushort)5)) + (source1 * Vector128.Create((ushort)6)) + Vector128.Create((ushort)8)) >> 4;
+
+    /// <summary>
+    /// Applies the strength-three five-tap edge filter to eight samples.
+    /// </summary>
+    /// <param name="source0">The samples two positions before each output.</param>
+    /// <param name="source1">The preceding samples.</param>
+    /// <param name="source2">The centered samples.</param>
+    /// <param name="source3">The following samples.</param>
+    /// <param name="source4">The samples two positions after each output.</param>
+    /// <returns>The filtered samples.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<ushort> FilterEdgeStrength3(
+        Vector128<ushort> source0,
+        Vector128<ushort> source1,
+        Vector128<ushort> source2,
+        Vector128<ushort> source3,
+        Vector128<ushort> source4)
+        => (source0 + ((source1 + source2 + source3) << 1) + source4 + Vector128.Create((ushort)4)) >> 3;
+
+    /// <summary>
+    /// Applies an AV1 edge filter to samples not consumed by the vector loop.
+    /// </summary>
+    /// <typeparam name="T">The byte or 16-bit sample type.</typeparam>
+    /// <param name="buffer">The first destination sample.</param>
+    /// <param name="edge">The first padded source sample.</param>
+    /// <param name="start">The first output index not processed by SIMD.</param>
+    /// <param name="count">The number of filtered outputs following the preserved first sample.</param>
+    /// <param name="strength">The AV1 filter-strength index.</param>
+    private static void FilterIntraEdgeScalar<T>(ref T buffer, ref T edge, int start, int count, int strength)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        switch (strength)
+        {
+            case 1:
+                for (int i = start; i < count; i++)
+                {
+                    int sourceOffset = i + 1;
+                    int value = int.CreateChecked(Unsafe.Add(ref edge, sourceOffset))
+                        + (2 * int.CreateChecked(Unsafe.Add(ref edge, sourceOffset + 1)))
+                        + int.CreateChecked(Unsafe.Add(ref edge, sourceOffset + 2));
+
+                    Unsafe.Add(ref buffer, i + 1) = T.CreateChecked((value + 2) >> 2);
+                }
+
+                break;
+            case 2:
+                for (int i = start; i < count; i++)
+                {
+                    int sourceOffset = i + 1;
+                    int value = (5 * int.CreateChecked(Unsafe.Add(ref edge, sourceOffset)))
+                        + (6 * int.CreateChecked(Unsafe.Add(ref edge, sourceOffset + 1)))
+                        + (5 * int.CreateChecked(Unsafe.Add(ref edge, sourceOffset + 2)));
+
+                    Unsafe.Add(ref buffer, i + 1) = T.CreateChecked((value + 8) >> 4);
+                }
+
+                break;
+            default:
+                for (int i = start; i < count; i++)
+                {
+                    int value = int.CreateChecked(Unsafe.Add(ref edge, i))
+                        + (2 * (int.CreateChecked(Unsafe.Add(ref edge, i + 1))
+                            + int.CreateChecked(Unsafe.Add(ref edge, i + 2))
+                            + int.CreateChecked(Unsafe.Add(ref edge, i + 3))))
+                        + int.CreateChecked(Unsafe.Add(ref edge, i + 4));
+
+                    Unsafe.Add(ref buffer, i + 1) = T.CreateChecked((value + 4) >> 3);
+                }
+
+                break;
         }
     }
 

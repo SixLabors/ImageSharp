@@ -195,7 +195,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <param name="codecConfiguration">The AV1 codec configuration validated against the coded sequence header.</param>
     /// <param name="effectiveColorProfile">Receives the effective CICP description associated with the native planes.</param>
     /// <returns>The reconstructed native frame buffer. Ownership transfers to the caller.</returns>
-    private Av1FrameBuffer<byte> DecodeFrameBuffer(
+    public Av1FrameBuffer<byte> DecodeFrameBuffer(
         Span<byte> buffer,
         CicpProfile? containerColorProfile,
         Av1CodecConfiguration? codecConfiguration,

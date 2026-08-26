@@ -1341,6 +1341,18 @@ public static class TestImages
         public const string Animated8BitWithAudio = "Heif/colors-animated-8bpc-audio.avif";
         public const string Animated8BitWithAlphaExifXmp = "Heif/colors-animated-8bpc-alpha-exif-xmp.avif";
         public const string Animated12BitWithKeyframes = "Heif/colors-animated-12bpc-keyframes-0-2-3.avif";
+
+        // Genuine libavif AVIF inputs, independently encoded AV1 samples, and exact native-plane output from the
+        // pinned scalar libaom reference decoder. See the fixture README for source and encoding details.
+        public const string Av1Deblocking8BitAvif = "Heif/Av1/Conformance/libavif-kodim23-8b.avif";
+        public const string Av1Deblocking8BitPayload = "Heif/Av1/Conformance/libavif-kodim23-8b.bit";
+        public const string Av1Deblocking8BitReference = "Heif/Av1/Conformance/libavif-kodim23-8b-libaom.yuv";
+        public const string Av1Deblocking10BitAvif = "Heif/Av1/Conformance/libavif-cosmos1650-10b.avif";
+        public const string Av1Deblocking10BitPayload = "Heif/Av1/Conformance/libavif-cosmos1650-10b.bit";
+        public const string Av1Deblocking10BitReference = "Heif/Av1/Conformance/libavif-cosmos1650-10b-libaom.yuv";
+        public const string Av1Deblocking12BitAvif = "Heif/Av1/Conformance/libavif-colors-12b.avif";
+        public const string Av1Deblocking12BitPayload = "Heif/Av1/Conformance/libaom-cosmos1650-12b.bit";
+        public const string Av1Deblocking12BitReference = "Heif/Av1/Conformance/libaom-cosmos1650-12b-libaom.yuv";
     }
 
     public static class Ico

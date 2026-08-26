@@ -4,12 +4,12 @@
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Color;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Hevc.Color;
+namespace SixLabors.ImageSharp.Formats.Heif.Color;
 
 /// <content>
 /// Provides fixed-point scalar and SIMD coefficient storage for eight-bit 4:2:0 conversion.
 /// </content>
-internal static partial class HevcYuv420ToRgb8Converter
+internal static partial class HeifYuv420ToRgb8Converter
 {
     /// <summary>
     /// Stores every scalar and SIMD coefficient representation resolved once for an image.
@@ -103,8 +103,8 @@ internal static partial class HevcYuv420ToRgb8Converter
         /// <param name="parameters">The scalar fixed-point coefficients.</param>
         public Vector128Parameters(in FixedPointParameters parameters)
         {
-            this.ChromaMidpoint = Vector128.Create(HevcYuv420ToRgb8Converter.ChromaMidpoint);
-            this.RoundingBias = Vector128.Create(HevcYuv420ToRgb8Converter.RoundingBias);
+            this.ChromaMidpoint = Vector128.Create(HeifYuv420ToRgb8Converter.ChromaMidpoint);
+            this.RoundingBias = Vector128.Create(HeifYuv420ToRgb8Converter.RoundingBias);
             this.Maximum = Vector128.Create((int)byte.MaxValue);
             this.RedCr = Vector128.Create(parameters.RedCr);
             this.GreenCb = Vector128.Create(parameters.GreenCb);
@@ -159,8 +159,8 @@ internal static partial class HevcYuv420ToRgb8Converter
         /// <param name="parameters">The scalar fixed-point coefficients.</param>
         public Vector256Parameters(in FixedPointParameters parameters)
         {
-            this.ChromaMidpoint = Vector256.Create(HevcYuv420ToRgb8Converter.ChromaMidpoint);
-            this.RoundingBias = Vector256.Create(HevcYuv420ToRgb8Converter.RoundingBias);
+            this.ChromaMidpoint = Vector256.Create(HeifYuv420ToRgb8Converter.ChromaMidpoint);
+            this.RoundingBias = Vector256.Create(HeifYuv420ToRgb8Converter.RoundingBias);
             this.Maximum = Vector256.Create((int)byte.MaxValue);
             this.RedCr = Vector256.Create(parameters.RedCr);
             this.GreenCb = Vector256.Create(parameters.GreenCb);
@@ -215,8 +215,8 @@ internal static partial class HevcYuv420ToRgb8Converter
         /// <param name="parameters">The scalar fixed-point coefficients.</param>
         public Vector512Parameters(in FixedPointParameters parameters)
         {
-            this.ChromaMidpoint = Vector512.Create(HevcYuv420ToRgb8Converter.ChromaMidpoint);
-            this.RoundingBias = Vector512.Create(HevcYuv420ToRgb8Converter.RoundingBias);
+            this.ChromaMidpoint = Vector512.Create(HeifYuv420ToRgb8Converter.ChromaMidpoint);
+            this.RoundingBias = Vector512.Create(HeifYuv420ToRgb8Converter.RoundingBias);
             this.Maximum = Vector512.Create((int)byte.MaxValue);
             this.RedCr = Vector512.Create(parameters.RedCr);
             this.GreenCb = Vector512.Create(parameters.GreenCb);

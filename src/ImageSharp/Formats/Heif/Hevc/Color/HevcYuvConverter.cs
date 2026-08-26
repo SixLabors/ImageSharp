@@ -61,11 +61,19 @@ internal static partial class HevcYuvConverter
     {
         HeifColorConversionParameters parameters = GetConversionParameters(picture, colorProfile, out HeifColorConversionMode mode);
 
-        // H.273 resolves an unspecified matrix to BT.601 coefficients. The common full-range eight-bit 4:2:0
-        // presentation can therefore remain in the integer sample domain and avoid float staging and rounding.
-        if (HevcYuv420ToRgb8Converter.IsSupported(picture, colorProfile, mode))
+        // The common full-range eight-bit path remains in the integer sample domain. The codec adapter exposes
+        // only native rows; shared HEIF code owns coefficient arithmetic, SIMD traversal, pooling, and packing.
+        if (HeifYuv420ToRgb8Converter.IsSupported(
+            picture.GetSubsamplingX(HevcPlane.Cb),
+            picture.GetSubsamplingY(HevcPlane.Cb),
+            picture.BitDepthLuma,
+            picture.BitDepthChroma,
+            colorProfile.FullRange,
+            colorProfile.MatrixCoefficients,
+            mode))
         {
-            HevcYuv420ToRgb8Converter.Convert(configuration, picture, image, in parameters, sourceX, sourceY);
+            HevcYuv420ToRgb8Source source = new(picture);
+            HeifYuv420ToRgb8Converter.Convert(configuration, source, image, in parameters, sourceX, sourceY);
             return;
         }
 

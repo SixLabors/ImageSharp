@@ -7,16 +7,92 @@ using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
 using static SixLabors.ImageSharp.Formats.Heif.Color.HeifColorConverterBase;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Hevc.Color;
+namespace SixLabors.ImageSharp.Formats.Heif.Color;
 
 /// <content>
-/// Provides the fixed-point scalar and SIMD row kernels for eight-bit 4:2:0 conversion.
+/// Provides the operator-driven SIMD row traversal for eight-bit 4:2:0 conversion.
 /// </content>
-internal static partial class HevcYuv420ToRgb8Converter
+internal static partial class HeifYuv420ToRgb8Converter
 {
+    /// <summary>
+    /// Defines fixed-point color arithmetic for scalar and SIMD lanes.
+    /// </summary>
+    private interface IHeifYuv420ToRgb8Operator
+    {
+        /// <summary>
+        /// Converts one full-range YCbCr sample to eight-bit RGB.
+        /// </summary>
+        /// <param name="y">The luma sample.</param>
+        /// <param name="cb">The blue-difference sample.</param>
+        /// <param name="cr">The red-difference sample.</param>
+        /// <param name="parameters">The scalar fixed-point parameters.</param>
+        /// <param name="r">The converted red sample.</param>
+        /// <param name="g">The converted green sample.</param>
+        /// <param name="b">The converted blue sample.</param>
+        public static abstract void Convert(ushort y, ushort cb, ushort cr, in FixedPointParameters parameters, out byte r, out byte g, out byte b);
+
+        /// <summary>
+        /// Converts four full-range YCbCr samples to eight-bit RGB lanes.
+        /// </summary>
+        /// <param name="y">The luma lanes.</param>
+        /// <param name="cb">The blue-difference lanes.</param>
+        /// <param name="cr">The red-difference lanes.</param>
+        /// <param name="parameters">The four-lane fixed-point parameters.</param>
+        /// <param name="r">The converted red lanes.</param>
+        /// <param name="g">The converted green lanes.</param>
+        /// <param name="b">The converted blue lanes.</param>
+        public static abstract void Convert(
+            Vector128<int> y,
+            Vector128<int> cb,
+            Vector128<int> cr,
+            in Vector128Parameters parameters,
+            out Vector128<int> r,
+            out Vector128<int> g,
+            out Vector128<int> b);
+
+        /// <summary>
+        /// Converts eight full-range YCbCr samples to eight-bit RGB lanes.
+        /// </summary>
+        /// <param name="y">The luma lanes.</param>
+        /// <param name="cb">The blue-difference lanes.</param>
+        /// <param name="cr">The red-difference lanes.</param>
+        /// <param name="parameters">The eight-lane fixed-point parameters.</param>
+        /// <param name="r">The converted red lanes.</param>
+        /// <param name="g">The converted green lanes.</param>
+        /// <param name="b">The converted blue lanes.</param>
+        public static abstract void Convert(
+            Vector256<int> y,
+            Vector256<int> cb,
+            Vector256<int> cr,
+            in Vector256Parameters parameters,
+            out Vector256<int> r,
+            out Vector256<int> g,
+            out Vector256<int> b);
+
+        /// <summary>
+        /// Converts sixteen full-range YCbCr samples to eight-bit RGB lanes.
+        /// </summary>
+        /// <param name="y">The luma lanes.</param>
+        /// <param name="cb">The blue-difference lanes.</param>
+        /// <param name="cr">The red-difference lanes.</param>
+        /// <param name="parameters">The sixteen-lane fixed-point parameters.</param>
+        /// <param name="r">The converted red lanes.</param>
+        /// <param name="g">The converted green lanes.</param>
+        /// <param name="b">The converted blue lanes.</param>
+        public static abstract void Convert(
+            Vector512<int> y,
+            Vector512<int> cb,
+            Vector512<int> cr,
+            in Vector512Parameters parameters,
+            out Vector512<int> r,
+            out Vector512<int> g,
+            out Vector512<int> b);
+    }
+
     /// <summary>
     /// Converts one luma row and its nearest native chroma row to planar eight-bit RGB.
     /// </summary>
+    /// <typeparam name="TOperator">The fixed-point color arithmetic selected for the row.</typeparam>
     /// <param name="luma">The full-resolution luma samples.</param>
     /// <param name="chromaBlue">The half-width blue-difference samples.</param>
     /// <param name="chromaRed">The half-width red-difference samples.</param>
@@ -24,7 +100,7 @@ internal static partial class HevcYuv420ToRgb8Converter
     /// <param name="green">The destination green samples.</param>
     /// <param name="blue">The destination blue samples.</param>
     /// <param name="parameters">The fixed-point matrix coefficients.</param>
-    private static void ConvertRow(
+    private static void ConvertRow<TOperator>(
         ReadOnlySpan<ushort> luma,
         ReadOnlySpan<ushort> chromaBlue,
         ReadOnlySpan<ushort> chromaRed,
@@ -32,6 +108,7 @@ internal static partial class HevcYuv420ToRgb8Converter
         Span<byte> green,
         Span<byte> blue,
         in ConversionParameters parameters)
+        where TOperator : struct, IHeifYuv420ToRgb8Operator
     {
         ref ushort lumaBase = ref MemoryMarshal.GetReference(luma);
         ref ushort chromaBlueBase = ref MemoryMarshal.GetReference(chromaBlue);
@@ -53,7 +130,7 @@ internal static partial class HevcYuv420ToRgb8Converter
                 Vector512<int> cb = LoadRepeatedVector512(ref Unsafe.Add(ref chromaBlueBase, x >> 1));
                 Vector512<int> cr = LoadRepeatedVector512(ref Unsafe.Add(ref chromaRedBase, x >> 1));
 
-                Convert(y, cb, cr, in parameters.SixteenLane, out Vector512<int> r, out Vector512<int> g, out Vector512<int> b);
+                TOperator.Convert(y, cb, cr, in parameters.SixteenLane, out Vector512<int> r, out Vector512<int> g, out Vector512<int> b);
                 HeifByteSampleStorer.Store(r, ref Unsafe.Add(ref redBase, x));
                 HeifByteSampleStorer.Store(g, ref Unsafe.Add(ref greenBase, x));
                 HeifByteSampleStorer.Store(b, ref Unsafe.Add(ref blueBase, x));
@@ -70,7 +147,7 @@ internal static partial class HevcYuv420ToRgb8Converter
                 Vector256<int> cb = LoadRepeatedVector256(ref Unsafe.Add(ref chromaBlueBase, x >> 1));
                 Vector256<int> cr = LoadRepeatedVector256(ref Unsafe.Add(ref chromaRedBase, x >> 1));
 
-                Convert(y, cb, cr, in parameters.EightLane, out Vector256<int> r, out Vector256<int> g, out Vector256<int> b);
+                TOperator.Convert(y, cb, cr, in parameters.EightLane, out Vector256<int> r, out Vector256<int> g, out Vector256<int> b);
                 HeifByteSampleStorer.Store(r, ref Unsafe.Add(ref redBase, x));
                 HeifByteSampleStorer.Store(g, ref Unsafe.Add(ref greenBase, x));
                 HeifByteSampleStorer.Store(b, ref Unsafe.Add(ref blueBase, x));
@@ -87,7 +164,7 @@ internal static partial class HevcYuv420ToRgb8Converter
                 Vector128<int> cb = LoadRepeatedVector128(ref Unsafe.Add(ref chromaBlueBase, x >> 1));
                 Vector128<int> cr = LoadRepeatedVector128(ref Unsafe.Add(ref chromaRedBase, x >> 1));
 
-                Convert(y, cb, cr, in parameters.FourLane, out Vector128<int> r, out Vector128<int> g, out Vector128<int> b);
+                TOperator.Convert(y, cb, cr, in parameters.FourLane, out Vector128<int> r, out Vector128<int> g, out Vector128<int> b);
                 HeifByteSampleStorer.Store(r, ref Unsafe.Add(ref redBase, x));
                 HeifByteSampleStorer.Store(g, ref Unsafe.Add(ref greenBase, x));
                 HeifByteSampleStorer.Store(b, ref Unsafe.Add(ref blueBase, x));
@@ -96,7 +173,7 @@ internal static partial class HevcYuv420ToRgb8Converter
 
         for (; x < luma.Length; x++)
         {
-            Convert(
+            TOperator.Convert(
                 Unsafe.Add(ref lumaBase, x),
                 Unsafe.Add(ref chromaBlueBase, x >> 1),
                 Unsafe.Add(ref chromaRedBase, x >> 1),
@@ -184,110 +261,5 @@ internal static partial class HevcYuv420ToRgb8Converter
         Vector128<ushort> samples = Vector128.CreateScalarUnsafe(packed).AsUInt16();
         Vector128<ushort> repeated = Vector128_.UnpackLow(samples.AsInt16(), samples.AsInt16()).AsUInt16();
         return Vector128.WidenLower(repeated).AsInt32();
-    }
-
-    /// <summary>
-    /// Converts one coefficient-based H.273 YCbCr sample to eight-bit RGB.
-    /// </summary>
-    /// <param name="y">The luma sample.</param>
-    /// <param name="cb">The blue-difference sample.</param>
-    /// <param name="cr">The red-difference sample.</param>
-    /// <param name="parameters">The fixed-point matrix coefficients.</param>
-    /// <param name="r">The converted red sample.</param>
-    /// <param name="g">The converted green sample.</param>
-    /// <param name="b">The converted blue sample.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void Convert(ushort y, ushort cb, ushort cr, in FixedPointParameters parameters, out byte r, out byte g, out byte b)
-    {
-        int centeredBlue = cb - ChromaMidpoint;
-        int centeredRed = cr - ChromaMidpoint;
-        int red = y + (((parameters.RedCr * centeredRed) + RoundingBias) >> CoefficientShift);
-        int green = y + (((parameters.GreenCb * centeredBlue) + (parameters.GreenCr * centeredRed) + RoundingBias) >> CoefficientShift);
-        int blue = y + (((parameters.BlueCb * centeredBlue) + RoundingBias) >> CoefficientShift);
-
-        r = (byte)Numerics.Clamp(red, 0, byte.MaxValue);
-        g = (byte)Numerics.Clamp(green, 0, byte.MaxValue);
-        b = (byte)Numerics.Clamp(blue, 0, byte.MaxValue);
-    }
-
-    /// <summary>
-    /// Converts four coefficient-based H.273 YCbCr samples to eight-bit RGB lanes.
-    /// </summary>
-    /// <param name="y">The luma lanes.</param>
-    /// <param name="cb">The blue-difference lanes.</param>
-    /// <param name="cr">The red-difference lanes.</param>
-    /// <param name="parameters">The fixed-point matrix coefficient lanes.</param>
-    /// <param name="r">The converted red lanes.</param>
-    /// <param name="g">The converted green lanes.</param>
-    /// <param name="b">The converted blue lanes.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void Convert(
-        Vector128<int> y,
-        Vector128<int> cb,
-        Vector128<int> cr,
-        in Vector128Parameters parameters,
-        out Vector128<int> r,
-        out Vector128<int> g,
-        out Vector128<int> b)
-    {
-        cb -= parameters.ChromaMidpoint;
-        cr -= parameters.ChromaMidpoint;
-        r = Vector128.Clamp(y + (((parameters.RedCr * cr) + parameters.RoundingBias) >> CoefficientShift), Vector128<int>.Zero, parameters.Maximum);
-        g = Vector128.Clamp(y + (((parameters.GreenCb * cb) + (parameters.GreenCr * cr) + parameters.RoundingBias) >> CoefficientShift), Vector128<int>.Zero, parameters.Maximum);
-        b = Vector128.Clamp(y + (((parameters.BlueCb * cb) + parameters.RoundingBias) >> CoefficientShift), Vector128<int>.Zero, parameters.Maximum);
-    }
-
-    /// <summary>
-    /// Converts eight coefficient-based H.273 YCbCr samples to eight-bit RGB lanes.
-    /// </summary>
-    /// <param name="y">The luma lanes.</param>
-    /// <param name="cb">The blue-difference lanes.</param>
-    /// <param name="cr">The red-difference lanes.</param>
-    /// <param name="parameters">The fixed-point matrix coefficient lanes.</param>
-    /// <param name="r">The converted red lanes.</param>
-    /// <param name="g">The converted green lanes.</param>
-    /// <param name="b">The converted blue lanes.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void Convert(
-        Vector256<int> y,
-        Vector256<int> cb,
-        Vector256<int> cr,
-        in Vector256Parameters parameters,
-        out Vector256<int> r,
-        out Vector256<int> g,
-        out Vector256<int> b)
-    {
-        cb -= parameters.ChromaMidpoint;
-        cr -= parameters.ChromaMidpoint;
-        r = Vector256.Clamp(y + (((parameters.RedCr * cr) + parameters.RoundingBias) >> CoefficientShift), Vector256<int>.Zero, parameters.Maximum);
-        g = Vector256.Clamp(y + (((parameters.GreenCb * cb) + (parameters.GreenCr * cr) + parameters.RoundingBias) >> CoefficientShift), Vector256<int>.Zero, parameters.Maximum);
-        b = Vector256.Clamp(y + (((parameters.BlueCb * cb) + parameters.RoundingBias) >> CoefficientShift), Vector256<int>.Zero, parameters.Maximum);
-    }
-
-    /// <summary>
-    /// Converts sixteen coefficient-based H.273 YCbCr samples to eight-bit RGB lanes.
-    /// </summary>
-    /// <param name="y">The luma lanes.</param>
-    /// <param name="cb">The blue-difference lanes.</param>
-    /// <param name="cr">The red-difference lanes.</param>
-    /// <param name="parameters">The fixed-point matrix coefficient lanes.</param>
-    /// <param name="r">The converted red lanes.</param>
-    /// <param name="g">The converted green lanes.</param>
-    /// <param name="b">The converted blue lanes.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void Convert(
-        Vector512<int> y,
-        Vector512<int> cb,
-        Vector512<int> cr,
-        in Vector512Parameters parameters,
-        out Vector512<int> r,
-        out Vector512<int> g,
-        out Vector512<int> b)
-    {
-        cb -= parameters.ChromaMidpoint;
-        cr -= parameters.ChromaMidpoint;
-        r = Vector512.Clamp(y + (((parameters.RedCr * cr) + parameters.RoundingBias) >> CoefficientShift), Vector512<int>.Zero, parameters.Maximum);
-        g = Vector512.Clamp(y + (((parameters.GreenCb * cb) + (parameters.GreenCr * cr) + parameters.RoundingBias) >> CoefficientShift), Vector512<int>.Zero, parameters.Maximum);
-        b = Vector512.Clamp(y + (((parameters.BlueCb * cb) + parameters.RoundingBias) >> CoefficientShift), Vector512<int>.Zero, parameters.Maximum);
     }
 }

@@ -1,4 +1,4 @@
-# AV1 deblocking conformance fixtures
+# AV1 reconstruction conformance fixtures
 
 The AVIF files come from `libavif/tests/data` at commit `062e582e8afda88e6baf988fdcf046a801efa0f5`. They retain the licenses recorded in libavif's `tests/data/README.md`: the Kodak image is released for unrestricted use, the Cosmos Laundromat frame uses CC BY 3.0, and the libavif color animation is distributed with the libavif test corpus under its BSD-2-Clause license.
 
@@ -8,10 +8,17 @@ The 8- and 10-bit `.bit` files contain the exact AV1 item payloads from the corr
 
 The `_libaom.yuv` files were decoded from those exact payloads with `aomdec` built from libaom commit `03087864cf4bea6abb0d28f95cf7843511413d8f`. The reference build used `AOM_TARGET_CPU=generic`, so these files come from libaom's scalar decoder rather than ImageSharp or an architecture-specific implementation.
 
+The `libaom-cdef-*` elementary streams were encoded separately with the same pinned generic libaom build so CDEF could be verified independently of the original corpus. The 8-bit stream uses `kodim23_yuv420_8bpc.y4m`; the 10- and 12-bit streams use `cosmos1650_yuv444_10bpc_p3pq.y4m`. Both source files are retained in libavif's test data at commit `062e582e8afda88e6baf988fdcf046a801efa0f5`.
+
+The material encoder options were `--usage=2 --passes=1 --limit=1 --obu --end-usage=q --cq-level=30 --cpu-used=4 --threads=1 --lag-in-frames=0 --full-still-picture-hdr --enable-cdef=1 --enable-restoration=0`. Each command also supplied the matching `--bit-depth`, `--input-bit-depth`, and `--profile` values. The 12-bit stream promotes the 10-bit 4:4:4 input through libaom's native 12-bit pipeline. Loop restoration is explicitly disabled so exact output equality exercises deblocking followed by active CDEF without a later restoration stage changing those samples.
+
 The native reference layouts are:
 
 - `libavif-kodim23-8b-libaom.yuv`: 768x512, 8-bit YUV 4:2:0, planar Y/U/V.
 - `libavif-cosmos1650-10b-libaom.yuv`: 1024x428, 10-bit YUV 4:4:4, planar Y/U/V with little-endian 16-bit samples.
 - `libaom-cosmos1650-12b-libaom.yuv`: 1024x428, 12-bit YUV 4:4:4, planar Y/U/V with little-endian 16-bit samples.
+- `libaom-cdef-kodim23-8b-libaom.yuv`: 768x512, 8-bit YUV 4:2:0, planar Y/U/V.
+- `libaom-cdef-cosmos-10b-libaom.yuv`: 1024x428, 10-bit YUV 4:4:4, planar Y/U/V with little-endian 16-bit samples.
+- `libaom-cdef-cosmos-12b-libaom.yuv`: 1024x428, 12-bit YUV 4:4:4, planar Y/U/V with little-endian 16-bit samples.
 
-The conformance test compares every visible reconstructed sample with these files. It also verifies that the parsed frame enables deblocking, so a disabled or bypassed loop-filter stage cannot satisfy the test accidentally.
+The conformance tests compare every visible reconstructed sample with these files. The deblocking corpus verifies nonzero loop-filter levels. The CDEF corpus additionally verifies sequence-level CDEF enablement, a selected nonzero frame strength, and disabled loop restoration, so a disabled or bypassed CDEF stage cannot satisfy the exact native-plane comparison accidentally.

@@ -1353,6 +1353,12 @@ public static class TestImages
         public const string Av1Deblocking12BitAvif = "Heif/Av1/Conformance/libavif-colors-12b.avif";
         public const string Av1Deblocking12BitPayload = "Heif/Av1/Conformance/libaom-cosmos1650-12b.bit";
         public const string Av1Deblocking12BitReference = "Heif/Av1/Conformance/libaom-cosmos1650-12b-libaom.yuv";
+        public const string Av1Cdef8BitPayload = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b.bit";
+        public const string Av1Cdef8BitReference = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b-libaom.yuv";
+        public const string Av1Cdef10BitPayload = "Heif/Av1/Conformance/libaom-cdef-cosmos-10b.bit";
+        public const string Av1Cdef10BitReference = "Heif/Av1/Conformance/libaom-cdef-cosmos-10b-libaom.yuv";
+        public const string Av1Cdef12BitPayload = "Heif/Av1/Conformance/libaom-cdef-cosmos-12b.bit";
+        public const string Av1Cdef12BitReference = "Heif/Av1/Conformance/libaom-cdef-cosmos-12b-libaom.yuv";
     }
 
     public static class Ico

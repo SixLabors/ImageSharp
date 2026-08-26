@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -15,8 +16,13 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 /// Validates complete AV1 reconstruction against independently decoded native component planes.
 /// </summary>
 [Trait("Format", "Avif")]
-public class Av1DeblockingConformanceTests
+public class Av1ReconstructionConformanceTests
 {
+    /// <summary>
+    /// The hardware configurations covering normal SIMD dispatch and the scalar fallback.
+    /// </summary>
+    private const HwIntrinsics ReconstructionConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
+
     /// <summary>
     /// Verifies deblocking syntax, filter activation, component traversal, and presentation for real eight-, ten-,
     /// and twelve-bit AV1 and AVIF content.
@@ -50,9 +56,49 @@ public class Av1DeblockingConformanceTests
             1024,
             428,
             Av1BitDepth.TwelveBit,
-            Av1ColorFormat.Yuv444);
+            Av1ColorFormat.Yuv444,
+            requireActiveCdef: false);
 
         ValidatePresentedImage(TestImages.Heif.Av1Deblocking12BitAvif, 64, 64, HeifBitDepth.Bit12);
+    }
+
+    /// <summary>
+    /// Verifies active CDEF syntax, strength selection, unit traversal, subsampling, frame edges, and final native
+    /// samples against scalar libaom for independently encoded eight-, ten-, and twelve-bit still-picture streams
+    /// under normal SIMD dispatch and with hardware intrinsics disabled.
+    /// </summary>
+    [Fact]
+    public void DecodeWithActiveCdefMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateActiveCdefFixtures, ReconstructionConfigurations);
+
+    /// <summary>
+    /// Validates every active-CDEF fixture under the hardware configuration selected by <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidateActiveCdefFixtures()
+    {
+        ValidateActiveCdefFixture(
+            TestImages.Heif.Av1Cdef8BitPayload,
+            TestImages.Heif.Av1Cdef8BitReference,
+            768,
+            512,
+            Av1BitDepth.EightBit,
+            Av1ColorFormat.Yuv420);
+
+        ValidateActiveCdefFixture(
+            TestImages.Heif.Av1Cdef10BitPayload,
+            TestImages.Heif.Av1Cdef10BitReference,
+            1024,
+            428,
+            Av1BitDepth.TenBit,
+            Av1ColorFormat.Yuv444);
+
+        ValidateActiveCdefFixture(
+            TestImages.Heif.Av1Cdef12BitPayload,
+            TestImages.Heif.Av1Cdef12BitReference,
+            1024,
+            428,
+            Av1BitDepth.TwelveBit,
+            Av1ColorFormat.Yuv444);
     }
 
     /// <summary>
@@ -76,7 +122,7 @@ public class Av1DeblockingConformanceTests
         Av1ColorFormat colorFormat,
         HeifBitDepth metadataBitDepth)
     {
-        ValidateNativeFixture(payloadPath, referencePath, width, height, bitDepth, colorFormat);
+        ValidateNativeFixture(payloadPath, referencePath, width, height, bitDepth, colorFormat, false);
         ValidatePresentedImage(imagePath, width, height, metadataBitDepth);
     }
 
@@ -89,13 +135,15 @@ public class Av1DeblockingConformanceTests
     /// <param name="height">The expected reconstructed height.</param>
     /// <param name="bitDepth">The expected AV1 sample precision.</param>
     /// <param name="colorFormat">The expected native chroma-sampling layout.</param>
+    /// <param name="requireActiveCdef">Indicates whether the stream must signal and select nonzero CDEF strengths.</param>
     private static void ValidateNativeFixture(
         string payloadPath,
         string referencePath,
         int width,
         int height,
         Av1BitDepth bitDepth,
-        Av1ColorFormat colorFormat)
+        Av1ColorFormat colorFormat,
+        bool requireActiveCdef)
     {
         byte[] payload = TestFile.Create(payloadPath).Bytes;
         byte[] reference = TestFile.Create(referencePath).Bytes;
@@ -114,8 +162,61 @@ public class Av1DeblockingConformanceTests
             || filterParameters.FilterLevelU != 0
             || filterParameters.FilterLevelV != 0);
 
+        if (requireActiveCdef)
+        {
+            Assert.NotNull(decoder.SequenceHeader);
+            Assert.True(decoder.SequenceHeader.EnableCdef);
+            Assert.False(decoder.FrameHeader.LoopRestorationParameters.UsesLoopRestoration);
+            Assert.NotNull(decoder.FrameInfo);
+            ObuConstraintDirectionalEnhancementFilterParameters parameters = decoder.FrameHeader.CdefParameters;
+            bool hasActiveStrength = false;
+            int superblockSizeLog2 = decoder.SequenceHeader.SuperblockSizeLog2;
+            int superblockColumnCount = Av1Math.AlignPowerOf2(decoder.SequenceHeader.MaxFrameWidth, superblockSizeLog2) >> superblockSizeLog2;
+            int superblockRowCount = Av1Math.AlignPowerOf2(decoder.SequenceHeader.MaxFrameHeight, superblockSizeLog2) >> superblockSizeLog2;
+            for (int superblockRow = 0; superblockRow < superblockRowCount && !hasActiveStrength; superblockRow++)
+            {
+                for (int superblockColumn = 0; superblockColumn < superblockColumnCount && !hasActiveStrength; superblockColumn++)
+                {
+                    Span<int> selectedStrengths = decoder.FrameInfo.GetCdefStrength(new Point(superblockColumn, superblockRow));
+
+                    // Unassigned entries belong to completely skipped units. Every assigned index must resolve through
+                    // the signaled table before the exact output can establish that CDEF changed reconstructed samples.
+                    foreach (int selectedStrength in selectedStrengths)
+                    {
+                        if (selectedStrength >= 0
+                            && (parameters.YStrength[selectedStrength] != 0 || parameters.UvStrength[selectedStrength] != 0))
+                        {
+                            hasActiveStrength = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // The independent output only proves CDEF when the encoded frame selects at least one nonzero strength.
+            Assert.True(hasActiveStrength);
+        }
+
         AssertNativePlanesEqual(frameBuffer, reference);
     }
+
+    /// <summary>
+    /// Validates one independently encoded stream that activates constrained directional enhancement filtering.
+    /// </summary>
+    /// <param name="payloadPath">The AV1 elementary-stream sample.</param>
+    /// <param name="referencePath">The native planar output produced by the pinned scalar libaom decoder.</param>
+    /// <param name="width">The expected reconstructed width.</param>
+    /// <param name="height">The expected reconstructed height.</param>
+    /// <param name="bitDepth">The expected AV1 sample precision.</param>
+    /// <param name="colorFormat">The expected native chroma-sampling layout.</param>
+    private static void ValidateActiveCdefFixture(
+        string payloadPath,
+        string referencePath,
+        int width,
+        int height,
+        Av1BitDepth bitDepth,
+        Av1ColorFormat colorFormat)
+        => ValidateNativeFixture(payloadPath, referencePath, width, height, bitDepth, colorFormat, requireActiveCdef: true);
 
     /// <summary>
     /// Validates the public presentation and metadata produced from one complete AVIF container.

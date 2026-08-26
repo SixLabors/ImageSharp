@@ -112,6 +112,14 @@ public class Av1ReconstructionConformanceTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSuperResolutionFixtures, ReconstructionConfigurations);
 
     /// <summary>
+    /// Verifies exact presented pixels and public metadata for independently packaged eight-, ten-, and twelve-bit
+    /// active-super-resolution AVIF images across the available vector widths and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void DecodeWithSuperResolutionMatchesPinnedLibavifPresentation()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSuperResolutionPresentedFixtures, PresentationConfigurations);
+
+    /// <summary>
     /// Verifies active normative loop restoration and exact native samples against scalar libaom for independently
     /// encoded eight-, ten-, and twelve-bit still-picture streams.
     /// </summary>
@@ -263,6 +271,37 @@ public class Av1ReconstructionConformanceTests
             428,
             Av1BitDepth.TwelveBit,
             Av1ColorFormat.Yuv444);
+    }
+
+    /// <summary>
+    /// Validates every active-super-resolution presentation fixture under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidateSuperResolutionPresentedFixtures()
+    {
+        ValidatePresentedFixture(
+            TestImages.Heif.Av1SuperResolution8BitAvif,
+            TestImages.Heif.Av1SuperResolution8BitPresentationReference,
+            768,
+            512,
+            HeifBitDepth.Bit8,
+            requireSuperResolution: true);
+
+        ValidatePresentedFixture(
+            TestImages.Heif.Av1SuperResolution10BitAvif,
+            TestImages.Heif.Av1SuperResolution10BitPresentationReference,
+            1024,
+            428,
+            HeifBitDepth.Bit10,
+            requireSuperResolution: true);
+
+        ValidatePresentedFixture(
+            TestImages.Heif.Av1SuperResolution12BitAvif,
+            TestImages.Heif.Av1SuperResolution12BitPresentationReference,
+            1024,
+            428,
+            HeifBitDepth.Bit12,
+            requireSuperResolution: true);
     }
 
     /// <summary>
@@ -725,16 +764,24 @@ public class Av1ReconstructionConformanceTests
     /// <param name="width">The expected displayed width.</param>
     /// <param name="height">The expected displayed height.</param>
     /// <param name="metadataBitDepth">The expected public HEIF sample precision.</param>
+    /// <param name="requireSuperResolution">Whether the AV1 item must upscale from a narrower coded frame.</param>
     private static void ValidatePresentedFixture(
         string imagePath,
         string referencePath,
         int width,
         int height,
-        HeifBitDepth metadataBitDepth)
+        HeifBitDepth metadataBitDepth,
+        bool requireSuperResolution = false)
     {
         DecoderOptions options = new() { MaxFrames = 1 };
         byte[] imageBytes = TestFile.Create(imagePath).Bytes;
         byte[] referenceBytes = TestFile.Create(referencePath).Bytes;
+
+        if (requireSuperResolution)
+        {
+            AssertUsesSuperResolution(imageBytes);
+        }
+
         using Image<Rgba32> image = Image.Load<Rgba32>(options, imageBytes);
         using Image<Rgba32> reference = Image.Load<Rgba32>(referenceBytes);
 
@@ -745,6 +792,40 @@ public class Av1ReconstructionConformanceTests
         Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
         Assert.Equal(metadataBitDepth, metadata.BitDepth);
         ImageComparer.Exact.VerifySimilarity(reference, image);
+    }
+
+    /// <summary>
+    /// Verifies that the sole AV1 image item in an independently packaged AVIF uses normative super-resolution.
+    /// </summary>
+    /// <param name="imageBytes">The complete AVIF file.</param>
+    private static void AssertUsesSuperResolution(Span<byte> imageBytes)
+    {
+        int offset = 0;
+        while (offset < imageBytes.Length)
+        {
+            int headerLength = HeifBoxReader.ParseHeader(imageBytes[offset..], out long payloadLength, out Heif4CharCode boxType);
+            Assert.InRange(payloadLength, 0, int.MaxValue);
+            int payloadLength32 = (int)payloadLength;
+
+            if (boxType == Heif4CharCode.Mdat)
+            {
+                // These single-item fixtures deliberately make the complete mdat payload the AV1 item. Inspecting
+                // those exact bytes prevents an unscaled container from satisfying only the presentation comparison.
+                Span<byte> payload = imageBytes.Slice(offset + headerLength, payloadLength32);
+                using Av1Decoder decoder = new(Configuration.Default);
+                using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
+
+                Assert.NotNull(decoder.FrameHeader);
+                ObuFrameSize frameSize = decoder.FrameHeader.FrameSize;
+                Assert.True(frameSize.FrameWidth < frameSize.SuperResolutionUpscaledWidth);
+                Assert.Equal(frameBuffer.Width, frameSize.SuperResolutionUpscaledWidth);
+                return;
+            }
+
+            offset = checked(offset + headerLength + payloadLength32);
+        }
+
+        Assert.Fail("The AVIF fixture does not contain a media-data box.");
     }
 
     /// <summary>

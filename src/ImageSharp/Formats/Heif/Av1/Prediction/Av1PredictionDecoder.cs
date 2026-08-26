@@ -362,14 +362,15 @@ internal class Av1PredictionDecoder
 
             // Every transform reconstructs its own window of the block-level palette map. Keeping the map padded to
             // the coded block dimensions lets edge transforms use the same addressing rule as interior transforms.
-            for (int row = 0; row < transformHeight; row++)
+            if (typeof(T) == typeof(byte))
             {
-                Span<T> destinationRow = pixelBuffer.Slice(row * pixelBufferStride, transformWidth);
-                ReadOnlySpan<byte> mapRow = colorIndexMap.Slice(mapOffset + (row * paletteStride), transformWidth);
-                for (int column = 0; column < transformWidth; column++)
-                {
-                    destinationRow[column] = T.CreateChecked(paletteColors[mapRow[column]]);
-                }
+                Span<byte> byteDestination = MemoryMarshal.Cast<T, byte>(pixelBuffer);
+                Av1PalettePredictor.Predict(paletteColors, colorIndexMap[mapOffset..], paletteStride, byteDestination, pixelBufferStride, transformWidth, transformHeight);
+            }
+            else
+            {
+                Span<short> highBitDepthDestination = MemoryMarshal.Cast<T, short>(pixelBuffer);
+                Av1PalettePredictor.Predict(paletteColors, colorIndexMap[mapOffset..], paletteStride, highBitDepthDestination, pixelBufferStride, transformWidth, transformHeight);
             }
 
             return;

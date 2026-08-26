@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
@@ -9,73 +10,15 @@ using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
-/// <content>
+/// <summary>
 /// Provides SIMD sample widening, chroma reconstruction, planar storage, and packed output for HEIF color conversion.
-/// </content>
-internal abstract partial class HeifColorConverterBase
+/// </summary>
+internal static class HeifSampleConversion
 {
     /// <summary>
     /// The largest value represented by a 16-bit packed RGB component.
     /// </summary>
     private const float UShortMaximum = ushort.MaxValue;
-
-    /// <summary>
-    /// Defines the SIMD widening operations for one reconstructed HEIF sample type.
-    /// </summary>
-    /// <typeparam name="TSample">The reconstructed sample type.</typeparam>
-    public interface IHeifSampleLoader<TSample>
-        where TSample : unmanaged
-    {
-        /// <summary>
-        /// Loads and widens four samples to single-precision lanes.
-        /// </summary>
-        /// <param name="source">The first source sample.</param>
-        /// <returns>The widened samples.</returns>
-        public static abstract Vector128<float> LoadVector128(ref TSample source);
-
-        /// <summary>
-        /// Loads and widens eight samples to single-precision lanes.
-        /// </summary>
-        /// <param name="source">The first source sample.</param>
-        /// <returns>The widened samples.</returns>
-        public static abstract Vector256<float> LoadVector256(ref TSample source);
-
-        /// <summary>
-        /// Loads and widens sixteen samples to single-precision lanes.
-        /// </summary>
-        /// <param name="source">The first source sample.</param>
-        /// <returns>The widened samples.</returns>
-        public static abstract Vector512<float> LoadVector512(ref TSample source);
-    }
-
-    /// <summary>
-    /// Defines the SIMD narrowing and storage operations for one encoded HEIF sample type.
-    /// </summary>
-    /// <typeparam name="TSample">The encoded sample type.</typeparam>
-    public interface IHeifSampleStorer<TSample>
-        where TSample : unmanaged
-    {
-        /// <summary>
-        /// Narrows and stores four integer samples.
-        /// </summary>
-        /// <param name="source">The integer samples.</param>
-        /// <param name="destination">The first destination sample.</param>
-        public static abstract void Store(Vector128<int> source, ref TSample destination);
-
-        /// <summary>
-        /// Narrows and stores eight integer samples.
-        /// </summary>
-        /// <param name="source">The integer samples.</param>
-        /// <param name="destination">The first destination sample.</param>
-        public static abstract void Store(Vector256<int> source, ref TSample destination);
-
-        /// <summary>
-        /// Narrows and stores sixteen integer samples.
-        /// </summary>
-        /// <param name="source">The integer samples.</param>
-        /// <param name="destination">The first destination sample.</param>
-        public static abstract void Store(Vector512<int> source, ref TSample destination);
-    }
 
     /// <summary>
     /// Widens reconstructed integer samples into a pooled float component row.
@@ -86,7 +29,7 @@ internal abstract partial class HeifColorConverterBase
     /// <param name="destination">The destination component row.</param>
     public static void ConvertSamplesToFloat<TSample, TLoader>(ReadOnlySpan<TSample> source, Span<float> destination)
         where TSample : unmanaged
-        where TLoader : struct, IHeifSampleLoader<TSample>
+        where TLoader : struct, IHeifSampleConverter<TSample>
     {
         ref TSample sourceBase = ref MemoryMarshal.GetReference(source);
         ref float destinationBase = ref MemoryMarshal.GetReference(destination);
@@ -154,7 +97,7 @@ internal abstract partial class HeifColorConverterBase
         Span<float> scratch0,
         Span<float> scratch1)
         where TSample : unmanaged
-        where TLoader : struct, IHeifSampleLoader<TSample>
+        where TLoader : struct, IHeifSampleConverter<TSample>
     {
         int sourceLength = subX == 0 ? destination.Length : (destination.Length + 1) >> 1;
         Span<float> top = scratch0[..sourceLength];
@@ -420,8 +363,10 @@ internal abstract partial class HeifColorConverterBase
                 // reinterpreting adjacent 16-bit samples as one unrelated 32-bit integer.
                 Vector128<float> redVector = Vector128.ConvertToSingle(
                     Vector128.Create((uint)pixel0.R, pixel1.R, pixel2.R, pixel3.R));
+
                 Vector128<float> greenVector = Vector128.ConvertToSingle(
                     Vector128.Create((uint)pixel0.G, pixel1.G, pixel2.G, pixel3.G));
+
                 Vector128<float> blueVector = Vector128.ConvertToSingle(
                     Vector128.Create((uint)pixel0.B, pixel1.B, pixel2.B, pixel3.B));
 
@@ -452,7 +397,7 @@ internal abstract partial class HeifColorConverterBase
     /// <param name="maximum">The largest encoded sample value.</param>
     public static void WriteSamples<TSample, TStorer>(ReadOnlySpan<float> source, Span<TSample> destination, float scale, float bias, float maximum)
         where TSample : unmanaged
-        where TStorer : struct, IHeifSampleStorer<TSample>
+        where TStorer : struct, IHeifSampleConverter<TSample>
     {
         ref float sourceBase = ref MemoryMarshal.GetReference(source);
         ref TSample destinationBase = ref MemoryMarshal.GetReference(destination);
@@ -518,7 +463,7 @@ internal abstract partial class HeifColorConverterBase
         float bias,
         float maximum)
         where TSample : unmanaged
-        where TStorer : struct, IHeifSampleStorer<TSample>
+        where TStorer : struct, IHeifSampleConverter<TSample>
     {
         ref float row0Base = ref MemoryMarshal.GetReference(row0);
         ref float row1Base = ref MemoryMarshal.GetReference(row1);
@@ -711,6 +656,92 @@ internal abstract partial class HeifColorConverterBase
     }
 
     /// <summary>
+    /// Packs normalized monochrome samples into 16-bit luminance pixels.
+    /// </summary>
+    /// <param name="source">The normalized monochrome samples.</param>
+    /// <param name="destination">The destination luminance pixels.</param>
+    public static void PackL16(ReadOnlySpan<float> source, Span<L16> destination)
+    {
+        ref float sourceBase = ref MemoryMarshal.GetReference(source);
+        ref L16 destinationBase = ref MemoryMarshal.GetReference(destination);
+        int length = destination.Length;
+        int i = 0;
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<float> maximum = Vector512.Create(UShortMaximum);
+            Vector512<float> redWeight = Vector512.Create(0.2126F);
+            Vector512<float> greenWeight = Vector512.Create(0.7152F);
+            Vector512<float> blueWeight = Vector512.Create(0.0722F);
+            Vector512<float> roundingOffset = Vector512.Create(0.5F);
+            int oneVectorFromEnd = length - Vector512<float>.Count;
+            for (; i <= oneVectorFromEnd; i += Vector512<float>.Count)
+            {
+                Vector512<float> value = Vector512.Clamp(
+                    Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref sourceBase, i)),
+                    Vector512<float>.Zero,
+                    Vector512<float>.One) * maximum;
+
+                // L16 uses its BT.709 luminance expression even when all three source components are equal. Preserve
+                // that exact arithmetic order so the SIMD path remains byte-identical to L16.FromScaledVector4.
+                Vector512<float> luminance = ((value * redWeight) + (value * greenWeight)) + (value * blueWeight);
+                Vector512<int> samples = Vector512.ConvertToInt32(luminance + roundingOffset);
+                Vector256<ushort> packed = Vector256.Narrow(samples.GetLower().AsUInt32(), samples.GetUpper().AsUInt32());
+                packed.StoreUnsafe(ref Unsafe.As<L16, ushort>(ref Unsafe.Add(ref destinationBase, i)));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<float> maximum = Vector256.Create(UShortMaximum);
+            Vector256<float> redWeight = Vector256.Create(0.2126F);
+            Vector256<float> greenWeight = Vector256.Create(0.7152F);
+            Vector256<float> blueWeight = Vector256.Create(0.0722F);
+            Vector256<float> roundingOffset = Vector256.Create(0.5F);
+            int oneVectorFromEnd = length - Vector256<float>.Count;
+            for (; i <= oneVectorFromEnd; i += Vector256<float>.Count)
+            {
+                Vector256<float> value = Vector256.Clamp(
+                    Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref sourceBase, i)),
+                    Vector256<float>.Zero,
+                    Vector256<float>.One) * maximum;
+
+                Vector256<float> luminance = ((value * redWeight) + (value * greenWeight)) + (value * blueWeight);
+                Vector256<int> samples = Vector256.ConvertToInt32(luminance + roundingOffset);
+                Vector128<ushort> packed = Vector128.Narrow(samples.GetLower().AsUInt32(), samples.GetUpper().AsUInt32());
+                packed.StoreUnsafe(ref Unsafe.As<L16, ushort>(ref Unsafe.Add(ref destinationBase, i)));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<float> maximum = Vector128.Create(UShortMaximum);
+            Vector128<float> redWeight = Vector128.Create(0.2126F);
+            Vector128<float> greenWeight = Vector128.Create(0.7152F);
+            Vector128<float> blueWeight = Vector128.Create(0.0722F);
+            Vector128<float> roundingOffset = Vector128.Create(0.5F);
+            int oneVectorFromEnd = length - Vector128<float>.Count;
+            for (; i <= oneVectorFromEnd; i += Vector128<float>.Count)
+            {
+                Vector128<float> value = Vector128.Clamp(
+                    Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref sourceBase, i)),
+                    Vector128<float>.Zero,
+                    Vector128<float>.One) * maximum;
+
+                Vector128<float> luminance = ((value * redWeight) + (value * greenWeight)) + (value * blueWeight);
+                Vector128<int> samples = Vector128.ConvertToInt32(luminance + roundingOffset);
+                Vector64<ushort> packed = Vector128.Narrow(samples.AsUInt32(), Vector128<uint>.Zero).GetLower();
+                packed.StoreUnsafe(ref Unsafe.As<L16, ushort>(ref Unsafe.Add(ref destinationBase, i)));
+            }
+        }
+
+        for (; i < length; i++)
+        {
+            Unsafe.Add(ref destinationBase, i) = L16.FromScaledVector4(new Vector4(Unsafe.Add(ref sourceBase, i)));
+        }
+    }
+
+    /// <summary>
     /// Reads an eight-bit or 16-bit unsigned sample without an intermediate conversion buffer.
     /// </summary>
     /// <typeparam name="TSample">The encoded sample type.</typeparam>
@@ -854,125 +885,4 @@ internal abstract partial class HeifColorConverterBase
         Unsafe.As<Rgba64, Vector128<uint>>(ref Unsafe.Add(ref destination, 2)) = upper;
     }
 
-    /// <summary>
-    /// Widens reconstructed eight-bit samples using exact unsigned conversions.
-    /// </summary>
-    public readonly struct HeifByteSampleLoader : IHeifSampleLoader<byte>
-    {
-        /// <inheritdoc/>
-        public static Vector128<float> LoadVector128(ref byte source)
-        {
-            uint packed = Unsafe.ReadUnaligned<uint>(ref source);
-            Vector128<ushort> samples16 = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsByte());
-            return Vector128.ConvertToSingle(Vector128.WidenLower(samples16));
-        }
-
-        /// <inheritdoc/>
-        public static Vector256<float> LoadVector256(ref byte source)
-        {
-            ulong packed = Unsafe.ReadUnaligned<ulong>(ref source);
-            Vector128<ushort> samples16 = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsByte());
-            Vector256<uint> samples32 = Vector256.Create(Vector128.WidenLower(samples16), Vector128.WidenUpper(samples16));
-            return Vector256.ConvertToSingle(samples32);
-        }
-
-        /// <inheritdoc/>
-        public static Vector512<float> LoadVector512(ref byte source)
-        {
-            Vector128<byte> packed = Unsafe.ReadUnaligned<Vector128<byte>>(ref source);
-            (Vector128<ushort> lower16, Vector128<ushort> upper16) = Vector128.Widen(packed);
-            Vector256<uint> lower32 = Vector256.Create(Vector128.WidenLower(lower16), Vector128.WidenUpper(lower16));
-            Vector256<uint> upper32 = Vector256.Create(Vector128.WidenLower(upper16), Vector128.WidenUpper(upper16));
-            return Vector512.ConvertToSingle(Vector512.Create(lower32, upper32));
-        }
-    }
-
-    /// <summary>
-    /// Widens reconstructed high-bit-depth samples using exact unsigned conversions.
-    /// </summary>
-    public readonly struct HeifUShortSampleLoader : IHeifSampleLoader<ushort>
-    {
-        /// <inheritdoc/>
-        public static Vector128<float> LoadVector128(ref ushort source)
-        {
-            ulong packed = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref source));
-            Vector128<ushort> samples16 = Vector128.CreateScalarUnsafe(packed).AsUInt16();
-            return Vector128.ConvertToSingle(Vector128.WidenLower(samples16));
-        }
-
-        /// <inheritdoc/>
-        public static Vector256<float> LoadVector256(ref ushort source)
-        {
-            Vector128<ushort> samples16 = Unsafe.ReadUnaligned<Vector128<ushort>>(ref Unsafe.As<ushort, byte>(ref source));
-            Vector256<uint> samples32 = Vector256.Create(Vector128.WidenLower(samples16), Vector128.WidenUpper(samples16));
-            return Vector256.ConvertToSingle(samples32);
-        }
-
-        /// <inheritdoc/>
-        public static Vector512<float> LoadVector512(ref ushort source)
-        {
-            Vector256<ushort> samples16 = Unsafe.ReadUnaligned<Vector256<ushort>>(ref Unsafe.As<ushort, byte>(ref source));
-            (Vector256<uint> lower32, Vector256<uint> upper32) = Vector256.Widen(samples16);
-            return Vector512.ConvertToSingle(Vector512.Create(lower32, upper32));
-        }
-    }
-
-    /// <summary>
-    /// Narrows encoded integer lanes to eight-bit samples.
-    /// </summary>
-    public readonly struct HeifByteSampleStorer : IHeifSampleStorer<byte>
-    {
-        /// <inheritdoc/>
-        public static void Store(Vector128<int> source, ref byte destination)
-        {
-            Vector128<ushort> samples16 = Vector128.Narrow(source.AsUInt32(), Vector128<uint>.Zero);
-            Vector128<byte> samples8 = Vector128.Narrow(samples16, Vector128<ushort>.Zero);
-
-            // The lower four bytes contain the four source lanes after the two narrowing stages.
-            Unsafe.WriteUnaligned(ref destination, samples8.AsUInt32().ToScalar());
-        }
-
-        /// <inheritdoc/>
-        public static void Store(Vector256<int> source, ref byte destination)
-        {
-            Store(source.GetLower(), ref destination);
-            Store(source.GetUpper(), ref Unsafe.Add(ref destination, Vector128<int>.Count));
-        }
-
-        /// <inheritdoc/>
-        public static void Store(Vector512<int> source, ref byte destination)
-        {
-            Store(source.GetLower(), ref destination);
-            Store(source.GetUpper(), ref Unsafe.Add(ref destination, Vector256<int>.Count));
-        }
-    }
-
-    /// <summary>
-    /// Narrows encoded integer lanes to unsigned 16-bit samples.
-    /// </summary>
-    public readonly struct HeifUShortSampleStorer : IHeifSampleStorer<ushort>
-    {
-        /// <inheritdoc/>
-        public static void Store(Vector128<int> source, ref ushort destination)
-        {
-            Vector128<ushort> samples = Vector128.Narrow(source.AsUInt32(), Vector128<uint>.Zero);
-
-            // The lower four UInt16 values are contiguous and can be committed with one unaligned store.
-            Unsafe.WriteUnaligned(ref Unsafe.As<ushort, byte>(ref destination), samples.AsUInt64().ToScalar());
-        }
-
-        /// <inheritdoc/>
-        public static void Store(Vector256<int> source, ref ushort destination)
-        {
-            Store(source.GetLower(), ref destination);
-            Store(source.GetUpper(), ref Unsafe.Add(ref destination, Vector128<int>.Count));
-        }
-
-        /// <inheritdoc/>
-        public static void Store(Vector512<int> source, ref ushort destination)
-        {
-            Store(source.GetLower(), ref destination);
-            Store(source.GetUpper(), ref Unsafe.Add(ref destination, Vector256<int>.Count));
-        }
-    }
 }

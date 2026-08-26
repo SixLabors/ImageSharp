@@ -2,11 +2,14 @@
 // Licensed under the Six Labors Split License.
 
 using System;
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
@@ -17,6 +20,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 [Trait("Format", "Avif")]
 public class Av1YuvConverterTests
 {
+    /// <summary>
+    /// The hardware configurations covering 512-bit, 256-bit, 128-bit, and scalar conversion paths.
+    /// </summary>
+    private const HwIntrinsics AlphaConfigurations =
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+
     /// <summary>
     /// Verifies known RGB-to-YUV values across coefficient, identity, and YCgCo matrices and sample ranges.
     /// </summary>
@@ -916,6 +925,255 @@ public class Av1YuvConverterTests
 
         // Assert
         ImageComparer.Tolerant(0.002F).VerifySimilarity(image, actual);
+    }
+
+    /// <summary>
+    /// Verifies that same-sized AV1 alpha composition preserves color and maps full-range luma exactly with and
+    /// without hardware intrinsics.
+    /// </summary>
+    [Fact]
+    public void ComposeAlphaMapsEightBitLumaExactlyAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateEightBitAlphaComposition,
+            AlphaConfigurations);
+
+    /// <summary>
+    /// Verifies that scaled 10-bit and 12-bit AV1 alpha composition matches ImageSharp's established box resampler
+    /// with and without hardware intrinsics.
+    /// </summary>
+    [Fact]
+    public void ComposeAlphaScalesHighBitDepthLumaAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateHighBitDepthAlphaScaling,
+            AlphaConfigurations);
+
+    /// <summary>
+    /// Verifies that alpha scaling remains exact when the bounded working buffer must advance through multiple
+    /// source-row windows.
+    /// </summary>
+    [Fact]
+    public void ComposeAlphaScalesAcrossMultipleWorkingWindows()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateSlidingWindowAlphaScaling,
+            AlphaConfigurations);
+
+    /// <summary>
+    /// Verifies exact limited-range endpoints and out-of-range clamping for every supported AV1 alpha bit depth.
+    /// </summary>
+    [Fact]
+    public void ComposeAlphaExpandsLimitedRangeAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateLimitedRangeAlphaComposition,
+            AlphaConfigurations);
+
+    /// <summary>
+    /// Exercises direct full-range byte alpha composition against exact code-value expansion.
+    /// </summary>
+    private static void ValidateEightBitAlphaComposition()
+    {
+        const int width = 19;
+        const int height = 5;
+
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(width, height, colorFormat: Av1ColorFormat.Yuv400);
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv400, false);
+        using Image<Rgba64> destination = new(width, height);
+        Buffer2DRegion<byte> luma = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0);
+        for (int y = 0; y < height; y++)
+        {
+            Span<byte> sourceRow = luma.DangerousGetRowSpan(y);
+            Span<Rgba64> destinationRow = destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < width; x++)
+            {
+                sourceRow[x] = (byte)((x * 11) + (y * 7));
+                destinationRow[x] = new Rgba64((ushort)(1000 + x), (ushort)(2000 + y), 3000, ushort.MaxValue);
+            }
+        }
+
+        Av1YuvConverter.ComposeAlpha(
+            Configuration.Default,
+            frameBuffer,
+            destination.Frames.RootFrame,
+            destination.Size,
+            destination.Bounds,
+            false);
+
+        for (int y = 0; y < height; y++)
+        {
+            Span<byte> sourceRow = luma.DangerousGetRowSpan(y);
+            Span<Rgba64> actualRow = destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < width; x++)
+            {
+                Assert.Equal((ushort)(1000 + x), actualRow[x].R);
+                Assert.Equal((ushort)(2000 + y), actualRow[x].G);
+                Assert.Equal((ushort)3000, actualRow[x].B);
+                Assert.Equal((ushort)(sourceRow[x] * 257), actualRow[x].A);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Exercises the direct box-resize path for both supported high-bit-depth sample layouts.
+    /// </summary>
+    private static void ValidateHighBitDepthAlphaScaling()
+    {
+        const int sourceWidth = 5;
+        const int sourceHeight = 3;
+        const int destinationWidth = 9;
+        const int destinationHeight = 7;
+
+        foreach (Av1BitDepth bitDepth in new[] { Av1BitDepth.TenBit, Av1BitDepth.TwelveBit })
+        {
+            ObuSequenceHeader sequenceHeader = CreateSequenceHeader(
+                sourceWidth,
+                sourceHeight,
+                colorFormat: Av1ColorFormat.Yuv400,
+                bitDepth: bitDepth);
+
+            using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv400, false);
+            using Image<L16> expected = new(sourceWidth, sourceHeight);
+            using Image<Rgba64> destination = new(destinationWidth, destinationHeight, new Rgba64(1000, 2000, 3000, ushort.MaxValue));
+            ushort maximum = (ushort)((1 << bitDepth.GetBitCount()) - 1);
+            for (int y = 0; y < sourceHeight; y++)
+            {
+                Span<ushort> sourceRow = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, y, 0, 0);
+                Span<L16> expectedRow = expected.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < sourceWidth; x++)
+                {
+                    sourceRow[x] = (ushort)(((x * 223) + (y * 151)) & maximum);
+                    expectedRow[x] = L16.FromScaledVector4(new Vector4((float)sourceRow[x] / maximum));
+                }
+            }
+
+            expected.Mutate(context => context.Resize(destinationWidth, destinationHeight, KnownResamplers.Box));
+            Av1YuvConverter.ComposeAlpha(
+                Configuration.Default,
+                frameBuffer,
+                destination.Frames.RootFrame,
+                destination.Size,
+                destination.Bounds,
+                false);
+
+            for (int y = 0; y < destinationHeight; y++)
+            {
+                Span<L16> expectedRow = expected.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+                Span<Rgba64> actualRow = destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < destinationWidth; x++)
+                {
+                    Assert.Equal((ushort)1000, actualRow[x].R);
+                    Assert.Equal((ushort)2000, actualRow[x].G);
+                    Assert.Equal((ushort)3000, actualRow[x].B);
+                    Assert.Equal(expectedRow[x].PackedValue, actualRow[x].A);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Exercises overlapping box kernels across multiple transposed source-row windows.
+    /// </summary>
+    private static void ValidateSlidingWindowAlphaScaling()
+    {
+        const int sourceWidth = 13;
+        const int sourceHeight = 41;
+        const int destinationWidth = 23;
+        const int destinationHeight = 17;
+
+        Configuration configuration = Configuration.CreateDefaultInstance();
+        configuration.WorkingBufferSizeHintInBytes = 1;
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(
+            sourceWidth,
+            sourceHeight,
+            colorFormat: Av1ColorFormat.Yuv400,
+            bitDepth: Av1BitDepth.TwelveBit);
+
+        using Av1FrameBuffer<byte> frameBuffer = new(configuration, sequenceHeader, Av1ColorFormat.Yuv400, false);
+        using Image<L16> expected = new(configuration, sourceWidth, sourceHeight);
+        using Image<Rgba64> destination = new(configuration, destinationWidth, destinationHeight, new Rgba64(1000, 2000, 3000, ushort.MaxValue));
+        for (int y = 0; y < sourceHeight; y++)
+        {
+            Span<ushort> sourceRow = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, y, 0, 0);
+            Span<L16> expectedRow = expected.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < sourceWidth; x++)
+            {
+                sourceRow[x] = (ushort)(((x * 277) + (y * 193)) & 4095);
+                expectedRow[x] = L16.FromScaledVector4(new Vector4(sourceRow[x] / 4095F));
+            }
+        }
+
+        expected.Mutate(context => context.Resize(destinationWidth, destinationHeight, KnownResamplers.Box));
+        Av1YuvConverter.ComposeAlpha(
+            configuration,
+            frameBuffer,
+            destination.Frames.RootFrame,
+            destination.Size,
+            destination.Bounds,
+            false);
+
+        for (int y = 0; y < destinationHeight; y++)
+        {
+            Span<L16> expectedRow = expected.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            Span<Rgba64> actualRow = destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < destinationWidth; x++)
+            {
+                Assert.Equal((ushort)1000, actualRow[x].R);
+                Assert.Equal((ushort)2000, actualRow[x].G);
+                Assert.Equal((ushort)3000, actualRow[x].B);
+                Assert.Equal(expectedRow[x].PackedValue, actualRow[x].A);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Exercises luma-range expansion and clamping for 8-bit, 10-bit, and 12-bit alpha samples.
+    /// </summary>
+    private static void ValidateLimitedRangeAlphaComposition()
+    {
+        foreach (Av1BitDepth bitDepth in new[] { Av1BitDepth.EightBit, Av1BitDepth.TenBit, Av1BitDepth.TwelveBit })
+        {
+            int bitCount = bitDepth.GetBitCount();
+            ushort minimum = (ushort)(16 << (bitCount - 8));
+            ushort maximum = (ushort)(235 << (bitCount - 8));
+            ushort storageMaximum = (ushort)((1 << bitCount) - 1);
+            ObuSequenceHeader sequenceHeader = CreateSequenceHeader(
+                4,
+                1,
+                fullRange: false,
+                colorFormat: Av1ColorFormat.Yuv400,
+                bitDepth: bitDepth);
+
+            using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv400, false);
+            using Image<Rgba64> destination = new(4, 1, new Rgba64(1000, 2000, 3000, ushort.MaxValue));
+            if (bitDepth == Av1BitDepth.EightBit)
+            {
+                Span<byte> luma = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(0);
+                luma[0] = 0;
+                luma[1] = (byte)minimum;
+                luma[2] = (byte)maximum;
+                luma[3] = byte.MaxValue;
+            }
+            else
+            {
+                Span<ushort> luma = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, 0, 0, 0);
+                luma[0] = 0;
+                luma[1] = minimum;
+                luma[2] = maximum;
+                luma[3] = storageMaximum;
+            }
+
+            Av1YuvConverter.ComposeAlpha(
+                Configuration.Default,
+                frameBuffer,
+                destination.Frames.RootFrame,
+                destination.Size,
+                destination.Bounds,
+                false);
+
+            Span<Rgba64> actual = destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0);
+            Assert.Equal((ushort)0, actual[0].A);
+            Assert.Equal((ushort)0, actual[1].A);
+            Assert.Equal(ushort.MaxValue, actual[2].A);
+            Assert.Equal(ushort.MaxValue, actual[3].A);
+        }
     }
 
     /// <summary>

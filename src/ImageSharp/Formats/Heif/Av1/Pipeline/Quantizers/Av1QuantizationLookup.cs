@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 
 /// <summary>
 /// Provides the normative AV1 DC and AC dequantization values for each quantizer index and supported bit depth.

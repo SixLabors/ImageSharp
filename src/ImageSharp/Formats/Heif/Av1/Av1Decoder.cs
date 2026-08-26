@@ -113,6 +113,94 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         out CicpProfile effectiveColorProfile)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        using Av1FrameBuffer<byte> frameBuffer = this.DecodeFrameBuffer(
+            buffer,
+            containerColorProfile,
+            codecConfiguration,
+            out effectiveColorProfile);
+
+        ImageFrame<TPixel>? resultFrame = null;
+        try
+        {
+            resultFrame = new ImageFrame<TPixel>(
+                this.configuration,
+                this.FrameHeader!.FrameSize.SuperResolutionUpscaledWidth,
+                this.FrameHeader.FrameSize.FrameHeight);
+
+            Av1YuvConverter.ConvertToRgb(this.configuration, frameBuffer, resultFrame);
+            resultFrame.Metadata.CicpProfile = effectiveColorProfile.DeepClone();
+            return resultFrame;
+        }
+        catch
+        {
+            resultFrame?.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Decodes an AV1 elementary-stream payload and composes its luma plane directly into a packed color frame.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination color pixel type.</typeparam>
+    /// <param name="buffer">The complete AV1 elementary-stream payload.</param>
+    /// <param name="containerColorProfile">
+    /// The container color description that supplies unspecified sequence-header color information.
+    /// </param>
+    /// <param name="codecConfiguration">The AV1 codec configuration validated against the coded sequence header.</param>
+    /// <param name="expectedCodedSize">The required coded dimensions, or an empty size when the item extent may differ.</param>
+    /// <param name="destination">The packed color frame receiving alpha values.</param>
+    /// <param name="outputSize">The complete presented size of the auxiliary image or grid tile.</param>
+    /// <param name="destinationRectangle">The destination region receiving the top-left portion of the presented alpha image.</param>
+    /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
+    public void DecodeAlpha<TPixel>(
+        Span<byte> buffer,
+        CicpProfile? containerColorProfile,
+        Av1CodecConfiguration? codecConfiguration,
+        Size expectedCodedSize,
+        ImageFrame<TPixel> destination,
+        Size outputSize,
+        Rectangle destinationRectangle,
+        bool premultiplied)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        using Av1FrameBuffer<byte> frameBuffer = this.DecodeFrameBuffer(buffer, containerColorProfile, codecConfiguration, out _);
+        if (expectedCodedSize != default && (frameBuffer.Width != expectedCodedSize.Width || frameBuffer.Height != expectedCodedSize.Height))
+        {
+            throw new InvalidImageContentException("The decoded alpha sample dimensions do not match its visual sample entry.");
+        }
+
+        if (frameBuffer.ColorFormat != Av1ColorFormat.Yuv400)
+        {
+            // AVIF auxiliary alpha is the luma plane of an AV1 monochrome image. Accepting chroma-bearing payloads
+            // would silently reinterpret a color image and contradict the Sequence Header mono_chrome requirement.
+            throw new InvalidImageContentException("An AV1 auxiliary alpha image must be encoded as monochrome.");
+        }
+
+        Av1YuvConverter.ComposeAlpha(
+            this.configuration,
+            frameBuffer,
+            destination,
+            outputSize,
+            destinationRectangle,
+            premultiplied);
+    }
+
+    /// <summary>
+    /// Parses and reconstructs one AV1 frame while retaining its native component planes for the caller.
+    /// </summary>
+    /// <param name="buffer">The complete AV1 elementary-stream payload.</param>
+    /// <param name="containerColorProfile">
+    /// The container color description that supplies unspecified sequence-header color information.
+    /// </param>
+    /// <param name="codecConfiguration">The AV1 codec configuration validated against the coded sequence header.</param>
+    /// <param name="effectiveColorProfile">Receives the effective CICP description associated with the native planes.</param>
+    /// <returns>The reconstructed native frame buffer. Ownership transfers to the caller.</returns>
+    private Av1FrameBuffer<byte> DecodeFrameBuffer(
+        Span<byte> buffer,
+        CicpProfile? containerColorProfile,
+        Av1CodecConfiguration? codecConfiguration,
+        out CicpProfile effectiveColorProfile)
+    {
         Av1BitStreamReader reader = new(buffer);
         this.obuReader.ReadAll(ref reader, buffer.Length, () => this, false);
         Guard.NotNull(this.tileReader, nameof(this.tileReader));
@@ -166,24 +254,16 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         }
 
         this.FrameInfo = this.tileReader.FrameInfo;
-        using Av1FrameBuffer<byte> frameBuffer = new(
+        Av1FrameBuffer<byte> frameBuffer = new(
             this.configuration,
             this.SequenceHeader,
             this.SequenceHeader.ColorConfig.GetColorFormat(),
             false);
 
-        using Av1FrameDecoder frameDecoder = new(this.SequenceHeader, this.FrameHeader, this.FrameInfo, frameBuffer);
-        frameDecoder.DecodeFrame();
-
-        ImageFrame<TPixel>? resultFrame = null;
         try
         {
-            resultFrame = new ImageFrame<TPixel>(
-                this.configuration,
-                this.FrameHeader.FrameSize.SuperResolutionUpscaledWidth,
-                this.FrameHeader.FrameSize.FrameHeight);
-
-            Av1YuvConverter.ConvertToRgb(this.configuration, frameBuffer, resultFrame);
+            using Av1FrameDecoder frameDecoder = new(this.SequenceHeader, this.FrameHeader, this.FrameInfo, frameBuffer);
+            frameDecoder.DecodeFrame();
 
             // Preserve the effective CICP description used for conversion, including container values that legally
             // supplied unspecified bitstream fields. This also exposes bitstream-only color metadata to callers.
@@ -194,12 +274,11 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                 (byte)effectiveColorConfig.MatrixCoefficients,
                 effectiveColorConfig.ColorRange);
 
-            resultFrame.Metadata.CicpProfile = effectiveColorProfile.DeepClone();
-            return resultFrame;
+            return frameBuffer;
         }
         catch
         {
-            resultFrame?.Dispose();
+            frameBuffer.Dispose();
             throw;
         }
     }

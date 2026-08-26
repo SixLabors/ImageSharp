@@ -4,7 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 
 /// <summary>
 /// Provides the normative AV1 inverse quantization matrices for each matrix level, plane class, and transform size.

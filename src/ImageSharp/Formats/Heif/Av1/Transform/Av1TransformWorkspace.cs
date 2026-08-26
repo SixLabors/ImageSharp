@@ -9,6 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 internal static class Av1TransformWorkspace
 {
     /// <summary>
+    /// The number of integer elements occupied by the three 512-bit transform vectors.
+    /// </summary>
+    public const int Vector512StorageLength = 3 * Av1Constants.MaxTransformSize * 16;
+
+    /// <summary>
     /// The number of integer elements occupied by the three 256-bit transform vectors.
     /// </summary>
     public const int Vector256StorageLength = 3 * Av1Constants.MaxTransformSize * 8;
@@ -21,7 +26,7 @@ internal static class Av1TransformWorkspace
     /// <summary>
     /// The number of integers required for the largest supported transform block.
     /// </summary>
-    public const int MaximumLength = (Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize) + Vector256StorageLength;
+    public const int MaximumLength = (Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize) + Vector512StorageLength;
 
     /// <summary>
     /// Gets the number of integers required for a transform size.
@@ -30,6 +35,6 @@ internal static class Av1TransformWorkspace
     /// <returns>The required workspace length.</returns>
     public static int GetRequiredLength(Av1TransformSize transformSize)
     {
-        return (transformSize.GetWidth() * transformSize.GetHeight()) + Vector256StorageLength;
+        return (transformSize.GetWidth() * transformSize.GetHeight()) + Vector512StorageLength;
     }
 }

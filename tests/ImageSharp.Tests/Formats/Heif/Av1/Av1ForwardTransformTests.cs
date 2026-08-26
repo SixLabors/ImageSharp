@@ -4,6 +4,7 @@
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -11,12 +12,48 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1ForwardTransformTests
 {
     /// <summary>
+    /// The hardware configurations covering every transform SIMD tier and the scalar fallback.
+    /// </summary>
+    private const HwIntrinsics TransformConfigurations =
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+
+    /// <summary>
     /// Gets every normative transform size, type, and bit-depth combination exercised by the forward and inverse suites.
     /// </summary>
     public static TheoryData<int, int, int> ValidTransformCases { get; } = CreateValidTransformCases();
 
+    /// <summary>
+    /// Verifies DCT operator parity across the supported hardware feature levels.
+    /// </summary>
     [Fact]
     public void DctOperatorsProduceIdenticalScalarAndSimdResults()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertDctOperatorParity, TransformConfigurations);
+
+    /// <summary>
+    /// Verifies ADST operator parity across the supported hardware feature levels.
+    /// </summary>
+    [Fact]
+    public void AdstOperatorsProduceIdenticalScalarAndSimdResults()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertAdstOperatorParity, TransformConfigurations);
+
+    /// <summary>
+    /// Verifies identity operator parity across the supported hardware feature levels.
+    /// </summary>
+    [Fact]
+    public void IdentityOperatorsProduceIdenticalScalarAndSimdResults()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertIdentityOperatorParity, TransformConfigurations);
+
+    /// <summary>
+    /// Verifies the complete sixteen-lane two-dimensional traversal matrix across hardware feature levels.
+    /// </summary>
+    [Fact]
+    public void Vector512KernelsMatchScalarForEveryApplicableConfiguration()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertVector512TransformParity, TransformConfigurations);
+
+    /// <summary>
+    /// Verifies the forward DCT operators against their scalar implementations.
+    /// </summary>
+    private static void AssertDctOperatorParity()
     {
         AssertOperatorParity<Av1Dct4Forward1dOperator>(4);
         AssertOperatorParity<Av1Dct8Forward1dOperator>(8);
@@ -25,16 +62,20 @@ public class Av1ForwardTransformTests
         AssertOperatorParity<Av1Dct64Forward1dOperator>(64);
     }
 
-    [Fact]
-    public void AdstOperatorsProduceIdenticalScalarAndSimdResults()
+    /// <summary>
+    /// Verifies the forward ADST operators against their scalar implementations.
+    /// </summary>
+    private static void AssertAdstOperatorParity()
     {
         AssertOperatorParity<Av1Adst4Forward1dOperator>(4);
         AssertOperatorParity<Av1Adst8Forward1dOperator>(8);
         AssertOperatorParity<Av1Adst16Forward1dOperator>(16);
     }
 
-    [Fact]
-    public void IdentityOperatorsProduceIdenticalScalarAndSimdResults()
+    /// <summary>
+    /// Verifies the forward identity operators against their scalar implementations.
+    /// </summary>
+    private static void AssertIdentityOperatorParity()
     {
         AssertOperatorParity<Av1Identity4Forward1dOperator>(4);
         AssertOperatorParity<Av1Identity8Forward1dOperator>(8);
@@ -81,6 +122,11 @@ public class Av1ForwardTransformTests
         Assert.Equal(0, allocated);
     }
 
+    /// <summary>
+    /// Compares one forward transform operator across scalar and all SIMD lane widths.
+    /// </summary>
+    /// <typeparam name="TOperator">The forward transform operator.</typeparam>
+    /// <param name="length">The transform length.</param>
     private static void AssertOperatorParity<TOperator>(int length)
         where TOperator : struct, IAv1Transform1dOperator
     {
@@ -98,6 +144,9 @@ public class Av1ForwardTransformTests
         Av1TransformVector<Vector256<int>> input256 = default;
         Av1TransformVector<Vector256<int>> output256 = default;
         Av1TransformVector<Vector256<int>> step256 = default;
+        Av1TransformVector<Vector512<int>> input512 = default;
+        Av1TransformVector<Vector512<int>> output512 = default;
+        Av1TransformVector<Vector512<int>> step512 = default;
 
         for (int index = 0; index < length; index++)
         {
@@ -116,16 +165,36 @@ public class Av1ForwardTransformTests
                 GetInputValue(index, 5),
                 GetInputValue(index, 6),
                 GetInputValue(index, 7));
+
+            input512[index] = Vector512.Create(
+                GetInputValue(index, 0),
+                GetInputValue(index, 1),
+                GetInputValue(index, 2),
+                GetInputValue(index, 3),
+                GetInputValue(index, 4),
+                GetInputValue(index, 5),
+                GetInputValue(index, 6),
+                GetInputValue(index, 7),
+                GetInputValue(index, 8),
+                GetInputValue(index, 9),
+                GetInputValue(index, 10),
+                GetInputValue(index, 11),
+                GetInputValue(index, 12),
+                GetInputValue(index, 13),
+                GetInputValue(index, 14),
+                GetInputValue(index, 15));
+
         }
 
         TOperator.Transform(ref input128, ref output128, ref step128, cosBit, stageRange);
         TOperator.Transform(ref input256, ref output256, ref step256, cosBit, stageRange);
+        TOperator.Transform(ref input512, ref output512, ref step512, cosBit, stageRange);
 
         int[] scalarInput = new int[length];
         int[] scalarOutput = new int[length];
         int[] scalarStep = new int[length];
 
-        for (int lane = 0; lane < Vector256<int>.Count; lane++)
+        for (int lane = 0; lane < Vector512<int>.Count; lane++)
         {
             for (int index = 0; index < length; index++)
             {
@@ -136,11 +205,45 @@ public class Av1ForwardTransformTests
 
             for (int index = 0; index < length; index++)
             {
-                Assert.Equal(scalarOutput[index], output256[index].GetElement(lane));
+                Assert.Equal(scalarOutput[index], output512[index].GetElement(lane));
+
+                if (lane < Vector256<int>.Count)
+                {
+                    Assert.Equal(scalarOutput[index], output256[index].GetElement(lane));
+                }
 
                 if (lane < Vector128<int>.Count)
                 {
                     Assert.Equal(scalarOutput[index], output128[index].GetElement(lane));
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Runs every valid forward transform configuration capable of filling a sixteen-lane tile.
+    /// </summary>
+    private static void AssertVector512TransformParity()
+    {
+        for (Av1TransformSize transformSize = 0; transformSize < Av1TransformSize.AllSizes; transformSize++)
+        {
+            if (transformSize.GetWidth() < Vector512<int>.Count || transformSize.GetHeight() < Vector512<int>.Count)
+            {
+                continue;
+            }
+
+            for (Av1TransformType transformType = 0; transformType < Av1TransformType.AllTransformTypes; transformType++)
+            {
+                Av1Transform2dFlipConfiguration allowedConfig = Av1Transform2dFlipConfiguration.CreateForward(transformType, transformSize, 8);
+                if (!allowedConfig.IsAllowed())
+                {
+                    continue;
+                }
+
+                for (int bitDepth = 8; bitDepth <= 12; bitDepth += 2)
+                {
+                    Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateForward(transformType, transformSize, bitDepth);
+                    DispatchColumn(transformType, transformSize, bitDepth, ref config);
                 }
             }
         }
@@ -352,7 +455,22 @@ public class Av1ForwardTransformTests
 
             Assert.Equal(scalar, vector256);
         }
+
+        if (width >= Vector512<int>.Count && height >= Vector512<int>.Count)
+        {
+            int[] vector512 = new int[coefficientCount];
+            int[] vector512Workspace = new int[workspaceLength];
+            Av1ForwardTransformer.Transform2dVector512<TColumnOperator, TRowOperator>(input, vector512, (uint)inputStride, ref config, vector512Workspace);
+
+            Assert.Equal(scalar, vector512);
+        }
     }
 
+    /// <summary>
+    /// Produces deterministic bounded input for one transform position and SIMD lane.
+    /// </summary>
+    /// <param name="index">The position within the transform.</param>
+    /// <param name="lane">The SIMD lane index.</param>
+    /// <returns>The input value.</returns>
     private static int GetInputValue(int index, int lane) => (((index * 73) + (lane * 151)) % 1023) - 511;
 }

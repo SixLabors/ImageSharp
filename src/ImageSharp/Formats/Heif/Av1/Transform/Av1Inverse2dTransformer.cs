@@ -257,6 +257,14 @@ internal static class Av1Inverse2dTransformer
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
 
+        if (Vector512.IsHardwareAccelerated && width >= Vector512<int>.Count && height >= Vector512<int>.Count)
+        {
+            Transform2dVector512<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
+                input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+            return;
+        }
+
         if (Vector256.IsHardwareAccelerated && width >= Vector256<int>.Count && height >= Vector256<int>.Count)
         {
             Transform2dVector256<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
@@ -275,6 +283,168 @@ internal static class Av1Inverse2dTransformer
 
         Transform2dScalar<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
             input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+    }
+
+    /// <summary>
+    /// Applies both inverse-transform axes with sixteen samples packed into each SIMD vector.
+    /// </summary>
+    /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
+    /// <typeparam name="TOutputOperator">The operator that adds and clips inverse residuals.</typeparam>
+    /// <typeparam name="TColumnOperator">The one-dimensional operator applied down each column.</typeparam>
+    /// <typeparam name="TRowOperator">The one-dimensional operator applied across each row.</typeparam>
+    /// <param name="input">The dequantized transform coefficients.</param>
+    /// <param name="outputForRead">The prediction samples.</param>
+    /// <param name="strideForRead">The number of prediction samples between rows.</param>
+    /// <param name="outputForWrite">The destination reconstruction samples.</param>
+    /// <param name="strideForWrite">The number of destination samples between rows.</param>
+    /// <param name="config">The transform dimensions, operators, flips, and fixed-point settings.</param>
+    /// <param name="workspace">The reusable storage for SIMD vectors and transposed coefficients.</param>
+    /// <param name="bitDepth">The coded sample bit depth used to clamp reconstructed values.</param>
+    public static void Transform2dVector512<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
+        Span<int> input,
+        Span<TSample> outputForRead,
+        int strideForRead,
+        Span<TSample> outputForWrite,
+        int strideForWrite,
+        ref Av1Transform2dFlipConfiguration config,
+        Span<int> workspace,
+        int bitDepth)
+        where TSample : unmanaged
+        where TOutputOperator : struct, IAv1InverseTransformOutputOperator<TSample>
+        where TColumnOperator : struct, IAv1Transform1dOperator
+        where TRowOperator : struct, IAv1Transform1dOperator
+    {
+        const int laneCount = 16;
+        const int vectorLength = Av1Constants.MaxTransformSize * laneCount;
+
+        int width = config.TransformSize.GetWidth();
+        int height = config.TransformSize.GetHeight();
+        int shift0 = config.Shift0;
+        int shift1 = config.Shift1;
+        bool normalizeRectangle = Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1;
+        byte rowClampBits = (byte)(bitDepth + 8);
+        byte columnClampBits = (byte)Math.Max(bitDepth + 6, 16);
+
+        ref int workspaceBase = ref MemoryMarshal.GetReference(workspace);
+        ref Av1TransformVector<Vector512<int>> tempIn = ref Unsafe.As<int, Av1TransformVector<Vector512<int>>>(ref workspaceBase);
+        ref Av1TransformVector<Vector512<int>> tempOut = ref Unsafe.As<int, Av1TransformVector<Vector512<int>>>(ref Unsafe.Add(ref workspaceBase, vectorLength));
+        ref Av1TransformVector<Vector512<int>> step = ref Unsafe.As<int, Av1TransformVector<Vector512<int>>>(ref Unsafe.Add(ref workspaceBase, 2 * vectorLength));
+        Span<int> buffer = workspace.Slice(Av1TransformWorkspace.Vector512StorageLength, width * height);
+        ref int inputBase = ref MemoryMarshal.GetReference(input);
+        ref int bufferBase = ref MemoryMarshal.GetReference(buffer);
+
+        // Rows are transposed into lanes so the complete 1-D operator runs once for sixteen rows.
+        for (int row = 0; row < height; row += laneCount)
+        {
+            for (int column = 0; column < width; column += laneCount)
+            {
+                Vector512<int> row0 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 0) * width) + column));
+                Vector512<int> row1 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 1) * width) + column));
+                Vector512<int> row2 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 2) * width) + column));
+                Vector512<int> row3 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 3) * width) + column));
+                Vector512<int> row4 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 4) * width) + column));
+                Vector512<int> row5 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 5) * width) + column));
+                Vector512<int> row6 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 6) * width) + column));
+                Vector512<int> row7 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 7) * width) + column));
+                Vector512<int> row8 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 8) * width) + column));
+                Vector512<int> row9 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 9) * width) + column));
+                Vector512<int> row10 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 10) * width) + column));
+                Vector512<int> row11 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 11) * width) + column));
+                Vector512<int> row12 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 12) * width) + column));
+                Vector512<int> row13 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 13) * width) + column));
+                Vector512<int> row14 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 14) * width) + column));
+                Vector512<int> row15 = Vector512.LoadUnsafe(ref inputBase, (nuint)(((row + 15) * width) + column));
+                Av1Transform2dOperations.Transpose(
+                    ref row0, ref row1, ref row2, ref row3, ref row4, ref row5, ref row6, ref row7,
+                    ref row8, ref row9, ref row10, ref row11, ref row12, ref row13, ref row14, ref row15);
+
+                tempIn[column + 0] = PrepareInverseRow(row0, normalizeRectangle, rowClampBits);
+                tempIn[column + 1] = PrepareInverseRow(row1, normalizeRectangle, rowClampBits);
+                tempIn[column + 2] = PrepareInverseRow(row2, normalizeRectangle, rowClampBits);
+                tempIn[column + 3] = PrepareInverseRow(row3, normalizeRectangle, rowClampBits);
+                tempIn[column + 4] = PrepareInverseRow(row4, normalizeRectangle, rowClampBits);
+                tempIn[column + 5] = PrepareInverseRow(row5, normalizeRectangle, rowClampBits);
+                tempIn[column + 6] = PrepareInverseRow(row6, normalizeRectangle, rowClampBits);
+                tempIn[column + 7] = PrepareInverseRow(row7, normalizeRectangle, rowClampBits);
+                tempIn[column + 8] = PrepareInverseRow(row8, normalizeRectangle, rowClampBits);
+                tempIn[column + 9] = PrepareInverseRow(row9, normalizeRectangle, rowClampBits);
+                tempIn[column + 10] = PrepareInverseRow(row10, normalizeRectangle, rowClampBits);
+                tempIn[column + 11] = PrepareInverseRow(row11, normalizeRectangle, rowClampBits);
+                tempIn[column + 12] = PrepareInverseRow(row12, normalizeRectangle, rowClampBits);
+                tempIn[column + 13] = PrepareInverseRow(row13, normalizeRectangle, rowClampBits);
+                tempIn[column + 14] = PrepareInverseRow(row14, normalizeRectangle, rowClampBits);
+                tempIn[column + 15] = PrepareInverseRow(row15, normalizeRectangle, rowClampBits);
+            }
+
+            TRowOperator.Transform(ref tempIn, ref tempOut, ref step, config.CosBitRow, config.StageRangeRow);
+
+            for (int column = 0; column < width; column += laneCount)
+            {
+                Vector512<int> row0 = Av1Transform2dOperations.RoundShift(tempOut[column + 0], -shift0);
+                Vector512<int> row1 = Av1Transform2dOperations.RoundShift(tempOut[column + 1], -shift0);
+                Vector512<int> row2 = Av1Transform2dOperations.RoundShift(tempOut[column + 2], -shift0);
+                Vector512<int> row3 = Av1Transform2dOperations.RoundShift(tempOut[column + 3], -shift0);
+                Vector512<int> row4 = Av1Transform2dOperations.RoundShift(tempOut[column + 4], -shift0);
+                Vector512<int> row5 = Av1Transform2dOperations.RoundShift(tempOut[column + 5], -shift0);
+                Vector512<int> row6 = Av1Transform2dOperations.RoundShift(tempOut[column + 6], -shift0);
+                Vector512<int> row7 = Av1Transform2dOperations.RoundShift(tempOut[column + 7], -shift0);
+                Vector512<int> row8 = Av1Transform2dOperations.RoundShift(tempOut[column + 8], -shift0);
+                Vector512<int> row9 = Av1Transform2dOperations.RoundShift(tempOut[column + 9], -shift0);
+                Vector512<int> row10 = Av1Transform2dOperations.RoundShift(tempOut[column + 10], -shift0);
+                Vector512<int> row11 = Av1Transform2dOperations.RoundShift(tempOut[column + 11], -shift0);
+                Vector512<int> row12 = Av1Transform2dOperations.RoundShift(tempOut[column + 12], -shift0);
+                Vector512<int> row13 = Av1Transform2dOperations.RoundShift(tempOut[column + 13], -shift0);
+                Vector512<int> row14 = Av1Transform2dOperations.RoundShift(tempOut[column + 14], -shift0);
+                Vector512<int> row15 = Av1Transform2dOperations.RoundShift(tempOut[column + 15], -shift0);
+                Av1Transform2dOperations.Transpose(
+                    ref row0, ref row1, ref row2, ref row3, ref row4, ref row5, ref row6, ref row7,
+                    ref row8, ref row9, ref row10, ref row11, ref row12, ref row13, ref row14, ref row15);
+
+                row0.StoreUnsafe(ref bufferBase, (nuint)(((row + 0) * width) + column));
+                row1.StoreUnsafe(ref bufferBase, (nuint)(((row + 1) * width) + column));
+                row2.StoreUnsafe(ref bufferBase, (nuint)(((row + 2) * width) + column));
+                row3.StoreUnsafe(ref bufferBase, (nuint)(((row + 3) * width) + column));
+                row4.StoreUnsafe(ref bufferBase, (nuint)(((row + 4) * width) + column));
+                row5.StoreUnsafe(ref bufferBase, (nuint)(((row + 5) * width) + column));
+                row6.StoreUnsafe(ref bufferBase, (nuint)(((row + 6) * width) + column));
+                row7.StoreUnsafe(ref bufferBase, (nuint)(((row + 7) * width) + column));
+                row8.StoreUnsafe(ref bufferBase, (nuint)(((row + 8) * width) + column));
+                row9.StoreUnsafe(ref bufferBase, (nuint)(((row + 9) * width) + column));
+                row10.StoreUnsafe(ref bufferBase, (nuint)(((row + 10) * width) + column));
+                row11.StoreUnsafe(ref bufferBase, (nuint)(((row + 11) * width) + column));
+                row12.StoreUnsafe(ref bufferBase, (nuint)(((row + 12) * width) + column));
+                row13.StoreUnsafe(ref bufferBase, (nuint)(((row + 13) * width) + column));
+                row14.StoreUnsafe(ref bufferBase, (nuint)(((row + 14) * width) + column));
+                row15.StoreUnsafe(ref bufferBase, (nuint)(((row + 15) * width) + column));
+            }
+        }
+
+        ref TSample readBase = ref MemoryMarshal.GetReference(outputForRead);
+        ref TSample writeBase = ref MemoryMarshal.GetReference(outputForWrite);
+
+        // The intermediate rows already contain contiguous column groups, avoiding a second transpose.
+        for (int column = 0; column < width; column += laneCount)
+        {
+            int sourceColumn = config.FlipLeftToRight ? width - column - laneCount : column;
+
+            for (int row = 0; row < height; row++)
+            {
+                Vector512<int> value = Vector512.LoadUnsafe(ref bufferBase, (nuint)((row * width) + sourceColumn));
+                value = config.FlipLeftToRight ? Av1Transform2dOperations.Reverse(value) : value;
+                tempIn[row] = Av1Transform1dMath.Clamp(value, columnClampBits);
+            }
+
+            TColumnOperator.Transform(ref tempIn, ref tempOut, ref step, config.CosBitColumn, config.StageRangeColumn);
+
+            for (int row = 0; row < height; row++)
+            {
+                int sourceRow = config.FlipUpsideDown ? height - row - 1 : row;
+                Vector512<int> residual = Av1Transform2dOperations.RoundShift(tempOut[sourceRow], -shift1);
+                ref TSample prediction = ref Unsafe.Add(ref readBase, (row * strideForRead) + column);
+                ref TSample destination = ref Unsafe.Add(ref writeBase, (row * strideForWrite) + column);
+                TOutputOperator.Add(ref prediction, ref destination, residual, bitDepth);
+            }
+        }
     }
 
     /// <summary>
@@ -606,6 +776,19 @@ internal static class Av1Inverse2dTransformer
     /// Applies rectangular normalization and the row-input clamp to eight coefficient lanes.
     /// </summary>
     private static Vector256<int> PrepareInverseRow(Vector256<int> value, bool normalizeRectangle, byte clampBits)
+    {
+        if (normalizeRectangle)
+        {
+            value = Av1Transform1dMath.MultiplyRound(value, Av1InverseTransformMath.NewInverseSqrt2, Av1InverseTransformMath.NewSqrt2BitCount);
+        }
+
+        return Av1Transform1dMath.Clamp(value, clampBits);
+    }
+
+    /// <summary>
+    /// Applies rectangular normalization and the row-input clamp to sixteen coefficient lanes.
+    /// </summary>
+    private static Vector512<int> PrepareInverseRow(Vector512<int> value, bool normalizeRectangle, byte clampBits)
     {
         if (normalizeRectangle)
         {

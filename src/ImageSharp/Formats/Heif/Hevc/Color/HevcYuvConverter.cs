@@ -2,9 +2,9 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Components;
+using SixLabors.ImageSharp.Formats.Heif.Components.Alpha;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
-using static SixLabors.ImageSharp.Formats.Heif.Components.HeifColorConverterBase;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Hevc.Color;
 
@@ -47,6 +47,44 @@ internal static class HevcYuvConverter
     }
 
     /// <summary>
+    /// Composes a visible HEVC luma rectangle into a packed color frame as auxiliary alpha.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination color pixel type.</typeparam>
+    /// <param name="configuration">The configuration used for allocation and pixel conversion.</param>
+    /// <param name="picture">The reconstructed HEVC picture containing the alpha luma plane.</param>
+    /// <param name="destination">The packed color frame receiving alpha values.</param>
+    /// <param name="colorProfile">The effective H.273 color description defining the luma range.</param>
+    /// <param name="chromaSampleLocation">The progressive-frame 4:2:0 chroma sample location.</param>
+    /// <param name="sourceRectangle">The visible luma rectangle within the coded picture.</param>
+    /// <param name="outputSize">The complete presented size of the auxiliary image or grid tile.</param>
+    /// <param name="destinationRectangle">The destination region receiving the top-left portion of the presented alpha image.</param>
+    /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
+    public static void ComposeAlpha<TPixel>(
+        Configuration configuration,
+        HevcPictureBuffer picture,
+        ImageFrame<TPixel> destination,
+        CicpProfile colorProfile,
+        HevcChromaSampleLocation chromaSampleLocation,
+        Rectangle sourceRectangle,
+        Size outputSize,
+        Rectangle destinationRectangle,
+        bool premultiplied)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        HeifColorConversionParameters parameters = GetConversionParameters(picture, colorProfile, out _);
+        HevcPlanarSampleBuffer buffer = new(picture, chromaSampleLocation);
+        HeifPlanarAlphaCompositor.Compose<TPixel, HevcPlanarSampleBuffer, ushort, HeifUShortSampleConverter>(
+            configuration,
+            buffer,
+            destination,
+            in parameters,
+            sourceRectangle,
+            outputSize,
+            destinationRectangle,
+            premultiplied);
+    }
+
+    /// <summary>
     /// Converts packed pixels to the configured HEVC component planes.
     /// </summary>
     /// <typeparam name="TPixel">The source pixel type.</typeparam>
@@ -65,7 +103,7 @@ internal static class HevcYuvConverter
     {
         HeifColorConversionParameters parameters = GetConversionParameters(picture, colorProfile, out HeifColorConversionMode mode);
         HevcPlanarSampleBuffer buffer = new(picture, chromaSampleLocation);
-        HeifPlanarColorConverter.ConvertFromRgb<TPixel, HevcPlanarSampleBuffer, ushort, HeifUShortSampleStorer>(
+        HeifPlanarColorConverter.ConvertFromRgb<TPixel, HevcPlanarSampleBuffer, ushort, HeifUShortSampleConverter>(
             configuration,
             image,
             buffer,

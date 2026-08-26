@@ -244,6 +244,7 @@ public class HeifSequenceParserTests
             [InvalidAv1SampleByte],
             source.AsSpan(OrangeAv1ConfigurationOffset, OrangeAv1ConfigurationLength),
             false);
+
         DecoderOptions options = new() { SegmentIntegrityHandling = handling };
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load<Rgba32>(options, data));
@@ -261,6 +262,7 @@ public class HeifSequenceParserTests
             [InvalidAv1SampleByte],
             source.AsSpan(OrangeAv1ConfigurationOffset, OrangeAv1ConfigurationLength),
             false);
+
         DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
 
         using Image<Rgba32> image = Image.Load<Rgba32>(options, data);
@@ -270,35 +272,50 @@ public class HeifSequenceParserTests
     }
 
     /// <summary>
-    /// Verifies that frame-aligned color and auxiliary AV1 samples are decoded together and the auxiliary luma
-    /// samples become the alpha channel of each presented color frame.
+    /// Verifies that an AV1 alpha track whose sequence header is not monochrome is rejected at the codec boundary.
     /// </summary>
     [Fact]
-    public void DecodeComposesFrameAlignedAv1AlphaSamples()
+    public void DecodeRejectsNonMonochromeAv1AlphaSamples()
     {
         byte[] source = TestFile.Create(TestImages.Heif.Orange4x4).Bytes;
-        byte[] data = CreateDecodableAv1SequenceWithAlphaContainer(
+        byte[] data = CreateAv1SequenceWithNonMonochromeAlphaContainer(
             source.AsSpan(OrangeAv1SampleOffset, OrangeAv1SampleLength),
             source.AsSpan(OrangeAv1ConfigurationOffset, OrangeAv1ConfigurationLength));
 
-        using Image<Rgba32> expectedColor = Image.Load<Rgba32>(source);
-        using Image<L16> expectedAlpha = Image.Load<L16>(source);
-        using Image<Rgba32> actual = Image.Load<Rgba32>(data);
-
-        Assert.Equal(2, actual.Frames.Count);
-        Assert.True(actual.Metadata.GetHeifMetadata().HasAlpha);
-        foreach (ImageFrame<Rgba32> frame in actual.Frames)
+        Assert.Throws<InvalidImageContentException>(() =>
         {
-            for (int y = 0; y < frame.Height; y++)
+            using Image<Rgba32> image = Image.Load<Rgba32>(data);
+        });
+    }
+
+    /// <summary>
+    /// Verifies that a genuine libavif alpha sequence composes its first retained frame from the linked monochrome
+    /// auxiliary track instead of returning the color frame as opaque.
+    /// </summary>
+    [Fact]
+    public void DecodeComposesFirstRealLibavifAlphaSequenceFrame()
+    {
+        DecoderOptions options = new() { MaxFrames = 1 };
+        TestFile file = TestFile.Create(TestImages.Heif.Animated8BitWithAlphaExifXmp);
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, file.Bytes);
+
+        Assert.Single(image.Frames);
+        Assert.True(image.Metadata.GetHeifMetadata().HasAlpha);
+        bool hasNonOpaqueSample = false;
+        for (int y = 0; y < image.Height && !hasNonOpaqueSample; y++)
+        {
+            foreach (Rgba32 pixel in image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y))
             {
-                for (int x = 0; x < frame.Width; x++)
+                if (pixel.A != byte.MaxValue)
                 {
-                    Rgba64 expected = Rgba64.FromRgba32(expectedColor[x, y]);
-                    expected.A = expectedAlpha[x, y].PackedValue;
-                    Assert.Equal(expected.ToRgba32(), frame[x, y]);
+                    hasNonOpaqueSample = true;
+                    break;
                 }
             }
         }
+
+        Assert.True(hasNonOpaqueSample);
     }
 
     /// <summary>
@@ -1005,13 +1022,12 @@ public class HeifSequenceParserTests
     }
 
     /// <summary>
-    /// Builds two frame-aligned color and alpha AV1 tracks using a sample that is independently decodable as both
-    /// color and monochrome luma, allowing alpha composition to be tested without an encoder dependency.
+    /// Builds two frame-aligned AV1 tracks that intentionally reuse a color sample for the declared alpha track.
     /// </summary>
     /// <param name="sample">The AV1 sample payload stored in every color and alpha frame.</param>
     /// <param name="configuration">The AV1CodecConfigurationBox payload describing the sample.</param>
     /// <returns>The complete synthetic AVIF byte stream.</returns>
-    private static byte[] CreateDecodableAv1SequenceWithAlphaContainer(ReadOnlySpan<byte> sample, ReadOnlySpan<byte> configuration)
+    private static byte[] CreateAv1SequenceWithNonMonochromeAlphaContainer(ReadOnlySpan<byte> sample, ReadOnlySpan<byte> configuration)
     {
         uint colorChunkOffset = FileTypeBoxLength + SyntheticFileLength;
         uint alphaChunkOffset = colorChunkOffset + (uint)(sample.Length * 2);

@@ -37,6 +37,20 @@ internal readonly partial struct Av1Identity4Forward1dOperator
         _ = cosBit;
         _ = stageRange;
     }
+
+    /// <inheritdoc/>
+    public static void Transform(
+        ref Av1TransformVector<Vector512<int>> input,
+        ref Av1TransformVector<Vector512<int>> output,
+        ref Av1TransformVector<Vector512<int>> step,
+        int cosBit,
+        Av1TransformStageRange stageRange)
+    {
+        Av1IdentityTransform1d.Transform(ref input, ref output, 4, Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+        _ = step;
+        _ = cosBit;
+        _ = stageRange;
+    }
 }
 
 /// <content>
@@ -63,6 +77,20 @@ internal readonly partial struct Av1Identity8Forward1dOperator
         ref Av1TransformVector<Vector256<int>> input,
         ref Av1TransformVector<Vector256<int>> output,
         ref Av1TransformVector<Vector256<int>> step,
+        int cosBit,
+        Av1TransformStageRange stageRange)
+    {
+        Av1IdentityTransform1d.Transform(ref input, ref output, 8, 2, 0);
+        _ = step;
+        _ = cosBit;
+        _ = stageRange;
+    }
+
+    /// <inheritdoc/>
+    public static void Transform(
+        ref Av1TransformVector<Vector512<int>> input,
+        ref Av1TransformVector<Vector512<int>> output,
+        ref Av1TransformVector<Vector512<int>> step,
         int cosBit,
         Av1TransformStageRange stageRange)
     {
@@ -105,6 +133,20 @@ internal readonly partial struct Av1Identity16Forward1dOperator
         _ = cosBit;
         _ = stageRange;
     }
+
+    /// <inheritdoc/>
+    public static void Transform(
+        ref Av1TransformVector<Vector512<int>> input,
+        ref Av1TransformVector<Vector512<int>> output,
+        ref Av1TransformVector<Vector512<int>> step,
+        int cosBit,
+        Av1TransformStageRange stageRange)
+    {
+        Av1IdentityTransform1d.Transform(ref input, ref output, 16, 2 * Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+        _ = step;
+        _ = cosBit;
+        _ = stageRange;
+    }
 }
 
 /// <content>
@@ -131,6 +173,20 @@ internal readonly partial struct Av1Identity32Forward1dOperator
         ref Av1TransformVector<Vector256<int>> input,
         ref Av1TransformVector<Vector256<int>> output,
         ref Av1TransformVector<Vector256<int>> step,
+        int cosBit,
+        Av1TransformStageRange stageRange)
+    {
+        Av1IdentityTransform1d.Transform(ref input, ref output, 32, 4, 0);
+        _ = step;
+        _ = cosBit;
+        _ = stageRange;
+    }
+
+    /// <inheritdoc/>
+    public static void Transform(
+        ref Av1TransformVector<Vector512<int>> input,
+        ref Av1TransformVector<Vector512<int>> output,
+        ref Av1TransformVector<Vector512<int>> step,
         int cosBit,
         Av1TransformStageRange stageRange)
     {

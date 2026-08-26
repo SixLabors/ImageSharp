@@ -46,4 +46,22 @@ internal readonly struct Av1ByteInverseTransformOutputOperator : IAv1InverseTran
         Unsafe.WriteUnaligned(ref destination, reconstructed8.AsUInt64().ToScalar());
         _ = bitDepth;
     }
+
+    /// <inheritdoc/>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Add(ref byte prediction, ref byte destination, Vector512<int> residual, int bitDepth)
+    {
+        // Residuals occupy signed 32-bit lanes, so widen the sixteen packed predictions before adding. The clamp
+        // then guarantees that both narrowing steps preserve the reconstructed byte values exactly.
+        Vector128<byte> packed = Vector128.LoadUnsafe(ref prediction);
+        (Vector128<ushort> predicted16Lower, Vector128<ushort> predicted16Upper) = Vector128.Widen(packed);
+        Vector256<int> predicted32Lower = Vector256.Create(Vector128.WidenLower(predicted16Lower), Vector128.WidenUpper(predicted16Lower)).AsInt32();
+        Vector256<int> predicted32Upper = Vector256.Create(Vector128.WidenLower(predicted16Upper), Vector128.WidenUpper(predicted16Upper)).AsInt32();
+        Vector512<int> predicted32 = Vector512.Create(predicted32Lower, predicted32Upper);
+        Vector512<int> reconstructed = Vector512.Clamp(predicted32 + residual, Vector512<int>.Zero, Vector512.Create((int)byte.MaxValue));
+        Vector256<ushort> reconstructed16 = Vector256.Narrow(reconstructed.GetLower().AsUInt32(), reconstructed.GetUpper().AsUInt32());
+        Vector128<byte> reconstructed8 = Vector128.Narrow(reconstructed16.GetLower(), reconstructed16.GetUpper());
+        reconstructed8.StoreUnsafe(ref destination);
+        _ = bitDepth;
+    }
 }

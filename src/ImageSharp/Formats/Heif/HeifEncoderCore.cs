@@ -448,7 +448,7 @@ internal sealed class HeifEncoderCore
             throw new NotSupportedException("Legacy JPEG image items do not support lossless encoding.");
         }
 
-        if (this.encoder.BitDepth is not null && this.encoder.BitDepth != HeifBitDepth.Bit8)
+        if (this.encoder.BitDepth is not null and not HeifBitDepth.Bit8)
         {
             throw new NotSupportedException("Legacy JPEG image items support only 8-bit component encoding.");
         }

@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 
 /// <summary>
 /// Stores the AV1 DC and AC dequantization values for every segment and color plane in a frame.

@@ -5,7 +5,6 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
-using static SixLabors.ImageSharp.Formats.Heif.Components.HeifColorConverterBase;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
@@ -131,9 +130,9 @@ internal static partial class HeifYuv420ToRgb8Converter
                 Vector512<int> cr = LoadRepeatedVector512(ref Unsafe.Add(ref chromaRedBase, x >> 1));
 
                 TOperator.Convert(y, cb, cr, in parameters.SixteenLane, out Vector512<int> r, out Vector512<int> g, out Vector512<int> b);
-                HeifByteSampleStorer.Store(r, ref Unsafe.Add(ref redBase, x));
-                HeifByteSampleStorer.Store(g, ref Unsafe.Add(ref greenBase, x));
-                HeifByteSampleStorer.Store(b, ref Unsafe.Add(ref blueBase, x));
+                HeifByteSampleConverter.Store(r, ref Unsafe.Add(ref redBase, x));
+                HeifByteSampleConverter.Store(g, ref Unsafe.Add(ref greenBase, x));
+                HeifByteSampleConverter.Store(b, ref Unsafe.Add(ref blueBase, x));
             }
         }
 
@@ -148,9 +147,9 @@ internal static partial class HeifYuv420ToRgb8Converter
                 Vector256<int> cr = LoadRepeatedVector256(ref Unsafe.Add(ref chromaRedBase, x >> 1));
 
                 TOperator.Convert(y, cb, cr, in parameters.EightLane, out Vector256<int> r, out Vector256<int> g, out Vector256<int> b);
-                HeifByteSampleStorer.Store(r, ref Unsafe.Add(ref redBase, x));
-                HeifByteSampleStorer.Store(g, ref Unsafe.Add(ref greenBase, x));
-                HeifByteSampleStorer.Store(b, ref Unsafe.Add(ref blueBase, x));
+                HeifByteSampleConverter.Store(r, ref Unsafe.Add(ref redBase, x));
+                HeifByteSampleConverter.Store(g, ref Unsafe.Add(ref greenBase, x));
+                HeifByteSampleConverter.Store(b, ref Unsafe.Add(ref blueBase, x));
             }
         }
 
@@ -165,9 +164,9 @@ internal static partial class HeifYuv420ToRgb8Converter
                 Vector128<int> cr = LoadRepeatedVector128(ref Unsafe.Add(ref chromaRedBase, x >> 1));
 
                 TOperator.Convert(y, cb, cr, in parameters.FourLane, out Vector128<int> r, out Vector128<int> g, out Vector128<int> b);
-                HeifByteSampleStorer.Store(r, ref Unsafe.Add(ref redBase, x));
-                HeifByteSampleStorer.Store(g, ref Unsafe.Add(ref greenBase, x));
-                HeifByteSampleStorer.Store(b, ref Unsafe.Add(ref blueBase, x));
+                HeifByteSampleConverter.Store(r, ref Unsafe.Add(ref redBase, x));
+                HeifByteSampleConverter.Store(g, ref Unsafe.Add(ref greenBase, x));
+                HeifByteSampleConverter.Store(b, ref Unsafe.Add(ref blueBase, x));
             }
         }
 

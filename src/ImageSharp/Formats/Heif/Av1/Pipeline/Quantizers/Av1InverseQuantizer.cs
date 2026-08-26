@@ -5,7 +5,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantification;
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 
 /// <summary>
 /// Reconstructs AV1 transform coefficients from quantized coefficient levels.
@@ -101,8 +101,8 @@ internal class Av1InverseQuantizer
             ? Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1
             : this.frameHeader.SegmentationParameters.QMLevel[(int)plane][mode.SegmentId];
 
-        ReadOnlySpan<int> iqMatrix = (transformType.ToClass() == Av1TransformClass.Class2D) ?
-            Av1InverseQuantizationLookup.GetQuantizationMatrix(qmLevel, plane, transformSize)
+        ReadOnlySpan<int> iqMatrix = (transformType.ToClass() == Av1TransformClass.Class2D)
+            ? Av1InverseQuantizationLookup.GetQuantizationMatrix(qmLevel, plane, transformSize)
             : Av1InverseQuantizationLookup.GetQuantizationMatrix(Av1Constants.QuantificationMatrixLevelCount - 1, Av1Plane.Y, transformSize);
 
         int shift = transformSize.GetScale();

@@ -6,6 +6,7 @@ using System.Buffers.Binary;
 using System.Text;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Components.Alpha;
 using SixLabors.ImageSharp.Formats.Heif.Hevc;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -330,33 +331,14 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 for (int frameIndex = 0; frameIndex < colorFrames.Length; frameIndex++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    ImageFrame<L16>? alphaFrame = null;
                     HeifSequenceSample alphaSample = alphaTrack.Samples[sampleIndices[frameIndex]];
                     this.ExecuteImageDataSegmentAction(
-                        () => alphaFrame = this.DecodeSequenceFrame<L16>(stream, alphaTrack, alphaSample));
-
-                    if (alphaFrame is null)
-                    {
-                        continue;
-                    }
-
-                    if (alphaFrame.Size == colorFrames[frameIndex].Size)
-                    {
-                        using (alphaFrame)
-                        {
-                            this.ApplyAlpha(colorFrames[frameIndex], alphaFrame, colorTrack.IsPremultiplied);
-                        }
-                    }
-                    else
-                    {
-                        // Auxiliary planes may use a lower resolution. Adopt the decoded frame into a temporary
-                        // image so the established box resampler can resize it without another source-frame clone.
-                        using Image<L16> alphaImage = new(this.configuration, new ImageMetadata(), [alphaFrame]);
-                        alphaImage.Mutate(
-                            context => context.Resize(colorFrames[frameIndex].Width, colorFrames[frameIndex].Height, KnownResamplers.Box));
-
-                        this.ApplyAlpha(colorFrames[frameIndex], alphaImage.Frames.RootFrame, colorTrack.IsPremultiplied);
-                    }
+                        () => this.DecodeSequenceAlphaFrame(
+                            stream,
+                            alphaTrack,
+                            alphaSample,
+                            colorFrames[frameIndex],
+                            colorTrack.IsPremultiplied));
                 }
             }
 
@@ -499,19 +481,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         Av1CodecConfiguration codecConfiguration = track.Av1CodecConfiguration
             ?? throw new InvalidImageContentException("The AV1 image-sequence track has no codec configuration.");
 
-        using IMemoryOwner<byte> sampleOwner = this.configuration.MemoryAllocator.Allocate<byte>(sample.Length);
+        using IMemoryOwner<byte> sampleOwner = this.ReadSequenceSample(stream, track, sample);
         Span<byte> sampleData = sampleOwner.GetSpan()[..sample.Length];
-        stream.Position = sample.Offset;
-        HeifBoxReader.ReadExactly(stream, sampleData, "The HEIF image-sequence sample is truncated.");
-
-        codecConfiguration.ValidateSampleData(
-            sampleData,
-            sample.IsSync,
-            track.ContentLightLevel,
-            track.MasteringDisplayColorVolume,
-            this.Options,
-            out _,
-            out _);
 
         using Av1Decoder decoder = new(this.configuration);
         ImageFrame<TPixel> frame = decoder.DecodeFrame<TPixel>(
@@ -527,6 +498,89 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         }
 
         return frame;
+    }
+
+    /// <summary>
+    /// Decodes one AV1 auxiliary sample and composes its native luma plane directly into a color frame.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination color pixel type.</typeparam>
+    /// <param name="stream">The complete seekable HEIF stream.</param>
+    /// <param name="track">The alpha track supplying the codec configuration and color description.</param>
+    /// <param name="sample">The validated alpha sample range.</param>
+    /// <param name="destination">The decoded color frame receiving alpha values.</param>
+    /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
+    private void DecodeSequenceAlphaFrame<TPixel>(
+        BufferedReadStream stream,
+        HeifSequenceTrack track,
+        HeifSequenceSample sample,
+        ImageFrame<TPixel> destination,
+        bool premultiplied)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (track.CodecType != Heif4CharCode.Av01)
+        {
+            throw new ImageFormatException($"No decoder is available for image-sequence alpha sample type '{track.CodecType}'.");
+        }
+
+        Av1CodecConfiguration codecConfiguration = track.Av1CodecConfiguration
+            ?? throw new InvalidImageContentException("The AV1 alpha image-sequence track has no codec configuration.");
+
+        if (!codecConfiguration.IsMonochrome)
+        {
+            throw new InvalidImageContentException("An AV1 alpha image-sequence track must be encoded as monochrome.");
+        }
+
+        using IMemoryOwner<byte> sampleOwner = this.ReadSequenceSample(stream, track, sample);
+        Span<byte> sampleData = sampleOwner.GetSpan()[..sample.Length];
+        using Av1Decoder decoder = new(this.configuration);
+        decoder.DecodeAlpha(
+            sampleData,
+            track.CicpProfile,
+            codecConfiguration,
+            new Size(track.CodedWidth, track.CodedHeight),
+            destination,
+            destination.Size,
+            destination.Bounds,
+            premultiplied);
+    }
+
+    /// <summary>
+    /// Reads and validates one bounded AV1 sequence sample into allocator-owned codec input storage.
+    /// </summary>
+    /// <param name="stream">The complete seekable HEIF stream.</param>
+    /// <param name="track">The track supplying the codec configuration and color description.</param>
+    /// <param name="sample">The validated sample range.</param>
+    /// <returns>The allocator-owned buffer containing the validated coded sample.</returns>
+    private IMemoryOwner<byte> ReadSequenceSample(
+        BufferedReadStream stream,
+        HeifSequenceTrack track,
+        HeifSequenceSample sample)
+    {
+        Av1CodecConfiguration codecConfiguration = track.Av1CodecConfiguration
+            ?? throw new InvalidImageContentException("The AV1 image-sequence track has no codec configuration.");
+
+        IMemoryOwner<byte> sampleOwner = this.configuration.MemoryAllocator.Allocate<byte>(sample.Length);
+        try
+        {
+            Span<byte> sampleData = sampleOwner.GetSpan()[..sample.Length];
+            stream.Position = sample.Offset;
+            HeifBoxReader.ReadExactly(stream, sampleData, "The HEIF image-sequence sample is truncated.");
+            codecConfiguration.ValidateSampleData(
+                sampleData,
+                sample.IsSync,
+                track.ContentLightLevel,
+                track.MasteringDisplayColorVolume,
+                this.Options,
+                out _,
+                out _);
+
+            return sampleOwner;
+        }
+        catch
+        {
+            sampleOwner.Dispose();
+            throw;
+        }
     }
 
     /// <summary>
@@ -2129,18 +2183,9 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         try
         {
-            Image<L16>? alphaImage = null;
-            bool alphaPremultiplied = false;
+            bool hasAlpha = false;
             this.ExecuteImageDataSegmentAction(
-                () => alphaImage = this.DecodeAlphaPlane(itemToDecode, buffers, cancellationToken, out alphaPremultiplied));
-
-            using (alphaImage)
-            {
-                if (alphaImage is not null)
-                {
-                    this.ApplyAlpha(image, alphaImage, alphaPremultiplied);
-                }
-            }
+                () => hasAlpha = this.DecodeAlphaPlane(itemToDecode, buffers, image.Frames.RootFrame, cancellationToken));
 
             if (!this.Options.SkipMetadata)
             {
@@ -2167,7 +2212,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             // and a thumbnail fallback when the primary image compression is not available.
             HeifMetadata meta = image.Metadata.GetHeifMetadata();
             meta.CompressionMethod = itemDecoder.CompressionMethod;
-            meta.HasAlpha = alphaImage is not null;
+            meta.HasAlpha = hasAlpha;
             if (this.Options.SkipMetadata)
             {
                 // AV1 item decoders still parse encoded metadata to enforce codec/container equivalence and select
@@ -2557,20 +2602,21 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Decodes the direct or per-grid-tile alpha auxiliary plane associated with a color image item.
+    /// Decodes and composes the direct or per-grid-tile alpha auxiliary associated with a color image item.
     /// </summary>
+    /// <typeparam name="TPixel">The destination color pixel type.</typeparam>
     /// <param name="colorItem">The color image item whose alpha plane is requested.</param>
     /// <param name="buffers">The assembled item payloads.</param>
+    /// <param name="destination">The decoded color frame receiving alpha values.</param>
     /// <param name="cancellationToken">The token used to cancel the auxiliary payload decode.</param>
-    /// <param name="premultiplied">Indicates whether the color samples are premultiplied by the decoded alpha.</param>
-    /// <returns>The normalized 16-bit alpha plane, or <see langword="null"/> when the item has no alpha auxiliary.</returns>
-    private Image<L16>? DecodeAlphaPlane(
+    /// <returns><see langword="true"/> when an auxiliary alpha plane was decoded and composed.</returns>
+    private bool DecodeAlphaPlane<TPixel>(
         HeifItem colorItem,
         DisposableDictionary<uint, IMemoryOwner<byte>> buffers,
-        CancellationToken cancellationToken,
-        out bool premultiplied)
+        ImageFrame<TPixel> destination,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
-        premultiplied = false;
         HeifItem? alphaItem = this.FindAlphaItem(colorItem);
         if (alphaItem is not null)
         {
@@ -2590,29 +2636,44 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 throw new ImageFormatException("The alpha auxiliary image and color image use different presentation transforms.");
             }
 
-            IHeifItemDecoder<L16>? decoder = this.GetItemDecoder<L16>(alphaItem, buffers);
-            if (decoder is null)
+            IHeifItemDecoder<TPixel>? itemDecoder = this.GetItemDecoder<TPixel>(alphaItem, buffers);
+            if (itemDecoder is not IHeifAlphaItemDecoder<TPixel> decoder)
             {
                 throw new ImageFormatException($"The alpha auxiliary item uses unsupported item type '{alphaItem.Type}'.");
             }
 
-            premultiplied = this.itemLinks.Any(
+            bool premultiplied = this.itemLinks.Any(
                 link => link.Type == Heif4CharCode.Prem
                     && link.SourceId == colorItem.Id
                     && link.DestinationIds.Contains(alphaItem.Id));
 
-            return this.DecodeImageItem(alphaItem, decoder, buffers, cancellationToken);
+            if (!buffers.TryGetValue(alphaItem.Id, out IMemoryOwner<byte>? itemMemory))
+            {
+                throw new InvalidImageContentException($"Item {alphaItem.Id} has no data extents.");
+            }
+
+            decoder.DecodeAlphaItemData(
+                this.payloadOptions,
+                alphaItem,
+                itemMemory.GetSpan(),
+                destination,
+                destination.Size,
+                destination.Bounds,
+                premultiplied,
+                cancellationToken);
+
+            return true;
         }
 
         if (colorItem.Type != Heif4CharCode.Grid)
         {
-            return null;
+            return false;
         }
 
         List<uint>? alphaTileIds = this.FindGridAlphaTiles(colorItem);
         if (alphaTileIds is null)
         {
-            return null;
+            return false;
         }
 
         if (!buffers.TryGetValue(colorItem.Id, out IMemoryOwner<byte>? gridMemory))
@@ -2622,71 +2683,23 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         // The color grid descriptor defines the same row/column layout and output canvas for per-tile alpha
         // auxiliaries. Supplying their IDs lets the existing grid compositor preserve that normative ordering.
-        GridHeifItemDecoder<L16> gridDecoder = new(
+        GridHeifItemDecoder<TPixel> gridDecoder = new(
             this.items,
             this.itemLinks,
             buffers,
             alphaTileIds);
 
-        return gridDecoder.DecodeItemData(this.payloadOptions, colorItem, gridMemory.GetSpan(), null, cancellationToken);
-    }
+        gridDecoder.DecodeAlphaItemData(
+            this.payloadOptions,
+            colorItem,
+            gridMemory.GetSpan(),
+            destination,
+            destination.Size,
+            destination.Bounds,
+            false,
+            cancellationToken);
 
-    /// <summary>
-    /// Composes a normalized alpha plane into a decoded color image.
-    /// </summary>
-    /// <typeparam name="TPixel">The decoded color pixel format.</typeparam>
-    /// <param name="image">The decoded color image.</param>
-    /// <param name="alphaImage">The normalized 16-bit alpha plane.</param>
-    /// <param name="premultiplied">Whether the stored color values must be converted to unassociated alpha.</param>
-    private void ApplyAlpha<TPixel>(Image<TPixel> image, Image<L16> alphaImage, bool premultiplied)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        if (alphaImage.Width != image.Width || alphaImage.Height != image.Height)
-        {
-            // HEIF permits auxiliary alpha dimensions to differ from the master image. libavif uses a box filter
-            // for this plane scaling, which maps directly to ImageSharp's existing resampler.
-            alphaImage.Mutate(context => context.Resize(image.Width, image.Height, KnownResamplers.Box));
-        }
-
-        this.ApplyAlpha(image.Frames.RootFrame, alphaImage.Frames.RootFrame, premultiplied);
-    }
-
-    /// <summary>
-    /// Composes one same-sized auxiliary alpha frame into a decoded color frame.
-    /// </summary>
-    /// <typeparam name="TPixel">The destination color pixel format.</typeparam>
-    /// <param name="colorFrame">The decoded color frame receiving alpha values.</param>
-    /// <param name="alphaFrame">The decoded same-sized 16-bit alpha frame.</param>
-    /// <param name="premultiplied">Whether the encoded color samples are premultiplied by alpha.</param>
-    private void ApplyAlpha<TPixel>(ImageFrame<TPixel> colorFrame, ImageFrame<L16> alphaFrame, bool premultiplied)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using IMemoryOwner<Rgba64> rowOwner = this.configuration.MemoryAllocator.Allocate<Rgba64>(colorFrame.Width);
-        Span<Rgba64> rgbaRow = rowOwner.GetSpan()[..colorFrame.Width];
-        PixelOperations<TPixel> pixelOperations = PixelOperations<TPixel>.Instance;
-        for (int y = 0; y < colorFrame.Height; y++)
-        {
-            Span<TPixel> colorRow = colorFrame.PixelBuffer.DangerousGetRowSpan(y);
-            Span<L16> alphaRow = alphaFrame.PixelBuffer.DangerousGetRowSpan(y);
-            pixelOperations.ToRgba64(this.configuration, colorRow, rgbaRow);
-            for (int x = 0; x < colorFrame.Width; x++)
-            {
-                Rgba64 pixel = rgbaRow[x];
-                pixel.A = alphaRow[x].PackedValue;
-                if (premultiplied)
-                {
-                    // libavif defines transparent premultiplied samples as transparent black. For nonzero alpha,
-                    // reuse the packed pixel's associated-input conversion so clamping and rounding follow ImageSharp.
-                    pixel = pixel.A == 0
-                        ? new Rgba64(0, 0, 0, 0)
-                        : Rgba64.FromAssociatedScaledVector4(pixel.ToScaledVector4());
-                }
-
-                rgbaRow[x] = pixel;
-            }
-
-            pixelOperations.FromRgba64(this.configuration, rgbaRow, colorRow);
-        }
+        return true;
     }
 
     /// <summary>

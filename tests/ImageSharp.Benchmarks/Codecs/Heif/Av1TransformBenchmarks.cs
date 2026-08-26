@@ -143,6 +143,21 @@ public class Av1TransformBenchmarks
     }
 
     /// <summary>
+    /// Measures the Vector512 thirty-two-by-thirty-two forward DCT traversal.
+    /// </summary>
+    /// <returns>The last coefficient written by the transform.</returns>
+    [Benchmark]
+    [BenchmarkCategory("Forward32x32")]
+    public int Forward32x32Vector512()
+    {
+        Av1Transform2dFlipConfiguration config = CreateForwardConfiguration(Av1TransformSize.Size32x32, 10);
+        Av1ForwardTransformer.Transform2dVector512<Av1Dct32Forward1dOperator, Av1Dct32Forward1dOperator>(
+            this.spatial, this.coefficients, 32, ref config, this.workspace);
+
+        return this.coefficients[^1];
+    }
+
+    /// <summary>
     /// Measures runtime dispatch of a thirty-two-by-thirty-two forward DCT block.
     /// </summary>
     /// <returns>The last coefficient written by the transform.</returns>
@@ -265,6 +280,21 @@ public class Av1TransformBenchmarks
     {
         Av1Transform2dFlipConfiguration config = CreateInverseConfiguration(Av1TransformSize.Size32x32, 8);
         Av1Inverse2dTransformer.Transform2dVector256<byte, Av1ByteInverseTransformOutputOperator, Av1Dct32Inverse1dOperator, Av1Dct32Inverse1dOperator>(
+            this.coefficients, this.prediction, 32, this.reconstruction, 32, ref config, this.workspace, 8);
+
+        return this.reconstruction[^1];
+    }
+
+    /// <summary>
+    /// Measures the Vector512 thirty-two-by-thirty-two inverse DCT and byte reconstruction traversal.
+    /// </summary>
+    /// <returns>The last reconstructed sample.</returns>
+    [Benchmark]
+    [BenchmarkCategory("Inverse32x32")]
+    public byte Inverse32x32Vector512()
+    {
+        Av1Transform2dFlipConfiguration config = CreateInverseConfiguration(Av1TransformSize.Size32x32, 8);
+        Av1Inverse2dTransformer.Transform2dVector512<byte, Av1ByteInverseTransformOutputOperator, Av1Dct32Inverse1dOperator, Av1Dct32Inverse1dOperator>(
             this.coefficients, this.prediction, 32, this.reconstruction, 32, ref config, this.workspace, 8);
 
         return this.reconstruction[^1];

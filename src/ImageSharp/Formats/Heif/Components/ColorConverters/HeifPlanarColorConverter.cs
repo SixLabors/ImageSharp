@@ -7,7 +7,6 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using static SixLabors.ImageSharp.Formats.Heif.Components.HeifColorConverterBase;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
@@ -64,7 +63,7 @@ internal static class HeifPlanarColorConverter
             return;
         }
 
-        ConvertToRgb<TPixel, TBuffer, ushort, HeifUShortSampleLoader>(
+        ConvertToRgb<TPixel, TBuffer, ushort, HeifUShortSampleConverter>(
             configuration,
             buffer,
             image,
@@ -99,7 +98,7 @@ internal static class HeifPlanarColorConverter
         where TPixel : unmanaged, IPixel<TPixel>
         where TBuffer : struct, IHeifPlanarSampleBuffer<TSample>
         where TSample : unmanaged
-        where TLoader : struct, IHeifSampleLoader<TSample>
+        where TLoader : struct, IHeifSampleConverter<TSample>
     {
         HeifColorConverterBase colorConverter = HeifColorConverterBase.Create(mode, in parameters, buffer.IsMonochrome);
         YuvToRgbRowConverter<TPixel, TBuffer, TSample, TLoader> converter = new(
@@ -139,7 +138,7 @@ internal static class HeifPlanarColorConverter
         where TPixel : unmanaged, IPixel<TPixel>
         where TBuffer : struct, IHeifPlanarSampleBuffer<TSample>
         where TSample : unmanaged
-        where TStorer : struct, IHeifSampleStorer<TSample>
+        where TStorer : struct, IHeifSampleConverter<TSample>
     {
         HeifColorConverterBase colorConverter = HeifColorConverterBase.Create(mode, in parameters, buffer.IsMonochrome);
         RgbToYuvRowConverter<TPixel, TBuffer, TSample, TStorer> converter = new(
@@ -209,7 +208,7 @@ internal static class HeifPlanarColorConverter
         where TPixel : unmanaged, IPixel<TPixel>
         where TBuffer : struct, IHeifPlanarSampleBuffer<TSample>
         where TSample : unmanaged
-        where TLoader : struct, IHeifSampleLoader<TSample>
+        where TLoader : struct, IHeifSampleConverter<TSample>
     {
         /// <summary>
         /// The configuration used for packed-pixel conversion.
@@ -364,7 +363,7 @@ internal static class HeifPlanarColorConverter
             Span<float> blue = scratch.Slice(width * 2, width);
             int sourceY = y + this.sourceY;
             ReadOnlySpan<TSample> luma = this.buffer.GetLumaRowSpan(sourceY).Slice(this.sourceX, width);
-            ConvertSamplesToFloat<TSample, TLoader>(luma, red);
+            HeifSampleConversion.ConvertSamplesToFloat<TSample, TLoader>(luma, red);
 
             int packedOffset = width * 3;
             if (!this.isMonochrome)
@@ -384,8 +383,8 @@ internal static class HeifPlanarColorConverter
                 ReadOnlySpan<TSample> cr1 = this.buffer.GetChromaRedRowSpan(y1);
                 if (this.subsamplingX == 0)
                 {
-                    ConvertSamplesToFloat<TSample, TLoader>(cb0.Slice(this.sourceX, width), green);
-                    ConvertSamplesToFloat<TSample, TLoader>(cr0.Slice(this.sourceX, width), blue);
+                    HeifSampleConversion.ConvertSamplesToFloat<TSample, TLoader>(cb0.Slice(this.sourceX, width), green);
+                    HeifSampleConversion.ConvertSamplesToFloat<TSample, TLoader>(cr0.Slice(this.sourceX, width), blue);
                 }
                 else
                 {
@@ -397,7 +396,7 @@ internal static class HeifPlanarColorConverter
 
                     bool isCenteredX = this.chromaPositionX == 1;
 
-                    ReconstructChromaRow<TSample, TLoader>(
+                    HeifSampleConversion.ReconstructChromaRow<TSample, TLoader>(
                         cb0,
                         cb1,
                         y1Weight,
@@ -413,7 +412,7 @@ internal static class HeifPlanarColorConverter
                     }
 
                     reconstructed = this.reconstructCompleteRow ? reconstructed : blue;
-                    ReconstructChromaRow<TSample, TLoader>(
+                    HeifSampleConversion.ReconstructChromaRow<TSample, TLoader>(
                         cr0,
                         cr1,
                         y1Weight,
@@ -452,7 +451,7 @@ internal static class HeifPlanarColorConverter
             }
 
             Span<Rgba64> packed = MemoryMarshal.Cast<float, Rgba64>(packedStorage)[..width];
-            PackRgba64(red, green, blue, packed);
+            HeifSampleConversion.PackRgba64(red, green, blue, packed);
             PixelOperations<TPixel>.Instance.FromRgba64(this.configuration, packed, destination);
         }
     }
@@ -468,7 +467,7 @@ internal static class HeifPlanarColorConverter
         where TPixel : unmanaged, IPixel<TPixel>
         where TBuffer : struct, IHeifPlanarSampleBuffer<TSample>
         where TSample : unmanaged
-        where TStorer : struct, IHeifSampleStorer<TSample>
+        where TStorer : struct, IHeifSampleConverter<TSample>
     {
         /// <summary>
         /// The configuration used for packed-pixel conversion.
@@ -585,7 +584,7 @@ internal static class HeifPlanarColorConverter
                 for (int y = 0; y < this.image.Height; y++)
                 {
                     this.ConvertSourceRow(y, packed, luma0, blue0, red0);
-                    WriteSamples<TSample, TStorer>(
+                    HeifSampleConversion.WriteSamples<TSample, TStorer>(
                         luma0,
                         this.buffer.GetLumaRowSpan(y),
                         this.colorConverter.LumaScale,
@@ -611,7 +610,7 @@ internal static class HeifPlanarColorConverter
                 // unit removes per-row state and lets the selected chroma position choose or average the two rows.
                 int sourceY = destinationY << 1;
                 this.ConvertSourceRow(sourceY, packed, luma0, blue0, red0);
-                WriteSamples<TSample, TStorer>(
+                HeifSampleConversion.WriteSamples<TSample, TStorer>(
                     luma0,
                     this.buffer.GetLumaRowSpan(sourceY),
                     this.colorConverter.LumaScale,
@@ -622,7 +621,7 @@ internal static class HeifPlanarColorConverter
                 if (hasSecondRow)
                 {
                     this.ConvertSourceRow(sourceY + 1, packed, luma1, blue1, red1);
-                    WriteSamples<TSample, TStorer>(
+                    HeifSampleConversion.WriteSamples<TSample, TStorer>(
                         luma1,
                         this.buffer.GetLumaRowSpan(sourceY + 1),
                         this.colorConverter.LumaScale,
@@ -671,7 +670,7 @@ internal static class HeifPlanarColorConverter
             }
 
             PixelOperations<TPixel>.Instance.ToRgb48(this.configuration, source, packed);
-            DeinterleaveRgb48(packed, luma, chromaBlue, chromaRed);
+            HeifSampleConversion.DeinterleaveRgb48(packed, luma, chromaBlue, chromaRed);
             this.colorConverter.ConvertFromRgbInPlace(luma, chromaBlue, chromaRed, UShortMaximum);
         }
 
@@ -696,14 +695,14 @@ internal static class HeifPlanarColorConverter
             Span<TSample> redDestination = this.buffer.GetChromaRedRowSpan(destinationY);
             if (this.subsamplingX == 0)
             {
-                WriteSamples<TSample, TStorer>(
+                HeifSampleConversion.WriteSamples<TSample, TStorer>(
                     blue0,
                     blueDestination,
                     this.colorConverter.ChromaScale,
                     this.colorConverter.ChromaBias,
                     this.chromaMaximum);
 
-                WriteSamples<TSample, TStorer>(
+                HeifSampleConversion.WriteSamples<TSample, TStorer>(
                     red0,
                     redDestination,
                     this.colorConverter.ChromaScale,
@@ -714,7 +713,7 @@ internal static class HeifPlanarColorConverter
             }
 
             bool isCenteredX = this.chromaPositionX == 1;
-            WriteSubsampledSamples<TSample, TStorer>(
+            HeifSampleConversion.WriteSubsampledSamples<TSample, TStorer>(
                 blue0,
                 blue1,
                 blueDestination,
@@ -724,7 +723,7 @@ internal static class HeifPlanarColorConverter
                 this.colorConverter.ChromaBias,
                 this.chromaMaximum);
 
-            WriteSubsampledSamples<TSample, TStorer>(
+            HeifSampleConversion.WriteSubsampledSamples<TSample, TStorer>(
                 red0,
                 red1,
                 redDestination,

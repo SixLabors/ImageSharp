@@ -90,6 +90,24 @@ internal static class Av1Transform1dMath
     }
 
     /// <summary>
+    /// Calculates sixteen outputs of a rounded, weighted two-input butterfly in parallel.
+    /// </summary>
+    /// <param name="weight0">The first fixed-point weight.</param>
+    /// <param name="input0">The first sixteen input values.</param>
+    /// <param name="weight1">The second fixed-point weight.</param>
+    /// <param name="input1">The second sixteen input values.</param>
+    /// <param name="cosBit">The number of fractional bits in each weight.</param>
+    /// <returns>The sixteen rounded fixed-point results.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> HalfButterfly(int weight0, Vector512<int> input0, int weight1, Vector512<int> input1, int cosBit)
+    {
+        // AV1 stage ranges keep the products and sum inside the normative wrapping Int32 domain. Preserving that lane
+        // width lets 512-bit SIMD evaluate sixteen independent transform axes without widened intermediate vectors.
+        Vector512<int> weightedSum = (input0 * weight0) + (input1 * weight1);
+        return (weightedSum + Vector512.Create(1 << (cosBit - 1))) >> cosBit;
+    }
+
+    /// <summary>
     /// Clamps four transform-stage values to the signed range represented by a bit count.
     /// </summary>
     /// <param name="value">The four transform-stage values.</param>
@@ -118,6 +136,20 @@ internal static class Av1Transform1dMath
     }
 
     /// <summary>
+    /// Clamps sixteen transform-stage values to the signed range represented by a bit count.
+    /// </summary>
+    /// <param name="value">The sixteen transform-stage values.</param>
+    /// <param name="bitCount">The width of the signed range.</param>
+    /// <returns>The values clamped to the permitted stage range.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> Clamp(Vector512<int> value, byte bitCount)
+    {
+        int maximum = (1 << (bitCount - 1)) - 1;
+        int minimum = -(1 << (bitCount - 1));
+        return Vector512.Clamp(value, Vector512.Create(minimum), Vector512.Create(maximum));
+    }
+
+    /// <summary>
     /// Multiplies and rounds four fixed-point values in parallel.
     /// </summary>
     /// <param name="value">The four values to scale.</param>
@@ -138,6 +170,17 @@ internal static class Av1Transform1dMath
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static Vector256<int> MultiplyRound(Vector256<int> value, int multiplier, int fractionalBits)
         => HalfButterfly(multiplier, value, 0, Vector256<int>.Zero, fractionalBits);
+
+    /// <summary>
+    /// Multiplies and rounds sixteen fixed-point values in parallel.
+    /// </summary>
+    /// <param name="value">The sixteen values to scale.</param>
+    /// <param name="multiplier">The fixed-point multiplier.</param>
+    /// <param name="fractionalBits">The number of fractional bits in the multiplier.</param>
+    /// <returns>The sixteen rounded results.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> MultiplyRound(Vector512<int> value, int multiplier, int fractionalBits)
+        => HalfButterfly(multiplier, value, 0, Vector512<int>.Zero, fractionalBits);
 
     /// <summary>
     /// Multiplies four scalar inputs by fixed-point weights and rounds their sum.
@@ -217,5 +260,34 @@ internal static class Av1Transform1dMath
     {
         Vector256<int> weightedSum = (input0 * weight0) + (input1 * weight1) + (input2 * weight2) + (input3 * weight3);
         return (weightedSum + Vector256.Create(1 << (fractionalBits - 1))) >> fractionalBits;
+    }
+
+    /// <summary>
+    /// Multiplies four sets of sixteen inputs by fixed-point weights and rounds their sums.
+    /// </summary>
+    /// <param name="weight0">The first fixed-point weight.</param>
+    /// <param name="input0">The first sixteen input values.</param>
+    /// <param name="weight1">The second fixed-point weight.</param>
+    /// <param name="input1">The second sixteen input values.</param>
+    /// <param name="weight2">The third fixed-point weight.</param>
+    /// <param name="input2">The third sixteen input values.</param>
+    /// <param name="weight3">The fourth fixed-point weight.</param>
+    /// <param name="input3">The fourth sixteen input values.</param>
+    /// <param name="fractionalBits">The number of fractional bits in each weight.</param>
+    /// <returns>The sixteen rounded fixed-point sums.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<int> MultiplyAdd4(
+        int weight0,
+        Vector512<int> input0,
+        int weight1,
+        Vector512<int> input1,
+        int weight2,
+        Vector512<int> input2,
+        int weight3,
+        Vector512<int> input3,
+        int fractionalBits)
+    {
+        Vector512<int> weightedSum = (input0 * weight0) + (input1 * weight1) + (input2 * weight2) + (input3 * weight3);
+        return (weightedSum + Vector512.Create(1 << (fractionalBits - 1))) >> fractionalBits;
     }
 }

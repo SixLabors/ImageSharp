@@ -64,4 +64,31 @@ internal static class Av1IdentityTransform1d
             output[i] = Av1Transform1dMath.MultiplyRound(input[i], multiplier, fractionalBits);
         }
     }
+
+    /// <summary>
+    /// Scales sixteen independent identity-transform axes in parallel.
+    /// </summary>
+    /// <param name="input">The source values for sixteen transform axes.</param>
+    /// <param name="output">The destination values for sixteen transform axes.</param>
+    /// <param name="length">The number of values in each axis.</param>
+    /// <param name="multiplier">The fixed-point identity scale.</param>
+    /// <param name="fractionalBits">The number of fractional bits in <paramref name="multiplier"/>.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void Transform(ref Av1TransformVector<Vector512<int>> input, ref Av1TransformVector<Vector512<int>> output, int length, int multiplier, int fractionalBits)
+    {
+        if (fractionalBits == 0)
+        {
+            for (int i = 0; i < length; i++)
+            {
+                output[i] = input[i] * multiplier;
+            }
+
+            return;
+        }
+
+        for (int i = 0; i < length; i++)
+        {
+            output[i] = Av1Transform1dMath.MultiplyRound(input[i], multiplier, fractionalBits);
+        }
+    }
 }

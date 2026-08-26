@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
+using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -22,6 +23,12 @@ public class Av1ReconstructionConformanceTests
     /// The hardware configurations covering normal SIMD dispatch and the scalar fallback.
     /// </summary>
     private const HwIntrinsics ReconstructionConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
+
+    /// <summary>
+    /// The hardware configurations covering the available vector widths and the scalar color-conversion fallback.
+    /// </summary>
+    private const HwIntrinsics PresentationConfigurations =
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Verifies deblocking syntax, filter activation, component traversal, and presentation for real eight-, ten-,
@@ -72,6 +79,14 @@ public class Av1ReconstructionConformanceTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateActiveCdefFixtures, ReconstructionConfigurations);
 
     /// <summary>
+    /// Verifies exact presented pixels and public metadata for independently encoded eight-, ten-, and twelve-bit
+    /// active-CDEF AVIF images across the available vector widths and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void DecodeWithActiveCdefMatchesPinnedLibavifPresentation()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePresentedFixtures, PresentationConfigurations);
+
+    /// <summary>
     /// Validates every active-CDEF fixture under the hardware configuration selected by <see cref="FeatureTestRunner"/>.
     /// </summary>
     private static void ValidateActiveCdefFixtures()
@@ -99,6 +114,34 @@ public class Av1ReconstructionConformanceTests
             428,
             Av1BitDepth.TwelveBit,
             Av1ColorFormat.Yuv444);
+    }
+
+    /// <summary>
+    /// Validates every active-CDEF presentation fixture under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidatePresentedFixtures()
+    {
+        ValidatePresentedFixture(
+            TestImages.Heif.Av1Cdef8BitAvif,
+            TestImages.Heif.Av1Cdef8BitPresentationReference,
+            768,
+            512,
+            HeifBitDepth.Bit8);
+
+        ValidatePresentedFixture(
+            TestImages.Heif.Av1Cdef10BitAvif,
+            TestImages.Heif.Av1Cdef10BitPresentationReference,
+            1024,
+            428,
+            HeifBitDepth.Bit10);
+
+        ValidatePresentedFixture(
+            TestImages.Heif.Av1Cdef12BitAvif,
+            TestImages.Heif.Av1Cdef12BitPresentationReference,
+            1024,
+            428,
+            HeifBitDepth.Bit12);
     }
 
     /// <summary>
@@ -237,6 +280,36 @@ public class Av1ReconstructionConformanceTests
         HeifMetadata metadata = image.Metadata.GetHeifMetadata();
         Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
         Assert.Equal(metadataBitDepth, metadata.BitDepth);
+    }
+
+    /// <summary>
+    /// Validates the exact public presentation of one independently encoded AVIF image against pinned scalar-libavif output.
+    /// </summary>
+    /// <param name="imagePath">The complete AVIF container.</param>
+    /// <param name="referencePath">The eight-bit RGBA output produced by the pinned scalar libavif decoder.</param>
+    /// <param name="width">The expected displayed width.</param>
+    /// <param name="height">The expected displayed height.</param>
+    /// <param name="metadataBitDepth">The expected public HEIF sample precision.</param>
+    private static void ValidatePresentedFixture(
+        string imagePath,
+        string referencePath,
+        int width,
+        int height,
+        HeifBitDepth metadataBitDepth)
+    {
+        DecoderOptions options = new() { MaxFrames = 1 };
+        byte[] imageBytes = TestFile.Create(imagePath).Bytes;
+        byte[] referenceBytes = TestFile.Create(referencePath).Bytes;
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, imageBytes);
+        using Image<Rgba32> reference = Image.Load<Rgba32>(referenceBytes);
+
+        Assert.Equal(width, image.Width);
+        Assert.Equal(height, image.Height);
+        Assert.Single(image.Frames);
+        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
+        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
+        Assert.Equal(metadataBitDepth, metadata.BitDepth);
+        ImageComparer.Exact.VerifySimilarity(reference, image);
     }
 
     /// <summary>

@@ -52,8 +52,10 @@ internal readonly struct HeifColorConversionParameters
         this.Kb = kb;
         this.RedChromaScale = 2F * (1F - kr);
         this.BlueChromaScale = 2F * (1F - kb);
-        this.GreenRedChromaScale = 2F * kr * (1F - kr) / kg;
-        this.GreenBlueChromaScale = 2F * kb * (1F - kb) / kg;
+        this.GreenRedChromaNumerator = kr * (1F - kr);
+        this.GreenBlueChromaNumerator = kb * (1F - kb);
+        this.GreenRedChromaScale = 2F * this.GreenRedChromaNumerator / kg;
+        this.GreenBlueChromaScale = 2F * this.GreenBlueChromaNumerator / kg;
         this.MatrixCoefficients = matrixCoefficients;
         this.IsFullRange = isFullRange;
         this.TransferCharacteristics = transferCharacteristics;
@@ -93,6 +95,16 @@ internal readonly struct HeifColorConversionParameters
     /// Gets the blue contribution from the blue-difference component.
     /// </summary>
     public float BlueChromaScale { get; }
+
+    /// <summary>
+    /// Gets the red-difference term in the green-component numerator.
+    /// </summary>
+    public float GreenRedChromaNumerator { get; }
+
+    /// <summary>
+    /// Gets the blue-difference term in the green-component numerator.
+    /// </summary>
+    public float GreenBlueChromaNumerator { get; }
 
     /// <summary>
     /// Gets the red-difference subtraction from green.

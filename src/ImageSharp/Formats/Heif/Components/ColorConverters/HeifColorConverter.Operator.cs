@@ -194,11 +194,11 @@ internal abstract partial class HeifColorConverterBase
                 if (Vector512.IsHardwareAccelerated && i <= length - Vector512<float>.Count)
                 {
                     Vector512<float> bias = Vector512.Create(parameters.LumaBias);
-                    Vector512<float> inverseScale = Vector512.Create(1F / parameters.LumaScale);
+                    Vector512<float> scale = Vector512.Create(parameters.LumaScale);
                     int oneVectorFromEnd = length - Vector512<float>.Count;
                     for (; i <= oneVectorFromEnd; i += Vector512<float>.Count)
                     {
-                        Vector512<float> value = (Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component0Base, i)) - bias) * inverseScale;
+                        Vector512<float> value = (Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component0Base, i)) - bias) / scale;
                         Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component0Base, i)) = value;
                         Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component1Base, i)) = value;
                         Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component2Base, i)) = value;
@@ -208,11 +208,11 @@ internal abstract partial class HeifColorConverterBase
                 if (Vector256.IsHardwareAccelerated && i <= length - Vector256<float>.Count)
                 {
                     Vector256<float> bias = Vector256.Create(parameters.LumaBias);
-                    Vector256<float> inverseScale = Vector256.Create(1F / parameters.LumaScale);
+                    Vector256<float> scale = Vector256.Create(parameters.LumaScale);
                     int oneVectorFromEnd = length - Vector256<float>.Count;
                     for (; i <= oneVectorFromEnd; i += Vector256<float>.Count)
                     {
-                        Vector256<float> value = (Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component0Base, i)) - bias) * inverseScale;
+                        Vector256<float> value = (Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component0Base, i)) - bias) / scale;
                         Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component0Base, i)) = value;
                         Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component1Base, i)) = value;
                         Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component2Base, i)) = value;
@@ -222,11 +222,11 @@ internal abstract partial class HeifColorConverterBase
                 if (Vector128.IsHardwareAccelerated && i <= length - Vector128<float>.Count)
                 {
                     Vector128<float> bias = Vector128.Create(parameters.LumaBias);
-                    Vector128<float> inverseScale = Vector128.Create(1F / parameters.LumaScale);
+                    Vector128<float> scale = Vector128.Create(parameters.LumaScale);
                     int oneVectorFromEnd = length - Vector128<float>.Count;
                     for (; i <= oneVectorFromEnd; i += Vector128<float>.Count)
                     {
-                        Vector128<float> value = (Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component0Base, i)) - bias) * inverseScale;
+                        Vector128<float> value = (Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component0Base, i)) - bias) / scale;
                         Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component0Base, i)) = value;
                         Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component1Base, i)) = value;
                         Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component2Base, i)) = value;
@@ -247,23 +247,23 @@ internal abstract partial class HeifColorConverterBase
             float chromaBias = this.ChromaBias;
             float chromaScale = this.ChromaScale;
 
-            // Descending widths preserve vector execution for the remainder left by a wider register. The range
-            // expansion is folded into each load so operators receive normalized H.273 components directly.
+            // Descending widths preserve vector execution for the remainder left by a wider register. Divide by the
+            // signaled ranges directly because multiplying by rounded reciprocals changes exact output-code boundaries.
             if (Vector512.IsHardwareAccelerated && i <= length - Vector512<float>.Count)
             {
                 Vector512<float> lumaBias = Vector512.Create(parameters.LumaBias);
-                Vector512<float> inverseLumaScale = Vector512.Create(1F / parameters.LumaScale);
+                Vector512<float> lumaScale = Vector512.Create(parameters.LumaScale);
                 Vector512<float> chromaBiasVector = Vector512.Create(chromaBias);
-                Vector512<float> inverseChromaScale = Vector512.Create(1F / chromaScale);
+                Vector512<float> chromaScaleVector = Vector512.Create(chromaScale);
                 int oneVectorFromEnd = length - Vector512<float>.Count;
                 for (; i <= oneVectorFromEnd; i += Vector512<float>.Count)
                 {
                     ref Vector512<float> c0 = ref Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component0Base, i));
                     ref Vector512<float> c1 = ref Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component1Base, i));
                     ref Vector512<float> c2 = ref Unsafe.As<float, Vector512<float>>(ref Unsafe.Add(ref component2Base, i));
-                    c0 = (c0 - lumaBias) * inverseLumaScale;
-                    c1 = (c1 - chromaBiasVector) * inverseChromaScale;
-                    c2 = (c2 - chromaBiasVector) * inverseChromaScale;
+                    c0 = (c0 - lumaBias) / lumaScale;
+                    c1 = (c1 - chromaBiasVector) / chromaScaleVector;
+                    c2 = (c2 - chromaBiasVector) / chromaScaleVector;
 
                     TOperator.ConvertToRgb(ref c0, ref c1, ref c2, in parameters);
                 }
@@ -272,18 +272,18 @@ internal abstract partial class HeifColorConverterBase
             if (Vector256.IsHardwareAccelerated && i <= length - Vector256<float>.Count)
             {
                 Vector256<float> lumaBias = Vector256.Create(parameters.LumaBias);
-                Vector256<float> inverseLumaScale = Vector256.Create(1F / parameters.LumaScale);
+                Vector256<float> lumaScale = Vector256.Create(parameters.LumaScale);
                 Vector256<float> chromaBiasVector = Vector256.Create(chromaBias);
-                Vector256<float> inverseChromaScale = Vector256.Create(1F / chromaScale);
+                Vector256<float> chromaScaleVector = Vector256.Create(chromaScale);
                 int oneVectorFromEnd = length - Vector256<float>.Count;
                 for (; i <= oneVectorFromEnd; i += Vector256<float>.Count)
                 {
                     ref Vector256<float> c0 = ref Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component0Base, i));
                     ref Vector256<float> c1 = ref Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component1Base, i));
                     ref Vector256<float> c2 = ref Unsafe.As<float, Vector256<float>>(ref Unsafe.Add(ref component2Base, i));
-                    c0 = (c0 - lumaBias) * inverseLumaScale;
-                    c1 = (c1 - chromaBiasVector) * inverseChromaScale;
-                    c2 = (c2 - chromaBiasVector) * inverseChromaScale;
+                    c0 = (c0 - lumaBias) / lumaScale;
+                    c1 = (c1 - chromaBiasVector) / chromaScaleVector;
+                    c2 = (c2 - chromaBiasVector) / chromaScaleVector;
 
                     TOperator.ConvertToRgb(ref c0, ref c1, ref c2, in parameters);
                 }
@@ -292,18 +292,18 @@ internal abstract partial class HeifColorConverterBase
             if (Vector128.IsHardwareAccelerated && i <= length - Vector128<float>.Count)
             {
                 Vector128<float> lumaBias = Vector128.Create(parameters.LumaBias);
-                Vector128<float> inverseLumaScale = Vector128.Create(1F / parameters.LumaScale);
+                Vector128<float> lumaScale = Vector128.Create(parameters.LumaScale);
                 Vector128<float> chromaBiasVector = Vector128.Create(chromaBias);
-                Vector128<float> inverseChromaScale = Vector128.Create(1F / chromaScale);
+                Vector128<float> chromaScaleVector = Vector128.Create(chromaScale);
                 int oneVectorFromEnd = length - Vector128<float>.Count;
                 for (; i <= oneVectorFromEnd; i += Vector128<float>.Count)
                 {
                     ref Vector128<float> c0 = ref Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component0Base, i));
                     ref Vector128<float> c1 = ref Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component1Base, i));
                     ref Vector128<float> c2 = ref Unsafe.As<float, Vector128<float>>(ref Unsafe.Add(ref component2Base, i));
-                    c0 = (c0 - lumaBias) * inverseLumaScale;
-                    c1 = (c1 - chromaBiasVector) * inverseChromaScale;
-                    c2 = (c2 - chromaBiasVector) * inverseChromaScale;
+                    c0 = (c0 - lumaBias) / lumaScale;
+                    c1 = (c1 - chromaBiasVector) / chromaScaleVector;
+                    c2 = (c2 - chromaBiasVector) / chromaScaleVector;
 
                     TOperator.ConvertToRgb(ref c0, ref c1, ref c2, in parameters);
                 }

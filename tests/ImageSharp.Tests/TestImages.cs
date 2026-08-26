@@ -1355,10 +1355,16 @@ public static class TestImages
         public const string Av1Deblocking12BitReference = "Heif/Av1/Conformance/libaom-cosmos1650-12b-libaom.yuv";
         public const string Av1Cdef8BitPayload = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b.bit";
         public const string Av1Cdef8BitReference = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b-libaom.yuv";
+        public const string Av1Cdef8BitAvif = "Heif/Av1/Conformance/libavif-cdef-kodim23-8b.avif";
+        public const string Av1Cdef8BitPresentationReference = "Heif/Av1/Conformance/libavif-cdef-kodim23-8b.png";
         public const string Av1Cdef10BitPayload = "Heif/Av1/Conformance/libaom-cdef-cosmos-10b.bit";
         public const string Av1Cdef10BitReference = "Heif/Av1/Conformance/libaom-cdef-cosmos-10b-libaom.yuv";
+        public const string Av1Cdef10BitAvif = "Heif/Av1/Conformance/libavif-cdef-cosmos-10b.avif";
+        public const string Av1Cdef10BitPresentationReference = "Heif/Av1/Conformance/libavif-cdef-cosmos-10b.png";
         public const string Av1Cdef12BitPayload = "Heif/Av1/Conformance/libaom-cdef-cosmos-12b.bit";
         public const string Av1Cdef12BitReference = "Heif/Av1/Conformance/libaom-cdef-cosmos-12b-libaom.yuv";
+        public const string Av1Cdef12BitAvif = "Heif/Av1/Conformance/libavif-cdef-cosmos-12b.avif";
+        public const string Av1Cdef12BitPresentationReference = "Heif/Av1/Conformance/libavif-cdef-cosmos-12b.png";
     }
 
     public static class Ico

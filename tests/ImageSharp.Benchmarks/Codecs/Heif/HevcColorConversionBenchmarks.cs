@@ -3,6 +3,7 @@
 
 using BenchmarkDotNet.Attributes;
 using SixLabors.ImageSharp.Formats.Heif.Hevc;
+using SixLabors.ImageSharp.Formats.Heif.Hevc.Color;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
 

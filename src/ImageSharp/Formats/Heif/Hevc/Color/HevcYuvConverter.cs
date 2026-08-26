@@ -11,12 +11,12 @@ using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
 using static SixLabors.ImageSharp.Formats.Heif.Color.HeifColorConverterBase;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
+namespace SixLabors.ImageSharp.Formats.Heif.Hevc.Color;
 
 /// <summary>
 /// Converts between reconstructed HEVC component planes and packed ImageSharp pixels.
 /// </summary>
-internal static class HevcYuvConverter
+internal static partial class HevcYuvConverter
 {
     /// <summary>
     /// The largest value represented by an eight-bit packed RGB component.
@@ -60,6 +60,15 @@ internal static class HevcYuvConverter
         where TPixel : unmanaged, IPixel<TPixel>
     {
         HeifColorConversionParameters parameters = GetConversionParameters(picture, colorProfile, out HeifColorConversionMode mode);
+
+        // H.273 resolves an unspecified matrix to BT.601 coefficients. The common full-range eight-bit 4:2:0
+        // presentation can therefore remain in the integer sample domain and avoid float staging and rounding.
+        if (HevcYuv420ToRgb8Converter.IsSupported(picture, colorProfile, mode))
+        {
+            HevcYuv420ToRgb8Converter.Convert(configuration, picture, image, in parameters, sourceX, sourceY);
+            return;
+        }
+
         HeifColorConverterBase colorConverter = HeifColorConverterBase.Create(mode, in parameters, picture.ChromaFormat == 0);
         YuvToRgbRowConverter<TPixel> converter = new(configuration, picture, image, colorConverter, chromaSampleLocation, sourceX, sourceY);
         using IMemoryOwner<float> scratchOwner = configuration.MemoryAllocator.Allocate<float>(converter.BufferLength);
@@ -67,11 +76,9 @@ internal static class HevcYuvConverter
 
         if (converter.UsesBytePacking)
         {
-            using IMemoryOwner<TPixel> proxyOwner = configuration.MemoryAllocator.Allocate<TPixel>(image.Width + 3);
-            Span<TPixel> proxy = proxyOwner.GetSpan()[..(image.Width + 3)];
             for (int y = 0; y < image.Height; y++)
             {
-                converter.Convert(y, scratch, proxy);
+                converter.Convert(y, scratch);
             }
 
             return;
@@ -79,7 +86,7 @@ internal static class HevcYuvConverter
 
         for (int y = 0; y < image.Height; y++)
         {
-            converter.Convert(y, scratch, Span<TPixel>.Empty);
+            converter.Convert(y, scratch);
         }
     }
 
@@ -317,8 +324,7 @@ internal static class HevcYuvConverter
         /// </summary>
         /// <param name="y">The zero-based luma row.</param>
         /// <param name="scratch">The reusable pooled row buffer.</param>
-        /// <param name="proxy">The padded byte-packing destination when the image row has insufficient padding.</param>
-        public void Convert(int y, Span<float> scratch, Span<TPixel> proxy)
+        public void Convert(int y, Span<float> scratch)
         {
             int width = this.image.Width;
             Span<float> red = scratch[..width];
@@ -391,15 +397,7 @@ internal static class HevcYuvConverter
                 SimdUtils.NormalizedFloatToByteSaturate(green, greenBytes);
                 SimdUtils.NormalizedFloatToByteSaturate(blue, blueBytes);
 
-                if (this.image.PixelBuffer.DangerousTryGetPaddedRowSpan(y, 3, out Span<TPixel> paddedDestination))
-                {
-                    PixelOperations<TPixel>.Instance.PackFromRgbPlanes(redBytes, greenBytes, blueBytes, paddedDestination);
-                }
-                else
-                {
-                    PixelOperations<TPixel>.Instance.PackFromRgbPlanes(redBytes, greenBytes, blueBytes, proxy);
-                    proxy[..width].CopyTo(destination);
-                }
+                PixelOperations<TPixel>.Instance.PackFromRgbPlanes(redBytes, greenBytes, blueBytes, destination);
 
                 return;
             }

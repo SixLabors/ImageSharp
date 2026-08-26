@@ -84,10 +84,7 @@ public class HeifDecoderTests
         HeifMetadata metadata = image.Metadata.GetHeifMetadata();
         image.DebugSave(provider);
 
-        // The extracted native YUV tiles have byte-exact HM coverage. Pinned libheif 1.23.1 selects its cheaper fused
-        // nearest-neighbor RGB path by default, so the full-image oracle permits the bounded difference from our
-        // bilinear reconstruction while still covering grids, alpha composition, color conversion, and presentation.
-        image.CompareToReferenceOutput(ImageComparer.TolerantPercentage(0.6F), provider);
+        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
 
         Assert.Equal(new Size(width, height), image.Size);
         Assert.Equal(HeifCompressionMethod.Hevc, metadata.CompressionMethod);

@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-namespace SixLabors.ImageSharp.Formats.Heif.Color;
+namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <summary>
 /// Identifies the H.273 matrix operation used between encoded planes and RGB components.

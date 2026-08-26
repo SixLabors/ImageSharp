@@ -2,7 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Formats.Heif.Color;
+using SixLabors.ImageSharp.Formats.Heif.Components;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Color;

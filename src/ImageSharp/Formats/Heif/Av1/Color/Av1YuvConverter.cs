@@ -2,10 +2,10 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
-using SixLabors.ImageSharp.Formats.Heif.Color;
+using SixLabors.ImageSharp.Formats.Heif.Components;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
-using static SixLabors.ImageSharp.Formats.Heif.Color.HeifColorConverterBase;
+using static SixLabors.ImageSharp.Formats.Heif.Components.HeifColorConverterBase;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 

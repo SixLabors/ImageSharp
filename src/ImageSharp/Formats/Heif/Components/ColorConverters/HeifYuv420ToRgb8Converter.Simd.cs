@@ -5,9 +5,9 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
-using static SixLabors.ImageSharp.Formats.Heif.Color.HeifColorConverterBase;
+using static SixLabors.ImageSharp.Formats.Heif.Components.HeifColorConverterBase;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Color;
+namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <content>
 /// Provides the operator-driven SIMD row traversal for eight-bit 4:2:0 conversion.

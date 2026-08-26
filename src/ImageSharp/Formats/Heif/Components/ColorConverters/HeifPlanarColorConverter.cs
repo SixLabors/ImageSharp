@@ -7,9 +7,9 @@ using SixLabors.ImageSharp.Advanced;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
-using static SixLabors.ImageSharp.Formats.Heif.Color.HeifColorConverterBase;
+using static SixLabors.ImageSharp.Formats.Heif.Components.HeifColorConverterBase;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Color;
+namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <summary>
 /// Converts between native HEIF component planes and packed ImageSharp pixels.

@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Color;
+namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 internal abstract partial class HeifColorConverterBase
 {

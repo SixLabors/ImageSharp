@@ -1,7 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Heif.Color;
+using SixLabors.ImageSharp.Formats.Heif.Components;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Hevc.Color;
 

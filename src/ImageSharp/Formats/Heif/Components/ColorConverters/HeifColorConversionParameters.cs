@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Color;
+namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <summary>
 /// Stores the resolved H.273 values shared by every scalar and SIMD lane.

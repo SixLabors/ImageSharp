@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Color;
+namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <summary>
 /// Converts full-range eight-bit HEIF 4:2:0 planes with an unspecified matrix to packed RGB pixels.

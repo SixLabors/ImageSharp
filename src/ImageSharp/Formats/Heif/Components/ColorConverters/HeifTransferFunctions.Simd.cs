@@ -3,9 +3,9 @@
 
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
-using static SixLabors.ImageSharp.Formats.Heif.Color.HeifTransferVectorOperators;
+using static SixLabors.ImageSharp.Formats.Heif.Components.HeifTransferVectorOperators;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Color;
+namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <content>
 /// Provides the SIMD implementations of the H.273 transfer characteristics used by HEIF color conversion.

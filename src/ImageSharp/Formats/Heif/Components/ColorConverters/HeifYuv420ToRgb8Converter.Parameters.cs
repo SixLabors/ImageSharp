@@ -2,9 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Formats.Heif.Color;
-
-namespace SixLabors.ImageSharp.Formats.Heif.Color;
+namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <content>
 /// Provides fixed-point scalar and SIMD coefficient storage for eight-bit 4:2:0 conversion.

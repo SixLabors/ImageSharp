@@ -7,7 +7,7 @@ using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.PixelFormats;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Color;
+namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <content>
 /// Provides SIMD sample widening, chroma reconstruction, planar storage, and packed output for HEIF color conversion.

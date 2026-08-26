@@ -3,7 +3,7 @@
 
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 
-namespace SixLabors.ImageSharp.Formats.Heif.Color;
+namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <summary>
 /// Applies the H.273 transfer characteristics used by HEIF color conversion.

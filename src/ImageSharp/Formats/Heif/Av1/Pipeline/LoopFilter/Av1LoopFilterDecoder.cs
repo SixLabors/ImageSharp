@@ -247,29 +247,50 @@ internal class Av1LoopFilterDecoder
         int boundaryLimit = (2 * (filterLevel + 2)) + limit;
         int highEdgeVarianceThreshold = filterLevel >> 4;
         int q0Offset = stride + (planeY * stride) + planeX;
-        int pixelStep = verticalBoundary ? 1 : stride;
-        int lineStep = verticalBoundary ? stride : 1;
-
         if (this.frameBuffer.BytesPerSample == 2)
         {
-            Av1LoopFilterKernels.FilterHighBitDepthEdge(
-                highBitDepthSamples,
+            if (verticalBoundary)
+            {
+                Av1DeblockingFilter.FilterVertical(
+                    highBitDepthSamples,
+                    q0Offset,
+                    stride,
+                    kernelLength,
+                    limit,
+                    boundaryLimit,
+                    highEdgeVarianceThreshold,
+                    this.frameBuffer.BitDepth.GetBitCount());
+            }
+            else
+            {
+                Av1DeblockingFilter.FilterHorizontal(
+                    highBitDepthSamples,
+                    q0Offset,
+                    stride,
+                    kernelLength,
+                    limit,
+                    boundaryLimit,
+                    highEdgeVarianceThreshold,
+                    this.frameBuffer.BitDepth.GetBitCount());
+            }
+        }
+        else if (verticalBoundary)
+        {
+            Av1DeblockingFilter.FilterVertical(
+                lowBitDepthSamples,
                 q0Offset,
-                pixelStep,
-                lineStep,
+                stride,
                 kernelLength,
                 limit,
                 boundaryLimit,
-                highEdgeVarianceThreshold,
-                this.frameBuffer.BitDepth.GetBitCount());
+                highEdgeVarianceThreshold);
         }
         else
         {
-            Av1LoopFilterKernels.FilterLowBitDepthEdge(
+            Av1DeblockingFilter.FilterHorizontal(
                 lowBitDepthSamples,
                 q0Offset,
-                pixelStep,
-                lineStep,
+                stride,
                 kernelLength,
                 limit,
                 boundaryLimit,

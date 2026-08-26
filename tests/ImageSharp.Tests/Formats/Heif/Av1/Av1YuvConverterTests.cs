@@ -3,6 +3,7 @@
 
 using System;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
@@ -318,6 +319,40 @@ public class Av1YuvConverterTests
         // Assert
         Assert.Equal(expectedTopBlue, image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(0)[1].B);
         Assert.Equal(expectedLeftBlue, image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(1)[0].B);
+    }
+
+    /// <summary>
+    /// Verifies that encoding selects the horizontal and vertical sample coordinates defined by each AV1 chroma position.
+    /// </summary>
+    /// <param name="chromaSamplePosition">The signaled AV1 chroma sample position.</param>
+    /// <param name="expectedChromaBlue">The expected encoded blue-difference sample.</param>
+    /// <param name="expectedChromaRed">The expected encoded red-difference sample.</param>
+    [Theory]
+    [InlineData(ObuChromoSamplePosition.Unknown, 128, 128)]
+    [InlineData(ObuChromoSamplePosition.Vertical, 96, 192)]
+    [InlineData(ObuChromoSamplePosition.Colocated, 128, 128)]
+    public void RgbToYuv420UsesChromaSamplePosition(int chromaSamplePosition, byte expectedChromaBlue, byte expectedChromaRed)
+    {
+        using Image<Rgba32> source = new(2, 2);
+
+        // The four distinct YCgCo samples make left, centered, and vertically averaged selection observable as
+        // exact integer chroma values without introducing transfer-function or coefficient-rounding tolerances.
+        source[0, 0] = new Rgba32(0, 0, 0);
+        source[1, 0] = new Rgba32(0, byte.MaxValue, 0);
+        source[0, 1] = new Rgba32(byte.MaxValue, 0, 0);
+        source[1, 1] = new Rgba32(0, 0, byte.MaxValue);
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(
+            2,
+            2,
+            matrixCoefficients: ObuMatrixCoefficients.SmpteYCgCo,
+            colorFormat: Av1ColorFormat.Yuv420,
+            chromaSamplePosition: (ObuChromoSamplePosition)chromaSamplePosition);
+
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv420, false);
+        Av1YuvConverter.ConvertFromRgb(Configuration.Default, source.Frames.RootFrame, frameBuffer);
+
+        Assert.Equal(expectedChromaBlue, frameBuffer.DeriveBlockPointer(Av1Plane.U, 1, 1).DangerousGetRowSpan(0)[0]);
+        Assert.Equal(expectedChromaRed, frameBuffer.DeriveBlockPointer(Av1Plane.V, 1, 1).DangerousGetRowSpan(0)[0]);
     }
 
     /// <summary>

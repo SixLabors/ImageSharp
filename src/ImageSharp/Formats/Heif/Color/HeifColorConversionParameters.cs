@@ -16,6 +16,8 @@ internal readonly struct HeifColorConversionParameters
     /// <param name="kr">The red luma coefficient.</param>
     /// <param name="kg">The green luma coefficient.</param>
     /// <param name="kb">The blue luma coefficient.</param>
+    /// <param name="matrixCoefficients">The signaled H.273 matrix-coefficient code point.</param>
+    /// <param name="isFullRange">Whether encoded components use their complete numeric range.</param>
     /// <param name="transferCharacteristics">The signaled transfer characteristics.</param>
     /// <param name="constantLuminanceScales">The constant-luminance chroma scales.</param>
     /// <param name="lumaBias">The encoded luma bias.</param>
@@ -31,6 +33,8 @@ internal readonly struct HeifColorConversionParameters
         float kr,
         float kg,
         float kb,
+        CicpMatrixCoefficients matrixCoefficients,
+        bool isFullRange,
         CicpTransferCharacteristics transferCharacteristics,
         in HeifConstantLuminanceScales constantLuminanceScales,
         float lumaBias,
@@ -50,6 +54,8 @@ internal readonly struct HeifColorConversionParameters
         this.BlueChromaScale = 2F * (1F - kb);
         this.GreenRedChromaScale = 2F * kr * (1F - kr) / kg;
         this.GreenBlueChromaScale = 2F * kb * (1F - kb) / kg;
+        this.MatrixCoefficients = matrixCoefficients;
+        this.IsFullRange = isFullRange;
         this.TransferCharacteristics = transferCharacteristics;
         this.ConstantLuminanceScales = constantLuminanceScales;
         this.LumaBias = lumaBias;
@@ -97,6 +103,16 @@ internal readonly struct HeifColorConversionParameters
     /// Gets the blue-difference subtraction from green.
     /// </summary>
     public float GreenBlueChromaScale { get; }
+
+    /// <summary>
+    /// Gets the signaled H.273 matrix-coefficient code point.
+    /// </summary>
+    public CicpMatrixCoefficients MatrixCoefficients { get; }
+
+    /// <summary>
+    /// Gets a value indicating whether encoded components use their complete numeric range.
+    /// </summary>
+    public bool IsFullRange { get; }
 
     /// <summary>
     /// Gets the signaled transfer characteristics.
@@ -296,6 +312,8 @@ internal readonly struct HeifColorConversionParameters
             kr,
             kg,
             kb,
+            matrixCoefficients,
+            isFullRange,
             transferCharacteristics,
             in constantLuminanceScales,
             lumaBias,

@@ -60,22 +60,22 @@ internal static partial class HeifYuv420ToRgb8Converter
     /// Converts supported HEIF component planes to packed pixels using integer SIMD with a scalar tail.
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel type.</typeparam>
-    /// <typeparam name="TSource">The codec adapter that exposes reconstructed component rows.</typeparam>
+    /// <typeparam name="TBuffer">The codec adapter that exposes reconstructed component rows.</typeparam>
     /// <param name="configuration">The configuration used for allocation and pixel conversion.</param>
-    /// <param name="source">The reconstructed component-plane source.</param>
+    /// <param name="buffer">The reconstructed component-plane buffer.</param>
     /// <param name="image">The destination image frame.</param>
     /// <param name="parameters">The resolved H.273 conversion parameters.</param>
     /// <param name="sourceX">The horizontal luma-sample offset of the output window.</param>
     /// <param name="sourceY">The vertical luma-sample offset of the output window.</param>
-    public static void Convert<TPixel, TSource>(
+    public static void Convert<TPixel, TBuffer>(
         Configuration configuration,
-        TSource source,
+        TBuffer buffer,
         ImageFrame<TPixel> image,
         in HeifColorConversionParameters parameters,
         int sourceX,
         int sourceY)
         where TPixel : unmanaged, IPixel<TPixel>
-        where TSource : struct, IHeifYuv420ToRgb8Source
+        where TBuffer : struct, IHeifPlanarSampleBuffer<ushort>
     {
         ConversionParameters conversionParameters = new(in parameters);
         using IMemoryOwner<byte> componentOwner = configuration.MemoryAllocator.Allocate<byte>(image.Width * 3);
@@ -84,7 +84,7 @@ internal static partial class HeifYuv420ToRgb8Converter
         Span<byte> green = components.Slice(image.Width, image.Width);
         Span<byte> blue = components.Slice(image.Width * 2, image.Width);
 
-        // The value-type source closes the row-access contract at the call site. Constrained calls are therefore
+        // The value-type buffer closes the row-access contract at the call site. Constrained calls are therefore
         // devirtualized without boxing while keeping codec-specific buffer ownership outside the color pipeline.
         for (int y = 0; y < image.Height; y++)
         {
@@ -92,9 +92,9 @@ internal static partial class HeifYuv420ToRgb8Converter
 
             // The codec boundary validates 4:2:0 crop offsets in complete chroma-sample units. Each native chroma
             // sample therefore covers one 2x2 luma cell without an alignment branch in the SIMD loop.
-            ReadOnlySpan<ushort> luma = source.GetLumaRow(lumaY).Slice(sourceX, image.Width);
-            ReadOnlySpan<ushort> chromaBlue = source.GetChromaBlueRow(lumaY >> 1).Slice(sourceX >> 1);
-            ReadOnlySpan<ushort> chromaRed = source.GetChromaRedRow(lumaY >> 1).Slice(sourceX >> 1);
+            ReadOnlySpan<ushort> luma = buffer.GetLumaRowSpan(lumaY).Slice(sourceX, image.Width);
+            ReadOnlySpan<ushort> chromaBlue = buffer.GetChromaBlueRowSpan(lumaY >> 1).Slice(sourceX >> 1);
+            ReadOnlySpan<ushort> chromaRed = buffer.GetChromaRedRowSpan(lumaY >> 1).Slice(sourceX >> 1);
 
             ConvertRow<FixedPointCoefficientOperator>(luma, chromaBlue, chromaRed, red, green, blue, in conversionParameters);
 

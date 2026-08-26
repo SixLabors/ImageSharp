@@ -40,3 +40,36 @@ The matching `libavif-restoration-*.png` files were decoded from those exact AVI
 The `libaom-restoration-superres-*` streams combine active restoration with a coded width reduced by super-resolution denominator 12. They use the same pinned generic libaom build and material encoder options as the restoration streams, with `--superres-mode=1 --superres-denominator=12 --superres-kf-denominator=12`. The 8-bit fixture is 768x512 YUV 4:2:0, the 10-bit fixture is 512x256 YUV 4:2:2, and the 12-bit fixture is 1024x428 YUV 4:4:4. Their matching `*-libaom.yuv` files were decoded from the exact payloads by the pinned generic `aomdec --rawvideo` build.
 
 The 10-bit 4:2:2 source was produced from libavif's `abc.png` with pinned generic `avifenc` using `-j 1 -s 8 -q 100 -d 10 -y 422`, then decoded to Y4M before the combined libaom encode. Its clipped rightmost 128x128 coding block crosses a second 64x64 residual region. This independently exercises the required conversion of the luma-region cursor to the subsampled chroma transform grid instead of relying only on full-width 4:4:4 blocks.
+
+## Film-grain coverage
+
+The film-grain pairs were generated independently from ImageSharp. Each `.bit` file is an AV1 still-picture OBU stream, and the matching `-libaom.yuv` file is the exact visible planar output from the pinned scalar libaom decoder.
+
+The source images are `tests/data/circle-trns-after-plte.png` and `tests/data/draw_points.png` from the pinned libavif revision above. The streams and native references use the same pinned libaom revision. Intermediate Y4M inputs were produced with libavif 1.4.2 linked to that libaom revision.
+
+| Stream | libaom vector | Native layout | Range | Covered behavior |
+| --- | ---: | --- | --- | --- |
+| `libaom-film-grain-circle-8b-420.bit` | 2 | 8-bit 4:2:0 | Full | Lag-three templates, boundary overlap, and independent luma and chroma scaling |
+| `libaom-film-grain-circle-10b-422.bit` | 15 | 10-bit 4:2:2 | Full | Lag-two templates, boundary overlap, and chroma scaling derived from luma |
+| `libaom-film-grain-circle-12b-444.bit` | 16 | 12-bit 4:4:4 | Full | Lag-three templates, boundary overlap, high-depth interpolation, and grain scale shift two |
+| `libaom-film-grain-circle-8b-420-limited.bit` | 1 | 8-bit 4:2:0 | Restricted | Independent restricted luma and chroma endpoints |
+| `libaom-film-grain-circle-8b-400-limited.bit` | 3 | 8-bit monochrome | Restricted | Monochrome synthesis, overlap, and restricted luma clipping |
+| `libaom-film-grain-circle-12b-444-identity-limited.bit` | 14 | 12-bit 4:4:4 identity | Restricted | High-depth identity-matrix clipping, including luma endpoints for all three planes |
+| `libaom-film-grain-draw-points-8b-420-odd.bit` | 2 | 8-bit 4:2:0, 33×11 | Full | Odd-width and odd-height extension, a partial final block, and overlap at the visible frame edge |
+
+The common libaom encoder options were:
+
+```text
+--usage=2 --passes=1 --limit=1 --obu --end-usage=q --cq-level=30 --cpu-used=4
+--threads=1 --lag-in-frames=0 --full-still-picture-hdr --enable-cdef=0 --enable-restoration=0
+```
+
+Each stream adds the bit depth, input bit depth, profile, monochrome or identity-matrix flag where applicable, and the `--film-grain-test` value shown above. The twelve-bit streams use a ten-bit Y4M input and `--bit-depth=12 --input-bit-depth=10`; this is the supported high-depth promotion path in the pinned generic aomenc build.
+
+References were decoded with:
+
+```text
+aomdec --rawvideo --output=<reference>.yuv <stream>.bit
+```
+
+Tests compare every visible native Y, U, and V sample exactly. No tolerant image comparison is used.

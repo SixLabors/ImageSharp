@@ -1389,6 +1389,20 @@ public static class TestImages
         public const string Av1RestorationSuperResolution10BitReference = "Heif/Av1/Conformance/libaom-restoration-superres-abc-10b-422-libaom.yuv";
         public const string Av1RestorationSuperResolution12BitPayload = "Heif/Av1/Conformance/libaom-restoration-superres-cosmos-12b.bit";
         public const string Av1RestorationSuperResolution12BitReference = "Heif/Av1/Conformance/libaom-restoration-superres-cosmos-12b-libaom.yuv";
+        public const string Av1FilmGrain8BitPayload = "Heif/Av1/Conformance/libaom-film-grain-circle-8b-420.bit";
+        public const string Av1FilmGrain8BitReference = "Heif/Av1/Conformance/libaom-film-grain-circle-8b-420-libaom.yuv";
+        public const string Av1FilmGrain10BitPayload = "Heif/Av1/Conformance/libaom-film-grain-circle-10b-422.bit";
+        public const string Av1FilmGrain10BitReference = "Heif/Av1/Conformance/libaom-film-grain-circle-10b-422-libaom.yuv";
+        public const string Av1FilmGrain12BitPayload = "Heif/Av1/Conformance/libaom-film-grain-circle-12b-444.bit";
+        public const string Av1FilmGrain12BitReference = "Heif/Av1/Conformance/libaom-film-grain-circle-12b-444-libaom.yuv";
+        public const string Av1FilmGrain8BitRestrictedPayload = "Heif/Av1/Conformance/libaom-film-grain-circle-8b-420-limited.bit";
+        public const string Av1FilmGrain8BitRestrictedReference = "Heif/Av1/Conformance/libaom-film-grain-circle-8b-420-limited-libaom.yuv";
+        public const string Av1FilmGrain8BitMonochromePayload = "Heif/Av1/Conformance/libaom-film-grain-circle-8b-400-limited.bit";
+        public const string Av1FilmGrain8BitMonochromeReference = "Heif/Av1/Conformance/libaom-film-grain-circle-8b-400-limited-libaom.yuv";
+        public const string Av1FilmGrain12BitIdentityPayload = "Heif/Av1/Conformance/libaom-film-grain-circle-12b-444-identity-limited.bit";
+        public const string Av1FilmGrain12BitIdentityReference = "Heif/Av1/Conformance/libaom-film-grain-circle-12b-444-identity-limited-libaom.yuv";
+        public const string Av1FilmGrainOddDimensionsPayload = "Heif/Av1/Conformance/libaom-film-grain-draw-points-8b-420-odd.bit";
+        public const string Av1FilmGrainOddDimensionsReference = "Heif/Av1/Conformance/libaom-film-grain-draw-points-8b-420-odd-libaom.yuv";
     }
 
     public static class Ico

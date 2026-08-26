@@ -38,26 +38,6 @@ internal sealed class Av1FilmGrainDecoder
     private const int GaussianIndexBits = 11;
 
     /// <summary>
-    /// The lower restricted-range luma value at eight-bit precision.
-    /// </summary>
-    private const int RestrictedLumaMinimum = 16;
-
-    /// <summary>
-    /// The upper restricted-range luma value at eight-bit precision.
-    /// </summary>
-    private const int RestrictedLumaMaximum = 235;
-
-    /// <summary>
-    /// The lower restricted-range chroma value at eight-bit precision.
-    /// </summary>
-    private const int RestrictedChromaMinimum = 16;
-
-    /// <summary>
-    /// The upper restricted-range chroma value at eight-bit precision.
-    /// </summary>
-    private const int RestrictedChromaMaximum = 240;
-
-    /// <summary>
     /// The sequence-level bit-depth and chroma-sampling configuration.
     /// </summary>
     private readonly ObuSequenceHeader sequenceHeader;
@@ -473,7 +453,7 @@ internal sealed class Av1FilmGrainDecoder
                 {
                     // Blend the incoming template columns with the outgoing columns saved by the block on the left.
                     // Writing back to the column buffers produces the exact grain region applied at this boundary.
-                    VerticalOverlap(
+                    Av1FilmGrainOverlap.Vertical(
                         yColumnBuffer,
                         2,
                         lumaGrain[((lumaOffsetY * lumaBlockWidth) + lumaOffsetX)..],
@@ -492,7 +472,7 @@ internal sealed class Av1FilmGrainDecoder
                             chromaSubblockHeight + (2 >> subsamplingY),
                             (height - (halfY << 1)) >> subsamplingY);
 
-                        VerticalOverlap(
+                        Av1FilmGrainOverlap.Vertical(
                             cbColumnBuffer,
                             chromaOverlapWidth,
                             cbGrain[((chromaOffsetY * chromaBlockWidth) + chromaOffsetX)..],
@@ -504,7 +484,7 @@ internal sealed class Av1FilmGrainDecoder
                             grainMinimum,
                             grainMaximum);
 
-                        VerticalOverlap(
+                        Av1FilmGrainOverlap.Vertical(
                             crColumnBuffer,
                             chromaOverlapWidth,
                             crGrain[((chromaOffsetY * chromaBlockWidth) + chromaOffsetX)..],
@@ -542,7 +522,7 @@ internal sealed class Av1FilmGrainDecoder
                         ? Span<int>.Empty
                         : crColumnBuffer[columnGrainOffset..];
 
-                    AddNoiseToBlock(
+                    Av1FilmGrainNoise.Apply(
                         parameters,
                         scalingY,
                         scalingCb,
@@ -572,7 +552,7 @@ internal sealed class Av1FilmGrainDecoder
                     {
                         // At an interior corner, first combine the saved top boundary with the already blended left
                         // boundary. The resulting corner is then part of the horizontal boundary applied below.
-                        HorizontalOverlap(
+                        Av1FilmGrainOverlap.Horizontal(
                             yLineBuffer[(halfX << 1)..],
                             lumaStride,
                             yColumnBuffer,
@@ -589,7 +569,7 @@ internal sealed class Av1FilmGrainDecoder
                             int chromaOverlapWidth = 2 >> subsamplingX;
                             int chromaOverlapHeight = 2 >> subsamplingY;
                             int chromaLineOffset = halfX * chromaOverlapWidth;
-                            HorizontalOverlap(
+                            Av1FilmGrainOverlap.Horizontal(
                                 cbLineBuffer[chromaLineOffset..],
                                 chromaStride,
                                 cbColumnBuffer,
@@ -601,7 +581,7 @@ internal sealed class Av1FilmGrainDecoder
                                 grainMinimum,
                                 grainMaximum);
 
-                            HorizontalOverlap(
+                            Av1FilmGrainOverlap.Horizontal(
                                 crLineBuffer[chromaLineOffset..],
                                 chromaStride,
                                 crColumnBuffer,
@@ -624,7 +604,7 @@ internal sealed class Av1FilmGrainDecoder
                         LumaSubblockSize - templateColumnAdjustment,
                         width - (overlappedColumn << 1));
 
-                    HorizontalOverlap(
+                    Av1FilmGrainOverlap.Horizontal(
                         yLineBuffer[(overlappedColumn << 1)..],
                         lumaStride,
                         lumaGrain[((lumaOffsetY * lumaBlockWidth) + lumaOffsetX + templateColumnAdjustment)..],
@@ -644,7 +624,7 @@ internal sealed class Av1FilmGrainDecoder
                             chromaSubblockWidth - chromaColumnAdjustment,
                             (width - (overlappedColumn << 1)) >> subsamplingX);
 
-                        HorizontalOverlap(
+                        Av1FilmGrainOverlap.Horizontal(
                             cbLineBuffer[chromaDestinationOffset..],
                             chromaStride,
                             cbGrain[((chromaOffsetY * chromaBlockWidth) + chromaOffsetX + chromaColumnAdjustment)..],
@@ -656,7 +636,7 @@ internal sealed class Av1FilmGrainDecoder
                             grainMinimum,
                             grainMaximum);
 
-                        HorizontalOverlap(
+                        Av1FilmGrainOverlap.Horizontal(
                             crLineBuffer[chromaDestinationOffset..],
                             chromaStride,
                             crGrain[((chromaOffsetY * chromaBlockWidth) + chromaOffsetX + chromaColumnAdjustment)..],
@@ -691,7 +671,7 @@ internal sealed class Av1FilmGrainDecoder
 
                     // Apply the completed top boundary as a one-unit half-height strip, which is two luma rows and
                     // one or two chroma rows depending on vertical subsampling.
-                    AddNoiseToBlock(
+                    Av1FilmGrainNoise.Apply(
                         parameters,
                         scalingY,
                         scalingCb,
@@ -738,7 +718,7 @@ internal sealed class Av1FilmGrainDecoder
                 Span<int> interiorCbGrain = isMonochrome ? Span<int>.Empty : cbGrain[chromaGrainOffset..];
                 Span<int> interiorCrGrain = isMonochrome ? Span<int>.Empty : crGrain[chromaGrainOffset..];
 
-                AddNoiseToBlock(
+                Av1FilmGrainNoise.Apply(
                     parameters,
                     scalingY,
                     scalingCb,
@@ -1195,315 +1175,6 @@ internal sealed class Av1FilmGrainDecoder
     }
 
     /// <summary>
-    /// Adds a selected luma/chroma grain region to one rectangular frame region.
-    /// </summary>
-    /// <typeparam name="TSample">The native eight-bit or high-bit-depth sample type.</typeparam>
-    /// <param name="parameters">The frame grain parameters.</param>
-    /// <param name="scalingY">The luma scaling lookup table.</param>
-    /// <param name="scalingCb">The first chroma scaling lookup table.</param>
-    /// <param name="scalingCr">The second chroma scaling lookup table.</param>
-    /// <param name="luma">The destination luma region.</param>
-    /// <param name="cb">The destination first-chroma region.</param>
-    /// <param name="cr">The destination second-chroma region.</param>
-    /// <param name="lumaStride">The destination luma row stride.</param>
-    /// <param name="chromaStride">The destination chroma row stride.</param>
-    /// <param name="lumaGrain">The selected luma grain region.</param>
-    /// <param name="cbGrain">The selected first-chroma grain region.</param>
-    /// <param name="crGrain">The selected second-chroma grain region.</param>
-    /// <param name="lumaGrainStride">The luma grain row stride.</param>
-    /// <param name="chromaGrainStride">The chroma grain row stride.</param>
-    /// <param name="halfLumaHeight">Half the destination luma height.</param>
-    /// <param name="halfLumaWidth">Half the destination luma width.</param>
-    /// <param name="bitDepth">The decoded sample bit depth.</param>
-    /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
-    /// <param name="subsamplingY">The vertical chroma subsampling shift.</param>
-    /// <param name="isMonochrome">Whether chroma processing is absent.</param>
-    /// <param name="isIdentityMatrix">Whether chroma planes carry direct RGB components.</param>
-    private static void AddNoiseToBlock<TSample>(
-        ObuFilmGrainParameters parameters,
-        ReadOnlySpan<int> scalingY,
-        ReadOnlySpan<int> scalingCb,
-        ReadOnlySpan<int> scalingCr,
-        Span<TSample> luma,
-        Span<TSample> cb,
-        Span<TSample> cr,
-        int lumaStride,
-        int chromaStride,
-        ReadOnlySpan<int> lumaGrain,
-        ReadOnlySpan<int> cbGrain,
-        ReadOnlySpan<int> crGrain,
-        int lumaGrainStride,
-        int chromaGrainStride,
-        int halfLumaHeight,
-        int halfLumaWidth,
-        int bitDepth,
-        int subsamplingX,
-        int subsamplingY,
-        bool isMonochrome,
-        bool isIdentityMatrix)
-        where TSample : unmanaged
-    {
-        // GrainScalingMinus8 stores a shift in the range eight through eleven. The half-unit bias makes the
-        // signed scaled-grain contribution round before it is added to the restored sample.
-        int scalingShift = (int)parameters.GrainScalingMinus8 + 8;
-        int roundingOffset = 1 << (scalingShift - 1);
-        int depthScale = 1 << (bitDepth - 8);
-        int sampleMaximum = (256 * depthScale) - 1;
-        int lumaMinimum = 0;
-        int lumaMaximum = sampleMaximum;
-        int chromaMinimum = 0;
-        int chromaMaximum = sampleMaximum;
-        if (parameters.ClipToRestrictedRange)
-        {
-            // Legal-range constants are specified at eight-bit precision and scale exactly for 10- and 12-bit data.
-            // Identity matrices carry RGB-like planes, so every plane uses the luma legal range rather than YUV chroma.
-            lumaMinimum = RestrictedLumaMinimum * depthScale;
-            lumaMaximum = RestrictedLumaMaximum * depthScale;
-            chromaMinimum = (isIdentityMatrix ? RestrictedLumaMinimum : RestrictedChromaMinimum) * depthScale;
-            chromaMaximum = (isIdentityMatrix ? RestrictedLumaMaximum : RestrictedChromaMaximum) * depthScale;
-        }
-
-        if (!isMonochrome)
-        {
-            // Chroma multipliers are biased by 128 in the bitstream, and offsets are biased by 256 after conversion
-            // to the active bit depth. Restoring those signed values keeps the scaling-index equation entirely integral.
-            int cbMultiplier = (int)parameters.CbMult - 128;
-            int cbLumaMultiplier = (int)parameters.CbLumaMult - 128;
-            int cbOffset = ((int)parameters.CbOffset * depthScale) - (256 * depthScale);
-            int crMultiplier = (int)parameters.CrMult - 128;
-            int crLumaMultiplier = (int)parameters.CrLumaMult - 128;
-            int crOffset = ((int)parameters.CrOffset * depthScale) - (256 * depthScale);
-            if (parameters.ChromaScalingFromLuma)
-            {
-                // A luma-derived chroma function selects the luma coordinate directly: 64 is unity in the Q6
-                // multiplier domain, while the chroma sample multiplier and both offsets are forced to zero.
-                cbMultiplier = 0;
-                cbLumaMultiplier = 64;
-                cbOffset = 0;
-                crMultiplier = 0;
-                crLumaMultiplier = 64;
-                crOffset = 0;
-            }
-
-            bool applyCb = parameters.NumCbPoints != 0 || parameters.ChromaScalingFromLuma;
-            bool applyCr = parameters.NumCrPoints != 0 || parameters.ChromaScalingFromLuma;
-            int chromaHeight = halfLumaHeight << (1 - subsamplingY);
-            int chromaWidth = halfLumaWidth << (1 - subsamplingX);
-
-            // Chroma is processed before luma so its scaling coordinate observes restored luma, not luma after grain.
-            // This ordering also makes Cb and Cr independent of whether a luma scaling function is present.
-            for (int row = 0; row < chromaHeight; row++)
-            {
-                for (int column = 0; column < chromaWidth; column++)
-                {
-                    int lumaIndex = ((row << subsamplingY) * lumaStride) + (column << subsamplingX);
-                    int averageLuma = GetSample(luma, lumaIndex);
-                    if (subsamplingX != 0)
-                    {
-                        // Horizontally subsampled chroma is centered over two luma columns. Vertical subsampling
-                        // changes which luma row is selected but does not introduce a second-row average here.
-                        averageLuma = (averageLuma + GetSample(luma, lumaIndex + 1) + 1) >> 1;
-                    }
-
-                    int chromaIndex = (row * chromaStride) + column;
-                    int grainIndex = (row * chromaGrainStride) + column;
-                    if (applyCb)
-                    {
-                        int cbSample = GetSample(cb, chromaIndex);
-                        int scalingIndex = Av1Math.Clamp(
-                            (((averageLuma * cbLumaMultiplier) + (cbMultiplier * cbSample)) >> 6) + cbOffset,
-                            0,
-                            sampleMaximum);
-
-                        int grainScale = ScaleLookup(scalingCb, scalingIndex, bitDepth);
-                        SetSample(
-                            cb,
-                            chromaIndex,
-                            Av1Math.Clamp(
-                                cbSample + (((grainScale * cbGrain[grainIndex]) + roundingOffset) >> scalingShift),
-                                chromaMinimum,
-                                chromaMaximum));
-                    }
-
-                    if (applyCr)
-                    {
-                        int crSample = GetSample(cr, chromaIndex);
-                        int scalingIndex = Av1Math.Clamp(
-                            (((averageLuma * crLumaMultiplier) + (crMultiplier * crSample)) >> 6) + crOffset,
-                            0,
-                            sampleMaximum);
-
-                        int grainScale = ScaleLookup(scalingCr, scalingIndex, bitDepth);
-                        SetSample(
-                            cr,
-                            chromaIndex,
-                            Av1Math.Clamp(
-                                crSample + (((grainScale * crGrain[grainIndex]) + roundingOffset) >> scalingShift),
-                                chromaMinimum,
-                                chromaMaximum));
-                    }
-                }
-            }
-        }
-
-        if (parameters.NumYPoints != 0)
-        {
-            // The half-dimension contract expands back to the exact luma rectangle owned by this boundary or interior
-            // pass. Each sample uses its restored value as the scaling coordinate before grain is added in place.
-            int lumaHeight = halfLumaHeight << 1;
-            int lumaWidth = halfLumaWidth << 1;
-            for (int row = 0; row < lumaHeight; row++)
-            {
-                for (int column = 0; column < lumaWidth; column++)
-                {
-                    int sampleIndex = (row * lumaStride) + column;
-                    int sample = GetSample(luma, sampleIndex);
-                    int grainScale = ScaleLookup(scalingY, sample, bitDepth);
-                    int grainIndex = (row * lumaGrainStride) + column;
-                    SetSample(
-                        luma,
-                        sampleIndex,
-                        Av1Math.Clamp(
-                            sample + (((grainScale * lumaGrain[grainIndex]) + roundingOffset) >> scalingShift),
-                            lumaMinimum,
-                            lumaMaximum));
-                }
-            }
-        }
-    }
-
-    /// <summary>
-    /// Reads a bit-depth scaling value, interpolating between eight-bit entries when required.
-    /// </summary>
-    /// <param name="lookup">The 256-entry scaling lookup table.</param>
-    /// <param name="index">The sample-scale lookup coordinate.</param>
-    /// <param name="bitDepth">The decoded sample bit depth.</param>
-    /// <returns>The interpolated grain scaling value.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int ScaleLookup(ReadOnlySpan<int> lookup, int index, int bitDepth)
-    {
-        int depthShift = bitDepth - 8;
-        int lookupIndex = index >> depthShift;
-        if (depthShift == 0 || lookupIndex == 255)
-        {
-            // Eight-bit coordinates address the table directly. The last high-bit-depth interval has no following
-            // entry, so endpoint extension returns entry 255 without attempting interpolation.
-            return lookup[lookupIndex];
-        }
-
-        // The low depthShift bits are the fractional position between adjacent eight-bit lookup coordinates.
-        int fraction = index & ((1 << depthShift) - 1);
-        return lookup[lookupIndex] +
-            ((((lookup[lookupIndex + 1] - lookup[lookupIndex]) * fraction) + (1 << (depthShift - 1))) >> depthShift);
-    }
-
-    /// <summary>
-    /// Blends the two grain columns on a vertical block boundary.
-    /// </summary>
-    /// <param name="left">The saved grain columns from the block on the left.</param>
-    /// <param name="leftStride">The saved-column row stride.</param>
-    /// <param name="right">The grain columns selected for the block on the right.</param>
-    /// <param name="rightStride">The right-block row stride.</param>
-    /// <param name="destination">The overlap destination.</param>
-    /// <param name="destinationStride">The destination row stride.</param>
-    /// <param name="width">The one- or two-sample overlap width.</param>
-    /// <param name="height">The overlap height.</param>
-    /// <param name="minimum">The minimum grain value.</param>
-    /// <param name="maximum">The maximum grain value.</param>
-    private static void VerticalOverlap(
-        ReadOnlySpan<int> left,
-        int leftStride,
-        ReadOnlySpan<int> right,
-        int rightStride,
-        Span<int> destination,
-        int destinationStride,
-        int width,
-        int height,
-        int minimum,
-        int maximum)
-    {
-        for (int row = 0; row < height; row++)
-        {
-            int leftOffset = row * leftStride;
-            int rightOffset = row * rightStride;
-            int destinationOffset = row * destinationStride;
-            if (width == 1)
-            {
-                // A subsampled one-column boundary uses the dedicated 23:22 overlap weights.
-                destination[destinationOffset] = Av1Math.Clamp(
-                    ((left[leftOffset] * 23) + (right[rightOffset] * 22) + 16) >> 5,
-                    minimum,
-                    maximum);
-            }
-            else
-            {
-                // The two-column kernel biases the outer samples toward their originating block and crosses the
-                // 27:17 weights for the inner samples. These fixed weights are part of AV1 grain synthesis.
-                destination[destinationOffset] = Av1Math.Clamp(
-                    ((left[leftOffset] * 27) + (right[rightOffset] * 17) + 16) >> 5,
-                    minimum,
-                    maximum);
-
-                destination[destinationOffset + 1] = Av1Math.Clamp(
-                    ((left[leftOffset + 1] * 17) + (right[rightOffset + 1] * 27) + 16) >> 5,
-                    minimum,
-                    maximum);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Blends the one or two grain rows on a horizontal block boundary.
-    /// </summary>
-    /// <param name="top">The saved grain rows from the block above.</param>
-    /// <param name="topStride">The saved-row stride.</param>
-    /// <param name="bottom">The grain rows selected for the block below.</param>
-    /// <param name="bottomStride">The lower-block row stride.</param>
-    /// <param name="destination">The overlap destination.</param>
-    /// <param name="destinationStride">The destination row stride.</param>
-    /// <param name="width">The overlap width.</param>
-    /// <param name="height">The one- or two-sample overlap height.</param>
-    /// <param name="minimum">The minimum grain value.</param>
-    /// <param name="maximum">The maximum grain value.</param>
-    private static void HorizontalOverlap(
-        ReadOnlySpan<int> top,
-        int topStride,
-        ReadOnlySpan<int> bottom,
-        int bottomStride,
-        Span<int> destination,
-        int destinationStride,
-        int width,
-        int height,
-        int minimum,
-        int maximum)
-    {
-        for (int column = 0; column < width; column++)
-        {
-            if (height == 1)
-            {
-                // Vertically subsampled chroma collapses the overlap to the single-row 23:22 kernel.
-                destination[column] = Av1Math.Clamp(
-                    ((top[column] * 23) + (bottom[column] * 22) + 16) >> 5,
-                    minimum,
-                    maximum);
-            }
-            else
-            {
-                // Luma and full-height chroma use the crossed two-row 27:17 overlap kernel.
-                destination[column] = Av1Math.Clamp(
-                    ((top[column] * 27) + (bottom[column] * 17) + 16) >> 5,
-                    minimum,
-                    maximum);
-
-                destination[destinationStride + column] = Av1Math.Clamp(
-                    ((top[topStride + column] * 17) + (bottom[bottomStride + column] * 27) + 16) >> 5,
-                    minimum,
-                    maximum);
-            }
-        }
-    }
-
-    /// <summary>
     /// Copies a rectangular grain region while preserving independent source and destination strides.
     /// </summary>
     /// <param name="source">The source region.</param>
@@ -1560,48 +1231,5 @@ internal sealed class Av1FilmGrainDecoder
 
         randomRegister = (ushort)((randomRegister >> 1) | (feedback << 15));
         return (randomRegister >> (16 - bitCount)) & ((1 << bitCount) - 1);
-    }
-
-    /// <summary>
-    /// Reads an eight-bit or high-bit-depth sample without a format-conversion buffer.
-    /// </summary>
-    /// <typeparam name="TSample">The native sample type.</typeparam>
-    /// <param name="samples">The sample span.</param>
-    /// <param name="index">The sample index.</param>
-    /// <returns>The unsigned sample value.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int GetSample<TSample>(Span<TSample> samples, int index)
-        where TSample : unmanaged
-    {
-        ref TSample sample = ref samples[index];
-
-        // Callers close TSample over byte or ushort, so the JIT removes this branch and emits a native unsigned load.
-        return typeof(TSample) == typeof(byte)
-            ? Unsafe.As<TSample, byte>(ref sample)
-            : Unsafe.As<TSample, ushort>(ref sample);
-    }
-
-    /// <summary>
-    /// Writes an eight-bit or high-bit-depth sample without a format-conversion buffer.
-    /// </summary>
-    /// <typeparam name="TSample">The native sample type.</typeparam>
-    /// <param name="samples">The sample span.</param>
-    /// <param name="index">The sample index.</param>
-    /// <param name="value">The already clipped unsigned value.</param>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void SetSample<TSample>(Span<TSample> samples, int index, int value)
-        where TSample : unmanaged
-    {
-        // As in GetSample, the closed generic type leaves only the matching native store in generated code.
-        if (typeof(TSample) == typeof(byte))
-        {
-            byte byteValue = (byte)value;
-            samples[index] = Unsafe.As<byte, TSample>(ref byteValue);
-        }
-        else
-        {
-            ushort ushortValue = (ushort)value;
-            samples[index] = Unsafe.As<ushort, TSample>(ref ushortValue);
-        }
     }
 }

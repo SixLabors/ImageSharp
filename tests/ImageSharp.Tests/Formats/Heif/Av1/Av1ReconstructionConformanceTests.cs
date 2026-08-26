@@ -169,6 +169,14 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
+    /// Verifies film-grain template generation, block selection, overlap, chroma scaling, subsampling, high-bit-depth
+    /// arithmetic, and exact native presentation samples against scalar libaom.
+    /// </summary>
+    [Fact]
+    public void DecodeWithFilmGrainMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilmGrainFixtures, LoopRestorationConfigurations);
+
+    /// <summary>
     /// Validates every active-CDEF fixture under the hardware configuration selected by <see cref="FeatureTestRunner"/>.
     /// </summary>
     private static void ValidateActiveCdefFixtures()
@@ -361,6 +369,73 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
+    /// Validates every active film-grain fixture under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidateFilmGrainFixtures()
+    {
+        ValidateFilmGrainFixture(
+            TestImages.Heif.Av1FilmGrain8BitPayload,
+            TestImages.Heif.Av1FilmGrain8BitReference,
+            100,
+            60,
+            Av1BitDepth.EightBit,
+            Av1ColorFormat.Yuv420);
+
+        ValidateFilmGrainFixture(
+            TestImages.Heif.Av1FilmGrain10BitPayload,
+            TestImages.Heif.Av1FilmGrain10BitReference,
+            100,
+            60,
+            Av1BitDepth.TenBit,
+            Av1ColorFormat.Yuv422);
+
+        ValidateFilmGrainFixture(
+            TestImages.Heif.Av1FilmGrain12BitPayload,
+            TestImages.Heif.Av1FilmGrain12BitReference,
+            100,
+            60,
+            Av1BitDepth.TwelveBit,
+            Av1ColorFormat.Yuv444);
+
+        ValidateFilmGrainFixture(
+            TestImages.Heif.Av1FilmGrain8BitRestrictedPayload,
+            TestImages.Heif.Av1FilmGrain8BitRestrictedReference,
+            100,
+            60,
+            Av1BitDepth.EightBit,
+            Av1ColorFormat.Yuv420,
+            requireRestrictedRange: true);
+
+        ValidateFilmGrainFixture(
+            TestImages.Heif.Av1FilmGrain8BitMonochromePayload,
+            TestImages.Heif.Av1FilmGrain8BitMonochromeReference,
+            100,
+            60,
+            Av1BitDepth.EightBit,
+            Av1ColorFormat.Yuv400,
+            requireRestrictedRange: true);
+
+        ValidateFilmGrainFixture(
+            TestImages.Heif.Av1FilmGrain12BitIdentityPayload,
+            TestImages.Heif.Av1FilmGrain12BitIdentityReference,
+            100,
+            60,
+            Av1BitDepth.TwelveBit,
+            Av1ColorFormat.Yuv444,
+            requireRestrictedRange: true,
+            requireIdentityMatrix: true);
+
+        ValidateFilmGrainFixture(
+            TestImages.Heif.Av1FilmGrainOddDimensionsPayload,
+            TestImages.Heif.Av1FilmGrainOddDimensionsReference,
+            33,
+            11,
+            Av1BitDepth.EightBit,
+            Av1ColorFormat.Yuv420);
+    }
+
+    /// <summary>
     /// Validates one elementary-stream sample and its containing AVIF image.
     /// </summary>
     /// <param name="imagePath">The complete AVIF container.</param>
@@ -397,6 +472,10 @@ public class Av1ReconstructionConformanceTests
     /// <param name="requireActiveCdef">Indicates whether the stream must signal and select nonzero CDEF strengths.</param>
     /// <param name="requireSuperResolution">Indicates whether the stream must use normative horizontal upscaling.</param>
     /// <param name="requireLoopRestoration">Indicates whether the stream must select at least one loop-restoration unit.</param>
+    /// <param name="requireFilmGrain">Indicates whether the displayed frame must synthesize signaled film grain.</param>
+    /// <param name="requireRestrictedRange">Indicates whether film grain must clip every plane to its restricted range.</param>
+    /// <param name="requireIdentityMatrix">Indicates whether restricted chroma clipping must use the luma endpoints.</param>
+    /// <param name="requireActiveLoopFilter">Indicates whether the stream must signal a nonzero deblocking strength.</param>
     /// <returns>A bit mask containing every selected loop-restoration filter type.</returns>
     private static int ValidateNativeFixture(
         string payloadPath,
@@ -407,7 +486,11 @@ public class Av1ReconstructionConformanceTests
         Av1ColorFormat colorFormat,
         bool requireActiveCdef,
         bool requireSuperResolution = false,
-        bool requireLoopRestoration = false)
+        bool requireLoopRestoration = false,
+        bool requireFilmGrain = false,
+        bool requireRestrictedRange = false,
+        bool requireIdentityMatrix = false,
+        bool requireActiveLoopFilter = true)
     {
         int restorationCoverage = 0;
         byte[] payload = TestFile.Create(payloadPath).Bytes;
@@ -433,12 +516,15 @@ public class Av1ReconstructionConformanceTests
             }
         }
 
-        ObuLoopFilterParameters filterParameters = decoder.FrameHeader.LoopFilterParameters;
-        Assert.True(
-            filterParameters.FilterLevel[0] != 0
-            || filterParameters.FilterLevel[1] != 0
-            || filterParameters.FilterLevelU != 0
-            || filterParameters.FilterLevelV != 0);
+        if (requireActiveLoopFilter)
+        {
+            ObuLoopFilterParameters filterParameters = decoder.FrameHeader.LoopFilterParameters;
+            Assert.True(
+                filterParameters.FilterLevel[0] != 0
+                || filterParameters.FilterLevel[1] != 0
+                || filterParameters.FilterLevelU != 0
+                || filterParameters.FilterLevelV != 0);
+        }
 
         if (requireActiveCdef)
         {
@@ -481,6 +567,22 @@ public class Av1ReconstructionConformanceTests
             Assert.NotNull(decoder.FrameInfo);
             restorationCoverage = GetRestorationCoverage(decoder);
             Assert.NotEqual(0, restorationCoverage);
+        }
+
+        if (requireFilmGrain)
+        {
+            Assert.True(decoder.FrameHeader.FilmGrainParameters.ApplyGrain);
+        }
+
+        if (requireRestrictedRange)
+        {
+            Assert.True(decoder.FrameHeader.FilmGrainParameters.ClipToRestrictedRange);
+        }
+
+        if (requireIdentityMatrix)
+        {
+            Assert.NotNull(decoder.SequenceHeader);
+            Assert.Equal(ObuMatrixCoefficients.Identity, decoder.SequenceHeader.ColorConfig.MatrixCoefficients);
         }
 
         AssertNativePlanesEqual(frameBuffer, reference);
@@ -560,6 +662,39 @@ public class Av1ReconstructionConformanceTests
             requireActiveCdef: false,
             requireSuperResolution: requireSuperResolution,
             requireLoopRestoration: true);
+
+    /// <summary>
+    /// Validates one independently encoded stream that applies film grain to the displayed samples.
+    /// </summary>
+    /// <param name="payloadPath">The AV1 elementary-stream sample.</param>
+    /// <param name="referencePath">The native planar output produced by the pinned scalar libaom decoder.</param>
+    /// <param name="width">The expected displayed width.</param>
+    /// <param name="height">The expected displayed height.</param>
+    /// <param name="bitDepth">The expected AV1 sample precision.</param>
+    /// <param name="colorFormat">The expected native chroma-sampling layout.</param>
+    /// <param name="requireRestrictedRange">Whether film grain must clip every plane to its restricted range.</param>
+    /// <param name="requireIdentityMatrix">Whether restricted chroma clipping must use the luma endpoints.</param>
+    private static void ValidateFilmGrainFixture(
+        string payloadPath,
+        string referencePath,
+        int width,
+        int height,
+        Av1BitDepth bitDepth,
+        Av1ColorFormat colorFormat,
+        bool requireRestrictedRange = false,
+        bool requireIdentityMatrix = false)
+        => ValidateNativeFixture(
+            payloadPath,
+            referencePath,
+            width,
+            height,
+            bitDepth,
+            colorFormat,
+            requireActiveCdef: false,
+            requireFilmGrain: true,
+            requireRestrictedRange: requireRestrictedRange,
+            requireIdentityMatrix: requireIdentityMatrix,
+            requireActiveLoopFilter: false);
 
     /// <summary>
     /// Validates the public presentation and metadata produced from one complete AVIF container.
@@ -692,7 +827,11 @@ public class Av1ReconstructionConformanceTests
         };
 
         int referenceOffset = 0;
-        foreach (Av1Plane plane in new[] { Av1Plane.Y, Av1Plane.U, Av1Plane.V })
+        ReadOnlySpan<Av1Plane> planes = frameBuffer.ColorFormat == Av1ColorFormat.Yuv400
+            ? [Av1Plane.Y]
+            : [Av1Plane.Y, Av1Plane.U, Av1Plane.V];
+
+        foreach (Av1Plane plane in planes)
         {
             int subsamplingX = plane == Av1Plane.Y ? 0 : chromaSubsamplingX;
             int subsamplingY = plane == Av1Plane.Y ? 0 : chromaSubsamplingY;

@@ -9,9 +9,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 internal static class Av1FilmGrainGaussianSequence
 {
     /// <summary>
-    /// The signed 12-bit Gaussian samples indexed by the film-grain pseudo-random generator.
+    /// Gets the signed 12-bit Gaussian samples in their normative index order.
     /// </summary>
-    private static readonly short[] Values =
+    public static ReadOnlySpan<short> Samples =>
     [
         56, 568, -180, 172, 124, -84, 172, -64, -900, 24, 820, 224, 1248, 996, 272, -8,
         -916, -388, -732, -104, -188, 800, 112, -652, -320, -376, 140, -252, 492, -168, 44, -788,
@@ -142,9 +142,4 @@ internal static class Av1FilmGrainGaussianSequence
         364, 100, -744, -1056, -32, 540, 280, 144, -676, -32, -232, -280, -224, 96, 568, -76,
         172, 148, 148, 104, 32, -296, -32, 788, -80, 32, -16, 280, 288, 944, 428, -484,
     ];
-
-    /// <summary>
-    /// Gets the Gaussian samples in their normative index order.
-    /// </summary>
-    public static ReadOnlySpan<short> Samples => Values;
 }

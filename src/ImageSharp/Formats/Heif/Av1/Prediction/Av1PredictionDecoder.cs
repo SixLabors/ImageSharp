@@ -248,16 +248,17 @@ internal class Av1PredictionDecoder
         int alphaQ3 = ChromaFromLumaIndexToAlpha(modeInfo.ChromaFromLumaAlphaIndex, modeInfo.ChromaFromLumaAlphaSign, plane);
 
         Av1BitDepth bitDepth = this.sequenceHeader.ColorConfig.BitDepth;
-        ChromaFromLumaPredict(
-            chromaFromLumaContext.Q3Buffer,
-            pixelBuffer,
-            stride,
-            pixelBuffer,
-            stride,
-            alphaQ3,
-            bitDepth,
-            transformSize.GetWidth(),
-            transformSize.GetHeight());
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+
+        if (typeof(T) == typeof(byte))
+        {
+            Av1ChromaFromLumaPredictor.Predict(chromaFromLumaContext.Q3Buffer, MemoryMarshal.Cast<T, byte>(pixelBuffer), stride, alphaQ3, width, height);
+        }
+        else
+        {
+            Av1ChromaFromLumaPredictor.Predict(chromaFromLumaContext.Q3Buffer, MemoryMarshal.Cast<T, short>(pixelBuffer), stride, alphaQ3, bitDepth.GetBitCount(), width, height);
+        }
     }
 
     /// <summary>
@@ -303,53 +304,6 @@ internal class Av1PredictionDecoder
 
         int absAlphaQ3 = (plane == Av1Plane.U) ? Av1ChromaFromLumaMath.IndexU(alphaIndex) : Av1ChromaFromLumaMath.IndexV(alphaIndex);
         return (alphaSign == Av1ChromaFromLumaMath.SignPositive) ? absAlphaQ3 + 1 : -absAlphaQ3 - 1;
-    }
-
-    /// <summary>
-    /// Multiplies a Q3 chroma-from-luma alpha by a Q3 luma residual and returns an integer sample adjustment.
-    /// </summary>
-    /// <param name="alphaQ3">The signed Q3 chroma scaling factor.</param>
-    /// <param name="predictedQ3">The signed Q3 luma residual.</param>
-    /// <returns>The signed integer sample adjustment.</returns>
-    private static int GetScaledLumaQ0(int alphaQ3, short predictedQ3)
-    {
-        int scaledLumaQ6 = alphaQ3 * predictedQ3;
-        return Av1Math.RoundPowerOf2Signed(scaledLumaQ6, 6);
-    }
-
-    /// <summary>
-    /// Applies a chroma-from-luma residual to a chroma prediction block.
-    /// </summary>
-    /// <typeparam name="T">The 8-bit or high-bit-depth sample type.</typeparam>
-    /// <param name="predictedBufferQ3">The Q3 luma residuals stored with the normative 32-sample CfL row stride.</param>
-    /// <param name="predictedBuffer">The base chroma prediction samples.</param>
-    /// <param name="predictedStride">The distance, in samples, between base prediction rows.</param>
-    /// <param name="destinationBuffer">The buffer that receives the adjusted chroma samples.</param>
-    /// <param name="destinationStride">The distance, in samples, between destination rows.</param>
-    /// <param name="alphaQ3">The signed Q3 chroma scaling factor.</param>
-    /// <param name="bitDepth">The bit depth used to clamp reconstructed samples.</param>
-    /// <param name="width">The width of the prediction block in samples.</param>
-    /// <param name="height">The height of the prediction block in samples.</param>
-    public static void ChromaFromLumaPredict<T>(Span<short> predictedBufferQ3, Span<T> predictedBuffer, int predictedStride, Span<T> destinationBuffer, int destinationStride, int alphaQ3, Av1BitDepth bitDepth, int width, int height)
-        where T : unmanaged, IBinaryInteger<T>
-    {
-        // TODO: Make SIMD variant of this method.
-        int maxPixelValue = (1 << bitDepth.GetBitCount()) - 1;
-        for (int j = 0; j < height; j++)
-        {
-            for (int i = 0; i < width; i++)
-            {
-                int alphaQ0 = GetScaledLumaQ0(alphaQ3, predictedBufferQ3[i]);
-                int predicted = int.CreateChecked(predictedBuffer[i]);
-                destinationBuffer[i] = T.CreateChecked(Av1Math.Clamp(alphaQ0 + predicted, 0, maxPixelValue));
-            }
-
-            destinationBuffer = destinationBuffer[destinationStride..];
-            predictedBuffer = predictedBuffer[predictedStride..];
-
-            // The CfL scratch buffer has a fixed 32-sample row stride independent of transform width.
-            predictedBufferQ3 = predictedBufferQ3[32..];
-        }
     }
 
     /// <summary>

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -10,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 /// <summary>
 /// Accumulates subsampled luma samples and derives the zero-mean Q3 predictor surface used by AV1 chroma-from-luma prediction.
 /// </summary>
-internal class Av1ChromaFromLumaContext
+internal partial class Av1ChromaFromLumaContext
 {
     /// <summary>
     /// The fixed row stride and maximum dimension, in chroma samples, of the luma predictor buffer.
@@ -119,51 +120,16 @@ internal class Av1ChromaFromLumaContext
         }
 
         int outputOffset = (storeRow * BufferLine) + storeColumn;
-        if (!this.subX)
+
+        // Reconstruction reaches this method only through the byte and short decoder pipelines. Dispatching once
+        // here keeps sample conversion out of the row kernels and lets the JIT specialize both storage layouts.
+        if (typeof(T) == typeof(byte))
         {
-            // A direct luma sample is multiplied by eight to produce the Q3 representation used by CfL.
-            for (int y = 0; y < height; y++)
-            {
-                int inputRow = y * inputStride;
-                int outputRow = outputOffset + (y * BufferLine);
-                for (int x = 0; x < width; x++)
-                {
-                    this.Q3Buffer[outputRow + x] = (short)(int.CreateChecked(input[inputRow + x]) << 3);
-                }
-            }
-        }
-        else if (!this.subY)
-        {
-            // The pair sum is multiplied by four, which is the Q3 representation of its horizontal average.
-            for (int y = 0; y < height; y++)
-            {
-                int inputRow = y * inputStride;
-                int outputRow = outputOffset + (y * BufferLine);
-                for (int x = 0; x < width; x += 2)
-                {
-                    int sum = int.CreateChecked(input[inputRow + x]) + int.CreateChecked(input[inputRow + x + 1]);
-                    this.Q3Buffer[outputRow + (x >> 1)] = (short)(sum << 2);
-                }
-            }
+            this.StoreSamples(MemoryMarshal.Cast<T, byte>(input), inputStride, outputOffset, width, height);
         }
         else
         {
-            // The 2x2 sum is multiplied by two, which is the Q3 representation of its four-sample average.
-            for (int y = 0; y < height; y += 2)
-            {
-                int inputRow = y * inputStride;
-                int nextInputRow = inputRow + inputStride;
-                int outputRow = outputOffset + ((y >> 1) * BufferLine);
-                for (int x = 0; x < width; x += 2)
-                {
-                    int sum = int.CreateChecked(input[inputRow + x]) +
-                        int.CreateChecked(input[inputRow + x + 1]) +
-                        int.CreateChecked(input[nextInputRow + x]) +
-                        int.CreateChecked(input[nextInputRow + x + 1]);
-
-                    this.Q3Buffer[outputRow + (x >> 1)] = (short)(sum << 1);
-                }
-            }
+            this.StoreSamples(MemoryMarshal.Cast<T, short>(input), inputStride, outputOffset, width, height);
         }
     }
 
@@ -214,42 +180,6 @@ internal class Av1ChromaFromLumaContext
             }
 
             this.bufferHeight = height;
-        }
-    }
-
-    /// <summary>
-    /// Subtracts the rounded Q3 average from each predictor sample, leaving the AC contribution used by CfL.
-    /// </summary>
-    /// <param name="transformSize">The populated predictor dimensions.</param>
-    /// <remarks>SVT-AV1: <c>svt_subtract_average_c</c>.</remarks>
-    private void SubtractAverage(Av1TransformSize transformSize)
-    {
-        int width = transformSize.GetWidth();
-        int height = transformSize.GetHeight();
-
-        // Transform dimensions are powers of two, so division by the sample count is an exact right shift.
-        // Half the sample count is accumulated first to round the signed Q3 mean to the nearest integer.
-        int roundOffset = (width * height) >> 1;
-        int pelCountLog2 = transformSize.GetBlockWidthLog2() + transformSize.GetBlockHeightLog2();
-        int sumQ3 = roundOffset;
-        for (int y = 0; y < height; y++)
-        {
-            int rowOffset = y * BufferLine;
-            for (int x = 0; x < width; x++)
-            {
-                sumQ3 += this.Q3Buffer[rowOffset + x];
-            }
-        }
-
-        int averageQ3 = sumQ3 >> pelCountLog2;
-
-        for (int y = 0; y < height; y++)
-        {
-            int rowOffset = y * BufferLine;
-            for (int x = 0; x < width; x++)
-            {
-                this.Q3Buffer[rowOffset + x] -= (short)averageQ3;
-            }
         }
     }
 }

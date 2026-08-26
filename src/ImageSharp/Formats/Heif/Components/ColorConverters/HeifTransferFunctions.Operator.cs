@@ -8,7 +8,7 @@ using static SixLabors.ImageSharp.Formats.Heif.Components.HeifTransferVectorOper
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <content>
-/// Provides the SIMD implementations of the H.273 transfer characteristics used by HEIF color conversion.
+/// Provides fixed-width vector overloads and shared H.273 transfer operations for HEIF color conversion.
 /// </content>
 internal static partial class HeifTransferFunctions
 {

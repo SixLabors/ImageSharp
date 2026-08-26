@@ -8,7 +8,7 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
 /// <content>
-/// Provides the SIMD projection kernels for AV1 directional intra prediction.
+/// Provides packed projection kernels for AV1 directional intra prediction.
 /// </content>
 internal static partial class Av1DirectionalIntraPredictor
 {

@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Common.Helpers;
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <content>
-/// Provides the operator-driven SIMD row traversal for eight-bit 4:2:0 conversion.
+/// Defines fixed-point operators and row traversal for eight-bit 4:2:0 conversion.
 /// </content>
 internal static partial class HeifYuv420ToRgb8Converter
 {

@@ -23,7 +23,7 @@ public class HevcIntraPredictorTests
         int[] modes = [0, 1, 2, 9, 18, 30, 34];
         ushort[][] expected =
         [
-            [83, 97, 110, 123, 87, 97, 108, 118, 90, 98, 105, 113, 93, 98, 103, 108],
+            [86, 101, 117, 132, 90, 103, 115, 128, 94, 104, 114, 123, 98, 105, 112, 119],
             [84, 93, 97, 101, 88, 92, 92, 92, 90, 92, 92, 92, 91, 92, 92, 92],
             [76, 82, 88, 94, 82, 88, 94, 100, 88, 94, 100, 106, 94, 100, 106, 112],
             [70, 71, 71, 72, 76, 77, 77, 78, 82, 83, 83, 84, 88, 89, 89, 90],
@@ -191,8 +191,8 @@ public class HevcIntraPredictorTests
             {
                 for (int x = 0; x < size; x++)
                 {
-                    int horizontal = ((size - x - 1) * left[y + 1]) + ((x + 1) * top[size]);
-                    int vertical = ((size - y - 1) * top[x + 1]) + ((y + 1) * left[size]);
+                    int horizontal = ((size - x - 1) * left[y + 1]) + ((x + 1) * top[size + 1]);
+                    int vertical = ((size - y - 1) * top[x + 1]) + ((y + 1) * left[size + 1]);
                     destination[(y * destinationStride) + x] = (ushort)((horizontal + vertical + size) >> shift);
                 }
             }

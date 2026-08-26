@@ -89,6 +89,10 @@ internal sealed partial class HevcPictureDecoder
         ReadOnlySpan<ushort> selectedLeft = left[..referenceLength];
         if (filterReferences)
         {
+            // Normal three-tap smoothing extends to combined 4:4:4 chroma, but strong bilinear smoothing is a luma
+            // operation. Separate color planes use luma syntax and therefore retain the luma behavior.
+            bool useStrongSmoothing = useLumaSyntax && this.sequenceParameterSet.StrongIntraSmoothingEnabled;
+
             HevcIntraPredictor.FilterReferenceSamples(
                 selectedTop,
                 selectedLeft,
@@ -96,7 +100,7 @@ internal sealed partial class HevcPictureDecoder
                 filteredLeft,
                 log2Size,
                 this.Picture.GetBitDepth(plane),
-                this.sequenceParameterSet.StrongIntraSmoothingEnabled);
+                useStrongSmoothing);
 
             selectedTop = filteredTop[..referenceLength];
             selectedLeft = filteredLeft[..referenceLength];

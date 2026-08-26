@@ -1294,6 +1294,16 @@ public static class TestImages
         public const string DwsampleTileHvcConfiguration = "Heif/Hevc/dwsample-tile.hvcc";
         public const string DwsampleTilePayload = "Heif/Hevc/dwsample-tile.hvc1";
         public const string DwsampleTileReferenceYuv = "Heif/Hevc/dwsample-tile-hm.yuv";
+        public const string General8BitMonochrome = "Heif/Hevc/Conformance/GENERAL_8b_400_RExt_Sony_1.bit";
+        public const string General8Bit420 = "Heif/Hevc/Conformance/GENERAL_8b_420_RExt_Sony_1.bit";
+        public const string General8Bit444 = "Heif/Hevc/Conformance/GENERAL_8b_444_RExt_Sony_2.bit";
+        public const string General10Bit420 = "Heif/Hevc/Conformance/GENERAL_10b_420_RExt_Sony_1.bit";
+        public const string General10Bit422 = "Heif/Hevc/Conformance/GENERAL_10b_422_RExt_Sony_1.bit";
+        public const string General10Bit444 = "Heif/Hevc/Conformance/GENERAL_10b_444_RExt_Sony_2.bit";
+        public const string General12BitMonochrome = "Heif/Hevc/Conformance/GENERAL_12b_400_RExt_Sony_1.bit";
+        public const string General12Bit420 = "Heif/Hevc/Conformance/GENERAL_12b_420_RExt_Sony_1.bit";
+        public const string General12Bit422 = "Heif/Hevc/Conformance/GENERAL_12b_422_RExt_Sony_1.bit";
+        public const string General12Bit444 = "Heif/Hevc/Conformance/GENERAL_12b_444_RExt_Sony_2.bit";
         public const string Image1 = "Heif/image1.heic";
         public const string Image2 = "Heif/image2.heic";
         public const string Image3 = "Heif/image3.heic";

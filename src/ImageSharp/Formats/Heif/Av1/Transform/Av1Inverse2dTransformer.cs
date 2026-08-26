@@ -542,6 +542,8 @@ internal static class Av1Inverse2dTransformer
         int shift0 = config.Shift0;
         int shift1 = config.Shift1;
         bool normalizeRectangle = Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1;
+        byte rowClampBits = (byte)(bitDepth + 8);
+        byte columnClampBits = (byte)Math.Max(bitDepth + 6, 16);
         Span<int> tempIn = workspace[..vectorLength];
         Span<int> tempOut = workspace.Slice(vectorLength, vectorLength);
         Span<int> step = workspace.Slice(2 * vectorLength, vectorLength);
@@ -554,12 +556,12 @@ internal static class Av1Inverse2dTransformer
             for (int column = 0; column < width; column++)
             {
                 int value = input[rowOffset + column];
-                tempIn[column] = normalizeRectangle
+                value = normalizeRectangle
                     ? Av1Math.RoundShift((long)value * Av1InverseTransformMath.NewInverseSqrt2, Av1InverseTransformMath.NewSqrt2BitCount)
                     : value;
+                tempIn[column] = Av1Transform1dMath.Clamp(value, rowClampBits);
             }
 
-            Av1InverseTransformMath.ClampBuffer(tempIn, width, (byte)(bitDepth + 8));
             TRowOperator.Transform(tempIn, tempOut, step, config.CosBitRow, config.StageRangeRow);
             Av1InverseTransformMath.RoundShiftArray(tempOut, width, -shift0);
             tempOut[..width].CopyTo(buffer.Slice(rowOffset, width));
@@ -571,10 +573,9 @@ internal static class Av1Inverse2dTransformer
 
             for (int row = 0; row < height; row++)
             {
-                tempIn[row] = buffer[(row * width) + sourceColumn];
+                tempIn[row] = Av1Transform1dMath.Clamp(buffer[(row * width) + sourceColumn], columnClampBits);
             }
 
-            Av1InverseTransformMath.ClampBuffer(tempIn, height, (byte)Math.Max(bitDepth + 6, 16));
             TColumnOperator.Transform(tempIn, tempOut, step, config.CosBitColumn, config.StageRangeColumn);
             Av1InverseTransformMath.RoundShiftArray(tempOut, height, -shift1);
 

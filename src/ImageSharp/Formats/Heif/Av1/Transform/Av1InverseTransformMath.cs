@@ -262,38 +262,6 @@ internal static class Av1InverseTransformMath
     }
 
     /// <summary>
-    /// Clamps a transform-stage buffer to a signed range of the specified bit width.
-    /// </summary>
-    /// <param name="buffer">The transform-stage values.</param>
-    /// <param name="size">The number of values to clamp.</param>
-    /// <param name="bit">The signed range width in bits.</param>
-    internal static void ClampBuffer(Span<int> buffer, int size, byte bit)
-    {
-        for (int i = 0; i < size; i++)
-        {
-            buffer[i] = ClampValue(buffer[i], bit);
-        }
-    }
-
-    /// <summary>
-    /// Clamps one transform-stage value to a signed range of the specified bit width.
-    /// </summary>
-    /// <param name="value">The value to clamp.</param>
-    /// <param name="bit">The signed range width in bits.</param>
-    /// <returns>The clamped value.</returns>
-    private static int ClampValue(int value, byte bit)
-    {
-        if (bit <= 0)
-        {
-            return value; // Do nothing for invalid clamp bit.
-        }
-
-        long maximum = (1L << (bit - 1)) - 1;
-        long minimum = -(1L << (bit - 1));
-        return (int)Av1Math.Clamp(value, minimum, maximum);
-    }
-
-    /// <summary>
     /// Restricts an inverse-transform residual to the intermediate range permitted for the sample bit depth.
     /// </summary>
     /// <param name="input">The inverse-transform residual.</param>

@@ -1365,6 +1365,10 @@ public static class TestImages
         public const string Av1Cdef12BitReference = "Heif/Av1/Conformance/libaom-cdef-cosmos-12b-libaom.yuv";
         public const string Av1Cdef12BitAvif = "Heif/Av1/Conformance/libavif-cdef-cosmos-12b.avif";
         public const string Av1Cdef12BitPresentationReference = "Heif/Av1/Conformance/libavif-cdef-cosmos-12b.png";
+        public const string Av1Palette8BitPayload = "Heif/Av1/Conformance/libaom-palette-draw-points-8b-444.bit";
+        public const string Av1Palette8BitReference = "Heif/Av1/Conformance/libaom-palette-draw-points-8b-444-libaom.yuv";
+        public const string Av1Palette8BitAvif = "Heif/Av1/Conformance/libavif-palette-draw-points-8b.avif";
+        public const string Av1Palette8BitPresentationReference = "Heif/Av1/Conformance/libavif-palette-draw-points-8b.png";
         public const string Av1SuperResolution8BitPayload = "Heif/Av1/Conformance/libaom-superres-kodim23-8b.bit";
         public const string Av1SuperResolution8BitReference = "Heif/Av1/Conformance/libaom-superres-kodim23-8b-libaom.yuv";
         public const string Av1SuperResolution8BitAvif = "Heif/Av1/Conformance/libavif-superres-kodim23-8b.avif";

@@ -45,6 +45,12 @@ The `libaom-restoration-superres-*` streams combine active restoration with a co
 
 The 10-bit 4:2:2 source was produced from libavif's `abc.png` with pinned generic `avifenc` using `-j 1 -s 8 -q 100 -d 10 -y 422`, then decoded to Y4M before the combined libaom encode. Its clipped rightmost 128x128 coding block crosses a second 64x64 residual region. This independently exercises the required conversion of the luma-region cursor to the subsampled chroma transform grid instead of relying only on full-width 4:4:4 blocks.
 
+## Palette coverage
+
+The palette fixture was encoded independently from ImageSharp using `tests/data/draw_points.png` from the pinned libavif revision. The source is a 33x11 flat-color image whose AV1 item selects both luma and chroma palette prediction. The pinned generic `avifenc` command used `-j 1 -s 0 -q 100 --ignore-alpha -y 444 --cicp 12/16/12 -a enable-palette=1 -a enable-intrabc=0 -a tune-content=screen`.
+
+`libaom-palette-draw-points-8b-444.bit` is the exact sole AV1 item extracted from `libavif-palette-draw-points-8b.avif`. The matching native YUV reference was decoded from that payload by the pinned scalar `aomdec --rawvideo` build. The presented PNG was decoded from the complete AVIF container by the pinned scalar `avifdec -j 1 -d 8` build. The tests require both palette planes to be selected, compare every native YUV sample exactly, and compare every presented RGBA byte exactly across the available vector widths and scalar fallback. No tolerance is used.
+
 ## Film-grain coverage
 
 The film-grain pairs were generated independently from ImageSharp. Each `.bit` file is an AV1 still-picture OBU stream, and the matching `-libaom.yuv` file is the exact visible planar output from the pinned scalar libaom decoder.

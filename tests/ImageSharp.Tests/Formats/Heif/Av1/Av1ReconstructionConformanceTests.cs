@@ -26,6 +26,12 @@ public class Av1ReconstructionConformanceTests
     private const HwIntrinsics ReconstructionConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
+    /// The hardware configurations covering the 256-bit, 128-bit, and scalar palette-reconstruction paths.
+    /// </summary>
+    private const HwIntrinsics PaletteConfigurations =
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+
+    /// <summary>
     /// The hardware configurations covering the 256-bit, 128-bit, and scalar loop-restoration paths.
     /// </summary>
     private const HwIntrinsics LoopRestorationConfigurations =
@@ -40,6 +46,21 @@ public class Av1ReconstructionConformanceTests
     /// The coverage bit representing an active self-guided restoration unit.
     /// </summary>
     private const int SelfGuidedRestorationCoverage = 1 << (int)Av1RestorationFilterType.SgrProjection;
+
+    /// <summary>
+    /// The coverage bit representing luma palette prediction.
+    /// </summary>
+    private const int LumaPaletteCoverage = 1 << 0;
+
+    /// <summary>
+    /// The coverage bit representing chroma palette prediction.
+    /// </summary>
+    private const int ChromaPaletteCoverage = 1 << 1;
+
+    /// <summary>
+    /// The luma and chroma syntax coverage required from the independent palette fixture.
+    /// </summary>
+    private const int RequiredPaletteCoverage = LumaPaletteCoverage | ChromaPaletteCoverage;
 
     /// <summary>
     /// The hardware configurations covering the available vector widths and the scalar color-conversion fallback.
@@ -102,6 +123,22 @@ public class Av1ReconstructionConformanceTests
     [Fact]
     public void DecodeWithActiveCdefMatchesPinnedLibavifPresentation()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePresentedFixtures, PresentationConfigurations);
+
+    /// <summary>
+    /// Verifies decoded luma and chroma palette syntax and exact native samples against scalar libaom for an
+    /// independently encoded AV1 still-picture stream.
+    /// </summary>
+    [Fact]
+    public void DecodeWithPaletteMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePaletteNativeFixture, PaletteConfigurations);
+
+    /// <summary>
+    /// Verifies decoded luma and chroma palette syntax and exact presented pixels for an independently encoded AVIF
+    /// image across the available vector widths and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void DecodeWithPaletteMatchesPinnedLibavifPresentation()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePalettePresentedFixture, PresentationConfigurations);
 
     /// <summary>
     /// Verifies active normative super-resolution, chroma-width rounding, replicated edges, and exact native samples
@@ -241,6 +278,35 @@ public class Av1ReconstructionConformanceTests
             428,
             HeifBitDepth.Bit12);
     }
+
+    /// <summary>
+    /// Validates the active-palette presentation fixture under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidatePalettePresentedFixture()
+        => ValidatePresentedFixture(
+            TestImages.Heif.Av1Palette8BitAvif,
+            TestImages.Heif.Av1Palette8BitPresentationReference,
+            33,
+            11,
+            HeifBitDepth.Bit8,
+            requirePalette: true);
+
+    /// <summary>
+    /// Validates the active-palette native fixture under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidatePaletteNativeFixture()
+        => ValidateNativeFixture(
+            TestImages.Heif.Av1Palette8BitPayload,
+            TestImages.Heif.Av1Palette8BitReference,
+            33,
+            11,
+            Av1BitDepth.EightBit,
+            Av1ColorFormat.Yuv444,
+            requireActiveCdef: false,
+            requireActiveLoopFilter: false,
+            requirePalette: true);
 
     /// <summary>
     /// Validates every active super-resolution fixture under the hardware configuration selected by
@@ -515,6 +581,7 @@ public class Av1ReconstructionConformanceTests
     /// <param name="requireRestrictedRange">Indicates whether film grain must clip every plane to its restricted range.</param>
     /// <param name="requireIdentityMatrix">Indicates whether restricted chroma clipping must use the luma endpoints.</param>
     /// <param name="requireActiveLoopFilter">Indicates whether the stream must signal a nonzero deblocking strength.</param>
+    /// <param name="requirePalette">Indicates whether the stream must select palette prediction for luma and chroma.</param>
     /// <returns>A bit mask containing every selected loop-restoration filter type.</returns>
     private static int ValidateNativeFixture(
         string payloadPath,
@@ -529,7 +596,8 @@ public class Av1ReconstructionConformanceTests
         bool requireFilmGrain = false,
         bool requireRestrictedRange = false,
         bool requireIdentityMatrix = false,
-        bool requireActiveLoopFilter = true)
+        bool requireActiveLoopFilter = true,
+        bool requirePalette = false)
     {
         int restorationCoverage = 0;
         byte[] payload = TestFile.Create(payloadPath).Bytes;
@@ -622,6 +690,11 @@ public class Av1ReconstructionConformanceTests
         {
             Assert.NotNull(decoder.SequenceHeader);
             Assert.Equal(ObuMatrixCoefficients.Identity, decoder.SequenceHeader.ColorConfig.MatrixCoefficients);
+        }
+
+        if (requirePalette)
+        {
+            Assert.Equal(RequiredPaletteCoverage, GetPaletteCoverage(decoder));
         }
 
         AssertNativePlanesEqual(frameBuffer, reference);
@@ -765,13 +838,15 @@ public class Av1ReconstructionConformanceTests
     /// <param name="height">The expected displayed height.</param>
     /// <param name="metadataBitDepth">The expected public HEIF sample precision.</param>
     /// <param name="requireSuperResolution">Whether the AV1 item must upscale from a narrower coded frame.</param>
+    /// <param name="requirePalette">Whether the AV1 item must select palette prediction for luma and chroma.</param>
     private static void ValidatePresentedFixture(
         string imagePath,
         string referencePath,
         int width,
         int height,
         HeifBitDepth metadataBitDepth,
-        bool requireSuperResolution = false)
+        bool requireSuperResolution = false,
+        bool requirePalette = false)
     {
         DecoderOptions options = new() { MaxFrames = 1 };
         byte[] imageBytes = TestFile.Create(imagePath).Bytes;
@@ -780,6 +855,11 @@ public class Av1ReconstructionConformanceTests
         if (requireSuperResolution)
         {
             AssertUsesSuperResolution(imageBytes);
+        }
+
+        if (requirePalette)
+        {
+            AssertUsesPalette(imageBytes);
         }
 
         using Image<Rgba32> image = Image.Load<Rgba32>(options, imageBytes);
@@ -800,32 +880,27 @@ public class Av1ReconstructionConformanceTests
     /// <param name="imageBytes">The complete AVIF file.</param>
     private static void AssertUsesSuperResolution(Span<byte> imageBytes)
     {
-        int offset = 0;
-        while (offset < imageBytes.Length)
-        {
-            int headerLength = HeifBoxReader.ParseHeader(imageBytes[offset..], out long payloadLength, out Heif4CharCode boxType);
-            Assert.InRange(payloadLength, 0, int.MaxValue);
-            int payloadLength32 = (int)payloadLength;
+        Span<byte> payload = GetSoleAv1ItemPayload(imageBytes);
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
 
-            if (boxType == Heif4CharCode.Mdat)
-            {
-                // These single-item fixtures deliberately make the complete mdat payload the AV1 item. Inspecting
-                // those exact bytes prevents an unscaled container from satisfying only the presentation comparison.
-                Span<byte> payload = imageBytes.Slice(offset + headerLength, payloadLength32);
-                using Av1Decoder decoder = new(Configuration.Default);
-                using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        Assert.NotNull(decoder.FrameHeader);
+        ObuFrameSize frameSize = decoder.FrameHeader.FrameSize;
+        Assert.True(frameSize.FrameWidth < frameSize.SuperResolutionUpscaledWidth);
+        Assert.Equal(frameBuffer.Width, frameSize.SuperResolutionUpscaledWidth);
+    }
 
-                Assert.NotNull(decoder.FrameHeader);
-                ObuFrameSize frameSize = decoder.FrameHeader.FrameSize;
-                Assert.True(frameSize.FrameWidth < frameSize.SuperResolutionUpscaledWidth);
-                Assert.Equal(frameBuffer.Width, frameSize.SuperResolutionUpscaledWidth);
-                return;
-            }
+    /// <summary>
+    /// Verifies that the sole AV1 image item in an independently encoded AVIF selects luma and chroma palettes.
+    /// </summary>
+    /// <param name="imageBytes">The complete AVIF file.</param>
+    private static void AssertUsesPalette(Span<byte> imageBytes)
+    {
+        Span<byte> payload = GetSoleAv1ItemPayload(imageBytes);
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
 
-            offset = checked(offset + headerLength + payloadLength32);
-        }
-
-        Assert.Fail("The AVIF fixture does not contain a media-data box.");
+        Assert.Equal(RequiredPaletteCoverage, GetPaletteCoverage(decoder));
     }
 
     /// <summary>
@@ -834,6 +909,25 @@ public class Av1ReconstructionConformanceTests
     /// <param name="imageBytes">The complete AVIF file.</param>
     /// <returns>A bit mask containing every selected loop-restoration filter type.</returns>
     private static int GetRestorationCoverageFromAvif(Span<byte> imageBytes)
+    {
+        Span<byte> payload = GetSoleAv1ItemPayload(imageBytes);
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
+
+        Assert.NotNull(decoder.FrameHeader);
+        Assert.True(decoder.FrameHeader.LoopRestorationParameters.UsesLoopRestoration);
+        Assert.NotNull(decoder.FrameInfo);
+        int restorationCoverage = GetRestorationCoverage(decoder);
+        Assert.NotEqual(0, restorationCoverage);
+        return restorationCoverage;
+    }
+
+    /// <summary>
+    /// Gets the complete media-data payload from a single-item AVIF conformance fixture.
+    /// </summary>
+    /// <param name="imageBytes">The complete AVIF file.</param>
+    /// <returns>The sole AV1 image-item payload.</returns>
+    private static Span<byte> GetSoleAv1ItemPayload(Span<byte> imageBytes)
     {
         int offset = 0;
         while (offset < imageBytes.Length)
@@ -844,25 +938,48 @@ public class Av1ReconstructionConformanceTests
 
             if (boxType == Heif4CharCode.Mdat)
             {
-                // These single-item fixtures deliberately make the complete mdat payload the AV1 item. Decoding
-                // those exact bytes proves the container used for pixel comparison actually selects restoration.
-                Span<byte> payload = imageBytes.Slice(offset + headerLength, payloadLength32);
-                using Av1Decoder decoder = new(Configuration.Default);
-                using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
-
-                Assert.NotNull(decoder.FrameHeader);
-                Assert.True(decoder.FrameHeader.LoopRestorationParameters.UsesLoopRestoration);
-                Assert.NotNull(decoder.FrameInfo);
-                int restorationCoverage = GetRestorationCoverage(decoder);
-                Assert.NotEqual(0, restorationCoverage);
-                return restorationCoverage;
+                // Every conformance container passed here deliberately stores its sole AV1 item as the complete
+                // mdat payload, so feature assertions inspect the exact bytes used by public presentation decoding.
+                return imageBytes.Slice(offset + headerLength, payloadLength32);
             }
 
             offset = checked(offset + headerLength + payloadLength32);
         }
 
         Assert.Fail("The AVIF fixture does not contain a media-data box.");
-        return 0;
+        return [];
+    }
+
+    /// <summary>
+    /// Returns the luma and chroma palette classes selected by a decoded frame.
+    /// </summary>
+    /// <param name="decoder">The decoder after tile parsing and reconstruction.</param>
+    /// <returns>A bit mask containing the selected plane classes.</returns>
+    private static int GetPaletteCoverage(Av1Decoder decoder)
+    {
+        Assert.NotNull(decoder.FrameHeader);
+        Assert.NotNull(decoder.FrameInfo);
+        int modeInfoWidth = Av1Math.DivideLog2Ceiling(decoder.FrameHeader.FrameSize.FrameWidth, Av1Constants.ModeInfoSizeLog2);
+        int modeInfoHeight = Av1Math.DivideLog2Ceiling(decoder.FrameHeader.FrameSize.FrameHeight, Av1Constants.ModeInfoSizeLog2);
+        int paletteCoverage = 0;
+        for (int y = 0; y < modeInfoHeight; y++)
+        {
+            for (int x = 0; x < modeInfoWidth; x++)
+            {
+                Av1BlockModeInfo modeInfo = decoder.FrameInfo.GetModeInfoAt(new Point(x, y));
+                if (modeInfo.GetPaletteSize(Av1PlaneType.Y) != 0)
+                {
+                    paletteCoverage |= LumaPaletteCoverage;
+                }
+
+                if (modeInfo.GetPaletteSize(Av1PlaneType.Uv) != 0)
+                {
+                    paletteCoverage |= ChromaPaletteCoverage;
+                }
+            }
+        }
+
+        return paletteCoverage;
     }
 
     /// <summary>

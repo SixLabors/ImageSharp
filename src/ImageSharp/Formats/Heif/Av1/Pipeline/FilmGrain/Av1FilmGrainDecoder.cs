@@ -907,7 +907,7 @@ internal sealed class Av1FilmGrainDecoder
         int roundingOffset = 1 << (coefficientShift - 1);
         int grainMinimum = -(1 << (bitDepth - 1));
         int grainMaximum = (1 << (bitDepth - 1)) - 1;
-        uint[] coefficients = parameters.ArCoeffsYPlus128!;
+        ReadOnlySpan<byte> coefficients = parameters.ArCoeffsYPlus128;
 
         // TemplatePadding leaves every lag-one through lag-three predecessor addressable without a boundary branch.
         // Raster order guarantees that all rows above and all samples to the left have already been filtered.
@@ -1005,8 +1005,8 @@ internal sealed class Av1FilmGrainDecoder
         int roundingOffset = 1 << (coefficientShift - 1);
         int grainMinimum = -(1 << (bitDepth - 1));
         int grainMaximum = (1 << (bitDepth - 1)) - 1;
-        uint[]? cbCoefficients = parameters.ArCoeffsCbPlus128;
-        uint[]? crCoefficients = parameters.ArCoeffsCrPlus128;
+        ReadOnlySpan<byte> cbCoefficients = parameters.ArCoeffsCbPlus128;
+        ReadOnlySpan<byte> crCoefficients = parameters.ArCoeffsCrPlus128;
 
         // Cb and Cr share the same causal predecessor walk, so both accumulators advance one coefficient index
         // together. A disabled plane stays zero but does not alter the coefficient ordering of the enabled plane.
@@ -1024,12 +1024,12 @@ internal sealed class Av1FilmGrainDecoder
                         int grainIndex = ((row + relativeRow) * stride) + column + relativeColumn;
                         if (applyCb)
                         {
-                            weightedCb += ((int)cbCoefficients![coefficientIndex] - 128) * cbGrain[grainIndex];
+                            weightedCb += ((int)cbCoefficients[coefficientIndex] - 128) * cbGrain[grainIndex];
                         }
 
                         if (applyCr)
                         {
-                            weightedCr += ((int)crCoefficients![coefficientIndex] - 128) * crGrain[grainIndex];
+                            weightedCr += ((int)crCoefficients[coefficientIndex] - 128) * crGrain[grainIndex];
                         }
 
                         coefficientIndex++;
@@ -1041,12 +1041,12 @@ internal sealed class Av1FilmGrainDecoder
                     int grainIndex = (row * stride) + column + relativeColumn;
                     if (applyCb)
                     {
-                        weightedCb += ((int)cbCoefficients![coefficientIndex] - 128) * cbGrain[grainIndex];
+                        weightedCb += ((int)cbCoefficients[coefficientIndex] - 128) * cbGrain[grainIndex];
                     }
 
                     if (applyCr)
                     {
-                        weightedCr += ((int)crCoefficients![coefficientIndex] - 128) * crGrain[grainIndex];
+                        weightedCr += ((int)crCoefficients[coefficientIndex] - 128) * crGrain[grainIndex];
                     }
 
                     coefficientIndex++;
@@ -1072,12 +1072,12 @@ internal sealed class Av1FilmGrainDecoder
                     averageLuma = (averageLuma + ((1 << averagingShift) >> 1)) >> averagingShift;
                     if (applyCb)
                     {
-                        weightedCb += ((int)cbCoefficients![coefficientIndex] - 128) * averageLuma;
+                        weightedCb += ((int)cbCoefficients[coefficientIndex] - 128) * averageLuma;
                     }
 
                     if (applyCr)
                     {
-                        weightedCr += ((int)crCoefficients![coefficientIndex] - 128) * averageLuma;
+                        weightedCr += ((int)crCoefficients[coefficientIndex] - 128) * averageLuma;
                     }
                 }
 
@@ -1141,8 +1141,8 @@ internal sealed class Av1FilmGrainDecoder
     /// <param name="pointCount">The number of populated control points.</param>
     /// <param name="lookup">The destination scaling lookup table.</param>
     private static void InitializeScalingFunction(
-        uint[]? pointValues,
-        uint[]? pointScalings,
+        ReadOnlySpan<byte> pointValues,
+        ReadOnlySpan<byte> pointScalings,
         int pointCount,
         Span<int> lookup)
     {
@@ -1151,27 +1151,24 @@ internal sealed class Av1FilmGrainDecoder
             return;
         }
 
-        uint[] values = pointValues!;
-        uint[] scalings = pointScalings!;
-
         // Values outside the first and last control points extend their nearest endpoint rather than extrapolating.
-        lookup[..(int)values[0]].Fill((int)scalings[0]);
+        lookup[..(int)pointValues[0]].Fill((int)pointScalings[0]);
         for (int point = 0; point < pointCount - 1; point++)
         {
-            int deltaY = (int)scalings[point + 1] - (int)scalings[point];
-            int deltaX = (int)values[point + 1] - (int)values[point];
+            int deltaY = (int)pointScalings[point + 1] - (int)pointScalings[point];
+            int deltaX = (int)pointValues[point + 1] - (int)pointValues[point];
 
             // A rounded Q16 reciprocal performs the piecewise-linear interpolation using integer arithmetic. The
             // 32768 bias below rounds each reconstructed scaling value when it returns to integer precision.
             long delta = deltaY * ((65536 + (deltaX >> 1)) / deltaX);
             for (int x = 0; x < deltaX; x++)
             {
-                lookup[(int)values[point] + x] = (int)scalings[point] +
+                lookup[(int)pointValues[point] + x] = (int)pointScalings[point] +
                     (int)(((x * delta) + 32768) >> 16);
             }
         }
 
-        lookup[(int)values[pointCount - 1]..].Fill((int)scalings[pointCount - 1]);
+        lookup[(int)pointValues[pointCount - 1]..].Fill((int)pointScalings[pointCount - 1]);
     }
 
     /// <summary>

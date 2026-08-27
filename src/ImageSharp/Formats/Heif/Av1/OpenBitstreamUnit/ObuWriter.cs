@@ -858,8 +858,6 @@ internal class ObuWriter
 
         writer.WriteLiteral(grainParams.GrainSeed, 16);
         writer.WriteLiteral(grainParams.NumYPoints, 4);
-        Guard.NotNull(grainParams.PointYValue);
-        Guard.NotNull(grainParams.PointYScaling);
         for (int i = 0; i < grainParams.NumYPoints; i++)
         {
             writer.WriteLiteral(grainParams.PointYValue[i], 8);
@@ -876,8 +874,6 @@ internal class ObuWriter
             (!sequenceHeader.ColorConfig.SubSamplingX || !sequenceHeader.ColorConfig.SubSamplingY || grainParams.NumYPoints != 0))
         {
             writer.WriteLiteral(grainParams.NumCbPoints, 4);
-            Guard.NotNull(grainParams.PointCbValue);
-            Guard.NotNull(grainParams.PointCbScaling);
             for (int i = 0; i < grainParams.NumCbPoints; i++)
             {
                 writer.WriteLiteral(grainParams.PointCbValue[i], 8);
@@ -885,8 +881,6 @@ internal class ObuWriter
             }
 
             writer.WriteLiteral(grainParams.NumCrPoints, 4);
-            Guard.NotNull(grainParams.PointCrValue);
-            Guard.NotNull(grainParams.PointCrScaling);
             for (int i = 0; i < grainParams.NumCrPoints; i++)
             {
                 writer.WriteLiteral(grainParams.PointCrValue[i], 8);
@@ -902,7 +896,6 @@ internal class ObuWriter
         if (grainParams.NumYPoints != 0)
         {
             numPosChroma++;
-            Guard.NotNull(grainParams.ArCoeffsYPlus128);
             for (int i = 0; i < numPosLuma; i++)
             {
                 writer.WriteLiteral(grainParams.ArCoeffsYPlus128[i], 8);
@@ -911,7 +904,6 @@ internal class ObuWriter
 
         if (grainParams.ChromaScalingFromLuma || grainParams.NumCbPoints != 0)
         {
-            Guard.NotNull(grainParams.ArCoeffsCbPlus128);
             for (int i = 0; i < numPosChroma; i++)
             {
                 writer.WriteLiteral(grainParams.ArCoeffsCbPlus128[i], 8);
@@ -920,7 +912,6 @@ internal class ObuWriter
 
         if (grainParams.ChromaScalingFromLuma || grainParams.NumCrPoints != 0)
         {
-            Guard.NotNull(grainParams.ArCoeffsCrPlus128);
             for (int i = 0; i < numPosChroma; i++)
             {
                 writer.WriteLiteral(grainParams.ArCoeffsCrPlus128[i], 8);

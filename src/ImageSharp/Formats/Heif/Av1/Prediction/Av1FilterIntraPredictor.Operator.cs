@@ -14,6 +14,22 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 internal abstract partial class Av1FilterIntraPredictorBase
 {
     /// <summary>
+    /// Defines the coefficient set for one AV1 filter-intra prediction mode.
+    /// </summary>
+    internal interface IAv1FilterIntraPredictionOperator
+    {
+        /// <summary>
+        /// Gets the filter-intra mode implemented by the operator.
+        /// </summary>
+        public static abstract Av1FilterIntraMode Mode { get; }
+
+        /// <summary>
+        /// Gets the eight seven-tap coefficient rows used by the operator.
+        /// </summary>
+        public static abstract ReadOnlySpan<sbyte> Taps { get; }
+    }
+
+    /// <summary>
     /// Applies one closed filter-intra coefficient operator using the widest useful SIMD width.
     /// </summary>
     /// <typeparam name="TOperator">The filter-intra coefficient set.</typeparam>

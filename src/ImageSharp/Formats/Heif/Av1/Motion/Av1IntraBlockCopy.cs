@@ -36,7 +36,7 @@ internal static class Av1IntraBlockCopy
     /// <param name="weights">Reusable storage for the corresponding spatial weights.</param>
     /// <returns>The nearest nonzero spatial candidate, or the normative tile-relative fallback.</returns>
     public static Av1MotionVector FindReference(
-        Av1PartitionInfo partitionInfo,
+        ref Av1PartitionInfo partitionInfo,
         Av1TileInfo tileInfo,
         int superblockModeInfoSize,
         Span<Av1MotionVector> candidates,
@@ -69,17 +69,17 @@ internal static class Av1IntraBlockCopy
         int processedColumns = 0;
         if (Math.Abs(maximumRowOffset) >= 1)
         {
-            ScanRow(partitionInfo, -1, maximumRowOffset, candidates, weights, ref candidateCount, ref processedRows);
+            ScanRow(ref partitionInfo, -1, maximumRowOffset, candidates, weights, ref candidateCount, ref processedRows);
         }
 
         if (Math.Abs(maximumColumnOffset) >= 1)
         {
-            ScanColumn(partitionInfo, -1, maximumColumnOffset, candidates, weights, ref candidateCount, ref processedColumns);
+            ScanColumn(ref partitionInfo, -1, maximumColumnOffset, candidates, weights, ref candidateCount, ref processedColumns);
         }
 
-        if (HasTopRight(partitionInfo, superblockModeInfoSize))
+        if (HasTopRight(ref partitionInfo, superblockModeInfoSize))
         {
-            AddBlock(partitionInfo, -1, width, tileInfo, candidates, weights, ref candidateCount);
+            AddBlock(ref partitionInfo, -1, width, tileInfo, candidates, weights, ref candidateCount);
         }
 
         int nearestCandidateCount = candidateCount;
@@ -90,19 +90,19 @@ internal static class Av1IntraBlockCopy
 
         // The top-left sample begins the outer search region. Sorting the adjacent and outer regions independently
         // preserves libaom's nearest/near ordering while still accumulating repeated vectors across both regions.
-        AddBlock(partitionInfo, -1, -1, tileInfo, candidates, weights, ref candidateCount);
+        AddBlock(ref partitionInfo, -1, -1, tileInfo, candidates, weights, ref candidateCount);
         for (int index = 2; index <= ReferenceSearchDistance; index++)
         {
             int rowOffset = -(index << 1) + 1 + rowAdjustment;
             int columnOffset = -(index << 1) + 1 + columnAdjustment;
             if (Math.Abs(rowOffset) <= Math.Abs(maximumRowOffset) && Math.Abs(rowOffset) > processedRows)
             {
-                ScanRow(partitionInfo, rowOffset, maximumRowOffset, candidates, weights, ref candidateCount, ref processedRows);
+                ScanRow(ref partitionInfo, rowOffset, maximumRowOffset, candidates, weights, ref candidateCount, ref processedRows);
             }
 
             if (Math.Abs(columnOffset) <= Math.Abs(maximumColumnOffset) && Math.Abs(columnOffset) > processedColumns)
             {
-                ScanColumn(partitionInfo, columnOffset, maximumColumnOffset, candidates, weights, ref candidateCount, ref processedColumns);
+                ScanColumn(ref partitionInfo, columnOffset, maximumColumnOffset, candidates, weights, ref candidateCount, ref processedColumns);
             }
         }
 
@@ -138,7 +138,7 @@ internal static class Av1IntraBlockCopy
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <param name="sequenceHeader">The sequence-level superblock and chroma configuration.</param>
     /// <returns><see langword="true"/> when the complete source block is a permitted reference; otherwise, <see langword="false"/>.</returns>
-    public static bool IsValid(Av1MotionVector vector, Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo, ObuSequenceHeader sequenceHeader)
+    public static bool IsValid(Av1MotionVector vector, ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo, ObuSequenceHeader sequenceHeader)
     {
         const int eighthSampleScale = 8;
         const int modeInfoSampleSize = 1 << Av1Constants.ModeInfoSizeLog2;
@@ -207,7 +207,7 @@ internal static class Av1IntraBlockCopy
     /// Scans a mode-information row using AV1's block-size-dependent steps and weights.
     /// </summary>
     private static void ScanRow(
-        Av1PartitionInfo partitionInfo,
+        ref Av1PartitionInfo partitionInfo,
         int rowOffset,
         int maximumRowOffset,
         Span<Av1MotionVector> candidates,
@@ -261,7 +261,7 @@ internal static class Av1IntraBlockCopy
     /// Scans a mode-information column using AV1's block-size-dependent steps and weights.
     /// </summary>
     private static void ScanColumn(
-        Av1PartitionInfo partitionInfo,
+        ref Av1PartitionInfo partitionInfo,
         int columnOffset,
         int maximumColumnOffset,
         Span<Av1MotionVector> candidates,
@@ -315,7 +315,7 @@ internal static class Av1IntraBlockCopy
     /// Adds the intra-block-copy vector at one tile-relative search position.
     /// </summary>
     private static void AddBlock(
-        Av1PartitionInfo partitionInfo,
+        ref Av1PartitionInfo partitionInfo,
         int rowOffset,
         int columnOffset,
         Av1TileInfo tileInfo,
@@ -400,7 +400,7 @@ internal static class Av1IntraBlockCopy
     /// <summary>
     /// Determines whether the current partition is parsed after the block at its top-right search position.
     /// </summary>
-    private static bool HasTopRight(Av1PartitionInfo partitionInfo, int superblockModeInfoSize)
+    private static bool HasTopRight(ref Av1PartitionInfo partitionInfo, int superblockModeInfoSize)
     {
         int width = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
         int height = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();

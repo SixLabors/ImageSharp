@@ -215,12 +215,100 @@ public class Av1ReconstructionConformanceTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePaletteNativeFixture, PaletteConfigurations);
 
     /// <summary>
+    /// Verifies that a real palette frame whose tile entropy payload ends early is rejected instead of being decoded
+    /// from the range decoder's implicit zero padding.
+    /// </summary>
+    [Fact]
+    public void DecodeFrameBufferRejectsTruncatedPaletteTileEntropy()
+    {
+        const int TruncatedTileByteCount = 8;
+        byte[] validPayload = TestFile.Create(TestImages.Heif.Av1Palette8BitPayload).Bytes;
+        int obuOffset = 0;
+        int finalObuOffset = 0;
+        int finalSizeFieldOffset = 0;
+        int finalSizeFieldLength = 0;
+        ulong finalPayloadLength = 0;
+        while (obuOffset < validPayload.Length)
+        {
+            byte obuHeader = validPayload[obuOffset];
+            Assert.True((obuHeader & 0x02) != 0);
+
+            int headerLength = 1 + ((obuHeader >> 2) & 1);
+            int sizeFieldOffset = obuOffset + headerLength;
+            Av1BitStreamReader sizeReader = new(validPayload.AsSpan(sizeFieldOffset));
+            ulong payloadLength = sizeReader.ReadLittleEndianBytes128(out int sizeFieldLength);
+            int nextObuOffset = checked(sizeFieldOffset + sizeFieldLength + (int)payloadLength);
+            if (nextObuOffset == validPayload.Length)
+            {
+                finalObuOffset = obuOffset;
+                finalSizeFieldOffset = sizeFieldOffset;
+                finalSizeFieldLength = sizeFieldLength;
+                finalPayloadLength = payloadLength;
+            }
+
+            obuOffset = nextObuOffset;
+        }
+
+        Assert.Equal(ObuType.Frame, (ObuType)((validPayload[finalObuOffset] >> 3) & 0x0F));
+        Assert.Equal(1, finalSizeFieldLength);
+        Assert.InRange(finalPayloadLength, (ulong)(TruncatedTileByteCount + 1), 0x7FUL);
+
+        byte[] truncatedPayload = validPayload[..^TruncatedTileByteCount];
+        truncatedPayload[finalSizeFieldOffset] = (byte)(finalPayloadLength - TruncatedTileByteCount);
+
+        using Av1Decoder decoder = new(Configuration.Default);
+
+        Assert.Throws<InvalidImageContentException>(
+            () => decoder.DecodeFrameBuffer(truncatedPayload, null, null, out _).Dispose());
+
+        Assert.Null(decoder.SequenceHeader);
+        Assert.Null(decoder.FrameHeader);
+        Assert.Null(decoder.FrameInfo);
+    }
+
+    /// <summary>
     /// Verifies decoded luma and chroma palette syntax and exact presented pixels for an independently encoded AVIF
     /// image across the available vector widths and the scalar fallback.
     /// </summary>
     [Fact]
     public void DecodeWithPaletteMatchesPinnedLibavifPresentation()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePalettePresentedFixture, PresentationConfigurations);
+
+    /// <summary>
+    /// Verifies that malformed data following a decoded palette tile releases its frame state before the same decoder
+    /// processes another payload.
+    /// </summary>
+    [Fact]
+    public void DecodeFrameBufferRecoversAfterMalformedFollowingObu()
+    {
+        byte[] validPayload = TestFile.Create(TestImages.Heif.Av1Palette8BitPayload).Bytes;
+
+        // The palette fixture ends with one combined-frame OBU containing one tile, so the intact prefix creates and
+        // completes a real Av1TileReader. The appended padding OBU declares one zero byte; AV1 padding requires a
+        // trailing-one bit, making this later bounded-payload failure deterministic without corrupting tile entropy.
+        byte[] malformedPayload =
+        [
+            .. validPayload,
+            0x7A, // Padding OBU with an explicit payload-size field.
+            0x01, // LEB128 payload length of one byte.
+            0x00, // Invalid padding payload with no trailing-one bit.
+        ];
+
+        using Av1Decoder decoder = new(Configuration.Default);
+
+        Assert.Throws<InvalidImageContentException>(
+            () => decoder.DecodeFrameBuffer(malformedPayload, null, null, out _).Dispose());
+
+        Assert.Null(decoder.SequenceHeader);
+        Assert.Null(decoder.FrameHeader);
+        Assert.Null(decoder.FrameInfo);
+
+        using Av1FrameBuffer<byte> recoveredFrameBuffer = decoder.DecodeFrameBuffer(validPayload, null, null, out _);
+
+        Assert.Equal(33, recoveredFrameBuffer.Width);
+        Assert.Equal(11, recoveredFrameBuffer.Height);
+        Assert.Equal(RequiredPaletteCoverage, GetPaletteCoverage(decoder));
+    }
 
     /// <summary>
     /// Verifies selected intra-block-copy prediction and exact native samples against scalar libaom for an

@@ -28,7 +28,7 @@ internal class Av1EncoderBlockModeInfo
     /// <summary>
     /// Gets the selected chroma prediction mode.
     /// </summary>
-    public Av1PredictionMode UvPredictionMode { get; }
+    public Av1ChromaPredictionMode UvPredictionMode { get; }
 
     /// <summary>
     /// Gets a value indicating whether residual coefficients are omitted for the block.
@@ -63,5 +63,5 @@ internal class Av1EncoderBlockModeInfo
     /// <summary>
     /// Gets or sets the chroma prediction mode written for the block.
     /// </summary>
-    public Av1PredictionMode UvMode { get; internal set; }
+    public Av1ChromaPredictionMode UvMode { get; internal set; }
 }

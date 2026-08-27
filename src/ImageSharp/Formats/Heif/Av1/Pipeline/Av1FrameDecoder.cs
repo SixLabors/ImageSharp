@@ -3,7 +3,6 @@
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
@@ -14,7 +13,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Reconstructs the coded blocks of one AV1 still-image frame into planar sample buffers.
+/// Reconstructs the coded blocks of one AV1 image frame into planar sample buffers.
 /// </summary>
 internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
 {
@@ -132,13 +131,8 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
             loopRestorationDecoder.DecodeFrame();
         }
 
-        // Film grain belongs to the displayed image rather than the reference reconstruction, so it
-        // follows every in-loop filter. This decoder owns no retained reference frames.
-        Av1FilmGrainDecoder filmGrainDecoder = new(this.sequenceHeader, this.frameHeader, this.frameBuffer);
-        filmGrainDecoder.DecodeFrame();
-
-        // Extending reference-frame borders is sequence playback state and is deliberately outside
-        // this still-image decoder's scope.
+        // Film grain is deliberately excluded here because this buffer is the normative post-restoration reference.
+        // The owning decoder applies grain only to the presentation buffer after reference ownership is established.
     }
 
     /// <summary>

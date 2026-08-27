@@ -11,22 +11,22 @@ internal class Av1Distribution
     /// <summary>
     /// The exclusive upper bound of the Q15 probability domain.
     /// </summary>
-    internal const int ProbabilityTop = 1 << ProbabilityBitCount;
+    public const int ProbabilityTop = 1 << ProbabilityBitCount;
 
     /// <summary>
     /// The minimum sub-range reserved for each symbol during range coding.
     /// </summary>
-    internal const int ProbabilityMinimum = 4;
+    public const int ProbabilityMinimum = 4;
 
     /// <summary>
     /// The shift that converts stored Q15 cumulative values to the range-coder precision.
     /// </summary>
-    internal const int CdfShift = 15 - ProbabilityBitCount;
+    public const int CdfShift = 15 - ProbabilityBitCount;
 
     /// <summary>
     /// The precision reduction applied before multiplying a cumulative value by the coding range.
     /// </summary>
-    internal const int ProbabilityShift = 6;
+    public const int ProbabilityShift = 6;
 
     /// <summary>
     /// The number of fractional bits in a stored cumulative probability.
@@ -319,6 +319,23 @@ internal class Av1Distribution
     /// </summary>
     /// <returns>A distribution initialized with the same probabilities and update count.</returns>
     public Av1Distribution CreateCopy() => new(this);
+
+    /// <summary>
+    /// Replaces the probability and adaptation state with the state of another distribution having the same alphabet.
+    /// </summary>
+    /// <param name="source">The distribution state to copy.</param>
+    public void CopyFrom(Av1Distribution source)
+    {
+        // Entropy contexts are created from the same fixed default table shape. Copy only mutable state so resetting a
+        // working tile never allocates or replaces the distribution objects referenced by the symbol decoder.
+        source.probabilities.AsSpan().CopyTo(this.probabilities);
+        this.updateCount = source.updateCount;
+    }
+
+    /// <summary>
+    /// Resets the observation count that controls the adaptive update rate without changing probability thresholds.
+    /// </summary>
+    public void ResetUpdateCount() => this.updateCount = 0;
 
     /// <summary>
     /// Creates independently adaptable copies of a distribution array.

@@ -439,11 +439,9 @@ internal static class Av1SymbolContextHelper
     /// <returns>The transform type associated with the selected prediction mode.</returns>
     internal static Av1TransformType ConvertIntraModeToTransformType(Av1BlockModeInfo modeInfo, Av1PlaneType planeType)
     {
-        Av1PredictionMode mode = (planeType == Av1PlaneType.Y) ? modeInfo.YMode : modeInfo.UvMode;
-        if (mode == Av1PredictionMode.UvChromaFromLuma)
-        {
-            mode = Av1PredictionMode.DC;
-        }
+        // libaom's get_uv_mode() is the explicit boundary between the distinct UV and luma prediction domains. CfL maps
+        // to DC because the chroma AC contribution is applied to a DC predictor before coefficient reconstruction.
+        Av1PredictionMode mode = planeType == Av1PlaneType.Y ? modeInfo.YMode : modeInfo.UvMode.ToLumaMode();
 
         return mode.ToTransformType();
     }

@@ -4,10 +4,9 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
 /// <summary>
-/// Identifies the intra-prediction modes used by an AV1 still-picture frame.
+/// Identifies the luma intra and inter prediction modes used by an AV1 coding block.
 /// </summary>
-/// <remarks>Inter modes are omitted because reduced still-picture frames do not reference other frames.</remarks>
-internal enum Av1PredictionMode
+internal enum Av1PredictionMode : byte
 {
     /// <summary>
     /// Predicts each sample from the average of the available top and left neighbors.
@@ -75,9 +74,64 @@ internal enum Av1PredictionMode
     Paeth,
 
     /// <summary>
-    /// Predicts chroma from the reconstructed luma AC surface.
+    /// Uses the nearest motion-vector candidate for one reference frame.
     /// </summary>
-    UvChromaFromLuma,
+    NearestMotionVector = 13,
+
+    /// <summary>
+    /// Uses a near motion-vector candidate for one reference frame.
+    /// </summary>
+    NearMotionVector = 14,
+
+    /// <summary>
+    /// Uses the global-motion model for one reference frame.
+    /// </summary>
+    GlobalMotionVector = 15,
+
+    /// <summary>
+    /// Decodes a new motion vector for one reference frame.
+    /// </summary>
+    NewMotionVector = 16,
+
+    /// <summary>
+    /// Uses the nearest motion-vector candidate for both compound references.
+    /// </summary>
+    NearestNearestMotionVector = 17,
+
+    /// <summary>
+    /// Uses a near motion-vector candidate for both compound references.
+    /// </summary>
+    NearNearMotionVector = 18,
+
+    /// <summary>
+    /// Uses the nearest candidate for the first compound reference and decodes a new vector for the second.
+    /// </summary>
+    NearestNewMotionVector = 19,
+
+    /// <summary>
+    /// Decodes a new vector for the first compound reference and uses the nearest candidate for the second.
+    /// </summary>
+    NewNearestMotionVector = 20,
+
+    /// <summary>
+    /// Uses a near candidate for the first compound reference and decodes a new vector for the second.
+    /// </summary>
+    NearNewMotionVector = 21,
+
+    /// <summary>
+    /// Decodes a new vector for the first compound reference and uses a near candidate for the second.
+    /// </summary>
+    NewNearMotionVector = 22,
+
+    /// <summary>
+    /// Uses the global-motion model for both compound references.
+    /// </summary>
+    GlobalGlobalMotionVector = 23,
+
+    /// <summary>
+    /// Decodes a new motion vector for both compound references.
+    /// </summary>
+    NewNewMotionVector = 24,
 
     /// <summary>
     /// The first luma intra-prediction mode.
@@ -95,12 +149,42 @@ internal enum Av1PredictionMode
     IntraModes = Paeth + 1,
 
     /// <summary>
-    /// The number of chroma intra-prediction modes, including chroma-from-luma.
+    /// The first single-reference inter-prediction mode.
     /// </summary>
-    UvIntraModes = UvChromaFromLuma + 1,
+    SingleInterModeStart = NearestMotionVector,
+
+    /// <summary>
+    /// The exclusive upper bound of single-reference inter-prediction modes.
+    /// </summary>
+    SingleInterModeEnd = NearestNearestMotionVector,
+
+    /// <summary>
+    /// The first compound-reference inter-prediction mode.
+    /// </summary>
+    CompoundInterModeStart = NearestNearestMotionVector,
+
+    /// <summary>
+    /// The exclusive upper bound of compound-reference inter-prediction modes.
+    /// </summary>
+    CompoundInterModeEnd = NewNewMotionVector + 1,
+
+    /// <summary>
+    /// The first inter-prediction mode.
+    /// </summary>
+    InterModeStart = NearestMotionVector,
+
+    /// <summary>
+    /// The exclusive upper bound of all inter-prediction modes.
+    /// </summary>
+    InterModeEnd = NewNewMotionVector + 1,
+
+    /// <summary>
+    /// The number of luma and inter prediction modes in the complete AV1 mode domain.
+    /// </summary>
+    PredictionModeCount = NewNewMotionVector + 1,
 
     /// <summary>
     /// The invalid intra-mode sentinel matching the complete AV1 prediction-mode domain.
     /// </summary>
-    IntraInvalid = 25,
+    IntraInvalid = PredictionModeCount,
 }

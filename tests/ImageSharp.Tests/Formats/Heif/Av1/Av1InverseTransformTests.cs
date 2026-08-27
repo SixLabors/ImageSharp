@@ -4,8 +4,6 @@
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Forward;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
@@ -48,11 +46,11 @@ public class Av1InverseTransformTests
     /// </summary>
     private static void AssertDctOperatorParity()
     {
-        AssertOperatorParity<Av1Dct4Inverse1dOperator>(4);
-        AssertOperatorParity<Av1Dct8Inverse1dOperator>(8);
-        AssertOperatorParity<Av1Dct16Inverse1dOperator>(16);
-        AssertOperatorParity<Av1Dct32Inverse1dOperator>(32);
-        AssertOperatorParity<Av1Dct64Inverse1dOperator>(64);
+        AssertOperatorParity<Av1Inverse2dTransformer.Dct4Operator>(4);
+        AssertOperatorParity<Av1Inverse2dTransformer.Dct8Operator>(8);
+        AssertOperatorParity<Av1Inverse2dTransformer.Dct16Operator>(16);
+        AssertOperatorParity<Av1Inverse2dTransformer.Dct32Operator>(32);
+        AssertOperatorParity<Av1Inverse2dTransformer.Dct64Operator>(64);
     }
 
     /// <summary>
@@ -60,9 +58,9 @@ public class Av1InverseTransformTests
     /// </summary>
     private static void AssertAdstOperatorParity()
     {
-        AssertOperatorParity<Av1Adst4Inverse1dOperator>(4);
-        AssertOperatorParity<Av1Adst8Inverse1dOperator>(8);
-        AssertOperatorParity<Av1Adst16Inverse1dOperator>(16);
+        AssertOperatorParity<Av1Inverse2dTransformer.Adst4Operator>(4);
+        AssertOperatorParity<Av1Inverse2dTransformer.Adst8Operator>(8);
+        AssertOperatorParity<Av1Inverse2dTransformer.Adst16Operator>(16);
     }
 
     /// <summary>
@@ -70,10 +68,10 @@ public class Av1InverseTransformTests
     /// </summary>
     private static void AssertIdentityOperatorParity()
     {
-        AssertOperatorParity<Av1Identity4Inverse1dOperator>(4);
-        AssertOperatorParity<Av1Identity8Inverse1dOperator>(8);
-        AssertOperatorParity<Av1Identity16Inverse1dOperator>(16);
-        AssertOperatorParity<Av1Identity32Inverse1dOperator>(32);
+        AssertOperatorParity<Av1Inverse2dTransformer.Identity4Operator>(4);
+        AssertOperatorParity<Av1Inverse2dTransformer.Identity8Operator>(8);
+        AssertOperatorParity<Av1Inverse2dTransformer.Identity16Operator>(16);
+        AssertOperatorParity<Av1Inverse2dTransformer.Identity32Operator>(32);
     }
 
     [Theory]
@@ -136,18 +134,18 @@ public class Av1InverseTransformTests
     [Fact]
     public void ForwardAndInverseOperatorPairsReconstructTheirInput()
     {
-        AssertRoundTrip<Av1Dct4Forward1dOperator, Av1Dct4Inverse1dOperator>(Av1TransformType.DctDct, Av1TransformSize.Size4x4, 1, 1);
-        AssertRoundTrip<Av1Dct8Forward1dOperator, Av1Dct8Inverse1dOperator>(Av1TransformType.DctDct, Av1TransformSize.Size8x8, 2, 2);
-        AssertRoundTrip<Av1Dct16Forward1dOperator, Av1Dct16Inverse1dOperator>(Av1TransformType.DctDct, Av1TransformSize.Size16x16, 3, 3);
-        AssertRoundTrip<Av1Dct32Forward1dOperator, Av1Dct32Inverse1dOperator>(Av1TransformType.DctDct, Av1TransformSize.Size32x32, 4, 4);
-        AssertRoundTrip<Av1Dct64Forward1dOperator, Av1Dct64Inverse1dOperator>(Av1TransformType.DctDct, Av1TransformSize.Size64x64, 5, 5);
-        AssertRoundTrip<Av1Adst4Forward1dOperator, Av1Adst4Inverse1dOperator>(Av1TransformType.AdstAdst, Av1TransformSize.Size4x4, 1, 1);
-        AssertRoundTrip<Av1Adst8Forward1dOperator, Av1Adst8Inverse1dOperator>(Av1TransformType.AdstAdst, Av1TransformSize.Size8x8, 2, 2);
-        AssertRoundTrip<Av1Adst16Forward1dOperator, Av1Adst16Inverse1dOperator>(Av1TransformType.AdstAdst, Av1TransformSize.Size16x16, 3, 3);
-        AssertRoundTrip<Av1Identity4Forward1dOperator, Av1Identity4Inverse1dOperator>(Av1TransformType.Identity, Av1TransformSize.Size4x4, 1, 1);
-        AssertRoundTrip<Av1Identity8Forward1dOperator, Av1Identity8Inverse1dOperator>(Av1TransformType.Identity, Av1TransformSize.Size8x8, 2, 1);
-        AssertRoundTrip<Av1Identity16Forward1dOperator, Av1Identity16Inverse1dOperator>(Av1TransformType.Identity, Av1TransformSize.Size16x16, 3, 1);
-        AssertRoundTrip<Av1Identity32Forward1dOperator, Av1Identity32Inverse1dOperator>(Av1TransformType.Identity, Av1TransformSize.Size32x32, 4, 1);
+        AssertRoundTrip<Av1ForwardTransformer.Dct4Operator, Av1Inverse2dTransformer.Dct4Operator>(Av1TransformType.DctDct, Av1TransformSize.Size4x4, 1, 1);
+        AssertRoundTrip<Av1ForwardTransformer.Dct8Operator, Av1Inverse2dTransformer.Dct8Operator>(Av1TransformType.DctDct, Av1TransformSize.Size8x8, 2, 2);
+        AssertRoundTrip<Av1ForwardTransformer.Dct16Operator, Av1Inverse2dTransformer.Dct16Operator>(Av1TransformType.DctDct, Av1TransformSize.Size16x16, 3, 3);
+        AssertRoundTrip<Av1ForwardTransformer.Dct32Operator, Av1Inverse2dTransformer.Dct32Operator>(Av1TransformType.DctDct, Av1TransformSize.Size32x32, 4, 4);
+        AssertRoundTrip<Av1ForwardTransformer.Dct64Operator, Av1Inverse2dTransformer.Dct64Operator>(Av1TransformType.DctDct, Av1TransformSize.Size64x64, 5, 5);
+        AssertRoundTrip<Av1ForwardTransformer.Adst4Operator, Av1Inverse2dTransformer.Adst4Operator>(Av1TransformType.AdstAdst, Av1TransformSize.Size4x4, 1, 1);
+        AssertRoundTrip<Av1ForwardTransformer.Adst8Operator, Av1Inverse2dTransformer.Adst8Operator>(Av1TransformType.AdstAdst, Av1TransformSize.Size8x8, 2, 2);
+        AssertRoundTrip<Av1ForwardTransformer.Adst16Operator, Av1Inverse2dTransformer.Adst16Operator>(Av1TransformType.AdstAdst, Av1TransformSize.Size16x16, 3, 3);
+        AssertRoundTrip<Av1ForwardTransformer.Identity4Operator, Av1Inverse2dTransformer.Identity4Operator>(Av1TransformType.Identity, Av1TransformSize.Size4x4, 1, 1);
+        AssertRoundTrip<Av1ForwardTransformer.Identity8Operator, Av1Inverse2dTransformer.Identity8Operator>(Av1TransformType.Identity, Av1TransformSize.Size8x8, 2, 1);
+        AssertRoundTrip<Av1ForwardTransformer.Identity16Operator, Av1Inverse2dTransformer.Identity16Operator>(Av1TransformType.Identity, Av1TransformSize.Size16x16, 3, 1);
+        AssertRoundTrip<Av1ForwardTransformer.Identity32Operator, Av1Inverse2dTransformer.Identity32Operator>(Av1TransformType.Identity, Av1TransformSize.Size32x32, 4, 1);
     }
 
     /// <summary>
@@ -464,7 +462,7 @@ public class Av1InverseTransformTests
     /// <typeparam name="TOperator">The inverse transform operator.</typeparam>
     /// <param name="length">The transform length.</param>
     private static void AssertOperatorParity<TOperator>(int length)
-        where TOperator : struct, IAv1Transform1dOperator
+        where TOperator : struct, Av1Inverse2dTransformer.IAv1InverseTransform1dOperator
     {
         const int cosBit = 12;
         Av1TransformStageRange stageRange = default;
@@ -538,8 +536,8 @@ public class Av1InverseTransformTests
     /// <param name="scaleLog2">The power-of-two scale applied by the operator pair.</param>
     /// <param name="allowedError">The maximum permitted reconstruction error.</param>
     private static void AssertRoundTrip<TForwardOperator, TInverseOperator>(Av1TransformType transformType, Av1TransformSize transformSize, int scaleLog2, int allowedError)
-        where TForwardOperator : struct, IAv1ForwardTransform1dOperator
-        where TInverseOperator : struct, IAv1Transform1dOperator
+        where TForwardOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
+        where TInverseOperator : struct, Av1Inverse2dTransformer.IAv1InverseTransform1dOperator
     {
         const int bitDepth = 10;
         const int testBlockCount = 30;
@@ -598,40 +596,40 @@ public class Av1InverseTransformTests
         switch (config.TransformFunctionTypeColumn)
         {
             case Av1TransformFunctionType.Dct4:
-                DispatchRow<Av1Dct4Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                DispatchRow<Av1Inverse2dTransformer.Dct4Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Dct8:
-                DispatchRow<Av1Dct8Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                DispatchRow<Av1Inverse2dTransformer.Dct8Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Dct16:
-                DispatchRow<Av1Dct16Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                DispatchRow<Av1Inverse2dTransformer.Dct16Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Dct32:
-                DispatchRow<Av1Dct32Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                DispatchRow<Av1Inverse2dTransformer.Dct32Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Dct64:
-                DispatchRow<Av1Dct64Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                DispatchRow<Av1Inverse2dTransformer.Dct64Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Adst4:
-                DispatchRow<Av1Adst4Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                DispatchRow<Av1Inverse2dTransformer.Adst4Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Adst8:
-                DispatchRow<Av1Adst8Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                DispatchRow<Av1Inverse2dTransformer.Adst8Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Adst16:
-                DispatchRow<Av1Adst16Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                DispatchRow<Av1Inverse2dTransformer.Adst16Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Identity4:
-                DispatchRow<Av1Identity4Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                DispatchRow<Av1Inverse2dTransformer.Identity4Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Identity8:
-                DispatchRow<Av1Identity8Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                DispatchRow<Av1Inverse2dTransformer.Identity8Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Identity16:
-                DispatchRow<Av1Identity16Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                DispatchRow<Av1Inverse2dTransformer.Identity16Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Identity32:
-                DispatchRow<Av1Identity32Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                DispatchRow<Av1Inverse2dTransformer.Identity32Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             default:
                 Assert.Fail($"Unexpected column function {config.TransformFunctionTypeColumn} for {transformType} {transformSize}.");
@@ -652,45 +650,45 @@ public class Av1InverseTransformTests
         Av1TransformSize transformSize,
         int bitDepth,
         ref Av1Transform2dFlipConfiguration config)
-        where TColumnOperator : struct, IAv1Transform1dOperator
+        where TColumnOperator : struct, Av1Inverse2dTransformer.IAv1InverseTransform1dOperator
     {
         switch (config.TransformFunctionTypeRow)
         {
             case Av1TransformFunctionType.Dct4:
-                AssertTransform2dParity<TColumnOperator, Av1Dct4Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Dct4Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Dct8:
-                AssertTransform2dParity<TColumnOperator, Av1Dct8Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Dct8Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Dct16:
-                AssertTransform2dParity<TColumnOperator, Av1Dct16Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Dct16Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Dct32:
-                AssertTransform2dParity<TColumnOperator, Av1Dct32Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Dct32Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Dct64:
-                AssertTransform2dParity<TColumnOperator, Av1Dct64Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Dct64Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Adst4:
-                AssertTransform2dParity<TColumnOperator, Av1Adst4Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Adst4Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Adst8:
-                AssertTransform2dParity<TColumnOperator, Av1Adst8Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Adst8Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Adst16:
-                AssertTransform2dParity<TColumnOperator, Av1Adst16Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Adst16Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Identity4:
-                AssertTransform2dParity<TColumnOperator, Av1Identity4Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Identity4Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Identity8:
-                AssertTransform2dParity<TColumnOperator, Av1Identity8Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Identity8Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Identity16:
-                AssertTransform2dParity<TColumnOperator, Av1Identity16Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Identity16Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             case Av1TransformFunctionType.Identity32:
-                AssertTransform2dParity<TColumnOperator, Av1Identity32Inverse1dOperator>(transformType, transformSize, bitDepth, ref config);
+                AssertTransform2dParity<TColumnOperator, Av1Inverse2dTransformer.Identity32Operator>(transformType, transformSize, bitDepth, ref config);
                 break;
             default:
                 Assert.Fail($"Unexpected row function {config.TransformFunctionTypeRow} for {transformType} {transformSize}.");
@@ -712,8 +710,8 @@ public class Av1InverseTransformTests
         Av1TransformSize transformSize,
         int bitDepth,
         ref Av1Transform2dFlipConfiguration config)
-        where TColumnOperator : struct, IAv1Transform1dOperator
-        where TRowOperator : struct, IAv1Transform1dOperator
+        where TColumnOperator : struct, Av1Inverse2dTransformer.IAv1InverseTransform1dOperator
+        where TRowOperator : struct, Av1Inverse2dTransformer.IAv1InverseTransform1dOperator
     {
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
@@ -763,8 +761,8 @@ public class Av1InverseTransformTests
         int[] coefficients,
         Av1TransformSize transformSize,
         ref Av1Transform2dFlipConfiguration config)
-        where TColumnOperator : struct, IAv1Transform1dOperator
-        where TRowOperator : struct, IAv1Transform1dOperator
+        where TColumnOperator : struct, Av1Inverse2dTransformer.IAv1InverseTransform1dOperator
+        where TRowOperator : struct, Av1Inverse2dTransformer.IAv1InverseTransform1dOperator
     {
         const int bitDepth = 8;
         int width = transformSize.GetWidth();
@@ -789,10 +787,10 @@ public class Av1InverseTransformTests
         Array.Fill(scalar, byte.MaxValue);
         Array.Fill(vector128, byte.MaxValue);
 
-        Av1Inverse2dTransformer.Transform2dScalar<byte, Av1InverseTransformOutputOperator<byte>, TColumnOperator, TRowOperator>(
+        Av1Inverse2dTransformer.Transform2dScalar<byte, Av1Inverse2dTransformer.OutputOperator<byte>, TColumnOperator, TRowOperator>(
             coefficients, prediction, readStride, scalar, writeStride, ref config, scalarWorkspace, bitDepth);
 
-        Av1Inverse2dTransformer.Transform2dVector128<byte, Av1InverseTransformOutputOperator<byte>, TColumnOperator, TRowOperator>(
+        Av1Inverse2dTransformer.Transform2dVector128<byte, Av1Inverse2dTransformer.OutputOperator<byte>, TColumnOperator, TRowOperator>(
             coefficients, prediction, readStride, vector128, writeStride, ref config, vector128Workspace, bitDepth);
 
         Assert.Equal(scalar, vector128);
@@ -803,7 +801,7 @@ public class Av1InverseTransformTests
             int[] vector256Workspace = new int[workspaceLength];
             Array.Fill(vector256, byte.MaxValue);
 
-            Av1Inverse2dTransformer.Transform2dVector256<byte, Av1InverseTransformOutputOperator<byte>, TColumnOperator, TRowOperator>(
+            Av1Inverse2dTransformer.Transform2dVector256<byte, Av1Inverse2dTransformer.OutputOperator<byte>, TColumnOperator, TRowOperator>(
                 coefficients, prediction, readStride, vector256, writeStride, ref config, vector256Workspace, bitDepth);
 
             Assert.Equal(scalar, vector256);
@@ -824,8 +822,8 @@ public class Av1InverseTransformTests
         Av1TransformSize transformSize,
         int bitDepth,
         ref Av1Transform2dFlipConfiguration config)
-        where TColumnOperator : struct, IAv1Transform1dOperator
-        where TRowOperator : struct, IAv1Transform1dOperator
+        where TColumnOperator : struct, Av1Inverse2dTransformer.IAv1InverseTransform1dOperator
+        where TRowOperator : struct, Av1Inverse2dTransformer.IAv1InverseTransform1dOperator
     {
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
@@ -850,10 +848,10 @@ public class Av1InverseTransformTests
         Array.Fill(scalar, short.MinValue);
         Array.Fill(vector128, short.MinValue);
 
-        Av1Inverse2dTransformer.Transform2dScalar<short, Av1InverseTransformOutputOperator<short>, TColumnOperator, TRowOperator>(
+        Av1Inverse2dTransformer.Transform2dScalar<short, Av1Inverse2dTransformer.OutputOperator<short>, TColumnOperator, TRowOperator>(
             coefficients, prediction, readStride, scalar, writeStride, ref config, scalarWorkspace, bitDepth);
 
-        Av1Inverse2dTransformer.Transform2dVector128<short, Av1InverseTransformOutputOperator<short>, TColumnOperator, TRowOperator>(
+        Av1Inverse2dTransformer.Transform2dVector128<short, Av1Inverse2dTransformer.OutputOperator<short>, TColumnOperator, TRowOperator>(
             coefficients, prediction, readStride, vector128, writeStride, ref config, vector128Workspace, bitDepth);
 
         Assert.Equal(scalar, vector128);
@@ -864,7 +862,7 @@ public class Av1InverseTransformTests
             int[] vector256Workspace = new int[workspaceLength];
             Array.Fill(vector256, short.MinValue);
 
-            Av1Inverse2dTransformer.Transform2dVector256<short, Av1InverseTransformOutputOperator<short>, TColumnOperator, TRowOperator>(
+            Av1Inverse2dTransformer.Transform2dVector256<short, Av1Inverse2dTransformer.OutputOperator<short>, TColumnOperator, TRowOperator>(
                 coefficients, prediction, readStride, vector256, writeStride, ref config, vector256Workspace, bitDepth);
 
             Assert.Equal(scalar, vector256);

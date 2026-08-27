@@ -12,6 +12,11 @@ internal class Av1TileDecoderStub : IAv1TileReader, IAv1TileWriter
     public void ReadTile(Span<byte> tileData, int tileNum)
         => this.tileDatas.Add(tileNum, tileData.ToArray());
 
+    /// <inheritdoc/>
+    public void CompleteFrame()
+    {
+    }
+
     public Span<byte> WriteTile(int tileNum)
         => this.tileDatas[tileNum];
 }

@@ -28,8 +28,7 @@ internal static partial class Av1InterPredictor
         Av1InterpolationFilter verticalFilter,
         int horizontalPhase,
         int verticalPhase,
-        Span<short> scratch,
-        bool scalarOnly)
+        Span<short> scratch)
     {
         switch (horizontalFilter)
         {
@@ -45,8 +44,7 @@ internal static partial class Av1InterPredictor
                     verticalFilter,
                     horizontalPhase,
                     verticalPhase,
-                    scratch,
-                    scalarOnly);
+                    scratch);
 
                 break;
             case Av1InterpolationFilter.Smooth:
@@ -61,8 +59,7 @@ internal static partial class Av1InterPredictor
                     verticalFilter,
                     horizontalPhase,
                     verticalPhase,
-                    scratch,
-                    scalarOnly);
+                    scratch);
 
                 break;
             case Av1InterpolationFilter.Sharp:
@@ -77,8 +74,7 @@ internal static partial class Av1InterPredictor
                     verticalFilter,
                     horizontalPhase,
                     verticalPhase,
-                    scratch,
-                    scalarOnly);
+                    scratch);
 
                 break;
             default:
@@ -93,8 +89,7 @@ internal static partial class Av1InterPredictor
                     verticalFilter,
                     horizontalPhase,
                     verticalPhase,
-                    scratch,
-                    scalarOnly);
+                    scratch);
 
                 break;
         }
@@ -116,8 +111,7 @@ internal static partial class Av1InterPredictor
         int horizontalPhase,
         int verticalPhase,
         int bitDepth,
-        Span<short> scratch,
-        bool scalarOnly)
+        Span<short> scratch)
     {
         switch (horizontalFilter)
         {
@@ -134,8 +128,7 @@ internal static partial class Av1InterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch,
-                    scalarOnly);
+                    scratch);
 
                 break;
             case Av1InterpolationFilter.Smooth:
@@ -151,8 +144,7 @@ internal static partial class Av1InterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch,
-                    scalarOnly);
+                    scratch);
 
                 break;
             case Av1InterpolationFilter.Sharp:
@@ -168,8 +160,7 @@ internal static partial class Av1InterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch,
-                    scalarOnly);
+                    scratch);
 
                 break;
             default:
@@ -185,8 +176,179 @@ internal static partial class Av1InterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch,
-                    scalarOnly);
+                    scratch);
+
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Selects a closed 8-bit horizontal interpolation operator for explicit scalar execution.
+    /// </summary>
+    private static void DispatchScalar(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        int sourceOrigin,
+        Span<byte> destination,
+        int destinationStride,
+        int width,
+        int height,
+        Av1InterpolationFilter horizontalFilter,
+        Av1InterpolationFilter verticalFilter,
+        int horizontalPhase,
+        int verticalPhase,
+        Span<short> scratch)
+    {
+        // The benchmark/test entry point closes the same production operators explicitly, but terminates in the
+        // scalar kernels without carrying a runtime mode flag through the SIMD-first decoder path.
+        switch (horizontalFilter)
+        {
+            case Av1InterpolationFilter.Regular:
+                DispatchVerticalScalar<RegularOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    verticalFilter,
+                    horizontalPhase,
+                    verticalPhase,
+                    scratch);
+
+                break;
+            case Av1InterpolationFilter.Smooth:
+                DispatchVerticalScalar<SmoothOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    verticalFilter,
+                    horizontalPhase,
+                    verticalPhase,
+                    scratch);
+
+                break;
+            case Av1InterpolationFilter.Sharp:
+                DispatchVerticalScalar<SharpOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    verticalFilter,
+                    horizontalPhase,
+                    verticalPhase,
+                    scratch);
+
+                break;
+            default:
+                DispatchVerticalScalar<BilinearOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    verticalFilter,
+                    horizontalPhase,
+                    verticalPhase,
+                    scratch);
+
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Selects a closed high-bit-depth horizontal interpolation operator for explicit scalar execution.
+    /// </summary>
+    private static void DispatchScalar(
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
+        int sourceOrigin,
+        Span<ushort> destination,
+        int destinationStride,
+        int width,
+        int height,
+        Av1InterpolationFilter horizontalFilter,
+        Av1InterpolationFilter verticalFilter,
+        int horizontalPhase,
+        int verticalPhase,
+        int bitDepth,
+        Span<short> scratch)
+    {
+        // Closing the production table operators here keeps scalar parity coverage on the same normative Q7 data.
+        switch (horizontalFilter)
+        {
+            case Av1InterpolationFilter.Regular:
+                DispatchVerticalScalar<RegularOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    verticalFilter,
+                    horizontalPhase,
+                    verticalPhase,
+                    bitDepth,
+                    scratch);
+
+                break;
+            case Av1InterpolationFilter.Smooth:
+                DispatchVerticalScalar<SmoothOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    verticalFilter,
+                    horizontalPhase,
+                    verticalPhase,
+                    bitDepth,
+                    scratch);
+
+                break;
+            case Av1InterpolationFilter.Sharp:
+                DispatchVerticalScalar<SharpOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    verticalFilter,
+                    horizontalPhase,
+                    verticalPhase,
+                    bitDepth,
+                    scratch);
+
+                break;
+            default:
+                DispatchVerticalScalar<BilinearOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    verticalFilter,
+                    horizontalPhase,
+                    verticalPhase,
+                    bitDepth,
+                    scratch);
 
                 break;
         }
@@ -202,15 +364,8 @@ internal static partial class Av1InterPredictor
         Span<byte> destination,
         int destinationStride,
         int width,
-        int height,
-        bool scalarOnly)
+        int height)
     {
-        if (scalarOnly)
-        {
-            CopyScalar(source, sourceStride, sourceOrigin, destination, destinationStride, width, height);
-            return;
-        }
-
         ref byte sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
         ref byte destinationBase = ref MemoryMarshal.GetReference(destination);
 
@@ -302,15 +457,8 @@ internal static partial class Av1InterPredictor
         Span<ushort> destination,
         int destinationStride,
         int width,
-        int height,
-        bool scalarOnly)
+        int height)
     {
-        if (scalarOnly)
-        {
-            CopyScalar(source, sourceStride, sourceOrigin, destination, destinationStride, width, height);
-            return;
-        }
-
         ref ushort sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
 
@@ -409,73 +557,69 @@ internal static partial class Av1InterPredictor
         int sourceOffset,
         int tapStride,
         int firstRound,
-        int secondRound,
-        bool scalarOnly)
+        int secondRound)
     {
-        if (!scalarOnly)
+        if (Vector512.IsHardwareAccelerated && Vector<int>.Count == Vector512<int>.Count && width >= Vector512<byte>.Count)
         {
-            if (Vector512.IsHardwareAccelerated && Vector<int>.Count == Vector512<int>.Count && width >= Vector512<byte>.Count)
-            {
-                FilterDirect(
-                    source,
-                    sourceStride,
-                    sourceOrigin,
-                    destination,
-                    destinationStride,
-                    width,
-                    height,
-                    coefficients,
-                    tapCount,
-                    sourceOffset,
-                    tapStride,
-                    firstRound,
-                    secondRound,
-                    Vector512<int>.Zero);
+            FilterDirect(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                coefficients,
+                tapCount,
+                sourceOffset,
+                tapStride,
+                firstRound,
+                secondRound,
+                Vector512<int>.Zero);
 
-                return;
-            }
+            return;
+        }
 
-            if (Vector256.IsHardwareAccelerated && width >= Vector256<byte>.Count)
-            {
-                FilterDirect(
-                    source,
-                    sourceStride,
-                    sourceOrigin,
-                    destination,
-                    destinationStride,
-                    width,
-                    height,
-                    coefficients,
-                    tapCount,
-                    sourceOffset,
-                    tapStride,
-                    firstRound,
-                    secondRound,
-                    Vector256<int>.Zero);
+        if (Vector256.IsHardwareAccelerated && width >= Vector256<byte>.Count)
+        {
+            FilterDirect(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                coefficients,
+                tapCount,
+                sourceOffset,
+                tapStride,
+                firstRound,
+                secondRound,
+                Vector256<int>.Zero);
 
-                return;
-            }
+            return;
+        }
 
-            if (Vector128.IsHardwareAccelerated)
-            {
-                FilterDirect(
-                    source,
-                    sourceStride,
-                    sourceOrigin,
-                    destination,
-                    destinationStride,
-                    width,
-                    height,
-                    coefficients,
-                    tapCount,
-                    sourceOffset,
-                    tapStride,
-                    firstRound,
-                    secondRound,
-                    Vector128<int>.Zero);
+        if (Vector128.IsHardwareAccelerated)
+        {
+            FilterDirect(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                coefficients,
+                tapCount,
+                sourceOffset,
+                tapStride,
+                firstRound,
+                secondRound,
+                Vector128<int>.Zero);
 
-                return;
-            }
+            return;
         }
 
         FilterDirectScalar(
@@ -511,76 +655,72 @@ internal static partial class Av1InterPredictor
         int tapStride,
         int firstRound,
         int secondRound,
-        int bitDepth,
-        bool scalarOnly)
+        int bitDepth)
     {
-        if (!scalarOnly)
+        if (Vector512.IsHardwareAccelerated && Vector<int>.Count == Vector512<int>.Count && width >= Vector512<ushort>.Count)
         {
-            if (Vector512.IsHardwareAccelerated && Vector<int>.Count == Vector512<int>.Count && width >= Vector512<ushort>.Count)
-            {
-                FilterDirect(
-                    source,
-                    sourceStride,
-                    sourceOrigin,
-                    destination,
-                    destinationStride,
-                    width,
-                    height,
-                    coefficients,
-                    tapCount,
-                    sourceOffset,
-                    tapStride,
-                    firstRound,
-                    secondRound,
-                    bitDepth,
-                    Vector512<int>.Zero);
+            FilterDirect(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                coefficients,
+                tapCount,
+                sourceOffset,
+                tapStride,
+                firstRound,
+                secondRound,
+                bitDepth,
+                Vector512<int>.Zero);
 
-                return;
-            }
+            return;
+        }
 
-            if (Vector256.IsHardwareAccelerated && width >= Vector256<ushort>.Count)
-            {
-                FilterDirect(
-                    source,
-                    sourceStride,
-                    sourceOrigin,
-                    destination,
-                    destinationStride,
-                    width,
-                    height,
-                    coefficients,
-                    tapCount,
-                    sourceOffset,
-                    tapStride,
-                    firstRound,
-                    secondRound,
-                    bitDepth,
-                    Vector256<int>.Zero);
+        if (Vector256.IsHardwareAccelerated && width >= Vector256<ushort>.Count)
+        {
+            FilterDirect(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                coefficients,
+                tapCount,
+                sourceOffset,
+                tapStride,
+                firstRound,
+                secondRound,
+                bitDepth,
+                Vector256<int>.Zero);
 
-                return;
-            }
+            return;
+        }
 
-            if (Vector128.IsHardwareAccelerated)
-            {
-                FilterDirect(
-                    source,
-                    sourceStride,
-                    sourceOrigin,
-                    destination,
-                    destinationStride,
-                    width,
-                    height,
-                    coefficients,
-                    tapCount,
-                    sourceOffset,
-                    tapStride,
-                    firstRound,
-                    secondRound,
-                    bitDepth,
-                    Vector128<int>.Zero);
+        if (Vector128.IsHardwareAccelerated)
+        {
+            FilterDirect(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                coefficients,
+                tapCount,
+                sourceOffset,
+                tapStride,
+                firstRound,
+                secondRound,
+                bitDepth,
+                Vector128<int>.Zero);
 
-                return;
-            }
+            return;
         }
 
         FilterDirectScalar(
@@ -618,82 +758,78 @@ internal static partial class Av1InterPredictor
         int verticalTapCount,
         int verticalSourceOffset,
         int bitDepth,
-        Span<short> scratch,
-        bool scalarOnly)
+        Span<short> scratch)
     {
-        if (!scalarOnly)
+        if (Vector512.IsHardwareAccelerated && Vector<int>.Count == Vector512<int>.Count && width >= Vector512<byte>.Count)
         {
-            if (Vector512.IsHardwareAccelerated && Vector<int>.Count == Vector512<int>.Count && width >= Vector512<byte>.Count)
-            {
-                Filter2D(
-                    source,
-                    sourceStride,
-                    sourceOrigin,
-                    destination,
-                    destinationStride,
-                    width,
-                    height,
-                    horizontalCoefficients,
-                    horizontalTapCount,
-                    horizontalSourceOffset,
-                    verticalCoefficients,
-                    verticalTapCount,
-                    verticalSourceOffset,
-                    bitDepth,
-                    Round0Bits,
-                    scratch,
-                    Vector512<int>.Zero);
+            Filter2D(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                horizontalCoefficients,
+                horizontalTapCount,
+                horizontalSourceOffset,
+                verticalCoefficients,
+                verticalTapCount,
+                verticalSourceOffset,
+                bitDepth,
+                Round0Bits,
+                scratch,
+                Vector512<int>.Zero);
 
-                return;
-            }
+            return;
+        }
 
-            if (Vector256.IsHardwareAccelerated && width >= Vector256<byte>.Count)
-            {
-                Filter2D(
-                    source,
-                    sourceStride,
-                    sourceOrigin,
-                    destination,
-                    destinationStride,
-                    width,
-                    height,
-                    horizontalCoefficients,
-                    horizontalTapCount,
-                    horizontalSourceOffset,
-                    verticalCoefficients,
-                    verticalTapCount,
-                    verticalSourceOffset,
-                    bitDepth,
-                    Round0Bits,
-                    scratch,
-                    Vector256<int>.Zero);
+        if (Vector256.IsHardwareAccelerated && width >= Vector256<byte>.Count)
+        {
+            Filter2D(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                horizontalCoefficients,
+                horizontalTapCount,
+                horizontalSourceOffset,
+                verticalCoefficients,
+                verticalTapCount,
+                verticalSourceOffset,
+                bitDepth,
+                Round0Bits,
+                scratch,
+                Vector256<int>.Zero);
 
-                return;
-            }
+            return;
+        }
 
-            if (Vector128.IsHardwareAccelerated)
-            {
-                Filter2D(
-                    source,
-                    sourceStride,
-                    sourceOrigin,
-                    destination,
-                    destinationStride,
-                    width,
-                    height,
-                    horizontalCoefficients,
-                    horizontalTapCount,
-                    horizontalSourceOffset,
-                    verticalCoefficients,
-                    verticalTapCount,
-                    verticalSourceOffset,
-                    bitDepth,
-                    Round0Bits,
-                    scratch,
-                    Vector128<int>.Zero);
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Filter2D(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                horizontalCoefficients,
+                horizontalTapCount,
+                horizontalSourceOffset,
+                verticalCoefficients,
+                verticalTapCount,
+                verticalSourceOffset,
+                bitDepth,
+                Round0Bits,
+                scratch,
+                Vector128<int>.Zero);
 
-                return;
-            }
+            return;
         }
 
         Filter2DScalar(
@@ -734,82 +870,78 @@ internal static partial class Av1InterPredictor
         int verticalSourceOffset,
         int bitDepth,
         int round0,
-        Span<short> scratch,
-        bool scalarOnly)
+        Span<short> scratch)
     {
-        if (!scalarOnly)
+        if (Vector512.IsHardwareAccelerated && Vector<int>.Count == Vector512<int>.Count && width >= Vector512<ushort>.Count)
         {
-            if (Vector512.IsHardwareAccelerated && Vector<int>.Count == Vector512<int>.Count && width >= Vector512<ushort>.Count)
-            {
-                Filter2D(
-                    source,
-                    sourceStride,
-                    sourceOrigin,
-                    destination,
-                    destinationStride,
-                    width,
-                    height,
-                    horizontalCoefficients,
-                    horizontalTapCount,
-                    horizontalSourceOffset,
-                    verticalCoefficients,
-                    verticalTapCount,
-                    verticalSourceOffset,
-                    bitDepth,
-                    round0,
-                    scratch,
-                    Vector512<int>.Zero);
+            Filter2D(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                horizontalCoefficients,
+                horizontalTapCount,
+                horizontalSourceOffset,
+                verticalCoefficients,
+                verticalTapCount,
+                verticalSourceOffset,
+                bitDepth,
+                round0,
+                scratch,
+                Vector512<int>.Zero);
 
-                return;
-            }
+            return;
+        }
 
-            if (Vector256.IsHardwareAccelerated && width >= Vector256<ushort>.Count)
-            {
-                Filter2D(
-                    source,
-                    sourceStride,
-                    sourceOrigin,
-                    destination,
-                    destinationStride,
-                    width,
-                    height,
-                    horizontalCoefficients,
-                    horizontalTapCount,
-                    horizontalSourceOffset,
-                    verticalCoefficients,
-                    verticalTapCount,
-                    verticalSourceOffset,
-                    bitDepth,
-                    round0,
-                    scratch,
-                    Vector256<int>.Zero);
+        if (Vector256.IsHardwareAccelerated && width >= Vector256<ushort>.Count)
+        {
+            Filter2D(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                horizontalCoefficients,
+                horizontalTapCount,
+                horizontalSourceOffset,
+                verticalCoefficients,
+                verticalTapCount,
+                verticalSourceOffset,
+                bitDepth,
+                round0,
+                scratch,
+                Vector256<int>.Zero);
 
-                return;
-            }
+            return;
+        }
 
-            if (Vector128.IsHardwareAccelerated)
-            {
-                Filter2D(
-                    source,
-                    sourceStride,
-                    sourceOrigin,
-                    destination,
-                    destinationStride,
-                    width,
-                    height,
-                    horizontalCoefficients,
-                    horizontalTapCount,
-                    horizontalSourceOffset,
-                    verticalCoefficients,
-                    verticalTapCount,
-                    verticalSourceOffset,
-                    bitDepth,
-                    round0,
-                    scratch,
-                    Vector128<int>.Zero);
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Filter2D(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                horizontalCoefficients,
+                horizontalTapCount,
+                horizontalSourceOffset,
+                verticalCoefficients,
+                verticalTapCount,
+                verticalSourceOffset,
+                bitDepth,
+                round0,
+                scratch,
+                Vector128<int>.Zero);
 
-                return;
-            }
+            return;
         }
 
         Filter2DScalar(

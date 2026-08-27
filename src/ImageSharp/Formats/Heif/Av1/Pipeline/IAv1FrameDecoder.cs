@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Defines reconstruction of decoded AV1 superblocks within a single still-image frame.
+/// Defines reconstruction of decoded AV1 superblocks within one coded image frame.
 /// </summary>
 internal interface IAv1FrameDecoder
 {

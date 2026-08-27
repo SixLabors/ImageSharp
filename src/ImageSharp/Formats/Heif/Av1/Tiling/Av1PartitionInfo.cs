@@ -10,10 +10,30 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// <summary>
 /// Describes a decoded AV1 partition's block geometry, neighbors, and frame-boundary availability.
 /// </summary>
-internal class Av1PartitionInfo
+internal ref struct Av1PartitionInfo
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1PartitionInfo"/> class.
+    /// The luma block width in samples.
+    /// </summary>
+    private int lumaWidthInPixels;
+
+    /// <summary>
+    /// The shared chroma block width in samples.
+    /// </summary>
+    private int chromaWidthInPixels;
+
+    /// <summary>
+    /// The luma block height in samples.
+    /// </summary>
+    private int lumaHeightInPixels;
+
+    /// <summary>
+    /// The shared chroma block height in samples.
+    /// </summary>
+    private int chromaHeightInPixels;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1PartitionInfo"/> structure.
     /// </summary>
     /// <param name="modeInfo">The decoded mode information for the partition block.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
@@ -25,9 +45,6 @@ internal class Av1PartitionInfo
         this.SuperblockInfo = superblockInfo;
         this.IsChroma = isChroma;
         this.Type = partitionType;
-        this.ReferenceFrame = [-1, -1];
-        this.WidthInPixels = new int[3];
-        this.HeightInPixels = new int[3];
     }
 
     /// <summary>
@@ -101,9 +118,9 @@ internal class Av1PartitionInfo
     public Av1BlockModeInfo? LeftModeInfoForChroma { get; set; }
 
     /// <summary>
-    /// Gets or sets the reference-frame identifiers selected for the block.
+    /// Gets the reference-frame types selected for the block.
     /// </summary>
-    public int[] ReferenceFrame { get; set; }
+    public Span<Av1ReferenceFrameType> ReferenceFrames => this.ModeInfo.ReferenceFrames;
 
     /// <summary>
     /// Gets the signed distance from the block to the left frame edge in one-eighth-sample units.
@@ -126,19 +143,23 @@ internal class Av1PartitionInfo
     public int ModeBlockToBottomEdge { get; private set; }
 
     /// <summary>
-    /// Gets the block width in samples for each color plane.
-    /// </summary>
-    public int[] WidthInPixels { get; private set; }
-
-    /// <summary>
-    /// Gets the block height in samples for each color plane.
-    /// </summary>
-    public int[] HeightInPixels { get; private set; }
-
-    /// <summary>
     /// Gets or sets the neighboring luma samples used by chroma-from-luma prediction.
     /// </summary>
     public Av1ChromaFromLumaContext? ChromaFromLumaContext { get; internal set; }
+
+    /// <summary>
+    /// Gets the block width in samples for a color plane.
+    /// </summary>
+    /// <param name="plane">The luma, blue-difference, or red-difference plane.</param>
+    /// <returns>The block width in samples for the requested plane.</returns>
+    public int GetWidthInPixels(Av1Plane plane) => plane == Av1Plane.Y ? this.lumaWidthInPixels : this.chromaWidthInPixels;
+
+    /// <summary>
+    /// Gets the block height in samples for a color plane.
+    /// </summary>
+    /// <param name="plane">The luma, blue-difference, or red-difference plane.</param>
+    /// <returns>The block height in samples for the requested plane.</returns>
+    public int GetHeightInPixels(Av1Plane plane) => plane == Av1Plane.Y ? this.lumaHeightInPixels : this.chromaHeightInPixels;
 
     /// <summary>
     /// Computes tile-neighbor availability, frame-edge distances, and per-plane block dimensions.
@@ -167,14 +188,10 @@ internal class Av1PartitionInfo
         // The bitstream expresses block size on the luma grid. Chroma dimensions are derived by
         // subsampling that grid while retaining at least one 4x4 chroma unit for narrow blocks.
         const int modeInfoSize = 1 << Av1Constants.ModeInfoSizeLog2;
-        this.WidthInPixels[0] = bw4 * modeInfoSize;
-        this.HeightInPixels[0] = bh4 * modeInfoSize;
-
-        this.WidthInPixels[1] = Math.Max(1, bw4 >> subX) * modeInfoSize;
-        this.HeightInPixels[1] = Math.Max(1, bh4 >> subY) * modeInfoSize;
-
-        this.WidthInPixels[2] = Math.Max(1, bw4 >> subX) * modeInfoSize;
-        this.HeightInPixels[2] = Math.Max(1, bh4 >> subY) * modeInfoSize;
+        this.lumaWidthInPixels = bw4 * modeInfoSize;
+        this.lumaHeightInPixels = bh4 * modeInfoSize;
+        this.chromaWidthInPixels = Math.Max(1, bw4 >> subX) * modeInfoSize;
+        this.chromaHeightInPixels = Math.Max(1, bh4 >> subY) * modeInfoSize;
     }
 
     /// <summary>

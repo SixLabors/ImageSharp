@@ -15,179 +15,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 internal ref struct Av1SymbolDecoder
 {
     /// <summary>
-    /// Maps each intra prediction mode to the reduced neighbor context used by key-frame luma modes.
+    /// The independently adaptable distribution graph for the current tile.
     /// </summary>
-    private static readonly int[] IntraModeContext = [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
-
-    /// <summary>
-    /// The tile-adaptive intra-block-copy distribution.
-    /// </summary>
-    private readonly Av1Distribution tileIntraBlockCopy;
-
-    /// <summary>
-    /// The tile-adaptive integer displacement-vector context used by intra-block copy.
-    /// </summary>
-    private readonly Av1DisplacementVectorContext displacementVector;
-
-    /// <summary>
-    /// The tile-adaptive switchable loop-restoration distribution.
-    /// </summary>
-    private readonly Av1Distribution switchableRestoration;
-
-    /// <summary>
-    /// The tile-adaptive Wiener loop-restoration distribution.
-    /// </summary>
-    private readonly Av1Distribution wienerRestoration;
-
-    /// <summary>
-    /// The tile-adaptive self-guided loop-restoration distribution.
-    /// </summary>
-    private readonly Av1Distribution sgrProjectionRestoration;
-
-    /// <summary>
-    /// The tile-adaptive luma palette-mode distributions.
-    /// </summary>
-    private readonly Av1Distribution[][] paletteYMode;
-
-    /// <summary>
-    /// The tile-adaptive chroma palette-mode distributions.
-    /// </summary>
-    private readonly Av1Distribution[] paletteUvMode;
-
-    /// <summary>
-    /// The tile-adaptive luma palette-size distributions.
-    /// </summary>
-    private readonly Av1Distribution[] paletteYSize;
-
-    /// <summary>
-    /// The tile-adaptive chroma palette-size distributions.
-    /// </summary>
-    private readonly Av1Distribution[] paletteUvSize;
-
-    /// <summary>
-    /// The tile-adaptive luma palette color-index distributions.
-    /// </summary>
-    private readonly Av1Distribution[][] paletteYColorIndex;
-
-    /// <summary>
-    /// The tile-adaptive chroma palette color-index distributions.
-    /// </summary>
-    private readonly Av1Distribution[][] paletteUvColorIndex;
-
-    /// <summary>
-    /// The tile-adaptive partition-type distributions.
-    /// </summary>
-    private readonly Av1Distribution[] tilePartitionTypes;
-
-    /// <summary>
-    /// The tile-adaptive key-frame luma-mode distributions.
-    /// </summary>
-    private readonly Av1Distribution[][] keyFrameYMode;
-
-    /// <summary>
-    /// The tile-adaptive chroma intra-mode distributions.
-    /// </summary>
-    private readonly Av1Distribution[][] uvMode;
-
-    /// <summary>
-    /// The tile-adaptive transform-skip distributions.
-    /// </summary>
-    private readonly Av1Distribution[] skip;
-
-    /// <summary>
-    /// The tile-adaptive skip-mode distributions.
-    /// </summary>
-    private readonly Av1Distribution[] skipMode;
-
-    /// <summary>
-    /// The tile-adaptive absolute loop-filter delta distribution.
-    /// </summary>
-    private readonly Av1Distribution deltaLoopFilterAbsolute;
-
-    /// <summary>
-    /// The tile-adaptive absolute quantizer delta distribution.
-    /// </summary>
-    private readonly Av1Distribution deltaQuantizerAbsolute;
-
-    /// <summary>
-    /// The tile-adaptive spatial segment-identifier distributions.
-    /// </summary>
-    private readonly Av1Distribution[] segmentId;
-
-    /// <summary>
-    /// The tile-adaptive directional angle-delta distributions.
-    /// </summary>
-    private readonly Av1Distribution[] angleDelta;
-
-    /// <summary>
-    /// The tile-adaptive filter-intra mode distribution.
-    /// </summary>
-    private readonly Av1Distribution filterIntraMode;
-
-    /// <summary>
-    /// The tile-adaptive filter-intra enable distributions.
-    /// </summary>
-    private readonly Av1Distribution[] filterIntra;
-
-    /// <summary>
-    /// The tile-adaptive transform-size distributions.
-    /// </summary>
-    private readonly Av1Distribution[][] transformSize;
-
-    /// <summary>
-    /// The tile-adaptive end-of-block token distributions selected for the frame base quantizer.
-    /// </summary>
-    private readonly Av1Distribution[][][] endOfBlockFlag;
-
-    /// <summary>
-    /// The tile-adaptive coefficient base-level distributions selected for the frame base quantizer.
-    /// </summary>
-    private readonly Av1Distribution[][][] coefficientsBase;
-
-    /// <summary>
-    /// The tile-adaptive final-nonzero coefficient distributions selected for the frame base quantizer.
-    /// </summary>
-    private readonly Av1Distribution[][][] baseEndOfBlock;
-
-    /// <summary>
-    /// The tile-adaptive DC sign distributions selected for the frame base quantizer.
-    /// </summary>
-    private readonly Av1Distribution[][] dcSign;
-
-    /// <summary>
-    /// The tile-adaptive coefficient base-range distributions selected for the frame base quantizer.
-    /// </summary>
-    private readonly Av1Distribution[][][] coefficientsBaseRange;
-
-    /// <summary>
-    /// The tile-adaptive transform-block skip distributions selected for the frame base quantizer.
-    /// </summary>
-    private readonly Av1Distribution[][] transformBlockSkip;
-
-    /// <summary>
-    /// The tile-adaptive end-of-block extra-bit distributions selected for the frame base quantizer.
-    /// </summary>
-    private readonly Av1Distribution[][][] endOfBlockExtra;
-
-    /// <summary>
-    /// The tile-adaptive joint chroma-from-luma sign distribution.
-    /// </summary>
-    private readonly Av1Distribution chromaFromLumaSign;
-
-    /// <summary>
-    /// The tile-adaptive chroma-from-luma alpha-magnitude distributions.
-    /// </summary>
-    private readonly Av1Distribution[] chromaFromLumaAlpha;
-
-    /// <summary>
-    /// The tile-adaptive intra transform-type distributions.
-    /// </summary>
-    private readonly Av1Distribution[][][] intraExtendedTransform;
-
-    /// <summary>
-    /// The tile-adaptive inter transform-type distributions.
-    /// </summary>
-    private readonly Av1Distribution[][] interExtendedTransform;
+    private readonly Av1FrameEntropyContext context;
 
     /// <summary>
     /// The configuration providing temporary coefficient-context memory.
@@ -207,46 +37,41 @@ internal ref struct Av1SymbolDecoder
     /// <param name="qIndex">The frame base quantizer index.</param>
     /// <param name="updateCdf">A value indicating whether decoded symbols adapt their tile distributions.</param>
     public Av1SymbolDecoder(Configuration configuration, Span<byte> tileData, int qIndex, bool updateCdf = true)
+        : this(configuration, tileData, new Av1FrameEntropyContext(qIndex), updateCdf)
     {
-        // Every tile starts from its own frame-context copy. Sharing these objects would let one image's adaptive
-        // updates change the initial probabilities used to decode the next tile or image.
-        this.tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy.CreateCopy();
-        this.displacementVector = new();
-        this.switchableRestoration = Av1DefaultDistributions.SwitchableRestoration.CreateCopy();
-        this.wienerRestoration = Av1DefaultDistributions.WienerRestoration.CreateCopy();
-        this.sgrProjectionRestoration = Av1DefaultDistributions.SgrProjectionRestoration.CreateCopy();
-        this.paletteYMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.PaletteYMode);
-        this.paletteUvMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.PaletteUvMode);
-        this.paletteYSize = Av1Distribution.CreateCopy(Av1DefaultDistributions.PaletteYSize);
-        this.paletteUvSize = Av1Distribution.CreateCopy(Av1DefaultDistributions.PaletteUvSize);
-        this.paletteYColorIndex = Av1Distribution.CreateCopy(Av1DefaultDistributions.PaletteYColorIndex);
-        this.paletteUvColorIndex = Av1Distribution.CreateCopy(Av1DefaultDistributions.PaletteUvColorIndex);
-        this.tilePartitionTypes = Av1Distribution.CreateCopy(Av1DefaultDistributions.PartitionTypes);
-        this.keyFrameYMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.KeyFrameYMode);
-        this.uvMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.UvMode);
-        this.skip = Av1Distribution.CreateCopy(Av1DefaultDistributions.Skip);
-        this.skipMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.SkipMode);
-        this.deltaLoopFilterAbsolute = Av1DefaultDistributions.DeltaLoopFilterAbsolute.CreateCopy();
-        this.deltaQuantizerAbsolute = Av1DefaultDistributions.DeltaQuantizerAbsolute.CreateCopy();
-        this.segmentId = Av1Distribution.CreateCopy(Av1DefaultDistributions.SegmentId);
-        this.angleDelta = Av1Distribution.CreateCopy(Av1DefaultDistributions.AngleDelta);
-        this.filterIntraMode = Av1DefaultDistributions.FilterIntraMode.CreateCopy();
-        this.filterIntra = Av1Distribution.CreateCopy(Av1DefaultDistributions.FilterIntra);
-        this.transformSize = Av1Distribution.CreateCopy(Av1DefaultDistributions.TransformSize);
-        this.chromaFromLumaSign = Av1DefaultDistributions.ChromaFromLumaSign.CreateCopy();
-        this.chromaFromLumaAlpha = Av1Distribution.CreateCopy(Av1DefaultDistributions.ChromaFromLumaAlpha);
-        this.intraExtendedTransform = Av1Distribution.CreateCopy(Av1DefaultDistributions.IntraExtendedTransform);
-        this.interExtendedTransform = Av1Distribution.CreateCopy(Av1DefaultDistributions.InterExtendedTransform);
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1SymbolDecoder"/> struct over a caller-owned tile entropy
+    /// context.
+    /// </summary>
+    /// <param name="configuration">The configuration providing temporary memory.</param>
+    /// <param name="tileData">The entropy-coded tile payload.</param>
+    /// <param name="context">The independently adaptable context initialized for this tile.</param>
+    /// <param name="updateCdf">A value indicating whether decoded symbols adapt their tile distributions.</param>
+    public Av1SymbolDecoder(
+        Configuration configuration,
+        Span<byte> tileData,
+        Av1FrameEntropyContext context,
+        bool updateCdf)
+    {
+        // The context owner controls reset and publication. Holding one reference here keeps the range decoder small
+        // and prevents a second set of aliases from becoming a competing source of entropy state.
+        this.context = context;
         this.configuration = configuration;
         this.reader = new Av1SymbolReader(tileData, updateCdf);
-        this.endOfBlockFlag = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetEndOfBlockFlag(qIndex));
-        this.coefficientsBase = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetCoefficientsBase(qIndex));
-        this.baseEndOfBlock = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetBaseEndOfBlock(qIndex));
-        this.dcSign = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetDcSign(qIndex));
-        this.coefficientsBaseRange = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetCoefficientsBaseRange(qIndex));
-        this.transformBlockSkip = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetTransformBlockSkip(qIndex));
-        this.endOfBlockExtra = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetEndOfBlockExtra(qIndex));
     }
+
+    /// <summary>
+    /// Gets the reduced neighbor context for each intra prediction mode used by key-frame luma modes.
+    /// </summary>
+    private static ReadOnlySpan<int> IntraModeContext => [0, 1, 2, 3, 4, 4, 4, 4, 3, 0, 1, 2, 0];
+
+    /// <summary>
+    /// Validates that range decoding remained within the bounded tile payload and consumed the required trailing-one bit.
+    /// </summary>
+    public void ValidateTrailingBits()
+        => this.reader.ValidateTrailingBits();
 
     /// <summary>
     /// Reads a fixed-width CDEF strength index.
@@ -315,7 +140,7 @@ internal ref struct Av1SymbolDecoder
     public Av1RestorationFilterType ReadSwitchableRestorationType()
     {
         ref Av1SymbolReader r = ref this.reader;
-        return (Av1RestorationFilterType)r.ReadSymbol(this.switchableRestoration);
+        return (Av1RestorationFilterType)r.ReadSymbol(this.context.SwitchableRestoration);
     }
 
     /// <summary>
@@ -325,7 +150,7 @@ internal ref struct Av1SymbolDecoder
     public bool ReadWienerRestoration()
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.wienerRestoration) != 0;
+        return r.ReadSymbol(this.context.WienerRestoration) != 0;
     }
 
     /// <summary>
@@ -335,7 +160,7 @@ internal ref struct Av1SymbolDecoder
     public bool ReadSgrProjectionRestoration()
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.sgrProjectionRestoration) != 0;
+        return r.ReadSymbol(this.context.SgrProjectionRestoration) != 0;
     }
 
     /// <summary>
@@ -398,7 +223,7 @@ internal ref struct Av1SymbolDecoder
     public bool ReadPaletteYMode(int blockSizeContext, int neighborContext)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.paletteYMode[blockSizeContext][neighborContext]) != 0;
+        return r.ReadSymbol(this.context.PaletteYMode[blockSizeContext][neighborContext]) != 0;
     }
 
     /// <summary>
@@ -409,7 +234,7 @@ internal ref struct Av1SymbolDecoder
     public bool ReadPaletteUvMode(bool hasLumaPalette)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.paletteUvMode[hasLumaPalette ? 1 : 0]) != 0;
+        return r.ReadSymbol(this.context.PaletteUvMode[hasLumaPalette ? 1 : 0]) != 0;
     }
 
     /// <summary>
@@ -422,8 +247,8 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         Av1Distribution distribution = planeType == Av1PlaneType.Y
-            ? this.paletteYSize[blockSizeContext]
-            : this.paletteUvSize[blockSizeContext];
+            ? this.context.PaletteYSize[blockSizeContext]
+            : this.context.PaletteUvSize[blockSizeContext];
 
         return r.ReadSymbol(distribution) + 2;
     }
@@ -439,8 +264,8 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         Av1Distribution distribution = planeType == Av1PlaneType.Y
-            ? this.paletteYColorIndex[paletteSize - 2][colorContext]
-            : this.paletteUvColorIndex[paletteSize - 2][colorContext];
+            ? this.context.PaletteYColorIndex[paletteSize - 2][colorContext]
+            : this.context.PaletteUvColorIndex[paletteSize - 2][colorContext];
 
         return r.ReadSymbol(distribution);
     }
@@ -452,7 +277,7 @@ internal ref struct Av1SymbolDecoder
     public bool ReadUseIntraBlockCopy()
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.tileIntraBlockCopy) > 0;
+        return r.ReadSymbol(this.context.IntraBlockCopy) > 0;
     }
 
     /// <summary>
@@ -461,7 +286,7 @@ internal ref struct Av1SymbolDecoder
     /// <param name="reference">The spatially derived reference vector.</param>
     /// <returns>The decoded displacement vector in one-eighth-sample units.</returns>
     public Av1MotionVector ReadDisplacementVector(Av1MotionVector reference)
-        => this.displacementVector.Read(ref this.reader, reference);
+        => this.context.DisplacementVector.Read(ref this.reader, reference);
 
     /// <summary>
     /// Reads a complete block partition type from the selected partition context.
@@ -471,7 +296,7 @@ internal ref struct Av1SymbolDecoder
     public Av1PartitionType ReadPartitionType(int context)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return (Av1PartitionType)r.ReadSymbol(this.tilePartitionTypes[context]);
+        return (Av1PartitionType)r.ReadSymbol(this.context.PartitionTypes[context]);
     }
 
     /// <summary>
@@ -482,7 +307,7 @@ internal ref struct Av1SymbolDecoder
     /// <returns><see cref="Av1PartitionType.Split"/> or <see cref="Av1PartitionType.Horizontal"/>.</returns>
     public Av1PartitionType ReadSplitOrHorizontal(Av1BlockSize blockSize, int context)
     {
-        uint frequency = GetSplitOrHorizontalFrequency(this.tilePartitionTypes, blockSize, context);
+        uint frequency = GetSplitOrHorizontalFrequency(this.context.PartitionTypes, blockSize, context);
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadBoolean(frequency) ? Av1PartitionType.Split : Av1PartitionType.Horizontal;
     }
@@ -495,7 +320,7 @@ internal ref struct Av1SymbolDecoder
     /// <returns><see cref="Av1PartitionType.Split"/> or <see cref="Av1PartitionType.Vertical"/>.</returns>
     public Av1PartitionType ReadSplitOrVertical(Av1BlockSize blockSize, int context)
     {
-        uint frequency = GetSplitOrVerticalFrequency(this.tilePartitionTypes, blockSize, context);
+        uint frequency = GetSplitOrVerticalFrequency(this.context.PartitionTypes, blockSize, context);
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadBoolean(frequency) ? Av1PartitionType.Split : Av1PartitionType.Vertical;
     }
@@ -523,7 +348,7 @@ internal ref struct Av1SymbolDecoder
 
         int aboveContext = IntraModeContext[(int)aboveMode];
         int leftContext = IntraModeContext[(int)leftMode];
-        return (Av1PredictionMode)r.ReadSymbol(this.keyFrameYMode[aboveContext][leftContext]);
+        return (Av1PredictionMode)r.ReadSymbol(this.context.KeyFrameYMode[aboveContext][leftContext]);
     }
 
     /// <summary>
@@ -532,11 +357,11 @@ internal ref struct Av1SymbolDecoder
     /// <param name="mode">The decoded luma prediction mode.</param>
     /// <param name="chromaFromLumaAllowed">Indicates whether chroma-from-luma is valid for the block.</param>
     /// <returns>The decoded chroma prediction mode.</returns>
-    public Av1PredictionMode ReadIntraModeUv(Av1PredictionMode mode, bool chromaFromLumaAllowed)
+    public Av1ChromaPredictionMode ReadIntraModeUv(Av1PredictionMode mode, bool chromaFromLumaAllowed)
     {
         int chromaForLumaIndex = chromaFromLumaAllowed ? 1 : 0;
         ref Av1SymbolReader r = ref this.reader;
-        return (Av1PredictionMode)r.ReadSymbol(this.uvMode[chromaForLumaIndex][(int)mode]);
+        return (Av1ChromaPredictionMode)r.ReadSymbol(this.context.UvMode[chromaForLumaIndex][(int)mode]);
     }
 
     /// <summary>
@@ -547,7 +372,7 @@ internal ref struct Av1SymbolDecoder
     public bool ReadSkip(int ctx)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.skip[ctx]) > 0;
+        return r.ReadSymbol(this.context.Skip[ctx]) > 0;
     }
 
     /// <summary>
@@ -558,7 +383,7 @@ internal ref struct Av1SymbolDecoder
     public bool ReadSkipMode(int context)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.skipMode[context]) > 0;
+        return r.ReadSymbol(this.context.SkipMode[context]) > 0;
     }
 
     /// <summary>
@@ -568,7 +393,7 @@ internal ref struct Av1SymbolDecoder
     public int ReadDeltaLoopFilter()
     {
         ref Av1SymbolReader r = ref this.reader;
-        int deltaLoopFilterAbsolute = r.ReadSymbol(this.deltaLoopFilterAbsolute);
+        int deltaLoopFilterAbsolute = r.ReadSymbol(this.context.DeltaLoopFilterAbsolute);
         if (deltaLoopFilterAbsolute == Av1Constants.DeltaLoopFilterSmall)
         {
             int deltaLoopFilterRemainingBits = r.ReadLiteral(3) + 1;
@@ -592,7 +417,7 @@ internal ref struct Av1SymbolDecoder
     public int ReadDeltaQuantizerIndex()
     {
         ref Av1SymbolReader r = ref this.reader;
-        int deltaQuantizerAbsolute = r.ReadSymbol(this.deltaQuantizerAbsolute);
+        int deltaQuantizerAbsolute = r.ReadSymbol(this.context.DeltaQuantizerAbsolute);
         if (deltaQuantizerAbsolute == Av1Constants.DeltaQuantizerSmall)
         {
             int deltaQuantizerRemainingBits = r.ReadLiteral(3) + 1;
@@ -617,7 +442,7 @@ internal ref struct Av1SymbolDecoder
     public int ReadSegmentId(int context)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.segmentId[context]);
+        return r.ReadSymbol(this.context.SegmentId[context]);
     }
 
     /// <summary>
@@ -628,7 +453,7 @@ internal ref struct Av1SymbolDecoder
     public int ReadAngleDelta(Av1PredictionMode mode)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.angleDelta[(int)mode - 1]);
+        return r.ReadSymbol(this.context.AngleDelta[(int)mode - 1]);
     }
 
     /// <summary>
@@ -640,10 +465,10 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
-        bool useFilterIntra = r.ReadSymbol(this.filterIntra[(int)blockSize]) > 0;
+        bool useFilterIntra = r.ReadSymbol(this.context.FilterIntra[(int)blockSize]) > 0;
         if (useFilterIntra)
         {
-            filterIntraMode = (Av1FilterIntraMode)r.ReadSymbol(this.filterIntraMode);
+            filterIntraMode = (Av1FilterIntraMode)r.ReadSymbol(this.context.FilterIntraMode);
         }
 
         return filterIntraMode;
@@ -669,7 +494,7 @@ internal ref struct Av1SymbolDecoder
 
         DebugGuard.MustBeLessThanOrEqualTo(depth, Av1Constants.MaxTransformCategories, nameof(depth));
         int category = depth - 1;
-        int value = r.ReadSymbol(this.transformSize[category][context]);
+        int value = r.ReadSymbol(this.context.TransformSize[category][context]);
         Av1TransformSize transformSize = blockSize.GetMaximumTransformSize();
         for (int d = 0; d < value; ++d)
         {
@@ -716,7 +541,7 @@ internal ref struct Av1SymbolDecoder
             int symbol;
             if (isInter)
             {
-                symbol = r.ReadSymbol(this.interExtendedTransform[extendedSet][(int)squareTransformSize]);
+                symbol = r.ReadSymbol(this.context.InterExtendedTransform[extendedSet][(int)squareTransformSize]);
             }
             else
             {
@@ -724,7 +549,7 @@ internal ref struct Av1SymbolDecoder
                     ? filterIntraMode.ToIntraDirection()
                     : intraDirection;
 
-                symbol = r.ReadSymbol(this.intraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraMode]);
+                symbol = r.ReadSymbol(this.context.IntraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraMode]);
             }
 
             transformType = Av1SymbolContextHelper.GetExtendedTransformType(transformSetType, symbol);
@@ -742,7 +567,7 @@ internal ref struct Av1SymbolDecoder
     public bool ReadTransformBlockSkip(Av1TransformSize transformSizeContext, int skipContext)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.transformBlockSkip[(int)transformSizeContext][skipContext]) > 0;
+        return r.ReadSymbol(this.context.TransformBlockSkip[(int)transformSizeContext][skipContext]) > 0;
     }
 
     /// <summary>
@@ -752,7 +577,7 @@ internal ref struct Av1SymbolDecoder
     public int ReadChromFromLumaSign()
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.chromaFromLumaSign);
+        return r.ReadSymbol(this.context.ChromaFromLumaSign);
     }
 
     /// <summary>
@@ -764,7 +589,7 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         int context = Av1ChromaFromLumaMath.ContextU(jointSignPlus1 - 1);
-        return r.ReadSymbol(this.chromaFromLumaAlpha[context]);
+        return r.ReadSymbol(this.context.ChromaFromLumaAlpha[context]);
     }
 
     /// <summary>
@@ -776,7 +601,7 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         int context = Av1ChromaFromLumaMath.ContextV(jointSignPlus1 - 1);
-        return r.ReadSymbol(this.chromaFromLumaAlpha[context]);
+        return r.ReadSymbol(this.context.ChromaFromLumaAlpha[context]);
     }
 
     /// <summary>
@@ -1082,7 +907,7 @@ internal ref struct Av1SymbolDecoder
         int endOfBlockContext = transformClass == Av1TransformClass.Class2D ? 0 : 1;
         int endOfBlockMultiSize = transformSize.GetLog2Minus4();
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.endOfBlockFlag[endOfBlockMultiSize][(int)planeType][endOfBlockContext]) + 1;
+        return r.ReadSymbol(this.context.EndOfBlockFlag[endOfBlockMultiSize][(int)planeType][endOfBlockContext]) + 1;
     }
 
     /// <summary>
@@ -1095,7 +920,7 @@ internal ref struct Av1SymbolDecoder
     private bool ReadEndOfBlockExtra(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int endOfBlockContext)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.endOfBlockExtra[(int)transformSizeContext][(int)planeType][endOfBlockContext]) > 0;
+        return r.ReadSymbol(this.context.EndOfBlockExtra[(int)transformSizeContext][(int)planeType][endOfBlockContext]) > 0;
     }
 
     /// <summary>
@@ -1108,7 +933,7 @@ internal ref struct Av1SymbolDecoder
     private int ReadCoefficientsBaseRange(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int baseRangeContext)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.coefficientsBaseRange[(int)transformSizeContext][(int)planeType][baseRangeContext]);
+        return r.ReadSymbol(this.context.CoefficientsBaseRange[(int)transformSizeContext][(int)planeType][baseRangeContext]);
     }
 
     /// <summary>
@@ -1120,7 +945,7 @@ internal ref struct Av1SymbolDecoder
     private int ReadDcSign(Av1PlaneType planeType, int dcSignContext)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.dcSign[(int)planeType][dcSignContext]);
+        return r.ReadSymbol(this.context.DcSign[(int)planeType][dcSignContext]);
     }
 
     /// <summary>
@@ -1133,7 +958,7 @@ internal ref struct Av1SymbolDecoder
     private int ReadBaseEndOfBlock(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int coefficientContext)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.baseEndOfBlock[(int)transformSizeContext][(int)planeType][coefficientContext]);
+        return r.ReadSymbol(this.context.BaseEndOfBlock[(int)transformSizeContext][(int)planeType][coefficientContext]);
     }
 
     /// <summary>
@@ -1146,7 +971,7 @@ internal ref struct Av1SymbolDecoder
     private int ReadCoefficientsBase(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int coefficientContext)
     {
         ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.coefficientsBase[(int)transformSizeContext][(int)planeType][coefficientContext]);
+        return r.ReadSymbol(this.context.CoefficientsBase[(int)transformSizeContext][(int)planeType][coefficientContext]);
     }
 
     /// <summary>
@@ -1160,7 +985,7 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         Av1TransformSize limitedTransformSizeContext = (Av1TransformSize)Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
-        Av1Distribution distribution = this.coefficientsBaseRange[(int)limitedTransformSizeContext][(int)planeType][baseRangeContext];
+        Av1Distribution distribution = this.context.CoefficientsBaseRange[(int)limitedTransformSizeContext][(int)planeType][baseRangeContext];
         for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
         {
             int coefficientBaseRange = r.ReadSymbol(distribution);
@@ -1177,7 +1002,7 @@ internal ref struct Av1SymbolDecoder
     /// </summary>
     /// <returns>The decoded nonnegative suffix value.</returns>
     /// <exception cref="InvalidImageContentException">The unary prefix exceeds the AV1 coefficient limit.</exception>
-    internal int ReadGolomb()
+    public int ReadGolomb()
     {
         ref Av1SymbolReader r = ref this.reader;
         int x = 1;
@@ -1320,7 +1145,7 @@ internal ref struct Av1SymbolDecoder
     /// <param name="blockSize">The current block size.</param>
     /// <param name="context">The partition probability context.</param>
     /// <returns>The Q15 probability of the split outcome.</returns>
-    internal static uint GetSplitOrHorizontalFrequency(Av1Distribution[] inputs, Av1BlockSize blockSize, int context)
+    public static uint GetSplitOrHorizontalFrequency(Av1Distribution[] inputs, Av1BlockSize blockSize, int context)
     {
         Av1Distribution input = inputs[context];
 
@@ -1346,7 +1171,7 @@ internal ref struct Av1SymbolDecoder
     /// <param name="blockSize">The current block size.</param>
     /// <param name="context">The partition probability context.</param>
     /// <returns>The Q15 probability of the split outcome.</returns>
-    internal static uint GetSplitOrVerticalFrequency(Av1Distribution[] inputs, Av1BlockSize blockSize, int context)
+    public static uint GetSplitOrVerticalFrequency(Av1Distribution[] inputs, Av1BlockSize blockSize, int context)
     {
         Av1Distribution input = inputs[context];
 

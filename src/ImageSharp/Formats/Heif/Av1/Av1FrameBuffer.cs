@@ -108,19 +108,29 @@ internal class Av1FrameBuffer<T> : IDisposable
         this.BufferY = null;
         this.BufferCb = null;
         this.BufferCr = null;
-        if ((bufferEnableMask & PictureBufferYFlag) != 0)
+        try
         {
-            this.BufferY = configuration.MemoryAllocator.Allocate2D<T>(strideY * this.storageElementsPerSample, heightY);
-        }
+            if ((bufferEnableMask & PictureBufferYFlag) != 0)
+            {
+                this.BufferY = configuration.MemoryAllocator.Allocate2D<T>(strideY * this.storageElementsPerSample, heightY);
+            }
 
-        if ((bufferEnableMask & PictureBufferCbFlag) != 0)
-        {
-            this.BufferCb = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * this.storageElementsPerSample, heightChroma);
-        }
+            if ((bufferEnableMask & PictureBufferCbFlag) != 0)
+            {
+                this.BufferCb = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * this.storageElementsPerSample, heightChroma);
+            }
 
-        if ((bufferEnableMask & PictureBufferCrFlag) != 0)
+            if ((bufferEnableMask & PictureBufferCrFlag) != 0)
+            {
+                this.BufferCr = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * this.storageElementsPerSample, heightChroma);
+            }
+        }
+        catch
         {
-            this.BufferCr = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * this.storageElementsPerSample, heightChroma);
+            // Construction publishes the owner only after every required plane has been rented. Release earlier planes
+            // here because a later allocation failure leaves no constructed frame buffer for the caller to dispose.
+            this.Dispose();
+            throw;
         }
     }
 
@@ -203,6 +213,34 @@ internal class Av1FrameBuffer<T> : IDisposable
     /// Gets the allocator used for frame-owned and frame-scoped working buffers.
     /// </summary>
     public MemoryAllocator MemoryAllocator { get; }
+
+    /// <summary>
+    /// Copies the complete padded sample planes and active picture geometry to another compatible frame buffer.
+    /// </summary>
+    /// <param name="destination">The frame buffer receiving the copied reconstruction.</param>
+    public void CopyTo(Av1FrameBuffer<T> destination)
+    {
+        // Copy each contiguous allocation so the runtime can use its optimized bulk-memory path. Film-grain
+        // presentation consumes right and bottom padding for odd dimensions, so copying only visible rows would leave
+        // part of the independently owned presentation surface undefined.
+        this.BufferY!.DangerousGetSingleSpan().CopyTo(destination.BufferY!.DangerousGetSingleSpan());
+        Buffer2D<T>? chromaBlue = this.BufferCb;
+        if (chromaBlue is not null)
+        {
+            chromaBlue.DangerousGetSingleSpan().CopyTo(destination.BufferCb!.DangerousGetSingleSpan());
+            this.BufferCr!.DangerousGetSingleSpan().CopyTo(destination.BufferCr!.DangerousGetSingleSpan());
+        }
+
+        destination.StartPosition = this.StartPosition;
+        destination.OriginX = this.OriginX;
+        destination.OriginY = this.OriginY;
+        destination.Width = this.Width;
+        destination.Height = this.Height;
+        destination.MaxWidth = this.MaxWidth;
+        destination.MaxHeight = this.MaxHeight;
+        destination.BitDepth = this.BitDepth;
+        destination.ColorFormat = this.ColorFormat;
+    }
 
     /// <summary>
     /// Releases the owned luma and chroma plane allocations.

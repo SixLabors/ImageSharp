@@ -92,8 +92,7 @@ internal static partial class Av1InterPredictor
             verticalFilter,
             horizontalPhase,
             verticalPhase,
-            scratch,
-            false);
+            scratch);
 
     /// <summary>
     /// Reconstructs an 8-, 10-, or 12-bit translational prediction using the widest supported SIMD kernel.
@@ -140,8 +139,7 @@ internal static partial class Av1InterPredictor
             horizontalPhase,
             verticalPhase,
             bitDepth,
-            scratch,
-            false);
+            scratch);
 
     /// <summary>
     /// Reconstructs an 8-bit translational prediction without explicit hardware intrinsics.
@@ -173,7 +171,7 @@ internal static partial class Av1InterPredictor
         int horizontalPhase,
         int verticalPhase,
         Span<short> scratch)
-        => Dispatch(
+        => DispatchScalar(
             source,
             sourceStride,
             sourceOrigin,
@@ -185,8 +183,7 @@ internal static partial class Av1InterPredictor
             verticalFilter,
             horizontalPhase,
             verticalPhase,
-            scratch,
-            true);
+            scratch);
 
     /// <summary>
     /// Reconstructs an 8-, 10-, or 12-bit translational prediction without explicit hardware intrinsics.
@@ -220,7 +217,7 @@ internal static partial class Av1InterPredictor
         int verticalPhase,
         int bitDepth,
         Span<short> scratch)
-        => Dispatch(
+        => DispatchScalar(
             source,
             sourceStride,
             sourceOrigin,
@@ -233,6 +230,5 @@ internal static partial class Av1InterPredictor
             horizontalPhase,
             verticalPhase,
             bitDepth,
-            scratch,
-            true);
+            scratch);
 }

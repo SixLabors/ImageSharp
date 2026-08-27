@@ -6,7 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
-/// Owns the mode, transform, coefficient, quantizer, and filter state decoded for one AV1 frame.
+/// Owns the mode, motion, segmentation, transform, coefficient, quantizer, and filter state decoded for one AV1 frame.
 /// </summary>
 internal partial class Av1FrameInfo
 {
@@ -69,6 +69,21 @@ internal partial class Av1FrameInfo
     /// Maps every frame-relative 4x4 position to its covering entry in <see cref="modeInfos"/>.
     /// </summary>
     private readonly Av1FrameModeInfoMap modeInfoMap;
+
+    /// <summary>
+    /// Stores the decoded segment identifier for each active 4x4 mode-information position in row-major order.
+    /// </summary>
+    private byte[] segmentIds = [];
+
+    /// <summary>
+    /// The number of active 4x4 columns in one row of <see cref="segmentIds"/>.
+    /// </summary>
+    private int segmentIdColumnCount;
+
+    /// <summary>
+    /// The number of active 4x4 rows represented by <see cref="segmentIds"/>.
+    /// </summary>
+    private int segmentIdRowCount;
 
     /// <summary>
     /// Stores luma transform information grouped by superblock.
@@ -187,6 +202,102 @@ internal partial class Av1FrameInfo
     /// Gets the width or height of one square superblock in 4x4 mode-information units.
     /// </summary>
     public int SuperblockModeInfoSize => this.modeInfoSizePerSuperblock;
+
+    /// <summary>
+    /// Initializes the active frame's contiguous segment map and applies whole-map inheritance when requested.
+    /// </summary>
+    /// <param name="frameHeader">The frame header defining active geometry and segmentation update behavior.</param>
+    /// <param name="primaryReferenceFrameInfo">
+    /// The retained state selected by the primary reference, or <see langword="null"/> when no primary reference exists.
+    /// </param>
+    public void InitializeSegmentIds(ObuFrameHeader frameHeader, Av1FrameInfo? primaryReferenceFrameInfo)
+    {
+        ObuSegmentationParameters segmentationParameters = frameHeader.SegmentationParameters;
+        if (!segmentationParameters.Enabled)
+        {
+            // A disabled map is normatively all zero. Empty storage represents that state without retaining one byte
+            // for every 4x4 position on frames that cannot use segmentation.
+            return;
+        }
+
+        this.segmentIdColumnCount = frameHeader.ModeInfoColumnCount;
+        this.segmentIdRowCount = frameHeader.ModeInfoRowCount;
+        this.segmentIds = new byte[this.segmentIdColumnCount * this.segmentIdRowCount];
+
+        if (segmentationParameters.SegmentationUpdateMap == 0 &&
+            primaryReferenceFrameInfo is not null &&
+            primaryReferenceFrameInfo.segmentIdColumnCount == this.segmentIdColumnCount &&
+            primaryReferenceFrameInfo.segmentIdRowCount == this.segmentIdRowCount)
+        {
+            // AV1 decodemv.c copies the selected primary frame's block coverage when update_map is zero. Copying the
+            // same contiguous map once establishes the identical final state without repeating a row copy per block.
+            primaryReferenceFrameInfo.segmentIds.CopyTo(this.segmentIds, 0);
+        }
+    }
+
+    /// <summary>
+    /// Gets the segment identifier stored at one active 4x4 mode-information position.
+    /// </summary>
+    /// <param name="row">The zero-based mode-information row.</param>
+    /// <param name="column">The zero-based mode-information column.</param>
+    /// <returns>The segment identifier stored at the requested position.</returns>
+    public byte GetSegmentId(int row, int column) => this.segmentIds[(row * this.segmentIdColumnCount) + column];
+
+    /// <summary>
+    /// Gets the minimum retained segment identifier across a block's clipped mode-information coverage.
+    /// </summary>
+    /// <param name="blockSize">The block size whose 4x4 coverage is inspected.</param>
+    /// <param name="modeInfoPosition">The block origin in frame-relative 4x4 units.</param>
+    /// <returns>
+    /// The minimum retained segment identifier, or zero when the retained frame has no enabled segmentation map.
+    /// </returns>
+    public int GetPredictedSegmentId(Av1BlockSize blockSize, Point modeInfoPosition)
+    {
+        if (this.segmentIds.Length == 0)
+        {
+            // libaom represents an unavailable prior map with a null pointer and predicts segment zero.
+            return 0;
+        }
+
+        int columnCount = Math.Min(blockSize.Get4x4WideCount(), this.segmentIdColumnCount - modeInfoPosition.X);
+        int rowCount = Math.Min(blockSize.Get4x4HighCount(), this.segmentIdRowCount - modeInfoPosition.Y);
+        int segmentId = Av1Constants.MaxSegmentCount;
+
+        // Temporal prediction uses the minimum over every clipped 4x4 cell, not merely the block origin. This is the
+        // dec_get_segment_id rule used when segmentation_temporal_update selects the retained primary map.
+        for (int row = 0; row < rowCount; row++)
+        {
+            int offset = ((modeInfoPosition.Y + row) * this.segmentIdColumnCount) + modeInfoPosition.X;
+            ReadOnlySpan<byte> segmentRow = this.segmentIds.AsSpan(offset, columnCount);
+
+            for (int column = 0; column < segmentRow.Length; column++)
+            {
+                segmentId = Math.Min(segmentId, segmentRow[column]);
+            }
+        }
+
+        return segmentId;
+    }
+
+    /// <summary>
+    /// Writes one segment identifier over a block's clipped mode-information coverage.
+    /// </summary>
+    /// <param name="blockSize">The block size whose 4x4 coverage is updated.</param>
+    /// <param name="modeInfoPosition">The block origin in frame-relative 4x4 units.</param>
+    /// <param name="segmentId">The decoded segment identifier.</param>
+    public void SetSegmentId(Av1BlockSize blockSize, Point modeInfoPosition, int segmentId)
+    {
+        int columnCount = Math.Min(blockSize.Get4x4WideCount(), this.segmentIdColumnCount - modeInfoPosition.X);
+        int rowCount = Math.Min(blockSize.Get4x4HighCount(), this.segmentIdRowCount - modeInfoPosition.Y);
+
+        // Each block contributes one ID to all covered 4x4 cells. Filling contiguous row slices retains the native
+        // row-major layout without the per-row object indirection of the previous jagged map.
+        for (int row = 0; row < rowCount; row++)
+        {
+            int offset = ((modeInfoPosition.Y + row) * this.segmentIdColumnCount) + modeInfoPosition.X;
+            this.segmentIds.AsSpan(offset, columnCount).Fill((byte)segmentId);
+        }
+    }
 
     /// <summary>
     /// Allocates the loop-restoration unit grid described by the active frame header.
@@ -440,8 +551,10 @@ internal partial class Av1FrameInfo
     /// <param name="superblockInfo">The containing superblock.</param>
     public void UpdateModeInfo(Av1BlockModeInfo modeInfo, Av1SuperblockInfo superblockInfo)
     {
+        Point modeInfoPosition = this.GetModeInfoPosition(superblockInfo.Position, modeInfo.PositionInSuperblock);
         this.modeInfos[this.modeInfoMap.NextIndex] = modeInfo;
-        this.modeInfoMap.Update(this.GetModeInfoPosition(superblockInfo.Position, modeInfo.PositionInSuperblock), modeInfo.BlockSize);
+        this.UpdateRetainedMotionField(modeInfo, modeInfoPosition);
+        this.modeInfoMap.Update(modeInfoPosition, modeInfo.BlockSize);
     }
 
     /// <summary>

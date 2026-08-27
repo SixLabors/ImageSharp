@@ -485,7 +485,7 @@ internal partial class Av1TileWriter
             }
 
             Av1PredictionMode intra_luma_mode = macroBlockModeInfo.Block.Mode;
-            Av1PredictionMode intra_chroma_mode = macroBlockModeInfo.Block.UvMode;
+            Av1ChromaPredictionMode intra_chroma_mode = macroBlockModeInfo.Block.UvMode;
             if (IsIntraBlockCopyAllowed(pcs.Parent.FrameHeader/*, pcs.Parent.SliceType*/))
             {
                 WriteIntraBlockCopyInfo(ref writer, macroBlockModeInfo, blk_ptr);
@@ -624,12 +624,12 @@ internal partial class Av1TileWriter
         Av1EncoderBlockStruct blk_ptr,
         Av1BlockSize blockSize,
         Av1PredictionMode lumaMode,
-        Av1PredictionMode chromaMode,
+        Av1ChromaPredictionMode chromaMode,
         bool isChromaFromLumaAllowed)
     {
         writer.WriteChromaMode(chromaMode, isChromaFromLumaAllowed, lumaMode);
 
-        if (chromaMode == Av1PredictionMode.UvChromaFromLuma)
+        if (chromaMode == Av1ChromaPredictionMode.ChromaFromLuma)
         {
             writer.WriteChromaFromLumaAlphas(
                 blk_ptr.PredictionUnits[0].ChromaFromLumaIndex,
@@ -638,7 +638,9 @@ internal partial class Av1TileWriter
 
         if (blockSize >= Av1BlockSize.Block8x8 && macroBlockModeInfo.Block.UvMode.IsDirectional())
         {
-            writer.WriteAngleDelta(blk_ptr.PredictionUnits[0].AngleDelta[(int)Av1PlaneType.Uv] + Av1Constants.MaxAngleDelta, chromaMode);
+            writer.WriteAngleDelta(
+                blk_ptr.PredictionUnits[0].AngleDelta[(int)Av1PlaneType.Uv] + Av1Constants.MaxAngleDelta,
+                chromaMode.ToLumaMode());
         }
     }
 
@@ -712,7 +714,7 @@ internal partial class Av1TileWriter
         Point point)
     {/*
         Av1PredictionMode intra_luma_mode = macroBlockModeInfo.Mode;
-        Av1PredictionMode intra_chroma_mode = macroBlockModeInfo.ModeUv;
+        Av1ChromaPredictionMode intra_chroma_mode = macroBlockModeInfo.Block.UvMode;
 
         Av1PaletteModeInfo pmi = blk_ptr.PaletteInfo.pmi;
         int bsize_ctx = svt_aom_get_palette_bsize_ctx(bsize);
@@ -729,7 +731,7 @@ internal partial class Av1TileWriter
             }
         }
 
-        bool uv_dc_pred = intra_chroma_mode == Av1PredictionMode.DC && is_chroma_reference(point, blockSize, 1, 1);
+        bool uv_dc_pred = intra_chroma_mode == Av1ChromaPredictionMode.DC && is_chroma_reference(point, blockSize, 1, 1);
         if (uv_dc_pred)
         {
             // assert(blk_ptr->palette_size[1] == 0); //remove when chroma is on

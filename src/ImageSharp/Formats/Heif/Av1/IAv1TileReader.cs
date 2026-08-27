@@ -4,16 +4,19 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 /// <summary>
-/// Interface for reading of image tiles.
+/// Defines tile-payload consumption and completion for one coded AV1 frame.
 /// </summary>
 internal interface IAv1TileReader
 {
     /// <summary>
-    /// Read the information for a single tile.
+    /// Reads one entropy-coded tile payload into the current frame state.
     /// </summary>
-    /// <param name="tileData">
-    /// The bytes of encoded data in the bitstream dedicated to this tile.
-    /// </param>
-    /// <param name="tileNum">The index of the tile that is to be read.</param>
+    /// <param name="tileData">The bounded bitstream bytes belonging to the tile.</param>
+    /// <param name="tileNum">The zero-based tile index in raster order.</param>
     void ReadTile(Span<byte> tileData, int tileNum);
+
+    /// <summary>
+    /// Completes the current coded frame after all tile payloads have been read and releases frame-scoped resources.
+    /// </summary>
+    void CompleteFrame();
 }

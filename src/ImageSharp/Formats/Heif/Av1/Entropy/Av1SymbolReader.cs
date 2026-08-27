@@ -53,6 +53,11 @@ internal ref struct Av1SymbolReader
     private int count;
 
     /// <summary>
+    /// The adjustment that preserves the logical consumed-bit count after the reader enters implicit zero padding.
+    /// </summary>
+    private int tellOffset;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1SymbolReader"/> struct over one entropy-coded span.
     /// </summary>
     /// <param name="span">The bounded entropy-coded bytes.</param>
@@ -65,7 +70,38 @@ internal ref struct Av1SymbolReader
         this.difference = (1U << (DecoderWindowsSize - 1)) - 1;
         this.range = 0x8000;
         this.count = -15;
+        this.tellOffset = 10 - (DecoderWindowsSize - 8);
         this.Refill();
+    }
+
+    /// <summary>
+    /// Validates that range decoding remained within the bounded tile payload and ended at the required trailing-one bit.
+    /// </summary>
+    public void ValidateTrailingBits()
+    {
+        int consumedBitCount = this.GetConsumedBitCount();
+        int consumedByteCount = (consumedBitCount + 7) >> 3;
+        if (consumedByteCount > this.buffer.Length)
+        {
+            throw new InvalidImageContentException("The AV1 tile entropy stream is truncated.");
+        }
+
+        // The final consumed byte must contain one trailing-one bit at the range decoder's exact stopping position,
+        // followed only by zero bits. This is the same bounded-stream check performed after libaom decodes a tile.
+        int trailingOneBit = 128 >> ((consumedBitCount - 1) & 7);
+        int trailingBitMask = (trailingOneBit << 1) - 1;
+        if ((this.buffer[consumedByteCount - 1] & trailingBitMask) != trailingOneBit)
+        {
+            throw new InvalidImageContentException("The AV1 tile entropy stream has invalid trailing bits.");
+        }
+
+        for (int i = consumedByteCount; i < this.buffer.Length; i++)
+        {
+            if (this.buffer[i] != 0)
+            {
+                throw new InvalidImageContentException("The AV1 tile entropy stream has nonzero padding bytes.");
+            }
+        }
     }
 
     /// <summary>
@@ -234,7 +270,9 @@ internal ref struct Av1SymbolReader
         if (position >= end)
         {
             // AV1 range decoding permits the final interval to consume implicit zero padding. A large count models
-            // that padding without advancing beyond the bounded source span or repeatedly attempting to refill it.
+            // that padding without repeatedly attempting to refill it. Preserve the previous count in tellOffset so
+            // the logical position continues past the bounded source and truncated payloads remain detectable.
+            this.tellOffset += LotsOfBits - cnt;
             cnt = LotsOfBits;
         }
 
@@ -242,4 +280,11 @@ internal ref struct Av1SymbolReader
         this.count = cnt;
         this.position = position;
     }
+
+    /// <summary>
+    /// Gets the number of entropy bits consumed from the bounded tile payload, including the initial range-coder bit.
+    /// </summary>
+    /// <returns>The logical consumed-bit count.</returns>
+    private readonly int GetConsumedBitCount()
+        => (this.position * 8) - this.count + this.tellOffset;
 }

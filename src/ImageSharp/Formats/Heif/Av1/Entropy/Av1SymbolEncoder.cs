@@ -155,29 +155,29 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="updateCdf">A value indicating whether encoded symbols adapt their tile distributions.</param>
     public Av1SymbolEncoder(Configuration configuration, int initialSize, int qIndex, bool updateCdf = true)
     {
-        // Encoding and decoding must begin from equivalent tile-local models. Copying the defaults also prevents
-        // one encoded image from changing the probabilities used by later encoder or decoder instances.
-        this.tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy.CreateCopy();
-        this.tilePartitionTypes = Av1Distribution.CreateCopy(Av1DefaultDistributions.PartitionTypes);
-        this.keyFrameYMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.KeyFrameYMode);
-        this.uvMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.UvMode);
-        this.filterIntra = Av1Distribution.CreateCopy(Av1DefaultDistributions.FilterIntra);
-        this.filterIntraMode = Av1DefaultDistributions.FilterIntraMode.CreateCopy();
-        this.deltaQuantizerAbsolute = Av1DefaultDistributions.DeltaQuantizerAbsolute.CreateCopy();
-        this.intraExtendedTransform = Av1Distribution.CreateCopy(Av1DefaultDistributions.IntraExtendedTransform);
-        this.segmentId = Av1Distribution.CreateCopy(Av1DefaultDistributions.SegmentId);
-        this.angleDelta = Av1Distribution.CreateCopy(Av1DefaultDistributions.AngleDelta);
-        this.skip = Av1Distribution.CreateCopy(Av1DefaultDistributions.Skip);
-        this.skipMode = Av1Distribution.CreateCopy(Av1DefaultDistributions.SkipMode);
-        this.chromaFromLumaSign = Av1DefaultDistributions.ChromaFromLumaSign.CreateCopy();
-        this.chromaFromLumaAlpha = Av1Distribution.CreateCopy(Av1DefaultDistributions.ChromaFromLumaAlpha);
-        this.transformBlockSkip = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetTransformBlockSkip(qIndex));
-        this.endOfBlockFlag = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetEndOfBlockFlag(qIndex));
-        this.coefficientsBaseRange = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetCoefficientsBaseRange(qIndex));
-        this.coefficientsBase = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetCoefficientsBase(qIndex));
-        this.coefficientsBaseEndOfBlock = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetBaseEndOfBlock(qIndex));
-        this.dcSign = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetDcSign(qIndex));
-        this.endOfBlockExtra = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetEndOfBlockExtra(qIndex));
+        // Every default accessor creates independently mutable state. Encoding and decoding therefore begin from
+        // equivalent tile-local models without constructing and immediately deep-copying a second object graph.
+        this.tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy;
+        this.tilePartitionTypes = Av1DefaultDistributions.PartitionTypes;
+        this.keyFrameYMode = Av1DefaultDistributions.KeyFrameYMode;
+        this.uvMode = Av1DefaultDistributions.UvMode;
+        this.filterIntra = Av1DefaultDistributions.FilterIntra;
+        this.filterIntraMode = Av1DefaultDistributions.FilterIntraMode;
+        this.deltaQuantizerAbsolute = Av1DefaultDistributions.DeltaQuantizerAbsolute;
+        this.intraExtendedTransform = Av1DefaultDistributions.IntraExtendedTransform;
+        this.segmentId = Av1DefaultDistributions.SegmentId;
+        this.angleDelta = Av1DefaultDistributions.AngleDelta;
+        this.skip = Av1DefaultDistributions.Skip;
+        this.skipMode = Av1DefaultDistributions.SkipMode;
+        this.chromaFromLumaSign = Av1DefaultDistributions.ChromaFromLumaSign;
+        this.chromaFromLumaAlpha = Av1DefaultDistributions.ChromaFromLumaAlpha;
+        this.transformBlockSkip = Av1DefaultDistributions.GetTransformBlockSkip(qIndex);
+        this.endOfBlockFlag = Av1DefaultDistributions.GetEndOfBlockFlag(qIndex);
+        this.coefficientsBaseRange = Av1DefaultDistributions.GetCoefficientsBaseRange(qIndex);
+        this.coefficientsBase = Av1DefaultDistributions.GetCoefficientsBase(qIndex);
+        this.coefficientsBaseEndOfBlock = Av1DefaultDistributions.GetBaseEndOfBlock(qIndex);
+        this.dcSign = Av1DefaultDistributions.GetDcSign(qIndex);
+        this.endOfBlockExtra = Av1DefaultDistributions.GetEndOfBlockExtra(qIndex);
         this.configuration = configuration;
         this.writer = new(configuration, initialSize, updateCdf);
         this.baseQIndex = qIndex;
@@ -375,7 +375,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="transformClass">The transform direction class.</param>
     /// <param name="transformSize">The signaled transform size selecting the token alphabet.</param>
     /// <param name="transformSizeContext">The square transform-size probability context.</param>
-    internal void WriteEndOfBlockPosition(ushort endOfBlock, Av1ComponentType componentType, Av1TransformClass transformClass, Av1TransformSize transformSize, Av1TransformSize transformSizeContext)
+    public void WriteEndOfBlockPosition(ushort endOfBlock, Av1ComponentType componentType, Av1TransformClass transformClass, Av1TransformSize transformSize, Av1TransformSize transformSizeContext)
     {
         short endOfBlockPosition = Av1SymbolContextHelper.GetEndOfBlockPosition(endOfBlock, out int eobExtra);
         this.WriteEndOfBlockFlag(componentType, transformClass, transformSize, endOfBlockPosition);
@@ -406,7 +406,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="skip">Indicates whether the transform block is empty.</param>
     /// <param name="transformSizeContext">The square transform-size probability context.</param>
     /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
-    internal void WriteTransformBlockSkip(bool skip, Av1TransformSize transformSizeContext, int skipContext)
+    public void WriteTransformBlockSkip(bool skip, Av1TransformSize transformSizeContext, int skipContext)
     {
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol(skip, this.transformBlockSkip[(int)transformSizeContext][skipContext]);
@@ -438,7 +438,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// Writes the unsigned exponential-Golomb suffix used for coefficient levels beyond the base range.
     /// </summary>
     /// <param name="level">The nonnegative suffix value.</param>
-    internal void WriteGolomb(int level)
+    public void WriteGolomb(int level)
     {
         uint x = (uint)level + 1u;
         int length = (int)Av1Math.Log2_32(x) + 1;
@@ -481,7 +481,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="baseQIndex">The active base quantizer index.</param>
     /// <param name="filterIntraMode">The filter-intra mode when enabled.</param>
     /// <param name="intraDirection">The ordinary intra prediction mode.</param>
-    internal void WriteTransformType(
+    public void WriteTransformType(
         Av1TransformType transformType,
         Av1TransformSize transformSize,
         bool useReducedTransformSet,
@@ -525,7 +525,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// </summary>
     /// <param name="segmentId">The segment identifier.</param>
     /// <param name="context">The context derived from neighboring segment identifiers.</param>
-    internal void WriteSegmentId(int segmentId, int context)
+    public void WriteSegmentId(int segmentId, int context)
     {
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol(segmentId, this.segmentId[context]);
@@ -536,7 +536,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// </summary>
     /// <param name="skip">Indicates whether the block contains no coded transform coefficients.</param>
     /// <param name="context">The neighboring skip context.</param>
-    internal void WriteSkip(bool skip, int context)
+    public void WriteSkip(bool skip, int context)
     {
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol(skip, this.skip[context]);
@@ -547,7 +547,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// </summary>
     /// <param name="skip">Indicates whether skip mode is selected.</param>
     /// <param name="context">The neighboring skip-mode context.</param>
-    internal void WriteSkipMode(bool skip, int context)
+    public void WriteSkipMode(bool skip, int context)
     {
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol(skip, this.skipMode[context]);
@@ -558,7 +558,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// </summary>
     /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
     /// <param name="blockSize">The block size selecting the enable distribution.</param>
-    internal void WriteFilterIntraMode(Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
+    public void WriteFilterIntraMode(Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
     {
         ref Av1SymbolWriter w = ref this.writer;
         bool useFilter = filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes;
@@ -573,7 +573,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// Writes a signed quantizer-index delta value.
     /// </summary>
     /// <param name="deltaQindex">The signed quantizer-index delta.</param>
-    internal void WriteDeltaQuantizerIndex(int deltaQindex)
+    public void WriteDeltaQuantizerIndex(int deltaQindex)
     {
         ref Av1SymbolWriter w = ref this.writer;
         bool sign = deltaQindex < 0;
@@ -603,7 +603,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="lumaMode">The luma prediction mode.</param>
     /// <param name="topContext">The reduced above-mode context.</param>
     /// <param name="leftContext">The reduced left-mode context.</param>
-    internal void WriteLumaMode(Av1PredictionMode lumaMode, byte topContext, byte leftContext)
+    public void WriteLumaMode(Av1PredictionMode lumaMode, byte topContext, byte leftContext)
     {
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol((int)lumaMode, this.keyFrameYMode[topContext][leftContext]);
@@ -614,7 +614,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// </summary>
     /// <param name="angleDelta">The signed angle delta offset by <see cref="Av1Constants.MaxAngleDelta"/>.</param>
     /// <param name="context">The directional prediction mode selecting the distribution.</param>
-    internal void WriteAngleDelta(int angleDelta, Av1PredictionMode context)
+    public void WriteAngleDelta(int angleDelta, Av1PredictionMode context)
     {
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol(angleDelta, this.angleDelta[context - Av1PredictionMode.Vertical]);
@@ -625,7 +625,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// </summary>
     /// <param name="cdefStrength">The CDEF strength index.</param>
     /// <param name="bitCount">The number of signaled bits.</param>
-    internal void WriteCdefStrength(int cdefStrength, int bitCount)
+    public void WriteCdefStrength(int cdefStrength, int bitCount)
     {
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteLiteral((uint)cdefStrength, bitCount);
@@ -637,7 +637,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="chromaMode">The chroma prediction mode.</param>
     /// <param name="isChromaFromLumaAllowed">Indicates whether chroma-from-luma is valid for the block.</param>
     /// <param name="lumaMode">The block's luma prediction mode.</param>
-    internal void WriteChromaMode(Av1PredictionMode chromaMode, bool isChromaFromLumaAllowed, Av1PredictionMode lumaMode)
+    public void WriteChromaMode(Av1ChromaPredictionMode chromaMode, bool isChromaFromLumaAllowed, Av1PredictionMode lumaMode)
     {
         ref Av1SymbolWriter w = ref this.writer;
         int cflAllowed = isChromaFromLumaAllowed ? 1 : 0;
@@ -649,7 +649,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// </summary>
     /// <param name="chromaFromLumaIndex">The packed U/V alpha-magnitude indices.</param>
     /// <param name="joinedSign">The joint U/V sign symbol.</param>
-    internal void WriteChromaFromLumaAlphas(int chromaFromLumaIndex, int joinedSign)
+    public void WriteChromaFromLumaAlphas(int chromaFromLumaIndex, int joinedSign)
     {
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol(joinedSign, this.chromaFromLumaSign);

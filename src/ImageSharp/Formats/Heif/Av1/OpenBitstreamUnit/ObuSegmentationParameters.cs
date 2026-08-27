@@ -59,6 +59,24 @@ internal class ObuSegmentationParameters
     /// <param name="segmentId">The segment identifier.</param>
     /// <param name="feature">The feature to inspect.</param>
     /// <returns><see langword="true"/> when the feature is active; otherwise, <see langword="false"/>.</returns>
-    internal bool IsFeatureActive(int segmentId, ObuSegmentationLevelFeature feature)
+    public bool IsFeatureActive(int segmentId, ObuSegmentationLevelFeature feature)
         => this.FeatureEnabled[segmentId, (int)feature];
+
+    /// <summary>
+    /// Replaces every feature enable flag and value with state from a primary reference frame.
+    /// </summary>
+    /// <param name="source">The primary-reference segmentation state.</param>
+    public void CopyFeaturesFrom(ObuSegmentationParameters source)
+    {
+        // AV1 inherits feature data but not the current frame's enabled or update flags. Both dimensions are fixed by
+        // the bitstream syntax, and copying values into this header prevents retained frames from sharing mutable state.
+        for (int segment = 0; segment < Av1Constants.MaxSegmentCount; segment++)
+        {
+            for (int feature = 0; feature < Av1Constants.SegmentationLevelMax; feature++)
+            {
+                this.FeatureEnabled[segment, feature] = source.FeatureEnabled[segment, feature];
+                this.FeatureData[segment, feature] = source.FeatureData[segment, feature];
+            }
+        }
+    }
 }

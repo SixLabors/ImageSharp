@@ -36,6 +36,27 @@ internal sealed class Av1DisplacementVectorContext
     private readonly Component horizontal = new();
 
     /// <summary>
+    /// Replaces every displacement-vector distribution with state copied from another context.
+    /// </summary>
+    /// <param name="source">The displacement-vector context state to copy.</param>
+    public void CopyFrom(Av1DisplacementVectorContext source)
+    {
+        this.joint.CopyFrom(source.joint);
+        this.vertical.CopyFrom(source.vertical);
+        this.horizontal.CopyFrom(source.horizontal);
+    }
+
+    /// <summary>
+    /// Resets every observation count used to adapt displacement-vector distributions.
+    /// </summary>
+    public void ResetUpdateCounts()
+    {
+        this.joint.ResetUpdateCount();
+        this.vertical.ResetUpdateCounts();
+        this.horizontal.ResetUpdateCounts();
+    }
+
+    /// <summary>
     /// Reads an integer displacement vector relative to a spatially derived reference.
     /// </summary>
     /// <param name="reader">The tile range decoder.</param>
@@ -104,6 +125,37 @@ internal sealed class Av1DisplacementVectorContext
             new(17408), new(17920), new(18944), new(20480), new(22528),
             new(24576), new(28672), new(29952), new(29952), new(30720)
         ];
+
+        /// <summary>
+        /// Replaces every component distribution with state copied from another component.
+        /// </summary>
+        /// <param name="source">The component state to copy.</param>
+        public void CopyFrom(Component source)
+        {
+            this.magnitudeClass.CopyFrom(source.magnitudeClass);
+            this.sign.CopyFrom(source.sign);
+            this.classZero.CopyFrom(source.classZero);
+
+            for (int bit = 0; bit < this.offsetBits.Length; bit++)
+            {
+                this.offsetBits[bit].CopyFrom(source.offsetBits[bit]);
+            }
+        }
+
+        /// <summary>
+        /// Resets every observation count used to adapt one component's distributions.
+        /// </summary>
+        public void ResetUpdateCounts()
+        {
+            this.magnitudeClass.ResetUpdateCount();
+            this.sign.ResetUpdateCount();
+            this.classZero.ResetUpdateCount();
+
+            for (int bit = 0; bit < this.offsetBits.Length; bit++)
+            {
+                this.offsetBits[bit].ResetUpdateCount();
+            }
+        }
 
         /// <summary>
         /// Reads one signed integer-precision component.

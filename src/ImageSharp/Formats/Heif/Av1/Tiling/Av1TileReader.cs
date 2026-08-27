@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -17,40 +18,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// </summary>
 internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 {
-    /// <summary>
-    /// The default self-guided restoration projection coefficients for each color plane.
-    /// </summary>
-    private static readonly int[] SgrprojXqdMid = [-32, 31];
-
-    /// <summary>
-    /// The default Wiener restoration taps retained between restoration units.
-    /// </summary>
-    private static readonly int[] WienerTapsMid = [3, -7, 15];
-
-    /// <summary>
-    /// The minimum transmitted value for each independent Wiener coefficient.
-    /// </summary>
-    private static readonly int[] WienerCoefficientMinimum = [-5, -23, -17];
-
-    /// <summary>
-    /// The number of possible transmitted values for each independent Wiener coefficient.
-    /// </summary>
-    private static readonly int[] WienerCoefficientValueCount = [16, 32, 64];
-
-    /// <summary>
-    /// The subexponential group-size exponent for each independent Wiener coefficient.
-    /// </summary>
-    private static readonly int[] WienerCoefficientSubexponentialK = [1, 2, 3];
-
-    /// <summary>
-    /// The two self-guided filter radii selected by each parameter-set index.
-    /// </summary>
-    private static readonly int[][] SgrProjectionRadii =
-    [
-        [2, 1], [2, 1], [2, 1], [2, 1], [2, 1], [2, 1], [2, 1], [2, 1],
-        [2, 1], [2, 1], [0, 1], [0, 1], [0, 1], [0, 1], [2, 0], [2, 0]
-    ];
-
     /// <summary>
     /// The minimum value of the first self-guided projection coefficient.
     /// </summary>
@@ -72,31 +39,25 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     private const int SgrProjectionSubexponentialK = 4;
 
     /// <summary>
-    /// Maps packed coefficient sign classes to their signed contribution to the DC context.
+    /// The two self-guided filter radii selected by each parameter-set index.
     /// </summary>
-    private static readonly int[] Signs = [0, -1, 1];
+    private static readonly int[][] SgrProjectionRadii =
+    [
+        [2, 1], [2, 1], [2, 1], [2, 1], [2, 1], [2, 1], [2, 1], [2, 1],
+        [2, 1], [2, 1], [0, 1], [0, 1], [0, 1], [0, 1], [2, 0], [2, 0]
+    ];
 
     /// <summary>
-    /// Maps the summed neighboring DC signs to the AV1 DC-sign entropy context.
+    /// Stores two preceding self-guided restoration coefficients for each of the three color planes, indexed by
+    /// <c>(plane * 2) + coefficient</c>.
     /// </summary>
-    private static readonly int[] DcSignContexts = [
-        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
-        2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2];
+    private InlineArray6<int> referenceSgrXqd;
 
     /// <summary>
-    /// Maps the weighted palette-neighbor score hash to its color-index entropy context.
+    /// Stores three preceding Wiener taps for both passes of each of the three color planes, indexed by
+    /// <c>(((plane * 2) + pass) * 3) + tap</c>.
     /// </summary>
-    private static readonly int[] PaletteColorIndexContexts = [-1, -1, 0, -1, -1, 4, 3, 2, 1];
-
-    /// <summary>
-    /// Stores the preceding self-guided restoration coefficients for each color plane.
-    /// </summary>
-    private int[][] referenceSgrXqd = [];
-
-    /// <summary>
-    /// Stores the preceding vertical and horizontal Wiener taps for each color plane.
-    /// </summary>
-    private int[][][] referenceLrWiener = [];
+    private InlineArray18<int> referenceLrWiener;
 
     /// <summary>
     /// Tracks entropy, partition, and transform state above the current block.
@@ -117,11 +78,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// Stores the loop-filter delta values carried between superblocks in the current tile.
     /// </summary>
     private readonly int[] currentDeltaLoopFilter = new int[Av1Constants.FrameLoopFilterCount];
-
-    /// <summary>
-    /// Stores the segment identifier covering each 4x4 frame position.
-    /// </summary>
-    private readonly int[][] segmentIds = [];
 
     /// <summary>
     /// Stores per-plane transform counts for each forced 64x64 residual region.
@@ -159,25 +115,72 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     private readonly IAv1FrameDecoder? frameDecoder;
 
     /// <summary>
+    /// The decoder-session entropy contexts reused by every tile in the current frame.
+    /// </summary>
+    private readonly Av1FrameEntropyContexts entropyContexts;
+
+    /// <summary>
+    /// The retained primary frame whose segment map supplies temporal segment-ID predictions.
+    /// </summary>
+    private readonly Av1FrameInfo? primaryReferenceFrameInfo;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1TileReader"/> class for syntax parsing without reconstruction.
     /// </summary>
     /// <param name="configuration">The decoder configuration.</param>
     /// <param name="sequenceHeader">The active AV1 sequence header.</param>
     /// <param name="frameHeader">The frame header whose tiles will be parsed.</param>
     public Av1TileReader(Configuration configuration, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
+        : this(configuration, sequenceHeader, frameHeader, new(frameHeader.QuantizationParameters.BaseQIndex), null, null)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1TileReader"/> class with decoder-session entropy state.
+    /// </summary>
+    /// <param name="configuration">The decoder configuration.</param>
+    /// <param name="sequenceHeader">The active AV1 sequence header.</param>
+    /// <param name="frameHeader">The frame header whose tiles will be parsed.</param>
+    /// <param name="entropyContexts">The entropy contexts reused by the owning decoder session.</param>
+    /// <param name="primaryReferenceContext">
+    /// The retained primary-reference entropy context, or <see langword="null"/> when the frame selects defaults.
+    /// </param>
+    /// <param name="referenceFrames">
+    /// The retained reconstructed frames, or <see langword="null"/> for the intra-only syntax reader.
+    /// </param>
+    public Av1TileReader(
+        Configuration configuration,
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        Av1FrameEntropyContexts entropyContexts,
+        Av1FrameEntropyContext? primaryReferenceContext,
+        Av1ReferenceFrameStore? referenceFrames)
     {
         this.FrameHeader = frameHeader;
         this.configuration = configuration;
         this.SequenceHeader = sequenceHeader;
+        this.entropyContexts = entropyContexts;
+        this.entropyContexts.BeginFrame(frameHeader.QuantizationParameters.BaseQIndex, primaryReferenceContext);
 
         // FrameInfo owns all traversal-order records and coefficient storage produced by the tile readers.
         this.FrameInfo = new(this.SequenceHeader);
-        this.FrameInfo.InitializeLoopRestoration(this.SequenceHeader, this.FrameHeader);
-        this.segmentIds = new int[this.FrameHeader.ModeInfoRowCount][];
-        for (int y = 0; y < this.FrameHeader.ModeInfoRowCount; y++)
+        if (referenceFrames is not null)
         {
-            this.segmentIds[y] = new int[this.FrameHeader.ModeInfoColumnCount];
+            // Only the production decoder owns reconstructed references. Header-only intra readers retain their
+            // existing allocation profile and cannot reach inter mode parsing.
+            this.FrameInfo.InitializeMotionField(this.SequenceHeader, this.FrameHeader, referenceFrames);
+
+            byte? primaryReferenceSlot = this.FrameHeader.PrimaryReferenceSlot;
+            if (primaryReferenceSlot is not null)
+            {
+                // The uncompressed-header parser has already validated this slot. Keep only its frame-state owner;
+                // segment samples remain in the retained frame and are copied only for whole-map inheritance.
+                this.primaryReferenceFrameInfo = referenceFrames.Resolve(primaryReferenceSlot.Value)!.FrameInfo;
+            }
         }
+
+        this.FrameInfo.InitializeSegmentIds(this.FrameHeader, this.primaryReferenceFrameInfo);
+        this.FrameInfo.InitializeLoopRestoration(this.SequenceHeader, this.FrameHeader);
 
         // Above contexts span the aligned frame width, while left contexts are reused for each superblock row.
         int planesCount = sequenceHeader.ColorConfig.PlaneCount;
@@ -217,6 +220,48 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         => this.frameDecoder = frameDecoder;
 
     /// <summary>
+    /// Gets the default self-guided restoration projection coefficients for each color plane.
+    /// </summary>
+    private static ReadOnlySpan<int> SgrprojXqdMid => [-32, 31];
+
+    /// <summary>
+    /// Gets the default Wiener restoration taps retained between restoration units.
+    /// </summary>
+    private static ReadOnlySpan<int> WienerTapsMid => [3, -7, 15];
+
+    /// <summary>
+    /// Gets the minimum transmitted value for each independent Wiener coefficient.
+    /// </summary>
+    private static ReadOnlySpan<int> WienerCoefficientMinimum => [-5, -23, -17];
+
+    /// <summary>
+    /// Gets the number of possible transmitted values for each independent Wiener coefficient.
+    /// </summary>
+    private static ReadOnlySpan<int> WienerCoefficientValueCount => [16, 32, 64];
+
+    /// <summary>
+    /// Gets the subexponential group-size exponent for each independent Wiener coefficient.
+    /// </summary>
+    private static ReadOnlySpan<int> WienerCoefficientSubexponentialK => [1, 2, 3];
+
+    /// <summary>
+    /// Gets the signed DC-context contribution for each packed coefficient sign class.
+    /// </summary>
+    private static ReadOnlySpan<int> Signs => [0, -1, 1];
+
+    /// <summary>
+    /// Gets the AV1 DC-sign entropy context for each summed neighboring sign value.
+    /// </summary>
+    private static ReadOnlySpan<int> DcSignContexts => [
+        1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0,
+        2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2];
+
+    /// <summary>
+    /// Gets the color-index entropy context for each weighted palette-neighbor score hash.
+    /// </summary>
+    private static ReadOnlySpan<int> PaletteColorIndexContexts => [-1, -1, 0, -1, -1, 4, 3, 2, 1];
+
+    /// <summary>
     /// Gets the frame header whose tile syntax is being parsed.
     /// </summary>
     public ObuFrameHeader FrameHeader { get; }
@@ -227,9 +272,19 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     public ObuSequenceHeader SequenceHeader { get; }
 
     /// <summary>
-    /// Gets the frame-owned mode, transform, coefficient, quantizer, and filter state populated by tile parsing.
+    /// Gets the frame-owned mode, motion, transform, coefficient, quantizer, and filter state populated by tile parsing.
     /// </summary>
     public Av1FrameInfo FrameInfo { get; }
+
+    /// <summary>
+    /// Gets the completed frame entropy context selected by the context-update tile.
+    /// </summary>
+    /// <remarks>
+    /// The context contains either normative defaults or the selected primary-reference state until the signaled
+    /// update tile has decoded successfully. Callers that retain it beyond this reader's frame lifecycle must copy it
+    /// through <see cref="Av1FrameEntropyContext.SnapshotTo"/>.
+    /// </remarks>
+    public Av1FrameEntropyContext FrameEntropyContext => this.entropyContexts.Published;
 
     /// <summary>
     /// Returns the tile-neighbor context storage to the configured memory allocator.
@@ -248,12 +303,17 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <remarks>Corresponds to <c>parse_tile</c> in SVT-AV1.</remarks>
     public void ReadTile(Span<byte> tileData, int tileNum)
     {
+        // AV1 tiles never inherit adaptation from another tile in the same frame. Reusing one graph is safe because
+        // parsing is sequential and every entry is restored from the unchanged frame base before the range decoder is
+        // constructed.
+        this.entropyContexts.Working.CopyFrom(this.entropyContexts.Base);
+
         // The frame syntax exposes a disable flag, while the range reader follows libaom's positive
         // allow_update_cdf convention.
         Av1SymbolDecoder reader = new(
             this.configuration,
             tileData,
-            this.FrameHeader.QuantizationParameters.BaseQIndex,
+            this.entropyContexts.Working,
             !this.FrameHeader.DisableCdfUpdate);
 
         int tileColumnIndex = tileNum % this.FrameHeader.TilesInfo.TileColumnCount;
@@ -268,18 +328,18 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         this.ClearLoopFilterDelta();
         int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
 
-        // Restoration coefficients are differentially coded, so each tile begins from the AV1 defaults.
-        this.referenceSgrXqd = new int[planesCount][];
-        this.referenceLrWiener = new int[planesCount][][];
+        // AV1 fixes restoration reference storage at three planes, two directions or projection coefficients, and
+        // three transmitted Wiener taps. Populate the inline value storage in place so every tile starts from the
+        // normative differential-coding defaults without constructing jagged arrays.
+        Span<int> sgrReferences = this.referenceSgrXqd;
+        Span<int> wienerReferences = this.referenceLrWiener;
         for (int plane = 0; plane < planesCount; plane++)
         {
-            this.referenceSgrXqd[plane] = new int[2];
-            Array.Copy(SgrprojXqdMid, this.referenceSgrXqd[plane], SgrprojXqdMid.Length);
-            this.referenceLrWiener[plane] = new int[2][];
+            SgrprojXqdMid.CopyTo(sgrReferences.Slice(plane * 2, 2));
             for (int pass = 0; pass < 2; pass++)
             {
-                this.referenceLrWiener[plane][pass] = new int[Av1Constants.WienerCoefficientCount];
-                Array.Copy(WienerTapsMid, this.referenceLrWiener[plane][pass], WienerTapsMid.Length);
+                int referenceOffset = ((plane * 2) + pass) * Av1Constants.WienerCoefficientCount;
+                WienerTapsMid.CopyTo(wienerReferences.Slice(referenceOffset, Av1Constants.WienerCoefficientCount));
             }
         }
 
@@ -309,6 +369,29 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 this.frameDecoder?.DecodeSuperblock(modeInfoPosition, superblockInfo, tileInfo);
             }
         }
+
+        // Range decoding may read implicit zero padding while normalizing its final interval. Validate the logical
+        // stopping position before publishing either pixels or adapted CDF state so a truncated tile cannot commit.
+        reader.ValidateTrailingBits();
+
+        if (!this.FrameHeader.DisableFrameEndUpdateCdf && tileNum == this.FrameHeader.TilesInfo.ContextUpdateTileId)
+        {
+            // libaom publishes only context_update_tile_id after every tile has independently started from the frame
+            // base, then clears its CDF counters. Snapshotting into a third reusable graph preserves the unchanged base
+            // for tiles that follow the selected tile in bitstream order.
+            this.entropyContexts.Working.SnapshotTo(this.entropyContexts.Published);
+        }
+    }
+
+    /// <summary>
+    /// Completes the current coded frame.
+    /// </summary>
+    public void CompleteFrame()
+    {
+        // Tile parsing and optional incremental superblock reconstruction finish inside ReadTile. The owning AV1
+        // decoder uses this lifecycle boundary to assemble native planes. A directly created tile reader owns its
+        // neighbor-context rents, so the same boundary must return them before ObuReader releases the frame instance.
+        this.Dispose();
     }
 
     /// <summary>
@@ -425,15 +508,16 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             destination[0] = 0;
             for (int coefficient = firstCoefficient; coefficient < Av1Constants.WienerCoefficientCount; coefficient++)
             {
+                int referenceIndex = (((plane * 2) + pass) * Av1Constants.WienerCoefficientCount) + coefficient;
                 int minimum = WienerCoefficientMinimum[coefficient];
                 int value = reader.ReadReferenceSubexponential(
                     WienerCoefficientValueCount[coefficient],
                     WienerCoefficientSubexponentialK[coefficient],
-                    this.referenceLrWiener[plane][pass][coefficient] - minimum);
+                    this.referenceLrWiener[referenceIndex] - minimum);
 
                 value += minimum;
                 destination[coefficient] = value;
-                this.referenceLrWiener[plane][pass][coefficient] = value;
+                this.referenceLrWiener[referenceIndex] = value;
             }
         }
     }
@@ -449,7 +533,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         unit.SgrParameterSet = reader.ReadLiteral(4);
         int[] radii = SgrProjectionRadii[unit.SgrParameterSet];
         int[] coefficients = unit.SgrProjectionCoefficients;
-        int[] references = this.referenceSgrXqd[plane];
+        Span<int> allReferences = this.referenceSgrXqd;
+        Span<int> references = allReferences.Slice(plane * 2, 2);
         if (radii[0] == 0)
         {
             coefficients[0] = 0;
@@ -472,7 +557,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             coefficients[1] = ReadSgrProjectionCoefficient(ref reader, references[1], SgrProjectionCoefficient1Minimum);
         }
 
-        coefficients.CopyTo(references, 0);
+        coefficients.CopyTo(references);
     }
 
     /// <summary>
@@ -681,15 +766,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         partitionInfo.PopulateModeInfoNeighbors(this.SequenceHeader.ColorConfig);
 
-        this.ReadModeInfo(ref reader, partitionInfo, tileInfo);
-        this.ReadPaletteTokens(ref reader, partitionInfo);
-        this.ReadBlockTransformSize(ref reader, modeInfoLocation, partitionInfo, superblockInfo, tileInfo);
+        this.ReadModeInfo(ref reader, ref partitionInfo, tileInfo);
+        this.ReadPaletteTokens(ref reader, ref partitionInfo);
+        this.ReadBlockTransformSize(ref reader, modeInfoLocation, ref partitionInfo, superblockInfo, tileInfo);
         if (partitionInfo.ModeInfo.Skip)
         {
-            this.ResetSkipContext(partitionInfo, tileInfo);
+            this.ResetSkipContext(ref partitionInfo, tileInfo);
         }
 
-        this.Residual(ref reader, partitionInfo, superblockInfo, tileInfo, blockSize);
+        this.Residual(ref reader, ref partitionInfo, superblockInfo, tileInfo, blockSize);
 
         // Store the record only after all syntax has populated it, then map every covered 4x4 position.
         this.FrameInfo.UpdateModeInfo(blockModeInfo, superblockInfo);
@@ -701,7 +786,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="partitionInfo">The skipped block and its frame position.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <remarks>Corresponds to <c>reset_skip_context</c> in SVT-AV1.</remarks>
-    private void ResetSkipContext(Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
+    private void ResetSkipContext(ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
     {
         int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
         for (int i = 0; i < planesCount; i++)
@@ -728,7 +813,12 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <param name="blockSize">The coding block size.</param>
     /// <remarks>Implements AV1 section 5.11.34 and corresponds to <c>parse_residual</c> in SVT-AV1.</remarks>
-    private void Residual(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo, Av1BlockSize blockSize)
+    private void Residual(
+        ref Av1SymbolDecoder reader,
+        ref Av1PartitionInfo partitionInfo,
+        Av1SuperblockInfo superblockInfo,
+        Av1TileInfo tileInfo,
+        Av1BlockSize blockSize)
     {
         int maxBlocksWide = partitionInfo.GetMaxBlockWide(blockSize, false);
         int maxBlocksHigh = partitionInfo.GetMaxBlockHigh(blockSize, false);
@@ -823,7 +913,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                             Span<int> coefficientBuffer = superblockInfo.GetCoefficients((Av1Plane)plane)[coefficientIndex..];
                             endOfBlock = this.ParseTransformBlock(
                                 ref reader,
-                                partitionInfo,
+                                ref partitionInfo,
                                 tileInfo,
                                 coefficientBuffer,
                                 transformInfo,
@@ -913,7 +1003,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </remarks>
     private int ParseTransformBlock(
         ref Av1SymbolDecoder reader,
-        Av1PartitionInfo partitionInfo,
+        ref Av1PartitionInfo partitionInfo,
         Av1TileInfo tileInfo,
         Span<int> coefficientBuffer,
         Av1TransformInfo transformInfo,
@@ -960,7 +1050,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         endOfBlock = this.ParseCoefficients(
             ref reader,
-            partitionInfo,
+            ref partitionInfo,
             blockRow,
             blockColumn,
             aboveContextOffset,
@@ -992,7 +1082,18 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <remarks>
     /// Implements AV1 section 5.11.39 using the traversal shape of the corresponding SVT-AV1 implementation.
     /// </remarks>
-    private int ParseCoefficients(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, int blockRow, int blockColumn, int aboveOffset, int leftOffset, int plane, Av1TransformBlockContext transformBlockContext, Av1TransformSize transformSize, Av1TransformInfo transformInfo, Span<int> coefficientBuffer)
+    private int ParseCoefficients(
+        ref Av1SymbolDecoder reader,
+        ref Av1PartitionInfo partitionInfo,
+        int blockRow,
+        int blockColumn,
+        int aboveOffset,
+        int leftOffset,
+        int plane,
+        Av1TransformBlockContext transformBlockContext,
+        Av1TransformSize transformSize,
+        Av1TransformInfo transformInfo,
+        Span<int> coefficientBuffer)
     {
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
@@ -1063,7 +1164,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         {
             uint sign = (uint)aboveContext[k] >> Av1Constants.CoefficientContextBitCount;
             DebugGuard.MustBeLessThanOrEqualTo(sign, 2U, nameof(sign));
-            dcSign += Signs[sign];
+            dcSign += Signs[(int)sign];
         }
         while (++k < transformBlockUnitWideCount);
 
@@ -1072,7 +1173,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         {
             uint sign = (uint)leftContext[k] >> Av1Constants.CoefficientContextBitCount;
             DebugGuard.MustBeLessThanOrEqualTo(sign, 2U, nameof(sign));
-            dcSign += Signs[sign];
+            dcSign += Signs[(int)sign];
         }
         while (++k < transformBlockUnitHighCount);
 
@@ -1168,7 +1269,12 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="allowSelect">A value indicating whether transform-size selection syntax is allowed at this node.</param>
     /// <returns>The selected transform size.</returns>
     /// <remarks>Implements AV1 section 5.11.15.</remarks>
-    private Av1TransformSize ReadTransformSize(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo, bool allowSelect)
+    private Av1TransformSize ReadTransformSize(
+        ref Av1SymbolDecoder reader,
+        ref Av1PartitionInfo partitionInfo,
+        Av1SuperblockInfo superblockInfo,
+        Av1TileInfo tileInfo,
+        bool allowSelect)
     {
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
         if (this.FrameHeader.LosslessArray[modeInfo.SegmentId])
@@ -1178,7 +1284,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         if (modeInfo.BlockSize > Av1BlockSize.Block4x4 && allowSelect && this.FrameHeader.TransformMode == Av1TransformMode.Select)
         {
-            return this.ReadSelectedTransformSize(ref reader, partitionInfo, superblockInfo, tileInfo);
+            return this.ReadSelectedTransformSize(ref reader, ref partitionInfo, superblockInfo, tileInfo);
         }
 
         return modeInfo.BlockSize.GetMaximumTransformSize();
@@ -1192,7 +1298,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="superblockInfo">The containing superblock.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <returns>The decoded transform size.</returns>
-    private Av1TransformSize ReadSelectedTransformSize(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
+    private Av1TransformSize ReadSelectedTransformSize(
+        ref Av1SymbolDecoder reader,
+        ref Av1PartitionInfo partitionInfo,
+        Av1SuperblockInfo superblockInfo,
+        Av1TileInfo tileInfo)
     {
         int context = 0;
         Av1TransformSize maxTransformSize = partitionInfo.ModeInfo.BlockSize.GetMaximumTransformSize();
@@ -1232,17 +1342,22 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="superblockInfo">The containing superblock.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <remarks>Implements AV1 section 5.11.16 and corresponds to <c>read_block_tx_size</c> in SVT-AV1.</remarks>
-    private void ReadBlockTransformSize(ref Av1SymbolDecoder reader, Point modeInfoLocation, Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
+    private void ReadBlockTransformSize(
+        ref Av1SymbolDecoder reader,
+        Point modeInfoLocation,
+        ref Av1PartitionInfo partitionInfo,
+        Av1SuperblockInfo superblockInfo,
+        Av1TileInfo tileInfo)
     {
         Av1BlockSize blockSize = partitionInfo.ModeInfo.BlockSize;
         int block4x4Width = blockSize.Get4x4WideCount();
         int block4x4Height = blockSize.Get4x4HighCount();
 
         // HEIF still-image decoding follows the independently decodable intra-frame transform-size branch.
-        Av1TransformSize transformSize = this.ReadTransformSize(ref reader, partitionInfo, superblockInfo, tileInfo, true);
+        Av1TransformSize transformSize = this.ReadTransformSize(ref reader, ref partitionInfo, superblockInfo, tileInfo, true);
         this.aboveNeighborContext.UpdateTransformation(modeInfoLocation, tileInfo, transformSize, blockSize, false);
         this.leftNeighborContext.UpdateTransformation(modeInfoLocation, superblockInfo, transformSize, blockSize, false);
-        this.UpdateTransformInfo(partitionInfo, superblockInfo, blockSize, transformSize);
+        this.UpdateTransformInfo(ref partitionInfo, superblockInfo, blockSize, transformSize);
     }
 
     /// <summary>
@@ -1252,7 +1367,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="superblockInfo">The containing superblock and transform storage.</param>
     /// <param name="blockSize">The coding block size.</param>
     /// <param name="transformSize">The selected luma transform size.</param>
-    private unsafe void UpdateTransformInfo(Av1PartitionInfo partitionInfo, Av1SuperblockInfo superblockInfo, Av1BlockSize blockSize, Av1TransformSize transformSize)
+    private unsafe void UpdateTransformInfo(
+        ref Av1PartitionInfo partitionInfo,
+        Av1SuperblockInfo superblockInfo,
+        Av1BlockSize blockSize,
+        Av1TransformSize transformSize)
     {
         int transformInfoYIndex = partitionInfo.ModeInfo.GetFirstTransformLocation(Av1PlaneType.Y);
         int transformInfoUvIndex = partitionInfo.ModeInfo.GetFirstTransformLocation(Av1PlaneType.Uv);
@@ -1367,13 +1486,13 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <remarks>Implements AV1 section 5.11.49.</remarks>
-    private void ReadPaletteTokens(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
+    private void ReadPaletteTokens(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
     {
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
         if (modeInfo.GetPaletteSize(Av1PlaneType.Y) != 0)
         {
             GetPaletteMapDimensions(
-                partitionInfo,
+                ref partitionInfo,
                 Av1PlaneType.Y,
                 this.SequenceHeader.ColorConfig,
                 out int planeWidth,
@@ -1396,7 +1515,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         if (modeInfo.GetPaletteSize(Av1PlaneType.Uv) != 0)
         {
             GetPaletteMapDimensions(
-                partitionInfo,
+                ref partitionInfo,
                 Av1PlaneType.Uv,
                 this.SequenceHeader.ColorConfig,
                 out int planeWidth,
@@ -1424,10 +1543,10 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <remarks>Implements the intra-frame branch of AV1 section 5.11.6.</remarks>
-    private void ReadModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
+    private void ReadModeInfo(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
     {
         DebugGuard.IsTrue(this.FrameHeader.FrameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame, "Only INTRA frames supported.");
-        this.ReadIntraFrameModeInfo(ref reader, partitionInfo, tileInfo);
+        this.ReadIntraFrameModeInfo(ref reader, ref partitionInfo, tileInfo);
     }
 
     /// <summary>
@@ -1437,30 +1556,30 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="partitionInfo">The current coding block and its neighbors.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <remarks>Implements AV1 section 5.11.7.</remarks>
-    private void ReadIntraFrameModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
+    private void ReadIntraFrameModeInfo(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
     {
         if (this.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
         {
-            this.IntraSegmentId(ref reader, partitionInfo);
+            this.IntraSegmentId(ref reader, ref partitionInfo);
         }
 
-        partitionInfo.ModeInfo.Skip = this.ReadSkip(ref reader, partitionInfo);
+        partitionInfo.ModeInfo.Skip = this.ReadSkip(ref reader, ref partitionInfo);
         if (!this.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
         {
-            this.IntraSegmentId(ref reader, partitionInfo);
+            this.IntraSegmentId(ref reader, ref partitionInfo);
         }
 
-        this.ReadCdef(ref reader, partitionInfo);
+        this.ReadCdef(ref reader, ref partitionInfo);
 
         if (this.FrameHeader.DeltaQParameters.IsPresent)
         {
-            this.ReadDeltaQuantizerIndex(ref reader, partitionInfo);
-            this.ReadDeltaLoopFilter(ref reader, partitionInfo);
+            this.ReadDeltaQuantizerIndex(ref reader, ref partitionInfo);
+            this.ReadDeltaLoopFilter(ref reader, ref partitionInfo);
         }
 
         // Independently decodable still-image blocks reference only the current intra frame.
-        partitionInfo.ReferenceFrame[0] = 0;
-        partitionInfo.ReferenceFrame[1] = -1;
+        partitionInfo.ReferenceFrames[0] = Av1ReferenceFrameType.Intra;
+        partitionInfo.ReferenceFrames[1] = Av1ReferenceFrameType.None;
         partitionInfo.ModeInfo.SetPaletteSizes(0, 0);
         bool useIntraBlockCopy = false;
         if (this.AllowIntraBlockCopy())
@@ -1472,17 +1591,17 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         {
             partitionInfo.ModeInfo.UseIntraBlockCopy = true;
             partitionInfo.ModeInfo.YMode = Av1PredictionMode.DC;
-            partitionInfo.ModeInfo.UvMode = Av1PredictionMode.DC;
+            partitionInfo.ModeInfo.UvMode = Av1ChromaPredictionMode.DC;
 
             Av1MotionVector reference = Av1IntraBlockCopy.FindReference(
-                partitionInfo,
+                ref partitionInfo,
                 tileInfo,
                 this.SequenceHeader.SuperblockModeInfoSize,
                 this.displacementVectorCandidates,
                 this.displacementVectorWeights);
 
             Av1MotionVector displacement = reader.ReadDisplacementVector(reference);
-            if (!Av1IntraBlockCopy.IsValid(displacement, partitionInfo, tileInfo, this.SequenceHeader))
+            if (!Av1IntraBlockCopy.IsValid(displacement, ref partitionInfo, tileInfo, this.SequenceHeader))
             {
                 throw new InvalidImageContentException("Invalid AV1 intra-block-copy displacement vector.");
             }
@@ -1499,19 +1618,22 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
             if (partitionInfo.IsChroma && !this.SequenceHeader.ColorConfig.IsMonochrome)
             {
-                partitionInfo.ModeInfo.UvMode = reader.ReadIntraModeUv(partitionInfo.ModeInfo.YMode, this.IsChromaForLumaAllowed(partitionInfo));
-                if (partitionInfo.ModeInfo.UvMode == Av1PredictionMode.UvChromaFromLuma)
+                partitionInfo.ModeInfo.UvMode = reader.ReadIntraModeUv(
+                    partitionInfo.ModeInfo.YMode,
+                    this.IsChromaForLumaAllowed(ref partitionInfo));
+
+                if (partitionInfo.ModeInfo.UvMode == Av1ChromaPredictionMode.ChromaFromLuma)
                 {
                     ReadChromaFromLumaAlphas(ref reader, partitionInfo.ModeInfo);
                 }
 
                 partitionInfo.ModeInfo.SetAngleDelta(
                     Av1PlaneType.Uv,
-                    IntraAngleInfo(ref reader, partitionInfo.ModeInfo.UvMode, partitionInfo.ModeInfo.BlockSize));
+                    IntraAngleInfo(ref reader, partitionInfo.ModeInfo.UvMode.ToLumaMode(), partitionInfo.ModeInfo.BlockSize));
             }
             else
             {
-                partitionInfo.ModeInfo.UvMode = Av1PredictionMode.DC;
+                partitionInfo.ModeInfo.UvMode = Av1ChromaPredictionMode.DC;
             }
 
             if (partitionInfo.ModeInfo.BlockSize >= Av1BlockSize.Block8x8 &&
@@ -1519,10 +1641,10 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 partitionInfo.ModeInfo.BlockSize.GetHeight() <= 64 &&
                 this.FrameHeader.AllowScreenContentTools)
             {
-                this.PaletteModeInfo(ref reader, partitionInfo);
+                this.PaletteModeInfo(ref reader, ref partitionInfo);
             }
 
-            this.FilterIntraModeInfo(ref reader, partitionInfo);
+            this.FilterIntraModeInfo(ref reader, ref partitionInfo);
         }
     }
 
@@ -1540,7 +1662,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <returns><see langword="true"/> when the lossless transform or block dimensions permit chroma-from-luma prediction; otherwise, <see langword="false"/>.</returns>
-    private bool IsChromaForLumaAllowed(Av1PartitionInfo partitionInfo)
+    private bool IsChromaForLumaAllowed(ref Av1PartitionInfo partitionInfo)
     {
         if (this.FrameHeader.LosslessArray[partitionInfo.ModeInfo.SegmentId])
         {
@@ -1561,7 +1683,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block.</param>
-    private void FilterIntraModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
+    private void FilterIntraModeInfo(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
     {
         partitionInfo.ModeInfo.UseFilterIntra = false;
         if (this.SequenceHeader.EnableFilterIntra &&
@@ -1584,7 +1706,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <remarks>Implements AV1 section 5.11.46.</remarks>
-    private void PaletteModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
+    private void PaletteModeInfo(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
     {
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
         Av1BlockSize blockSize = modeInfo.BlockSize;
@@ -1611,20 +1733,20 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             {
                 yPaletteSize = reader.ReadPaletteSize(blockSizeContext, Av1PlaneType.Y);
                 Span<ushort> yColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
-                ReadPaletteColorsY(ref reader, partitionInfo, yPaletteSize, bitDepth, yColors);
+                ReadPaletteColorsY(ref reader, ref partitionInfo, yPaletteSize, bitDepth, yColors);
                 modeInfo.SetPaletteColors(Av1Plane.Y, yColors[..yPaletteSize]);
             }
         }
 
         if (this.SequenceHeader.ColorConfig.PlaneCount > 1 &&
-            modeInfo.UvMode == Av1PredictionMode.DC &&
+            modeInfo.UvMode == Av1ChromaPredictionMode.DC &&
             partitionInfo.IsChroma &&
             reader.ReadPaletteUvMode(yPaletteSize != 0))
         {
             uvPaletteSize = reader.ReadPaletteSize(blockSizeContext, Av1PlaneType.Uv);
             Span<ushort> uColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
             Span<ushort> vColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
-            ReadPaletteColorsUv(ref reader, partitionInfo, uvPaletteSize, bitDepth, uColors, vColors);
+            ReadPaletteColorsUv(ref reader, ref partitionInfo, uvPaletteSize, bitDepth, uColors, vColors);
             modeInfo.SetPaletteColors(Av1Plane.U, uColors[..uvPaletteSize]);
             modeInfo.SetPaletteColors(Av1Plane.V, vColors[..uvPaletteSize]);
         }
@@ -1642,14 +1764,14 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="colors">The destination palette-color buffer.</param>
     private static void ReadPaletteColorsY(
         ref Av1SymbolDecoder reader,
-        Av1PartitionInfo partitionInfo,
+        ref Av1PartitionInfo partitionInfo,
         int paletteSize,
         int bitDepth,
         scoped Span<ushort> colors)
     {
         Span<ushort> colorCache = stackalloc ushort[Av1Constants.PaletteMaxSize * 2];
         Span<ushort> cachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
-        int cacheSize = GetPaletteCache(partitionInfo, Av1Plane.Y, colorCache);
+        int cacheSize = GetPaletteCache(ref partitionInfo, Av1Plane.Y, colorCache);
         int colorIndex = 0;
         for (int i = 0; i < cacheSize && colorIndex < paletteSize; i++)
         {
@@ -1695,7 +1817,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="vColors">The destination V palette-color buffer.</param>
     private static void ReadPaletteColorsUv(
         ref Av1SymbolDecoder reader,
-        Av1PartitionInfo partitionInfo,
+        ref Av1PartitionInfo partitionInfo,
         int paletteSize,
         int bitDepth,
         scoped Span<ushort> uColors,
@@ -1703,7 +1825,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     {
         Span<ushort> colorCache = stackalloc ushort[Av1Constants.PaletteMaxSize * 2];
         Span<ushort> cachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
-        int cacheSize = GetPaletteCache(partitionInfo, Av1Plane.U, colorCache);
+        int cacheSize = GetPaletteCache(ref partitionInfo, Av1Plane.U, colorCache);
         int colorIndex = 0;
         for (int i = 0; i < cacheSize && colorIndex < paletteSize; i++)
         {
@@ -1782,7 +1904,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="plane">The luma or U plane whose sorted base colors form the cache.</param>
     /// <param name="cache">The destination cache, which can hold both neighboring palettes.</param>
     /// <returns>The number of colors written to <paramref name="cache"/>.</returns>
-    private static int GetPaletteCache(Av1PartitionInfo partitionInfo, Av1Plane plane, Span<ushort> cache)
+    private static int GetPaletteCache(ref Av1PartitionInfo partitionInfo, Av1Plane plane, scoped Span<ushort> cache)
     {
         // AV1 deliberately excludes the block above at a 64-by-64 superblock-row boundary.
         int minimumSuperblockHeight = Av1BlockSize.Block64x64.Get4x4HighCount();
@@ -1886,7 +2008,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="rows">The number of plane-block rows inside the coded image.</param>
     /// <param name="columns">The number of plane-block columns inside the coded image.</param>
     private static void GetPaletteMapDimensions(
-        Av1PartitionInfo partitionInfo,
+        ref Av1PartitionInfo partitionInfo,
         Av1PlaneType planeType,
         ObuColorConfig colorConfig,
         out int planeWidth,
@@ -2103,28 +2225,17 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <remarks>Implements AV1 section 5.11.8.</remarks>
-    private void IntraSegmentId(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
+    private void IntraSegmentId(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
     {
-        if (this.FrameHeader.SegmentationParameters.Enabled)
+        if (!this.FrameHeader.SegmentationParameters.Enabled)
         {
-            this.ReadSegmentId(ref reader, partitionInfo);
+            // Disabled segmentation assigns the default ID without allocating or populating a retained map.
+            return;
         }
 
-        int blockWidth4x4 = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
-        int blockHeight4x4 = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
-        int modeInfoCountX = Math.Min(this.FrameHeader.ModeInfoColumnCount - partitionInfo.ColumnIndex, blockWidth4x4);
-        int modeInfoCountY = Math.Min(this.FrameHeader.ModeInfoRowCount - partitionInfo.RowIndex, blockHeight4x4);
-        int segmentId = partitionInfo.ModeInfo.SegmentId;
-
-        // Later blocks predict from 4x4 positions, so replicate one block ID over its clipped frame coverage.
-        for (int y = 0; y < modeInfoCountY; y++)
-        {
-            int[] segmentRow = this.segmentIds[partitionInfo.RowIndex + y];
-            for (int x = 0; x < modeInfoCountX; x++)
-            {
-                segmentRow[partitionInfo.ColumnIndex + x] = segmentId;
-            }
-        }
+        this.ReadSegmentId(ref reader, ref partitionInfo);
+        Point modeInfoPosition = new(partitionInfo.ColumnIndex, partitionInfo.RowIndex);
+        this.FrameInfo.SetSegmentId(partitionInfo.ModeInfo.BlockSize, modeInfoPosition, partitionInfo.ModeInfo.SegmentId);
     }
 
     /// <summary>
@@ -2133,7 +2244,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block and its available neighbors.</param>
     /// <remarks>Implements AV1 section 5.11.9.</remarks>
-    private void ReadSegmentId(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
+    private void ReadSegmentId(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
     {
         int predictor;
         int prevUL = -1;
@@ -2143,17 +2254,17 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int rowIndex = partitionInfo.RowIndex;
         if (partitionInfo.AvailableAbove && partitionInfo.AvailableLeft)
         {
-            prevUL = Av1SymbolContextHelper.GetSegmentId(this.segmentIds, rowIndex - 1, columnIndex - 1);
+            prevUL = this.FrameInfo.GetSegmentId(rowIndex - 1, columnIndex - 1);
         }
 
         if (partitionInfo.AvailableAbove)
         {
-            prevU = Av1SymbolContextHelper.GetSegmentId(this.segmentIds, rowIndex - 1, columnIndex);
+            prevU = this.FrameInfo.GetSegmentId(rowIndex - 1, columnIndex);
         }
 
         if (partitionInfo.AvailableLeft)
         {
-            prevL = Av1SymbolContextHelper.GetSegmentId(this.segmentIds, rowIndex, columnIndex - 1);
+            prevL = this.FrameInfo.GetSegmentId(rowIndex, columnIndex - 1);
         }
 
         if (prevU == -1)
@@ -2191,7 +2302,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <remarks>Implements AV1 section 5.11.56 and corresponds to <c>read_cdef</c> in libaom.</remarks>
-    private void ReadCdef(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
+    private void ReadCdef(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
     {
         if (partitionInfo.ModeInfo.Skip || this.FrameHeader.CodedLossless || !this.SequenceHeader.EnableCdef || this.FrameHeader.AllowIntraBlockCopy)
         {
@@ -2235,7 +2346,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block and superblock delta storage.</param>
-    private void ReadDeltaLoopFilter(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
+    private void ReadDeltaLoopFilter(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
     {
         if (!this.FrameHeader.DeltaLoopFilterParameters.IsPresent || partitionInfo.ModeInfo.PositionInSuperblock != Point.Empty)
         {
@@ -2273,7 +2384,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block and its available neighbors.</param>
     /// <returns><see langword="true"/> when the block omits residual coefficients; otherwise, <see langword="false"/>.</returns>
-    private bool ReadSkip(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
+    private bool ReadSkip(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
     {
         int segmentId = partitionInfo.ModeInfo.SegmentId;
         if (this.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip &&
@@ -2295,7 +2406,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block and superblock quantizer storage.</param>
     /// <remarks>Corresponds to <c>read_delta_qindex</c> in SVT-AV1.</remarks>
-    private void ReadDeltaQuantizerIndex(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
+    private void ReadDeltaQuantizerIndex(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
     {
         if (!this.FrameHeader.DeltaQParameters.IsPresent || partitionInfo.ModeInfo.PositionInSuperblock != Point.Empty)
         {
@@ -2415,5 +2526,18 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     throw new InvalidImageContentException($"Unknown partition type: {partition}");
             }
         }
+    }
+
+    /// <summary>
+    /// Provides inline storage for the two self-guided restoration coefficients of each of the three AV1 planes.
+    /// </summary>
+    /// <typeparam name="T">The stored value type.</typeparam>
+    [InlineArray(6)]
+    private struct InlineArray6<T>
+    {
+        /// <summary>
+        /// The first element in the compiler-expanded inline buffer.
+        /// </summary>
+        private T element;
     }
 }

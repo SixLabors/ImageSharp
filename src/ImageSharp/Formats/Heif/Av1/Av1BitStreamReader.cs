@@ -74,7 +74,7 @@ internal ref struct Av1BitStreamReader
     /// Reads the next encoded bit as a Boolean value.
     /// </summary>
     /// <returns><see langword="true"/> for one; otherwise, <see langword="false"/>.</returns>
-    internal bool ReadBoolean() => this.ReadLiteral(1) > 0;
+    public bool ReadBoolean() => this.ReadLiteral(1) > 0;
 
     /// <summary>
     /// Reads an AV1 little-endian base-128 value from a byte-aligned position.
@@ -160,6 +160,21 @@ internal ref struct Av1BitStreamReader
     }
 
     /// <summary>
+    /// Reads a finite subexponential value recentered around a signed reference value.
+    /// </summary>
+    /// <param name="valueMagnitude">One greater than the maximum absolute value in the signed domain.</param>
+    /// <param name="groupBitCount">The bit width of the first subexponential group.</param>
+    /// <param name="reference">The signed reference value around which smaller codewords are concentrated.</param>
+    /// <returns>A decoded value in the inclusive range from minus <paramref name="valueMagnitude"/> plus one through
+    /// <paramref name="valueMagnitude"/> minus one.</returns>
+    public int ReadSignedReferenceSubexponential(int valueMagnitude, int groupBitCount, int reference)
+    {
+        int shiftedReference = reference + valueMagnitude - 1;
+        int scaledValueCount = (valueMagnitude << 1) - 1;
+        return this.ReadReferenceSubexponential(scaledValueCount, groupBitCount, shiftedReference) - valueMagnitude + 1;
+    }
+
+    /// <summary>
     /// Reads a fixed-width two's-complement signed integer.
     /// </summary>
     /// <param name="n">The encoded bit width.</param>
@@ -225,5 +240,75 @@ internal ref struct Av1BitStreamReader
         Span<byte> payload = this.data.Slice(byteOffset, byteCount);
         this.Skip(byteCount << 3);
         return payload;
+    }
+
+    /// <summary>
+    /// Reads a finite subexponential value and inverse-recenters it around an unsigned reference value.
+    /// </summary>
+    /// <param name="valueCount">The number of values in the finite domain.</param>
+    /// <param name="groupBitCount">The bit width of the first subexponential group.</param>
+    /// <param name="reference">The reference value within the finite domain.</param>
+    /// <returns>The decoded value in the range zero through <paramref name="valueCount"/> minus one.</returns>
+    private int ReadReferenceSubexponential(int valueCount, int groupBitCount, int reference)
+    {
+        int value = this.ReadSubexponential(valueCount, groupBitCount);
+
+        // Recentering enumerates values by increasing distance from the reference. References in the upper half use
+        // the mirrored domain so the shorter side of the finite range always participates in the alternating mapping.
+        if ((reference << 1) <= valueCount)
+        {
+            return InverseRecenter(reference, value);
+        }
+
+        return valueCount - 1 - InverseRecenter(valueCount - 1 - reference, value);
+    }
+
+    /// <summary>
+    /// Reads one value from a finite subexponential code.
+    /// </summary>
+    /// <param name="valueCount">The number of values in the finite domain.</param>
+    /// <param name="groupBitCount">The bit width of the first subexponential group.</param>
+    /// <returns>The decoded zero-based value.</returns>
+    private int ReadSubexponential(int valueCount, int groupBitCount)
+    {
+        int groupIndex = 0;
+        int groupStart = 0;
+        while (true)
+        {
+            // AV1 keeps the first two groups at width k and then doubles each following group. Once fewer than three
+            // groups remain, the non-symmetric code consumes the exact finite tail without introducing unused values.
+            int bitCount = groupIndex == 0 ? groupBitCount : groupBitCount + groupIndex - 1;
+            int groupSize = 1 << bitCount;
+            if (valueCount <= groupStart + (3 * groupSize))
+            {
+                return (int)this.ReadNonSymmetric((uint)(valueCount - groupStart)) + groupStart;
+            }
+
+            if (!this.ReadBoolean())
+            {
+                return (int)this.ReadLiteral(bitCount) + groupStart;
+            }
+
+            groupIndex++;
+            groupStart += groupSize;
+        }
+    }
+
+    /// <summary>
+    /// Maps a nonnegative code value around a nonnegative reference value.
+    /// </summary>
+    /// <param name="reference">The recentering reference.</param>
+    /// <param name="value">The coded nonnegative value.</param>
+    /// <returns>The inverse-recentered value.</returns>
+    private static int InverseRecenter(int reference, int value)
+    {
+        // Codes within twice the reference alternate above and below it: even values select the upper side and odd
+        // values select the lower side. Larger codes lie beyond the lower-side range and map directly to the tail.
+        if (value > (reference << 1))
+        {
+            return value;
+        }
+
+        return (value & 1) == 0 ? (value >> 1) + reference : reference - ((value + 1) >> 1);
     }
 }

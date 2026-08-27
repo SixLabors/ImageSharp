@@ -106,15 +106,34 @@ internal sealed class Av1BlockDecoder : IDisposable
             (this.sequenceHeader.ColorConfig.SubSamplingX ? ySize >> 2 : ySize) +
             (this.sequenceHeader.ColorConfig.SubSamplingY ? ySize >> 2 : ySize);
 
-        this.inverseQuantizationOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(inverseQuantizationSize);
-        this.transformWorkspaceOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(Av1TransformWorkspace.MaximumLength);
-        this.predictionScratchOwner = this.frameBuffer.MemoryAllocator.Allocate<short>(Av1PredictionDecoder.ScratchLength);
-        this.predictionDecoder = new(sequenceHeader, frameHeader, this.predictionScratchOwner.Memory);
-        this.isLoopFilterEnabled = frameHeader.LoopFilterParameters.FilterLevel[0] != 0 ||
-            frameHeader.LoopFilterParameters.FilterLevel[1] != 0;
+        IMemoryOwner<int>? inverseQuantizationOwner = null;
+        IMemoryOwner<int>? transformWorkspaceOwner = null;
+        IMemoryOwner<short>? predictionScratchOwner = null;
+        try
+        {
+            inverseQuantizationOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(inverseQuantizationSize);
+            transformWorkspaceOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(Av1TransformWorkspace.MaximumLength);
+            predictionScratchOwner = this.frameBuffer.MemoryAllocator.Allocate<short>(Av1PredictionDecoder.ScratchLength);
 
-        this.currentCoefficientIndex = new int[3];
-        this.chromaFromLumaContext = new(sequenceHeader.ColorConfig);
+            this.inverseQuantizationOwner = inverseQuantizationOwner;
+            this.transformWorkspaceOwner = transformWorkspaceOwner;
+            this.predictionScratchOwner = predictionScratchOwner;
+            this.predictionDecoder = new(sequenceHeader, frameHeader, predictionScratchOwner.Memory);
+            this.isLoopFilterEnabled = frameHeader.LoopFilterParameters.FilterLevel[0] != 0 ||
+                frameHeader.LoopFilterParameters.FilterLevel[1] != 0;
+
+            this.currentCoefficientIndex = new int[3];
+            this.chromaFromLumaContext = new(sequenceHeader.ColorConfig);
+        }
+        catch
+        {
+            // A constructor that does not return transfers no ownership to its caller. Unwind successful rents in
+            // reverse order so allocator diagnostics and pooled buffers remain balanced after any later allocation.
+            predictionScratchOwner?.Dispose();
+            transformWorkspaceOwner?.Dispose();
+            inverseQuantizationOwner?.Dispose();
+            throw;
+        }
     }
 
     /// <summary>
@@ -360,7 +379,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                     if (highBitDepth)
                     {
                         this.predictionDecoder.Decode(
-                            partitionInfo,
+                            ref partitionInfo,
                             (Av1Plane)plane,
                             transformSize,
                             tileInfo,
@@ -373,7 +392,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                     else
                     {
                         this.predictionDecoder.Decode(
-                            partitionInfo,
+                            ref partitionInfo,
                             (Av1Plane)plane,
                             transformSize,
                             tileInfo,
@@ -438,7 +457,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                 }
 
                 // Store Luma for CFL if required!
-                if (plane == (int)Av1Plane.Y && StoreChromaFromLumaRequired(colorConfig, partitionInfo))
+                if (plane == (int)Av1Plane.Y && StoreChromaFromLumaRequired(colorConfig, ref partitionInfo))
                 {
                     // The predictor span begins on the previous row; CFL storage consumes reconstructed samples from
                     // the transform block itself, hence the explicit one-stride advance for both sample pipelines.
@@ -562,7 +581,7 @@ internal sealed class Av1BlockDecoder : IDisposable
     /// <returns>
     /// <see langword="true"/> when chroma is present and the current luma block can contribute to a chroma-from-luma block.
     /// </returns>
-    private static bool StoreChromaFromLumaRequired(ObuColorConfig colorConfig, Av1PartitionInfo partitionInfo)
+    private static bool StoreChromaFromLumaRequired(ObuColorConfig colorConfig, ref Av1PartitionInfo partitionInfo)
         => !colorConfig.IsMonochrome &&
-            (!partitionInfo.IsChroma || partitionInfo.ModeInfo.UvMode == Av1PredictionMode.UvChromaFromLuma);
+            (!partitionInfo.IsChroma || partitionInfo.ModeInfo.UvMode == Av1ChromaPredictionMode.ChromaFromLuma);
 }

@@ -86,7 +86,7 @@ internal class Av1PredictionDecoder
     /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
     /// <remarks>Corresponds to <c>svt_av1_predict_intra</c> in SVT-AV1.</remarks>
     public void Decode(
-        Av1PartitionInfo partitionInfo,
+        ref Av1PartitionInfo partitionInfo,
         Av1Plane plane,
         Av1TransformSize transformSize,
         Av1TileInfo tileInfo,
@@ -96,7 +96,7 @@ internal class Av1PredictionDecoder
         int blockModeInfoColumnOffset,
         int blockModeInfoRowOffset)
         => this.DecodeCore(
-            partitionInfo,
+            ref partitionInfo,
             plane,
             transformSize,
             tileInfo,
@@ -120,7 +120,7 @@ internal class Av1PredictionDecoder
     /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
     /// <remarks>Implements the intra prediction portion of section 7.11.2 of the AV1 specification.</remarks>
     public void Decode(
-        Av1PartitionInfo partitionInfo,
+        ref Av1PartitionInfo partitionInfo,
         Av1Plane plane,
         Av1TransformSize transformSize,
         Av1TileInfo tileInfo,
@@ -130,7 +130,7 @@ internal class Av1PredictionDecoder
         int blockModeInfoColumnOffset,
         int blockModeInfoRowOffset)
         => this.DecodeCore(
-            partitionInfo,
+            ref partitionInfo,
             plane,
             transformSize,
             tileInfo,
@@ -154,7 +154,7 @@ internal class Av1PredictionDecoder
     /// <param name="blockModeInfoColumnOffset">The transform block's horizontal offset within the mode-information block.</param>
     /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
     private void DecodeCore<T>(
-        Av1PartitionInfo partitionInfo,
+        ref Av1PartitionInfo partitionInfo,
         Av1Plane plane,
         Av1TransformSize transformSize,
         Av1TileInfo tileInfo,
@@ -173,12 +173,11 @@ internal class Av1PredictionDecoder
         Span<T> leftNeighbor = pixelBuffer[(stride - 1)..];
         Span<T> startOfPixels = pixelBuffer[stride..];
 
-        Av1PredictionMode mode = (plane == Av1Plane.Y) ? partitionInfo.ModeInfo.YMode : partitionInfo.ModeInfo.UvMode;
-
-        if (plane != Av1Plane.Y && partitionInfo.ModeInfo.UvMode == Av1PredictionMode.UvChromaFromLuma)
+        Av1PredictionMode mode = partitionInfo.ModeInfo.YMode;
+        if (plane != Av1Plane.Y && partitionInfo.ModeInfo.UvMode == Av1ChromaPredictionMode.ChromaFromLuma)
         {
             this.PredictIntraBlock(
-                partitionInfo,
+                ref partitionInfo,
                 plane,
                 transformSize,
                 tileInfo,
@@ -193,7 +192,7 @@ internal class Av1PredictionDecoder
                 bitDepth);
 
             this.PredictChromaFromLumaBlock(
-                partitionInfo,
+                ref partitionInfo,
                 partitionInfo.ChromaFromLumaContext,
                 startOfPixels,
                 stride,
@@ -203,8 +202,15 @@ internal class Av1PredictionDecoder
             return;
         }
 
+        if (plane != Av1Plane.Y)
+        {
+            // Chroma and luma modes are separate bitstream domains. Shared spatial predictors consume the explicit
+            // libaom get_uv_mode() equivalent rather than relying on their matching ordinal values.
+            mode = partitionInfo.ModeInfo.UvMode.ToLumaMode();
+        }
+
         this.PredictIntraBlock(
-            partitionInfo,
+            ref partitionInfo,
             plane,
             transformSize,
             tileInfo,
@@ -229,11 +235,17 @@ internal class Av1PredictionDecoder
     /// <param name="stride">The distance, in samples, between pixel rows.</param>
     /// <param name="transformSize">The dimensions of the chroma transform block.</param>
     /// <param name="plane">The U or V plane being reconstructed.</param>
-    private void PredictChromaFromLumaBlock<T>(Av1PartitionInfo partitionInfo, Av1ChromaFromLumaContext? chromaFromLumaContext, Span<T> pixelBuffer, int stride, Av1TransformSize transformSize, Av1Plane plane)
+    private void PredictChromaFromLumaBlock<T>(
+        ref Av1PartitionInfo partitionInfo,
+        Av1ChromaFromLumaContext? chromaFromLumaContext,
+        Span<T> pixelBuffer,
+        int stride,
+        Av1TransformSize transformSize,
+        Av1Plane plane)
         where T : unmanaged, IBinaryInteger<T>
     {
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
-        bool isChromaFromLumaAllowedFlag = IsChromaFromLumaAllowedWithFrameHeader(partitionInfo, this.sequenceHeader.ColorConfig, this.frameHeader);
+        bool isChromaFromLumaAllowedFlag = IsChromaFromLumaAllowedWithFrameHeader(ref partitionInfo, this.sequenceHeader.ColorConfig, this.frameHeader);
         DebugGuard.IsTrue(isChromaFromLumaAllowedFlag, "Chroma from Luma should be allowed then computing it.");
 
         if (chromaFromLumaContext == null)
@@ -271,7 +283,7 @@ internal class Av1PredictionDecoder
     /// <param name="colorConfig">The sequence color configuration.</param>
     /// <param name="frameHeader">The decoded frame header.</param>
     /// <returns><see langword="true"/> when the block may use chroma-from-luma prediction; otherwise, <see langword="false"/>.</returns>
-    private static bool IsChromaFromLumaAllowedWithFrameHeader(Av1PartitionInfo partitionInfo, ObuColorConfig colorConfig, ObuFrameHeader frameHeader)
+    private static bool IsChromaFromLumaAllowedWithFrameHeader(ref Av1PartitionInfo partitionInfo, ObuColorConfig colorConfig, ObuFrameHeader frameHeader)
     {
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
         Av1BlockSize blockSize = modeInfo.BlockSize;
@@ -327,7 +339,7 @@ internal class Av1PredictionDecoder
     /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
     /// <param name="bitDepth">The bit depth of the reconstructed samples.</param>
     private void PredictIntraBlock<T>(
-        Av1PartitionInfo partitionInfo,
+        ref Av1PartitionInfo partitionInfo,
         Av1Plane plane,
         Av1TransformSize transformSize,
         Av1TileInfo tileInfo,
@@ -359,7 +371,7 @@ internal class Av1PredictionDecoder
         {
             ReadOnlySpan<ushort> paletteColors = modeInfo.GetPaletteColors(plane);
             ReadOnlySpan<byte> colorIndexMap = modeInfo.GetPaletteColorIndexMap(plane);
-            int paletteStride = partitionInfo.WidthInPixels[(int)plane];
+            int paletteStride = partitionInfo.GetWidthInPixels(plane);
             int mapOffset = ((blockModeInfoRowOffset << Av1Constants.ModeInfoSizeLog2) * paletteStride) +
                 (blockModeInfoColumnOffset << Av1Constants.ModeInfoSizeLog2);
 
@@ -395,11 +407,13 @@ internal class Av1PredictionDecoder
 
         // These distances bound edge extension at the coded frame rather than allowing
         // a transform to read padding that happens to exist beyond the visible image.
-        int xr = (partitionInfo.ModeBlockToRightEdge >> (3 + subX)) + (partitionInfo.WidthInPixels[(int)plane] - (blockModeInfoColumnOffset << Av1Constants.ModeInfoSizeLog2) - transformWidth) -
+        int xr = (partitionInfo.ModeBlockToRightEdge >> (3 + subX)) +
+            (partitionInfo.GetWidthInPixels(plane) - (blockModeInfoColumnOffset << Av1Constants.ModeInfoSizeLog2) - transformWidth) -
             xrOffset;
 
         int yd = (partitionInfo.ModeBlockToBottomEdge >> (3 + subY)) +
-            (partitionInfo.HeightInPixels[(int)plane] - (blockModeInfoRowOffset << Av1Constants.ModeInfoSizeLog2) - transformHeight) - ydOffset;
+            (partitionInfo.GetHeightInPixels(plane) - (blockModeInfoRowOffset << Av1Constants.ModeInfoSizeLog2) - transformHeight) - ydOffset;
+
         bool rightAvailable = modeInfoColumn + ((blockModeInfoColumnOffset + transformWidthInModeInfoUnits) << subX) < tileInfo.ModeInfoColumnEnd;
         bool bottomAvailable = (yd > 0) && (modeInfoRow + ((blockModeInfoRowOffset + transformHeightInModeInfoUnits) << subY) < tileInfo.ModeInfoRowEnd);
 
@@ -439,7 +453,7 @@ internal class Av1PredictionDecoder
 
         // Calling all other intra predictors except CFL and palette.
         this.DecodeBuildIntraPredictors(
-            partitionInfo,
+            ref partitionInfo,
             topNeighbor,
             leftNeighbor,
             (nuint)referenceStride,
@@ -752,7 +766,7 @@ internal class Av1PredictionDecoder
     /// <param name="plane">The color plane being reconstructed.</param>
     /// <param name="bitDepth">The number of bits used to represent each sample.</param>
     private void DecodeBuildIntraPredictors<T>(
-        Av1PartitionInfo partitionInfo,
+        ref Av1PartitionInfo partitionInfo,
         Span<T> aboveNeighbor,
         ReadOnlySpan<T> leftNeighbor,
         nuint referenceStride,
@@ -989,7 +1003,7 @@ internal class Av1PredictionDecoder
                 bool needRight = angle < 90;
                 bool needBottom = angle > 180;
 
-                bool filterType = GetFilterType(partitionInfo, plane);
+                bool filterType = GetFilterType(ref partitionInfo, plane);
 
                 if (angle is not 90 and not 180)
                 {
@@ -1862,7 +1876,7 @@ internal class Av1PredictionDecoder
     /// <param name="partitionInfo">The decoded partition and neighboring mode state.</param>
     /// <param name="plane">The color plane whose neighbors are inspected.</param>
     /// <returns><see langword="true"/> when either relevant neighbor uses a smooth mode; otherwise, <see langword="false"/>.</returns>
-    private static bool GetFilterType(Av1PartitionInfo partitionInfo, Av1Plane plane)
+    private static bool GetFilterType(ref Av1PartitionInfo partitionInfo, Av1Plane plane)
     {
         Av1BlockModeInfo? above;
         Av1BlockModeInfo? left;
@@ -1900,10 +1914,10 @@ internal class Av1PredictionDecoder
         else
         {
             // Inter mode not supported here.
-            Av1PredictionMode uvMode = modeInfo.UvMode;
-            return uvMode is Av1PredictionMode.Smooth or
-                Av1PredictionMode.SmoothVertical or
-                Av1PredictionMode.SmoothHorizontal;
+            Av1ChromaPredictionMode uvMode = modeInfo.UvMode;
+            return uvMode is Av1ChromaPredictionMode.Smooth or
+                Av1ChromaPredictionMode.SmoothVertical or
+                Av1ChromaPredictionMode.SmoothHorizontal;
         }
     }
 }

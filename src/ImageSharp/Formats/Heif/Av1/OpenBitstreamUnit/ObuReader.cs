@@ -1,7 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
+using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -12,9 +15,70 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 internal class ObuReader
 {
     /// <summary>
+    /// The number of bits used to address one of AV1's eight reference-map slots.
+    /// </summary>
+    private const int ReferenceFrameIndexBits = 3;
+
+    /// <summary>
+    /// The initial finite-subexponential group width used by every global-motion parameter.
+    /// </summary>
+    private const int GlobalMotionSubexponentialGroupBitCount = 3;
+
+    /// <summary>
+    /// The finite signed-domain size parameter for coded global-motion affine coefficients.
+    /// </summary>
+    private const int GlobalMotionAlphaValueMagnitude = (1 << 12) + 1;
+
+    /// <summary>
+    /// The number of fractional bits carried by coded global-motion affine coefficients.
+    /// </summary>
+    private const int GlobalMotionAlphaPrecisionBits = 15;
+
+    /// <summary>
+    /// The precision increase from a coded affine coefficient to the stored global-motion matrix.
+    /// </summary>
+    private const int GlobalMotionAlphaPrecisionDifference =
+        Av1GlobalMotionParameters.ModelPrecisionBits - GlobalMotionAlphaPrecisionBits;
+
+    /// <summary>
+    /// The scale factor that restores a coded affine coefficient to the global-motion matrix precision.
+    /// </summary>
+    private const int GlobalMotionAlphaDecodeFactor = 1 << GlobalMotionAlphaPrecisionDifference;
+
+    /// <summary>
+    /// The signed magnitude bit count of a general affine model's translation components.
+    /// </summary>
+    private const int GlobalMotionAbsoluteTranslationBits = 12;
+
+    /// <summary>
+    /// The signed magnitude bit count of a translation-only model before precision adjustment.
+    /// </summary>
+    private const int GlobalMotionAbsoluteTranslationOnlyBits = 9;
+
+    /// <summary>
+    /// The number of fractional bits carried by general affine translation components.
+    /// </summary>
+    private const int GlobalMotionTranslationPrecisionBits = 6;
+
+    /// <summary>
+    /// The number of fractional bits carried by translation-only components.
+    /// </summary>
+    private const int GlobalMotionTranslationOnlyPrecisionBits = 3;
+
+    /// <summary>
     /// The zero-based sequence-header operating-point index selected by the container.
     /// </summary>
     private readonly byte operatingPointIndex;
+
+    /// <summary>
+    /// The reconstructed frames retained by the owning decoder for inter-frame syntax and prediction.
+    /// </summary>
+    private readonly Av1ReferenceFrameStore? referenceFrames;
+
+    /// <summary>
+    /// The completed frame-identifier, validity, and order-hint state retained across frame headers in this session.
+    /// </summary>
+    private ObuFrameReferenceState frameReferenceState;
 
     /// <summary>
     /// The tile reader created for the current coded frame.
@@ -27,7 +91,8 @@ internal class ObuReader
     private uint currentOperatingPointIdc;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ObuReader"/> class using operating-point index zero.
+    /// Initializes a new instance of the <see cref="ObuReader"/> class using operating-point index zero without a
+    /// reconstructed reference map.
     /// </summary>
     public ObuReader()
         : this(0)
@@ -35,11 +100,24 @@ internal class ObuReader
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="ObuReader"/> class for one selected AV1 operating point.
+    /// Initializes a new instance of the <see cref="ObuReader"/> class for one selected AV1 operating point without a
+    /// reconstructed reference map.
     /// </summary>
     /// <param name="operatingPointIndex">The zero-based sequence-header operating-point index to decode.</param>
     public ObuReader(byte operatingPointIndex)
         => this.operatingPointIndex = operatingPointIndex;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ObuReader"/> class for one selected AV1 operating point and
+    /// retained reference map.
+    /// </summary>
+    /// <param name="operatingPointIndex">The zero-based sequence-header operating-point index to decode.</param>
+    /// <param name="referenceFrames">The reconstructed reference frames retained by the owning decoder.</param>
+    public ObuReader(byte operatingPointIndex, Av1ReferenceFrameStore referenceFrames)
+    {
+        this.operatingPointIndex = operatingPointIndex;
+        this.referenceFrames = referenceFrames;
+    }
 
     /// <summary>
     /// Gets or sets the most recently parsed sequence header.
@@ -52,14 +130,16 @@ internal class ObuReader
     public ObuFrameHeader? FrameHeader { get; set; }
 
     /// <summary>
-    /// Parses the open bitstream units that make up one coded frame.
+    /// Parses every open bitstream unit in one bounded AV1 payload.
     /// </summary>
     /// <param name="reader">The reader positioned at the first OBU.</param>
-    /// <param name="dataSize">The number of bytes available for the coded frame.</param>
-    /// <param name="creator">Creates the tile reader when the first tile payload is encountered.</param>
+    /// <param name="dataSize">The number of bytes available for the bounded payload.</param>
+    /// <param name="creator">Creates one tile reader when the first tile payload of each coded frame is encountered.</param>
     /// <param name="isAnnexB">A value indicating whether each OBU is prefixed by an Annex B length field.</param>
     public void ReadAll(ref Av1BitStreamReader reader, int dataSize, Func<IAv1TileReader> creator, bool isAnnexB = false)
     {
+        bool completed = false;
+
         try
         {
             int availableByteCount = reader.Length - Av1Math.DivideBy8Floor(reader.BitPosition);
@@ -69,9 +149,10 @@ internal class ObuReader
             }
 
             bool seenFrameHeader = false;
-            bool frameDecodingFinished = false;
+            int nextTileStart = 0;
             Span<byte> primaryFrameHeaderPayload = default;
-            while (dataSize > 0 && !frameDecodingFinished)
+
+            while (dataSize > 0)
             {
                 int annexObuSize = 0;
                 if (isAnnexB)
@@ -139,11 +220,17 @@ internal class ObuReader
                 }
 
                 Av1BitStreamReader payloadReader = new(obuPayload);
+                bool frameDecodingFinished = false;
                 int decodedPayloadSize;
 
                 switch (header.Type)
                 {
                     case ObuType.SequenceHeader:
+                        if (seenFrameHeader)
+                        {
+                            throw new InvalidImageContentException("An AV1 sequence header interrupts an incomplete coded frame.");
+                        }
+
                         this.SequenceHeader = new();
                         ReadSequenceHeader(ref payloadReader, this.SequenceHeader);
                         if (this.operatingPointIndex >= this.SequenceHeader.OperatingPoint.Length)
@@ -154,6 +241,12 @@ internal class ObuReader
                         }
 
                         this.currentOperatingPointIdc = this.SequenceHeader.OperatingPoint[this.operatingPointIndex].Idc;
+
+                        // A sequence header starts a new reference domain. Clear both the syntax snapshot and decoded
+                        // owners only after the complete header and selected operating point have been accepted, so a
+                        // later inter header cannot pair an empty parser map with samples retained from the old sequence.
+                        this.frameReferenceState.Reset();
+                        this.referenceFrames?.Reset();
                         decodedPayloadSize = Av1Math.DivideBy8Floor(payloadReader.BitPosition);
                         break;
                     case ObuType.FrameHeader:
@@ -168,7 +261,14 @@ internal class ObuReader
                         }
 
                         seenFrameHeader = true;
-                        this.FrameHeader = new();
+                        ObuFrameHeader primaryFrameHeader = new()
+                        {
+                            TemporalId = header.TemporalId,
+                            SpatialId = header.SpatialId
+                        };
+
+                        this.frameReferenceState.InitializeFrameHeader(primaryFrameHeader);
+                        this.FrameHeader = primaryFrameHeader;
                         this.ReadFrameHeader(ref payloadReader, header, trailingBit: true);
                         decodedPayloadSize = Av1Math.DivideBy8Floor(payloadReader.BitPosition);
                         primaryFrameHeaderPayload = obuPayload[..decodedPayloadSize];
@@ -201,7 +301,14 @@ internal class ObuReader
                         }
 
                         seenFrameHeader = true;
-                        this.FrameHeader = new();
+                        ObuFrameHeader combinedFrameHeader = new()
+                        {
+                            TemporalId = header.TemporalId,
+                            SpatialId = header.SpatialId
+                        };
+
+                        this.frameReferenceState.InitializeFrameHeader(combinedFrameHeader);
+                        this.FrameHeader = combinedFrameHeader;
                         this.ReadFrameHeader(ref payloadReader, header, trailingBit: false);
                         primaryFrameHeaderPayload = obuPayload[..Av1Math.DivideBy8Floor(payloadReader.BitPosition)];
                         goto TILE_GROUP;
@@ -216,18 +323,17 @@ internal class ObuReader
 
                         // A combined frame OBU reaches this label after its frame-header portion has
                         // been consumed, leaving the same tile-group syntax as a standalone tile OBU.
-                        this.ReadTileGroup(ref payloadReader, this.decoder, header, out frameDecodingFinished);
+                        this.ReadTileGroup(ref payloadReader, this.decoder, header, ref nextTileStart, out frameDecodingFinished);
                         decodedPayloadSize = Av1Math.DivideBy8Floor(payloadReader.BitPosition);
-                        if (frameDecodingFinished)
-                        {
-                            seenFrameHeader = false;
-                        }
-
                         break;
                     case ObuType.TemporalDelimiter:
+                        if (seenFrameHeader)
+                        {
+                            throw new InvalidImageContentException("An AV1 temporal delimiter interrupts an incomplete coded frame.");
+                        }
+
                         // AV1 section 5.6 defines no delimiter syntax. The common post-switch validation still permits
                         // zero bytes between the empty syntax and the declared payload boundary, matching libaom.
-                        seenFrameHeader = false;
                         decodedPayloadSize = 0;
                         break;
                     case ObuType.Padding:
@@ -282,7 +388,26 @@ internal class ObuReader
                         throw new InvalidImageContentException("The AV1 OBU contains nonzero data after its decoded syntax.");
                     }
                 }
+
+                if (frameDecodingFinished)
+                {
+                    // Complete reconstruction and reference-buffer ownership before publishing the matching syntax
+                    // state. Any decoder failure leaves the preceding session snapshot intact for deterministic cleanup.
+                    this.decoder!.CompleteFrame();
+                    this.frameReferenceState.CompleteFrame(this.FrameHeader!, this.SequenceHeader!.IsFrameIdNumbersPresent);
+                    this.decoder = null;
+                    seenFrameHeader = false;
+                    nextTileStart = 0;
+                    primaryFrameHeaderPayload = default;
+                }
             }
+
+            if (seenFrameHeader || this.decoder is not null)
+            {
+                throw new InvalidImageContentException("The AV1 payload ends before the current coded frame is complete.");
+            }
+
+            completed = true;
         }
         catch (IndexOutOfRangeException exception)
         {
@@ -292,6 +417,28 @@ internal class ObuReader
         {
             throw new InvalidImageContentException("The AV1 OBU syntax exceeds its payload boundary.", exception);
         }
+        finally
+        {
+            if (!completed)
+            {
+                // A bounded payload can commit earlier layers before a later OBU fails. Those transitions cannot be
+                // rolled back after displaced owners have been released, so invalidate the complete decoder session.
+                this.Reset();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Clears all parser, tile-reader, syntax-reference, and reconstructed-reference state owned by this session.
+    /// </summary>
+    public void Reset()
+    {
+        this.decoder = null;
+        this.SequenceHeader = null;
+        this.FrameHeader = null;
+        this.currentOperatingPointIdc = 0;
+        this.frameReferenceState.Reset();
+        this.referenceFrames?.Reset();
     }
 
     /// <summary>
@@ -791,6 +938,7 @@ internal class ObuReader
         ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
         ObuFrameHeader frameHeader = this.FrameHeader!;
         bool useSuperResolution = false;
+
         if (sequenceHeader.EnableSuperResolution)
         {
             useSuperResolution = reader.ReadBoolean();
@@ -798,7 +946,8 @@ internal class ObuReader
 
         if (useSuperResolution)
         {
-            frameHeader.FrameSize.SuperResolutionDenominator = (int)reader.ReadLiteral(Av1Constants.SuperResolutionScaleBits) + Av1Constants.SuperResolutionScaleDenominatorMinimum;
+            frameHeader.FrameSize.SuperResolutionDenominator =
+                (int)reader.ReadLiteral(Av1Constants.SuperResolutionScaleBits) + Av1Constants.SuperResolutionScaleDenominatorMinimum;
         }
         else
         {
@@ -807,8 +956,8 @@ internal class ObuReader
 
         frameHeader.FrameSize.SuperResolutionUpscaledWidth = frameHeader.FrameSize.FrameWidth;
 
-        // AV1 signals the upscaled width first. Tile and block decoding use the rounded-down
-        // coded width obtained from the fixed scale numerator and signaled denominator.
+        // AV1 signals the upscaled width first. Tile and block decoding use the nearest-integer coded width obtained
+        // from the fixed scale numerator and signaled denominator.
         frameHeader.FrameSize.FrameWidth =
             ((frameHeader.FrameSize.SuperResolutionUpscaledWidth * Av1Constants.ScaleNumerator) +
             (frameHeader.FrameSize.SuperResolutionDenominator / 2)) /
@@ -831,8 +980,11 @@ internal class ObuReader
     {
         ObuFrameHeader frameHeader = this.FrameHeader!;
         bool renderSizeAndFrameSizeDifferent = reader.ReadBoolean();
+
         if (renderSizeAndFrameSizeDifferent)
         {
+            // render_width_minus_1 and render_height_minus_1 are fixed 16-bit fields, independent of the sequence's
+            // coded-dimension bit widths.
             frameHeader.FrameSize.RenderWidth = (int)reader.ReadLiteral(16) + 1;
             frameHeader.FrameSize.RenderHeight = (int)reader.ReadLiteral(16) + 1;
         }
@@ -852,10 +1004,20 @@ internal class ObuReader
     {
         ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
         ObuFrameHeader frameHeader = this.FrameHeader!;
+
         if (frameSizeOverrideFlag)
         {
             frameHeader.FrameSize.FrameWidth = (int)reader.ReadLiteral(sequenceHeader.FrameWidthBits) + 1;
             frameHeader.FrameSize.FrameHeight = (int)reader.ReadLiteral(sequenceHeader.FrameHeightBits) + 1;
+
+            // Section 5.9.7 signals frame dimensions using the sequence maxima's bit widths, but the resulting values
+            // remain constrained by those maxima. Rejecting the oversized result here prevents later buffer geometry
+            // from accepting a value that the sequence header does not permit.
+            if (frameHeader.FrameSize.FrameWidth > sequenceHeader.MaxFrameWidth ||
+                frameHeader.FrameSize.FrameHeight > sequenceHeader.MaxFrameHeight)
+            {
+                throw new InvalidImageContentException("AV1 frame dimensions exceed the sequence maximum dimensions.");
+            }
         }
         else
         {
@@ -865,6 +1027,103 @@ internal class ObuReader
 
         this.ReadSuperResolutionParameters(ref reader);
         this.ComputeImageSize(sequenceHeader);
+    }
+
+    /// <summary>
+    /// Reads or inherits inter-frame dimensions using the seven selected reference roles.
+    /// </summary>
+    /// <param name="reader">The reader positioned at the frame-size-with-references syntax.</param>
+    /// <param name="referenceFrames">The retained reconstructed frames selected by the current reference mapping.</param>
+    private void ReadFrameSizeWithReferences(ref Av1BitStreamReader reader, Av1ReferenceFrameStore referenceFrames)
+    {
+        ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
+        ObuFrameHeader frameHeader = this.FrameHeader!;
+        ObuFrameSize frameSize = frameHeader.FrameSize;
+        Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+        bool foundReference = false;
+
+        // frame_size_with_refs carries one found_ref bit per selected role only until the first one is set. A set bit
+        // terminates this syntax immediately; no flags for the remaining roles are present in the bitstream.
+        for (int reference = 0; reference < Av1Constants.ReferencesPerFrame; reference++)
+        {
+            if (!reader.ReadBoolean())
+            {
+                continue;
+            }
+
+            Av1ReferenceFrame referenceFrame = referenceFrames.Resolve((int)referenceFrameIndices[reference])!;
+            ObuFrameSize referenceSize = referenceFrame.FrameHeader.FrameSize;
+
+            // AV1 5.9.7 inherits the reference buffer's visible post-super-resolution dimensions, corresponding to
+            // libaom's y_crop_width and y_crop_height, plus its render rectangle. The current frame then signals its own
+            // super-resolution denominator, so the reference's coded width and denominator are not copied.
+            frameSize.FrameWidth = referenceFrame.FrameBuffer.Width;
+            frameSize.FrameHeight = referenceFrame.FrameBuffer.Height;
+            frameSize.RenderWidth = referenceSize.RenderWidth;
+            frameSize.RenderHeight = referenceSize.RenderHeight;
+            this.ReadSuperResolutionParameters(ref reader);
+            this.ComputeImageSize(sequenceHeader);
+            foundReference = true;
+            break;
+        }
+
+        if (!foundReference)
+        {
+            // When no reference supplies dimensions, frame_size_with_refs carries the ordinary explicit frame size,
+            // current super-resolution syntax, and render-size syntax in that order.
+            this.ReadFrameSize(ref reader, true);
+            this.ReadRenderSize(ref reader);
+        }
+
+        bool hasCompatibleReferenceSize = false;
+        ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
+
+        for (int reference = 0; reference < Av1Constants.ReferencesPerFrame; reference++)
+        {
+            Av1ReferenceFrame referenceFrame = referenceFrames.Resolve((int)referenceFrameIndices[reference])!;
+            int referenceWidth = referenceFrame.FrameBuffer.Width;
+            int referenceHeight = referenceFrame.FrameBuffer.Height;
+
+            // AV1 6.8.6 permits a reference dimension from one half through sixteen times the current coded
+            // dimension. setup_frame_size_with_refs requires at least one of the seven selected roles to satisfy both
+            // axes before the frame may proceed.
+            hasCompatibleReferenceSize |=
+                (2 * frameSize.FrameWidth) >= referenceWidth &&
+                (2 * frameSize.FrameHeight) >= referenceHeight &&
+                frameSize.FrameWidth <= (16 * referenceWidth) &&
+                frameSize.FrameHeight <= (16 * referenceHeight);
+
+            ObuColorConfig referenceColorConfig = referenceFrame.FrameBuffer.ColorConfig;
+
+            // Every selected reference participates in the same prediction sample domain. Mixing bit depth or chroma
+            // subsampling would change sample interpretation and is prohibited even when that role is not selected by
+            // any block in the current frame.
+            if (referenceFrame.FrameBuffer.BitDepth != colorConfig.BitDepth ||
+                referenceColorConfig.SubSamplingX != colorConfig.SubSamplingX ||
+                referenceColorConfig.SubSamplingY != colorConfig.SubSamplingY)
+            {
+                throw new InvalidImageContentException("An AV1 inter frame selects a reference with an incompatible color format.");
+            }
+        }
+
+        if (!hasCompatibleReferenceSize)
+        {
+            throw new InvalidImageContentException("An AV1 inter frame has no reference with compatible dimensions.");
+        }
+    }
+
+    /// <summary>
+    /// Reads the frame-level interpolation-filter selection.
+    /// </summary>
+    /// <param name="reader">The reader positioned at the interpolation-filter syntax.</param>
+    /// <returns>The fixed filter family or the per-block switchable selection.</returns>
+    private static Av1InterpolationFilter ReadFrameInterpolationFilter(ref Av1BitStreamReader reader)
+    {
+        // A leading one omits the two-bit fixed-family field and delegates the choice to each inter block. Otherwise,
+        // the literal values map directly to regular, smooth, sharp, and bilinear as defined by AV1 6.10.2.
+        return reader.ReadBoolean()
+            ? Av1InterpolationFilter.Switchable
+            : (Av1InterpolationFilter)reader.ReadLiteral(2);
     }
 
     /// <summary>
@@ -1027,7 +1286,7 @@ internal class ObuReader
     }
 
     /// <summary>
-    /// Reads the uncompressed syntax for the current still-image frame.
+    /// Reads the uncompressed syntax for one coded frame in a bounded AV1 image item or layered image sequence.
     /// </summary>
     /// <param name="reader">The reader positioned at the uncompressed frame header.</param>
     /// <param name="header">The OBU header identifying the frame's temporal and spatial layers.</param>
@@ -1035,8 +1294,8 @@ internal class ObuReader
     {
         ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
         ObuFrameHeader frameHeader = this.FrameHeader!;
+        Av1ReferenceFrame? primaryReference = null;
         int idLength = sequenceHeader.FrameIdLength;
-        uint previousFrameId = 0;
         bool frameSizeOverrideFlag = false;
         if (sequenceHeader.IsFrameIdNumbersPresent)
         {
@@ -1074,8 +1333,8 @@ internal class ObuReader
                     frameHeader.DisplayFrameId = reader.ReadLiteral(idLength);
                 }
 
-                // Showing an existing frame requires sequence reference storage. The image-item decoder deliberately
-                // owns one independently coded picture and therefore rejects this sequence-only operation at its boundary.
+                // The bounded image-item decoder retains reference state only to reconstruct coded dependent layers.
+                // show_existing_frame is a presentation-timeline operation and remains outside that image-only scope.
                 throw new InvalidImageContentException("An AV1 image item cannot display a previously decoded frame.");
             }
 
@@ -1114,7 +1373,6 @@ internal class ObuReader
         if (frameHeader.FrameType == ObuFrameType.KeyFrame && frameHeader.ShowFrame)
         {
             frameHeader.GetReferenceValidity().Clear();
-            frameHeader.GetReferenceOrderHints().Clear();
         }
 
         frameHeader.DisableCdfUpdate = reader.ReadBoolean();
@@ -1148,45 +1406,28 @@ internal class ObuReader
             frameHeader.ForceIntegerMotionVector = true;
         }
 
-        bool havePreviousFrameId = !(frameHeader.FrameType == ObuFrameType.KeyFrame && frameHeader.ShowFrame);
-        if (havePreviousFrameId)
-        {
-            previousFrameId = frameHeader.CurrentFrameId;
-        }
+        bool havePreviousFrameId = this.frameReferenceState.HasCurrentFrameId &&
+            !(frameHeader.FrameType == ObuFrameType.KeyFrame && frameHeader.ShowFrame);
+
+        uint previousFrameId = this.frameReferenceState.CurrentFrameId;
 
         if (sequenceHeader.IsFrameIdNumbersPresent)
         {
             frameHeader.CurrentFrameId = reader.ReadLiteral(idLength);
             if (havePreviousFrameId)
             {
-                uint diffFrameId = (frameHeader.CurrentFrameId > previousFrameId) ?
-                    frameHeader.CurrentFrameId - previousFrameId :
-                    (uint)((1 << idLength) + (int)frameHeader.CurrentFrameId - previousFrameId);
-                if (frameHeader.CurrentFrameId == previousFrameId || diffFrameId >= 1 << (idLength - 1))
+                uint frameIdModulus = 1U << idLength;
+                uint diffFrameId = frameHeader.CurrentFrameId > previousFrameId
+                    ? frameHeader.CurrentFrameId - previousFrameId
+                    : frameIdModulus + frameHeader.CurrentFrameId - previousFrameId;
+
+                if (frameHeader.CurrentFrameId == previousFrameId || diffFrameId >= 1U << (idLength - 1))
                 {
                     throw new ImageFormatException("Current frame ID cannot be same as previous Frame ID");
                 }
             }
 
-            int diffLength = sequenceHeader.DeltaFrameIdLength;
-            Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
-            Span<bool> referenceValidity = frameHeader.GetReferenceValidity();
-            for (int i = 0; i < Av1Constants.ReferenceFrameCount; i++)
-            {
-                if (frameHeader.CurrentFrameId > (1U << diffLength))
-                {
-                    if ((referenceFrameIndices[i] > frameHeader.CurrentFrameId) ||
-                        referenceFrameIndices[i] > (frameHeader.CurrentFrameId - (1 - diffLength)))
-                    {
-                        referenceValidity[i] = false;
-                    }
-                }
-                else if (referenceFrameIndices[i] > frameHeader.CurrentFrameId &&
-                    referenceFrameIndices[i] < ((1 << idLength) + (frameHeader.CurrentFrameId - (1 << diffLength))))
-                {
-                    referenceValidity[i] = false;
-                }
-            }
+            frameHeader.MarkReferenceFrames(idLength, sequenceHeader.DeltaFrameIdLength);
         }
         else
         {
@@ -1258,13 +1499,13 @@ internal class ObuReader
 
         if (!frameHeader.IsIntra || (frameHeader.RefreshFrameFlags != 0xFFU))
         {
-            if (frameHeader.ErrorResilientMode && sequenceHeader.OrderHintInfo != null)
+            if (frameHeader.ErrorResilientMode && sequenceHeader.OrderHintInfo.EnableOrderHint)
             {
                 Span<uint> referenceOrderHints = frameHeader.GetReferenceOrderHints();
                 Span<bool> referenceValidity = frameHeader.GetReferenceValidity();
                 for (int i = 0; i < Av1Constants.ReferenceFrameCount; i++)
                 {
-                    int referenceOrderHint = (int)reader.ReadLiteral(sequenceHeader.OrderHintInfo.OrderHintBits);
+                    uint referenceOrderHint = reader.ReadLiteral(sequenceHeader.OrderHintInfo.OrderHintBits);
                     if (referenceOrderHint != referenceOrderHints[i])
                     {
                         referenceValidity[i] = false;
@@ -1287,8 +1528,54 @@ internal class ObuReader
         }
         else
         {
-            // Single image is always Intra.
-            throw new InvalidImageContentException("AVIF image can only contain INTRA frames.");
+            Av1ReferenceFrameStore? retainedReferenceFrames = this.referenceFrames;
+
+            if (retainedReferenceFrames is null)
+            {
+                // Inter-frame size syntax reads dimensions from reconstructed references. Header-only parser users do
+                // not own those samples, while the production decoder establishes this dependency in its constructor.
+                throw new InvalidOperationException("AV1 inter-frame parsing requires a reconstructed reference map.");
+            }
+
+            ReadReferenceFrameIndices(ref reader, sequenceHeader, frameHeader, retainedReferenceFrames);
+
+            if (frameHeader.PrimaryReferenceSlot.HasValue)
+            {
+                // Reference-index parsing validates the resolved slot before publishing it on the header. Retaining
+                // the owner here keeps every inherited frame state tied to the same normative primary reference.
+                primaryReference = retainedReferenceFrames.Resolve(frameHeader.PrimaryReferenceSlot.Value)!;
+            }
+
+            if (!frameHeader.ErrorResilientMode && frameSizeOverrideFlag)
+            {
+                this.ReadFrameSizeWithReferences(ref reader, retainedReferenceFrames);
+            }
+            else
+            {
+                this.ReadFrameSize(ref reader, frameSizeOverrideFlag);
+                this.ReadRenderSize(ref reader);
+            }
+
+            if (!frameHeader.ForceIntegerMotionVector)
+            {
+                frameHeader.AllowHighPrecisionMotionVector = reader.ReadBoolean();
+            }
+
+            frameHeader.InterpolationFilter = ReadFrameInterpolationFilter(ref reader);
+            frameHeader.IsMotionModeSwitchable = reader.ReadBoolean();
+        }
+
+        bool mightAllowReferenceFrameMotionVectors =
+            !frameHeader.ErrorResilientMode &&
+            sequenceHeader.OrderHintInfo.EnableReferenceFrameMotionVectors &&
+            sequenceHeader.OrderHintInfo.EnableOrderHint &&
+            !frameHeader.IsIntra;
+
+        if (mightAllowReferenceFrameMotionVectors)
+        {
+            // AV1 5.9.2 carries this flag only when temporal order hints and the sequence-level reference-MV tool are
+            // both available. All other frame classes derive false without consuming a bit.
+            frameHeader.UseReferenceFrameMotionVectors = reader.ReadBoolean();
         }
 
         // SetupFrameBufferReferences(sequenceHeader, frameHeader);
@@ -1304,42 +1591,27 @@ internal class ObuReader
             frameHeader.DisableFrameEndUpdateCdf = reader.ReadBoolean();
         }
 
-        if (frameHeader.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone)
+        if (primaryReference is not null)
         {
-            // InitConCoefficientCdfs();
-            // SetupPastIndependence(frameHeader);
-        }
-        else
-        {
-            // LoadCdfs(frameHeader.PrimaryReferenceFrame);
-            // LoadPrevious();
-            throw new NotImplementedException();
+            // When update flags omit new values, loop-filter deltas inherit from the primary frame. Copying the two
+            // fixed tables before parsing lets the existing header object retain unchanged entries without aliases.
+            primaryReference.FrameHeader.LoopFilterParameters.ReferenceDeltas.AsSpan().CopyTo(frameHeader.LoopFilterParameters.ReferenceDeltas);
+            primaryReference.FrameHeader.LoopFilterParameters.ModeDeltas.AsSpan().CopyTo(frameHeader.LoopFilterParameters.ModeDeltas);
         }
 
-        if (frameHeader.UseReferenceFrameMotionVectors)
-        {
-            // MotionFieldEstimations();
-            throw new NotImplementedException();
-        }
+        // Entropy defaults depend on base_q_idx, which follows tile information in the header. Av1TileReader therefore
+        // loads either the retained primary snapshot or the selected quantizer-band defaults at the first tile boundary.
 
         // GenerateNextReferenceFrameMap(sequenceHeader, frameHeader);
         frameHeader.TilesInfo = ReadTileInfo(ref reader, sequenceHeader, frameHeader);
         ReadQuantizationParameters(ref reader, sequenceHeader, frameHeader);
-        ReadSegmentationParameters(ref reader, frameHeader);
+        ReadSegmentationParameters(ref reader, frameHeader, primaryReference?.FrameHeader.SegmentationParameters);
         ReadFrameDeltaQParameters(ref reader, frameHeader);
         ReadFrameDeltaLoopFilterParameters(ref reader, frameHeader);
 
         // SetupSegmentationDequantization();
-        if (frameHeader.PrimaryReferenceFrame == Av1Constants.PrimaryReferenceFrameNone)
-        {
-            // ResetParseContext(mainParseContext, frameHeader.QuantizationParameters.BaseQIndex);
-        }
-        else
-        {
-            // LoadPreviousSegmentIds();
-            throw new NotImplementedException();
-        }
-
+        // The primary frame retains its decoded segment map in Av1FrameInfo. Inter block parsing copies or predicts
+        // segment identifiers from that map according to update_map instead of duplicating it in the frame header.
         Av1QuantizationLookup.UpdateFrameQuantizationState(frameHeader);
 
         if (frameHeader.CodedLossless)
@@ -1364,8 +1636,91 @@ internal class ObuReader
         }
 
         frameHeader.UseReducedTransformSet = reader.ReadBoolean();
-        ReadGlobalMotionParameters(ref reader, sequenceHeader, frameHeader);
-        frameHeader.FilmGrainParameters = ReadFilmGrainFilterParameters(ref reader, sequenceHeader, frameHeader);
+        this.ReadGlobalMotionParameters(ref reader, frameHeader);
+        this.ReadFilmGrainFilterParameters(ref reader, sequenceHeader, frameHeader);
+    }
+
+    /// <summary>
+    /// Reads or derives the seven reference-map slots used by an inter frame and resolves its primary context source.
+    /// </summary>
+    /// <param name="reader">The reader positioned at the inter-reference signaling syntax.</param>
+    /// <param name="sequenceHeader">The sequence header defining frame-ID and order-hint domains.</param>
+    /// <param name="frameHeader">The frame header that receives the seven-entry reference mapping.</param>
+    /// <param name="referenceFrames">The retained reconstructed frames backing the eight reference-map slots.</param>
+    private static void ReadReferenceFrameIndices(
+        ref Av1BitStreamReader reader,
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        Av1ReferenceFrameStore referenceFrames)
+    {
+        Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+        Span<bool> referenceValidity = frameHeader.GetReferenceValidity();
+        bool usesShortSignaling = sequenceHeader.OrderHintInfo.EnableOrderHint && reader.ReadBoolean();
+
+        if (usesShortSignaling)
+        {
+            uint lastFrameIndex = reader.ReadLiteral(ReferenceFrameIndexBits);
+            uint goldenFrameIndex = reader.ReadLiteral(ReferenceFrameIndexBits);
+            InlineArray8<bool> slotOccupancyStorage = default;
+            Span<bool> slotOccupancy = slotOccupancyStorage;
+
+            referenceFrames.FillOccupancy(slotOccupancy);
+
+            // Short signaling transmits only LAST and GOLDEN. The remaining five roles are a normative derivation from
+            // the persisted slot order hints and physical slot occupancy, not frame-ID validity or a decoder heuristic.
+            Av1ReferenceFrameDerivation.DeriveShortSignaledReferences(
+                frameHeader.OrderHint,
+                sequenceHeader.OrderHintInfo.OrderHintBits,
+                lastFrameIndex,
+                goldenFrameIndex,
+                frameHeader.GetReferenceOrderHints(),
+                slotOccupancy,
+                referenceFrameIndices);
+        }
+
+        Span<uint> referenceFrameIds = frameHeader.GetReferenceFrameIds();
+        uint frameIdModulus = 1U << sequenceHeader.FrameIdLength;
+
+        for (int reference = 0; reference < Av1Constants.ReferencesPerFrame; reference++)
+        {
+            uint slot = referenceFrameIndices[reference];
+            if (!usesShortSignaling)
+            {
+                slot = reader.ReadLiteral(ReferenceFrameIndexBits);
+                referenceFrameIndices[reference] = slot;
+            }
+
+            // Slot occupancy and frame-ID validity are independent normative states. Short signaling derives roles
+            // from every occupied slot before this per-role validity check, matching av1_set_frame_refs followed by
+            // libaom's valid_for_referencing check.
+            if (referenceFrames.Resolve((int)slot) is null)
+            {
+                throw new InvalidImageContentException("An AV1 inter frame selects an unoccupied reference-map slot.");
+            }
+
+            if (!referenceValidity[(int)slot])
+            {
+                throw new InvalidImageContentException("An AV1 inter frame selects a reference that is not valid for referencing.");
+            }
+
+            if (sequenceHeader.IsFrameIdNumbersPresent)
+            {
+                uint deltaFrameId = reader.ReadLiteral(sequenceHeader.DeltaFrameIdLength) + 1U;
+                uint expectedFrameId = (frameHeader.CurrentFrameId + frameIdModulus - deltaFrameId) % frameIdModulus;
+
+                if (referenceFrameIds[(int)slot] != expectedFrameId)
+                {
+                    throw new InvalidImageContentException("An AV1 inter reference does not match its signaled frame identifier.");
+                }
+            }
+        }
+
+        if (frameHeader.PrimaryReferenceFrame != Av1Constants.PrimaryReferenceFrameNone)
+        {
+            // primary_ref_frame indexes the seven inter-reference roles, not the eight-slot retained map. Resolve it
+            // once so entropy, segmentation, loop-filter, and motion state all select the same retained owner later.
+            frameHeader.PrimaryReferenceSlot = (byte)referenceFrameIndices[(int)frameHeader.PrimaryReferenceFrame];
+        }
     }
 
     /// <summary>
@@ -1406,8 +1761,14 @@ internal class ObuReader
     /// <param name="reader">The reader positioned at the tile-group payload.</param>
     /// <param name="decoder">The tile reader that decodes each tile payload.</param>
     /// <param name="header">The OBU header containing the remaining tile-group payload size.</param>
-    /// <param name="isLastTileGroup">Receives whether this group contains the final tile of the frame.</param>
-    private void ReadTileGroup(ref Av1BitStreamReader reader, IAv1TileReader decoder, ObuHeader header, out bool isLastTileGroup)
+    /// <param name="nextTileStart">The zero-based tile index that must begin this group and receives the next expected index.</param>
+    /// <param name="isLastTileGroup">Receives whether this group completes the frame's ordered tile coverage.</param>
+    private void ReadTileGroup(
+        ref Av1BitStreamReader reader,
+        IAv1TileReader decoder,
+        ObuHeader header,
+        ref int nextTileStart,
+        out bool isLastTileGroup)
     {
         ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
         ObuFrameHeader frameHeader = this.FrameHeader!;
@@ -1420,9 +1781,9 @@ internal class ObuReader
             tileStartAndEndPresentFlag = reader.ReadBoolean();
         }
 
-        if (header.Type == ObuType.FrameHeader)
+        if (header.Type == ObuType.Frame && tileStartAndEndPresentFlag)
         {
-            DebugGuard.IsFalse(tileStartAndEndPresentFlag, nameof(tileStartAndEndPresentFlag), "Frame header should not set 'tileStartAndEndPresentFlag'.");
+            throw new InvalidImageContentException("A combined AV1 frame OBU cannot signal explicit tile-group bounds.");
         }
 
         int tileGroupStart = 0;
@@ -1434,7 +1795,11 @@ internal class ObuReader
             tileGroupEnd = (int)reader.ReadLiteral(tileBits);
         }
 
-        isLastTileGroup = (tileGroupEnd + 1) == tileCount;
+        if (tileGroupStart != nextTileStart || tileGroupStart > tileGroupEnd || tileGroupEnd >= tileCount)
+        {
+            throw new InvalidImageContentException("The AV1 tile groups do not provide complete ordered frame coverage.");
+        }
+
         AlignToByteBoundary(ref reader);
         int endBitPosition = reader.BitPosition;
         int headerBytes = (endBitPosition - startBitPosition) / 8;
@@ -1466,6 +1831,9 @@ internal class ObuReader
             Span<byte> tileData = reader.GetSymbolReader(tileDataSize);
             decoder.ReadTile(tileData, tileNum);
         }
+
+        nextTileStart = tileGroupEnd + 1;
+        isLastTileGroup = nextTileStart == tileCount;
 
         if (tileGroupEnd != tileCount - 1)
         {
@@ -1605,7 +1973,13 @@ internal class ObuReader
     /// </summary>
     /// <param name="reader">The reader positioned at the segmentation parameters.</param>
     /// <param name="frameHeader">The frame header that receives the segmentation state.</param>
-    private static void ReadSegmentationParameters(ref Av1BitStreamReader reader, ObuFrameHeader frameHeader)
+    /// <param name="primaryParameters">
+    /// The primary-reference feature state, or <see langword="null"/> when the frame has no primary reference.
+    /// </param>
+    private static void ReadSegmentationParameters(
+        ref Av1BitStreamReader reader,
+        ObuFrameHeader frameHeader,
+        ObuSegmentationParameters? primaryParameters)
     {
         frameHeader.SegmentationParameters.Enabled = reader.ReadBoolean();
 
@@ -1657,6 +2031,12 @@ internal class ObuReader
                         frameHeader.SegmentationParameters.FeatureData[i, j] = clippedValue;
                     }
                 }
+            }
+            else
+            {
+                // update_data equal to zero preserves the complete feature mask and values from the primary frame.
+                // The current header owns its arrays, so later reference replacement cannot mutate inherited state.
+                frameHeader.SegmentationParameters.CopyFeaturesFrom(primaryParameters!);
             }
         }
         else
@@ -1860,20 +2240,139 @@ internal class ObuReader
     /// Reads global-motion parameters when permitted by the frame type.
     /// </summary>
     /// <param name="reader">The reader positioned at the global-motion parameters.</param>
-    /// <param name="sequenceHeader">The sequence header controlling global-motion tools.</param>
     /// <param name="frameHeader">The current frame header.</param>
-    private static void ReadGlobalMotionParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
+    private void ReadGlobalMotionParameters(ref Av1BitStreamReader reader, ObuFrameHeader frameHeader)
     {
-        _ = reader;
-        _ = sequenceHeader;
+        Span<Av1GlobalMotionParameters> parameters = frameHeader.GetGlobalMotionParameters();
+        parameters.Fill(Av1GlobalMotionParameters.Identity);
 
         if (frameHeader.IsIntra)
         {
             return;
         }
 
-        // Not applicable for INTRA frames.
-        throw new NotImplementedException();
+        ObuFrameHeader? primaryReferenceHeader = null;
+        byte? primaryReferenceSlot = frameHeader.PrimaryReferenceSlot;
+        if (primaryReferenceSlot is not null)
+        {
+            // primary_ref_frame identifies the preceding frame whose same seven canonical reference roles supply the
+            // recentering values. Reference-slot validation has already completed before this syntax is reached.
+            primaryReferenceHeader = this.referenceFrames!.Resolve(primaryReferenceSlot.Value)!.FrameHeader;
+        }
+
+        for (int referenceIndex = 0; referenceIndex < Av1Constants.ReferencesPerFrame; referenceIndex++)
+        {
+            Av1GlobalMotionParameters referenceParameters = primaryReferenceHeader is null
+                ? Av1GlobalMotionParameters.Identity
+                : primaryReferenceHeader.GetGlobalMotionParameters()[referenceIndex];
+
+            ReadGlobalMotionModel(
+                ref reader,
+                ref parameters[referenceIndex],
+                referenceParameters,
+                frameHeader.AllowHighPrecisionMotionVector);
+        }
+    }
+
+    /// <summary>
+    /// Reads one global-motion model relative to the corresponding model retained by the primary reference frame.
+    /// </summary>
+    /// <param name="reader">The reader positioned at the model type and parameter syntax.</param>
+    /// <param name="parameters">The destination global-motion model.</param>
+    /// <param name="referenceParameters">The same-role model retained by the primary reference frame.</param>
+    /// <param name="allowHighPrecisionMotionVector">
+    /// A value indicating whether translation-only parameters retain their high-precision bit.
+    /// </param>
+    private static void ReadGlobalMotionModel(
+        ref Av1BitStreamReader reader,
+        ref Av1GlobalMotionParameters parameters,
+        Av1GlobalMotionParameters referenceParameters,
+        bool allowHighPrecisionMotionVector)
+    {
+        Av1GlobalMotionType type = Av1GlobalMotionType.Identity;
+        if (reader.ReadBoolean())
+        {
+            if (reader.ReadBoolean())
+            {
+                type = Av1GlobalMotionType.RotationZoom;
+            }
+            else
+            {
+                type = reader.ReadBoolean() ? Av1GlobalMotionType.Translation : Av1GlobalMotionType.Affine;
+            }
+        }
+
+        parameters = Av1GlobalMotionParameters.Identity;
+        parameters.Type = type;
+        if (type >= Av1GlobalMotionType.RotationZoom)
+        {
+            // Diagonal terms are coded as a delta from the identity scale, whereas off-diagonal terms are centered
+            // directly around zero. Both are restored to the common sixteen-bit matrix precision after decoding.
+            parameters[2] =
+                (reader.ReadSignedReferenceSubexponential(
+                    GlobalMotionAlphaValueMagnitude,
+                    GlobalMotionSubexponentialGroupBitCount,
+                    (referenceParameters[2] >> GlobalMotionAlphaPrecisionDifference) - (1 << GlobalMotionAlphaPrecisionBits)) * GlobalMotionAlphaDecodeFactor) +
+                Av1GlobalMotionParameters.ModelScale;
+
+            parameters[3] = reader.ReadSignedReferenceSubexponential(
+                GlobalMotionAlphaValueMagnitude,
+                GlobalMotionSubexponentialGroupBitCount,
+                referenceParameters[3] >> GlobalMotionAlphaPrecisionDifference) * GlobalMotionAlphaDecodeFactor;
+        }
+
+        if (type >= Av1GlobalMotionType.Affine)
+        {
+            parameters[4] = reader.ReadSignedReferenceSubexponential(
+                GlobalMotionAlphaValueMagnitude,
+                GlobalMotionSubexponentialGroupBitCount,
+                referenceParameters[4] >> GlobalMotionAlphaPrecisionDifference) * GlobalMotionAlphaDecodeFactor;
+
+            parameters[5] =
+                (reader.ReadSignedReferenceSubexponential(
+                    GlobalMotionAlphaValueMagnitude,
+                    GlobalMotionSubexponentialGroupBitCount,
+                    (referenceParameters[5] >> GlobalMotionAlphaPrecisionDifference) - (1 << GlobalMotionAlphaPrecisionBits)) * GlobalMotionAlphaDecodeFactor) +
+                Av1GlobalMotionParameters.ModelScale;
+        }
+        else
+        {
+            // Rotation-zoom constrains the second matrix row to the perpendicular vector of the first row. Identity
+            // and translation models retain the same derived identity coefficients.
+            parameters[4] = -parameters[3];
+            parameters[5] = parameters[2];
+        }
+
+        if (type >= Av1GlobalMotionType.Translation)
+        {
+            // Translation-only models use a wider coordinate domain than affine models. When high-precision motion is
+            // disabled, AV1 removes one coded bit and adds one reconstruction shift so the physical displacement grid
+            // remains in quarter-sample units. Affine translation retains the fixed model-to-translation precision gap.
+            int precisionAdjustment = type == Av1GlobalMotionType.Translation && !allowHighPrecisionMotionVector ? 1 : 0;
+            int translationBits = type == Av1GlobalMotionType.Translation
+                ? GlobalMotionAbsoluteTranslationOnlyBits - precisionAdjustment
+                : GlobalMotionAbsoluteTranslationBits;
+
+            int translationPrecisionDifference = type == Av1GlobalMotionType.Translation
+                ? Av1GlobalMotionParameters.ModelPrecisionBits - GlobalMotionTranslationOnlyPrecisionBits + precisionAdjustment
+                : Av1GlobalMotionParameters.ModelPrecisionBits - GlobalMotionTranslationPrecisionBits;
+
+            int translationDecodeFactor = 1 << translationPrecisionDifference;
+            int translationValueMagnitude = (1 << translationBits) + 1;
+            parameters[0] = reader.ReadSignedReferenceSubexponential(
+                translationValueMagnitude,
+                GlobalMotionSubexponentialGroupBitCount,
+                referenceParameters[0] >> translationPrecisionDifference) * translationDecodeFactor;
+
+            parameters[1] = reader.ReadSignedReferenceSubexponential(
+                translationValueMagnitude,
+                GlobalMotionSubexponentialGroupBitCount,
+                referenceParameters[1] >> translationPrecisionDifference) * translationDecodeFactor;
+        }
+
+        // Invalid shear does not invalidate the frame header. AV1 retains the decoded model and marks it unavailable
+        // to warped prediction, which is why validity is stored with the parameters instead of throwing here.
+        parameters.UpdateShearParameters();
     }
 
     /// <summary>
@@ -1925,19 +2424,18 @@ internal class ObuReader
     /// <param name="reader">The reader positioned at the film-grain parameters.</param>
     /// <param name="sequenceHeader">The sequence header defining film-grain availability and color sampling.</param>
     /// <param name="frameHeader">The current frame header.</param>
-    /// <returns>The parsed film-grain parameters.</returns>
-    private static ObuFilmGrainParameters ReadFilmGrainFilterParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
+    private void ReadFilmGrainFilterParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
-        ObuFilmGrainParameters grainParams = new();
+        ObuFilmGrainParameters grainParams = frameHeader.FilmGrainParameters;
         if (!sequenceHeader.AreFilmGrainingParametersPresent || (!frameHeader.ShowFrame && !frameHeader.ShowableFrame))
         {
-            return grainParams;
+            return;
         }
 
         grainParams.ApplyGrain = reader.ReadBoolean();
         if (!grainParams.ApplyGrain)
         {
-            return grainParams;
+            return;
         }
 
         grainParams.GrainSeed = reader.ReadLiteral(16);
@@ -1948,29 +2446,56 @@ internal class ObuReader
         }
         else
         {
-            // Only inter frames can inherit parameters from a reference frame. Still-image
-            // intra frames always carry a complete parameter set when grain is enabled.
+            // Only inter frames can inherit parameters from a reference frame. Intra frames always carry a complete
+            // parameter set when grain is enabled.
             grainParams.UpdateGrain = true;
         }
 
         if (!grainParams.UpdateGrain)
         {
-            grainParams.FilmGrainParamsRefidx = reader.ReadLiteral(3);
-            uint tempGrainSeed = grainParams.GrainSeed;
+            grainParams.FilmGrainParamsRefIdx = reader.ReadLiteral(3);
+            Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+            bool isSelectedReference = false;
+            for (int reference = 0; reference < Av1Constants.ReferencesPerFrame; reference++)
+            {
+                isSelectedReference |= referenceFrameIndices[reference] == grainParams.FilmGrainParamsRefIdx;
+            }
 
-            // TODO: implement load_grain_params
-            // load_grain_params(film_grain_params_ref_idx)
-            grainParams.GrainSeed = tempGrainSeed;
-            return grainParams;
+            Av1ReferenceFrame? referenceFrame = isSelectedReference
+                ? this.referenceFrames?.Resolve((int)grainParams.FilmGrainParamsRefIdx)
+                : null;
+
+            if (referenceFrame is null)
+            {
+                throw new InvalidImageContentException("The AV1 film-grain reference does not provide retained parameters.");
+            }
+
+            uint grainSeed = grainParams.GrainSeed;
+            uint referenceIndex = grainParams.FilmGrainParamsRefIdx;
+
+            // AV1 inherits the complete parameter set but always uses the new frame's independently signaled seed.
+            // Fixed inline buffers make this a value copy rather than nine small array allocations.
+            grainParams.CopyFrom(referenceFrame.FrameHeader.FilmGrainParameters);
+            grainParams.GrainSeed = grainSeed;
+            grainParams.FilmGrainParamsRefIdx = referenceIndex;
+            return;
         }
 
         grainParams.NumYPoints = reader.ReadLiteral(4);
-        grainParams.PointYValue = new uint[grainParams.NumYPoints];
-        grainParams.PointYScaling = new uint[grainParams.NumYPoints];
+        if (grainParams.NumYPoints > 14)
+        {
+            throw new InvalidImageContentException("The AV1 film-grain luma scaling function exceeds fourteen points.");
+        }
+
         for (int i = 0; i < grainParams.NumYPoints; i++)
         {
-            grainParams.PointYValue[i] = reader.ReadLiteral(8);
-            grainParams.PointYScaling[i] = reader.ReadLiteral(8);
+            grainParams.PointYValue[i] = (byte)reader.ReadLiteral(8);
+            if (i > 0 && grainParams.PointYValue[i] <= grainParams.PointYValue[i - 1])
+            {
+                throw new InvalidImageContentException("The AV1 film-grain luma scaling coordinates are not strictly increasing.");
+            }
+
+            grainParams.PointYScaling[i] = (byte)reader.ReadLiteral(8);
         }
 
         if (sequenceHeader.ColorConfig.IsMonochrome)
@@ -1992,21 +2517,44 @@ internal class ObuReader
         else
         {
             grainParams.NumCbPoints = reader.ReadLiteral(4);
-            grainParams.PointCbValue = new uint[grainParams.NumCbPoints];
-            grainParams.PointCbScaling = new uint[grainParams.NumCbPoints];
+            if (grainParams.NumCbPoints > 10)
+            {
+                throw new InvalidImageContentException("The AV1 film-grain blue-difference scaling function exceeds ten points.");
+            }
+
             for (int i = 0; i < grainParams.NumCbPoints; i++)
             {
-                grainParams.PointCbValue[i] = reader.ReadLiteral(8);
-                grainParams.PointCbScaling[i] = reader.ReadLiteral(8);
+                grainParams.PointCbValue[i] = (byte)reader.ReadLiteral(8);
+                if (i > 0 && grainParams.PointCbValue[i] <= grainParams.PointCbValue[i - 1])
+                {
+                    throw new InvalidImageContentException("The AV1 film-grain blue-difference scaling coordinates are not strictly increasing.");
+                }
+
+                grainParams.PointCbScaling[i] = (byte)reader.ReadLiteral(8);
             }
 
             grainParams.NumCrPoints = reader.ReadLiteral(4);
-            grainParams.PointCrValue = new uint[grainParams.NumCrPoints];
-            grainParams.PointCrScaling = new uint[grainParams.NumCrPoints];
+            if (grainParams.NumCrPoints > 10)
+            {
+                throw new InvalidImageContentException("The AV1 film-grain red-difference scaling function exceeds ten points.");
+            }
+
             for (int i = 0; i < grainParams.NumCrPoints; i++)
             {
-                grainParams.PointCrValue[i] = reader.ReadLiteral(8);
-                grainParams.PointCrScaling[i] = reader.ReadLiteral(8);
+                grainParams.PointCrValue[i] = (byte)reader.ReadLiteral(8);
+                if (i > 0 && grainParams.PointCrValue[i] <= grainParams.PointCrValue[i - 1])
+                {
+                    throw new InvalidImageContentException("The AV1 film-grain red-difference scaling coordinates are not strictly increasing.");
+                }
+
+                grainParams.PointCrScaling[i] = (byte)reader.ReadLiteral(8);
+            }
+
+            if (sequenceHeader.ColorConfig.SubSamplingX &&
+                sequenceHeader.ColorConfig.SubSamplingY &&
+                (grainParams.NumCbPoints == 0) != (grainParams.NumCrPoints == 0))
+            {
+                throw new InvalidImageContentException("AV1 4:2:0 film grain must apply to both chroma planes or neither.");
             }
         }
 
@@ -2018,10 +2566,9 @@ internal class ObuReader
         if (grainParams.NumYPoints != 0)
         {
             numPosChroma = numPosLuma + 1;
-            grainParams.ArCoeffsYPlus128 = new uint[numPosLuma];
             for (int i = 0; i < numPosLuma; i++)
             {
-                grainParams.ArCoeffsYPlus128[i] = reader.ReadLiteral(8);
+                grainParams.ArCoeffsYPlus128[i] = (byte)reader.ReadLiteral(8);
             }
         }
         else
@@ -2031,19 +2578,17 @@ internal class ObuReader
 
         if (grainParams.ChromaScalingFromLuma || grainParams.NumCbPoints != 0)
         {
-            grainParams.ArCoeffsCbPlus128 = new uint[numPosChroma];
             for (int i = 0; i < numPosChroma; i++)
             {
-                grainParams.ArCoeffsCbPlus128[i] = reader.ReadLiteral(8);
+                grainParams.ArCoeffsCbPlus128[i] = (byte)reader.ReadLiteral(8);
             }
         }
 
         if (grainParams.ChromaScalingFromLuma || grainParams.NumCrPoints != 0)
         {
-            grainParams.ArCoeffsCrPlus128 = new uint[numPosChroma];
             for (int i = 0; i < numPosChroma; i++)
             {
-                grainParams.ArCoeffsCrPlus128[i] = reader.ReadLiteral(8);
+                grainParams.ArCoeffsCrPlus128[i] = (byte)reader.ReadLiteral(8);
             }
         }
 
@@ -2065,8 +2610,6 @@ internal class ObuReader
 
         grainParams.OverlapFlag = reader.ReadBoolean();
         grainParams.ClipToRestrictedRange = reader.ReadBoolean();
-
-        return grainParams;
     }
 
     /// <summary>

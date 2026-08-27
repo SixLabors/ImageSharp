@@ -1,16 +1,33 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
-/// Stores block-size, prediction-mode, transform, and palette decisions shared by AV1 block processing.
+/// Stores block-size, intra/inter prediction, transform, and palette decisions shared by AV1 block processing.
 /// </summary>
 internal class Av1BlockModeInfo
 {
+    /// <summary>
+    /// Stores the primary and optional secondary reference-frame labels.
+    /// </summary>
+    private InlineArray2<Av1ReferenceFrameType> referenceFrames;
+
+    /// <summary>
+    /// Stores the motion vector associated with each reference-frame label.
+    /// </summary>
+    private InlineArray2<Av1MotionVector> motionVectors;
+
+    /// <summary>
+    /// Stores the vertical and horizontal subpixel interpolation filters in that order.
+    /// </summary>
+    private InlineArray2<Av1InterpolationFilter> interpolationFilters;
+
     /// <summary>
     /// The palette size for the luma plane.
     /// </summary>
@@ -85,6 +102,11 @@ internal class Av1BlockModeInfo
     {
         this.BlockSize = blockSize;
         this.PositionInSuperblock = positionInSuperblock;
+
+        // Both entries begin absent because inter syntax has not selected either reference yet. Intra parsing replaces
+        // the primary entry with the current frame while retaining None as the optional secondary reference.
+        this.referenceFrames[0] = Av1ReferenceFrameType.None;
+        this.referenceFrames[1] = Av1ReferenceFrameType.None;
     }
 
     /// <summary>
@@ -96,6 +118,89 @@ internal class Av1BlockModeInfo
     /// Gets or sets the <see cref="Av1PredictionMode"/> for the luminance channel.
     /// </summary>
     public Av1PredictionMode YMode { get; set; }
+
+    /// <summary>
+    /// Gets the primary and optional secondary reference-frame labels.
+    /// </summary>
+    /// <remarks>
+    /// Index zero is the primary reference. Index one is <see cref="Av1ReferenceFrameType.None"/> for a single-reference
+    /// block, <see cref="Av1ReferenceFrameType.Intra"/> for an inter-intra block, or the secondary inter-reference label
+    /// for compound prediction.
+    /// </remarks>
+    public Span<Av1ReferenceFrameType> ReferenceFrames => this.referenceFrames;
+
+    /// <summary>
+    /// Gets the decoded motion vectors corresponding to <see cref="ReferenceFrames"/>.
+    /// </summary>
+    public Span<Av1MotionVector> MotionVectors => this.motionVectors;
+
+    /// <summary>
+    /// Gets the interpolation filters used for vertical and horizontal subpixel prediction.
+    /// </summary>
+    /// <remarks>
+    /// Index zero is the vertical filter and index one is the horizontal filter, matching libaom's
+    /// <c>InterpFilters.y_filter</c> and <c>InterpFilters.x_filter</c> layout.
+    /// </remarks>
+    public Span<Av1InterpolationFilter> InterpolationFilters => this.interpolationFilters;
+
+    /// <summary>
+    /// Gets or sets the selected index in the derived reference-motion-vector stack.
+    /// </summary>
+    /// <remarks>
+    /// The AV1 syntax constrains this value to the inclusive range 0 through 3.
+    /// </remarks>
+    public byte ReferenceMotionVectorIndex { get; set; }
+
+    /// <summary>
+    /// Gets or sets the motion model used to construct inter prediction.
+    /// </summary>
+    public Av1MotionMode MotionMode { get; set; }
+
+    /// <summary>
+    /// Gets or sets the intra predictor blended with a single-reference inter predictor.
+    /// </summary>
+    public Av1InterIntraMode InterIntraMode { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether inter-intra prediction uses a wedge mask.
+    /// </summary>
+    public bool UseInterIntraWedge { get; set; }
+
+    /// <summary>
+    /// Gets or sets the inter-intra wedge-mask index in the inclusive range 0 through 15.
+    /// </summary>
+    public byte InterIntraWedgeIndex { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether compound prediction uses the masked-compound mode group.
+    /// </summary>
+    public bool CompoundGroupIndex { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether unmasked compound prediction uses average blending.
+    /// A value of <see langword="false"/> selects distance-weighted blending.
+    /// </summary>
+    public bool CompoundIndex { get; set; }
+
+    /// <summary>
+    /// Gets or sets the compound blending method selected for two inter predictors.
+    /// </summary>
+    public Av1CompoundType CompoundType { get; set; }
+
+    /// <summary>
+    /// Gets or sets the compound wedge-mask index in the inclusive range 0 through 15.
+    /// </summary>
+    public byte CompoundWedgeIndex { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the compound wedge mask is inverted.
+    /// </summary>
+    public bool CompoundWedgeSign { get; set; }
+
+    /// <summary>
+    /// Gets or sets the orientation of the difference-weighted compound mask.
+    /// </summary>
+    public Av1DifferenceWeightedMaskType DifferenceWeightedMaskType { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether residual coefficients are omitted for the block.
@@ -118,9 +223,9 @@ internal class Av1BlockModeInfo
     public int SegmentId { get; set; }
 
     /// <summary>
-    /// Gets or sets the <see cref="Av1PredictionMode"/> for the chroma channels.
+    /// Gets or sets the chroma intra-prediction mode.
     /// </summary>
-    public Av1PredictionMode UvMode { get; set; }
+    public Av1ChromaPredictionMode UvMode { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether intra block copy is selected.
@@ -333,5 +438,18 @@ internal class Av1BlockModeInfo
         {
             this.chromaPaletteColorIndexMap = colorIndexMap;
         }
+    }
+
+    /// <summary>
+    /// Provides fixed storage for the two values associated with AV1's primary and secondary inter references.
+    /// </summary>
+    /// <typeparam name="T">The stored reference label, motion vector, or interpolation-filter type.</typeparam>
+    [InlineArray(2)]
+    private struct InlineArray2<T>
+    {
+        /// <summary>
+        /// The first element in the compiler-expanded inline buffer.
+        /// </summary>
+        private T element;
     }
 }

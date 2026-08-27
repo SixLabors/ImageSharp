@@ -41,8 +41,7 @@ internal static partial class Av1InterPredictor
         Av1InterpolationFilter verticalFilter,
         int horizontalPhase,
         int verticalPhase,
-        Span<short> scratch,
-        bool scalarOnly)
+        Span<short> scratch)
         where THorizontal : struct, IAv1InterPredictorOperator
     {
         switch (verticalFilter)
@@ -58,8 +57,7 @@ internal static partial class Av1InterPredictor
                     height,
                     horizontalPhase,
                     verticalPhase,
-                    scratch,
-                    scalarOnly);
+                    scratch);
 
                 break;
             case Av1InterpolationFilter.Smooth:
@@ -73,8 +71,7 @@ internal static partial class Av1InterPredictor
                     height,
                     horizontalPhase,
                     verticalPhase,
-                    scratch,
-                    scalarOnly);
+                    scratch);
 
                 break;
             case Av1InterpolationFilter.Sharp:
@@ -88,8 +85,7 @@ internal static partial class Av1InterPredictor
                     height,
                     horizontalPhase,
                     verticalPhase,
-                    scratch,
-                    scalarOnly);
+                    scratch);
 
                 break;
             default:
@@ -103,8 +99,7 @@ internal static partial class Av1InterPredictor
                     height,
                     horizontalPhase,
                     verticalPhase,
-                    scratch,
-                    scalarOnly);
+                    scratch);
 
                 break;
         }
@@ -126,8 +121,7 @@ internal static partial class Av1InterPredictor
         int horizontalPhase,
         int verticalPhase,
         int bitDepth,
-        Span<short> scratch,
-        bool scalarOnly)
+        Span<short> scratch)
         where THorizontal : struct, IAv1InterPredictorOperator
     {
         switch (verticalFilter)
@@ -144,8 +138,7 @@ internal static partial class Av1InterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch,
-                    scalarOnly);
+                    scratch);
 
                 break;
             case Av1InterpolationFilter.Smooth:
@@ -160,8 +153,7 @@ internal static partial class Av1InterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch,
-                    scalarOnly);
+                    scratch);
 
                 break;
             case Av1InterpolationFilter.Sharp:
@@ -176,8 +168,7 @@ internal static partial class Av1InterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch,
-                    scalarOnly);
+                    scratch);
 
                 break;
             default:
@@ -192,8 +183,170 @@ internal static partial class Av1InterPredictor
                     horizontalPhase,
                     verticalPhase,
                     bitDepth,
-                    scratch,
-                    scalarOnly);
+                    scratch);
+
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Selects an 8-bit vertical interpolation operator for explicit scalar execution.
+    /// </summary>
+    /// <typeparam name="THorizontal">The closed horizontal filter family selected from the production operator set.</typeparam>
+    private static void DispatchVerticalScalar<THorizontal>(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        int sourceOrigin,
+        Span<byte> destination,
+        int destinationStride,
+        int width,
+        int height,
+        Av1InterpolationFilter verticalFilter,
+        int horizontalPhase,
+        int verticalPhase,
+        Span<short> scratch)
+        where THorizontal : struct, IAv1InterPredictorOperator
+    {
+        switch (verticalFilter)
+        {
+            case Av1InterpolationFilter.Regular:
+                PredictScalar<THorizontal, RegularOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    horizontalPhase,
+                    verticalPhase,
+                    scratch);
+
+                break;
+            case Av1InterpolationFilter.Smooth:
+                PredictScalar<THorizontal, SmoothOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    horizontalPhase,
+                    verticalPhase,
+                    scratch);
+
+                break;
+            case Av1InterpolationFilter.Sharp:
+                PredictScalar<THorizontal, SharpOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    horizontalPhase,
+                    verticalPhase,
+                    scratch);
+
+                break;
+            default:
+                PredictScalar<THorizontal, BilinearOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    horizontalPhase,
+                    verticalPhase,
+                    scratch);
+
+                break;
+        }
+    }
+
+    /// <summary>
+    /// Selects a high-bit-depth vertical interpolation operator for explicit scalar execution.
+    /// </summary>
+    /// <typeparam name="THorizontal">The closed horizontal filter family selected from the production operator set.</typeparam>
+    private static void DispatchVerticalScalar<THorizontal>(
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
+        int sourceOrigin,
+        Span<ushort> destination,
+        int destinationStride,
+        int width,
+        int height,
+        Av1InterpolationFilter verticalFilter,
+        int horizontalPhase,
+        int verticalPhase,
+        int bitDepth,
+        Span<short> scratch)
+        where THorizontal : struct, IAv1InterPredictorOperator
+    {
+        switch (verticalFilter)
+        {
+            case Av1InterpolationFilter.Regular:
+                PredictScalar<THorizontal, RegularOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    horizontalPhase,
+                    verticalPhase,
+                    bitDepth,
+                    scratch);
+
+                break;
+            case Av1InterpolationFilter.Smooth:
+                PredictScalar<THorizontal, SmoothOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    horizontalPhase,
+                    verticalPhase,
+                    bitDepth,
+                    scratch);
+
+                break;
+            case Av1InterpolationFilter.Sharp:
+                PredictScalar<THorizontal, SharpOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    horizontalPhase,
+                    verticalPhase,
+                    bitDepth,
+                    scratch);
+
+                break;
+            default:
+                PredictScalar<THorizontal, BilinearOperator>(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    destination,
+                    destinationStride,
+                    width,
+                    height,
+                    horizontalPhase,
+                    verticalPhase,
+                    bitDepth,
+                    scratch);
 
                 break;
         }
@@ -214,14 +367,13 @@ internal static partial class Av1InterPredictor
         int height,
         int horizontalPhase,
         int verticalPhase,
-        Span<short> scratch,
-        bool scalarOnly)
+        Span<short> scratch)
         where THorizontal : struct, IAv1InterPredictorOperator
         where TVertical : struct, IAv1InterPredictorOperator
     {
         if (horizontalPhase == 0 && verticalPhase == 0)
         {
-            Copy(source, sourceStride, sourceOrigin, destination, destinationStride, width, height, scalarOnly);
+            Copy(source, sourceStride, sourceOrigin, destination, destinationStride, width, height);
             return;
         }
 
@@ -243,8 +395,7 @@ internal static partial class Av1InterPredictor
                 firstCoefficient - 3,
                 1,
                 Round0Bits,
-                FilterBits - Round0Bits,
-                scalarOnly);
+                FilterBits - Round0Bits);
 
             return;
         }
@@ -267,8 +418,7 @@ internal static partial class Av1InterPredictor
                 (firstCoefficient - 3) * sourceStride,
                 sourceStride,
                 FilterBits,
-                0,
-                scalarOnly);
+                0);
 
             return;
         }
@@ -293,8 +443,7 @@ internal static partial class Av1InterPredictor
             verticalTapCount,
             firstVerticalCoefficient - 3,
             8,
-            scratch,
-            scalarOnly);
+            scratch);
     }
 
     /// <summary>
@@ -313,14 +462,13 @@ internal static partial class Av1InterPredictor
         int horizontalPhase,
         int verticalPhase,
         int bitDepth,
-        Span<short> scratch,
-        bool scalarOnly)
+        Span<short> scratch)
         where THorizontal : struct, IAv1InterPredictorOperator
         where TVertical : struct, IAv1InterPredictorOperator
     {
         if (horizontalPhase == 0 && verticalPhase == 0)
         {
-            Copy(source, sourceStride, sourceOrigin, destination, destinationStride, width, height, scalarOnly);
+            Copy(source, sourceStride, sourceOrigin, destination, destinationStride, width, height);
             return;
         }
 
@@ -348,8 +496,7 @@ internal static partial class Av1InterPredictor
                 1,
                 round0,
                 FilterBits - round0,
-                bitDepth,
-                scalarOnly);
+                bitDepth);
 
             return;
         }
@@ -373,8 +520,7 @@ internal static partial class Av1InterPredictor
                 sourceStride,
                 FilterBits,
                 0,
-                bitDepth,
-                scalarOnly);
+                bitDepth);
 
             return;
         }
@@ -400,8 +546,205 @@ internal static partial class Av1InterPredictor
             firstVerticalCoefficient - 3,
             bitDepth,
             round0,
-            scratch,
-            scalarOnly);
+            scratch);
+    }
+
+    /// <summary>
+    /// Executes one closed 8-bit interpolation-filter pair through the explicit scalar kernels.
+    /// </summary>
+    /// <typeparam name="THorizontal">The horizontal filter family.</typeparam>
+    /// <typeparam name="TVertical">The vertical filter family.</typeparam>
+    private static void PredictScalar<THorizontal, TVertical>(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        int sourceOrigin,
+        Span<byte> destination,
+        int destinationStride,
+        int width,
+        int height,
+        int horizontalPhase,
+        int verticalPhase,
+        Span<short> scratch)
+        where THorizontal : struct, IAv1InterPredictorOperator
+        where TVertical : struct, IAv1InterPredictorOperator
+    {
+        if (horizontalPhase == 0 && verticalPhase == 0)
+        {
+            CopyScalar(source, sourceStride, sourceOrigin, destination, destinationStride, width, height);
+            return;
+        }
+
+        if (verticalPhase == 0)
+        {
+            ReadOnlySpan<short> coefficients = THorizontal.GetCoefficients(horizontalPhase, width <= 4);
+            GetEffectiveKernel(coefficients, out int firstCoefficient, out int tapCount);
+
+            FilterDirectScalar(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                coefficients[firstCoefficient..],
+                tapCount,
+                firstCoefficient - 3,
+                1,
+                Round0Bits,
+                FilterBits - Round0Bits);
+
+            return;
+        }
+
+        if (horizontalPhase == 0)
+        {
+            ReadOnlySpan<short> coefficients = TVertical.GetCoefficients(verticalPhase, height <= 4);
+            GetEffectiveKernel(coefficients, out int firstCoefficient, out int tapCount);
+
+            FilterDirectScalar(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                coefficients[firstCoefficient..],
+                tapCount,
+                (firstCoefficient - 3) * sourceStride,
+                sourceStride,
+                FilterBits,
+                0);
+
+            return;
+        }
+
+        ReadOnlySpan<short> horizontalCoefficients = THorizontal.GetCoefficients(horizontalPhase, width <= 4);
+        ReadOnlySpan<short> verticalCoefficients = TVertical.GetCoefficients(verticalPhase, height <= 4);
+        GetEffectiveKernel(horizontalCoefficients, out int firstHorizontalCoefficient, out int horizontalTapCount);
+        GetEffectiveKernel(verticalCoefficients, out int firstVerticalCoefficient, out int verticalTapCount);
+
+        Filter2DScalar(
+            source,
+            sourceStride,
+            sourceOrigin,
+            destination,
+            destinationStride,
+            width,
+            height,
+            horizontalCoefficients[firstHorizontalCoefficient..],
+            horizontalTapCount,
+            firstHorizontalCoefficient - 3,
+            verticalCoefficients[firstVerticalCoefficient..],
+            verticalTapCount,
+            firstVerticalCoefficient - 3,
+            8,
+            Round0Bits,
+            scratch);
+    }
+
+    /// <summary>
+    /// Executes one closed high-bit-depth interpolation-filter pair through the explicit scalar kernels.
+    /// </summary>
+    /// <typeparam name="THorizontal">The horizontal filter family.</typeparam>
+    /// <typeparam name="TVertical">The vertical filter family.</typeparam>
+    private static void PredictScalar<THorizontal, TVertical>(
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
+        int sourceOrigin,
+        Span<ushort> destination,
+        int destinationStride,
+        int width,
+        int height,
+        int horizontalPhase,
+        int verticalPhase,
+        int bitDepth,
+        Span<short> scratch)
+        where THorizontal : struct, IAv1InterPredictorOperator
+        where TVertical : struct, IAv1InterPredictorOperator
+    {
+        if (horizontalPhase == 0 && verticalPhase == 0)
+        {
+            CopyScalar(source, sourceStride, sourceOrigin, destination, destinationStride, width, height);
+            return;
+        }
+
+        // Scalar parity uses the same first-pass range correction as the SIMD traversal so twelve-bit
+        // intermediates remain signed-16-bit without changing the complete Q14 rounding distance.
+        int intermediateRange = bitDepth + FilterBits - Round0Bits + 2;
+        int round0 = Round0Bits + Math.Max(intermediateRange - 16, 0);
+
+        if (verticalPhase == 0)
+        {
+            ReadOnlySpan<short> coefficients = THorizontal.GetCoefficients(horizontalPhase, width <= 4);
+            GetEffectiveKernel(coefficients, out int firstCoefficient, out int tapCount);
+
+            FilterDirectScalar(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                coefficients[firstCoefficient..],
+                tapCount,
+                firstCoefficient - 3,
+                1,
+                round0,
+                FilterBits - round0,
+                bitDepth);
+
+            return;
+        }
+
+        if (horizontalPhase == 0)
+        {
+            ReadOnlySpan<short> coefficients = TVertical.GetCoefficients(verticalPhase, height <= 4);
+            GetEffectiveKernel(coefficients, out int firstCoefficient, out int tapCount);
+
+            FilterDirectScalar(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                coefficients[firstCoefficient..],
+                tapCount,
+                (firstCoefficient - 3) * sourceStride,
+                sourceStride,
+                FilterBits,
+                0,
+                bitDepth);
+
+            return;
+        }
+
+        ReadOnlySpan<short> horizontalCoefficients = THorizontal.GetCoefficients(horizontalPhase, width <= 4);
+        ReadOnlySpan<short> verticalCoefficients = TVertical.GetCoefficients(verticalPhase, height <= 4);
+        GetEffectiveKernel(horizontalCoefficients, out int firstHorizontalCoefficient, out int horizontalTapCount);
+        GetEffectiveKernel(verticalCoefficients, out int firstVerticalCoefficient, out int verticalTapCount);
+
+        Filter2DScalar(
+            source,
+            sourceStride,
+            sourceOrigin,
+            destination,
+            destinationStride,
+            width,
+            height,
+            horizontalCoefficients[firstHorizontalCoefficient..],
+            horizontalTapCount,
+            firstHorizontalCoefficient - 3,
+            verticalCoefficients[firstVerticalCoefficient..],
+            verticalTapCount,
+            firstVerticalCoefficient - 3,
+            bitDepth,
+            round0,
+            scratch);
     }
 
     /// <summary>

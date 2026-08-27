@@ -35,7 +35,7 @@ public class Av1IntraBlockCopyTests
         int[] weights = new int[8];
 
         Av1MotionVector actual = Av1IntraBlockCopy.FindReference(
-            partitionInfo,
+            ref partitionInfo,
             tileInfo,
             sequenceHeader.SuperblockModeInfoSize,
             candidates,
@@ -71,7 +71,7 @@ public class Av1IntraBlockCopyTests
         int[] weights = new int[8];
 
         Av1MotionVector actual = Av1IntraBlockCopy.FindReference(
-            partitionInfo,
+            ref partitionInfo,
             tileInfo,
             sequenceHeader.SuperblockModeInfoSize,
             candidates,
@@ -99,13 +99,13 @@ public class Av1IntraBlockCopyTests
         Av1TileInfo tileInfo = CreateTileInfo();
 
         // A source five 64-sample columns earlier satisfies both the four-column delay and same-row wavefront limit.
-        Assert.True(Av1IntraBlockCopy.IsValid(new Av1MotionVector(0, -2560), partitionInfo, tileInfo, sequenceHeader));
+        Assert.True(Av1IntraBlockCopy.IsValid(new Av1MotionVector(0, -2560), ref partitionInfo, tileInfo, sequenceHeader));
 
         // Moving the source one 64-sample column to the right reaches the forbidden delay boundary exactly.
-        Assert.False(Av1IntraBlockCopy.IsValid(new Av1MotionVector(0, -2048), partitionInfo, tileInfo, sequenceHeader));
-        Assert.False(Av1IntraBlockCopy.IsValid(new Av1MotionVector(0, -2559), partitionInfo, tileInfo, sequenceHeader));
-        Assert.False(Av1IntraBlockCopy.IsValid(new Av1MotionVector(0, -4608), partitionInfo, tileInfo, sequenceHeader));
-        Assert.False(Av1IntraBlockCopy.IsValid(new Av1MotionVector(512, -2560), partitionInfo, tileInfo, sequenceHeader));
+        Assert.False(Av1IntraBlockCopy.IsValid(new Av1MotionVector(0, -2048), ref partitionInfo, tileInfo, sequenceHeader));
+        Assert.False(Av1IntraBlockCopy.IsValid(new Av1MotionVector(0, -2559), ref partitionInfo, tileInfo, sequenceHeader));
+        Assert.False(Av1IntraBlockCopy.IsValid(new Av1MotionVector(0, -4608), ref partitionInfo, tileInfo, sequenceHeader));
+        Assert.False(Av1IntraBlockCopy.IsValid(new Av1MotionVector(512, -2560), ref partitionInfo, tileInfo, sequenceHeader));
     }
 
     /// <summary>

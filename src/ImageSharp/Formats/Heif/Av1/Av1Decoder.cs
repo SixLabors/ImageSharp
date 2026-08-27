@@ -37,9 +37,19 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="configuration">The configuration used for image and scratch-memory allocation.</param>
     public Av1Decoder(Configuration configuration)
+        : this(configuration, 0)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1Decoder"/> class for one selected AV1 operating point.
+    /// </summary>
+    /// <param name="configuration">The configuration used for image and scratch-memory allocation.</param>
+    /// <param name="operatingPointIndex">The zero-based sequence-header operating-point index to decode.</param>
+    public Av1Decoder(Configuration configuration, byte operatingPointIndex)
     {
         this.configuration = configuration;
-        this.obuReader = new();
+        this.obuReader = new(operatingPointIndex);
     }
 
     /// <summary>

@@ -12,9 +12,34 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 internal class ObuReader
 {
     /// <summary>
+    /// The zero-based sequence-header operating-point index selected by the container.
+    /// </summary>
+    private readonly byte operatingPointIndex;
+
+    /// <summary>
     /// The tile reader created for the current coded frame.
     /// </summary>
     private IAv1TileReader? decoder;
+
+    /// <summary>
+    /// The temporal- and spatial-layer mask for the selected operating point.
+    /// </summary>
+    private uint currentOperatingPointIdc;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ObuReader"/> class using operating-point index zero.
+    /// </summary>
+    public ObuReader()
+        : this(0)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ObuReader"/> class for one selected AV1 operating point.
+    /// </summary>
+    /// <param name="operatingPointIndex">The zero-based sequence-header operating-point index to decode.</param>
+    public ObuReader(byte operatingPointIndex)
+        => this.operatingPointIndex = operatingPointIndex;
 
     /// <summary>
     /// Gets or sets the most recently parsed sequence header.
@@ -97,6 +122,22 @@ internal class ObuReader
                 // A dedicated payload reader prevents malformed syntax from consuming the following OBU. The parent
                 // advances once here, so ignored metadata, padding, and reserved OBUs are skipped without copying.
                 Span<byte> obuPayload = reader.ReadBytes(payloadSize);
+
+                // AV1 operating_point_idc uses bits 0-7 for temporal IDs and bits 8-11 for spatial IDs. libaom
+                // requires both selected bits for an extended OBU, while an all-zero mask and unextended OBUs apply
+                // universally. Sequence headers establish the mask and temporal delimiters define framing, so neither
+                // can be filtered even when their extension identifies a layer outside the selected operating point.
+                bool isOperatingPointIndependent = header.Type is ObuType.SequenceHeader or ObuType.TemporalDelimiter;
+                bool isInCurrentOperatingPoint = this.currentOperatingPointIdc == 0
+                    || !header.HasExtension
+                    || (((this.currentOperatingPointIdc >> header.TemporalId) & 1U) != 0
+                        && ((this.currentOperatingPointIdc >> (header.SpatialId + 8)) & 1U) != 0);
+
+                if (!isOperatingPointIndependent && !isInCurrentOperatingPoint)
+                {
+                    continue;
+                }
+
                 Av1BitStreamReader payloadReader = new(obuPayload);
                 int decodedPayloadSize;
 
@@ -105,6 +146,14 @@ internal class ObuReader
                     case ObuType.SequenceHeader:
                         this.SequenceHeader = new();
                         ReadSequenceHeader(ref payloadReader, this.SequenceHeader);
+                        if (this.operatingPointIndex >= this.SequenceHeader.OperatingPoint.Length)
+                        {
+                            throw new InvalidImageContentException(
+                                $"The AV1 operating-point selector requests index {this.operatingPointIndex}, " +
+                                $"but the sequence header declares {this.SequenceHeader.OperatingPoint.Length} operating points.");
+                        }
+
+                        this.currentOperatingPointIdc = this.SequenceHeader.OperatingPoint[this.operatingPointIndex].Idc;
                         decodedPayloadSize = Av1Math.DivideBy8Floor(payloadReader.BitPosition);
                         break;
                     case ObuType.FrameHeader:
@@ -1064,10 +1113,8 @@ internal class ObuReader
 
         if (frameHeader.FrameType == ObuFrameType.KeyFrame && frameHeader.ShowFrame)
         {
-            frameHeader.ReferenceValid = new bool[Av1Constants.ReferenceFrameCount];
-            frameHeader.ReferenceOrderHint = new bool[Av1Constants.ReferenceFrameCount];
-            Array.Fill(frameHeader.ReferenceValid, false);
-            Array.Fill(frameHeader.ReferenceOrderHint, false);
+            frameHeader.GetReferenceValidity().Clear();
+            frameHeader.GetReferenceOrderHints().Clear();
         }
 
         frameHeader.DisableCdfUpdate = reader.ReadBoolean();
@@ -1122,20 +1169,22 @@ internal class ObuReader
             }
 
             int diffLength = sequenceHeader.DeltaFrameIdLength;
+            Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+            Span<bool> referenceValidity = frameHeader.GetReferenceValidity();
             for (int i = 0; i < Av1Constants.ReferenceFrameCount; i++)
             {
                 if (frameHeader.CurrentFrameId > (1U << diffLength))
                 {
-                    if ((frameHeader.ReferenceFrameIndex[i] > frameHeader.CurrentFrameId) ||
-                        frameHeader.ReferenceFrameIndex[i] > (frameHeader.CurrentFrameId - (1 - diffLength)))
+                    if ((referenceFrameIndices[i] > frameHeader.CurrentFrameId) ||
+                        referenceFrameIndices[i] > (frameHeader.CurrentFrameId - (1 - diffLength)))
                     {
-                        frameHeader.ReferenceValid[i] = false;
+                        referenceValidity[i] = false;
                     }
                 }
-                else if (frameHeader.ReferenceFrameIndex[i] > frameHeader.CurrentFrameId &&
-                    frameHeader.ReferenceFrameIndex[i] < ((1 << idLength) + (frameHeader.CurrentFrameId - (1 << diffLength))))
+                else if (referenceFrameIndices[i] > frameHeader.CurrentFrameId &&
+                    referenceFrameIndices[i] < ((1 << idLength) + (frameHeader.CurrentFrameId - (1 << diffLength))))
                 {
-                    frameHeader.ReferenceValid[i] = false;
+                    referenceValidity[i] = false;
                 }
             }
         }
@@ -1211,12 +1260,14 @@ internal class ObuReader
         {
             if (frameHeader.ErrorResilientMode && sequenceHeader.OrderHintInfo != null)
             {
+                Span<uint> referenceOrderHints = frameHeader.GetReferenceOrderHints();
+                Span<bool> referenceValidity = frameHeader.GetReferenceValidity();
                 for (int i = 0; i < Av1Constants.ReferenceFrameCount; i++)
                 {
                     int referenceOrderHint = (int)reader.ReadLiteral(sequenceHeader.OrderHintInfo.OrderHintBits);
-                    if (referenceOrderHint != (frameHeader.ReferenceOrderHint[i] ? 1U : 0U))
+                    if (referenceOrderHint != referenceOrderHints[i])
                     {
-                        frameHeader.ReferenceValid[i] = false;
+                        referenceValidity[i] = false;
                     }
                 }
             }

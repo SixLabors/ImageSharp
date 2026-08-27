@@ -52,7 +52,9 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlpha
             out HeifContentLightLevel? obuContentLightLevel,
             out HeifMasteringDisplayColorVolume? obuMasteringDisplayColorVolume);
 
-        using Av1Decoder decoder = new(options.Configuration);
+        byte operatingPointIndex = item.Av1OperatingPointSelector?.Index ?? 0;
+
+        using Av1Decoder decoder = new(options.Configuration, operatingPointIndex);
         Image<TPixel> image = decoder.Decode<TPixel>(itemData, colorProfile, codecConfiguration);
         HeifMetadata metadata = image.Metadata.GetHeifMetadata();
         metadata.CompressionMethod = this.CompressionMethod;
@@ -82,7 +84,9 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlpha
             throw new InvalidImageContentException($"AV1 alpha image item {item.Id} is not monochrome.");
         }
 
-        using Av1Decoder decoder = new(options.Configuration);
+        byte operatingPointIndex = item.Av1OperatingPointSelector?.Index ?? 0;
+
+        using Av1Decoder decoder = new(options.Configuration, operatingPointIndex);
         decoder.DecodeAlpha(
             itemData,
             item.CicpProfile,

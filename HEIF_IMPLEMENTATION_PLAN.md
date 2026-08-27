@@ -29,7 +29,7 @@ Checkboxes may be marked complete only when the implementation and the verificat
 
 ## Delivery dashboard
 
-Last reconciled with the source tree on 2026-08-27 against the worktree based on commit `63c4d302a`, including the completed AV1 transform, OBU-framing, intra-block-copy, and 12-profile reconstruction checkpoints. This dashboard is the authoritative delivery order. The detailed phase checklists below provide subsystem evidence; they do not override the current-stage marker or permit work to skip ahead.
+Last reconciled with the source tree on 2026-08-27 against the worktree based on commit `32d5e3b51`, including the completed AV1 transform, OBU-framing, intra-block-copy, 12-profile reconstruction, and layered-item property checkpoints. This dashboard is the authoritative delivery order. The detailed phase checklists below provide subsystem evidence; they do not override the current-stage marker or permit work to skip ahead.
 
 Status meanings:
 
@@ -61,7 +61,8 @@ Immediate checkpoint: **complete layered AV1 image-item decoding through the exi
 - [ ] **Current:** implement layered AV1 image-item properties and stateful dependency reconstruction, then verify default final-layer output against the two pinned libavif progressive fixtures.
   - [x] Parse and associate `a1op`, `lsel`, and `a1lx` through the bounded image-item property model, including normative essential flags, duplicate handling, exact property lengths, and the four-layer limit.
   - [x] Validate `a1lx` layer boundaries against the logical item size and restrict concrete `lsel` decoding to the cumulative payload through the selected spatial layer without copying item bytes.
-  - [ ] Apply the selected `a1op` operating-point mask while consuming extended OBUs and validate the selected index against the parsed sequence header.
+  - [x] Apply the selected `a1op` operating-point mask while consuming extended OBUs and validate the selected index against the parsed sequence header.
+  - [x] Store the eight fixed reference-validity, order-hint, and map-index tables inline on the frame header, retaining complete multi-bit order hints without per-header array allocations.
   - [ ] Preserve reconstruction, reference-frame, primary-CDF, segmentation, loop-filter, and motion state across every dependent layer in one image-item decoder session.
   - [ ] Implement the complete inter-frame entropy, mode, motion-vector, compound-prediction, inter-prediction, and warped/global-motion paths permitted by the image profile.
   - [ ] Return the explicitly selected spatial layer or the final displayed layer, keeping reference reconstruction separate from display-only film grain.

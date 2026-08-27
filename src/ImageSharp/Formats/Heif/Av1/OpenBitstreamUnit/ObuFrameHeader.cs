@@ -11,6 +11,21 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 internal class ObuFrameHeader
 {
     /// <summary>
+    /// Stores the validity state of the eight reference-frame slots without a per-header array allocation.
+    /// </summary>
+    private InlineArray8<bool> referenceValid;
+
+    /// <summary>
+    /// Stores the multi-bit order hint associated with each of the eight reference-frame slots.
+    /// </summary>
+    private InlineArray8<uint> referenceOrderHint;
+
+    /// <summary>
+    /// Stores the reference-map index selected for each of the eight inter references.
+    /// </summary>
+    private InlineArray8<uint> referenceFrameIndex;
+
+    /// <summary>
     /// Gets or sets a value indicating whether motion vectors use integer-sample precision.
     /// </summary>
     public bool ForceIntegerMotionVector { get; set; }
@@ -156,14 +171,16 @@ internal class ObuFrameHeader
     internal ObuFrameType FrameType { get; set; }
 
     /// <summary>
-    /// Gets or sets the validity state of each reference-frame slot.
+    /// Gets the validity state of each reference-frame slot.
     /// </summary>
-    internal bool[] ReferenceValid { get; set; } = new bool[Av1Constants.ReferenceFrameCount];
+    /// <returns>The mutable eight-entry reference-validity table.</returns>
+    public Span<bool> GetReferenceValidity() => this.referenceValid;
 
     /// <summary>
-    /// Gets or sets the stored order-hint state for each reference-frame slot.
+    /// Gets the multi-bit order hint associated with each reference-frame slot.
     /// </summary>
-    internal bool[] ReferenceOrderHint { get; set; } = new bool[Av1Constants.ReferenceFrameCount];
+    /// <returns>The mutable eight-entry reference-order-hint table.</returns>
+    public Span<uint> GetReferenceOrderHints() => this.referenceOrderHint;
 
     /// <summary>
     /// Gets or sets a value indicating whether the decoded frame is immediately displayed.
@@ -206,9 +223,10 @@ internal class ObuFrameHeader
     internal uint CurrentFrameId { get; set; }
 
     /// <summary>
-    /// Gets or sets the reference-map index selected for each inter reference.
+    /// Gets the reference-map index selected for each inter reference.
     /// </summary>
-    internal uint[] ReferenceFrameIndex { get; set; } = new uint[Av1Constants.ReferenceFrameCount];
+    /// <returns>The mutable eight-entry reference-frame-index table.</returns>
+    public Span<uint> GetReferenceFrameIndices() => this.referenceFrameIndex;
 
     /// <summary>
     /// Gets or sets the frame order hint.

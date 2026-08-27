@@ -12,6 +12,14 @@ public class ObuFrameHeaderTests
     private static readonly byte[] DefaultSequenceHeaderBitStream =
         [0x0a, 0x06, 0b001_1_1_000, 0b00_1000_01, 0b11_110101, 0b001_11101, 0b111_1_1_1_0_1, 0b1_0_0_1_1_1_10];
 
+    // This complete temporal-delimiter and sequence-header prefix comes from the color item in libavif's
+    // draw_points_idat_progressive.avif. Its operating points select spatial layers 0+1 and layer 0 respectively.
+    private static ReadOnlySpan<byte> ProgressiveSequenceHeaderBitStream =>
+    [
+        0x12, 0x00,
+        0x0A, 0x0F, 0x20, 0x13, 0x01, 0x00, 0x80, 0x81, 0x4E, 0x0A, 0x36, 0xBE, 0x48, 0x08, 0x20, 0x34, 0x80
+    ];
+
     // Bits  Syntax element                  Value
     // 1     obu_forbidden_bit               0
     // 4     obu_type                        2 (OBU_TEMPORAL_DELIMITER)
@@ -194,6 +202,88 @@ public class ObuFrameHeaderTests
         Assert.NotNull(obuReader.SequenceHeader);
         Assert.Null(obuReader.FrameHeader);
         Assert.Equal(ObuPrettyPrint.PrettyPrintProperties(expected), ObuPrettyPrint.PrettyPrintProperties(obuReader.SequenceHeader));
+    }
+
+    /// <summary>
+    /// Verifies that an item cannot select an operating-point index absent from its sequence header.
+    /// </summary>
+    [Fact]
+    public void ReadOperatingPointRejectsIndexOutsideSequenceHeader()
+    {
+        byte[] bitStream = [.. ProgressiveSequenceHeaderBitStream];
+
+        Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream, 2));
+    }
+
+    /// <summary>
+    /// Verifies that an extended OBU belongs to an operating point only when both of its layer identifiers are selected.
+    /// </summary>
+    /// <param name="temporalId">The temporal-layer identifier carried by the test OBU.</param>
+    /// <param name="spatialId">The spatial-layer identifier carried by the test OBU.</param>
+    /// <param name="isIncluded">Whether operating point one selects both identifiers.</param>
+    [Theory]
+    [InlineData(0, 0, true)]
+    [InlineData(0, 1, false)]
+    [InlineData(1, 0, false)]
+    public void ReadOperatingPointRequiresBothLayerBits(byte temporalId, byte spatialId, bool isIncluded)
+    {
+        byte extension = (byte)((temporalId << 5) | (spatialId << 3));
+        byte[] bitStream = [.. ProgressiveSequenceHeaderBitStream, 0x2E, extension, 0x01, 0x00];
+
+        // A selected metadata OBU reaches ignored-payload validation, where an all-zero payload is invalid. A filtered
+        // OBU has nevertheless had its complete header, size and payload boundary consumed before syntax is skipped.
+        if (isIncluded)
+        {
+            Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream, 1));
+        }
+        else
+        {
+            ReadObuStream(bitStream, 1);
+        }
+    }
+
+    /// <summary>
+    /// Verifies that an all-zero operating-point mask includes every extended OBU.
+    /// </summary>
+    [Fact]
+    public void ReadZeroOperatingPointMaskIncludesExtendedObu()
+    {
+        byte[] bitStream = [.. DefaultSequenceHeaderBitStream, 0x2E, 0x08, 0x01, 0x00];
+
+        Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream));
+    }
+
+    /// <summary>
+    /// Verifies that an OBU without an extension header applies to every operating point.
+    /// </summary>
+    [Fact]
+    public void ReadOperatingPointIncludesUnextendedObu()
+    {
+        byte[] bitStream = [.. ProgressiveSequenceHeaderBitStream, 0x2A, 0x01, 0x00];
+
+        Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream, 1));
+    }
+
+    /// <summary>
+    /// Verifies that temporal delimiters remain part of stream framing even when their extension is outside the selected mask.
+    /// </summary>
+    [Fact]
+    public void ReadOperatingPointDoesNotFilterTemporalDelimiter()
+    {
+        byte[] bitStream = [.. ProgressiveSequenceHeaderBitStream, 0x16, 0x08, 0x01, 0x01];
+
+        Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream, 1));
+    }
+
+    /// <summary>
+    /// Verifies that an excluded OBU cannot escape validation of its declared payload boundary.
+    /// </summary>
+    [Fact]
+    public void ReadFilteredOperatingPointObuStillValidatesBoundary()
+    {
+        byte[] bitStream = [.. ProgressiveSequenceHeaderBitStream, 0x2E, 0x08, 0x02, 0x80];
+
+        Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream, 1));
     }
 
     /// <summary>
@@ -438,10 +528,10 @@ public class ObuFrameHeaderTests
     /// Reads one complete OBU stream for malformed-input assertions that cannot capture a ref-struct reader.
     /// </summary>
     /// <param name="bitStream">The complete encoded OBU stream.</param>
-    private static void ReadObuStream(byte[] bitStream)
+    private static void ReadObuStream(byte[] bitStream, byte operatingPointIndex = 0)
     {
         Av1BitStreamReader reader = new(bitStream);
-        ObuReader obuReader = new();
+        ObuReader obuReader = new(operatingPointIndex);
         IAv1TileReader tileDecoder = new Av1TileDecoderStub();
 
         obuReader.ReadAll(ref reader, bitStream.Length, () => tileDecoder);

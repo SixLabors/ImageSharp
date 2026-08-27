@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -212,6 +213,34 @@ internal class Av1PartitionInfo
         {
             this.LeftModeInfoForChroma = this.SuperblockInfo.GetModeInfoAt(new Point(chromaBaseColumn - 1, chromaBaseRow + subY));
         }
+    }
+
+    /// <summary>
+    /// Gets the luma transform type covering a transform position from a subsampled chroma plane.
+    /// </summary>
+    /// <param name="planePosition">The transform position in 4x4 units of the target plane.</param>
+    /// <param name="subX">Indicates whether the target plane is horizontally subsampled.</param>
+    /// <param name="subY">Indicates whether the target plane is vertically subsampled.</param>
+    /// <returns>The transform type decoded at the corresponding luma-grid position.</returns>
+    public Av1TransformType GetLumaTransformType(Point planePosition, bool subX, bool subY)
+    {
+        int lumaColumn = planePosition.X << (subX ? 1 : 0);
+        int lumaRow = planePosition.Y << (subY ? 1 : 0);
+        int first = this.ModeInfo.GetFirstTransformLocation(Av1Plane.Y);
+        int count = this.ModeInfo.GetTransformUnitCount(Av1Plane.Y);
+        Span<Av1TransformInfo> lumaTransforms = this.SuperblockInfo.GetTransformInfoY().Slice(first, count);
+        foreach (Av1TransformInfo transform in lumaTransforms)
+        {
+            int width = transform.Size.Get4x4WideCount();
+            int height = transform.Size.Get4x4HighCount();
+            if (lumaColumn >= transform.OffsetX && lumaColumn < transform.OffsetX + width &&
+                lumaRow >= transform.OffsetY && lumaRow < transform.OffsetY + height)
+            {
+                return transform.Type;
+            }
+        }
+
+        throw new InvalidImageContentException("Missing luma transform for inter-predicted chroma.");
     }
 
     /// <summary>

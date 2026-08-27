@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -124,7 +125,12 @@ internal class Av1BlockModeInfo
     /// <summary>
     /// Gets or sets a value indicating whether intra block copy is selected.
     /// </summary>
-    public bool UseUltraBlockCopy { get; set; }
+    public bool UseIntraBlockCopy { get; set; }
+
+    /// <summary>
+    /// Gets or sets the intra-block-copy displacement vector in one-eighth-sample units.
+    /// </summary>
+    public Av1MotionVector DisplacementVector { get; set; }
 
     /// <summary>
     /// Gets or sets the packed chroma-from-luma alpha magnitude indices.

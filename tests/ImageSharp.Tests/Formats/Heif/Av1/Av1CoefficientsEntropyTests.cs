@@ -44,7 +44,10 @@ public class Av1CoefficientsEntropyTests
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
-        decoder.ReadCoefficients(modeInfo, new Point(0, 0), aboveContexts, leftContexts, 0, 0, 0, 1, 1, transformBlockContext, transformSize, false, true, transformInfo, 0, 0, actuals);
+        decoder.ReadCoefficients(
+            modeInfo, new Point(0, 0), aboveContexts, leftContexts,
+            0, 0, 0, 1, 1, transformBlockContext, transformSize,
+            false, true, transformType, transformInfo, 0, 0, actuals);
 
         // Assert
         Assert.Equal(endOfBlock, actuals[0]);
@@ -94,7 +97,10 @@ public class Av1CoefficientsEntropyTests
 
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
         int plane = Math.Min((int)componentType, 1);
-        decoder.ReadCoefficients(modeInfo, new Point(0, 0), aboveContexts, leftContexts, 0, 0, plane, 1, 1, transformBlockContext, transformSize, false, true, transformInfo, 0, 0, actuals);
+        decoder.ReadCoefficients(
+            modeInfo, new Point(0, 0), aboveContexts, leftContexts,
+            0, 0, plane, 1, 1, transformBlockContext, transformSize,
+            false, true, transformType, transformInfo, 0, 0, actuals);
 
         // Assert
         Assert.Equal(endOfBlock, actuals[0]);
@@ -148,7 +154,10 @@ public class Av1CoefficientsEntropyTests
 
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
         int plane = Math.Min((int)componentType, 1);
-        decoder.ReadCoefficients(modeInfo, new Point(0, 0), aboveContexts, leftContexts, 0, 0, plane, 1, 1, transformBlockContext, transformSize, false, true, transformInfo, 0, 0, actuals);
+        decoder.ReadCoefficients(
+            modeInfo, new Point(0, 0), aboveContexts, leftContexts,
+            0, 0, plane, 1, 1, transformBlockContext, transformSize,
+            false, true, transformType, transformInfo, 0, 0, actuals);
 
         // Assert
         Assert.Equal(endOfBlock, actuals[0]);

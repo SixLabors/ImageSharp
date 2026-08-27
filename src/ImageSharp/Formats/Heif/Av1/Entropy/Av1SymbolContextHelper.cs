@@ -13,60 +13,103 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 internal static class Av1SymbolContextHelper
 {
     /// <summary>
-    /// Maps clipped top and left coefficient-level classes to the transform-block skip context.
+    /// The number of transform types represented by each flattened transform-set row.
     /// </summary>
-    private static ReadOnlySpan<byte> TransformBlockSkipContexts =>
+    private const int TransformTypeCount = 16;
+
+    /// <summary>
+    /// The number of AV1 transform sets.
+    /// </summary>
+    private const int TransformSetCount = 6;
+
+    /// <summary>
+    /// Gets the mapping from each transform set and transform type to its coded symbol index.
+    /// </summary>
+    private static ReadOnlySpan<byte> ExtendedTransformIndices =>
     [
-        1, 2, 2, 2, 3,
-        2, 4, 4, 4, 5,
-        2, 4, 4, 4, 5,
-        2, 4, 4, 4, 5,
-        3, 5, 5, 5, 6
+        0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // DCT only
+        1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // Inter set 3
+        1, 3, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, // Intra set 2
+        1, 5, 6, 4, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0, // Intra set 1
+        3, 4, 5, 8, 6, 7, 9, 10, 11, 0, 1, 2, 0, 0, 0, 0, // Inter set 2
+        7, 8, 9, 12, 10, 11, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6 // All 16, inter set 1
     ];
 
     /// <summary>
-    /// Maps each transform set and transform type to its coded symbol index.
+    /// Gets the mapping from transform-set types to their intra and inter transform-type distribution indices.
     /// </summary>
-    public static readonly int[][] ExtendedTransformIndices = [
-        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // DCT only
-        [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Inter set 3
-        [1, 3, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], // Intra set 2
-        [1, 5, 6, 4, 0, 0, 0, 0, 0, 0, 2, 3, 0, 0, 0, 0], // Intra set 1
-        [3, 4, 5, 8, 6, 7, 9, 10, 11, 0, 1, 2, 0, 0, 0, 0], // Inter set 2
-        [7, 8, 9, 12, 10, 11, 13, 14, 15, 0, 1, 2, 3, 4, 5, 6], // All 16, inter set 1
+    private static ReadOnlySpan<sbyte> ExtendedTransformSetToIndex =>
+    [
+        0, -1, 2, 1, -1, -1,
+        0, 3, -1, -1, 2, 1
     ];
 
     /// <summary>
-    /// Maps intra transform-set types to their transform-type distribution indices.
+    /// Gets the mapping from coded transform-type symbols to transform types for each transform set.
     /// </summary>
-    private static readonly int[] ExtendedTransformSetToIndex = [0, -1, 2, 1, -1, -1];
+    private static ReadOnlySpan<Av1TransformType> ExtendedTransformTypes =>
+    [
 
-    /// <summary>
-    /// Maps a coded transform-type symbol back to its transform type for each intra transform set.
-    /// </summary>
-    public static readonly Av1TransformType[][] ExtendedTransformInverse = [
-        [Av1TransformType.DctDct], // DCT only
-        [], // Inter set 3
-        [Av1TransformType.Identity, Av1TransformType.DctDct, Av1TransformType.AdstAdst, Av1TransformType.AdstDct, Av1TransformType.DctAdst], // Intra set 2
-        [Av1TransformType.Identity, Av1TransformType.DctDct, Av1TransformType.VerticalDct, Av1TransformType.HorizontalDct, Av1TransformType.AdstAdst, Av1TransformType.AdstDct, Av1TransformType.DctAdst], // Intra set 1
-        [], // Inter set 2
-        [], // All 16, inter set 1
+        // DCT only. Unused positions retain DCT-DCT so each set occupies one fixed 16-entry row.
+        Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct,
+        Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct,
+        Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct,
+        Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct,
+
+        // Inter set 3.
+        Av1TransformType.Identity, Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct,
+        Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct,
+        Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct,
+        Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct,
+
+        // Intra set 2.
+        Av1TransformType.Identity, Av1TransformType.DctDct, Av1TransformType.AdstAdst, Av1TransformType.AdstDct,
+        Av1TransformType.DctAdst, Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct,
+        Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct,
+        Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct,
+
+        // Intra set 1.
+        Av1TransformType.Identity, Av1TransformType.DctDct, Av1TransformType.VerticalDct, Av1TransformType.HorizontalDct,
+        Av1TransformType.AdstAdst, Av1TransformType.AdstDct, Av1TransformType.DctAdst, Av1TransformType.DctDct,
+        Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct,
+        Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct,
+
+        // Inter set 2.
+        Av1TransformType.Identity, Av1TransformType.VerticalDct, Av1TransformType.HorizontalDct, Av1TransformType.DctDct,
+        Av1TransformType.AdstDct, Av1TransformType.DctAdst, Av1TransformType.FlipAdstDct, Av1TransformType.DctFlipAdst,
+        Av1TransformType.AdstAdst, Av1TransformType.FlipAdstFlipAdst, Av1TransformType.AdstFlipAdst, Av1TransformType.FlipAdstAdst,
+        Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct, Av1TransformType.DctDct,
+
+        // All 16, inter set 1.
+        Av1TransformType.Identity, Av1TransformType.VerticalDct, Av1TransformType.HorizontalDct, Av1TransformType.VerticalAdst,
+        Av1TransformType.HorizontalAdst, Av1TransformType.VerticalFlipAdst, Av1TransformType.HorizontalFlipAdst, Av1TransformType.DctDct,
+        Av1TransformType.AdstDct, Av1TransformType.DctAdst, Av1TransformType.FlipAdstDct, Av1TransformType.DctFlipAdst,
+        Av1TransformType.AdstAdst, Av1TransformType.FlipAdstFlipAdst, Av1TransformType.AdstFlipAdst, Av1TransformType.FlipAdstAdst
     ];
 
     /// <summary>
-    /// Defines the number of extra offset bits associated with each end-of-block token.
+    /// Gets the number of coded symbols in each transform set.
     /// </summary>
-    public static readonly int[] EndOfBlockOffsetBits = [0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    private static ReadOnlySpan<byte> ExtendedTransformTypeCounts =>
+    [
+        1, 2, 5, 7, 12, 16
+    ];
 
     /// <summary>
-    /// Defines the first coefficient position represented by each end-of-block token.
+    /// Gets the number of extra offset bits associated with each end-of-block token.
     /// </summary>
-    public static readonly int[] EndOfBlockGroupStart = [0, 1, 2, 3, 5, 9, 17, 33, 65, 129, 257, 513];
+    public static ReadOnlySpan<int> EndOfBlockOffsetBits => [0, 0, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
 
     /// <summary>
-    /// Maps end-of-block positions below 33 directly to their token.
+    /// Gets the first coefficient position represented by each end-of-block token.
     /// </summary>
-    private static readonly byte[] EndOfBlockToPositionSmall = [
+    public static ReadOnlySpan<int> EndOfBlockGroupStart => [0, 1, 2, 3, 5, 9, 17, 33, 65, 129, 257, 513];
+
+    /// <summary>
+    /// Gets the mapping from end-of-block positions below 33 directly to their token.
+    /// </summary>
+    private static ReadOnlySpan<byte> EndOfBlockToPositionSmall =>
+    [
         0, 1, 2, // 0-2
         3, 3, // 3-4
         4, 4, 4, 4, // 5-8
@@ -75,9 +118,10 @@ internal static class Av1SymbolContextHelper
     ];
 
     /// <summary>
-    /// Maps groups of 32 larger end-of-block positions to their token.
+    /// Gets the mapping from groups of 32 larger end-of-block positions to their token.
     /// </summary>
-    private static readonly byte[] EndOfBlockToPositionLarge = [
+    private static ReadOnlySpan<byte> EndOfBlockToPositionLarge =>
+    [
         6, // place holder
         7, // 33-64
         8,
@@ -95,6 +139,18 @@ internal static class Av1SymbolContextHelper
         10,
         10, // 257-512
         11 // 513-
+    ];
+
+    /// <summary>
+    /// Gets the mapping from clipped top and left coefficient-level classes to the transform-block skip context.
+    /// </summary>
+    private static ReadOnlySpan<byte> TransformBlockSkipContexts =>
+    [
+        1, 2, 2, 2, 3,
+        2, 4, 4, 4, 5,
+        2, 4, 4, 4, 5,
+        2, 4, 4, 4, 5,
+        3, 5, 5, 5, 6
     ];
 
     /// <summary>
@@ -336,21 +392,43 @@ internal static class Av1SymbolContextHelper
     /// <param name="useReducedSet">Indicates whether the frame restricts transform choices.</param>
     /// <returns>The permitted transform set.</returns>
     internal static Av1TransformSetType GetExtendedTransformSetType(Av1TransformSize transformSize, bool useReducedSet)
+        => GetExtendedTransformSetType(transformSize, false, useReducedSet);
+
+    /// <summary>
+    /// Selects the transform set permitted for a transform size, prediction class, and reduced-set flag.
+    /// </summary>
+    /// <param name="transformSize">The coded transform size.</param>
+    /// <param name="isInter">Indicates whether the block uses inter prediction.</param>
+    /// <param name="useReducedSet">Indicates whether the frame restricts transform choices.</param>
+    /// <returns>The permitted transform set.</returns>
+    internal static Av1TransformSetType GetExtendedTransformSetType(Av1TransformSize transformSize, bool isInter, bool useReducedSet)
     {
         Av1TransformSize squareUpSize = transformSize.GetSquareUpSize();
 
-        if (squareUpSize >= Av1TransformSize.Size32x32)
+        if (squareUpSize > Av1TransformSize.Size32x32)
         {
             return Av1TransformSetType.DctOnly;
         }
 
+        if (squareUpSize == Av1TransformSize.Size32x32)
+        {
+            return isInter ? Av1TransformSetType.InterSet3 : Av1TransformSetType.DctOnly;
+        }
+
         if (useReducedSet)
         {
-            return Av1TransformSetType.IntraSet2;
+            return isInter ? Av1TransformSetType.InterSet3 : Av1TransformSetType.IntraSet2;
         }
 
         Av1TransformSize squareSize = transformSize.GetSquareSize();
-        return squareSize == Av1TransformSize.Size16x16 ? Av1TransformSetType.IntraSet2 : Av1TransformSetType.IntraSet1;
+        if (isInter)
+        {
+            return squareSize == Av1TransformSize.Size16x16 ? Av1TransformSetType.InterSet2 : Av1TransformSetType.InterSet1;
+        }
+
+        return squareSize == Av1TransformSize.Size16x16
+            ? Av1TransformSetType.IntraSet2
+            : Av1TransformSetType.IntraSet1;
     }
 
     /// <summary>
@@ -419,18 +497,46 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
+    /// Gets the coded symbol index for a transform type in a transform set.
+    /// </summary>
+    /// <param name="setType">The transform set.</param>
+    /// <param name="transformType">The transform type.</param>
+    /// <returns>The coded symbol index.</returns>
+    public static int GetExtendedTransformIndex(Av1TransformSetType setType, Av1TransformType transformType)
+        => ExtendedTransformIndices[((int)setType * TransformTypeCount) + (int)transformType];
+
+    /// <summary>
+    /// Gets the transform type represented by a coded symbol in a transform set.
+    /// </summary>
+    /// <param name="setType">The transform set.</param>
+    /// <param name="symbol">The coded symbol index.</param>
+    /// <returns>The represented transform type.</returns>
+    public static Av1TransformType GetExtendedTransformType(Av1TransformSetType setType, int symbol)
+        => ExtendedTransformTypes[((int)setType * TransformTypeCount) + symbol];
+
+    /// <summary>
     /// Gets the number of transform types in a transform set.
     /// </summary>
     /// <param name="setType">The transform set.</param>
     /// <returns>The number of permitted transform types.</returns>
-    internal static int GetExtendedTransformTypeCount(Av1TransformSetType setType) => ExtendedTransformInverse[(int)setType].Length;
+    internal static int GetExtendedTransformTypeCount(Av1TransformSetType setType) => ExtendedTransformTypeCounts[(int)setType];
 
     /// <summary>
     /// Gets the entropy-distribution index for an intra transform set.
     /// </summary>
     /// <param name="setType">The transform set.</param>
     /// <returns>The distribution index, or <c>-1</c> for an inter-only set.</returns>
-    internal static int GetExtendedTransformSet(Av1TransformSetType setType) => ExtendedTransformSetToIndex[(int)setType];
+    internal static int GetExtendedTransformSet(Av1TransformSetType setType)
+        => GetExtendedTransformSet(setType, false);
+
+    /// <summary>
+    /// Gets the entropy-distribution index for a transform set and prediction class.
+    /// </summary>
+    /// <param name="setType">The transform set.</param>
+    /// <param name="isInter">Indicates whether the block uses inter prediction.</param>
+    /// <returns>The distribution index, or <c>-1</c> when the set is unavailable for the prediction class.</returns>
+    internal static int GetExtendedTransformSet(Av1TransformSetType setType, bool isInter)
+        => ExtendedTransformSetToIndex[((isInter ? 1 : 0) * TransformSetCount) + (int)setType];
 
     /// <summary>
     /// Packs the sign of the DC coefficient into a cumulative-level context value.

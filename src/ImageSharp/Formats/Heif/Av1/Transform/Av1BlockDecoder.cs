@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.IntraBlockCopy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -285,33 +286,103 @@ internal sealed class Av1BlockDecoder : IDisposable
                     }
                 }
 
-                // The bounded image-item decoder reconstructs intra-only AV1 still pictures, so every transform unit
-                // predicts its samples before any coded residual is added.
-                if (highBitDepth)
+                // Intra-block copy is signaled on an intra-only frame but follows AV1's inter prediction and transform
+                // rules. Its validated displacement always references an earlier reconstructed region of this frame.
+                if (modeInfo.UseIntraBlockCopy)
                 {
-                    this.predictionDecoder.Decode(
-                        partitionInfo,
-                        (Av1Plane)plane,
-                        transformSize,
-                        tileInfo,
-                        highBitDepthTransformBlockReconstructionBuffer,
-                        reconstructionStride,
-                        this.frameBuffer.BitDepth,
-                        transformInfo[0].OffsetX,
-                        transformInfo[0].OffsetY);
+                    // libaom predicts the complete coding block before traversing its residual transforms. The mandatory
+                    // 256-pixel source delay prevents overlap, and the two-tap interpolation is translation-invariant,
+                    // so predicting the matching source rectangle for each transform unit produces the same samples.
+                    Point transformPixelPosition = new(
+                        pixelPosition.X + (transformInfo[0].OffsetX << Av1Constants.ModeInfoSizeLog2),
+                        pixelPosition.Y + (transformInfo[0].OffsetY << Av1Constants.ModeInfoSizeLog2));
+
+                    // Displacement vectors use one-eighth luma-sample units. Converting them to the plane's q4 grid
+                    // leaves luma on an integer sample and can leave subsampled chroma exactly at phase eight.
+                    int sourceColumnQ4 = (transformPixelPosition.X << 4) +
+                        (modeInfo.DisplacementVector.Column << (1 - subX));
+
+                    int sourceRowQ4 = (transformPixelPosition.Y << 4) +
+                        (modeInfo.DisplacementVector.Row << (1 - subY));
+
+                    int sourcePhaseX = sourceColumnQ4 & 15;
+                    int sourcePhaseY = sourceRowQ4 & 15;
+                    DebugGuard.IsTrue(sourcePhaseX is 0 or 8, "Intra-block-copy horizontal phase must be an integer or half sample.");
+                    DebugGuard.IsTrue(sourcePhaseY is 0 or 8, "Intra-block-copy vertical phase must be an integer or half sample.");
+
+                    Point sourcePixelPosition = new(sourceColumnQ4 >> 4, sourceRowQ4 >> 4);
+                    int transformWidth = transformSize.GetWidth();
+                    int transformHeight = transformSize.GetHeight();
+
+                    if (highBitDepth)
+                    {
+                        Span<short> source = this.frameBuffer.DeriveBlockPointer16(
+                            (Av1Plane)plane,
+                            sourcePixelPosition,
+                            subX,
+                            subY,
+                            out int sourceStride);
+
+                        Av1IntraBlockCopyPredictor.Predict(
+                            source[sourceStride..],
+                            sourceStride,
+                            highBitDepthTransformBlockReconstructionBuffer[reconstructionStride..],
+                            reconstructionStride,
+                            transformWidth,
+                            transformHeight,
+                            sourcePhaseX != 0,
+                            sourcePhaseY != 0);
+                    }
+                    else
+                    {
+                        Span<byte> source = this.frameBuffer.DeriveBlockPointer(
+                            (Av1Plane)plane,
+                            sourcePixelPosition,
+                            subX,
+                            subY,
+                            out int sourceStride);
+
+                        Av1IntraBlockCopyPredictor.Predict(
+                            source[sourceStride..],
+                            sourceStride,
+                            transformBlockReconstructionBuffer[reconstructionStride..],
+                            reconstructionStride,
+                            transformWidth,
+                            transformHeight,
+                            sourcePhaseX != 0,
+                            sourcePhaseY != 0);
+                    }
                 }
                 else
                 {
-                    this.predictionDecoder.Decode(
-                        partitionInfo,
-                        (Av1Plane)plane,
-                        transformSize,
-                        tileInfo,
-                        transformBlockReconstructionBuffer,
-                        reconstructionStride,
-                        this.frameBuffer.BitDepth,
-                        transformInfo[0].OffsetX,
-                        transformInfo[0].OffsetY);
+                    // Conventional intra prediction consumes the reference-prefixed destination span before the
+                    // transform residual is reconstructed over its first output row.
+                    if (highBitDepth)
+                    {
+                        this.predictionDecoder.Decode(
+                            partitionInfo,
+                            (Av1Plane)plane,
+                            transformSize,
+                            tileInfo,
+                            highBitDepthTransformBlockReconstructionBuffer,
+                            reconstructionStride,
+                            this.frameBuffer.BitDepth,
+                            transformInfo[0].OffsetX,
+                            transformInfo[0].OffsetY);
+                    }
+                    else
+                    {
+                        this.predictionDecoder.Decode(
+                            partitionInfo,
+                            (Av1Plane)plane,
+                            transformSize,
+                            tileInfo,
+                            transformBlockReconstructionBuffer,
+                            reconstructionStride,
+                            this.frameBuffer.BitDepth,
+                            transformInfo[0].OffsetX,
+                            transformInfo[0].OffsetY);
+                    }
                 }
 
                 int numberOfCoefficients = 0;

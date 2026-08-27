@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -22,6 +23,11 @@ internal ref struct Av1SymbolDecoder
     /// The tile-adaptive intra-block-copy distribution.
     /// </summary>
     private readonly Av1Distribution tileIntraBlockCopy;
+
+    /// <summary>
+    /// The tile-adaptive integer displacement-vector context used by intra-block copy.
+    /// </summary>
+    private readonly Av1DisplacementVectorContext displacementVector;
 
     /// <summary>
     /// The tile-adaptive switchable loop-restoration distribution.
@@ -179,6 +185,11 @@ internal ref struct Av1SymbolDecoder
     private readonly Av1Distribution[][][] intraExtendedTransform;
 
     /// <summary>
+    /// The tile-adaptive inter transform-type distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] interExtendedTransform;
+
+    /// <summary>
     /// The configuration providing temporary coefficient-context memory.
     /// </summary>
     private readonly Configuration configuration;
@@ -187,11 +198,6 @@ internal ref struct Av1SymbolDecoder
     /// The range decoder over the current tile payload.
     /// </summary>
     private Av1SymbolReader reader;
-
-    /// <summary>
-    /// The frame base quantizer used to select coefficient probability models.
-    /// </summary>
-    private readonly int baseQIndex;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1SymbolDecoder"/> struct for one AV1 tile.
@@ -205,6 +211,7 @@ internal ref struct Av1SymbolDecoder
         // Every tile starts from its own frame-context copy. Sharing these objects would let one image's adaptive
         // updates change the initial probabilities used to decode the next tile or image.
         this.tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy.CreateCopy();
+        this.displacementVector = new();
         this.switchableRestoration = Av1DefaultDistributions.SwitchableRestoration.CreateCopy();
         this.wienerRestoration = Av1DefaultDistributions.WienerRestoration.CreateCopy();
         this.sgrProjectionRestoration = Av1DefaultDistributions.SgrProjectionRestoration.CreateCopy();
@@ -229,9 +236,9 @@ internal ref struct Av1SymbolDecoder
         this.chromaFromLumaSign = Av1DefaultDistributions.ChromaFromLumaSign.CreateCopy();
         this.chromaFromLumaAlpha = Av1Distribution.CreateCopy(Av1DefaultDistributions.ChromaFromLumaAlpha);
         this.intraExtendedTransform = Av1Distribution.CreateCopy(Av1DefaultDistributions.IntraExtendedTransform);
+        this.interExtendedTransform = Av1Distribution.CreateCopy(Av1DefaultDistributions.InterExtendedTransform);
         this.configuration = configuration;
         this.reader = new Av1SymbolReader(tileData, updateCdf);
-        this.baseQIndex = qIndex;
         this.endOfBlockFlag = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetEndOfBlockFlag(qIndex));
         this.coefficientsBase = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetCoefficientsBase(qIndex));
         this.baseEndOfBlock = Av1Distribution.CreateCopy(Av1DefaultDistributions.GetBaseEndOfBlock(qIndex));
@@ -447,6 +454,14 @@ internal ref struct Av1SymbolDecoder
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.tileIntraBlockCopy) > 0;
     }
+
+    /// <summary>
+    /// Reads an integer intra-block-copy displacement vector relative to a spatial reference.
+    /// </summary>
+    /// <param name="reference">The spatially derived reference vector.</param>
+    /// <returns>The decoded displacement vector in one-eighth-sample units.</returns>
+    public Av1MotionVector ReadDisplacementVector(Av1MotionVector reference)
+        => this.displacementVector.Read(ref this.reader, reference);
 
     /// <summary>
     /// Reads a complete block partition type from the selected partition context.
@@ -665,43 +680,54 @@ internal ref struct Av1SymbolDecoder
     }
 
     /// <summary>
-    /// Reads an intra transform type from the transform set permitted for the block.
+    /// Reads a transform type from the transform set permitted for the block.
     /// </summary>
     /// <param name="transformSize">The coded transform size.</param>
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="isInter">Indicates whether the block uses inter prediction.</param>
     /// <param name="useFilterIntra">Indicates whether filter-intra prediction selected the intra direction.</param>
-    /// <param name="baseQIndex">The active base quantizer index.</param>
+    /// <param name="isLossless">Indicates whether the active segment uses lossless transforms.</param>
     /// <param name="filterIntraMode">The filter-intra mode when enabled.</param>
     /// <param name="intraDirection">The ordinary intra prediction mode.</param>
     /// <returns>The decoded transform type, or DCT-DCT when no transform type is signaled.</returns>
     public Av1TransformType ReadTransformType(
         Av1TransformSize transformSize,
         bool useReducedTransformSet,
+        bool isInter,
         bool useFilterIntra,
-        int baseQIndex,
+        bool isLossless,
         Av1FilterIntraMode filterIntraMode,
         Av1PredictionMode intraDirection)
     {
         Av1TransformType transformType = Av1TransformType.DctDct;
 
-        // A zero base quantizer selects DCT-DCT and carries no transform-type symbol in this intra path.
-        if (baseQIndex == 0)
+        // A lossless segment selects DCT-DCT and carries no transform-type symbol.
+        if (isLossless)
         {
             return transformType;
         }
 
-        // Still-image decoding reaches this path only for intra blocks, so the intra transform set is authoritative.
-        Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(transformSize, useReducedTransformSet);
-        if (transformSetType > Av1TransformSetType.DctOnly && baseQIndex > 0)
+        Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(transformSize, isInter, useReducedTransformSet);
+        if (transformSetType > Av1TransformSetType.DctOnly)
         {
-            int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSetType);
+            int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSetType, isInter);
             Av1TransformSize squareTransformSize = transformSize.GetSquareSize();
-            Av1PredictionMode intraMode = useFilterIntra
-                ? filterIntraMode.ToIntraDirection()
-                : intraDirection;
             ref Av1SymbolReader r = ref this.reader;
-            int symbol = r.ReadSymbol(this.intraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraMode]);
-            transformType = Av1SymbolContextHelper.ExtendedTransformInverse[(int)transformSetType][symbol];
+            int symbol;
+            if (isInter)
+            {
+                symbol = r.ReadSymbol(this.interExtendedTransform[extendedSet][(int)squareTransformSize]);
+            }
+            else
+            {
+                Av1PredictionMode intraMode = useFilterIntra
+                    ? filterIntraMode.ToIntraDirection()
+                    : intraDirection;
+
+                symbol = r.ReadSymbol(this.intraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraMode]);
+            }
+
+            transformType = Av1SymbolContextHelper.GetExtendedTransformType(transformSetType, symbol);
         }
 
         return transformType;
@@ -769,6 +795,7 @@ internal ref struct Av1SymbolDecoder
     /// <param name="transformSize">The signaled transform size.</param>
     /// <param name="isLossless">Indicates whether the active segment is lossless.</param>
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="lumaTransformType">The luma transform type shared by inter-predicted chroma.</param>
     /// <param name="transformInfo">The transform descriptor updated with the decoded type and coded-block flag.</param>
     /// <param name="modeBlocksToRightEdge">The signed distance from the mode block to the right frame edge.</param>
     /// <param name="modeBlocksToBottomEdge">The signed distance from the mode block to the bottom frame edge.</param>
@@ -788,6 +815,7 @@ internal ref struct Av1SymbolDecoder
         Av1TransformSize transformSize,
         bool isLossless,
         bool useReducedTransformSet,
+        Av1TransformType lumaTransformType,
         Av1TransformInfo transformInfo,
         int modeBlocksToRightEdge,
         int modeBlocksToBottomEdge,
@@ -822,13 +850,21 @@ internal ref struct Av1SymbolDecoder
             transformInfo.Type = this.ReadTransformType(
                 transformSize,
                 useReducedTransformSet,
+                modeInfo.UseIntraBlockCopy,
                 modeInfo.UseFilterIntra,
-                this.baseQIndex,
+                isLossless,
                 modeInfo.FilterIntraMode,
                 modeInfo.YMode);
         }
 
-        transformInfo.Type = ComputeTransformType(planeType, modeInfo, isLossless, transformSize, transformInfo, useReducedTransformSet);
+        transformInfo.Type = ComputeTransformType(
+            planeType,
+            modeInfo,
+            isLossless,
+            transformSize,
+            lumaTransformType,
+            transformInfo,
+            useReducedTransformSet);
         Av1TransformClass transformClass = transformInfo.Type.ToClass();
         Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformInfo.Type);
         ReadOnlySpan<short> scan = scanOrder.Scan;
@@ -1227,10 +1263,18 @@ internal ref struct Av1SymbolDecoder
     /// <param name="modeInfo">The current block prediction modes.</param>
     /// <param name="isLossless">Indicates whether the active segment is lossless.</param>
     /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="lumaTransformType">The luma transform type shared by inter-predicted chroma.</param>
     /// <param name="transformInfo">The transform descriptor containing the signaled luma type.</param>
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
     /// <returns>The transform type valid for the current plane.</returns>
-    private static Av1TransformType ComputeTransformType(Av1PlaneType planeType, Av1BlockModeInfo modeInfo, bool isLossless, Av1TransformSize transformSize, Av1TransformInfo transformInfo, bool useReducedTransformSet)
+    private static Av1TransformType ComputeTransformType(
+        Av1PlaneType planeType,
+        Av1BlockModeInfo modeInfo,
+        bool isLossless,
+        Av1TransformSize transformSize,
+        Av1TransformType lumaTransformType,
+        Av1TransformInfo transformInfo,
+        bool useReducedTransformSet)
     {
         Av1TransformType transformType = Av1TransformType.DctDct;
         if (isLossless || transformSize.GetSquareUpSize() > Av1TransformSize.Size32x32)
@@ -1243,6 +1287,12 @@ internal ref struct Av1SymbolDecoder
             {
                 transformType = transformInfo.Type;
             }
+            else if (modeInfo.UseIntraBlockCopy)
+            {
+                // Intra-block copy follows inter transform rules, so chroma reuses the luma transform type at the
+                // corresponding luma-grid position rather than deriving a type from the DC chroma mode.
+                transformType = lumaTransformType;
+            }
             else
             {
                 // Chroma has its own intra mode, so its implicit transform must be derived independently of luma.
@@ -1250,7 +1300,11 @@ internal ref struct Av1SymbolDecoder
             }
         }
 
-        Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(transformSize, useReducedTransformSet);
+        Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
+            transformSize,
+            modeInfo.UseIntraBlockCopy,
+            useReducedTransformSet);
+
         if (!transformType.IsExtendedSetUsed(transformSetType))
         {
             transformType = Av1TransformType.DctDct;

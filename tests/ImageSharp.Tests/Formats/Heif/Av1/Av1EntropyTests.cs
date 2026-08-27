@@ -4,6 +4,7 @@
 using System.Buffers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -373,7 +374,7 @@ public class Av1EntropyTests
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
         for (int i = 0; i < values.Length; i++)
         {
-            actuals[i] = decoder.ReadTransformType(transformSizeContext, true, false, BaseQIndex, filterIntraMode, intraDirection);
+            actuals[i] = decoder.ReadTransformType(transformSizeContext, true, false, false, false, filterIntraMode, intraDirection);
         }
 
         // Assert
@@ -555,6 +556,50 @@ public class Av1EntropyTests
 
         // Assert
         Assert.Equal(values, actuals);
+    }
+
+    /// <summary>
+    /// Verifies integer displacement-vector joints, signs, magnitude classes, and adaptive offset bits.
+    /// </summary>
+    [Fact]
+    public void RoundTripIntraBlockCopyDisplacementVectors()
+    {
+        Av1MotionVector[] references =
+        [
+            new(0, -4096),
+            new(-1024, 0),
+            new(256, -256),
+            new(0, 0),
+            new(-2048, 2048),
+        ];
+
+        Av1MotionVector[] values =
+        [
+            new(8, -4096),
+            new(-1040, 24),
+            new(256, -336),
+            new(512, 1024),
+            new(6144, -6144),
+        ];
+
+        Configuration configuration = Configuration.Default;
+        Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex);
+
+        for (int i = 0; i < values.Length; i++)
+        {
+            encoder.WriteDisplacementVector(values[i], references[i]);
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+        Av1SymbolDecoder decoder = new(configuration, encoded.GetSpan(), BaseQIndex);
+        Av1MotionVector[] actual = new Av1MotionVector[values.Length];
+
+        for (int i = 0; i < actual.Length; i++)
+        {
+            actual[i] = decoder.ReadDisplacementVector(references[i]);
+        }
+
+        Assert.Equal(values, actual);
     }
 
     public static TheoryData<int> GetRangeData(int count)

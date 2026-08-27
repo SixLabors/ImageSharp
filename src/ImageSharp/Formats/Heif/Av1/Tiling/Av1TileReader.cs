@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -136,6 +137,16 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// Tracks the next coefficient slot for each color plane within the current superblock.
     /// </summary>
     private readonly int[] coefficientIndex = [];
+
+    /// <summary>
+    /// Reusable storage for the eight spatial displacement-vector candidates permitted by AV1.
+    /// </summary>
+    private InlineArray8<Av1MotionVector> displacementVectorCandidates;
+
+    /// <summary>
+    /// Reusable storage for the spatial weight associated with each displacement-vector candidate.
+    /// </summary>
+    private InlineArray8<int> displacementVectorWeights;
 
     /// <summary>
     /// Provides allocator and decoder configuration to tile entropy decoding.
@@ -670,7 +681,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         partitionInfo.PopulateModeInfoNeighbors(this.SequenceHeader.ColorConfig);
 
-        this.ReadModeInfo(ref reader, partitionInfo);
+        this.ReadModeInfo(ref reader, partitionInfo, tileInfo);
         this.ReadPaletteTokens(ref reader, partitionInfo);
         this.ReadBlockTransformSize(ref reader, modeInfoLocation, partitionInfo, superblockInfo, tileInfo);
         if (partitionInfo.ModeInfo.Skip)
@@ -994,8 +1005,29 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Av1BlockSize planeBlockSize = partitionInfo.ModeInfo.BlockSize.GetSubsampled(subX, subY);
         int blocksWide = partitionInfo.GetMaxBlockWide(planeBlockSize, subX);
         int blocksHigh = partitionInfo.GetMaxBlockHigh(planeBlockSize, subY);
+        Av1TransformType lumaTransformType = partitionInfo.ModeInfo.UseIntraBlockCopy && plane > 0 && !isLossless
+            ? partitionInfo.GetLumaTransformType(blockPosition, subX, subY)
+            : Av1TransformType.DctDct;
 
-        return reader.ReadCoefficients(partitionInfo.ModeInfo, blockPosition, this.aboveNeighborContext.GetContext(plane), this.leftNeighborContext.GetContext(plane), aboveOffset, leftOffset, plane, blocksWide, blocksHigh, transformBlockContext, transformSize, isLossless, this.FrameHeader.UseReducedTransformSet, transformInfo, partitionInfo.ModeBlockToRightEdge, partitionInfo.ModeBlockToBottomEdge, coefficientBuffer);
+        return reader.ReadCoefficients(
+            partitionInfo.ModeInfo,
+            blockPosition,
+            this.aboveNeighborContext.GetContext(plane),
+            this.leftNeighborContext.GetContext(plane),
+            aboveOffset,
+            leftOffset,
+            plane,
+            blocksWide,
+            blocksHigh,
+            transformBlockContext,
+            transformSize,
+            isLossless,
+            this.FrameHeader.UseReducedTransformSet,
+            lumaTransformType,
+            transformInfo,
+            partitionInfo.ModeBlockToRightEdge,
+            partitionInfo.ModeBlockToBottomEdge,
+            coefficientBuffer);
     }
 
     /// <summary>
@@ -1390,11 +1422,12 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
     /// <remarks>Implements the intra-frame branch of AV1 section 5.11.6.</remarks>
-    private void ReadModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
+    private void ReadModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
     {
         DebugGuard.IsTrue(this.FrameHeader.FrameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame, "Only INTRA frames supported.");
-        this.ReadIntraFrameModeInfo(ref reader, partitionInfo);
+        this.ReadIntraFrameModeInfo(ref reader, partitionInfo, tileInfo);
     }
 
     /// <summary>
@@ -1402,8 +1435,9 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block and its neighbors.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
     /// <remarks>Implements AV1 section 5.11.7.</remarks>
-    private void ReadIntraFrameModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo)
+    private void ReadIntraFrameModeInfo(ref Av1SymbolDecoder reader, Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
     {
         if (this.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
         {
@@ -1436,8 +1470,24 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         if (useIntraBlockCopy)
         {
+            partitionInfo.ModeInfo.UseIntraBlockCopy = true;
             partitionInfo.ModeInfo.YMode = Av1PredictionMode.DC;
             partitionInfo.ModeInfo.UvMode = Av1PredictionMode.DC;
+
+            Av1MotionVector reference = Av1IntraBlockCopy.FindReference(
+                partitionInfo,
+                tileInfo,
+                this.SequenceHeader.SuperblockModeInfoSize,
+                this.displacementVectorCandidates,
+                this.displacementVectorWeights);
+
+            Av1MotionVector displacement = reader.ReadDisplacementVector(reference);
+            if (!Av1IntraBlockCopy.IsValid(displacement, partitionInfo, tileInfo, this.SequenceHeader))
+            {
+                throw new InvalidImageContentException("Invalid AV1 intra-block-copy displacement vector.");
+            }
+
+            partitionInfo.ModeInfo.DisplacementVector = displacement;
         }
         else
         {

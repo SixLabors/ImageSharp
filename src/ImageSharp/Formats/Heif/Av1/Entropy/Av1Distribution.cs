@@ -184,6 +184,25 @@ internal class Av1Distribution
     }
 
     /// <summary>
+    /// Initializes a new instance of the <see cref="Av1Distribution"/> class for a twelve-symbol alphabet.
+    /// </summary>
+    /// <param name="p0">The cumulative threshold following symbol zero.</param>
+    /// <param name="p1">The cumulative threshold following symbol one.</param>
+    /// <param name="p2">The cumulative threshold following symbol two.</param>
+    /// <param name="p3">The cumulative threshold following symbol three.</param>
+    /// <param name="p4">The cumulative threshold following symbol four.</param>
+    /// <param name="p5">The cumulative threshold following symbol five.</param>
+    /// <param name="p6">The cumulative threshold following symbol six.</param>
+    /// <param name="p7">The cumulative threshold following symbol seven.</param>
+    /// <param name="p8">The cumulative threshold following symbol eight.</param>
+    /// <param name="p9">The cumulative threshold following symbol nine.</param>
+    /// <param name="p10">The cumulative threshold following symbol ten.</param>
+    public Av1Distribution(uint p0, uint p1, uint p2, uint p3, uint p4, uint p5, uint p6, uint p7, uint p8, uint p9, uint p10)
+        : this([p0, p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, 0], 2)
+    {
+    }
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1Distribution"/> class for a thirteen-symbol alphabet.
     /// </summary>
     /// <param name="p0">The cumulative threshold following symbol zero.</param>

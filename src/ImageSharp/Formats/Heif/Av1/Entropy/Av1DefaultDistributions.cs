@@ -2195,6 +2195,27 @@ internal static class Av1DefaultDistributions
         ];
 
     /// <summary>
+    /// Gets the inter transform-type distributions indexed by transform set and square transform-size group.
+    /// </summary>
+    public static Av1Distribution[][] InterExtendedTransform =>
+        [
+            [new(0), new(0), new(0), new(0)],
+            [
+                new(4458, 5560, 7695, 9709, 13330, 14789, 17537, 20266, 21504, 22848, 23934, 25474, 27727, 28915, 30631),
+                new(1645, 2573, 4778, 5711, 7807, 8622, 10522, 15357, 17674, 20408, 22517, 25010, 27116, 28856, 30749),
+                new(2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624, 28672, 30720),
+                new(2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624, 28672, 30720)
+            ],
+            [
+                new(2731, 5461, 8192, 10923, 13653, 16384, 19115, 21845, 24576, 27307, 30037),
+                new(2731, 5461, 8192, 10923, 13653, 16384, 19115, 21845, 24576, 27307, 30037),
+                new(770, 2421, 5225, 12907, 15819, 18927, 21561, 24089, 26595, 28526, 30529),
+                new(2731, 5461, 8192, 10923, 13653, 16384, 19115, 21845, 24576, 27307, 30037)
+            ],
+            [new(16384), new(4167), new(1998), new(748)]
+        ];
+
+    /// <summary>
     /// Gets the intra transform-type distributions indexed by transform set, transform-size group, and intra prediction mode.
     /// </summary>
     public static Av1Distribution[][][] IntraExtendedTransform =>

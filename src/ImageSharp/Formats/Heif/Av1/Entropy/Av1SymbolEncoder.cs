@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -19,6 +20,11 @@ internal class Av1SymbolEncoder : IDisposable
     /// The tile-adaptive intra-block-copy distribution.
     /// </summary>
     private readonly Av1Distribution tileIntraBlockCopy;
+
+    /// <summary>
+    /// The tile-adaptive integer displacement-vector context.
+    /// </summary>
+    private readonly Av1DisplacementVectorContext displacementVector = new();
 
     /// <summary>
     /// The tile-adaptive partition-type distributions.
@@ -186,6 +192,14 @@ internal class Av1SymbolEncoder : IDisposable
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol(value, this.tileIntraBlockCopy);
     }
+
+    /// <summary>
+    /// Writes an integer intra-block-copy displacement vector relative to a spatial reference.
+    /// </summary>
+    /// <param name="value">The displacement vector to encode.</param>
+    /// <param name="reference">The spatially derived reference vector.</param>
+    public void WriteDisplacementVector(Av1MotionVector value, Av1MotionVector reference)
+        => this.displacementVector.Write(this.writer, value, reference);
 
     /// <summary>
     /// Writes a complete block partition type using the selected partition context.
@@ -501,7 +515,7 @@ internal class Av1SymbolEncoder : IDisposable
             Guard.MustBeLessThan((int)squareTransformSize, 4, nameof(squareTransformSize));
             ref Av1SymbolWriter w = ref this.writer;
             w.WriteSymbol(
-                Av1SymbolContextHelper.ExtendedTransformIndices[(int)transformSetType][(int)transformType],
+                Av1SymbolContextHelper.GetExtendedTransformIndex(transformSetType, transformType),
                 this.intraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraDirectionContext]);
         }
     }

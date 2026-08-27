@@ -168,6 +168,59 @@ public class ObuFrameHeaderTests
     }
 
     /// <summary>
+    /// Verifies that the reduced sequence syntax cannot be used without declaring a still picture.
+    /// </summary>
+    [Fact]
+    public void ReadReducedHeaderWithoutStillPictureThrowsInvalidImageContent()
+    {
+        const int sequenceHeaderPayloadOffset = 2;
+        byte[] bitStream = [.. DefaultSequenceHeaderBitStream];
+
+        // The first payload byte stores the three profile bits followed by still_picture and
+        // reduced_still_picture_header. Clear only still_picture so the remaining syntax stays reduced.
+        bitStream[sequenceHeaderPayloadOffset] &= 0b1110_1111;
+
+        Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream));
+    }
+
+    /// <summary>
+    /// Verifies that a declared still-picture sequence rejects frame prefixes which do not describe a shown key frame.
+    /// </summary>
+    /// <param name="invalidFramePrefix">The high nibble containing show-existing, frame-type, and show-frame syntax.</param>
+    [Theory]
+    [InlineData(0b1000_0000)] // show_existing_frame = 1
+    [InlineData(0b0101_0000)] // frame_type = INTRA_ONLY_FRAME, show_frame = 1
+    [InlineData(0b0000_0000)] // frame_type = KEY_FRAME, show_frame = 0
+    public void ReadInvalidStillPictureFramePrefixThrowsInvalidImageContent(int invalidFramePrefix)
+    {
+        ObuSequenceHeader sequenceHeader = GetDefaultSequenceHeader();
+        sequenceHeader.IsReducedStillPictureHeader = false;
+        ObuFrameHeader frameHeader = GetKeyFrameHeader();
+        Av1TileDecoderStub tileStub = new();
+        byte[] emptyTile = [];
+        tileStub.ReadTile(emptyTile, 0);
+
+        using MemoryStream stream = new();
+        ObuWriter writer = new();
+        writer.WriteAll(Configuration.Default, stream, sequenceHeader, frameHeader, tileStub);
+        byte[] bitStream = stream.ToArray();
+
+        int sequenceObuOffset = DefaultTemporalDelimiterBitStream.Length;
+        Av1BitStreamReader sequenceSizeReader = new(bitStream.AsSpan(sequenceObuOffset + 1));
+        ulong sequencePayloadLength = sequenceSizeReader.ReadLittleEndianBytes128(out int sequenceSizeLength);
+        int frameObuOffset = sequenceObuOffset + 1 + sequenceSizeLength + (int)sequencePayloadLength;
+        Av1BitStreamReader frameSizeReader = new(bitStream.AsSpan(frameObuOffset + 1));
+        _ = frameSizeReader.ReadLittleEndianBytes128(out int frameSizeLength);
+        int framePayloadOffset = frameObuOffset + 1 + frameSizeLength;
+
+        // Preserve syntax after the frame prefix so each malformed stream differs from a valid writer result only in
+        // show_existing_frame or the still-picture frame-type/show-frame conformance condition under test.
+        bitStream[framePayloadOffset] = (byte)((bitStream[framePayloadOffset] & 0x0F) | invalidFramePrefix);
+
+        Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream));
+    }
+
+    /// <summary>
     /// Verifies that ignored OBU payloads are bounded and skipped before parsing the following sequence header.
     /// </summary>
     [Fact]

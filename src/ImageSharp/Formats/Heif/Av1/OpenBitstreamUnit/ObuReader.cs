@@ -385,6 +385,13 @@ internal class ObuReader
 
         sequenceHeader.IsStillPicture = reader.ReadBoolean();
         sequenceHeader.IsReducedStillPictureHeader = reader.ReadBoolean();
+        if (!sequenceHeader.IsStillPicture && sequenceHeader.IsReducedStillPictureHeader)
+        {
+            // The reduced header omits state required by a multi-frame sequence, so AV1 permits it only when the
+            // sequence is explicitly declared to contain a single still picture.
+            throw new InvalidImageContentException("An AV1 reduced still-picture header requires the still-picture flag.");
+        }
+
         if (sequenceHeader.IsReducedStillPictureHeader)
         {
             sequenceHeader.TimingInfo = null;
@@ -1005,6 +1012,11 @@ internal class ObuReader
             frameHeader.ShowExistingFrame = reader.ReadBoolean();
             if (frameHeader.ShowExistingFrame)
             {
+                if (sequenceHeader.IsStillPicture)
+                {
+                    throw new InvalidImageContentException("An AV1 still picture cannot display a previously decoded frame.");
+                }
+
                 frameHeader.FrameToShowMapIdx = reader.ReadLiteral(3);
 
                 if (sequenceHeader.DecoderModelInfoPresentFlag && sequenceHeader.TimingInfo?.EqualPictureInterval == false)
@@ -1018,12 +1030,17 @@ internal class ObuReader
                     frameHeader.DisplayFrameId = reader.ReadLiteral(idLength);
                 }
 
-                // TODO: This is incomplete here, not sure how we can display an already decoded frame here or if this is really relevent for still pictures.
-                throw new NotImplementedException("ShowExistingFrame is not yet implemented");
+                // Showing an existing frame requires sequence reference storage. The image-item decoder deliberately
+                // owns one independently coded picture and therefore rejects this sequence-only operation at its boundary.
+                throw new InvalidImageContentException("An AV1 image item cannot display a previously decoded frame.");
             }
 
             frameHeader.FrameType = (ObuFrameType)reader.ReadLiteral(2);
             frameHeader.ShowFrame = reader.ReadBoolean();
+            if (sequenceHeader.IsStillPicture && (frameHeader.FrameType != ObuFrameType.KeyFrame || !frameHeader.ShowFrame))
+            {
+                throw new InvalidImageContentException("An AV1 still picture must be encoded as a shown key frame.");
+            }
 
             if (frameHeader.ShowFrame && sequenceHeader.DecoderModelInfoPresentFlag && sequenceHeader.TimingInfo?.EqualPictureInterval == false)
             {

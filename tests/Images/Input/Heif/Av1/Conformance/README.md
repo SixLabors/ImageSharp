@@ -47,6 +47,38 @@ The `libaom-restoration-superres-*` streams combine active restoration with a co
 
 The 10-bit 4:2:2 source was produced from libavif's `abc.png` with pinned generic `avifenc` using `-j 1 -s 8 -q 100 -d 10 -y 422`, then decoded to Y4M before the combined libaom encode. Its clipped rightmost 128x128 coding block crosses a second 64x64 residual region. This independently exercises the required conversion of the luma-region cursor to the subsampled chroma transform grid instead of relying only on full-width 4:4:4 blocks.
 
+## AV1 profile matrix
+
+The `libavif-profile-*` fixtures were generated from `tests/data/abc.png` at the pinned libavif revision. The source SHA-256 is `5561862FBD409A3F86B02DB73EBB8572D0E2A307EB45ECF9017A1B2137B9F729`; libavif's test-data manifest licenses it under the libavif license. Alpha was deliberately ignored so the matrix isolates the color planes.
+
+The tools were the retained generic `avifenc` and `avifdec` 1.4.2 builds linked to libaom 3.14.1 at commit `03087864cf4bea6abb0d28f95cf7843511413d8f`. The libaom build used `AOM_TARGET_CPU=generic` with its encoder and decoder enabled; its generated configuration disables AVX, AVX2, AVX-512, MMX, Neon, SSE, SSE2, SSE3, SSSE3, SSE4.1, and SSE4.2. The static libavif build used that `aom.lib`, disabled libyuv, and received `WITH_SIMD=OFF`, so the native and presentation references do not depend on ImageSharp or an architecture-specific decode path.
+
+The complete generation loop was:
+
+```powershell
+foreach ($depth in 8, 10, 12) {
+    foreach ($format in 400, 420, 422, 444) {
+        $stem = "libavif-profile-${depth}b-${format}"
+        & $encoder -j 1 -s 6 -q 60 --ignore-alpha -d $depth -y $format --cicp 1/13/6 -a enable-palette=0 -a enable-intrabc=0 $source "$matrixDirectory\$stem.avif"
+        & $decoder -j 1 "$matrixDirectory\$stem.avif" "$matrixDirectory\$stem-libaom.y4m"
+        & $decoder -j 1 -d 8 "$matrixDirectory\$stem.avif" "$matrixDirectory\$stem.png"
+    }
+}
+```
+
+The six subsampled PNG references were then regenerated with explicit bilinear chroma reconstruction:
+
+```powershell
+foreach ($depth in 8, 10, 12) {
+    foreach ($format in 420, 422) {
+        $stem = "libavif-profile-${depth}b-${format}"
+        & $decoder -j 1 -d 8 -u bilinear "$matrixDirectory\$stem.avif" "$matrixDirectory\$stem.png"
+    }
+}
+```
+
+Each AVIF is a lossy 512x256 opaque still image with full-range CICP 1/13/6 signaling and no ICC, XMP, or Exif payload. The retained Y4M output is a complete container decode with its native monochrome, 4:2:0, 4:2:2, or 4:4:4 header and 8-, 10-, or 12-bit planes. It is stored in the test corpus with `-libaom-y4m.yuv` replacing the generated `-libaom.y4m` suffix. SHA-256 comparison confirms that every committed AVIF, Y4M, and PNG is byte-identical to its retained generation artifact.
+
 ## Palette coverage
 
 The palette fixture was encoded independently from ImageSharp using `tests/data/draw_points.png` from the pinned libavif revision. The source is a 33x11 flat-color image whose AV1 item selects both luma and chroma palette prediction. The pinned generic `avifenc` command used `-j 1 -s 0 -q 100 --ignore-alpha -y 444 --cicp 12/16/12 -a enable-palette=1 -a enable-intrabc=0 -a tune-content=screen`.

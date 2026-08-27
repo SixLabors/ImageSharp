@@ -95,13 +95,14 @@ internal class Av1InverseQuantizer
         short dequantDc = this.deQuantsDeltaQ.GetDc(mode.SegmentId, plane);
         short dequantAc = this.deQuantsDeltaQ.GetAc(mode.SegmentId, plane);
 
-        // The final matrix level is flat. Lossless blocks, frames without matrices, and one-dimensional transforms
-        // must use it so coefficient frequency does not change the signaled dequantization value.
+        // The final matrix level is flat. Lossless blocks and frames without matrices select it globally. AV1 also
+        // requires identity and one-dimensional transform types, which occupy the enum range from Identity onward,
+        // to bypass frequency weighting even when the frame signals quantization matrices.
         int qmLevel = lossless || !usingQuantizationMatrix
             ? Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1
             : this.frameHeader.SegmentationParameters.QMLevel[(int)plane][mode.SegmentId];
 
-        ReadOnlySpan<int> iqMatrix = (transformType.ToClass() == Av1TransformClass.Class2D)
+        ReadOnlySpan<int> iqMatrix = transformType < Av1TransformType.Identity
             ? Av1InverseQuantizationLookup.GetQuantizationMatrix(qmLevel, plane, transformSize)
             : Av1InverseQuantizationLookup.GetQuantizationMatrix(Av1Constants.QuantificationMatrixLevelCount - 1, Av1Plane.Y, transformSize);
 

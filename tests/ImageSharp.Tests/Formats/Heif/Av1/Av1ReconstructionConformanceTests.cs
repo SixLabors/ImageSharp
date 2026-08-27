@@ -2,12 +2,15 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
@@ -20,6 +23,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 [Trait("Format", "Avif")]
 public class Av1ReconstructionConformanceTests
 {
+    /// <summary>
+    /// The width and height of one CDEF unit in 4x4 luma mode-information units.
+    /// </summary>
+    private const int CdefUnitModeInfoSize = 16;
+
     /// <summary>
     /// The hardware configurations covering normal SIMD dispatch and the scalar fallback.
     /// </summary>
@@ -36,6 +44,12 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     private const HwIntrinsics IntraBlockCopyConfigurations =
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+
+    /// <summary>
+    /// The hardware configurations covering the narrower vector widths and scalar fallback for the profile matrix.
+    /// </summary>
+    private const HwIntrinsics ProfileFallbackConfigurations =
+        HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// The hardware configurations covering the 128-bit and scalar lossless inverse-transform paths.
@@ -87,6 +101,16 @@ public class Av1ReconstructionConformanceTests
     /// The displayed height shared by the independent lossless fixtures.
     /// </summary>
     private const int LosslessFixtureHeight = 60;
+
+    /// <summary>
+    /// The displayed width shared by the independent AV1 profile fixtures.
+    /// </summary>
+    private const int ProfileFixtureWidth = 512;
+
+    /// <summary>
+    /// The displayed height shared by the independent AV1 profile fixtures.
+    /// </summary>
+    private const int ProfileFixtureHeight = 256;
 
     /// <summary>
     /// The hardware configurations covering the available vector widths and the scalar color-conversion fallback.
@@ -149,6 +173,38 @@ public class Av1ReconstructionConformanceTests
     [Fact]
     public void DecodeWithActiveCdefMatchesPinnedLibavifPresentation()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePresentedFixtures, PresentationConfigurations);
+
+    /// <summary>
+    /// Verifies exact native reconstruction for every valid AV1 profile, bit-depth, and chroma-format combination
+    /// supported by AVIF across every available vector width and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void DecodeProfileMatrixMatchesPinnedLibaomReference()
+        => ValidateProfileNativeFixtures();
+
+    /// <summary>
+    /// Verifies exact native reconstruction for every valid AV1 profile, bit-depth, and chroma-format combination
+    /// under each narrower vector width and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void DecodeProfileMatrixFallbacksMatchPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateProfileNativeFixtures, ProfileFallbackConfigurations);
+
+    /// <summary>
+    /// Verifies exact presented pixels, public bit-depth metadata, and CICP signaling for every valid AV1 profile,
+    /// bit-depth, and chroma-format combination supported by AVIF.
+    /// </summary>
+    [Fact]
+    public void DecodeProfileMatrixMatchesPinnedLibavifPresentation()
+        => ValidateProfilePresentedFixtures();
+
+    /// <summary>
+    /// Verifies exact presented pixels, public bit-depth metadata, and CICP signaling under each narrower vector width
+    /// and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void DecodeProfileMatrixFallbacksMatchPinnedLibavifPresentation()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateProfilePresentedFixtures, ProfileFallbackConfigurations);
 
     /// <summary>
     /// Verifies decoded luma and chroma palette syntax and exact native samples against scalar libaom for an
@@ -290,6 +346,275 @@ public class Av1ReconstructionConformanceTests
         coverage |= GetPartitionCoverage(TestImages.Heif.Av1Cdef12BitPayload);
 
         Assert.Equal(RequiredPartitionCoverage, coverage & RequiredPartitionCoverage);
+    }
+
+    /// <summary>
+    /// Validates every native profile fixture under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidateProfileNativeFixtures()
+    {
+        ValidateProfileNativeFixture(
+            TestImages.Heif.Av1Profile8BitMonochromeAvif,
+            TestImages.Heif.Av1Profile8BitMonochromeReference,
+            Av1BitDepth.EightBit,
+            Av1ColorFormat.Yuv400,
+            ObuSequenceProfile.Main);
+
+        ValidateProfileNativeFixture(
+            TestImages.Heif.Av1Profile8Bit420Avif,
+            TestImages.Heif.Av1Profile8Bit420Reference,
+            Av1BitDepth.EightBit,
+            Av1ColorFormat.Yuv420,
+            ObuSequenceProfile.Main);
+
+        ValidateProfileNativeFixture(
+            TestImages.Heif.Av1Profile8Bit422Avif,
+            TestImages.Heif.Av1Profile8Bit422Reference,
+            Av1BitDepth.EightBit,
+            Av1ColorFormat.Yuv422,
+            ObuSequenceProfile.Professional);
+
+        ValidateProfileNativeFixture(
+            TestImages.Heif.Av1Profile8Bit444Avif,
+            TestImages.Heif.Av1Profile8Bit444Reference,
+            Av1BitDepth.EightBit,
+            Av1ColorFormat.Yuv444,
+            ObuSequenceProfile.High);
+
+        ValidateProfileNativeFixture(
+            TestImages.Heif.Av1Profile10BitMonochromeAvif,
+            TestImages.Heif.Av1Profile10BitMonochromeReference,
+            Av1BitDepth.TenBit,
+            Av1ColorFormat.Yuv400,
+            ObuSequenceProfile.Main);
+
+        ValidateProfileNativeFixture(
+            TestImages.Heif.Av1Profile10Bit420Avif,
+            TestImages.Heif.Av1Profile10Bit420Reference,
+            Av1BitDepth.TenBit,
+            Av1ColorFormat.Yuv420,
+            ObuSequenceProfile.Main);
+
+        ValidateProfileNativeFixture(
+            TestImages.Heif.Av1Profile10Bit422Avif,
+            TestImages.Heif.Av1Profile10Bit422Reference,
+            Av1BitDepth.TenBit,
+            Av1ColorFormat.Yuv422,
+            ObuSequenceProfile.Professional);
+
+        ValidateProfileNativeFixture(
+            TestImages.Heif.Av1Profile10Bit444Avif,
+            TestImages.Heif.Av1Profile10Bit444Reference,
+            Av1BitDepth.TenBit,
+            Av1ColorFormat.Yuv444,
+            ObuSequenceProfile.High);
+
+        ValidateProfileNativeFixture(
+            TestImages.Heif.Av1Profile12BitMonochromeAvif,
+            TestImages.Heif.Av1Profile12BitMonochromeReference,
+            Av1BitDepth.TwelveBit,
+            Av1ColorFormat.Yuv400,
+            ObuSequenceProfile.Professional);
+
+        ValidateProfileNativeFixture(
+            TestImages.Heif.Av1Profile12Bit420Avif,
+            TestImages.Heif.Av1Profile12Bit420Reference,
+            Av1BitDepth.TwelveBit,
+            Av1ColorFormat.Yuv420,
+            ObuSequenceProfile.Professional);
+
+        ValidateProfileNativeFixture(
+            TestImages.Heif.Av1Profile12Bit422Avif,
+            TestImages.Heif.Av1Profile12Bit422Reference,
+            Av1BitDepth.TwelveBit,
+            Av1ColorFormat.Yuv422,
+            ObuSequenceProfile.Professional);
+
+        ValidateProfileNativeFixture(
+            TestImages.Heif.Av1Profile12Bit444Avif,
+            TestImages.Heif.Av1Profile12Bit444Reference,
+            Av1BitDepth.TwelveBit,
+            Av1ColorFormat.Yuv444,
+            ObuSequenceProfile.Professional);
+    }
+
+    /// <summary>
+    /// Validates every presented profile fixture under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidateProfilePresentedFixtures()
+    {
+        ValidateProfilePresentedFixture(
+            TestImages.Heif.Av1Profile8BitMonochromeAvif,
+            TestImages.Heif.Av1Profile8BitMonochromePresentationReference,
+            HeifBitDepth.Bit8);
+
+        ValidateProfilePresentedFixture(
+            TestImages.Heif.Av1Profile8Bit420Avif,
+            TestImages.Heif.Av1Profile8Bit420PresentationReference,
+            HeifBitDepth.Bit8);
+
+        ValidateProfilePresentedFixture(
+            TestImages.Heif.Av1Profile8Bit422Avif,
+            TestImages.Heif.Av1Profile8Bit422PresentationReference,
+            HeifBitDepth.Bit8);
+
+        ValidateProfilePresentedFixture(
+            TestImages.Heif.Av1Profile8Bit444Avif,
+            TestImages.Heif.Av1Profile8Bit444PresentationReference,
+            HeifBitDepth.Bit8);
+
+        ValidateProfilePresentedFixture(
+            TestImages.Heif.Av1Profile10BitMonochromeAvif,
+            TestImages.Heif.Av1Profile10BitMonochromePresentationReference,
+            HeifBitDepth.Bit10);
+
+        ValidateProfilePresentedFixture(
+            TestImages.Heif.Av1Profile10Bit420Avif,
+            TestImages.Heif.Av1Profile10Bit420PresentationReference,
+            HeifBitDepth.Bit10);
+
+        ValidateProfilePresentedFixture(
+            TestImages.Heif.Av1Profile10Bit422Avif,
+            TestImages.Heif.Av1Profile10Bit422PresentationReference,
+            HeifBitDepth.Bit10);
+
+        ValidateProfilePresentedFixture(
+            TestImages.Heif.Av1Profile10Bit444Avif,
+            TestImages.Heif.Av1Profile10Bit444PresentationReference,
+            HeifBitDepth.Bit10);
+
+        ValidateProfilePresentedFixture(
+            TestImages.Heif.Av1Profile12BitMonochromeAvif,
+            TestImages.Heif.Av1Profile12BitMonochromePresentationReference,
+            HeifBitDepth.Bit12);
+
+        ValidateProfilePresentedFixture(
+            TestImages.Heif.Av1Profile12Bit420Avif,
+            TestImages.Heif.Av1Profile12Bit420PresentationReference,
+            HeifBitDepth.Bit12);
+
+        ValidateProfilePresentedFixture(
+            TestImages.Heif.Av1Profile12Bit422Avif,
+            TestImages.Heif.Av1Profile12Bit422PresentationReference,
+            HeifBitDepth.Bit12);
+
+        ValidateProfilePresentedFixture(
+            TestImages.Heif.Av1Profile12Bit444Avif,
+            TestImages.Heif.Av1Profile12Bit444PresentationReference,
+            HeifBitDepth.Bit12);
+    }
+
+    /// <summary>
+    /// Validates one independently encoded AVIF against its native Y4M reference and signaled sequence profile.
+    /// </summary>
+    /// <param name="imagePath">The complete AVIF container.</param>
+    /// <param name="referencePath">The native Y4M output produced by the pinned scalar libaom-backed decoder.</param>
+    /// <param name="bitDepth">The expected AV1 sample precision.</param>
+    /// <param name="colorFormat">The expected native chroma-sampling layout.</param>
+    /// <param name="sequenceProfile">The AV1 profile required by the bit-depth and chroma-format combination.</param>
+    private static void ValidateProfileNativeFixture(
+        string imagePath,
+        string referencePath,
+        Av1BitDepth bitDepth,
+        Av1ColorFormat colorFormat,
+        ObuSequenceProfile sequenceProfile)
+    {
+        byte[] imageBytes = TestFile.Create(imagePath).Bytes;
+        byte[] referenceBytes = TestFile.Create(referencePath).Bytes;
+        (string chromaTag, string extendedChromaTag) = GetY4mColorSpace(bitDepth, colorFormat);
+        string expectedHeader =
+            $"YUV4MPEG2 W{ProfileFixtureWidth} H{ProfileFixtureHeight} F25:1 Ip A0:0 C{chromaTag} XYSCSS={extendedChromaTag} XCOLORRANGE=FULL\n";
+
+        int headerTerminator = referenceBytes.AsSpan().IndexOf((byte)'\n');
+        Assert.NotEqual(-1, headerTerminator);
+        int fileHeaderLength = headerTerminator + 1;
+        Assert.Equal(expectedHeader, Encoding.ASCII.GetString(referenceBytes, 0, fileHeaderLength));
+
+        ReadOnlySpan<byte> nativeReference = referenceBytes.AsSpan(fileHeaderLength);
+        ReadOnlySpan<byte> frameHeader = "FRAME\n"u8;
+        Assert.True(nativeReference.StartsWith(frameHeader));
+        nativeReference = nativeReference[frameHeader.Length..];
+
+        Span<byte> payload = GetSoleAv1ItemPayload(imageBytes);
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
+
+        Assert.Equal(ProfileFixtureWidth, frameBuffer.Width);
+        Assert.Equal(ProfileFixtureHeight, frameBuffer.Height);
+        Assert.Equal(bitDepth, frameBuffer.BitDepth);
+        Assert.Equal(colorFormat, frameBuffer.ColorFormat);
+
+        ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
+        ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
+        Assert.Equal(sequenceProfile, sequenceHeader.SequenceProfile);
+        Assert.Equal(bitDepth, colorConfig.BitDepth);
+        Assert.Equal(colorFormat, colorConfig.GetColorFormat());
+        Assert.Equal(colorFormat == Av1ColorFormat.Yuv400, colorConfig.IsMonochrome);
+        Assert.True(colorConfig.IsColorDescriptionPresent);
+        Assert.Equal(ObuColorPrimaries.Bt709, colorConfig.ColorPrimaries);
+        Assert.Equal(ObuTransferCharacteristics.Srgb, colorConfig.TransferCharacteristics);
+        Assert.Equal(ObuMatrixCoefficients.Bt601, colorConfig.MatrixCoefficients);
+        Assert.True(colorConfig.ColorRange);
+        AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
+    }
+
+    /// <summary>
+    /// Validates the exact public presentation and metadata of one independently encoded AVIF profile fixture.
+    /// </summary>
+    /// <param name="imagePath">The complete AVIF container.</param>
+    /// <param name="referencePath">The eight-bit RGBA output produced by the pinned scalar libavif decoder.</param>
+    /// <param name="metadataBitDepth">The expected public HEIF sample precision.</param>
+    private static void ValidateProfilePresentedFixture(string imagePath, string referencePath, HeifBitDepth metadataBitDepth)
+    {
+        DecoderOptions options = new() { MaxFrames = 1 };
+        byte[] imageBytes = TestFile.Create(imagePath).Bytes;
+        byte[] referenceBytes = TestFile.Create(referencePath).Bytes;
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, imageBytes);
+        using Image<Rgba32> reference = Image.Load<Rgba32>(referenceBytes);
+
+        Assert.Equal(ProfileFixtureWidth, image.Width);
+        Assert.Equal(ProfileFixtureHeight, image.Height);
+        Assert.Single(image.Frames);
+
+        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
+        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
+        Assert.Equal(metadataBitDepth, metadata.BitDepth);
+
+        CicpProfile colorProfile = Assert.IsType<CicpProfile>(image.Metadata.CicpProfile);
+        Assert.Equal(CicpColorPrimaries.ItuRBt709_6, colorProfile.ColorPrimaries);
+        Assert.Equal(CicpTransferCharacteristics.Iec61966_2_1, colorProfile.TransferCharacteristics);
+        Assert.Equal(CicpMatrixCoefficients.ItuRBt601_7_525, colorProfile.MatrixCoefficients);
+        Assert.True(colorProfile.FullRange);
+        ImageComparer.Exact.VerifySimilarity(reference, image);
+    }
+
+    /// <summary>
+    /// Gets the Y4M chroma tags that encode one AV1 bit-depth and sampling-layout combination.
+    /// </summary>
+    /// <param name="bitDepth">The encoded AV1 sample precision.</param>
+    /// <param name="colorFormat">The encoded AV1 chroma-sampling layout.</param>
+    /// <returns>The Y4M <c>C</c> tag and extended <c>XYSCSS</c> tag.</returns>
+    private static (string ChromaTag, string ExtendedChromaTag) GetY4mColorSpace(Av1BitDepth bitDepth, Av1ColorFormat colorFormat)
+    {
+        // Y4M uses a legacy 420jpeg name at eight bits, lowercase p in high-depth C tags, and uppercase P in the
+        // corresponding XYSCSS tags. Keeping the exact spellings detects a reference generated with different layout.
+        return (bitDepth, colorFormat) switch
+        {
+            (Av1BitDepth.EightBit, Av1ColorFormat.Yuv400) => ("mono", "400"),
+            (Av1BitDepth.EightBit, Av1ColorFormat.Yuv420) => ("420jpeg", "420JPEG"),
+            (Av1BitDepth.EightBit, Av1ColorFormat.Yuv422) => ("422", "422"),
+            (Av1BitDepth.EightBit, Av1ColorFormat.Yuv444) => ("444", "444"),
+            (Av1BitDepth.TenBit, Av1ColorFormat.Yuv400) => ("mono10", "400"),
+            (Av1BitDepth.TenBit, Av1ColorFormat.Yuv420) => ("420p10", "420P10"),
+            (Av1BitDepth.TenBit, Av1ColorFormat.Yuv422) => ("422p10", "422P10"),
+            (Av1BitDepth.TenBit, Av1ColorFormat.Yuv444) => ("444p10", "444P10"),
+            (Av1BitDepth.TwelveBit, Av1ColorFormat.Yuv400) => ("mono12", "400"),
+            (Av1BitDepth.TwelveBit, Av1ColorFormat.Yuv420) => ("420p12", "420P12"),
+            (Av1BitDepth.TwelveBit, Av1ColorFormat.Yuv422) => ("422p12", "422P12"),
+            _ => ("444p12", "444P12")
+        };
     }
 
     /// <summary>
@@ -439,7 +764,7 @@ public class Av1ReconstructionConformanceTests
         Assert.NotNull(decoder.FrameHeader);
         Assert.True(decoder.FrameHeader.AllowIntraBlockCopy);
         Assert.NotEqual(0, GetIntraBlockCopyBlockCount(decoder));
-        AssertNativePlanesEqual(frameBuffer, nativeReference);
+        AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
     }
 
     /// <summary>
@@ -912,7 +1237,7 @@ public class Av1ReconstructionConformanceTests
             Assert.Equal(RequiredPaletteCoverage, GetPaletteCoverage(decoder));
         }
 
-        AssertNativePlanesEqual(frameBuffer, reference);
+        AssertNativePlanesEqual(decoder, frameBuffer, reference);
         return restorationCoverage;
     }
 
@@ -985,7 +1310,7 @@ public class Av1ReconstructionConformanceTests
 
         Assert.True(hasCodedResidual);
 
-        AssertNativePlanesEqual(frameBuffer, nativeReference);
+        AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
     }
 
     /// <summary>
@@ -1398,9 +1723,10 @@ public class Av1ReconstructionConformanceTests
     /// <summary>
     /// Compares every visible native component sample with the independent planar reference.
     /// </summary>
+    /// <param name="decoder">The decoder state used to identify the coded block containing a mismatch.</param>
     /// <param name="frameBuffer">The reconstructed AV1 component planes.</param>
     /// <param name="reference">The planar Y, U, and V samples produced by the pinned libaom decoder.</param>
-    private static void AssertNativePlanesEqual(Av1FrameBuffer<byte> frameBuffer, ReadOnlySpan<byte> reference)
+    private static void AssertNativePlanesEqual(Av1Decoder decoder, Av1FrameBuffer<byte> frameBuffer, ReadOnlySpan<byte> reference)
     {
         (int chromaSubsamplingX, int chromaSubsamplingY) = frameBuffer.ColorFormat switch
         {
@@ -1413,6 +1739,13 @@ public class Av1ReconstructionConformanceTests
         ReadOnlySpan<Av1Plane> planes = frameBuffer.ColorFormat == Av1ColorFormat.Yuv400
             ? [Av1Plane.Y]
             : [Av1Plane.Y, Av1Plane.U, Av1Plane.V];
+        int mismatchCount = 0;
+        Av1Plane largestMismatchPlane = default;
+        int largestMismatchX = 0;
+        int largestMismatchY = 0;
+        ushort largestExpected = 0;
+        ushort largestActual = 0;
+        StringBuilder mismatchDescription = null;
 
         foreach (Av1Plane plane in planes)
         {
@@ -1430,7 +1763,25 @@ public class Av1ReconstructionConformanceTests
                     ReadOnlySpan<byte> expectedRow = reference.Slice(referenceOffset, planeWidth);
                     for (int x = 0; x < planeWidth; x++)
                     {
-                        AssertSampleEqual(plane, x, y, expectedRow[x], actualRow[x]);
+                        if (expectedRow[x] != actualRow[x])
+                        {
+                            if (mismatchCount < 16)
+                            {
+                                mismatchDescription ??= new StringBuilder();
+                                mismatchDescription.Append($" {plane}({x},{y})={expectedRow[x]}/{actualRow[x]}");
+                            }
+
+                            if (mismatchCount == 0 || Math.Abs(expectedRow[x] - actualRow[x]) > Math.Abs(largestExpected - largestActual))
+                            {
+                                largestMismatchPlane = plane;
+                                largestMismatchX = x;
+                                largestMismatchY = y;
+                                largestExpected = expectedRow[x];
+                                largestActual = actualRow[x];
+                            }
+
+                            mismatchCount++;
+                        }
                     }
 
                     referenceOffset += planeWidth;
@@ -1445,7 +1796,26 @@ public class Av1ReconstructionConformanceTests
                     for (int x = 0; x < planeWidth; x++)
                     {
                         ushort expected = BinaryPrimitives.ReadUInt16LittleEndian(reference.Slice(referenceOffset, sizeof(ushort)));
-                        AssertSampleEqual(plane, x, y, expected, actualRow[x]);
+                        if (expected != actualRow[x])
+                        {
+                            if (mismatchCount < 16)
+                            {
+                                mismatchDescription ??= new StringBuilder();
+                                mismatchDescription.Append($" {plane}({x},{y})={expected}/{actualRow[x]}");
+                            }
+
+                            if (mismatchCount == 0 || Math.Abs(expected - actualRow[x]) > Math.Abs(largestExpected - largestActual))
+                            {
+                                largestMismatchPlane = plane;
+                                largestMismatchX = x;
+                                largestMismatchY = y;
+                                largestExpected = expected;
+                                largestActual = actualRow[x];
+                            }
+
+                            mismatchCount++;
+                        }
+
                         referenceOffset += sizeof(ushort);
                     }
                 }
@@ -1453,6 +1823,15 @@ public class Av1ReconstructionConformanceTests
         }
 
         Assert.Equal(reference.Length, referenceOffset);
+        AssertSampleEqual(
+            decoder,
+            largestMismatchPlane,
+            largestMismatchX,
+            largestMismatchY,
+            largestExpected,
+            largestActual,
+            mismatchCount,
+            mismatchDescription?.ToString() ?? string.Empty);
     }
 
     /// <summary>
@@ -1467,16 +1846,126 @@ public class Av1ReconstructionConformanceTests
     /// <summary>
     /// Reports the exact component coordinate when independently decoded samples differ.
     /// </summary>
+    /// <param name="decoder">The decoder state used to identify the coded block containing the sample.</param>
     /// <param name="plane">The compared component plane.</param>
     /// <param name="x">The sample X coordinate.</param>
     /// <param name="y">The sample Y coordinate.</param>
     /// <param name="expected">The reference sample.</param>
     /// <param name="actual">The reconstructed sample.</param>
-    private static void AssertSampleEqual(Av1Plane plane, int x, int y, ushort expected, ushort actual)
+    /// <param name="mismatchCount">The total number of unequal native samples.</param>
+    /// <param name="mismatchDescription">The first unequal samples in plane traversal order.</param>
+    private static void AssertSampleEqual(
+        Av1Decoder decoder,
+        Av1Plane plane,
+        int x,
+        int y,
+        ushort expected,
+        ushort actual,
+        int mismatchCount,
+        string mismatchDescription)
     {
         if (expected != actual)
         {
-            Assert.Fail($"Plane {plane} differs at ({x}, {y}): expected {expected}, actual {actual}.");
+            Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+            int modeInfoColumn = x >> Av1Constants.ModeInfoSizeLog2;
+            int modeInfoRow = y >> Av1Constants.ModeInfoSizeLog2;
+            Av1BlockModeInfo modeInfo = frameInfo.GetModeInfoAt(new Point(modeInfoColumn, modeInfoRow));
+            int blockColumn = modeInfoColumn;
+            while (blockColumn > 0 && ReferenceEquals(frameInfo.GetModeInfoAt(new Point(blockColumn - 1, modeInfoRow)), modeInfo))
+            {
+                blockColumn--;
+            }
+
+            int blockRow = modeInfoRow;
+            while (blockRow > 0 && ReferenceEquals(frameInfo.GetModeInfoAt(new Point(modeInfoColumn, blockRow - 1)), modeInfo))
+            {
+                blockRow--;
+            }
+
+            int superblockSize = frameInfo.SuperblockModeInfoSize;
+            Av1SuperblockInfo superblock = frameInfo.GetSuperblock(new Point(blockColumn / superblockSize, blockRow / superblockSize));
+            Span<Av1TransformInfo> transforms = superblock.GetTransformInfoY().Slice(
+                modeInfo.GetFirstTransformLocation(Av1Plane.Y),
+                modeInfo.GetTransformUnitCount(Av1Plane.Y));
+
+            Av1TransformInfo containingTransform = transforms[0];
+            int containingTransformIndex = 0;
+            int transformColumn = modeInfoColumn - blockColumn;
+            int transformRow = modeInfoRow - blockRow;
+            for (int transformIndex = 0; transformIndex < transforms.Length; transformIndex++)
+            {
+                Av1TransformInfo transform = transforms[transformIndex];
+                if (transformColumn >= transform.OffsetX && transformColumn < transform.OffsetX + transform.Size.Get4x4WideCount()
+                    && transformRow >= transform.OffsetY && transformRow < transform.OffsetY + transform.Size.Get4x4HighCount())
+                {
+                    containingTransform = transform;
+                    containingTransformIndex = transformIndex;
+                    break;
+                }
+            }
+
+            int superblockTransformIndex = modeInfo.GetFirstTransformLocation(Av1Plane.Y) + containingTransformIndex;
+            Span<Av1TransformInfo> superblockTransforms = superblock.GetTransformInfoY();
+            Span<int> superblockCoefficients = superblock.CoefficientsY;
+            int coefficientOffset = 0;
+            for (int transformIndex = 0; transformIndex < superblockTransformIndex; transformIndex++)
+            {
+                if (superblockTransforms[transformIndex].CodeBlockFlag)
+                {
+                    coefficientOffset += superblockCoefficients[coefficientOffset] + 1;
+                }
+            }
+
+            StringBuilder coefficientDescription = new();
+            if (containingTransform.CodeBlockFlag)
+            {
+                int coefficientCount = superblockCoefficients[coefficientOffset];
+                coefficientDescription.Append($", quantized-coefficients={coefficientCount}:[");
+                for (int coefficientIndex = 0; coefficientIndex < coefficientCount; coefficientIndex++)
+                {
+                    if (coefficientIndex != 0)
+                    {
+                        coefficientDescription.Append(',');
+                    }
+
+                    coefficientDescription.Append(superblockCoefficients[coefficientOffset + coefficientIndex + 1]);
+                }
+
+                coefficientDescription.Append(']');
+            }
+
+            ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
+            int cdefUnitColumn = (modeInfoColumn % superblockSize) / CdefUnitModeInfoSize;
+            int cdefUnitRow = (modeInfoRow % superblockSize) / CdefUnitModeInfoSize;
+            int cdefStrengthIndex = frameInfo.GetCdefStrength(superblock.Position)[cdefUnitColumn + (cdefUnitRow << 1)];
+            int cdefStrength = cdefStrengthIndex < 0 ? -1 : frameHeader.CdefParameters.YStrength[cdefStrengthIndex];
+            int nextModeInfoRow = Math.Min(modeInfoRow + 1, frameHeader.ModeInfoRowCount - 1);
+            Av1BlockModeInfo nextRowModeInfo = frameInfo.GetModeInfoAt(new Point(modeInfoColumn, nextModeInfoRow));
+            Av1BlockModeInfo aboveModeInfo = frameInfo.GetModeInfoAt(new Point(modeInfoColumn, Math.Max(blockRow - 1, 0)));
+            Av1BlockModeInfo leftModeInfo = frameInfo.GetModeInfoAt(new Point(Math.Max(blockColumn - 1, 0), modeInfoRow));
+
+            // Exact conformance failures need the owning syntax state. A coordinate alone does not distinguish
+            // prediction, residual reconstruction, and in-loop filtering failures inside a large coded frame.
+            Assert.Fail(
+                $"Plane {plane} differs at ({x}, {y}): expected {expected}, actual {actual}. "
+                + $"Total unequal samples={mismatchCount}:{mismatchDescription}. "
+                + $"Block={modeInfo.BlockSize}, mode={modeInfo.YMode}, partition={modeInfo.PartitionType}, skip={modeInfo.Skip}, "
+                + $"filter-intra={modeInfo.UseFilterIntra}/{modeInfo.FilterIntraMode}, angle-delta={modeInfo.GetAngleDelta(plane)}, "
+                + $"palette-size={modeInfo.GetPaletteSize(plane)}, transforms={modeInfo.GetTransformUnitCount(plane)}, "
+                + $"transform={containingTransform.Size}/{containingTransform.Type}/coded={containingTransform.CodeBlockFlag} "
+                + $"at ({containingTransform.OffsetX}, {containingTransform.OffsetY}), block-origin=({blockColumn}, {blockRow}). "
+                + $"Loop-filter={frameHeader.LoopFilterParameters.FilterLevel[0]}/{frameHeader.LoopFilterParameters.FilterLevel[1]}, "
+                + $"sharpness={frameHeader.LoopFilterParameters.SharpnessLevel}, delta-q={frameHeader.DeltaQParameters.IsPresent}, "
+                + $"superblock-q={superblock.SuperblockQuantizerIndex}{coefficientDescription}, "
+                + $"delta-lf={frameHeader.DeltaLoopFilterParameters.IsPresent}/{frameHeader.DeltaLoopFilterParameters.IsMulti}, "
+                + $"CDEF={cdefStrengthIndex}/{cdefStrength}, restoration={frameHeader.LoopRestorationParameters.Items[0].Type}, "
+                + $"film-grain={frameHeader.FilmGrainParameters.ApplyGrain}, "
+                + $"tiles={frameHeader.TilesInfo.TileColumnCount}x{frameHeader.TilesInfo.TileRowCount}, "
+                + $"first-tile-end=({frameHeader.TilesInfo.TileColumnStartModeInfo[1]}, {frameHeader.TilesInfo.TileRowStartModeInfo[1]}). "
+                + $"Neighbors: above={aboveModeInfo.BlockSize}/{aboveModeInfo.YMode}/skip={aboveModeInfo.Skip}, "
+                + $"left={leftModeInfo.BlockSize}/{leftModeInfo.YMode}/skip={leftModeInfo.Skip}, "
+                + $"next-row={nextRowModeInfo.BlockSize}/{nextRowModeInfo.YMode}/skip={nextRowModeInfo.Skip}/"
+                + $"angle-delta={nextRowModeInfo.GetAngleDelta(plane)}/transforms={nextRowModeInfo.GetTransformUnitCount(plane)}.");
         }
     }
 }

@@ -29,7 +29,7 @@ Checkboxes may be marked complete only when the implementation and the verificat
 
 ## Delivery dashboard
 
-Last reconciled with the source tree on 2026-08-27 against the worktree based on commit `cf0c81eb3`, including the completed AV1 transform, OBU-framing, and independently verified intra-block-copy checkpoints. This dashboard is the authoritative delivery order. The detailed phase checklists below provide subsystem evidence; they do not override the current-stage marker or permit work to skip ahead.
+Last reconciled with the source tree on 2026-08-27 against the worktree based on commit `07cc0291e`, including the completed AV1 transform, OBU-framing, intra-block-copy, and 12-profile reconstruction checkpoints. This dashboard is the authoritative delivery order. The detailed phase checklists below provide subsystem evidence; they do not override the current-stage marker or permit work to skip ahead.
 
 Status meanings:
 
@@ -40,13 +40,13 @@ Status meanings:
 
 Current development stage: **Stage 3 — complete AV1 still-image decoding.** The transform checkpoint is closed: forward transforms use one libaom-shaped SIMD-first operator architecture across `Vector512`, `Vector256`, and `Vector128`, with scalar fallback; inverse production traversal uses the verified `Vector256` and `Vector128` tiers with scalar fallback; and implementation-mechanic type and file suffixes have been removed. Neither AV1 nor HEVC production encoding is implemented.
 
-Immediate checkpoint: **remove every remaining valid AV1 still-image unsupported branch and prove the complete decode matrix.** Each syntax tool must be implemented through the established SIMD-first architecture with scalar fallback and verified with independent AVIF/libaom evidence across supported bit depths, chroma layouts, filters, grain, and color signaling.
+Immediate checkpoint: **inventory and remove every remaining valid AV1 still-image unsupported branch, one independently verified syntax tool at a time.** The base AV1 profile matrix is now exact across 8/10/12-bit monochrome, 4:2:0, 4:2:2, and 4:4:4 reconstruction and presentation under every available dispatch tier. That matrix is the regression gate for the remaining compression-tool fixtures; it does not by itself prove every normative still-image tool.
 
 | Order | Delivery stage | State | Delivered state | Gate that remains open |
 | --- | --- | --- | --- | --- |
 | 1 | Baseline, provenance, documentation, and public contract | In progress | Pinned codec references, a bounded image-only scope, encoder options, typed bit depth, decoder-option propagation, and extensive HEIF documentation exist. | Complete the all-file documentation audit, record a fresh Release baseline, finish distinct public HEIC/AVIF save boundaries, and close API review. |
 | 2 | Bounded HEIF item and image-sequence container | In progress | Still-item parsing, grids, auxiliary alpha, metadata properties, bounded image-sequence tracks, Identify, and all-sync AV1 sequence presentation are connected. | Complete adversarial boundary coverage, remaining item/property behavior, reference-dependent sequence reconstruction, and the bounded sequence writer. |
-| 3 | Still-image AV1 and HEVC decoding | **Current** | HEVC reconstruction reaches exact HM/libheif fixtures across the recorded 8/10/12-bit and chroma cases. AV1 includes bounded OBU framing, reconstruction, filters, grain, color, transforms, and independently verified intra-block-copy syntax and prediction through SIMD-first static-generic operators. | Remove every other valid AV1 still-image unsupported branch with independent vectors, then complete the remaining HEVC profile and Range Extensions matrix. |
+| 3 | Still-image AV1 and HEVC decoding | **Current** | HEVC reconstruction reaches exact HM/libheif fixtures across the recorded 8/10/12-bit and chroma cases. AV1 includes bounded OBU framing, reconstruction, filters, grain, color, transforms, intra-block copy, and an exact independent 12-profile bit-depth/chroma matrix through every dispatch tier. | Remove every remaining valid AV1 still-image unsupported branch with independent compression-tool vectors, then complete the remaining HEVC profile and Range Extensions matrix. |
 | 4 | Complete decoded presentation and animation | In progress | Shared SIMD-first AV1/HEVC color conversion, ICC application, grids, transforms, direct planar alpha composition, frame metadata, repetition, and independently decodable AV1 sequence samples exist. | Close the full color/ICC cross-product, HEVC sequence decoding, AV1/HEVC reference-dependent samples, frame-local metadata/alpha behavior, and independent animated decode vectors. |
 | 5 | AV1/AVIF encoding | Not started | RGB-to-planar conversion, forward transforms, OBU writer foundations, options, and container-writing infrastructure exist. | `HeifEncoderCore` still rejects AV1. Implement a real independently decodable lossy/lossless AV1 payload and the complete AVIF item/metadata matrix. |
 | 6 | HEVC/HEIC encoding | Not started | Shared input color conversion, options, and HEIF writer infrastructure exist. | `HeifEncoderCore` still rejects HEVC. Implement a real independently decodable lossy/lossless HEVC payload and the complete HEIC item/metadata matrix. |
@@ -56,7 +56,8 @@ Immediate checkpoint: **remove every remaining valid AV1 still-image unsupported
 ## Immediate execution queue
 
 - [x] Finish the libaom-shaped AV1 forward-transform architecture, measured production dispatch, inverse-tier correction, suffix cleanup, `FeatureTestRunner` matrix, and focused Release verification recorded below.
-- [ ] **Current:** complete AV1 still-image decoding for every valid still syntax path and independently verify the full bit-depth, chroma, compression-tool, filter, grain, and color matrix.
+- [x] Close the base AV1 profile matrix with exact native-plane and presented-image comparisons for 8/10/12-bit monochrome, 4:2:0, 4:2:2, and 4:4:4 fixtures under normal, AVX2, 128-bit, and scalar dispatch.
+- [ ] **Current:** inventory and remove every remaining valid AV1 still-image unsupported branch, adding exact independent compression-tool fixtures to the profile-matrix regression gate.
 - [ ] Complete the remaining HEVC still-image profile and Range Extensions matrix with exact independent native-plane and presentation evidence.
 - [ ] Close shared decoded presentation, ICC, alpha, grid, transform, metadata, and animated AV1/HEVC decode gates.
 - [ ] Implement and independently verify real AV1/AVIF still encoding.
@@ -500,6 +501,8 @@ Implement and verify in dependency order:
 - [ ] One coherent decoder lifecycle that retains parsed frame and tile state and disposes all buffers deterministically.
 - [ ] Tile partitioning, mode information, segmentation, delta quantization, transform-size selection, coefficient token decode, inverse quantization, and inverse transforms.
   - [x] Match libaom's depth-first traversal and frame-edge behavior for all ten AV1 partition types. Independent 8/10/12-bit streams collectively select every terminal partition shape and contain nested block geometry that requires recursive `Split` traversal; their complete native planes remain byte-exact under normal hardware dispatch and the scalar fallback.
+  - [x] Verify the complete 8/10/12-bit monochrome, 4:2:0, 4:2:2, and 4:4:4 base profile matrix against pinned libaom native planes and pinned libavif presentation output. All 12 fixtures match exactly with normal dispatch, AVX-512 disabled, AVX disabled, and all hardware intrinsics disabled through `FeatureTestRunner`.
+  - [x] Correct monochrome plane classification, maximum-superblock-row loop-filter traversal, and identity/one-dimensional inverse-quantization-matrix selection exposed by the profile matrix. The quantization rule matches libaom's `tx_type < IDTX` boundary and is verified by the exact native-plane oracle rather than a tolerance.
 - [ ] Intra prediction, including every directional, smooth, Paeth, CFL, filter-intra, and palette case permitted by AV1.
   - [x] Implement SIMD-first chroma-from-luma storage, 4:4:4/4:2:2/4:2:0 subsampling, rounded mean subtraction, and 8/10/12-bit prediction with exact scalar fallback and `FeatureTestRunner` parity.
   - [x] Implement allocation-free SIMD-first palette reconstruction for palette sizes 2-8, transform widths 4-64, and 8/10/12-bit samples with exact scalar fallback and `FeatureTestRunner` parity.

@@ -61,7 +61,7 @@ internal class Av1LoopFilterDecoder
     }
 
     /// <summary>
-    /// Filters every enabled plane, processing all vertical boundaries before horizontal boundaries.
+    /// Filters every enabled plane in maximum-superblock row bands.
     /// </summary>
     public void DecodeFrame()
     {
@@ -72,45 +72,57 @@ internal class Av1LoopFilterDecoder
         }
 
         ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
-        for (int planeIndex = 0; planeIndex < colorConfig.PlaneCount; planeIndex++)
+        int modeInfoRowsPerBand = 1 << (Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2);
+
+        // libaom's loop_filter_rows processes one MAX_MIB_SIZE band at a time so that a completed band can be
+        // presented before the remainder of the frame. The ordering is observable because the vertical and
+        // horizontal passes modify intersecting sample neighborhoods in place.
+        for (int rowStart = 0; rowStart < this.frameHeader.ModeInfoRowCount; rowStart += modeInfoRowsPerBand)
         {
-            Av1Plane plane = (Av1Plane)planeIndex;
-            int planeFilterLevel = plane switch
-            {
-                Av1Plane.U => filterParameters.FilterLevelU,
-                Av1Plane.V => filterParameters.FilterLevelV,
-                _ => Math.Max(filterParameters.FilterLevel[0], filterParameters.FilterLevel[1])
-            };
+            int rowEnd = Math.Min(rowStart + modeInfoRowsPerBand, this.frameHeader.ModeInfoRowCount);
 
-            if (planeFilterLevel == 0)
+            for (int planeIndex = 0; planeIndex < colorConfig.PlaneCount; planeIndex++)
             {
-                continue;
+                Av1Plane plane = (Av1Plane)planeIndex;
+                int planeFilterLevel = plane switch
+                {
+                    Av1Plane.U => filterParameters.FilterLevelU,
+                    Av1Plane.V => filterParameters.FilterLevelV,
+                    _ => Math.Max(filterParameters.FilterLevel[0], filterParameters.FilterLevel[1])
+                };
+
+                if (planeFilterLevel == 0)
+                {
+                    continue;
+                }
+
+                int subX = plane != Av1Plane.Y && colorConfig.SubSamplingX ? 1 : 0;
+                int subY = plane != Av1Plane.Y && colorConfig.SubSamplingY ? 1 : 0;
+                Span<byte> lowBitDepthSamples = default;
+                Span<ushort> highBitDepthSamples = default;
+                int stride;
+
+                if (this.frameBuffer.BytesPerSample == 2)
+                {
+                    Span<short> signedSamples = this.frameBuffer.DeriveBlockPointer16(plane, Point.Empty, subX, subY, out stride);
+                    highBitDepthSamples = MemoryMarshal.Cast<short, ushort>(signedSamples);
+                }
+                else
+                {
+                    lowBitDepthSamples = this.frameBuffer.DeriveBlockPointer(plane, Point.Empty, subX, subY, out stride);
+                }
+
+                this.FilterPlane(plane, rowStart, rowEnd, subX, subY, stride, lowBitDepthSamples, highBitDepthSamples);
             }
-
-            int subX = plane != Av1Plane.Y && colorConfig.SubSamplingX ? 1 : 0;
-            int subY = plane != Av1Plane.Y && colorConfig.SubSamplingY ? 1 : 0;
-            Span<byte> lowBitDepthSamples = default;
-            Span<ushort> highBitDepthSamples = default;
-            int stride;
-
-            if (this.frameBuffer.BytesPerSample == 2)
-            {
-                Span<short> signedSamples = this.frameBuffer.DeriveBlockPointer16(plane, Point.Empty, subX, subY, out stride);
-                highBitDepthSamples = MemoryMarshal.Cast<short, ushort>(signedSamples);
-            }
-            else
-            {
-                lowBitDepthSamples = this.frameBuffer.DeriveBlockPointer(plane, Point.Empty, subX, subY, out stride);
-            }
-
-            this.FilterPlane(plane, subX, subY, stride, lowBitDepthSamples, highBitDepthSamples);
         }
     }
 
     /// <summary>
-    /// Filters one plane in the AV1 vertical-then-horizontal boundary order.
+    /// Filters one plane band in the AV1 vertical-then-horizontal boundary order.
     /// </summary>
     /// <param name="plane">The color plane to filter.</param>
+    /// <param name="rowStart">The inclusive band origin in luma 4x4 units.</param>
+    /// <param name="rowEnd">The exclusive band limit in luma 4x4 units.</param>
     /// <param name="subX">The horizontal chroma subsampling shift.</param>
     /// <param name="subY">The vertical chroma subsampling shift.</param>
     /// <param name="stride">The plane stride in logical samples.</param>
@@ -118,6 +130,8 @@ internal class Av1LoopFilterDecoder
     /// <param name="highBitDepthSamples">The high-bit-depth plane storage, when active.</param>
     private void FilterPlane(
         Av1Plane plane,
+        int rowStart,
+        int rowEnd,
         int subX,
         int subY,
         int stride,
@@ -127,25 +141,41 @@ internal class Av1LoopFilterDecoder
         int rowStep = 1 << subY;
         int columnStep = 1 << subX;
 
-        // The AV1 result is independent of ordering within a pass, but vertical filtering must finish before any
-        // horizontal filtering begins because the two directions modify intersecting sample neighborhoods.
-        for (int pass = 0; pass < 2; pass++)
+        // The vertical pass advances across each row because successive vertical edges do not share modified samples.
+        // Chroma rows retain luma-grid coordinates and therefore advance by two mode-info units when subsampled.
+        for (int row = rowStart; row < rowEnd; row += rowStep)
         {
-            for (int row = 0; row < this.frameHeader.ModeInfoRowCount; row += rowStep)
+            for (int column = 0; column < this.frameHeader.ModeInfoColumnCount; column += columnStep)
             {
-                for (int column = 0; column < this.frameHeader.ModeInfoColumnCount; column += columnStep)
-                {
-                    this.FilterEdge(
-                        plane,
-                        pass,
-                        row,
-                        column,
-                        subX,
-                        subY,
-                        stride,
-                        lowBitDepthSamples,
-                        highBitDepthSamples);
-                }
+                this.FilterEdge(
+                    plane,
+                    0,
+                    row,
+                    column,
+                    subX,
+                    subY,
+                    stride,
+                    lowBitDepthSamples,
+                    highBitDepthSamples);
+            }
+        }
+
+        // Horizontal edges are visited down each column. This ordering is observable because adjacent horizontal
+        // filters can modify samples that a later edge reads, so it must match libaom's av1_filter_block_plane_horz.
+        for (int column = 0; column < this.frameHeader.ModeInfoColumnCount; column += columnStep)
+        {
+            for (int row = rowStart; row < rowEnd; row += rowStep)
+            {
+                this.FilterEdge(
+                    plane,
+                    1,
+                    row,
+                    column,
+                    subX,
+                    subY,
+                    stride,
+                    lowBitDepthSamples,
+                    highBitDepthSamples);
             }
         }
     }
@@ -247,6 +277,7 @@ internal class Av1LoopFilterDecoder
         int boundaryLimit = (2 * (filterLevel + 2)) + limit;
         int highEdgeVarianceThreshold = filterLevel >> 4;
         int q0Offset = stride + (planeY * stride) + planeX;
+
         if (this.frameBuffer.BytesPerSample == 2)
         {
             if (verticalBoundary)

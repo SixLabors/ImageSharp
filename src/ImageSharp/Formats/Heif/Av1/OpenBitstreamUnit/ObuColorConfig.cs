@@ -90,6 +90,13 @@ internal class ObuColorConfig
     /// <returns>The corresponding AV1 color format.</returns>
     public Av1ColorFormat GetColorFormat()
     {
+        if (this.IsMonochrome)
+        {
+            // AV1 sets both subsampling flags for monochrome sequences even though no chroma planes exist. The
+            // mono_chrome syntax therefore owns the plane layout and must take precedence over those derived flags.
+            return Av1ColorFormat.Yuv400;
+        }
+
         Av1ColorFormat format = Av1ColorFormat.Yuv400;
         if (this.SubSamplingX && this.SubSamplingY)
         {

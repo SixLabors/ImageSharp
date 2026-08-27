@@ -76,13 +76,16 @@ internal sealed class Av1FrameEntropyContext
         this.PaletteYColorIndex = Av1DefaultDistributions.PaletteYColorIndex;
         this.PaletteUvColorIndex = Av1DefaultDistributions.PaletteUvColorIndex;
         this.PartitionTypes = Av1DefaultDistributions.PartitionTypes;
+        this.FrameYMode = Av1DefaultDistributions.FrameYMode;
         this.KeyFrameYMode = Av1DefaultDistributions.KeyFrameYMode;
+        this.IntraInter = Av1DefaultDistributions.IntraInter;
         this.UvMode = Av1DefaultDistributions.UvMode;
         this.Skip = Av1DefaultDistributions.Skip;
         this.SkipMode = Av1DefaultDistributions.SkipMode;
         this.DeltaLoopFilterAbsolute = Av1DefaultDistributions.DeltaLoopFilterAbsolute;
         this.DeltaQuantizerAbsolute = Av1DefaultDistributions.DeltaQuantizerAbsolute;
         this.SegmentId = Av1DefaultDistributions.SegmentId;
+        this.SegmentIdPredicted = Av1DefaultDistributions.SegmentIdPredicted;
         this.AngleDelta = Av1DefaultDistributions.AngleDelta;
         this.FilterIntraMode = Av1DefaultDistributions.FilterIntraMode;
         this.FilterIntra = Av1DefaultDistributions.FilterIntra;
@@ -124,13 +127,16 @@ internal sealed class Av1FrameEntropyContext
         this.PaletteYColorIndex = Av1Distribution.CreateCopy(source.PaletteYColorIndex);
         this.PaletteUvColorIndex = Av1Distribution.CreateCopy(source.PaletteUvColorIndex);
         this.PartitionTypes = Av1Distribution.CreateCopy(source.PartitionTypes);
+        this.FrameYMode = Av1Distribution.CreateCopy(source.FrameYMode);
         this.KeyFrameYMode = Av1Distribution.CreateCopy(source.KeyFrameYMode);
+        this.IntraInter = Av1Distribution.CreateCopy(source.IntraInter);
         this.UvMode = Av1Distribution.CreateCopy(source.UvMode);
         this.Skip = Av1Distribution.CreateCopy(source.Skip);
         this.SkipMode = Av1Distribution.CreateCopy(source.SkipMode);
         this.DeltaLoopFilterAbsolute = source.DeltaLoopFilterAbsolute.CreateCopy();
         this.DeltaQuantizerAbsolute = source.DeltaQuantizerAbsolute.CreateCopy();
         this.SegmentId = Av1Distribution.CreateCopy(source.SegmentId);
+        this.SegmentIdPredicted = Av1Distribution.CreateCopy(source.SegmentIdPredicted);
         this.AngleDelta = Av1Distribution.CreateCopy(source.AngleDelta);
         this.FilterIntraMode = source.FilterIntraMode.CreateCopy();
         this.FilterIntra = Av1Distribution.CreateCopy(source.FilterIntra);
@@ -209,9 +215,19 @@ internal sealed class Av1FrameEntropyContext
     public Av1Distribution[] PartitionTypes { get; }
 
     /// <summary>
+    /// Gets the inter-frame intra luma-mode distributions indexed by the normative block-size group.
+    /// </summary>
+    public Av1Distribution[] FrameYMode { get; }
+
+    /// <summary>
     /// Gets the key-frame luma-mode distributions.
     /// </summary>
     public Av1Distribution[][] KeyFrameYMode { get; }
+
+    /// <summary>
+    /// Gets the distributions that select intra or inter prediction from the available spatial neighbors.
+    /// </summary>
+    public Av1Distribution[] IntraInter { get; }
 
     /// <summary>
     /// Gets the chroma intra-mode distributions.
@@ -242,6 +258,11 @@ internal sealed class Av1FrameEntropyContext
     /// Gets the spatial segment-identifier distributions.
     /// </summary>
     public Av1Distribution[] SegmentId { get; }
+
+    /// <summary>
+    /// Gets the temporal segment-map prediction distributions.
+    /// </summary>
+    public Av1Distribution[] SegmentIdPredicted { get; }
 
     /// <summary>
     /// Gets the directional angle-delta distributions.
@@ -363,13 +384,16 @@ internal sealed class Av1FrameEntropyContext
         CopyState(source.PaletteYColorIndex, this.PaletteYColorIndex);
         CopyState(source.PaletteUvColorIndex, this.PaletteUvColorIndex);
         CopyState(source.PartitionTypes, this.PartitionTypes);
+        CopyState(source.FrameYMode, this.FrameYMode);
         CopyState(source.KeyFrameYMode, this.KeyFrameYMode);
+        CopyState(source.IntraInter, this.IntraInter);
         CopyState(source.UvMode, this.UvMode);
         CopyState(source.Skip, this.Skip);
         CopyState(source.SkipMode, this.SkipMode);
         this.DeltaLoopFilterAbsolute.CopyFrom(source.DeltaLoopFilterAbsolute);
         this.DeltaQuantizerAbsolute.CopyFrom(source.DeltaQuantizerAbsolute);
         CopyState(source.SegmentId, this.SegmentId);
+        CopyState(source.SegmentIdPredicted, this.SegmentIdPredicted);
         CopyState(source.AngleDelta, this.AngleDelta);
         this.FilterIntraMode.CopyFrom(source.FilterIntraMode);
         CopyState(source.FilterIntra, this.FilterIntra);
@@ -418,13 +442,16 @@ internal sealed class Av1FrameEntropyContext
         ResetUpdateCounts(this.PaletteYColorIndex);
         ResetUpdateCounts(this.PaletteUvColorIndex);
         ResetUpdateCounts(this.PartitionTypes);
+        ResetUpdateCounts(this.FrameYMode);
         ResetUpdateCounts(this.KeyFrameYMode);
+        ResetUpdateCounts(this.IntraInter);
         ResetUpdateCounts(this.UvMode);
         ResetUpdateCounts(this.Skip);
         ResetUpdateCounts(this.SkipMode);
         this.DeltaLoopFilterAbsolute.ResetUpdateCount();
         this.DeltaQuantizerAbsolute.ResetUpdateCount();
         ResetUpdateCounts(this.SegmentId);
+        ResetUpdateCounts(this.SegmentIdPredicted);
         ResetUpdateCounts(this.AngleDelta);
         this.FilterIntraMode.ResetUpdateCount();
         ResetUpdateCounts(this.FilterIntra);

@@ -587,6 +587,57 @@ internal static class Av1SymbolContextHelper
         => segmentIds[rowIndex][columnIndex];
 
     /// <summary>
+    /// Gets the intra/inter prediction context from the immediately above and left blocks.
+    /// </summary>
+    /// <param name="above">The above block, or <see langword="null"/> at a tile boundary.</param>
+    /// <param name="left">The left block, or <see langword="null"/> at a tile boundary.</param>
+    /// <returns>The context in the inclusive range zero through three.</returns>
+    public static int GetIntraInterContext(Av1BlockModeInfo? above, Av1BlockModeInfo? left)
+    {
+        if (above is not null && left is not null)
+        {
+            bool aboveIsIntra = above.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra;
+            bool leftIsIntra = left.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra;
+
+            // AV1 reserves context three for two intra neighbors, context one for a mixed pair, and context zero for
+            // two inter neighbors. These values directly index intra_inter_cdf and are not probability ranks.
+            if (aboveIsIntra && leftIsIntra)
+            {
+                return 3;
+            }
+
+            return aboveIsIntra || leftIsIntra ? 1 : 0;
+        }
+
+        // A single intra neighbor uses context two. A single inter neighbor and a block with no neighbors both use
+        // context zero, matching the unavailable-neighbor behavior in libaom's av1_get_intra_inter_context.
+        if (above is not null)
+        {
+            return above.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra ? 2 : 0;
+        }
+
+        if (left is not null)
+        {
+            return left.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra ? 2 : 0;
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Gets the temporal segment-prediction context from the immediately above and left blocks.
+    /// </summary>
+    /// <param name="aboveModeInfo">The above block, or <see langword="null"/> at a tile boundary.</param>
+    /// <param name="leftModeInfo">The left block, or <see langword="null"/> at a tile boundary.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
+    public static int GetSegmentIdPredictedContext(Av1BlockModeInfo? aboveModeInfo, Av1BlockModeInfo? leftModeInfo)
+    {
+        int abovePredicted = aboveModeInfo is not null && aboveModeInfo.SegmentIdPredicted ? 1 : 0;
+        int leftPredicted = leftModeInfo is not null && leftModeInfo.SegmentIdPredicted ? 1 : 0;
+        return abovePredicted + leftPredicted;
+    }
+
+    /// <summary>
     /// Gets the minimum encoded segment identifier across a block's clipped mode-info coverage.
     /// </summary>
     /// <param name="encoderCommon">The encoder frame geometry.</param>

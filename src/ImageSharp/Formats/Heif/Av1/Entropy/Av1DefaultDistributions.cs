@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 internal static class Av1DefaultDistributions
 {
     /// <summary>
-    /// Gets the intra-frame luma-mode distributions indexed by block-size group.
+    /// Gets the inter-frame intra luma-mode distributions indexed by block-size group.
     /// </summary>
     public static Av1Distribution[] FrameYMode =>
         [
@@ -18,6 +18,11 @@ internal static class Av1DefaultDistributions
             new(19770, 20979, 23396, 23939, 24241, 24654, 25136, 27073, 27830, 29360, 29730, 30659),
             new(20155, 21301, 22838, 23178, 23261, 23533, 23703, 24804, 25352, 26575, 27016, 28049)
         ];
+
+    /// <summary>
+    /// Gets the distributions that select intra or inter prediction from the available spatial neighbors.
+    /// </summary>
+    public static Av1Distribution[] IntraInter => [new(806), new(16662), new(20186), new(26538)];
 
     /// <summary>
     /// Gets the key-frame luma-mode distributions indexed by the above and left intra-mode contexts.
@@ -259,6 +264,14 @@ internal static class Av1DefaultDistributions
             new(14274, 18230, 22557, 24935, 29980, 30851, 32344),
             new(27527, 28487, 28723, 28890, 32397, 32647, 32679),
         ];
+
+    /// <summary>
+    /// Gets the temporal segment-map prediction distributions indexed by the predicted state of the above and left blocks.
+    /// </summary>
+    /// <remarks>
+    /// AV1 initializes each binary context to 16384, the equiprobable midpoint of its Q15 probability domain.
+    /// </remarks>
+    public static Av1Distribution[] SegmentIdPredicted => [new(16384), new(16384), new(16384)];
 
     /// <summary>
     /// Gets the key-frame luma intra-mode distributions indexed by the above and left mode contexts.

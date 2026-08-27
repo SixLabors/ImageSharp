@@ -2399,23 +2399,9 @@ internal class ObuReader
     /// <param name="frameHeader">The frame header that receives the skip-mode state.</param>
     private static void ReadSkipModeParameters(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
-        if (frameHeader.IsIntra || frameHeader.ReferenceMode == ObuReferenceMode.SingleReference || !sequenceHeader.OrderHintInfo.EnableOrderHint)
-        {
-            frameHeader.SkipModeParameters.SkipModeAllowed = false;
-        }
-        else
-        {
-            // Not applicable for INTRA frames.
-        }
-
-        if (frameHeader.SkipModeParameters.SkipModeAllowed)
-        {
-            frameHeader.SkipModeParameters.SkipModeFlag = reader.ReadBoolean();
-        }
-        else
-        {
-            frameHeader.SkipModeParameters.SkipModeFlag = false;
-        }
+        ObuSkipModeParameters parameters = frameHeader.SkipModeParameters;
+        parameters.Derive(sequenceHeader.OrderHintInfo, frameHeader);
+        parameters.SkipModeFlag = parameters.SkipModeAllowed && reader.ReadBoolean();
     }
 
     /// <summary>

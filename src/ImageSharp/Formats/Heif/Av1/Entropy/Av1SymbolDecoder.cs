@@ -352,6 +352,31 @@ internal ref struct Av1SymbolDecoder
     }
 
     /// <summary>
+    /// Reads an intra luma prediction mode for a block coded inside an inter frame.
+    /// </summary>
+    /// <param name="blockSize">The decoded block size that selects the luma-mode distribution.</param>
+    /// <returns>The decoded intra luma prediction mode.</returns>
+    public Av1PredictionMode ReadInterFrameYMode(Av1BlockSize blockSize)
+    {
+        // AV1 section 9.3 groups blocks by the smaller base-two dimension in 4x4 units, capped at group three.
+        // Calculating it from the existing logarithms exactly matches libaom's size_group_lookup without another table.
+        int sizeGroup = Math.Min(3, Math.Min(blockSize.Get4x4WidthLog2(), blockSize.Get4x4HeightLog2()));
+        ref Av1SymbolReader r = ref this.reader;
+        return (Av1PredictionMode)r.ReadSymbol(this.context.FrameYMode[sizeGroup]);
+    }
+
+    /// <summary>
+    /// Reads whether an inter-frame block uses inter prediction.
+    /// </summary>
+    /// <param name="context">The spatial intra/inter context in the inclusive range zero through three.</param>
+    /// <returns><see langword="true"/> when the block uses inter prediction; otherwise, <see langword="false"/>.</returns>
+    public bool ReadIsInter(int context)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.context.IntraInter[context]) != 0;
+    }
+
+    /// <summary>
     /// Reads a chroma intra prediction mode conditioned on the luma mode and chroma-from-luma availability.
     /// </summary>
     /// <param name="mode">The decoded luma prediction mode.</param>
@@ -443,6 +468,17 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.context.SegmentId[context]);
+    }
+
+    /// <summary>
+    /// Reads whether the current segment identifier is predicted from the retained primary-frame map.
+    /// </summary>
+    /// <param name="context">The sum of the above and left blocks' temporal-prediction flags.</param>
+    /// <returns><see langword="true"/> when the retained map supplies the segment identifier.</returns>
+    public bool ReadSegmentIdPredicted(int context)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.context.SegmentIdPredicted[context]) > 0;
     }
 
     /// <summary>

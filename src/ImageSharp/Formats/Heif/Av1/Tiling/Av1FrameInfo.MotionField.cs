@@ -137,8 +137,8 @@ internal partial class Av1FrameInfo
         }
 
         InlineArray8<Av1ReferenceFrame?> selectedReferences = default;
-        Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
-        int orderHintBits = sequenceHeader.OrderHintInfo.OrderHintBits;
+        ReadOnlySpan<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+        ObuOrderHintInfo orderHintInfo = sequenceHeader.OrderHintInfo;
 
         // Capture the seven logical-role order hints before this frame refreshes any physical map slots. Libaom keeps
         // the same snapshot on RefCntBuffer so a later frame can project this frame's stored motion vectors.
@@ -150,7 +150,7 @@ internal partial class Av1FrameInfo
             selectedReferences[(int)referenceFrameType] = referenceFrame;
             this.motionFieldReferenceOrderHints[(int)referenceFrameType] = referenceOrderHint;
 
-            int relativeDistance = GetRelativeDistance(referenceOrderHint, frameHeader.OrderHint, orderHintBits);
+            int relativeDistance = orderHintInfo.GetRelativeDistance(referenceOrderHint, frameHeader.OrderHint);
             this.motionFieldReferenceSides[(int)referenceFrameType] = relativeDistance > 0
                 ? (sbyte)1
                 : referenceOrderHint == frameHeader.OrderHint ? (sbyte)-1 : (sbyte)0;
@@ -194,7 +194,7 @@ internal partial class Av1FrameInfo
         remainingProjectionCount--;
         Av1ReferenceFrame backwardFrame = selectedReferences[(int)Av1ReferenceFrameType.Backward]!;
 
-        if (GetRelativeDistance(backwardFrame.FrameHeader.OrderHint, frameHeader.OrderHint, orderHintBits) > 0 &&
+        if (orderHintInfo.GetRelativeDistance(backwardFrame.FrameHeader.OrderHint, frameHeader.OrderHint) > 0 &&
             this.ProjectMotionField(sequenceHeader, frameHeader, backwardFrame, reverseDirection: false))
         {
             remainingProjectionCount--;
@@ -202,7 +202,7 @@ internal partial class Av1FrameInfo
 
         Av1ReferenceFrame alternate2Frame = selectedReferences[(int)Av1ReferenceFrameType.Alternate2]!;
 
-        if (GetRelativeDistance(alternate2Frame.FrameHeader.OrderHint, frameHeader.OrderHint, orderHintBits) > 0 &&
+        if (orderHintInfo.GetRelativeDistance(alternate2Frame.FrameHeader.OrderHint, frameHeader.OrderHint) > 0 &&
             this.ProjectMotionField(sequenceHeader, frameHeader, alternate2Frame, reverseDirection: false))
         {
             remainingProjectionCount--;
@@ -211,7 +211,7 @@ internal partial class Av1FrameInfo
         Av1ReferenceFrame alternateFrame = selectedReferences[(int)Av1ReferenceFrameType.Alternate]!;
 
         if (remainingProjectionCount > 0 &&
-            GetRelativeDistance(alternateFrame.FrameHeader.OrderHint, frameHeader.OrderHint, orderHintBits) > 0 &&
+            orderHintInfo.GetRelativeDistance(alternateFrame.FrameHeader.OrderHint, frameHeader.OrderHint) > 0 &&
             this.ProjectMotionField(sequenceHeader, frameHeader, alternateFrame, reverseDirection: false))
         {
             remainingProjectionCount--;
@@ -331,11 +331,10 @@ internal partial class Av1FrameInfo
         }
 
         Av1FrameInfo startFrameInfo = startFrame.FrameInfo;
-        int orderHintBits = sequenceHeader.OrderHintInfo.OrderHintBits;
-        int startToCurrentFrameOffset = GetRelativeDistance(
+        ObuOrderHintInfo orderHintInfo = sequenceHeader.OrderHintInfo;
+        int startToCurrentFrameOffset = orderHintInfo.GetRelativeDistance(
             startFrameHeader.OrderHint,
-            frameHeader.OrderHint,
-            orderHintBits);
+            frameHeader.OrderHint);
 
         if (reverseDirection)
         {
@@ -358,10 +357,9 @@ internal partial class Av1FrameInfo
                     continue;
                 }
 
-                int referenceFrameOffset = GetRelativeDistance(
+                int referenceFrameOffset = orderHintInfo.GetRelativeDistance(
                     startFrameHeader.OrderHint,
-                    startFrameInfo.motionFieldReferenceOrderHints[(int)source.ReferenceFrame],
-                    orderHintBits);
+                    startFrameInfo.motionFieldReferenceOrderHints[(int)source.ReferenceFrame]);
 
                 bool positionIsValid = Math.Abs(referenceFrameOffset) <= MaximumFrameDistance &&
                     referenceFrameOffset > 0 &&
@@ -464,20 +462,6 @@ internal partial class Av1FrameInfo
             projectedRow < baseBlockRow + 8 &&
             projectedColumn >= baseBlockColumn - MaximumHorizontalFieldOffset &&
             projectedColumn < baseBlockColumn + 8 + MaximumHorizontalFieldOffset;
-    }
-
-    /// <summary>
-    /// Computes the signed distance between two order hints in their modulo domain.
-    /// </summary>
-    /// <param name="first">The first order hint.</param>
-    /// <param name="second">The order hint subtracted from <paramref name="first"/>.</param>
-    /// <param name="orderHintBits">The number of bits in the order-hint domain.</param>
-    /// <returns>The shortest signed modulo distance.</returns>
-    private static int GetRelativeDistance(uint first, uint second, int orderHintBits)
-    {
-        int difference = (int)first - (int)second;
-        int signBit = 1 << (orderHintBits - 1);
-        return (difference & (signBit - 1)) - (difference & signBit);
     }
 
     /// <summary>

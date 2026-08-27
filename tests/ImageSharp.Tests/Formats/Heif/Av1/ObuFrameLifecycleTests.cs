@@ -41,6 +41,7 @@ public class ObuFrameLifecycleTests
     // spatial layers, so the lifecycle test exercises real progressive item framing.
     private static ReadOnlySpan<byte> ProgressiveTwoFrameObuStream =>
     [
+
         // Temporal delimiter and progressive sequence header.
         0x12, 0x00,
         0x0A, 0x0F, 0x20, 0x13, 0x01, 0x00, 0x80, 0x81, 0x4E, 0x0A, 0x36, 0xBE, 0x48, 0x08, 0x20, 0x34, 0x80,

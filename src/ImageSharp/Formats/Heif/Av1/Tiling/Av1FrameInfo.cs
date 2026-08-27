@@ -246,16 +246,23 @@ internal partial class Av1FrameInfo
     /// <summary>
     /// Gets the minimum retained segment identifier across a block's clipped mode-information coverage.
     /// </summary>
+    /// <param name="primaryReferenceFrameInfo">
+    /// The retained primary-frame state, or <see langword="null"/> when no compatible map is available.
+    /// </param>
     /// <param name="blockSize">The block size whose 4x4 coverage is inspected.</param>
     /// <param name="modeInfoPosition">The block origin in frame-relative 4x4 units.</param>
     /// <returns>
-    /// The minimum retained segment identifier, or zero when the retained frame has no enabled segmentation map.
+    /// The minimum retained segment identifier, or zero when no same-sized retained segmentation map is available.
     /// </returns>
-    public int GetPredictedSegmentId(Av1BlockSize blockSize, Point modeInfoPosition)
+    public int GetPredictedSegmentId(Av1FrameInfo? primaryReferenceFrameInfo, Av1BlockSize blockSize, Point modeInfoPosition)
     {
-        if (this.segmentIds.Length == 0)
+        if (primaryReferenceFrameInfo is null ||
+            primaryReferenceFrameInfo.segmentIds.Length == 0 ||
+            primaryReferenceFrameInfo.segmentIdColumnCount != this.segmentIdColumnCount ||
+            primaryReferenceFrameInfo.segmentIdRowCount != this.segmentIdRowCount)
         {
-            // libaom represents an unavailable prior map with a null pointer and predicts segment zero.
+            // libaom exposes the prior map only when both mode-info dimensions match the active frame. Treating a
+            // differently sized retained map as absent prevents coordinates from being reinterpreted with a new stride.
             return 0;
         }
 
@@ -267,8 +274,8 @@ internal partial class Av1FrameInfo
         // dec_get_segment_id rule used when segmentation_temporal_update selects the retained primary map.
         for (int row = 0; row < rowCount; row++)
         {
-            int offset = ((modeInfoPosition.Y + row) * this.segmentIdColumnCount) + modeInfoPosition.X;
-            ReadOnlySpan<byte> segmentRow = this.segmentIds.AsSpan(offset, columnCount);
+            int offset = ((modeInfoPosition.Y + row) * primaryReferenceFrameInfo.segmentIdColumnCount) + modeInfoPosition.X;
+            ReadOnlySpan<byte> segmentRow = primaryReferenceFrameInfo.segmentIds.AsSpan(offset, columnCount);
 
             for (int column = 0; column < segmentRow.Length; column++)
             {

@@ -1353,7 +1353,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int block4x4Width = blockSize.Get4x4WideCount();
         int block4x4Height = blockSize.Get4x4HighCount();
 
-        // HEIF still-image decoding follows the independently decodable intra-frame transform-size branch.
+        // Both intra frames and intra-coded blocks inside inter frames use the intra transform-size branch. The true
+        // inter branch will replace this fixed false classification when inter reconstruction is connected.
         Av1TransformSize transformSize = this.ReadTransformSize(ref reader, ref partitionInfo, superblockInfo, tileInfo, true);
         this.aboveNeighborContext.UpdateTransformation(modeInfoLocation, tileInfo, transformSize, blockSize, false);
         this.leftNeighborContext.UpdateTransformation(modeInfoLocation, superblockInfo, transformSize, blockSize, false);
@@ -1537,16 +1538,62 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     }
 
     /// <summary>
-    /// Reads the prediction, segmentation, skip, quantizer, and filter mode information for a still-image block.
+    /// Reads the prediction, segmentation, skip, quantizer, and filter mode information for a coding block.
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
-    /// <remarks>Implements the intra-frame branch of AV1 section 5.11.6.</remarks>
+    /// <remarks>Implements the frame-type dispatch in AV1 section 5.11.6.</remarks>
     private void ReadModeInfo(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
     {
-        DebugGuard.IsTrue(this.FrameHeader.FrameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame, "Only INTRA frames supported.");
-        this.ReadIntraFrameModeInfo(ref reader, ref partitionInfo, tileInfo);
+        if (this.FrameHeader.IsIntra)
+        {
+            this.ReadIntraFrameModeInfo(ref reader, ref partitionInfo, tileInfo);
+        }
+        else
+        {
+            this.ReadInterFrameModeInfo(ref reader, ref partitionInfo);
+        }
+    }
+
+    /// <summary>
+    /// Reads the common inter-frame block prefix and the intra-coded-block prediction branch in bitstream order.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block and its neighbors.</param>
+    /// <remarks>Implements the prefix and intra branch of AV1 section 5.11.7.</remarks>
+    internal void ReadInterFrameModeInfo(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
+    {
+        Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
+        modeInfo.MotionVectors.Clear();
+        this.ReadInterSegmentId(ref reader, ref partitionInfo, beforeSkip: true);
+
+        modeInfo.SkipMode = this.ReadSkipMode(ref reader, ref partitionInfo);
+        modeInfo.Skip = modeInfo.SkipMode || this.ReadSkip(ref reader, ref partitionInfo);
+
+        if (!this.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
+        {
+            this.ReadInterSegmentId(ref reader, ref partitionInfo, beforeSkip: false);
+        }
+
+        this.ReadCdef(ref reader, ref partitionInfo);
+
+        if (this.FrameHeader.DeltaQParameters.IsPresent)
+        {
+            this.ReadDeltaQuantizerIndex(ref reader, ref partitionInfo);
+            this.ReadDeltaLoopFilter(ref reader, ref partitionInfo);
+        }
+
+        bool isInterBlock = modeInfo.SkipMode || this.ReadIsInter(ref reader, ref partitionInfo);
+        if (isInterBlock)
+        {
+            throw new NotSupportedException("AV1 inter-coded block prediction is not implemented.");
+        }
+
+        modeInfo.ReferenceFrames[0] = Av1ReferenceFrameType.Intra;
+        modeInfo.ReferenceFrames[1] = Av1ReferenceFrameType.None;
+        modeInfo.SetPaletteSizes(0, 0);
+        this.ReadConventionalIntraMode(ref reader, ref partitionInfo, reader.ReadInterFrameYMode(modeInfo.BlockSize));
     }
 
     /// <summary>
@@ -1610,48 +1657,61 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         }
         else
         {
-            partitionInfo.ModeInfo.YMode = reader.ReadYMode(partitionInfo.AboveModeInfo, partitionInfo.LeftModeInfo);
-
-            partitionInfo.ModeInfo.SetAngleDelta(
-                Av1PlaneType.Y,
-                IntraAngleInfo(ref reader, partitionInfo.ModeInfo.YMode, partitionInfo.ModeInfo.BlockSize));
-
-            if (partitionInfo.IsChroma && !this.SequenceHeader.ColorConfig.IsMonochrome)
-            {
-                partitionInfo.ModeInfo.UvMode = reader.ReadIntraModeUv(
-                    partitionInfo.ModeInfo.YMode,
-                    this.IsChromaForLumaAllowed(ref partitionInfo));
-
-                if (partitionInfo.ModeInfo.UvMode == Av1ChromaPredictionMode.ChromaFromLuma)
-                {
-                    ReadChromaFromLumaAlphas(ref reader, partitionInfo.ModeInfo);
-                }
-
-                partitionInfo.ModeInfo.SetAngleDelta(
-                    Av1PlaneType.Uv,
-                    IntraAngleInfo(ref reader, partitionInfo.ModeInfo.UvMode.ToLumaMode(), partitionInfo.ModeInfo.BlockSize));
-            }
-            else
-            {
-                partitionInfo.ModeInfo.UvMode = Av1ChromaPredictionMode.DC;
-            }
-
-            if (partitionInfo.ModeInfo.BlockSize >= Av1BlockSize.Block8x8 &&
-                partitionInfo.ModeInfo.BlockSize.GetWidth() <= 64 &&
-                partitionInfo.ModeInfo.BlockSize.GetHeight() <= 64 &&
-                this.FrameHeader.AllowScreenContentTools)
-            {
-                this.PaletteModeInfo(ref reader, ref partitionInfo);
-            }
-
-            this.FilterIntraModeInfo(ref reader, ref partitionInfo);
+            Av1PredictionMode yMode = reader.ReadYMode(partitionInfo.AboveModeInfo, partitionInfo.LeftModeInfo);
+            this.ReadConventionalIntraMode(ref reader, ref partitionInfo, yMode);
         }
     }
 
     /// <summary>
-    /// Determines whether the frame header permits intra block copy for an intra still image.
+    /// Reads conventional luma and chroma intra-prediction details after the frame branch selects the luma mode CDF.
     /// </summary>
-    /// <returns><see langword="true"/> when the frame and sequence enable intra block copy; otherwise, <see langword="false"/>.</returns>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block.</param>
+    /// <param name="yMode">The luma prediction mode selected by the frame-appropriate distribution.</param>
+    private void ReadConventionalIntraMode(
+        ref Av1SymbolDecoder reader,
+        ref Av1PartitionInfo partitionInfo,
+        Av1PredictionMode yMode)
+    {
+        Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
+        modeInfo.YMode = yMode;
+        modeInfo.SetAngleDelta(Av1PlaneType.Y, IntraAngleInfo(ref reader, yMode, modeInfo.BlockSize));
+
+        if (partitionInfo.IsChroma && !this.SequenceHeader.ColorConfig.IsMonochrome)
+        {
+            modeInfo.UvMode = reader.ReadIntraModeUv(yMode, this.IsChromaForLumaAllowed(ref partitionInfo));
+
+            if (modeInfo.UvMode == Av1ChromaPredictionMode.ChromaFromLuma)
+            {
+                ReadChromaFromLumaAlphas(ref reader, modeInfo);
+            }
+
+            modeInfo.SetAngleDelta(
+                Av1PlaneType.Uv,
+                IntraAngleInfo(ref reader, modeInfo.UvMode.ToLumaMode(), modeInfo.BlockSize));
+        }
+        else
+        {
+            modeInfo.UvMode = Av1ChromaPredictionMode.DC;
+        }
+
+        if (modeInfo.BlockSize >= Av1BlockSize.Block8x8 &&
+            modeInfo.BlockSize.GetWidth() <= 64 &&
+            modeInfo.BlockSize.GetHeight() <= 64 &&
+            this.FrameHeader.AllowScreenContentTools)
+        {
+            this.PaletteModeInfo(ref reader, ref partitionInfo);
+        }
+
+        this.FilterIntraModeInfo(ref reader, ref partitionInfo);
+    }
+
+    /// <summary>
+    /// Determines whether the frame header permits intra block copy for an intra frame.
+    /// </summary>
+    /// <returns>
+    /// <see langword="true"/> when the frame and sequence enable intra block copy; otherwise, <see langword="false"/>.
+    /// </returns>
     private bool AllowIntraBlockCopy()
         => (this.FrameHeader.FrameType is ObuFrameType.KeyFrame or ObuFrameType.IntraOnlyFrame) &&
             (this.SequenceHeader.ForceScreenContentTools > 0) &&
@@ -1661,7 +1721,10 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// Determines whether chroma-from-luma prediction is available for a coding block.
     /// </summary>
     /// <param name="partitionInfo">The current coding block.</param>
-    /// <returns><see langword="true"/> when the lossless transform or block dimensions permit chroma-from-luma prediction; otherwise, <see langword="false"/>.</returns>
+    /// <returns>
+    /// <see langword="true"/> when the lossless transform or block dimensions permit chroma-from-luma prediction;
+    /// otherwise, <see langword="false"/>.
+    /// </returns>
     private bool IsChromaForLumaAllowed(ref Av1PartitionInfo partitionInfo)
     {
         if (this.FrameHeader.LosslessArray[partitionInfo.ModeInfo.SegmentId])
@@ -2239,7 +2302,82 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     }
 
     /// <summary>
-    /// Predicts and, when required, decodes the segment identifier for an intra block.
+    /// Reads or inherits the segment identifier for one inter-frame block and updates its 4x4 map coverage.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block and its available neighbors.</param>
+    /// <param name="beforeSkip">Whether this invocation precedes the block's residual-skip decision.</param>
+    /// <remarks>
+    /// Implements <c>read_inter_segment_id</c> from AV1 section 5.11.8.
+    /// </remarks>
+    internal void ReadInterSegmentId(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo, bool beforeSkip)
+    {
+        ObuSegmentationParameters segmentationParameters = this.FrameHeader.SegmentationParameters;
+        Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
+
+        if (!segmentationParameters.Enabled)
+        {
+            // Disabled segmentation has no allocated map and normatively assigns segment zero.
+            modeInfo.SegmentId = 0;
+            return;
+        }
+
+        Point modeInfoPosition = new(partitionInfo.ColumnIndex, partitionInfo.RowIndex);
+
+        if (segmentationParameters.SegmentationUpdateMap == 0)
+        {
+            // The frame map was inherited as one contiguous copy during reader construction. Resolve the same clipped
+            // minimum that libaom obtains from last_frame_seg_map so block state and the already copied map agree.
+            modeInfo.SegmentId = this.FrameInfo.GetPredictedSegmentId(this.primaryReferenceFrameInfo, modeInfo.BlockSize, modeInfoPosition);
+            return;
+        }
+
+        if (beforeSkip)
+        {
+            if (!segmentationParameters.SegmentIdPrecedesSkip)
+            {
+                // The caller invokes this once before skip for every inter block; post-skip segment syntax owns this case.
+                return;
+            }
+        }
+        else if (modeInfo.Skip)
+        {
+            if (segmentationParameters.SegmentationTemporalUpdate == 1)
+            {
+                // Skipped blocks use the spatial segment predictor and signal no temporal-prediction bit.
+                modeInfo.SegmentIdPredicted = false;
+            }
+
+            this.ReadSegmentId(ref reader, ref partitionInfo);
+            this.FrameInfo.SetSegmentId(modeInfo.BlockSize, modeInfoPosition, modeInfo.SegmentId);
+            return;
+        }
+
+        if (segmentationParameters.SegmentationTemporalUpdate == 1)
+        {
+            // The binary context counts only neighboring blocks that themselves selected the retained map. Segment
+            // values do not participate in this decision.
+            int context = Av1SymbolContextHelper.GetSegmentIdPredictedContext(partitionInfo.AboveModeInfo, partitionInfo.LeftModeInfo);
+            modeInfo.SegmentIdPredicted = reader.ReadSegmentIdPredicted(context);
+            if (modeInfo.SegmentIdPredicted)
+            {
+                modeInfo.SegmentId = this.FrameInfo.GetPredictedSegmentId(this.primaryReferenceFrameInfo, modeInfo.BlockSize, modeInfoPosition);
+            }
+            else
+            {
+                this.ReadSegmentId(ref reader, ref partitionInfo);
+            }
+        }
+        else
+        {
+            this.ReadSegmentId(ref reader, ref partitionInfo);
+        }
+
+        this.FrameInfo.SetSegmentId(modeInfo.BlockSize, modeInfoPosition, modeInfo.SegmentId);
+    }
+
+    /// <summary>
+    /// Predicts and, when required, decodes the spatially coded segment identifier for a block.
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block and its available neighbors.</param>
@@ -2398,6 +2536,62 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             int leftSkip = partitionInfo.LeftModeInfo != null && partitionInfo.LeftModeInfo.Skip ? 1 : 0;
             return reader.ReadSkip(aboveSkip + leftSkip);
         }
+    }
+
+    /// <summary>
+    /// Reads compound skip-mode selection when the frame, segment, and block geometry permit it.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block and its available neighbors.</param>
+    /// <returns><see langword="true"/> when the block selects the frame's derived skip-mode reference pair.</returns>
+    private bool ReadSkipMode(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
+    {
+        Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
+        ObuSegmentationParameters segmentationParameters = this.FrameHeader.SegmentationParameters;
+        int segmentId = modeInfo.SegmentId;
+
+        if (!this.FrameHeader.SkipModeParameters.SkipModeFlag ||
+            segmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.Skip) ||
+            Math.Min(modeInfo.BlockSize.GetWidth(), modeInfo.BlockSize.GetHeight()) < 8 ||
+            segmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.ReferenceFrame) ||
+            segmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.GlobalMotionVector))
+        {
+            // Segment reference and global-motion features force single-reference prediction, while skip mode always
+            // selects the derived compound pair. The syntax therefore omits the skip-mode symbol in either case.
+            return false;
+        }
+
+        int aboveSkipMode = partitionInfo.AboveModeInfo is not null && partitionInfo.AboveModeInfo.SkipMode ? 1 : 0;
+        int leftSkipMode = partitionInfo.LeftModeInfo is not null && partitionInfo.LeftModeInfo.SkipMode ? 1 : 0;
+        return reader.ReadSkipMode(aboveSkipMode + leftSkipMode);
+    }
+
+    /// <summary>
+    /// Reads or infers whether an inter-frame coding block uses inter prediction.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block and its available neighbors.</param>
+    /// <returns><see langword="true"/> for an inter-coded block; otherwise, <see langword="false"/>.</returns>
+    private bool ReadIsInter(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
+    {
+        ObuSegmentationParameters segmentationParameters = this.FrameHeader.SegmentationParameters;
+        int segmentId = partitionInfo.ModeInfo.SegmentId;
+
+        if (segmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.ReferenceFrame))
+        {
+            // Reference feature values use the same numeric labels as Av1ReferenceFrameType. INTRA_FRAME is zero;
+            // every canonical inter reference begins at LAST_FRAME and therefore has a positive value.
+            int referenceFrame = segmentationParameters.FeatureData[segmentId, (int)ObuSegmentationLevelFeature.ReferenceFrame];
+            return referenceFrame >= (int)Av1ReferenceFrameType.Last;
+        }
+
+        if (segmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.GlobalMotionVector))
+        {
+            return true;
+        }
+
+        int context = Av1SymbolContextHelper.GetIntraInterContext(partitionInfo.AboveModeInfo, partitionInfo.LeftModeInfo);
+        return reader.ReadIsInter(context);
     }
 
     /// <summary>

@@ -223,6 +223,11 @@ internal class Av1BlockModeInfo
     public int SegmentId { get; set; }
 
     /// <summary>
+    /// Gets or sets a value indicating whether temporal prediction supplied the segment identifier.
+    /// </summary>
+    public bool SegmentIdPredicted { get; set; }
+
+    /// <summary>
     /// Gets or sets the chroma intra-prediction mode.
     /// </summary>
     public Av1ChromaPredictionMode UvMode { get; set; }

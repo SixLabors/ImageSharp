@@ -249,6 +249,21 @@ public enum Heif4CharCode : uint
     Av1C = 0x61763143U,
 
     /// <summary>
+    /// AV1 operating-point selector.
+    /// </summary>
+    A1op = 0x61316F70U,
+
+    /// <summary>
+    /// AV1 layer selector.
+    /// </summary>
+    Lsel = 0x6C73656CU,
+
+    /// <summary>
+    /// AV1 layered-image indexing.
+    /// </summary>
+    A1lx = 0x61316C78U,
+
+    /// <summary>
     /// Image Mirror.
     /// </summary>
     Imir = 0x696D6972U,

@@ -3,6 +3,7 @@
 
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -302,6 +303,82 @@ internal static class HeifPropertyParser
 
         // A zero coded value requests the standard-defined default rather than describing black diffuse white.
         return new HeifNominalDiffuseWhite(luminance == 0 ? null : luminance * luminanceScale);
+    }
+
+    /// <summary>
+    /// Parses the sequence-header operating point selected by an AV1 image item.
+    /// </summary>
+    /// <param name="data">The complete AV1 operating-point-selector payload.</param>
+    /// <returns>The selected zero-based operating-point index.</returns>
+    public static Av1OperatingPointSelector ParseAv1OperatingPointSelector(ReadOnlySpan<byte> data)
+    {
+        EnsureExactLength(data, 1, "AV1 operating-point selector");
+        byte index = data[0];
+        if (index >= Av1Constants.MaxOperatingPointCount)
+        {
+            // AV1 signals operating_points_cnt_minus_1 in five bits, so a sequence header cannot contain
+            // an operating point whose zero-based index is greater than 31.
+            throw new InvalidImageContentException($"The AV1 operating-point selector requests unsupported index {index}.");
+        }
+
+        return new Av1OperatingPointSelector(index);
+    }
+
+    /// <summary>
+    /// Parses the spatial layer selected by an AV1 image item.
+    /// </summary>
+    /// <param name="data">The complete AV1 layer-selector payload.</param>
+    /// <returns>The selected spatial-layer identifier.</returns>
+    public static Av1LayerSelector ParseAv1LayerSelector(ReadOnlySpan<byte> data)
+    {
+        EnsureExactLength(data, 2, "AV1 layer selector");
+        ushort layerId = BinaryPrimitives.ReadUInt16BigEndian(data);
+        if (layerId != Av1LayerSelector.AllLayers && layerId >= Av1Constants.MaxSpatialLayerCount)
+        {
+            // AV1 OBU extension headers carry spatial_id in two bits. AVIF reserves 0xFFFF to request
+            // progressive exposure or final-layer decoding instead of selecting one of those four IDs.
+            throw new InvalidImageContentException($"The AV1 layer selector requests unsupported layer {layerId}.");
+        }
+
+        return new Av1LayerSelector(layerId);
+    }
+
+    /// <summary>
+    /// Parses the explicit payload boundaries of a layered AV1 image item.
+    /// </summary>
+    /// <param name="data">The complete AV1 layered-image-indexing payload.</param>
+    /// <returns>The three explicit layer sizes.</returns>
+    public static Av1LayeredImageIndex ParseAv1LayeredImageIndex(ReadOnlySpan<byte> data)
+    {
+        if (data.IsEmpty)
+        {
+            throw new InvalidImageContentException("The AV1 layered-image indexing property has an invalid length.");
+        }
+
+        byte sizeFlags = data[0];
+        if ((sizeFlags & 0xFE) != 0)
+        {
+            throw new InvalidImageContentException("The AV1 layered-image indexing property has nonzero reserved bits.");
+        }
+
+        bool usesLargeSizes = (sizeFlags & 1) != 0;
+        int layerSizeWidth = usesLargeSizes ? 4 : 2;
+
+        // a1lx stores the first three sizes explicitly. A fourth layer, when present, consumes the
+        // remaining item payload and therefore has no stored size field.
+        EnsureExactLength(data, 1 + (3 * layerSizeWidth), "AV1 layered-image indexing");
+        if (usesLargeSizes)
+        {
+            return new Av1LayeredImageIndex(
+                BinaryPrimitives.ReadUInt32BigEndian(data[1..]),
+                BinaryPrimitives.ReadUInt32BigEndian(data[5..]),
+                BinaryPrimitives.ReadUInt32BigEndian(data[9..]));
+        }
+
+        return new Av1LayeredImageIndex(
+            BinaryPrimitives.ReadUInt16BigEndian(data[1..]),
+            BinaryPrimitives.ReadUInt16BigEndian(data[3..]),
+            BinaryPrimitives.ReadUInt16BigEndian(data[5..]));
     }
 
     /// <summary>

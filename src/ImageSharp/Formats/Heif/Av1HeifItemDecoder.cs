@@ -44,15 +44,16 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlpha
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
+        Span<byte> itemData = GetItemData(item, data);
         Av1CodecConfiguration codecConfiguration = ValidateItemData(
             options,
             item,
-            data,
+            itemData,
             out HeifContentLightLevel? obuContentLightLevel,
             out HeifMasteringDisplayColorVolume? obuMasteringDisplayColorVolume);
 
         using Av1Decoder decoder = new(options.Configuration);
-        Image<TPixel> image = decoder.Decode<TPixel>(data, colorProfile, codecConfiguration);
+        Image<TPixel> image = decoder.Decode<TPixel>(itemData, colorProfile, codecConfiguration);
         HeifMetadata metadata = image.Metadata.GetHeifMetadata();
         metadata.CompressionMethod = this.CompressionMethod;
         metadata.BitDepth = codecConfiguration.BitDepth;
@@ -74,7 +75,8 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlpha
         CancellationToken cancellationToken)
     {
         cancellationToken.ThrowIfCancellationRequested();
-        Av1CodecConfiguration codecConfiguration = ValidateItemData(options, item, data, out _, out _);
+        Span<byte> itemData = GetItemData(item, data);
+        Av1CodecConfiguration codecConfiguration = ValidateItemData(options, item, itemData, out _, out _);
         if (!codecConfiguration.IsMonochrome)
         {
             throw new InvalidImageContentException($"AV1 alpha image item {item.Id} is not monochrome.");
@@ -82,7 +84,7 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlpha
 
         using Av1Decoder decoder = new(options.Configuration);
         decoder.DecodeAlpha(
-            data,
+            itemData,
             item.CicpProfile,
             codecConfiguration,
             default,
@@ -90,6 +92,24 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlpha
             outputSize,
             destinationRectangle,
             premultiplied);
+    }
+
+    /// <summary>
+    /// Gets the cumulative item bytes required by an explicit AV1 spatial-layer selection.
+    /// </summary>
+    /// <param name="item">The AV1 image item containing optional layered-image properties.</param>
+    /// <param name="data">The complete logical image-item payload.</param>
+    /// <returns>The complete payload for final-layer decoding, or the cumulative prefix through the selected layer.</returns>
+    private static Span<byte> GetItemData(HeifItem item, Span<byte> data)
+    {
+        Av1LayeredImageIndex? layeredImageIndex = item.Av1LayeredImageIndex;
+        if (layeredImageIndex is null)
+        {
+            return data;
+        }
+
+        int payloadLength = layeredImageIndex.Value.GetPayloadLength(data.Length, item.Av1LayerSelector);
+        return data[..payloadLength];
     }
 
     /// <summary>

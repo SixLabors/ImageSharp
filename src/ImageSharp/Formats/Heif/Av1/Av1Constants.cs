@@ -22,6 +22,16 @@ internal static class Av1Constants
     public const int LevelBits = 5;
 
     /// <summary>
+    /// The maximum number of operating points declared by one AV1 sequence header.
+    /// </summary>
+    public const int MaxOperatingPointCount = 32;
+
+    /// <summary>
+    /// The maximum number of spatial layers identified by an AV1 OBU extension header.
+    /// </summary>
+    public const int MaxSpatialLayerCount = 4;
+
+    /// <summary>
     /// The number of bits used to signal a super-resolution denominator offset.
     /// </summary>
     public const int SuperResolutionScaleBits = 3;

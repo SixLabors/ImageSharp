@@ -29,7 +29,7 @@ Checkboxes may be marked complete only when the implementation and the verificat
 
 ## Delivery dashboard
 
-Last reconciled with the source tree on 2026-08-27 against the worktree based on commit `91d79f771`, including the completed AV1 transform, OBU-framing, intra-block-copy, and 12-profile reconstruction checkpoints. This dashboard is the authoritative delivery order. The detailed phase checklists below provide subsystem evidence; they do not override the current-stage marker or permit work to skip ahead.
+Last reconciled with the source tree on 2026-08-27 against the worktree based on commit `63c4d302a`, including the completed AV1 transform, OBU-framing, intra-block-copy, and 12-profile reconstruction checkpoints. This dashboard is the authoritative delivery order. The detailed phase checklists below provide subsystem evidence; they do not override the current-stage marker or permit work to skip ahead.
 
 Status meanings:
 
@@ -59,6 +59,13 @@ Immediate checkpoint: **complete layered AV1 image-item decoding through the exi
 - [x] Close the base AV1 profile matrix with exact native-plane and presented-image comparisons for 8/10/12-bit monochrome, 4:2:0, 4:2:2, and 4:4:4 fixtures under normal, AVX2, 128-bit, and scalar dispatch.
 - [x] Accept the AV1-ISOBMFF final low-overhead OBU form that omits its payload-size field and uses the bounded image-item remainder; focused Release coverage reconstructs a valid combined frame in that form.
 - [ ] **Current:** implement layered AV1 image-item properties and stateful dependency reconstruction, then verify default final-layer output against the two pinned libavif progressive fixtures.
+  - [x] Parse and associate `a1op`, `lsel`, and `a1lx` through the bounded image-item property model, including normative essential flags, duplicate handling, exact property lengths, and the four-layer limit.
+  - [x] Validate `a1lx` layer boundaries against the logical item size and restrict concrete `lsel` decoding to the cumulative payload through the selected spatial layer without copying item bytes.
+  - [ ] Apply the selected `a1op` operating-point mask while consuming extended OBUs and validate the selected index against the parsed sequence header.
+  - [ ] Preserve reconstruction, reference-frame, primary-CDF, segmentation, loop-filter, and motion state across every dependent layer in one image-item decoder session.
+  - [ ] Implement the complete inter-frame entropy, mode, motion-vector, compound-prediction, inter-prediction, and warped/global-motion paths permitted by the image profile.
+  - [ ] Return the explicitly selected spatial layer or the final displayed layer, keeping reference reconstruction separate from display-only film grain.
+  - [ ] Verify color and auxiliary-alpha output exactly against both pinned libavif progressive fixtures under normal SIMD dispatch and all required `FeatureTestRunner` fallbacks.
 - [ ] Correct the audited 12-bit inverse ADST4, Identity4, and Identity16 SIMD arithmetic by widening only the libaom-widened multiply/accumulate operations, with exact conformant-range vectors and `FeatureTestRunner` coverage.
 - [ ] Continue inventorying and removing every remaining valid AV1 still-image unsupported branch, adding exact independent compression-tool fixtures to the profile-matrix regression gate.
 - [ ] Complete the remaining HEVC still-image profile and Range Extensions matrix with exact independent native-plane and presentation evidence.

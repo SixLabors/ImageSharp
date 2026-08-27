@@ -110,6 +110,24 @@ internal class HeifItem(Heif4CharCode type, uint id)
     public Av1CodecConfiguration? Av1CodecConfiguration { get; set; }
 
     /// <summary>
+    /// Gets or sets the operating-point selector associated with this AV1 image item, or <see langword="null"/> when
+    /// the item uses the default operating-point index zero.
+    /// </summary>
+    public Av1OperatingPointSelector? Av1OperatingPointSelector { get; set; }
+
+    /// <summary>
+    /// Gets or sets the spatial-layer selector associated with this AV1 image item, or <see langword="null"/> when
+    /// no explicit layer selection is present.
+    /// </summary>
+    public Av1LayerSelector? Av1LayerSelector { get; set; }
+
+    /// <summary>
+    /// Gets or sets the layered-image payload index associated with this AV1 image item, or <see langword="null"/>
+    /// when the payload does not provide explicit layer boundaries.
+    /// </summary>
+    public Av1LayeredImageIndex? Av1LayeredImageIndex { get; set; }
+
+    /// <summary>
     /// Gets or sets the HEVC codec configuration associated with this coded image item, or <see langword="null"/>
     /// when the item has no HEVC codec-configuration property.
     /// </summary>

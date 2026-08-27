@@ -1443,6 +1443,27 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                                 new Av1CodecConfiguration(boxBuffer, this.Options)));
 
                         break;
+                    case Heif4CharCode.A1op:
+                        properties.Add(
+                            new KeyValuePair<Heif4CharCode, object>(
+                                Heif4CharCode.A1op,
+                                HeifPropertyParser.ParseAv1OperatingPointSelector(boxBuffer)));
+
+                        break;
+                    case Heif4CharCode.Lsel:
+                        properties.Add(
+                            new KeyValuePair<Heif4CharCode, object>(
+                                Heif4CharCode.Lsel,
+                                HeifPropertyParser.ParseAv1LayerSelector(boxBuffer)));
+
+                        break;
+                    case Heif4CharCode.A1lx:
+                        properties.Add(
+                            new KeyValuePair<Heif4CharCode, object>(
+                                Heif4CharCode.A1lx,
+                                HeifPropertyParser.ParseAv1LayeredImageIndex(boxBuffer)));
+
+                        break;
                     case Heif4CharCode.HvcC:
                         properties.Add(
                             new KeyValuePair<Heif4CharCode, object>(
@@ -1572,6 +1593,26 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     continue;
                 }
 
+                // AVIF 1.1 section 2.3.2.1.1 requires a1op to be essential, while HEIF section 6.5.11.1
+                // imposes the same requirement on lsel because ignoring either selector changes the decoded image.
+                if (!essential && prop.Key is Heif4CharCode.A1op or Heif4CharCode.Lsel)
+                {
+                    this.ThrowOrIgnoreImageDataSegmentError(
+                        $"Item {itemId} associates AV1 selector property '{prop.Key}' without marking it essential.");
+
+                    continue;
+                }
+
+                // AVIF 1.1 section 2.3.2.3.2 requires a1lx to be nonessential; decoders may consume the complete
+                // item payload without using its optional layer-boundary optimization.
+                if (essential && prop.Key == Heif4CharCode.A1lx)
+                {
+                    this.ThrowOrIgnoreImageDataSegmentError(
+                        $"Item {itemId} marks AV1 layered-image indexing property '{prop.Key}' as essential.");
+
+                    continue;
+                }
+
                 switch (prop.Key)
                 {
                     case Heif4CharCode.Ispe:
@@ -1639,6 +1680,75 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                             }
 
                             item.Av1CodecConfiguration = av1CodecConfiguration;
+                        }
+
+                        break;
+                    case Heif4CharCode.A1op:
+                        if (prop.Value is Av1OperatingPointSelector operatingPointSelector)
+                        {
+                            if (item.Type != Heif4CharCode.Av01)
+                            {
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates an AV1 operating-point selector with non-AV1 item type '{item.Type}'.");
+
+                                break;
+                            }
+
+                            if (item.Av1OperatingPointSelector is not null)
+                            {
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates more than one AV1 operating-point selector property.");
+
+                                break;
+                            }
+
+                            item.Av1OperatingPointSelector = operatingPointSelector;
+                        }
+
+                        break;
+                    case Heif4CharCode.Lsel:
+                        if (prop.Value is Av1LayerSelector layerSelector)
+                        {
+                            if (item.Type != Heif4CharCode.Av01)
+                            {
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates an AV1 layer selector with non-AV1 item type '{item.Type}'.");
+
+                                break;
+                            }
+
+                            if (item.Av1LayerSelector is not null)
+                            {
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates more than one AV1 layer selector property.");
+
+                                break;
+                            }
+
+                            item.Av1LayerSelector = layerSelector;
+                        }
+
+                        break;
+                    case Heif4CharCode.A1lx:
+                        if (prop.Value is Av1LayeredImageIndex layeredImageIndex)
+                        {
+                            if (item.Type != Heif4CharCode.Av01)
+                            {
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates AV1 layered-image indexing with non-AV1 item type '{item.Type}'.");
+
+                                break;
+                            }
+
+                            if (item.Av1LayeredImageIndex is not null)
+                            {
+                                this.ThrowOrIgnoreImageDataSegmentError(
+                                    $"Item {itemId} associates more than one AV1 layered-image indexing property.");
+
+                                break;
+                            }
+
+                            item.Av1LayeredImageIndex = layeredImageIndex;
                         }
 
                         break;

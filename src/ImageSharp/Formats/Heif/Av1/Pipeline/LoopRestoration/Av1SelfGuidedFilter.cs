@@ -3,7 +3,6 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
-using System.Runtime.Intrinsics.X86;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 
@@ -12,9 +11,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 /// </summary>
 /// <remarks>
 /// The accelerated paths process adjacent output columns in SIMD lanes and use the caller-provided scratch span for
-/// filtered samples, local coefficients, and padded integral images. AVX2 is selected where variance-to-blend lookup
-/// can use a native gather; the portable 128-bit path performs four scalar table reads while retaining vectorized
-/// window and projection arithmetic. The scalar path uses the same fixed-point units and scratch partition.
+/// filtered samples, local coefficients, and padded integral images. The 256-bit and 128-bit paths use portable
+/// vector operations, with AVX2 selected locally for the prefix scan and variance-to-blend lookup when available.
+/// The scalar path uses the same fixed-point units and scratch partition.
 /// </remarks>
 internal static partial class Av1SelfGuidedFilter
 {
@@ -157,9 +156,9 @@ internal static partial class Av1SelfGuidedFilter
         ReadOnlySpan<int> projectionCoefficients,
         Span<int> scratch)
     {
-        // The closed vector overloads share the same scratch layout and fixed-point equations. AVX2 is preferred here
-        // because its coefficient stage can gather four noncontiguous entries from the 256-value blend table.
-        if (Avx2.IsSupported)
+        // The closed vector overloads share the same scratch layout and fixed-point equations. Dispatch is based on
+        // portable vector width; ISA-specific acceleration is confined to the individual operation that requires it.
+        if (Vector256.IsHardwareAccelerated)
         {
             FilterBlock(
                 source,

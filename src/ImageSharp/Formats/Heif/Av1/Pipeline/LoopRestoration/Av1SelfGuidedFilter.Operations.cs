@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 internal static partial class Av1SelfGuidedFilter
 {
     /// <summary>
-    /// Applies self-guided restoration with the AVX2 traversal used by libaom.
+    /// Applies self-guided restoration with the 256-bit traversal.
     /// </summary>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
@@ -216,7 +216,7 @@ internal static partial class Av1SelfGuidedFilter
     }
 
     /// <summary>
-    /// Builds the summed-area tables consumed by the AVX2 coefficient stage.
+    /// Builds the summed-area tables consumed by the 256-bit coefficient stage.
     /// </summary>
     /// <param name="source">The complete bordered source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
@@ -258,7 +258,7 @@ internal static partial class Av1SelfGuidedFilter
                 // Eight packed 16-bit samples become eight 32-bit lanes. The prefix scans mirror
                 // libaom's scan_32, and the replicated carry joins consecutive vector batches.
                 Vector128<ushort> packed = Vector128.LoadUnsafe(ref sourceBase, (nuint)(sourceRowOffset + column));
-                Vector256<int> samples = Avx2.ConvertToVector256Int32(packed);
+                Vector256<int> samples = Vector256.WidenLower(Vector256.Create(packed, Vector128<ushort>.Zero)).AsInt32();
                 Vector256<int> squares = samples * samples;
                 Vector256<int> scannedSums = Scan(samples);
                 Vector256<int> scannedSquares = Scan(squares);
@@ -366,12 +366,21 @@ internal static partial class Av1SelfGuidedFilter
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<int> Scan(Vector256<int> values)
     {
-        // AVX2 byte shifts operate independently on the two 128-bit halves. After the two
-        // within-half scans, the lower-half total is added to every lane of the upper half.
-        Vector256<int> scan = values + Avx2.ShiftLeftLogical128BitLane(values.AsByte(), sizeof(int)).AsInt32();
-        scan += Avx2.ShiftLeftLogical128BitLane(scan.AsByte(), sizeof(int) * 2).AsInt32();
-        Vector256<int> lowerTotal = Vector256.Create(Vector128<int>.Zero, Vector128.Create(scan.GetElement(3)));
-        return scan + lowerTotal;
+        if (Avx2.IsSupported)
+        {
+            // AVX2 lane shifts provide the shortest x86 dependency chain. After scanning each 128-bit half, the lower
+            // half total is broadcast into the upper half so the result remains one continuous eight-lane prefix.
+            Vector256<int> avx2Scan = values + Avx2.ShiftLeftLogical128BitLane(values.AsByte(), sizeof(int)).AsInt32();
+            avx2Scan += Avx2.ShiftLeftLogical128BitLane(avx2Scan.AsByte(), sizeof(int) * 2).AsInt32();
+            Vector256<int> lowerTotal = Vector256.Create(Vector128<int>.Zero, Vector128.Create(avx2Scan.GetElement(3)));
+            return avx2Scan + lowerTotal;
+        }
+
+        // Each shuffle shifts the preceding partial sums by one, two, and four lanes. The portable shuffle is required
+        // because indices outside the vector produce zero; ShuffleNative is allowed to wrap those indices on some ISAs.
+        Vector256<int> scan = values + Vector256.Shuffle(values, Vector256.Create(8, 0, 1, 2, 3, 4, 5, 6));
+        scan += Vector256.Shuffle(scan, Vector256.Create(8, 8, 0, 1, 2, 3, 4, 5));
+        return scan + Vector256.Shuffle(scan, Vector256.Create(8, 8, 8, 8, 0, 1, 2, 3));
     }
 
     /// <summary>
@@ -389,7 +398,7 @@ internal static partial class Av1SelfGuidedFilter
     }
 
     /// <summary>
-    /// Calculates the coefficient grid in eight-sample AVX2 batches.
+    /// Calculates the coefficient grid in eight-sample SIMD batches.
     /// </summary>
     /// <param name="width">The processing-unit width in samples.</param>
     /// <param name="height">The processing-unit height in samples.</param>
@@ -682,12 +691,29 @@ internal static partial class Av1SelfGuidedFilter
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static unsafe Vector256<int> LookupBlendFactors(Vector256<uint> indices)
     {
-        // Variance normalization bounds every index to the 256-entry table. AVX2 gather keeps the eight independent
-        // column lookups in the vector pipeline instead of materializing an intermediate scalar scale buffer.
-        fixed (int* table = XByXPlusOne)
+        ReadOnlySpan<int> table = XByXPlusOne;
+
+        if (Avx2.IsSupported)
         {
-            return Avx2.GatherVector256(table, indices.AsInt32(), sizeof(int));
+            // Variance normalization bounds every index to the 256-entry table. AVX2 gather keeps all eight independent
+            // column lookups in the vector pipeline instead of materializing an intermediate scalar scale buffer.
+            fixed (int* tablePointer = table)
+            {
+                return Avx2.GatherVector256(tablePointer, indices.AsInt32(), sizeof(int));
+            }
         }
+
+        // Vector256 has no portable indexed-load operation. Constructing the result from eight bounded reads retains
+        // the 256-bit coefficient pipeline on other implementations without allocating or adding another row pass.
+        return Vector256.Create(
+            table[(int)indices.GetElement(0)],
+            table[(int)indices.GetElement(1)],
+            table[(int)indices.GetElement(2)],
+            table[(int)indices.GetElement(3)],
+            table[(int)indices.GetElement(4)],
+            table[(int)indices.GetElement(5)],
+            table[(int)indices.GetElement(6)],
+            table[(int)indices.GetElement(7)]);
     }
 
     /// <summary>
@@ -767,7 +793,7 @@ internal static partial class Av1SelfGuidedFilter
     }
 
     /// <summary>
-    /// Produces the radius-two filtered values in eight-sample AVX2 batches.
+    /// Produces the radius-two filtered values in eight-sample SIMD batches.
     /// </summary>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
@@ -810,7 +836,7 @@ internal static partial class Av1SelfGuidedFilter
                 Vector256<int> factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride, row, vector);
                 Vector256<int> means = CrossSum(localMeans, coefficientRowOffset + column, bufferStride, row, vector);
                 Vector128<ushort> packed = Vector128.LoadUnsafe(ref sourceBase, (nuint)(sourceRowOffset + column));
-                Vector256<int> samples = Avx2.ConvertToVector256Int32(packed);
+                Vector256<int> samples = Vector256.WidenLower(Vector256.Create(packed, Vector128<ushort>.Zero)).AsInt32();
                 Vector256<int> values = Vector256.ShiftRightArithmetic((factors * samples) + means + rounding, roundingBits);
                 values.StoreUnsafe(ref filteredBase, (nuint)(filteredRowOffset + column));
             }
@@ -886,7 +912,7 @@ internal static partial class Av1SelfGuidedFilter
     }
 
     /// <summary>
-    /// Produces the radius-one filtered values in eight-sample AVX2 batches.
+    /// Produces the radius-one filtered values in eight-sample SIMD batches.
     /// </summary>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
@@ -926,7 +952,7 @@ internal static partial class Av1SelfGuidedFilter
                 Vector256<int> factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride, vector);
                 Vector256<int> means = CrossSum(localMeans, coefficientRowOffset + column, bufferStride, vector);
                 Vector128<ushort> packed = Vector128.LoadUnsafe(ref sourceBase, (nuint)(sourceRowOffset + column));
-                Vector256<int> samples = Avx2.ConvertToVector256Int32(packed);
+                Vector256<int> samples = Vector256.WidenLower(Vector256.Create(packed, Vector128<ushort>.Zero)).AsInt32();
                 Vector256<int> values = Vector256.ShiftRightArithmetic((factors * samples) + means + rounding, roundingBits);
                 values.StoreUnsafe(ref filteredBase, (nuint)(filteredRowOffset + column));
             }
@@ -1183,7 +1209,7 @@ internal static partial class Av1SelfGuidedFilter
     }
 
     /// <summary>
-    /// Projects the two restored signals in eight-sample AVX2 batches.
+    /// Projects the two restored signals in eight-sample SIMD batches.
     /// </summary>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
@@ -1233,7 +1259,7 @@ internal static partial class Av1SelfGuidedFilter
             for (; column <= vectorEnd; column += Vector256<int>.Count)
             {
                 Vector128<ushort> packed = Vector128.LoadUnsafe(ref sourceBase, (nuint)(sourceRowOffset + column));
-                Vector256<int> samples = Avx2.ConvertToVector256Int32(packed);
+                Vector256<int> samples = Vector256.WidenLower(Vector256.Create(packed, Vector128<ushort>.Zero)).AsInt32();
                 Vector256<int> unfiltered = Vector256.ShiftLeft(samples, RestorationBits);
                 Vector256<int> projected = Vector256.ShiftLeft(unfiltered, ProjectionBits);
                 if (radii[0] > 0)
@@ -1251,8 +1277,8 @@ internal static partial class Av1SelfGuidedFilter
                 Vector256<int> result = Vector256.ShiftRightArithmetic(projected + rounding, projectionShift);
                 result = Vector256.Min(Vector256.Max(result, Vector256<int>.Zero), maximumSample);
 
-                // Narrowing the result with a zero upper vector places the eight ordered samples
-                // in the lower 128 bits, which can be stored without the AVX2 pack permutation.
+                // Narrowing the result with a zero upper vector places the eight ordered samples in the lower 128 bits,
+                // which can be stored directly without an ISA-specific lane permutation.
                 Vector128<ushort> narrowed = Vector256.Narrow(result.AsUInt32(), Vector256<uint>.Zero).GetLower();
                 narrowed.StoreUnsafe(ref destinationBase, (nuint)(destinationRowOffset + column));
             }

@@ -28,10 +28,10 @@ public class Av1SelfGuidedFilterTests
     private const int ProjectionBits = 7;
 
     /// <summary>
-    /// The hardware configurations required to exercise the AVX2 path, portable 128-bit path, and scalar fallback.
+    /// The hardware configurations required to exercise AVX2-assisted 256-bit, portable 256-bit, 128-bit, and scalar execution.
     /// </summary>
     private const HwIntrinsics Configurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Gets the radii selected by each of the sixteen normative parameter sets.

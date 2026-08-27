@@ -73,7 +73,7 @@ internal class ObuWriter
     /// <param name="stream">The destination stream.</param>
     /// <param name="type">The OBU payload type.</param>
     /// <param name="payload">The complete OBU payload.</param>
-    private static void WriteObuHeaderAndSize(Stream stream, ObuType type, Span<byte> payload)
+    private static void WriteObuHeaderAndSize(Stream stream, ObuType type, ReadOnlySpan<byte> payload)
     {
         stream.WriteByte(WriteObuHeader(type));
 

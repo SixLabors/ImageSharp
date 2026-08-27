@@ -32,6 +32,12 @@ public class Av1ReconstructionConformanceTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
+    /// The hardware configurations covering normal dispatch, narrower vector fallbacks, and scalar intra-block copy.
+    /// </summary>
+    private const HwIntrinsics IntraBlockCopyConfigurations =
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+
+    /// <summary>
     /// The hardware configurations covering the 128-bit and scalar lossless inverse-transform paths.
     /// </summary>
     private const HwIntrinsics LosslessConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
@@ -159,6 +165,22 @@ public class Av1ReconstructionConformanceTests
     [Fact]
     public void DecodeWithPaletteMatchesPinnedLibavifPresentation()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePalettePresentedFixture, PresentationConfigurations);
+
+    /// <summary>
+    /// Verifies selected intra-block-copy prediction and exact native samples against scalar libaom for an
+    /// independently encoded AV1 still pictures across every available vector width and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void DecodeWithIntraBlockCopyMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateIntraBlockCopyNativeFixtures, IntraBlockCopyConfigurations);
+
+    /// <summary>
+    /// Verifies exact presented pixels for independently encoded intra-block-copy AVIF images across the available
+    /// vector widths and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void DecodeWithIntraBlockCopyMatchesPinnedLibavifPresentation()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateIntraBlockCopyPresentedFixtures, PresentationConfigurations);
 
     /// <summary>
     /// Verifies lossless syntax, residual reconstruction, and exact native samples against scalar libaom for
@@ -356,6 +378,100 @@ public class Av1ReconstructionConformanceTests
             requireActiveCdef: false,
             requireActiveLoopFilter: false,
             requirePalette: true);
+
+    /// <summary>
+    /// Validates every active intra-block-copy native fixture under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidateIntraBlockCopyNativeFixtures()
+    {
+        ValidateIntraBlockCopyNativeFixture(
+            TestImages.Heif.Av1IntraBlockCopy8BitAvif,
+            TestImages.Heif.Av1IntraBlockCopy8BitReference,
+            Av1BitDepth.EightBit);
+
+        ValidateIntraBlockCopyNativeFixture(
+            TestImages.Heif.Av1IntraBlockCopy10BitAvif,
+            TestImages.Heif.Av1IntraBlockCopy10BitReference,
+            Av1BitDepth.TenBit);
+
+        ValidateIntraBlockCopyNativeFixture(
+            TestImages.Heif.Av1IntraBlockCopy12BitAvif,
+            TestImages.Heif.Av1IntraBlockCopy12BitReference,
+            Av1BitDepth.TwelveBit);
+    }
+
+    /// <summary>
+    /// Validates one independently encoded intra-block-copy AVIF against its native Y4M reference.
+    /// </summary>
+    /// <param name="imagePath">The complete AVIF container.</param>
+    /// <param name="referencePath">The native Y4M output produced by the pinned scalar libaom-backed decoder.</param>
+    /// <param name="bitDepth">The expected AV1 sample precision.</param>
+    private static void ValidateIntraBlockCopyNativeFixture(string imagePath, string referencePath, Av1BitDepth bitDepth)
+    {
+        byte[] imageBytes = TestFile.Create(imagePath).Bytes;
+        byte[] referenceBytes = TestFile.Create(referencePath).Bytes;
+        ReadOnlySpan<byte> fileHeader = bitDepth switch
+        {
+            Av1BitDepth.EightBit => "YUV4MPEG2 W512 H256 F25:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=FULL\n"u8,
+            Av1BitDepth.TenBit => "YUV4MPEG2 W512 H256 F25:1 Ip A0:0 C444p10 XYSCSS=444P10 XCOLORRANGE=FULL\n"u8,
+            _ => "YUV4MPEG2 W512 H256 F25:1 Ip A0:0 C444p12 XYSCSS=444P12 XCOLORRANGE=FULL\n"u8
+        };
+
+        ReadOnlySpan<byte> frameHeader = "FRAME\n"u8;
+
+        // The retained Y4M header locks the independently decoded reference to the expected dimensions, sampling,
+        // bit depth, and full range. Only the following frame payload contains the planar Y, U, and V samples.
+        ReadOnlySpan<byte> nativeReference = referenceBytes;
+        Assert.True(nativeReference.StartsWith(fileHeader));
+        nativeReference = nativeReference[fileHeader.Length..];
+        Assert.True(nativeReference.StartsWith(frameHeader));
+        nativeReference = nativeReference[frameHeader.Length..];
+
+        Span<byte> payload = GetSoleAv1ItemPayload(imageBytes);
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
+
+        Assert.Equal(512, frameBuffer.Width);
+        Assert.Equal(256, frameBuffer.Height);
+        Assert.Equal(bitDepth, frameBuffer.BitDepth);
+        Assert.Equal(Av1ColorFormat.Yuv444, frameBuffer.ColorFormat);
+        Assert.NotNull(decoder.FrameHeader);
+        Assert.True(decoder.FrameHeader.AllowIntraBlockCopy);
+        Assert.NotEqual(0, GetIntraBlockCopyBlockCount(decoder));
+        AssertNativePlanesEqual(frameBuffer, nativeReference);
+    }
+
+    /// <summary>
+    /// Validates every active intra-block-copy presentation fixture under the hardware configuration selected by
+    /// <see cref="FeatureTestRunner"/>.
+    /// </summary>
+    private static void ValidateIntraBlockCopyPresentedFixtures()
+    {
+        ValidatePresentedFixture(
+            TestImages.Heif.Av1IntraBlockCopy8BitAvif,
+            TestImages.Heif.Av1IntraBlockCopy8BitPresentationReference,
+            512,
+            256,
+            HeifBitDepth.Bit8,
+            requireIntraBlockCopy: true);
+
+        ValidatePresentedFixture(
+            TestImages.Heif.Av1IntraBlockCopy10BitAvif,
+            TestImages.Heif.Av1IntraBlockCopy10BitPresentationReference,
+            512,
+            256,
+            HeifBitDepth.Bit10,
+            requireIntraBlockCopy: true);
+
+        ValidatePresentedFixture(
+            TestImages.Heif.Av1IntraBlockCopy12BitAvif,
+            TestImages.Heif.Av1IntraBlockCopy12BitPresentationReference,
+            512,
+            256,
+            HeifBitDepth.Bit12,
+            requireIntraBlockCopy: true);
+    }
 
     /// <summary>
     /// Validates every lossless native fixture under the hardware configuration selected by
@@ -1010,6 +1126,7 @@ public class Av1ReconstructionConformanceTests
     /// <param name="metadataBitDepth">The expected public HEIF sample precision.</param>
     /// <param name="requireSuperResolution">Whether the AV1 item must upscale from a narrower coded frame.</param>
     /// <param name="requirePalette">Whether the AV1 item must select palette prediction for luma and chroma.</param>
+    /// <param name="requireIntraBlockCopy">Whether the AV1 item must select intra-block-copy prediction.</param>
     private static void ValidatePresentedFixture(
         string imagePath,
         string referencePath,
@@ -1017,7 +1134,8 @@ public class Av1ReconstructionConformanceTests
         int height,
         HeifBitDepth metadataBitDepth,
         bool requireSuperResolution = false,
-        bool requirePalette = false)
+        bool requirePalette = false,
+        bool requireIntraBlockCopy = false)
     {
         DecoderOptions options = new() { MaxFrames = 1 };
         byte[] imageBytes = TestFile.Create(imagePath).Bytes;
@@ -1031,6 +1149,11 @@ public class Av1ReconstructionConformanceTests
         if (requirePalette)
         {
             AssertUsesPalette(imageBytes);
+        }
+
+        if (requireIntraBlockCopy)
+        {
+            AssertUsesIntraBlockCopy(imageBytes);
         }
 
         using Image<Rgba32> image = Image.Load<Rgba32>(options, imageBytes);
@@ -1072,6 +1195,21 @@ public class Av1ReconstructionConformanceTests
         using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
 
         Assert.Equal(RequiredPaletteCoverage, GetPaletteCoverage(decoder));
+    }
+
+    /// <summary>
+    /// Verifies that the sole AV1 image item in an independently encoded AVIF selects intra-block-copy prediction.
+    /// </summary>
+    /// <param name="imageBytes">The complete AVIF file.</param>
+    private static void AssertUsesIntraBlockCopy(Span<byte> imageBytes)
+    {
+        Span<byte> payload = GetSoleAv1ItemPayload(imageBytes);
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
+
+        Assert.NotNull(decoder.FrameHeader);
+        Assert.True(decoder.FrameHeader.AllowIntraBlockCopy);
+        Assert.NotEqual(0, GetIntraBlockCopyBlockCount(decoder));
     }
 
     /// <summary>
@@ -1193,6 +1331,40 @@ public class Av1ReconstructionConformanceTests
         }
 
         return paletteCoverage;
+    }
+
+    /// <summary>
+    /// Counts the final coding blocks that select intra-block-copy prediction.
+    /// </summary>
+    /// <param name="decoder">The decoder after tile parsing and reconstruction.</param>
+    /// <returns>The number of selected intra-block-copy coding blocks.</returns>
+    private static int GetIntraBlockCopyBlockCount(Av1Decoder decoder)
+    {
+        Assert.NotNull(decoder.SequenceHeader);
+        Assert.NotNull(decoder.FrameInfo);
+        int superblockSizeLog2 = decoder.SequenceHeader.SuperblockSizeLog2;
+        int superblockColumnCount = Av1Math.AlignPowerOf2(decoder.SequenceHeader.MaxFrameWidth, superblockSizeLog2) >> superblockSizeLog2;
+        int superblockRowCount = Av1Math.AlignPowerOf2(decoder.SequenceHeader.MaxFrameHeight, superblockSizeLog2) >> superblockSizeLog2;
+        int blockCount = 0;
+
+        // Mode records retain final coding blocks in bitstream order. Traversing each record once counts selected
+        // intra-block-copy operations without repeatedly visiting the 4x4 cells covered by a larger block.
+        for (int superblockRow = 0; superblockRow < superblockRowCount; superblockRow++)
+        {
+            for (int superblockColumn = 0; superblockColumn < superblockColumnCount; superblockColumn++)
+            {
+                Av1SuperblockInfo superblock = decoder.FrameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
+                foreach (Av1BlockModeInfo modeInfo in superblock.GetModeInfos())
+                {
+                    if (modeInfo.UseIntraBlockCopy)
+                    {
+                        blockCount++;
+                    }
+                }
+            }
+        }
+
+        return blockCount;
     }
 
     /// <summary>

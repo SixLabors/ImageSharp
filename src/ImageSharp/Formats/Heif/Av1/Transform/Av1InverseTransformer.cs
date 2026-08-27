@@ -21,7 +21,7 @@ internal class Av1InverseTransformer
     /// <param name="isLossless">Whether the segment uses lossless transform rules.</param>
     /// <param name="workspace">The reusable transform workspace for the containing block decode.</param>
     public static void Reconstruct8Bit(
-        Span<int> coefficientsBuffer,
+        ReadOnlySpan<int> coefficientsBuffer,
         Span<byte> reconstructionBuffer,
         int reconstructionStride,
         Av1TransformSize transformSize,
@@ -60,7 +60,7 @@ internal class Av1InverseTransformer
     /// <param name="isLossless">Whether the segment uses lossless transform rules.</param>
     /// <param name="workspace">The reusable transform workspace for the containing block decode.</param>
     public static void Reconstruct8Bit(
-        Span<int> coefficientsBuffer,
+        ReadOnlySpan<int> coefficientsBuffer,
         Span<byte> reconstructionBufferRead,
         int reconstructionReadStride,
         Span<byte> reconstructionBufferWrite,
@@ -111,7 +111,7 @@ internal class Av1InverseTransformer
     /// <param name="workspace">The reusable transform workspace for the containing block decode.</param>
     /// <remarks>Implements the reconstruction operation in AV1 section 7.11.2.</remarks>
     public static void ReconstructHighBitDepth(
-        Span<int> coefficientsBuffer,
+        ReadOnlySpan<int> coefficientsBuffer,
         Span<short> reconstructionBuffer,
         int reconstructionStride,
         Av1TransformSize transformSize,

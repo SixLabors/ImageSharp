@@ -231,7 +231,7 @@ internal ref struct Av1BitStreamWriter
     /// Writes a byte-aligned entropy-coded tile payload.
     /// </summary>
     /// <param name="tileData">The tile payload.</param>
-    internal void WriteBlob(Span<byte> tileData)
+    internal void WriteBlob(ReadOnlySpan<byte> tileData)
     {
         DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Writing of Tile Data only allowed on byte alignment");
 

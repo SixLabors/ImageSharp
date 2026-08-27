@@ -53,6 +53,16 @@ The palette fixture was encoded independently from ImageSharp using `tests/data/
 
 `libaom-palette-draw-points-8b-444.bit` is the exact sole AV1 item extracted from `libavif-palette-draw-points-8b.avif`. The matching native YUV reference was decoded from that payload by the pinned scalar `aomdec --rawvideo` build. The presented PNG was decoded from the complete AVIF container by the pinned scalar `avifdec -j 1 -d 8` build. The tests require both palette planes to be selected, compare every native YUV sample exactly, and compare every presented RGBA byte exactly across the available vector widths and scalar fallback. No tolerance is used.
 
+## Intra-block-copy coverage
+
+The intra-block-copy fixtures were encoded independently from ImageSharp using `tests/data/abc.png` from the pinned libavif revision. This real 512x256 screen-content image provides repeated glyph and background regions beyond AV1's required 256-pixel reconstruction delay. Each AVIF is opaque YUV 4:4:4 with palette prediction disabled, so selected screen-content reuse must traverse intra-block-copy syntax and prediction rather than palette reconstruction.
+
+The common pinned generic `avifenc` options were `-j 1 -s 0 -l --ignore-alpha -y 444 -a enable-palette=0 -a enable-intrabc=1 -a tune-content=screen`. The 8-bit fixture uses `--cicp 1/13/0`; the 10- and 12-bit fixtures add the matching `-d` value and use `--cicp 12/16/0`. The high-depth encodes promote the 8-bit source, so `-l` configures lossless codec quantization but does not claim reversible conversion back to the original 8-bit PNG.
+
+The matching Y4M files were decoded from the complete AVIF containers with the pinned generic `avifdec -j 1` build. Their retained headers record the 512x256 full-range YUV 4:4:4 layouts at 8, 10, and 12 bits, followed by one planar frame. The matching PNG files were decoded with `avifdec -j 1 -d 8`. The build uses `AOM_TARGET_CPU=generic` and `AVIF_LIBYUV=OFF`, so the native planes and presented pixels come from the pinned scalar libaom/libavif paths.
+
+Tests require the frame header to allow intra-block copy and at least one final coding block to select it. They then compare every native Y, U, and V sample and every presented RGBA byte exactly under normal hardware dispatch, with AVX-512 disabled, with AVX disabled, and with all hardware intrinsics disabled. Displacement-vector entropy, spatial reference derivation, legal reconstruction order, inter transform selection, and prediction must therefore agree with the independent decoder for all three supported bit depths. No tolerance is used.
+
 ## Lossless coverage
 
 The lossless fixtures were encoded independently from ImageSharp using `tests/data/circle-trns-after-plte.png` from the pinned libavif revision. Alpha was intentionally ignored so the native references isolate color-plane reconstruction. The 8-bit input uses CICP 1/13/0; the 10- and 12-bit YUV 4:4:4 inputs use CICP 12/16/0. The material `avifenc` options were `-j 1 -s 0 -l --ignore-alpha -y 444 -a enable-palette=0 -a enable-intrabc=0`, together with the matching depth and CICP values. Disabling palette and intra-block copy ensures the exact result traverses ordinary prediction, coefficient decoding, inverse quantization, and the reversible lossless transform.

@@ -334,7 +334,7 @@ internal class Av1PredictionDecoder
         Span<T> pixelBuffer,
         int pixelBufferStride,
         Span<T> topNeighbor,
-        Span<T> leftNeighbor,
+        ReadOnlySpan<T> leftNeighbor,
         int referenceStride,
         Av1PredictionMode mode,
         int blockModeInfoColumnOffset,
@@ -754,7 +754,7 @@ internal class Av1PredictionDecoder
     private void DecodeBuildIntraPredictors<T>(
         Av1PartitionInfo partitionInfo,
         Span<T> aboveNeighbor,
-        Span<T> leftNeighbor,
+        ReadOnlySpan<T> leftNeighbor,
         nuint referenceStride,
         Span<T> destination,
         nuint destinationStride,

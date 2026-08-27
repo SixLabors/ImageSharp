@@ -31,8 +31,8 @@ internal static class Av1Inverse2dTransformer
     /// <param name="workspace">The reusable transform workspace.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
     public static void Transform2dAdd(
-        Span<int> input,
-        Span<short> outputForRead,
+        ReadOnlySpan<int> input,
+        ReadOnlySpan<short> outputForRead,
         int strideForRead,
         Span<short> outputForWrite,
         int strideForWrite,
@@ -60,8 +60,8 @@ internal static class Av1Inverse2dTransformer
     /// <param name="config">The per-axis transform, flip, shift, and range configuration.</param>
     /// <param name="workspace">The reusable transform workspace.</param>
     public static void Transform2dAdd(
-        Span<int> input,
-        Span<byte> outputForRead,
+        ReadOnlySpan<int> input,
+        ReadOnlySpan<byte> outputForRead,
         int strideForRead,
         Span<byte> outputForWrite,
         int strideForWrite,
@@ -81,8 +81,8 @@ internal static class Av1Inverse2dTransformer
     /// Initializes the transform ranges and selects the concrete column operator.
     /// </summary>
     private static void Transform2dAdd<TSample, TOutputOperator>(
-        Span<int> input,
-        Span<TSample> outputForRead,
+        ReadOnlySpan<int> input,
+        ReadOnlySpan<TSample> outputForRead,
         int strideForRead,
         Span<TSample> outputForWrite,
         int strideForWrite,
@@ -164,8 +164,8 @@ internal static class Av1Inverse2dTransformer
     /// Selects the concrete row operator after the column operator has been specialized.
     /// </summary>
     private static void DispatchRow<TSample, TOutputOperator, TColumnOperator>(
-        Span<int> input,
-        Span<TSample> outputForRead,
+        ReadOnlySpan<int> input,
+        ReadOnlySpan<TSample> outputForRead,
         int strideForRead,
         Span<TSample> outputForWrite,
         int strideForWrite,
@@ -247,8 +247,8 @@ internal static class Av1Inverse2dTransformer
     /// Applies the specialized operator pair using the production lane width selected for the block and processor.
     /// </summary>
     private static void Transform2d<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
-        Span<int> input,
-        Span<TSample> outputForRead,
+        ReadOnlySpan<int> input,
+        ReadOnlySpan<TSample> outputForRead,
         int strideForRead,
         Span<TSample> outputForWrite,
         int strideForWrite,
@@ -299,8 +299,8 @@ internal static class Av1Inverse2dTransformer
     /// <param name="workspace">The reusable storage for SIMD vectors and transposed coefficients.</param>
     /// <param name="bitDepth">The coded sample bit depth used to clamp reconstructed values.</param>
     public static void Transform2dVector256<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
-        Span<int> input,
-        Span<TSample> outputForRead,
+        ReadOnlySpan<int> input,
+        ReadOnlySpan<TSample> outputForRead,
         int strideForRead,
         Span<TSample> outputForWrite,
         int strideForWrite,
@@ -455,8 +455,8 @@ internal static class Av1Inverse2dTransformer
     /// <param name="workspace">The reusable storage for SIMD vectors and transposed coefficients.</param>
     /// <param name="bitDepth">The coded sample bit depth used to clamp reconstructed values.</param>
     public static void Transform2dVector128<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
-        Span<int> input,
-        Span<TSample> outputForRead,
+        ReadOnlySpan<int> input,
+        ReadOnlySpan<TSample> outputForRead,
         int strideForRead,
         Span<TSample> outputForWrite,
         int strideForWrite,
@@ -587,8 +587,8 @@ internal static class Av1Inverse2dTransformer
     /// <param name="workspace">The reusable storage for transform stages and transposed coefficients.</param>
     /// <param name="bitDepth">The coded sample bit depth used to clamp reconstructed values.</param>
     public static void Transform2dScalar<TSample, TOutputOperator, TColumnOperator, TRowOperator>(
-        Span<int> input,
-        Span<TSample> outputForRead,
+        ReadOnlySpan<int> input,
+        ReadOnlySpan<TSample> outputForRead,
         int strideForRead,
         Span<TSample> outputForWrite,
         int strideForWrite,

@@ -340,17 +340,23 @@ internal sealed class HevcIntraPredictionState : IDisposable
     {
         if (values[0] > values[1])
         {
-            (values[0], values[1]) = (values[1], values[0]);
+            byte value = values[0];
+            values[0] = values[1];
+            values[1] = value;
         }
 
         if (values[0] > values[2])
         {
-            (values[0], values[2]) = (values[2], values[0]);
+            byte value = values[0];
+            values[0] = values[2];
+            values[2] = value;
         }
 
         if (values[1] > values[2])
         {
-            (values[1], values[2]) = (values[2], values[1]);
+            byte value = values[1];
+            values[1] = values[2];
+            values[2] = value;
         }
     }
 

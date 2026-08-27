@@ -147,7 +147,7 @@ internal sealed class HevcHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
     private static HevcPictureDecoder DecodePicture(
         DecoderOptions options,
         HeifItem item,
-        Span<byte> data,
+        ReadOnlySpan<byte> data,
         CicpProfile? colorProfile,
         CancellationToken cancellationToken,
         out HevcCodecConfiguration codecConfiguration,

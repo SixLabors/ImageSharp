@@ -104,7 +104,7 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlpha
     private static Av1CodecConfiguration ValidateItemData(
         DecoderOptions options,
         HeifItem item,
-        Span<byte> data,
+        ReadOnlySpan<byte> data,
         out HeifContentLightLevel? obuContentLightLevel,
         out HeifMasteringDisplayColorVolume? obuMasteringDisplayColorVolume)
     {

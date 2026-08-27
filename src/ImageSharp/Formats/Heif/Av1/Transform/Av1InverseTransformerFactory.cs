@@ -19,7 +19,7 @@ internal static class Av1InverseTransformerFactory
     /// <param name="transformFunctionParameters">The transform type, dimensions, bit depth, and pipeline selection.</param>
     /// <param name="workspace">The reusable transform workspace for the containing decode operation.</param>
     public static void InverseTransformAdd(
-        Span<int> coefficients,
+        ReadOnlySpan<int> coefficients,
         Span<byte> readBuffer,
         int readStride,
         Span<byte> writeBuffer,
@@ -63,7 +63,7 @@ internal static class Av1InverseTransformerFactory
     /// <param name="transformFunctionParameters">The transform type, dimensions, bit depth, and pipeline selection.</param>
     /// <param name="workspace">The reusable transform workspace for the containing decode operation.</param>
     public static void InverseTransformAdd(
-        Span<int> coefficients,
+        ReadOnlySpan<int> coefficients,
         Span<short> readBuffer,
         int readStride,
         Span<short> writeBuffer,

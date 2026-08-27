@@ -2709,7 +2709,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="offset">The zero-based field offset.</param>
     /// <param name="count">The field width in bytes.</param>
     /// <param name="boxName">The diagnostic name used for malformed input errors.</param>
-    private static void EnsureBufferRemaining(Span<byte> buffer, int offset, int count, string boxName)
+    private static void EnsureBufferRemaining(ReadOnlySpan<byte> buffer, int offset, int count, string boxName)
     {
         if ((uint)offset > (uint)buffer.Length || (uint)count > (uint)(buffer.Length - offset))
         {

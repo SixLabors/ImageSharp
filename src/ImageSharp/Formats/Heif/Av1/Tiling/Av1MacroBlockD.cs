@@ -16,7 +16,7 @@ internal class Av1MacroBlockD
     /// <summary>
     /// Gets or sets the mode-information entries for the current block and its mapped neighbors.
     /// </summary>
-    public required Span<Av1ModeInfo> ModeInfo
+    public required ReadOnlySpan<Av1ModeInfo> ModeInfo
     {
         get => this.modeInfo;
         internal set

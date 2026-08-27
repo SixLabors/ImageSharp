@@ -1369,6 +1369,15 @@ public static class TestImages
         public const string Av1Palette8BitReference = "Heif/Av1/Conformance/libaom-palette-draw-points-8b-444-libaom.yuv";
         public const string Av1Palette8BitAvif = "Heif/Av1/Conformance/libavif-palette-draw-points-8b.avif";
         public const string Av1Palette8BitPresentationReference = "Heif/Av1/Conformance/libavif-palette-draw-points-8b.png";
+        public const string Av1IntraBlockCopy8BitAvif = "Heif/Av1/Conformance/libavif-intrabc-abc-8b-444.avif";
+        public const string Av1IntraBlockCopy8BitReference = "Heif/Av1/Conformance/libavif-intrabc-abc-8b-444-libaom-y4m.yuv";
+        public const string Av1IntraBlockCopy8BitPresentationReference = "Heif/Av1/Conformance/libavif-intrabc-abc-8b-444.png";
+        public const string Av1IntraBlockCopy10BitAvif = "Heif/Av1/Conformance/libavif-intrabc-abc-10b-444.avif";
+        public const string Av1IntraBlockCopy10BitReference = "Heif/Av1/Conformance/libavif-intrabc-abc-10b-444-libaom-y4m.yuv";
+        public const string Av1IntraBlockCopy10BitPresentationReference = "Heif/Av1/Conformance/libavif-intrabc-abc-10b-444.png";
+        public const string Av1IntraBlockCopy12BitAvif = "Heif/Av1/Conformance/libavif-intrabc-abc-12b-444.avif";
+        public const string Av1IntraBlockCopy12BitReference = "Heif/Av1/Conformance/libavif-intrabc-abc-12b-444-libaom-y4m.yuv";
+        public const string Av1IntraBlockCopy12BitPresentationReference = "Heif/Av1/Conformance/libavif-intrabc-abc-12b-444.png";
         public const string Av1Lossless8BitAvif = "Heif/Av1/Conformance/libavif-lossless-circle-8b-444.avif";
         public const string Av1Lossless8BitReference = "Heif/Av1/Conformance/libavif-lossless-circle-8b-444-libaom.yuv";
         public const string Av1Lossless8BitPresentationReference = "Heif/Av1/Conformance/libavif-lossless-circle-8b-444.png";

@@ -88,7 +88,7 @@ internal class Av1PictureControlSet
     /// </summary>
     /// <param name="position">The frame position in 4x4 mode-information units.</param>
     /// <param name="span">The mode-information entries to map.</param>
-    public void SetModeInfoGridRow(Point position, Span<Av1ModeInfo> span)
+    public void SetModeInfoGridRow(Point position, ReadOnlySpan<Av1ModeInfo> span)
         => this.SetModeInfoGridRow((position.Y * this.ModeInfoStride) + position.X, span);
 
     /// <summary>
@@ -96,7 +96,7 @@ internal class Av1PictureControlSet
     /// </summary>
     /// <param name="offset">The linear grid offset.</param>
     /// <param name="span">The mode-information entries to map.</param>
-    public void SetModeInfoGridRow(int offset, Span<Av1ModeInfo> span)
+    public void SetModeInfoGridRow(int offset, ReadOnlySpan<Av1ModeInfo> span)
     {
         // Grid entries own their arrays because the source span can refer to temporary traversal state.
         this.ModeInfoGrid[offset] = new Av1ModeInfo[span.Length];

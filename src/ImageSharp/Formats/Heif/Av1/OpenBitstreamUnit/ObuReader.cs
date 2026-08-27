@@ -70,13 +70,6 @@ internal class ObuReader
 
                 int obuStartBitPosition = reader.BitPosition;
                 ObuHeader header = ReadObuHeaderSize(ref reader, out _);
-                if (!isAnnexB && !header.HasSize)
-                {
-                    // AV1 section 5 requires every low-overhead OBU to carry its own payload size. Only Annex B may
-                    // derive the payload length from the outer obu_length field.
-                    throw new InvalidImageContentException("A low-overhead AV1 OBU is missing its payload-size field.");
-                }
-
                 int headerAndLengthSize = (reader.BitPosition - obuStartBitPosition) >> 3;
                 int boundedObuSize = isAnnexB ? annexObuSize : dataSize;
                 if (headerAndLengthSize > boundedObuSize)
@@ -84,6 +77,8 @@ internal class ObuReader
                     throw new InvalidImageContentException("The AV1 OBU header exceeds its declared boundary.");
                 }
 
+                // AV1-ISOBMFF permits the final low-overhead OBU to omit its size field. In that form the remaining
+                // sample bytes are the payload, which also makes this OBU final because no following boundary exists.
                 int payloadSize = header.HasSize ? header.PayloadSize : boundedObuSize - headerAndLengthSize;
                 if ((uint)payloadSize > (uint)(boundedObuSize - headerAndLengthSize))
                 {

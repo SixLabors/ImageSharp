@@ -29,7 +29,7 @@ Checkboxes may be marked complete only when the implementation and the verificat
 
 ## Delivery dashboard
 
-Last reconciled with the source tree on 2026-08-27 against the worktree based on commit `07cc0291e`, including the completed AV1 transform, OBU-framing, intra-block-copy, and 12-profile reconstruction checkpoints. This dashboard is the authoritative delivery order. The detailed phase checklists below provide subsystem evidence; they do not override the current-stage marker or permit work to skip ahead.
+Last reconciled with the source tree on 2026-08-27 against the worktree based on commit `91d79f771`, including the completed AV1 transform, OBU-framing, intra-block-copy, and 12-profile reconstruction checkpoints. This dashboard is the authoritative delivery order. The detailed phase checklists below provide subsystem evidence; they do not override the current-stage marker or permit work to skip ahead.
 
 Status meanings:
 
@@ -40,7 +40,7 @@ Status meanings:
 
 Current development stage: **Stage 3 — complete AV1 still-image decoding.** The transform checkpoint is closed: forward transforms use one libaom-shaped SIMD-first operator architecture across `Vector512`, `Vector256`, and `Vector128`, with scalar fallback; inverse production traversal uses the verified `Vector256` and `Vector128` tiers with scalar fallback; and implementation-mechanic type and file suffixes have been removed. Neither AV1 nor HEVC production encoding is implemented.
 
-Immediate checkpoint: **inventory and remove every remaining valid AV1 still-image unsupported branch, one independently verified syntax tool at a time.** The base AV1 profile matrix is now exact across 8/10/12-bit monochrome, 4:2:0, 4:2:2, and 4:4:4 reconstruction and presentation under every available dispatch tier. That matrix is the regression gate for the remaining compression-tool fixtures; it does not by itself prove every normative still-image tool.
+Immediate checkpoint: **complete layered AV1 image-item decoding through the existing image-only container surface.** This includes `a1op`, `lsel`, and `a1lx` properties, operating-point selection, dependency-preserving layer consumption, and final or explicitly selected spatial-layer output for color, alpha, and grid items. It requires stateful AV1 reference/CDF reconstruction; it must not be represented as animation or expanded into a general ISO BMFF/video model.
 
 | Order | Delivery stage | State | Delivered state | Gate that remains open |
 | --- | --- | --- | --- | --- |
@@ -57,7 +57,10 @@ Immediate checkpoint: **inventory and remove every remaining valid AV1 still-ima
 
 - [x] Finish the libaom-shaped AV1 forward-transform architecture, measured production dispatch, inverse-tier correction, suffix cleanup, `FeatureTestRunner` matrix, and focused Release verification recorded below.
 - [x] Close the base AV1 profile matrix with exact native-plane and presented-image comparisons for 8/10/12-bit monochrome, 4:2:0, 4:2:2, and 4:4:4 fixtures under normal, AVX2, 128-bit, and scalar dispatch.
-- [ ] **Current:** inventory and remove every remaining valid AV1 still-image unsupported branch, adding exact independent compression-tool fixtures to the profile-matrix regression gate.
+- [x] Accept the AV1-ISOBMFF final low-overhead OBU form that omits its payload-size field and uses the bounded image-item remainder; focused Release coverage reconstructs a valid combined frame in that form.
+- [ ] **Current:** implement layered AV1 image-item properties and stateful dependency reconstruction, then verify default final-layer output against the two pinned libavif progressive fixtures.
+- [ ] Correct the audited 12-bit inverse ADST4, Identity4, and Identity16 SIMD arithmetic by widening only the libaom-widened multiply/accumulate operations, with exact conformant-range vectors and `FeatureTestRunner` coverage.
+- [ ] Continue inventorying and removing every remaining valid AV1 still-image unsupported branch, adding exact independent compression-tool fixtures to the profile-matrix regression gate.
 - [ ] Complete the remaining HEVC still-image profile and Range Extensions matrix with exact independent native-plane and presentation evidence.
 - [ ] Close shared decoded presentation, ICC, alpha, grid, transform, metadata, and animated AV1/HEVC decode gates.
 - [ ] Implement and independently verify real AV1/AVIF still encoding.
@@ -497,7 +500,7 @@ Exit gate:
 Implement and verify in dependency order:
 
 - [ ] OBU framing, sequence headers, frame headers, tile groups, byte alignment, and trailing bits.
-  - [x] Isolate every declared OBU payload with a zero-copy bounded span reader, advance ignored metadata and reserved units without parsing their bytes as headers, validate padding and trailing bytes, enforce primary/redundant/combined frame-header order, and reject lengths that cross the containing image-item boundary. Focused malformed-input tests and independent 8/10/12-bit AVIF reconstruction pass in Release.
+  - [x] Isolate every declared OBU payload with a zero-copy bounded span reader, advance ignored metadata and reserved units without parsing their bytes as headers, validate padding and trailing bytes, enforce primary/redundant/combined frame-header order, accept the final unsized low-overhead OBU by consuming the bounded image-item remainder, and reject lengths that cross the containing boundary. Focused malformed-input tests and independent 8/10/12-bit AVIF reconstruction pass in Release.
 - [ ] One coherent decoder lifecycle that retains parsed frame and tile state and disposes all buffers deterministically.
 - [ ] Tile partitioning, mode information, segmentation, delta quantization, transform-size selection, coefficient token decode, inverse quantization, and inverse transforms.
   - [x] Match libaom's depth-first traversal and frame-edge behavior for all ten AV1 partition types. Independent 8/10/12-bit streams collectively select every terminal partition shape and contain nested block geometry that requires recursive `Split` traversal; their complete native planes remain byte-exact under normal hardware dispatch and the scalar fallback.

@@ -148,6 +148,35 @@ public class ObuFrameHeaderTests
         Assert.Null(obuReader.FrameHeader);
     }
 
+    /// <summary>
+    /// Verifies that a final low-overhead frame OBU may use the enclosing image-item boundary instead of an OBU size field.
+    /// </summary>
+    [Fact]
+    public void ReadFinalLowOverheadFrameWithoutSizeField()
+    {
+        const int itemDataOffset = 0x010E;
+        const int itemDataLength = 0x001D;
+        string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Heif.Orange4x4);
+        byte[] fileContent = File.ReadAllBytes(filePath);
+        byte[] sizedBitStream = fileContent.AsSpan(itemDataOffset, itemDataLength).ToArray();
+        int frameOffset = DefaultTemporalDelimiterBitStream.Length;
+        Av1BitStreamReader sequenceSizeReader = new(sizedBitStream.AsSpan(frameOffset + 1));
+        ulong sequencePayloadLength = sequenceSizeReader.ReadLittleEndianBytes128(out int sequenceSizeLength);
+        frameOffset += 1 + sequenceSizeLength + (int)sequencePayloadLength;
+
+        Av1BitStreamReader sizeReader = new(sizedBitStream.AsSpan(frameOffset + 1));
+        ulong framePayloadLength = sizeReader.ReadLittleEndianBytes128(out int encodedSizeLength);
+        byte[] bitStream = new byte[sizedBitStream.Length - encodedSizeLength];
+
+        // Preserve the independently encoded frame payload while changing only the final OBU's legal boundary form.
+        sizedBitStream.AsSpan(0, frameOffset).CopyTo(bitStream);
+        bitStream[frameOffset] = (byte)(sizedBitStream[frameOffset] & ~0x02);
+        sizedBitStream.AsSpan(frameOffset + 1 + encodedSizeLength).CopyTo(bitStream.AsSpan(frameOffset + 1));
+
+        Assert.Equal(framePayloadLength, (ulong)(bitStream.Length - frameOffset - 1));
+        ReadObuStream(bitStream);
+    }
+
     [Fact]
     public void ReadSequenceHeader()
     {
@@ -253,7 +282,6 @@ public class ObuFrameHeaderTests
     [InlineData(new byte[] { 0x7A, 0x02, 0x11 })]
     [InlineData(new byte[] { 0x7A, 0x01, 0x00 })]
     [InlineData(new byte[] { 0x12, 0x01, 0x01 })]
-    [InlineData(new byte[] { 0x10 })]
     [InlineData(new byte[] { 0x7A, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80 })]
     public void ReadInvalidObuBoundaryThrows(byte[] bitStream)
         => Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream));

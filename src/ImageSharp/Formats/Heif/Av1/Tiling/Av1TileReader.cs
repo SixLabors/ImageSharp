@@ -2019,6 +2019,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             }
 
             modeInfo.MotionMode = Av1MotionMode.SimpleTranslation;
+            modeInfo.UseInterIntraWedge = false;
+            modeInfo.InterIntraWedgeIndex = 0;
 
             int minimumBlockDimension = Math.Min(modeInfo.BlockSize.GetWidth(), modeInfo.BlockSize.GetHeight());
             if (!isCompound && !modeInfo.SkipMode &&
@@ -2026,13 +2028,25 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 modeInfo.BlockSize is >= Av1BlockSize.Block8x8 and <= Av1BlockSize.Block32x32 &&
                 reader.ReadIsInterIntra(modeInfo.BlockSize))
             {
-                // AV1 assigns this syntax only to the contiguous Block8x8 through Block32x32 enum range; similarly
-                // dimensioned extended rectangles occur later in the enum and must not consume a flag. A false flag
-                // continues into motion-mode syntax even while the selected inter-intra predictor remains unsupported.
-                throw new NotSupportedException("AV1 inter-intra block prediction is not implemented.");
+                // The synthetic INTRA_FRAME second reference is part of the decoded mode state: it suppresses motion
+                // variation syntax and lets reconstruction distinguish inter-intra from a regular single-reference block.
+                modeInfo.ReferenceFrames[1] = Av1ReferenceFrameType.Intra;
+                modeInfo.InterIntraMode = reader.ReadInterIntraMode(modeInfo.BlockSize);
+                modeInfo.SetAngleDelta(Av1PlaneType.Y, 0);
+                modeInfo.SetAngleDelta(Av1PlaneType.Uv, 0);
+                modeInfo.UseFilterIntra = false;
+                modeInfo.UseInterIntraWedge = reader.ReadUseInterIntraWedge(modeInfo.BlockSize);
+                if (modeInfo.UseInterIntraWedge)
+                {
+                    modeInfo.InterIntraWedgeIndex = reader.ReadWedgeIndex(modeInfo.BlockSize);
+                }
             }
 
-            if (!isCompound && this.FrameHeader.IsMotionModeSwitchable && minimumBlockDimension >= 8 && !modeInfo.SkipMode)
+            if (!isCompound &&
+                modeInfo.ReferenceFrames[1] != Av1ReferenceFrameType.Intra &&
+                this.FrameHeader.IsMotionModeSwitchable &&
+                minimumBlockDimension >= 8 &&
+                !modeInfo.SkipMode)
             {
                 Av1MotionVariationCandidates candidates = this.motionVariationCandidates;
                 candidates.Build(ref partitionInfo, tileInfo, this.SequenceHeader, this.FrameHeader, referenceFrame);
@@ -2070,12 +2084,65 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             modeInfo.CompoundGroupIndex = false;
             modeInfo.CompoundIndex = true;
             modeInfo.CompoundType = Av1CompoundType.Average;
-            if (isCompound && !modeInfo.SkipMode &&
-                (this.SequenceHeader.EnableMaskedCompound || this.SequenceHeader.OrderHintInfo.EnableJointCompound))
+            modeInfo.CompoundWedgeIndex = 0;
+            modeInfo.CompoundWedgeSign = false;
+            modeInfo.DifferenceWeightedMaskType = Av1DifferenceWeightedMaskType.Type38;
+            if (isCompound && !modeInfo.SkipMode)
             {
-                // Either enabled sequence tool adds a compound-selection symbol before interpolation syntax. Refuse
-                // that later checkpoint at its owning boundary so this equal-average path cannot desynchronize tiles.
-                throw new NotSupportedException("AV1 selectable compound blending is not implemented.");
+                bool maskedCompoundUsed = minimumBlockDimension >= 8 && this.SequenceHeader.EnableMaskedCompound;
+                if (maskedCompoundUsed)
+                {
+                    int groupContext = Av1SymbolContextHelper.GetCompoundGroupIndexContext(
+                        partitionInfo.AboveModeInfo,
+                        partitionInfo.LeftModeInfo);
+
+                    modeInfo.CompoundGroupIndex = reader.ReadCompoundGroupIndex(groupContext);
+                }
+
+                if (!modeInfo.CompoundGroupIndex)
+                {
+                    if (this.SequenceHeader.OrderHintInfo.EnableJointCompound)
+                    {
+                        int compoundIndexContext = Av1SymbolContextHelper.GetCompoundIndexContext(
+                            this.SequenceHeader.OrderHintInfo,
+                            this.FrameHeader,
+                            modeInfo,
+                            partitionInfo.AboveModeInfo,
+                            partitionInfo.LeftModeInfo);
+
+                        modeInfo.CompoundIndex = reader.ReadCompoundIndex(compoundIndexContext);
+                        modeInfo.CompoundType = modeInfo.CompoundIndex
+                            ? Av1CompoundType.Average
+                            : Av1CompoundType.DistanceWeighted;
+                    }
+                }
+                else
+                {
+                    bool supportsWedge = modeInfo.BlockSize is
+                        Av1BlockSize.Block8x8 or
+                        Av1BlockSize.Block8x16 or
+                        Av1BlockSize.Block16x8 or
+                        Av1BlockSize.Block16x16 or
+                        Av1BlockSize.Block16x32 or
+                        Av1BlockSize.Block32x16 or
+                        Av1BlockSize.Block32x32 or
+                        Av1BlockSize.Block8x32 or
+                        Av1BlockSize.Block32x8;
+
+                    modeInfo.CompoundType = supportsWedge
+                        ? reader.ReadMaskedCompoundType(modeInfo.BlockSize)
+                        : Av1CompoundType.DifferenceWeighted;
+
+                    if (modeInfo.CompoundType == Av1CompoundType.Wedge)
+                    {
+                        modeInfo.CompoundWedgeIndex = reader.ReadWedgeIndex(modeInfo.BlockSize);
+                        modeInfo.CompoundWedgeSign = reader.ReadLiteral(1) != 0;
+                    }
+                    else
+                    {
+                        modeInfo.DifferenceWeightedMaskType = (Av1DifferenceWeightedMaskType)reader.ReadLiteral(1);
+                    }
+                }
             }
 
             Span<Av1InterpolationFilter> interpolationFilters = modeInfo.InterpolationFilters;

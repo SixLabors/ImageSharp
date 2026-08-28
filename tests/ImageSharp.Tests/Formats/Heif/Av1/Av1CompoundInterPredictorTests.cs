@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
@@ -31,6 +32,156 @@ public class Av1CompoundInterPredictorTests
     [Fact]
     public void HighBitDepthAverageMatchesIndependentOracleAcrossIntrinsicWidths()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthAverage, PredictorConfigurations);
+
+    /// <summary>
+    /// Verifies 8-bit distance and per-sample mask blending across every intrinsic width and scalar tail.
+    /// </summary>
+    [Fact]
+    public void ByteSelectableBlendsMatchIndependentOracleAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateByteSelectableBlends, PredictorConfigurations);
+
+    /// <summary>
+    /// Verifies 10/12-bit distance and per-sample mask blending across every intrinsic width and scalar tail.
+    /// </summary>
+    [Fact]
+    public void HighBitDepthSelectableBlendsMatchIndependentOracleAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthSelectableBlends, PredictorConfigurations);
+
+    /// <summary>
+    /// Verifies the four smooth inter-intra modes and their complemented destination orientation.
+    /// </summary>
+    [Fact]
+    public void SmoothInterIntraMasksMatchPinnedWeights()
+    {
+        ReadOnlySpan<byte> weights = [60, 34, 19, 11, 6, 4, 2, 1];
+
+        foreach (Av1InterIntraMode mode in Enum.GetValues<Av1InterIntraMode>())
+        {
+            const int width = 8;
+            const int height = 4;
+            const int stride = 11;
+            byte[] mask = new byte[stride * height];
+            byte[] inverted = new byte[stride * height];
+            mask.AsSpan().Fill(0xA5);
+            inverted.AsSpan().Fill(0xA5);
+
+            Av1CompoundInterPredictor.FillInterIntraMask(mask, stride, width, height, mode, invert: false);
+            Av1CompoundInterPredictor.FillInterIntraMask(inverted, stride, width, height, mode, invert: true);
+
+            for (int row = 0; row < height; row++)
+            {
+                for (int column = 0; column < width; column++)
+                {
+                    byte expected = mode switch
+                    {
+                        Av1InterIntraMode.Vertical => weights[row],
+                        Av1InterIntraMode.Horizontal => weights[column],
+                        Av1InterIntraMode.Smooth => weights[Math.Min(row, column)],
+                        _ => 32,
+                    };
+
+                    Assert.Equal(expected, mask[(row * stride) + column]);
+                    Assert.Equal((byte)(64 - expected), inverted[(row * stride) + column]);
+                }
+
+                for (int column = width; column < stride; column++)
+                {
+                    Assert.Equal(0xA5, mask[(row * stride) + column]);
+                    Assert.Equal(0xA5, inverted[(row * stride) + column]);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Verifies both difference-mask orientations at each supported bit depth.
+    /// </summary>
+    [Fact]
+    public void DifferenceWeightedMasksMatchPinnedFormula()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateDifferenceWeightedMasks, PredictorConfigurations);
+
+    /// <summary>
+    /// Applies the pinned difference-mask formula at every bit depth and intrinsic width.
+    /// </summary>
+    private static void ValidateDifferenceWeightedMasks()
+    {
+        ReadOnlySpan<int> widths = [9, 16, 23, 32, 47, 64, 127];
+
+        foreach (int width in widths)
+        {
+            const int height = 3;
+            int firstStride = width + 4;
+            int secondStride = width + 2;
+            int maskStride = width + 3;
+            foreach (int bitDepth in new[] { 8, 10, 12 })
+            {
+                int sampleMask = (1 << bitDepth) - 1;
+                ushort[] first = new ushort[firstStride * height];
+                ushort[] second = new ushort[secondStride * height];
+                for (int row = 0; row < height; row++)
+                {
+                    for (int column = 0; column < width; column++)
+                    {
+                        first[(row * firstStride) + column] = (ushort)(((row * 911) + (column * 521)) & sampleMask);
+                        second[(row * secondStride) + column] = (ushort)(((row * 307) + (column * 997) + 31) & sampleMask);
+                    }
+                }
+
+                foreach (Av1DifferenceWeightedMaskType maskType in Enum.GetValues<Av1DifferenceWeightedMaskType>())
+                {
+                    byte[] actual = new byte[maskStride * height];
+                    actual.AsSpan().Fill(0xA5);
+
+                    if (bitDepth == 8)
+                    {
+                        byte[] firstByte = Array.ConvertAll(first, value => (byte)value);
+                        byte[] secondByte = Array.ConvertAll(second, value => (byte)value);
+                        Av1CompoundInterPredictor.FillDifferenceWeightedMask(
+                            actual,
+                            maskStride,
+                            firstByte,
+                            firstStride,
+                            secondByte,
+                            secondStride,
+                            width,
+                            height,
+                            maskType);
+                    }
+                    else
+                    {
+                        Av1CompoundInterPredictor.FillDifferenceWeightedMask(
+                            actual,
+                            maskStride,
+                            first,
+                            firstStride,
+                            second,
+                            secondStride,
+                            width,
+                            height,
+                            bitDepth,
+                            maskType);
+                    }
+
+                    for (int row = 0; row < height; row++)
+                    {
+                        for (int column = 0; column < width; column++)
+                        {
+                            int difference = Math.Abs(first[(row * firstStride) + column] - second[(row * secondStride) + column]);
+                            int alpha = Math.Min(64, 38 + ((difference >> (bitDepth - 8)) / 16));
+                            byte expected = (byte)(maskType == Av1DifferenceWeightedMaskType.Type38Inverse ? 64 - alpha : alpha);
+
+                            Assert.Equal(expected, actual[(row * maskStride) + column]);
+                        }
+
+                        for (int column = width; column < maskStride; column++)
+                        {
+                            Assert.Equal(0xA5, actual[(row * maskStride) + column]);
+                        }
+                    }
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// Applies independent byte arithmetic to block widths that cross every vector and scalar boundary.
@@ -114,6 +265,169 @@ public class Av1CompoundInterPredictorTests
     }
 
     /// <summary>
+    /// Applies independent byte arithmetic to every selectable compound blend.
+    /// </summary>
+    private static void ValidateByteSelectableBlends()
+    {
+        ReadOnlySpan<int> widths = [4, 7, 8, 15, 16, 23, 31, 32, 47, 64, 127, 128];
+        ReadOnlySpan<int> distanceWeights = [9, 7, 11, 5, 12, 4, 13, 3];
+
+        foreach (int width in widths)
+        {
+            const int height = 5;
+            int destinationStride = width + 11;
+            int secondStride = width + 7;
+            int maskStride = width + 5;
+            byte[] first = new byte[destinationStride * height];
+            byte[] second = new byte[secondStride * height];
+            byte[] mask = new byte[maskStride * height];
+
+            FillByteInputs(first, second, destinationStride, secondStride, width, height);
+            FillMask(mask, maskStride, width, height);
+
+            for (int weightIndex = 0; weightIndex < distanceWeights.Length; weightIndex += 2)
+            {
+                byte[] expected = (byte[])first.Clone();
+                byte[] actual = (byte[])first.Clone();
+                int firstWeight = distanceWeights[weightIndex];
+                int secondWeight = distanceWeights[weightIndex + 1];
+
+                for (int row = 0; row < height; row++)
+                {
+                    for (int column = 0; column < width; column++)
+                    {
+                        int destinationIndex = (row * destinationStride) + column;
+                        int secondIndex = (row * secondStride) + column;
+                        expected[destinationIndex] = (byte)(((expected[destinationIndex] * firstWeight) +
+                            (second[secondIndex] * secondWeight) + 8) >> 4);
+                    }
+                }
+
+                Av1CompoundInterPredictor.DistanceWeighted(
+                    actual,
+                    destinationStride,
+                    second,
+                    secondStride,
+                    width,
+                    height,
+                    firstWeight,
+                    secondWeight);
+
+                Assert.Equal(expected, actual);
+            }
+
+            byte[] maskedExpected = (byte[])first.Clone();
+            byte[] maskedActual = (byte[])first.Clone();
+            for (int row = 0; row < height; row++)
+            {
+                for (int column = 0; column < width; column++)
+                {
+                    int destinationIndex = (row * destinationStride) + column;
+                    int secondIndex = (row * secondStride) + column;
+                    int alpha = mask[(row * maskStride) + column];
+                    maskedExpected[destinationIndex] = (byte)(((alpha * maskedExpected[destinationIndex]) +
+                        ((64 - alpha) * second[secondIndex]) + 32) >> 6);
+                }
+            }
+
+            Av1CompoundInterPredictor.Blend(
+                maskedActual,
+                destinationStride,
+                second,
+                secondStride,
+                mask,
+                maskStride,
+                width,
+                height);
+
+            Assert.Equal(maskedExpected, maskedActual);
+        }
+    }
+
+    /// <summary>
+    /// Applies independent high-bit-depth arithmetic to every selectable compound blend.
+    /// </summary>
+    private static void ValidateHighBitDepthSelectableBlends()
+    {
+        ReadOnlySpan<int> widths = [4, 7, 8, 15, 16, 23, 31, 32, 47, 64, 127, 128];
+        ReadOnlySpan<int> distanceWeights = [9, 7, 11, 5, 12, 4, 13, 3];
+
+        foreach (int bitDepth in new[] { 10, 12 })
+        {
+            foreach (int width in widths)
+            {
+                const int height = 5;
+                int destinationStride = width + 9;
+                int secondStride = width + 5;
+                int maskStride = width + 3;
+                ushort[] first = new ushort[destinationStride * height];
+                ushort[] second = new ushort[secondStride * height];
+                byte[] mask = new byte[maskStride * height];
+
+                FillHighBitDepthInputs(first, second, destinationStride, secondStride, width, height, bitDepth);
+                FillMask(mask, maskStride, width, height);
+
+                for (int weightIndex = 0; weightIndex < distanceWeights.Length; weightIndex += 2)
+                {
+                    ushort[] expected = (ushort[])first.Clone();
+                    ushort[] actual = (ushort[])first.Clone();
+                    int firstWeight = distanceWeights[weightIndex];
+                    int secondWeight = distanceWeights[weightIndex + 1];
+
+                    for (int row = 0; row < height; row++)
+                    {
+                        for (int column = 0; column < width; column++)
+                        {
+                            int destinationIndex = (row * destinationStride) + column;
+                            int secondIndex = (row * secondStride) + column;
+                            expected[destinationIndex] = (ushort)(((expected[destinationIndex] * firstWeight) +
+                                (second[secondIndex] * secondWeight) + 8) >> 4);
+                        }
+                    }
+
+                    Av1CompoundInterPredictor.DistanceWeighted(
+                        actual,
+                        destinationStride,
+                        second,
+                        secondStride,
+                        width,
+                        height,
+                        firstWeight,
+                        secondWeight);
+
+                    Assert.Equal(expected, actual);
+                }
+
+                ushort[] maskedExpected = (ushort[])first.Clone();
+                ushort[] maskedActual = (ushort[])first.Clone();
+                for (int row = 0; row < height; row++)
+                {
+                    for (int column = 0; column < width; column++)
+                    {
+                        int destinationIndex = (row * destinationStride) + column;
+                        int secondIndex = (row * secondStride) + column;
+                        int alpha = mask[(row * maskStride) + column];
+                        maskedExpected[destinationIndex] = (ushort)(((alpha * maskedExpected[destinationIndex]) +
+                            ((64 - alpha) * second[secondIndex]) + 32) >> 6);
+                    }
+                }
+
+                Av1CompoundInterPredictor.Blend(
+                    maskedActual,
+                    destinationStride,
+                    second,
+                    secondStride,
+                    mask,
+                    maskStride,
+                    width,
+                    height);
+
+                Assert.Equal(maskedExpected, maskedActual);
+            }
+        }
+    }
+
+    /// <summary>
     /// Fills active byte samples while assigning different sentinels to the unused row tails.
     /// </summary>
     private static void FillByteInputs(
@@ -159,6 +473,21 @@ public class Av1CompoundInterPredictorTests
             {
                 destination[(row * destinationStride) + column] = (ushort)(((row * 947) + (column * 613) + 17) & mask);
                 second[(row * secondStride) + column] = (ushort)(((row * 541) + (column * 887) + 23) & mask);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Fills active mask samples across the complete AV1 alpha range while guarding every row tail.
+    /// </summary>
+    private static void FillMask(Span<byte> mask, int maskStride, int width, int height)
+    {
+        mask.Fill(0xA5);
+        for (int row = 0; row < height; row++)
+        {
+            for (int column = 0; column < width; column++)
+            {
+                mask[(row * maskStride) + column] = (byte)(((row * 19) + (column * 37)) % 65);
             }
         }
     }

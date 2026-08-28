@@ -95,6 +95,12 @@ internal sealed class Av1FrameEntropyContext
         this.CompoundBackwardReference = Av1DefaultDistributions.CompoundBackwardReference;
         this.InterCompoundMode = Av1DefaultDistributions.InterCompoundMode;
         this.InterIntra = Av1DefaultDistributions.InterIntra;
+        this.InterIntraMode = Av1DefaultDistributions.InterIntraMode;
+        this.WedgeInterIntra = Av1DefaultDistributions.WedgeInterIntra;
+        this.CompoundType = Av1DefaultDistributions.CompoundType;
+        this.WedgeIndex = Av1DefaultDistributions.WedgeIndex;
+        this.CompoundIndex = Av1DefaultDistributions.CompoundIndex;
+        this.CompoundGroupIndex = Av1DefaultDistributions.CompoundGroupIndex;
         this.MotionMode = Av1DefaultDistributions.MotionMode;
         this.Obmc = Av1DefaultDistributions.Obmc;
         this.SwitchableInterpolation = Av1DefaultDistributions.SwitchableInterpolation;
@@ -164,6 +170,12 @@ internal sealed class Av1FrameEntropyContext
         this.CompoundBackwardReference = Av1Distribution.CreateCopy(source.CompoundBackwardReference);
         this.InterCompoundMode = Av1Distribution.CreateCopy(source.InterCompoundMode);
         this.InterIntra = Av1Distribution.CreateCopy(source.InterIntra);
+        this.InterIntraMode = Av1Distribution.CreateCopy(source.InterIntraMode);
+        this.WedgeInterIntra = Av1Distribution.CreateCopy(source.WedgeInterIntra);
+        this.CompoundType = Av1Distribution.CreateCopy(source.CompoundType);
+        this.WedgeIndex = Av1Distribution.CreateCopy(source.WedgeIndex);
+        this.CompoundIndex = Av1Distribution.CreateCopy(source.CompoundIndex);
+        this.CompoundGroupIndex = Av1Distribution.CreateCopy(source.CompoundGroupIndex);
         this.MotionMode = Av1Distribution.CreateCopy(source.MotionMode);
         this.Obmc = Av1Distribution.CreateCopy(source.Obmc);
         this.SwitchableInterpolation = Av1Distribution.CreateCopy(source.SwitchableInterpolation);
@@ -331,6 +343,36 @@ internal sealed class Av1FrameEntropyContext
     /// Gets the inter-intra prediction flag distributions indexed by block-size group.
     /// </summary>
     public Av1Distribution[] InterIntra { get; }
+
+    /// <summary>
+    /// Gets the inter-intra mode distributions indexed by block-size group.
+    /// </summary>
+    public Av1Distribution[] InterIntraMode { get; }
+
+    /// <summary>
+    /// Gets the inter-intra wedge-selection distributions indexed by block size.
+    /// </summary>
+    public Av1Distribution[] WedgeInterIntra { get; }
+
+    /// <summary>
+    /// Gets the masked-compound type distributions indexed by block size.
+    /// </summary>
+    public Av1Distribution[] CompoundType { get; }
+
+    /// <summary>
+    /// Gets the wedge-index distributions indexed by block size.
+    /// </summary>
+    public Av1Distribution[] WedgeIndex { get; }
+
+    /// <summary>
+    /// Gets the average-or-distance-weighted compound distributions indexed by derived context.
+    /// </summary>
+    public Av1Distribution[] CompoundIndex { get; }
+
+    /// <summary>
+    /// Gets the unmasked-or-masked compound-group distributions indexed by derived context.
+    /// </summary>
+    public Av1Distribution[] CompoundGroupIndex { get; }
 
     /// <summary>
     /// Gets the three-way motion-mode distributions indexed by block size.
@@ -523,6 +565,12 @@ internal sealed class Av1FrameEntropyContext
         CopyState(source.CompoundBackwardReference, this.CompoundBackwardReference);
         CopyState(source.InterCompoundMode, this.InterCompoundMode);
         CopyState(source.InterIntra, this.InterIntra);
+        CopyState(source.InterIntraMode, this.InterIntraMode);
+        CopyState(source.WedgeInterIntra, this.WedgeInterIntra);
+        CopyState(source.CompoundType, this.CompoundType);
+        CopyState(source.WedgeIndex, this.WedgeIndex);
+        CopyState(source.CompoundIndex, this.CompoundIndex);
+        CopyState(source.CompoundGroupIndex, this.CompoundGroupIndex);
         CopyState(source.MotionMode, this.MotionMode);
         CopyState(source.Obmc, this.Obmc);
         CopyState(source.SwitchableInterpolation, this.SwitchableInterpolation);
@@ -598,6 +646,12 @@ internal sealed class Av1FrameEntropyContext
         ResetUpdateCounts(this.CompoundBackwardReference);
         ResetUpdateCounts(this.InterCompoundMode);
         ResetUpdateCounts(this.InterIntra);
+        ResetUpdateCounts(this.InterIntraMode);
+        ResetUpdateCounts(this.WedgeInterIntra);
+        ResetUpdateCounts(this.CompoundType);
+        ResetUpdateCounts(this.WedgeIndex);
+        ResetUpdateCounts(this.CompoundIndex);
+        ResetUpdateCounts(this.CompoundGroupIndex);
         ResetUpdateCounts(this.MotionMode);
         ResetUpdateCounts(this.Obmc);
         ResetUpdateCounts(this.SwitchableInterpolation);

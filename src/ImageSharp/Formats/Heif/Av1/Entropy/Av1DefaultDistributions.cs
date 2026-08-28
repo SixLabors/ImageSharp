@@ -115,6 +115,80 @@ internal static class Av1DefaultDistributions
     public static Av1Distribution[] InterIntra => [new(16384), new(26887), new(27597), new(30237)];
 
     /// <summary>
+    /// Gets the four-symbol inter-intra mode distributions indexed by block-size group.
+    /// </summary>
+    public static Av1Distribution[] InterIntraMode =>
+    [
+        new(8192, 16384, 24576),
+        new(1875, 11082, 27332),
+        new(2473, 9996, 26388),
+        new(4238, 11537, 25926),
+    ];
+
+    /// <summary>
+    /// Gets the inter-intra wedge-selection distributions indexed by block size.
+    /// </summary>
+    public static Av1Distribution[] WedgeInterIntra =>
+    [
+        new(16384), new(16384), new(16384), new(20036), new(24957), new(26704),
+        new(27530), new(29564), new(29444), new(26872), new(16384), new(16384),
+        new(16384), new(16384), new(16384), new(16384), new(16384), new(16384),
+        new(16384), new(16384), new(16384), new(16384),
+    ];
+
+    /// <summary>
+    /// Gets the wedge-or-difference masked-compound distributions indexed by block size.
+    /// </summary>
+    public static Av1Distribution[] CompoundType =>
+    [
+        new(16384), new(16384), new(16384), new(23431), new(13171), new(11470),
+        new(9770), new(9100), new(8233), new(6172), new(16384), new(16384),
+        new(16384), new(16384), new(16384), new(16384), new(16384), new(16384),
+        new(11820), new(7701), new(16384), new(16384),
+    ];
+
+    /// <summary>
+    /// Gets the sixteen-symbol wedge-index distributions indexed by block size.
+    /// </summary>
+    public static Av1Distribution[] WedgeIndex =>
+    [
+        CreateUniformWedgeIndexDistribution(),
+        CreateUniformWedgeIndexDistribution(),
+        CreateUniformWedgeIndexDistribution(),
+        new(2438, 4440, 6599, 8663, 11005, 12874, 15751, 18094, 20359, 22362, 24127, 25702, 27752, 29450, 31171),
+        new(806, 3266, 6005, 6738, 7218, 7367, 7771, 14588, 16323, 17367, 18452, 19422, 22839, 26127, 29629),
+        new(2779, 3738, 4683, 7213, 7775, 8017, 8655, 14357, 17939, 21332, 24520, 27470, 29456, 30529, 31656),
+        new(1684, 3625, 5675, 7108, 9302, 11274, 14429, 17144, 19163, 20961, 22884, 24471, 26719, 28714, 30877),
+        new(1142, 3491, 6277, 7314, 8089, 8355, 9023, 13624, 15369, 16730, 18114, 19313, 22521, 26012, 29550),
+        new(2742, 4195, 5727, 8035, 8980, 9336, 10146, 14124, 17270, 20533, 23434, 25972, 27944, 29570, 31416),
+        new(1727, 3948, 6101, 7796, 9841, 12344, 15766, 18944, 20638, 22038, 23963, 25311, 26988, 28766, 31012),
+        CreateUniformWedgeIndexDistribution(),
+        CreateUniformWedgeIndexDistribution(),
+        CreateUniformWedgeIndexDistribution(),
+        CreateUniformWedgeIndexDistribution(),
+        CreateUniformWedgeIndexDistribution(),
+        CreateUniformWedgeIndexDistribution(),
+        CreateUniformWedgeIndexDistribution(),
+        CreateUniformWedgeIndexDistribution(),
+        new(154, 987, 1925, 2051, 2088, 2111, 2151, 23033, 23703, 24284, 24985, 25684, 27259, 28883, 30911),
+        new(1135, 1322, 1493, 2635, 2696, 2737, 2770, 21016, 22935, 25057, 27251, 29173, 30089, 30960, 31933),
+        CreateUniformWedgeIndexDistribution(),
+        CreateUniformWedgeIndexDistribution(),
+    ];
+
+    /// <summary>
+    /// Gets the average-or-distance-weighted compound distributions indexed by derived context.
+    /// </summary>
+    public static Av1Distribution[] CompoundIndex =>
+        [new(18244), new(12865), new(7053), new(13259), new(9334), new(4644)];
+
+    /// <summary>
+    /// Gets the unmasked-or-masked compound-group distributions indexed by derived context.
+    /// </summary>
+    public static Av1Distribution[] CompoundGroupIndex =>
+        [new(26607), new(22891), new(18840), new(24594), new(19934), new(22674)];
+
+    /// <summary>
     /// Gets the Simple Translation, OBMC, or Warped motion-mode distributions indexed by block size.
     /// </summary>
     public static Av1Distribution[] MotionMode =>
@@ -2681,6 +2755,12 @@ internal static class Av1DefaultDistributions
     /// <returns>The distributions indexed by transform-size, plane, and end-of-block token context.</returns>
     public static Av1Distribution[][][] GetEndOfBlockExtra(int baseQIndex)
         => Av1Distribution.CreateCopy(EndOfBlockExtra[GetQContext(baseQIndex)]);
+
+    /// <summary>
+    /// Creates the uniform sixteen-symbol distribution used by block sizes that cannot signal a wedge index.
+    /// </summary>
+    private static Av1Distribution CreateUniformWedgeIndexDistribution()
+        => new(2048, 4096, 6144, 8192, 10240, 12288, 14336, 16384, 18432, 20480, 22528, 24576, 26624, 28672, 30720);
 
     /// <summary>
     /// Maps a base quantizer index to one of the four AV1 coefficient-probability initialization bands.

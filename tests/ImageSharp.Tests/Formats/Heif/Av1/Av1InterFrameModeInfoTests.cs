@@ -224,6 +224,87 @@ public class Av1InterFrameModeInfoTests
     }
 
     /// <summary>
+    /// Verifies selectable compound syntax in its normative position before interpolation filtering.
+    /// </summary>
+    /// <param name="compoundTypeValue">The selected compound operation.</param>
+    [Theory]
+    [InlineData((int)Av1CompoundType.DistanceWeighted)]
+    [InlineData((int)Av1CompoundType.Wedge)]
+    [InlineData((int)Av1CompoundType.DifferenceWeighted)]
+    public void ReadInterFrameModeInfoReadsSelectableCompoundBeforeInterpolation(int compoundTypeValue)
+    {
+        Av1CompoundType compoundType = (Av1CompoundType)compoundTypeValue;
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
+        sequenceHeader.EnableMaskedCompound = true;
+        sequenceHeader.EnableDualFilter = false;
+        sequenceHeader.OrderHintInfo.EnableOrderHint = true;
+        sequenceHeader.OrderHintInfo.EnableJointCompound = true;
+        sequenceHeader.OrderHintInfo.OrderHintBits = 3;
+        ObuFrameHeader frameHeader = CreateFrameHeader();
+        frameHeader.ReferenceMode = ObuReferenceMode.ReferenceModeSelect;
+        frameHeader.InterpolationFilter = Av1InterpolationFilter.Switchable;
+        frameHeader.OrderHint = 4;
+        frameHeader.GetReferenceFrameIndices()[0] = 0;
+        frameHeader.GetReferenceFrameIndices()[1] = 1;
+        frameHeader.GetReferenceOrderHints()[0] = 3;
+        frameHeader.GetReferenceOrderHints()[1] = 5;
+
+        using Av1TileReader tileReader = new(Configuration.Default, sequenceHeader, frameHeader);
+        Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, Point.Empty);
+        using Av1SymbolWriter writer = new(Configuration.Default, 12, updateCdf: true);
+        writer.WriteSymbol(false, Av1DefaultDistributions.Skip[0]);
+        writer.WriteSymbol(true, Av1DefaultDistributions.IntraInter[0]);
+        writer.WriteSymbol(true, Av1DefaultDistributions.CompInter[1]);
+        WriteCompoundReferencePair(writer, pairIndex: 1);
+        writer.WriteSymbol(0, Av1DefaultDistributions.InterCompoundMode[0]);
+
+        bool masked = compoundType is Av1CompoundType.Wedge or Av1CompoundType.DifferenceWeighted;
+        writer.WriteSymbol(masked, Av1DefaultDistributions.CompoundGroupIndex[0]);
+        if (masked)
+        {
+            writer.WriteSymbol(
+                compoundType == Av1CompoundType.Wedge ? 0 : 1,
+                Av1DefaultDistributions.CompoundType[(int)Av1BlockSize.Block8x8]);
+
+            if (compoundType == Av1CompoundType.Wedge)
+            {
+                writer.WriteSymbol(13, Av1DefaultDistributions.WedgeIndex[(int)Av1BlockSize.Block8x8]);
+                writer.WriteLiteral(true);
+            }
+            else
+            {
+                writer.WriteLiteral(true);
+            }
+        }
+        else
+        {
+            // Equal reference distances select context three; false chooses distance weighting.
+            writer.WriteSymbol(false, Av1DefaultDistributions.CompoundIndex[3]);
+        }
+
+        writer.WriteSymbol((int)Av1InterpolationFilter.Sharp, Av1DefaultDistributions.SwitchableInterpolation[3]);
+
+        using IMemoryOwner<byte> encoded = writer.Exit();
+        ReadInterFrameModeInfo(tileReader, encoded.Memory, modeInfo);
+
+        Assert.Equal(Av1ReferenceFrameType.Last, modeInfo.ReferenceFrames[0]);
+        Assert.Equal(Av1ReferenceFrameType.Last2, modeInfo.ReferenceFrames[1]);
+        Assert.Equal(masked, modeInfo.CompoundGroupIndex);
+        Assert.Equal(compoundType != Av1CompoundType.DistanceWeighted, modeInfo.CompoundIndex);
+        Assert.Equal(compoundType, modeInfo.CompoundType);
+        Assert.Equal(compoundType == Av1CompoundType.Wedge ? 13 : 0, modeInfo.CompoundWedgeIndex);
+        Assert.Equal(compoundType == Av1CompoundType.Wedge, modeInfo.CompoundWedgeSign);
+        Assert.Equal(
+            compoundType == Av1CompoundType.DifferenceWeighted
+                ? Av1DifferenceWeightedMaskType.Type38Inverse
+                : Av1DifferenceWeightedMaskType.Type38,
+            modeInfo.DifferenceWeightedMaskType);
+
+        Assert.Equal(Av1InterpolationFilter.Sharp, modeInfo.InterpolationFilters[0]);
+        Assert.Equal(Av1InterpolationFilter.Sharp, modeInfo.InterpolationFilters[1]);
+    }
+
+    /// <summary>
     /// Invokes the ref-struct mode parser with one available above neighbor.
     /// </summary>
     /// <param name="tileReader">The tile reader.</param>

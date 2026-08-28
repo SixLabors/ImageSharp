@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -187,6 +188,77 @@ internal static class Av1SymbolContextHelper
         2, 4, 4, 4, 5,
         3, 5, 5, 5, 6
     ];
+
+    /// <summary>
+    /// Gets the context that selects unmasked or masked compound prediction.
+    /// </summary>
+    /// <param name="above">The above block, or <see langword="null"/> at a tile boundary.</param>
+    /// <param name="left">The left block, or <see langword="null"/> at a tile boundary.</param>
+    /// <returns>The context in the inclusive range zero through five.</returns>
+    public static int GetCompoundGroupIndexContext(Av1BlockModeInfo? above, Av1BlockModeInfo? left)
+    {
+        int aboveContext = 0;
+        if (above is not null)
+        {
+            aboveContext = above.ReferenceFrames[1] > Av1ReferenceFrameType.Intra
+                ? above.CompoundGroupIndex ? 1 : 0
+                : above.ReferenceFrames[0] == Av1ReferenceFrameType.Alternate ? 3 : 0;
+        }
+
+        int leftContext = 0;
+        if (left is not null)
+        {
+            leftContext = left.ReferenceFrames[1] > Av1ReferenceFrameType.Intra
+                ? left.CompoundGroupIndex ? 1 : 0
+                : left.ReferenceFrames[0] == Av1ReferenceFrameType.Alternate ? 3 : 0;
+        }
+
+        return Math.Min(5, aboveContext + leftContext);
+    }
+
+    /// <summary>
+    /// Gets the context that selects equal or distance-weighted compound prediction.
+    /// </summary>
+    /// <param name="orderHintInfo">The active order-hint modulo domain.</param>
+    /// <param name="frameHeader">The current frame and retained reference order hints.</param>
+    /// <param name="modeInfo">The compound block whose references are selected.</param>
+    /// <param name="above">The above block, or <see langword="null"/> at a tile boundary.</param>
+    /// <param name="left">The left block, or <see langword="null"/> at a tile boundary.</param>
+    /// <returns>The context in the inclusive range zero through five.</returns>
+    public static int GetCompoundIndexContext(
+        ObuOrderHintInfo orderHintInfo,
+        ObuFrameHeader frameHeader,
+        Av1BlockModeInfo modeInfo,
+        Av1BlockModeInfo? above,
+        Av1BlockModeInfo? left)
+    {
+        ReadOnlySpan<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+        ReadOnlySpan<uint> referenceOrderHints = frameHeader.GetReferenceOrderHints();
+        int primaryCanonicalIndex = (int)modeInfo.ReferenceFrames[0] - (int)Av1ReferenceFrameType.Last;
+        int secondaryCanonicalIndex = (int)modeInfo.ReferenceFrames[1] - (int)Av1ReferenceFrameType.Last;
+        uint primaryOrderHint = referenceOrderHints[(int)referenceFrameIndices[primaryCanonicalIndex]];
+        uint secondaryOrderHint = referenceOrderHints[(int)referenceFrameIndices[secondaryCanonicalIndex]];
+        int forwardDistance = Math.Abs(orderHintInfo.GetRelativeDistance(secondaryOrderHint, frameHeader.OrderHint));
+        int backwardDistance = Math.Abs(orderHintInfo.GetRelativeDistance(frameHeader.OrderHint, primaryOrderHint));
+
+        int aboveContext = 0;
+        if (above is not null)
+        {
+            aboveContext = above.ReferenceFrames[1] > Av1ReferenceFrameType.Intra
+                ? above.CompoundIndex ? 1 : 0
+                : above.ReferenceFrames[0] == Av1ReferenceFrameType.Alternate ? 1 : 0;
+        }
+
+        int leftContext = 0;
+        if (left is not null)
+        {
+            leftContext = left.ReferenceFrames[1] > Av1ReferenceFrameType.Intra
+                ? left.CompoundIndex ? 1 : 0
+                : left.ReferenceFrames[0] == Av1ReferenceFrameType.Alternate ? 1 : 0;
+        }
+
+        return aboveContext + leftContext + (forwardDistance == backwardDistance ? 3 : 0);
+    }
 
     /// <summary>
     /// Reduces a rectangular transform size to the square context used by transform-size distributions.

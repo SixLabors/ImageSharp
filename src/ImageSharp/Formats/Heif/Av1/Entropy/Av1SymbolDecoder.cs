@@ -386,6 +386,73 @@ internal ref struct Av1SymbolDecoder
     }
 
     /// <summary>
+    /// Reads the intra mode blended into a selected inter-intra block.
+    /// </summary>
+    /// <param name="blockSize">The decoded block size that selects the mode distribution.</param>
+    /// <returns>The selected inter-intra mode.</returns>
+    public Av1InterIntraMode ReadInterIntraMode(Av1BlockSize blockSize)
+    {
+        int sizeGroup = blockSize.GetSizeGroup();
+        ref Av1SymbolReader r = ref this.reader;
+        return (Av1InterIntraMode)r.ReadSymbol(this.context.InterIntraMode[sizeGroup]);
+    }
+
+    /// <summary>
+    /// Reads whether a selected inter-intra block uses a wedge mask.
+    /// </summary>
+    /// <param name="blockSize">The decoded block size that selects the wedge flag distribution.</param>
+    /// <returns><see langword="true"/> when wedge blending is selected.</returns>
+    public bool ReadUseInterIntraWedge(Av1BlockSize blockSize)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.context.WedgeInterIntra[(int)blockSize]) != 0;
+    }
+
+    /// <summary>
+    /// Reads a wedge-mask index.
+    /// </summary>
+    /// <param name="blockSize">The decoded block size that selects the wedge-index distribution.</param>
+    /// <returns>The wedge index in the inclusive range zero through fifteen.</returns>
+    public byte ReadWedgeIndex(Av1BlockSize blockSize)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return (byte)r.ReadSymbol(this.context.WedgeIndex[(int)blockSize]);
+    }
+
+    /// <summary>
+    /// Reads whether a compound block uses the masked-compound mode group.
+    /// </summary>
+    /// <param name="context">The derived neighboring compound-group context.</param>
+    /// <returns><see langword="true"/> for masked compound prediction.</returns>
+    public bool ReadCompoundGroupIndex(int context)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.context.CompoundGroupIndex[context]) != 0;
+    }
+
+    /// <summary>
+    /// Reads whether an unmasked compound block uses equal averaging.
+    /// </summary>
+    /// <param name="context">The derived neighboring compound-index context.</param>
+    /// <returns><see langword="true"/> for equal averaging; otherwise, distance-weighted blending.</returns>
+    public bool ReadCompoundIndex(int context)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.context.CompoundIndex[context]) != 0;
+    }
+
+    /// <summary>
+    /// Reads the selected masked-compound type for a wedge-capable block.
+    /// </summary>
+    /// <param name="blockSize">The decoded block size that selects the masked-compound distribution.</param>
+    /// <returns>The selected wedge or difference-weighted compound type.</returns>
+    public Av1CompoundType ReadMaskedCompoundType(Av1BlockSize blockSize)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return (Av1CompoundType)((int)Av1CompoundType.Wedge + r.ReadSymbol(this.context.CompoundType[(int)blockSize]));
+    }
+
+    /// <summary>
     /// Reads the motion model selected for an eligible single-reference inter block.
     /// </summary>
     /// <param name="blockSize">The decoded block size that selects the motion-mode distribution.</param>

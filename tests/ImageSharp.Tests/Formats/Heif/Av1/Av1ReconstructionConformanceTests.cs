@@ -139,6 +139,41 @@ public class Av1ReconstructionConformanceTests
     private const int AverageCompoundFixtureFrameCount = 19;
 
     /// <summary>
+    /// The coverage bit representing distance-weighted compound prediction.
+    /// </summary>
+    private const int DistanceWeightedCompoundCoverage = 1 << 0;
+
+    /// <summary>
+    /// The coverage bit representing a non-inverted wedge compound mask.
+    /// </summary>
+    private const int WedgeCompoundCoverage = 1 << 1;
+
+    /// <summary>
+    /// The coverage bit representing an inverted wedge compound mask.
+    /// </summary>
+    private const int InvertedWedgeCompoundCoverage = 1 << 2;
+
+    /// <summary>
+    /// The coverage bit representing the first difference-weighted mask orientation.
+    /// </summary>
+    private const int DifferenceWeightedCompoundCoverage = 1 << 3;
+
+    /// <summary>
+    /// The coverage bit representing the inverted difference-weighted mask orientation.
+    /// </summary>
+    private const int InvertedDifferenceWeightedCompoundCoverage = 1 << 4;
+
+    /// <summary>
+    /// The coverage bit representing smooth inter-intra prediction.
+    /// </summary>
+    private const int SmoothInterIntraCoverage = 1 << 5;
+
+    /// <summary>
+    /// The coverage bit representing wedge inter-intra prediction.
+    /// </summary>
+    private const int WedgeInterIntraCoverage = 1 << 6;
+
+    /// <summary>
     /// The hardware configurations covering the available vector widths and the scalar color-conversion fallback.
     /// </summary>
     private const HwIntrinsics PresentationConfigurations =
@@ -597,6 +632,263 @@ public class Av1ReconstructionConformanceTests
         Assert.NotEqual(0, compoundBlockCount);
         Assert.True(nativeCompared);
         Assert.Equal(presentationReference is not null, presentationCompared);
+    }
+
+    /// <summary>
+    /// Verifies every selectable compound and inter-intra production branch against pinned native and presentation references.
+    /// </summary>
+    [Fact]
+    public void DecodeRealLibavifSequencesWithSelectableCompoundAndInterIntraMatchesPinnedReferences()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateSelectableCompoundSequencesWithDefaultConfiguration,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Verifies selectable compound and inter-intra reconstruction through a constrained allocator.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodeRealLibavifSequencesWithSelectableCompoundAndInterIntraUseContiguousPlanes()
+    {
+        ValidateSelectableCompoundSequenceWithConstrainedAllocator(
+            TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif,
+            TestImages.Heif.Av1DistanceWeightedCompoundSequenceNativeReference,
+            TestImages.Heif.Av1DistanceWeightedCompoundSequencePresentationReference,
+            DistanceWeightedCompoundCoverage);
+
+        ValidateSelectableCompoundSequenceWithConstrainedAllocator(
+            TestImages.Heif.Av1WedgeCompoundSequenceAvif,
+            TestImages.Heif.Av1WedgeCompoundSequenceNativeReference,
+            TestImages.Heif.Av1WedgeCompoundSequencePresentationReference,
+            WedgeCompoundCoverage | InvertedWedgeCompoundCoverage);
+
+        ValidateSelectableCompoundSequenceWithConstrainedAllocator(
+            TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif,
+            TestImages.Heif.Av1DifferenceWeightedCompoundSequenceNativeReference,
+            TestImages.Heif.Av1DifferenceWeightedCompoundSequencePresentationReference,
+            DifferenceWeightedCompoundCoverage | InvertedDifferenceWeightedCompoundCoverage);
+
+        ValidateSelectableCompoundSequenceWithConstrainedAllocator(
+            TestImages.Heif.Av1InterIntraSequenceAvif,
+            TestImages.Heif.Av1InterIntraSequenceNativeReference,
+            TestImages.Heif.Av1InterIntraSequencePresentationReference,
+            SmoothInterIntraCoverage | WedgeInterIntraCoverage);
+    }
+
+    /// <summary>
+    /// Verifies one complete selectable-compound sequence with a separately tracked constrained allocator.
+    /// </summary>
+    private static void ValidateSelectableCompoundSequenceWithConstrainedAllocator(
+        string imagePath,
+        string nativeReferencePath,
+        string presentationReferencePath,
+        int requiredCoverage)
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        ValidateSelectableCompoundSequence(
+            configuration,
+            imagePath,
+            nativeReferencePath,
+            presentationReferencePath,
+            requiredCoverage,
+            comparePresentation: false);
+
+        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
+        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer));
+    }
+
+    /// <summary>
+    /// Runs every selectable compound fixture with exact final presentation comparison.
+    /// </summary>
+    private static void ValidateSelectableCompoundSequencesWithDefaultConfiguration()
+        => ValidateSelectableCompoundSequences(Configuration.Default, comparePresentation: true);
+
+    /// <summary>
+    /// Validates every selectable compound fixture with the requested decoder configuration.
+    /// </summary>
+    /// <param name="configuration">The decoder configuration.</param>
+    /// <param name="comparePresentation">Whether to compare the final presented frame.</param>
+    private static void ValidateSelectableCompoundSequences(Configuration configuration, bool comparePresentation)
+    {
+        ValidateSelectableCompoundSequence(
+            configuration,
+            TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif,
+            TestImages.Heif.Av1DistanceWeightedCompoundSequenceNativeReference,
+            TestImages.Heif.Av1DistanceWeightedCompoundSequencePresentationReference,
+            DistanceWeightedCompoundCoverage,
+            comparePresentation);
+
+        ValidateSelectableCompoundSequence(
+            configuration,
+            TestImages.Heif.Av1WedgeCompoundSequenceAvif,
+            TestImages.Heif.Av1WedgeCompoundSequenceNativeReference,
+            TestImages.Heif.Av1WedgeCompoundSequencePresentationReference,
+            WedgeCompoundCoverage | InvertedWedgeCompoundCoverage,
+            comparePresentation);
+
+        ValidateSelectableCompoundSequence(
+            configuration,
+            TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif,
+            TestImages.Heif.Av1DifferenceWeightedCompoundSequenceNativeReference,
+            TestImages.Heif.Av1DifferenceWeightedCompoundSequencePresentationReference,
+            DifferenceWeightedCompoundCoverage | InvertedDifferenceWeightedCompoundCoverage,
+            comparePresentation);
+
+        ValidateSelectableCompoundSequence(
+            configuration,
+            TestImages.Heif.Av1InterIntraSequenceAvif,
+            TestImages.Heif.Av1InterIntraSequenceNativeReference,
+            TestImages.Heif.Av1InterIntraSequencePresentationReference,
+            SmoothInterIntraCoverage | WedgeInterIntraCoverage,
+            comparePresentation);
+    }
+
+    /// <summary>
+    /// Decodes one complete retained-reference sequence and compares its final native and presented samples exactly.
+    /// </summary>
+    private static void ValidateSelectableCompoundSequence(
+        Configuration configuration,
+        string imagePath,
+        string nativeReferencePath,
+        string presentationReferencePath,
+        int requiredCoverage,
+        bool comparePresentation)
+    {
+        byte[] fileBytes = TestFile.Create(imagePath).Bytes;
+        byte[] referenceBytes = TestFile.Create(nativeReferencePath).Bytes;
+        ReadOnlySpan<byte> fileHeader =
+            "YUV4MPEG2 W80 H80 F25:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n"u8;
+
+        ReadOnlySpan<byte> frameHeader = "FRAME\n"u8;
+
+        ReadOnlySpan<byte> nativeReference = referenceBytes;
+        Assert.True(nativeReference.StartsWith(fileHeader));
+        nativeReference = nativeReference[fileHeader.Length..];
+        Assert.True(nativeReference.StartsWith(frameHeader));
+        nativeReference = nativeReference[frameHeader.Length..];
+        Assert.Equal(AverageCompoundFixtureSize * AverageCompoundFixtureSize * 3, nativeReference.Length);
+
+        using Image<Rgba32> presentationReference =
+            Image.Load<Rgba32>(TestFile.Create(presentationReferencePath).Bytes);
+
+        HeifSequence sequence = ParseImageSequence(fileBytes);
+        HeifSequenceTrack track = sequence.ColorTrack;
+        int coverage = 0;
+        int visibleFrameCount = 0;
+        bool nativeCompared = false;
+        bool presentationCompared = false;
+
+        using Av1Decoder decoder = new(configuration);
+        for (int sampleIndex = 0; sampleIndex < track.Samples.Length; sampleIndex++)
+        {
+            HeifSequenceSample sample = track.Samples[sampleIndex];
+            Span<byte> sampleData = fileBytes.AsSpan((int)sample.Offset, sample.Length);
+            if (sample.IsHidden)
+            {
+                decoder.DecodeSequenceReference(
+                    sampleData,
+                    track.CicpProfile,
+                    track.Av1CodecConfiguration);
+
+                coverage |= GetSelectableCompoundCoverage(decoder);
+                continue;
+            }
+
+            using ImageFrame<Rgba32> frame = decoder.DecodeSequenceFrame<Rgba32>(
+                sampleData,
+                track.CicpProfile,
+                track.Av1CodecConfiguration);
+
+            Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
+            coverage |= GetSelectableCompoundCoverage(decoder);
+
+            // Every compound branch retains the same row-addressed plane contract under constrained allocators.
+            Assert.Equal(1, frameBuffer.BufferY!.FastMemoryGroup.Count);
+            Assert.Equal(1, frameBuffer.BufferCb!.FastMemoryGroup.Count);
+            Assert.Equal(1, frameBuffer.BufferCr!.FastMemoryGroup.Count);
+
+            if (visibleFrameCount == AverageCompoundFixtureFrameCount - 1)
+            {
+                AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
+                nativeCompared = true;
+
+                if (comparePresentation)
+                {
+                    ImageSimilarityReport<Rgba32, Rgba32> report =
+                        ImageComparer.Exact.CompareImagesOrFrames(
+                            visibleFrameCount,
+                            presentationReference.Frames.RootFrame,
+                            frame);
+
+                    Assert.True(report.IsEmpty, report.ToString());
+                    presentationCompared = true;
+                }
+            }
+
+            visibleFrameCount++;
+        }
+
+        Assert.Equal(AverageCompoundFixtureFrameCount, visibleFrameCount);
+        Assert.Equal(requiredCoverage, coverage & requiredCoverage);
+        Assert.True(nativeCompared);
+        Assert.Equal(comparePresentation, presentationCompared);
+    }
+
+    /// <summary>
+    /// Collects the selectable compound and inter-intra modes retained in one decoded frame.
+    /// </summary>
+    private static int GetSelectableCompoundCoverage(Av1Decoder decoder)
+    {
+        ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
+        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+        int superblockSizeLog2 = sequenceHeader.SuperblockSizeLog2;
+        int superblockColumnCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, superblockSizeLog2) >> superblockSizeLog2;
+        int superblockRowCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameHeight, superblockSizeLog2) >> superblockSizeLog2;
+        int coverage = 0;
+        for (int superblockRow = 0; superblockRow < superblockRowCount; superblockRow++)
+        {
+            for (int superblockColumn = 0; superblockColumn < superblockColumnCount; superblockColumn++)
+            {
+                Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
+                foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
+                {
+                    if (modeInfo.ReferenceFrames[1] == Av1ReferenceFrameType.Intra)
+                    {
+                        coverage |= modeInfo.UseInterIntraWedge ? WedgeInterIntraCoverage : SmoothInterIntraCoverage;
+                        continue;
+                    }
+
+                    if (modeInfo.ReferenceFrames[1] <= Av1ReferenceFrameType.Intra)
+                    {
+                        continue;
+                    }
+
+                    coverage |= modeInfo.CompoundType switch
+                    {
+                        Av1CompoundType.DistanceWeighted => DistanceWeightedCompoundCoverage,
+                        Av1CompoundType.Wedge => modeInfo.CompoundWedgeSign
+                            ? InvertedWedgeCompoundCoverage
+                            : WedgeCompoundCoverage,
+                        Av1CompoundType.DifferenceWeighted => modeInfo.DifferenceWeightedMaskType == Av1DifferenceWeightedMaskType.Type38Inverse
+                            ? InvertedDifferenceWeightedCompoundCoverage
+                            : DifferenceWeightedCompoundCoverage,
+                        _ => 0,
+                    };
+                }
+            }
+        }
+
+        return coverage;
     }
 
     /// <summary>

@@ -142,6 +142,55 @@ public class Av1MotionModeInfoTests
     }
 
     /// <summary>
+    /// Verifies selected smooth and wedge inter-intra syntax before switchable interpolation.
+    /// </summary>
+    /// <param name="useWedge">Whether the block selects an inter-intra wedge.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReadInterFrameModeInfoReadsSelectedInterIntraBeforeInterpolation(bool useWedge)
+    {
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
+        sequenceHeader.EnableInterIntraCompound = true;
+        ObuFrameHeader frameHeader = CreateFrameHeader();
+        ConfigureForcedTranslationalGlobalMotion(frameHeader);
+
+        using Av1TileReader tileReader = new(Configuration.Default, sequenceHeader, frameHeader);
+        Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, Point.Empty);
+        Av1SuperblockInfo superblockInfo = new(tileReader.FrameInfo, Point.Empty);
+        Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, false, Av1PartitionType.None);
+
+        using Av1SymbolWriter writer = new(Configuration.Default, 6, updateCdf: true);
+        writer.WriteSymbol(false, Av1DefaultDistributions.Skip[0]);
+        writer.WriteSymbol(true, Av1DefaultDistributions.InterIntra[Av1BlockSize.Block8x8.GetSizeGroup()]);
+        writer.WriteSymbol(
+            (int)Av1InterIntraMode.Smooth,
+            Av1DefaultDistributions.InterIntraMode[Av1BlockSize.Block8x8.GetSizeGroup()]);
+
+        writer.WriteSymbol(useWedge, Av1DefaultDistributions.WedgeInterIntra[(int)Av1BlockSize.Block8x8]);
+        if (useWedge)
+        {
+            writer.WriteSymbol(13, Av1DefaultDistributions.WedgeIndex[(int)Av1BlockSize.Block8x8]);
+        }
+
+        writer.WriteSymbol((int)Av1InterpolationFilter.Sharp, Av1DefaultDistributions.SwitchableInterpolation[3]);
+
+        using IMemoryOwner<byte> encoded = writer.Exit();
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Memory.Span, 0, updateCdf: true);
+
+        tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, frameHeader));
+
+        Assert.Equal(Av1ReferenceFrameType.Last, modeInfo.ReferenceFrames[0]);
+        Assert.Equal(Av1ReferenceFrameType.Intra, modeInfo.ReferenceFrames[1]);
+        Assert.Equal(Av1InterIntraMode.Smooth, modeInfo.InterIntraMode);
+        Assert.Equal(useWedge, modeInfo.UseInterIntraWedge);
+        Assert.Equal(useWedge ? 13 : 0, modeInfo.InterIntraWedgeIndex);
+        Assert.Equal(Av1MotionMode.SimpleTranslation, modeInfo.MotionMode);
+        Assert.Equal(Av1InterpolationFilter.Sharp, modeInfo.InterpolationFilters[0]);
+        Assert.Equal(Av1InterpolationFilter.Sharp, modeInfo.InterpolationFilters[1]);
+    }
+
+    /// <summary>
     /// Creates the monochrome 64x64 sequence geometry used by direct inter-mode syntax tests.
     /// </summary>
     /// <returns>The initialized sequence header.</returns>

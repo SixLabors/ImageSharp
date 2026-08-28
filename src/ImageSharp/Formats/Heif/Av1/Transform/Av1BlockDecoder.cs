@@ -139,7 +139,10 @@ internal sealed class Av1BlockDecoder : IDisposable
             this.inverseQuantizationOwner = inverseQuantizationOwner;
             this.transformWorkspaceOwner = transformWorkspaceOwner;
             this.predictionScratchOwner = predictionScratchOwner;
-            this.predictionDecoder = new(sequenceHeader, frameHeader, predictionScratchOwner.Memory);
+            this.predictionDecoder = new(
+                sequenceHeader,
+                frameHeader,
+                predictionScratchOwner.Memory[maximumBlockArea..]);
             this.isLoopFilterEnabled = frameHeader.LoopFilterParameters.FilterLevel[0] != 0 ||
                 frameHeader.LoopFilterParameters.FilterLevel[1] != 0;
 
@@ -241,6 +244,9 @@ internal sealed class Av1BlockDecoder : IDisposable
         Av1FrameBuffer<byte>? referenceFrameBuffer = null;
         Av1FrameBuffer<byte>? secondaryReferenceFrameBuffer = null;
         bool isCompound = modeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra;
+        bool isInterIntra = modeInfo.ReferenceFrames[1] == Av1ReferenceFrameType.Intra;
+        int firstCompoundWeight = 8;
+        int secondCompoundWeight = 8;
         if (isInterBlock)
         {
             int canonicalReferenceIndex = (int)modeInfo.ReferenceFrames[0] - (int)Av1ReferenceFrameType.Last;
@@ -270,12 +276,17 @@ internal sealed class Av1BlockDecoder : IDisposable
                     throw new NotSupportedException("AV1 non-translational global prediction is not implemented.");
                 }
 
-                if (modeInfo.CompoundType != Av1CompoundType.Average)
-                {
-                    throw new NotSupportedException($"AV1 {modeInfo.CompoundType} compound prediction is not implemented.");
-                }
-
                 secondaryReferenceFrameBuffer = this.ResolveReferenceFrame(modeInfo.ReferenceFrames[1]);
+                if (modeInfo.CompoundType == Av1CompoundType.DistanceWeighted)
+                {
+                    Av1CompoundDistanceWeights.Derive(
+                        this.sequenceHeader.OrderHintInfo,
+                        this.frameHeader,
+                        modeInfo.ReferenceFrames[0],
+                        modeInfo.ReferenceFrames[1],
+                        out firstCompoundWeight,
+                        out secondCompoundWeight);
+                }
             }
         }
 
@@ -343,6 +354,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                 Span<short> predictionScratch = predictionStorage[maximumBlockArea..];
                 Span<byte> secondPrediction = MemoryMarshal.AsBytes(secondPredictionStorage)[..(predictionWidth * predictionHeight)];
                 Span<ushort> highBitDepthSecondPrediction = MemoryMarshal.Cast<short, ushort>(secondPredictionStorage)[..(predictionWidth * predictionHeight)];
+                Span<byte> compoundMask = MemoryMarshal.AsBytes(predictionScratch)[..(predictionWidth * predictionHeight)];
                 int referenceCount = isCompound ? 2 : 1;
 
                 for (int referenceIndex = 0; referenceIndex < referenceCount; referenceIndex++)
@@ -455,20 +467,241 @@ internal sealed class Av1BlockDecoder : IDisposable
                         Span<ushort> destination = MemoryMarshal.Cast<short, ushort>(
                             highBitDepthBlockReconstructionBuffer[reconstructionStride..]);
 
-                        Av1CompoundInterPredictor.Average(
-                            destination,
+                        switch (modeInfo.CompoundType)
+                        {
+                            case Av1CompoundType.Average:
+                                Av1CompoundInterPredictor.Average(
+                                    destination,
+                                    reconstructionStride,
+                                    highBitDepthSecondPrediction,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight);
+
+                                break;
+                            case Av1CompoundType.DistanceWeighted:
+                                Av1CompoundInterPredictor.DistanceWeighted(
+                                    destination,
+                                    reconstructionStride,
+                                    highBitDepthSecondPrediction,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    firstCompoundWeight,
+                                    secondCompoundWeight);
+
+                                break;
+                            case Av1CompoundType.Wedge:
+                                Av1WedgeMask.Fill(
+                                    compoundMask,
+                                    predictionWidth,
+                                    blockSize,
+                                    modeInfo.CompoundWedgeIndex,
+                                    modeInfo.CompoundWedgeSign,
+                                    subX,
+                                    subY,
+                                    invert: false);
+
+                                Av1CompoundInterPredictor.Blend(
+                                    destination,
+                                    reconstructionStride,
+                                    highBitDepthSecondPrediction,
+                                    predictionWidth,
+                                    compoundMask,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight);
+
+                                break;
+                            default:
+                                Av1CompoundInterPredictor.FillDifferenceWeightedMask(
+                                    compoundMask,
+                                    predictionWidth,
+                                    destination,
+                                    reconstructionStride,
+                                    highBitDepthSecondPrediction,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    this.frameBuffer.BitDepth.GetBitCount(),
+                                    modeInfo.DifferenceWeightedMaskType);
+
+                                Av1CompoundInterPredictor.Blend(
+                                    destination,
+                                    reconstructionStride,
+                                    highBitDepthSecondPrediction,
+                                    predictionWidth,
+                                    compoundMask,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight);
+
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        Span<byte> destination = blockReconstructionBuffer[reconstructionStride..];
+                        switch (modeInfo.CompoundType)
+                        {
+                            case Av1CompoundType.Average:
+                                Av1CompoundInterPredictor.Average(
+                                    destination,
+                                    reconstructionStride,
+                                    secondPrediction,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight);
+
+                                break;
+                            case Av1CompoundType.DistanceWeighted:
+                                Av1CompoundInterPredictor.DistanceWeighted(
+                                    destination,
+                                    reconstructionStride,
+                                    secondPrediction,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    firstCompoundWeight,
+                                    secondCompoundWeight);
+
+                                break;
+                            case Av1CompoundType.Wedge:
+                                Av1WedgeMask.Fill(
+                                    compoundMask,
+                                    predictionWidth,
+                                    blockSize,
+                                    modeInfo.CompoundWedgeIndex,
+                                    modeInfo.CompoundWedgeSign,
+                                    subX,
+                                    subY,
+                                    invert: false);
+
+                                Av1CompoundInterPredictor.Blend(
+                                    destination,
+                                    reconstructionStride,
+                                    secondPrediction,
+                                    predictionWidth,
+                                    compoundMask,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight);
+
+                                break;
+                            default:
+                                Av1CompoundInterPredictor.FillDifferenceWeightedMask(
+                                    compoundMask,
+                                    predictionWidth,
+                                    destination,
+                                    reconstructionStride,
+                                    secondPrediction,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    modeInfo.DifferenceWeightedMaskType);
+
+                                Av1CompoundInterPredictor.Blend(
+                                    destination,
+                                    reconstructionStride,
+                                    secondPrediction,
+                                    predictionWidth,
+                                    compoundMask,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight);
+
+                                break;
+                        }
+                    }
+                }
+                else if (isInterIntra)
+                {
+                    if (highBitDepth)
+                    {
+                        this.predictionDecoder.DecodeInterIntra(
+                            ref partitionInfo,
+                            (Av1Plane)plane,
+                            tileInfo,
+                            highBitDepthBlockReconstructionBuffer,
+                            reconstructionStride,
+                            secondPredictionStorage[..(predictionWidth * predictionHeight)],
+                            predictionWidth,
+                            this.frameBuffer.BitDepth);
+
+                        if (modeInfo.UseInterIntraWedge)
+                        {
+                            Av1WedgeMask.Fill(
+                                compoundMask,
+                                predictionWidth,
+                                blockSize,
+                                modeInfo.InterIntraWedgeIndex,
+                                wedgeSign: false,
+                                subX,
+                                subY,
+                                invert: true);
+                        }
+                        else
+                        {
+                            Av1CompoundInterPredictor.FillInterIntraMask(
+                                compoundMask,
+                                predictionWidth,
+                                predictionWidth,
+                                predictionHeight,
+                                modeInfo.InterIntraMode,
+                                invert: true);
+                        }
+
+                        Av1CompoundInterPredictor.Blend(
+                            MemoryMarshal.Cast<short, ushort>(highBitDepthBlockReconstructionBuffer[reconstructionStride..]),
                             reconstructionStride,
                             highBitDepthSecondPrediction,
+                            predictionWidth,
+                            compoundMask,
                             predictionWidth,
                             predictionWidth,
                             predictionHeight);
                     }
                     else
                     {
-                        Av1CompoundInterPredictor.Average(
+                        this.predictionDecoder.DecodeInterIntra(
+                            ref partitionInfo,
+                            (Av1Plane)plane,
+                            tileInfo,
+                            blockReconstructionBuffer,
+                            reconstructionStride,
+                            secondPrediction,
+                            predictionWidth,
+                            this.frameBuffer.BitDepth);
+
+                        if (modeInfo.UseInterIntraWedge)
+                        {
+                            Av1WedgeMask.Fill(
+                                compoundMask,
+                                predictionWidth,
+                                blockSize,
+                                modeInfo.InterIntraWedgeIndex,
+                                wedgeSign: false,
+                                subX,
+                                subY,
+                                invert: true);
+                        }
+                        else
+                        {
+                            Av1CompoundInterPredictor.FillInterIntraMask(
+                                compoundMask,
+                                predictionWidth,
+                                predictionWidth,
+                                predictionHeight,
+                                modeInfo.InterIntraMode,
+                                invert: true);
+                        }
+
+                        Av1CompoundInterPredictor.Blend(
                             blockReconstructionBuffer[reconstructionStride..],
                             reconstructionStride,
                             secondPrediction,
+                            predictionWidth,
+                            compoundMask,
                             predictionWidth,
                             predictionWidth,
                             predictionHeight);

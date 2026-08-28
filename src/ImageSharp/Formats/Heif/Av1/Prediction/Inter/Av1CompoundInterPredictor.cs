@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 /// <summary>
 /// Combines two AV1 inter predictors with equal-weight rounded averaging.
 /// </summary>
-internal static class Av1CompoundInterPredictor
+internal static partial class Av1CompoundInterPredictor
 {
     /// <summary>
     /// Averages an 8-bit predictor into an existing prediction block.

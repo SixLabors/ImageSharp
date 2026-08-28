@@ -107,6 +107,98 @@ internal class Av1PredictionDecoder
             blockModeInfoRowOffset);
 
     /// <summary>
+    /// Builds the intra predictor for an 8-bit inter-intra plane block in separate caller-owned storage.
+    /// </summary>
+    public void DecodeInterIntra(
+        ref Av1PartitionInfo partitionInfo,
+        Av1Plane plane,
+        Av1TileInfo tileInfo,
+        Span<byte> referenceBuffer,
+        int referenceStride,
+        Span<byte> destination,
+        int destinationStride,
+        Av1BitDepth bitDepth)
+        => this.DecodeInterIntraCore(
+            ref partitionInfo,
+            plane,
+            tileInfo,
+            referenceBuffer,
+            referenceStride,
+            destination,
+            destinationStride,
+            bitDepth);
+
+    /// <summary>
+    /// Builds the intra predictor for a high-bit-depth inter-intra plane block in separate caller-owned storage.
+    /// </summary>
+    public void DecodeInterIntra(
+        ref Av1PartitionInfo partitionInfo,
+        Av1Plane plane,
+        Av1TileInfo tileInfo,
+        Span<short> referenceBuffer,
+        int referenceStride,
+        Span<short> destination,
+        int destinationStride,
+        Av1BitDepth bitDepth)
+        => this.DecodeInterIntraCore(
+            ref partitionInfo,
+            plane,
+            tileInfo,
+            referenceBuffer,
+            referenceStride,
+            destination,
+            destinationStride,
+            bitDepth);
+
+    /// <summary>
+    /// Builds an inter-intra predictor from reconstructed frame neighbors without replacing those references.
+    /// </summary>
+    private void DecodeInterIntraCore<T>(
+        ref Av1PartitionInfo partitionInfo,
+        Av1Plane plane,
+        Av1TileInfo tileInfo,
+        Span<T> referenceBuffer,
+        int referenceStride,
+        Span<T> destination,
+        int destinationStride,
+        Av1BitDepth bitDepth)
+        where T : unmanaged, IBinaryInteger<T>
+    {
+        ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
+        int subX = plane != Av1Plane.Y && colorConfig.SubSamplingX ? 1 : 0;
+        int subY = plane != Av1Plane.Y && colorConfig.SubSamplingY ? 1 : 0;
+        Av1BlockSize planeBlockSize = partitionInfo.ModeInfo.BlockSize.GetSubsampled(subX, subY);
+        Av1TransformSize transformSize = planeBlockSize.GetMaximumTransformSize();
+        Av1PredictionMode mode = partitionInfo.ModeInfo.InterIntraMode switch
+        {
+            Av1InterIntraMode.Vertical => Av1PredictionMode.Vertical,
+            Av1InterIntraMode.Horizontal => Av1PredictionMode.Horizontal,
+            Av1InterIntraMode.Smooth => Av1PredictionMode.Smooth,
+            _ => Av1PredictionMode.DC,
+        };
+
+        Span<T> topNeighbor = referenceBuffer;
+        ReadOnlySpan<T> leftNeighbor = referenceBuffer[(referenceStride - 1)..];
+
+        // Libaom predicts one maximum-transform-sized plane block for inter-intra. Destination storage is separate
+        // because the inter predictor must remain intact until the final mask blend consumes both complete blocks.
+        this.PredictIntraBlock(
+            ref partitionInfo,
+            plane,
+            transformSize,
+            tileInfo,
+            destination,
+            destinationStride,
+            topNeighbor,
+            leftNeighbor,
+            referenceStride,
+            mode,
+            blockModeInfoColumnOffset: 0,
+            blockModeInfoRowOffset: 0,
+            bitDepth);
+    }
+
+    /// <summary>
     /// Reconstructs a 10-bit or 12-bit intra-predicted transform block.
     /// </summary>
     /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>

@@ -43,6 +43,7 @@ The reference builds use `AOM_TARGET_CPU=generic` and disable libyuv. Native rec
 | `libavif-webp-logo-difference-weighted-compound` | Difference-weighted compound prediction with both mask orientations |
 | `libavif-webp-logo-inter-intra` | Smooth and wedge inter-intra prediction |
 | `libavif-webp-logo-obmc` | Above and left overlapping motion compensation through a 19-frame dependent sequence |
+| `libavif-rotating-grid-local-warp` | Multi-sample local affine projection and warped prediction through a two-frame dependent sequence |
 
 The corresponding tests also assert the syntax required by each family before comparing output. This prevents an inactive tool or an incorrectly substituted stream from passing solely because its final pixels happen to match.
 
@@ -118,6 +119,18 @@ Pinned scalar libavif generated the final native and presentation references wit
 ```
 
 The AVIF SHA-256 is `765245F71BD398F7AD87BD83FD5C5C11172981B37A4FABF4F10F65D4E8AEA537`. The retained frame-18 Y4M SHA-256 is `904D1B5B3E7F334CE8D44040F9A7BDCAC1F7773122FF1C5F06A5B4DD31A62A97`, and the frame-18 PNG SHA-256 is `D2CB388C9092EF17C4F0382C0150DD30D6F9D0EE247FF45AB5D7D4D312CEB23C`. Pinned libaom block tracing records more than one hundred actual OBMC blocks across the decoded sequence, including blocks with nonzero horizontal and vertical motion vectors. The production test requires decoded OBMC mode state, decodes every retained-reference dependency, compares the final native Y, U, and V planes exactly, compares the final RGBA presentation exactly through `FeatureTestRunner`, and repeats reconstruction with constrained tracked allocation. Direct production-branch tests separately cover 8/10/12-bit storage and 4:2:0 and 4:2:2 overlap geometry.
+
+## Local warped-motion fixture
+
+The `libavif-rotating-grid-local-warp.avif` fixture was encoded from a deterministic two-frame 256x256 limited-range YUV444 source. The source combines checkerboard, ring, and chroma-gradient detail; its second frame rotates the first by 2.5 degrees with nearest-neighbor sampling and edge clamping. The two-frame source Y4M SHA-256 is `82C1468C95C996B05165590417184F59373D67896F8C7B0EB398582C29C9C7A7`. Pinned scalar libavif and libaom generated the fixture and references with:
+
+```text
+./avifenc -j 1 -s 0 -q 60 -a color:enable-warped-motion=1 -a color:enable-global-motion=0 -a color:enable-obmc=0 rotating-grid-256-two-frame.y4m libavif-rotating-grid-local-warp.avif
+./avifdec -j 1 --index 1 libavif-rotating-grid-local-warp.avif libavif-rotating-grid-local-warp-libaom.y4m
+./avifdec -j 1 --index 1 libavif-rotating-grid-local-warp.avif libavif-rotating-grid-local-warp-libavif.png
+```
+
+The AVIF SHA-256 is `990BAC4AD443005C217B0DA4FCCFA9ADFB3AA147AD06C85F9A655A4433E9E8A7`. The retained frame-1 Y4M SHA-256 is `984B2815CEE0C05FDE26430F150A21B5C993141E25BA1ED4FDE09372DB64AC13`, and the frame-1 PNG SHA-256 is `4490D62FB6679378E92CACA48427359091AD2106BE49FC1A3848F78BE03BEEB1`. Pinned libaom tracing records many actual `WARPED_CAUSAL` blocks. The multi-sample model at mode-information row 6, column 8 derives matrix `[-191565, 599107, 61755, -140, -6909, 62012]` and reduced shear `[-3776, -128, -7360, -3520]` from four retained neighbor samples. The production test requires decoded warped mode state, compares every final native Y, U, and V sample and the final RGBA presentation exactly, runs normal and scalar dispatch through `FeatureTestRunner`, and repeats reconstruction with constrained tracked allocation.
 
 ## Updating fixtures
 

@@ -370,6 +370,70 @@ internal sealed class Av1BlockDecoder : IDisposable
                     bool isScaledReference = activeReferenceFrameBuffer.Width != this.frameHeader.FrameSize.FrameWidth ||
                         activeReferenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight;
 
+                    if (referenceIndex == 0 &&
+                        modeInfo.MotionMode == Av1MotionMode.Warped &&
+                        !modeInfo.WarpedMotionParameters.IsInvalid)
+                    {
+                        int referencePlaneWidth = Av1Math.DivideLog2Ceiling(activeReferenceFrameBuffer.Width, subX);
+                        int referencePlaneHeight = Av1Math.DivideLog2Ceiling(activeReferenceFrameBuffer.Height, subY);
+                        if (highBitDepth)
+                        {
+                            Span<ushort> source = activeReferenceFrameBuffer.GetPaddedPlaneSpan16(
+                                (Av1Plane)plane,
+                                subX,
+                                subY,
+                                out int sourceStride,
+                                out Point sourceOrigin);
+
+                            Span<ushort> destination = MemoryMarshal.Cast<short, ushort>(
+                                highBitDepthBlockReconstructionBuffer[reconstructionStride..]);
+
+                            Av1InterPredictor.PredictWarped(
+                                source,
+                                sourceStride,
+                                sourceOrigin,
+                                referencePlaneWidth,
+                                referencePlaneHeight,
+                                destination,
+                                reconstructionStride,
+                                pixelPosition,
+                                predictionWidth,
+                                predictionHeight,
+                                subX,
+                                subY,
+                                this.frameBuffer.BitDepth.GetBitCount(),
+                                modeInfo.WarpedMotionParameters,
+                                predictionScratch);
+                        }
+                        else
+                        {
+                            Span<byte> source = activeReferenceFrameBuffer.GetPaddedPlaneSpan(
+                                (Av1Plane)plane,
+                                subX,
+                                subY,
+                                out int sourceStride,
+                                out Point sourceOrigin);
+
+                            Av1InterPredictor.PredictWarped(
+                                source,
+                                sourceStride,
+                                sourceOrigin,
+                                referencePlaneWidth,
+                                referencePlaneHeight,
+                                blockReconstructionBuffer[reconstructionStride..],
+                                reconstructionStride,
+                                pixelPosition,
+                                predictionWidth,
+                                predictionHeight,
+                                subX,
+                                subY,
+                                modeInfo.WarpedMotionParameters,
+                                predictionScratch);
+                        }
+
+                        continue;
+                    }
+
                     if (isScaledReference)
                     {
                         Span<byte> scaledDestination = default;

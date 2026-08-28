@@ -194,6 +194,11 @@ public class Av1ReconstructionConformanceTests
     private const int ObmcCoverage = 1 << 7;
 
     /// <summary>
+    /// The coverage bit representing local warped-motion prediction.
+    /// </summary>
+    private const int LocalWarpCoverage = 1 << 8;
+
+    /// <summary>
     /// The hardware configurations covering the available vector widths and the scalar color-conversion fallback.
     /// </summary>
     private const HwIntrinsics PresentationConfigurations =
@@ -751,6 +756,47 @@ public class Av1ReconstructionConformanceTests
             ObmcCoverage);
 
     /// <summary>
+    /// Verifies production local warped-motion reconstruction against pinned native and presentation references.
+    /// </summary>
+    [Fact]
+    public void DecodeRealLibavifLocalWarpSequenceMatchesPinnedReferences()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateLocalWarpSequenceWithDefaultConfiguration,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Verifies production local warped-motion reconstruction through a constrained allocator.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodeRealLibavifLocalWarpSequenceUsesContiguousPlanes()
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        ValidateInterPredictionSequence(
+            configuration,
+            TestImages.Heif.Av1LocalWarpSequenceAvif,
+            TestImages.Heif.Av1LocalWarpSequenceNativeReference,
+            TestImages.Heif.Av1LocalWarpSequencePresentationReference,
+            LocalWarpCoverage,
+            comparePresentation: false,
+            fixtureSize: 256,
+            visibleFrameCount: 2);
+
+        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
+        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.AllocationId == allocation.AllocationId));
+    }
+
+    /// <summary>
     /// Verifies one complete inter-prediction sequence with a separately tracked constrained allocator.
     /// </summary>
     private static void ValidateInterPredictionSequenceWithConstrainedAllocator(
@@ -801,6 +847,20 @@ public class Av1ReconstructionConformanceTests
             comparePresentation: true);
 
     /// <summary>
+    /// Runs the local warped-motion sequence with exact final presentation comparison.
+    /// </summary>
+    private static void ValidateLocalWarpSequenceWithDefaultConfiguration()
+        => ValidateInterPredictionSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1LocalWarpSequenceAvif,
+            TestImages.Heif.Av1LocalWarpSequenceNativeReference,
+            TestImages.Heif.Av1LocalWarpSequencePresentationReference,
+            LocalWarpCoverage,
+            comparePresentation: true,
+            fixtureSize: 256,
+            visibleFrameCount: 2);
+
+    /// <summary>
     /// Validates every selectable compound fixture with the requested decoder configuration.
     /// </summary>
     /// <param name="configuration">The decoder configuration.</param>
@@ -849,12 +909,16 @@ public class Av1ReconstructionConformanceTests
         string nativeReferencePath,
         string presentationReferencePath,
         int requiredCoverage,
-        bool comparePresentation)
+        bool comparePresentation,
+        int fixtureSize = AverageCompoundFixtureSize,
+        int visibleFrameCount = AverageCompoundFixtureFrameCount)
     {
         byte[] fileBytes = TestFile.Create(imagePath).Bytes;
         byte[] referenceBytes = TestFile.Create(nativeReferencePath).Bytes;
-        ReadOnlySpan<byte> fileHeader =
-            "YUV4MPEG2 W80 H80 F25:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n"u8;
+        string fileHeaderText =
+            $"YUV4MPEG2 W{fixtureSize} H{fixtureSize} F25:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n";
+
+        ReadOnlySpan<byte> fileHeader = Encoding.ASCII.GetBytes(fileHeaderText);
 
         ReadOnlySpan<byte> frameHeader = "FRAME\n"u8;
 
@@ -863,7 +927,7 @@ public class Av1ReconstructionConformanceTests
         nativeReference = nativeReference[fileHeader.Length..];
         Assert.True(nativeReference.StartsWith(frameHeader));
         nativeReference = nativeReference[frameHeader.Length..];
-        Assert.Equal(AverageCompoundFixtureSize * AverageCompoundFixtureSize * 3, nativeReference.Length);
+        Assert.Equal(fixtureSize * fixtureSize * 3, nativeReference.Length);
 
         using Image<Rgba32> presentationReference =
             Image.Load<Rgba32>(TestFile.Create(presentationReferencePath).Bytes);
@@ -871,7 +935,7 @@ public class Av1ReconstructionConformanceTests
         HeifSequence sequence = ParseImageSequence(fileBytes);
         HeifSequenceTrack track = sequence.ColorTrack;
         int coverage = 0;
-        int visibleFrameCount = 0;
+        int decodedVisibleFrameCount = 0;
         bool nativeCompared = false;
         bool presentationCompared = false;
 
@@ -904,7 +968,7 @@ public class Av1ReconstructionConformanceTests
             Assert.Equal(1, frameBuffer.BufferCb!.FastMemoryGroup.Count);
             Assert.Equal(1, frameBuffer.BufferCr!.FastMemoryGroup.Count);
 
-            if (visibleFrameCount == AverageCompoundFixtureFrameCount - 1)
+            if (decodedVisibleFrameCount == visibleFrameCount - 1)
             {
                 AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
                 nativeCompared = true;
@@ -913,7 +977,7 @@ public class Av1ReconstructionConformanceTests
                 {
                     ImageSimilarityReport<Rgba32, Rgba32> report =
                         ImageComparer.Exact.CompareImagesOrFrames(
-                            visibleFrameCount,
+                            decodedVisibleFrameCount,
                             presentationReference.Frames.RootFrame,
                             frame);
 
@@ -922,10 +986,10 @@ public class Av1ReconstructionConformanceTests
                 }
             }
 
-            visibleFrameCount++;
+            decodedVisibleFrameCount++;
         }
 
-        Assert.Equal(AverageCompoundFixtureFrameCount, visibleFrameCount);
+        Assert.Equal(visibleFrameCount, decodedVisibleFrameCount);
         Assert.Equal(requiredCoverage, coverage & requiredCoverage);
         Assert.True(nativeCompared);
         Assert.Equal(comparePresentation, presentationCompared);
@@ -952,6 +1016,11 @@ public class Av1ReconstructionConformanceTests
                     if (modeInfo.MotionMode == Av1MotionMode.Obmc)
                     {
                         coverage |= ObmcCoverage;
+                    }
+
+                    if (modeInfo.MotionMode == Av1MotionMode.Warped)
+                    {
+                        coverage |= LocalWarpCoverage;
                     }
 
                     if (modeInfo.ReferenceFrames[1] == Av1ReferenceFrameType.Intra)

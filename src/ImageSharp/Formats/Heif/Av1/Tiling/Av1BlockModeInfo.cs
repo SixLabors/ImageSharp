@@ -157,6 +157,11 @@ internal class Av1BlockModeInfo
     public Av1MotionMode MotionMode { get; set; }
 
     /// <summary>
+    /// Gets or sets the affine model derived for local warped prediction.
+    /// </summary>
+    public Av1GlobalMotionParameters WarpedMotionParameters { get; set; }
+
+    /// <summary>
     /// Gets or sets the intra predictor blended with a single-reference inter predictor.
     /// </summary>
     public Av1InterIntraMode InterIntraMode { get; set; }

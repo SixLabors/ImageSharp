@@ -2076,7 +2076,12 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     modeInfo.MotionMode = reader.ReadMotionMode(modeInfo.BlockSize, allowWarpedMotion);
                     if (modeInfo.MotionMode == Av1MotionMode.Warped)
                     {
-                        throw new NotSupportedException($"AV1 {modeInfo.MotionMode} block prediction is not implemented.");
+                        modeInfo.WarpedMotionParameters = Av1GlobalMotionParameters.DeriveLocalProjection(
+                            candidates.SourcePoints,
+                            candidates.ReferencePoints,
+                            modeInfo.BlockSize,
+                            motionVectors[0],
+                            new Point(partitionInfo.ColumnIndex, partitionInfo.RowIndex));
                     }
                 }
             }

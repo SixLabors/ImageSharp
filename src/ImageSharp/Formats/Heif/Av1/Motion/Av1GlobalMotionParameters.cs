@@ -38,6 +38,21 @@ internal struct Av1GlobalMotionParameters
     private const int ReciprocalIndexBits = 8;
 
     /// <summary>
+    /// The largest difference between a retained neighbor motion vector and the current block motion vector.
+    /// </summary>
+    private const int LocalProjectionMotionVectorLimit = 256;
+
+    /// <summary>
+    /// The maximum magnitude of a non-diagonal affine coefficient relative to the identity matrix.
+    /// </summary>
+    private const int NonDiagonalAffineClamp = 1 << (ModelPrecisionBits - 3);
+
+    /// <summary>
+    /// The exclusive upper magnitude of either translation coefficient.
+    /// </summary>
+    private const int TranslationClamp = 128 << ModelPrecisionBits;
+
+    /// <summary>
     /// The six parameters ordered as horizontal translation, vertical translation, and the four affine coefficients.
     /// </summary>
     private InlineArray6<int> matrix;
@@ -187,6 +202,151 @@ internal struct Av1GlobalMotionParameters
     }
 
     /// <summary>
+    /// Derives the local affine model for a warped inter block from its spatial neighbor samples.
+    /// </summary>
+    /// <param name="sourcePoints">The neighbor-center positions relative to the current block in one-eighth-sample units.</param>
+    /// <param name="referencePoints">The corresponding positions in the selected reference frame.</param>
+    /// <param name="blockSize">The current coding block size.</param>
+    /// <param name="motionVector">The current block motion vector in one-eighth-sample units.</param>
+    /// <param name="modeInfoPosition">The current block origin in 4x4 mode-information units.</param>
+    /// <returns>The derived affine model, marked invalid when AV1's projection or shear constraints cannot be satisfied.</returns>
+    public static Av1GlobalMotionParameters DeriveLocalProjection(
+        ReadOnlySpan<Point> sourcePoints,
+        ReadOnlySpan<Point> referencePoints,
+        Av1BlockSize blockSize,
+        Av1MotionVector motionVector,
+        Point modeInfoPosition)
+    {
+        Av1GlobalMotionParameters result = Identity;
+        result.Type = Av1GlobalMotionType.Affine;
+
+        int blockWidth = blockSize.GetWidth();
+        int blockHeight = blockSize.GetHeight();
+        int sampleThreshold = Math.Clamp(Math.Max(blockWidth, blockHeight), 16, 112);
+        bool hasSelectedSample = sourcePoints.Length == 1;
+        if (sourcePoints.Length > 1)
+        {
+            for (int index = 0; index < sourcePoints.Length; index++)
+            {
+                int difference = Math.Abs(referencePoints[index].X - sourcePoints[index].X - motionVector.Column) +
+                    Math.Abs(referencePoints[index].Y - sourcePoints[index].Y - motionVector.Row);
+
+                hasSelectedSample |= difference <= sampleThreshold;
+            }
+        }
+
+        int sourceCenterX = ((blockWidth >> 1) - 1) << 3;
+        int sourceCenterY = ((blockHeight >> 1) - 1) << 3;
+        int referenceCenterX = sourceCenterX + motionVector.Column;
+        int referenceCenterY = sourceCenterY + motionVector.Row;
+        int a00 = 0;
+        int a01 = 0;
+        int a11 = 0;
+        int bx0 = 0;
+        int bx1 = 0;
+        int by0 = 0;
+        int by1 = 0;
+
+        for (int index = 0; index < sourcePoints.Length; index++)
+        {
+            int motionVectorDifference = Math.Abs(referencePoints[index].X - sourcePoints[index].X - motionVector.Column) +
+                Math.Abs(referencePoints[index].Y - sourcePoints[index].Y - motionVector.Row);
+
+            // av1_selectSamples retains the original first sample when every candidate exceeds the threshold. Keeping
+            // that rule here is important because the selected Warped syntax still requires a deterministic model.
+            if (sourcePoints.Length > 1 && motionVectorDifference > sampleThreshold && (hasSelectedSample || index != 0))
+            {
+                continue;
+            }
+
+            int sourceX = sourcePoints[index].X - sourceCenterX;
+            int sourceY = sourcePoints[index].Y - sourceCenterY;
+            int referenceX = referencePoints[index].X - referenceCenterX;
+            int referenceY = referencePoints[index].Y - referenceCenterY;
+            if (Math.Abs(sourceX - referenceX) >= LocalProjectionMotionVectorLimit ||
+                Math.Abs(sourceY - referenceY) >= LocalProjectionMotionVectorLimit)
+            {
+                continue;
+            }
+
+            // These biased products are the normative reduced-precision P'P, P'q, and P'r matrices. Computing them
+            // directly preserves libaom's integer least-squares rounding instead of introducing floating-point drift.
+            a00 += LeastSquaresSquare(sourceX);
+            a01 += LeastSquaresProduct1(sourceX, sourceY);
+            a11 += LeastSquaresSquare(sourceY);
+            bx0 += LeastSquaresProduct2(sourceX, referenceX);
+            bx1 += LeastSquaresProduct1(sourceY, referenceX);
+            by0 += LeastSquaresProduct1(sourceX, referenceY);
+            by1 += LeastSquaresProduct2(sourceY, referenceY);
+        }
+
+        long determinant = ((long)a00 * a11) - ((long)a01 * a01);
+        if (determinant == 0)
+        {
+            result.IsInvalid = true;
+            return result;
+        }
+
+        int inverseDeterminant = ResolveDivisor((ulong)Math.Abs(determinant), out int determinantShift) *
+            (determinant < 0 ? -1 : 1);
+
+        determinantShift -= ModelPrecisionBits;
+        if (determinantShift < 0)
+        {
+            inverseDeterminant <<= -determinantShift;
+            determinantShift = 0;
+        }
+
+        long projectionX0 = ((long)a11 * bx0) - ((long)a01 * bx1);
+        long projectionX1 = -((long)a01 * bx0) + ((long)a00 * bx1);
+        long projectionY0 = ((long)a11 * by0) - ((long)a01 * by1);
+        long projectionY1 = -((long)a01 * by0) + ((long)a00 * by1);
+
+        result.matrix[2] = ResolveProjectionCoefficient(
+            projectionX0,
+            inverseDeterminant,
+            determinantShift,
+            ModelScale - NonDiagonalAffineClamp + 1,
+            ModelScale + NonDiagonalAffineClamp - 1);
+
+        result.matrix[3] = ResolveProjectionCoefficient(
+            projectionX1,
+            inverseDeterminant,
+            determinantShift,
+            -NonDiagonalAffineClamp + 1,
+            NonDiagonalAffineClamp - 1);
+
+        result.matrix[4] = ResolveProjectionCoefficient(
+            projectionY0,
+            inverseDeterminant,
+            determinantShift,
+            -NonDiagonalAffineClamp + 1,
+            NonDiagonalAffineClamp - 1);
+
+        result.matrix[5] = ResolveProjectionCoefficient(
+            projectionY1,
+            inverseDeterminant,
+            determinantShift,
+            ModelScale - NonDiagonalAffineClamp + 1,
+            ModelScale + NonDiagonalAffineClamp - 1);
+
+        int absoluteCenterX = (modeInfoPosition.X << Av1Constants.ModeInfoSizeLog2) + (blockWidth >> 1) - 1;
+        int absoluteCenterY = (modeInfoPosition.Y << Av1Constants.ModeInfoSizeLog2) + (blockHeight >> 1) - 1;
+        int horizontalTranslation = (motionVector.Column << (ModelPrecisionBits - 3)) -
+            (absoluteCenterX * (result.matrix[2] - ModelScale)) -
+            (absoluteCenterY * result.matrix[3]);
+
+        int verticalTranslation = (motionVector.Row << (ModelPrecisionBits - 3)) -
+            (absoluteCenterX * result.matrix[4]) -
+            (absoluteCenterY * (result.matrix[5] - ModelScale));
+
+        result.matrix[0] = Math.Clamp(horizontalTranslation, -TranslationClamp, TranslationClamp - 1);
+        result.matrix[1] = Math.Clamp(verticalTranslation, -TranslationClamp, TranslationClamp - 1);
+        result.UpdateShearParameters();
+        return result;
+    }
+
+    /// <summary>
     /// Derives the reduced shear parameters and records whether the complete affine model is valid.
     /// </summary>
     public void UpdateShearParameters()
@@ -258,6 +418,52 @@ internal struct Av1GlobalMotionParameters
         shift += ReciprocalPrecisionBits;
         return ReciprocalTable[reciprocalIndex];
     }
+
+    /// <summary>
+    /// Resolves a positive 64-bit divisor into AV1's fixed-point reciprocal representation.
+    /// </summary>
+    /// <param name="divisor">The positive divisor.</param>
+    /// <param name="shift">Receives the reciprocal's binary scale.</param>
+    /// <returns>The fixed-point reciprocal multiplier.</returns>
+    private static int ResolveDivisor(ulong divisor, out int shift)
+    {
+        shift = BitOperations.Log2(divisor);
+        ulong remainder = divisor - (1UL << shift);
+        int reciprocalIndex = shift > ReciprocalIndexBits
+            ? (int)((remainder + (1UL << (shift - ReciprocalIndexBits - 1))) >> (shift - ReciprocalIndexBits))
+            : (int)(remainder << (ReciprocalIndexBits - shift));
+
+        shift += ReciprocalPrecisionBits;
+        return ReciprocalTable[reciprocalIndex];
+    }
+
+    /// <summary>
+    /// Resolves one adjugate numerator into a clamped affine matrix coefficient.
+    /// </summary>
+    private static int ResolveProjectionCoefficient(long numerator, int inverseDeterminant, int shift, int minimum, int maximum)
+    {
+        long product = numerator * inverseDeterminant;
+        long value = shift > 0 ? RoundPowerOf2Signed(product, shift) : product << -shift;
+        return (int)Math.Clamp(value, minimum, maximum);
+    }
+
+    /// <summary>
+    /// Computes one reduced-precision diagonal element of the local projection matrix.
+    /// </summary>
+    private static int LeastSquaresSquare(int value)
+        => ((value * value * 4) + (value * 32) + 128) >> 4;
+
+    /// <summary>
+    /// Computes one reduced-precision off-diagonal product of the local projection matrix.
+    /// </summary>
+    private static int LeastSquaresProduct1(int first, int second)
+        => ((first * second * 4) + ((first + second) * 16) + 64) >> 4;
+
+    /// <summary>
+    /// Computes one reduced-precision source-to-reference product of the local projection matrix.
+    /// </summary>
+    private static int LeastSquaresProduct2(int first, int second)
+        => ((first * second * 4) + ((first + second) * 16) + 128) >> 4;
 
     /// <summary>
     /// Divides a nonnegative integer by a power of two with nearest-integer rounding.

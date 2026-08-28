@@ -82,4 +82,34 @@ public class Av1GlobalMotionParametersTests
 
         Assert.Equal(new Av1MotionVector(expectedRow, expectedColumn), actual);
     }
+
+    /// <summary>
+    /// Verifies local least-squares projection against a multi-sample model traced from pinned libaom.
+    /// </summary>
+    [Fact]
+    public void LocalProjectionMatchesPinnedLibaomMultiSampleModel()
+    {
+        Point[] sourcePoints = [new(24, -40), new(-40, 24), new(-24, -24), new(72, -24)];
+        Point[] referencePoints = [new(-16, -8), new(-72, 64), new(-64, 16), new(32, 8)];
+
+        Av1GlobalMotionParameters parameters = Av1GlobalMotionParameters.DeriveLocalProjection(
+            sourcePoints,
+            referencePoints,
+            Av1BlockSize.Block8x8,
+            new Av1MotionVector(32, -40),
+            new Point(8, 6));
+
+        Assert.Equal(Av1GlobalMotionType.Affine, parameters.Type);
+        Assert.False(parameters.IsInvalid);
+        Assert.Equal(-191565, parameters[0]);
+        Assert.Equal(599107, parameters[1]);
+        Assert.Equal(61755, parameters[2]);
+        Assert.Equal(-140, parameters[3]);
+        Assert.Equal(-6909, parameters[4]);
+        Assert.Equal(62012, parameters[5]);
+        Assert.Equal(-3776, parameters.Alpha);
+        Assert.Equal(-128, parameters.Beta);
+        Assert.Equal(-7360, parameters.Gamma);
+        Assert.Equal(-3520, parameters.Delta);
+    }
 }

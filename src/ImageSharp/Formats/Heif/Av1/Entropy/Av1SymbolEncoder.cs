@@ -24,7 +24,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// The tile-adaptive integer displacement-vector context.
     /// </summary>
-    private readonly Av1DisplacementVectorContext displacementVector = new();
+    private readonly Av1MotionVectorContext displacementVector = new();
 
     /// <summary>
     /// The tile-adaptive partition-type distributions.

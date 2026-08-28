@@ -12,11 +12,42 @@ using SixLabors.ImageSharp.Tests.Memory;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 /// <summary>
-/// Verifies AV1 frame and block-decoder allocation ownership during constructor rollback.
+/// Verifies AV1 frame-plane allocation contracts and constructor rollback ownership.
 /// </summary>
 [Trait("Format", "Avif")]
 public class Av1FrameBufferTests
 {
+    /// <summary>
+    /// Verifies that padded frame planes remain contiguous when the allocator would otherwise split the buffer.
+    /// </summary>
+    [Fact]
+    public void ConstructorRequestsContiguousPaddedPlanes()
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 10_000 };
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        ObuSequenceHeader sequenceHeader = new()
+        {
+            MaxFrameWidth = 64,
+            MaxFrameHeight = 64,
+            ColorConfig = new ObuColorConfig
+            {
+                IsMonochrome = true,
+                BitDepth = Av1BitDepth.EightBit
+            }
+        };
+
+        using Av1FrameBuffer<byte> frameBuffer = new(
+            configuration,
+            sequenceHeader,
+            Av1ColorFormat.Yuv400,
+            false);
+
+        MemoryGroup<byte> memoryGroup = frameBuffer.BufferY!.FastMemoryGroup;
+        Assert.Equal(1, memoryGroup.Count);
+        Assert.True(memoryGroup.TotalLength > allocator.BufferCapacityInBytes);
+    }
+
     /// <summary>
     /// Verifies that a failure while renting the final chroma plane releases every previously rented plane.
     /// </summary>

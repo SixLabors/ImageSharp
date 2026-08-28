@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// <summary>
 /// Owns the mode, motion, segmentation, transform, coefficient, quantizer, and filter state decoded for one AV1 frame.
 /// </summary>
-internal partial class Av1FrameInfo
+internal partial class Av1FrameInfo : IDisposable
 {
     /// <summary>
     /// The coefficient slots reserved for one 4x4 mode-information unit: one end index followed by 16 coefficients.

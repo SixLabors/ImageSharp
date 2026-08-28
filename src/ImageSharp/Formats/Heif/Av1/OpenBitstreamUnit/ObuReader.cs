@@ -539,11 +539,16 @@ internal class ObuReader
     /// <param name="reader">The reader to align.</param>
     private static void AlignToByteBoundary(ref Av1BitStreamReader reader)
     {
+        int alignmentStartPosition = reader.BitPosition;
         while ((reader.BitPosition & 0x7) > 0)
         {
+            int paddingBitPosition = reader.BitPosition;
             if (reader.ReadBoolean())
             {
-                throw new ImageFormatException("Incorrect byte alignment padding bits.");
+                string message =
+                    $"Incorrect byte alignment padding bit at offset {paddingBitPosition}; alignment started at offset {alignmentStartPosition}.";
+
+                throw new ImageFormatException(message);
             }
         }
     }

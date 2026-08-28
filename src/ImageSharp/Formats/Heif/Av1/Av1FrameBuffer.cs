@@ -16,9 +16,11 @@ internal class Av1FrameBuffer<T> : IDisposable
     where T : unmanaged
 {
     /// <summary>
-    /// The number of border samples reserved for intra prediction and in-loop filtering.
+    /// The number of luma border samples reserved for prediction and in-loop filtering.
     /// </summary>
-    private const int DecoderPaddingValue = 72;
+    // A 128-sample UMV block plus filter support reaches 135 luma samples beyond an edge. The 144-sample value also
+    // leaves 72 samples on a horizontally subsampled plane, exceeding its corresponding 71-sample maximum.
+    private const int DecoderPaddingValue = 144;
 
     /// <summary>
     /// The allocation-mask bit for the luma plane.
@@ -108,21 +110,24 @@ internal class Av1FrameBuffer<T> : IDisposable
         this.BufferY = null;
         this.BufferCb = null;
         this.BufferCr = null;
+
+        // Block reconstruction and the SIMD predictors address decoder padding through one span plus a constant row
+        // stride. Establish that invariant at the plane owner instead of copying fragmented groups in every hot path.
         try
         {
             if ((bufferEnableMask & PictureBufferYFlag) != 0)
             {
-                this.BufferY = configuration.MemoryAllocator.Allocate2D<T>(strideY * this.storageElementsPerSample, heightY);
+                this.BufferY = configuration.MemoryAllocator.Allocate2D<T>(strideY * this.storageElementsPerSample, heightY, preferContiguosImageBuffers: true);
             }
 
             if ((bufferEnableMask & PictureBufferCbFlag) != 0)
             {
-                this.BufferCb = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * this.storageElementsPerSample, heightChroma);
+                this.BufferCb = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * this.storageElementsPerSample, heightChroma, preferContiguosImageBuffers: true);
             }
 
             if ((bufferEnableMask & PictureBufferCrFlag) != 0)
             {
-                this.BufferCr = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * this.storageElementsPerSample, heightChroma);
+                this.BufferCr = configuration.MemoryAllocator.Allocate2D<T>(strideChroma * this.storageElementsPerSample, heightChroma, preferContiguosImageBuffers: true);
             }
         }
         catch
@@ -368,6 +373,44 @@ internal class Av1FrameBuffer<T> : IDisposable
         Span<ushort> samples = MemoryMarshal.Cast<T, ushort>(buffer.DangerousGetRowSpan(originY + row));
         return samples.Slice(originX, width);
     }
+
+    /// <summary>
+    /// Gets the complete padded storage allocation for one plane.
+    /// </summary>
+    /// <param name="plane">The luma or chroma plane.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    /// <param name="stride">Receives the number of logical samples between adjacent rows.</param>
+    /// <param name="origin">Receives the visible plane origin within the padded allocation.</param>
+    /// <returns>The complete plane allocation, including decoder padding.</returns>
+    public Span<T> GetPaddedPlaneSpan(Av1Plane plane, int subX, int subY, out int stride, out Point origin)
+    {
+        this.GetPlaneLayout(
+            plane,
+            subX,
+            subY,
+            out Buffer2D<T> buffer,
+            out int originX,
+            out int originY,
+            out _,
+            out _);
+
+        stride = buffer.Width / this.storageElementsPerSample;
+        origin = new(originX, originY);
+        return buffer.DangerousGetSingleSpan();
+    }
+
+    /// <summary>
+    /// Gets the complete padded storage allocation for one native 16-bit plane.
+    /// </summary>
+    /// <param name="plane">The luma or chroma plane.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    /// <param name="stride">Receives the number of logical samples between adjacent rows.</param>
+    /// <param name="origin">Receives the visible plane origin within the padded allocation.</param>
+    /// <returns>The complete plane allocation, including decoder padding.</returns>
+    public Span<ushort> GetPaddedPlaneSpan16(Av1Plane plane, int subX, int subY, out int stride, out Point origin)
+        => MemoryMarshal.Cast<T, ushort>(this.GetPaddedPlaneSpan(plane, subX, subY, out stride, out origin));
 
     /// <summary>
     /// Resolves a plane allocation and its visible padded layout.

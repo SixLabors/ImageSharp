@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.SuperResolution;
+using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -38,6 +39,11 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     private readonly Av1FrameBuffer<byte> frameBuffer;
 
     /// <summary>
+    /// The retained reconstructed frames addressable by inter prediction.
+    /// </summary>
+    private readonly Av1ReferenceFrameStore? referenceFrames;
+
+    /// <summary>
     /// The coefficient inverse-quantization stage shared across superblocks.
     /// </summary>
     private readonly Av1InverseQuantizer inverseQuantizer;
@@ -64,16 +70,31 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     /// <param name="frameHeader">The parsed AV1 frame header.</param>
     /// <param name="frameInfo">The parsed superblock and block-mode information.</param>
     /// <param name="frameBuffer">The destination planar sample buffers.</param>
-    public Av1FrameDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Av1FrameInfo frameInfo, Av1FrameBuffer<byte> frameBuffer)
+    /// <param name="referenceFrames">
+    /// The retained reconstructed frames selected by inter blocks, or <see langword="null"/> for intra-only reconstruction.
+    /// </param>
+    public Av1FrameDecoder(
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        Av1FrameInfo frameInfo,
+        Av1FrameBuffer<byte> frameBuffer,
+        Av1ReferenceFrameStore? referenceFrames = null)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
         this.frameInfo = frameInfo;
         this.frameBuffer = frameBuffer;
+        this.referenceFrames = referenceFrames;
         this.inverseQuantizer = new(sequenceHeader, frameHeader);
         this.deQuants = new(sequenceHeader, frameHeader);
         this.loopFilterContext = new(sequenceHeader);
-        this.blockDecoder = new(this.sequenceHeader, this.frameHeader, this.frameBuffer, this.loopFilterContext, this.inverseQuantizer);
+        this.blockDecoder = new(
+            this.sequenceHeader,
+            this.frameHeader,
+            this.frameBuffer,
+            this.loopFilterContext,
+            this.inverseQuantizer,
+            this.referenceFrames);
     }
 
     /// <summary>

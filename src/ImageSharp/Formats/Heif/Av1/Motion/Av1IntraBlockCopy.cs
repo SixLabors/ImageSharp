@@ -77,7 +77,7 @@ internal static class Av1IntraBlockCopy
             ScanColumn(ref partitionInfo, -1, maximumColumnOffset, candidates, weights, ref candidateCount, ref processedColumns);
         }
 
-        if (HasTopRight(ref partitionInfo, superblockModeInfoSize))
+        if (partitionInfo.HasTopRight(superblockModeInfoSize))
         {
             AddBlock(ref partitionInfo, -1, width, tileInfo, candidates, weights, ref candidateCount);
         }
@@ -395,57 +395,5 @@ internal static class Av1IntraBlockCopy
 
             length = lastSwap;
         }
-    }
-
-    /// <summary>
-    /// Determines whether the current partition is parsed after the block at its top-right search position.
-    /// </summary>
-    private static bool HasTopRight(ref Av1PartitionInfo partitionInfo, int superblockModeInfoSize)
-    {
-        int width = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
-        int height = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
-        int blockSize = Math.Max(width, height);
-        if (blockSize > 16)
-        {
-            return false;
-        }
-
-        int row = partitionInfo.RowIndex & (superblockModeInfoSize - 1);
-        int column = partitionInfo.ColumnIndex & (superblockModeInfoSize - 1);
-        bool hasTopRight = !((row & blockSize) != 0 && (column & blockSize) != 0);
-        int traversalSize = blockSize;
-        while (traversalSize < superblockModeInfoSize)
-        {
-            if ((column & traversalSize) == 0)
-            {
-                break;
-            }
-
-            if ((column & (traversalSize << 1)) != 0 && (row & (traversalSize << 1)) != 0)
-            {
-                hasTopRight = false;
-                break;
-            }
-
-            traversalSize <<= 1;
-        }
-
-        if (width < height && ((partitionInfo.ColumnIndex + width) & (height - 1)) != 0)
-        {
-            hasTopRight = true;
-        }
-
-        if (width > height && (partitionInfo.RowIndex & (width - 1)) != 0)
-        {
-            hasTopRight = false;
-        }
-
-        // The lower-left square of a vertical-A partition is decoded before its right-hand rectangle.
-        if (partitionInfo.Type == Av1PartitionType.VerticalA && width == height && (row & traversalSize) != 0)
-        {
-            hasTopRight = false;
-        }
-
-        return hasTopRight;
     }
 }

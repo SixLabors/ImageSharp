@@ -4,15 +4,17 @@
 using System.Buffers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 /// <summary>
-/// Verifies the common inter-frame mode prefix and its intra-coded-block branch.
+/// Verifies inter-frame block-prefix, intra-block selection, skip-mode, and interpolation-filter syntax.
 /// </summary>
 [Trait("Format", "Avif")]
 public class Av1InterFrameModeInfoTests
@@ -38,9 +40,9 @@ public class Av1InterFrameModeInfoTests
         writer.WriteSymbol(false, intraInter);
         writer.WriteSymbol((int)Av1PredictionMode.DC, yMode);
         using IMemoryOwner<byte> encoded = writer.Exit();
-        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0, updateCdf: true);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Memory.Span, 0, updateCdf: true);
 
-        tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo);
+        tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, frameHeader));
 
         Assert.False(modeInfo.SkipMode);
         Assert.False(modeInfo.Skip);
@@ -75,6 +77,85 @@ public class Av1InterFrameModeInfoTests
     }
 
     /// <summary>
+    /// Verifies switchable interpolation-filter decoding with shared and independent axis selections.
+    /// </summary>
+    /// <param name="enableDualFilter">Whether the horizontal axis carries an independent filter symbol.</param>
+    /// <param name="expectedHorizontalFilter">The expected horizontal interpolation filter.</param>
+    [Theory]
+    [InlineData(false, (int)Av1InterpolationFilter.Smooth)]
+    [InlineData(true, (int)Av1InterpolationFilter.Sharp)]
+    public void ReadInterFrameModeInfoReadsInterpolationFilters(
+        bool enableDualFilter,
+        int expectedHorizontalFilter)
+    {
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
+        sequenceHeader.EnableDualFilter = enableDualFilter;
+        ObuFrameHeader frameHeader = CreateFrameHeader();
+        frameHeader.InterpolationFilter = Av1InterpolationFilter.Switchable;
+
+        // Forcing segment zero to GLOBALMV removes reference and inter-mode symbols from this focused fixture. A
+        // translational global model still requires interpolation, leaving only the filter branch under test.
+        ObuSegmentationParameters segmentationParameters = frameHeader.SegmentationParameters;
+        segmentationParameters.Enabled = true;
+        segmentationParameters.FeatureEnabled[0, (int)ObuSegmentationLevelFeature.GlobalMotionVector] = true;
+        frameHeader.GetGlobalMotionParameters()[0].Type = Av1GlobalMotionType.Translation;
+
+        using Av1TileReader tileReader = new(Configuration.Default, sequenceHeader, frameHeader);
+        Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, Point.Empty);
+        Av1SuperblockInfo superblockInfo = new(tileReader.FrameInfo, Point.Empty);
+        Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, false, Av1PartitionType.None);
+        using Av1SymbolWriter writer = new(Configuration.Default, 2, updateCdf: true);
+        writer.WriteSymbol(false, Av1DefaultDistributions.Skip[0]);
+        writer.WriteSymbol((int)Av1InterpolationFilter.Smooth, Av1DefaultDistributions.SwitchableInterpolation[3]);
+        if (enableDualFilter)
+        {
+            writer.WriteSymbol((int)Av1InterpolationFilter.Sharp, Av1DefaultDistributions.SwitchableInterpolation[11]);
+        }
+
+        using IMemoryOwner<byte> encoded = writer.Exit();
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0, updateCdf: true);
+
+        tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, frameHeader));
+
+        Assert.Equal(Av1InterpolationFilter.Smooth, modeInfo.InterpolationFilters[0]);
+        Assert.Equal((Av1InterpolationFilter)expectedHorizontalFilter, modeInfo.InterpolationFilters[1]);
+    }
+
+    /// <summary>
+    /// Verifies that an identity global-motion block omits switchable interpolation-filter symbols.
+    /// </summary>
+    [Fact]
+    public void ReadInterFrameModeInfoOmitsInterpolationFiltersForIdentityGlobalMotion()
+    {
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
+        sequenceHeader.EnableDualFilter = true;
+        ObuFrameHeader frameHeader = CreateFrameHeader();
+        frameHeader.InterpolationFilter = Av1InterpolationFilter.Switchable;
+        ObuSegmentationParameters segmentationParameters = frameHeader.SegmentationParameters;
+        segmentationParameters.Enabled = true;
+        segmentationParameters.FeatureEnabled[0, (int)ObuSegmentationLevelFeature.GlobalMotionVector] = true;
+
+        using Av1TileReader tileReader = new(Configuration.Default, sequenceHeader, frameHeader);
+        Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, Point.Empty);
+        Av1SuperblockInfo superblockInfo = new(tileReader.FrameInfo, Point.Empty);
+        Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, false, Av1PartitionType.None);
+        using Av1SymbolWriter writer = new(Configuration.Default, 3, updateCdf: true);
+        writer.WriteSymbol(false, Av1DefaultDistributions.Skip[0]);
+
+        // These sentinel symbols remain unread because pinned libaom classifies every GLOBALMV model other than
+        // TRANSLATION as non-translational for interpolation syntax, including the default identity model.
+        writer.WriteSymbol((int)Av1InterpolationFilter.Smooth, Av1DefaultDistributions.SwitchableInterpolation[3]);
+        writer.WriteSymbol((int)Av1InterpolationFilter.Sharp, Av1DefaultDistributions.SwitchableInterpolation[11]);
+        using IMemoryOwner<byte> encoded = writer.Exit();
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0, updateCdf: true);
+
+        tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, frameHeader));
+
+        Assert.Equal(Av1InterpolationFilter.Regular, modeInfo.InterpolationFilters[0]);
+        Assert.Equal(Av1InterpolationFilter.Regular, modeInfo.InterpolationFilters[1]);
+    }
+
+    /// <summary>
     /// Invokes the ref-struct mode parser for exception assertions that cannot capture its parameters directly.
     /// </summary>
     /// <param name="tileReader">The tile reader.</param>
@@ -95,7 +176,7 @@ public class Av1InterFrameModeInfoTests
         };
 
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Span, 0, updateCdf: true);
-        tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo);
+        tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, tileReader.FrameHeader));
     }
 
     /// <summary>

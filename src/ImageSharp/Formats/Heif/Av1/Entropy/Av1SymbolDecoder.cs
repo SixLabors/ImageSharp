@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -286,7 +287,16 @@ internal ref struct Av1SymbolDecoder
     /// <param name="reference">The spatially derived reference vector.</param>
     /// <returns>The decoded displacement vector in one-eighth-sample units.</returns>
     public Av1MotionVector ReadDisplacementVector(Av1MotionVector reference)
-        => this.context.DisplacementVector.Read(ref this.reader, reference);
+        => this.context.DisplacementVector.Read(ref this.reader, reference, Av1MotionVectorPrecision.Integer);
+
+    /// <summary>
+    /// Reads a normal inter-prediction motion vector relative to a selected reference candidate.
+    /// </summary>
+    /// <param name="reference">The selected reference motion vector.</param>
+    /// <param name="precision">The fractional precision allowed by the current frame.</param>
+    /// <returns>The decoded motion vector in one-eighth-sample units.</returns>
+    public Av1MotionVector ReadMotionVector(Av1MotionVector reference, Av1MotionVectorPrecision precision)
+        => this.context.MotionVector.Read(ref this.reader, reference, precision);
 
     /// <summary>
     /// Reads a complete block partition type from the selected partition context.
@@ -358,11 +368,40 @@ internal ref struct Av1SymbolDecoder
     /// <returns>The decoded intra luma prediction mode.</returns>
     public Av1PredictionMode ReadInterFrameYMode(Av1BlockSize blockSize)
     {
-        // AV1 section 9.3 groups blocks by the smaller base-two dimension in 4x4 units, capped at group three.
-        // Calculating it from the existing logarithms exactly matches libaom's size_group_lookup without another table.
-        int sizeGroup = Math.Min(3, Math.Min(blockSize.Get4x4WidthLog2(), blockSize.Get4x4HeightLog2()));
+        int sizeGroup = blockSize.GetSizeGroup();
         ref Av1SymbolReader r = ref this.reader;
         return (Av1PredictionMode)r.ReadSymbol(this.context.FrameYMode[sizeGroup]);
+    }
+
+    /// <summary>
+    /// Reads whether a single-reference inter block uses inter-intra prediction.
+    /// </summary>
+    /// <param name="blockSize">The decoded block size that selects the inter-intra flag distribution.</param>
+    /// <returns><see langword="true"/> when an intra predictor is blended with the inter predictor.</returns>
+    public bool ReadIsInterIntra(Av1BlockSize blockSize)
+    {
+        int sizeGroup = blockSize.GetSizeGroup();
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.context.InterIntra[sizeGroup]) != 0;
+    }
+
+    /// <summary>
+    /// Reads the motion model selected for an eligible single-reference inter block.
+    /// </summary>
+    /// <param name="blockSize">The decoded block size that selects the motion-mode distribution.</param>
+    /// <param name="allowWarpedMotion">
+    /// A value indicating whether the block may select Warped in addition to Simple Translation and OBMC.
+    /// </param>
+    /// <returns>The decoded motion mode.</returns>
+    public Av1MotionMode ReadMotionMode(Av1BlockSize blockSize, bool allowWarpedMotion)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+
+        // AV1 uses a separate binary CDF when Warped is ineligible; reading the first two leaves from the three-way
+        // CDF would use different probabilities and desynchronize the range decoder even when Simple is selected.
+        return allowWarpedMotion
+            ? (Av1MotionMode)r.ReadSymbol(this.context.MotionMode[(int)blockSize])
+            : (Av1MotionMode)r.ReadSymbol(this.context.Obmc[(int)blockSize]);
     }
 
     /// <summary>
@@ -374,6 +413,135 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.context.IntraInter[context]) != 0;
+    }
+
+    /// <summary>
+    /// Reads whether an inter block uses compound-reference instead of single-reference prediction.
+    /// </summary>
+    /// <param name="context">The spatial block reference-mode context in the inclusive range zero through four.</param>
+    /// <returns><see langword="true"/> for compound-reference prediction; otherwise, <see langword="false"/>.</returns>
+    public bool ReadIsCompoundReference(int context)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+
+        return r.ReadSymbol(this.context.CompInter[context]) != 0;
+    }
+
+    /// <summary>
+    /// Reads one per-block interpolation filter selected by a switchable frame.
+    /// </summary>
+    /// <param name="context">The reference, direction, and neighbor filter context.</param>
+    /// <returns>The selected Regular, Smooth, or Sharp interpolation filter.</returns>
+    public Av1InterpolationFilter ReadSwitchableInterpolationFilter(int context)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+
+        return (Av1InterpolationFilter)r.ReadSymbol(this.context.SwitchableInterpolation[context]);
+    }
+
+    /// <summary>
+    /// Reads the prediction mode for a single-reference inter block.
+    /// </summary>
+    /// <param name="modeContext">The packed mode context produced by reference-motion-vector candidate analysis.</param>
+    /// <returns>The selected new, global, nearest, or near motion-vector mode.</returns>
+    public Av1PredictionMode ReadInterMode(int modeContext)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        int newMvContext = Av1SymbolContextHelper.GetNewMvContext(modeContext);
+
+        // AV1 assigns symbol zero to the NEWMV leaf and symbol one to the rest of the tree. Returning at the leaf is
+        // required both for the selected mode and to avoid consuming the unrelated lower decisions.
+        if (r.ReadSymbol(this.context.NewMv[newMvContext]) == 0)
+        {
+            return Av1PredictionMode.NewMotionVector;
+        }
+
+        int zeroMvContext = Av1SymbolContextHelper.GetZeroMvContext(modeContext);
+        if (r.ReadSymbol(this.context.ZeroMv[zeroMvContext]) == 0)
+        {
+            return Av1PredictionMode.GlobalMotionVector;
+        }
+
+        // The final zero symbol selects the nearest spatial candidate; one selects the near candidate and may be
+        // followed by dynamic-reference-list syntax when more than one near candidate is available.
+        int refMvContext = Av1SymbolContextHelper.GetRefMvContext(modeContext);
+        return r.ReadSymbol(this.context.RefMv[refMvContext]) == 0
+            ? Av1PredictionMode.NearestMotionVector
+            : Av1PredictionMode.NearMotionVector;
+    }
+
+    /// <summary>
+    /// Reads one dynamic reference-list decision for adjacent motion-vector candidates.
+    /// </summary>
+    /// <param name="context">The candidate-weight context in the inclusive range zero through two.</param>
+    /// <returns>
+    /// <see langword="true"/> when selection advances past the current candidate; otherwise, <see langword="false"/>.
+    /// </returns>
+    public bool ReadDrl(int context)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.context.Drl[context]) != 0;
+    }
+
+    /// <summary>
+    /// Reads whether a single-reference block selects the backward-reference group.
+    /// </summary>
+    /// <param name="context">The neighboring forward-versus-backward vote context.</param>
+    /// <returns><see langword="true"/> for a backward reference; otherwise, <see langword="false"/>.</returns>
+    public bool ReadSingleReferenceIsBackward(int context)
+        => this.ReadSingleReferenceDecision(context, decision: 0);
+
+    /// <summary>
+    /// Reads whether a backward single-reference block selects Alternate.
+    /// </summary>
+    /// <param name="context">The neighboring Backward-or-Alternate2-versus-Alternate vote context.</param>
+    /// <returns><see langword="true"/> for Alternate; otherwise, <see langword="false"/>.</returns>
+    public bool ReadSingleReferenceIsAlternate(int context)
+        => this.ReadSingleReferenceDecision(context, decision: 1);
+
+    /// <summary>
+    /// Reads whether a forward single-reference block selects the Last3-or-Golden group.
+    /// </summary>
+    /// <param name="context">The neighboring near-forward-versus-far-forward vote context.</param>
+    /// <returns><see langword="true"/> for Last3 or Golden; otherwise, <see langword="false"/>.</returns>
+    public bool ReadSingleReferenceIsLast3OrGolden(int context)
+        => this.ReadSingleReferenceDecision(context, decision: 2);
+
+    /// <summary>
+    /// Reads whether a near-forward single-reference block selects Last2.
+    /// </summary>
+    /// <param name="context">The neighboring Last-versus-Last2 vote context.</param>
+    /// <returns><see langword="true"/> for Last2; otherwise, <see langword="false"/>.</returns>
+    public bool ReadSingleReferenceIsLast2(int context)
+        => this.ReadSingleReferenceDecision(context, decision: 3);
+
+    /// <summary>
+    /// Reads whether a far-forward single-reference block selects Golden.
+    /// </summary>
+    /// <param name="context">The neighboring Last3-versus-Golden vote context.</param>
+    /// <returns><see langword="true"/> for Golden; otherwise, <see langword="false"/>.</returns>
+    public bool ReadSingleReferenceIsGolden(int context)
+        => this.ReadSingleReferenceDecision(context, decision: 4);
+
+    /// <summary>
+    /// Reads whether a non-Alternate backward single-reference block selects Alternate2.
+    /// </summary>
+    /// <param name="context">The neighboring Backward-versus-Alternate2 vote context.</param>
+    /// <returns><see langword="true"/> for Alternate2; otherwise, <see langword="false"/>.</returns>
+    public bool ReadSingleReferenceIsAlternate2(int context)
+        => this.ReadSingleReferenceDecision(context, decision: 5);
+
+    /// <summary>
+    /// Reads one binary decision from the single-reference selection tree.
+    /// </summary>
+    /// <param name="context">The neighboring reference-vote context.</param>
+    /// <param name="decision">The zero-based tree decision matching one <c>single_ref_cdf</c> column.</param>
+    /// <returns><see langword="true"/> when the decision selects symbol one; otherwise, <see langword="false"/>.</returns>
+    private bool ReadSingleReferenceDecision(int context, int decision)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+
+        return r.ReadSymbol(this.context.SingleReference[context][decision]) != 0;
     }
 
     /// <summary>

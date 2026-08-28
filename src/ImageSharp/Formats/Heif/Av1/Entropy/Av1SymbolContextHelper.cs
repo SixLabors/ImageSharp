@@ -13,6 +13,41 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 internal static class Av1SymbolContextHelper
 {
     /// <summary>
+    /// The bit offset of the global-motion decision context in a packed inter-mode context.
+    /// </summary>
+    private const int GlobalMvContextOffset = 3;
+
+    /// <summary>
+    /// The bit offset of the spatial reference-motion-vector context in a packed inter-mode context.
+    /// </summary>
+    private const int RefMvContextOffset = 4;
+
+    /// <summary>
+    /// The low-three-bit mask containing the new-motion-vector context.
+    /// </summary>
+    private const int NewMvContextMask = (1 << GlobalMvContextOffset) - 1;
+
+    /// <summary>
+    /// The mask selecting the two-value global-motion context from its single packed bit.
+    /// </summary>
+    private const int ZeroMvContextMask = (1 << (RefMvContextOffset - GlobalMvContextOffset)) - 1;
+
+    /// <summary>
+    /// The high-nibble mask containing the spatial reference-motion-vector context.
+    /// </summary>
+    private const int RefMvContextMask = (1 << (8 - RefMvContextOffset)) - 1;
+
+    /// <summary>
+    /// The weight at which AV1 classifies a reference-motion-vector candidate as a strong spatial match.
+    /// </summary>
+    private const int ReferenceCategoryLevel = 640;
+
+    /// <summary>
+    /// The number of interpolation filters selectable by per-block switchable syntax.
+    /// </summary>
+    private const int SwitchableInterpolationFilterCount = 3;
+
+    /// <summary>
     /// The number of transform types represented by each flattened transform-set row.
     /// </summary>
     private const int TransformTypeCount = 16;
@@ -625,6 +660,271 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
+    /// Gets the block reference-mode context from the immediately above and left blocks.
+    /// </summary>
+    /// <param name="above">The above block, or <see langword="null"/> at a tile boundary.</param>
+    /// <param name="left">The left block, or <see langword="null"/> at a tile boundary.</param>
+    /// <returns>The context in the inclusive range zero through four.</returns>
+    public static int GetReferenceModeContext(Av1BlockModeInfo? above, Av1BlockModeInfo? left)
+    {
+        // Libaom first classifies whether each neighbor uses a second inter reference. Single neighbors then contribute
+        // their forward/backward direction, while intra neighbors take the same branch as a non-forward reference.
+        if (above is not null && left is not null)
+        {
+            bool aboveIsCompound = above.ReferenceFrames[1] > Av1ReferenceFrameType.Intra;
+            bool leftIsCompound = left.ReferenceFrames[1] > Av1ReferenceFrameType.Intra;
+
+            if (!aboveIsCompound && !leftIsCompound)
+            {
+                bool aboveIsBackward = above.ReferenceFrames[0] >= Av1ReferenceFrameType.Backward;
+                bool leftIsBackward = left.ReferenceFrames[0] >= Av1ReferenceFrameType.Backward;
+
+                return aboveIsBackward == leftIsBackward ? 0 : 1;
+            }
+
+            if (!aboveIsCompound)
+            {
+                bool aboveIsBackward = above.ReferenceFrames[0] >= Av1ReferenceFrameType.Backward;
+                bool aboveIsIntra = above.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra;
+
+                return 2 + (aboveIsBackward || aboveIsIntra ? 1 : 0);
+            }
+
+            if (!leftIsCompound)
+            {
+                bool leftIsBackward = left.ReferenceFrames[0] >= Av1ReferenceFrameType.Backward;
+                bool leftIsIntra = left.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra;
+
+                return 2 + (leftIsBackward || leftIsIntra ? 1 : 0);
+            }
+
+            return 4;
+        }
+
+        Av1BlockModeInfo? neighbor = above ?? left;
+
+        if (neighbor is not null)
+        {
+            bool isCompound = neighbor.ReferenceFrames[1] > Av1ReferenceFrameType.Intra;
+
+            if (isCompound)
+            {
+                return 3;
+            }
+
+            return neighbor.ReferenceFrames[0] >= Av1ReferenceFrameType.Backward ? 1 : 0;
+        }
+
+        // With no spatial votes, AV1 uses the neutral single-versus-compound context rather than context zero.
+        return 1;
+    }
+
+    /// <summary>
+    /// Gets the switchable interpolation-filter context for one prediction direction.
+    /// </summary>
+    /// <param name="modeInfo">The current inter block.</param>
+    /// <param name="above">The above block, or <see langword="null"/> at a tile boundary.</param>
+    /// <param name="left">The left block, or <see langword="null"/> at a tile boundary.</param>
+    /// <param name="direction">Zero for the vertical filter or one for the horizontal filter.</param>
+    /// <returns>The context in the inclusive range zero through fifteen.</returns>
+    public static int GetSwitchableInterpolationContext(
+        Av1BlockModeInfo modeInfo,
+        Av1BlockModeInfo? above,
+        Av1BlockModeInfo? left,
+        int direction)
+    {
+        const int filterContextCount = SwitchableInterpolationFilterCount + 1;
+        const int horizontalContextOffset = filterContextCount * 2;
+        ReadOnlySpan<Av1ReferenceFrameType> referenceFrames = modeInfo.ReferenceFrames;
+        Av1ReferenceFrameType primaryReference = referenceFrames[0];
+        bool isCompound = referenceFrames[1] > Av1ReferenceFrameType.Intra;
+
+        // The sixteen rows are laid out as single vertical, compound vertical, single horizontal, then compound
+        // horizontal, with four neighbor states in each group.
+        int context = (isCompound ? filterContextCount : 0) + (direction * horizontalContextOffset);
+        int leftFilter = GetReferenceInterpolationFilterContext(left, primaryReference, direction);
+        int aboveFilter = GetReferenceInterpolationFilterContext(above, primaryReference, direction);
+
+        if (leftFilter == aboveFilter)
+        {
+            return context + leftFilter;
+        }
+
+        // The fourth neighbor state is not a selectable Bilinear filter. It is the value libaom uses when a neighbor
+        // does not share the current primary reference, and when two contributing neighbors selected different filters.
+        if (leftFilter == SwitchableInterpolationFilterCount)
+        {
+            return context + aboveFilter;
+        }
+
+        if (aboveFilter == SwitchableInterpolationFilterCount)
+        {
+            return context + leftFilter;
+        }
+
+        return context + SwitchableInterpolationFilterCount;
+    }
+
+    /// <summary>
+    /// Gets the new-motion-vector decision context from a packed single-reference inter-mode context.
+    /// </summary>
+    /// <param name="modeContext">The packed mode context produced by reference-motion-vector candidate analysis.</param>
+    /// <returns>For a valid packed mode context, the context in the inclusive range zero through five.</returns>
+    public static int GetNewMvContext(int modeContext) => modeContext & NewMvContextMask;
+
+    /// <summary>
+    /// Gets the global-motion decision context from a packed single-reference inter-mode context.
+    /// </summary>
+    /// <param name="modeContext">The packed mode context produced by reference-motion-vector candidate analysis.</param>
+    /// <returns>The context in the inclusive range zero through one.</returns>
+    public static int GetZeroMvContext(int modeContext) => (modeContext >> GlobalMvContextOffset) & ZeroMvContextMask;
+
+    /// <summary>
+    /// Gets the spatial reference-motion-vector decision context from a packed single-reference inter-mode context.
+    /// </summary>
+    /// <param name="modeContext">The packed mode context produced by reference-motion-vector candidate analysis.</param>
+    /// <returns>For a valid packed mode context, the context in the inclusive range zero through five.</returns>
+    public static int GetRefMvContext(int modeContext) => (modeContext >> RefMvContextOffset) & RefMvContextMask;
+
+    /// <summary>
+    /// Gets the dynamic reference-list context for two adjacent motion-vector candidates.
+    /// </summary>
+    /// <param name="referenceWeights">The candidate weights in dynamic reference-list order.</param>
+    /// <param name="referenceIndex">The zero-based index of the first candidate in the pair.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
+    public static int GetDrlContext(ReadOnlySpan<ushort> referenceWeights, int referenceIndex)
+    {
+        int currentWeight = referenceWeights[referenceIndex];
+        int nextWeight = referenceWeights[referenceIndex + 1];
+
+        // Candidate weights at or above the reference-category threshold carry a strong spatial match. The four
+        // normative pairings use context zero for strong/strong and weak/strong, one for strong/weak, and two for weak/weak.
+        if (currentWeight >= ReferenceCategoryLevel && nextWeight >= ReferenceCategoryLevel)
+        {
+            return 0;
+        }
+
+        if (currentWeight >= ReferenceCategoryLevel && nextWeight < ReferenceCategoryLevel)
+        {
+            return 1;
+        }
+
+        return currentWeight < ReferenceCategoryLevel && nextWeight < ReferenceCategoryLevel ? 2 : 0;
+    }
+
+    /// <summary>
+    /// Counts the reference-frame labels used by the immediately above and left inter blocks.
+    /// </summary>
+    /// <param name="above">The above block, or <see langword="null"/> at a tile boundary.</param>
+    /// <param name="left">The left block, or <see langword="null"/> at a tile boundary.</param>
+    /// <param name="referenceCounts">The eight-entry reference-count destination indexed by <see cref="Av1ReferenceFrameType"/>.</param>
+    public static void CollectNeighborReferenceCounts(Av1BlockModeInfo? above, Av1BlockModeInfo? left, Span<byte> referenceCounts)
+    {
+        // The caller reuses fixed inline storage across blocks. Clearing all eight entries matches libaom's
+        // av1_collect_neighbors_ref_counts and prevents an unavailable neighbor from retaining an earlier block's vote.
+        referenceCounts.Clear();
+
+        if (above is not null)
+        {
+            AddNeighborReferenceCounts(above, referenceCounts);
+        }
+
+        if (left is not null)
+        {
+            AddNeighborReferenceCounts(left, referenceCounts);
+        }
+    }
+
+    /// <summary>
+    /// Gets the context that selects a backward instead of forward single reference.
+    /// </summary>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by <see cref="Av1ReferenceFrameType"/>.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
+    public static int GetSingleReferenceBackwardContext(ReadOnlySpan<byte> referenceCounts)
+    {
+        int forwardCount = referenceCounts[(int)Av1ReferenceFrameType.Last] +
+            referenceCounts[(int)Av1ReferenceFrameType.Last2] +
+            referenceCounts[(int)Av1ReferenceFrameType.Last3] +
+            referenceCounts[(int)Av1ReferenceFrameType.Golden];
+
+        int backwardCount = referenceCounts[(int)Av1ReferenceFrameType.Backward] +
+            referenceCounts[(int)Av1ReferenceFrameType.Alternate2] +
+            referenceCounts[(int)Av1ReferenceFrameType.Alternate];
+
+        return GetBinaryReferenceContext(forwardCount, backwardCount);
+    }
+
+    /// <summary>
+    /// Gets the context that selects Alternate instead of Backward or Alternate2.
+    /// </summary>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by <see cref="Av1ReferenceFrameType"/>.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
+    public static int GetSingleReferenceAlternateContext(ReadOnlySpan<byte> referenceCounts)
+    {
+        int backwardOrAlternate2Count = referenceCounts[(int)Av1ReferenceFrameType.Backward] +
+            referenceCounts[(int)Av1ReferenceFrameType.Alternate2];
+
+        int alternateCount = referenceCounts[(int)Av1ReferenceFrameType.Alternate];
+
+        return GetBinaryReferenceContext(backwardOrAlternate2Count, alternateCount);
+    }
+
+    /// <summary>
+    /// Gets the context that selects Last3 or Golden instead of Last or Last2.
+    /// </summary>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by <see cref="Av1ReferenceFrameType"/>.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
+    public static int GetSingleReferenceLast3OrGoldenContext(ReadOnlySpan<byte> referenceCounts)
+    {
+        int lastOrLast2Count = referenceCounts[(int)Av1ReferenceFrameType.Last] +
+            referenceCounts[(int)Av1ReferenceFrameType.Last2];
+
+        int last3OrGoldenCount = referenceCounts[(int)Av1ReferenceFrameType.Last3] +
+            referenceCounts[(int)Av1ReferenceFrameType.Golden];
+
+        return GetBinaryReferenceContext(lastOrLast2Count, last3OrGoldenCount);
+    }
+
+    /// <summary>
+    /// Gets the context that selects Last2 instead of Last.
+    /// </summary>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by <see cref="Av1ReferenceFrameType"/>.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
+    public static int GetSingleReferenceLast2Context(ReadOnlySpan<byte> referenceCounts)
+    {
+        int lastCount = referenceCounts[(int)Av1ReferenceFrameType.Last];
+        int last2Count = referenceCounts[(int)Av1ReferenceFrameType.Last2];
+
+        return GetBinaryReferenceContext(lastCount, last2Count);
+    }
+
+    /// <summary>
+    /// Gets the context that selects Golden instead of Last3.
+    /// </summary>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by <see cref="Av1ReferenceFrameType"/>.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
+    public static int GetSingleReferenceGoldenContext(ReadOnlySpan<byte> referenceCounts)
+    {
+        int last3Count = referenceCounts[(int)Av1ReferenceFrameType.Last3];
+        int goldenCount = referenceCounts[(int)Av1ReferenceFrameType.Golden];
+
+        return GetBinaryReferenceContext(last3Count, goldenCount);
+    }
+
+    /// <summary>
+    /// Gets the context that selects Alternate2 instead of Backward.
+    /// </summary>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by <see cref="Av1ReferenceFrameType"/>.</param>
+    /// <returns>The context in the inclusive range zero through two.</returns>
+    public static int GetSingleReferenceAlternate2Context(ReadOnlySpan<byte> referenceCounts)
+    {
+        int backwardCount = referenceCounts[(int)Av1ReferenceFrameType.Backward];
+        int alternate2Count = referenceCounts[(int)Av1ReferenceFrameType.Alternate2];
+
+        return GetBinaryReferenceContext(backwardCount, alternate2Count);
+    }
+
+    /// <summary>
     /// Gets the temporal segment-prediction context from the immediately above and left blocks.
     /// </summary>
     /// <param name="aboveModeInfo">The above block, or <see langword="null"/> at a tile boundary.</param>
@@ -718,5 +1018,66 @@ internal static class Av1SymbolContextHelper
 
             return max - (diff + 1);
         }
+    }
+
+    /// <summary>
+    /// Adds one decoded inter neighbor's primary and optional secondary reference votes.
+    /// </summary>
+    /// <param name="modeInfo">The decoded neighboring block.</param>
+    /// <param name="referenceCounts">The reference counts updated in place.</param>
+    private static void AddNeighborReferenceCounts(Av1BlockModeInfo modeInfo, Span<byte> referenceCounts)
+    {
+        ReadOnlySpan<Av1ReferenceFrameType> referenceFrames = modeInfo.ReferenceFrames;
+
+        if (referenceFrames[0] <= Av1ReferenceFrameType.Intra)
+        {
+            return;
+        }
+
+        referenceCounts[(int)referenceFrames[0]]++;
+
+        // A current block may use one reference, but the conditioning neighbors may be compound blocks. Libaom counts
+        // both labels so later single-reference decisions remain bit-exact when compound support is enabled.
+        if (referenceFrames[1] > Av1ReferenceFrameType.Intra)
+        {
+            referenceCounts[(int)referenceFrames[1]]++;
+        }
+    }
+
+    /// <summary>
+    /// Converts neighboring votes for a binary reference-tree decision to its three-state AV1 context.
+    /// </summary>
+    /// <param name="zeroSymbolCount">The votes for the branch represented by symbol zero.</param>
+    /// <param name="oneSymbolCount">The votes for the branch represented by symbol one.</param>
+    /// <returns>One for tied votes, zero when symbol one has more votes, or two when symbol zero has more votes.</returns>
+    private static int GetBinaryReferenceContext(int zeroSymbolCount, int oneSymbolCount)
+        => zeroSymbolCount == oneSymbolCount ? 1 : zeroSymbolCount < oneSymbolCount ? 0 : 2;
+
+    /// <summary>
+    /// Gets one neighbor's interpolation-filter contribution for the requested reference and direction.
+    /// </summary>
+    /// <param name="modeInfo">The decoded neighboring block, or <see langword="null"/> when unavailable.</param>
+    /// <param name="referenceFrame">The current block's primary reference.</param>
+    /// <param name="direction">Zero for the vertical filter or one for the horizontal filter.</param>
+    /// <returns>The selected filter index, or three when the neighbor does not contribute.</returns>
+    private static int GetReferenceInterpolationFilterContext(
+        Av1BlockModeInfo? modeInfo,
+        Av1ReferenceFrameType referenceFrame,
+        int direction)
+    {
+        if (modeInfo is null)
+        {
+            return SwitchableInterpolationFilterCount;
+        }
+
+        ReadOnlySpan<Av1ReferenceFrameType> referenceFrames = modeInfo.ReferenceFrames;
+
+        // A compound neighbor contributes when either of its references matches the current primary reference.
+        if (referenceFrames[0] != referenceFrame && referenceFrames[1] != referenceFrame)
+        {
+            return SwitchableInterpolationFilterCount;
+        }
+
+        return (int)modeInfo.InterpolationFilters[direction];
     }
 }

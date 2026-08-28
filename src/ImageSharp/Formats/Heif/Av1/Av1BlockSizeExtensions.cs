@@ -141,6 +141,18 @@ internal static class Av1BlockSizeExtensions
         => Av1Math.Log2(Get4x4HighCount(blockSize));
 
     /// <summary>
+    /// Gets the entropy context group associated with the block size.
+    /// </summary>
+    /// <param name="blockSize">The block size.</param>
+    /// <returns>The zero-based size group in the inclusive range zero through three.</returns>
+    public static int GetSizeGroup(this Av1BlockSize blockSize)
+    {
+        // AV1 section 9.3 groups a block by its smaller dimension in 4x4 units and caps that logarithm at three.
+        // Deriving the value from the existing geometry tables exactly matches libaom's size_group_lookup table.
+        return Math.Min(3, Math.Min(blockSize.Get4x4WidthLog2(), blockSize.Get4x4HeightLog2()));
+    }
+
+    /// <summary>
     /// Gets the residual-plane block size for Boolean chroma subsampling flags.
     /// </summary>
     /// <param name="blockSize">The luma block size.</param>

@@ -25,6 +25,127 @@ internal static class Av1DefaultDistributions
     public static Av1Distribution[] IntraInter => [new(806), new(16662), new(20186), new(26538)];
 
     /// <summary>
+    /// Gets the distributions that select a newly decoded motion vector before the remaining single-reference modes.
+    /// </summary>
+    public static Av1Distribution[] NewMv => [new(24035), new(16630), new(15339), new(8386), new(12222), new(4676)];
+
+    /// <summary>
+    /// Gets the distributions that select global motion before the spatial reference-motion-vector modes.
+    /// </summary>
+    public static Av1Distribution[] ZeroMv => [new(2175), new(1054)];
+
+    /// <summary>
+    /// Gets the distributions that select the nearest or near spatial reference motion vector.
+    /// </summary>
+    public static Av1Distribution[] RefMv => [new(23974), new(24188), new(17848), new(28622), new(24312), new(19923)];
+
+    /// <summary>
+    /// Gets the distributions that advance through the dynamic reference-motion-vector candidate list.
+    /// </summary>
+    public static Av1Distribution[] Drl => [new(13104), new(24560), new(18945)];
+
+    /// <summary>
+    /// Gets the single-reference selection distributions indexed by spatial context and tree decision.
+    /// </summary>
+    public static Av1Distribution[][] SingleReference =>
+    [
+        [new(4897), new(1555), new(4236), new(8650), new(904), new(1444)],
+        [new(16973), new(16751), new(19647), new(24773), new(11014), new(15087)],
+        [new(29744), new(30279), new(31194), new(31895), new(26875), new(30304)],
+    ];
+
+    /// <summary>
+    /// Gets the distributions that select single-reference or compound-reference prediction for a block.
+    /// </summary>
+    public static Av1Distribution[] CompInter => [new(26828), new(24035), new(12031), new(10640), new(2901)];
+
+    /// <summary>
+    /// Gets the inter-intra prediction flag distributions indexed by block-size group.
+    /// </summary>
+    public static Av1Distribution[] InterIntra => [new(16384), new(26887), new(27597), new(30237)];
+
+    /// <summary>
+    /// Gets the Simple Translation, OBMC, or Warped motion-mode distributions indexed by block size.
+    /// </summary>
+    public static Av1Distribution[] MotionMode =>
+    [
+        new(10923, 21845),
+        new(10923, 21845),
+        new(10923, 21845),
+        new(7651, 24760),
+        new(4738, 24765),
+        new(5391, 25528),
+        new(19419, 26810),
+        new(5123, 23606),
+        new(11606, 24308),
+        new(26260, 29116),
+        new(20360, 28062),
+        new(21679, 26830),
+        new(29516, 30701),
+        new(28898, 30397),
+        new(30878, 31335),
+        new(32507, 32558),
+        new(10923, 21845),
+        new(10923, 21845),
+        new(28799, 31390),
+        new(26431, 30774),
+        new(28973, 31594),
+        new(29742, 31203),
+    ];
+
+    /// <summary>
+    /// Gets the Simple Translation or OBMC motion-mode distributions indexed by block size.
+    /// </summary>
+    public static Av1Distribution[] Obmc =>
+    [
+        new(16384),
+        new(16384),
+        new(16384),
+        new(10437),
+        new(9371),
+        new(9301),
+        new(17432),
+        new(14423),
+        new(15142),
+        new(25817),
+        new(22823),
+        new(22083),
+        new(30128),
+        new(31014),
+        new(31560),
+        new(32638),
+        new(16384),
+        new(16384),
+        new(23664),
+        new(20901),
+        new(24008),
+        new(26879),
+    ];
+
+    /// <summary>
+    /// Gets the switchable interpolation-filter distributions indexed by reference type, direction, and neighbor state.
+    /// </summary>
+    public static Av1Distribution[] SwitchableInterpolation =>
+    [
+        new(31935, 32720),
+        new(5568, 32719),
+        new(422, 2938),
+        new(28244, 32608),
+        new(31206, 31953),
+        new(4862, 32121),
+        new(770, 1152),
+        new(20889, 25637),
+        new(31910, 32724),
+        new(4120, 32712),
+        new(305, 2247),
+        new(27403, 32636),
+        new(31022, 32009),
+        new(2963, 32093),
+        new(601, 943),
+        new(14969, 21398),
+    ];
+
+    /// <summary>
     /// Gets the key-frame luma-mode distributions indexed by the above and left intra-mode contexts.
     /// </summary>
     public static Av1Distribution[][] FilterYMode =>

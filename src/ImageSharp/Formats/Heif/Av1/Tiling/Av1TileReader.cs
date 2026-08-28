@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -105,6 +106,21 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     private InlineArray8<int> displacementVectorWeights;
 
     /// <summary>
+    /// Reusable counts of the canonical references selected by the immediately above and left blocks.
+    /// </summary>
+    private InlineArray8<byte> neighborReferenceCounts;
+
+    /// <summary>
+    /// Reusable fixed-capacity storage for one block's weighted reference-motion-vector candidates.
+    /// </summary>
+    private readonly Av1ReferenceMotionVectors referenceMotionVectors = new();
+
+    /// <summary>
+    /// Reusable fixed-capacity state for motion-mode eligibility and local warped-motion projection.
+    /// </summary>
+    private readonly Av1MotionVariationCandidates motionVariationCandidates = new();
+
+    /// <summary>
     /// Provides allocator and decoder configuration to tile entropy decoding.
     /// </summary>
     private readonly Configuration configuration;
@@ -123,6 +139,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// The retained primary frame whose segment map supplies temporal segment-ID predictions.
     /// </summary>
     private readonly Av1FrameInfo? primaryReferenceFrameInfo;
+
+    /// <summary>
+    /// The retained reconstructed frames used to determine reference scaling during inter mode parsing.
+    /// </summary>
+    private readonly Av1ReferenceFrameStore? referenceFrames;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1TileReader"/> class for syntax parsing without reconstruction.
@@ -160,16 +181,13 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         this.configuration = configuration;
         this.SequenceHeader = sequenceHeader;
         this.entropyContexts = entropyContexts;
+        this.referenceFrames = referenceFrames;
         this.entropyContexts.BeginFrame(frameHeader.QuantizationParameters.BaseQIndex, primaryReferenceContext);
 
         // FrameInfo owns all traversal-order records and coefficient storage produced by the tile readers.
         this.FrameInfo = new(this.SequenceHeader);
         if (referenceFrames is not null)
         {
-            // Only the production decoder owns reconstructed references. Header-only intra readers retain their
-            // existing allocation profile and cannot reach inter mode parsing.
-            this.FrameInfo.InitializeMotionField(this.SequenceHeader, this.FrameHeader, referenceFrames);
-
             byte? primaryReferenceSlot = this.FrameHeader.PrimaryReferenceSlot;
             if (primaryReferenceSlot is not null)
             {
@@ -201,10 +219,27 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         }
         catch
         {
-            // The reader is not returned when its second context allocation fails, so release
-            // the first rent here rather than relying on an owner that the caller cannot reach.
+            // The reader is not returned when its second context allocation fails, so release the first rent here
+            // rather than relying on an owner that the caller cannot reach.
             this.aboveNeighborContext.Dispose();
             throw;
+        }
+
+        if (referenceFrames is not null)
+        {
+            try
+            {
+                // Motion storage is acquired after every other constructor allocation. If this final acquisition
+                // fails, the catch can return every successfully created allocator-owned resource in one place.
+                this.FrameInfo.InitializeMotionField(configuration, this.SequenceHeader, this.FrameHeader, referenceFrames);
+            }
+            catch
+            {
+                this.aboveNeighborContext.Dispose();
+                this.leftNeighborContext.Dispose();
+                this.FrameInfo.Dispose();
+                throw;
+            }
         }
     }
 
@@ -287,12 +322,13 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     public Av1FrameEntropyContext FrameEntropyContext => this.entropyContexts.Published;
 
     /// <summary>
-    /// Returns the tile-neighbor context storage to the configured memory allocator.
+    /// Returns tile-neighbor storage and the reader's frame-state lease to the configured memory allocator.
     /// </summary>
     public void Dispose()
     {
         this.aboveNeighborContext.Dispose();
         this.leftNeighborContext.Dispose();
+        this.FrameInfo.Dispose();
     }
 
     /// <summary>
@@ -1552,17 +1588,18 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         }
         else
         {
-            this.ReadInterFrameModeInfo(ref reader, ref partitionInfo);
+            this.ReadInterFrameModeInfo(ref reader, ref partitionInfo, tileInfo);
         }
     }
 
     /// <summary>
-    /// Reads the common inter-frame block prefix and the intra-coded-block prediction branch in bitstream order.
+    /// Reads the common inter-frame block prefix and the supported intra or single-reference inter prediction branch in bitstream order.
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block and its neighbors.</param>
-    /// <remarks>Implements the prefix and intra branch of AV1 section 5.11.7.</remarks>
-    internal void ReadInterFrameModeInfo(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
+    /// <param name="tileInfo">The active tile boundaries used by reference-motion-vector searches.</param>
+    /// <remarks>Implements the prefix, intra, and single-reference translational branches of AV1 section 5.11.7.</remarks>
+    internal void ReadInterFrameModeInfo(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
     {
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
         modeInfo.MotionVectors.Clear();
@@ -1587,7 +1624,189 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         bool isInterBlock = modeInfo.SkipMode || this.ReadIsInter(ref reader, ref partitionInfo);
         if (isInterBlock)
         {
-            throw new NotSupportedException("AV1 inter-coded block prediction is not implemented.");
+            modeInfo.SetPaletteSizes(0, 0);
+            modeInfo.UvMode = Av1ChromaPredictionMode.DC;
+            this.ReadReferenceFrames(ref reader, ref partitionInfo);
+
+            Av1ReferenceFrameType referenceFrame = modeInfo.ReferenceFrames[0];
+            if (modeInfo.SkipMode || modeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra)
+            {
+                throw new NotSupportedException("AV1 compound-reference block prediction is not implemented.");
+            }
+
+            Av1ReferenceMotionVectors referenceMotionVectors = this.referenceMotionVectors;
+            referenceMotionVectors.Build(
+                ref partitionInfo,
+                tileInfo,
+                this.FrameInfo,
+                this.SequenceHeader,
+                this.FrameHeader,
+                referenceFrame);
+
+            ObuSegmentationParameters segmentationParameters = this.FrameHeader.SegmentationParameters;
+            int segmentId = modeInfo.SegmentId;
+            bool usesForcedGlobalMotion =
+                segmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.Skip) ||
+                segmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.GlobalMotionVector);
+
+            modeInfo.ReferenceMotionVectorIndex = 0;
+            modeInfo.YMode = usesForcedGlobalMotion
+                ? Av1PredictionMode.GlobalMotionVector
+                : reader.ReadInterMode(referenceMotionVectors.ModeContext);
+
+            if (modeInfo.YMode == Av1PredictionMode.NewMotionVector)
+            {
+                // NEWMV can advance across candidates zero through two. Each transmitted one selects the next
+                // candidate and exposes one further DRL decision when the stack contains it.
+                for (int index = 0; index < 2 && referenceMotionVectors.Count > index + 1; index++)
+                {
+                    int context = Av1SymbolContextHelper.GetDrlContext(referenceMotionVectors.Weights, index);
+                    bool advance = reader.ReadDrl(context);
+                    modeInfo.ReferenceMotionVectorIndex = (byte)(index + (advance ? 1 : 0));
+                    if (!advance)
+                    {
+                        break;
+                    }
+                }
+            }
+            else if (modeInfo.YMode == Av1PredictionMode.NearMotionVector)
+            {
+                // NEARMV reserves candidate zero for NEARESTMV, so its two DRL decisions examine pairs one/two and
+                // two/three while storing a zero-based offset from the first near candidate.
+                for (int index = 1; index < 3 && referenceMotionVectors.Count > index + 1; index++)
+                {
+                    int context = Av1SymbolContextHelper.GetDrlContext(referenceMotionVectors.Weights, index);
+                    bool advance = reader.ReadDrl(context);
+                    modeInfo.ReferenceMotionVectorIndex = (byte)(index + (advance ? 1 : 0) - 1);
+                    if (!advance)
+                    {
+                        break;
+                    }
+                }
+            }
+
+            Av1MotionVectorPrecision precision = this.FrameHeader.ForceIntegerMotionVector
+                ? Av1MotionVectorPrecision.Integer
+                : this.FrameHeader.AllowHighPrecisionMotionVector ? Av1MotionVectorPrecision.EighthSample : Av1MotionVectorPrecision.QuarterSample;
+
+            Av1MotionVector motionVector = modeInfo.YMode switch
+            {
+                Av1PredictionMode.NewMotionVector => reader.ReadMotionVector(
+                    referenceMotionVectors.GetNewReference(modeInfo.ReferenceMotionVectorIndex),
+                    precision),
+                Av1PredictionMode.NearestMotionVector => referenceMotionVectors.Nearest,
+                Av1PredictionMode.NearMotionVector => referenceMotionVectors.GetNearReference(modeInfo.ReferenceMotionVectorIndex),
+                Av1PredictionMode.GlobalMotionVector => this.FrameHeader.GetGlobalMotionParameters()[(int)referenceFrame - 1].GetMotionVector(
+                    this.FrameHeader.AllowHighPrecisionMotionVector,
+                    modeInfo.BlockSize,
+                    new Point(partitionInfo.ColumnIndex, partitionInfo.RowIndex),
+                    this.FrameHeader.ForceIntegerMotionVector),
+                _ => throw new InvalidImageContentException("Invalid single-reference AV1 inter mode.")
+            };
+
+            if (!motionVector.IsValid)
+            {
+                throw new InvalidImageContentException("AV1 motion-vector component is outside the permitted range.");
+            }
+
+            modeInfo.MotionVectors[0] = motionVector;
+            modeInfo.MotionMode = Av1MotionMode.SimpleTranslation;
+
+            int minimumBlockDimension = Math.Min(modeInfo.BlockSize.GetWidth(), modeInfo.BlockSize.GetHeight());
+            if (this.SequenceHeader.EnableInterIntraCompound &&
+                modeInfo.BlockSize is >= Av1BlockSize.Block8x8 and <= Av1BlockSize.Block32x32 &&
+                reader.ReadIsInterIntra(modeInfo.BlockSize))
+            {
+                // AV1 assigns this syntax only to the contiguous Block8x8 through Block32x32 enum range; similarly
+                // dimensioned extended rectangles occur later in the enum and must not consume a flag. A false flag
+                // continues into motion-mode syntax even while the selected inter-intra predictor remains unsupported.
+                throw new NotSupportedException("AV1 inter-intra block prediction is not implemented.");
+            }
+
+            if (this.FrameHeader.IsMotionModeSwitchable && minimumBlockDimension >= 8 && !modeInfo.SkipMode)
+            {
+                Av1MotionVariationCandidates candidates = this.motionVariationCandidates;
+                candidates.Build(ref partitionInfo, tileInfo, this.SequenceHeader, this.FrameHeader, referenceFrame);
+
+                Av1GlobalMotionParameters selectedGlobalMotion = this.FrameHeader.GetGlobalMotionParameters()[(int)referenceFrame - 1];
+                bool hasFixedGlobalMotionMode =
+                    !this.FrameHeader.ForceIntegerMotionVector &&
+                    modeInfo.YMode == Av1PredictionMode.GlobalMotionVector &&
+                    selectedGlobalMotion.Type > Av1GlobalMotionType.Translation;
+
+                if (candidates.HasOverlappableNeighbor && !hasFixedGlobalMotionMode)
+                {
+                    bool allowWarpedMotion = false;
+                    if (candidates.Count > 0 && this.FrameHeader.AllowWarpedMotion && !this.FrameHeader.ForceIntegerMotionVector)
+                    {
+                        int canonicalReferenceIndex = (int)referenceFrame - (int)Av1ReferenceFrameType.Last;
+                        uint referenceSlot = this.FrameHeader.GetReferenceFrameIndices()[canonicalReferenceIndex];
+                        Av1FrameBuffer<byte> referenceFrameBuffer = this.referenceFrames!.Resolve((int)referenceSlot)!.FrameBuffer;
+
+                        // Local warped motion is excluded for a scaled reference. Width and height equality are the
+                        // identity-scale test because both dimensions form the decoder's reference scale factors.
+                        allowWarpedMotion =
+                            referenceFrameBuffer.Width == this.FrameHeader.FrameSize.FrameWidth &&
+                            referenceFrameBuffer.Height == this.FrameHeader.FrameSize.FrameHeight;
+                    }
+
+                    modeInfo.MotionMode = reader.ReadMotionMode(modeInfo.BlockSize, allowWarpedMotion);
+                    if (modeInfo.MotionMode != Av1MotionMode.SimpleTranslation)
+                    {
+                        throw new NotSupportedException($"AV1 {modeInfo.MotionMode} block prediction is not implemented.");
+                    }
+                }
+            }
+
+            Span<Av1InterpolationFilter> interpolationFilters = modeInfo.InterpolationFilters;
+            Av1InterpolationFilter frameInterpolationFilter = this.FrameHeader.InterpolationFilter;
+            Av1GlobalMotionParameters globalMotion = this.FrameHeader.GetGlobalMotionParameters()[(int)referenceFrame - 1];
+            bool usesNonTranslationalGlobalMotion =
+                modeInfo.YMode == Av1PredictionMode.GlobalMotionVector &&
+                minimumBlockDimension >= 8 &&
+                globalMotion.Type != Av1GlobalMotionType.Translation;
+
+            if (modeInfo.SkipMode || modeInfo.MotionMode == Av1MotionMode.Warped || usesNonTranslationalGlobalMotion)
+            {
+                // Blocks that do not use separable interpolation carry no filter symbols. A switchable frame falls
+                // back to the regular family so every stored mode record contains an actual predictor selection.
+                interpolationFilters.Fill(
+                    frameInterpolationFilter == Av1InterpolationFilter.Switchable
+                        ? Av1InterpolationFilter.Regular
+                        : frameInterpolationFilter);
+            }
+            else if (frameInterpolationFilter != Av1InterpolationFilter.Switchable)
+            {
+                interpolationFilters.Fill(frameInterpolationFilter);
+            }
+            else
+            {
+                // Filter storage is vertical then horizontal. AV1 transmits in the same order and reuses the vertical
+                // choice for both axes when the sequence disables independent dual-filter selection.
+                int verticalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(
+                    modeInfo,
+                    partitionInfo.AboveModeInfo,
+                    partitionInfo.LeftModeInfo,
+                    direction: 0);
+
+                interpolationFilters[0] = reader.ReadSwitchableInterpolationFilter(verticalContext);
+                if (this.SequenceHeader.EnableDualFilter)
+                {
+                    int horizontalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(
+                        modeInfo,
+                        partitionInfo.AboveModeInfo,
+                        partitionInfo.LeftModeInfo,
+                        direction: 1);
+
+                    interpolationFilters[1] = reader.ReadSwitchableInterpolationFilter(horizontalContext);
+                }
+                else
+                {
+                    interpolationFilters[1] = interpolationFilters[0];
+                }
+            }
+
+            return;
         }
 
         modeInfo.ReferenceFrames[0] = Av1ReferenceFrameType.Intra;
@@ -2592,6 +2811,95 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         int context = Av1SymbolContextHelper.GetIntraInterContext(partitionInfo.AboveModeInfo, partitionInfo.LeftModeInfo);
         return reader.ReadIsInter(context);
+    }
+
+    /// <summary>
+    /// Reads or infers the retained reference-frame labels selected by an inter-coded block.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="partitionInfo">The current coding block and its available neighbors.</param>
+    private void ReadReferenceFrames(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
+    {
+        Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
+        Span<Av1ReferenceFrameType> references = modeInfo.ReferenceFrames;
+        if (modeInfo.SkipMode)
+        {
+            ObuSkipModeParameters skipModeParameters = this.FrameHeader.SkipModeParameters;
+            references[0] = skipModeParameters.FirstReferenceFrame;
+            references[1] = skipModeParameters.SecondReferenceFrame;
+            return;
+        }
+
+        ObuSegmentationParameters segmentationParameters = this.FrameHeader.SegmentationParameters;
+        int segmentId = modeInfo.SegmentId;
+        if (segmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.ReferenceFrame))
+        {
+            references[0] = (Av1ReferenceFrameType)segmentationParameters.FeatureData[
+                segmentId,
+                (int)ObuSegmentationLevelFeature.ReferenceFrame];
+
+            references[1] = Av1ReferenceFrameType.None;
+            return;
+        }
+
+        if (segmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.Skip) ||
+            segmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.GlobalMotionVector))
+        {
+            references[0] = Av1ReferenceFrameType.Last;
+            references[1] = Av1ReferenceFrameType.None;
+            return;
+        }
+
+        bool compoundReferenceAllowed = Math.Min(modeInfo.BlockSize.GetWidth(), modeInfo.BlockSize.GetHeight()) >= 8;
+        if (compoundReferenceAllowed && this.FrameHeader.ReferenceMode == ObuReferenceMode.ReferenceModeSelect)
+        {
+            int context = Av1SymbolContextHelper.GetReferenceModeContext(
+                partitionInfo.AboveModeInfo,
+                partitionInfo.LeftModeInfo);
+
+            if (reader.ReadIsCompoundReference(context))
+            {
+                throw new NotSupportedException("AV1 compound-reference block prediction is not implemented.");
+            }
+        }
+
+        Span<byte> referenceCounts = this.neighborReferenceCounts;
+        Av1SymbolContextHelper.CollectNeighborReferenceCounts(
+            partitionInfo.AboveModeInfo,
+            partitionInfo.LeftModeInfo,
+            referenceCounts);
+
+        Av1ReferenceFrameType reference;
+        if (reader.ReadSingleReferenceIsBackward(Av1SymbolContextHelper.GetSingleReferenceBackwardContext(referenceCounts)))
+        {
+            if (reader.ReadSingleReferenceIsAlternate(Av1SymbolContextHelper.GetSingleReferenceAlternateContext(referenceCounts)))
+            {
+                reference = Av1ReferenceFrameType.Alternate;
+            }
+            else
+            {
+                reference = reader.ReadSingleReferenceIsAlternate2(
+                    Av1SymbolContextHelper.GetSingleReferenceAlternate2Context(referenceCounts))
+                    ? Av1ReferenceFrameType.Alternate2
+                    : Av1ReferenceFrameType.Backward;
+            }
+        }
+        else if (reader.ReadSingleReferenceIsLast3OrGolden(
+            Av1SymbolContextHelper.GetSingleReferenceLast3OrGoldenContext(referenceCounts)))
+        {
+            reference = reader.ReadSingleReferenceIsGolden(Av1SymbolContextHelper.GetSingleReferenceGoldenContext(referenceCounts))
+                ? Av1ReferenceFrameType.Golden
+                : Av1ReferenceFrameType.Last3;
+        }
+        else
+        {
+            reference = reader.ReadSingleReferenceIsLast2(Av1SymbolContextHelper.GetSingleReferenceLast2Context(referenceCounts))
+                ? Av1ReferenceFrameType.Last2
+                : Av1ReferenceFrameType.Last;
+        }
+
+        references[0] = reference;
+        references[1] = Av1ReferenceFrameType.None;
     }
 
     /// <summary>

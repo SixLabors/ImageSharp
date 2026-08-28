@@ -147,7 +147,7 @@ internal class Av1BlockModeInfo
     /// Gets or sets the selected index in the derived reference-motion-vector stack.
     /// </summary>
     /// <remarks>
-    /// The AV1 syntax constrains this value to the inclusive range 0 through 3.
+    /// The AV1 syntax constrains this value to the inclusive range zero through two.
     /// </remarks>
     public byte ReferenceMotionVectorIndex { get; set; }
 

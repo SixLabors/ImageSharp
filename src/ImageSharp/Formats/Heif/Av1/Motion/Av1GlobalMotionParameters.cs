@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 
@@ -124,6 +125,65 @@ internal struct Av1GlobalMotionParameters
     {
         get => this.matrix[index];
         set => this.matrix[index] = value;
+    }
+
+    /// <summary>
+    /// Gets the translational motion vector represented by this model at the center of a coding block.
+    /// </summary>
+    /// <param name="allowHighPrecisionMotionVector">
+    /// A value indicating whether motion vectors may retain one-eighth-sample precision.
+    /// </param>
+    /// <param name="blockSize">The coding block size.</param>
+    /// <param name="modeInfoPosition">The block origin in 4x4 mode-information units.</param>
+    /// <param name="forceIntegerMotionVector">
+    /// A value indicating whether the result is rounded to an integer-sample displacement.
+    /// </param>
+    /// <returns>The global motion vector in one-eighth-sample units.</returns>
+    public readonly Av1MotionVector GetMotionVector(
+        bool allowHighPrecisionMotionVector,
+        Av1BlockSize blockSize,
+        Point modeInfoPosition,
+        bool forceIntegerMotionVector)
+    {
+        if (this.Type == Av1GlobalMotionType.Identity)
+        {
+            return default;
+        }
+
+        int row;
+        int column;
+        if (this.Type == Av1GlobalMotionType.Translation)
+        {
+            // AV1 accidentally assigns the horizontal translation parameter to the row component and the vertical
+            // parameter to the column component. Decoders preserve that published bitstream behavior for conformance.
+            row = this.matrix[0] >> (ModelPrecisionBits - 3);
+            column = this.matrix[1] >> (ModelPrecisionBits - 3);
+        }
+        else
+        {
+            int blockCenterX = (modeInfoPosition.X << Av1Constants.ModeInfoSizeLog2) + (blockSize.GetWidth() >> 1) - 1;
+            int blockCenterY = (modeInfoPosition.Y << Av1Constants.ModeInfoSizeLog2) + (blockSize.GetHeight() >> 1) - 1;
+            int horizontal = ((this.matrix[2] - ModelScale) * blockCenterX) +
+                (this.matrix[3] * blockCenterY) +
+                this.matrix[0];
+
+            int vertical = (this.matrix[4] * blockCenterX) +
+                ((this.matrix[5] - ModelScale) * blockCenterY) +
+                this.matrix[1];
+
+            int precisionBits = allowHighPrecisionMotionVector ? ModelPrecisionBits - 3 : ModelPrecisionBits - 2;
+            column = Av1Math.RoundPowerOf2Signed(horizontal, precisionBits);
+            row = Av1Math.RoundPowerOf2Signed(vertical, precisionBits);
+            if (!allowHighPrecisionMotionVector)
+            {
+                column *= 2;
+                row *= 2;
+            }
+        }
+
+        return new Av1MotionVector(row, column).LowerPrecision(
+            allowHighPrecision: allowHighPrecisionMotionVector,
+            forceInteger: forceIntegerMotionVector);
     }
 
     /// <summary>

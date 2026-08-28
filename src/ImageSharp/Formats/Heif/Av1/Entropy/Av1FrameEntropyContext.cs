@@ -65,6 +65,10 @@ internal sealed class Av1FrameEntropyContext
         // Every default-distribution accessor constructs independently mutable state. Retaining those returned
         // graphs directly confines generated-table construction to the four process-wide quantizer-band prototypes.
         this.IntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy;
+
+        // Normal motion vectors and intra-block-copy displacement vectors start from identical defaults, but AV1
+        // adapts NMVC and NDVC independently. Distinct object graphs preserve that separation for the prototype too.
+        this.MotionVector = new();
         this.DisplacementVector = new();
         this.SwitchableRestoration = Av1DefaultDistributions.SwitchableRestoration;
         this.WienerRestoration = Av1DefaultDistributions.WienerRestoration;
@@ -79,6 +83,16 @@ internal sealed class Av1FrameEntropyContext
         this.FrameYMode = Av1DefaultDistributions.FrameYMode;
         this.KeyFrameYMode = Av1DefaultDistributions.KeyFrameYMode;
         this.IntraInter = Av1DefaultDistributions.IntraInter;
+        this.NewMv = Av1DefaultDistributions.NewMv;
+        this.ZeroMv = Av1DefaultDistributions.ZeroMv;
+        this.RefMv = Av1DefaultDistributions.RefMv;
+        this.Drl = Av1DefaultDistributions.Drl;
+        this.SingleReference = Av1DefaultDistributions.SingleReference;
+        this.CompInter = Av1DefaultDistributions.CompInter;
+        this.InterIntra = Av1DefaultDistributions.InterIntra;
+        this.MotionMode = Av1DefaultDistributions.MotionMode;
+        this.Obmc = Av1DefaultDistributions.Obmc;
+        this.SwitchableInterpolation = Av1DefaultDistributions.SwitchableInterpolation;
         this.UvMode = Av1DefaultDistributions.UvMode;
         this.Skip = Av1DefaultDistributions.Skip;
         this.SkipMode = Av1DefaultDistributions.SkipMode;
@@ -115,6 +129,8 @@ internal sealed class Av1FrameEntropyContext
         // Session and retained-frame contexts need one mutable graph, not four generated quantizer-band graphs whose
         // unused bands are immediately discarded. Deep-copy the already selected prototype shape exactly once.
         this.IntraBlockCopy = source.IntraBlockCopy.CreateCopy();
+        this.MotionVector = new();
+        this.MotionVector.CopyFrom(source.MotionVector);
         this.DisplacementVector = new();
         this.DisplacementVector.CopyFrom(source.DisplacementVector);
         this.SwitchableRestoration = source.SwitchableRestoration.CreateCopy();
@@ -130,6 +146,16 @@ internal sealed class Av1FrameEntropyContext
         this.FrameYMode = Av1Distribution.CreateCopy(source.FrameYMode);
         this.KeyFrameYMode = Av1Distribution.CreateCopy(source.KeyFrameYMode);
         this.IntraInter = Av1Distribution.CreateCopy(source.IntraInter);
+        this.NewMv = Av1Distribution.CreateCopy(source.NewMv);
+        this.ZeroMv = Av1Distribution.CreateCopy(source.ZeroMv);
+        this.RefMv = Av1Distribution.CreateCopy(source.RefMv);
+        this.Drl = Av1Distribution.CreateCopy(source.Drl);
+        this.SingleReference = Av1Distribution.CreateCopy(source.SingleReference);
+        this.CompInter = Av1Distribution.CreateCopy(source.CompInter);
+        this.InterIntra = Av1Distribution.CreateCopy(source.InterIntra);
+        this.MotionMode = Av1Distribution.CreateCopy(source.MotionMode);
+        this.Obmc = Av1Distribution.CreateCopy(source.Obmc);
+        this.SwitchableInterpolation = Av1Distribution.CreateCopy(source.SwitchableInterpolation);
         this.UvMode = Av1Distribution.CreateCopy(source.UvMode);
         this.Skip = Av1Distribution.CreateCopy(source.Skip);
         this.SkipMode = Av1Distribution.CreateCopy(source.SkipMode);
@@ -160,9 +186,14 @@ internal sealed class Av1FrameEntropyContext
     public Av1Distribution IntraBlockCopy { get; }
 
     /// <summary>
+    /// Gets the entropy context used by normal inter-prediction motion vectors.
+    /// </summary>
+    public Av1MotionVectorContext MotionVector { get; }
+
+    /// <summary>
     /// Gets the integer displacement-vector context used by intra-block copy.
     /// </summary>
-    public Av1DisplacementVectorContext DisplacementVector { get; }
+    public Av1MotionVectorContext DisplacementVector { get; }
 
     /// <summary>
     /// Gets the switchable loop-restoration distribution.
@@ -228,6 +259,56 @@ internal sealed class Av1FrameEntropyContext
     /// Gets the distributions that select intra or inter prediction from the available spatial neighbors.
     /// </summary>
     public Av1Distribution[] IntraInter { get; }
+
+    /// <summary>
+    /// Gets the distributions that select a newly decoded motion vector before the remaining single-reference modes.
+    /// </summary>
+    public Av1Distribution[] NewMv { get; }
+
+    /// <summary>
+    /// Gets the distributions that select global motion before the spatial reference-motion-vector modes.
+    /// </summary>
+    public Av1Distribution[] ZeroMv { get; }
+
+    /// <summary>
+    /// Gets the distributions that select the nearest or near spatial reference motion vector.
+    /// </summary>
+    public Av1Distribution[] RefMv { get; }
+
+    /// <summary>
+    /// Gets the distributions that advance through the dynamic reference-motion-vector candidate list.
+    /// </summary>
+    public Av1Distribution[] Drl { get; }
+
+    /// <summary>
+    /// Gets the single-reference selection distributions indexed by spatial context and tree decision.
+    /// </summary>
+    public Av1Distribution[][] SingleReference { get; }
+
+    /// <summary>
+    /// Gets the distributions that select single-reference or compound-reference prediction for a block.
+    /// </summary>
+    public Av1Distribution[] CompInter { get; }
+
+    /// <summary>
+    /// Gets the inter-intra prediction flag distributions indexed by block-size group.
+    /// </summary>
+    public Av1Distribution[] InterIntra { get; }
+
+    /// <summary>
+    /// Gets the three-way motion-mode distributions indexed by block size.
+    /// </summary>
+    public Av1Distribution[] MotionMode { get; }
+
+    /// <summary>
+    /// Gets the binary Simple Translation or OBMC distributions indexed by block size.
+    /// </summary>
+    public Av1Distribution[] Obmc { get; }
+
+    /// <summary>
+    /// Gets the switchable interpolation-filter distributions.
+    /// </summary>
+    public Av1Distribution[] SwitchableInterpolation { get; }
 
     /// <summary>
     /// Gets the chroma intra-mode distributions.
@@ -373,6 +454,7 @@ internal sealed class Av1FrameEntropyContext
     public void CopyFrom(Av1FrameEntropyContext source)
     {
         this.IntraBlockCopy.CopyFrom(source.IntraBlockCopy);
+        this.MotionVector.CopyFrom(source.MotionVector);
         this.DisplacementVector.CopyFrom(source.DisplacementVector);
         this.SwitchableRestoration.CopyFrom(source.SwitchableRestoration);
         this.WienerRestoration.CopyFrom(source.WienerRestoration);
@@ -387,6 +469,16 @@ internal sealed class Av1FrameEntropyContext
         CopyState(source.FrameYMode, this.FrameYMode);
         CopyState(source.KeyFrameYMode, this.KeyFrameYMode);
         CopyState(source.IntraInter, this.IntraInter);
+        CopyState(source.NewMv, this.NewMv);
+        CopyState(source.ZeroMv, this.ZeroMv);
+        CopyState(source.RefMv, this.RefMv);
+        CopyState(source.Drl, this.Drl);
+        CopyState(source.SingleReference, this.SingleReference);
+        CopyState(source.CompInter, this.CompInter);
+        CopyState(source.InterIntra, this.InterIntra);
+        CopyState(source.MotionMode, this.MotionMode);
+        CopyState(source.Obmc, this.Obmc);
+        CopyState(source.SwitchableInterpolation, this.SwitchableInterpolation);
         CopyState(source.UvMode, this.UvMode);
         CopyState(source.Skip, this.Skip);
         CopyState(source.SkipMode, this.SkipMode);
@@ -431,6 +523,7 @@ internal sealed class Av1FrameEntropyContext
     private void ResetUpdateCounts()
     {
         this.IntraBlockCopy.ResetUpdateCount();
+        this.MotionVector.ResetUpdateCounts();
         this.DisplacementVector.ResetUpdateCounts();
         this.SwitchableRestoration.ResetUpdateCount();
         this.WienerRestoration.ResetUpdateCount();
@@ -445,6 +538,16 @@ internal sealed class Av1FrameEntropyContext
         ResetUpdateCounts(this.FrameYMode);
         ResetUpdateCounts(this.KeyFrameYMode);
         ResetUpdateCounts(this.IntraInter);
+        ResetUpdateCounts(this.NewMv);
+        ResetUpdateCounts(this.ZeroMv);
+        ResetUpdateCounts(this.RefMv);
+        ResetUpdateCounts(this.Drl);
+        ResetUpdateCounts(this.SingleReference);
+        ResetUpdateCounts(this.CompInter);
+        ResetUpdateCounts(this.InterIntra);
+        ResetUpdateCounts(this.MotionMode);
+        ResetUpdateCounts(this.Obmc);
+        ResetUpdateCounts(this.SwitchableInterpolation);
         ResetUpdateCounts(this.UvMode);
         ResetUpdateCounts(this.Skip);
         ResetUpdateCounts(this.SkipMode);

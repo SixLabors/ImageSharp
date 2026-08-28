@@ -1,13 +1,16 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Tests.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -201,6 +204,143 @@ public class Av1ReferenceFrameStoreTests
     }
 
     /// <summary>
+    /// Verifies motion-field ownership across frame initialization, reference aliases, shown output, and final disposal.
+    /// </summary>
+    [Fact]
+    public void MotionFieldsFollowReferenceAliasesAndPresentationOwnership()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(64, 64, Av1BitDepth.EightBit, true, false, false);
+        sequenceHeader.OrderHintInfo.EnableOrderHint = true;
+        sequenceHeader.OrderHintInfo.EnableReferenceFrameMotionVectors = true;
+
+        using Av1ReferenceFrameStore sourceReferences = new();
+        using Av1FrameInfo sourceFrameInfo = new(sequenceHeader);
+        ObuFrameHeader sourceHeader = new()
+        {
+            FrameType = ObuFrameType.KeyFrame,
+            ShowFrame = true,
+            OrderHint = 0,
+            ModeInfoColumnCount = 16,
+            ModeInfoRowCount = 16
+        };
+
+        Av1ReferenceFrame sourceFrame = new(
+            new Av1FrameBuffer<byte>(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv400, false),
+            sourceHeader,
+            sourceFrameInfo);
+
+        Assert.True(sourceReferences.Commit(byte.MaxValue, sourceFrame, showFrame: false));
+
+        ObuFrameHeader frameHeader = new()
+        {
+            FrameType = ObuFrameType.InterFrame,
+            OrderHint = 1,
+            ModeInfoColumnCount = 16,
+            ModeInfoRowCount = 16,
+            UseReferenceFrameMotionVectors = true
+        };
+
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
+        frameInfo.InitializeMotionField(configuration, sequenceHeader, frameHeader, sourceReferences);
+
+        Assert.Equal(2, allocator.AllocationLog.Count);
+        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
+        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
+
+        using Av1ReferenceFrameStore store = new();
+        Av1ReferenceFrame frame = new(
+            new Av1FrameBuffer<byte>(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv400, false),
+            frameHeader,
+            frameInfo);
+
+        Assert.True(store.Commit(byte.MaxValue, frame, showFrame: true));
+
+        // The reference frame owns the shared FrameInfo after the tile-reader lease ends. Physical reference slots
+        // and the shown-output pointer are aliases of that owner and must not release either motion field early.
+        frameInfo.Dispose();
+        Assert.Empty(allocator.ReturnLog);
+
+        Av1ReferenceFrame output = store.TakeOutput();
+        Assert.Empty(allocator.ReturnLog);
+
+        output.Dispose();
+        output.Dispose();
+        store.Dispose();
+
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer));
+
+        Assert.Equal(2, allocator.ReturnLog.Count);
+    }
+
+    /// <summary>
+    /// Verifies that tile-reader construction unwinds every successful allocation when temporal-field allocation fails.
+    /// </summary>
+    [Fact]
+    public void MotionFieldAllocationFailureUnwindsTileReaderOwnership()
+    {
+        FailingTemporalMotionFieldAllocator allocator = new();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(64, 64, Av1BitDepth.EightBit, true, false, false);
+        sequenceHeader.OrderHintInfo.EnableOrderHint = true;
+        sequenceHeader.OrderHintInfo.EnableReferenceFrameMotionVectors = true;
+
+        using Av1ReferenceFrameStore referenceFrames = new();
+        using Av1FrameInfo retainedFrameInfo = new(sequenceHeader);
+        ObuFrameHeader retainedHeader = new()
+        {
+            FrameType = ObuFrameType.KeyFrame,
+            ShowFrame = true,
+            ModeInfoColumnCount = 16,
+            ModeInfoRowCount = 16
+        };
+
+        Av1ReferenceFrame retainedFrame = new(
+            new Av1FrameBuffer<byte>(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv400, false),
+            retainedHeader,
+            retainedFrameInfo);
+
+        Assert.True(referenceFrames.Commit(byte.MaxValue, retainedFrame, showFrame: false));
+
+        ObuFrameHeader frameHeader = new()
+        {
+            FrameType = ObuFrameType.InterFrame,
+            OrderHint = 1,
+            ModeInfoColumnCount = 16,
+            ModeInfoRowCount = 16,
+            UseReferenceFrameMotionVectors = true
+        };
+
+        Av1FrameEntropyContexts entropyContexts = new(0);
+
+        Assert.Throws<InvalidMemoryOperationException>(
+            () => new Av1TileReader(
+                configuration,
+                sequenceHeader,
+                frameHeader,
+                entropyContexts,
+                null,
+                referenceFrames));
+
+        Assert.NotEmpty(allocator.AllocationLog);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer));
+
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+    }
+
+    /// <summary>
     /// Verifies that an eight-bit presentation copy contains every byte of each padded plane and the complete active geometry.
     /// </summary>
     [Fact]
@@ -213,6 +353,36 @@ public class Av1ReferenceFrameStoreTests
     [Fact]
     public void CopyToCopiesCompletePaddedHighBitDepthFrame()
         => ValidateCompleteFrameCopy(Av1BitDepth.TwelveBit);
+
+    /// <summary>
+    /// Verifies that luma and subsampled chroma allocations cover the greatest legal unscaled UMV prediction extent.
+    /// </summary>
+    [Fact]
+    public void PaddedPlanesCoverMaximumUnscaledMotionVectorExtent()
+    {
+        const int maximumLumaExtent = 135;
+        const int maximumSubsampledExtent = 71;
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(128, 128, Av1BitDepth.EightBit, false, true, true);
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv420, false);
+
+        Span<byte> luma = frameBuffer.GetPaddedPlaneSpan(Av1Plane.Y, 0, 0, out int lumaStride, out Point lumaOrigin);
+        int lumaHeight = luma.Length / lumaStride;
+
+        Assert.True(lumaOrigin.X >= maximumLumaExtent);
+        Assert.True(lumaOrigin.Y >= maximumLumaExtent);
+        Assert.True(lumaStride - lumaOrigin.X - frameBuffer.Width >= maximumLumaExtent);
+        Assert.True(lumaHeight - lumaOrigin.Y - frameBuffer.Height >= maximumLumaExtent);
+
+        Span<byte> chroma = frameBuffer.GetPaddedPlaneSpan(Av1Plane.U, 1, 1, out int chromaStride, out Point chromaOrigin);
+        int chromaWidth = Av1Math.DivideLog2Ceiling(frameBuffer.Width, 1);
+        int chromaHeight = Av1Math.DivideLog2Ceiling(frameBuffer.Height, 1);
+        int chromaAllocationHeight = chroma.Length / chromaStride;
+
+        Assert.True(chromaOrigin.X >= maximumSubsampledExtent);
+        Assert.True(chromaOrigin.Y >= maximumSubsampledExtent);
+        Assert.True(chromaStride - chromaOrigin.X - chromaWidth >= maximumSubsampledExtent);
+        Assert.True(chromaAllocationHeight - chromaOrigin.Y - chromaHeight >= maximumSubsampledExtent);
+    }
 
     /// <summary>
     /// Verifies that AV1 reference-border extension repeats the nearest visible edge across every allocated plane sample.
@@ -571,8 +741,35 @@ public class Av1ReferenceFrameStoreTests
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader(1, 1, Av1BitDepth.EightBit, true, false, false);
         Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv400, false);
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
 
-        return new Av1ReferenceFrame(frameBuffer, new ObuFrameHeader(), new Av1FrameInfo(sequenceHeader));
+        return new Av1ReferenceFrame(frameBuffer, new ObuFrameHeader(), frameInfo);
+    }
+
+    /// <summary>
+    /// Fails the temporal motion-field rent after allowing every earlier tile-reader allocation to succeed.
+    /// </summary>
+    private sealed class FailingTemporalMotionFieldAllocator : TestMemoryAllocator
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FailingTemporalMotionFieldAllocator"/> class.
+        /// </summary>
+        public FailingTemporalMotionFieldAllocator() => this.EnableNonThreadSafeLogging();
+
+        /// <inheritdoc/>
+        protected override AllocationTrackedMemoryManager<T> AllocateCore<T>(
+            int length,
+            AllocationOptions options = AllocationOptions.None)
+        {
+            if (typeof(T).Name == "TemporalMotionFieldEntry")
+            {
+                // Fail before the owner is published so the allocation log contains only resources that the
+                // Av1TileReader constructor must unwind.
+                throw new InvalidMemoryOperationException("The configured temporal motion-field allocation failed.");
+            }
+
+            return base.AllocateCore<T>(length, options);
+        }
     }
 
     /// <summary>

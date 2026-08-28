@@ -1,135 +1,56 @@
 # AV1 reconstruction conformance fixtures
 
-The original AVIF and Y4M source files come from `libavif/tests/data` at commit `062e582e8afda88e6baf988fdcf046a801efa0f5`. Derived fixtures retain the licenses recorded in libavif's `tests/data/README.md`: the Kodak image is released for unrestricted use, the Cosmos Laundromat frame uses CC BY 3.0, and the libavif color animation is distributed with the libavif test corpus under its BSD-2-Clause license.
+These fixtures provide independent reference output for AV1 reconstruction and AVIF presentation tests. ImageSharp output is compared exactly with the retained native YUV planes and presented PNG files; the tests do not use a tolerance.
 
-The 8- and 10-bit `.bit` files contain the exact AV1 item payloads from the corresponding AVIF files. Each still file has one item occupying the complete `mdat` payload. The genuine 12-bit libavif sequence is retained for container, presentation, alpha, and metadata coverage, but its first color frame disables deblocking and therefore cannot prove the 12-bit filter path.
+## Provenance
 
-`libaom-cosmos1650-12b.bit` was encoded from libavif's real 10-bit 4:4:4 Cosmos Laundromat Y4M source with the pinned libaom encoder. libaom promotes the input samples to a 12-bit AV1 profile-2 still-picture stream. The constant-quality level is deliberately lossy so the frame signals nonzero loop-filter levels. The material command options were `--usage=2 --passes=1 --limit=1 --obu --bit-depth=12 --input-bit-depth=10 --profile=2 --end-usage=q --cq-level=30 --cpu-used=6 --threads=1 --lag-in-frames=0 --full-still-picture-hdr`.
+The source images and original AVIF files come from `libavif/tests/data` at commit `062e582e8afda88e6baf988fdcf046a801efa0f5`. Their licenses are recorded in libavif's `tests/data/README.md` and continue to apply to the derived fixtures. This includes the unrestricted Kodak image, the CC BY 3.0 Cosmos Laundromat frame, and files distributed under libavif's BSD-2-Clause license.
 
-The `_libaom.yuv` files were decoded from those exact payloads with `aomdec` built from libaom commit `03087864cf4bea6abb0d28f95cf7843511413d8f`. The reference build used `AOM_TARGET_CPU=generic`, so these files come from libaom's scalar decoder rather than ImageSharp or an architecture-specific implementation.
+Reference files were generated with scalar builds of:
 
-The `libaom-cdef-*` elementary streams were encoded separately with the same pinned generic libaom build so CDEF could be verified independently of the original corpus. The 8-bit stream uses `kodim23_yuv420_8bpc.y4m`; the 10- and 12-bit streams use `cosmos1650_yuv444_10bpc_p3pq.y4m`. Both source files are retained in libavif's test data at commit `062e582e8afda88e6baf988fdcf046a801efa0f5`.
+- libaom commit `03087864cf4bea6abb0d28f95cf7843511413d8f`;
+- libavif 1.4.2 from commit `062e582e8afda88e6baf988fdcf046a801efa0f5`, linked to that libaom build.
 
-The material encoder options were `--usage=2 --passes=1 --limit=1 --obu --end-usage=q --cq-level=30 --cpu-used=4 --threads=1 --lag-in-frames=0 --full-still-picture-hdr --enable-cdef=1 --enable-restoration=0`. Each command also supplied the matching `--bit-depth`, `--input-bit-depth`, and `--profile` values. The 12-bit stream promotes the 10-bit 4:4:4 input through libaom's native 12-bit pipeline. Loop restoration is explicitly disabled so exact output equality exercises deblocking followed by active CDEF without a later restoration stage changing those samples.
+The reference builds use `AOM_TARGET_CPU=generic` and disable libyuv. Native reconstruction therefore comes from libaom, and AVIF presentation comes from libavif's own conversion path, without architecture-specific SIMD or ImageSharp code.
 
-The `libavif-cdef-*` AVIF files were independently encoded with `avifenc` 1.4.2 from libavif commit `062e582e8afda88e6baf988fdcf046a801efa0f5` and its pinned libaom 3.14.1 dependency. The material options were `-j 1 -s 4 -q 60`, `enable-cdef=1`, and `enable-restoration=0`. The 8-bit 4:2:0 file uses CICP 1/13/6 and the Kodak Y4M source. The 10-bit 4:4:4 file uses CICP 12/16/12 and the Cosmos Laundromat Y4M source. The 12-bit 4:4:4 input wraps the pinned 12-bit scalar-libaom reference planes as `C444p12` Y4M and also uses CICP 12/16/12.
+## File conventions
 
-The matching `.png` files were produced by `avifdec` from the same scalar build with `-j 1 -d 8`; the 8-bit 4:2:0 reference additionally selected bilinear chroma upsampling. The build uses `AOM_TARGET_CPU=generic` and `AVIF_LIBYUV=OFF`, so both AV1 reconstruction and YUV-to-RGB presentation come from the pinned scalar libaom/libavif paths. ImageSharp compares every presented RGBA byte exactly, without a tolerance.
+- `.avif` files exercise the complete container and presentation path.
+- `.bit` files contain the exact AV1 elementary-stream payload used by reconstruction tests.
+- `-libaom.yuv` files contain headerless planar Y, U, and V reference samples. Samples above eight bits are stored as little-endian 16-bit values.
+- `-libaom-y4m.yuv` files retain the Y4M header together with the native planar frame.
+- `.png` files contain the eight-bit RGBA presentation reference produced by the pinned scalar libavif build.
 
-The native reference layouts are:
+## Coverage
 
-- `libavif-kodim23-8b-libaom.yuv`: 768x512, 8-bit YUV 4:2:0, planar Y/U/V.
-- `libavif-cosmos1650-10b-libaom.yuv`: 1024x428, 10-bit YUV 4:4:4, planar Y/U/V with little-endian 16-bit samples.
-- `libaom-cosmos1650-12b-libaom.yuv`: 1024x428, 12-bit YUV 4:4:4, planar Y/U/V with little-endian 16-bit samples.
-- `libaom-cdef-kodim23-8b-libaom.yuv`: 768x512, 8-bit YUV 4:2:0, planar Y/U/V.
-- `libaom-cdef-cosmos-10b-libaom.yuv`: 1024x428, 10-bit YUV 4:4:4, planar Y/U/V with little-endian 16-bit samples.
-- `libaom-cdef-cosmos-12b-libaom.yuv`: 1024x428, 12-bit YUV 4:4:4, planar Y/U/V with little-endian 16-bit samples.
+| Fixture family | Coverage |
+| --- | --- |
+| `libavif-kodim23`, `libavif-cosmos1650`, `libaom-cosmos1650` | Baseline 8-, 10-, and 12-bit reconstruction, chroma subsampling, and active deblocking |
+| `*-cdef-*` | Active CDEF with loop restoration disabled |
+| `*-superres-*` | Active horizontal super-resolution with CDEF and restoration disabled |
+| `*-restoration-*` | Wiener and self-guided loop restoration |
+| `*-restoration-superres-*` | Restoration after super-resolution, including 10-bit 4:2:2 clipped-edge transform coverage |
+| `libavif-profile-*` | The 8-, 10-, and 12-bit matrix across monochrome, 4:2:0, 4:2:2, and 4:4:4 |
+| `*-palette-*` | Luma and chroma palette prediction |
+| `*-intrabc-*` | Intra-block copy at every supported bit depth |
+| `*-lossless-*` | Lossless quantization, reversible transforms, and exact presentation |
+| `*-film-grain-*` | Full and restricted range, monochrome, identity matrix, 8/10/12-bit synthesis, overlap, and odd frame dimensions |
+| `libavif-progressive-draw-points-8b` | A real two-layer color item whose final frame uses single-reference inter reconstruction, plus its progressive auxiliary alpha item |
 
-The conformance tests compare every visible reconstructed sample with these files. The deblocking corpus verifies nonzero loop-filter levels. The CDEF corpus additionally verifies sequence-level CDEF enablement, a selected nonzero frame strength, and disabled loop restoration, so a disabled or bypassed CDEF stage cannot satisfy the exact native-plane comparison accidentally.
+The corresponding tests also assert the syntax required by each family before comparing output. This prevents an inactive tool or an incorrectly substituted stream from passing solely because its final pixels happen to match.
 
-Across the three active-CDEF elementary streams, the decoded mode records select every terminal AV1 partition shape. Their nested blocks also require recursive square splits, which produce no terminal mode record of their own. The tests verify that complete ten-type coverage before relying on the exact native-plane comparisons.
+## Progressive dependent-frame fixture
 
-The `libaom-superres-*` streams were encoded from the same Kodak and Cosmos sources with the pinned generic libaom build. Their material options were `--usage=2 --passes=1 --limit=1 --obu --end-usage=q --cq-level=30 --cpu-used=4 --threads=1 --lag-in-frames=0 --full-still-picture-hdr --enable-cdef=0 --enable-restoration=0 --superres-mode=1 --superres-denominator=12 --superres-kf-denominator=12`, together with the matching input depth, output depth, and profile. Disabling CDEF and restoration isolates the normative horizontal upscaling result, while the tests separately require a coded width smaller than the displayed width so an unscaled stream cannot satisfy the reference comparison.
-
-The matching `libaom-superres-*-libaom.yuv` files were decoded by `aomdec --rawvideo` from that exact generic build. They retain the displayed 768x512 8-bit YUV 4:2:0 and 1024x428 10/12-bit YUV 4:4:4 layouts described above.
-
-The `libavif-superres-*` containers retain the matching libavif-generated 8-, 10-, and 12-bit restoration container layouts described below. Each container's sole AV1 item was replaced mechanically with the corresponding active-super-resolution payload. Only the single `iloc` extent length and terminal `mdat` box size changed; the libavif-generated codec configuration, dimensions, CICP properties, item relationships, and remaining container layout were retained.
-
-The matching `libavif-superres-*.png` files were decoded from those exact containers with the pinned generic `avifdec -j 1 -d 8`; the 8-bit 4:2:0 reference additionally selected bilinear chroma upsampling. Tests decode the complete `mdat` payload to require a coded width smaller than the displayed width, then compare every presented RGBA byte with the scalar-libavif PNG exactly and without a tolerance.
-
-The `libaom-restoration-*` streams were encoded from the same Kodak and Cosmos sources with the pinned generic libaom build. Their material options were `--usage=2 --passes=1 --limit=1 --obu --end-usage=q --cq-level=30 --cpu-used=4 --threads=1 --lag-in-frames=0 --full-still-picture-hdr --enable-cdef=0 --enable-restoration=1 --superres-mode=0`, together with the matching input depth, output depth, and profile. The matching `*-libaom.yuv` files were decoded by that build's `aomdec --rawvideo` and retain the 768x512 8-bit YUV 4:2:0 and 1024x428 10/12-bit YUV 4:4:4 layouts. The tests require at least one signaled restoration unit and compare every resulting native sample exactly.
-
-The `libavif-restoration-*` container templates were encoded from the same sources with the pinned generic libavif build. Pinned libavif forcibly disables restoration for 12-bit libaom encoding, and its default all-intra settings did not select active restoration for the other templates. Each template's sole AV1 item was therefore replaced mechanically with the matching active-restoration payload above. Only the single `iloc` extent length and terminal `mdat` box size changed; the libavif-generated codec configuration, dimensions, CICP properties, item relationships, and remaining container layout were retained.
-
-The matching `libavif-restoration-*.png` files were decoded from those exact AVIF containers with the pinned generic `avifdec -j 1 -d 8`; the 8-bit 4:2:0 reference additionally selected bilinear chroma upsampling. The tests first decode each container's actual `mdat` payload to require both Wiener and self-guided unit selection, then compare every presented RGBA byte with the scalar-libavif PNG exactly and without a tolerance.
-
-The `libaom-restoration-superres-*` streams combine active restoration with a coded width reduced by super-resolution denominator 12. They use the same pinned generic libaom build and material encoder options as the restoration streams, with `--superres-mode=1 --superres-denominator=12 --superres-kf-denominator=12`. The 8-bit fixture is 768x512 YUV 4:2:0, the 10-bit fixture is 512x256 YUV 4:2:2, and the 12-bit fixture is 1024x428 YUV 4:4:4. Their matching `*-libaom.yuv` files were decoded from the exact payloads by the pinned generic `aomdec --rawvideo` build.
-
-The 10-bit 4:2:2 source was produced from libavif's `abc.png` with pinned generic `avifenc` using `-j 1 -s 8 -q 100 -d 10 -y 422`, then decoded to Y4M before the combined libaom encode. Its clipped rightmost 128x128 coding block crosses a second 64x64 residual region. This independently exercises the required conversion of the luma-region cursor to the subsampled chroma transform grid instead of relying only on full-width 4:4:4 blocks.
-
-## AV1 profile matrix
-
-The `libavif-profile-*` fixtures were generated from `tests/data/abc.png` at the pinned libavif revision. The source SHA-256 is `5561862FBD409A3F86B02DB73EBB8572D0E2A307EB45ECF9017A1B2137B9F729`; libavif's test-data manifest licenses it under the libavif license. Alpha was deliberately ignored so the matrix isolates the color planes.
-
-The tools were the retained generic `avifenc` and `avifdec` 1.4.2 builds linked to libaom 3.14.1 at commit `03087864cf4bea6abb0d28f95cf7843511413d8f`. The libaom build used `AOM_TARGET_CPU=generic` with its encoder and decoder enabled; its generated configuration disables AVX, AVX2, AVX-512, MMX, Neon, SSE, SSE2, SSE3, SSSE3, SSE4.1, and SSE4.2. The static libavif build used that `aom.lib`, disabled libyuv, and received `WITH_SIMD=OFF`, so the native and presentation references do not depend on ImageSharp or an architecture-specific decode path.
-
-The complete generation loop was:
-
-```powershell
-foreach ($depth in 8, 10, 12) {
-    foreach ($format in 400, 420, 422, 444) {
-        $stem = "libavif-profile-${depth}b-${format}"
-        & $encoder -j 1 -s 6 -q 60 --ignore-alpha -d $depth -y $format --cicp 1/13/6 -a enable-palette=0 -a enable-intrabc=0 $source "$matrixDirectory\$stem.avif"
-        & $decoder -j 1 "$matrixDirectory\$stem.avif" "$matrixDirectory\$stem-libaom.y4m"
-        & $decoder -j 1 -d 8 "$matrixDirectory\$stem.avif" "$matrixDirectory\$stem.png"
-    }
-}
-```
-
-The six subsampled PNG references were then regenerated with explicit bilinear chroma reconstruction:
-
-```powershell
-foreach ($depth in 8, 10, 12) {
-    foreach ($format in 420, 422) {
-        $stem = "libavif-profile-${depth}b-${format}"
-        & $decoder -j 1 -d 8 -u bilinear "$matrixDirectory\$stem.avif" "$matrixDirectory\$stem.png"
-    }
-}
-```
-
-Each AVIF is a lossy 512x256 opaque still image with full-range CICP 1/13/6 signaling and no ICC, XMP, or Exif payload. The retained Y4M output is a complete container decode with its native monochrome, 4:2:0, 4:2:2, or 4:4:4 header and 8-, 10-, or 12-bit planes. It is stored in the test corpus with `-libaom-y4m.yuv` replacing the generated `-libaom.y4m` suffix. SHA-256 comparison confirms that every committed AVIF, Y4M, and PNG is byte-identical to its retained generation artifact.
-
-## Palette coverage
-
-The palette fixture was encoded independently from ImageSharp using `tests/data/draw_points.png` from the pinned libavif revision. The source is a 33x11 flat-color image whose AV1 item selects both luma and chroma palette prediction. The pinned generic `avifenc` command used `-j 1 -s 0 -q 100 --ignore-alpha -y 444 --cicp 12/16/12 -a enable-palette=1 -a enable-intrabc=0 -a tune-content=screen`.
-
-`libaom-palette-draw-points-8b-444.bit` is the exact sole AV1 item extracted from `libavif-palette-draw-points-8b.avif`. The matching native YUV reference was decoded from that payload by the pinned scalar `aomdec --rawvideo` build. The presented PNG was decoded from the complete AVIF container by the pinned scalar `avifdec -j 1 -d 8` build. The tests require both palette planes to be selected, compare every native YUV sample exactly, and compare every presented RGBA byte exactly across the available vector widths and scalar fallback. No tolerance is used.
-
-## Intra-block-copy coverage
-
-The intra-block-copy fixtures were encoded independently from ImageSharp using `tests/data/abc.png` from the pinned libavif revision. This real 512x256 screen-content image provides repeated glyph and background regions beyond AV1's required 256-pixel reconstruction delay. Each AVIF is opaque YUV 4:4:4 with palette prediction disabled, so selected screen-content reuse must traverse intra-block-copy syntax and prediction rather than palette reconstruction.
-
-The common pinned generic `avifenc` options were `-j 1 -s 0 -l --ignore-alpha -y 444 -a enable-palette=0 -a enable-intrabc=1 -a tune-content=screen`. The 8-bit fixture uses `--cicp 1/13/0`; the 10- and 12-bit fixtures add the matching `-d` value and use `--cicp 12/16/0`. The high-depth encodes promote the 8-bit source, so `-l` configures lossless codec quantization but does not claim reversible conversion back to the original 8-bit PNG.
-
-The matching Y4M files were decoded from the complete AVIF containers with the pinned generic `avifdec -j 1` build. Their retained headers record the 512x256 full-range YUV 4:4:4 layouts at 8, 10, and 12 bits, followed by one planar frame. The matching PNG files were decoded with `avifdec -j 1 -d 8`. The build uses `AOM_TARGET_CPU=generic` and `AVIF_LIBYUV=OFF`, so the native planes and presented pixels come from the pinned scalar libaom/libavif paths.
-
-Tests require the frame header to allow intra-block copy and at least one final coding block to select it. They then compare every native Y, U, and V sample and every presented RGBA byte exactly under normal hardware dispatch, with AVX-512 disabled, with AVX disabled, and with all hardware intrinsics disabled. Displacement-vector entropy, spatial reference derivation, legal reconstruction order, inter transform selection, and prediction must therefore agree with the independent decoder for all three supported bit depths. No tolerance is used.
-
-## Lossless coverage
-
-The lossless fixtures were encoded independently from ImageSharp using `tests/data/circle-trns-after-plte.png` from the pinned libavif revision. Alpha was intentionally ignored so the native references isolate color-plane reconstruction. The 8-bit input uses CICP 1/13/0; the 10- and 12-bit YUV 4:4:4 inputs use CICP 12/16/0. The material `avifenc` options were `-j 1 -s 0 -l --ignore-alpha -y 444 -a enable-palette=0 -a enable-intrabc=0`, together with the matching depth and CICP values. Disabling palette and intra-block copy ensures the exact result traverses ordinary prediction, coefficient decoding, inverse quantization, and the reversible lossless transform.
-
-The `libavif-lossless-circle-*-444-libaom.yuv` files contain the headerless native planes decoded from the complete AVIF containers by the pinned generic `avifdec -j 1` build. Each file stores one 100x60 full-range YUV 4:4:4 frame at 8, 10, or 12 bits. The matching PNG files were decoded by the same build with `-d 8`. Tests require coded and complete losslessness, base quantizer zero, identity matrix coefficients, disabled palette and intra-block copy, and at least one coded residual. Every native Y, U, and V sample and every presented RGBA byte is compared exactly across normal hardware dispatch and the scalar fallback. No tolerance is used.
-
-## Film-grain coverage
-
-The film-grain pairs were generated independently from ImageSharp. Each `.bit` file is an AV1 still-picture OBU stream, and the matching `-libaom.yuv` file is the exact visible planar output from the pinned scalar libaom decoder.
-
-The source images are `tests/data/circle-trns-after-plte.png` and `tests/data/draw_points.png` from the pinned libavif revision above. The streams and native references use the same pinned libaom revision. Intermediate Y4M inputs were produced with libavif 1.4.2 linked to that libaom revision.
-
-| Stream | libaom vector | Native layout | Range | Covered behavior |
-| --- | ---: | --- | --- | --- |
-| `libaom-film-grain-circle-8b-420.bit` | 2 | 8-bit 4:2:0 | Full | Lag-three templates, boundary overlap, and independent luma and chroma scaling |
-| `libaom-film-grain-circle-10b-422.bit` | 15 | 10-bit 4:2:2 | Full | Lag-two templates, boundary overlap, and chroma scaling derived from luma |
-| `libaom-film-grain-circle-12b-444.bit` | 16 | 12-bit 4:4:4 | Full | Lag-three templates, boundary overlap, high-depth interpolation, and grain scale shift two |
-| `libaom-film-grain-circle-8b-420-limited.bit` | 1 | 8-bit 4:2:0 | Restricted | Independent restricted luma and chroma endpoints |
-| `libaom-film-grain-circle-8b-400-limited.bit` | 3 | 8-bit monochrome | Restricted | Monochrome synthesis, overlap, and restricted luma clipping |
-| `libaom-film-grain-circle-12b-444-identity-limited.bit` | 14 | 12-bit 4:4:4 identity | Restricted | High-depth identity-matrix clipping, including luma endpoints for all three planes |
-| `libaom-film-grain-draw-points-8b-420-odd.bit` | 2 | 8-bit 4:2:0, 33×11 | Full | Odd-width and odd-height extension, a partial final block, and overlap at the visible frame edge |
-
-The common libaom encoder options were:
+The `libavif-progressive-draw-points-8b.avif` fixture is the unmodified `tests/data/draw_points_idat_progressive.avif` file from the pinned libavif tree. Its SHA-256 is `077AB2AD1E46DD912A973E4F024CB1EB242A08298BE2DBF1A52A058E88C48A4A`. It was generated with:
 
 ```text
---usage=2 --passes=1 --limit=1 --obu --end-usage=q --cq-level=30 --cpu-used=4
---threads=1 --lag-in-frames=0 --full-still-picture-hdr --enable-cdef=0 --enable-restoration=0
+./avifenc -q 100 --progressive ../tests/data/draw_points.png ../tests/data/draw_points_idat_progressive.avif
 ```
 
-Each stream adds the bit depth, input bit depth, profile, monochrome or identity-matrix flag where applicable, and the `--film-grain-test` value shown above. The twelve-bit streams use a ten-bit Y4M input and `--bit-depth=12 --input-bit-depth=10`; this is the supported high-depth promotion path in the pinned generic aomenc build.
+The primary color item's `a1lx` property divides its logical 72-byte AV1 payload into a 55-byte base layer and a 17-byte dependent layer. The container stores those layers in separate `iloc` extents at AVIF offsets 511 and 583. The `.bit` fixture concatenates those two logical color extents; it does not copy the physically adjacent auxiliary-alpha extent between them.
 
-References were decoded with:
+Exact pinned libaom decodes the corrected logical payload into two 33x11 YUV444 frames. Both frames' 1,089 color samples match the corresponding first three planes of the pinned libavif YUV444-alpha outputs exactly. The retained Y4M contains both progressive YUV444-alpha frames, and the PNG contains pinned libavif's final RGBA presentation. The production-path test selects the second native frame, requires inter-coded blocks in the final ImageSharp frame, and compares both native color and final presentation without a tolerance.
 
-```text
-aomdec --rawvideo --output=<reference>.yuv <stream>.bit
-```
+## Updating fixtures
 
-Tests compare every visible native Y, U, and V sample exactly. No tolerant image comparison is used.
+Do not create conformance references with ImageSharp. Generate both the native-plane and presentation references with an independent decoder, record the exact upstream revisions and source license, and preserve exact comparisons. A new tool-specific fixture should demonstrate that the relevant syntax is active and should be no larger than required to cover that behavior.

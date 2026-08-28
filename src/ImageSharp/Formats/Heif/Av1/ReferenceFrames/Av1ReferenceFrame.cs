@@ -32,6 +32,11 @@ internal sealed class Av1ReferenceFrame : IDisposable
     private Av1FrameEntropyContexts? entropyContextOwner;
 
     /// <summary>
+    /// The shared decoded per-block state while this frame owns one lifetime lease.
+    /// </summary>
+    private Av1FrameInfo? frameInfo;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1ReferenceFrame"/> class and takes ownership of the decoded
     /// sample buffer.
     /// </summary>
@@ -50,7 +55,8 @@ internal sealed class Av1ReferenceFrame : IDisposable
     {
         this.frameBuffer = frameBuffer;
         this.FrameHeader = frameHeader;
-        this.FrameInfo = frameInfo;
+        this.frameInfo = frameInfo;
+        frameInfo.AddOwner();
     }
 
     /// <summary>
@@ -95,7 +101,7 @@ internal sealed class Av1ReferenceFrame : IDisposable
     /// <summary>
     /// Gets the decoded per-block mode, motion, transform, and filter state associated with the retained frame.
     /// </summary>
-    public Av1FrameInfo FrameInfo { get; }
+    public Av1FrameInfo FrameInfo => this.frameInfo!;
 
     /// <summary>
     /// Gets the entropy context retained for primary-reference use, or <see langword="null"/> for a presentation-only
@@ -131,5 +137,7 @@ internal sealed class Av1ReferenceFrame : IDisposable
 
         this.frameBuffer?.Dispose();
         this.frameBuffer = null;
+        this.frameInfo?.ReleaseOwner();
+        this.frameInfo = null;
     }
 }

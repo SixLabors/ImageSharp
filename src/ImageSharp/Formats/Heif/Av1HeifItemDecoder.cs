@@ -55,7 +55,7 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlpha
         byte operatingPointIndex = item.Av1OperatingPointSelector?.Index ?? 0;
 
         using Av1Decoder decoder = new(options.Configuration, operatingPointIndex);
-        Image<TPixel> image = decoder.Decode<TPixel>(itemData, colorProfile, codecConfiguration);
+        Image<TPixel> image = decoder.Decode<TPixel>(itemData, colorProfile, codecConfiguration, item.Av1LayeredImageIndex);
         HeifMetadata metadata = image.Metadata.GetHeifMetadata();
         metadata.CompressionMethod = this.CompressionMethod;
         metadata.BitDepth = codecConfiguration.BitDepth;
@@ -95,7 +95,8 @@ internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlpha
             destination,
             outputSize,
             destinationRectangle,
-            premultiplied);
+            premultiplied,
+            item.Av1LayeredImageIndex);
     }
 
     /// <summary>

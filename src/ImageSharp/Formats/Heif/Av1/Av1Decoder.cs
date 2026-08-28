@@ -112,14 +112,22 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <param name="codecConfiguration">
     /// The item-associated AV1 codec configuration validated against the coded sequence header.
     /// </param>
+    /// <param name="layeredImageIndex">The optional byte boundaries of a layered AV1 image item.</param>
     /// <returns>The decoded image.</returns>
     public Image<TPixel> Decode<TPixel>(
         Span<byte> buffer,
         CicpProfile? containerColorProfile = null,
-        Av1CodecConfiguration? codecConfiguration = null)
+        Av1CodecConfiguration? codecConfiguration = null,
+        Av1LayeredImageIndex? layeredImageIndex = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(buffer, containerColorProfile, codecConfiguration, out CicpProfile effectiveColorProfile);
+        ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(
+            buffer,
+            containerColorProfile,
+            codecConfiguration,
+            out CicpProfile effectiveColorProfile,
+            layeredImageIndex);
+
         ImageMetadata metadata = new()
         {
             CicpProfile = effectiveColorProfile
@@ -149,19 +157,22 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// The AV1 codec configuration validated against the coded sequence header.
     /// </param>
     /// <param name="effectiveColorProfile">Receives the effective CICP description used for conversion.</param>
+    /// <param name="layeredImageIndex">The optional byte boundaries of a layered AV1 image item.</param>
     /// <returns>The decoded frame. Ownership transfers to the caller.</returns>
     public ImageFrame<TPixel> DecodeFrame<TPixel>(
         Span<byte> buffer,
         CicpProfile? containerColorProfile,
         Av1CodecConfiguration? codecConfiguration,
-        out CicpProfile effectiveColorProfile)
+        out CicpProfile effectiveColorProfile,
+        Av1LayeredImageIndex? layeredImageIndex = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Av1FrameBuffer<byte> frameBuffer = this.DecodeFrameBuffer(
             buffer,
             containerColorProfile,
             codecConfiguration,
-            out effectiveColorProfile);
+            out effectiveColorProfile,
+            layeredImageIndex);
 
         ImageFrame<TPixel>? resultFrame = null;
         try
@@ -196,6 +207,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <param name="outputSize">The complete presented size of the auxiliary image or grid tile.</param>
     /// <param name="destinationRectangle">The destination region receiving the top-left portion of the presented alpha image.</param>
     /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
+    /// <param name="layeredImageIndex">The optional byte boundaries of a layered AV1 image item.</param>
     public void DecodeAlpha<TPixel>(
         Span<byte> buffer,
         CicpProfile? containerColorProfile,
@@ -204,10 +216,17 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         ImageFrame<TPixel> destination,
         Size outputSize,
         Rectangle destinationRectangle,
-        bool premultiplied)
+        bool premultiplied,
+        Av1LayeredImageIndex? layeredImageIndex = null)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using Av1FrameBuffer<byte> frameBuffer = this.DecodeFrameBuffer(buffer, containerColorProfile, codecConfiguration, out _);
+        using Av1FrameBuffer<byte> frameBuffer = this.DecodeFrameBuffer(
+            buffer,
+            containerColorProfile,
+            codecConfiguration,
+            out _,
+            layeredImageIndex);
+
         if (expectedCodedSize != default && (frameBuffer.Width != expectedCodedSize.Width || frameBuffer.Height != expectedCodedSize.Height))
         {
             throw new InvalidImageContentException("The decoded alpha sample dimensions do not match its visual sample entry.");
@@ -238,24 +257,60 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// </param>
     /// <param name="codecConfiguration">The AV1 codec configuration validated against the coded sequence header.</param>
     /// <param name="effectiveColorProfile">Receives the effective CICP description associated with the native planes.</param>
+    /// <param name="layeredImageIndex">The optional byte boundaries of a layered AV1 image item.</param>
     /// <returns>The reconstructed native frame buffer. Ownership transfers to the caller.</returns>
     public Av1FrameBuffer<byte> DecodeFrameBuffer(
         Span<byte> buffer,
         CicpProfile? containerColorProfile,
         Av1CodecConfiguration? codecConfiguration,
-        out CicpProfile effectiveColorProfile)
+        out CicpProfile effectiveColorProfile,
+        Av1LayeredImageIndex? layeredImageIndex = null)
     {
         this.codecConfiguration = codecConfiguration;
         this.containerColorProfile = containerColorProfile;
         this.validatedSequenceHeader = null;
         this.SequenceHeader = null;
         this.FrameHeader = null;
+        this.FrameInfo?.ReleaseOwner();
         this.FrameInfo = null;
-        Av1BitStreamReader reader = new(buffer);
 
         try
         {
-            this.obuReader.ReadAll(ref reader, buffer.Length, () => this, false);
+            if (layeredImageIndex is null)
+            {
+                Av1BitStreamReader reader = new(buffer);
+                this.obuReader.ReadAll(ref reader, buffer.Length, () => this, false);
+            }
+            else
+            {
+                int layerOffset = 0;
+                for (int layer = 0; layer < Av1Constants.MaxSpatialLayerCount - 1 && layerOffset < buffer.Length; layer++)
+                {
+                    uint declaredLayerSize = layer switch
+                    {
+                        0 => layeredImageIndex.Value.FirstLayerSize,
+                        1 => layeredImageIndex.Value.SecondLayerSize,
+                        _ => layeredImageIndex.Value.ThirdLayerSize
+                    };
+
+                    if (declaredLayerSize == 0)
+                    {
+                        break;
+                    }
+
+                    int layerSize = (int)declaredLayerSize;
+                    Av1BitStreamReader layerReader = new(buffer.Slice(layerOffset, layerSize));
+                    this.obuReader.ReadAll(ref layerReader, layerSize, () => this, false);
+                    layerOffset += layerSize;
+                }
+
+                if (layerOffset < buffer.Length)
+                {
+                    Span<byte> finalLayer = buffer[layerOffset..];
+                    Av1BitStreamReader finalLayerReader = new(finalLayer);
+                    this.obuReader.ReadAll(ref finalLayerReader, finalLayer.Length, () => this, false);
+                }
+            }
 
             Guard.NotNull(this.referenceFrames.OutputFrame, nameof(this.referenceFrames.OutputFrame));
             Guard.NotNull(this.SequenceHeader, nameof(this.SequenceHeader));
@@ -284,6 +339,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             this.entropySequenceHeader = null;
             this.SequenceHeader = null;
             this.FrameHeader = null;
+            this.FrameInfo?.ReleaseOwner();
             this.FrameInfo = null;
             throw;
         }
@@ -430,7 +486,12 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                 sequenceHeader.ColorConfig.GetColorFormat(),
                 false);
 
-            using Av1FrameDecoder frameDecoder = new(sequenceHeader, frameHeader, frameInfo, frameBuffer);
+            // Plane allocations use the sequence maxima, while every reconstruction stage must see the active coded
+            // dimensions. Super-resolution replaces Width after decoding; Height remains the coded frame height.
+            frameBuffer.Width = frameHeader.FrameSize.FrameWidth;
+            frameBuffer.Height = frameHeader.FrameSize.FrameHeight;
+
+            using Av1FrameDecoder frameDecoder = new(sequenceHeader, frameHeader, frameInfo, frameBuffer, this.referenceFrames);
             frameDecoder.DecodeFrame();
 
             bool retainsReference = (frameHeader.RefreshFrameFlags & byte.MaxValue) != 0;
@@ -493,13 +554,20 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             {
                 this.SequenceHeader = sequenceHeader;
                 this.FrameHeader = frameHeader;
+
+                // The output frame owner is released after its sample buffer transfers to the caller. Retain the
+                // parsed state independently so diagnostics and conformance inspection remain valid until the next
+                // bounded decode or decoder disposal.
+                frameInfo.AddOwner();
+                this.FrameInfo?.ReleaseOwner();
                 this.FrameInfo = frameInfo;
             }
         }
         finally
         {
-            // A non-shown frame or failed reconstruction never escapes this callback. FrameInfo uses managed storage,
-            // so it remains inspectable for a retained frame after the pooled entropy-neighbor contexts are returned.
+            // A non-shown frame or failed reconstruction never escapes this callback. The tile reader releases only
+            // its initial frame-state lease; retained frames and the decoder result keep allocator-owned motion fields
+            // alive independently after the entropy-neighbor contexts are returned.
             presentationBuffer?.Dispose();
             frameBuffer?.Dispose();
             tileReader.Dispose();
@@ -515,5 +583,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         this.tileReader?.Dispose();
         this.tileReader = null;
         this.referenceFrames.Dispose();
+        this.FrameInfo?.ReleaseOwner();
+        this.FrameInfo = null;
     }
 }

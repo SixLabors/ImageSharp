@@ -3,12 +3,16 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.IntraBlockCopy;
+using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -42,6 +46,11 @@ internal sealed class Av1BlockDecoder : IDisposable
     /// The frame-owned inverse quantizer carrying the active superblock delta-Q state.
     /// </summary>
     private readonly Av1InverseQuantizer inverseQuantizer;
+
+    /// <summary>
+    /// The retained reconstructed frames addressable by inter prediction, when reconstruction belongs to a decoder session.
+    /// </summary>
+    private readonly Av1ReferenceFrameStore? referenceFrames;
 
     /// <summary>
     /// Owns the reusable raster-order inverse-quantization buffer.
@@ -86,18 +95,21 @@ internal sealed class Av1BlockDecoder : IDisposable
     /// <param name="frameBuffer">The frame buffer receiving reconstructed samples.</param>
     /// <param name="loopFilterContext">The transform-size map populated while reconstructing blocks.</param>
     /// <param name="inverseQuantizer">The inverse quantizer carrying the active superblock delta-Q state.</param>
+    /// <param name="referenceFrames">The retained reconstructed frames selected by inter blocks, or <see langword="null"/> for intra-only use.</param>
     public Av1BlockDecoder(
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1FrameBuffer<byte> frameBuffer,
         Av1LoopFilterContext loopFilterContext,
-        Av1InverseQuantizer inverseQuantizer)
+        Av1InverseQuantizer inverseQuantizer,
+        Av1ReferenceFrameStore? referenceFrames = null)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
         this.frameBuffer = frameBuffer;
         this.loopFilterContext = loopFilterContext;
         this.inverseQuantizer = inverseQuantizer;
+        this.referenceFrames = referenceFrames;
         int ySize = (1 << this.sequenceHeader.SuperblockSizeLog2) * (1 << this.sequenceHeader.SuperblockSizeLog2);
 
         // One scratch plane is reused for every transform unit. Its maximum size must cover a complete superblock
@@ -113,7 +125,12 @@ internal sealed class Av1BlockDecoder : IDisposable
         {
             inverseQuantizationOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(inverseQuantizationSize);
             transformWorkspaceOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(Av1TransformWorkspace.MaximumLength);
-            predictionScratchOwner = this.frameBuffer.MemoryAllocator.Allocate<short>(Av1PredictionDecoder.ScratchLength);
+            int maximumBlockLength = 1 << sequenceHeader.SuperblockSizeLog2;
+            int predictionScratchLength = Math.Max(
+                Av1PredictionDecoder.ScratchLength,
+                Av1InterPredictor.GetScratchLength(maximumBlockLength, maximumBlockLength));
+
+            predictionScratchOwner = this.frameBuffer.MemoryAllocator.Allocate<short>(predictionScratchLength);
 
             this.inverseQuantizationOwner = inverseQuantizationOwner;
             this.transformWorkspaceOwner = transformWorkspaceOwner;
@@ -216,6 +233,34 @@ internal sealed class Av1BlockDecoder : IDisposable
             ? (maxBlocksWide * maxBlocksHigh) >> ((colorConfig.SubSamplingX ? 1 : 0) + (colorConfig.SubSamplingY ? 1 : 0))
             : modeInfo.GetTransformUnitCount(Av1Plane.U);
 
+        bool isInterBlock = modeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last;
+        Av1FrameBuffer<byte>? referenceFrameBuffer = null;
+        if (isInterBlock)
+        {
+            int canonicalReferenceIndex = (int)modeInfo.ReferenceFrames[0] - (int)Av1ReferenceFrameType.Last;
+            Av1GlobalMotionParameters globalMotion = this.frameHeader.GetGlobalMotionParameters()[canonicalReferenceIndex];
+            if (modeInfo.YMode == Av1PredictionMode.GlobalMotionVector &&
+                Math.Min(modeInfo.BlockSize.GetWidth(), modeInfo.BlockSize.GetHeight()) >= 8 &&
+                globalMotion.Type > Av1GlobalMotionType.Translation)
+            {
+                // A qualifying rotation/zoom or affine GLOBALMV block samples the complete warped model. Its center
+                // vector is a stack fallback only and cannot be substituted into the translational predictor.
+                throw new NotSupportedException("AV1 non-translational global prediction is not implemented.");
+            }
+
+            uint referenceSlot = this.frameHeader.GetReferenceFrameIndices()[canonicalReferenceIndex];
+
+            // The uncompressed-header parser validates each selected slot and the reference store remains unchanged
+            // until frame reconstruction completes, so every parsed inter block resolves the same retained owner.
+            referenceFrameBuffer = this.referenceFrames!.Resolve((int)referenceSlot)!.FrameBuffer;
+            if (referenceFrameBuffer.Width != this.frameHeader.FrameSize.FrameWidth || referenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight)
+            {
+                // Scaled prediction changes both the source coordinate and the per-output-sample step. Running the
+                // unit-step predictor here would silently reconstruct valid scaled-reference streams incorrectly.
+                throw new NotSupportedException("AV1 scaled-reference inter prediction is not implemented.");
+            }
+        }
+
         bool highBitDepth = this.frameBuffer.BytesPerSample == 2;
         for (int plane = 0; plane < colorConfig.PlaneCount; plane++)
         {
@@ -268,6 +313,102 @@ internal sealed class Av1BlockDecoder : IDisposable
             else
             {
                 blockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer((Av1Plane)plane, pixelPosition, subX, subY, out reconstructionStride);
+            }
+
+            if (isInterBlock)
+            {
+                Av1MotionVector motionVector = modeInfo.MotionVectors[0];
+                int predictionWidth = Math.Max(4, blockSize.GetWidth() >> subX);
+                int predictionHeight = Math.Max(4, blockSize.GetHeight() >> subY);
+
+                // AV1 predicts the complete declared plane block even when its luma extent crosses the frame boundary.
+                // Subsampled dimensions retain the mandatory four-sample minimum used by set_plane_n4 in libaom.
+                int horizontalMotionQ4 = motionVector.Column << (1 - subX);
+                int verticalMotionQ4 = motionVector.Row << (1 - subY);
+                int horizontalExtensionQ4 = (4 + predictionWidth) << 4;
+                int verticalExtensionQ4 = (4 + predictionHeight) << 4;
+                int horizontalEdgeScale = 1 << (1 - subX);
+                int verticalEdgeScale = 1 << (1 - subY);
+
+                // The UMV clamp is expressed in one-sixteenth plane-sample units. A 128-sample block can legally
+                // address 135 samples beyond an edge once its prediction extent and eight-tap filter support are
+                // included; the frame-owned 144-sample luma border keeps that source directly addressable.
+                horizontalMotionQ4 = Av1Math.Clip3(
+                    (partitionInfo.ModeBlockToLeftEdge * horizontalEdgeScale) - horizontalExtensionQ4,
+                    (partitionInfo.ModeBlockToRightEdge * horizontalEdgeScale) + horizontalExtensionQ4 - 16,
+                    horizontalMotionQ4);
+
+                verticalMotionQ4 = Av1Math.Clip3(
+                    (partitionInfo.ModeBlockToTopEdge * verticalEdgeScale) - verticalExtensionQ4,
+                    (partitionInfo.ModeBlockToBottomEdge * verticalEdgeScale) + verticalExtensionQ4 - 16,
+                    verticalMotionQ4);
+
+                int sourceColumnQ4 = (pixelPosition.X << 4) + horizontalMotionQ4;
+                int sourceRowQ4 = (pixelPosition.Y << 4) + verticalMotionQ4;
+
+                // Motion vectors use one-eighth luma-sample units. Shifting by one minus the plane subsampling converts
+                // them directly to the predictor's one-sixteenth-plane-sample phase; masking then preserves the signed
+                // floor used to select the integer source sample.
+                int horizontalPhase = sourceColumnQ4 & 15;
+                int verticalPhase = sourceRowQ4 & 15;
+                Span<short> predictionScratch = this.predictionScratchOwner.Memory.Span;
+
+                if (highBitDepth)
+                {
+                    Span<ushort> source = referenceFrameBuffer!.GetPaddedPlaneSpan16(
+                        (Av1Plane)plane,
+                        subX,
+                        subY,
+                        out int sourceStride,
+                        out Point sourceOrigin);
+
+                    int sourceIndex =
+                        ((sourceOrigin.Y + (sourceRowQ4 >> 4)) * sourceStride) + sourceOrigin.X + (sourceColumnQ4 >> 4);
+
+                    Span<ushort> destination =
+                        MemoryMarshal.Cast<short, ushort>(highBitDepthBlockReconstructionBuffer[reconstructionStride..]);
+
+                    Av1InterPredictor.Predict(
+                        source,
+                        sourceStride,
+                        sourceIndex,
+                        destination,
+                        reconstructionStride,
+                        predictionWidth,
+                        predictionHeight,
+                        modeInfo.InterpolationFilters[1],
+                        modeInfo.InterpolationFilters[0],
+                        horizontalPhase,
+                        verticalPhase,
+                        this.frameBuffer.BitDepth.GetBitCount(),
+                        predictionScratch);
+                }
+                else
+                {
+                    Span<byte> source = referenceFrameBuffer!.GetPaddedPlaneSpan(
+                        (Av1Plane)plane,
+                        subX,
+                        subY,
+                        out int sourceStride,
+                        out Point sourceOrigin);
+
+                    int sourceIndex =
+                        ((sourceOrigin.Y + (sourceRowQ4 >> 4)) * sourceStride) + sourceOrigin.X + (sourceColumnQ4 >> 4);
+
+                    Av1InterPredictor.Predict(
+                        source,
+                        sourceStride,
+                        sourceIndex,
+                        blockReconstructionBuffer[reconstructionStride..],
+                        reconstructionStride,
+                        predictionWidth,
+                        predictionHeight,
+                        modeInfo.InterpolationFilters[1],
+                        modeInfo.InterpolationFilters[0],
+                        horizontalPhase,
+                        verticalPhase,
+                        predictionScratch);
+                }
             }
 
             for (int tu = 0; tu < transformUnitCount; tu++)
@@ -372,7 +513,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                             sourcePhaseY != 0);
                     }
                 }
-                else
+                else if (!isInterBlock)
                 {
                     // Conventional intra prediction consumes the reference-prefixed destination span before the
                     // transform residual is reconstructed over its first output row.

@@ -295,4 +295,63 @@ internal ref struct Av1PartitionInfo
 
         return maxBlockHigh >> 2;
     }
+
+    /// <summary>
+    /// Determines whether the current block can use the block at its top-right search position.
+    /// </summary>
+    /// <param name="superblockModeInfoSize">The superblock width in 4x4 mode-information units.</param>
+    /// <returns><see langword="true"/> when the top-right block has already been decoded; otherwise, <see langword="false"/>.</returns>
+    public bool HasTopRight(int superblockModeInfoSize)
+    {
+        int width = this.ModeInfo.BlockSize.Get4x4WideCount();
+        int height = this.ModeInfo.BlockSize.Get4x4HighCount();
+        int blockSize = Math.Max(width, height);
+        if (blockSize > 16)
+        {
+            return false;
+        }
+
+        int row = this.RowIndex & (superblockModeInfoSize - 1);
+        int column = this.ColumnIndex & (superblockModeInfoSize - 1);
+        bool hasTopRight = !((row & blockSize) != 0 && (column & blockSize) != 0);
+        int traversalSize = blockSize;
+
+        // Split partitions decode three quadrants before the bottom-right quadrant. Walking the enclosing split levels
+        // excludes a right-hand block whenever traversal has not reached that block yet.
+        while (traversalSize < superblockModeInfoSize)
+        {
+            if ((column & traversalSize) == 0)
+            {
+                break;
+            }
+
+            if ((column & (traversalSize << 1)) != 0 && (row & (traversalSize << 1)) != 0)
+            {
+                hasTopRight = false;
+                break;
+            }
+
+            traversalSize <<= 1;
+        }
+
+        // Rectangular partitions override the square traversal rule because their sub-blocks are decoded along the
+        // long axis. Earlier vertical rectangles have a completed row above; later horizontal rectangles do not.
+        if (width < height && ((this.ColumnIndex + width) & (height - 1)) != 0)
+        {
+            hasTopRight = true;
+        }
+
+        if (width > height && (this.RowIndex & (width - 1)) != 0)
+        {
+            hasTopRight = false;
+        }
+
+        // The lower-left square of a vertical-A partition precedes its right-hand rectangle in bitstream order.
+        if (this.Type == Av1PartitionType.VerticalA && width == height && (row & traversalSize) != 0)
+        {
+            hasTopRight = false;
+        }
+
+        return hasTopRight;
+    }
 }

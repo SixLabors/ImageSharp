@@ -328,17 +328,32 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             HeifSequenceTrack? alphaTrack = sequence.AlphaTrack;
             if (alphaTrack is not null)
             {
-                for (int frameIndex = 0; frameIndex < colorFrames.Length; frameIndex++)
+                int frameIndex = 0;
+                using Av1Decoder alphaDecoder = new(this.configuration);
+                for (int sampleIndex = 0; sampleIndex < alphaTrack.Samples.Length; sampleIndex++)
                 {
                     cancellationToken.ThrowIfCancellationRequested();
-                    HeifSequenceSample alphaSample = alphaTrack.Samples[sampleIndices[frameIndex]];
+                    HeifSequenceSample alphaSample = alphaTrack.Samples[sampleIndex];
+                    if (alphaSample.IsHidden ||
+                        frameIndex >= colorFrames.Length ||
+                        sampleIndices[frameIndex] != sampleIndex)
+                    {
+                        this.ExecuteImageDataSegmentAction(
+                            () => this.DecodeSequenceReference(stream, alphaTrack, alphaSample, alphaDecoder));
+
+                        continue;
+                    }
+
                     this.ExecuteImageDataSegmentAction(
                         () => this.DecodeSequenceAlphaFrame(
                             stream,
                             alphaTrack,
                             alphaSample,
+                            alphaDecoder,
                             colorFrames[frameIndex],
                             colorTrack.IsPremultiplied));
+
+                    frameIndex++;
                 }
             }
 
@@ -408,6 +423,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         ImageFrame<TPixel>[] frames = new ImageFrame<TPixel>[visibleFrameCount];
         sampleIndices = new int[visibleFrameCount];
         int decodedFrameCount = 0;
+        using Av1Decoder decoder = new(this.configuration);
         try
         {
             for (int sampleIndex = 0; sampleIndex < track.Samples.Length; sampleIndex++)
@@ -415,12 +431,17 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 HeifSequenceSample sample = track.Samples[sampleIndex];
                 if (sample.IsHidden)
                 {
+                    this.ExecuteImageDataSegmentAction(
+                        () => this.DecodeSequenceReference(stream, track, sample, decoder));
+
                     continue;
                 }
 
                 cancellationToken.ThrowIfCancellationRequested();
                 ImageFrame<TPixel>? frame = null;
-                this.ExecuteImageDataSegmentAction(() => frame = this.DecodeSequenceFrame<TPixel>(stream, track, sample));
+                this.ExecuteImageDataSegmentAction(
+                    () => frame = this.DecodeSequenceFrame<TPixel>(stream, track, sample, decoder));
+
                 if (frame is null)
                 {
                     continue;
@@ -466,11 +487,13 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="stream">The complete seekable HEIF stream.</param>
     /// <param name="track">The track supplying the codec configuration and color description.</param>
     /// <param name="sample">The validated sample range.</param>
+    /// <param name="decoder">The decoder retaining earlier sequence references.</param>
     /// <returns>The independently owned decoded frame.</returns>
     private ImageFrame<TPixel> DecodeSequenceFrame<TPixel>(
         BufferedReadStream stream,
         HeifSequenceTrack track,
-        HeifSequenceSample sample)
+        HeifSequenceSample sample,
+        Av1Decoder decoder)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (track.CodecType != Heif4CharCode.Av01)
@@ -484,12 +507,10 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         using IMemoryOwner<byte> sampleOwner = this.ReadSequenceSample(stream, track, sample);
         Span<byte> sampleData = sampleOwner.GetSpan()[..sample.Length];
 
-        using Av1Decoder decoder = new(this.configuration);
-        ImageFrame<TPixel> frame = decoder.DecodeFrame<TPixel>(
+        ImageFrame<TPixel> frame = decoder.DecodeSequenceFrame<TPixel>(
             sampleData,
             track.CicpProfile,
-            codecConfiguration,
-            out _);
+            codecConfiguration);
 
         if (frame.Width != track.CodedWidth || frame.Height != track.CodedHeight)
         {
@@ -507,12 +528,14 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="stream">The complete seekable HEIF stream.</param>
     /// <param name="track">The alpha track supplying the codec configuration and color description.</param>
     /// <param name="sample">The validated alpha sample range.</param>
+    /// <param name="decoder">The decoder retaining earlier alpha-sequence references.</param>
     /// <param name="destination">The decoded color frame receiving alpha values.</param>
     /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
     private void DecodeSequenceAlphaFrame<TPixel>(
         BufferedReadStream stream,
         HeifSequenceTrack track,
         HeifSequenceSample sample,
+        Av1Decoder decoder,
         ImageFrame<TPixel> destination,
         bool premultiplied)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -532,8 +555,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         using IMemoryOwner<byte> sampleOwner = this.ReadSequenceSample(stream, track, sample);
         Span<byte> sampleData = sampleOwner.GetSpan()[..sample.Length];
-        using Av1Decoder decoder = new(this.configuration);
-        decoder.DecodeAlpha(
+        decoder.DecodeSequenceAlpha(
             sampleData,
             track.CicpProfile,
             codecConfiguration,
@@ -542,6 +564,32 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             destination.Size,
             destination.Bounds,
             premultiplied);
+    }
+
+    /// <summary>
+    /// Decodes one non-presented sequence sample so later dependent samples can resolve its retained references.
+    /// </summary>
+    /// <param name="stream">The complete seekable HEIF stream.</param>
+    /// <param name="track">The track supplying the codec configuration and color description.</param>
+    /// <param name="sample">The validated non-presented sample.</param>
+    /// <param name="decoder">The decoder retaining sequence reference state.</param>
+    private void DecodeSequenceReference(
+        BufferedReadStream stream,
+        HeifSequenceTrack track,
+        HeifSequenceSample sample,
+        Av1Decoder decoder)
+    {
+        if (track.CodecType != Heif4CharCode.Av01)
+        {
+            throw new ImageFormatException($"No decoder is available for image-sequence sample type '{track.CodecType}'.");
+        }
+
+        Av1CodecConfiguration codecConfiguration = track.Av1CodecConfiguration
+            ?? throw new InvalidImageContentException("The AV1 image-sequence track has no codec configuration.");
+
+        using IMemoryOwner<byte> sampleOwner = this.ReadSequenceSample(stream, track, sample);
+        Span<byte> sampleData = sampleOwner.GetSpan()[..sample.Length];
+        decoder.DecodeSequenceReference(sampleData, track.CicpProfile, codecConfiguration);
     }
 
     /// <summary>

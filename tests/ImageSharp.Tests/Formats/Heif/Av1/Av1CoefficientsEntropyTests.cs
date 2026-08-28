@@ -47,7 +47,7 @@ public class Av1CoefficientsEntropyTests
         decoder.ReadCoefficients(
             modeInfo, new Point(0, 0), aboveContexts, leftContexts,
             0, 0, 0, 1, 1, transformBlockContext, transformSize,
-            false, true, transformType, transformInfo, 0, 0, actuals);
+            false, true, transformType, ref transformInfo, 0, 0, actuals);
 
         // Assert
         Assert.Equal(endOfBlock, actuals[0]);
@@ -100,7 +100,7 @@ public class Av1CoefficientsEntropyTests
         decoder.ReadCoefficients(
             modeInfo, new Point(0, 0), aboveContexts, leftContexts,
             0, 0, plane, 1, 1, transformBlockContext, transformSize,
-            false, true, transformType, transformInfo, 0, 0, actuals);
+            false, true, transformType, ref transformInfo, 0, 0, actuals);
 
         // Assert
         Assert.Equal(endOfBlock, actuals[0]);
@@ -157,7 +157,7 @@ public class Av1CoefficientsEntropyTests
         decoder.ReadCoefficients(
             modeInfo, new Point(0, 0), aboveContexts, leftContexts,
             0, 0, plane, 1, 1, transformBlockContext, transformSize,
-            false, true, transformType, transformInfo, 0, 0, actuals);
+            false, true, transformType, ref transformInfo, 0, 0, actuals);
 
         // Assert
         Assert.Equal(endOfBlock, actuals[0]);

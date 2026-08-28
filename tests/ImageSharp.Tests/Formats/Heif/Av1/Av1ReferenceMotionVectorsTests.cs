@@ -11,7 +11,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 /// <summary>
-/// Verifies the spatial, temporal, global, and extension rules used to derive single-reference AV1 motion vectors.
+/// Verifies the spatial, temporal, global, and extension rules used to derive single- and compound-reference AV1 motion vectors.
 /// </summary>
 [Trait("Format", "Avif")]
 public class Av1ReferenceMotionVectorsTests
@@ -346,6 +346,142 @@ public class Av1ReferenceMotionVectorsTests
         Assert.Equal(default, referenceMotionVectors.Candidates[0]);
         Assert.Equal((ushort)14, referenceMotionVectors.Weights[0]);
         Assert.Equal(0, referenceMotionVectors.ModeContext);
+    }
+
+    /// <summary>
+    /// Verifies that compound candidates retain their primary and secondary vectors through weighting, sorting, and DRL access.
+    /// </summary>
+    [Fact]
+    public void BuildRetainsPairedCompoundCandidates()
+    {
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(enableTemporalMotionVectors: false);
+        ObuFrameHeader frameHeader = CreateFrameHeader(orderHint: 0, useReferenceFrameMotionVectors: false);
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
+        FillFrameWithIntraBlocks(frameInfo, sequenceHeader);
+
+        Av1MotionVector abovePrimary = new(8, 16);
+        Av1MotionVector aboveSecondary = new(24, 32);
+        Av1BlockModeInfo above = AddModeInfo(
+            frameInfo,
+            sequenceHeader,
+            new Point(8, 4),
+            Av1BlockSize.Block16x16,
+            Av1ReferenceFrameType.Last,
+            abovePrimary,
+            Av1PredictionMode.NewNewMotionVector);
+
+        above.ReferenceFrames[1] = Av1ReferenceFrameType.Backward;
+        above.MotionVectors[1] = aboveSecondary;
+
+        Av1MotionVector leftPrimary = new(40, 48);
+        Av1MotionVector leftSecondary = new(56, 64);
+        Av1BlockModeInfo left = AddModeInfo(
+            frameInfo,
+            sequenceHeader,
+            new Point(4, 8),
+            Av1BlockSize.Block16x16,
+            Av1ReferenceFrameType.Last,
+            leftPrimary,
+            Av1PredictionMode.NearestNearestMotionVector);
+
+        left.ReferenceFrames[1] = Av1ReferenceFrameType.Backward;
+        left.MotionVectors[1] = leftSecondary;
+
+        Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(Point.Empty);
+        Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block16x16, new Point(8, 8));
+        Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, true, Av1PartitionType.None)
+        {
+            ColumnIndex = 8,
+            RowIndex = 8,
+        };
+
+        Av1TileInfo tileInfo = new(0, 0, frameHeader);
+        partitionInfo.ComputeBoundaryOffsets(sequenceHeader, frameHeader, tileInfo);
+        Av1ReferenceMotionVectors referenceMotionVectors = new();
+
+        referenceMotionVectors.Build(
+            ref partitionInfo,
+            tileInfo,
+            frameInfo,
+            sequenceHeader,
+            frameHeader,
+            Av1ReferenceFrameType.Last,
+            Av1ReferenceFrameType.Backward);
+
+        Assert.Equal(2, referenceMotionVectors.Count);
+        Assert.Equal(abovePrimary, referenceMotionVectors.Candidates[0]);
+        Assert.Equal(aboveSecondary, referenceMotionVectors.CompoundCandidates[0]);
+        Assert.Equal(leftPrimary, referenceMotionVectors.Candidates[1]);
+        Assert.Equal(leftSecondary, referenceMotionVectors.CompoundCandidates[1]);
+        Assert.Equal((ushort)656, referenceMotionVectors.Weights[0]);
+        Assert.Equal((ushort)656, referenceMotionVectors.Weights[1]);
+        Assert.Equal(abovePrimary, referenceMotionVectors.GetCompoundNearestReference(0));
+        Assert.Equal(aboveSecondary, referenceMotionVectors.GetCompoundNearestReference(1));
+        Assert.Equal(leftPrimary, referenceMotionVectors.GetCompoundNearReference(0, 0));
+        Assert.Equal(leftSecondary, referenceMotionVectors.GetCompoundNearReference(0, 1));
+        Assert.Equal(abovePrimary, referenceMotionVectors.GetCompoundNewReference(0, 0));
+        Assert.Equal(aboveSecondary, referenceMotionVectors.GetCompoundNewReference(0, 1));
+    }
+
+    /// <summary>
+    /// Verifies the positional compound fallback assembled from independent exact-reference neighbor lists.
+    /// </summary>
+    [Fact]
+    public void BuildExtendsCompoundStackWithPairedFallbacks()
+    {
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(enableTemporalMotionVectors: false);
+        ObuFrameHeader frameHeader = CreateFrameHeader(orderHint: 0, useReferenceFrameMotionVectors: false);
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
+        FillFrameWithIntraBlocks(frameInfo, sequenceHeader);
+
+        Av1MotionVector above = new(8, 16);
+        Av1MotionVector left = new(24, 32);
+        AddModeInfo(
+            frameInfo,
+            sequenceHeader,
+            new Point(8, 4),
+            Av1BlockSize.Block16x16,
+            Av1ReferenceFrameType.Last,
+            above,
+            Av1PredictionMode.NearestMotionVector);
+
+        AddModeInfo(
+            frameInfo,
+            sequenceHeader,
+            new Point(4, 8),
+            Av1BlockSize.Block16x16,
+            Av1ReferenceFrameType.Backward,
+            left,
+            Av1PredictionMode.NearestMotionVector);
+
+        Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(Point.Empty);
+        Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block16x16, new Point(8, 8));
+        Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, true, Av1PartitionType.None)
+        {
+            ColumnIndex = 8,
+            RowIndex = 8,
+        };
+
+        Av1TileInfo tileInfo = new(0, 0, frameHeader);
+        partitionInfo.ComputeBoundaryOffsets(sequenceHeader, frameHeader, tileInfo);
+        Av1ReferenceMotionVectors referenceMotionVectors = new();
+
+        referenceMotionVectors.Build(
+            ref partitionInfo,
+            tileInfo,
+            frameInfo,
+            sequenceHeader,
+            frameHeader,
+            Av1ReferenceFrameType.Last,
+            Av1ReferenceFrameType.Backward);
+
+        Assert.Equal(2, referenceMotionVectors.Count);
+        Assert.Equal(above, referenceMotionVectors.Candidates[0]);
+        Assert.Equal(left, referenceMotionVectors.CompoundCandidates[0]);
+        Assert.Equal(left, referenceMotionVectors.Candidates[1]);
+        Assert.Equal(above, referenceMotionVectors.CompoundCandidates[1]);
+        Assert.Equal((ushort)2, referenceMotionVectors.Weights[0]);
+        Assert.Equal((ushort)2, referenceMotionVectors.Weights[1]);
     }
 
     /// <summary>

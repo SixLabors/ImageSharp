@@ -89,6 +89,11 @@ internal sealed class Av1FrameEntropyContext
         this.Drl = Av1DefaultDistributions.Drl;
         this.SingleReference = Av1DefaultDistributions.SingleReference;
         this.CompInter = Av1DefaultDistributions.CompInter;
+        this.CompoundReferenceType = Av1DefaultDistributions.CompoundReferenceType;
+        this.UnidirectionalCompoundReference = Av1DefaultDistributions.UnidirectionalCompoundReference;
+        this.CompoundReference = Av1DefaultDistributions.CompoundReference;
+        this.CompoundBackwardReference = Av1DefaultDistributions.CompoundBackwardReference;
+        this.InterCompoundMode = Av1DefaultDistributions.InterCompoundMode;
         this.InterIntra = Av1DefaultDistributions.InterIntra;
         this.MotionMode = Av1DefaultDistributions.MotionMode;
         this.Obmc = Av1DefaultDistributions.Obmc;
@@ -104,6 +109,7 @@ internal sealed class Av1FrameEntropyContext
         this.FilterIntraMode = Av1DefaultDistributions.FilterIntraMode;
         this.FilterIntra = Av1DefaultDistributions.FilterIntra;
         this.TransformSize = Av1DefaultDistributions.TransformSize;
+        this.TransformPartition = Av1DefaultDistributions.TransformPartition;
         this.ChromaFromLumaSign = Av1DefaultDistributions.ChromaFromLumaSign;
         this.ChromaFromLumaAlpha = Av1DefaultDistributions.ChromaFromLumaAlpha;
         this.IntraExtendedTransform = Av1DefaultDistributions.IntraExtendedTransform;
@@ -152,6 +158,11 @@ internal sealed class Av1FrameEntropyContext
         this.Drl = Av1Distribution.CreateCopy(source.Drl);
         this.SingleReference = Av1Distribution.CreateCopy(source.SingleReference);
         this.CompInter = Av1Distribution.CreateCopy(source.CompInter);
+        this.CompoundReferenceType = Av1Distribution.CreateCopy(source.CompoundReferenceType);
+        this.UnidirectionalCompoundReference = Av1Distribution.CreateCopy(source.UnidirectionalCompoundReference);
+        this.CompoundReference = Av1Distribution.CreateCopy(source.CompoundReference);
+        this.CompoundBackwardReference = Av1Distribution.CreateCopy(source.CompoundBackwardReference);
+        this.InterCompoundMode = Av1Distribution.CreateCopy(source.InterCompoundMode);
         this.InterIntra = Av1Distribution.CreateCopy(source.InterIntra);
         this.MotionMode = Av1Distribution.CreateCopy(source.MotionMode);
         this.Obmc = Av1Distribution.CreateCopy(source.Obmc);
@@ -167,6 +178,7 @@ internal sealed class Av1FrameEntropyContext
         this.FilterIntraMode = source.FilterIntraMode.CreateCopy();
         this.FilterIntra = Av1Distribution.CreateCopy(source.FilterIntra);
         this.TransformSize = Av1Distribution.CreateCopy(source.TransformSize);
+        this.TransformPartition = Av1Distribution.CreateCopy(source.TransformPartition);
         this.EndOfBlockFlag = Av1Distribution.CreateCopy(source.EndOfBlockFlag);
         this.CoefficientsBase = Av1Distribution.CreateCopy(source.CoefficientsBase);
         this.BaseEndOfBlock = Av1Distribution.CreateCopy(source.BaseEndOfBlock);
@@ -291,6 +303,31 @@ internal sealed class Av1FrameEntropyContext
     public Av1Distribution[] CompInter { get; }
 
     /// <summary>
+    /// Gets the distributions that select unidirectional or bidirectional compound reference pairs.
+    /// </summary>
+    public Av1Distribution[] CompoundReferenceType { get; }
+
+    /// <summary>
+    /// Gets the unidirectional compound-reference selection distributions.
+    /// </summary>
+    public Av1Distribution[][] UnidirectionalCompoundReference { get; }
+
+    /// <summary>
+    /// Gets the bidirectional compound forward-reference selection distributions.
+    /// </summary>
+    public Av1Distribution[][] CompoundReference { get; }
+
+    /// <summary>
+    /// Gets the bidirectional compound backward-reference selection distributions.
+    /// </summary>
+    public Av1Distribution[][] CompoundBackwardReference { get; }
+
+    /// <summary>
+    /// Gets the compound inter-mode distributions indexed by derived mode context.
+    /// </summary>
+    public Av1Distribution[] InterCompoundMode { get; }
+
+    /// <summary>
     /// Gets the inter-intra prediction flag distributions indexed by block-size group.
     /// </summary>
     public Av1Distribution[] InterIntra { get; }
@@ -364,6 +401,11 @@ internal sealed class Av1FrameEntropyContext
     /// Gets the transform-size distributions.
     /// </summary>
     public Av1Distribution[][] TransformSize { get; }
+
+    /// <summary>
+    /// Gets the variable-transform partition distributions.
+    /// </summary>
+    public Av1Distribution[] TransformPartition { get; }
 
     /// <summary>
     /// Gets the end-of-block token distributions selected for the frame base quantizer.
@@ -475,6 +517,11 @@ internal sealed class Av1FrameEntropyContext
         CopyState(source.Drl, this.Drl);
         CopyState(source.SingleReference, this.SingleReference);
         CopyState(source.CompInter, this.CompInter);
+        CopyState(source.CompoundReferenceType, this.CompoundReferenceType);
+        CopyState(source.UnidirectionalCompoundReference, this.UnidirectionalCompoundReference);
+        CopyState(source.CompoundReference, this.CompoundReference);
+        CopyState(source.CompoundBackwardReference, this.CompoundBackwardReference);
+        CopyState(source.InterCompoundMode, this.InterCompoundMode);
         CopyState(source.InterIntra, this.InterIntra);
         CopyState(source.MotionMode, this.MotionMode);
         CopyState(source.Obmc, this.Obmc);
@@ -490,6 +537,7 @@ internal sealed class Av1FrameEntropyContext
         this.FilterIntraMode.CopyFrom(source.FilterIntraMode);
         CopyState(source.FilterIntra, this.FilterIntra);
         CopyState(source.TransformSize, this.TransformSize);
+        CopyState(source.TransformPartition, this.TransformPartition);
         CopyState(source.EndOfBlockFlag, this.EndOfBlockFlag);
         CopyState(source.CoefficientsBase, this.CoefficientsBase);
         CopyState(source.BaseEndOfBlock, this.BaseEndOfBlock);
@@ -544,6 +592,11 @@ internal sealed class Av1FrameEntropyContext
         ResetUpdateCounts(this.Drl);
         ResetUpdateCounts(this.SingleReference);
         ResetUpdateCounts(this.CompInter);
+        ResetUpdateCounts(this.CompoundReferenceType);
+        ResetUpdateCounts(this.UnidirectionalCompoundReference);
+        ResetUpdateCounts(this.CompoundReference);
+        ResetUpdateCounts(this.CompoundBackwardReference);
+        ResetUpdateCounts(this.InterCompoundMode);
         ResetUpdateCounts(this.InterIntra);
         ResetUpdateCounts(this.MotionMode);
         ResetUpdateCounts(this.Obmc);
@@ -559,6 +612,7 @@ internal sealed class Av1FrameEntropyContext
         this.FilterIntraMode.ResetUpdateCount();
         ResetUpdateCounts(this.FilterIntra);
         ResetUpdateCounts(this.TransformSize);
+        ResetUpdateCounts(this.TransformPartition);
         ResetUpdateCounts(this.EndOfBlockFlag);
         ResetUpdateCounts(this.CoefficientsBase);
         ResetUpdateCounts(this.BaseEndOfBlock);

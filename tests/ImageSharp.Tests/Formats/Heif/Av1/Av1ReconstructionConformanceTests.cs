@@ -129,6 +129,16 @@ public class Av1ReconstructionConformanceTests
     private const int ProgressiveFirstLayerSize = 55;
 
     /// <summary>
+    /// The displayed width and height of the independent compound image sequence.
+    /// </summary>
+    private const int AverageCompoundFixtureSize = 80;
+
+    /// <summary>
+    /// The number of presented frames in the independent compound image sequence.
+    /// </summary>
+    private const int AverageCompoundFixtureFrameCount = 19;
+
+    /// <summary>
     /// The hardware configurations covering the available vector widths and the scalar color-conversion fallback.
     /// </summary>
     private const HwIntrinsics PresentationConfigurations =
@@ -421,6 +431,172 @@ public class Av1ReconstructionConformanceTests
             returned => returned.HashCodeOfBuffer == retainedMotionField.HashCodeOfBuffer);
 
         Assert.Single(allocator.ReturnLog, returned => returned.HashCodeOfBuffer == temporalMotionField.HashCodeOfBuffer);
+    }
+
+    /// <summary>
+    /// Verifies exact native reconstruction and presentation for a genuine pinned-libavif image sequence that uses
+    /// equal-weight compound prediction.
+    /// </summary>
+    [Fact]
+    public void DecodeRealLibavifSequenceWithEqualAverageCompoundMatchesPinnedReferences()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateAverageCompoundSequenceWithDefaultConfiguration,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Verifies the complete compound sequence through a constrained allocator.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodeRealLibavifSequenceWithEqualAverageCompoundUsesContiguousPlanes()
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        ValidateAverageCompoundSequence(configuration, null);
+
+        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
+        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer));
+    }
+
+    /// <summary>
+    /// Runs the exact compound-sequence comparisons with the default configuration.
+    /// </summary>
+    private static void ValidateAverageCompoundSequenceWithDefaultConfiguration()
+    {
+        byte[] presentationBytes = TestFile.Create(TestImages.Heif.Av1AverageCompoundSequencePresentationReference).Bytes;
+        using Image<Rgba32> presentationReference = Image.Load<Rgba32>(presentationBytes);
+
+        ValidateAverageCompoundSequence(Configuration.Default, presentationReference.Frames.RootFrame);
+    }
+
+    /// <summary>
+    /// Validates the complete compound sequence with the requested allocator and optional presentation reference.
+    /// </summary>
+    /// <param name="configuration">The decoder configuration.</param>
+    /// <param name="presentationReference">The exact final presented frame, or <see langword="null"/>.</param>
+    private static void ValidateAverageCompoundSequence(
+        Configuration configuration,
+        ImageFrame<Rgba32> presentationReference)
+    {
+        byte[] fileBytes = TestFile.Create(TestImages.Heif.Av1AverageCompoundSequenceAvif).Bytes;
+        byte[] referenceBytes = TestFile.Create(TestImages.Heif.Av1AverageCompoundSequenceNativeReference).Bytes;
+        ReadOnlySpan<byte> fileHeader =
+            "YUV4MPEG2 W80 H80 F25:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n"u8;
+
+        ReadOnlySpan<byte> frameHeader = "FRAME\n"u8;
+
+        ReadOnlySpan<byte> nativeReference = referenceBytes;
+        Assert.True(nativeReference.StartsWith(fileHeader));
+        nativeReference = nativeReference[fileHeader.Length..];
+        Assert.True(nativeReference.StartsWith(frameHeader));
+        nativeReference = nativeReference[frameHeader.Length..];
+        Assert.Equal(AverageCompoundFixtureSize * AverageCompoundFixtureSize * 3, nativeReference.Length);
+
+        HeifSequence sequence = ParseImageSequence(fileBytes);
+        HeifSequenceTrack track = sequence.ColorTrack;
+        int compoundBlockCount = 0;
+        int visibleFrameCount = 0;
+        bool nativeCompared = false;
+        bool presentationCompared = false;
+
+        using Av1Decoder decoder = new(configuration);
+        for (int sampleIndex = 0; sampleIndex < track.Samples.Length; sampleIndex++)
+        {
+            HeifSequenceSample sample = track.Samples[sampleIndex];
+            Span<byte> sampleData = fileBytes.AsSpan((int)sample.Offset, sample.Length);
+            if (sample.IsHidden)
+            {
+                decoder.DecodeSequenceReference(
+                    sampleData,
+                    track.CicpProfile,
+                    track.Av1CodecConfiguration);
+
+                continue;
+            }
+
+            ImageFrame<Rgba32> decodedFrame;
+            try
+            {
+                decodedFrame = decoder.DecodeSequenceFrame<Rgba32>(
+                    sampleData,
+                    track.CicpProfile,
+                    track.Av1CodecConfiguration);
+            }
+            catch (InvalidImageContentException exception)
+            {
+                throw new InvalidImageContentException($"The pinned compound fixture failed at sample {sampleIndex}.", exception);
+            }
+
+            using ImageFrame<Rgba32> frame = decodedFrame;
+
+            ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
+            _ = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
+            Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
+            Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+
+            // Inter prediction addresses padding with one base span and a logical row stride. The frame owner must
+            // preserve that contract even when the configured allocator would ordinarily split a large buffer.
+            Assert.Equal(1, frameBuffer.BufferY!.FastMemoryGroup.Count);
+            Assert.Equal(1, frameBuffer.BufferCb!.FastMemoryGroup.Count);
+            Assert.Equal(1, frameBuffer.BufferCr!.FastMemoryGroup.Count);
+
+            int superblockSizeLog2 = sequenceHeader.SuperblockSizeLog2;
+            int superblockColumnCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, superblockSizeLog2) >> superblockSizeLog2;
+            int superblockRowCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameHeight, superblockSizeLog2) >> superblockSizeLog2;
+
+            for (int superblockRow = 0; superblockRow < superblockRowCount; superblockRow++)
+            {
+                for (int superblockColumn = 0; superblockColumn < superblockColumnCount; superblockColumn++)
+                {
+                    Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
+                    foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
+                    {
+                        if (modeInfo.ReferenceFrames[1] <= Av1ReferenceFrameType.Intra)
+                        {
+                            continue;
+                        }
+
+                        Assert.Equal(Av1CompoundType.Average, modeInfo.CompoundType);
+                        compoundBlockCount++;
+                    }
+                }
+            }
+
+            if (visibleFrameCount == AverageCompoundFixtureFrameCount - 1)
+            {
+                Assert.Equal(AverageCompoundFixtureSize, frameBuffer.Width);
+                Assert.Equal(AverageCompoundFixtureSize, frameBuffer.Height);
+                Assert.Equal(Av1BitDepth.EightBit, frameBuffer.BitDepth);
+                Assert.Equal(Av1ColorFormat.Yuv444, frameBuffer.ColorFormat);
+                AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
+                nativeCompared = true;
+
+                if (presentationReference is not null)
+                {
+                    ImageSimilarityReport<Rgba32, Rgba32> report =
+                        ImageComparer.Exact.CompareImagesOrFrames(visibleFrameCount, presentationReference, frame);
+
+                    Assert.True(report.IsEmpty, report.ToString());
+                    presentationCompared = true;
+                }
+            }
+
+            visibleFrameCount++;
+        }
+
+        Assert.Equal(AverageCompoundFixtureFrameCount, visibleFrameCount);
+        Assert.NotEqual(0, compoundBlockCount);
+        Assert.True(nativeCompared);
+        Assert.Equal(presentationReference is not null, presentationCompared);
     }
 
     /// <summary>
@@ -1093,6 +1269,37 @@ public class Av1ReconstructionConformanceTests
         Assert.Single(image.Frames);
         Assert.Equal(HeifBitDepth.Bit8, image.Metadata.GetHeifMetadata().BitDepth);
         ImageComparer.Exact.VerifySimilarity(presentationReference, image);
+    }
+
+    /// <summary>
+    /// Parses the selected image-sequence tracks from a complete HEIF fixture.
+    /// </summary>
+    /// <param name="fileBytes">The complete HEIF file.</param>
+    /// <returns>The bounded image-sequence model.</returns>
+    private static HeifSequence ParseImageSequence(byte[] fileBytes)
+    {
+        using MemoryStream stream = new(fileBytes, false);
+        Span<byte> scratch = stackalloc byte[32];
+        while (stream.Position < stream.Length)
+        {
+            long boxLength = HeifBoxReader.ReadHeader(
+                stream,
+                stream.Length,
+                scratch,
+                out Heif4CharCode boxType,
+                topLevel: true);
+
+            long boxStart = stream.Position;
+            if (boxType == Heif4CharCode.Moov)
+            {
+                HeifSequenceParser parser = new(new DecoderOptions { MaxFrames = 32 });
+                return parser.Parse(stream, boxLength);
+            }
+
+            stream.Position = checked(boxStart + boxLength);
+        }
+
+        throw new InvalidImageContentException("The HEIF fixture contains no image sequence.");
     }
 
     /// <summary>

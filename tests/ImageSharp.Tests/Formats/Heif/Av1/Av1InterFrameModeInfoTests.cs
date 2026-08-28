@@ -14,7 +14,7 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 /// <summary>
-/// Verifies inter-frame block-prefix, intra-block selection, skip-mode, and interpolation-filter syntax.
+/// Verifies inter-frame block-prefix, reference selection, motion-mode, and interpolation-filter syntax.
 /// </summary>
 [Trait("Format", "Avif")]
 public class Av1InterFrameModeInfoTests
@@ -59,7 +59,25 @@ public class Av1InterFrameModeInfoTests
     public void ReadInterFrameModeInfoSkipModeForcesInterBlockAndResidualSkip()
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
+        sequenceHeader.OrderHintInfo.EnableOrderHint = true;
+        sequenceHeader.OrderHintInfo.OrderHintBits = 3;
         ObuFrameHeader frameHeader = CreateFrameHeader();
+        frameHeader.ReferenceMode = ObuReferenceMode.ReferenceModeSelect;
+        frameHeader.OrderHint = 4;
+        for (int index = 0; index < Av1Constants.ReferencesPerFrame; index++)
+        {
+            frameHeader.GetReferenceFrameIndices()[index] = (uint)index;
+        }
+
+        Span<uint> referenceOrderHints = frameHeader.GetReferenceOrderHints();
+        referenceOrderHints[0] = 3;
+        referenceOrderHints[1] = 2;
+        referenceOrderHints[2] = 1;
+        referenceOrderHints[3] = 0;
+        referenceOrderHints[4] = 5;
+        referenceOrderHints[5] = 6;
+        referenceOrderHints[6] = 7;
+        frameHeader.SkipModeParameters.Derive(sequenceHeader.OrderHintInfo, frameHeader);
         frameHeader.SkipModeParameters.SkipModeFlag = true;
         using Av1TileReader tileReader = new(Configuration.Default, sequenceHeader, frameHeader);
         Av1BlockModeInfo aboveModeInfo = new(Av1BlockSize.Block8x8, Point.Empty) { SkipMode = true };
@@ -71,9 +89,14 @@ public class Av1InterFrameModeInfoTests
         using IMemoryOwner<byte> encoded = writer.Exit();
         Memory<byte> encodedMemory = encoded.Memory;
 
-        Assert.Throws<NotSupportedException>(() => ReadInterFrameModeInfo(tileReader, encodedMemory, modeInfo, aboveModeInfo));
+        ReadInterFrameModeInfo(tileReader, encodedMemory, modeInfo, aboveModeInfo);
+
         Assert.True(modeInfo.SkipMode);
         Assert.True(modeInfo.Skip);
+        Assert.Equal(Av1PredictionMode.NearestNearestMotionVector, modeInfo.YMode);
+        Assert.Equal(Av1ReferenceFrameType.Last, modeInfo.ReferenceFrames[0]);
+        Assert.Equal(Av1ReferenceFrameType.Backward, modeInfo.ReferenceFrames[1]);
+        Assert.Equal(Av1CompoundType.Average, modeInfo.CompoundType);
     }
 
     /// <summary>
@@ -142,8 +165,8 @@ public class Av1InterFrameModeInfoTests
         using Av1SymbolWriter writer = new(Configuration.Default, 3, updateCdf: true);
         writer.WriteSymbol(false, Av1DefaultDistributions.Skip[0]);
 
-        // These sentinel symbols remain unread because pinned libaom classifies every GLOBALMV model other than
-        // TRANSLATION as non-translational for interpolation syntax, including the default identity model.
+        // Pinned libaom's is_nontrans_global_motion rejects only TRANSLATION, so the default identity model omits these
+        // sentinel symbols even though is_global_mv_block uses the separate greater-than-translation classification.
         writer.WriteSymbol((int)Av1InterpolationFilter.Smooth, Av1DefaultDistributions.SwitchableInterpolation[3]);
         writer.WriteSymbol((int)Av1InterpolationFilter.Sharp, Av1DefaultDistributions.SwitchableInterpolation[11]);
         using IMemoryOwner<byte> encoded = writer.Exit();
@@ -156,7 +179,52 @@ public class Av1InterFrameModeInfoTests
     }
 
     /// <summary>
-    /// Invokes the ref-struct mode parser for exception assertions that cannot capture its parameters directly.
+    /// Verifies every unidirectional and bidirectional compound reference-tree leaf through paired motion parsing.
+    /// </summary>
+    /// <param name="pairIndex">The zero-based normative compound reference pair.</param>
+    /// <param name="expectedPrimary">The expected primary retained-reference label.</param>
+    /// <param name="expectedSecondary">The expected secondary retained-reference label.</param>
+    [Theory]
+    [InlineData(0, (int)Av1ReferenceFrameType.Backward, (int)Av1ReferenceFrameType.Alternate)]
+    [InlineData(1, (int)Av1ReferenceFrameType.Last, (int)Av1ReferenceFrameType.Last2)]
+    [InlineData(2, (int)Av1ReferenceFrameType.Last, (int)Av1ReferenceFrameType.Last3)]
+    [InlineData(3, (int)Av1ReferenceFrameType.Last, (int)Av1ReferenceFrameType.Golden)]
+    [InlineData(4, (int)Av1ReferenceFrameType.Last, (int)Av1ReferenceFrameType.Backward)]
+    [InlineData(5, (int)Av1ReferenceFrameType.Last2, (int)Av1ReferenceFrameType.Alternate2)]
+    [InlineData(6, (int)Av1ReferenceFrameType.Last3, (int)Av1ReferenceFrameType.Alternate)]
+    [InlineData(7, (int)Av1ReferenceFrameType.Golden, (int)Av1ReferenceFrameType.Alternate)]
+    public void ReadInterFrameModeInfoReadsCompoundReferencePair(
+        int pairIndex,
+        int expectedPrimary,
+        int expectedSecondary)
+    {
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
+        ObuFrameHeader frameHeader = CreateFrameHeader();
+        frameHeader.ReferenceMode = ObuReferenceMode.ReferenceModeSelect;
+        using Av1TileReader tileReader = new(Configuration.Default, sequenceHeader, frameHeader);
+        Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, Point.Empty);
+        using Av1SymbolWriter writer = new(Configuration.Default, 8, updateCdf: true);
+        writer.WriteSymbol(false, Av1DefaultDistributions.Skip[0]);
+        writer.WriteSymbol(true, Av1DefaultDistributions.IntraInter[0]);
+        writer.WriteSymbol(true, Av1DefaultDistributions.CompInter[1]);
+        WriteCompoundReferencePair(writer, pairIndex);
+        writer.WriteSymbol(0, Av1DefaultDistributions.InterCompoundMode[0]);
+
+        using IMemoryOwner<byte> encoded = writer.Exit();
+        Memory<byte> encodedMemory = encoded.Memory;
+
+        ReadInterFrameModeInfo(tileReader, encodedMemory, modeInfo);
+
+        Assert.Equal((Av1ReferenceFrameType)expectedPrimary, modeInfo.ReferenceFrames[0]);
+        Assert.Equal((Av1ReferenceFrameType)expectedSecondary, modeInfo.ReferenceFrames[1]);
+        Assert.Equal(Av1PredictionMode.NearestNearestMotionVector, modeInfo.YMode);
+        Assert.Equal(default(Av1MotionVector), modeInfo.MotionVectors[0]);
+        Assert.Equal(default(Av1MotionVector), modeInfo.MotionVectors[1]);
+        Assert.Equal(Av1CompoundType.Average, modeInfo.CompoundType);
+    }
+
+    /// <summary>
+    /// Invokes the ref-struct mode parser with one available above neighbor.
     /// </summary>
     /// <param name="tileReader">The tile reader.</param>
     /// <param name="encoded">The range-coded block-prefix symbols.</param>
@@ -177,6 +245,63 @@ public class Av1InterFrameModeInfoTests
 
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Span, 0, updateCdf: true);
         tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, tileReader.FrameHeader));
+    }
+
+    /// <summary>
+    /// Invokes the ref-struct mode parser without spatial neighbors.
+    /// </summary>
+    private static void ReadInterFrameModeInfo(
+        Av1TileReader tileReader,
+        Memory<byte> encoded,
+        Av1BlockModeInfo modeInfo)
+    {
+        Av1SuperblockInfo superblockInfo = new(tileReader.FrameInfo, Point.Empty);
+        Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, false, Av1PartitionType.None);
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Span, 0, updateCdf: true);
+        tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, tileReader.FrameHeader));
+    }
+
+    /// <summary>
+    /// Writes one complete compound-reference tree leaf using the neutral no-neighbor contexts.
+    /// </summary>
+    private static void WriteCompoundReferencePair(Av1SymbolWriter writer, int pairIndex)
+    {
+        bool bidirectional = pairIndex >= 4;
+        writer.WriteSymbol(bidirectional, Av1DefaultDistributions.CompoundReferenceType[2]);
+        if (!bidirectional)
+        {
+            bool backwardPair = pairIndex == 0;
+            writer.WriteSymbol(backwardPair, Av1DefaultDistributions.UnidirectionalCompoundReference[1][0]);
+            if (!backwardPair)
+            {
+                bool last3OrGolden = pairIndex >= 2;
+                writer.WriteSymbol(last3OrGolden, Av1DefaultDistributions.UnidirectionalCompoundReference[1][1]);
+                if (last3OrGolden)
+                {
+                    writer.WriteSymbol(pairIndex == 3, Av1DefaultDistributions.UnidirectionalCompoundReference[1][2]);
+                }
+            }
+
+            return;
+        }
+
+        bool last3OrGoldenForward = pairIndex >= 6;
+        writer.WriteSymbol(last3OrGoldenForward, Av1DefaultDistributions.CompoundReference[1][0]);
+        if (last3OrGoldenForward)
+        {
+            writer.WriteSymbol(pairIndex == 7, Av1DefaultDistributions.CompoundReference[1][2]);
+        }
+        else
+        {
+            writer.WriteSymbol(pairIndex == 5, Av1DefaultDistributions.CompoundReference[1][1]);
+        }
+
+        bool alternateBackward = pairIndex >= 6;
+        writer.WriteSymbol(alternateBackward, Av1DefaultDistributions.CompoundBackwardReference[1][0]);
+        if (!alternateBackward)
+        {
+            writer.WriteSymbol(pairIndex == 5, Av1DefaultDistributions.CompoundBackwardReference[1][1]);
+        }
     }
 
     /// <summary>
@@ -203,7 +328,8 @@ public class Av1InterFrameModeInfoTests
     /// </summary>
     /// <returns>The initialized frame header.</returns>
     private static ObuFrameHeader CreateFrameHeader()
-        => new()
+    {
+        ObuFrameHeader frameHeader = new()
         {
             FrameType = ObuFrameType.InterFrame,
             ModeInfoColumnCount = 16,
@@ -211,4 +337,9 @@ public class Av1InterFrameModeInfoTests
             CodedLossless = true,
             AllowScreenContentTools = false,
         };
+
+        frameHeader.TilesInfo.TileColumnStartModeInfo[1] = frameHeader.ModeInfoColumnCount;
+        frameHeader.TilesInfo.TileRowStartModeInfo[1] = frameHeader.ModeInfoRowCount;
+        return frameHeader;
+    }
 }

@@ -1,0 +1,245 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
+
+/// <summary>
+/// Combines two AV1 inter predictors with equal-weight rounded averaging.
+/// </summary>
+internal static class Av1CompoundInterPredictor
+{
+    /// <summary>
+    /// Averages an 8-bit predictor into an existing prediction block.
+    /// </summary>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    public static void Average(
+        Span<byte> destination,
+        int destinationStride,
+        ReadOnlySpan<byte> second,
+        int secondStride,
+        int width,
+        int height)
+    {
+        for (int row = 0; row < height; row++)
+        {
+            Span<byte> destinationRow = destination.Slice(row * destinationStride, width);
+            ReadOnlySpan<byte> secondRow = second.Slice(row * secondStride, width);
+            ref byte destinationReference = ref MemoryMarshal.GetReference(destinationRow);
+            ref byte secondReference = ref MemoryMarshal.GetReference(secondRow);
+            int column = 0;
+
+            if (Vector512.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector512<byte>.Count;
+                for (; column <= vectorEnd; column += Vector512<byte>.Count)
+                {
+                    Vector512<byte> firstVector = Vector512.LoadUnsafe(ref destinationReference, (nuint)column);
+                    Vector512<byte> secondVector = Vector512.LoadUnsafe(ref secondReference, (nuint)column);
+                    Average(firstVector, secondVector).StoreUnsafe(ref destinationReference, (nuint)column);
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector256<byte>.Count;
+                for (; column <= vectorEnd; column += Vector256<byte>.Count)
+                {
+                    Vector256<byte> firstVector = Vector256.LoadUnsafe(ref destinationReference, (nuint)column);
+                    Vector256<byte> secondVector = Vector256.LoadUnsafe(ref secondReference, (nuint)column);
+                    Average(firstVector, secondVector).StoreUnsafe(ref destinationReference, (nuint)column);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector128<byte>.Count;
+                for (; column <= vectorEnd; column += Vector128<byte>.Count)
+                {
+                    Vector128<byte> firstVector = Vector128.LoadUnsafe(ref destinationReference, (nuint)column);
+                    Vector128<byte> secondVector = Vector128.LoadUnsafe(ref secondReference, (nuint)column);
+                    Average(firstVector, secondVector).StoreUnsafe(ref destinationReference, (nuint)column);
+                }
+            }
+
+            for (; column < width; column++)
+            {
+                destinationRow[column] = (byte)((destinationRow[column] + secondRow[column] + 1) >> 1);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Averages a high-bit-depth predictor into an existing prediction block.
+    /// </summary>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    public static void Average(
+        Span<ushort> destination,
+        int destinationStride,
+        ReadOnlySpan<ushort> second,
+        int secondStride,
+        int width,
+        int height)
+    {
+        for (int row = 0; row < height; row++)
+        {
+            Span<ushort> destinationRow = destination.Slice(row * destinationStride, width);
+            ReadOnlySpan<ushort> secondRow = second.Slice(row * secondStride, width);
+            ref ushort destinationReference = ref MemoryMarshal.GetReference(destinationRow);
+            ref ushort secondReference = ref MemoryMarshal.GetReference(secondRow);
+            int column = 0;
+
+            if (Vector512.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector512<ushort>.Count;
+                for (; column <= vectorEnd; column += Vector512<ushort>.Count)
+                {
+                    Vector512<ushort> firstVector = Vector512.LoadUnsafe(ref destinationReference, (nuint)column);
+                    Vector512<ushort> secondVector = Vector512.LoadUnsafe(ref secondReference, (nuint)column);
+                    Average(firstVector, secondVector).StoreUnsafe(ref destinationReference, (nuint)column);
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector256<ushort>.Count;
+                for (; column <= vectorEnd; column += Vector256<ushort>.Count)
+                {
+                    Vector256<ushort> firstVector = Vector256.LoadUnsafe(ref destinationReference, (nuint)column);
+                    Vector256<ushort> secondVector = Vector256.LoadUnsafe(ref secondReference, (nuint)column);
+                    Average(firstVector, secondVector).StoreUnsafe(ref destinationReference, (nuint)column);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector128<ushort>.Count;
+                for (; column <= vectorEnd; column += Vector128<ushort>.Count)
+                {
+                    Vector128<ushort> firstVector = Vector128.LoadUnsafe(ref destinationReference, (nuint)column);
+                    Vector128<ushort> secondVector = Vector128.LoadUnsafe(ref secondReference, (nuint)column);
+                    Average(firstVector, secondVector).StoreUnsafe(ref destinationReference, (nuint)column);
+                }
+            }
+
+            for (; column < width; column++)
+            {
+                destinationRow[column] = (ushort)((destinationRow[column] + secondRow[column] + 1) >> 1);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Averages an 8-bit predictor without explicit hardware intrinsics.
+    /// </summary>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    public static void AverageScalar(
+        Span<byte> destination,
+        int destinationStride,
+        ReadOnlySpan<byte> second,
+        int secondStride,
+        int width,
+        int height)
+    {
+        for (int row = 0; row < height; row++)
+        {
+            Span<byte> destinationRow = destination.Slice(row * destinationStride, width);
+            ReadOnlySpan<byte> secondRow = second.Slice(row * secondStride, width);
+            for (int column = 0; column < width; column++)
+            {
+                destinationRow[column] = (byte)((destinationRow[column] + secondRow[column] + 1) >> 1);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Averages a high-bit-depth predictor without explicit hardware intrinsics.
+    /// </summary>
+    /// <param name="destination">The first predictor and combined output.</param>
+    /// <param name="destinationStride">The distance between destination rows in samples.</param>
+    /// <param name="second">The second predictor.</param>
+    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
+    /// <param name="width">The active block width.</param>
+    /// <param name="height">The active block height.</param>
+    public static void AverageScalar(
+        Span<ushort> destination,
+        int destinationStride,
+        ReadOnlySpan<ushort> second,
+        int secondStride,
+        int width,
+        int height)
+    {
+        for (int row = 0; row < height; row++)
+        {
+            Span<ushort> destinationRow = destination.Slice(row * destinationStride, width);
+            ReadOnlySpan<ushort> secondRow = second.Slice(row * secondStride, width);
+            for (int column = 0; column < width; column++)
+            {
+                destinationRow[column] = (ushort)((destinationRow[column] + secondRow[column] + 1) >> 1);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Computes rounded unsigned averages without widening either input vector.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector512<byte> Average(Vector512<byte> first, Vector512<byte> second)
+    {
+        // (a | b) - ((a ^ b) >> 1) is exactly (a + b + 1) >> 1 and cannot overflow an unsigned lane.
+        return (first | second) - ((first ^ second) >> 1);
+    }
+
+    /// <summary>
+    /// Computes rounded unsigned averages without widening either input vector.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector256<byte> Average(Vector256<byte> first, Vector256<byte> second)
+        => (first | second) - ((first ^ second) >> 1);
+
+    /// <summary>
+    /// Computes rounded unsigned averages without widening either input vector.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<byte> Average(Vector128<byte> first, Vector128<byte> second)
+        => (first | second) - ((first ^ second) >> 1);
+
+    /// <summary>
+    /// Computes rounded unsigned averages without widening either input vector.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector512<ushort> Average(Vector512<ushort> first, Vector512<ushort> second)
+        => (first | second) - ((first ^ second) >> 1);
+
+    /// <summary>
+    /// Computes rounded unsigned averages without widening either input vector.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector256<ushort> Average(Vector256<ushort> first, Vector256<ushort> second)
+        => (first | second) - ((first ^ second) >> 1);
+
+    /// <summary>
+    /// Computes rounded unsigned averages without widening either input vector.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<ushort> Average(Vector128<ushort> first, Vector128<ushort> second)
+        => (first | second) - ((first ^ second) >> 1);
+}

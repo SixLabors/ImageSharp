@@ -803,8 +803,10 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         partitionInfo.PopulateModeInfoNeighbors(this.SequenceHeader.ColorConfig);
 
         this.ReadModeInfo(ref reader, ref partitionInfo, tileInfo);
+
         this.ReadPaletteTokens(ref reader, ref partitionInfo);
         this.ReadBlockTransformSize(ref reader, modeInfoLocation, ref partitionInfo, superblockInfo, tileInfo);
+
         if (partitionInfo.ModeInfo.Skip)
         {
             this.ResetSkipContext(ref partitionInfo, tileInfo);
@@ -927,7 +929,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     DebugGuard.IsFalse(transformUnitCount == 0, nameof(transformUnitCount), string.Empty);
                     for (int tu = 0; tu < transformUnitCount; tu++)
                     {
-                        Av1TransformInfo transformInfo = transformInfoSpan[transformInfoIndex];
+                        ref Av1TransformInfo transformInfo = ref transformInfoSpan[transformInfoIndex];
                         DebugGuard.MustBeLessThanOrEqualTo(transformInfo.OffsetX, maxBlocksWide, nameof(transformInfo));
                         DebugGuard.MustBeLessThanOrEqualTo(transformInfo.OffsetY, maxBlocksHigh, nameof(transformInfo));
 
@@ -952,7 +954,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                                 ref partitionInfo,
                                 tileInfo,
                                 coefficientBuffer,
-                                transformInfo,
+                                ref transformInfo,
                                 plane,
                                 blockColumn,
                                 blockRow,
@@ -1042,7 +1044,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         ref Av1PartitionInfo partitionInfo,
         Av1TileInfo tileInfo,
         Span<int> coefficientBuffer,
-        Av1TransformInfo transformInfo,
+        ref Av1TransformInfo transformInfo,
         int plane,
         int blockColumn,
         int blockRow,
@@ -1094,7 +1096,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             plane,
             transformBlockContext,
             transformSize,
-            transformInfo,
+            ref transformInfo,
             coefficientBuffer);
 
         return endOfBlock;
@@ -1128,7 +1130,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int plane,
         Av1TransformBlockContext transformBlockContext,
         Av1TransformSize transformSize,
-        Av1TransformInfo transformInfo,
+        ref Av1TransformInfo transformInfo,
         Span<int> coefficientBuffer)
     {
         int width = transformSize.GetWidth();
@@ -1142,7 +1144,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Av1BlockSize planeBlockSize = partitionInfo.ModeInfo.BlockSize.GetSubsampled(subX, subY);
         int blocksWide = partitionInfo.GetMaxBlockWide(planeBlockSize, subX);
         int blocksHigh = partitionInfo.GetMaxBlockHigh(planeBlockSize, subY);
-        Av1TransformType lumaTransformType = partitionInfo.ModeInfo.UseIntraBlockCopy && plane > 0 && !isLossless
+        bool usesInterTransformSet = partitionInfo.ModeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last || partitionInfo.ModeInfo.UseIntraBlockCopy;
+        Av1TransformType lumaTransformType = usesInterTransformSet && plane > 0 && !isLossless
             ? partitionInfo.GetLumaTransformType(blockPosition, subX, subY)
             : Av1TransformType.DctDct;
 
@@ -1161,7 +1164,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             isLossless,
             this.FrameHeader.UseReducedTransformSet,
             lumaTransformType,
-            transformInfo,
+            ref transformInfo,
             partitionInfo.ModeBlockToRightEdge,
             partitionInfo.ModeBlockToBottomEdge,
             coefficientBuffer);
@@ -1349,6 +1352,30 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         bool hasAbove = partitionInfo.AvailableAbove;
         bool hasLeft = partitionInfo.AvailableLeft;
 
+        // Inter neighbors expose their coding-block extent here rather than their residual transform extent. This
+        // keeps intra transform-size selection independent of whether the neighboring inter block split its tree.
+        if (hasAbove)
+        {
+            Av1BlockModeInfo aboveModeInfo = superblockInfo.GetModeInfoAt(
+                new Point(partitionInfo.ColumnIndex, partitionInfo.RowIndex - 1));
+
+            if (aboveModeInfo.ReferenceFrames[0] > Av1ReferenceFrameType.Intra)
+            {
+                above = aboveModeInfo.BlockSize.GetWidth() >= maxTransformSize.GetWidth() ? 1 : 0;
+            }
+        }
+
+        if (hasLeft)
+        {
+            Av1BlockModeInfo leftModeInfo = superblockInfo.GetModeInfoAt(
+                new Point(partitionInfo.ColumnIndex - 1, partitionInfo.RowIndex));
+
+            if (leftModeInfo.ReferenceFrames[0] > Av1ReferenceFrameType.Intra)
+            {
+                left = leftModeInfo.BlockSize.GetHeight() >= maxTransformSize.GetHeight() ? 1 : 0;
+            }
+        }
+
         if (hasAbove && hasLeft)
         {
             context = above + left;
@@ -1389,12 +1416,190 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int block4x4Width = blockSize.Get4x4WideCount();
         int block4x4Height = blockSize.Get4x4HighCount();
 
-        // Both intra frames and intra-coded blocks inside inter frames use the intra transform-size branch. The true
-        // inter branch will replace this fixed false classification when inter reconstruction is connected.
-        Av1TransformSize transformSize = this.ReadTransformSize(ref reader, ref partitionInfo, superblockInfo, tileInfo, true);
-        this.aboveNeighborContext.UpdateTransformation(modeInfoLocation, tileInfo, transformSize, blockSize, false);
-        this.leftNeighborContext.UpdateTransformation(modeInfoLocation, superblockInfo, transformSize, blockSize, false);
+        Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
+        bool usesInterTransformSyntax = modeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last || modeInfo.UseIntraBlockCopy;
+
+        this.transformUnitCount[(int)Av1Plane.Y].AsSpan(0, 4).Clear();
+        this.transformUnitCount[(int)Av1Plane.U].AsSpan(0, 4).Clear();
+        this.transformUnitCount[(int)Av1Plane.V].AsSpan(0, 4).Clear();
+
+        if (usesInterTransformSyntax &&
+            !modeInfo.Skip &&
+            this.FrameHeader.TransformMode == Av1TransformMode.Select &&
+            blockSize > Av1BlockSize.Block4x4)
+        {
+            this.ReadVariableTransformInfo(
+                ref reader,
+                modeInfoLocation,
+                ref partitionInfo,
+                superblockInfo,
+                tileInfo);
+
+            return;
+        }
+
+        // A skipped inter block derives its maximum transform size without a symbol. Intra blocks still select a
+        // transform size when the frame enables selection because skip_txfm does not suppress their size syntax.
+        bool allowSelect = !usesInterTransformSyntax || !modeInfo.Skip;
+        Av1TransformSize transformSize = this.ReadTransformSize(
+            ref reader,
+            ref partitionInfo,
+            superblockInfo,
+            tileInfo,
+            allowSelect);
+
+        bool skippedInterBlock = usesInterTransformSyntax && modeInfo.Skip;
+        this.aboveNeighborContext.UpdateTransformation(modeInfoLocation, tileInfo, transformSize, blockSize, skippedInterBlock);
+        this.leftNeighborContext.UpdateTransformation(modeInfoLocation, superblockInfo, transformSize, blockSize, skippedInterBlock);
         this.UpdateTransformInfo(ref partitionInfo, superblockInfo, blockSize, transformSize);
+    }
+
+    /// <summary>
+    /// Reads the recursive luma transform partition used by a non-skipped inter block.
+    /// </summary>
+    /// <param name="reader">The tile symbol decoder.</param>
+    /// <param name="modeInfoLocation">The coding-block origin in frame mode-information units.</param>
+    /// <param name="partitionInfo">The current coding block.</param>
+    /// <param name="superblockInfo">The containing superblock.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    private void ReadVariableTransformInfo(
+        ref Av1SymbolDecoder reader,
+        Point modeInfoLocation,
+        ref Av1PartitionInfo partitionInfo,
+        Av1SuperblockInfo superblockInfo,
+        Av1TileInfo tileInfo)
+    {
+        Av1BlockSize blockSize = partitionInfo.ModeInfo.BlockSize;
+        Av1TransformSize maximumTransformSize = blockSize.GetMaximumTransformSize();
+        int maximumBlocksWide = partitionInfo.GetMaxBlockWide(blockSize, false);
+        int maximumBlocksHigh = partitionInfo.GetMaxBlockHigh(blockSize, false);
+        int regionWidth = maximumTransformSize.Get4x4WideCount();
+        int regionHeight = maximumTransformSize.Get4x4HighCount();
+        int transformInfoIndex = partitionInfo.ModeInfo.GetFirstTransformLocation(Av1PlaneType.Y);
+        int totalTransformUnitCount = 0;
+        int regionIndex = 0;
+
+        // Large blocks are visited as independent maximum-transform regions. Keeping the same region order as residual
+        // parsing lets each region retain an exact transform count without a second map or temporary allocation.
+        for (int blockRow = 0; blockRow < maximumBlocksHigh; blockRow += regionHeight)
+        {
+            for (int blockColumn = 0; blockColumn < maximumBlocksWide; blockColumn += regionWidth)
+            {
+                int firstRegionTransform = totalTransformUnitCount;
+                this.ReadVariableTransformNode(
+                    ref reader,
+                    modeInfoLocation,
+                    ref partitionInfo,
+                    superblockInfo,
+                    tileInfo,
+                    maximumTransformSize,
+                    depth: 0,
+                    blockRow,
+                    blockColumn,
+                    ref transformInfoIndex,
+                    ref totalTransformUnitCount);
+
+                this.transformUnitCount[(int)Av1Plane.Y][regionIndex] = totalTransformUnitCount - firstRegionTransform;
+                regionIndex++;
+            }
+        }
+
+        this.UpdateTransformInfo(
+            ref partitionInfo,
+            superblockInfo,
+            blockSize,
+            maximumTransformSize,
+            preserveLuma: true,
+            existingLumaTransformUnitCount: totalTransformUnitCount);
+    }
+
+    /// <summary>
+    /// Reads one node of the inter variable-transform tree and appends its leaf transform descriptors.
+    /// </summary>
+    private void ReadVariableTransformNode(
+        ref Av1SymbolDecoder reader,
+        Point modeInfoLocation,
+        ref Av1PartitionInfo partitionInfo,
+        Av1SuperblockInfo superblockInfo,
+        Av1TileInfo tileInfo,
+        Av1TransformSize transformSize,
+        int depth,
+        int blockRow,
+        int blockColumn,
+        ref int transformInfoIndex,
+        ref int transformUnitCount)
+    {
+        Av1BlockSize blockSize = partitionInfo.ModeInfo.BlockSize;
+        int maximumBlocksWide = partitionInfo.GetMaxBlockWide(blockSize, false);
+        int maximumBlocksHigh = partitionInfo.GetMaxBlockHigh(blockSize, false);
+        if (blockRow >= maximumBlocksHigh || blockColumn >= maximumBlocksWide)
+        {
+            return;
+        }
+
+        bool split = false;
+        if (transformSize > Av1TransformSize.Size4x4 && depth < Av1Constants.MaxVarTransform)
+        {
+            int aboveOffset = modeInfoLocation.X - tileInfo.ModeInfoColumnStart + blockColumn;
+            int leftOffset = modeInfoLocation.Y - superblockInfo.ModeInfoPosition.Y + blockRow;
+            int transformWidth = transformSize.GetWidth();
+            int transformHeight = transformSize.GetHeight();
+            int above = this.aboveNeighborContext.AboveTransformWidth[aboveOffset] < transformWidth ? 1 : 0;
+            int left = this.leftNeighborContext.LeftTransformHeight[leftOffset] < transformHeight ? 1 : 0;
+            int maximumDimension = Math.Max(blockSize.GetWidth(), blockSize.GetHeight());
+            Av1TransformSize maximumSquareTransform = maximumDimension switch
+            {
+                >= 64 => Av1TransformSize.Size64x64,
+                >= 32 => Av1TransformSize.Size32x32,
+                >= 16 => Av1TransformSize.Size16x16,
+                _ => Av1TransformSize.Size8x8
+            };
+
+            int category = ((transformSize.GetSquareUpSize() != maximumSquareTransform && maximumSquareTransform > Av1TransformSize.Size8x8) ? 1 : 0) +
+                ((((int)Av1TransformSize.SquareSizes - 1) - (int)maximumSquareTransform) * 2);
+
+            int context = (category * 3) + above + left;
+            split = reader.ReadTransformPartition(context);
+        }
+
+        if (split)
+        {
+            Av1TransformSize subTransformSize = transformSize.GetSubSize();
+            int subWidth = subTransformSize.Get4x4WideCount();
+            int subHeight = subTransformSize.Get4x4HighCount();
+            int width = transformSize.Get4x4WideCount();
+            int height = transformSize.Get4x4HighCount();
+            for (int row = 0; row < height; row += subHeight)
+            {
+                for (int column = 0; column < width; column += subWidth)
+                {
+                    this.ReadVariableTransformNode(
+                        ref reader,
+                        modeInfoLocation,
+                        ref partitionInfo,
+                        superblockInfo,
+                        tileInfo,
+                        subTransformSize,
+                        depth + 1,
+                        blockRow + row,
+                        blockColumn + column,
+                        ref transformInfoIndex,
+                        ref transformUnitCount);
+                }
+            }
+
+            return;
+        }
+
+        Span<Av1TransformInfo> transformInfo = superblockInfo.GetTransformInfoY();
+        transformInfo[transformInfoIndex] = new Av1TransformInfo(transformSize, blockColumn, blockRow);
+        transformInfoIndex++;
+        transformUnitCount++;
+
+        Point transformLocation = new(modeInfoLocation.X + blockColumn, modeInfoLocation.Y + blockRow);
+        Av1BlockSize transformBlockSize = transformSize.ToBlockSize();
+        this.aboveNeighborContext.UpdateTransformation(transformLocation, tileInfo, transformSize, transformBlockSize, false);
+        this.leftNeighborContext.UpdateTransformation(transformLocation, superblockInfo, transformSize, transformBlockSize, false);
     }
 
     /// <summary>
@@ -1404,17 +1609,21 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="superblockInfo">The containing superblock and transform storage.</param>
     /// <param name="blockSize">The coding block size.</param>
     /// <param name="transformSize">The selected luma transform size.</param>
+    /// <param name="preserveLuma">Indicates whether variable-transform traversal already populated luma descriptors.</param>
+    /// <param name="existingLumaTransformUnitCount">The number of luma descriptors already populated.</param>
     private unsafe void UpdateTransformInfo(
         ref Av1PartitionInfo partitionInfo,
         Av1SuperblockInfo superblockInfo,
         Av1BlockSize blockSize,
-        Av1TransformSize transformSize)
+        Av1TransformSize transformSize,
+        bool preserveLuma = false,
+        int existingLumaTransformUnitCount = 0)
     {
         int transformInfoYIndex = partitionInfo.ModeInfo.GetFirstTransformLocation(Av1PlaneType.Y);
         int transformInfoUvIndex = partitionInfo.ModeInfo.GetFirstTransformLocation(Av1PlaneType.Uv);
         Span<Av1TransformInfo> lumaTransformInfo = superblockInfo.GetTransformInfoY();
         Span<Av1TransformInfo> chromaTransformInfo = superblockInfo.GetTransformInfoUv();
-        int totalLumaTransformUnitCount = 0;
+        int totalLumaTransformUnitCount = existingLumaTransformUnitCount;
         int totalChromaTransformUnitCount = 0;
         int forceSplitCount = 0;
         bool subX = this.SequenceHeader.ColorConfig.SubSamplingX;
@@ -1438,25 +1647,27 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 int lumaTransformUnitCount = 0;
                 int chromaTransformUnitCount = 0;
 
-                // Luma transform offsets remain relative to the coding block in 4x4 luma units.
-                int stepColumn = transformSize.Get4x4WideCount();
-                int stepRow = transformSize.Get4x4HighCount();
-
                 int unitHeight = Av1Math.RoundPowerOf2(Math.Min(height + idy, maxBlockHigh), 0);
                 int unitWidth = Av1Math.RoundPowerOf2(Math.Min(width + idx, maxBlockWide), 0);
-                for (int blockRow = idy; blockRow < unitHeight; blockRow += stepRow)
+                if (!preserveLuma)
                 {
-                    for (int blockColumn = idx; blockColumn < unitWidth; blockColumn += stepColumn)
+                    // Luma transform offsets remain relative to the coding block in 4x4 luma units.
+                    int lumaStepColumn = transformSize.Get4x4WideCount();
+                    int lumaStepRow = transformSize.Get4x4HighCount();
+                    for (int blockRow = idy; blockRow < unitHeight; blockRow += lumaStepRow)
                     {
-                        lumaTransformInfo[transformInfoYIndex] = new Av1TransformInfo(
-                            transformSize, blockColumn, blockRow);
-                        transformInfoYIndex++;
-                        lumaTransformUnitCount++;
-                        totalLumaTransformUnitCount++;
+                        for (int blockColumn = idx; blockColumn < unitWidth; blockColumn += lumaStepColumn)
+                        {
+                            lumaTransformInfo[transformInfoYIndex] = new Av1TransformInfo(
+                                transformSize, blockColumn, blockRow);
+                            transformInfoYIndex++;
+                            lumaTransformUnitCount++;
+                            totalLumaTransformUnitCount++;
+                        }
                     }
-                }
 
-                this.transformUnitCount[(int)Av1Plane.Y][forceSplitCount] = lumaTransformUnitCount;
+                    this.transformUnitCount[(int)Av1Plane.Y][forceSplitCount] = lumaTransformUnitCount;
+                }
 
                 if (this.SequenceHeader.ColorConfig.IsMonochrome || !partitionInfo.IsChroma)
                 {
@@ -1464,8 +1675,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 }
 
                 // Chroma geometry is rounded to the subsampling grid before stepping its transform size.
-                stepColumn = transformSizeUv.Get4x4WideCount();
-                stepRow = transformSizeUv.Get4x4HighCount();
+                int stepColumn = transformSizeUv.Get4x4WideCount();
+                int stepRow = transformSizeUv.Get4x4HighCount();
 
                 unitHeight = Av1Math.RoundPowerOf2(Math.Min(height + idy, maxBlockHigh), subY ? 1 : 0);
                 unitWidth = Av1Math.RoundPowerOf2(Math.Min(width + idx, maxBlockWide), subX ? 1 : 0);
@@ -1593,12 +1804,12 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     }
 
     /// <summary>
-    /// Reads the common inter-frame block prefix and the supported intra or single-reference inter prediction branch in bitstream order.
+    /// Reads the common inter-frame block prefix and the supported intra or inter prediction branch in bitstream order.
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block and its neighbors.</param>
     /// <param name="tileInfo">The active tile boundaries used by reference-motion-vector searches.</param>
-    /// <remarks>Implements the prefix, intra, and single-reference translational branches of AV1 section 5.11.7.</remarks>
+    /// <remarks>Implements the prefix, intra, and translational inter branches of AV1 section 5.11.7.</remarks>
     internal void ReadInterFrameModeInfo(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
     {
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
@@ -1629,10 +1840,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             this.ReadReferenceFrames(ref reader, ref partitionInfo);
 
             Av1ReferenceFrameType referenceFrame = modeInfo.ReferenceFrames[0];
-            if (modeInfo.SkipMode || modeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra)
-            {
-                throw new NotSupportedException("AV1 compound-reference block prediction is not implemented.");
-            }
+            Av1ReferenceFrameType secondaryReferenceFrame = modeInfo.ReferenceFrames[1];
+            bool isCompound = secondaryReferenceFrame > Av1ReferenceFrameType.Intra;
 
             Av1ReferenceMotionVectors referenceMotionVectors = this.referenceMotionVectors;
             referenceMotionVectors.Build(
@@ -1641,7 +1850,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 this.FrameInfo,
                 this.SequenceHeader,
                 this.FrameHeader,
-                referenceFrame);
+                referenceFrame,
+                secondaryReferenceFrame);
 
             ObuSegmentationParameters segmentationParameters = this.FrameHeader.SegmentationParameters;
             int segmentId = modeInfo.SegmentId;
@@ -1650,14 +1860,24 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 segmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.GlobalMotionVector);
 
             modeInfo.ReferenceMotionVectorIndex = 0;
-            modeInfo.YMode = usesForcedGlobalMotion
-                ? Av1PredictionMode.GlobalMotionVector
-                : reader.ReadInterMode(referenceMotionVectors.ModeContext);
+            modeInfo.YMode = modeInfo.SkipMode
+                ? Av1PredictionMode.NearestNearestMotionVector
+                : usesForcedGlobalMotion
+                    ? Av1PredictionMode.GlobalMotionVector
+                    : isCompound
+                        ? reader.ReadInterCompoundMode(referenceMotionVectors.ModeContext)
+                        : reader.ReadInterMode(referenceMotionVectors.ModeContext);
 
-            if (modeInfo.YMode == Av1PredictionMode.NewMotionVector)
+            bool modeIsCompound = modeInfo.YMode is >= Av1PredictionMode.CompoundInterModeStart and < Av1PredictionMode.CompoundInterModeEnd;
+            if (isCompound != modeIsCompound)
             {
-                // NEWMV can advance across candidates zero through two. Each transmitted one selects the next
-                // candidate and exposes one further DRL decision when the stack contains it.
+                throw new InvalidImageContentException("AV1 inter prediction mode does not match its reference-frame count.");
+            }
+
+            if (modeInfo.YMode is Av1PredictionMode.NewMotionVector or Av1PredictionMode.NewNewMotionVector)
+            {
+                // NEWMV and NEW_NEWMV can advance across candidates zero through two. Each transmitted one selects
+                // the next candidate and exposes one further DRL decision when the stack contains it.
                 for (int index = 0; index < 2 && referenceMotionVectors.Count > index + 1; index++)
                 {
                     int context = Av1SymbolContextHelper.GetDrlContext(referenceMotionVectors.Weights, index);
@@ -1669,10 +1889,14 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     }
                 }
             }
-            else if (modeInfo.YMode == Av1PredictionMode.NearMotionVector)
+            else if (modeInfo.YMode is
+                Av1PredictionMode.NearMotionVector or
+                Av1PredictionMode.NearNearMotionVector or
+                Av1PredictionMode.NearNewMotionVector or
+                Av1PredictionMode.NewNearMotionVector)
             {
-                // NEARMV reserves candidate zero for NEARESTMV, so its two DRL decisions examine pairs one/two and
-                // two/three while storing a zero-based offset from the first near candidate.
+                // Modes containing NEARMV reserve candidate zero for NEARESTMV, so their two DRL decisions examine
+                // pairs one/two and two/three while storing a zero-based offset from the first near candidate.
                 for (int index = 1; index < 3 && referenceMotionVectors.Count > index + 1; index++)
                 {
                     int context = Av1SymbolContextHelper.GetDrlContext(referenceMotionVectors.Weights, index);
@@ -1689,31 +1913,116 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 ? Av1MotionVectorPrecision.Integer
                 : this.FrameHeader.AllowHighPrecisionMotionVector ? Av1MotionVectorPrecision.EighthSample : Av1MotionVectorPrecision.QuarterSample;
 
-            Av1MotionVector motionVector = modeInfo.YMode switch
+            Span<Av1MotionVector> motionVectors = modeInfo.MotionVectors;
+            if (!isCompound)
             {
-                Av1PredictionMode.NewMotionVector => reader.ReadMotionVector(
-                    referenceMotionVectors.GetNewReference(modeInfo.ReferenceMotionVectorIndex),
-                    precision),
-                Av1PredictionMode.NearestMotionVector => referenceMotionVectors.Nearest,
-                Av1PredictionMode.NearMotionVector => referenceMotionVectors.GetNearReference(modeInfo.ReferenceMotionVectorIndex),
-                Av1PredictionMode.GlobalMotionVector => this.FrameHeader.GetGlobalMotionParameters()[(int)referenceFrame - 1].GetMotionVector(
-                    this.FrameHeader.AllowHighPrecisionMotionVector,
-                    modeInfo.BlockSize,
-                    new Point(partitionInfo.ColumnIndex, partitionInfo.RowIndex),
-                    this.FrameHeader.ForceIntegerMotionVector),
-                _ => throw new InvalidImageContentException("Invalid single-reference AV1 inter mode.")
-            };
+                motionVectors[0] = modeInfo.YMode switch
+                {
+                    Av1PredictionMode.NewMotionVector => reader.ReadMotionVector(
+                        referenceMotionVectors.GetNewReference(modeInfo.ReferenceMotionVectorIndex),
+                        precision),
+                    Av1PredictionMode.NearestMotionVector => referenceMotionVectors.Nearest,
+                    Av1PredictionMode.NearMotionVector => referenceMotionVectors.GetNearReference(modeInfo.ReferenceMotionVectorIndex),
+                    Av1PredictionMode.GlobalMotionVector => this.FrameHeader.GetGlobalMotionParameters()[(int)referenceFrame - 1].GetMotionVector(
+                        this.FrameHeader.AllowHighPrecisionMotionVector,
+                        modeInfo.BlockSize,
+                        new Point(partitionInfo.ColumnIndex, partitionInfo.RowIndex),
+                        this.FrameHeader.ForceIntegerMotionVector),
+                    _ => throw new InvalidImageContentException("Invalid single-reference AV1 inter mode.")
+                };
+            }
+            else
+            {
+                int referenceMotionVectorIndex = modeInfo.ReferenceMotionVectorIndex;
+                int newReferenceIndex = modeInfo.YMode is Av1PredictionMode.NearNewMotionVector or Av1PredictionMode.NewNearMotionVector
+                    ? referenceMotionVectorIndex + 1
+                    : referenceMotionVectorIndex;
 
-            if (!motionVector.IsValid)
-            {
-                throw new InvalidImageContentException("AV1 motion-vector component is outside the permitted range.");
+                Av1MotionVector primaryNearest = referenceMotionVectors.GetCompoundNearestReference(0);
+                Av1MotionVector secondaryNearest = referenceMotionVectors.GetCompoundNearestReference(1);
+                Av1MotionVector primaryNear = referenceMotionVectors.GetCompoundNearReference(referenceMotionVectorIndex, 0);
+                Av1MotionVector secondaryNear = referenceMotionVectors.GetCompoundNearReference(referenceMotionVectorIndex, 1);
+
+                switch (modeInfo.YMode)
+                {
+                    case Av1PredictionMode.NearestNearestMotionVector:
+                        motionVectors[0] = primaryNearest;
+                        motionVectors[1] = secondaryNearest;
+                        break;
+                    case Av1PredictionMode.NearNearMotionVector:
+                        motionVectors[0] = primaryNear;
+                        motionVectors[1] = secondaryNear;
+                        break;
+                    case Av1PredictionMode.NearestNewMotionVector:
+                        motionVectors[0] = primaryNearest;
+                        motionVectors[1] = reader.ReadMotionVector(
+                            referenceMotionVectors.GetCompoundNewReference(newReferenceIndex, 1),
+                            precision);
+
+                        break;
+                    case Av1PredictionMode.NewNearestMotionVector:
+                        motionVectors[0] = reader.ReadMotionVector(
+                            referenceMotionVectors.GetCompoundNewReference(newReferenceIndex, 0),
+                            precision);
+
+                        motionVectors[1] = secondaryNearest;
+                        break;
+                    case Av1PredictionMode.NearNewMotionVector:
+                        motionVectors[0] = primaryNear;
+                        motionVectors[1] = reader.ReadMotionVector(
+                            referenceMotionVectors.GetCompoundNewReference(newReferenceIndex, 1),
+                            precision);
+
+                        break;
+                    case Av1PredictionMode.NewNearMotionVector:
+                        motionVectors[0] = reader.ReadMotionVector(
+                            referenceMotionVectors.GetCompoundNewReference(newReferenceIndex, 0),
+                            precision);
+
+                        motionVectors[1] = secondaryNear;
+                        break;
+                    case Av1PredictionMode.GlobalGlobalMotionVector:
+                        motionVectors[0] = this.FrameHeader.GetGlobalMotionParameters()[(int)referenceFrame - 1].GetMotionVector(
+                            this.FrameHeader.AllowHighPrecisionMotionVector,
+                            modeInfo.BlockSize,
+                            new Point(partitionInfo.ColumnIndex, partitionInfo.RowIndex),
+                            this.FrameHeader.ForceIntegerMotionVector);
+
+                        motionVectors[1] = this.FrameHeader.GetGlobalMotionParameters()[(int)secondaryReferenceFrame - 1].GetMotionVector(
+                            this.FrameHeader.AllowHighPrecisionMotionVector,
+                            modeInfo.BlockSize,
+                            new Point(partitionInfo.ColumnIndex, partitionInfo.RowIndex),
+                            this.FrameHeader.ForceIntegerMotionVector);
+
+                        break;
+                    case Av1PredictionMode.NewNewMotionVector:
+                        motionVectors[0] = reader.ReadMotionVector(
+                            referenceMotionVectors.GetCompoundNewReference(newReferenceIndex, 0),
+                            precision);
+
+                        motionVectors[1] = reader.ReadMotionVector(
+                            referenceMotionVectors.GetCompoundNewReference(newReferenceIndex, 1),
+                            precision);
+
+                        break;
+                    default:
+                        throw new InvalidImageContentException("Invalid compound-reference AV1 inter mode.");
+                }
             }
 
-            modeInfo.MotionVectors[0] = motionVector;
+            for (int index = 0; index < (isCompound ? 2 : 1); index++)
+            {
+                if (!motionVectors[index].IsValid)
+                {
+                    throw new InvalidImageContentException("AV1 motion-vector component is outside the permitted range.");
+                }
+            }
+
             modeInfo.MotionMode = Av1MotionMode.SimpleTranslation;
 
             int minimumBlockDimension = Math.Min(modeInfo.BlockSize.GetWidth(), modeInfo.BlockSize.GetHeight());
-            if (this.SequenceHeader.EnableInterIntraCompound &&
+            if (!isCompound && !modeInfo.SkipMode &&
+                this.SequenceHeader.EnableInterIntraCompound &&
                 modeInfo.BlockSize is >= Av1BlockSize.Block8x8 and <= Av1BlockSize.Block32x32 &&
                 reader.ReadIsInterIntra(modeInfo.BlockSize))
             {
@@ -1723,7 +2032,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 throw new NotSupportedException("AV1 inter-intra block prediction is not implemented.");
             }
 
-            if (this.FrameHeader.IsMotionModeSwitchable && minimumBlockDimension >= 8 && !modeInfo.SkipMode)
+            if (!isCompound && this.FrameHeader.IsMotionModeSwitchable && minimumBlockDimension >= 8 && !modeInfo.SkipMode)
             {
                 Av1MotionVariationCandidates candidates = this.motionVariationCandidates;
                 candidates.Build(ref partitionInfo, tileInfo, this.SequenceHeader, this.FrameHeader, referenceFrame);
@@ -1758,13 +2067,26 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 }
             }
 
+            modeInfo.CompoundGroupIndex = false;
+            modeInfo.CompoundIndex = true;
+            modeInfo.CompoundType = Av1CompoundType.Average;
+            if (isCompound && !modeInfo.SkipMode &&
+                (this.SequenceHeader.EnableMaskedCompound || this.SequenceHeader.OrderHintInfo.EnableJointCompound))
+            {
+                // Either enabled sequence tool adds a compound-selection symbol before interpolation syntax. Refuse
+                // that later checkpoint at its owning boundary so this equal-average path cannot desynchronize tiles.
+                throw new NotSupportedException("AV1 selectable compound blending is not implemented.");
+            }
+
             Span<Av1InterpolationFilter> interpolationFilters = modeInfo.InterpolationFilters;
             Av1InterpolationFilter frameInterpolationFilter = this.FrameHeader.InterpolationFilter;
             Av1GlobalMotionParameters globalMotion = this.FrameHeader.GetGlobalMotionParameters()[(int)referenceFrame - 1];
             bool usesNonTranslationalGlobalMotion =
-                modeInfo.YMode == Av1PredictionMode.GlobalMotionVector &&
                 minimumBlockDimension >= 8 &&
-                globalMotion.Type != Av1GlobalMotionType.Translation;
+                ((modeInfo.YMode == Av1PredictionMode.GlobalMotionVector && globalMotion.Type != Av1GlobalMotionType.Translation) ||
+                 (modeInfo.YMode == Av1PredictionMode.GlobalGlobalMotionVector &&
+                  globalMotion.Type != Av1GlobalMotionType.Translation &&
+                  this.FrameHeader.GetGlobalMotionParameters()[(int)secondaryReferenceFrame - 1].Type != Av1GlobalMotionType.Translation));
 
             if (modeInfo.SkipMode || modeInfo.MotionMode == Av1MotionMode.Warped || usesNonTranslationalGlobalMotion)
             {
@@ -2850,6 +3172,12 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             return;
         }
 
+        Span<byte> referenceCounts = this.neighborReferenceCounts;
+        Av1SymbolContextHelper.CollectNeighborReferenceCounts(
+            partitionInfo.AboveModeInfo,
+            partitionInfo.LeftModeInfo,
+            referenceCounts);
+
         bool compoundReferenceAllowed = Math.Min(modeInfo.BlockSize.GetWidth(), modeInfo.BlockSize.GetHeight()) >= 8;
         if (compoundReferenceAllowed && this.FrameHeader.ReferenceMode == ObuReferenceMode.ReferenceModeSelect)
         {
@@ -2859,15 +3187,71 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
             if (reader.ReadIsCompoundReference(context))
             {
-                throw new NotSupportedException("AV1 compound-reference block prediction is not implemented.");
+                int typeContext = Av1SymbolContextHelper.GetCompoundReferenceTypeContext(
+                    partitionInfo.AboveModeInfo,
+                    partitionInfo.LeftModeInfo);
+
+                if (!reader.ReadCompoundReferenceIsBidirectional(typeContext))
+                {
+                    int directionContext = Av1SymbolContextHelper.GetUnidirectionalCompoundBackwardContext(referenceCounts);
+                    if (reader.ReadUnidirectionalCompoundReference(directionContext, decision: 0))
+                    {
+                        references[0] = Av1ReferenceFrameType.Backward;
+                        references[1] = Av1ReferenceFrameType.Alternate;
+                    }
+                    else
+                    {
+                        int unidirectionalForwardGroupContext = Av1SymbolContextHelper.GetUnidirectionalCompoundLast3OrGoldenContext(referenceCounts);
+                        if (!reader.ReadUnidirectionalCompoundReference(unidirectionalForwardGroupContext, decision: 1))
+                        {
+                            references[0] = Av1ReferenceFrameType.Last;
+                            references[1] = Av1ReferenceFrameType.Last2;
+                        }
+                        else
+                        {
+                            int forwardChoiceContext = Av1SymbolContextHelper.GetUnidirectionalCompoundGoldenContext(referenceCounts);
+                            references[0] = Av1ReferenceFrameType.Last;
+                            references[1] = reader.ReadUnidirectionalCompoundReference(forwardChoiceContext, decision: 2)
+                                ? Av1ReferenceFrameType.Golden
+                                : Av1ReferenceFrameType.Last3;
+                        }
+                    }
+
+                    return;
+                }
+
+                int forwardGroupContext = Av1SymbolContextHelper.GetCompoundForwardLast3OrGoldenContext(referenceCounts);
+                if (!reader.ReadCompoundForwardReference(forwardGroupContext, decision: 0))
+                {
+                    int forwardChoiceContext = Av1SymbolContextHelper.GetCompoundForwardLast2Context(referenceCounts);
+                    references[0] = reader.ReadCompoundForwardReference(forwardChoiceContext, decision: 1)
+                        ? Av1ReferenceFrameType.Last2
+                        : Av1ReferenceFrameType.Last;
+                }
+                else
+                {
+                    int forwardChoiceContext = Av1SymbolContextHelper.GetCompoundForwardGoldenContext(referenceCounts);
+                    references[0] = reader.ReadCompoundForwardReference(forwardChoiceContext, decision: 2)
+                        ? Av1ReferenceFrameType.Golden
+                        : Av1ReferenceFrameType.Last3;
+                }
+
+                int backwardGroupContext = Av1SymbolContextHelper.GetCompoundBackwardAlternateContext(referenceCounts);
+                if (reader.ReadCompoundBackwardReference(backwardGroupContext, decision: 0))
+                {
+                    references[1] = Av1ReferenceFrameType.Alternate;
+                }
+                else
+                {
+                    int backwardChoiceContext = Av1SymbolContextHelper.GetCompoundBackwardAlternate2Context(referenceCounts);
+                    references[1] = reader.ReadCompoundBackwardReference(backwardChoiceContext, decision: 1)
+                        ? Av1ReferenceFrameType.Alternate2
+                        : Av1ReferenceFrameType.Backward;
+                }
+
+                return;
             }
         }
-
-        Span<byte> referenceCounts = this.neighborReferenceCounts;
-        Av1SymbolContextHelper.CollectNeighborReferenceCounts(
-            partitionInfo.AboveModeInfo,
-            partitionInfo.LeftModeInfo,
-            referenceCounts);
 
         Av1ReferenceFrameType reference;
         if (reader.ReadSingleReferenceIsBackward(Av1SymbolContextHelper.GetSingleReferenceBackwardContext(referenceCounts)))

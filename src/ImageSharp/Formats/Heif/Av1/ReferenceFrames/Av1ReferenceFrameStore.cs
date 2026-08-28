@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 
 /// <summary>
@@ -153,6 +155,60 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
         {
             replacedFrame.Dispose();
         }
+    }
+
+    /// <summary>
+    /// Selects one retained reference for presentation and applies the key-frame reference-map reset when required.
+    /// </summary>
+    /// <param name="slot">The zero-based reference-map slot selected by the frame header.</param>
+    /// <returns>The retained frame selected for presentation.</returns>
+    public Av1ReferenceFrame ShowExisting(int slot)
+    {
+        Av1ReferenceFrame selectedFrame = this.frames[slot]!;
+        Av1ReferenceFrame? replacedOutputFrame = this.outputFrame;
+        this.outputFrame = selectedFrame;
+
+        if (selectedFrame.FrameHeader.FrameType == ObuFrameType.KeyFrame)
+        {
+            InlineArray8<Av1ReferenceFrame?> replacedFrames = this.frames;
+
+            // Showing a hidden key frame starts a new coded-video-sequence state. All eight reference-map slots now
+            // identify that same reconstructed owner, so publish every alias before releasing displaced frames.
+            for (int mapSlot = 0; mapSlot < SlotCount; mapSlot++)
+            {
+                this.frames[mapSlot] = selectedFrame;
+                if (ReferenceEquals(replacedFrames[mapSlot], selectedFrame))
+                {
+                    replacedFrames[mapSlot] = null;
+                }
+            }
+
+            // A key frame may be presented through show_existing_frame only once. The retained owner carries this
+            // conformance state because every slot alias must observe the transition.
+            selectedFrame.FrameHeader.ShowableFrame = false;
+
+            if (replacedOutputFrame is not null)
+            {
+                // Let the displaced-output path release a detached shared owner after all of its old slot aliases have
+                // been removed from the replacement set.
+                for (int mapSlot = 0; mapSlot < SlotCount; mapSlot++)
+                {
+                    if (ReferenceEquals(replacedFrames[mapSlot], replacedOutputFrame))
+                    {
+                        replacedFrames[mapSlot] = null;
+                    }
+                }
+            }
+
+            DisposeUnique(ref replacedFrames);
+        }
+
+        if (replacedOutputFrame is not null && !this.IsRetained(replacedOutputFrame))
+        {
+            replacedOutputFrame.Dispose();
+        }
+
+        return selectedFrame;
     }
 
     /// <summary>

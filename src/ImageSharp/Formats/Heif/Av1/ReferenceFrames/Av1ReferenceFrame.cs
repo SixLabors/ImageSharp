@@ -110,6 +110,12 @@ internal sealed class Av1ReferenceFrame : IDisposable
     public Av1FrameEntropyContext? EntropyContext => this.entropyContext;
 
     /// <summary>
+    /// Restores the retained frame context to the normative defaults selected by this frame's quantizer band.
+    /// </summary>
+    public void ResetEntropyContext()
+        => this.entropyContext!.ResetToDefaults(this.FrameHeader.QuantizationParameters.BaseQIndex);
+
+    /// <summary>
     /// Transfers the completed sample planes out of this frame owner.
     /// </summary>
     /// <returns>The completed sample planes now owned by the caller.</returns>

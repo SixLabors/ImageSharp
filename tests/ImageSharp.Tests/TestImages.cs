@@ -1357,6 +1357,9 @@ public static class TestImages
         public const string Av1Progressive8BitPayload = "Heif/Av1/Conformance/libavif-progressive-draw-points-8b.bit";
         public const string Av1Progressive8BitReference = "Heif/Av1/Conformance/libavif-progressive-draw-points-8b-libaom-y4m.yuv";
         public const string Av1Progressive8BitPresentationReference = "Heif/Av1/Conformance/libavif-progressive-draw-points-8b.png";
+        public const string Av1AverageCompoundSequenceAvif = "Heif/Av1/Conformance/libavif-webp-logo-average-compound.avif";
+        public const string Av1AverageCompoundSequenceNativeReference = "Heif/Av1/Conformance/libavif-webp-logo-average-compound-libaom.y4m";
+        public const string Av1AverageCompoundSequencePresentationReference = "Heif/Av1/Conformance/libavif-webp-logo-average-compound-libavif.png";
         public const string Av1Cdef8BitPayload = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b.bit";
         public const string Av1Cdef8BitReference = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b-libaom.yuv";
         public const string Av1Cdef8BitAvif = "Heif/Av1/Conformance/libavif-cdef-kodim23-8b.avif";

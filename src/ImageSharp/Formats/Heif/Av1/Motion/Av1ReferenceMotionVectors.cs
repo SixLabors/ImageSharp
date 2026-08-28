@@ -9,7 +9,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 
 /// <summary>
-/// Derives the weighted AV1 reference-motion-vector candidates for one single-reference inter block.
+/// Derives the weighted AV1 reference-motion-vector candidates for one inter block.
 /// </summary>
 internal sealed class Av1ReferenceMotionVectors
 {
@@ -49,6 +49,11 @@ internal sealed class Av1ReferenceMotionVectors
     private InlineArray8<Av1MotionVector> candidates;
 
     /// <summary>
+    /// Stores the secondary vector of each compound candidate.
+    /// </summary>
+    private InlineArray8<Av1MotionVector> compoundCandidates;
+
+    /// <summary>
     /// Stores the accumulated spatial or temporal weight corresponding to each candidate.
     /// </summary>
     private InlineArray8<ushort> weights;
@@ -57,6 +62,11 @@ internal sealed class Av1ReferenceMotionVectors
     /// Stores the nearest and near references after applying AV1 fallback and precision rules.
     /// </summary>
     private InlineArray2<Av1MotionVector> references;
+
+    /// <summary>
+    /// Stores the nearest and near secondary references for a compound block.
+    /// </summary>
+    private InlineArray2<Av1MotionVector> compoundReferences;
 
     /// <summary>
     /// Gets the number of valid entries in <see cref="Candidates"/> and <see cref="Weights"/>.
@@ -74,6 +84,11 @@ internal sealed class Av1ReferenceMotionVectors
     public ReadOnlySpan<Av1MotionVector> Candidates => this.candidates[..this.Count];
 
     /// <summary>
+    /// Gets the secondary vectors corresponding to <see cref="Candidates"/> for a compound block.
+    /// </summary>
+    public ReadOnlySpan<Av1MotionVector> CompoundCandidates => this.compoundCandidates[..this.Count];
+
+    /// <summary>
     /// Gets the accumulated weight corresponding to each entry in <see cref="Candidates"/>.
     /// </summary>
     public ReadOnlySpan<ushort> Weights => this.weights[..this.Count];
@@ -84,21 +99,23 @@ internal sealed class Av1ReferenceMotionVectors
     public Av1MotionVector Nearest => this.references[0];
 
     /// <summary>
-    /// Derives all single-reference motion-vector candidates for the current block.
+    /// Derives all single- or compound-reference motion-vector candidates for the current block.
     /// </summary>
     /// <param name="partitionInfo">The current block geometry and decoded spatial neighbors.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <param name="frameInfo">The frame-wide spatial map and projected temporal motion field.</param>
     /// <param name="sequenceHeader">The sequence-level superblock and order-hint configuration.</param>
     /// <param name="frameHeader">The frame-level global-motion and motion-vector precision configuration.</param>
-    /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
+    /// <param name="referenceFrame">The primary canonical inter reference selected for the current block.</param>
+    /// <param name="secondaryReferenceFrame">The secondary compound reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
     public void Build(
         ref Av1PartitionInfo partitionInfo,
         Av1TileInfo tileInfo,
         Av1FrameInfo frameInfo,
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
-        Av1ReferenceFrameType referenceFrame)
+        Av1ReferenceFrameType referenceFrame,
+        Av1ReferenceFrameType secondaryReferenceFrame = Av1ReferenceFrameType.None)
     {
         Av1BlockSize blockSize = partitionInfo.ModeInfo.BlockSize;
         int width = blockSize.Get4x4WideCount();
@@ -132,6 +149,18 @@ internal sealed class Av1ReferenceMotionVectors
             new Point(column, row),
             frameHeader.ForceIntegerMotionVector);
 
+        Av1GlobalMotionParameters secondaryGlobalMotion = default;
+        Av1MotionVector secondaryGlobalMotionVector = default;
+        if (secondaryReferenceFrame > Av1ReferenceFrameType.Intra)
+        {
+            secondaryGlobalMotion = frameHeader.GetGlobalMotionParameters()[(int)secondaryReferenceFrame - 1];
+            secondaryGlobalMotionVector = secondaryGlobalMotion.GetMotionVector(
+                frameHeader.AllowHighPrecisionMotionVector,
+                blockSize,
+                new Point(column, row),
+                frameHeader.ForceIntegerMotionVector);
+        }
+
         int processedRows = 0;
         int processedColumns = 0;
         int rowMatchCount = 0;
@@ -145,8 +174,11 @@ internal sealed class Av1ReferenceMotionVectors
             this.ScanRow(
                 ref partitionInfo,
                 referenceFrame,
+                secondaryReferenceFrame,
                 in globalMotion,
+                in secondaryGlobalMotion,
                 globalMotionVector,
+                secondaryGlobalMotionVector,
                 -1,
                 maximumRowOffset,
                 ref rowMatchCount,
@@ -159,8 +191,11 @@ internal sealed class Av1ReferenceMotionVectors
             this.ScanColumn(
                 ref partitionInfo,
                 referenceFrame,
+                secondaryReferenceFrame,
                 in globalMotion,
+                in secondaryGlobalMotion,
                 globalMotionVector,
+                secondaryGlobalMotionVector,
                 -1,
                 maximumColumnOffset,
                 ref columnMatchCount,
@@ -174,8 +209,11 @@ internal sealed class Av1ReferenceMotionVectors
                 ref partitionInfo,
                 tileInfo,
                 referenceFrame,
+                secondaryReferenceFrame,
                 in globalMotion,
+                in secondaryGlobalMotion,
                 globalMotionVector,
+                secondaryGlobalMotionVector,
                 -1,
                 width,
                 ref rowMatchCount,
@@ -198,7 +236,9 @@ internal sealed class Av1ReferenceMotionVectors
                 sequenceHeader.OrderHintInfo,
                 frameHeader,
                 referenceFrame,
-                globalMotionVector);
+                secondaryReferenceFrame,
+                globalMotionVector,
+                secondaryGlobalMotionVector);
         }
 
         int ignoredNewMotionVectorCount = 0;
@@ -209,8 +249,11 @@ internal sealed class Av1ReferenceMotionVectors
             ref partitionInfo,
             tileInfo,
             referenceFrame,
+            secondaryReferenceFrame,
             in globalMotion,
+            in secondaryGlobalMotion,
             globalMotionVector,
+            secondaryGlobalMotionVector,
             -1,
             -1,
             ref rowMatchCount,
@@ -225,8 +268,11 @@ internal sealed class Av1ReferenceMotionVectors
                 this.ScanRow(
                     ref partitionInfo,
                     referenceFrame,
+                    secondaryReferenceFrame,
                     in globalMotion,
+                    in secondaryGlobalMotion,
                     globalMotionVector,
+                    secondaryGlobalMotionVector,
                     rowOffset,
                     maximumRowOffset,
                     ref rowMatchCount,
@@ -239,8 +285,11 @@ internal sealed class Av1ReferenceMotionVectors
                 this.ScanColumn(
                     ref partitionInfo,
                     referenceFrame,
+                    secondaryReferenceFrame,
                     in globalMotion,
+                    in secondaryGlobalMotion,
                     globalMotionVector,
+                    secondaryGlobalMotionVector,
                     columnOffset,
                     maximumColumnOffset,
                     ref columnMatchCount,
@@ -270,20 +319,39 @@ internal sealed class Av1ReferenceMotionVectors
         int modeInfoHeight = Math.Min(Math.Min(MaximumSearchBlockSize, height), frameHeight - row);
         int extensionLength = Math.Min(modeInfoWidth, modeInfoHeight);
 
-        // When the direct stack has fewer than two entries, AV1 extends it from every inter reference on the
-        // immediate above and left blocks. Opposite temporal directions are sign-reversed into the target role.
-        for (int index = 0; Math.Abs(maximumRowOffset) >= 1 && index < extensionLength && this.Count < 2;)
+        if (secondaryReferenceFrame > Av1ReferenceFrameType.Intra)
         {
-            Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(column + index, row - 1));
-            this.AddExtensionCandidate(candidate, frameInfo, referenceFrame);
-            index += candidate.BlockSize.Get4x4WideCount();
+            if (this.Count < 2)
+            {
+                this.ExtendCompoundStack(
+                    ref partitionInfo,
+                    frameInfo,
+                    referenceFrame,
+                    secondaryReferenceFrame,
+                    globalMotionVector,
+                    secondaryGlobalMotionVector,
+                    Math.Abs(maximumRowOffset) >= 1,
+                    Math.Abs(maximumColumnOffset) >= 1,
+                    extensionLength);
+            }
         }
-
-        for (int index = 0; Math.Abs(maximumColumnOffset) >= 1 && index < extensionLength && this.Count < 2;)
+        else
         {
-            Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(column - 1, row + index));
-            this.AddExtensionCandidate(candidate, frameInfo, referenceFrame);
-            index += candidate.BlockSize.Get4x4HighCount();
+            // When the direct single-reference stack has fewer than two entries, AV1 extends it from every inter
+            // reference on the immediate above and left blocks. Opposite temporal directions are sign-reversed.
+            for (int index = 0; Math.Abs(maximumRowOffset) >= 1 && index < extensionLength && this.Count < 2;)
+            {
+                Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(column + index, row - 1));
+                this.AddExtensionCandidate(candidate, frameInfo, referenceFrame);
+                index += candidate.BlockSize.Get4x4WideCount();
+            }
+
+            for (int index = 0; Math.Abs(maximumColumnOffset) >= 1 && index < extensionLength && this.Count < 2;)
+            {
+                Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(column - 1, row + index));
+                this.AddExtensionCandidate(candidate, frameInfo, referenceFrame);
+                index += candidate.BlockSize.Get4x4HighCount();
+            }
         }
 
         for (int index = 0; index < this.Count; index++)
@@ -295,6 +363,17 @@ internal sealed class Av1ReferenceMotionVectors
                 partitionInfo.ModeBlockToRightEdge,
                 partitionInfo.ModeBlockToTopEdge,
                 partitionInfo.ModeBlockToBottomEdge);
+
+            if (secondaryReferenceFrame > Av1ReferenceFrameType.Intra)
+            {
+                this.compoundCandidates[index] = this.compoundCandidates[index].ClampReference(
+                    blockSize.GetWidth(),
+                    blockSize.GetHeight(),
+                    partitionInfo.ModeBlockToLeftEdge,
+                    partitionInfo.ModeBlockToRightEdge,
+                    partitionInfo.ModeBlockToTopEdge,
+                    partitionInfo.ModeBlockToBottomEdge);
+            }
         }
 
         // The two-element reference list is separate from the full DRL stack. Missing entries use global motion,
@@ -306,6 +385,17 @@ internal sealed class Av1ReferenceMotionVectors
         this.references[1] = (this.Count > 1 ? this.candidates[1] : globalMotionVector).LowerPrecision(
             frameHeader.AllowHighPrecisionMotionVector,
             frameHeader.ForceIntegerMotionVector);
+
+        if (secondaryReferenceFrame > Av1ReferenceFrameType.Intra)
+        {
+            this.compoundReferences[0] = this.compoundCandidates[0].LowerPrecision(
+                frameHeader.AllowHighPrecisionMotionVector,
+                frameHeader.ForceIntegerMotionVector);
+
+            this.compoundReferences[1] = this.compoundCandidates[1].LowerPrecision(
+                frameHeader.AllowHighPrecisionMotionVector,
+                frameHeader.ForceIntegerMotionVector);
+        }
     }
 
     /// <summary>
@@ -325,12 +415,51 @@ internal sealed class Av1ReferenceMotionVectors
         => this.Count > 1 ? this.candidates[referenceMotionVectorIndex] : this.references[0];
 
     /// <summary>
+    /// Gets the nearest reference for one member of a compound pair.
+    /// </summary>
+    /// <param name="referenceIndex">Zero for the primary reference or one for the secondary reference.</param>
+    /// <returns>The precision-reduced nearest vector.</returns>
+    public Av1MotionVector GetCompoundNearestReference(int referenceIndex)
+        => referenceIndex == 0 ? this.references[0] : this.compoundReferences[0];
+
+    /// <summary>
+    /// Gets the near reference for one member of a compound pair.
+    /// </summary>
+    /// <param name="referenceMotionVectorIndex">The decoded zero-based dynamic-reference-list index.</param>
+    /// <param name="referenceIndex">Zero for the primary reference or one for the secondary reference.</param>
+    /// <returns>The precision-reduced near vector.</returns>
+    public Av1MotionVector GetCompoundNearReference(int referenceMotionVectorIndex, int referenceIndex)
+    {
+        if (referenceMotionVectorIndex == 0)
+        {
+            return referenceIndex == 0 ? this.references[1] : this.compoundReferences[1];
+        }
+
+        int candidateIndex = referenceMotionVectorIndex + 1;
+        return referenceIndex == 0 ? this.candidates[candidateIndex] : this.compoundCandidates[candidateIndex];
+    }
+
+    /// <summary>
+    /// Gets the differential reference for one member of a compound pair.
+    /// </summary>
+    /// <param name="referenceMotionVectorIndex">The selected stack index.</param>
+    /// <param name="referenceIndex">Zero for the primary reference or one for the secondary reference.</param>
+    /// <returns>The selected raw stack vector.</returns>
+    public Av1MotionVector GetCompoundNewReference(int referenceMotionVectorIndex, int referenceIndex)
+        => referenceIndex == 0
+            ? this.candidates[referenceMotionVectorIndex]
+            : this.compoundCandidates[referenceMotionVectorIndex];
+
+    /// <summary>
     /// Scans one spatial row using AV1's block-size-dependent steps and weights.
     /// </summary>
     /// <param name="partitionInfo">The current block geometry and frame-wide mode map.</param>
     /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
+    /// <param name="secondaryReferenceFrame">The secondary compound reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
     /// <param name="globalMotion">The selected reference's global-motion model.</param>
+    /// <param name="secondaryGlobalMotion">The secondary reference's global-motion model.</param>
     /// <param name="globalMotionVector">The selected reference's global-motion vector at the current block.</param>
+    /// <param name="secondaryGlobalMotionVector">The secondary reference's global-motion vector at the current block.</param>
     /// <param name="rowOffset">The signed row offset from the current block in 4x4 units.</param>
     /// <param name="maximumRowOffset">The farthest permitted row offset inside the tile.</param>
     /// <param name="referenceMatchCount">Accumulates matching reference labels found in this scan direction.</param>
@@ -339,8 +468,11 @@ internal sealed class Av1ReferenceMotionVectors
     private void ScanRow(
         ref Av1PartitionInfo partitionInfo,
         Av1ReferenceFrameType referenceFrame,
+        Av1ReferenceFrameType secondaryReferenceFrame,
         in Av1GlobalMotionParameters globalMotion,
+        in Av1GlobalMotionParameters secondaryGlobalMotion,
         Av1MotionVector globalMotionVector,
+        Av1MotionVector secondaryGlobalMotionVector,
         int rowOffset,
         int maximumRowOffset,
         ref int referenceMatchCount,
@@ -359,7 +491,9 @@ internal sealed class Av1ReferenceMotionVectors
             }
         }
 
-        bool useFourUnitStep = width >= 4;
+        // The scan advances by at least one 16x16 mode-info region only when the current block reaches 64 pixels
+        // on this axis. Smaller blocks must visit narrow neighbors individually so none of their candidates vanish.
+        bool useFourUnitStep = width >= MaximumSearchBlockSize;
         for (int index = 0; index < end;)
         {
             Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(
@@ -387,8 +521,11 @@ internal sealed class Av1ReferenceMotionVectors
             this.AddCandidate(
                 candidate,
                 referenceFrame,
+                secondaryReferenceFrame,
                 in globalMotion,
+                in secondaryGlobalMotion,
                 globalMotionVector,
+                secondaryGlobalMotionVector,
                 length * weight,
                 ref referenceMatchCount,
                 ref newMotionVectorCount);
@@ -402,8 +539,11 @@ internal sealed class Av1ReferenceMotionVectors
     /// </summary>
     /// <param name="partitionInfo">The current block geometry and frame-wide mode map.</param>
     /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
+    /// <param name="secondaryReferenceFrame">The secondary compound reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
     /// <param name="globalMotion">The selected reference's global-motion model.</param>
+    /// <param name="secondaryGlobalMotion">The secondary reference's global-motion model.</param>
     /// <param name="globalMotionVector">The selected reference's global-motion vector at the current block.</param>
+    /// <param name="secondaryGlobalMotionVector">The secondary reference's global-motion vector at the current block.</param>
     /// <param name="columnOffset">The signed column offset from the current block in 4x4 units.</param>
     /// <param name="maximumColumnOffset">The farthest permitted column offset inside the tile.</param>
     /// <param name="referenceMatchCount">Accumulates matching reference labels found in this scan direction.</param>
@@ -412,8 +552,11 @@ internal sealed class Av1ReferenceMotionVectors
     private void ScanColumn(
         ref Av1PartitionInfo partitionInfo,
         Av1ReferenceFrameType referenceFrame,
+        Av1ReferenceFrameType secondaryReferenceFrame,
         in Av1GlobalMotionParameters globalMotion,
+        in Av1GlobalMotionParameters secondaryGlobalMotion,
         Av1MotionVector globalMotionVector,
+        Av1MotionVector secondaryGlobalMotionVector,
         int columnOffset,
         int maximumColumnOffset,
         ref int referenceMatchCount,
@@ -432,7 +575,9 @@ internal sealed class Av1ReferenceMotionVectors
             }
         }
 
-        bool useFourUnitStep = height >= 4;
+        // The scan advances by at least one 16x16 mode-info region only when the current block reaches 64 pixels
+        // on this axis. Smaller blocks must visit narrow neighbors individually so none of their candidates vanish.
+        bool useFourUnitStep = height >= MaximumSearchBlockSize;
         for (int index = 0; index < end;)
         {
             Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(
@@ -460,8 +605,11 @@ internal sealed class Av1ReferenceMotionVectors
             this.AddCandidate(
                 candidate,
                 referenceFrame,
+                secondaryReferenceFrame,
                 in globalMotion,
+                in secondaryGlobalMotion,
                 globalMotionVector,
+                secondaryGlobalMotionVector,
                 length * weight,
                 ref referenceMatchCount,
                 ref newMotionVectorCount);
@@ -476,8 +624,11 @@ internal sealed class Av1ReferenceMotionVectors
     /// <param name="partitionInfo">The current block geometry and frame-wide mode map.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
+    /// <param name="secondaryReferenceFrame">The secondary compound reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
     /// <param name="globalMotion">The selected reference's global-motion model.</param>
+    /// <param name="secondaryGlobalMotion">The secondary reference's global-motion model.</param>
     /// <param name="globalMotionVector">The selected reference's global-motion vector at the current block.</param>
+    /// <param name="secondaryGlobalMotionVector">The secondary reference's global-motion vector at the current block.</param>
     /// <param name="rowOffset">The signed row offset from the current block in 4x4 units.</param>
     /// <param name="columnOffset">The signed column offset from the current block in 4x4 units.</param>
     /// <param name="referenceMatchCount">Accumulates matching reference labels at the search position.</param>
@@ -486,8 +637,11 @@ internal sealed class Av1ReferenceMotionVectors
         ref Av1PartitionInfo partitionInfo,
         Av1TileInfo tileInfo,
         Av1ReferenceFrameType referenceFrame,
+        Av1ReferenceFrameType secondaryReferenceFrame,
         in Av1GlobalMotionParameters globalMotion,
+        in Av1GlobalMotionParameters secondaryGlobalMotion,
         Av1MotionVector globalMotionVector,
+        Av1MotionVector secondaryGlobalMotionVector,
         int rowOffset,
         int columnOffset,
         ref int referenceMatchCount,
@@ -505,8 +659,11 @@ internal sealed class Av1ReferenceMotionVectors
         this.AddCandidate(
             candidate,
             referenceFrame,
+            secondaryReferenceFrame,
             in globalMotion,
+            in secondaryGlobalMotion,
             globalMotionVector,
+            secondaryGlobalMotionVector,
             4,
             ref referenceMatchCount,
             ref newMotionVectorCount);
@@ -517,16 +674,22 @@ internal sealed class Av1ReferenceMotionVectors
     /// </summary>
     /// <param name="candidate">The decoded neighboring block.</param>
     /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
+    /// <param name="secondaryReferenceFrame">The secondary compound reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
     /// <param name="globalMotion">The selected reference's global-motion model.</param>
+    /// <param name="secondaryGlobalMotion">The secondary reference's global-motion model.</param>
     /// <param name="globalMotionVector">The selected reference's global-motion vector at the current block.</param>
+    /// <param name="secondaryGlobalMotionVector">The secondary reference's global-motion vector at the current block.</param>
     /// <param name="weight">The spatial weight contributed by each matching reference.</param>
     /// <param name="referenceMatchCount">Accumulates matching reference labels in the active scan direction.</param>
     /// <param name="newMotionVectorCount">Accumulates matching neighbors whose inter mode contains a new vector.</param>
     private void AddCandidate(
         Av1BlockModeInfo candidate,
         Av1ReferenceFrameType referenceFrame,
+        Av1ReferenceFrameType secondaryReferenceFrame,
         in Av1GlobalMotionParameters globalMotion,
+        in Av1GlobalMotionParameters secondaryGlobalMotion,
         Av1MotionVector globalMotionVector,
+        Av1MotionVector secondaryGlobalMotionVector,
         int weight,
         ref int referenceMatchCount,
         ref int newMotionVectorCount)
@@ -538,6 +701,41 @@ internal sealed class Av1ReferenceMotionVectors
         }
 
         Span<Av1MotionVector> candidateMotionVectors = candidate.MotionVectors;
+        if (secondaryReferenceFrame > Av1ReferenceFrameType.Intra)
+        {
+            if (candidateReferences[0] != referenceFrame || candidateReferences[1] != secondaryReferenceFrame)
+            {
+                return;
+            }
+
+            bool usePrimaryGlobalMotion =
+                candidate.YMode == Av1PredictionMode.GlobalGlobalMotionVector &&
+                globalMotion.Type > Av1GlobalMotionType.Translation &&
+                Math.Min(candidate.BlockSize.GetWidth(), candidate.BlockSize.GetHeight()) >= 8;
+
+            bool useSecondaryGlobalMotion =
+                candidate.YMode == Av1PredictionMode.GlobalGlobalMotionVector &&
+                secondaryGlobalMotion.Type > Av1GlobalMotionType.Translation &&
+                Math.Min(candidate.BlockSize.GetWidth(), candidate.BlockSize.GetHeight()) >= 8;
+
+            Av1MotionVector primaryMotionVector = usePrimaryGlobalMotion
+                ? globalMotionVector
+                : candidateMotionVectors[0];
+
+            Av1MotionVector secondaryMotionVector = useSecondaryGlobalMotion
+                ? secondaryGlobalMotionVector
+                : candidateMotionVectors[1];
+
+            this.AddUnique(primaryMotionVector, secondaryMotionVector, weight);
+            if (UsesNewMotionVector(candidate.YMode))
+            {
+                newMotionVectorCount++;
+            }
+
+            referenceMatchCount++;
+            return;
+        }
+
         for (int referenceIndex = 0; referenceIndex < 2; referenceIndex++)
         {
             if (candidateReferences[referenceIndex] != referenceFrame)
@@ -561,12 +759,7 @@ internal sealed class Av1ReferenceMotionVectors
 
             // Every matching reference in a neighbor carrying a NEW component contributes to the adjacent NEWMV
             // context even when its vector deduplicates against an earlier stack entry.
-            if (candidate.YMode is Av1PredictionMode.NewMotionVector or
-                Av1PredictionMode.NewNewMotionVector or
-                Av1PredictionMode.NearestNewMotionVector or
-                Av1PredictionMode.NewNearestMotionVector or
-                Av1PredictionMode.NearNewMotionVector or
-                Av1PredictionMode.NewNearMotionVector)
+            if (UsesNewMotionVector(candidate.YMode))
             {
                 newMotionVectorCount++;
             }
@@ -584,7 +777,9 @@ internal sealed class Av1ReferenceMotionVectors
     /// <param name="orderHintInfo">The sequence modulo order-hint configuration.</param>
     /// <param name="frameHeader">The frame-level motion-vector precision configuration.</param>
     /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
+    /// <param name="secondaryReferenceFrame">The secondary compound reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
     /// <param name="globalMotionVector">The selected reference's global-motion vector at the current block.</param>
+    /// <param name="secondaryGlobalMotionVector">The secondary reference's global-motion vector at the current block.</param>
     private void AddTemporalCandidates(
         ref Av1PartitionInfo partitionInfo,
         Av1TileInfo tileInfo,
@@ -592,7 +787,9 @@ internal sealed class Av1ReferenceMotionVectors
         ObuOrderHintInfo orderHintInfo,
         ObuFrameHeader frameHeader,
         Av1ReferenceFrameType referenceFrame,
-        Av1MotionVector globalMotionVector)
+        Av1ReferenceFrameType secondaryReferenceFrame,
+        Av1MotionVector globalMotionVector,
+        Av1MotionVector secondaryGlobalMotionVector)
     {
         int width = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
         int height = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
@@ -615,7 +812,9 @@ internal sealed class Av1ReferenceMotionVectors
                     orderHintInfo,
                     frameHeader,
                     referenceFrame,
+                    secondaryReferenceFrame,
                     globalMotionVector,
+                    secondaryGlobalMotionVector,
                     blockRow,
                     blockColumn);
 
@@ -646,7 +845,9 @@ internal sealed class Av1ReferenceMotionVectors
             orderHintInfo,
             frameHeader,
             referenceFrame,
+            secondaryReferenceFrame,
             globalMotionVector,
+            secondaryGlobalMotionVector,
             verticalOffset,
             -2);
 
@@ -657,7 +858,9 @@ internal sealed class Av1ReferenceMotionVectors
             orderHintInfo,
             frameHeader,
             referenceFrame,
+            secondaryReferenceFrame,
             globalMotionVector,
+            secondaryGlobalMotionVector,
             verticalOffset,
             horizontalOffset);
 
@@ -668,7 +871,9 @@ internal sealed class Av1ReferenceMotionVectors
             orderHintInfo,
             frameHeader,
             referenceFrame,
+            secondaryReferenceFrame,
             globalMotionVector,
+            secondaryGlobalMotionVector,
             verticalOffset - 2,
             horizontalOffset);
     }
@@ -682,7 +887,9 @@ internal sealed class Av1ReferenceMotionVectors
     /// <param name="orderHintInfo">The sequence modulo order-hint configuration.</param>
     /// <param name="frameHeader">The frame-level motion-vector precision configuration.</param>
     /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
+    /// <param name="secondaryReferenceFrame">The secondary compound reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
     /// <param name="globalMotionVector">The selected reference's global-motion vector at the current block.</param>
+    /// <param name="secondaryGlobalMotionVector">The secondary reference's global-motion vector at the current block.</param>
     /// <param name="blockRow">The temporal sample row relative to the current block in 4x4 units.</param>
     /// <param name="blockColumn">The temporal sample column relative to the current block in 4x4 units.</param>
     private void AddTemporalExtension(
@@ -692,7 +899,9 @@ internal sealed class Av1ReferenceMotionVectors
         ObuOrderHintInfo orderHintInfo,
         ObuFrameHeader frameHeader,
         Av1ReferenceFrameType referenceFrame,
+        Av1ReferenceFrameType secondaryReferenceFrame,
         Av1MotionVector globalMotionVector,
+        Av1MotionVector secondaryGlobalMotionVector,
         int blockRow,
         int blockColumn)
     {
@@ -711,7 +920,9 @@ internal sealed class Av1ReferenceMotionVectors
             orderHintInfo,
             frameHeader,
             referenceFrame,
+            secondaryReferenceFrame,
             globalMotionVector,
+            secondaryGlobalMotionVector,
             blockRow,
             blockColumn);
     }
@@ -725,7 +936,9 @@ internal sealed class Av1ReferenceMotionVectors
     /// <param name="orderHintInfo">The sequence modulo order-hint configuration.</param>
     /// <param name="frameHeader">The frame-level motion-vector precision configuration.</param>
     /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
+    /// <param name="secondaryReferenceFrame">The secondary compound reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
     /// <param name="globalMotionVector">The selected reference's global-motion vector at the current block.</param>
+    /// <param name="secondaryGlobalMotionVector">The secondary reference's global-motion vector at the current block.</param>
     /// <param name="blockRow">The temporal sample row relative to the current block in 4x4 units.</param>
     /// <param name="blockColumn">The temporal sample column relative to the current block in 4x4 units.</param>
     /// <returns><see langword="true"/> when the projected motion field covers the requested position.</returns>
@@ -736,7 +949,9 @@ internal sealed class Av1ReferenceMotionVectors
         ObuOrderHintInfo orderHintInfo,
         ObuFrameHeader frameHeader,
         Av1ReferenceFrameType referenceFrame,
+        Av1ReferenceFrameType secondaryReferenceFrame,
         Av1MotionVector globalMotionVector,
+        Av1MotionVector secondaryGlobalMotionVector,
         int blockRow,
         int blockColumn)
     {
@@ -762,16 +977,41 @@ internal sealed class Av1ReferenceMotionVectors
             return false;
         }
 
+        Av1MotionVector secondaryMotionVector = default;
+        if (secondaryReferenceFrame > Av1ReferenceFrameType.Intra &&
+            !frameInfo.TryGetProjectedTemporalMotionVector(
+                row,
+                column,
+                secondaryReferenceFrame,
+                orderHintInfo,
+                frameHeader.AllowHighPrecisionMotionVector,
+                frameHeader.ForceIntegerMotionVector,
+                out secondaryMotionVector))
+        {
+            return false;
+        }
+
         if (blockRow == 0 && blockColumn == 0 &&
             (Math.Abs(motionVector.Row - globalMotionVector.Row) >= 16 ||
-             Math.Abs(motionVector.Column - globalMotionVector.Column) >= 16))
+             Math.Abs(motionVector.Column - globalMotionVector.Column) >= 16 ||
+             (secondaryReferenceFrame > Av1ReferenceFrameType.Intra &&
+              (Math.Abs(secondaryMotionVector.Row - secondaryGlobalMotionVector.Row) >= 16 ||
+               Math.Abs(secondaryMotionVector.Column - secondaryGlobalMotionVector.Column) >= 16))))
         {
             // The packed global-motion context records whether the first temporal sample is absent or differs from
             // global motion by at least two full samples in either one-eighth-sample component.
             this.ModeContext |= GlobalMotionContextBit;
         }
 
-        this.AddUnique(motionVector, 2);
+        if (secondaryReferenceFrame > Av1ReferenceFrameType.Intra)
+        {
+            this.AddUnique(motionVector, secondaryMotionVector, 2);
+        }
+        else
+        {
+            this.AddUnique(motionVector, 2);
+        }
+
         return true;
     }
 
@@ -825,6 +1065,216 @@ internal sealed class Av1ReferenceMotionVectors
     }
 
     /// <summary>
+    /// Extends a short compound stack from the immediate above and left blocks.
+    /// </summary>
+    private void ExtendCompoundStack(
+        ref Av1PartitionInfo partitionInfo,
+        Av1FrameInfo frameInfo,
+        Av1ReferenceFrameType referenceFrame,
+        Av1ReferenceFrameType secondaryReferenceFrame,
+        Av1MotionVector globalMotionVector,
+        Av1MotionVector secondaryGlobalMotionVector,
+        bool hasAbove,
+        bool hasLeft,
+        int extensionLength)
+    {
+        InlineArray2<Av1MotionVector> primaryExact = default;
+        InlineArray2<Av1MotionVector> secondaryExact = default;
+        InlineArray2<Av1MotionVector> primaryDifferent = default;
+        InlineArray2<Av1MotionVector> secondaryDifferent = default;
+        int primaryExactCount = 0;
+        int secondaryExactCount = 0;
+        int primaryDifferentCount = 0;
+        int secondaryDifferentCount = 0;
+        int row = partitionInfo.RowIndex;
+        int column = partitionInfo.ColumnIndex;
+
+        for (int index = 0; hasAbove && index < extensionLength;)
+        {
+            Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(column + index, row - 1));
+            CollectCompoundExtensionCandidate(
+                candidate,
+                frameInfo,
+                referenceFrame,
+                secondaryReferenceFrame,
+                ref primaryExact,
+                ref primaryExactCount,
+                ref secondaryExact,
+                ref secondaryExactCount,
+                ref primaryDifferent,
+                ref primaryDifferentCount,
+                ref secondaryDifferent,
+                ref secondaryDifferentCount);
+
+            index += candidate.BlockSize.Get4x4WideCount();
+        }
+
+        for (int index = 0; hasLeft && index < extensionLength;)
+        {
+            Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(column - 1, row + index));
+            CollectCompoundExtensionCandidate(
+                candidate,
+                frameInfo,
+                referenceFrame,
+                secondaryReferenceFrame,
+                ref primaryExact,
+                ref primaryExactCount,
+                ref secondaryExact,
+                ref secondaryExactCount,
+                ref primaryDifferent,
+                ref primaryDifferentCount,
+                ref secondaryDifferent,
+                ref secondaryDifferentCount);
+
+            index += candidate.BlockSize.Get4x4HighCount();
+        }
+
+        InlineArray2<Av1MotionVector> primaryList = BuildCompoundExtensionList(
+            in primaryExact,
+            primaryExactCount,
+            in primaryDifferent,
+            primaryDifferentCount,
+            globalMotionVector);
+
+        InlineArray2<Av1MotionVector> secondaryList = BuildCompoundExtensionList(
+            in secondaryExact,
+            secondaryExactCount,
+            in secondaryDifferent,
+            secondaryDifferentCount,
+            secondaryGlobalMotionVector);
+
+        if (this.Count == 1)
+        {
+            int listIndex = primaryList[0] == this.candidates[0] && secondaryList[0] == this.compoundCandidates[0] ? 1 : 0;
+            this.candidates[1] = primaryList[listIndex];
+            this.compoundCandidates[1] = secondaryList[listIndex];
+            this.weights[1] = 2;
+            this.Count = 2;
+            return;
+        }
+
+        // The fallback list is positional rather than a weighted candidate scan. Preserve both entries even when
+        // they are equal so DRL indices have the same meaning as the pinned libaom implementation.
+        for (int index = 0; index < 2; index++)
+        {
+            this.candidates[index] = primaryList[index];
+            this.compoundCandidates[index] = secondaryList[index];
+            this.weights[index] = 2;
+        }
+
+        this.Count = 2;
+    }
+
+    /// <summary>
+    /// Collects exact-reference and temporal-direction-corrected fallback vectors from one neighboring block.
+    /// </summary>
+    private static void CollectCompoundExtensionCandidate(
+        Av1BlockModeInfo candidate,
+        Av1FrameInfo frameInfo,
+        Av1ReferenceFrameType referenceFrame,
+        Av1ReferenceFrameType secondaryReferenceFrame,
+        ref InlineArray2<Av1MotionVector> primaryExact,
+        ref int primaryExactCount,
+        ref InlineArray2<Av1MotionVector> secondaryExact,
+        ref int secondaryExactCount,
+        ref InlineArray2<Av1MotionVector> primaryDifferent,
+        ref int primaryDifferentCount,
+        ref InlineArray2<Av1MotionVector> secondaryDifferent,
+        ref int secondaryDifferentCount)
+    {
+        Span<Av1ReferenceFrameType> candidateReferences = candidate.ReferenceFrames;
+        Span<Av1MotionVector> candidateMotionVectors = candidate.MotionVectors;
+
+        for (int candidateIndex = 0; candidateIndex < 2; candidateIndex++)
+        {
+            Av1ReferenceFrameType candidateReference = candidateReferences[candidateIndex];
+            Av1MotionVector candidateMotionVector = candidateMotionVectors[candidateIndex];
+
+            for (int targetIndex = 0; targetIndex < 2; targetIndex++)
+            {
+                Av1ReferenceFrameType targetReference = targetIndex == 0 ? referenceFrame : secondaryReferenceFrame;
+                if (candidateReference == targetReference)
+                {
+                    ref int exactCount = ref (targetIndex == 0 ? ref primaryExactCount : ref secondaryExactCount);
+                    if (exactCount < 2)
+                    {
+                        if (targetIndex == 0)
+                        {
+                            primaryExact[exactCount] = candidateMotionVector;
+                        }
+                        else
+                        {
+                            secondaryExact[exactCount] = candidateMotionVector;
+                        }
+
+                        exactCount++;
+                        continue;
+                    }
+                }
+
+                if (candidateReference <= Av1ReferenceFrameType.Intra)
+                {
+                    continue;
+                }
+
+                ref int differentCount = ref (targetIndex == 0 ? ref primaryDifferentCount : ref secondaryDifferentCount);
+                if (differentCount >= 2)
+                {
+                    continue;
+                }
+
+                Av1MotionVector differentMotionVector = candidateMotionVector;
+                if (frameInfo.IsReferenceSignBiased(candidateReference) != frameInfo.IsReferenceSignBiased(targetReference))
+                {
+                    differentMotionVector = new Av1MotionVector(-differentMotionVector.Row, -differentMotionVector.Column);
+                }
+
+                if (targetIndex == 0)
+                {
+                    primaryDifferent[differentCount] = differentMotionVector;
+                }
+                else
+                {
+                    secondaryDifferent[differentCount] = differentMotionVector;
+                }
+
+                differentCount++;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Builds the two positional fallback entries for one member of a compound reference pair.
+    /// </summary>
+    private static InlineArray2<Av1MotionVector> BuildCompoundExtensionList(
+        in InlineArray2<Av1MotionVector> exact,
+        int exactCount,
+        in InlineArray2<Av1MotionVector> different,
+        int differentCount,
+        Av1MotionVector globalMotionVector)
+    {
+        InlineArray2<Av1MotionVector> result = default;
+        int resultCount = 0;
+
+        for (int index = 0; index < exactCount && resultCount < 2; index++)
+        {
+            result[resultCount++] = exact[index];
+        }
+
+        for (int index = 0; index < differentCount && resultCount < 2; index++)
+        {
+            result[resultCount++] = different[index];
+        }
+
+        while (resultCount < 2)
+        {
+            result[resultCount++] = globalMotionVector;
+        }
+
+        return result;
+    }
+
+    /// <summary>
     /// Adds a unique candidate or accumulates the weight of an existing candidate.
     /// </summary>
     /// <param name="motionVector">The candidate vector in one-eighth-sample units.</param>
@@ -849,6 +1299,29 @@ internal sealed class Av1ReferenceMotionVectors
     }
 
     /// <summary>
+    /// Adds a unique compound candidate or accumulates the weight of an existing vector pair.
+    /// </summary>
+    private void AddUnique(Av1MotionVector motionVector, Av1MotionVector compoundMotionVector, int weight)
+    {
+        for (int index = 0; index < this.Count; index++)
+        {
+            if (this.candidates[index] == motionVector && this.compoundCandidates[index] == compoundMotionVector)
+            {
+                this.weights[index] += (ushort)weight;
+                return;
+            }
+        }
+
+        if (this.Count < CandidateCapacity)
+        {
+            this.candidates[this.Count] = motionVector;
+            this.compoundCandidates[this.Count] = compoundMotionVector;
+            this.weights[this.Count] = (ushort)weight;
+            this.Count++;
+        }
+    }
+
+    /// <summary>
     /// Sorts one candidate region by descending accumulated weight while retaining scan order for equal weights.
     /// </summary>
     /// <param name="start">The inclusive first candidate index in the region.</param>
@@ -867,6 +1340,10 @@ internal sealed class Av1ReferenceMotionVectors
                     this.candidates[index - 1] = this.candidates[index];
                     this.candidates[index] = candidate;
 
+                    Av1MotionVector compoundCandidate = this.compoundCandidates[index - 1];
+                    this.compoundCandidates[index - 1] = this.compoundCandidates[index];
+                    this.compoundCandidates[index] = compoundCandidate;
+
                     ushort weight = this.weights[index - 1];
                     this.weights[index - 1] = this.weights[index];
                     this.weights[index] = weight;
@@ -877,6 +1354,17 @@ internal sealed class Av1ReferenceMotionVectors
             length = lastSwap;
         }
     }
+
+    /// <summary>
+    /// Determines whether an inter mode decodes at least one new motion-vector component.
+    /// </summary>
+    private static bool UsesNewMotionVector(Av1PredictionMode mode)
+        => mode is Av1PredictionMode.NewMotionVector or
+            Av1PredictionMode.NewNewMotionVector or
+            Av1PredictionMode.NearestNewMotionVector or
+            Av1PredictionMode.NewNearestMotionVector or
+            Av1PredictionMode.NearNewMotionVector or
+            Av1PredictionMode.NewNearMotionVector;
 
     /// <summary>
     /// Provides fixed storage for AV1's eight reference-motion-vector candidates.

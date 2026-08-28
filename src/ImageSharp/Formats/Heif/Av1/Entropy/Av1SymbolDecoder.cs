@@ -428,6 +428,57 @@ internal ref struct Av1SymbolDecoder
     }
 
     /// <summary>
+    /// Reads whether a compound block uses one forward and one backward reference.
+    /// </summary>
+    /// <param name="context">The compound reference-type context in the inclusive range zero through four.</param>
+    /// <returns><see langword="true"/> for a bidirectional pair; otherwise, <see langword="false"/>.</returns>
+    public bool ReadCompoundReferenceIsBidirectional(int context)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+
+        return r.ReadSymbol(this.context.CompoundReferenceType[context]) != 0;
+    }
+
+    /// <summary>
+    /// Reads one decision from the unidirectional compound-reference tree.
+    /// </summary>
+    /// <param name="context">The neighboring reference-vote context.</param>
+    /// <param name="decision">The zero-based tree decision in the inclusive range zero through two.</param>
+    /// <returns>The decoded binary decision.</returns>
+    public bool ReadUnidirectionalCompoundReference(int context, int decision)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+
+        return r.ReadSymbol(this.context.UnidirectionalCompoundReference[context][decision]) != 0;
+    }
+
+    /// <summary>
+    /// Reads one decision from the bidirectional compound forward-reference tree.
+    /// </summary>
+    /// <param name="context">The neighboring reference-vote context.</param>
+    /// <param name="decision">The zero-based tree decision in the inclusive range zero through two.</param>
+    /// <returns>The decoded binary decision.</returns>
+    public bool ReadCompoundForwardReference(int context, int decision)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+
+        return r.ReadSymbol(this.context.CompoundReference[context][decision]) != 0;
+    }
+
+    /// <summary>
+    /// Reads one decision from the bidirectional compound backward-reference tree.
+    /// </summary>
+    /// <param name="context">The neighboring reference-vote context.</param>
+    /// <param name="decision">The zero-based tree decision in the inclusive range zero through one.</param>
+    /// <returns>The decoded binary decision.</returns>
+    public bool ReadCompoundBackwardReference(int context, int decision)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+
+        return r.ReadSymbol(this.context.CompoundBackwardReference[context][decision]) != 0;
+    }
+
+    /// <summary>
     /// Reads one per-block interpolation filter selected by a switchable frame.
     /// </summary>
     /// <param name="context">The reference, direction, and neighbor filter context.</param>
@@ -468,6 +519,20 @@ internal ref struct Av1SymbolDecoder
         return r.ReadSymbol(this.context.RefMv[refMvContext]) == 0
             ? Av1PredictionMode.NearestMotionVector
             : Av1PredictionMode.NearMotionVector;
+    }
+
+    /// <summary>
+    /// Reads the prediction mode for a compound-reference inter block.
+    /// </summary>
+    /// <param name="modeContext">The packed mode context produced by paired reference-motion-vector analysis.</param>
+    /// <returns>The selected compound motion-vector mode.</returns>
+    public Av1PredictionMode ReadInterCompoundMode(int modeContext)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        int context = Av1SymbolContextHelper.GetCompoundModeContext(modeContext);
+        int mode = r.ReadSymbol(this.context.InterCompoundMode[context]);
+
+        return (Av1PredictionMode)((int)Av1PredictionMode.NearestNearestMotionVector + mode);
     }
 
     /// <summary>
@@ -709,6 +774,17 @@ internal ref struct Av1SymbolDecoder
     }
 
     /// <summary>
+    /// Reads whether an inter transform node is subdivided.
+    /// </summary>
+    /// <param name="context">The variable-transform partition context.</param>
+    /// <returns><see langword="true"/> when the transform node is split.</returns>
+    public bool ReadTransformPartition(int context)
+    {
+        ref Av1SymbolReader r = ref this.reader;
+        return r.ReadSymbol(this.context.TransformPartition[context]) > 0;
+    }
+
+    /// <summary>
     /// Reads a transform type from the transform set permitted for the block.
     /// </summary>
     /// <param name="transformSize">The coded transform size.</param>
@@ -845,7 +921,7 @@ internal ref struct Av1SymbolDecoder
         bool isLossless,
         bool useReducedTransformSet,
         Av1TransformType lumaTransformType,
-        Av1TransformInfo transformInfo,
+        ref Av1TransformInfo transformInfo,
         int modeBlocksToRightEdge,
         int modeBlocksToBottomEdge,
         Span<int> coefficientBuffer)
@@ -874,12 +950,15 @@ internal ref struct Av1SymbolDecoder
             return 0;
         }
 
+        bool usesInterTransformSet = modeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last || modeInfo.UseIntraBlockCopy;
         if (plane == (int)Av1Plane.Y)
         {
+            // Transform-set selection follows the prediction class. Intra-block copy uses inter residual syntax even
+            // though its reference is the current frame; ordinary inter blocks are identified by their retained ref.
             transformInfo.Type = this.ReadTransformType(
                 transformSize,
                 useReducedTransformSet,
-                modeInfo.UseIntraBlockCopy,
+                usesInterTransformSet,
                 modeInfo.UseFilterIntra,
                 isLossless,
                 modeInfo.FilterIntraMode,
@@ -892,8 +971,9 @@ internal ref struct Av1SymbolDecoder
             isLossless,
             transformSize,
             lumaTransformType,
-            transformInfo,
-            useReducedTransformSet);
+            in transformInfo,
+            useReducedTransformSet,
+            usesInterTransformSet);
         Av1TransformClass transformClass = transformInfo.Type.ToClass();
         Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformInfo.Type);
         ReadOnlySpan<short> scan = scanOrder.Scan;
@@ -1295,6 +1375,7 @@ internal ref struct Av1SymbolDecoder
     /// <param name="lumaTransformType">The luma transform type shared by inter-predicted chroma.</param>
     /// <param name="transformInfo">The transform descriptor containing the signaled luma type.</param>
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="usesInterTransformSet">Indicates whether prediction selects the inter transform set.</param>
     /// <returns>The transform type valid for the current plane.</returns>
     private static Av1TransformType ComputeTransformType(
         Av1PlaneType planeType,
@@ -1302,8 +1383,9 @@ internal ref struct Av1SymbolDecoder
         bool isLossless,
         Av1TransformSize transformSize,
         Av1TransformType lumaTransformType,
-        Av1TransformInfo transformInfo,
-        bool useReducedTransformSet)
+        in Av1TransformInfo transformInfo,
+        bool useReducedTransformSet,
+        bool usesInterTransformSet)
     {
         Av1TransformType transformType = Av1TransformType.DctDct;
         if (isLossless || transformSize.GetSquareUpSize() > Av1TransformSize.Size32x32)
@@ -1316,10 +1398,10 @@ internal ref struct Av1SymbolDecoder
             {
                 transformType = transformInfo.Type;
             }
-            else if (modeInfo.UseIntraBlockCopy)
+            else if (usesInterTransformSet)
             {
-                // Intra-block copy follows inter transform rules, so chroma reuses the luma transform type at the
-                // corresponding luma-grid position rather than deriving a type from the DC chroma mode.
+                // Inter prediction, including intra-block copy, shares the luma transform type with chroma at the
+                // corresponding luma-grid position rather than deriving an implicit type from the chroma mode.
                 transformType = lumaTransformType;
             }
             else
@@ -1331,7 +1413,7 @@ internal ref struct Av1SymbolDecoder
 
         Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
             transformSize,
-            modeInfo.UseIntraBlockCopy,
+            usesInterTransformSet,
             useReducedTransformSet);
 
         if (!transformType.IsExtendedSetUsed(transformSetType))

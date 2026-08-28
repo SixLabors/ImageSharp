@@ -60,6 +60,56 @@ internal static class Av1DefaultDistributions
     public static Av1Distribution[] CompInter => [new(26828), new(24035), new(12031), new(10640), new(2901)];
 
     /// <summary>
+    /// Gets the distributions that select unidirectional or bidirectional compound reference pairs.
+    /// </summary>
+    public static Av1Distribution[] CompoundReferenceType => [new(1198), new(2070), new(9166), new(7499), new(22475)];
+
+    /// <summary>
+    /// Gets the unidirectional compound-reference selection distributions indexed by spatial context and tree decision.
+    /// </summary>
+    public static Av1Distribution[][] UnidirectionalCompoundReference =>
+    [
+        [new(5284), new(3865), new(3128)],
+        [new(23152), new(14173), new(15270)],
+        [new(31774), new(25120), new(26710)],
+    ];
+
+    /// <summary>
+    /// Gets the bidirectional compound forward-reference distributions indexed by spatial context and tree decision.
+    /// </summary>
+    public static Av1Distribution[][] CompoundReference =>
+    [
+        [new(4946), new(9468), new(1503)],
+        [new(19891), new(22441), new(15160)],
+        [new(30731), new(31059), new(27544)],
+    ];
+
+    /// <summary>
+    /// Gets the bidirectional compound backward-reference distributions indexed by spatial context and tree decision.
+    /// </summary>
+    public static Av1Distribution[][] CompoundBackwardReference =>
+    [
+        [new(2235), new(1423)],
+        [new(17182), new(15175)],
+        [new(30606), new(30489)],
+    ];
+
+    /// <summary>
+    /// Gets the eight-symbol compound inter-mode distributions indexed by derived mode context.
+    /// </summary>
+    public static Av1Distribution[] InterCompoundMode =>
+    [
+        new(7760, 13823, 15808, 17641, 19156, 20666, 26891),
+        new(10730, 19452, 21145, 22749, 24039, 25131, 28724),
+        new(10664, 20221, 21588, 22906, 24295, 25387, 28436),
+        new(13298, 16984, 20471, 24182, 25067, 25736, 26422),
+        new(18904, 23325, 25242, 27432, 27898, 28258, 30758),
+        new(10725, 17454, 20124, 22820, 24195, 25168, 26046),
+        new(17125, 24273, 25814, 27492, 28214, 28704, 30592),
+        new(13046, 23214, 24505, 25942, 27435, 28442, 29330),
+    ];
+
+    /// <summary>
     /// Gets the inter-intra prediction flag distributions indexed by block-size group.
     /// </summary>
     public static Av1Distribution[] InterIntra => [new(16384), new(26887), new(27597), new(30237)];
@@ -457,6 +507,16 @@ internal static class Av1DefaultDistributions
             [new(12272, 30172), new(12272, 30172), new(18677, 30848)],
             [new(12986, 15180), new(12986, 15180), new(24302, 25602)],
             [new(5782, 11475), new(5782, 11475), new(16803, 22759)],
+        ];
+
+    /// <summary>
+    /// Gets the binary variable-transform partition distributions indexed by transform geometry and neighbors.
+    /// </summary>
+    public static Av1Distribution[] TransformPartition =>
+        [
+            new(28581), new(23846), new(20847), new(24315), new(18196), new(12133), new(18791),
+            new(10887), new(11005), new(27179), new(20004), new(11281), new(26549), new(19308),
+            new(14224), new(28015), new(21546), new(14400), new(28165), new(22401), new(16088)
         ];
 
     /// <summary>

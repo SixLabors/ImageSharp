@@ -8,10 +8,10 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// <summary>
 /// Describes the size, position, type, and residual state of one AV1 transform block.
 /// </summary>
-internal class Av1TransformInfo
+internal struct Av1TransformInfo
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1TransformInfo"/> class with a 4x4 transform at the origin.
+    /// Initializes a new instance of the <see cref="Av1TransformInfo"/> struct with a 4x4 transform at the origin.
     /// </summary>
     public Av1TransformInfo()
         : this(Av1TransformSize.Size4x4, 0, 0)
@@ -19,7 +19,7 @@ internal class Av1TransformInfo
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1TransformInfo"/> class.
+    /// Initializes a new instance of the <see cref="Av1TransformInfo"/> struct.
     /// </summary>
     /// <param name="size">The transform size.</param>
     /// <param name="offsetX">The horizontal offset in mode-information units.</param>
@@ -32,7 +32,7 @@ internal class Av1TransformInfo
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1TransformInfo"/> class.
+    /// Initializes a new instance of the <see cref="Av1TransformInfo"/> struct.
     /// </summary>
     /// <param name="originalInfo">The <see cref="Av1TransformInfo"/> to copy the information from.</param>
     public Av1TransformInfo(Av1TransformInfo originalInfo)

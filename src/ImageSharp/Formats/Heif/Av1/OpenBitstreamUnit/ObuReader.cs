@@ -272,6 +272,14 @@ internal class ObuReader
                         this.ReadFrameHeader(ref payloadReader, header, trailingBit: true);
                         decodedPayloadSize = Av1Math.DivideBy8Floor(payloadReader.BitPosition);
                         primaryFrameHeaderPayload = obuPayload[..decodedPayloadSize];
+
+                        if (primaryFrameHeader.ShowExistingFrame)
+                        {
+                            // This header completes by selecting retained samples; no tile group belongs to it.
+                            this.decoder ??= creator();
+                            frameDecodingFinished = true;
+                        }
+
                         break;
                     case ObuType.RedundantFrameHeader:
                         if (!seenFrameHeader)
@@ -311,6 +319,16 @@ internal class ObuReader
                         this.FrameHeader = combinedFrameHeader;
                         this.ReadFrameHeader(ref payloadReader, header, trailingBit: false);
                         primaryFrameHeaderPayload = obuPayload[..Av1Math.DivideBy8Floor(payloadReader.BitPosition)];
+
+                        if (combinedFrameHeader.ShowExistingFrame)
+                        {
+                            // A combined OBU carries no tile-group syntax when it only presents a retained frame.
+                            this.decoder ??= creator();
+                            frameDecodingFinished = true;
+                            decodedPayloadSize = Av1Math.DivideBy8Floor(payloadReader.BitPosition);
+                            break;
+                        }
+
                         goto TILE_GROUP;
                     case ObuType.TileGroup:
                         TILE_GROUP:
@@ -1291,7 +1309,7 @@ internal class ObuReader
     }
 
     /// <summary>
-    /// Reads the uncompressed syntax for one coded frame in a bounded AV1 image item or layered image sequence.
+    /// Reads the uncompressed syntax for one coded frame in a bounded AV1 image item or image sequence.
     /// </summary>
     /// <param name="reader">The reader positioned at the uncompressed frame header.</param>
     /// <param name="header">The OBU header identifying the frame's temporal and spatial layers.</param>
@@ -1338,9 +1356,55 @@ internal class ObuReader
                     frameHeader.DisplayFrameId = reader.ReadLiteral(idLength);
                 }
 
-                // The bounded image-item decoder retains reference state only to reconstruct coded dependent layers.
-                // show_existing_frame is a presentation-timeline operation and remains outside that image-only scope.
-                throw new InvalidImageContentException("An AV1 image item cannot display a previously decoded frame.");
+                Av1ReferenceFrameStore? retainedReferenceFrames = this.referenceFrames;
+                if (retainedReferenceFrames is null)
+                {
+                    throw new InvalidOperationException("AV1 existing-frame presentation requires a reconstructed reference map.");
+                }
+
+                int existingFrameSlot = (int)frameHeader.FrameToShowMapIdx;
+                Av1ReferenceFrame? existingFrame = retainedReferenceFrames.Resolve(existingFrameSlot);
+                if (existingFrame is null)
+                {
+                    throw new InvalidImageContentException("The AV1 existing-frame header selects an unoccupied reference-map slot.");
+                }
+
+                if (!existingFrame.FrameHeader.ShowableFrame)
+                {
+                    throw new InvalidImageContentException("The AV1 existing-frame header selects a frame that is not showable.");
+                }
+
+                if (sequenceHeader.IsFrameIdNumbersPresent &&
+                    (!frameHeader.GetReferenceValidity()[existingFrameSlot] ||
+                    frameHeader.DisplayFrameId != frameHeader.GetReferenceFrameIds()[existingFrameSlot]))
+                {
+                    throw new InvalidImageContentException("The AV1 existing-frame header has a mismatched display frame identifier.");
+                }
+
+                ObuFrameHeader existingFrameHeader = existingFrame.FrameHeader;
+                frameHeader.FrameType = existingFrameHeader.FrameType;
+                frameHeader.ShowFrame = true;
+                frameHeader.ShowableFrame = existingFrameHeader.ShowableFrame;
+                frameHeader.OrderHint = existingFrameHeader.OrderHint;
+                frameHeader.FrameSize = existingFrameHeader.FrameSize;
+                frameHeader.FilmGrainParameters = existingFrameHeader.FilmGrainParameters;
+
+                if (existingFrameHeader.FrameType == ObuFrameType.KeyFrame)
+                {
+                    frameHeader.RefreshFrameFlags = byte.MaxValue;
+                    frameHeader.CurrentFrameId = frameHeader.GetReferenceFrameIds()[existingFrameSlot];
+                }
+                else
+                {
+                    frameHeader.RefreshFrameFlags = 0;
+                    if (this.frameReferenceState.HasCurrentFrameId)
+                    {
+                        // Non-key existing-frame presentation does not consume or replace decoder current_frame_id.
+                        frameHeader.CurrentFrameId = this.frameReferenceState.CurrentFrameId;
+                    }
+                }
+
+                return;
             }
 
             frameHeader.FrameType = (ObuFrameType)reader.ReadLiteral(2);

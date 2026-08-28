@@ -720,6 +720,73 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
+    /// Gets the context that selects a unidirectional or bidirectional compound reference pair.
+    /// </summary>
+    /// <param name="above">The above block, or <see langword="null"/> at a tile boundary.</param>
+    /// <param name="left">The left block, or <see langword="null"/> at a tile boundary.</param>
+    /// <returns>The context in the inclusive range zero through four.</returns>
+    public static int GetCompoundReferenceTypeContext(Av1BlockModeInfo? above, Av1BlockModeInfo? left)
+    {
+        if (above is not null && left is not null)
+        {
+            bool aboveIntra = !IsInterBlock(above);
+            bool leftIntra = !IsInterBlock(left);
+            if (aboveIntra && leftIntra)
+            {
+                return 2;
+            }
+
+            if (aboveIntra || leftIntra)
+            {
+                Av1BlockModeInfo inter = aboveIntra ? left : above;
+                return HasCompoundReference(inter) ? 1 + (2 * (HasUnidirectionalCompoundReferences(inter) ? 1 : 0)) : 2;
+            }
+
+            bool aboveSingle = !HasCompoundReference(above);
+            bool leftSingle = !HasCompoundReference(left);
+            Av1ReferenceFrameType abovePrimary = above.ReferenceFrames[0];
+            Av1ReferenceFrameType leftPrimary = left.ReferenceFrames[0];
+            if (aboveSingle && leftSingle)
+            {
+                return 1 + (2 * (IsBackwardReference(abovePrimary) == IsBackwardReference(leftPrimary) ? 1 : 0));
+            }
+
+            if (aboveSingle || leftSingle)
+            {
+                Av1BlockModeInfo compound = aboveSingle ? left : above;
+                if (!HasUnidirectionalCompoundReferences(compound))
+                {
+                    return 1;
+                }
+
+                return 3 + (IsBackwardReference(abovePrimary) == IsBackwardReference(leftPrimary) ? 1 : 0);
+            }
+
+            bool aboveUnidirectional = HasUnidirectionalCompoundReferences(above);
+            bool leftUnidirectional = HasUnidirectionalCompoundReferences(left);
+            if (!aboveUnidirectional && !leftUnidirectional)
+            {
+                return 0;
+            }
+
+            if (!aboveUnidirectional || !leftUnidirectional)
+            {
+                return 2;
+            }
+
+            return 3 + ((abovePrimary == Av1ReferenceFrameType.Backward) == (leftPrimary == Av1ReferenceFrameType.Backward) ? 1 : 0);
+        }
+
+        Av1BlockModeInfo? edge = above ?? left;
+        if (edge is null || !IsInterBlock(edge) || !HasCompoundReference(edge))
+        {
+            return 2;
+        }
+
+        return HasUnidirectionalCompoundReferences(edge) ? 4 : 0;
+    }
+
+    /// <summary>
     /// Gets the switchable interpolation-filter context for one prediction direction.
     /// </summary>
     /// <param name="modeInfo">The current inter block.</param>
@@ -785,6 +852,25 @@ internal static class Av1SymbolContextHelper
     /// <param name="modeContext">The packed mode context produced by reference-motion-vector candidate analysis.</param>
     /// <returns>For a valid packed mode context, the context in the inclusive range zero through five.</returns>
     public static int GetRefMvContext(int modeContext) => (modeContext >> RefMvContextOffset) & RefMvContextMask;
+
+    /// <summary>
+    /// Maps the packed paired-reference candidate context to one of the eight compound inter-mode distributions.
+    /// </summary>
+    /// <param name="modeContext">The packed mode context produced by paired reference-motion-vector analysis.</param>
+    /// <returns>The compound inter-mode context in the inclusive range zero through seven.</returns>
+    public static int GetCompoundModeContext(int modeContext)
+    {
+        ReadOnlySpan<byte> contextMap =
+        [
+            0, 1, 1, 1, 1,
+            1, 2, 3, 4, 4,
+            4, 4, 5, 6, 7,
+        ];
+
+        int newMvContext = Math.Min(GetNewMvContext(modeContext), 4);
+        int referenceContextGroup = GetRefMvContext(modeContext) >> 1;
+        return contextMap[(referenceContextGroup * 5) + newMvContext];
+    }
 
     /// <summary>
     /// Gets the dynamic reference-list context for two adjacent motion-vector candidates.
@@ -925,6 +1011,60 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
+    /// Gets the first unidirectional compound-reference decision context.
+    /// </summary>
+    public static int GetUnidirectionalCompoundBackwardContext(ReadOnlySpan<byte> referenceCounts)
+        => GetSingleReferenceBackwardContext(referenceCounts);
+
+    /// <summary>
+    /// Gets the context that selects Last3 or Golden instead of Last2 for a forward unidirectional pair.
+    /// </summary>
+    public static int GetUnidirectionalCompoundLast3OrGoldenContext(ReadOnlySpan<byte> referenceCounts)
+    {
+        int last2Count = referenceCounts[(int)Av1ReferenceFrameType.Last2];
+        int last3OrGoldenCount = referenceCounts[(int)Av1ReferenceFrameType.Last3] +
+            referenceCounts[(int)Av1ReferenceFrameType.Golden];
+
+        return GetBinaryReferenceContext(last2Count, last3OrGoldenCount);
+    }
+
+    /// <summary>
+    /// Gets the context that selects Golden instead of Last3 for a forward unidirectional pair.
+    /// </summary>
+    public static int GetUnidirectionalCompoundGoldenContext(ReadOnlySpan<byte> referenceCounts)
+        => GetSingleReferenceGoldenContext(referenceCounts);
+
+    /// <summary>
+    /// Gets the context that selects Last3 or Golden instead of Last or Last2 for a bidirectional pair.
+    /// </summary>
+    public static int GetCompoundForwardLast3OrGoldenContext(ReadOnlySpan<byte> referenceCounts)
+        => GetSingleReferenceLast3OrGoldenContext(referenceCounts);
+
+    /// <summary>
+    /// Gets the context that selects Last2 instead of Last for a bidirectional pair.
+    /// </summary>
+    public static int GetCompoundForwardLast2Context(ReadOnlySpan<byte> referenceCounts)
+        => GetSingleReferenceLast2Context(referenceCounts);
+
+    /// <summary>
+    /// Gets the context that selects Golden instead of Last3 for a bidirectional pair.
+    /// </summary>
+    public static int GetCompoundForwardGoldenContext(ReadOnlySpan<byte> referenceCounts)
+        => GetSingleReferenceGoldenContext(referenceCounts);
+
+    /// <summary>
+    /// Gets the context that selects Alternate instead of Backward or Alternate2 for a bidirectional pair.
+    /// </summary>
+    public static int GetCompoundBackwardAlternateContext(ReadOnlySpan<byte> referenceCounts)
+        => GetSingleReferenceAlternateContext(referenceCounts);
+
+    /// <summary>
+    /// Gets the context that selects Alternate2 instead of Backward for a bidirectional pair.
+    /// </summary>
+    public static int GetCompoundBackwardAlternate2Context(ReadOnlySpan<byte> referenceCounts)
+        => GetSingleReferenceAlternate2Context(referenceCounts);
+
+    /// <summary>
     /// Gets the temporal segment-prediction context from the immediately above and left blocks.
     /// </summary>
     /// <param name="aboveModeInfo">The above block, or <see langword="null"/> at a tile boundary.</param>
@@ -1052,6 +1192,30 @@ internal static class Av1SymbolContextHelper
     /// <returns>One for tied votes, zero when symbol one has more votes, or two when symbol zero has more votes.</returns>
     private static int GetBinaryReferenceContext(int zeroSymbolCount, int oneSymbolCount)
         => zeroSymbolCount == oneSymbolCount ? 1 : zeroSymbolCount < oneSymbolCount ? 0 : 2;
+
+    /// <summary>
+    /// Determines whether a decoded block uses an inter reference.
+    /// </summary>
+    private static bool IsInterBlock(Av1BlockModeInfo modeInfo)
+        => modeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last;
+
+    /// <summary>
+    /// Determines whether a decoded block has a second inter reference.
+    /// </summary>
+    private static bool HasCompoundReference(Av1BlockModeInfo modeInfo)
+        => modeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra;
+
+    /// <summary>
+    /// Determines whether both compound references point in the same display-order direction.
+    /// </summary>
+    private static bool HasUnidirectionalCompoundReferences(Av1BlockModeInfo modeInfo)
+        => IsBackwardReference(modeInfo.ReferenceFrames[0]) == IsBackwardReference(modeInfo.ReferenceFrames[1]);
+
+    /// <summary>
+    /// Determines whether a retained reference belongs to the backward group.
+    /// </summary>
+    private static bool IsBackwardReference(Av1ReferenceFrameType referenceFrame)
+        => referenceFrame >= Av1ReferenceFrameType.Backward;
 
     /// <summary>
     /// Gets one neighbor's interpolation-filter contribution for the requested reference and direction.

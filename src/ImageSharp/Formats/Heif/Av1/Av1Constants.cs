@@ -194,7 +194,7 @@ internal static class Av1Constants
     /// <summary>
     /// The number of low-order bits reserved for a cumulative coefficient-level context.
     /// </summary>
-    public const int CoefficientContextBitCount = 6;
+    public const int CoefficientContextBitCount = 3;
 
     /// <summary>
     /// The mask selecting the cumulative coefficient-level magnitude bits.

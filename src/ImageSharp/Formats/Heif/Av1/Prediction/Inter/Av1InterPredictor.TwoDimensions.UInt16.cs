@@ -55,8 +55,8 @@ internal static partial class Av1InterPredictor
 
             if (width < Vector128<ushort>.Count)
             {
-                // AV1's only legal width below eight is four. The reference plane is padded for the full source load,
-                // and the minimum scratch stride preserves all eight intermediate lanes needed by the vertical pass.
+                // Subsampled sub-8x8 chroma can be two samples wide. The reference plane is padded for the full source
+                // load, and the minimum scratch stride preserves all eight intermediate lanes for the vertical pass.
                 Convolve(
                     ref sourceRow,
                     1,
@@ -132,8 +132,9 @@ internal static partial class Av1InterPredictor
                 result0 = RoundPowerOfTwo(result0, round1) - roundOffset;
                 result1 = RoundPowerOfTwo(result1, round1) - roundOffset;
 
-                // Four high-bit-depth samples occupy exactly the lower half of the packed vector.
-                PackHighBitDepth(result0, result1, maximum).GetLower().StoreUnsafe(ref destinationRow);
+                // Retain the vector convolution for two- and four-sample rows while leaving adjacent destination
+                // samples owned by the neighboring luma block untouched.
+                StorePartial(PackHighBitDepth(result0, result1, maximum), ref destinationRow, width);
                 continue;
             }
 

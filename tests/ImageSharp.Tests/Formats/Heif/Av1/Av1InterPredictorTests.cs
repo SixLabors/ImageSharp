@@ -102,6 +102,13 @@ public class Av1InterPredictorTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthPredictions, PredictorConfigurations);
 
     /// <summary>
+    /// Verifies that SIMD compound intermediates retain scalar-equivalent values and untouched destination padding.
+    /// </summary>
+    [Fact]
+    public void CompoundPredictionMatchesScalarAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateCompoundPredictions, PredictorConfigurations);
+
+    /// <summary>
     /// Applies every byte prediction scenario to the SIMD-first and explicitly scalar entry points.
     /// </summary>
     private static void ValidateBytePredictions()
@@ -166,11 +173,61 @@ public class Av1InterPredictorTests
     }
 
     /// <summary>
+    /// Applies every byte prediction scenario to the SIMD-first and scalar compound-intermediate entry points.
+    /// </summary>
+    private static void ValidateCompoundPredictions()
+    {
+        foreach (PredictionCase testCase in CreatePredictionCases())
+        {
+            byte[] source = CreateByteSource(testCase, out int sourceStride, out int sourceOrigin);
+            int destinationStride = testCase.Width + DestinationRowPadding;
+            ushort[] expected = CreateHighBitDepthDestination(testCase, destinationStride);
+            ushort[] actual = (ushort[])expected.Clone();
+            short[] simdScratch = CreateScratch(testCase);
+            short[] scalarScratch = CreateScratch(testCase);
+
+            Av1InterPredictor.PredictCompoundScalar(
+                source,
+                sourceStride,
+                sourceOrigin,
+                expected.AsSpan(DestinationPrefix),
+                destinationStride,
+                testCase.Width,
+                testCase.Height,
+                testCase.HorizontalFilter,
+                testCase.VerticalFilter,
+                testCase.HorizontalPhase,
+                testCase.VerticalPhase,
+                scalarScratch);
+
+            Av1InterPredictor.PredictCompound(
+                source,
+                sourceStride,
+                sourceOrigin,
+                actual.AsSpan(DestinationPrefix),
+                destinationStride,
+                testCase.Width,
+                testCase.Height,
+                testCase.HorizontalFilter,
+                testCase.VerticalFilter,
+                testCase.HorizontalPhase,
+                testCase.VerticalPhase,
+                simdScratch);
+
+            AssertEqual(expected, actual, testCase, "SIMD-first compound intermediate");
+        }
+    }
+
+    /// <summary>
     /// Creates the named operation matrix covering copy, each one-dimensional direction, separable filtering, reduced kernels, and vector tails.
     /// </summary>
     /// <returns>The prediction scenarios.</returns>
     private static PredictionCase[] CreatePredictionCases() =>
     [
+            new("copy-sub8x8-chroma", 2, 4, Av1InterpolationFilter.Regular, Av1InterpolationFilter.Sharp, 0, 0),
+            new("regular-horizontal-sub8x8-chroma", 2, 4, Av1InterpolationFilter.Regular, Av1InterpolationFilter.Regular, 3, 0),
+            new("regular-vertical-sub8x8-chroma", 4, 2, Av1InterpolationFilter.Regular, Av1InterpolationFilter.Regular, 0, 3),
+            new("smooth-sharp-sub8x8-chroma", 2, 2, Av1InterpolationFilter.Smooth, Av1InterpolationFilter.Sharp, 7, 13),
             new("copy-wide-tail", 68, 8, Av1InterpolationFilter.Regular, Av1InterpolationFilter.Sharp, 0, 0),
             new("regular-horizontal-wide-tail", 68, 8, Av1InterpolationFilter.Regular, Av1InterpolationFilter.Regular, 1, 0),
             new("smooth-horizontal-256-tail", 36, 8, Av1InterpolationFilter.Smooth, Av1InterpolationFilter.Regular, 7, 0),

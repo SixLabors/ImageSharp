@@ -127,6 +127,63 @@ internal static partial class Av1InterPredictor
     }
 
     /// <summary>
+    /// Reconstructs an 8-bit affine warped reference into AV1's unsigned compound intermediate format.
+    /// </summary>
+    public static void PredictWarpedCompound(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        Point sourceOrigin,
+        int sourceWidth,
+        int sourceHeight,
+        Span<ushort> destination,
+        int destinationStride,
+        Point destinationPosition,
+        int width,
+        int height,
+        int subsamplingX,
+        int subsamplingY,
+        Av1GlobalMotionParameters parameters,
+        Span<short> scratch)
+    {
+        if (Vector128.IsHardwareAccelerated)
+        {
+            PredictWarpedCompound<WarpedVector128Convolution>(
+                source,
+                sourceStride,
+                sourceOrigin,
+                sourceWidth,
+                sourceHeight,
+                destination,
+                destinationStride,
+                destinationPosition,
+                width,
+                height,
+                subsamplingX,
+                subsamplingY,
+                parameters,
+                scratch);
+
+            return;
+        }
+
+        PredictWarpedCompound<WarpedScalarConvolution>(
+            source,
+            sourceStride,
+            sourceOrigin,
+            sourceWidth,
+            sourceHeight,
+            destination,
+            destinationStride,
+            destinationPosition,
+            width,
+            height,
+            subsamplingX,
+            subsamplingY,
+            parameters,
+            scratch);
+    }
+
+    /// <summary>
     /// Reconstructs a high-bit-depth affine warped prediction using the widest supported convolution operator.
     /// </summary>
     public static void PredictWarped(
@@ -205,6 +262,40 @@ internal static partial class Av1InterPredictor
         Av1GlobalMotionParameters parameters,
         Span<short> scratch)
         => PredictWarped<WarpedScalarConvolution>(
+            source,
+            sourceStride,
+            sourceOrigin,
+            sourceWidth,
+            sourceHeight,
+            destination,
+            destinationStride,
+            destinationPosition,
+            width,
+            height,
+            subsamplingX,
+            subsamplingY,
+            parameters,
+            scratch);
+
+    /// <summary>
+    /// Reconstructs an 8-bit affine warped reference into compound intermediates without explicit hardware intrinsics.
+    /// </summary>
+    public static void PredictWarpedCompoundScalar(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        Point sourceOrigin,
+        int sourceWidth,
+        int sourceHeight,
+        Span<ushort> destination,
+        int destinationStride,
+        Point destinationPosition,
+        int width,
+        int height,
+        int subsamplingX,
+        int subsamplingY,
+        Av1GlobalMotionParameters parameters,
+        Span<short> scratch)
+        => PredictWarpedCompound<WarpedScalarConvolution>(
             source,
             sourceStride,
             sourceOrigin,
@@ -327,6 +418,85 @@ internal static partial class Av1InterPredictor
                         int value = RoundPowerOfTwoScalar(sum, verticalRound) - (1 << 7) - (1 << 8);
                         Unsafe.Add(ref destinationBase, destinationRowOffset + tileColumn - destinationPosition.X + column) =
                             (byte)Math.Clamp(value, byte.MinValue, byte.MaxValue);
+
+                        phase += parameters.Gamma;
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reconstructs one 8-bit warped reference without discarding the compound convolution precision.
+    /// </summary>
+    private static void PredictWarpedCompound<TConvolution>(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        Point sourceOrigin,
+        int sourceWidth,
+        int sourceHeight,
+        Span<ushort> destination,
+        int destinationStride,
+        Point destinationPosition,
+        int width,
+        int height,
+        int subsamplingX,
+        int subsamplingY,
+        Av1GlobalMotionParameters parameters,
+        Span<short> scratch)
+        where TConvolution : struct, IWarpedConvolution
+    {
+        ref byte sourceBase = ref MemoryMarshal.GetReference(source);
+        ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
+        Span<ushort> intermediate = MemoryMarshal.Cast<short, ushort>(scratch)[..WarpedScratchLength];
+        int horizontalBias = 1 << (8 + FilterBits - 1);
+        int verticalBias = 1 << (8 + (2 * FilterBits) - Round0Bits);
+
+        for (int tileRow = destinationPosition.Y; tileRow < destinationPosition.Y + height; tileRow += WarpedTileSize)
+        {
+            for (int tileColumn = destinationPosition.X; tileColumn < destinationPosition.X + width; tileColumn += WarpedTileSize)
+            {
+                DeriveWarpedTilePosition(
+                    parameters,
+                    tileColumn,
+                    tileRow,
+                    subsamplingX,
+                    subsamplingY,
+                    out int integerX,
+                    out int integerY,
+                    out int phaseX,
+                    out int phaseY);
+
+                for (int row = -7; row < 8; row++)
+                {
+                    int sourceY = Math.Clamp(integerY + row, 0, sourceHeight - 1);
+                    int phase = phaseX + (parameters.Beta * (row + 4));
+                    for (int column = -4; column < 4; column++)
+                    {
+                        int sourceX = integerX + column - 3;
+                        int sourceIndex = ((sourceOrigin.Y + sourceY) * sourceStride) + sourceOrigin.X + sourceX;
+                        ref short coefficients = ref GetWarpedFilterReference(phase);
+                        int sum = horizontalBias + TConvolution.Convolve(ref Unsafe.Add(ref sourceBase, sourceIndex), ref coefficients);
+                        intermediate[((row + 7) * WarpedTileSize) + column + 4] =
+                            (ushort)RoundPowerOfTwoScalar(sum, Round0Bits);
+
+                        phase += parameters.Alpha;
+                    }
+                }
+
+                int tileHeight = Math.Min(WarpedTileSize, destinationPosition.Y + height - tileRow);
+                int tileWidth = Math.Min(WarpedTileSize, destinationPosition.X + width - tileColumn);
+                for (int row = 0; row < tileHeight; row++)
+                {
+                    int phase = phaseY + (parameters.Delta * row);
+                    int destinationRowOffset = (tileRow - destinationPosition.Y + row) * destinationStride;
+                    for (int column = 0; column < tileWidth; column++)
+                    {
+                        ref ushort intermediateSource = ref intermediate[(row * WarpedTileSize) + column];
+                        ref short coefficients = ref GetWarpedFilterReference(phase);
+                        int sum = verticalBias + TConvolution.ConvolveVertical(ref intermediateSource, WarpedTileSize, ref coefficients);
+                        Unsafe.Add(ref destinationBase, destinationRowOffset + tileColumn - destinationPosition.X + column) =
+                            (ushort)RoundPowerOfTwoScalar(sum, CompoundRound1Bits);
 
                         phase += parameters.Gamma;
                     }

@@ -636,6 +636,8 @@ public class Av1CompoundBlockDecoderTests
         const int frameSize = 32;
         const int blockOrigin = 8;
         const int blockSize = 8;
+        const int compoundRoundBits = 4;
+        const int compoundRoundOffset = (1 << 12) + (1 << 11);
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader(bitDepth, frameSize);
         ObuFrameHeader frameHeader = CreateFrameHeader(frameSize);
         frameHeader.GetReferenceFrameIndices()[0] = 0;
@@ -667,8 +669,6 @@ public class Av1CompoundBlockDecoderTests
 
         Av1FrameBuffer<byte> firstReference = referenceFrames.Resolve(0)!.FrameBuffer;
         Av1FrameBuffer<byte> secondReference = referenceFrames.Resolve(1)!.FrameBuffer;
-        byte[] firstBytePrediction = new byte[blockSize * blockSize];
-        byte[] secondBytePrediction = new byte[blockSize * blockSize];
         ushort[] firstHighBitDepthPrediction = new ushort[blockSize * blockSize];
         ushort[] secondHighBitDepthPrediction = new ushort[blockSize * blockSize];
         short[] firstScratch = new short[Av1InterPredictor.WarpedScratchLength];
@@ -690,13 +690,13 @@ public class Av1CompoundBlockDecoderTests
                 out int secondStride,
                 out Point secondOrigin);
 
-            Av1InterPredictor.PredictWarpedScalar(
+            Av1InterPredictor.PredictWarpedCompoundScalar(
                 firstSource,
                 firstStride,
                 firstOrigin,
                 frameSize,
                 frameSize,
-                firstBytePrediction,
+                firstHighBitDepthPrediction,
                 blockSize,
                 blockPosition,
                 blockSize,
@@ -706,13 +706,13 @@ public class Av1CompoundBlockDecoderTests
                 globalMotionParameters,
                 firstScratch);
 
-            Av1InterPredictor.PredictWarpedScalar(
+            Av1InterPredictor.PredictWarpedCompoundScalar(
                 secondSource,
                 secondStride,
                 secondOrigin,
                 frameSize,
                 frameSize,
-                secondBytePrediction,
+                secondHighBitDepthPrediction,
                 blockSize,
                 blockPosition,
                 blockSize,
@@ -822,8 +822,15 @@ public class Av1CompoundBlockDecoderTests
                 int predictionIndex = (row * blockSize) + column;
                 if (bitDepth == Av1BitDepth.EightBit)
                 {
-                    byte expected = (byte)((firstBytePrediction[predictionIndex] +
-                        secondBytePrediction[predictionIndex] + 1) >> 1);
+                    // Libaom truncates the equal average before removing the Q4 compound bias, then performs the
+                    // sole final rounding step. Averaging two already reconstructed pixels can differ by one.
+                    int intermediate = ((firstHighBitDepthPrediction[predictionIndex] +
+                        secondHighBitDepthPrediction[predictionIndex]) >> 1) - compoundRoundOffset;
+
+                    byte expected = (byte)Math.Clamp(
+                        (intermediate + (1 << (compoundRoundBits - 1))) >> compoundRoundBits,
+                        0,
+                        byte.MaxValue);
 
                     Span<byte> samples = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(blockOrigin + row);
                     Assert.Equal(expected, samples[blockOrigin + column]);

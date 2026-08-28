@@ -133,9 +133,11 @@ internal sealed class Av1BlockDecoder : IDisposable
                     Av1InterPredictor.GetScratchLength(maximumBlockLength, maximumBlockLength),
                     Av1InterPredictor.GetMaximumScaledScratchLength(maximumBlockLength, maximumBlockLength)));
 
-            // Compound prediction retains the complete second predictor until both references have been sampled.
-            // Reserve it once beside the convolution workspace so block traversal never rents temporary memory.
-            int predictionScratchLength = maximumBlockArea + predictorWorkingLength;
+            int compoundMaskLength = (maximumBlockArea + 1) >> 1;
+
+            // Compound prediction retains both high-precision reference planes plus the full-resolution luma mask.
+            // Keeping all three beside the convolution workspace lets chroma reuse the luma mask without a copy or rent.
+            int predictionScratchLength = (2 * maximumBlockArea) + compoundMaskLength + predictorWorkingLength;
             predictionScratchOwner = this.frameBuffer.MemoryAllocator.Allocate<short>(predictionScratchLength);
 
             this.inverseQuantizationOwner = inverseQuantizationOwner;
@@ -144,7 +146,7 @@ internal sealed class Av1BlockDecoder : IDisposable
             this.predictionDecoder = new(
                 sequenceHeader,
                 frameHeader,
-                predictionScratchOwner.Memory[maximumBlockArea..]);
+                predictionScratchOwner.Memory[((2 * maximumBlockArea) + compoundMaskLength)..]);
             this.isLoopFilterEnabled = frameHeader.LoopFilterParameters.FilterLevel[0] != 0 ||
                 frameHeader.LoopFilterParameters.FilterLevel[1] != 0;
 
@@ -327,13 +329,49 @@ internal sealed class Av1BlockDecoder : IDisposable
                 int predictionHeight = Math.Max(4, blockSize.GetHeight() >> subY);
                 int maximumBlockLength = 1 << this.sequenceHeader.SuperblockSizeLog2;
                 int maximumBlockArea = maximumBlockLength * maximumBlockLength;
+                int compoundMaskStorageLength = (maximumBlockArea + 1) >> 1;
                 Span<short> predictionStorage = this.predictionScratchOwner.Memory.Span;
                 Span<short> secondPredictionStorage = predictionStorage[..maximumBlockArea];
-                Span<short> predictionScratch = predictionStorage[maximumBlockArea..];
+                Span<ushort> firstCompoundPrediction = MemoryMarshal.Cast<short, ushort>(
+                    predictionStorage.Slice(maximumBlockArea, maximumBlockArea));
+
+                Span<byte> compoundMask = MemoryMarshal.AsBytes(
+                    predictionStorage.Slice(2 * maximumBlockArea, compoundMaskStorageLength))[..(blockSize.GetWidth() * blockSize.GetHeight())];
+
+                Span<short> predictionScratch =
+                    predictionStorage[((2 * maximumBlockArea) + compoundMaskStorageLength)..];
+
                 Span<byte> secondPrediction = MemoryMarshal.AsBytes(secondPredictionStorage)[..(predictionWidth * predictionHeight)];
                 Span<ushort> highBitDepthSecondPrediction = MemoryMarshal.Cast<short, ushort>(secondPredictionStorage)[..(predictionWidth * predictionHeight)];
-                Span<byte> compoundMask = MemoryMarshal.AsBytes(predictionScratch)[..(predictionWidth * predictionHeight)];
-                int referenceCount = isCompound ? 2 : 1;
+                bool usesSub8x8ChromaPrediction =
+                    plane != 0 &&
+                    !isCompound &&
+                    this.TryPredictSub8x8Chroma(
+                        ref partitionInfo,
+                        modeInfoPosition,
+                        blockSize,
+                        plane,
+                        subX,
+                        subY,
+                        pixelPosition,
+                        predictionWidth,
+                        predictionHeight,
+                        blockReconstructionBuffer,
+                        highBitDepthBlockReconstructionBuffer,
+                        reconstructionStride,
+                        predictionScratch);
+
+                int referenceCount = usesSub8x8ChromaPrediction ? 0 : isCompound ? 2 : 1;
+                bool hasScaledCompoundReference = isCompound &&
+                    (referenceFrameBuffer!.Width != this.frameHeader.FrameSize.FrameWidth ||
+                     referenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight ||
+                     secondaryReferenceFrameBuffer!.Width != this.frameHeader.FrameSize.FrameWidth ||
+                     secondaryReferenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight);
+
+                // Eight-bit compound prediction uses the normative no-round intermediate path below. Scaled and
+                // high-bit-depth variants remain on their existing paths until their matching kernels are selected.
+                bool useCompoundIntermediates =
+                    isCompound && !highBitDepth && !hasScaledCompoundReference;
 
                 for (int referenceIndex = 0; referenceIndex < referenceCount; referenceIndex++)
                 {
@@ -342,7 +380,9 @@ internal sealed class Av1BlockDecoder : IDisposable
                         : secondaryReferenceFrameBuffer!;
 
                     Av1MotionVector motionVector = modeInfo.MotionVectors[referenceIndex];
-                    int destinationStride = referenceIndex == 0 ? reconstructionStride : predictionWidth;
+                    int destinationStride = useCompoundIntermediates
+                        ? predictionWidth
+                        : referenceIndex == 0 ? reconstructionStride : predictionWidth;
                     bool isScaledReference = activeReferenceFrameBuffer.Width != this.frameHeader.FrameSize.FrameWidth ||
                         activeReferenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight;
 
@@ -430,25 +470,50 @@ internal sealed class Av1BlockDecoder : IDisposable
                                 out int sourceStride,
                                 out Point sourceOrigin);
 
-                            Span<byte> destination = referenceIndex == 0
-                                ? blockReconstructionBuffer[reconstructionStride..]
-                                : secondPrediction;
+                            if (useCompoundIntermediates)
+                            {
+                                Span<ushort> destination = referenceIndex == 0
+                                    ? firstCompoundPrediction
+                                    : highBitDepthSecondPrediction;
 
-                            Av1InterPredictor.PredictWarped(
-                                source,
-                                sourceStride,
-                                sourceOrigin,
-                                referencePlaneWidth,
-                                referencePlaneHeight,
-                                destination,
-                                destinationStride,
-                                pixelPosition,
-                                predictionWidth,
-                                predictionHeight,
-                                subX,
-                                subY,
-                                warpedMotionParameters,
-                                predictionScratch);
+                                Av1InterPredictor.PredictWarpedCompound(
+                                    source,
+                                    sourceStride,
+                                    sourceOrigin,
+                                    referencePlaneWidth,
+                                    referencePlaneHeight,
+                                    destination,
+                                    destinationStride,
+                                    pixelPosition,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    subX,
+                                    subY,
+                                    warpedMotionParameters,
+                                    predictionScratch);
+                            }
+                            else
+                            {
+                                Span<byte> destination = referenceIndex == 0
+                                    ? blockReconstructionBuffer[reconstructionStride..]
+                                    : secondPrediction;
+
+                                Av1InterPredictor.PredictWarped(
+                                    source,
+                                    sourceStride,
+                                    sourceOrigin,
+                                    referencePlaneWidth,
+                                    referencePlaneHeight,
+                                    destination,
+                                    destinationStride,
+                                    pixelPosition,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    subX,
+                                    subY,
+                                    warpedMotionParameters,
+                                    predictionScratch);
+                            }
                         }
 
                         continue;
@@ -564,29 +629,148 @@ internal sealed class Av1BlockDecoder : IDisposable
                         int sourceIndex =
                             ((sourceOrigin.Y + (sourceRowQ4 >> 4)) * sourceStride) + sourceOrigin.X + (sourceColumnQ4 >> 4);
 
-                        Span<byte> destination = referenceIndex == 0
-                            ? blockReconstructionBuffer[reconstructionStride..]
-                            : secondPrediction;
+                        if (useCompoundIntermediates)
+                        {
+                            Span<ushort> destination = referenceIndex == 0
+                                ? firstCompoundPrediction
+                                : highBitDepthSecondPrediction;
 
-                        Av1InterPredictor.Predict(
-                            source,
-                            sourceStride,
-                            sourceIndex,
-                            destination,
-                            destinationStride,
-                            predictionWidth,
-                            predictionHeight,
-                            modeInfo.InterpolationFilters[1],
-                            modeInfo.InterpolationFilters[0],
-                            horizontalPhase,
-                            verticalPhase,
-                            predictionScratch);
+                            Av1InterPredictor.PredictCompound(
+                                source,
+                                sourceStride,
+                                sourceIndex,
+                                destination,
+                                predictionWidth,
+                                predictionWidth,
+                                predictionHeight,
+                                modeInfo.InterpolationFilters[1],
+                                modeInfo.InterpolationFilters[0],
+                                horizontalPhase,
+                                verticalPhase,
+                                predictionScratch);
+                        }
+                        else
+                        {
+                            Span<byte> destination = referenceIndex == 0
+                                ? blockReconstructionBuffer[reconstructionStride..]
+                                : secondPrediction;
+
+                            Av1InterPredictor.Predict(
+                                source,
+                                sourceStride,
+                                sourceIndex,
+                                destination,
+                                destinationStride,
+                                predictionWidth,
+                                predictionHeight,
+                                modeInfo.InterpolationFilters[1],
+                                modeInfo.InterpolationFilters[0],
+                                horizontalPhase,
+                                verticalPhase,
+                                predictionScratch);
+                        }
                     }
                 }
 
                 if (isCompound)
                 {
-                    if (highBitDepth)
+                    if (useCompoundIntermediates)
+                    {
+                        Span<byte> destination = blockReconstructionBuffer[reconstructionStride..];
+                        ReadOnlySpan<ushort> first = firstCompoundPrediction[..(predictionWidth * predictionHeight)];
+                        switch (modeInfo.CompoundType)
+                        {
+                            case Av1CompoundType.Average:
+                                Av1CompoundInterPredictor.AverageIntermediate(
+                                    destination,
+                                    reconstructionStride,
+                                    first,
+                                    predictionWidth,
+                                    highBitDepthSecondPrediction,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    bitDepth: 8);
+
+                                break;
+                            case Av1CompoundType.DistanceWeighted:
+                                Av1CompoundInterPredictor.DistanceWeightedIntermediate(
+                                    destination,
+                                    reconstructionStride,
+                                    first,
+                                    predictionWidth,
+                                    highBitDepthSecondPrediction,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    firstCompoundWeight,
+                                    secondCompoundWeight,
+                                    bitDepth: 8);
+
+                                break;
+                            case Av1CompoundType.Wedge:
+                                Av1WedgeMask.Fill(
+                                    compoundMask,
+                                    predictionWidth,
+                                    blockSize,
+                                    modeInfo.CompoundWedgeIndex,
+                                    modeInfo.CompoundWedgeSign,
+                                    subX,
+                                    subY,
+                                    invert: false);
+
+                                Av1CompoundInterPredictor.BlendIntermediate(
+                                    destination,
+                                    reconstructionStride,
+                                    first,
+                                    predictionWidth,
+                                    highBitDepthSecondPrediction,
+                                    predictionWidth,
+                                    compoundMask,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    subX: 0,
+                                    subY: 0,
+                                    bitDepth: 8);
+
+                                break;
+                            default:
+                                int lumaWidth = blockSize.GetWidth();
+                                if (plane == 0)
+                                {
+                                    Av1CompoundInterPredictor.FillDifferenceWeightedIntermediateMask(
+                                        compoundMask,
+                                        lumaWidth,
+                                        first,
+                                        predictionWidth,
+                                        highBitDepthSecondPrediction,
+                                        predictionWidth,
+                                        predictionWidth,
+                                        predictionHeight,
+                                        bitDepth: 8,
+                                        modeInfo.DifferenceWeightedMaskType);
+                                }
+
+                                Av1CompoundInterPredictor.BlendIntermediate(
+                                    destination,
+                                    reconstructionStride,
+                                    first,
+                                    predictionWidth,
+                                    highBitDepthSecondPrediction,
+                                    predictionWidth,
+                                    compoundMask,
+                                    lumaWidth,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    subX,
+                                    subY,
+                                    bitDepth: 8);
+
+                                break;
+                        }
+                    }
+                    else if (highBitDepth)
                     {
                         Span<ushort> destination = MemoryMarshal.Cast<short, ushort>(
                             highBitDepthBlockReconstructionBuffer[reconstructionStride..]);
@@ -1071,6 +1255,202 @@ internal sealed class Av1BlockDecoder : IDisposable
                 transformInfo = transformInfo[1..];
             }
         }
+    }
+
+    /// <summary>
+    /// Reconstructs a subsampled chroma block assembled from multiple neighboring luma inter blocks.
+    /// </summary>
+    private bool TryPredictSub8x8Chroma(
+        ref Av1PartitionInfo partitionInfo,
+        Point modeInfoPosition,
+        Av1BlockSize blockSize,
+        int plane,
+        int subX,
+        int subY,
+        Point pixelPosition,
+        int predictionWidth,
+        int predictionHeight,
+        Span<byte> blockReconstructionBuffer,
+        Span<short> highBitDepthBlockReconstructionBuffer,
+        int reconstructionStride,
+        Span<short> predictionScratch)
+    {
+        bool isSub4X = blockSize.GetWidth() == 4 && subX != 0;
+        bool isSub4Y = blockSize.GetHeight() == 4 && subY != 0;
+        if (!isSub4X && !isSub4Y)
+        {
+            return false;
+        }
+
+        int rowStart = isSub4Y ? -1 : 0;
+        int columnStart = isSub4X ? -1 : 0;
+
+        // One chroma block can cover two or four independently decoded luma blocks. libaom enters this path only
+        // when every contributing owner is a conventional inter block; otherwise the current block supplies the
+        // complete chroma prediction through the ordinary path.
+        for (int row = rowStart; row <= 0; row++)
+        {
+            for (int column = columnStart; column <= 0; column++)
+            {
+                Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(
+                    new Point(modeInfoPosition.X + column, modeInfoPosition.Y + row));
+
+                if (candidate.ReferenceFrames[0] < Av1ReferenceFrameType.Last || candidate.UseIntraBlockCopy)
+                {
+                    return false;
+                }
+            }
+        }
+
+        int subPredictionWidth = blockSize.GetWidth() >> subX;
+        int subPredictionHeight = blockSize.GetHeight() >> subY;
+        int modeRow = rowStart;
+
+        // Chroma ownership is assigned to the bottom-right luma mode record on each subsampled axis. Consequently
+        // pixelPosition is already the top-left of this assembled plane block even when its first luma owner is at
+        // row or column -1. Each subprediction writes directly into its final rectangle without a staging copy.
+        for (int y = 0; y < predictionHeight; y += subPredictionHeight)
+        {
+            int modeColumn = columnStart;
+            for (int x = 0; x < predictionWidth; x += subPredictionWidth)
+            {
+                Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(
+                    new Point(modeInfoPosition.X + modeColumn, modeInfoPosition.Y + modeRow));
+
+                Av1FrameBuffer<byte> referenceFrameBuffer = this.ResolveReferenceFrame(candidate.ReferenceFrames[0]);
+                Av1MotionVector motionVector = candidate.MotionVectors[0];
+                Point subPredictionOrigin = new(pixelPosition.X + x, pixelPosition.Y + y);
+                int destinationOffset = reconstructionStride + (y * reconstructionStride) + x;
+                bool isScaledReference =
+                    referenceFrameBuffer.Width != this.frameHeader.FrameSize.FrameWidth ||
+                    referenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight;
+
+                if (isScaledReference)
+                {
+                    Span<byte> scaledDestination = default;
+                    Span<ushort> scaledHighBitDepthDestination = default;
+                    if (this.frameBuffer.BytesPerSample == 2)
+                    {
+                        scaledHighBitDepthDestination = MemoryMarshal.Cast<short, ushort>(
+                            highBitDepthBlockReconstructionBuffer[destinationOffset..]);
+                    }
+                    else
+                    {
+                        scaledDestination = blockReconstructionBuffer[destinationOffset..];
+                    }
+
+                    this.PredictScaledReference(
+                        referenceFrameBuffer,
+                        motionVector,
+                        plane,
+                        subX,
+                        subY,
+                        subPredictionOrigin,
+                        subPredictionWidth,
+                        subPredictionHeight,
+                        candidate.InterpolationFilters[1],
+                        candidate.InterpolationFilters[0],
+                        scaledDestination,
+                        scaledHighBitDepthDestination,
+                        reconstructionStride,
+                        predictionScratch);
+                }
+                else
+                {
+                    int horizontalMotionQ4 = motionVector.Column << (1 - subX);
+                    int verticalMotionQ4 = motionVector.Row << (1 - subY);
+                    int horizontalExtensionQ4 = (4 + subPredictionWidth) << 4;
+                    int verticalExtensionQ4 = (4 + subPredictionHeight) << 4;
+                    int horizontalEdgeScale = 1 << (1 - subX);
+                    int verticalEdgeScale = 1 << (1 - subY);
+
+                    // The block-relative UMV edges belong to the current coding block, while each contributing luma
+                    // owner supplies only its motion vector and interpolation filters. This is the same split used by
+                    // libaom's sub-8x8 chroma builder.
+                    horizontalMotionQ4 = Av1Math.Clip3(
+                        (partitionInfo.ModeBlockToLeftEdge * horizontalEdgeScale) - horizontalExtensionQ4,
+                        (partitionInfo.ModeBlockToRightEdge * horizontalEdgeScale) + horizontalExtensionQ4 - 16,
+                        horizontalMotionQ4);
+
+                    verticalMotionQ4 = Av1Math.Clip3(
+                        (partitionInfo.ModeBlockToTopEdge * verticalEdgeScale) - verticalExtensionQ4,
+                        (partitionInfo.ModeBlockToBottomEdge * verticalEdgeScale) + verticalExtensionQ4 - 16,
+                        verticalMotionQ4);
+
+                    int sourceColumnQ4 = (subPredictionOrigin.X << 4) + horizontalMotionQ4;
+                    int sourceRowQ4 = (subPredictionOrigin.Y << 4) + verticalMotionQ4;
+                    int horizontalPhase = sourceColumnQ4 & 15;
+                    int verticalPhase = sourceRowQ4 & 15;
+
+                    if (this.frameBuffer.BytesPerSample == 2)
+                    {
+                        Span<ushort> source = referenceFrameBuffer.GetPaddedPlaneSpan16(
+                            (Av1Plane)plane,
+                            subX,
+                            subY,
+                            out int sourceStride,
+                            out Point sourceOrigin);
+
+                        int sourceIndex =
+                            ((sourceOrigin.Y + (sourceRowQ4 >> 4)) * sourceStride) +
+                            sourceOrigin.X +
+                            (sourceColumnQ4 >> 4);
+
+                        Span<ushort> destination = MemoryMarshal.Cast<short, ushort>(
+                            highBitDepthBlockReconstructionBuffer[destinationOffset..]);
+
+                        Av1InterPredictor.Predict(
+                            source,
+                            sourceStride,
+                            sourceIndex,
+                            destination,
+                            reconstructionStride,
+                            subPredictionWidth,
+                            subPredictionHeight,
+                            candidate.InterpolationFilters[1],
+                            candidate.InterpolationFilters[0],
+                            horizontalPhase,
+                            verticalPhase,
+                            this.frameBuffer.BitDepth.GetBitCount(),
+                            predictionScratch);
+                    }
+                    else
+                    {
+                        Span<byte> source = referenceFrameBuffer.GetPaddedPlaneSpan(
+                            (Av1Plane)plane,
+                            subX,
+                            subY,
+                            out int sourceStride,
+                            out Point sourceOrigin);
+
+                        int sourceIndex =
+                            ((sourceOrigin.Y + (sourceRowQ4 >> 4)) * sourceStride) +
+                            sourceOrigin.X +
+                            (sourceColumnQ4 >> 4);
+
+                        Av1InterPredictor.Predict(
+                            source,
+                            sourceStride,
+                            sourceIndex,
+                            blockReconstructionBuffer[destinationOffset..],
+                            reconstructionStride,
+                            subPredictionWidth,
+                            subPredictionHeight,
+                            candidate.InterpolationFilters[1],
+                            candidate.InterpolationFilters[0],
+                            horizontalPhase,
+                            verticalPhase,
+                            predictionScratch);
+                    }
+                }
+
+                modeColumn++;
+            }
+
+            modeRow++;
+        }
+
+        return true;
     }
 
     /// <summary>

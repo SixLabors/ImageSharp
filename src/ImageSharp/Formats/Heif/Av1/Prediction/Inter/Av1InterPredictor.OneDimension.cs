@@ -226,8 +226,9 @@ internal static partial class Av1InterPredictor
                 Convolve(ref sourceRow, tapStride, 0, ref coefficientBase, tapCount, initial, out Vector128<int> result0, out Vector128<int> result1);
                 Round(ref result0, ref result1, firstRound, secondRound);
 
-                // The only legal AV1 width below eight is four samples, exactly the lower Vector64 half.
-                PackHighBitDepth(result0, result1, maximum).GetLower().StoreUnsafe(ref destinationRow);
+                // Subsampled sub-8x8 chroma can be two samples wide. Keep the full source load for throughput, but
+                // store only the logical row so the adjacent luma owner's chroma prediction remains intact.
+                StorePartial(PackHighBitDepth(result0, result1, maximum), ref destinationRow, width);
                 continue;
             }
 
@@ -439,7 +440,7 @@ internal static partial class Av1InterPredictor
     }
 
     /// <summary>
-    /// Stores the four- or eight-sample prefix of a sixteen-byte prediction vector.
+    /// Stores the two-, four-, or eight-sample prefix of a sixteen-byte prediction vector.
     /// </summary>
     private static void StorePartial(Vector128<byte> value, ref byte destination, int width)
     {
@@ -447,9 +448,32 @@ internal static partial class Av1InterPredictor
         {
             value.GetLower().StoreUnsafe(ref destination);
         }
-        else
+        else if (width == 4)
         {
             Unsafe.As<byte, uint>(ref destination) = value.AsUInt32().GetElement(0);
+        }
+        else
+        {
+            Unsafe.As<byte, ushort>(ref destination) = value.AsUInt16().GetElement(0);
+        }
+    }
+
+    /// <summary>
+    /// Stores the two-, four-, or eight-sample prefix of an eight-ushort prediction vector.
+    /// </summary>
+    private static void StorePartial(Vector128<ushort> value, ref ushort destination, int width)
+    {
+        if (width == 8)
+        {
+            value.StoreUnsafe(ref destination);
+        }
+        else if (width == 4)
+        {
+            value.GetLower().StoreUnsafe(ref destination);
+        }
+        else
+        {
+            Unsafe.As<ushort, uint>(ref destination) = value.AsUInt32().GetElement(0);
         }
     }
 

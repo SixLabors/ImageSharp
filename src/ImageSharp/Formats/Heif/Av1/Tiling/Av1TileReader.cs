@@ -826,7 +826,9 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <remarks>Corresponds to <c>reset_skip_context</c> in SVT-AV1.</remarks>
     private void ResetSkipContext(ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
     {
-        int planesCount = this.SequenceHeader.ColorConfig.PlaneCount;
+        // Subsampled 4x4 luma blocks can share chroma ownership with an adjacent luma block. A skipped block that is
+        // not the chroma reference must preserve those shared coefficient contexts for the owning block.
+        int planesCount = partitionInfo.IsChroma ? this.SequenceHeader.ColorConfig.PlaneCount : 1;
         for (int i = 0; i < planesCount; i++)
         {
             int subX = (i > 0 && this.SequenceHeader.ColorConfig.SubSamplingX) ? 1 : 0;

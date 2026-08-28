@@ -156,6 +156,37 @@ public class Av1ReconstructionConformanceTests
     private const int AverageCompoundFixtureFrameCount = 19;
 
     /// <summary>
+    /// The displayed width of the official libaom motion-vector sequence.
+    /// </summary>
+    private const int OfficialMotionVectorFixtureWidth = 352;
+
+    /// <summary>
+    /// The displayed height of the official libaom motion-vector sequence.
+    /// </summary>
+    private const int OfficialMotionVectorFixtureHeight = 288;
+
+    /// <summary>
+    /// The number of shown frames in the official libaom motion-vector sequence.
+    /// </summary>
+    private const int OfficialMotionVectorFixtureFrameCount = 4;
+
+    /// <summary>
+    /// The bit mask containing every single-reference and compound inter prediction mode.
+    /// </summary>
+    private const int RequiredInterModeCoverage =
+        (1 << ((int)Av1PredictionMode.InterModeEnd - (int)Av1PredictionMode.InterModeStart)) - 1;
+
+    /// <summary>
+    /// The bit mask containing every simple, OBMC, and locally warped motion mode.
+    /// </summary>
+    private const int RequiredMotionModeCoverage = (1 << 3) - 1;
+
+    /// <summary>
+    /// The bit mask containing every regular, smooth, and sharp vertical/horizontal filter pair.
+    /// </summary>
+    private const int RequiredSwitchableFilterPairCoverage = (1 << 9) - 1;
+
+    /// <summary>
     /// The coverage bit representing distance-weighted compound prediction.
     /// </summary>
     private const int DistanceWeightedCompoundCoverage = 1 << 0;
@@ -825,6 +856,144 @@ public class Av1ReconstructionConformanceTests
             GlobalWarpCoverage,
             fixtureSize: 256,
             visibleFrameCount: 2);
+
+    /// <summary>
+    /// Verifies every ordinary inter mode, motion mode, and switchable dual-filter pair against the official
+    /// pinned-libaom motion-vector conformance sequence and its exact native output.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialMotionVectorSequenceMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateOfficialMotionVectorFixtureWithDefaultConfiguration,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Verifies the official motion-vector conformance sequence through constrained tracked allocation.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodeOfficialMotionVectorSequenceUsesContiguousPlanes()
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        ValidateOfficialMotionVectorFixture(configuration);
+
+        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
+        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.AllocationId == allocation.AllocationId));
+    }
+
+    /// <summary>
+    /// Runs the official motion-vector fixture with the default decoder configuration.
+    /// </summary>
+    private static void ValidateOfficialMotionVectorFixtureWithDefaultConfiguration()
+        => ValidateOfficialMotionVectorFixture(Configuration.Default);
+
+    /// <summary>
+    /// Decodes every IVF sample in one retained session, compares each shown frame exactly, and records the
+    /// syntax selections that make the vector authoritative for ordinary inter-mode and filter coverage.
+    /// </summary>
+    private static void ValidateOfficialMotionVectorFixture(Configuration configuration)
+    {
+        byte[] ivf = TestFile.Create(TestImages.Heif.Av1OfficialMotionVectorSequence).Bytes;
+        byte[] nativeReference = TestFile.Create(TestImages.Heif.Av1OfficialMotionVectorSequenceNativeReference).Bytes;
+        ReadOnlySpan<byte> y4mFileHeader = "YUV4MPEG2 W352 H288 F30:1 Ip C420jpeg\n"u8;
+        ReadOnlySpan<byte> y4mFrameHeader = "FRAME\n"u8;
+
+        Assert.True(ivf.AsSpan(0, 4).SequenceEqual("DKIF"u8));
+        Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(4, 2)));
+        Assert.Equal(32, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(6, 2)));
+        Assert.True(ivf.AsSpan(8, 4).SequenceEqual("AV01"u8));
+        Assert.Equal(OfficialMotionVectorFixtureWidth, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(12, 2)));
+        Assert.Equal(OfficialMotionVectorFixtureHeight, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(14, 2)));
+        Assert.Equal(
+            OfficialMotionVectorFixtureFrameCount,
+            checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(24, 4))));
+
+        Assert.True(nativeReference.AsSpan().StartsWith(y4mFileHeader));
+
+        int ivfOffset = 32;
+        int nativeOffset = y4mFileHeader.Length;
+        int nativeFrameLength =
+            (OfficialMotionVectorFixtureWidth * OfficialMotionVectorFixtureHeight) +
+            (2 * (OfficialMotionVectorFixtureWidth >> 1) * (OfficialMotionVectorFixtureHeight >> 1));
+
+        int interModeCoverage = 0;
+        int motionModeCoverage = 0;
+        int switchableFilterPairCoverage = 0;
+        using Av1Decoder decoder = new(configuration);
+        for (int frameIndex = 0; frameIndex < OfficialMotionVectorFixtureFrameCount; frameIndex++)
+        {
+            int payloadLength = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(ivfOffset, 4)));
+            ivfOffset += 12;
+            ImageFrame<Rgba32> decodedFrame = decoder.DecodeSequenceFrame<Rgba32>(
+                ivf.AsSpan(ivfOffset, payloadLength),
+                null,
+                null);
+
+            using ImageFrame<Rgba32> frame = decodedFrame;
+
+            ivfOffset += payloadLength;
+            Assert.Equal(OfficialMotionVectorFixtureWidth, frame.Width);
+            Assert.Equal(OfficialMotionVectorFixtureHeight, frame.Height);
+            Assert.True(nativeReference.AsSpan(nativeOffset).StartsWith(y4mFrameHeader));
+            nativeOffset += y4mFrameHeader.Length;
+
+            Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
+            Assert.Equal(OfficialMotionVectorFixtureWidth, frameBuffer.Width);
+            Assert.Equal(OfficialMotionVectorFixtureHeight, frameBuffer.Height);
+            Assert.Equal(Av1BitDepth.EightBit, frameBuffer.BitDepth);
+            Assert.Equal(Av1ColorFormat.Yuv420, frameBuffer.ColorFormat);
+            AssertNativePlanesEqual(
+                decoder,
+                frameBuffer,
+                nativeReference.AsSpan(nativeOffset, nativeFrameLength));
+
+            nativeOffset += nativeFrameLength;
+
+            ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
+            Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+            int superblockColumnCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, sequenceHeader.SuperblockSizeLog2)
+                >> sequenceHeader.SuperblockSizeLog2;
+            int superblockRowCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameHeight, sequenceHeader.SuperblockSizeLog2)
+                >> sequenceHeader.SuperblockSizeLog2;
+
+            for (int superblockRow = 0; superblockRow < superblockRowCount; superblockRow++)
+            {
+                for (int superblockColumn = 0; superblockColumn < superblockColumnCount; superblockColumn++)
+                {
+                    Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
+                    foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
+                    {
+                        if (modeInfo.YMode is < Av1PredictionMode.InterModeStart or >= Av1PredictionMode.InterModeEnd)
+                        {
+                            continue;
+                        }
+
+                        interModeCoverage |= 1 << ((int)modeInfo.YMode - (int)Av1PredictionMode.InterModeStart);
+                        motionModeCoverage |= 1 << (int)modeInfo.MotionMode;
+                        int verticalFilter = (int)modeInfo.InterpolationFilters[0];
+                        int horizontalFilter = (int)modeInfo.InterpolationFilters[1];
+                        switchableFilterPairCoverage |= 1 << ((verticalFilter * 3) + horizontalFilter);
+                    }
+                }
+            }
+        }
+
+        Assert.Equal(ivf.Length, ivfOffset);
+        Assert.Equal(nativeReference.Length, nativeOffset);
+        Assert.Equal(RequiredInterModeCoverage, interModeCoverage);
+        Assert.Equal(RequiredMotionModeCoverage, motionModeCoverage);
+        Assert.Equal(RequiredSwitchableFilterPairCoverage, switchableFilterPairCoverage);
+    }
 
     /// <summary>
     /// Verifies one complete inter-prediction sequence with a separately tracked constrained allocator.
@@ -3032,9 +3201,12 @@ public class Av1ReconstructionConformanceTests
     {
         if (expected != actual)
         {
+            ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
+            int subsamplingX = plane == Av1Plane.Y || !sequenceHeader.ColorConfig.SubSamplingX ? 0 : 1;
+            int subsamplingY = plane == Av1Plane.Y || !sequenceHeader.ColorConfig.SubSamplingY ? 0 : 1;
             Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-            int modeInfoColumn = x >> Av1Constants.ModeInfoSizeLog2;
-            int modeInfoRow = y >> Av1Constants.ModeInfoSizeLog2;
+            int modeInfoColumn = (x << subsamplingX) >> Av1Constants.ModeInfoSizeLog2;
+            int modeInfoRow = (y << subsamplingY) >> Av1Constants.ModeInfoSizeLog2;
             Av1BlockModeInfo modeInfo = frameInfo.GetModeInfoAt(new Point(modeInfoColumn, modeInfoRow));
             int blockColumn = modeInfoColumn;
             while (blockColumn > 0 && ReferenceEquals(frameInfo.GetModeInfoAt(new Point(blockColumn - 1, modeInfoRow)), modeInfo))
@@ -3116,6 +3288,10 @@ public class Av1ReconstructionConformanceTests
                 $"Plane {plane} differs at ({x}, {y}): expected {expected}, actual {actual}. "
                 + $"Total unequal samples={mismatchCount}:{mismatchDescription}. "
                 + $"Block={modeInfo.BlockSize}, mode={modeInfo.YMode}, partition={modeInfo.PartitionType}, skip={modeInfo.Skip}, "
+                + $"refs={modeInfo.ReferenceFrames[0]}/{modeInfo.ReferenceFrames[1]}, "
+                + $"mvs={modeInfo.MotionVectors[0].Row},{modeInfo.MotionVectors[0].Column}/"
+                + $"{modeInfo.MotionVectors[1].Row},{modeInfo.MotionVectors[1].Column}, compound={modeInfo.CompoundType}, "
+                + $"filters={modeInfo.InterpolationFilters[0]}/{modeInfo.InterpolationFilters[1]}, motion={modeInfo.MotionMode}, "
                 + $"filter-intra={modeInfo.UseFilterIntra}/{modeInfo.FilterIntraMode}, angle-delta={modeInfo.GetAngleDelta(plane)}, "
                 + $"palette-size={modeInfo.GetPaletteSize(plane)}, transforms={modeInfo.GetTransformUnitCount(plane)}, "
                 + $"transform={containingTransform.Size}/{containingTransform.Type}/coded={containingTransform.CodeBlockFlag} "

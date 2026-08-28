@@ -517,8 +517,9 @@ internal static partial class Av1InterPredictor
 
                 if (width < Vector128<ushort>.Count)
                 {
-                    // Four high-bit-depth samples occupy exactly the lower 64 bits of the vector.
-                    Vector128.LoadUnsafe(ref sourceRow).GetLower().StoreUnsafe(ref destinationRow);
+                    // Subsampled sub-8x8 chroma can be two samples wide, so retain the vector load while limiting
+                    // the store to the logical row width.
+                    StorePartial(Vector128.LoadUnsafe(ref sourceRow), ref destinationRow, width);
                     continue;
                 }
 

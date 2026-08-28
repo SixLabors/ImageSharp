@@ -275,7 +275,7 @@ public class Av1ReferenceFrameStoreTests
             allocator.AllocationLog,
             allocation => Assert.Single(
                 allocator.ReturnLog,
-                returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer));
+                returned => returned.AllocationId == allocation.AllocationId));
 
         Assert.Equal(2, allocator.ReturnLog.Count);
     }
@@ -335,7 +335,7 @@ public class Av1ReferenceFrameStoreTests
             allocator.AllocationLog,
             allocation => Assert.Single(
                 allocator.ReturnLog,
-                returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer));
+                returned => returned.AllocationId == allocation.AllocationId));
 
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
     }

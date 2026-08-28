@@ -129,7 +129,9 @@ internal sealed class Av1BlockDecoder : IDisposable
             int maximumBlockArea = maximumBlockLength * maximumBlockLength;
             int predictorWorkingLength = Math.Max(
                 Av1PredictionDecoder.ScratchLength,
-                Av1InterPredictor.GetScratchLength(maximumBlockLength, maximumBlockLength));
+                Math.Max(
+                    Av1InterPredictor.GetScratchLength(maximumBlockLength, maximumBlockLength),
+                    Av1InterPredictor.GetMaximumScaledScratchLength(maximumBlockLength, maximumBlockLength)));
 
             // Compound prediction retains the complete second predictor until both references have been sampled.
             // Reserve it once beside the convolution workspace so block traversal never rents temporary memory.
@@ -364,6 +366,45 @@ internal sealed class Av1BlockDecoder : IDisposable
                         : secondaryReferenceFrameBuffer!;
 
                     Av1MotionVector motionVector = modeInfo.MotionVectors[referenceIndex];
+                    int destinationStride = referenceIndex == 0 ? reconstructionStride : predictionWidth;
+                    bool isScaledReference = activeReferenceFrameBuffer.Width != this.frameHeader.FrameSize.FrameWidth ||
+                        activeReferenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight;
+
+                    if (isScaledReference)
+                    {
+                        Span<byte> scaledDestination = default;
+                        Span<ushort> scaledHighBitDepthDestination = default;
+                        if (highBitDepth)
+                        {
+                            scaledHighBitDepthDestination = referenceIndex == 0
+                                ? MemoryMarshal.Cast<short, ushort>(highBitDepthBlockReconstructionBuffer[reconstructionStride..])
+                                : highBitDepthSecondPrediction;
+                        }
+                        else
+                        {
+                            scaledDestination = referenceIndex == 0
+                                ? blockReconstructionBuffer[reconstructionStride..]
+                                : secondPrediction;
+                        }
+
+                        this.PredictScaledReference(
+                            activeReferenceFrameBuffer,
+                            motionVector,
+                            plane,
+                            subX,
+                            subY,
+                            pixelPosition,
+                            predictionWidth,
+                            predictionHeight,
+                            modeInfo.InterpolationFilters[1],
+                            modeInfo.InterpolationFilters[0],
+                            scaledDestination,
+                            scaledHighBitDepthDestination,
+                            destinationStride,
+                            predictionScratch);
+
+                        continue;
+                    }
 
                     // AV1 predicts the complete declared plane block even when its luma extent crosses the frame boundary.
                     // Subsampled dimensions retain the mandatory four-sample minimum used by set_plane_n4 in libaom.
@@ -376,7 +417,7 @@ internal sealed class Av1BlockDecoder : IDisposable
 
                     // The UMV clamp is expressed in one-sixteenth plane-sample units. A 128-sample block can legally
                     // address 135 samples beyond an edge once its prediction extent and eight-tap filter support are
-                    // included; the frame-owned 144-sample luma border keeps that source directly addressable.
+                    // included; the frame-owned prediction border keeps that source directly addressable.
                     horizontalMotionQ4 = Av1Math.Clip3(
                         (partitionInfo.ModeBlockToLeftEdge * horizontalEdgeScale) - horizontalExtensionQ4,
                         (partitionInfo.ModeBlockToRightEdge * horizontalEdgeScale) + horizontalExtensionQ4 - 16,
@@ -395,7 +436,6 @@ internal sealed class Av1BlockDecoder : IDisposable
                     // floor used to select the integer source sample.
                     int horizontalPhase = sourceColumnQ4 & 15;
                     int verticalPhase = sourceRowQ4 & 15;
-                    int destinationStride = referenceIndex == 0 ? reconstructionStride : predictionWidth;
 
                     if (highBitDepth)
                     {
@@ -950,7 +990,7 @@ internal sealed class Av1BlockDecoder : IDisposable
     }
 
     /// <summary>
-    /// Resolves one canonical reference and verifies that unit-step inter prediction can sample it.
+    /// Resolves one canonical retained reference frame.
     /// </summary>
     private Av1FrameBuffer<byte> ResolveReferenceFrame(Av1ReferenceFrameType referenceFrame)
     {
@@ -959,16 +999,118 @@ internal sealed class Av1BlockDecoder : IDisposable
 
         // The uncompressed-header parser validates each selected slot and the reference store remains unchanged
         // until frame reconstruction completes, so every parsed inter block resolves the same retained owner.
-        Av1FrameBuffer<byte> referenceFrameBuffer = this.referenceFrames!.Resolve((int)referenceSlot)!.FrameBuffer;
-        if (referenceFrameBuffer.Width != this.frameHeader.FrameSize.FrameWidth ||
-            referenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight)
-        {
-            // Scaled prediction changes both the source coordinate and the per-output-sample step. Running the
-            // unit-step predictor here would silently reconstruct valid scaled-reference streams incorrectly.
-            throw new NotSupportedException("AV1 scaled-reference inter prediction is not implemented.");
-        }
+        return this.referenceFrames!.Resolve((int)referenceSlot)!.FrameBuffer;
+    }
 
-        return referenceFrameBuffer;
+    /// <summary>
+    /// Predicts one block from a retained reference whose visible dimensions differ from the current coded frame.
+    /// </summary>
+    private void PredictScaledReference(
+        Av1FrameBuffer<byte> referenceFrameBuffer,
+        Av1MotionVector motionVector,
+        int plane,
+        int subX,
+        int subY,
+        Point predictionOrigin,
+        int predictionWidth,
+        int predictionHeight,
+        Av1InterpolationFilter horizontalFilter,
+        Av1InterpolationFilter verticalFilter,
+        Span<byte> destination,
+        Span<ushort> highBitDepthDestination,
+        int destinationStride,
+        Span<short> predictionScratch)
+    {
+        Av1ReferenceScale scale = new(
+            referenceFrameBuffer.Width,
+            referenceFrameBuffer.Height,
+            this.frameHeader.FrameSize.FrameWidth,
+            this.frameHeader.FrameSize.FrameHeight);
+
+        int currentColumnQ4 = (predictionOrigin.X << 4) + (motionVector.Column << (1 - subX));
+        int currentRowQ4 = (predictionOrigin.Y << 4) + (motionVector.Row << (1 - subY));
+        int sourceColumnQ10 = scale.ScaleHorizontal(currentColumnQ4) + Av1ReferenceScale.ExtraOffset;
+        int sourceRowQ10 = scale.ScaleVertical(currentRowQ4) + Av1ReferenceScale.ExtraOffset;
+        int referencePlaneWidth = Av1Math.DivideLog2Ceiling(referenceFrameBuffer.Width, subX);
+        int referencePlaneHeight = Av1Math.DivideLog2Ceiling(referenceFrameBuffer.Height, subY);
+        int horizontalMargin = (Av1FrameBuffer<byte>.DecoderPaddingValue >> subX) - 4;
+        int verticalMargin = (Av1FrameBuffer<byte>.DecoderPaddingValue >> subY) - 4;
+
+        // The scaled coordinate clamp is intentionally wider than the ordinary block-relative UMV clamp. The retained
+        // frame owns the normative border, so every variable-phase eight-tap source remains directly addressable.
+        sourceColumnQ10 = Av1Math.Clip3(
+            -horizontalMargin << Av1ReferenceScale.SubpixelBits,
+            (referencePlaneWidth + 4) << Av1ReferenceScale.SubpixelBits,
+            sourceColumnQ10);
+
+        sourceRowQ10 = Av1Math.Clip3(
+            -verticalMargin << Av1ReferenceScale.SubpixelBits,
+            (referencePlaneHeight + 4) << Av1ReferenceScale.SubpixelBits,
+            sourceRowQ10);
+
+        int horizontalPhase = sourceColumnQ10 & Av1ReferenceScale.SubpixelMask;
+        int verticalPhase = sourceRowQ10 & Av1ReferenceScale.SubpixelMask;
+        if (this.frameBuffer.BytesPerSample == 2)
+        {
+            Span<ushort> source = referenceFrameBuffer.GetPaddedPlaneSpan16(
+                (Av1Plane)plane,
+                subX,
+                subY,
+                out int sourceStride,
+                out Point sourceOrigin);
+
+            int sourceIndex =
+                ((sourceOrigin.Y + (sourceRowQ10 >> Av1ReferenceScale.SubpixelBits)) * sourceStride) +
+                sourceOrigin.X +
+                (sourceColumnQ10 >> Av1ReferenceScale.SubpixelBits);
+
+            Av1InterPredictor.PredictScaled(
+                source,
+                sourceStride,
+                sourceIndex,
+                highBitDepthDestination,
+                destinationStride,
+                predictionWidth,
+                predictionHeight,
+                horizontalFilter,
+                verticalFilter,
+                horizontalPhase,
+                scale.HorizontalStep,
+                verticalPhase,
+                scale.VerticalStep,
+                this.frameBuffer.BitDepth.GetBitCount(),
+                predictionScratch);
+        }
+        else
+        {
+            Span<byte> source = referenceFrameBuffer.GetPaddedPlaneSpan(
+                (Av1Plane)plane,
+                subX,
+                subY,
+                out int sourceStride,
+                out Point sourceOrigin);
+
+            int sourceIndex =
+                ((sourceOrigin.Y + (sourceRowQ10 >> Av1ReferenceScale.SubpixelBits)) * sourceStride) +
+                sourceOrigin.X +
+                (sourceColumnQ10 >> Av1ReferenceScale.SubpixelBits);
+
+            Av1InterPredictor.PredictScaled(
+                source,
+                sourceStride,
+                sourceIndex,
+                destination,
+                destinationStride,
+                predictionWidth,
+                predictionHeight,
+                horizontalFilter,
+                verticalFilter,
+                horizontalPhase,
+                scale.HorizontalStep,
+                verticalPhase,
+                scale.VerticalStep,
+                predictionScratch);
+        }
     }
 
     /// <summary>
@@ -1184,6 +1326,30 @@ internal sealed class Av1BlockDecoder : IDisposable
     {
         Av1FrameBuffer<byte> referenceFrameBuffer = this.ResolveReferenceFrame(neighbor.ReferenceFrames[0]);
         Av1MotionVector motionVector = neighbor.MotionVectors[0];
+        bool isScaledReference = referenceFrameBuffer.Width != this.frameHeader.FrameSize.FrameWidth ||
+            referenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight;
+
+        if (isScaledReference)
+        {
+            this.PredictScaledReference(
+                referenceFrameBuffer,
+                motionVector,
+                plane,
+                subX,
+                subY,
+                predictionOrigin,
+                predictionWidth,
+                predictionHeight,
+                neighbor.InterpolationFilters[1],
+                neighbor.InterpolationFilters[0],
+                destination,
+                highBitDepthDestination,
+                predictionWidth,
+                predictionScratch);
+
+            return;
+        }
+
         int sourceColumnQ4 = (predictionOrigin.X << 4) + (motionVector.Column << (1 - subX));
         int sourceRowQ4 = (predictionOrigin.Y << 4) + (motionVector.Row << (1 - subY));
         int horizontalExtensionQ4 = (4 + predictionWidth) << 4;

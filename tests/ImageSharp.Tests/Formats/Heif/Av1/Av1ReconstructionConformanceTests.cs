@@ -129,6 +129,21 @@ public class Av1ReconstructionConformanceTests
     private const int ProgressiveFirstLayerSize = 55;
 
     /// <summary>
+    /// The displayed width and height of the independent scaled-reference fixture.
+    /// </summary>
+    private const int ScaledReferenceFixtureSize = 80;
+
+    /// <summary>
+    /// The retained base-layer width and height of the independent scaled-reference fixture.
+    /// </summary>
+    private const int ScaledReferenceBaseLayerSize = 40;
+
+    /// <summary>
+    /// The byte length of the scaled-reference fixture's base layer as declared by its a1lx property.
+    /// </summary>
+    private const int ScaledReferenceFirstLayerSize = 701;
+
+    /// <summary>
     /// The displayed width and height of the independent compound image sequence.
     /// </summary>
     private const int AverageCompoundFixtureSize = 80;
@@ -416,6 +431,40 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
+    /// Verifies an independently encoded 40x40 retained layer scaled into an 80x80 dependent layer against exact
+    /// pinned-libaom native planes and pinned-libavif presentation.
+    /// </summary>
+    [Fact]
+    public void DecodeScaledReferenceMatchesPinnedReferences()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateScaledReferenceFixtureWithDefaultConfiguration,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Verifies scaled-reference reconstruction with constrained tracked allocation and contiguous frame planes.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodeScaledReferenceWithConstrainedAllocator()
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        ValidateScaledReferenceFixture(configuration, verifyPresentation: false);
+
+        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
+        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.AllocationId == allocation.AllocationId));
+    }
+
+    /// <summary>
     /// Verifies that the production dependent-frame result owns its motion-field storage until decoder disposal.
     /// </summary>
     [Fact]
@@ -447,30 +496,30 @@ public class Av1ReconstructionConformanceTests
         // The decoder's inspectable FrameInfo result remains the final motion-field owner until decoder disposal.
         Assert.DoesNotContain(
             allocator.ReturnLog,
-            returned => returned.HashCodeOfBuffer == retainedMotionField.HashCodeOfBuffer);
+            returned => returned.AllocationId == retainedMotionField.AllocationId);
 
         Assert.DoesNotContain(
             allocator.ReturnLog,
-            returned => returned.HashCodeOfBuffer == temporalMotionField.HashCodeOfBuffer);
+            returned => returned.AllocationId == temporalMotionField.AllocationId);
 
         frameBuffer.Dispose();
 
         Assert.DoesNotContain(
             allocator.ReturnLog,
-            returned => returned.HashCodeOfBuffer == retainedMotionField.HashCodeOfBuffer);
+            returned => returned.AllocationId == retainedMotionField.AllocationId);
 
         Assert.DoesNotContain(
             allocator.ReturnLog,
-            returned => returned.HashCodeOfBuffer == temporalMotionField.HashCodeOfBuffer);
+            returned => returned.AllocationId == temporalMotionField.AllocationId);
 
         decoder.Dispose();
         decoder.Dispose();
 
         Assert.Single(
             allocator.ReturnLog,
-            returned => returned.HashCodeOfBuffer == retainedMotionField.HashCodeOfBuffer);
+            returned => returned.AllocationId == retainedMotionField.AllocationId);
 
-        Assert.Single(allocator.ReturnLog, returned => returned.HashCodeOfBuffer == temporalMotionField.HashCodeOfBuffer);
+        Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == temporalMotionField.AllocationId);
     }
 
     /// <summary>
@@ -504,7 +553,7 @@ public class Av1ReconstructionConformanceTests
             allocator.AllocationLog,
             allocation => Assert.Single(
                 allocator.ReturnLog,
-                returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer));
+                returned => returned.AllocationId == allocation.AllocationId));
     }
 
     /// <summary>
@@ -730,7 +779,7 @@ public class Av1ReconstructionConformanceTests
             allocator.AllocationLog,
             allocation => Assert.Single(
                 allocator.ReturnLog,
-                returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer));
+                returned => returned.AllocationId == allocation.AllocationId));
     }
 
     /// <summary>
@@ -1499,6 +1548,146 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     private static void ValidateProgressiveSingleReferenceFixtureWithDefaultConfiguration()
         => ValidateProgressiveSingleReferenceFixture(Configuration.Default, verifyPresentation: true);
+
+    /// <summary>
+    /// Runs the exact scaled-reference native and presentation comparison with the default configuration.
+    /// </summary>
+    private static void ValidateScaledReferenceFixtureWithDefaultConfiguration()
+        => ValidateScaledReferenceFixture(Configuration.Default, verifyPresentation: true);
+
+    /// <summary>
+    /// Verifies the genuine size-changing layered fixture with the requested allocator.
+    /// </summary>
+    /// <param name="configuration">The decoder configuration.</param>
+    /// <param name="verifyPresentation">Whether to verify the public RGBA presentation.</param>
+    private static void ValidateScaledReferenceFixture(Configuration configuration, bool verifyPresentation)
+    {
+        byte[] payload = TestFile.Create(TestImages.Heif.Av1ScaledReferencePayload).Bytes;
+        byte[] baseReferenceBytes = TestFile.Create(TestImages.Heif.Av1ScaledReferenceBaseNativeReference).Bytes;
+        byte[] referenceBytes = TestFile.Create(TestImages.Heif.Av1ScaledReferenceNativeReference).Bytes;
+        ReadOnlySpan<byte> fileHeader =
+            "YUV4MPEG2 W80 H80 F25:1 Ip A0:0 C444 XYSCSS=444 XCOLORRANGE=LIMITED\n"u8;
+
+        ReadOnlySpan<byte> frameHeader = "FRAME\n"u8;
+        ReadOnlySpan<byte> nativeReference = referenceBytes;
+        Assert.True(nativeReference.StartsWith(fileHeader));
+        nativeReference = nativeReference[fileHeader.Length..];
+        Assert.True(nativeReference.StartsWith(frameHeader));
+        nativeReference = nativeReference[frameHeader.Length..];
+        Assert.Equal(ScaledReferenceFixtureSize * ScaledReferenceFixtureSize * 3, nativeReference.Length);
+
+        // Decode the independently declared base extent alone to prove that the retained reference is 40x40 rather
+        // than relying on the 80x80 item presentation dimensions recorded by the container.
+        using (Av1Decoder baseDecoder = new(configuration))
+        using (Av1FrameBuffer<byte> baseFrameBuffer = baseDecoder.DecodeFrameBuffer(
+            payload.AsSpan(0, ScaledReferenceFirstLayerSize),
+            null,
+            null,
+            out _))
+        {
+            Assert.Equal(ScaledReferenceBaseLayerSize, baseFrameBuffer.Width);
+            Assert.Equal(ScaledReferenceBaseLayerSize, baseFrameBuffer.Height);
+            Assert.Equal(ScaledReferenceBaseLayerSize * ScaledReferenceBaseLayerSize * 3, baseReferenceBytes.Length);
+            AssertNativePlanesEqual(baseDecoder, baseFrameBuffer, baseReferenceBytes);
+        }
+
+        // Exercise the same retained owner across two calls so the independently verified base samples are checked
+        // in the exact decoder session that supplies the size-changing reference to the dependent frame.
+        using (Av1Decoder sequenceDecoder = new(configuration))
+        {
+            sequenceDecoder.DecodeSequenceReference(
+                payload.AsSpan(0, ScaledReferenceFirstLayerSize),
+                null,
+                null);
+
+            Av1FrameBuffer<byte> retainedBaseFrameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(sequenceDecoder.FrameBuffer);
+            AssertNativePlanesEqual(sequenceDecoder, retainedBaseFrameBuffer, baseReferenceBytes);
+            using Av1FrameBuffer<byte> sequenceFrameBuffer = sequenceDecoder.DecodeFrameBuffer(
+                payload.AsSpan(ScaledReferenceFirstLayerSize),
+                null,
+                null,
+                out _);
+
+            AssertNativePlanesEqual(sequenceDecoder, sequenceFrameBuffer, nativeReference);
+        }
+
+        using Av1Decoder decoder = new(configuration);
+        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(
+            payload,
+            null,
+            null,
+            out _,
+            new Av1LayeredImageIndex(ScaledReferenceFirstLayerSize, 0, 0));
+
+        Assert.Equal(ScaledReferenceFixtureSize, frameBuffer.Width);
+        Assert.Equal(ScaledReferenceFixtureSize, frameBuffer.Height);
+        Assert.Equal(Av1BitDepth.EightBit, frameBuffer.BitDepth);
+        Assert.Equal(Av1ColorFormat.Yuv444, frameBuffer.ColorFormat);
+        Assert.Equal(1, frameBuffer.BufferY!.FastMemoryGroup.Count);
+        Assert.Equal(1, frameBuffer.BufferCb!.FastMemoryGroup.Count);
+        Assert.Equal(1, frameBuffer.BufferCr!.FastMemoryGroup.Count);
+
+        ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
+        ObuFrameHeader finalFrameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
+        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+
+        Assert.Equal(ScaledReferenceFixtureSize, sequenceHeader.MaxFrameWidth);
+        Assert.Equal(ScaledReferenceFixtureSize, sequenceHeader.MaxFrameHeight);
+        Assert.Equal(ObuFrameType.InterFrame, finalFrameHeader.FrameType);
+        Assert.True(finalFrameHeader.LoopFilterParameters.ReferenceDeltaModeEnabled);
+        Assert.NotEqual(0, finalFrameHeader.LoopFilterParameters.FilterLevelU);
+        Assert.NotEqual(0, finalFrameHeader.LoopFilterParameters.FilterLevelV);
+        int interBlockCount = 0;
+        int intraBlockCount = 0;
+        int skippedInterBlockCount = 0;
+        int superblockSizeLog2 = sequenceHeader.SuperblockSizeLog2;
+        int superblockColumnCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, superblockSizeLog2) >> superblockSizeLog2;
+        int superblockRowCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameHeight, superblockSizeLog2) >> superblockSizeLog2;
+        for (int superblockRow = 0; superblockRow < superblockRowCount; superblockRow++)
+        {
+            for (int superblockColumn = 0; superblockColumn < superblockColumnCount; superblockColumn++)
+            {
+                Av1SuperblockInfo superblock = frameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
+                foreach (Av1BlockModeInfo modeInfo in superblock.GetModeInfos())
+                {
+                    if (modeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last)
+                    {
+                        interBlockCount++;
+                        if (modeInfo.Skip)
+                        {
+                            skippedInterBlockCount++;
+                        }
+                    }
+                    else
+                    {
+                        intraBlockCount++;
+                    }
+                }
+            }
+        }
+
+        Assert.NotEqual(0, interBlockCount);
+        Assert.NotEqual(0, intraBlockCount);
+        Assert.NotEqual(0, skippedInterBlockCount);
+        AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
+
+        if (!verifyPresentation)
+        {
+            return;
+        }
+
+        DecoderOptions options = new() { Configuration = configuration, MaxFrames = 1 };
+        byte[] imageBytes = TestFile.Create(TestImages.Heif.Av1ScaledReferenceAvif).Bytes;
+        byte[] presentationBytes = TestFile.Create(TestImages.Heif.Av1ScaledReferencePresentationReference).Bytes;
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, imageBytes);
+        using Image<Rgba32> presentationReference = Image.Load<Rgba32>(presentationBytes);
+
+        Assert.Equal(ScaledReferenceFixtureSize, image.Width);
+        Assert.Equal(ScaledReferenceFixtureSize, image.Height);
+        Assert.Single(image.Frames);
+        Assert.Equal(HeifBitDepth.Bit8, image.Metadata.GetHeifMetadata().BitDepth);
+        ImageComparer.Exact.VerifySimilarity(presentationReference, image);
+    }
 
     /// <summary>
     /// Verifies the final dependent layer with the requested allocator.

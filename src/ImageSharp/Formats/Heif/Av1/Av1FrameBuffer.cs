@@ -18,9 +18,9 @@ internal class Av1FrameBuffer<T> : IDisposable
     /// <summary>
     /// The number of luma border samples reserved for prediction and in-loop filtering.
     /// </summary>
-    // A 128-sample UMV block plus filter support reaches 135 luma samples beyond an edge. The 144-sample value also
-    // leaves 72 samples on a horizontally subsampled plane, exceeding its corresponding 71-sample maximum.
-    private const int DecoderPaddingValue = 144;
+    // Scaled prediction may start 284 luma samples outside a retained frame and then consume three preceding filter
+    // taps. The normative 288-sample border keeps that entire source window directly addressable without block copies.
+    public const int DecoderPaddingValue = 288;
 
     /// <summary>
     /// The allocation-mask bit for the luma plane.

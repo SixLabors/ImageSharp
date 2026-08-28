@@ -3,6 +3,7 @@
 
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -222,22 +223,24 @@ internal class Av1LoopFilterDecoder
         Point planeTransformPosition = new(adjustedColumn >> subX, adjustedRow >> subY);
         Point previousPlaneTransformPosition = new(previousColumn >> subX, previousRow >> subY);
         Av1BlockModeInfo modeInfo = this.frameInfo.GetModeInfoAt(modeInfoPosition);
+        Av1BlockModeInfo previousModeInfo = this.frameInfo.GetModeInfoAt(previousModeInfoPosition);
         Av1TransformSize transformSize = this.loopFilterContext.GetTransformSize(plane, planeTransformPosition);
         Av1TransformSize previousTransformSize = this.loopFilterContext.GetTransformSize(plane, previousPlaneTransformPosition);
-        Av1BlockSize planeBlockSize = modeInfo.BlockSize.GetSubsampled(subX, subY);
         int planeX = x >> subX;
         int planeY = y >> subY;
-        bool isBlockEdge = verticalBoundary
-            ? planeX % planeBlockSize.GetWidth() == 0
-            : planeY % planeBlockSize.GetHeight() == 0;
-
         bool isTransformEdge = verticalBoundary
             ? planeX % transformSize.GetWidth() == 0
             : planeY % transformSize.GetHeight() == 0;
 
-        // The still-image decoder accepts key and intra-only frames, so every decoded block satisfies the AV1
-        // isIntra condition. Retaining the other predicates mirrors the normative edge decision without inter state.
-        bool applyFilter = isTransformEdge && (isBlockEdge || !modeInfo.Skip || this.frameHeader.IsIntra);
+        // A skipped intra block still has reconstructed prediction samples and is not a skipped inter transform.
+        // libaom therefore applies the skip predicate only when the corresponding primary reference is inter.
+        bool currentSkippedTransform = modeInfo.Skip && modeInfo.ReferenceFrames[0] > Av1ReferenceFrameType.Intra;
+        bool previousSkippedTransform = previousModeInfo.Skip && previousModeInfo.ReferenceFrames[0] > Av1ReferenceFrameType.Intra;
+
+        // The mode-info map stores one object for every covered position, so object identity is the exact equivalent
+        // of libaom's current-versus-previous MB_MODE_INFO pointer comparison at a prediction-unit boundary.
+        bool isBlockEdge = !ReferenceEquals(modeInfo, previousModeInfo);
+        bool applyFilter = isTransformEdge && (isBlockEdge || !currentSkippedTransform || !previousSkippedTransform);
         if (!applyFilter)
         {
             return;
@@ -246,7 +249,7 @@ internal class Av1LoopFilterDecoder
         int currentLevel = this.GetFilterLevel(modeInfo, modeInfoPosition, plane, pass);
         int filterLevel = currentLevel != 0
             ? currentLevel
-            : this.GetFilterLevel(this.frameInfo.GetModeInfoAt(previousModeInfoPosition), previousModeInfoPosition, plane, pass);
+            : this.GetFilterLevel(previousModeInfo, previousModeInfoPosition, plane, pass);
 
         if (filterLevel == 0)
         {
@@ -367,13 +370,25 @@ internal class Av1LoopFilterDecoder
 
         if (parameters.ReferenceDeltaModeEnabled)
         {
-            // Every supported AVIF still-picture block uses INTRA_FRAME, whose reference delta is index zero and
-            // whose prediction mode does not consume either inter mode delta.
             int referenceScale = 1 << (level >> 5);
+            Av1ReferenceFrameType referenceFrame = modeInfo.ReferenceFrames[0];
             level = Av1Math.Clip3(
                 0,
                 Av1Constants.MaxLoopFilter,
-                level + (parameters.ReferenceDeltas[0] * referenceScale));
+                level + (parameters.ReferenceDeltas[(int)referenceFrame] * referenceScale));
+
+            if (referenceFrame > Av1ReferenceFrameType.Intra)
+            {
+                // AV1's second mode-delta class contains every inter mode except the two global-motion modes.
+                // Keeping this classification next to the level arithmetic mirrors libaom's mode_lf_lut lookup.
+                int modeDeltaIndex = modeInfo.YMode is Av1PredictionMode.GlobalMotionVector or
+                    Av1PredictionMode.GlobalGlobalMotionVector ? 0 : 1;
+
+                level = Av1Math.Clip3(
+                    0,
+                    Av1Constants.MaxLoopFilter,
+                    level + (parameters.ModeDeltas[modeDeltaIndex] * referenceScale));
+            }
         }
 
         return level;

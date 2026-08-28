@@ -112,6 +112,77 @@ public class Av1CompoundBlockDecoderTests
     }
 
     /// <summary>
+    /// Verifies that the production block branch maps a smaller current frame into a larger retained reference.
+    /// </summary>
+    /// <param name="bitDepthValue">The native sample depth.</param>
+    [Theory]
+    [InlineData((int)Av1BitDepth.EightBit)]
+    [InlineData((int)Av1BitDepth.TenBit)]
+    [InlineData((int)Av1BitDepth.TwelveBit)]
+    public void DecodeBlockReconstructsScaledSingleReferencePrediction(int bitDepthValue)
+    {
+        Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(bitDepth, 16);
+        ObuFrameHeader frameHeader = CreateFrameHeader();
+        frameHeader.GetReferenceFrameIndices()[0] = 0;
+
+        using Av1ReferenceFrameStore referenceFrames = new();
+        Assert.True(referenceFrames.Commit(1, CreateScaledPatternReferenceFrame(sequenceHeader), showFrame: false));
+
+        using Av1FrameBuffer<byte> frameBuffer = new(
+            Configuration.Default,
+            sequenceHeader,
+            Av1ColorFormat.Yuv400,
+            false);
+
+        frameBuffer.Width = 8;
+        frameBuffer.Height = 8;
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
+        Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(Point.Empty);
+        superblockInfo.GetTransformInfoY()[0] = new Av1TransformInfo(Av1TransformSize.Size8x8, 0, 0);
+
+        Av1BlockModeInfo modeInfo = CreateSingleReferenceModeInfo(Av1BlockSize.Block8x8, Point.Empty);
+        modeInfo.InterpolationFilters.Fill(Av1InterpolationFilter.Bilinear);
+        modeInfo.SetTransformUnitCount(Av1PlaneType.Y, 1);
+
+        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
+        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
+        using Av1BlockDecoder decoder = new(
+            sequenceHeader,
+            frameHeader,
+            frameBuffer,
+            loopFilterContext,
+            inverseQuantizer,
+            referenceFrames);
+
+        decoder.UpdateSuperblock(superblockInfo);
+        decoder.DecodeBlock(
+            modeInfo,
+            Point.Empty,
+            Av1BlockSize.Block8x8,
+            superblockInfo,
+            new Av1TileInfo(0, 0, frameHeader));
+
+        for (int row = 0; row < 8; row++)
+        {
+            for (int column = 0; column < 8; column++)
+            {
+                ushort expected = (ushort)(5 + (column * 4) + (row * 16));
+                if (bitDepth == Av1BitDepth.EightBit)
+                {
+                    Span<byte> samples = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(row);
+                    Assert.Equal((byte)expected, samples[column]);
+                }
+                else
+                {
+                    Span<ushort> samples = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, row, 0, 0);
+                    Assert.Equal(expected, samples[column]);
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Verifies selectable compound reconstruction through the production block branch at every supported bit depth.
     /// </summary>
     /// <param name="bitDepthValue">The native sample depth.</param>
@@ -573,6 +644,44 @@ public class Av1CompoundBlockDecoderTests
 
         using Av1FrameInfo frameInfo = new(sequenceHeader);
         return new Av1ReferenceFrame(frameBuffer, frameHeader, frameInfo);
+    }
+
+    /// <summary>
+    /// Creates a 16x16 retained frame whose linear pattern has an exact half-sample bilinear result.
+    /// </summary>
+    private static Av1ReferenceFrame CreateScaledPatternReferenceFrame(ObuSequenceHeader sequenceHeader)
+    {
+        Av1FrameBuffer<byte> frameBuffer = new(
+            Configuration.Default,
+            sequenceHeader,
+            Av1ColorFormat.Yuv400,
+            false);
+
+        frameBuffer.Width = 16;
+        frameBuffer.Height = 16;
+        for (int row = 0; row < 16; row++)
+        {
+            if (sequenceHeader.ColorConfig.BitDepth == Av1BitDepth.EightBit)
+            {
+                Span<byte> samples = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(row);
+                for (int column = 0; column < 16; column++)
+                {
+                    samples[column] = (byte)((column * 2) + (row * 8));
+                }
+            }
+            else
+            {
+                Span<ushort> samples = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, row, 0, 0);
+                for (int column = 0; column < 16; column++)
+                {
+                    samples[column] = (ushort)((column * 2) + (row * 8));
+                }
+            }
+        }
+
+        Av1ReferenceFrameBorder.Extend(frameBuffer);
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
+        return new Av1ReferenceFrame(frameBuffer, CreateFrameHeader(16), frameInfo);
     }
 
     /// <summary>

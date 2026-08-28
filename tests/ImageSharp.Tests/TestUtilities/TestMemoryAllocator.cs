@@ -12,6 +12,7 @@ internal class TestMemoryAllocator : MemoryAllocator
 {
     private List<AllocationRequest> allocationLog;
     private List<ReturnRequest> returnLog;
+    private int nextAllocationId;
 
     public TestMemoryAllocator(byte dirtyValue = 42)
     {
@@ -39,15 +40,16 @@ internal class TestMemoryAllocator : MemoryAllocator
 
     protected override AllocationTrackedMemoryManager<T> AllocateCore<T>(int length, AllocationOptions options = AllocationOptions.None)
     {
-        T[] array = this.AllocateArray<T>(length, options);
-        return new BasicArrayBuffer<T>(array, length, this);
+        int allocationId = ++this.nextAllocationId;
+        T[] array = this.AllocateArray<T>(length, options, allocationId);
+        return new BasicArrayBuffer<T>(array, length, this, allocationId);
     }
 
-    private T[] AllocateArray<T>(int length, AllocationOptions options)
+    private T[] AllocateArray<T>(int length, AllocationOptions options, int allocationId)
         where T : struct
     {
         T[] array = new T[length + 42];
-        this.allocationLog?.Add(AllocationRequest.Create<T>(options, length, array));
+        this.allocationLog?.Add(AllocationRequest.Create<T>(options, length, array, allocationId));
 
         if (options == AllocationOptions.None)
         {
@@ -61,17 +63,24 @@ internal class TestMemoryAllocator : MemoryAllocator
     private void Return<T>(BasicArrayBuffer<T> buffer)
         where T : struct
     {
-        this.returnLog?.Add(new ReturnRequest(buffer.Array.GetHashCode()));
+        this.returnLog?.Add(new ReturnRequest(buffer.AllocationId, buffer.Array.GetHashCode()));
     }
 
     public struct AllocationRequest
     {
-        private AllocationRequest(Type elementType, AllocationOptions allocationOptions, int length, int lengthInBytes, int hashCodeOfBuffer)
+        private AllocationRequest(
+            Type elementType,
+            AllocationOptions allocationOptions,
+            int length,
+            int lengthInBytes,
+            int allocationId,
+            int hashCodeOfBuffer)
         {
             this.ElementType = elementType;
             this.AllocationOptions = allocationOptions;
             this.Length = length;
             this.LengthInBytes = lengthInBytes;
+            this.AllocationId = allocationId;
             this.HashCodeOfBuffer = hashCodeOfBuffer;
 
             if (elementType == typeof(Vector4))
@@ -79,11 +88,11 @@ internal class TestMemoryAllocator : MemoryAllocator
             }
         }
 
-        public static AllocationRequest Create<T>(AllocationOptions allocationOptions, int length, T[] buffer)
+        public static AllocationRequest Create<T>(AllocationOptions allocationOptions, int length, T[] buffer, int allocationId)
         {
             Type type = typeof(T);
             int elementSize = Marshal.SizeOf(type);
-            return new AllocationRequest(type, allocationOptions, length, length * elementSize, buffer.GetHashCode());
+            return new AllocationRequest(type, allocationOptions, length, length * elementSize, allocationId, buffer.GetHashCode());
         }
 
         public Type ElementType { get; }
@@ -94,15 +103,20 @@ internal class TestMemoryAllocator : MemoryAllocator
 
         public int LengthInBytes { get; }
 
+        public int AllocationId { get; }
+
         public int HashCodeOfBuffer { get; }
     }
 
     public struct ReturnRequest
     {
-        public ReturnRequest(int hashCodeOfBuffer)
+        public ReturnRequest(int allocationId, int hashCodeOfBuffer)
         {
+            this.AllocationId = allocationId;
             this.HashCodeOfBuffer = hashCodeOfBuffer;
         }
+
+        public int AllocationId { get; }
 
         public int HashCodeOfBuffer { get; }
     }
@@ -116,16 +130,17 @@ internal class TestMemoryAllocator : MemoryAllocator
         private readonly TestMemoryAllocator allocator;
         private GCHandle pinHandle;
 
-        public BasicArrayBuffer(T[] array, int length, TestMemoryAllocator allocator)
+        public BasicArrayBuffer(T[] array, int length, TestMemoryAllocator allocator, int allocationId)
         {
             this.allocator = allocator;
             DebugGuard.MustBeLessThanOrEqualTo(length, array.Length, nameof(length));
             this.Array = array;
             this.Length = length;
+            this.AllocationId = allocationId;
         }
 
         public BasicArrayBuffer(T[] array, TestMemoryAllocator allocator)
-            : this(array, array.Length, allocator)
+            : this(array, array.Length, allocator, 0)
         {
         }
 
@@ -138,6 +153,11 @@ internal class TestMemoryAllocator : MemoryAllocator
         /// Gets the length.
         /// </summary>
         public int Length { get; }
+
+        /// <summary>
+        /// Gets the stable identity recorded for this allocation.
+        /// </summary>
+        public int AllocationId { get; }
 
         /// <inheritdoc />
         public override Span<T> GetSpan() => this.Array.AsSpan(0, this.Length);

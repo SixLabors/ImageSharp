@@ -54,17 +54,21 @@ public class Av1MotionModeInfoTests
     }
 
     /// <summary>
-    /// Verifies that a false inter-intra flag continues through omitted, binary, and ternary Simple Translation syntax into interpolation.
+    /// Verifies that a false inter-intra flag continues through omitted, binary, and ternary motion-mode syntax into interpolation.
     /// </summary>
     /// <param name="isMotionModeSwitchable">Whether the frame enables per-block motion-mode syntax.</param>
     /// <param name="allowWarpedMotion">Whether the eligible block uses the ternary rather than binary motion-mode distribution.</param>
+    /// <param name="selectedMotionModeValue">The motion mode written when syntax is present.</param>
     [Theory]
-    [InlineData(false, false)]
-    [InlineData(true, false)]
-    [InlineData(true, true)]
+    [InlineData(false, false, (int)Av1MotionMode.SimpleTranslation)]
+    [InlineData(true, false, (int)Av1MotionMode.SimpleTranslation)]
+    [InlineData(true, true, (int)Av1MotionMode.SimpleTranslation)]
+    [InlineData(true, false, (int)Av1MotionMode.Obmc)]
+    [InlineData(true, true, (int)Av1MotionMode.Obmc)]
     public void ReadInterFrameModeInfoContinuesFromFalseInterIntraThroughMotionModeIntoInterpolation(
         bool isMotionModeSwitchable,
-        bool allowWarpedMotion)
+        bool allowWarpedMotion,
+        int selectedMotionModeValue)
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
         sequenceHeader.EnableInterIntraCompound = true;
@@ -122,7 +126,7 @@ public class Av1MotionModeInfoTests
                 ? Av1DefaultDistributions.MotionMode[(int)Av1BlockSize.Block8x8]
                 : Av1DefaultDistributions.Obmc[(int)Av1BlockSize.Block8x8];
 
-            writer.WriteSymbol((int)Av1MotionMode.SimpleTranslation, motionModeDistribution);
+            writer.WriteSymbol(selectedMotionModeValue, motionModeDistribution);
         }
 
         // The matching regular above neighbor selects vertical context zero. Sharp is deliberately non-default so the
@@ -136,7 +140,11 @@ public class Av1MotionModeInfoTests
 
         Assert.Equal(Av1ReferenceFrameType.Last, modeInfo.ReferenceFrames[0]);
         Assert.Equal(Av1ReferenceFrameType.None, modeInfo.ReferenceFrames[1]);
-        Assert.Equal(Av1MotionMode.SimpleTranslation, modeInfo.MotionMode);
+        Av1MotionMode expectedMotionMode = isMotionModeSwitchable
+            ? (Av1MotionMode)selectedMotionModeValue
+            : Av1MotionMode.SimpleTranslation;
+
+        Assert.Equal(expectedMotionMode, modeInfo.MotionMode);
         Assert.Equal(Av1InterpolationFilter.Sharp, modeInfo.InterpolationFilters[0]);
         Assert.Equal(Av1InterpolationFilter.Sharp, modeInfo.InterpolationFilters[1]);
     }

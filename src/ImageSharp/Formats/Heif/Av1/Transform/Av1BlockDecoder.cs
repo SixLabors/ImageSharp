@@ -707,6 +707,23 @@ internal sealed class Av1BlockDecoder : IDisposable
                             predictionHeight);
                     }
                 }
+                else if (modeInfo.MotionMode == Av1MotionMode.Obmc)
+                {
+                    this.ApplyOverlappedMotionCompensation(
+                        ref partitionInfo,
+                        plane,
+                        subX,
+                        subY,
+                        predictionWidth,
+                        predictionHeight,
+                        blockReconstructionBuffer,
+                        highBitDepthBlockReconstructionBuffer,
+                        reconstructionStride,
+                        secondPrediction,
+                        highBitDepthSecondPrediction,
+                        compoundMask,
+                        predictionScratch);
+                }
             }
 
             for (int tu = 0; tu < transformUnitCount; tu++)
@@ -953,6 +970,301 @@ internal sealed class Av1BlockDecoder : IDisposable
 
         return referenceFrameBuffer;
     }
+
+    /// <summary>
+    /// Blends predictions from eligible above and left neighbors into one regular inter prediction.
+    /// </summary>
+    private void ApplyOverlappedMotionCompensation(
+        ref Av1PartitionInfo partitionInfo,
+        int plane,
+        int subX,
+        int subY,
+        int predictionWidth,
+        int predictionHeight,
+        Span<byte> blockReconstructionBuffer,
+        Span<short> highBitDepthBlockReconstructionBuffer,
+        int reconstructionStride,
+        Span<byte> neighborPrediction,
+        Span<ushort> highBitDepthNeighborPrediction,
+        Span<byte> maskStorage,
+        Span<short> predictionScratch)
+    {
+        Av1BlockSize blockSize = partitionInfo.ModeInfo.BlockSize;
+        int blockWidthInModeInfoUnits = blockSize.Get4x4WideCount();
+        int blockHeightInModeInfoUnits = blockSize.Get4x4HighCount();
+        int blockColumn = partitionInfo.ColumnIndex;
+        int blockRow = partitionInfo.RowIndex;
+        bool highBitDepth = this.frameBuffer.BytesPerSample == 2;
+
+        // Chroma planes smaller than 8x8 use left overlap only. This is the AV1 bandwidth rule for 4x4,
+        // 8x4, and 4x8 plane blocks; luma cannot reach those sizes when motion variation is selectable.
+        bool skipAbove = (predictionWidth == 4 && predictionHeight <= 8) ||
+            (predictionWidth == 8 && predictionHeight == 4);
+
+        if (partitionInfo.AvailableAbove && !skipAbove)
+        {
+            int maximumNeighbors = Math.Min(4, blockSize.Get4x4WidthLog2());
+            int endColumn = Math.Min(blockColumn + blockWidthInModeInfoUnits, this.frameHeader.ModeInfoColumnCount);
+            int neighborCount = 0;
+            for (int aboveColumn = blockColumn; aboveColumn < endColumn && neighborCount < maximumNeighbors;)
+            {
+                Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(aboveColumn, blockRow - 1));
+                int step = Math.Min(candidate.BlockSize.Get4x4WideCount(), Av1BlockSize.Block64x64.Get4x4WideCount());
+                if (step == 1)
+                {
+                    // A four-sample neighbor is one half of the chroma-bearing eight-sample pair. libaom aligns
+                    // the traversal to the pair start and reads prediction state from its second mode record.
+                    aboveColumn &= ~1;
+                    candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(aboveColumn + 1, blockRow - 1));
+                    step = 2;
+                }
+
+                if (IsOverlappable(candidate))
+                {
+                    int relativeColumn = aboveColumn - blockColumn;
+                    int neighborWidthInModeInfoUnits = Math.Min(blockWidthInModeInfoUnits, step);
+                    int neighborWidth = (neighborWidthInModeInfoUnits << Av1Constants.ModeInfoSizeLog2) >> subX;
+                    int neighborHeight = Math.Clamp(
+                        blockSize.GetHeight() >> (subY + 1),
+                        4,
+                        Av1BlockSize.Block64x64.GetHeight() >> (subY + 1));
+
+                    Point predictionOrigin = new(
+                        (aboveColumn << Av1Constants.ModeInfoSizeLog2) >> subX,
+                        (blockRow << Av1Constants.ModeInfoSizeLog2) >> subY);
+
+                    this.PredictObmcNeighbor(
+                        candidate,
+                        plane,
+                        subX,
+                        subY,
+                        predictionOrigin,
+                        neighborWidth,
+                        neighborHeight,
+                        neighborPrediction,
+                        highBitDepthNeighborPrediction,
+                        predictionScratch);
+
+                    int overlapHeight = (Math.Min(blockSize.GetHeight(), Av1BlockSize.Block64x64.GetHeight()) >> 1) >> subY;
+                    int destinationColumn = (relativeColumn << Av1Constants.ModeInfoSizeLog2) >> subX;
+                    ReadOnlySpan<byte> verticalMask = Av1ObmcMask.Get(overlapHeight);
+                    Span<byte> expandedMask = maskStorage[..(neighborWidth * overlapHeight)];
+                    for (int row = 0; row < overlapHeight; row++)
+                    {
+                        // The vertical mask has one alpha per row. Expanding it into the reusable scratch plane lets
+                        // the existing SIMD masked blender process complete rows without a specialized duplicate path.
+                        expandedMask.Slice(row * neighborWidth, neighborWidth).Fill(verticalMask[row]);
+                    }
+
+                    if (highBitDepth)
+                    {
+                        Av1CompoundInterPredictor.Blend(
+                            MemoryMarshal.Cast<short, ushort>(highBitDepthBlockReconstructionBuffer[reconstructionStride..])[destinationColumn..],
+                            reconstructionStride,
+                            highBitDepthNeighborPrediction,
+                            neighborWidth,
+                            expandedMask,
+                            neighborWidth,
+                            neighborWidth,
+                            overlapHeight);
+                    }
+                    else
+                    {
+                        Av1CompoundInterPredictor.Blend(
+                            blockReconstructionBuffer[reconstructionStride..][destinationColumn..],
+                            reconstructionStride,
+                            neighborPrediction,
+                            neighborWidth,
+                            expandedMask,
+                            neighborWidth,
+                            neighborWidth,
+                            overlapHeight);
+                    }
+
+                    neighborCount++;
+                }
+
+                aboveColumn += step;
+            }
+        }
+
+        if (partitionInfo.AvailableLeft)
+        {
+            int maximumNeighbors = Math.Min(4, blockSize.Get4x4HeightLog2());
+            int endRow = Math.Min(blockRow + blockHeightInModeInfoUnits, this.frameHeader.ModeInfoRowCount);
+            int neighborCount = 0;
+            for (int leftRow = blockRow; leftRow < endRow && neighborCount < maximumNeighbors;)
+            {
+                Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(blockColumn - 1, leftRow));
+                int step = Math.Min(candidate.BlockSize.Get4x4HighCount(), Av1BlockSize.Block64x64.Get4x4HighCount());
+                if (step == 1)
+                {
+                    // The vertical traversal applies the corresponding pairing rule to four-sample-high blocks.
+                    leftRow &= ~1;
+                    candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(blockColumn - 1, leftRow + 1));
+                    step = 2;
+                }
+
+                if (IsOverlappable(candidate))
+                {
+                    int relativeRow = leftRow - blockRow;
+                    int neighborHeightInModeInfoUnits = Math.Min(blockHeightInModeInfoUnits, step);
+                    int neighborWidth = Math.Clamp(
+                        blockSize.GetWidth() >> (subX + 1),
+                        4,
+                        Av1BlockSize.Block64x64.GetWidth() >> (subX + 1));
+
+                    int neighborHeight = (neighborHeightInModeInfoUnits << Av1Constants.ModeInfoSizeLog2) >> subY;
+                    Point predictionOrigin = new(
+                        (blockColumn << Av1Constants.ModeInfoSizeLog2) >> subX,
+                        (leftRow << Av1Constants.ModeInfoSizeLog2) >> subY);
+
+                    this.PredictObmcNeighbor(
+                        candidate,
+                        plane,
+                        subX,
+                        subY,
+                        predictionOrigin,
+                        neighborWidth,
+                        neighborHeight,
+                        neighborPrediction,
+                        highBitDepthNeighborPrediction,
+                        predictionScratch);
+
+                    int overlapWidth = (Math.Min(blockSize.GetWidth(), Av1BlockSize.Block64x64.GetWidth()) >> 1) >> subX;
+                    int destinationRow = (relativeRow << Av1Constants.ModeInfoSizeLog2) >> subY;
+                    ReadOnlySpan<byte> horizontalMask = Av1ObmcMask.Get(overlapWidth);
+                    if (highBitDepth)
+                    {
+                        Av1CompoundInterPredictor.Blend(
+                            MemoryMarshal.Cast<short, ushort>(highBitDepthBlockReconstructionBuffer[reconstructionStride..])[(destinationRow * reconstructionStride)..],
+                            reconstructionStride,
+                            highBitDepthNeighborPrediction,
+                            neighborWidth,
+                            horizontalMask,
+                            0,
+                            overlapWidth,
+                            neighborHeight);
+                    }
+                    else
+                    {
+                        Av1CompoundInterPredictor.Blend(
+                            blockReconstructionBuffer[reconstructionStride..][(destinationRow * reconstructionStride)..],
+                            reconstructionStride,
+                            neighborPrediction,
+                            neighborWidth,
+                            horizontalMask,
+                            0,
+                            overlapWidth,
+                            neighborHeight);
+                    }
+
+                    neighborCount++;
+                }
+
+                leftRow += step;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Builds one neighboring block's primary translational predictor into the reusable OBMC workspace.
+    /// </summary>
+    private void PredictObmcNeighbor(
+        Av1BlockModeInfo neighbor,
+        int plane,
+        int subX,
+        int subY,
+        Point predictionOrigin,
+        int predictionWidth,
+        int predictionHeight,
+        Span<byte> destination,
+        Span<ushort> highBitDepthDestination,
+        Span<short> predictionScratch)
+    {
+        Av1FrameBuffer<byte> referenceFrameBuffer = this.ResolveReferenceFrame(neighbor.ReferenceFrames[0]);
+        Av1MotionVector motionVector = neighbor.MotionVectors[0];
+        int sourceColumnQ4 = (predictionOrigin.X << 4) + (motionVector.Column << (1 - subX));
+        int sourceRowQ4 = (predictionOrigin.Y << 4) + (motionVector.Row << (1 - subY));
+        int horizontalExtensionQ4 = (4 + predictionWidth) << 4;
+        int verticalExtensionQ4 = (4 + predictionHeight) << 4;
+        int framePlaneWidth = (this.frameHeader.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) >> subX;
+        int framePlaneHeight = (this.frameHeader.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2) >> subY;
+
+        // OBMC changes the prediction rectangle but not AV1's unrestricted-motion-vector boundary extension.
+        // Clamping the absolute source coordinate expresses the same edge calculation libaom rebuilds per neighbor.
+        sourceColumnQ4 = Av1Math.Clip3(
+            -horizontalExtensionQ4,
+            (framePlaneWidth << 4) + horizontalExtensionQ4 - 16,
+            sourceColumnQ4);
+
+        sourceRowQ4 = Av1Math.Clip3(
+            -verticalExtensionQ4,
+            (framePlaneHeight << 4) + verticalExtensionQ4 - 16,
+            sourceRowQ4);
+
+        int horizontalPhase = sourceColumnQ4 & 15;
+        int verticalPhase = sourceRowQ4 & 15;
+        if (this.frameBuffer.BytesPerSample == 2)
+        {
+            Span<ushort> source = referenceFrameBuffer.GetPaddedPlaneSpan16(
+                (Av1Plane)plane,
+                subX,
+                subY,
+                out int sourceStride,
+                out Point sourceOrigin);
+
+            int sourceIndex =
+                ((sourceOrigin.Y + (sourceRowQ4 >> 4)) * sourceStride) + sourceOrigin.X + (sourceColumnQ4 >> 4);
+
+            Av1InterPredictor.Predict(
+                source,
+                sourceStride,
+                sourceIndex,
+                highBitDepthDestination,
+                predictionWidth,
+                predictionWidth,
+                predictionHeight,
+                neighbor.InterpolationFilters[1],
+                neighbor.InterpolationFilters[0],
+                horizontalPhase,
+                verticalPhase,
+                this.frameBuffer.BitDepth.GetBitCount(),
+                predictionScratch);
+        }
+        else
+        {
+            Span<byte> source = referenceFrameBuffer.GetPaddedPlaneSpan(
+                (Av1Plane)plane,
+                subX,
+                subY,
+                out int sourceStride,
+                out Point sourceOrigin);
+
+            int sourceIndex =
+                ((sourceOrigin.Y + (sourceRowQ4 >> 4)) * sourceStride) + sourceOrigin.X + (sourceColumnQ4 >> 4);
+
+            Av1InterPredictor.Predict(
+                source,
+                sourceStride,
+                sourceIndex,
+                destination,
+                predictionWidth,
+                predictionWidth,
+                predictionHeight,
+                neighbor.InterpolationFilters[1],
+                neighbor.InterpolationFilters[0],
+                horizontalPhase,
+                verticalPhase,
+                predictionScratch);
+        }
+    }
+
+    /// <summary>
+    /// Determines whether a decoded neighbor supplies an inter predictor for OBMC.
+    /// </summary>
+    private static bool IsOverlappable(Av1BlockModeInfo candidate)
+        => candidate.UseIntraBlockCopy || candidate.ReferenceFrames[0] > Av1ReferenceFrameType.Intra;
 
     /// <summary>
     /// Derives a byte-addressed reconstruction span beginning one row before a block.

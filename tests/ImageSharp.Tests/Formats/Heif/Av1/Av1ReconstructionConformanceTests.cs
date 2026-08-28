@@ -174,6 +174,11 @@ public class Av1ReconstructionConformanceTests
     private const int WedgeInterIntraCoverage = 1 << 6;
 
     /// <summary>
+    /// The coverage bit representing overlapping motion compensation.
+    /// </summary>
+    private const int ObmcCoverage = 1 << 7;
+
+    /// <summary>
     /// The hardware configurations covering the available vector widths and the scalar color-conversion fallback.
     /// </summary>
     private const HwIntrinsics PresentationConfigurations =
@@ -650,25 +655,25 @@ public class Av1ReconstructionConformanceTests
     [ValidateDisposedMemoryAllocations]
     public void DecodeRealLibavifSequencesWithSelectableCompoundAndInterIntraUseContiguousPlanes()
     {
-        ValidateSelectableCompoundSequenceWithConstrainedAllocator(
+        ValidateInterPredictionSequenceWithConstrainedAllocator(
             TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif,
             TestImages.Heif.Av1DistanceWeightedCompoundSequenceNativeReference,
             TestImages.Heif.Av1DistanceWeightedCompoundSequencePresentationReference,
             DistanceWeightedCompoundCoverage);
 
-        ValidateSelectableCompoundSequenceWithConstrainedAllocator(
+        ValidateInterPredictionSequenceWithConstrainedAllocator(
             TestImages.Heif.Av1WedgeCompoundSequenceAvif,
             TestImages.Heif.Av1WedgeCompoundSequenceNativeReference,
             TestImages.Heif.Av1WedgeCompoundSequencePresentationReference,
             WedgeCompoundCoverage | InvertedWedgeCompoundCoverage);
 
-        ValidateSelectableCompoundSequenceWithConstrainedAllocator(
+        ValidateInterPredictionSequenceWithConstrainedAllocator(
             TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif,
             TestImages.Heif.Av1DifferenceWeightedCompoundSequenceNativeReference,
             TestImages.Heif.Av1DifferenceWeightedCompoundSequencePresentationReference,
             DifferenceWeightedCompoundCoverage | InvertedDifferenceWeightedCompoundCoverage);
 
-        ValidateSelectableCompoundSequenceWithConstrainedAllocator(
+        ValidateInterPredictionSequenceWithConstrainedAllocator(
             TestImages.Heif.Av1InterIntraSequenceAvif,
             TestImages.Heif.Av1InterIntraSequenceNativeReference,
             TestImages.Heif.Av1InterIntraSequencePresentationReference,
@@ -676,9 +681,30 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies one complete selectable-compound sequence with a separately tracked constrained allocator.
+    /// Verifies production OBMC reconstruction against pinned native and presentation references.
     /// </summary>
-    private static void ValidateSelectableCompoundSequenceWithConstrainedAllocator(
+    [Fact]
+    public void DecodeRealLibavifObmcSequenceMatchesPinnedReferences()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateObmcSequenceWithDefaultConfiguration,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Verifies production OBMC reconstruction through a constrained allocator.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodeRealLibavifObmcSequenceUsesContiguousPlanes()
+        => ValidateInterPredictionSequenceWithConstrainedAllocator(
+            TestImages.Heif.Av1ObmcSequenceAvif,
+            TestImages.Heif.Av1ObmcSequenceNativeReference,
+            TestImages.Heif.Av1ObmcSequencePresentationReference,
+            ObmcCoverage);
+
+    /// <summary>
+    /// Verifies one complete inter-prediction sequence with a separately tracked constrained allocator.
+    /// </summary>
+    private static void ValidateInterPredictionSequenceWithConstrainedAllocator(
         string imagePath,
         string nativeReferencePath,
         string presentationReferencePath,
@@ -689,7 +715,7 @@ public class Av1ReconstructionConformanceTests
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
 
-        ValidateSelectableCompoundSequence(
+        ValidateInterPredictionSequence(
             configuration,
             imagePath,
             nativeReferencePath,
@@ -714,13 +740,25 @@ public class Av1ReconstructionConformanceTests
         => ValidateSelectableCompoundSequences(Configuration.Default, comparePresentation: true);
 
     /// <summary>
+    /// Runs the OBMC sequence with exact final presentation comparison.
+    /// </summary>
+    private static void ValidateObmcSequenceWithDefaultConfiguration()
+        => ValidateInterPredictionSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1ObmcSequenceAvif,
+            TestImages.Heif.Av1ObmcSequenceNativeReference,
+            TestImages.Heif.Av1ObmcSequencePresentationReference,
+            ObmcCoverage,
+            comparePresentation: true);
+
+    /// <summary>
     /// Validates every selectable compound fixture with the requested decoder configuration.
     /// </summary>
     /// <param name="configuration">The decoder configuration.</param>
     /// <param name="comparePresentation">Whether to compare the final presented frame.</param>
     private static void ValidateSelectableCompoundSequences(Configuration configuration, bool comparePresentation)
     {
-        ValidateSelectableCompoundSequence(
+        ValidateInterPredictionSequence(
             configuration,
             TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif,
             TestImages.Heif.Av1DistanceWeightedCompoundSequenceNativeReference,
@@ -728,7 +766,7 @@ public class Av1ReconstructionConformanceTests
             DistanceWeightedCompoundCoverage,
             comparePresentation);
 
-        ValidateSelectableCompoundSequence(
+        ValidateInterPredictionSequence(
             configuration,
             TestImages.Heif.Av1WedgeCompoundSequenceAvif,
             TestImages.Heif.Av1WedgeCompoundSequenceNativeReference,
@@ -736,7 +774,7 @@ public class Av1ReconstructionConformanceTests
             WedgeCompoundCoverage | InvertedWedgeCompoundCoverage,
             comparePresentation);
 
-        ValidateSelectableCompoundSequence(
+        ValidateInterPredictionSequence(
             configuration,
             TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif,
             TestImages.Heif.Av1DifferenceWeightedCompoundSequenceNativeReference,
@@ -744,7 +782,7 @@ public class Av1ReconstructionConformanceTests
             DifferenceWeightedCompoundCoverage | InvertedDifferenceWeightedCompoundCoverage,
             comparePresentation);
 
-        ValidateSelectableCompoundSequence(
+        ValidateInterPredictionSequence(
             configuration,
             TestImages.Heif.Av1InterIntraSequenceAvif,
             TestImages.Heif.Av1InterIntraSequenceNativeReference,
@@ -756,7 +794,7 @@ public class Av1ReconstructionConformanceTests
     /// <summary>
     /// Decodes one complete retained-reference sequence and compares its final native and presented samples exactly.
     /// </summary>
-    private static void ValidateSelectableCompoundSequence(
+    private static void ValidateInterPredictionSequence(
         Configuration configuration,
         string imagePath,
         string nativeReferencePath,
@@ -800,7 +838,7 @@ public class Av1ReconstructionConformanceTests
                     track.CicpProfile,
                     track.Av1CodecConfiguration);
 
-                coverage |= GetSelectableCompoundCoverage(decoder);
+                coverage |= GetInterPredictionCoverage(decoder);
                 continue;
             }
 
@@ -810,9 +848,9 @@ public class Av1ReconstructionConformanceTests
                 track.Av1CodecConfiguration);
 
             Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
-            coverage |= GetSelectableCompoundCoverage(decoder);
+            coverage |= GetInterPredictionCoverage(decoder);
 
-            // Every compound branch retains the same row-addressed plane contract under constrained allocators.
+            // Every inter-prediction branch retains the same row-addressed plane contract under constrained allocators.
             Assert.Equal(1, frameBuffer.BufferY!.FastMemoryGroup.Count);
             Assert.Equal(1, frameBuffer.BufferCb!.FastMemoryGroup.Count);
             Assert.Equal(1, frameBuffer.BufferCr!.FastMemoryGroup.Count);
@@ -845,9 +883,9 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Collects the selectable compound and inter-intra modes retained in one decoded frame.
+    /// Collects the selectable compound, inter-intra, and OBMC modes retained in one decoded frame.
     /// </summary>
-    private static int GetSelectableCompoundCoverage(Av1Decoder decoder)
+    private static int GetInterPredictionCoverage(Av1Decoder decoder)
     {
         ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
         Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
@@ -862,6 +900,11 @@ public class Av1ReconstructionConformanceTests
                 Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
                 foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
                 {
+                    if (modeInfo.MotionMode == Av1MotionMode.Obmc)
+                    {
+                        coverage |= ObmcCoverage;
+                    }
+
                     if (modeInfo.ReferenceFrames[1] == Av1ReferenceFrameType.Intra)
                     {
                         coverage |= modeInfo.UseInterIntraWedge ? WedgeInterIntraCoverage : SmoothInterIntraCoverage;

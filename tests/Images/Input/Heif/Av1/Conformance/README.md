@@ -42,6 +42,7 @@ The reference builds use `AOM_TARGET_CPU=generic` and disable libyuv. Native rec
 | `libavif-webp-logo-wedge-compound` | Wedge compound prediction with both signaled mask orientations |
 | `libavif-webp-logo-difference-weighted-compound` | Difference-weighted compound prediction with both mask orientations |
 | `libavif-webp-logo-inter-intra` | Smooth and wedge inter-intra prediction |
+| `libavif-webp-logo-obmc` | Above and left overlapping motion compensation through a 19-frame dependent sequence |
 
 The corresponding tests also assert the syntax required by each family before comparing output. This prevents an inactive tool or an incorrectly substituted stream from passing solely because its final pixels happen to match.
 
@@ -100,6 +101,23 @@ Pinned scalar libavif generated each final native and presentation reference wit
 | `libavif-webp-logo-inter-intra` | `71DF22E63626B5BC9001FF1E88076B90F11BB47D18089750853E66F0CBBB084B` | `502265688138641A7B12C8C4190B66C76CD4808D9AED05B06486056B39D7E9A0` | `F0DE4CCDFB6D95A400E69B69FA4C57F0BEEEEE75825722C31613385F0B3FD9FC` |
 
 Pinned libaom block tracing confirms that these streams select distance weighting, both wedge signs, both difference-mask types, and both smooth and wedge inter-intra prediction. The production test independently requires those decoded mode states, decodes all preceding samples, compares the final native Y, U, and V planes exactly, compares the final RGBA presentation exactly, and repeats reconstruction with constrained tracked allocation.
+
+## Overlapping motion-compensation fixture
+
+The `libavif-webp-logo-obmc.avif` fixture uses the same pinned `tests/data/webp_logo_animated.y4m` source and source SHA-256 as the compound fixtures. It was encoded with the pinned scalar toolchain after disabling competing compound, inter-intra, warped, and global prediction modes:
+
+```text
+./avifenc -j 1 -c aom -s 0 -q 80 -a max-reference-frames=3 -a enable-dist-wtd-comp=0 -a enable-masked-comp=0 -a enable-interintra-comp=0 -a enable-warped-motion=0 -a enable-global-motion=0 tests/data/webp_logo_animated.y4m libavif-webp-logo-obmc.avif
+```
+
+Pinned scalar libavif generated the final native and presentation references with:
+
+```text
+./avifdec -j 1 -c aom --index 18 libavif-webp-logo-obmc.avif libavif-webp-logo-obmc-libaom.y4m
+./avifdec -j 1 -c aom --index 18 libavif-webp-logo-obmc.avif libavif-webp-logo-obmc-libavif.png
+```
+
+The AVIF SHA-256 is `765245F71BD398F7AD87BD83FD5C5C11172981B37A4FABF4F10F65D4E8AEA537`. The retained frame-18 Y4M SHA-256 is `904D1B5B3E7F334CE8D44040F9A7BDCAC1F7773122FF1C5F06A5B4DD31A62A97`, and the frame-18 PNG SHA-256 is `D2CB388C9092EF17C4F0382C0150DD30D6F9D0EE247FF45AB5D7D4D312CEB23C`. Pinned libaom block tracing records more than one hundred actual OBMC blocks across the decoded sequence, including blocks with nonzero horizontal and vertical motion vectors. The production test requires decoded OBMC mode state, decodes every retained-reference dependency, compares the final native Y, U, and V planes exactly, compares the final RGBA presentation exactly through `FeatureTestRunner`, and repeats reconstruction with constrained tracked allocation. Direct production-branch tests separately cover 8/10/12-bit storage and 4:2:0 and 4:2:2 overlap geometry.
 
 ## Updating fixtures
 

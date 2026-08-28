@@ -1372,6 +1372,9 @@ public static class TestImages
         public const string Av1InterIntraSequenceAvif = "Heif/Av1/Conformance/libavif-webp-logo-inter-intra.avif";
         public const string Av1InterIntraSequenceNativeReference = "Heif/Av1/Conformance/libavif-webp-logo-inter-intra-libaom.y4m";
         public const string Av1InterIntraSequencePresentationReference = "Heif/Av1/Conformance/libavif-webp-logo-inter-intra-libavif.png";
+        public const string Av1ObmcSequenceAvif = "Heif/Av1/Conformance/libavif-webp-logo-obmc.avif";
+        public const string Av1ObmcSequenceNativeReference = "Heif/Av1/Conformance/libavif-webp-logo-obmc-libaom.y4m";
+        public const string Av1ObmcSequencePresentationReference = "Heif/Av1/Conformance/libavif-webp-logo-obmc-libavif.png";
         public const string Av1Cdef8BitPayload = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b.bit";
         public const string Av1Cdef8BitReference = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b-libaom.yuv";
         public const string Av1Cdef8BitAvif = "Heif/Av1/Conformance/libavif-cdef-kodim23-8b.avif";

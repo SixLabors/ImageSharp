@@ -251,33 +251,9 @@ internal sealed class Av1BlockDecoder : IDisposable
         int secondCompoundWeight = 8;
         if (isInterBlock)
         {
-            int canonicalReferenceIndex = (int)modeInfo.ReferenceFrames[0] - (int)Av1ReferenceFrameType.Last;
-            Av1GlobalMotionParameters globalMotion = this.frameHeader.GetGlobalMotionParameters()[canonicalReferenceIndex];
-            bool usesPrimaryGlobalMotion = modeInfo.YMode is
-                Av1PredictionMode.GlobalMotionVector or
-                Av1PredictionMode.GlobalGlobalMotionVector;
-
-            if (usesPrimaryGlobalMotion &&
-                Math.Min(modeInfo.BlockSize.GetWidth(), modeInfo.BlockSize.GetHeight()) >= 8 &&
-                globalMotion.Type > Av1GlobalMotionType.Translation)
-            {
-                // A qualifying rotation/zoom or affine GLOBALMV block samples the complete warped model. Its center
-                // vector is a stack fallback only and cannot be substituted into the translational predictor.
-                throw new NotSupportedException("AV1 non-translational global prediction is not implemented.");
-            }
-
             referenceFrameBuffer = this.ResolveReferenceFrame(modeInfo.ReferenceFrames[0]);
             if (isCompound)
             {
-                int secondaryCanonicalReferenceIndex = (int)modeInfo.ReferenceFrames[1] - (int)Av1ReferenceFrameType.Last;
-                Av1GlobalMotionParameters secondaryGlobalMotion = this.frameHeader.GetGlobalMotionParameters()[secondaryCanonicalReferenceIndex];
-                if (modeInfo.YMode == Av1PredictionMode.GlobalGlobalMotionVector &&
-                    Math.Min(modeInfo.BlockSize.GetWidth(), modeInfo.BlockSize.GetHeight()) >= 8 &&
-                    secondaryGlobalMotion.Type > Av1GlobalMotionType.Translation)
-                {
-                    throw new NotSupportedException("AV1 non-translational global prediction is not implemented.");
-                }
-
                 secondaryReferenceFrameBuffer = this.ResolveReferenceFrame(modeInfo.ReferenceFrames[1]);
                 if (modeInfo.CompoundType == Av1CompoundType.DistanceWeighted)
                 {
@@ -370,9 +346,47 @@ internal sealed class Av1BlockDecoder : IDisposable
                     bool isScaledReference = activeReferenceFrameBuffer.Width != this.frameHeader.FrameSize.FrameWidth ||
                         activeReferenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight;
 
-                    if (referenceIndex == 0 &&
+                    // Warped prediction is selected per plane. In subsampled frames an otherwise qualifying 8x8 luma
+                    // block has a 4x4 chroma prediction, which libaom deliberately reconstructs with the translational
+                    // center motion vector. Scaled references and integer-only frames exclude both local and global warp.
+                    bool canUseWarpedPrediction =
+                        !isScaledReference &&
+                        !this.frameHeader.ForceIntegerMotionVector &&
+                        predictionWidth >= 8 &&
+                        predictionHeight >= 8;
+
+                    Av1GlobalMotionParameters warpedMotionParameters = modeInfo.WarpedMotionParameters;
+                    bool useWarpedPrediction =
+                        canUseWarpedPrediction &&
+                        referenceIndex == 0 &&
                         modeInfo.MotionMode == Av1MotionMode.Warped &&
-                        !modeInfo.WarpedMotionParameters.IsInvalid)
+                        !warpedMotionParameters.IsInvalid;
+
+                    if (canUseWarpedPrediction && !useWarpedPrediction)
+                    {
+                        bool usesGlobalMotion = modeInfo.YMode == Av1PredictionMode.GlobalGlobalMotionVector ||
+                            (referenceIndex == 0 && modeInfo.YMode == Av1PredictionMode.GlobalMotionVector);
+
+                        if (usesGlobalMotion)
+                        {
+                            int canonicalReferenceIndex =
+                                (int)modeInfo.ReferenceFrames[referenceIndex] - (int)Av1ReferenceFrameType.Last;
+
+                            Av1GlobalMotionParameters globalMotionParameters =
+                                this.frameHeader.GetGlobalMotionParameters()[canonicalReferenceIndex];
+
+                            // Identity and translation GLOBALMV modes use their derived center vector. Rotation/zoom and
+                            // affine models use the complete matrix only when the decoded shear parameters are valid.
+                            if (globalMotionParameters.Type > Av1GlobalMotionType.Translation &&
+                                !globalMotionParameters.IsInvalid)
+                            {
+                                warpedMotionParameters = globalMotionParameters;
+                                useWarpedPrediction = true;
+                            }
+                        }
+                    }
+
+                    if (useWarpedPrediction)
                     {
                         int referencePlaneWidth = Av1Math.DivideLog2Ceiling(activeReferenceFrameBuffer.Width, subX);
                         int referencePlaneHeight = Av1Math.DivideLog2Ceiling(activeReferenceFrameBuffer.Height, subY);
@@ -386,7 +400,9 @@ internal sealed class Av1BlockDecoder : IDisposable
                                 out Point sourceOrigin);
 
                             Span<ushort> destination = MemoryMarshal.Cast<short, ushort>(
-                                highBitDepthBlockReconstructionBuffer[reconstructionStride..]);
+                                referenceIndex == 0
+                                    ? highBitDepthBlockReconstructionBuffer[reconstructionStride..]
+                                    : secondPredictionStorage);
 
                             Av1InterPredictor.PredictWarped(
                                 source,
@@ -395,14 +411,14 @@ internal sealed class Av1BlockDecoder : IDisposable
                                 referencePlaneWidth,
                                 referencePlaneHeight,
                                 destination,
-                                reconstructionStride,
+                                destinationStride,
                                 pixelPosition,
                                 predictionWidth,
                                 predictionHeight,
                                 subX,
                                 subY,
                                 this.frameBuffer.BitDepth.GetBitCount(),
-                                modeInfo.WarpedMotionParameters,
+                                warpedMotionParameters,
                                 predictionScratch);
                         }
                         else
@@ -414,20 +430,24 @@ internal sealed class Av1BlockDecoder : IDisposable
                                 out int sourceStride,
                                 out Point sourceOrigin);
 
+                            Span<byte> destination = referenceIndex == 0
+                                ? blockReconstructionBuffer[reconstructionStride..]
+                                : secondPrediction;
+
                             Av1InterPredictor.PredictWarped(
                                 source,
                                 sourceStride,
                                 sourceOrigin,
                                 referencePlaneWidth,
                                 referencePlaneHeight,
-                                blockReconstructionBuffer[reconstructionStride..],
-                                reconstructionStride,
+                                destination,
+                                destinationStride,
                                 pixelPosition,
                                 predictionWidth,
                                 predictionHeight,
                                 subX,
                                 subY,
-                                modeInfo.WarpedMotionParameters,
+                                warpedMotionParameters,
                                 predictionScratch);
                         }
 

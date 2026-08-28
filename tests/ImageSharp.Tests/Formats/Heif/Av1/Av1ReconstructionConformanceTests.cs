@@ -6,7 +6,9 @@ using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -197,6 +199,11 @@ public class Av1ReconstructionConformanceTests
     /// The coverage bit representing local warped-motion prediction.
     /// </summary>
     private const int LocalWarpCoverage = 1 << 8;
+
+    /// <summary>
+    /// The coverage bit representing non-translational global warped-motion prediction.
+    /// </summary>
+    private const int GlobalWarpCoverage = 1 << 9;
 
     /// <summary>
     /// The hardware configurations covering the available vector widths and the scalar color-conversion fallback.
@@ -797,13 +804,38 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
+    /// Verifies production non-translational global-motion reconstruction against pinned native and presentation references.
+    /// </summary>
+    [Fact]
+    public void DecodeRealLibavifGlobalWarpSequenceMatchesPinnedReferences()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateGlobalWarpSequenceWithDefaultConfiguration,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Verifies production non-translational global-motion reconstruction through a constrained allocator.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodeRealLibavifGlobalWarpSequenceUsesContiguousPlanes()
+        => ValidateInterPredictionSequenceWithConstrainedAllocator(
+            TestImages.Heif.Av1GlobalWarpSequenceAvif,
+            TestImages.Heif.Av1GlobalWarpSequenceNativeReference,
+            TestImages.Heif.Av1GlobalWarpSequencePresentationReference,
+            GlobalWarpCoverage,
+            fixtureSize: 256,
+            visibleFrameCount: 2);
+
+    /// <summary>
     /// Verifies one complete inter-prediction sequence with a separately tracked constrained allocator.
     /// </summary>
     private static void ValidateInterPredictionSequenceWithConstrainedAllocator(
         string imagePath,
         string nativeReferencePath,
         string presentationReferencePath,
-        int requiredCoverage)
+        int requiredCoverage,
+        int fixtureSize = AverageCompoundFixtureSize,
+        int visibleFrameCount = AverageCompoundFixtureFrameCount)
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
         allocator.EnableNonThreadSafeLogging();
@@ -816,7 +848,9 @@ public class Av1ReconstructionConformanceTests
             nativeReferencePath,
             presentationReferencePath,
             requiredCoverage,
-            comparePresentation: false);
+            comparePresentation: false,
+            fixtureSize,
+            visibleFrameCount);
 
         Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
         Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
@@ -856,6 +890,20 @@ public class Av1ReconstructionConformanceTests
             TestImages.Heif.Av1LocalWarpSequenceNativeReference,
             TestImages.Heif.Av1LocalWarpSequencePresentationReference,
             LocalWarpCoverage,
+            comparePresentation: true,
+            fixtureSize: 256,
+            visibleFrameCount: 2);
+
+    /// <summary>
+    /// Runs the non-translational global-motion sequence with exact final presentation comparison.
+    /// </summary>
+    private static void ValidateGlobalWarpSequenceWithDefaultConfiguration()
+        => ValidateInterPredictionSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1GlobalWarpSequenceAvif,
+            TestImages.Heif.Av1GlobalWarpSequenceNativeReference,
+            TestImages.Heif.Av1GlobalWarpSequencePresentationReference,
+            GlobalWarpCoverage,
             comparePresentation: true,
             fixtureSize: 256,
             visibleFrameCount: 2);
@@ -996,11 +1044,12 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Collects the selectable compound, inter-intra, and OBMC modes retained in one decoded frame.
+    /// Collects the compound, inter-intra, OBMC, and warped modes retained in one decoded frame.
     /// </summary>
     private static int GetInterPredictionCoverage(Av1Decoder decoder)
     {
         ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
+        ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
         Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
         int superblockSizeLog2 = sequenceHeader.SuperblockSizeLog2;
         int superblockColumnCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, superblockSizeLog2) >> superblockSizeLog2;
@@ -1021,6 +1070,26 @@ public class Av1ReconstructionConformanceTests
                     if (modeInfo.MotionMode == Av1MotionMode.Warped)
                     {
                         coverage |= LocalWarpCoverage;
+                    }
+
+                    if (modeInfo.YMode is Av1PredictionMode.GlobalMotionVector or Av1PredictionMode.GlobalGlobalMotionVector &&
+                        Math.Min(modeInfo.BlockSize.GetWidth(), modeInfo.BlockSize.GetHeight()) >= 8)
+                    {
+                        int referenceCount = modeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra ? 2 : 1;
+                        for (int referenceIndex = 0; referenceIndex < referenceCount; referenceIndex++)
+                        {
+                            int canonicalReferenceIndex =
+                                (int)modeInfo.ReferenceFrames[referenceIndex] - (int)Av1ReferenceFrameType.Last;
+
+                            Av1GlobalMotionParameters globalMotionParameters =
+                                frameHeader.GetGlobalMotionParameters()[canonicalReferenceIndex];
+
+                            if (globalMotionParameters.Type > Av1GlobalMotionType.Translation &&
+                                !globalMotionParameters.IsInvalid)
+                            {
+                                coverage |= GlobalWarpCoverage;
+                            }
+                        }
                     }
 
                     if (modeInfo.ReferenceFrames[1] == Av1ReferenceFrameType.Intra)

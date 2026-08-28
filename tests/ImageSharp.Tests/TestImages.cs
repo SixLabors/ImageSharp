@@ -1383,6 +1383,9 @@ public static class TestImages
         public const string Av1LocalWarpSequenceAvif = "Heif/Av1/Conformance/libavif-rotating-grid-local-warp.avif";
         public const string Av1LocalWarpSequenceNativeReference = "Heif/Av1/Conformance/libavif-rotating-grid-local-warp-libaom.y4m";
         public const string Av1LocalWarpSequencePresentationReference = "Heif/Av1/Conformance/libavif-rotating-grid-local-warp-libavif.png";
+        public const string Av1GlobalWarpSequenceAvif = "Heif/Av1/Conformance/libavif-rotating-grid-global-warp.avif";
+        public const string Av1GlobalWarpSequenceNativeReference = "Heif/Av1/Conformance/libavif-rotating-grid-global-warp-libaom.y4m";
+        public const string Av1GlobalWarpSequencePresentationReference = "Heif/Av1/Conformance/libavif-rotating-grid-global-warp-libavif.png";
         public const string Av1Cdef8BitPayload = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b.bit";
         public const string Av1Cdef8BitReference = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b-libaom.yuv";
         public const string Av1Cdef8BitAvif = "Heif/Av1/Conformance/libavif-cdef-kodim23-8b.avif";

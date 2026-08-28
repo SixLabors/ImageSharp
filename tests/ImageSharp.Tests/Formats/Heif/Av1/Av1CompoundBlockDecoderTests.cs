@@ -11,6 +11,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -20,6 +21,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 [Trait("Format", "Avif")]
 public class Av1CompoundBlockDecoderTests
 {
+    /// <summary>
+    /// The hardware configurations covering the warped predictor's vector and scalar paths.
+    /// </summary>
+    private const HwIntrinsics GlobalWarpConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
+
     /// <summary>
     /// Verifies that two retained reference planes are predicted and averaged before residual reconstruction.
     /// </summary>
@@ -110,6 +116,15 @@ public class Av1CompoundBlockDecoderTests
             }
         }
     }
+
+    /// <summary>
+    /// Verifies that both references of a GLOBAL_GLOBALMV block use their complete matrix before compound averaging.
+    /// </summary>
+    [Fact]
+    public void DecodeBlockReconstructsCompoundGlobalWarpPrediction()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateCompoundGlobalWarpPrediction,
+            GlobalWarpConfigurations);
 
     /// <summary>
     /// Verifies that the production block branch maps a smaller current frame into a larger retained reference.
@@ -602,12 +617,237 @@ public class Av1CompoundBlockDecoderTests
     }
 
     /// <summary>
+    /// Reconstructs a compound global-warp block at every supported native sample depth.
+    /// </summary>
+    private static void ValidateCompoundGlobalWarpPrediction()
+    {
+        foreach (Av1BitDepth bitDepth in new[] { Av1BitDepth.EightBit, Av1BitDepth.TenBit, Av1BitDepth.TwelveBit })
+        {
+            ValidateCompoundGlobalWarpPredictionAtBitDepth(bitDepth);
+        }
+    }
+
+    /// <summary>
+    /// Reconstructs one compound global-warp block and compares it with independently invoked scalar predictors.
+    /// </summary>
+    /// <param name="bitDepth">The native sample depth.</param>
+    private static void ValidateCompoundGlobalWarpPredictionAtBitDepth(Av1BitDepth bitDepth)
+    {
+        const int frameSize = 32;
+        const int blockOrigin = 8;
+        const int blockSize = 8;
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(bitDepth, frameSize);
+        ObuFrameHeader frameHeader = CreateFrameHeader(frameSize);
+        frameHeader.GetReferenceFrameIndices()[0] = 0;
+        frameHeader.GetReferenceFrameIndices()[1] = 1;
+
+        Av1GlobalMotionParameters globalMotionParameters = Av1GlobalMotionParameters.Identity;
+        globalMotionParameters.Type = Av1GlobalMotionType.RotationZoom;
+        globalMotionParameters[0] = -357376;
+        globalMotionParameters[1] = 372736;
+        globalMotionParameters[2] = 65468;
+        globalMotionParameters[3] = 2856;
+        globalMotionParameters[4] = -2856;
+        globalMotionParameters[5] = 65468;
+        globalMotionParameters.UpdateShearParameters();
+        Assert.False(globalMotionParameters.IsInvalid);
+        frameHeader.GetGlobalMotionParameters()[0] = globalMotionParameters;
+        frameHeader.GetGlobalMotionParameters()[1] = globalMotionParameters;
+
+        using Av1ReferenceFrameStore referenceFrames = new();
+        Assert.True(referenceFrames.Commit(
+            1,
+            CreatePatternReferenceFrame(sequenceHeader, CreateFrameHeader(frameSize)),
+            showFrame: false));
+
+        Assert.True(referenceFrames.Commit(
+            2,
+            CreatePatternReferenceFrame(sequenceHeader, CreateFrameHeader(frameSize), sampleOffset: 40),
+            showFrame: false));
+
+        Av1FrameBuffer<byte> firstReference = referenceFrames.Resolve(0)!.FrameBuffer;
+        Av1FrameBuffer<byte> secondReference = referenceFrames.Resolve(1)!.FrameBuffer;
+        byte[] firstBytePrediction = new byte[blockSize * blockSize];
+        byte[] secondBytePrediction = new byte[blockSize * blockSize];
+        ushort[] firstHighBitDepthPrediction = new ushort[blockSize * blockSize];
+        ushort[] secondHighBitDepthPrediction = new ushort[blockSize * blockSize];
+        short[] firstScratch = new short[Av1InterPredictor.WarpedScratchLength];
+        short[] secondScratch = new short[Av1InterPredictor.WarpedScratchLength];
+        Point blockPosition = new(blockOrigin, blockOrigin);
+        if (bitDepth == Av1BitDepth.EightBit)
+        {
+            Span<byte> firstSource = firstReference.GetPaddedPlaneSpan(
+                Av1Plane.Y,
+                0,
+                0,
+                out int firstStride,
+                out Point firstOrigin);
+
+            Span<byte> secondSource = secondReference.GetPaddedPlaneSpan(
+                Av1Plane.Y,
+                0,
+                0,
+                out int secondStride,
+                out Point secondOrigin);
+
+            Av1InterPredictor.PredictWarpedScalar(
+                firstSource,
+                firstStride,
+                firstOrigin,
+                frameSize,
+                frameSize,
+                firstBytePrediction,
+                blockSize,
+                blockPosition,
+                blockSize,
+                blockSize,
+                0,
+                0,
+                globalMotionParameters,
+                firstScratch);
+
+            Av1InterPredictor.PredictWarpedScalar(
+                secondSource,
+                secondStride,
+                secondOrigin,
+                frameSize,
+                frameSize,
+                secondBytePrediction,
+                blockSize,
+                blockPosition,
+                blockSize,
+                blockSize,
+                0,
+                0,
+                globalMotionParameters,
+                secondScratch);
+        }
+        else
+        {
+            Span<ushort> firstSource = firstReference.GetPaddedPlaneSpan16(
+                Av1Plane.Y,
+                0,
+                0,
+                out int firstStride,
+                out Point firstOrigin);
+
+            Span<ushort> secondSource = secondReference.GetPaddedPlaneSpan16(
+                Av1Plane.Y,
+                0,
+                0,
+                out int secondStride,
+                out Point secondOrigin);
+
+            int bitDepthValue = bitDepth.GetBitCount();
+            Av1InterPredictor.PredictWarpedScalar(
+                firstSource,
+                firstStride,
+                firstOrigin,
+                frameSize,
+                frameSize,
+                firstHighBitDepthPrediction,
+                blockSize,
+                blockPosition,
+                blockSize,
+                blockSize,
+                0,
+                0,
+                bitDepthValue,
+                globalMotionParameters,
+                firstScratch);
+
+            Av1InterPredictor.PredictWarpedScalar(
+                secondSource,
+                secondStride,
+                secondOrigin,
+                frameSize,
+                frameSize,
+                secondHighBitDepthPrediction,
+                blockSize,
+                blockPosition,
+                blockSize,
+                blockSize,
+                0,
+                0,
+                bitDepthValue,
+                globalMotionParameters,
+                secondScratch);
+        }
+
+        using Av1FrameBuffer<byte> frameBuffer = new(
+            Configuration.Default,
+            sequenceHeader,
+            Av1ColorFormat.Yuv400,
+            false);
+
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
+        Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(Point.Empty);
+        superblockInfo.GetTransformInfoY()[0] = new Av1TransformInfo(Av1TransformSize.Size8x8, 0, 0);
+
+        Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, new Point(2, 2))
+        {
+            Skip = true,
+            YMode = Av1PredictionMode.GlobalGlobalMotionVector,
+            CompoundIndex = true,
+            CompoundType = Av1CompoundType.Average,
+        };
+
+        modeInfo.ReferenceFrames[0] = Av1ReferenceFrameType.Last;
+        modeInfo.ReferenceFrames[1] = Av1ReferenceFrameType.Last2;
+        modeInfo.InterpolationFilters.Clear();
+        modeInfo.SetTransformUnitCount(Av1PlaneType.Y, 1);
+
+        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
+        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
+        using Av1BlockDecoder decoder = new(
+            sequenceHeader,
+            frameHeader,
+            frameBuffer,
+            loopFilterContext,
+            inverseQuantizer,
+            referenceFrames);
+
+        decoder.UpdateSuperblock(superblockInfo);
+        decoder.DecodeBlock(
+            modeInfo,
+            new Point(2, 2),
+            Av1BlockSize.Block8x8,
+            superblockInfo,
+            new Av1TileInfo(0, 0, frameHeader));
+
+        for (int row = 0; row < blockSize; row++)
+        {
+            for (int column = 0; column < blockSize; column++)
+            {
+                int predictionIndex = (row * blockSize) + column;
+                if (bitDepth == Av1BitDepth.EightBit)
+                {
+                    byte expected = (byte)((firstBytePrediction[predictionIndex] +
+                        secondBytePrediction[predictionIndex] + 1) >> 1);
+
+                    Span<byte> samples = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(blockOrigin + row);
+                    Assert.Equal(expected, samples[blockOrigin + column]);
+                }
+                else
+                {
+                    ushort expected = (ushort)((firstHighBitDepthPrediction[predictionIndex] +
+                        secondHighBitDepthPrediction[predictionIndex] + 1) >> 1);
+
+                    Span<ushort> samples = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, blockOrigin + row, 0, 0);
+                    Assert.Equal(expected, samples[blockOrigin + column]);
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Creates one retained frame whose integer-coordinate luma samples make both OBMC axes observable.
     /// </summary>
     private static Av1ReferenceFrame CreatePatternReferenceFrame(
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
-        Av1ColorFormat colorFormat = Av1ColorFormat.Yuv400)
+        Av1ColorFormat colorFormat = Av1ColorFormat.Yuv400,
+        int sampleOffset = 0)
     {
         Av1FrameBuffer<byte> frameBuffer = new(
             Configuration.Default,
@@ -628,7 +868,7 @@ public class Av1CompoundBlockDecoderTests
                     Span<byte> samples = frameBuffer.DeriveBlockPointer((Av1Plane)plane, subX, subY).DangerousGetRowSpan(row);
                     for (int column = 0; column < planeWidth; column++)
                     {
-                        samples[column] = (byte)GetPlanePatternValue(plane, column, row);
+                        samples[column] = (byte)(GetPlanePatternValue(plane, column, row) + sampleOffset);
                     }
                 }
                 else
@@ -636,12 +876,13 @@ public class Av1CompoundBlockDecoderTests
                     Span<ushort> samples = frameBuffer.GetHighBitDepthRowSpan((Av1Plane)plane, row, subX, subY);
                     for (int column = 0; column < planeWidth; column++)
                     {
-                        samples[column] = (ushort)GetPlanePatternValue(plane, column, row);
+                        samples[column] = (ushort)(GetPlanePatternValue(plane, column, row) + sampleOffset);
                     }
                 }
             }
         }
 
+        Av1ReferenceFrameBorder.Extend(frameBuffer);
         using Av1FrameInfo frameInfo = new(sequenceHeader);
         return new Av1ReferenceFrame(frameBuffer, frameHeader, frameInfo);
     }

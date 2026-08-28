@@ -44,6 +44,7 @@ The reference builds use `AOM_TARGET_CPU=generic` and disable libyuv. Native rec
 | `libavif-webp-logo-inter-intra` | Smooth and wedge inter-intra prediction |
 | `libavif-webp-logo-obmc` | Above and left overlapping motion compensation through a 19-frame dependent sequence |
 | `libavif-rotating-grid-local-warp` | Multi-sample local affine projection and warped prediction through a two-frame dependent sequence |
+| `libavif-rotating-grid-global-warp` | Non-translational rotation/zoom GLOBALMV prediction through a two-frame dependent sequence |
 
 The corresponding tests also assert the syntax required by each family before comparing output. This prevents an inactive tool or an incorrectly substituted stream from passing solely because its final pixels happen to match.
 
@@ -131,6 +132,18 @@ The `libavif-rotating-grid-local-warp.avif` fixture was encoded from a determini
 ```
 
 The AVIF SHA-256 is `990BAC4AD443005C217B0DA4FCCFA9ADFB3AA147AD06C85F9A655A4433E9E8A7`. The retained frame-1 Y4M SHA-256 is `984B2815CEE0C05FDE26430F150A21B5C993141E25BA1ED4FDE09372DB64AC13`, and the frame-1 PNG SHA-256 is `4490D62FB6679378E92CACA48427359091AD2106BE49FC1A3848F78BE03BEEB1`. Pinned libaom tracing records many actual `WARPED_CAUSAL` blocks. The multi-sample model at mode-information row 6, column 8 derives matrix `[-191565, 599107, 61755, -140, -6909, 62012]` and reduced shear `[-3776, -128, -7360, -3520]` from four retained neighbor samples. The production test requires decoded warped mode state, compares every final native Y, U, and V sample and the final RGBA presentation exactly, runs normal and scalar dispatch through `FeatureTestRunner`, and repeats reconstruction with constrained tracked allocation.
+
+## Global warped-motion fixture
+
+The `libavif-rotating-grid-global-warp.avif` fixture uses the same deterministic two-frame 256x256 limited-range YUV444 source and its `82C1468C95C996B05165590417184F59373D67896F8C7B0EB398582C29C9C7A7` SHA-256. Pinned libavif commit `062e582e8afda88e6baf988fdcf046a801efa0f5` and libaom commit `03087864cf4bea6abb0d28f95cf7843511413d8f` generated the fixture and references with:
+
+```text
+./avifenc -j 1 -s 0 -q 100 -a color:enable-warped-motion=0 -a color:enable-global-motion=1 -a color:enable-obmc=0 rotating-grid-256-two-frame.y4m libavif-rotating-grid-global-warp.avif
+./avifdec -j 1 --index 1 libavif-rotating-grid-global-warp.avif libavif-rotating-grid-global-warp-libaom.y4m
+./avifdec -j 1 --index 1 libavif-rotating-grid-global-warp.avif libavif-rotating-grid-global-warp-libavif.png
+```
+
+The AVIF SHA-256 is `EE8CDF6DF36FB2999A17D2A86C41040D8BE13B958A1D5AE53E37343C6FB49E0E`. The retained frame-1 Y4M SHA-256 is `A36D445778BB2D37D69526A1058E3569DA24F3913317EFE22ADB61748A0F7511`, and the frame-1 PNG SHA-256 is `F7D27ABF79450DFA311F72106FD1DA80997EABC0937F2F5578EF627119FF83B0`. Pinned libaom tracing records seven actual `GLOBALMV` blocks using the valid rotation/zoom matrix `[-357376, 372736, 65468, 2856, -2856, 65468]` and reduced shear `[-64, 2880, -2880, 64]`. The production sequence test requires that decoded model and mode state, compares every final native Y, U, and V sample and the final RGBA presentation exactly, runs normal and scalar dispatch through `FeatureTestRunner`, and repeats reconstruction with constrained tracked allocation. A direct production-branch test independently drives both references of `GLOBAL_GLOBALMV` through the matrix predictor and compound averaging at 8, 10, and 12 bits.
 
 ## Updating fixtures
 

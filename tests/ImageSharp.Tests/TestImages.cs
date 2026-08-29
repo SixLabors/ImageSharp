@@ -1406,6 +1406,8 @@ public static class TestImages
         public const string Av1OfficialSpatialTemporalLayerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-22-svc-L2T2-libaom.y4m";
         public const string Av1OfficialFilmGrainSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-23-film-grain-50.ivf";
         public const string Av1OfficialFilmGrainSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-23-film-grain-50-libaom.y4m";
+        public const string Av1OfficialMonochromeSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-24-monochrome.ivf";
+        public const string Av1OfficialMonochromeSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-24-monochrome-libaom.yuv";
         public const string Av1Cdef8BitPayload = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b.bit";
         public const string Av1Cdef8BitReference = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b-libaom.yuv";
         public const string Av1Cdef8BitAvif = "Heif/Av1/Conformance/libavif-cdef-kodim23-8b.avif";

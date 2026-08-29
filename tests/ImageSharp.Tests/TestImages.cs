@@ -1312,6 +1312,10 @@ public static class TestImages
         public const string ChromaQuantizationAdjustment12Bit444 = "Heif/Hevc/Conformance/GENERAL_12b_444_RExt_Sony_2_idr7.bit";
         public const string LosslessA = "Heif/Hevc/Conformance/LS_A_Orange_2.bit";
         public const string QuantizationMatrixA = "Heif/Hevc/Conformance/QMATRIX_A_RExt_Sony_1.bit";
+        public const string DeblockingA = "Heif/Hevc/Conformance/DBLK_A_SONY_3.bit";
+        public const string DeblockingMain10 = "Heif/Hevc/Conformance/DBLK_A_MAIN10_VIXS_4.bit";
+        public const string SampleAdaptiveOffsetA = "Heif/Hevc/Conformance/SAO_A_MediaTek_4.bit";
+        public const string SampleAdaptiveOffsetRangeExtensions = "Heif/Hevc/Conformance/SAO_A_RExt_MediaTek_1.bit";
         public const string RqtA = "Heif/Hevc/Conformance/RQT_A_HHI_4.bit";
         public const string RqtB = "Heif/Hevc/Conformance/RQT_B_HHI_4.bit";
         public const string RqtC = "Heif/Hevc/Conformance/RQT_C_HHI_4.bit";

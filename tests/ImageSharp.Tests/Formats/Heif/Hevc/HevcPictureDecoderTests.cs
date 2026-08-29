@@ -6,6 +6,7 @@ using System.Security.Cryptography;
 using SixLabors.ImageSharp.Formats.Heif.Hevc;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.Memory;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Hevc;
 
@@ -15,6 +16,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Hevc;
 [Trait("Format", "Heif")]
 public class HevcPictureDecoderTests
 {
+    /// <summary>
+    /// The hardware configurations required to exercise every SAO vector tier and the scalar fallback.
+    /// </summary>
+    private const HwIntrinsics LoopFilterConfigurations =
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+
     /// <summary>
     /// Identifies residual-tool signaling that an official independently decoded picture must exercise.
     /// </summary>
@@ -232,6 +239,173 @@ public class HevcPictureDecoderTests
             (expectedTools & ResidualTools.ChromaQuantizationAdjustment) != 0,
             pictureParameterSet.ChromaQuantizationParameterOffsetsCb.Count != 0);
 
+        Assert.Equal(lumaDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Y));
+        Assert.Equal(chromaBlueDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cb));
+        Assert.Equal(chromaRedDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cr));
+    }
+
+    /// <summary>
+    /// Verifies deblocking and sample-adaptive-offset conformance streams against native-plane digests produced by
+    /// the pinned HM decoder from output that matches each archive's published checksum.
+    /// </summary>
+    /// <param name="path">The complete official Annex B conformance stream.</param>
+    /// <param name="bitDepth">The signaled component precision.</param>
+    /// <param name="chromaFormat">The signaled HEVC chroma-format identifier.</param>
+    /// <param name="sampleAdaptiveOffsetEnabled">Whether the sequence enables sample-adaptive offset filtering.</param>
+    /// <param name="expectedWidth">The first independently coded picture's displayed width.</param>
+    /// <param name="expectedHeight">The first independently coded picture's displayed height.</param>
+    /// <param name="lumaDigest">The pinned-HM luma-plane digest.</param>
+    /// <param name="chromaBlueDigest">The pinned-HM blue-difference-plane digest.</param>
+    /// <param name="chromaRedDigest">The pinned-HM red-difference-plane digest.</param>
+    [Theory]
+    [InlineData(TestImages.Heif.DeblockingA, 8, 1, false, 832, 480, "3ea2c2ef1f973345111480e7658908b3", "0390b32143b1a832a385f78229e7e574", "8388f3a8af827da46f1fb52941ec00ad")]
+    [InlineData(TestImages.Heif.DeblockingMain10, 10, 1, true, 176, 144, "184a72aab144cb474df3c1a289e8692d", "d30e750dd70cae163d00f441a75896fd", "d253c41f06228df215f4616febbad34f")]
+    [InlineData(TestImages.Heif.SampleAdaptiveOffsetA, 8, 1, true, 416, 240, "08723eb3fb41af96c87becc4f6973234", "230778eb7df0ebc009ca92e9697ec4d6", "e8e21ed380d2272dc38384ecd6515e53")]
+    [InlineData(TestImages.Heif.SampleAdaptiveOffsetRangeExtensions, 12, 3, true, 2560, 1600, "fb342158a61b6cb3174b99d2e1167d7d", "9ff5400aac0380474882acb903f51f89", "bb320be3c7905a5a220e0066a5edb991")]
+    public void DecodeOfficialLoopFilterPictureMatchesPinnedHmDigest(
+        string path,
+        int bitDepth,
+        byte chromaFormat,
+        bool sampleAdaptiveOffsetEnabled,
+        int expectedWidth,
+        int expectedHeight,
+        string lumaDigest,
+        string chromaBlueDigest,
+        string chromaRedDigest)
+        => ValidateOfficialLoopFilterPicture(
+            path,
+            bitDepth,
+            chromaFormat,
+            sampleAdaptiveOffsetEnabled,
+            expectedWidth,
+            expectedHeight,
+            lumaDigest,
+            chromaBlueDigest,
+            chromaRedDigest);
+
+    /// <summary>
+    /// Verifies all official loop-filter pictures through every available SIMD tier and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialLoopFilterPicturesMatchPinnedHmDigestsAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateOfficialLoopFilterPictures, LoopFilterConfigurations);
+
+    /// <summary>
+    /// Verifies sample-adaptive-offset reconstruction with split allocator groups and balanced final disposal.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialLoopFilterPictureWithConstrainedAllocatorMatchesPinnedHmDigest()
+    {
+        byte[] annexB = TestFile.Create(TestImages.Heif.SampleAdaptiveOffsetA).Bytes;
+        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        HevcCodecConfiguration codecConfiguration = new(configurationData);
+        HevcImageItemBitstream bitstream = new(itemData, codecConfiguration);
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        using (HevcPictureDecoder decoder = new(configuration, bitstream.SliceSegments[0].PictureParameterSet))
+        {
+            decoder.Decode(bitstream);
+
+            Assert.Equal("08723eb3fb41af96c87becc4f6973234", GetPlaneDigest(decoder.Picture, HevcPlane.Y));
+            Assert.Equal("230778eb7df0ebc009ca92e9697ec4d6", GetPlaneDigest(decoder.Picture, HevcPlane.Cb));
+            Assert.Equal("e8e21ed380d2272dc38384ecd6515e53", GetPlaneDigest(decoder.Picture, HevcPlane.Cr));
+        }
+
+        Assert.NotEmpty(allocator.AllocationLog);
+        AssertBalancedAllocations(allocator);
+    }
+
+    /// <summary>
+    /// Verifies the official deblocking and sample-adaptive-offset pictures in the active intrinsic configuration.
+    /// </summary>
+    private static void ValidateOfficialLoopFilterPictures()
+    {
+        ValidateOfficialLoopFilterPicture(
+            TestImages.Heif.DeblockingA,
+            8,
+            1,
+            false,
+            832,
+            480,
+            "3ea2c2ef1f973345111480e7658908b3",
+            "0390b32143b1a832a385f78229e7e574",
+            "8388f3a8af827da46f1fb52941ec00ad");
+
+        ValidateOfficialLoopFilterPicture(
+            TestImages.Heif.DeblockingMain10,
+            10,
+            1,
+            true,
+            176,
+            144,
+            "184a72aab144cb474df3c1a289e8692d",
+            "d30e750dd70cae163d00f441a75896fd",
+            "d253c41f06228df215f4616febbad34f");
+
+        ValidateOfficialLoopFilterPicture(
+            TestImages.Heif.SampleAdaptiveOffsetA,
+            8,
+            1,
+            true,
+            416,
+            240,
+            "08723eb3fb41af96c87becc4f6973234",
+            "230778eb7df0ebc009ca92e9697ec4d6",
+            "e8e21ed380d2272dc38384ecd6515e53");
+
+        ValidateOfficialLoopFilterPicture(
+            TestImages.Heif.SampleAdaptiveOffsetRangeExtensions,
+            12,
+            3,
+            true,
+            2560,
+            1600,
+            "fb342158a61b6cb3174b99d2e1167d7d",
+            "9ff5400aac0380474882acb903f51f89",
+            "bb320be3c7905a5a220e0066a5edb991");
+    }
+
+    /// <summary>
+    /// Verifies one official loop-filter picture in the active intrinsic configuration.
+    /// </summary>
+    /// <param name="path">The complete official Annex B conformance stream.</param>
+    /// <param name="bitDepth">The signaled component precision.</param>
+    /// <param name="chromaFormat">The signaled HEVC chroma-format identifier.</param>
+    /// <param name="sampleAdaptiveOffsetEnabled">Whether the sequence enables sample-adaptive offset filtering.</param>
+    /// <param name="expectedWidth">The first independently coded picture's displayed width.</param>
+    /// <param name="expectedHeight">The first independently coded picture's displayed height.</param>
+    /// <param name="lumaDigest">The pinned-HM luma-plane digest.</param>
+    /// <param name="chromaBlueDigest">The pinned-HM blue-difference-plane digest.</param>
+    /// <param name="chromaRedDigest">The pinned-HM red-difference-plane digest.</param>
+    private static void ValidateOfficialLoopFilterPicture(
+        string path,
+        int bitDepth,
+        byte chromaFormat,
+        bool sampleAdaptiveOffsetEnabled,
+        int expectedWidth,
+        int expectedHeight,
+        string lumaDigest,
+        string chromaBlueDigest,
+        string chromaRedDigest)
+    {
+        byte[] annexB = TestFile.Create(path).Bytes;
+        ConvertAnnexBStillPicture(annexB, bitDepth, chromaFormat, out byte[] configurationData, out byte[] itemData);
+        HevcCodecConfiguration configuration = new(configurationData);
+        HevcImageItemBitstream bitstream = new(itemData, configuration);
+        HevcSliceSegmentHeader sliceHeader = bitstream.SliceSegments[0];
+        HevcSequenceParameterSet sequenceParameterSet = sliceHeader.PictureParameterSet.SequenceParameterSet;
+        using HevcPictureDecoder decoder = new(Configuration.Default, sliceHeader.PictureParameterSet);
+
+        decoder.Decode(bitstream);
+
+        Assert.Equal(expectedWidth, decoder.Picture.Width);
+        Assert.Equal(expectedHeight, decoder.Picture.Height);
+        Assert.Equal(bitDepth, decoder.Picture.BitDepthLuma);
+        Assert.Equal(chromaFormat, decoder.Picture.ChromaFormat);
+        Assert.Equal(sampleAdaptiveOffsetEnabled, sequenceParameterSet.SampleAdaptiveOffsetEnabled);
+        Assert.False(sliceHeader.DeblockingFilterDisabled);
         Assert.Equal(lumaDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Y));
         Assert.Equal(chromaBlueDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cb));
         Assert.Equal(chromaRedDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cr));

@@ -16,71 +16,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 /// indices select one of the signaled offsets, after which addition and bit-depth clipping remain lane-wise. A scalar
 /// continuation handles only incomplete vectors at picture edges.
 /// </remarks>
-internal static class HevcSampleAdaptiveOffsetFilter
+internal static partial class HevcSampleAdaptiveOffsetFilter
 {
-    /// <summary>
-    /// Defines the sample classifier shared by the SIMD row traversal and scalar tail.
-    /// </summary>
-    private interface ISampleClassifier
-    {
-        /// <summary>
-        /// Gets a value indicating whether classification reads the two neighboring sample rows.
-        /// </summary>
-        public static abstract bool UsesNeighbors { get; }
-
-        /// <summary>
-        /// Classifies thirty-two current samples against their two classifier inputs.
-        /// </summary>
-        /// <param name="current">The current sample lanes.</param>
-        /// <param name="neighbor0">The first neighboring sample lanes.</param>
-        /// <param name="neighbor1">The second neighboring sample lanes.</param>
-        /// <param name="kernel">The scaled offset and band-class state.</param>
-        /// <returns>The zero-based offset-table indices.</returns>
-        public static abstract Vector512<short> Classify(
-            Vector512<short> current,
-            Vector512<short> neighbor0,
-            Vector512<short> neighbor1,
-            in KernelParameters kernel);
-
-        /// <summary>
-        /// Classifies sixteen current samples against their two classifier inputs.
-        /// </summary>
-        /// <param name="current">The current sample lanes.</param>
-        /// <param name="neighbor0">The first neighboring sample lanes.</param>
-        /// <param name="neighbor1">The second neighboring sample lanes.</param>
-        /// <param name="kernel">The scaled offset and band-class state.</param>
-        /// <returns>The zero-based offset-table indices.</returns>
-        public static abstract Vector256<short> Classify(
-            Vector256<short> current,
-            Vector256<short> neighbor0,
-            Vector256<short> neighbor1,
-            in KernelParameters kernel);
-
-        /// <summary>
-        /// Classifies eight current samples against their two classifier inputs.
-        /// </summary>
-        /// <param name="current">The current sample lanes.</param>
-        /// <param name="neighbor0">The first neighboring sample lanes.</param>
-        /// <param name="neighbor1">The second neighboring sample lanes.</param>
-        /// <param name="kernel">The scaled offset and band-class state.</param>
-        /// <returns>The zero-based offset-table indices.</returns>
-        public static abstract Vector128<short> Classify(
-            Vector128<short> current,
-            Vector128<short> neighbor0,
-            Vector128<short> neighbor1,
-            in KernelParameters kernel);
-
-        /// <summary>
-        /// Classifies one current sample against its two classifier inputs.
-        /// </summary>
-        /// <param name="current">The current sample.</param>
-        /// <param name="neighbor0">The first neighboring sample.</param>
-        /// <param name="neighbor1">The second neighboring sample.</param>
-        /// <param name="kernel">The scaled offset and band-class state.</param>
-        /// <returns>The zero-based offset-table index.</returns>
-        public static abstract int Classify(short current, short neighbor0, short neighbor1, in KernelParameters kernel);
-    }
-
     /// <summary>
     /// Applies one resolved sample-adaptive-offset mode to a component coding-tree block.
     /// </summary>
@@ -201,8 +138,8 @@ internal static class HevcSampleAdaptiveOffsetFilter
             Span<ushort> destinationRow = destination.GetRowSpan(plane, row).Slice(x, width);
 
             // Band classification depends only on the current sample. The closed classifier's UsesNeighbors value removes
-            // the two neighbor loads when this generic traversal is specialized for BandClassifier.
-            ApplyRow<BandClassifier>(sourceRow, sourceRow, sourceRow, destinationRow, in kernel);
+            // the two neighbor loads when this generic traversal is specialized for BandOperator.
+            ApplyRow<BandOperator>(sourceRow, sourceRow, sourceRow, destinationRow, in kernel);
         }
     }
 
@@ -242,7 +179,7 @@ internal static class HevcSampleAdaptiveOffsetFilter
         for (int row = y; row < y + height; row++)
         {
             ReadOnlySpan<ushort> sourceRow = source.GetRowSpan(plane, row);
-            ApplyRow<EdgeClassifier>(
+            ApplyRow<EdgeOperator>(
                 sourceRow.Slice(start, count),
                 sourceRow.Slice(start - 1, count),
                 sourceRow.Slice(start + 1, count),
@@ -280,7 +217,7 @@ internal static class HevcSampleAdaptiveOffsetFilter
         int end = y + height - (belowAvailable ? 0 : 1);
         for (int row = start; row < end; row++)
         {
-            ApplyRow<EdgeClassifier>(
+            ApplyRow<EdgeOperator>(
                 source.GetRowSpan(plane, row).Slice(x, width),
                 source.GetRowSpan(plane, row - 1).Slice(x, width),
                 source.GetRowSpan(plane, row + 1).Slice(x, width),
@@ -347,7 +284,7 @@ internal static class HevcSampleAdaptiveOffsetFilter
                 continue;
             }
 
-            ApplyRow<EdgeClassifier>(
+            ApplyRow<EdgeOperator>(
                 source.GetRowSpan(plane, row).Slice(start, count),
                 source.GetRowSpan(plane, row - 1).Slice(start - 1, count),
                 source.GetRowSpan(plane, row + 1).Slice(start + 1, count),
@@ -414,7 +351,7 @@ internal static class HevcSampleAdaptiveOffsetFilter
                 continue;
             }
 
-            ApplyRow<EdgeClassifier>(
+            ApplyRow<EdgeOperator>(
                 source.GetRowSpan(plane, row).Slice(start, count),
                 source.GetRowSpan(plane, row - 1).Slice(start + 1, count),
                 source.GetRowSpan(plane, row + 1).Slice(start - 1, count),
@@ -575,105 +512,6 @@ internal static class HevcSampleAdaptiveOffsetFilter
             4 => kernel.Offset4,
             _ => 0,
         };
-
-    /// <summary>
-    /// Classifies samples by one of thirty-two most-significant-value bands.
-    /// </summary>
-    private readonly struct BandClassifier : ISampleClassifier
-    {
-        /// <inheritdoc/>
-        public static bool UsesNeighbors => false;
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<short> Classify(
-            Vector512<short> current,
-            Vector512<short> neighbor0,
-            Vector512<short> neighbor1,
-            in KernelParameters kernel)
-            => (Vector512.ShiftRightArithmetic(current, kernel.BandShift) - Vector512.Create(kernel.BandPosition)) & Vector512.Create((short)31);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<short> Classify(
-            Vector256<short> current,
-            Vector256<short> neighbor0,
-            Vector256<short> neighbor1,
-            in KernelParameters kernel)
-            => (Vector256.ShiftRightArithmetic(current, kernel.BandShift) - Vector256.Create(kernel.BandPosition)) & Vector256.Create((short)31);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<short> Classify(
-            Vector128<short> current,
-            Vector128<short> neighbor0,
-            Vector128<short> neighbor1,
-            in KernelParameters kernel)
-            => (Vector128.ShiftRightArithmetic(current, kernel.BandShift) - Vector128.Create(kernel.BandPosition)) & Vector128.Create((short)31);
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Classify(short current, short neighbor0, short neighbor1, in KernelParameters kernel)
-            => ((current >> kernel.BandShift) - kernel.BandPosition) & 31;
-    }
-
-    /// <summary>
-    /// Classifies samples by the sum of their signs relative to two directional neighbors.
-    /// </summary>
-    private readonly struct EdgeClassifier : ISampleClassifier
-    {
-        /// <inheritdoc/>
-        public static bool UsesNeighbors => true;
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<short> Classify(
-            Vector512<short> current,
-            Vector512<short> neighbor0,
-            Vector512<short> neighbor1,
-            in KernelParameters kernel)
-        {
-            // Each comparison pair produces -1, 0, or 1. Adding two maps the normative edge classes onto the
-            // contiguous zero-through-four offset-table indices used by the selection kernel.
-            Vector512<short> one = Vector512.Create((short)1);
-            Vector512<short> sign0 = (Vector512.GreaterThan(current, neighbor0) & one) - (Vector512.LessThan(current, neighbor0) & one);
-            Vector512<short> sign1 = (Vector512.GreaterThan(current, neighbor1) & one) - (Vector512.LessThan(current, neighbor1) & one);
-            return sign0 + sign1 + Vector512.Create((short)2);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<short> Classify(
-            Vector256<short> current,
-            Vector256<short> neighbor0,
-            Vector256<short> neighbor1,
-            in KernelParameters kernel)
-        {
-            Vector256<short> one = Vector256.Create((short)1);
-            Vector256<short> sign0 = (Vector256.GreaterThan(current, neighbor0) & one) - (Vector256.LessThan(current, neighbor0) & one);
-            Vector256<short> sign1 = (Vector256.GreaterThan(current, neighbor1) & one) - (Vector256.LessThan(current, neighbor1) & one);
-            return sign0 + sign1 + Vector256.Create((short)2);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<short> Classify(
-            Vector128<short> current,
-            Vector128<short> neighbor0,
-            Vector128<short> neighbor1,
-            in KernelParameters kernel)
-        {
-            Vector128<short> one = Vector128.Create((short)1);
-            Vector128<short> sign0 = (Vector128.GreaterThan(current, neighbor0) & one) - (Vector128.LessThan(current, neighbor0) & one);
-            Vector128<short> sign1 = (Vector128.GreaterThan(current, neighbor1) & one) - (Vector128.LessThan(current, neighbor1) & one);
-            return sign0 + sign1 + Vector128.Create((short)2);
-        }
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Classify(short current, short neighbor0, short neighbor1, in KernelParameters kernel)
-            => Math.Sign(current - neighbor0) + Math.Sign(current - neighbor1) + 2;
-    }
 
     /// <summary>
     /// Contains one block's scaled offsets and invariant classification values.

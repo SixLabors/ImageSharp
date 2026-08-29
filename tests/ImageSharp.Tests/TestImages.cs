@@ -1307,6 +1307,11 @@ public static class TestImages
         public const string IntraPredictionB = "Heif/Hevc/Conformance/IPRED_B_Nokia_3.bit";
         public const string IntraPredictionBReference = "Heif/Hevc/Conformance/IPRED_B_Nokia_3.yuv";
         public const string ConstrainedIntraPredictionA = "Heif/Hevc/Conformance/CIP_A_Panasonic_3.bit";
+        public const string DeltaQuantizationParameterA = "Heif/Hevc/Conformance/DELTAQP_A_BRCM_4_frame0.bit";
+        public const string ExtendedPrecision12Bit444 = "Heif/Hevc/Conformance/EXTPREC_MAIN_444_16_INTRA_12BIT_RExt_Sony_1.bit";
+        public const string ChromaQuantizationAdjustment12Bit444 = "Heif/Hevc/Conformance/GENERAL_12b_444_RExt_Sony_2_idr7.bit";
+        public const string LosslessA = "Heif/Hevc/Conformance/LS_A_Orange_2.bit";
+        public const string QuantizationMatrixA = "Heif/Hevc/Conformance/QMATRIX_A_RExt_Sony_1.bit";
         public const string RqtA = "Heif/Hevc/Conformance/RQT_A_HHI_4.bit";
         public const string RqtB = "Heif/Hevc/Conformance/RQT_B_HHI_4.bit";
         public const string RqtC = "Heif/Hevc/Conformance/RQT_C_HHI_4.bit";

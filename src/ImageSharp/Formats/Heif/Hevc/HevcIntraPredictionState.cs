@@ -102,6 +102,13 @@ internal sealed class HevcIntraPredictionState : IDisposable
                 this.WidthInMinPredictionBlocks,
                 this.HeightInMinPredictionBlocks);
 
+            // PCM coding units skip intra-mode syntax but remain available as most-probable-mode neighbors. HM
+            // initializes every luma direction to DC so those units provide the required default until syntax replaces it.
+            for (int row = 0; row < this.HeightInMinPredictionBlocks; row++)
+            {
+                lumaModes.DangerousGetRowSpan(row).Fill(DcMode);
+            }
+
             this.lumaModes = lumaModes;
             this.chromaModes = chromaModes;
             this.effectiveChromaModes = effectiveChromaModes;

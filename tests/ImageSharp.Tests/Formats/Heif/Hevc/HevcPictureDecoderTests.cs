@@ -16,6 +16,48 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Hevc;
 public class HevcPictureDecoderTests
 {
     /// <summary>
+    /// Identifies residual-tool signaling that an official independently decoded picture must exercise.
+    /// </summary>
+    [Flags]
+    public enum ResidualTools
+    {
+        /// <summary>
+        /// No optional residual tool is signaled.
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// Coding-unit luma quantization deltas are signaled.
+        /// </summary>
+        DeltaQuantization = 1,
+
+        /// <summary>
+        /// Non-flat quantization scaling matrices are enabled.
+        /// </summary>
+        ScalingLists = 2,
+
+        /// <summary>
+        /// Transform skip is enabled.
+        /// </summary>
+        TransformSkip = 4,
+
+        /// <summary>
+        /// Range-extension transform precision is enabled.
+        /// </summary>
+        ExtendedPrecision = 8,
+
+        /// <summary>
+        /// Transform and quantization bypass is enabled.
+        /// </summary>
+        TransquantizationBypass = 16,
+
+        /// <summary>
+        /// A coding-unit chroma quantization-offset list is enabled.
+        /// </summary>
+        ChromaQuantizationAdjustment = 32,
+    }
+
+    /// <summary>
     /// Verifies the first independently coded picture from official ITU RExt conformance streams against its
     /// published decoded-picture hashes.
     /// </summary>
@@ -142,6 +184,57 @@ public class HevcPictureDecoderTests
         Assert.Equal("69a20189e6bbb9c088e3adc967244ca1", GetPlaneDigest(decoder.Picture, HevcPlane.Y));
         Assert.Equal("26502d354bb123f54c20413f14360ddb", GetPlaneDigest(decoder.Picture, HevcPlane.Cb));
         Assert.Equal("baafaef47a55ae2e876862b30b3bc720", GetPlaneDigest(decoder.Picture, HevcPlane.Cr));
+    }
+
+    /// <summary>
+    /// Verifies official independently coded residual-tool pictures against pinned-HM native-plane hashes.
+    /// </summary>
+    /// <param name="path">The official or provenance-preserving extracted Annex B picture.</param>
+    /// <param name="bitDepth">The signaled component precision.</param>
+    /// <param name="chromaFormat">The signaled HEVC chroma-format identifier.</param>
+    /// <param name="expectedTools">The residual tools that the retained picture signals.</param>
+    /// <param name="lumaDigest">The pinned-HM luma-plane digest.</param>
+    /// <param name="chromaBlueDigest">The pinned-HM blue-difference-plane digest.</param>
+    /// <param name="chromaRedDigest">The pinned-HM red-difference-plane digest.</param>
+    [Theory]
+    [InlineData(TestImages.Heif.DeltaQuantizationParameterA, 8, 1, ResidualTools.DeltaQuantization, "2b715c3517e40c00f296260fd0d591c6", "e261d9de5312cba7ac2e355a976ce062", "ca058a402db52ae33aacfcd8c73ae3c6")]
+    [InlineData(TestImages.Heif.QuantizationMatrixA, 8, 3, ResidualTools.DeltaQuantization | ResidualTools.ScalingLists | ResidualTools.TransformSkip, "6995cec045398044d9cb9668d01fe295", "970394f8a6df16378a39ef2e8fbad354", "1c76949b0ee61b9c1a7d99681a324419")]
+    [InlineData(TestImages.Heif.ExtendedPrecision12Bit444, 12, 3, ResidualTools.TransformSkip | ResidualTools.ExtendedPrecision, "c8664d56d8391b236a8347397eb97a08", "08cd345d8798ac2714b2939462ac45e2", "5424bce4562f298e983302da697db849")]
+    [InlineData(TestImages.Heif.ChromaQuantizationAdjustment12Bit444, 12, 3, ResidualTools.TransformSkip | ResidualTools.ChromaQuantizationAdjustment, "0279d9ab84612be260dbd3d4832369b1", "b7eec690a0e5685913ac59d8121ea3e9", "64d7b590e5666f9286204e7e43c6a330")]
+    [InlineData(TestImages.Heif.LosslessA, 8, 1, ResidualTools.DeltaQuantization | ResidualTools.TransformSkip | ResidualTools.TransquantizationBypass, "6d063ac9bc53ab53e142e300e668c32e", "b69a3e55ff000c0418b79471247ca73f", "1b7449f2f395578ead369f6abde7c4eb")]
+    public void DecodeOfficialResidualToolsPictureMatchesPinnedHmDigest(
+        string path,
+        int bitDepth,
+        byte chromaFormat,
+        ResidualTools expectedTools,
+        string lumaDigest,
+        string chromaBlueDigest,
+        string chromaRedDigest)
+    {
+        byte[] annexB = TestFile.Create(path).Bytes;
+        ConvertAnnexBStillPicture(annexB, bitDepth, chromaFormat, out byte[] configurationData, out byte[] itemData);
+        HevcCodecConfiguration configuration = new(configurationData);
+        HevcImageItemBitstream bitstream = new(itemData, configuration);
+        HevcPictureParameterSet pictureParameterSet = bitstream.SliceSegments[0].PictureParameterSet;
+        HevcSequenceParameterSet sequenceParameterSet = pictureParameterSet.SequenceParameterSet;
+        using HevcPictureDecoder decoder = new(Configuration.Default, pictureParameterSet);
+
+        decoder.Decode(bitstream);
+
+        Assert.Equal(bitDepth, decoder.Picture.BitDepthLuma);
+        Assert.Equal(chromaFormat, decoder.Picture.ChromaFormat);
+        Assert.Equal((expectedTools & ResidualTools.DeltaQuantization) != 0, pictureParameterSet.CodingUnitQuantizationParameterDeltaEnabled);
+        Assert.Equal((expectedTools & ResidualTools.ScalingLists) != 0, sequenceParameterSet.ScalingListEnabled);
+        Assert.Equal((expectedTools & ResidualTools.TransformSkip) != 0, pictureParameterSet.TransformSkipEnabled);
+        Assert.Equal((expectedTools & ResidualTools.ExtendedPrecision) != 0, sequenceParameterSet.ExtendedPrecisionProcessingEnabled);
+        Assert.Equal((expectedTools & ResidualTools.TransquantizationBypass) != 0, pictureParameterSet.TransquantizationBypassEnabled);
+        Assert.Equal(
+            (expectedTools & ResidualTools.ChromaQuantizationAdjustment) != 0,
+            pictureParameterSet.ChromaQuantizationParameterOffsetsCb.Count != 0);
+
+        Assert.Equal(lumaDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Y));
+        Assert.Equal(chromaBlueDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cb));
+        Assert.Equal(chromaRedDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cr));
     }
 
     /// <summary>

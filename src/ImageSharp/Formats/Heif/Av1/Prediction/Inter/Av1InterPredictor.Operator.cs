@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.Intrinsics;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 
 /// <content>
@@ -753,7 +755,7 @@ internal static partial class Av1InterPredictor
     /// <param name="coefficients">The selected Q7 phase kernel.</param>
     /// <param name="firstCoefficient">Receives the first coefficient used by the effective kernel.</param>
     /// <param name="tapCount">Receives the effective two-, four-, six-, or eight-tap length.</param>
-    private static void GetEffectiveKernel(ReadOnlySpan<short> coefficients, out int firstCoefficient, out int tapCount)
+    internal static void GetEffectiveKernel(ReadOnlySpan<short> coefficients, out int firstCoefficient, out int tapCount)
     {
         // This matches libaom's get_filter_tap decision. Reducing symmetric zero endpoints avoids source loads and
         // multiply-adds while retaining the original tap-to-source alignment through firstCoefficient.

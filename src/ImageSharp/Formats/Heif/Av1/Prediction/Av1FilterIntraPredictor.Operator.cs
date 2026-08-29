@@ -452,7 +452,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
         private static void StoreEightShorts(Vector256<int> prediction, ref short buffer, int firstRowOffset, int secondRowOffset)
         {
             Vector256<short> narrowed = Vector256.Narrow(prediction, Vector256<int>.Zero);
-            Unsafe.As<short, ulong>(ref Unsafe.Add(ref buffer, firstRowOffset)) = narrowed.AsUInt64().GetElement(0);
+            Unsafe.As<short, ulong>(ref Unsafe.Add(ref buffer, firstRowOffset)) = narrowed.AsUInt64().ToScalar();
             Unsafe.As<short, ulong>(ref Unsafe.Add(ref buffer, secondRowOffset)) = narrowed.AsUInt64().GetElement(1);
         }
 
@@ -466,7 +466,7 @@ internal abstract partial class Av1FilterIntraPredictorBase
         private static void StoreFourShorts(Vector128<int> prediction, ref short buffer, int offset)
         {
             Vector128<short> narrowed = Vector128.Narrow(prediction, Vector128<int>.Zero);
-            Unsafe.As<short, ulong>(ref Unsafe.Add(ref buffer, offset)) = narrowed.AsUInt64().GetElement(0);
+            Unsafe.As<short, ulong>(ref Unsafe.Add(ref buffer, offset)) = narrowed.AsUInt64().ToScalar();
         }
 
         /// <summary>

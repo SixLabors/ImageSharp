@@ -131,7 +131,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                 Av1PredictionDecoder.ScratchLength,
                 Math.Max(
                     Av1InterPredictor.GetScratchLength(maximumBlockLength, maximumBlockLength),
-                    Av1InterPredictor.GetMaximumScaledScratchLength(maximumBlockLength, maximumBlockLength)));
+                    Av1ScaledInterPredictor.GetMaximumScaledScratchLength(maximumBlockLength, maximumBlockLength)));
 
             int compoundMaskLength = (maximumBlockArea + 1) >> 1;
 
@@ -444,7 +444,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                     ? highBitDepthBlockReconstructionBuffer[reconstructionStride..]
                                     : secondPredictionStorage);
 
-                            Av1InterPredictor.PredictWarped(
+                            Av1WarpedInterPredictor.PredictWarped(
                                 source,
                                 sourceStride,
                                 sourceOrigin,
@@ -476,7 +476,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                     ? firstCompoundPrediction
                                     : highBitDepthSecondPrediction;
 
-                                Av1InterPredictor.PredictWarpedCompound(
+                                Av1WarpedInterPredictor.PredictWarpedCompound(
                                     source,
                                     sourceStride,
                                     sourceOrigin,
@@ -498,7 +498,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                     ? blockReconstructionBuffer[reconstructionStride..]
                                     : secondPrediction;
 
-                                Av1InterPredictor.PredictWarped(
+                                Av1WarpedInterPredictor.PredictWarped(
                                     source,
                                     sourceStride,
                                     sourceOrigin,
@@ -635,7 +635,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                 ? firstCompoundPrediction
                                 : highBitDepthSecondPrediction;
 
-                            Av1InterPredictor.PredictCompound(
+                            Av1CompoundInterPredictor.PredictCompound(
                                 source,
                                 sourceStride,
                                 sourceIndex,
@@ -681,7 +681,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                         switch (modeInfo.CompoundType)
                         {
                             case Av1CompoundType.Average:
-                                Av1CompoundInterPredictor.AverageIntermediate(
+                                Av1CompoundIntermediateAveragePredictor.AverageIntermediate(
                                     destination,
                                     reconstructionStride,
                                     first,
@@ -694,7 +694,7 @@ internal sealed class Av1BlockDecoder : IDisposable
 
                                 break;
                             case Av1CompoundType.DistanceWeighted:
-                                Av1CompoundInterPredictor.DistanceWeightedIntermediate(
+                                Av1CompoundIntermediateDistanceWeightedPredictor.DistanceWeightedIntermediate(
                                     destination,
                                     reconstructionStride,
                                     first,
@@ -719,7 +719,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                     subY,
                                     invert: false);
 
-                                Av1CompoundInterPredictor.BlendIntermediate(
+                                Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
                                     destination,
                                     reconstructionStride,
                                     first,
@@ -739,7 +739,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                 int lumaWidth = blockSize.GetWidth();
                                 if (plane == 0)
                                 {
-                                    Av1CompoundInterPredictor.FillDifferenceWeightedIntermediateMask(
+                                    Av1CompoundIntermediateDifferenceWeightedMaskBuilder.FillDifferenceWeightedIntermediateMask(
                                         compoundMask,
                                         lumaWidth,
                                         first,
@@ -752,7 +752,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                         modeInfo.DifferenceWeightedMaskType);
                                 }
 
-                                Av1CompoundInterPredictor.BlendIntermediate(
+                                Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
                                     destination,
                                     reconstructionStride,
                                     first,
@@ -778,7 +778,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                         switch (modeInfo.CompoundType)
                         {
                             case Av1CompoundType.Average:
-                                Av1CompoundInterPredictor.Average(
+                                Av1CompoundAveragePredictor.Average(
                                     destination,
                                     reconstructionStride,
                                     highBitDepthSecondPrediction,
@@ -788,7 +788,7 @@ internal sealed class Av1BlockDecoder : IDisposable
 
                                 break;
                             case Av1CompoundType.DistanceWeighted:
-                                Av1CompoundInterPredictor.DistanceWeighted(
+                                Av1CompoundDistanceWeightedPredictor.DistanceWeighted(
                                     destination,
                                     reconstructionStride,
                                     highBitDepthSecondPrediction,
@@ -810,7 +810,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                     subY,
                                     invert: false);
 
-                                Av1CompoundInterPredictor.Blend(
+                                Av1CompoundMaskBlendPredictor.Blend(
                                     destination,
                                     reconstructionStride,
                                     highBitDepthSecondPrediction,
@@ -822,7 +822,7 @@ internal sealed class Av1BlockDecoder : IDisposable
 
                                 break;
                             default:
-                                Av1CompoundInterPredictor.FillDifferenceWeightedMask(
+                                Av1DifferenceWeightedMaskBuilder.FillDifferenceWeightedMask(
                                     compoundMask,
                                     predictionWidth,
                                     destination,
@@ -834,7 +834,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                     this.frameBuffer.BitDepth.GetBitCount(),
                                     modeInfo.DifferenceWeightedMaskType);
 
-                                Av1CompoundInterPredictor.Blend(
+                                Av1CompoundMaskBlendPredictor.Blend(
                                     destination,
                                     reconstructionStride,
                                     highBitDepthSecondPrediction,
@@ -853,7 +853,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                         switch (modeInfo.CompoundType)
                         {
                             case Av1CompoundType.Average:
-                                Av1CompoundInterPredictor.Average(
+                                Av1CompoundAveragePredictor.Average(
                                     destination,
                                     reconstructionStride,
                                     secondPrediction,
@@ -863,7 +863,7 @@ internal sealed class Av1BlockDecoder : IDisposable
 
                                 break;
                             case Av1CompoundType.DistanceWeighted:
-                                Av1CompoundInterPredictor.DistanceWeighted(
+                                Av1CompoundDistanceWeightedPredictor.DistanceWeighted(
                                     destination,
                                     reconstructionStride,
                                     secondPrediction,
@@ -885,7 +885,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                     subY,
                                     invert: false);
 
-                                Av1CompoundInterPredictor.Blend(
+                                Av1CompoundMaskBlendPredictor.Blend(
                                     destination,
                                     reconstructionStride,
                                     secondPrediction,
@@ -897,7 +897,7 @@ internal sealed class Av1BlockDecoder : IDisposable
 
                                 break;
                             default:
-                                Av1CompoundInterPredictor.FillDifferenceWeightedMask(
+                                Av1DifferenceWeightedMaskBuilder.FillDifferenceWeightedMask(
                                     compoundMask,
                                     predictionWidth,
                                     destination,
@@ -908,7 +908,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                     predictionHeight,
                                     modeInfo.DifferenceWeightedMaskType);
 
-                                Av1CompoundInterPredictor.Blend(
+                                Av1CompoundMaskBlendPredictor.Blend(
                                     destination,
                                     reconstructionStride,
                                     secondPrediction,
@@ -950,7 +950,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                         }
                         else
                         {
-                            Av1CompoundInterPredictor.FillInterIntraMask(
+                            Av1InterIntraMaskBuilder.FillInterIntraMask(
                                 compoundMask,
                                 predictionWidth,
                                 predictionWidth,
@@ -959,7 +959,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                 invert: true);
                         }
 
-                        Av1CompoundInterPredictor.Blend(
+                        Av1CompoundMaskBlendPredictor.Blend(
                             MemoryMarshal.Cast<short, ushort>(highBitDepthBlockReconstructionBuffer[reconstructionStride..]),
                             reconstructionStride,
                             highBitDepthSecondPrediction,
@@ -995,7 +995,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                         }
                         else
                         {
-                            Av1CompoundInterPredictor.FillInterIntraMask(
+                            Av1InterIntraMaskBuilder.FillInterIntraMask(
                                 compoundMask,
                                 predictionWidth,
                                 predictionWidth,
@@ -1004,7 +1004,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                 invert: true);
                         }
 
-                        Av1CompoundInterPredictor.Blend(
+                        Av1CompoundMaskBlendPredictor.Blend(
                             blockReconstructionBuffer[reconstructionStride..],
                             reconstructionStride,
                             secondPrediction,
@@ -1528,7 +1528,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                 sourceOrigin.X +
                 (sourceColumnQ10 >> Av1ReferenceScale.SubpixelBits);
 
-            Av1InterPredictor.PredictScaled(
+            Av1ScaledInterPredictor.PredictScaled(
                 source,
                 sourceStride,
                 sourceIndex,
@@ -1559,7 +1559,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                 sourceOrigin.X +
                 (sourceColumnQ10 >> Av1ReferenceScale.SubpixelBits);
 
-            Av1InterPredictor.PredictScaled(
+            Av1ScaledInterPredictor.PredictScaled(
                 source,
                 sourceStride,
                 sourceIndex,
@@ -1664,7 +1664,7 @@ internal sealed class Av1BlockDecoder : IDisposable
 
                     if (highBitDepth)
                     {
-                        Av1CompoundInterPredictor.Blend(
+                        Av1CompoundMaskBlendPredictor.Blend(
                             MemoryMarshal.Cast<short, ushort>(highBitDepthBlockReconstructionBuffer[reconstructionStride..])[destinationColumn..],
                             reconstructionStride,
                             highBitDepthNeighborPrediction,
@@ -1676,7 +1676,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                     }
                     else
                     {
-                        Av1CompoundInterPredictor.Blend(
+                        Av1CompoundMaskBlendPredictor.Blend(
                             blockReconstructionBuffer[reconstructionStride..][destinationColumn..],
                             reconstructionStride,
                             neighborPrediction,
@@ -1742,7 +1742,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                     ReadOnlySpan<byte> horizontalMask = Av1ObmcMask.Get(overlapWidth);
                     if (highBitDepth)
                     {
-                        Av1CompoundInterPredictor.Blend(
+                        Av1CompoundMaskBlendPredictor.Blend(
                             MemoryMarshal.Cast<short, ushort>(highBitDepthBlockReconstructionBuffer[reconstructionStride..])[(destinationRow * reconstructionStride)..],
                             reconstructionStride,
                             highBitDepthNeighborPrediction,
@@ -1754,7 +1754,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                     }
                     else
                     {
-                        Av1CompoundInterPredictor.Blend(
+                        Av1CompoundMaskBlendPredictor.Blend(
                             blockReconstructionBuffer[reconstructionStride..][(destinationRow * reconstructionStride)..],
                             reconstructionStride,
                             neighborPrediction,

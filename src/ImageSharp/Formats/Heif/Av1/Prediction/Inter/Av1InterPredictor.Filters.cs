@@ -11,7 +11,7 @@ internal static partial class Av1InterPredictor
     /// <summary>
     /// The number of stored coefficient positions in every decoder interpolation kernel.
     /// </summary>
-    private const int FilterCoefficientCount = 8;
+    internal const int FilterCoefficientCount = 8;
 
     /// <summary>
     /// Gets the regular eight-tap kernels for the sixteen subpixel phases.

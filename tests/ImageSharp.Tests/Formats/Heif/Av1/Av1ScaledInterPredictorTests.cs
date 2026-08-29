@@ -118,7 +118,7 @@ public class Av1ScaledInterPredictorTests
             byte[] expected = CreateByteDestination(testCase, destinationStride);
             byte[] actual = (byte[])expected.Clone();
             short[] scratch = new short[
-                Av1InterPredictor.GetScaledScratchLength(
+                Av1ScaledInterPredictor.GetScaledScratchLength(
                     testCase.Width,
                     testCase.Height,
                     testCase.VerticalPhase,
@@ -126,7 +126,7 @@ public class Av1ScaledInterPredictorTests
 
             ApplyReference(source, sourceStride, sourceOrigin, expected, destinationStride, testCase, 8);
 
-            Av1InterPredictor.PredictScaled(
+            Av1ScaledInterPredictor.PredictScaled(
                 source,
                 sourceStride,
                 sourceOrigin,
@@ -161,7 +161,7 @@ public class Av1ScaledInterPredictorTests
                 ushort[] expected = CreateUInt16Destination(testCase, destinationStride);
                 ushort[] actual = (ushort[])expected.Clone();
                 short[] scratch = new short[
-                    Av1InterPredictor.GetScaledScratchLength(
+                    Av1ScaledInterPredictor.GetScaledScratchLength(
                         testCase.Width,
                         testCase.Height,
                         testCase.VerticalPhase,
@@ -169,7 +169,7 @@ public class Av1ScaledInterPredictorTests
 
                 ApplyReference(source, sourceStride, sourceOrigin, expected, destinationStride, testCase, bitDepth);
 
-                Av1InterPredictor.PredictScaled(
+                Av1ScaledInterPredictor.PredictScaled(
                     source,
                     sourceStride,
                     sourceOrigin,
@@ -201,6 +201,7 @@ public class Av1ScaledInterPredictorTests
         new("fixture-regular-8x4", 8, 4, Av1InterpolationFilter.Regular, Av1InterpolationFilter.Regular, 800, 512, 800, 512),
         new("bilinear-variable-phase", 13, 9, Av1InterpolationFilter.Bilinear, Av1InterpolationFilter.Bilinear, 192, 1536, 512, 640),
         new("regular-smooth-wide", 20, 8, Av1InterpolationFilter.Regular, Av1InterpolationFilter.Smooth, 64, 2048, 448, 2048),
+        new("regular-sharp-all-widths", 37, 7, Av1InterpolationFilter.Regular, Av1InterpolationFilter.Sharp, 64, 2048, 512, 2048),
         new("sharp-bilinear-tail", 12, 5, Av1InterpolationFilter.Sharp, Av1InterpolationFilter.Bilinear, 512, 2048, 192, 2048),
         new("reduced-regular", 4, 8, Av1InterpolationFilter.Regular, Av1InterpolationFilter.Smooth, 192, 2048, 448, 2048),
         new("reduced-sharp-maps-to-regular", 4, 8, Av1InterpolationFilter.Sharp, Av1InterpolationFilter.Smooth, 192, 2048, 448, 2048),

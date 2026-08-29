@@ -8,7 +8,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 /// <summary>
-/// Verifies equal-weight AV1 compound prediction across every hardware-intrinsic tier.
+/// Verifies AV1 compound prediction and blending across every hardware-intrinsic tier.
 /// </summary>
 [Trait("Format", "Avif")]
 public class Av1CompoundInterPredictorTests
@@ -65,8 +65,8 @@ public class Av1CompoundInterPredictorTests
             mask.AsSpan().Fill(0xA5);
             inverted.AsSpan().Fill(0xA5);
 
-            Av1CompoundInterPredictor.FillInterIntraMask(mask, stride, width, height, mode, invert: false);
-            Av1CompoundInterPredictor.FillInterIntraMask(inverted, stride, width, height, mode, invert: true);
+            Av1InterIntraMaskBuilder.FillInterIntraMask(mask, stride, width, height, mode, invert: false);
+            Av1InterIntraMaskBuilder.FillInterIntraMask(inverted, stride, width, height, mode, invert: true);
 
             for (int row = 0; row < height; row++)
             {
@@ -91,6 +91,24 @@ public class Av1CompoundInterPredictorTests
                 }
             }
         }
+    }
+
+    /// <summary>
+    /// Verifies the pinned horizontal curve at the index exercised by a 32-by-16 inter-intra block.
+    /// </summary>
+    [Fact]
+    public void HorizontalInterIntraMaskMatchesPinnedThirtyTwoWideCurve()
+    {
+        const int width = 32;
+        const int height = 16;
+        byte[] mask = new byte[width * height];
+        byte[] inverted = new byte[width * height];
+
+        Av1InterIntraMaskBuilder.FillInterIntraMask(mask, width, width, height, Av1InterIntraMode.Horizontal, invert: false);
+        Av1InterIntraMaskBuilder.FillInterIntraMask(inverted, width, width, height, Av1InterIntraMode.Horizontal, invert: true);
+
+        Assert.Equal(2, mask[23]);
+        Assert.Equal(62, inverted[23]);
     }
 
     /// <summary>
@@ -136,7 +154,7 @@ public class Av1CompoundInterPredictorTests
                     {
                         byte[] firstByte = Array.ConvertAll(first, value => (byte)value);
                         byte[] secondByte = Array.ConvertAll(second, value => (byte)value);
-                        Av1CompoundInterPredictor.FillDifferenceWeightedMask(
+                        Av1DifferenceWeightedMaskBuilder.FillDifferenceWeightedMask(
                             actual,
                             maskStride,
                             firstByte,
@@ -149,7 +167,7 @@ public class Av1CompoundInterPredictorTests
                     }
                     else
                     {
-                        Av1CompoundInterPredictor.FillDifferenceWeightedMask(
+                        Av1DifferenceWeightedMaskBuilder.FillDifferenceWeightedMask(
                             actual,
                             maskStride,
                             first,
@@ -214,8 +232,8 @@ public class Av1CompoundInterPredictorTests
                 }
             }
 
-            Av1CompoundInterPredictor.Average(actual, destinationStride, second, secondStride, width, height);
-            Av1CompoundInterPredictor.AverageScalar(scalar, destinationStride, second, secondStride, width, height);
+            Av1CompoundAveragePredictor.Average(actual, destinationStride, second, secondStride, width, height);
+            Av1CompoundAveragePredictor.AverageScalar(scalar, destinationStride, second, secondStride, width, height);
 
             Assert.Equal(expected, actual);
             Assert.Equal(expected, scalar);
@@ -255,8 +273,8 @@ public class Av1CompoundInterPredictorTests
                     }
                 }
 
-                Av1CompoundInterPredictor.Average(actual, destinationStride, second, secondStride, width, height);
-                Av1CompoundInterPredictor.AverageScalar(scalar, destinationStride, second, secondStride, width, height);
+                Av1CompoundAveragePredictor.Average(actual, destinationStride, second, secondStride, width, height);
+                Av1CompoundAveragePredictor.AverageScalar(scalar, destinationStride, second, secondStride, width, height);
 
                 Assert.Equal(expected, actual);
                 Assert.Equal(expected, scalar);
@@ -303,7 +321,7 @@ public class Av1CompoundInterPredictorTests
                     }
                 }
 
-                Av1CompoundInterPredictor.DistanceWeighted(
+                Av1CompoundDistanceWeightedPredictor.DistanceWeighted(
                     actual,
                     destinationStride,
                     second,
@@ -330,7 +348,7 @@ public class Av1CompoundInterPredictorTests
                 }
             }
 
-            Av1CompoundInterPredictor.Blend(
+            Av1CompoundMaskBlendPredictor.Blend(
                 maskedActual,
                 destinationStride,
                 second,
@@ -385,7 +403,7 @@ public class Av1CompoundInterPredictorTests
                         }
                     }
 
-                    Av1CompoundInterPredictor.DistanceWeighted(
+                    Av1CompoundDistanceWeightedPredictor.DistanceWeighted(
                         actual,
                         destinationStride,
                         second,
@@ -412,7 +430,7 @@ public class Av1CompoundInterPredictorTests
                     }
                 }
 
-                Av1CompoundInterPredictor.Blend(
+                Av1CompoundMaskBlendPredictor.Blend(
                     maskedActual,
                     destinationStride,
                     second,

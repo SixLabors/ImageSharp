@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.Globalization;
 using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
@@ -154,6 +155,53 @@ public class Av1ReconstructionConformanceTests
     /// The number of presented frames in the independent compound image sequence.
     /// </summary>
     private const int AverageCompoundFixtureFrameCount = 19;
+
+    /// <summary>
+    /// The number of shown frames in the official libaom all-intra sequence.
+    /// </summary>
+    private const int OfficialAllIntraFixtureFrameCount = 39;
+
+    /// <summary>
+    /// The number of shown frames in the official libaom CDF-update sequence.
+    /// </summary>
+    private const int OfficialCdfUpdateFixtureFrameCount = 2;
+
+    /// <summary>
+    /// The number of shown frames in the official libaom temporal motion-field sequence.
+    /// </summary>
+    private const int OfficialMotionFieldFixtureFrameCount = 4;
+
+    /// <summary>
+    /// The coverage bit representing tile-local adaptive CDF updates.
+    /// </summary>
+    private const int TileCdfUpdateCoverage = 1 << 0;
+
+    /// <summary>
+    /// The coverage bit representing publication of the selected frame-end CDF.
+    /// </summary>
+    private const int FrameEndCdfUpdateCoverage = 1 << 1;
+
+    /// <summary>
+    /// The coverage bit representing temporal reference-motion-vector projection.
+    /// </summary>
+    private const int ReferenceFrameMotionVectorCoverage = 1 << 2;
+
+    /// <summary>
+    /// The bit mask containing every intra prediction mode.
+    /// </summary>
+    private const int RequiredIntraModeCoverage = (1 << (int)Av1PredictionMode.IntraModes) - 1;
+
+    /// <summary>
+    /// The transform types selected by the official all-intra conformance sequence.
+    /// </summary>
+    private const int RequiredAllIntraTransformTypeCoverage =
+        (1 << (int)Av1TransformType.DctDct) |
+        (1 << (int)Av1TransformType.AdstDct) |
+        (1 << (int)Av1TransformType.DctAdst) |
+        (1 << (int)Av1TransformType.AdstAdst) |
+        (1 << (int)Av1TransformType.Identity) |
+        (1 << (int)Av1TransformType.VerticalDct) |
+        (1 << (int)Av1TransformType.HorizontalDct);
 
     /// <summary>
     /// The displayed width of the official libaom motion-vector sequence.
@@ -897,6 +945,255 @@ public class Av1ReconstructionConformanceTests
             GlobalWarpCoverage,
             fixtureSize: 256,
             visibleFrameCount: 2);
+
+    /// <summary>
+    /// Verifies every intra prediction mode and the fixture's seven transform types against the official
+    /// pinned-libaom all-intra conformance sequence and its exact native output.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialAllIntraSequenceMatchesPinnedLibaomReference() => ValidateOfficialAllIntraFixture();
+
+    /// <summary>
+    /// Decodes every all-intra IVF sample in one session, compares each frame exactly, and records the syntax
+    /// selections that make the fixture authoritative for prediction and transform coverage.
+    /// </summary>
+    private static void ValidateOfficialAllIntraFixture()
+    {
+        byte[] ivf = TestFile.Create(TestImages.Heif.Av1OfficialAllIntraSequence).Bytes;
+        byte[] nativeReference = TestFile.Create(TestImages.Heif.Av1OfficialAllIntraSequenceNativeReference).Bytes;
+        ReadOnlySpan<byte> y4mFileHeader = "YUV4MPEG2 W352 H288 F3:1 Ip C420jpeg\n"u8;
+        ReadOnlySpan<byte> y4mFrameHeader = "FRAME\n"u8;
+
+        Assert.True(ivf.AsSpan(0, 4).SequenceEqual("DKIF"u8));
+        Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(4, 2)));
+        Assert.Equal(32, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(6, 2)));
+        Assert.True(ivf.AsSpan(8, 4).SequenceEqual("AV01"u8));
+        Assert.Equal(OfficialMotionVectorFixtureWidth, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(12, 2)));
+        Assert.Equal(OfficialMotionVectorFixtureHeight, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(14, 2)));
+        Assert.Equal(
+            OfficialAllIntraFixtureFrameCount,
+            checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(24, 4))));
+
+        Assert.True(nativeReference.AsSpan().StartsWith(y4mFileHeader));
+
+        int ivfOffset = 32;
+        int nativeOffset = y4mFileHeader.Length;
+        int nativeFrameLength =
+            (OfficialMotionVectorFixtureWidth * OfficialMotionVectorFixtureHeight) +
+            (2 * (OfficialMotionVectorFixtureWidth >> 1) * (OfficialMotionVectorFixtureHeight >> 1));
+
+        int intraModeCoverage = 0;
+        int transformTypeCoverage = 0;
+        using Av1Decoder decoder = new(Configuration.Default);
+        for (int frameIndex = 0; frameIndex < OfficialAllIntraFixtureFrameCount; frameIndex++)
+        {
+            int payloadLength = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(ivfOffset, 4)));
+            ivfOffset += 12;
+            using ImageFrame<Rgba32> frame = decoder.DecodeSequenceFrame<Rgba32>(
+                ivf.AsSpan(ivfOffset, payloadLength),
+                null,
+                null);
+
+            ivfOffset += payloadLength;
+            Assert.Equal(OfficialMotionVectorFixtureWidth, frame.Width);
+            Assert.Equal(OfficialMotionVectorFixtureHeight, frame.Height);
+            Assert.True(nativeReference.AsSpan(nativeOffset).StartsWith(y4mFrameHeader));
+            nativeOffset += y4mFrameHeader.Length;
+
+            Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
+            Assert.Equal(OfficialMotionVectorFixtureWidth, frameBuffer.Width);
+            Assert.Equal(OfficialMotionVectorFixtureHeight, frameBuffer.Height);
+            Assert.Equal(Av1BitDepth.EightBit, frameBuffer.BitDepth);
+            Assert.Equal(Av1ColorFormat.Yuv420, frameBuffer.ColorFormat);
+            AssertNativePlanesEqual(
+                decoder,
+                frameBuffer,
+                nativeReference.AsSpan(nativeOffset, nativeFrameLength));
+
+            nativeOffset += nativeFrameLength;
+
+            ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
+            Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+            int superblockColumnCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, sequenceHeader.SuperblockSizeLog2)
+                >> sequenceHeader.SuperblockSizeLog2;
+            int superblockRowCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameHeight, sequenceHeader.SuperblockSizeLog2)
+                >> sequenceHeader.SuperblockSizeLog2;
+
+            for (int superblockRow = 0; superblockRow < superblockRowCount; superblockRow++)
+            {
+                for (int superblockColumn = 0; superblockColumn < superblockColumnCount; superblockColumn++)
+                {
+                    Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
+                    foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
+                    {
+                        if (modeInfo.YMode is >= Av1PredictionMode.IntraModeStart and < Av1PredictionMode.IntraModeEnd)
+                        {
+                            intraModeCoverage |= 1 << ((int)modeInfo.YMode - (int)Av1PredictionMode.IntraModeStart);
+                        }
+
+                        int firstTransformLocation = modeInfo.GetFirstTransformLocation(Av1Plane.Y);
+                        int transformUnitCount = modeInfo.GetTransformUnitCount(Av1Plane.Y);
+                        foreach (Av1TransformInfo transformInfo in
+                            superblockInfo.GetTransformInfoY().Slice(firstTransformLocation, transformUnitCount))
+                        {
+                            transformTypeCoverage |= 1 << (int)transformInfo.Type;
+                        }
+                    }
+                }
+            }
+        }
+
+        Assert.Equal(ivf.Length, ivfOffset);
+        Assert.Equal(nativeReference.Length, nativeOffset);
+        Assert.Equal(RequiredIntraModeCoverage, intraModeCoverage);
+        Assert.Equal(RequiredAllIntraTransformTypeCoverage, transformTypeCoverage);
+    }
+
+    /// <summary>
+    /// Verifies adaptive tile and frame-end CDF updates against the official pinned-libaom sequence and exact native
+    /// output under normal and scalar dispatch.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialCdfUpdateSequenceMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateOfficialCdfUpdateFixture,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Verifies temporal reference-motion-vector projection against the official pinned-libaom sequence and exact
+    /// native output under normal and scalar dispatch.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialMotionFieldSequenceMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateOfficialMotionFieldFixture,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Verifies exact temporal motion-field reconstruction and balanced ownership with a constrained allocator.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodeOfficialMotionFieldSequenceWithConstrainedAllocator()
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        int coverage = ValidateOfficialCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialMotionFieldSequence,
+            TestImages.Heif.Av1OfficialMotionFieldSequenceNativeReference,
+            OfficialMotionFieldFixtureFrameCount);
+
+        Assert.NotEqual(0, coverage & ReferenceFrameMotionVectorCoverage);
+        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
+        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.AllocationId == allocation.AllocationId));
+    }
+
+    /// <summary>
+    /// Validates that the official CDF-update fixture selects both adaptive update boundaries.
+    /// </summary>
+    private static void ValidateOfficialCdfUpdateFixture()
+    {
+        int coverage = ValidateOfficialCompactSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1OfficialCdfUpdateSequence,
+            TestImages.Heif.Av1OfficialCdfUpdateSequenceNativeReference,
+            OfficialCdfUpdateFixtureFrameCount);
+
+        Assert.Equal(TileCdfUpdateCoverage | FrameEndCdfUpdateCoverage, coverage & 3);
+    }
+
+    /// <summary>
+    /// Validates that the official temporal motion-field fixture enables projected reference motion vectors.
+    /// </summary>
+    private static void ValidateOfficialMotionFieldFixture()
+    {
+        int coverage = ValidateOfficialCompactSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1OfficialMotionFieldSequence,
+            TestImages.Heif.Av1OfficialMotionFieldSequenceNativeReference,
+            OfficialMotionFieldFixtureFrameCount);
+
+        Assert.NotEqual(0, coverage & ReferenceFrameMotionVectorCoverage);
+    }
+
+    /// <summary>
+    /// Decodes one compact official IVF sequence, compares every native sample, and returns its active frame-state
+    /// coverage mask.
+    /// </summary>
+    private static int ValidateOfficialCompactSequence(
+        Configuration configuration,
+        string fixturePath,
+        string nativeReferencePath,
+        int expectedFrameCount)
+    {
+        byte[] ivf = TestFile.Create(fixturePath).Bytes;
+        byte[] nativeReference = TestFile.Create(nativeReferencePath).Bytes;
+        ReadOnlySpan<byte> y4mFileHeader = "YUV4MPEG2 W352 H288 F30:1 Ip C420jpeg\n"u8;
+        ReadOnlySpan<byte> y4mFrameHeader = "FRAME\n"u8;
+
+        Assert.True(ivf.AsSpan(0, 4).SequenceEqual("DKIF"u8));
+        Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(4, 2)));
+        Assert.Equal(32, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(6, 2)));
+        Assert.True(ivf.AsSpan(8, 4).SequenceEqual("AV01"u8));
+        Assert.Equal(OfficialMotionVectorFixtureWidth, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(12, 2)));
+        Assert.Equal(OfficialMotionVectorFixtureHeight, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(14, 2)));
+        Assert.Equal(
+            expectedFrameCount,
+            checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(24, 4))));
+
+        Assert.True(nativeReference.AsSpan().StartsWith(y4mFileHeader));
+
+        int ivfOffset = 32;
+        int nativeOffset = y4mFileHeader.Length;
+        int nativeFrameLength =
+            (OfficialMotionVectorFixtureWidth * OfficialMotionVectorFixtureHeight) +
+            (2 * (OfficialMotionVectorFixtureWidth >> 1) * (OfficialMotionVectorFixtureHeight >> 1));
+
+        int coverage = 0;
+        using Av1Decoder decoder = new(configuration);
+        for (int frameIndex = 0; frameIndex < expectedFrameCount; frameIndex++)
+        {
+            int payloadLength = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(ivfOffset, 4)));
+            ivfOffset += 12;
+            using ImageFrame<Rgba32> frame = decoder.DecodeSequenceFrame<Rgba32>(
+                ivf.AsSpan(ivfOffset, payloadLength),
+                null,
+                null);
+
+            ivfOffset += payloadLength;
+            Assert.Equal(OfficialMotionVectorFixtureWidth, frame.Width);
+            Assert.Equal(OfficialMotionVectorFixtureHeight, frame.Height);
+            Assert.True(nativeReference.AsSpan(nativeOffset).StartsWith(y4mFrameHeader));
+            nativeOffset += y4mFrameHeader.Length;
+
+            Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
+            AssertNativePlanesEqual(
+                decoder,
+                frameBuffer,
+                nativeReference.AsSpan(nativeOffset, nativeFrameLength));
+
+            nativeOffset += nativeFrameLength;
+
+            ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
+            coverage |= frameHeader.DisableCdfUpdate ? 0 : TileCdfUpdateCoverage;
+            coverage |= frameHeader.DisableFrameEndUpdateCdf ? 0 : FrameEndCdfUpdateCoverage;
+            coverage |= frameHeader.UseReferenceFrameMotionVectors ? ReferenceFrameMotionVectorCoverage : 0;
+        }
+
+        Assert.Equal(ivf.Length, ivfOffset);
+        Assert.Equal(nativeReference.Length, nativeOffset);
+        return coverage;
+    }
 
     /// <summary>
     /// Verifies every ordinary inter mode, motion mode, and switchable dual-filter pair against the official
@@ -3219,7 +3516,7 @@ public class Av1ReconstructionConformanceTests
                             if (mismatchCount < 16)
                             {
                                 mismatchDescription ??= new StringBuilder();
-                                mismatchDescription.Append($" {plane}({x},{y})={expectedRow[x]}/{actualRow[x]}");
+                                mismatchDescription.Append(CultureInfo.InvariantCulture, $" {plane}({x},{y})={expectedRow[x]}/{actualRow[x]}");
                             }
 
                             if (mismatchCount == 0 || Math.Abs(expectedRow[x] - actualRow[x]) > Math.Abs(largestExpected - largestActual))
@@ -3252,7 +3549,7 @@ public class Av1ReconstructionConformanceTests
                             if (mismatchCount < 16)
                             {
                                 mismatchDescription ??= new StringBuilder();
-                                mismatchDescription.Append($" {plane}({x},{y})={expected}/{actualRow[x]}");
+                                mismatchDescription.Append(CultureInfo.InvariantCulture, $" {plane}({x},{y})={expected}/{actualRow[x]}");
                             }
 
                             if (mismatchCount == 0 || Math.Abs(expected - actualRow[x]) > Math.Abs(largestExpected - largestActual))
@@ -3374,7 +3671,7 @@ public class Av1ReconstructionConformanceTests
             if (containingTransform.CodeBlockFlag)
             {
                 int coefficientCount = superblockCoefficients[coefficientOffset];
-                coefficientDescription.Append($", quantized-coefficients={coefficientCount}:[");
+                coefficientDescription.Append(CultureInfo.InvariantCulture, $", quantized-coefficients={coefficientCount}:[");
                 for (int coefficientIndex = 0; coefficientIndex < coefficientCount; coefficientIndex++)
                 {
                     if (coefficientIndex != 0)

@@ -1,12 +1,14 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1InterPredictor;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 
 /// <content>
 /// Provides the normative Q7 filter kernels for affine warped-motion prediction.
 /// </content>
-internal static partial class Av1InterPredictor
+internal static partial class Av1WarpedInterPredictor
 {
     /// <summary>
     /// Gets the 193 consecutive eight-tap warped-filter phases spanning fractional positions [-1, 2].

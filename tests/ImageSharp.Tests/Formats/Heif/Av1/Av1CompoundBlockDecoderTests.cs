@@ -671,8 +671,8 @@ public class Av1CompoundBlockDecoderTests
         Av1FrameBuffer<byte> secondReference = referenceFrames.Resolve(1)!.FrameBuffer;
         ushort[] firstHighBitDepthPrediction = new ushort[blockSize * blockSize];
         ushort[] secondHighBitDepthPrediction = new ushort[blockSize * blockSize];
-        short[] firstScratch = new short[Av1InterPredictor.WarpedScratchLength];
-        short[] secondScratch = new short[Av1InterPredictor.WarpedScratchLength];
+        short[] firstScratch = new short[Av1WarpedInterPredictor.WarpedScratchLength];
+        short[] secondScratch = new short[Av1WarpedInterPredictor.WarpedScratchLength];
         Point blockPosition = new(blockOrigin, blockOrigin);
         if (bitDepth == Av1BitDepth.EightBit)
         {
@@ -690,7 +690,7 @@ public class Av1CompoundBlockDecoderTests
                 out int secondStride,
                 out Point secondOrigin);
 
-            Av1InterPredictor.PredictWarpedCompoundScalar(
+            Av1WarpedInterPredictor.PredictWarpedCompoundScalar(
                 firstSource,
                 firstStride,
                 firstOrigin,
@@ -706,7 +706,7 @@ public class Av1CompoundBlockDecoderTests
                 globalMotionParameters,
                 firstScratch);
 
-            Av1InterPredictor.PredictWarpedCompoundScalar(
+            Av1WarpedInterPredictor.PredictWarpedCompoundScalar(
                 secondSource,
                 secondStride,
                 secondOrigin,
@@ -739,7 +739,7 @@ public class Av1CompoundBlockDecoderTests
                 out Point secondOrigin);
 
             int bitDepthValue = bitDepth.GetBitCount();
-            Av1InterPredictor.PredictWarpedScalar(
+            Av1WarpedInterPredictor.PredictWarpedScalar(
                 firstSource,
                 firstStride,
                 firstOrigin,
@@ -756,7 +756,7 @@ public class Av1CompoundBlockDecoderTests
                 globalMotionParameters,
                 firstScratch);
 
-            Av1InterPredictor.PredictWarpedScalar(
+            Av1WarpedInterPredictor.PredictWarpedScalar(
                 secondSource,
                 secondStride,
                 secondOrigin,

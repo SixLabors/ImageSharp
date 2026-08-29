@@ -1390,7 +1390,7 @@ internal class Av1PredictionDecoder
                 Vector128<byte> interpolated = InterpolateEightBytes(ref inputBase, i);
                 Vector128<byte> originals = Vector128.LoadUnsafe(ref inputBase, (nuint)(i + 2));
                 Vector128<byte> interleaved = Vector128_.UnpackLow(interpolated, originals);
-                Unsafe.As<byte, ulong>(ref Unsafe.Add(ref bufferBase, (2 * i) - 1)) = interleaved.AsUInt64().GetElement(0);
+                Unsafe.As<byte, ulong>(ref Unsafe.Add(ref bufferBase, (2 * i) - 1)) = interleaved.AsUInt64().ToScalar();
                 i += 4;
             }
         }
@@ -1610,7 +1610,7 @@ internal class Av1PredictionDecoder
                         Vector128<ushort> source1 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 2)));
                         Vector128<ushort> source2 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 3)));
                         Vector128<byte> result = Vector128.Narrow(FilterEdgeStrength1(source0, source1, source2), Vector128<ushort>.Zero);
-                        Unsafe.As<byte, ulong>(ref Unsafe.Add(ref buffer, processed + 1)) = result.AsUInt64().GetElement(0);
+                        Unsafe.As<byte, ulong>(ref Unsafe.Add(ref buffer, processed + 1)) = result.AsUInt64().ToScalar();
                     }
 
                     break;
@@ -1621,7 +1621,7 @@ internal class Av1PredictionDecoder
                         Vector128<ushort> source1 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 2)));
                         Vector128<ushort> source2 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 3)));
                         Vector128<byte> result = Vector128.Narrow(FilterEdgeStrength2(source0, source1, source2), Vector128<ushort>.Zero);
-                        Unsafe.As<byte, ulong>(ref Unsafe.Add(ref buffer, processed + 1)) = result.AsUInt64().GetElement(0);
+                        Unsafe.As<byte, ulong>(ref Unsafe.Add(ref buffer, processed + 1)) = result.AsUInt64().ToScalar();
                     }
 
                     break;
@@ -1634,7 +1634,7 @@ internal class Av1PredictionDecoder
                         Vector128<ushort> source3 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 3)));
                         Vector128<ushort> source4 = WidenLower(Vector128.LoadUnsafe(ref edge, (nuint)(processed + 4)));
                         Vector128<byte> result = Vector128.Narrow(FilterEdgeStrength3(source0, source1, source2, source3, source4), Vector128<ushort>.Zero);
-                        Unsafe.As<byte, ulong>(ref Unsafe.Add(ref buffer, processed + 1)) = result.AsUInt64().GetElement(0);
+                        Unsafe.As<byte, ulong>(ref Unsafe.Add(ref buffer, processed + 1)) = result.AsUInt64().ToScalar();
                     }
 
                     break;

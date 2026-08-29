@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.Intrinsics;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Components;
 
 /// <content>

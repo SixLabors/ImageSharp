@@ -42,15 +42,15 @@ internal static partial class Av1IntraBlockCopyPredictor
         }
         else if (halfX && halfY)
         {
-            Predict<BilinearOperator>(source, sourceStride, destination, destinationStride, width, height);
+            Av1IntraBlockCopyBilinearPredictor.Predict(source, sourceStride, destination, destinationStride, width, height);
         }
         else if (halfX)
         {
-            Predict<HorizontalOperator>(source, sourceStride, destination, destinationStride, width, height);
+            Av1IntraBlockCopyHorizontalPredictor.Predict(source, sourceStride, destination, destinationStride, width, height);
         }
         else
         {
-            Predict<VerticalOperator>(source, sourceStride, destination, destinationStride, width, height);
+            Av1IntraBlockCopyVerticalPredictor.Predict(source, sourceStride, destination, destinationStride, width, height);
         }
     }
 
@@ -81,15 +81,15 @@ internal static partial class Av1IntraBlockCopyPredictor
         }
         else if (halfX && halfY)
         {
-            Predict<BilinearOperator>(source, sourceStride, destination, destinationStride, width, height);
+            Av1IntraBlockCopyBilinearPredictor.Predict(source, sourceStride, destination, destinationStride, width, height);
         }
         else if (halfX)
         {
-            Predict<HorizontalOperator>(source, sourceStride, destination, destinationStride, width, height);
+            Av1IntraBlockCopyHorizontalPredictor.Predict(source, sourceStride, destination, destinationStride, width, height);
         }
         else
         {
-            Predict<VerticalOperator>(source, sourceStride, destination, destinationStride, width, height);
+            Av1IntraBlockCopyVerticalPredictor.Predict(source, sourceStride, destination, destinationStride, width, height);
         }
     }
 
@@ -120,15 +120,15 @@ internal static partial class Av1IntraBlockCopyPredictor
         }
         else if (halfX && halfY)
         {
-            PredictScalar<BilinearOperator>(source, sourceStride, destination, destinationStride, width, height);
+            Av1IntraBlockCopyBilinearPredictor.PredictScalar(source, sourceStride, destination, destinationStride, width, height);
         }
         else if (halfX)
         {
-            PredictScalar<HorizontalOperator>(source, sourceStride, destination, destinationStride, width, height);
+            Av1IntraBlockCopyHorizontalPredictor.PredictScalar(source, sourceStride, destination, destinationStride, width, height);
         }
         else
         {
-            PredictScalar<VerticalOperator>(source, sourceStride, destination, destinationStride, width, height);
+            Av1IntraBlockCopyVerticalPredictor.PredictScalar(source, sourceStride, destination, destinationStride, width, height);
         }
     }
 
@@ -159,15 +159,15 @@ internal static partial class Av1IntraBlockCopyPredictor
         }
         else if (halfX && halfY)
         {
-            PredictScalar<BilinearOperator>(source, sourceStride, destination, destinationStride, width, height);
+            Av1IntraBlockCopyBilinearPredictor.PredictScalar(source, sourceStride, destination, destinationStride, width, height);
         }
         else if (halfX)
         {
-            PredictScalar<HorizontalOperator>(source, sourceStride, destination, destinationStride, width, height);
+            Av1IntraBlockCopyHorizontalPredictor.PredictScalar(source, sourceStride, destination, destinationStride, width, height);
         }
         else
         {
-            PredictScalar<VerticalOperator>(source, sourceStride, destination, destinationStride, width, height);
+            Av1IntraBlockCopyVerticalPredictor.PredictScalar(source, sourceStride, destination, destinationStride, width, height);
         }
     }
 

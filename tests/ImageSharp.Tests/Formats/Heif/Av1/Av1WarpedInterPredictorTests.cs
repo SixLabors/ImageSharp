@@ -59,11 +59,11 @@ public class Av1WarpedInterPredictorTests
             byte[] actual = new byte[destinationStride * height];
             Array.Fill(expected, (byte)0xD3);
             Array.Fill(actual, (byte)0xD3);
-            short[] expectedScratch = new short[Av1InterPredictor.WarpedScratchLength];
-            short[] actualScratch = new short[Av1InterPredictor.WarpedScratchLength];
+            short[] expectedScratch = new short[Av1WarpedInterPredictor.WarpedScratchLength];
+            short[] actualScratch = new short[Av1WarpedInterPredictor.WarpedScratchLength];
             Point destinationPosition = subsampling == 0 ? new Point(32, 24) : new Point(16, 12);
 
-            Av1InterPredictor.PredictWarpedScalar(
+            Av1WarpedInterPredictor.PredictWarpedScalar(
                 source,
                 sourceStride,
                 new Point(padding, padding),
@@ -79,7 +79,7 @@ public class Av1WarpedInterPredictorTests
                 parameters,
                 expectedScratch);
 
-            Av1InterPredictor.PredictWarped(
+            Av1WarpedInterPredictor.PredictWarped(
                 source,
                 sourceStride,
                 new Point(padding, padding),
@@ -131,11 +131,11 @@ public class Av1WarpedInterPredictorTests
                 ushort[] actual = new ushort[destinationStride * height];
                 Array.Fill(expected, (ushort)0xDEAD);
                 Array.Fill(actual, (ushort)0xDEAD);
-                short[] expectedScratch = new short[Av1InterPredictor.WarpedScratchLength];
-                short[] actualScratch = new short[Av1InterPredictor.WarpedScratchLength];
+                short[] expectedScratch = new short[Av1WarpedInterPredictor.WarpedScratchLength];
+                short[] actualScratch = new short[Av1WarpedInterPredictor.WarpedScratchLength];
                 Point destinationPosition = subsampling == 0 ? new Point(32, 24) : new Point(16, 12);
 
-                Av1InterPredictor.PredictWarpedScalar(
+                Av1WarpedInterPredictor.PredictWarpedScalar(
                     source,
                     sourceStride,
                     new Point(padding, padding),
@@ -152,7 +152,7 @@ public class Av1WarpedInterPredictorTests
                     parameters,
                     expectedScratch);
 
-                Av1InterPredictor.PredictWarped(
+                Av1WarpedInterPredictor.PredictWarped(
                     source,
                     sourceStride,
                     new Point(padding, padding),

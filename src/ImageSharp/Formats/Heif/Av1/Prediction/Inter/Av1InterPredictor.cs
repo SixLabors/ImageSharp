@@ -25,12 +25,12 @@ internal static partial class Av1InterPredictor
     /// <summary>
     /// The number of fractional bits in each interpolation coefficient.
     /// </summary>
-    private const int FilterBits = 7;
+    internal const int FilterBits = 7;
 
     /// <summary>
     /// The normal first-round shift used by libaom single-reference convolution.
     /// </summary>
-    private const int Round0Bits = 3;
+    internal const int Round0Bits = 3;
 
     /// <summary>
     /// The maximum number of source rows added by an eight-tap vertical filter.
@@ -40,7 +40,7 @@ internal static partial class Av1InterPredictor
     /// <summary>
     /// The minimum scratch stride that lets a 128-bit byte kernel handle four- and eight-sample blocks.
     /// </summary>
-    private const int MinimumScratchStride = 16;
+    internal const int MinimumScratchStride = 16;
 
     /// <summary>
     /// Gets the maximum number of signed 16-bit elements required for one two-dimensional prediction block.

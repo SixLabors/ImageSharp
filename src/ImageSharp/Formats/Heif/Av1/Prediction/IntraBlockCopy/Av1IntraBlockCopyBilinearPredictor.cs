@@ -8,134 +8,57 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.IntraBlockCopy;
 
 /// <content>
-/// Defines the scalar and SIMD contract for closed intra-block-copy filter operators, and provides their shared
-/// width-progressive SIMD traversal.
+/// Provides the family-owned scalar and width-progressive SIMD traversal for bilinear intra-block-copy prediction.
 /// </content>
-internal static partial class Av1IntraBlockCopyPredictor
+internal static partial class Av1IntraBlockCopyBilinearPredictor
 {
     /// <summary>
-    /// Defines lane-wise arithmetic for one intra-block-copy filter phase.
+    /// Reconstructs an 8-bit filtered intra-block-copy prediction.
     /// </summary>
-    /// <remarks>
-    /// Every SIMD lane corresponds to one output column. The generic traversal supplies the integer source sample and
-    /// its right, lower, and lower-right neighbors; closed operator types allow the JIT to remove unused source loads.
-    /// </remarks>
-    private interface IAv1IntraBlockCopyOperator
-    {
-        /// <summary>
-        /// Gets a value indicating whether the operator consumes the source sample to the right.
-        /// </summary>
-        public static abstract bool UsesRight { get; }
+    public static void Predict(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        Span<byte> destination,
+        int destinationStride,
+        int width,
+        int height)
+        => Predict<IntraBlockCopyBilinearOperator>(source, sourceStride, destination, destinationStride, width, height);
 
-        /// <summary>
-        /// Gets a value indicating whether the operator consumes the source sample on the following row.
-        /// </summary>
-        public static abstract bool UsesBottom { get; }
+    /// <summary>
+    /// Reconstructs a high-bit-depth filtered intra-block-copy prediction.
+    /// </summary>
+    public static void Predict(
+        ReadOnlySpan<short> source,
+        int sourceStride,
+        Span<short> destination,
+        int destinationStride,
+        int width,
+        int height)
+        => Predict<IntraBlockCopyBilinearOperator>(source, sourceStride, destination, destinationStride, width, height);
 
-        /// <summary>
-        /// Filters one 8-bit sample.
-        /// </summary>
-        /// <param name="topLeft">The integer-position source sample.</param>
-        /// <param name="topRight">The source sample one column to the right.</param>
-        /// <param name="bottomLeft">The source sample one row below.</param>
-        /// <param name="bottomRight">The source sample one row below and one column to the right.</param>
-        /// <returns>The filtered 8-bit sample.</returns>
-        public static abstract byte Filter(byte topLeft, byte topRight, byte bottomLeft, byte bottomRight);
+    /// <summary>
+    /// Reconstructs an 8-bit filtered intra-block-copy prediction without explicit hardware intrinsics.
+    /// </summary>
+    public static void PredictScalar(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        Span<byte> destination,
+        int destinationStride,
+        int width,
+        int height)
+        => PredictScalar<IntraBlockCopyBilinearOperator>(source, sourceStride, destination, destinationStride, width, height);
 
-        /// <summary>
-        /// Filters sixteen 8-bit samples in parallel.
-        /// </summary>
-        /// <param name="topLeft">The integer-position source samples.</param>
-        /// <param name="topRight">The source samples one column to the right.</param>
-        /// <param name="bottomLeft">The source samples one row below.</param>
-        /// <param name="bottomRight">The source samples one row below and one column to the right.</param>
-        /// <returns>The filtered 8-bit samples.</returns>
-        public static abstract Vector128<byte> Filter(
-            Vector128<byte> topLeft,
-            Vector128<byte> topRight,
-            Vector128<byte> bottomLeft,
-            Vector128<byte> bottomRight);
-
-        /// <summary>
-        /// Filters thirty-two 8-bit samples in parallel.
-        /// </summary>
-        /// <param name="topLeft">The integer-position source samples.</param>
-        /// <param name="topRight">The source samples one column to the right.</param>
-        /// <param name="bottomLeft">The source samples one row below.</param>
-        /// <param name="bottomRight">The source samples one row below and one column to the right.</param>
-        /// <returns>The filtered 8-bit samples.</returns>
-        public static abstract Vector256<byte> Filter(
-            Vector256<byte> topLeft,
-            Vector256<byte> topRight,
-            Vector256<byte> bottomLeft,
-            Vector256<byte> bottomRight);
-
-        /// <summary>
-        /// Filters sixty-four 8-bit samples in parallel.
-        /// </summary>
-        /// <param name="topLeft">The integer-position source samples.</param>
-        /// <param name="topRight">The source samples one column to the right.</param>
-        /// <param name="bottomLeft">The source samples one row below.</param>
-        /// <param name="bottomRight">The source samples one row below and one column to the right.</param>
-        /// <returns>The filtered 8-bit samples.</returns>
-        public static abstract Vector512<byte> Filter(
-            Vector512<byte> topLeft,
-            Vector512<byte> topRight,
-            Vector512<byte> bottomLeft,
-            Vector512<byte> bottomRight);
-
-        /// <summary>
-        /// Filters one high-bit-depth sample.
-        /// </summary>
-        /// <param name="topLeft">The integer-position source sample.</param>
-        /// <param name="topRight">The source sample one column to the right.</param>
-        /// <param name="bottomLeft">The source sample one row below.</param>
-        /// <param name="bottomRight">The source sample one row below and one column to the right.</param>
-        /// <returns>The filtered high-bit-depth sample.</returns>
-        public static abstract short Filter(short topLeft, short topRight, short bottomLeft, short bottomRight);
-
-        /// <summary>
-        /// Filters eight high-bit-depth samples in parallel.
-        /// </summary>
-        /// <param name="topLeft">The integer-position source samples.</param>
-        /// <param name="topRight">The source samples one column to the right.</param>
-        /// <param name="bottomLeft">The source samples one row below.</param>
-        /// <param name="bottomRight">The source samples one row below and one column to the right.</param>
-        /// <returns>The filtered high-bit-depth samples.</returns>
-        public static abstract Vector128<short> Filter(
-            Vector128<short> topLeft,
-            Vector128<short> topRight,
-            Vector128<short> bottomLeft,
-            Vector128<short> bottomRight);
-
-        /// <summary>
-        /// Filters sixteen high-bit-depth samples in parallel.
-        /// </summary>
-        /// <param name="topLeft">The integer-position source samples.</param>
-        /// <param name="topRight">The source samples one column to the right.</param>
-        /// <param name="bottomLeft">The source samples one row below.</param>
-        /// <param name="bottomRight">The source samples one row below and one column to the right.</param>
-        /// <returns>The filtered high-bit-depth samples.</returns>
-        public static abstract Vector256<short> Filter(
-            Vector256<short> topLeft,
-            Vector256<short> topRight,
-            Vector256<short> bottomLeft,
-            Vector256<short> bottomRight);
-
-        /// <summary>
-        /// Filters thirty-two high-bit-depth samples in parallel.
-        /// </summary>
-        /// <param name="topLeft">The integer-position source samples.</param>
-        /// <param name="topRight">The source samples one column to the right.</param>
-        /// <param name="bottomLeft">The source samples one row below.</param>
-        /// <param name="bottomRight">The source samples one row below and one column to the right.</param>
-        /// <returns>The filtered high-bit-depth samples.</returns>
-        public static abstract Vector512<short> Filter(
-            Vector512<short> topLeft,
-            Vector512<short> topRight,
-            Vector512<short> bottomLeft,
-            Vector512<short> bottomRight);
-    }
+    /// <summary>
+    /// Reconstructs a high-bit-depth filtered intra-block-copy prediction without explicit hardware intrinsics.
+    /// </summary>
+    public static void PredictScalar(
+        ReadOnlySpan<short> source,
+        int sourceStride,
+        Span<short> destination,
+        int destinationStride,
+        int width,
+        int height)
+        => PredictScalar<IntraBlockCopyBilinearOperator>(source, sourceStride, destination, destinationStride, width, height);
 
     /// <summary>
     /// Applies one closed interpolation operator to an 8-bit source block.
@@ -148,7 +71,7 @@ internal static partial class Av1IntraBlockCopyPredictor
         int destinationStride,
         int width,
         int height)
-        where TOperator : struct, IAv1IntraBlockCopyOperator
+        where TOperator : struct, IAv1IntraBlockCopyBilinearOperator
     {
         ref byte sourceBase = ref MemoryMarshal.GetReference(source);
         ref byte destinationBase = ref MemoryMarshal.GetReference(destination);
@@ -163,11 +86,9 @@ internal static partial class Av1IntraBlockCopyPredictor
                 ref byte sourceRow = ref Unsafe.Add(ref sourceBase, row * sourceStride);
                 ref byte destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
                 Vector128<byte> topLeft = Vector128.LoadUnsafe(ref sourceRow);
-                Vector128<byte> topRight = TOperator.UsesRight ? Vector128.LoadUnsafe(ref sourceRow, 1) : default;
-                Vector128<byte> bottomLeft = TOperator.UsesBottom ? Vector128.LoadUnsafe(ref sourceRow, (nuint)sourceStride) : default;
-                Vector128<byte> bottomRight = TOperator.UsesRight && TOperator.UsesBottom
-                    ? Vector128.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + 1))
-                    : default;
+                Vector128<byte> topRight = Vector128.LoadUnsafe(ref sourceRow, 1);
+                Vector128<byte> bottomLeft = Vector128.LoadUnsafe(ref sourceRow, (nuint)sourceStride);
+                Vector128<byte> bottomRight = Vector128.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + 1));
 
                 Vector128<byte> prediction = TOperator.Filter(topLeft, topRight, bottomLeft, bottomRight);
                 if (width == 8)
@@ -200,13 +121,9 @@ internal static partial class Av1IntraBlockCopyPredictor
                     for (int column = 0; column < vectorizedColumns; column += Vector512<byte>.Count)
                     {
                         Vector512<byte> topLeft = Vector512.LoadUnsafe(ref sourceRow, (nuint)column);
-                        Vector512<byte> topRight = TOperator.UsesRight ? Vector512.LoadUnsafe(ref sourceRow, (nuint)(column + 1)) : default;
-                        Vector512<byte> bottomLeft = TOperator.UsesBottom
-                            ? Vector512.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column))
-                            : default;
-                        Vector512<byte> bottomRight = TOperator.UsesRight && TOperator.UsesBottom
-                            ? Vector512.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column + 1))
-                            : default;
+                        Vector512<byte> topRight = Vector512.LoadUnsafe(ref sourceRow, (nuint)(column + 1));
+                        Vector512<byte> bottomLeft = Vector512.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column));
+                        Vector512<byte> bottomRight = Vector512.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column + 1));
 
                         TOperator.Filter(topLeft, topRight, bottomLeft, bottomRight).StoreUnsafe(ref destinationRow, (nuint)column);
                     }
@@ -230,13 +147,9 @@ internal static partial class Av1IntraBlockCopyPredictor
                 for (int column = processedColumns; column < endColumn; column += Vector256<byte>.Count)
                 {
                     Vector256<byte> topLeft = Vector256.LoadUnsafe(ref sourceRow, (nuint)column);
-                    Vector256<byte> topRight = TOperator.UsesRight ? Vector256.LoadUnsafe(ref sourceRow, (nuint)(column + 1)) : default;
-                    Vector256<byte> bottomLeft = TOperator.UsesBottom
-                        ? Vector256.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column))
-                        : default;
-                    Vector256<byte> bottomRight = TOperator.UsesRight && TOperator.UsesBottom
-                        ? Vector256.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column + 1))
-                        : default;
+                    Vector256<byte> topRight = Vector256.LoadUnsafe(ref sourceRow, (nuint)(column + 1));
+                    Vector256<byte> bottomLeft = Vector256.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column));
+                    Vector256<byte> bottomRight = Vector256.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column + 1));
 
                     TOperator.Filter(topLeft, topRight, bottomLeft, bottomRight).StoreUnsafe(ref destinationRow, (nuint)column);
                 }
@@ -259,13 +172,9 @@ internal static partial class Av1IntraBlockCopyPredictor
                 for (int column = processedColumns; column < endColumn; column += Vector128<byte>.Count)
                 {
                     Vector128<byte> topLeft = Vector128.LoadUnsafe(ref sourceRow, (nuint)column);
-                    Vector128<byte> topRight = TOperator.UsesRight ? Vector128.LoadUnsafe(ref sourceRow, (nuint)(column + 1)) : default;
-                    Vector128<byte> bottomLeft = TOperator.UsesBottom
-                        ? Vector128.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column))
-                        : default;
-                    Vector128<byte> bottomRight = TOperator.UsesRight && TOperator.UsesBottom
-                        ? Vector128.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column + 1))
-                        : default;
+                    Vector128<byte> topRight = Vector128.LoadUnsafe(ref sourceRow, (nuint)(column + 1));
+                    Vector128<byte> bottomLeft = Vector128.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column));
+                    Vector128<byte> bottomRight = Vector128.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column + 1));
 
                     TOperator.Filter(topLeft, topRight, bottomLeft, bottomRight).StoreUnsafe(ref destinationRow, (nuint)column);
                 }
@@ -284,11 +193,9 @@ internal static partial class Av1IntraBlockCopyPredictor
             for (int column = processedColumns; column < width; column++)
             {
                 byte topLeft = Unsafe.Add(ref sourceRow, column);
-                byte topRight = TOperator.UsesRight ? Unsafe.Add(ref sourceRow, column + 1) : default;
-                byte bottomLeft = TOperator.UsesBottom ? Unsafe.Add(ref sourceRow, sourceStride + column) : default;
-                byte bottomRight = TOperator.UsesRight && TOperator.UsesBottom
-                    ? Unsafe.Add(ref sourceRow, sourceStride + column + 1)
-                    : default;
+                byte topRight = Unsafe.Add(ref sourceRow, column + 1);
+                byte bottomLeft = Unsafe.Add(ref sourceRow, sourceStride + column);
+                byte bottomRight = Unsafe.Add(ref sourceRow, sourceStride + column + 1);
 
                 Unsafe.Add(ref destinationRow, column) = TOperator.Filter(topLeft, topRight, bottomLeft, bottomRight);
             }
@@ -306,7 +213,7 @@ internal static partial class Av1IntraBlockCopyPredictor
         int destinationStride,
         int width,
         int height)
-        where TOperator : struct, IAv1IntraBlockCopyOperator
+        where TOperator : struct, IAv1IntraBlockCopyBilinearOperator
     {
         ref short sourceBase = ref MemoryMarshal.GetReference(source);
         ref short destinationBase = ref MemoryMarshal.GetReference(destination);
@@ -321,11 +228,9 @@ internal static partial class Av1IntraBlockCopyPredictor
                 ref short sourceRow = ref Unsafe.Add(ref sourceBase, row * sourceStride);
                 ref short destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
                 Vector128<short> topLeft = Vector128.LoadUnsafe(ref sourceRow);
-                Vector128<short> topRight = TOperator.UsesRight ? Vector128.LoadUnsafe(ref sourceRow, 1) : default;
-                Vector128<short> bottomLeft = TOperator.UsesBottom ? Vector128.LoadUnsafe(ref sourceRow, (nuint)sourceStride) : default;
-                Vector128<short> bottomRight = TOperator.UsesRight && TOperator.UsesBottom
-                    ? Vector128.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + 1))
-                    : default;
+                Vector128<short> topRight = Vector128.LoadUnsafe(ref sourceRow, 1);
+                Vector128<short> bottomLeft = Vector128.LoadUnsafe(ref sourceRow, (nuint)sourceStride);
+                Vector128<short> bottomRight = Vector128.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + 1));
 
                 TOperator.Filter(topLeft, topRight, bottomLeft, bottomRight).GetLower().StoreUnsafe(ref destinationRow);
             }
@@ -350,13 +255,9 @@ internal static partial class Av1IntraBlockCopyPredictor
                     for (int column = 0; column < vectorizedColumns; column += Vector512<short>.Count)
                     {
                         Vector512<short> topLeft = Vector512.LoadUnsafe(ref sourceRow, (nuint)column);
-                        Vector512<short> topRight = TOperator.UsesRight ? Vector512.LoadUnsafe(ref sourceRow, (nuint)(column + 1)) : default;
-                        Vector512<short> bottomLeft = TOperator.UsesBottom
-                            ? Vector512.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column))
-                            : default;
-                        Vector512<short> bottomRight = TOperator.UsesRight && TOperator.UsesBottom
-                            ? Vector512.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column + 1))
-                            : default;
+                        Vector512<short> topRight = Vector512.LoadUnsafe(ref sourceRow, (nuint)(column + 1));
+                        Vector512<short> bottomLeft = Vector512.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column));
+                        Vector512<short> bottomRight = Vector512.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column + 1));
 
                         TOperator.Filter(topLeft, topRight, bottomLeft, bottomRight).StoreUnsafe(ref destinationRow, (nuint)column);
                     }
@@ -380,13 +281,9 @@ internal static partial class Av1IntraBlockCopyPredictor
                 for (int column = processedColumns; column < endColumn; column += Vector256<short>.Count)
                 {
                     Vector256<short> topLeft = Vector256.LoadUnsafe(ref sourceRow, (nuint)column);
-                    Vector256<short> topRight = TOperator.UsesRight ? Vector256.LoadUnsafe(ref sourceRow, (nuint)(column + 1)) : default;
-                    Vector256<short> bottomLeft = TOperator.UsesBottom
-                        ? Vector256.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column))
-                        : default;
-                    Vector256<short> bottomRight = TOperator.UsesRight && TOperator.UsesBottom
-                        ? Vector256.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column + 1))
-                        : default;
+                    Vector256<short> topRight = Vector256.LoadUnsafe(ref sourceRow, (nuint)(column + 1));
+                    Vector256<short> bottomLeft = Vector256.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column));
+                    Vector256<short> bottomRight = Vector256.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column + 1));
 
                     TOperator.Filter(topLeft, topRight, bottomLeft, bottomRight).StoreUnsafe(ref destinationRow, (nuint)column);
                 }
@@ -409,13 +306,9 @@ internal static partial class Av1IntraBlockCopyPredictor
                 for (int column = processedColumns; column < endColumn; column += Vector128<short>.Count)
                 {
                     Vector128<short> topLeft = Vector128.LoadUnsafe(ref sourceRow, (nuint)column);
-                    Vector128<short> topRight = TOperator.UsesRight ? Vector128.LoadUnsafe(ref sourceRow, (nuint)(column + 1)) : default;
-                    Vector128<short> bottomLeft = TOperator.UsesBottom
-                        ? Vector128.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column))
-                        : default;
-                    Vector128<short> bottomRight = TOperator.UsesRight && TOperator.UsesBottom
-                        ? Vector128.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column + 1))
-                        : default;
+                    Vector128<short> topRight = Vector128.LoadUnsafe(ref sourceRow, (nuint)(column + 1));
+                    Vector128<short> bottomLeft = Vector128.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column));
+                    Vector128<short> bottomRight = Vector128.LoadUnsafe(ref sourceRow, (nuint)(sourceStride + column + 1));
 
                     TOperator.Filter(topLeft, topRight, bottomLeft, bottomRight).StoreUnsafe(ref destinationRow, (nuint)column);
                 }
@@ -432,11 +325,9 @@ internal static partial class Av1IntraBlockCopyPredictor
             for (int column = processedColumns; column < width; column++)
             {
                 short topLeft = Unsafe.Add(ref sourceRow, column);
-                short topRight = TOperator.UsesRight ? Unsafe.Add(ref sourceRow, column + 1) : default;
-                short bottomLeft = TOperator.UsesBottom ? Unsafe.Add(ref sourceRow, sourceStride + column) : default;
-                short bottomRight = TOperator.UsesRight && TOperator.UsesBottom
-                    ? Unsafe.Add(ref sourceRow, sourceStride + column + 1)
-                    : default;
+                short topRight = Unsafe.Add(ref sourceRow, column + 1);
+                short bottomLeft = Unsafe.Add(ref sourceRow, sourceStride + column);
+                short bottomRight = Unsafe.Add(ref sourceRow, sourceStride + column + 1);
 
                 Unsafe.Add(ref destinationRow, column) = TOperator.Filter(topLeft, topRight, bottomLeft, bottomRight);
             }
@@ -454,7 +345,7 @@ internal static partial class Av1IntraBlockCopyPredictor
         int destinationStride,
         int width,
         int height)
-        where TOperator : struct, IAv1IntraBlockCopyOperator
+        where TOperator : struct, IAv1IntraBlockCopyBilinearOperator
     {
         for (int row = 0; row < height; row++)
         {
@@ -464,9 +355,9 @@ internal static partial class Av1IntraBlockCopyPredictor
             for (int column = 0; column < width; column++)
             {
                 byte topLeft = source[sourceRow + column];
-                byte topRight = TOperator.UsesRight ? source[sourceRow + column + 1] : default;
-                byte bottomLeft = TOperator.UsesBottom ? source[sourceRow + sourceStride + column] : default;
-                byte bottomRight = TOperator.UsesRight && TOperator.UsesBottom ? source[sourceRow + sourceStride + column + 1] : default;
+                byte topRight = source[sourceRow + column + 1];
+                byte bottomLeft = source[sourceRow + sourceStride + column];
+                byte bottomRight = source[sourceRow + sourceStride + column + 1];
                 destination[destinationRow + column] = TOperator.Filter(topLeft, topRight, bottomLeft, bottomRight);
             }
         }
@@ -483,7 +374,7 @@ internal static partial class Av1IntraBlockCopyPredictor
         int destinationStride,
         int width,
         int height)
-        where TOperator : struct, IAv1IntraBlockCopyOperator
+        where TOperator : struct, IAv1IntraBlockCopyBilinearOperator
     {
         for (int row = 0; row < height; row++)
         {
@@ -493,9 +384,9 @@ internal static partial class Av1IntraBlockCopyPredictor
             for (int column = 0; column < width; column++)
             {
                 short topLeft = source[sourceRow + column];
-                short topRight = TOperator.UsesRight ? source[sourceRow + column + 1] : default;
-                short bottomLeft = TOperator.UsesBottom ? source[sourceRow + sourceStride + column] : default;
-                short bottomRight = TOperator.UsesRight && TOperator.UsesBottom ? source[sourceRow + sourceStride + column + 1] : default;
+                short topRight = source[sourceRow + column + 1];
+                short bottomLeft = source[sourceRow + sourceStride + column];
+                short bottomRight = source[sourceRow + sourceStride + column + 1];
                 destination[destinationRow + column] = TOperator.Filter(topLeft, topRight, bottomLeft, bottomRight);
             }
         }

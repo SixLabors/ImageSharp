@@ -884,5 +884,4 @@ internal static class HeifSampleConversion
         Unsafe.As<Rgba64, Vector128<uint>>(ref destination) = lower;
         Unsafe.As<Rgba64, Vector128<uint>>(ref Unsafe.Add(ref destination, 2)) = upper;
     }
-
 }

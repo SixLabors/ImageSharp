@@ -5,8 +5,121 @@ using System.Runtime.Intrinsics;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.IntraBlockCopy;
 
-internal static partial class Av1IntraBlockCopyPredictor
+/// <content>
+/// Defines the closed bilinear intra-block-copy interpolation operator.
+/// </content>
+internal static partial class Av1IntraBlockCopyBilinearPredictor
 {
+    /// <summary>
+    /// Defines bilinear intra-block-copy filtering for scalar and SIMD lane groups.
+    /// </summary>
+    private interface IAv1IntraBlockCopyBilinearOperator
+    {
+        /// <summary>
+        /// Filters one 8-bit sample.
+        /// </summary>
+        /// <param name="topLeft">The integer-position source sample.</param>
+        /// <param name="topRight">The source sample one column to the right.</param>
+        /// <param name="bottomLeft">The source sample one row below.</param>
+        /// <param name="bottomRight">The source sample one row below and one column to the right.</param>
+        /// <returns>The filtered 8-bit sample.</returns>
+        public static abstract byte Filter(byte topLeft, byte topRight, byte bottomLeft, byte bottomRight);
+
+        /// <summary>
+        /// Filters sixteen 8-bit samples in parallel.
+        /// </summary>
+        /// <param name="topLeft">The integer-position source samples.</param>
+        /// <param name="topRight">The source samples one column to the right.</param>
+        /// <param name="bottomLeft">The source samples one row below.</param>
+        /// <param name="bottomRight">The source samples one row below and one column to the right.</param>
+        /// <returns>The filtered 8-bit samples.</returns>
+        public static abstract Vector128<byte> Filter(
+            Vector128<byte> topLeft,
+            Vector128<byte> topRight,
+            Vector128<byte> bottomLeft,
+            Vector128<byte> bottomRight);
+
+        /// <summary>
+        /// Filters thirty-two 8-bit samples in parallel.
+        /// </summary>
+        /// <param name="topLeft">The integer-position source samples.</param>
+        /// <param name="topRight">The source samples one column to the right.</param>
+        /// <param name="bottomLeft">The source samples one row below.</param>
+        /// <param name="bottomRight">The source samples one row below and one column to the right.</param>
+        /// <returns>The filtered 8-bit samples.</returns>
+        public static abstract Vector256<byte> Filter(
+            Vector256<byte> topLeft,
+            Vector256<byte> topRight,
+            Vector256<byte> bottomLeft,
+            Vector256<byte> bottomRight);
+
+        /// <summary>
+        /// Filters sixty-four 8-bit samples in parallel.
+        /// </summary>
+        /// <param name="topLeft">The integer-position source samples.</param>
+        /// <param name="topRight">The source samples one column to the right.</param>
+        /// <param name="bottomLeft">The source samples one row below.</param>
+        /// <param name="bottomRight">The source samples one row below and one column to the right.</param>
+        /// <returns>The filtered 8-bit samples.</returns>
+        public static abstract Vector512<byte> Filter(
+            Vector512<byte> topLeft,
+            Vector512<byte> topRight,
+            Vector512<byte> bottomLeft,
+            Vector512<byte> bottomRight);
+
+        /// <summary>
+        /// Filters one high-bit-depth sample.
+        /// </summary>
+        /// <param name="topLeft">The integer-position source sample.</param>
+        /// <param name="topRight">The source sample one column to the right.</param>
+        /// <param name="bottomLeft">The source sample one row below.</param>
+        /// <param name="bottomRight">The source sample one row below and one column to the right.</param>
+        /// <returns>The filtered high-bit-depth sample.</returns>
+        public static abstract short Filter(short topLeft, short topRight, short bottomLeft, short bottomRight);
+
+        /// <summary>
+        /// Filters eight high-bit-depth samples in parallel.
+        /// </summary>
+        /// <param name="topLeft">The integer-position source samples.</param>
+        /// <param name="topRight">The source samples one column to the right.</param>
+        /// <param name="bottomLeft">The source samples one row below.</param>
+        /// <param name="bottomRight">The source samples one row below and one column to the right.</param>
+        /// <returns>The filtered high-bit-depth samples.</returns>
+        public static abstract Vector128<short> Filter(
+            Vector128<short> topLeft,
+            Vector128<short> topRight,
+            Vector128<short> bottomLeft,
+            Vector128<short> bottomRight);
+
+        /// <summary>
+        /// Filters sixteen high-bit-depth samples in parallel.
+        /// </summary>
+        /// <param name="topLeft">The integer-position source samples.</param>
+        /// <param name="topRight">The source samples one column to the right.</param>
+        /// <param name="bottomLeft">The source samples one row below.</param>
+        /// <param name="bottomRight">The source samples one row below and one column to the right.</param>
+        /// <returns>The filtered high-bit-depth samples.</returns>
+        public static abstract Vector256<short> Filter(
+            Vector256<short> topLeft,
+            Vector256<short> topRight,
+            Vector256<short> bottomLeft,
+            Vector256<short> bottomRight);
+
+        /// <summary>
+        /// Filters thirty-two high-bit-depth samples in parallel.
+        /// </summary>
+        /// <param name="topLeft">The integer-position source samples.</param>
+        /// <param name="topRight">The source samples one column to the right.</param>
+        /// <param name="bottomLeft">The source samples one row below.</param>
+        /// <param name="bottomRight">The source samples one row below and one column to the right.</param>
+        /// <returns>The filtered high-bit-depth samples.</returns>
+        public static abstract Vector512<short> Filter(
+            Vector512<short> topLeft,
+            Vector512<short> topRight,
+            Vector512<short> bottomLeft,
+            Vector512<short> bottomRight);
+    }
+
     /// <summary>
     /// Applies the separable two-dimensional interpolation required when both source axes have a half-sample phase.
     /// </summary>
@@ -19,14 +132,8 @@ internal static partial class Av1IntraBlockCopyPredictor
     /// unsigned 32-bit halves. Narrowing recombines those halves in source-column order after the rounded result has
     /// returned to the original sample range.
     /// </remarks>
-    private readonly struct BilinearOperator : IAv1IntraBlockCopyOperator
+    private readonly struct IntraBlockCopyBilinearOperator : IAv1IntraBlockCopyBilinearOperator
     {
-        /// <inheritdoc/>
-        public static bool UsesRight => true;
-
-        /// <inheritdoc/>
-        public static bool UsesBottom => true;
-
         /// <inheritdoc/>
         public static byte Filter(byte topLeft, byte topRight, byte bottomLeft, byte bottomRight)
             => (byte)((topLeft + topRight + bottomLeft + bottomRight + 2) >> 2);

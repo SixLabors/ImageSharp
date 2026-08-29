@@ -1388,8 +1388,14 @@ public static class TestImages
         public const string Av1GlobalWarpSequenceAvif = "Heif/Av1/Conformance/libavif-rotating-grid-global-warp.avif";
         public const string Av1GlobalWarpSequenceNativeReference = "Heif/Av1/Conformance/libavif-rotating-grid-global-warp-libaom.y4m";
         public const string Av1GlobalWarpSequencePresentationReference = "Heif/Av1/Conformance/libavif-rotating-grid-global-warp-libavif.png";
+        public const string Av1OfficialAllIntraSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-02-allintra.ivf";
+        public const string Av1OfficialAllIntraSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-02-allintra-libaom.y4m";
+        public const string Av1OfficialCdfUpdateSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-04-cdfupdate.ivf";
+        public const string Av1OfficialCdfUpdateSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-04-cdfupdate-libaom.y4m";
         public const string Av1OfficialMotionVectorSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-05-mv.ivf";
         public const string Av1OfficialMotionVectorSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-05-mv-libaom.y4m";
+        public const string Av1OfficialMotionFieldSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-06-mfmv.ivf";
+        public const string Av1OfficialMotionFieldSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-06-mfmv-libaom.y4m";
         public const string Av1Cdef8BitPayload = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b.bit";
         public const string Av1Cdef8BitReference = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b-libaom.yuv";
         public const string Av1Cdef8BitAvif = "Heif/Av1/Conformance/libavif-cdef-kodim23-8b.avif";

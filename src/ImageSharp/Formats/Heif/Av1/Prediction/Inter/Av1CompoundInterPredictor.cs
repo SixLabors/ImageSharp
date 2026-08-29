@@ -5,241 +5,606 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
+using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1InterPredictor;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 
-/// <summary>
-/// Combines two AV1 inter predictors with equal-weight rounded averaging.
-/// </summary>
+/// <content>
+/// Produces the biased high-precision intermediates required by compound inter prediction.
+/// </content>
 internal static partial class Av1CompoundInterPredictor
 {
     /// <summary>
-    /// Averages an 8-bit predictor into an existing prediction block.
+    /// The second-round shift retained by every compound convolution path.
     /// </summary>
-    /// <param name="destination">The first predictor and combined output.</param>
-    /// <param name="destinationStride">The distance between destination rows in samples.</param>
-    /// <param name="second">The second predictor.</param>
-    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
-    /// <param name="width">The active block width.</param>
-    /// <param name="height">The active block height.</param>
-    public static void Average(
-        Span<byte> destination,
+    internal const int CompoundRound1Bits = 7;
+
+    /// <summary>
+    /// The fixed-point precision used by AV1 distance weights.
+    /// </summary>
+    internal const int DistanceWeightBits = 4;
+
+    /// <summary>
+    /// The fixed-point precision used by AV1 compound masks.
+    /// </summary>
+    internal const int MaskWeightBits = 6;
+
+    /// <summary>
+    /// The inclusive upper bound for an AV1 compound-mask alpha value.
+    /// </summary>
+    internal const int MaximumMaskAlpha = 1 << MaskWeightBits;
+
+    /// <summary>
+    /// Reconstructs one 8-bit translational reference into AV1's unsigned compound intermediate format.
+    /// </summary>
+    public static void PredictCompound(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        int sourceOrigin,
+        Span<ushort> destination,
         int destinationStride,
-        ReadOnlySpan<byte> second,
-        int secondStride,
         int width,
-        int height)
+        int height,
+        Av1InterpolationFilter horizontalFilter,
+        Av1InterpolationFilter verticalFilter,
+        int horizontalPhase,
+        int verticalPhase,
+        Span<short> scratch)
+        => PredictCompound<CompoundPredictionOperator>(
+            source,
+            sourceStride,
+            sourceOrigin,
+            destination,
+            destinationStride,
+            width,
+            height,
+            horizontalFilter,
+            verticalFilter,
+            horizontalPhase,
+            verticalPhase,
+            scratch,
+            useSimd: true);
+
+    /// <summary>
+    /// Executes one closed compound-prediction conversion operator.
+    /// </summary>
+    /// <typeparam name="TOperator">The compound-prediction conversion operator.</typeparam>
+    private static void PredictCompound<TOperator>(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        int sourceOrigin,
+        Span<ushort> destination,
+        int destinationStride,
+        int width,
+        int height,
+        Av1InterpolationFilter horizontalFilter,
+        Av1InterpolationFilter verticalFilter,
+        int horizontalPhase,
+        int verticalPhase,
+        Span<short> scratch,
+        bool useSimd)
+        where TOperator : struct, IAv1CompoundPredictionOperator
     {
+        ReadOnlySpan<short> horizontalCoefficients = GetCompoundCoefficients(horizontalFilter, horizontalPhase, width <= 4);
+        ReadOnlySpan<short> verticalCoefficients = GetCompoundCoefficients(verticalFilter, verticalPhase, height <= 4);
+        int roundBits = (2 * FilterBits) - Round0Bits - CompoundRound1Bits;
+        int offsetBits = 8 + (2 * FilterBits) - Round0Bits;
+        int roundOffset = (1 << (offsetBits - CompoundRound1Bits)) +
+            (1 << (offsetBits - CompoundRound1Bits - 1));
+
+        if (horizontalPhase == 0 && verticalPhase == 0)
+        {
+            CopyCompound<TOperator>(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                roundBits,
+                roundOffset,
+                useSimd);
+
+            return;
+        }
+
+        if (verticalPhase == 0)
+        {
+            GetEffectiveKernel(horizontalCoefficients, out int firstCoefficient, out int tapCount);
+            FilterCompoundDirect<TOperator>(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                horizontalCoefficients[firstCoefficient..],
+                tapCount,
+                firstCoefficient - 3,
+                tapStride: 1,
+                preShift: 0,
+                round: Round0Bits,
+                roundOffset,
+                useSimd);
+
+            return;
+        }
+
+        if (horizontalPhase == 0)
+        {
+            GetEffectiveKernel(verticalCoefficients, out int firstCoefficient, out int tapCount);
+            FilterCompoundDirect<TOperator>(
+                source,
+                sourceStride,
+                sourceOrigin,
+                destination,
+                destinationStride,
+                width,
+                height,
+                verticalCoefficients[firstCoefficient..],
+                tapCount,
+                (firstCoefficient - 3) * sourceStride,
+                sourceStride,
+                FilterBits - Round0Bits,
+                CompoundRound1Bits,
+                roundOffset,
+                useSimd);
+
+            return;
+        }
+
+        GetEffectiveKernel(horizontalCoefficients, out int firstHorizontalCoefficient, out int horizontalTapCount);
+        GetEffectiveKernel(verticalCoefficients, out int firstVerticalCoefficient, out int verticalTapCount);
+        FilterCompound2D<TOperator>(
+            source,
+            sourceStride,
+            sourceOrigin,
+            destination,
+            destinationStride,
+            width,
+            height,
+            horizontalCoefficients[firstHorizontalCoefficient..],
+            horizontalTapCount,
+            firstHorizontalCoefficient - 3,
+            verticalCoefficients[firstVerticalCoefficient..],
+            verticalTapCount,
+            firstVerticalCoefficient - 3,
+            scratch,
+            useSimd);
+    }
+
+    /// <summary>
+    /// Reconstructs one compound intermediate without explicit hardware intrinsics.
+    /// </summary>
+    public static void PredictCompoundScalar(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        int sourceOrigin,
+        Span<ushort> destination,
+        int destinationStride,
+        int width,
+        int height,
+        Av1InterpolationFilter horizontalFilter,
+        Av1InterpolationFilter verticalFilter,
+        int horizontalPhase,
+        int verticalPhase,
+        Span<short> scratch)
+        => PredictCompound<CompoundPredictionOperator>(
+            source,
+            sourceStride,
+            sourceOrigin,
+            destination,
+            destinationStride,
+            width,
+            height,
+            horizontalFilter,
+            verticalFilter,
+            horizontalPhase,
+            verticalPhase,
+            scratch,
+            useSimd: false);
+
+    /// <summary>
+    /// Copies integer-position samples through one closed compound-prediction operator.
+    /// </summary>
+    /// <typeparam name="TOperator">The compound-prediction conversion operator.</typeparam>
+    private static void CopyCompound<TOperator>(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        int sourceOrigin,
+        Span<ushort> destination,
+        int destinationStride,
+        int width,
+        int height,
+        int roundBits,
+        int roundOffset,
+        bool useSimd)
+        where TOperator : struct, IAv1CompoundPredictionOperator
+    {
+        ref byte sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
+        ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
+
         for (int row = 0; row < height; row++)
         {
-            Span<byte> destinationRow = destination.Slice(row * destinationStride, width);
-            ReadOnlySpan<byte> secondRow = second.Slice(row * secondStride, width);
-            ref byte destinationReference = ref MemoryMarshal.GetReference(destinationRow);
-            ref byte secondReference = ref MemoryMarshal.GetReference(secondRow);
+            ref byte sourceRow = ref Unsafe.Add(ref sourceBase, row * sourceStride);
+            ref ushort destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
             int column = 0;
 
-            if (Vector512.IsHardwareAccelerated)
+            if (useSimd && Vector512.IsHardwareAccelerated)
             {
                 int vectorEnd = width - Vector512<byte>.Count;
                 for (; column <= vectorEnd; column += Vector512<byte>.Count)
                 {
-                    Vector512<byte> firstVector = Vector512.LoadUnsafe(ref destinationReference, (nuint)column);
-                    Vector512<byte> secondVector = Vector512.LoadUnsafe(ref secondReference, (nuint)column);
-                    Average(firstVector, secondVector).StoreUnsafe(ref destinationReference, (nuint)column);
+                    Vector512<byte> samples = Vector512.LoadUnsafe(ref sourceRow, (nuint)column);
+                    TOperator.Copy(samples, roundBits, roundOffset, out Vector512<ushort> lower, out Vector512<ushort> upper);
+                    lower.StoreUnsafe(ref destinationRow, (nuint)column);
+                    upper.StoreUnsafe(ref destinationRow, (nuint)(column + Vector512<ushort>.Count));
                 }
             }
 
-            if (Vector256.IsHardwareAccelerated)
+            if (useSimd && Vector256.IsHardwareAccelerated)
             {
                 int vectorEnd = width - Vector256<byte>.Count;
                 for (; column <= vectorEnd; column += Vector256<byte>.Count)
                 {
-                    Vector256<byte> firstVector = Vector256.LoadUnsafe(ref destinationReference, (nuint)column);
-                    Vector256<byte> secondVector = Vector256.LoadUnsafe(ref secondReference, (nuint)column);
-                    Average(firstVector, secondVector).StoreUnsafe(ref destinationReference, (nuint)column);
+                    Vector256<byte> samples = Vector256.LoadUnsafe(ref sourceRow, (nuint)column);
+                    TOperator.Copy(samples, roundBits, roundOffset, out Vector256<ushort> lower, out Vector256<ushort> upper);
+                    lower.StoreUnsafe(ref destinationRow, (nuint)column);
+                    upper.StoreUnsafe(ref destinationRow, (nuint)(column + Vector256<ushort>.Count));
                 }
             }
 
-            if (Vector128.IsHardwareAccelerated)
+            if (useSimd && Vector128.IsHardwareAccelerated)
             {
                 int vectorEnd = width - Vector128<byte>.Count;
                 for (; column <= vectorEnd; column += Vector128<byte>.Count)
                 {
-                    Vector128<byte> firstVector = Vector128.LoadUnsafe(ref destinationReference, (nuint)column);
-                    Vector128<byte> secondVector = Vector128.LoadUnsafe(ref secondReference, (nuint)column);
-                    Average(firstVector, secondVector).StoreUnsafe(ref destinationReference, (nuint)column);
+                    Vector128<byte> samples = Vector128.LoadUnsafe(ref sourceRow, (nuint)column);
+                    TOperator.Copy(samples, roundBits, roundOffset, out Vector128<ushort> lower, out Vector128<ushort> upper);
+                    lower.StoreUnsafe(ref destinationRow, (nuint)column);
+                    upper.StoreUnsafe(ref destinationRow, (nuint)(column + Vector128<ushort>.Count));
                 }
             }
 
             for (; column < width; column++)
             {
-                destinationRow[column] = (byte)((destinationRow[column] + secondRow[column] + 1) >> 1);
+                Unsafe.Add(ref destinationRow, column) = TOperator.Copy(Unsafe.Add(ref sourceRow, column), roundBits, roundOffset);
             }
         }
     }
 
     /// <summary>
-    /// Averages a high-bit-depth predictor into an existing prediction block.
+    /// Applies one compound convolution direction through one closed conversion operator.
     /// </summary>
-    /// <param name="destination">The first predictor and combined output.</param>
-    /// <param name="destinationStride">The distance between destination rows in samples.</param>
-    /// <param name="second">The second predictor.</param>
-    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
-    /// <param name="width">The active block width.</param>
-    /// <param name="height">The active block height.</param>
-    public static void Average(
+    /// <typeparam name="TOperator">The compound-prediction conversion operator.</typeparam>
+    private static void FilterCompoundDirect<TOperator>(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        int sourceOrigin,
         Span<ushort> destination,
         int destinationStride,
-        ReadOnlySpan<ushort> second,
-        int secondStride,
         int width,
-        int height)
+        int height,
+        ReadOnlySpan<short> coefficients,
+        int tapCount,
+        int sourceOffset,
+        int tapStride,
+        int preShift,
+        int round,
+        int roundOffset,
+        bool useSimd)
+        where TOperator : struct, IAv1CompoundPredictionOperator
     {
+        ref byte sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
+        ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
+        ref short coefficientBase = ref MemoryMarshal.GetReference(coefficients);
+
         for (int row = 0; row < height; row++)
         {
-            Span<ushort> destinationRow = destination.Slice(row * destinationStride, width);
-            ReadOnlySpan<ushort> secondRow = second.Slice(row * secondStride, width);
-            ref ushort destinationReference = ref MemoryMarshal.GetReference(destinationRow);
-            ref ushort secondReference = ref MemoryMarshal.GetReference(secondRow);
+            ref byte sourceRow = ref Unsafe.Add(ref sourceBase, (row * sourceStride) + sourceOffset);
+            ref ushort destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
             int column = 0;
 
-            if (Vector512.IsHardwareAccelerated)
+            if (useSimd && Vector512.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector512<ushort>.Count;
-                for (; column <= vectorEnd; column += Vector512<ushort>.Count)
+                int vectorEnd = width - Vector512<byte>.Count;
+                for (; column <= vectorEnd; column += Vector512<byte>.Count)
                 {
-                    Vector512<ushort> firstVector = Vector512.LoadUnsafe(ref destinationReference, (nuint)column);
-                    Vector512<ushort> secondVector = Vector512.LoadUnsafe(ref secondReference, (nuint)column);
-                    Average(firstVector, secondVector).StoreUnsafe(ref destinationReference, (nuint)column);
+                    Convolve(
+                        ref sourceRow,
+                        tapStride,
+                        (nuint)column,
+                        ref coefficientBase,
+                        tapCount,
+                        Vector512<int>.Zero,
+                        out Vector512<int> result0,
+                        out Vector512<int> result1,
+                        out Vector512<int> result2,
+                        out Vector512<int> result3);
+
+                    TOperator.PrepareDirect(result0, result1, preShift, round, roundOffset)
+                        .StoreUnsafe(ref destinationRow, (nuint)column);
+
+                    TOperator.PrepareDirect(result2, result3, preShift, round, roundOffset)
+                        .StoreUnsafe(ref destinationRow, (nuint)(column + Vector512<ushort>.Count));
                 }
             }
 
-            if (Vector256.IsHardwareAccelerated)
+            if (useSimd && Vector256.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector256<ushort>.Count;
-                for (; column <= vectorEnd; column += Vector256<ushort>.Count)
+                int vectorEnd = width - Vector256<byte>.Count;
+                for (; column <= vectorEnd; column += Vector256<byte>.Count)
                 {
-                    Vector256<ushort> firstVector = Vector256.LoadUnsafe(ref destinationReference, (nuint)column);
-                    Vector256<ushort> secondVector = Vector256.LoadUnsafe(ref secondReference, (nuint)column);
-                    Average(firstVector, secondVector).StoreUnsafe(ref destinationReference, (nuint)column);
+                    Convolve(
+                        ref sourceRow,
+                        tapStride,
+                        (nuint)column,
+                        ref coefficientBase,
+                        tapCount,
+                        Vector256<int>.Zero,
+                        out Vector256<int> result0,
+                        out Vector256<int> result1,
+                        out Vector256<int> result2,
+                        out Vector256<int> result3);
+
+                    TOperator.PrepareDirect(result0, result1, preShift, round, roundOffset)
+                        .StoreUnsafe(ref destinationRow, (nuint)column);
+
+                    TOperator.PrepareDirect(result2, result3, preShift, round, roundOffset)
+                        .StoreUnsafe(ref destinationRow, (nuint)(column + Vector256<ushort>.Count));
                 }
             }
 
-            if (Vector128.IsHardwareAccelerated)
+            if (useSimd && Vector128.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector128<ushort>.Count;
-                for (; column <= vectorEnd; column += Vector128<ushort>.Count)
+                int vectorEnd = width - Vector128<byte>.Count;
+                for (; column <= vectorEnd; column += Vector128<byte>.Count)
                 {
-                    Vector128<ushort> firstVector = Vector128.LoadUnsafe(ref destinationReference, (nuint)column);
-                    Vector128<ushort> secondVector = Vector128.LoadUnsafe(ref secondReference, (nuint)column);
-                    Average(firstVector, secondVector).StoreUnsafe(ref destinationReference, (nuint)column);
+                    Convolve(
+                        ref sourceRow,
+                        tapStride,
+                        (nuint)column,
+                        ref coefficientBase,
+                        tapCount,
+                        Vector128<int>.Zero,
+                        out Vector128<int> result0,
+                        out Vector128<int> result1,
+                        out Vector128<int> result2,
+                        out Vector128<int> result3);
+
+                    TOperator.PrepareDirect(result0, result1, preShift, round, roundOffset)
+                        .StoreUnsafe(ref destinationRow, (nuint)column);
+
+                    TOperator.PrepareDirect(result2, result3, preShift, round, roundOffset)
+                        .StoreUnsafe(ref destinationRow, (nuint)(column + Vector128<ushort>.Count));
                 }
             }
 
             for (; column < width; column++)
             {
-                destinationRow[column] = (ushort)((destinationRow[column] + secondRow[column] + 1) >> 1);
+                int result = ConvolveScalar(
+                    ref Unsafe.Add(ref sourceRow, column),
+                    tapStride,
+                    ref coefficientBase,
+                    tapCount);
+
+                Unsafe.Add(ref destinationRow, column) = TOperator.PrepareDirect(result, preShift, round, roundOffset);
             }
         }
     }
 
     /// <summary>
-    /// Averages an 8-bit predictor without explicit hardware intrinsics.
+    /// Applies separable compound convolution through caller-owned signed scratch.
     /// </summary>
-    /// <param name="destination">The first predictor and combined output.</param>
-    /// <param name="destinationStride">The distance between destination rows in samples.</param>
-    /// <param name="second">The second predictor.</param>
-    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
-    /// <param name="width">The active block width.</param>
-    /// <param name="height">The active block height.</param>
-    public static void AverageScalar(
-        Span<byte> destination,
-        int destinationStride,
-        ReadOnlySpan<byte> second,
-        int secondStride,
-        int width,
-        int height)
-    {
-        for (int row = 0; row < height; row++)
-        {
-            Span<byte> destinationRow = destination.Slice(row * destinationStride, width);
-            ReadOnlySpan<byte> secondRow = second.Slice(row * secondStride, width);
-            for (int column = 0; column < width; column++)
-            {
-                destinationRow[column] = (byte)((destinationRow[column] + secondRow[column] + 1) >> 1);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Averages a high-bit-depth predictor without explicit hardware intrinsics.
-    /// </summary>
-    /// <param name="destination">The first predictor and combined output.</param>
-    /// <param name="destinationStride">The distance between destination rows in samples.</param>
-    /// <param name="second">The second predictor.</param>
-    /// <param name="secondStride">The distance between second-predictor rows in samples.</param>
-    /// <param name="width">The active block width.</param>
-    /// <param name="height">The active block height.</param>
-    public static void AverageScalar(
+    /// <typeparam name="TOperator">The compound-prediction conversion operator.</typeparam>
+    private static void FilterCompound2D<TOperator>(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        int sourceOrigin,
         Span<ushort> destination,
         int destinationStride,
-        ReadOnlySpan<ushort> second,
-        int secondStride,
         int width,
-        int height)
+        int height,
+        ReadOnlySpan<short> horizontalCoefficients,
+        int horizontalTapCount,
+        int horizontalSourceOffset,
+        ReadOnlySpan<short> verticalCoefficients,
+        int verticalTapCount,
+        int verticalSourceOffset,
+        Span<short> scratch,
+        bool useSimd)
+        where TOperator : struct, IAv1CompoundPredictionOperator
     {
+        ref byte sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
+        ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
+        ref short scratchBase = ref MemoryMarshal.GetReference(scratch);
+        ref short horizontalCoefficientBase = ref MemoryMarshal.GetReference(horizontalCoefficients);
+        ref short verticalCoefficientBase = ref MemoryMarshal.GetReference(verticalCoefficients);
+        int scratchStride = Math.Max(width, MinimumScratchStride);
+        int intermediateHeight = height + verticalTapCount - 1;
+
+        // The horizontal pass retains Q7 precision in signed scratch. Each SIMD stage continues at the shared
+        // column offset so mixed-width rows need no padding stores and never cross the logical block edge.
+        for (int row = 0; row < intermediateHeight; row++)
+        {
+            ref byte sourceRow = ref Unsafe.Add(
+                ref sourceBase,
+                ((row + verticalSourceOffset) * sourceStride) + horizontalSourceOffset);
+
+            ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
+            int column = 0;
+
+            if (useSimd && Vector512.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector512<byte>.Count;
+                for (; column <= vectorEnd; column += Vector512<byte>.Count)
+                {
+                    Convolve(
+                        ref sourceRow,
+                        1,
+                        (nuint)column,
+                        ref horizontalCoefficientBase,
+                        horizontalTapCount,
+                        Vector512<int>.Zero,
+                        out Vector512<int> result0,
+                        out Vector512<int> result1,
+                        out Vector512<int> result2,
+                        out Vector512<int> result3);
+
+                    TOperator.PrepareHorizontal(result0, result1).StoreUnsafe(ref scratchRow, (nuint)column);
+                    TOperator.PrepareHorizontal(result2, result3)
+                        .StoreUnsafe(ref scratchRow, (nuint)(column + Vector512<short>.Count));
+                }
+            }
+
+            if (useSimd && Vector256.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector256<byte>.Count;
+                for (; column <= vectorEnd; column += Vector256<byte>.Count)
+                {
+                    Convolve(
+                        ref sourceRow,
+                        1,
+                        (nuint)column,
+                        ref horizontalCoefficientBase,
+                        horizontalTapCount,
+                        Vector256<int>.Zero,
+                        out Vector256<int> result0,
+                        out Vector256<int> result1,
+                        out Vector256<int> result2,
+                        out Vector256<int> result3);
+
+                    TOperator.PrepareHorizontal(result0, result1).StoreUnsafe(ref scratchRow, (nuint)column);
+                    TOperator.PrepareHorizontal(result2, result3)
+                        .StoreUnsafe(ref scratchRow, (nuint)(column + Vector256<short>.Count));
+                }
+            }
+
+            if (useSimd && Vector128.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector128<byte>.Count;
+                for (; column <= vectorEnd; column += Vector128<byte>.Count)
+                {
+                    Convolve(
+                        ref sourceRow,
+                        1,
+                        (nuint)column,
+                        ref horizontalCoefficientBase,
+                        horizontalTapCount,
+                        Vector128<int>.Zero,
+                        out Vector128<int> result0,
+                        out Vector128<int> result1,
+                        out Vector128<int> result2,
+                        out Vector128<int> result3);
+
+                    TOperator.PrepareHorizontal(result0, result1).StoreUnsafe(ref scratchRow, (nuint)column);
+                    TOperator.PrepareHorizontal(result2, result3)
+                        .StoreUnsafe(ref scratchRow, (nuint)(column + Vector128<short>.Count));
+                }
+            }
+
+            for (; column < width; column++)
+            {
+                int result = ConvolveScalar(
+                    ref Unsafe.Add(ref sourceRow, column),
+                    1,
+                    ref horizontalCoefficientBase,
+                    horizontalTapCount);
+
+                Unsafe.Add(ref scratchRow, column) = TOperator.PrepareHorizontal(result);
+            }
+        }
+
         for (int row = 0; row < height; row++)
         {
-            Span<ushort> destinationRow = destination.Slice(row * destinationStride, width);
-            ReadOnlySpan<ushort> secondRow = second.Slice(row * secondStride, width);
-            for (int column = 0; column < width; column++)
+            ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
+            ref ushort destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
+            int column = 0;
+
+            if (useSimd && Vector512.IsHardwareAccelerated)
             {
-                destinationRow[column] = (ushort)((destinationRow[column] + secondRow[column] + 1) >> 1);
+                int vectorEnd = width - Vector512<short>.Count;
+                for (; column <= vectorEnd; column += Vector512<short>.Count)
+                {
+                    Convolve(
+                        ref scratchRow,
+                        scratchStride,
+                        (nuint)column,
+                        ref verticalCoefficientBase,
+                        verticalTapCount,
+                        Vector512<int>.Zero,
+                        out Vector512<int> lower,
+                        out Vector512<int> upper);
+
+                    TOperator.PrepareVertical(lower, upper).StoreUnsafe(ref destinationRow, (nuint)column);
+                }
+            }
+
+            if (useSimd && Vector256.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector256<short>.Count;
+                for (; column <= vectorEnd; column += Vector256<short>.Count)
+                {
+                    Convolve(
+                        ref scratchRow,
+                        scratchStride,
+                        (nuint)column,
+                        ref verticalCoefficientBase,
+                        verticalTapCount,
+                        Vector256<int>.Zero,
+                        out Vector256<int> lower,
+                        out Vector256<int> upper);
+
+                    TOperator.PrepareVertical(lower, upper).StoreUnsafe(ref destinationRow, (nuint)column);
+                }
+            }
+
+            if (useSimd && Vector128.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector128<short>.Count;
+                for (; column <= vectorEnd; column += Vector128<short>.Count)
+                {
+                    Convolve(
+                        ref scratchRow,
+                        scratchStride,
+                        (nuint)column,
+                        ref verticalCoefficientBase,
+                        verticalTapCount,
+                        Vector128<int>.Zero,
+                        out Vector128<int> lower,
+                        out Vector128<int> upper);
+
+                    TOperator.PrepareVertical(lower, upper).StoreUnsafe(ref destinationRow, (nuint)column);
+                }
+            }
+
+            for (; column < width; column++)
+            {
+                int result = ConvolveScalar(
+                    ref Unsafe.Add(ref scratchRow, column),
+                    scratchStride,
+                    ref verticalCoefficientBase,
+                    verticalTapCount);
+
+                Unsafe.Add(ref destinationRow, column) = TOperator.PrepareVertical(result);
             }
         }
     }
 
     /// <summary>
-    /// Computes rounded unsigned averages without widening either input vector.
+    /// Gets the selected interpolation kernel for compound traversal.
     /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector512<byte> Average(Vector512<byte> first, Vector512<byte> second)
-    {
-        // (a | b) - ((a ^ b) >> 1) is exactly (a + b + 1) >> 1 and cannot overflow an unsigned lane.
-        return (first | second) - ((first ^ second) >> 1);
-    }
-
-    /// <summary>
-    /// Computes rounded unsigned averages without widening either input vector.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<byte> Average(Vector256<byte> first, Vector256<byte> second)
-        => (first | second) - ((first ^ second) >> 1);
-
-    /// <summary>
-    /// Computes rounded unsigned averages without widening either input vector.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<byte> Average(Vector128<byte> first, Vector128<byte> second)
-        => (first | second) - ((first ^ second) >> 1);
-
-    /// <summary>
-    /// Computes rounded unsigned averages without widening either input vector.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector512<ushort> Average(Vector512<ushort> first, Vector512<ushort> second)
-        => (first | second) - ((first ^ second) >> 1);
-
-    /// <summary>
-    /// Computes rounded unsigned averages without widening either input vector.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector256<ushort> Average(Vector256<ushort> first, Vector256<ushort> second)
-        => (first | second) - ((first ^ second) >> 1);
-
-    /// <summary>
-    /// Computes rounded unsigned averages without widening either input vector.
-    /// </summary>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static Vector128<ushort> Average(Vector128<ushort> first, Vector128<ushort> second)
-        => (first | second) - ((first ^ second) >> 1);
+    private static ReadOnlySpan<short> GetCompoundCoefficients(
+        Av1InterpolationFilter filter,
+        int phase,
+        bool useReducedFilter)
+        => filter switch
+        {
+            Av1InterpolationFilter.Regular => RegularOperator.GetCoefficients(phase, useReducedFilter),
+            Av1InterpolationFilter.Smooth => SmoothOperator.GetCoefficients(phase, useReducedFilter),
+            Av1InterpolationFilter.Sharp => SharpOperator.GetCoefficients(phase, useReducedFilter),
+            _ => BilinearOperator.GetCoefficients(phase, useReducedFilter),
+        };
 }

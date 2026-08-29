@@ -186,7 +186,7 @@ public class Av1InterPredictorTests
             short[] simdScratch = CreateScratch(testCase);
             short[] scalarScratch = CreateScratch(testCase);
 
-            Av1InterPredictor.PredictCompoundScalar(
+            Av1CompoundInterPredictor.PredictCompoundScalar(
                 source,
                 sourceStride,
                 sourceOrigin,
@@ -200,7 +200,7 @@ public class Av1InterPredictorTests
                 testCase.VerticalPhase,
                 scalarScratch);
 
-            Av1InterPredictor.PredictCompound(
+            Av1CompoundInterPredictor.PredictCompound(
                 source,
                 sourceStride,
                 sourceOrigin,

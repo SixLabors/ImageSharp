@@ -202,9 +202,9 @@ internal static class Av1Transform2dOperations
         Vector128<int> columns01 = Vector128_.UnpackLow(pair0.AsInt32(), pair1.AsInt32());
         Vector128<int> columns23 = Vector128_.UnpackHigh(pair0.AsInt32(), pair1.AsInt32());
 
-        Store4Int16(columns01.AsUInt64().GetElement(0), ref destination);
+        Store4Int16(columns01.AsUInt64().ToScalar(), ref destination);
         Store4Int16(columns01.AsUInt64().GetElement(1), ref Unsafe.Add(ref destination, destinationStride));
-        Store4Int16(columns23.AsUInt64().GetElement(0), ref Unsafe.Add(ref destination, 2 * destinationStride));
+        Store4Int16(columns23.AsUInt64().ToScalar(), ref Unsafe.Add(ref destination, 2 * destinationStride));
         Store4Int16(columns23.AsUInt64().GetElement(1), ref Unsafe.Add(ref destination, 3 * destinationStride));
     }
 

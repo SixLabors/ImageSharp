@@ -232,6 +232,11 @@ public class Av1ReconstructionConformanceTests
     private const int OfficialSpatialTemporalLayerFixtureFrameCount = 8;
 
     /// <summary>
+    /// The number of frames in the official libaom active-film-grain sequence.
+    /// </summary>
+    private const int OfficialFilmGrainFixtureFrameCount = 10;
+
+    /// <summary>
     /// The coverage bit representing tile-local adaptive CDF updates.
     /// </summary>
     private const int TileCdfUpdateCoverage = 1 << 0;
@@ -245,6 +250,11 @@ public class Av1ReconstructionConformanceTests
     /// The coverage bit representing temporal reference-motion-vector projection.
     /// </summary>
     private const int ReferenceFrameMotionVectorCoverage = 1 << 2;
+
+    /// <summary>
+    /// The coverage bit representing displayed film-grain synthesis.
+    /// </summary>
+    private const int FilmGrainCoverage = 1 << 3;
 
     /// <summary>
     /// The bit mask containing every intra prediction mode.
@@ -1415,6 +1425,57 @@ public class Av1ReconstructionConformanceTests
             OfficialSpatialTemporalLayerFixtureHeight);
 
     /// <summary>
+    /// Verifies active film-grain presentation and dependent-frame reconstruction against exact pinned-libaom native
+    /// output under normal and scalar dispatch.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialFilmGrainSequenceMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateOfficialFilmGrainFixture,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Verifies the official film-grain sequence through constrained tracked allocation.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodeOfficialFilmGrainSequenceWithConstrainedAllocator()
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        int coverage = ValidateOfficialCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialFilmGrainSequence,
+            TestImages.Heif.Av1OfficialFilmGrainSequenceNativeReference,
+            OfficialFilmGrainFixtureFrameCount);
+
+        Assert.NotEqual(0, coverage & FilmGrainCoverage);
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.AllocationId == allocation.AllocationId));
+    }
+
+    /// <summary>
+    /// Decodes the official film-grain sequence and verifies that synthesis is active.
+    /// </summary>
+    private static void ValidateOfficialFilmGrainFixture()
+    {
+        int coverage = ValidateOfficialCompactSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1OfficialFilmGrainSequence,
+            TestImages.Heif.Av1OfficialFilmGrainSequenceNativeReference,
+            OfficialFilmGrainFixtureFrameCount);
+
+        Assert.NotEqual(0, coverage & FilmGrainCoverage);
+    }
+
+    /// <summary>
     /// Decodes one compact official IVF sequence, compares every native sample, and returns its active frame-state
     /// coverage mask.
     /// </summary>
@@ -1472,7 +1533,8 @@ public class Av1ReconstructionConformanceTests
             AssertNativePlanesEqual(
                 decoder,
                 frameBuffer,
-                nativeReference.AsSpan(nativeOffset, nativeFrameLength));
+                nativeReference.AsSpan(nativeOffset, nativeFrameLength),
+                frameIndex);
 
             nativeOffset += nativeFrameLength;
 
@@ -1480,6 +1542,7 @@ public class Av1ReconstructionConformanceTests
             coverage |= frameHeader.DisableCdfUpdate ? 0 : TileCdfUpdateCoverage;
             coverage |= frameHeader.DisableFrameEndUpdateCdf ? 0 : FrameEndCdfUpdateCoverage;
             coverage |= frameHeader.UseReferenceFrameMotionVectors ? ReferenceFrameMotionVectorCoverage : 0;
+            coverage |= frameHeader.FilmGrainParameters.ApplyGrain ? FilmGrainCoverage : 0;
         }
 
         Assert.Equal(ivf.Length, ivfOffset);
@@ -3766,7 +3829,12 @@ public class Av1ReconstructionConformanceTests
     /// <param name="decoder">The decoder state used to identify the coded block containing a mismatch.</param>
     /// <param name="frameBuffer">The reconstructed AV1 component planes.</param>
     /// <param name="reference">The planar Y, U, and V samples produced by the pinned libaom decoder.</param>
-    private static void AssertNativePlanesEqual(Av1Decoder decoder, Av1FrameBuffer<byte> frameBuffer, ReadOnlySpan<byte> reference)
+    /// <param name="frameIndex">The zero-based sequence-frame index, or -1 for a standalone sample.</param>
+    private static void AssertNativePlanesEqual(
+        Av1Decoder decoder,
+        Av1FrameBuffer<byte> frameBuffer,
+        ReadOnlySpan<byte> reference,
+        int frameIndex = -1)
     {
         (int chromaSubsamplingX, int chromaSubsamplingY) = frameBuffer.ColorFormat switch
         {
@@ -3871,7 +3939,8 @@ public class Av1ReconstructionConformanceTests
             largestExpected,
             largestActual,
             mismatchCount,
-            mismatchDescription?.ToString() ?? string.Empty);
+            mismatchDescription?.ToString() ?? string.Empty,
+            frameIndex);
     }
 
     /// <summary>
@@ -3894,6 +3963,7 @@ public class Av1ReconstructionConformanceTests
     /// <param name="actual">The reconstructed sample.</param>
     /// <param name="mismatchCount">The total number of unequal native samples.</param>
     /// <param name="mismatchDescription">The first unequal samples in plane traversal order.</param>
+    /// <param name="frameIndex">The zero-based sequence-frame index, or -1 for a standalone sample.</param>
     private static void AssertSampleEqual(
         Av1Decoder decoder,
         Av1Plane plane,
@@ -3902,7 +3972,8 @@ public class Av1ReconstructionConformanceTests
         ushort expected,
         ushort actual,
         int mismatchCount,
-        string mismatchDescription)
+        string mismatchDescription,
+        int frameIndex)
     {
         if (expected != actual)
         {
@@ -3986,11 +4057,26 @@ public class Av1ReconstructionConformanceTests
             Av1BlockModeInfo nextRowModeInfo = frameInfo.GetModeInfoAt(new Point(modeInfoColumn, nextModeInfoRow));
             Av1BlockModeInfo aboveModeInfo = frameInfo.GetModeInfoAt(new Point(modeInfoColumn, Math.Max(blockRow - 1, 0)));
             Av1BlockModeInfo leftModeInfo = frameInfo.GetModeInfoAt(new Point(Math.Max(blockColumn - 1, 0), modeInfoRow));
+            string frameDescription = frameIndex < 0 ? string.Empty : $"Frame {frameIndex}, ";
+            StringBuilder filmGrainCoefficientDescription = new();
+            ReadOnlySpan<byte> filmGrainCoefficients = frameHeader.FilmGrainParameters.ArCoeffsYPlus128;
+            int filmGrainCoefficientCount = 2 * (int)frameHeader.FilmGrainParameters.ArCoeffLag *
+                ((int)frameHeader.FilmGrainParameters.ArCoeffLag + 1);
+
+            for (int coefficientIndex = 0; coefficientIndex < filmGrainCoefficientCount; coefficientIndex++)
+            {
+                if (coefficientIndex != 0)
+                {
+                    filmGrainCoefficientDescription.Append(',');
+                }
+
+                filmGrainCoefficientDescription.Append((int)filmGrainCoefficients[coefficientIndex] - 128);
+            }
 
             // Exact conformance failures need the owning syntax state. A coordinate alone does not distinguish
             // prediction, residual reconstruction, and in-loop filtering failures inside a large coded frame.
             Assert.Fail(
-                $"Plane {plane} differs at ({x}, {y}): expected {expected}, actual {actual}. "
+                $"{frameDescription}plane {plane} differs at ({x}, {y}): expected {expected}, actual {actual}. "
                 + $"Total unequal samples={mismatchCount}:{mismatchDescription}. "
                 + $"Block={modeInfo.BlockSize}, mode={modeInfo.YMode}, partition={modeInfo.PartitionType}, skip={modeInfo.Skip}, "
                 + $"refs={modeInfo.ReferenceFrames[0]}/{modeInfo.ReferenceFrames[1]}, "
@@ -4006,7 +4092,16 @@ public class Av1ReconstructionConformanceTests
                 + $"superblock-q={superblock.SuperblockQuantizerIndex}{coefficientDescription}, "
                 + $"delta-lf={frameHeader.DeltaLoopFilterParameters.IsPresent}/{frameHeader.DeltaLoopFilterParameters.IsMulti}, "
                 + $"CDEF={cdefStrengthIndex}/{cdefStrength}, restoration={frameHeader.LoopRestorationParameters.Items[0].Type}, "
-                + $"film-grain={frameHeader.FilmGrainParameters.ApplyGrain}, "
+                + $"film-grain={frameHeader.FilmGrainParameters.ApplyGrain}/"
+                + $"overlap={frameHeader.FilmGrainParameters.OverlapFlag}/"
+                + $"update={frameHeader.FilmGrainParameters.UpdateGrain}/seed={frameHeader.FilmGrainParameters.GrainSeed}, "
+                + $"grain-points={frameHeader.FilmGrainParameters.NumYPoints}/"
+                + $"{frameHeader.FilmGrainParameters.NumCbPoints}/{frameHeader.FilmGrainParameters.NumCrPoints}, "
+                + $"grain-ar={frameHeader.FilmGrainParameters.ArCoeffLag}/"
+                + $"{frameHeader.FilmGrainParameters.ArCoeffShiftMinus6}, "
+                + $"grain-y-coefficients=[{filmGrainCoefficientDescription}], "
+                + $"grain-scale={frameHeader.FilmGrainParameters.GrainScalingMinus8}/"
+                + $"{frameHeader.FilmGrainParameters.GrainScaleShift}, "
                 + $"tiles={frameHeader.TilesInfo.TileColumnCount}x{frameHeader.TilesInfo.TileRowCount}, "
                 + $"first-tile-end=({frameHeader.TilesInfo.TileColumnStartModeInfo[1]}, {frameHeader.TilesInfo.TileRowStartModeInfo[1]}). "
                 + $"Neighbors: above={aboveModeInfo.BlockSize}/{aboveModeInfo.YMode}/skip={aboveModeInfo.Skip}, "

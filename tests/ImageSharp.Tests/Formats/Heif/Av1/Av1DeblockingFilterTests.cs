@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -26,6 +27,17 @@ public class Av1DeblockingFilterTests
     /// The first Q-side coordinate, leaving the widest kernel addressable on every side.
     /// </summary>
     private const int EdgeCoordinate = 12;
+
+    /// <summary>
+    /// Verifies the AV1 reference-category default deltas used to derive frame-edge filter levels.
+    /// </summary>
+    [Fact]
+    public void LoopFilterReferenceDeltasMatchAv1Defaults()
+    {
+        ObuLoopFilterParameters parameters = new();
+
+        Assert.Equal([1, 0, 0, 0, -1, 0, -1, -1], parameters.ReferenceDeltas);
+    }
 
     /// <summary>
     /// Verifies exact filtering and untouched padding against an independent scalar definition.

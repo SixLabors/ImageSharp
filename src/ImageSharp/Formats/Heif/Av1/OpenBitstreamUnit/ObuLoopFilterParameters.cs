@@ -13,7 +13,8 @@ internal class ObuLoopFilterParameters
     /// </summary>
     public ObuLoopFilterParameters()
     {
-        this.ReferenceDeltas = [1, 0, 0, 0, 0, -1, -1, -1];
+        // AV1 indexes this table from Intra through Alternate. Golden is -1; Backward remains 0.
+        this.ReferenceDeltas = [1, 0, 0, 0, -1, 0, -1, -1];
         this.ModeDeltas = [0, 0];
     }
 

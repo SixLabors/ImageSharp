@@ -28,6 +28,31 @@ internal static class Av1YuvConverter
         if (frameBuffer.BitDepth == Av1BitDepth.EightBit)
         {
             Av1PlanarSampleBuffer<byte> buffer = new(frameBuffer);
+            if (buffer.Width != image.Width || buffer.Height != image.Height)
+            {
+                // AVIF spatial-layer selection scales native YUV planes before color conversion. The retained
+                // reconstruction remains untouched because later dependent layers can still reference its coded
+                // dimensions, while this short-lived owner contains only the presented sample grid.
+                using Av1PresentationSampleBuffer<byte, Av1PlanarSampleBuffer<byte>> presentationBuffer = new(
+                    configuration,
+                    buffer,
+                    image.Width,
+                    image.Height);
+
+                HeifPlanarColorConverter.ConvertToRgb<
+                    TPixel,
+                    Av1PresentationSampleBufferView<byte, Av1PlanarSampleBuffer<byte>>,
+                    byte,
+                    HeifByteSampleConverter>(
+                    configuration,
+                    presentationBuffer.View,
+                    image,
+                    in parameters,
+                    mode);
+
+                return;
+            }
+
             HeifPlanarColorConverter.ConvertToRgb<TPixel, Av1PlanarSampleBuffer<byte>, byte, HeifByteSampleConverter>(
                 configuration,
                 buffer,
@@ -39,6 +64,26 @@ internal static class Av1YuvConverter
         }
 
         Av1PlanarSampleBuffer<ushort> highBitDepthBuffer = new(frameBuffer);
+        if (highBitDepthBuffer.Width != image.Width || highBitDepthBuffer.Height != image.Height)
+        {
+            using Av1PresentationSampleBuffer<ushort, Av1PlanarSampleBuffer<ushort>> presentationBuffer = new(
+                configuration,
+                highBitDepthBuffer,
+                image.Width,
+                image.Height);
+
+            HeifPlanarColorConverter.ConvertToRgb<
+                TPixel,
+                Av1PresentationSampleBufferView<ushort, Av1PlanarSampleBuffer<ushort>>>(
+                configuration,
+                presentationBuffer.View,
+                image,
+                in parameters,
+                mode);
+
+            return;
+        }
+
         HeifPlanarColorConverter.ConvertToRgb<TPixel, Av1PlanarSampleBuffer<ushort>>(
             configuration,
             highBitDepthBuffer,

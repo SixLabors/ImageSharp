@@ -253,10 +253,106 @@ public class Av1YuvConverterTests
 
         // Assert
         Assert.Equal(2, frameBuffer.BytesPerSample);
-        Assert.Equal(3 + 144, stride);
+        Assert.Equal(3 + (frameBuffer.OriginX * 2), stride);
         Assert.Equal(stride * 2, frameBuffer.BufferY!.Width);
         Assert.Equal(321, frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, 0, 0, 0)[0]);
         Assert.Equal(2, chromaRow.Length);
+    }
+
+    /// <summary>
+    /// Verifies libyuv's native two-times presentation filter at byte and twelve-bit precision across every
+    /// available intrinsic width and the scalar fallback.
+    /// </summary>
+    [Fact]
+    public void ScaleSelectedSpatialLayerMatchesPinnedLibyuvAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateSelectedSpatialLayerScaling,
+            AlphaConfigurations);
+
+    /// <summary>
+    /// Verifies the exact edge extension, quarter-sample weights, and rounding of the native presentation scaler.
+    /// </summary>
+    private static void ValidateSelectedSpatialLayerScaling()
+    {
+        byte[][] expectedByteRows =
+        [
+            [0, 25, 75, 125, 175, 200],
+            [13, 38, 88, 138, 188, 213],
+            [38, 63, 113, 163, 213, 238],
+            [50, 75, 125, 175, 225, 250],
+        ];
+
+        ushort[][] expectedHighBitDepthRows =
+        [
+            [0, 250, 750, 1250, 1750, 2000],
+            [125, 375, 875, 1375, 1875, 2125],
+            [375, 625, 1125, 1625, 2125, 2375],
+            [500, 750, 1250, 1750, 2250, 2500],
+        ];
+
+        ObuSequenceHeader byteSequenceHeader = CreateSequenceHeader(
+            3,
+            2,
+            colorFormat: Av1ColorFormat.Yuv400);
+
+        using (Av1FrameBuffer<byte> frameBuffer = new(
+            Configuration.Default,
+            byteSequenceHeader,
+            Av1ColorFormat.Yuv400,
+            false))
+        {
+            byte[] sourceSamples = [0, 100, 200, 50, 150, 250];
+            for (int y = 0; y < byteSequenceHeader.MaxFrameHeight; y++)
+            {
+                sourceSamples.AsSpan(y * byteSequenceHeader.MaxFrameWidth, byteSequenceHeader.MaxFrameWidth).CopyTo(
+                    frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(y));
+            }
+
+            Av1PlanarSampleBuffer<byte> source = new(frameBuffer);
+            using Av1PresentationSampleBuffer<byte, Av1PlanarSampleBuffer<byte>> presentation = new(
+                Configuration.Default,
+                source,
+                6,
+                4);
+
+            for (int y = 0; y < expectedByteRows.Length; y++)
+            {
+                Assert.True(presentation.View.GetLumaRowSpan(y).SequenceEqual(expectedByteRows[y]));
+            }
+        }
+
+        ObuSequenceHeader highBitDepthSequenceHeader = CreateSequenceHeader(
+            3,
+            2,
+            colorFormat: Av1ColorFormat.Yuv400,
+            bitDepth: Av1BitDepth.TwelveBit);
+
+        using Av1FrameBuffer<byte> highBitDepthFrameBuffer = new(
+            Configuration.Default,
+            highBitDepthSequenceHeader,
+            Av1ColorFormat.Yuv400,
+            false);
+
+        ushort[] highBitDepthSourceSamples = [0, 1000, 2000, 500, 1500, 2500];
+        for (int y = 0; y < highBitDepthSequenceHeader.MaxFrameHeight; y++)
+        {
+            highBitDepthSourceSamples.AsSpan(
+                y * highBitDepthSequenceHeader.MaxFrameWidth,
+                highBitDepthSequenceHeader.MaxFrameWidth).CopyTo(
+                highBitDepthFrameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, y, 0, 0));
+        }
+
+        Av1PlanarSampleBuffer<ushort> highBitDepthSource = new(highBitDepthFrameBuffer);
+        using Av1PresentationSampleBuffer<ushort, Av1PlanarSampleBuffer<ushort>> highBitDepthPresentation = new(
+            Configuration.Default,
+            highBitDepthSource,
+            6,
+            4);
+
+        for (int y = 0; y < expectedHighBitDepthRows.Length; y++)
+        {
+            Assert.True(highBitDepthPresentation.View.GetLumaRowSpan(y).SequenceEqual(expectedHighBitDepthRows[y]));
+        }
     }
 
     /// <summary>

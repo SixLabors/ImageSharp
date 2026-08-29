@@ -1358,10 +1358,12 @@ public static class TestImages
         public const string Av1Progressive8BitReference = "Heif/Av1/Conformance/libavif-progressive-draw-points-8b-libaom-y4m.yuv";
         public const string Av1Progressive8BitPresentationReference = "Heif/Av1/Conformance/libavif-progressive-draw-points-8b.png";
         public const string Av1ScaledReferenceAvif = "Heif/Av1/Conformance/libavif-webp-logo-scaled-reference.avif";
+        public const string Av1ScaledReferenceSelectedLayerAvif = "Heif/Av1/Conformance/libavif-webp-logo-scaled-reference-lsel0.avif";
         public const string Av1ScaledReferencePayload = "Heif/Av1/Conformance/libavif-webp-logo-scaled-reference.bit";
         public const string Av1ScaledReferenceBaseNativeReference = "Heif/Av1/Conformance/libavif-webp-logo-scaled-reference-base-libaom.yuv";
         public const string Av1ScaledReferenceNativeReference = "Heif/Av1/Conformance/libavif-webp-logo-scaled-reference-libaom.y4m";
         public const string Av1ScaledReferencePresentationReference = "Heif/Av1/Conformance/libavif-webp-logo-scaled-reference.png";
+        public const string Av1ScaledReferenceSelectedLayerPresentationReference = "Heif/Av1/Conformance/libavif-webp-logo-scaled-reference-lsel0-libavif.png";
         public const string Av1AverageCompoundSequenceAvif = "Heif/Av1/Conformance/libavif-webp-logo-average-compound.avif";
         public const string Av1AverageCompoundSequenceNativeReference = "Heif/Av1/Conformance/libavif-webp-logo-average-compound-libaom.y4m";
         public const string Av1AverageCompoundSequencePresentationReference = "Heif/Av1/Conformance/libavif-webp-logo-average-compound-libavif.png";

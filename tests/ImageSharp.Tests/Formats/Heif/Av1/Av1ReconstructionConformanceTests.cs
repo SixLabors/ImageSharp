@@ -474,6 +474,38 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
+    /// Verifies that an essential lsel property returns the selected base spatial layer rather than the final
+    /// progressive layer, with exact pinned-libaom native planes and pinned-libavif presentation.
+    /// </summary>
+    [Fact]
+    public void DecodeSelectedProgressiveSpatialLayerMatchesPinnedReferences()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateSelectedProgressiveSpatialLayerWithDefaultConfiguration,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Verifies selected-layer native reconstruction and public presentation with constrained tracked allocation.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodeSelectedProgressiveSpatialLayerWithConstrainedAllocator()
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        ValidateSelectedProgressiveSpatialLayer(configuration);
+
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.AllocationId == allocation.AllocationId));
+    }
+
+    /// <summary>
     /// Verifies an independently encoded 40x40 retained layer scaled into an 80x80 dependent layer against exact
     /// pinned-libaom native planes and pinned-libavif presentation.
     /// </summary>
@@ -1857,6 +1889,12 @@ public class Av1ReconstructionConformanceTests
         => ValidateProgressiveSingleReferenceFixture(Configuration.Default, verifyPresentation: true);
 
     /// <summary>
+    /// Runs the selected-spatial-layer native and presentation comparisons with the default configuration.
+    /// </summary>
+    private static void ValidateSelectedProgressiveSpatialLayerWithDefaultConfiguration()
+        => ValidateSelectedProgressiveSpatialLayer(Configuration.Default);
+
+    /// <summary>
     /// Runs the exact scaled-reference native and presentation comparison with the default configuration.
     /// </summary>
     private static void ValidateScaledReferenceFixtureWithDefaultConfiguration()
@@ -1994,6 +2032,62 @@ public class Av1ReconstructionConformanceTests
         Assert.Single(image.Frames);
         Assert.Equal(HeifBitDepth.Bit8, image.Metadata.GetHeifMetadata().BitDepth);
         ImageComparer.Exact.VerifySimilarity(presentationReference, image);
+    }
+
+    /// <summary>
+    /// Verifies the selected base spatial layer with the requested allocator.
+    /// </summary>
+    /// <param name="configuration">The decoder configuration.</param>
+    private static void ValidateSelectedProgressiveSpatialLayer(Configuration configuration)
+    {
+        byte[] payload = TestFile.Create(TestImages.Heif.Av1ScaledReferencePayload).Bytes;
+        byte[] nativeReference =
+            TestFile.Create(TestImages.Heif.Av1ScaledReferenceBaseNativeReference).Bytes;
+
+        Assert.Equal(ScaledReferenceBaseLayerSize * ScaledReferenceBaseLayerSize * 3, nativeReference.Length);
+
+        Av1LayeredImageIndex layeredImageIndex = new(ScaledReferenceFirstLayerSize, 0, 0);
+        int selectedPayloadLength = layeredImageIndex.GetPayloadLength(
+            payload.Length,
+            new Av1LayerSelector(0));
+
+        Assert.Equal(ScaledReferenceFirstLayerSize, selectedPayloadLength);
+
+        using Av1Decoder decoder = new(configuration);
+        using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(
+            payload.AsSpan(0, selectedPayloadLength),
+            null,
+            null,
+            out _,
+            layeredImageIndex);
+
+        Assert.Equal(ScaledReferenceBaseLayerSize, frameBuffer.Width);
+        Assert.Equal(ScaledReferenceBaseLayerSize, frameBuffer.Height);
+        Assert.Equal(Av1BitDepth.EightBit, frameBuffer.BitDepth);
+        Assert.Equal(Av1ColorFormat.Yuv444, frameBuffer.ColorFormat);
+        Assert.Equal(ObuFrameType.KeyFrame, Assert.IsType<ObuFrameHeader>(decoder.FrameHeader).FrameType);
+        AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
+
+        DecoderOptions options = new() { Configuration = configuration, MaxFrames = 1 };
+        byte[] imageBytes = TestFile.Create(TestImages.Heif.Av1ScaledReferenceSelectedLayerAvif).Bytes;
+        byte[] presentationBytes =
+            TestFile.Create(TestImages.Heif.Av1ScaledReferenceSelectedLayerPresentationReference).Bytes;
+
+        byte[] finalPresentationBytes =
+            TestFile.Create(TestImages.Heif.Av1ScaledReferencePresentationReference).Bytes;
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(options, imageBytes);
+        using Image<Rgba32> presentationReference = Image.Load<Rgba32>(presentationBytes);
+        using Image<Rgba32> finalPresentationReference = Image.Load<Rgba32>(finalPresentationBytes);
+
+        // HEIF presents a selected lower-resolution spatial layer at the item's ispe extent. Exact comparison with
+        // libavif therefore proves both layer selection and the required 40x40-to-80x80 presentation scaling.
+        Assert.Equal(ScaledReferenceFixtureSize, image.Width);
+        Assert.Equal(ScaledReferenceFixtureSize, image.Height);
+        Assert.Single(image.Frames);
+        Assert.Equal(HeifBitDepth.Bit8, image.Metadata.GetHeifMetadata().BitDepth);
+        ImageComparer.Exact.VerifySimilarity(presentationReference, image);
+        Assert.NotEmpty(ImageComparer.Exact.CompareImages(finalPresentationReference, image));
     }
 
     /// <summary>

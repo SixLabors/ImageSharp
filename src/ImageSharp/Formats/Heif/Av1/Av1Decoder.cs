@@ -118,12 +118,14 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// The item-associated AV1 codec configuration validated against the coded sequence header.
     /// </param>
     /// <param name="layeredImageIndex">The optional byte boundaries of a layered AV1 image item.</param>
+    /// <param name="presentationSize">The requested item presentation size, or an empty size for the coded dimensions.</param>
     /// <returns>The decoded image.</returns>
     public Image<TPixel> Decode<TPixel>(
         Span<byte> buffer,
         CicpProfile? containerColorProfile = null,
         Av1CodecConfiguration? codecConfiguration = null,
-        Av1LayeredImageIndex? layeredImageIndex = null)
+        Av1LayeredImageIndex? layeredImageIndex = null,
+        Size presentationSize = default)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         ImageFrame<TPixel> frame = this.DecodeFrame<TPixel>(
@@ -131,7 +133,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             containerColorProfile,
             codecConfiguration,
             out CicpProfile effectiveColorProfile,
-            layeredImageIndex);
+            layeredImageIndex,
+            presentationSize);
 
         ImageMetadata metadata = new()
         {
@@ -163,13 +166,15 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// </param>
     /// <param name="effectiveColorProfile">Receives the effective CICP description used for conversion.</param>
     /// <param name="layeredImageIndex">The optional byte boundaries of a layered AV1 image item.</param>
+    /// <param name="presentationSize">The requested item presentation size, or an empty size for the coded dimensions.</param>
     /// <returns>The decoded frame. Ownership transfers to the caller.</returns>
     public ImageFrame<TPixel> DecodeFrame<TPixel>(
         Span<byte> buffer,
         CicpProfile? containerColorProfile,
         Av1CodecConfiguration? codecConfiguration,
         out CicpProfile effectiveColorProfile,
-        Av1LayeredImageIndex? layeredImageIndex = null)
+        Av1LayeredImageIndex? layeredImageIndex = null,
+        Size presentationSize = default)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Av1FrameBuffer<byte> frameBuffer = this.DecodeFrameBuffer(
@@ -179,7 +184,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             out effectiveColorProfile,
             layeredImageIndex);
 
-        return this.ConvertToFrame<TPixel>(frameBuffer, effectiveColorProfile);
+        return this.ConvertToFrame<TPixel>(frameBuffer, effectiveColorProfile, presentationSize);
     }
 
     /// <summary>
@@ -268,19 +273,31 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <typeparam name="TPixel">The destination pixel type.</typeparam>
     /// <param name="frameBuffer">The decoded native planes.</param>
     /// <param name="effectiveColorProfile">The effective CICP description.</param>
+    /// <param name="presentationSize">The requested item presentation size, or an empty size for the coded dimensions.</param>
     /// <returns>The independently owned packed-pixel frame.</returns>
     private ImageFrame<TPixel> ConvertToFrame<TPixel>(
         Av1FrameBuffer<byte> frameBuffer,
-        CicpProfile effectiveColorProfile)
+        CicpProfile effectiveColorProfile,
+        Size presentationSize = default)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         ImageFrame<TPixel>? resultFrame = null;
         try
         {
-            resultFrame = new ImageFrame<TPixel>(
-                this.configuration,
+            Size codedSize = new(
                 this.FrameHeader!.FrameSize.SuperResolutionUpscaledWidth,
                 this.FrameHeader.FrameSize.FrameHeight);
+
+            // A selected lower spatial layer can only be scaled upward to the image item's ispe extent here.
+            // Other item-size corrections keep using the shared packed-pixel presentation path after decoding.
+            Size outputSize = presentationSize.Width >= codedSize.Width && presentationSize.Height >= codedSize.Height
+                ? presentationSize
+                : codedSize;
+
+            resultFrame = new ImageFrame<TPixel>(
+                this.configuration,
+                outputSize.Width,
+                outputSize.Height);
 
             Av1YuvConverter.ConvertToRgb(this.configuration, frameBuffer, resultFrame);
             resultFrame.Metadata.CicpProfile = effectiveColorProfile.DeepClone();

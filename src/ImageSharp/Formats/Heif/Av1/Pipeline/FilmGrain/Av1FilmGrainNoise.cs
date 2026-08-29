@@ -271,10 +271,10 @@ internal static class Av1FilmGrainNoise
             for (; column <= vectorEnd; column += Vector256<int>.Count)
             {
                 ref TSample destination = ref Unsafe.Add(ref sampleBase, sampleRowOffset + column);
-                Vector256<int> source = Av1FilmGrainSampleOperator<TSample>.Load8(ref destination);
+                Vector256<int> source = Av1FilmGrainSampleOperations<TSample>.Load8(ref destination);
                 Vector256<int> grainValues = Vector256.LoadUnsafe(ref grainBase, (nuint)(grainRowOffset + column));
                 Vector256<int> result = AddNoise(source, grainValues, scaling, bitDepth, roundingOffset, scalingShift, minimum, maximum);
-                Av1FilmGrainSampleOperator<TSample>.Store8(ref destination, result);
+                Av1FilmGrainSampleOperations<TSample>.Store8(ref destination, result);
             }
 
             ApplyLumaScalar(
@@ -326,10 +326,10 @@ internal static class Av1FilmGrainNoise
             for (; column <= vectorEnd; column += Vector128<int>.Count)
             {
                 ref TSample destination = ref Unsafe.Add(ref sampleBase, sampleRowOffset + column);
-                Vector128<int> source = Av1FilmGrainSampleOperator<TSample>.Load4(ref destination);
+                Vector128<int> source = Av1FilmGrainSampleOperations<TSample>.Load4(ref destination);
                 Vector128<int> grainValues = Vector128.LoadUnsafe(ref grainBase, (nuint)(grainRowOffset + column));
                 Vector128<int> result = AddNoise(source, grainValues, scaling, bitDepth, roundingOffset, scalingShift, minimum, maximum);
-                Av1FilmGrainSampleOperator<TSample>.Store4(ref destination, result);
+                Av1FilmGrainSampleOperations<TSample>.Store4(ref destination, result);
             }
 
             ApplyLumaScalar(
@@ -375,10 +375,10 @@ internal static class Av1FilmGrainNoise
             for (int column = 0; column < width; column++)
             {
                 ref TSample destination = ref Unsafe.Add(ref sampleBase, sampleRowOffset + column);
-                int source = Av1FilmGrainSampleOperator<TSample>.Load(ref destination);
+                int source = Av1FilmGrainSampleOperations<TSample>.Load(ref destination);
                 int scale = ScaleLookup(scaling, source, bitDepth);
                 int value = source + (((scale * Unsafe.Add(ref grainBase, grainRowOffset + column)) + roundingOffset) >> scalingShift);
-                Av1FilmGrainSampleOperator<TSample>.Store(ref destination, Av1Math.Clamp(value, minimum, maximum));
+                Av1FilmGrainSampleOperations<TSample>.Store(ref destination, Av1Math.Clamp(value, minimum, maximum));
             }
         }
     }
@@ -577,11 +577,11 @@ internal static class Av1FilmGrainNoise
             for (; column <= vectorEnd; column += Vector256<int>.Count)
             {
                 ref TSample lumaSource = ref Unsafe.Add(ref lumaRow, column << subsamplingX);
-                Vector256<int> averageLuma = Av1FilmGrainSampleOperator<TSample>.LoadChromaLuma8(ref lumaSource, subsamplingX);
+                Vector256<int> averageLuma = Av1FilmGrainSampleOperations<TSample>.LoadChromaLuma8(ref lumaSource, subsamplingX);
                 if (applyCb)
                 {
                     ref TSample destination = ref Unsafe.Add(ref cbBase, chromaRowOffset + column);
-                    Vector256<int> source = Av1FilmGrainSampleOperator<TSample>.Load8(ref destination);
+                    Vector256<int> source = Av1FilmGrainSampleOperations<TSample>.Load8(ref destination);
                     Vector256<int> scalingIndex = ((averageLuma * cbLumaMultiplier) + (source * cbMultiplier)) >> 6;
                     scalingIndex = Vector256.Min(Vector256.Max(scalingIndex + Vector256.Create(cbOffset), zero), maximumIndex);
                     Vector256<int> grainValues = Vector256.LoadUnsafe(ref cbGrainBase, (nuint)(grainRowOffset + column));
@@ -596,13 +596,13 @@ internal static class Av1FilmGrainNoise
                         minimum,
                         maximum);
 
-                    Av1FilmGrainSampleOperator<TSample>.Store8(ref destination, result);
+                    Av1FilmGrainSampleOperations<TSample>.Store8(ref destination, result);
                 }
 
                 if (applyCr)
                 {
                     ref TSample destination = ref Unsafe.Add(ref crBase, chromaRowOffset + column);
-                    Vector256<int> source = Av1FilmGrainSampleOperator<TSample>.Load8(ref destination);
+                    Vector256<int> source = Av1FilmGrainSampleOperations<TSample>.Load8(ref destination);
                     Vector256<int> scalingIndex = ((averageLuma * crLumaMultiplier) + (source * crMultiplier)) >> 6;
                     scalingIndex = Vector256.Min(Vector256.Max(scalingIndex + Vector256.Create(crOffset), zero), maximumIndex);
                     Vector256<int> grainValues = Vector256.LoadUnsafe(ref crGrainBase, (nuint)(grainRowOffset + column));
@@ -617,7 +617,7 @@ internal static class Av1FilmGrainNoise
                         minimum,
                         maximum);
 
-                    Av1FilmGrainSampleOperator<TSample>.Store8(ref destination, result);
+                    Av1FilmGrainSampleOperations<TSample>.Store8(ref destination, result);
                 }
             }
 
@@ -708,11 +708,11 @@ internal static class Av1FilmGrainNoise
             for (; column <= vectorEnd; column += Vector128<int>.Count)
             {
                 ref TSample lumaSource = ref Unsafe.Add(ref lumaRow, column << subsamplingX);
-                Vector128<int> averageLuma = Av1FilmGrainSampleOperator<TSample>.LoadChromaLuma4(ref lumaSource, subsamplingX);
+                Vector128<int> averageLuma = Av1FilmGrainSampleOperations<TSample>.LoadChromaLuma4(ref lumaSource, subsamplingX);
                 if (applyCb)
                 {
                     ref TSample destination = ref Unsafe.Add(ref cbBase, chromaRowOffset + column);
-                    Vector128<int> source = Av1FilmGrainSampleOperator<TSample>.Load4(ref destination);
+                    Vector128<int> source = Av1FilmGrainSampleOperations<TSample>.Load4(ref destination);
                     Vector128<int> scalingIndex = ((averageLuma * cbLumaMultiplier) + (source * cbMultiplier)) >> 6;
                     scalingIndex = Vector128.Min(Vector128.Max(scalingIndex + Vector128.Create(cbOffset), zero), maximumIndex);
                     Vector128<int> grainValues = Vector128.LoadUnsafe(ref cbGrainBase, (nuint)(grainRowOffset + column));
@@ -727,13 +727,13 @@ internal static class Av1FilmGrainNoise
                         minimum,
                         maximum);
 
-                    Av1FilmGrainSampleOperator<TSample>.Store4(ref destination, result);
+                    Av1FilmGrainSampleOperations<TSample>.Store4(ref destination, result);
                 }
 
                 if (applyCr)
                 {
                     ref TSample destination = ref Unsafe.Add(ref crBase, chromaRowOffset + column);
-                    Vector128<int> source = Av1FilmGrainSampleOperator<TSample>.Load4(ref destination);
+                    Vector128<int> source = Av1FilmGrainSampleOperations<TSample>.Load4(ref destination);
                     Vector128<int> scalingIndex = ((averageLuma * crLumaMultiplier) + (source * crMultiplier)) >> 6;
                     scalingIndex = Vector128.Min(Vector128.Max(scalingIndex + Vector128.Create(crOffset), zero), maximumIndex);
                     Vector128<int> grainValues = Vector128.LoadUnsafe(ref crGrainBase, (nuint)(grainRowOffset + column));
@@ -748,7 +748,7 @@ internal static class Av1FilmGrainNoise
                         minimum,
                         maximum);
 
-                    Av1FilmGrainSampleOperator<TSample>.Store4(ref destination, result);
+                    Av1FilmGrainSampleOperations<TSample>.Store4(ref destination, result);
                 }
             }
 
@@ -831,10 +831,10 @@ internal static class Av1FilmGrainNoise
             for (int column = 0; column < width; column++)
             {
                 int lumaOffset = lumaRowOffset + (column << subsamplingX);
-                int averageLuma = Av1FilmGrainSampleOperator<TSample>.Load(ref Unsafe.Add(ref lumaBase, lumaOffset));
+                int averageLuma = Av1FilmGrainSampleOperations<TSample>.Load(ref Unsafe.Add(ref lumaBase, lumaOffset));
                 if (subsamplingX != 0)
                 {
-                    averageLuma = (averageLuma + Av1FilmGrainSampleOperator<TSample>.Load(ref Unsafe.Add(ref lumaBase, lumaOffset + 1)) + 1) >> 1;
+                    averageLuma = (averageLuma + Av1FilmGrainSampleOperations<TSample>.Load(ref Unsafe.Add(ref lumaBase, lumaOffset + 1)) + 1) >> 1;
                 }
 
                 int chromaOffset = chromaRowOffset + column;
@@ -842,7 +842,7 @@ internal static class Av1FilmGrainNoise
                 if (applyCb)
                 {
                     ref TSample destination = ref Unsafe.Add(ref cbBase, chromaOffset);
-                    int source = Av1FilmGrainSampleOperator<TSample>.Load(ref destination);
+                    int source = Av1FilmGrainSampleOperations<TSample>.Load(ref destination);
                     int scalingIndex = Av1Math.Clamp(
                         (((averageLuma * cbLumaMultiplier) + (source * cbMultiplier)) >> 6) + cbOffset,
                         0,
@@ -850,13 +850,13 @@ internal static class Av1FilmGrainNoise
 
                     int scale = ScaleLookup(scalingCb, scalingIndex, bitDepth);
                     int value = source + (((scale * Unsafe.Add(ref cbGrainBase, grainOffset)) + roundingOffset) >> scalingShift);
-                    Av1FilmGrainSampleOperator<TSample>.Store(ref destination, Av1Math.Clamp(value, minimum, maximum));
+                    Av1FilmGrainSampleOperations<TSample>.Store(ref destination, Av1Math.Clamp(value, minimum, maximum));
                 }
 
                 if (applyCr)
                 {
                     ref TSample destination = ref Unsafe.Add(ref crBase, chromaOffset);
-                    int source = Av1FilmGrainSampleOperator<TSample>.Load(ref destination);
+                    int source = Av1FilmGrainSampleOperations<TSample>.Load(ref destination);
                     int scalingIndex = Av1Math.Clamp(
                         (((averageLuma * crLumaMultiplier) + (source * crMultiplier)) >> 6) + crOffset,
                         0,
@@ -864,7 +864,7 @@ internal static class Av1FilmGrainNoise
 
                     int scale = ScaleLookup(scalingCr, scalingIndex, bitDepth);
                     int value = source + (((scale * Unsafe.Add(ref crGrainBase, grainOffset)) + roundingOffset) >> scalingShift);
-                    Av1FilmGrainSampleOperator<TSample>.Store(ref destination, Av1Math.Clamp(value, minimum, maximum));
+                    Av1FilmGrainSampleOperations<TSample>.Store(ref destination, Av1Math.Clamp(value, minimum, maximum));
                 }
             }
         }

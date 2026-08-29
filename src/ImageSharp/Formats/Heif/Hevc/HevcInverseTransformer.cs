@@ -17,32 +17,6 @@ internal static partial class HevcInverseTransformer
     private const int ResidualPrecision = 16;
 
     /// <summary>
-    /// Defines one closed inverse-transform operation selected by the transform-unit syntax.
-    /// </summary>
-    /// <typeparam name="TOperator">The implementing operator type.</typeparam>
-    private interface IHevcInverseTransformOperator<TOperator>
-        where TOperator : struct, IHevcInverseTransformOperator<TOperator>
-    {
-        /// <summary>
-        /// Gets the transform side in samples.
-        /// </summary>
-        public static abstract int Size { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether the transform uses the partial-butterfly factorization.
-        /// </summary>
-        public static abstract bool UsesButterfly { get; }
-
-        /// <summary>
-        /// Gets one inverse-transform matrix coefficient.
-        /// </summary>
-        /// <param name="frequency">The frequency-domain coordinate.</param>
-        /// <param name="position">The spatial-domain coordinate.</param>
-        /// <returns>The signed transform coefficient.</returns>
-        public static abstract int GetCoefficient(int frequency, int position);
-    }
-
-    /// <summary>
     /// Gets the scratch length required for the specified rectangular transform block.
     /// </summary>
     /// <param name="log2Width">The base-two logarithm of the transform-block width.</param>
@@ -256,7 +230,7 @@ internal static partial class HevcInverseTransformer
         int shift,
         int minimum,
         int maximum)
-        where TOperator : struct, IHevcInverseTransformOperator<TOperator>
+        where TOperator : struct, IHevcInverseTransformOperator
     {
         if (!TOperator.UsesButterfly)
         {

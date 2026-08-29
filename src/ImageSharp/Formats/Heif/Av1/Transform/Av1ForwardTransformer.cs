@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Eight-bit blocks use saturating 16-bit stages where their normative ranges permit it; high-bit-depth and scalar
 /// fallback paths retain 32-bit stages. Both representations produce the same row-major coefficient contract.
 /// </remarks>
-internal static class Av1ForwardTransformer
+internal static partial class Av1ForwardTransformer
 {
     /// <summary>
     /// Resolves and applies the configured two-dimensional AV1 forward transform.
@@ -65,40 +65,40 @@ internal static class Av1ForwardTransformer
         switch (config.TransformFunctionTypeColumn)
         {
             case Av1TransformFunctionType.Dct4:
-                DispatchRow<Av1Dct4Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Dct4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct8:
-                DispatchRow<Av1Dct8Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Dct8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct16:
-                DispatchRow<Av1Dct16Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Dct16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct32:
-                DispatchRow<Av1Dct32Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Dct32Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct64:
-                DispatchRow<Av1Dct64Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Dct64Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Adst4:
-                DispatchRow<Av1Adst4Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Adst4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Adst8:
-                DispatchRow<Av1Adst8Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Adst8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Adst16:
-                DispatchRow<Av1Adst16Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Adst16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity4:
-                DispatchRow<Av1Identity4Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Identity4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity8:
-                DispatchRow<Av1Identity8Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Identity8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity16:
-                DispatchRow<Av1Identity16Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Identity16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity32:
-                DispatchRow<Av1Identity32Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Identity32Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             default:
                 throw new InvalidImageContentException($"The {config.TransformFunctionTypeColumn} column transform is not valid for {config.TransformSize}.");
@@ -127,40 +127,40 @@ internal static class Av1ForwardTransformer
         switch (config.TransformFunctionTypeRow)
         {
             case Av1TransformFunctionType.Dct4:
-                Transform2d<TColumnOperator, Av1Dct4Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Dct4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct8:
-                Transform2d<TColumnOperator, Av1Dct8Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Dct8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct16:
-                Transform2d<TColumnOperator, Av1Dct16Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Dct16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct32:
-                Transform2d<TColumnOperator, Av1Dct32Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Dct32Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct64:
-                Transform2d<TColumnOperator, Av1Dct64Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Dct64Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Adst4:
-                Transform2d<TColumnOperator, Av1Adst4Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Adst4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Adst8:
-                Transform2d<TColumnOperator, Av1Adst8Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Adst8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Adst16:
-                Transform2d<TColumnOperator, Av1Adst16Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Adst16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity4:
-                Transform2d<TColumnOperator, Av1Identity4Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Identity4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity8:
-                Transform2d<TColumnOperator, Av1Identity8Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Identity8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity16:
-                Transform2d<TColumnOperator, Av1Identity16Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Identity16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity32:
-                Transform2d<TColumnOperator, Av1Identity32Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Identity32Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             default:
                 throw new InvalidImageContentException($"The {config.TransformFunctionTypeRow} row transform is not valid for {config.TransformSize}.");
@@ -545,7 +545,7 @@ internal static class Av1ForwardTransformer
     /// <summary>
     /// Applies one packed transform axis using the widest efficient lane count available for the block.
     /// </summary>
-    /// <typeparam name="TOperator">The transform operator applied to each independent axis.</typeparam>
+    /// <typeparam name="TOperator">The semantic transform operator.</typeparam>
     /// <param name="buffer">The packed transform block.</param>
     /// <param name="transformCount">The number of independent axes.</param>
     /// <param name="inputStride">The number of packed values between input positions.</param>
@@ -563,23 +563,23 @@ internal static class Av1ForwardTransformer
     {
         if (Avx512BW.IsSupported && transformCount >= Vector512<short>.Count)
         {
-            TransformAxis<TOperator, short, Vector512<short>>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+            TransformPackedVector512<TOperator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
             return;
         }
 
         if (Avx2.IsSupported && transformCount >= Vector256<short>.Count)
         {
-            TransformAxis<TOperator, short, Vector256<short>>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+            TransformPackedVector256<TOperator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
             return;
         }
 
-        TransformAxis<TOperator, short, Vector128<short>>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+        TransformPackedVector128<TOperator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
     }
 
     /// <summary>
-    /// Applies one signed thirty-two-bit transform axis using the widest efficient lane count available for the block.
+    /// Applies one expanded transform axis using the widest efficient lane count available for the block.
     /// </summary>
-    /// <typeparam name="TOperator">The transform operator applied to each independent axis.</typeparam>
+    /// <typeparam name="TOperator">The semantic transform operator.</typeparam>
     /// <param name="buffer">The expanded transform block.</param>
     /// <param name="transformCount">The number of independent axes.</param>
     /// <param name="inputStride">The number of expanded values between input positions.</param>
@@ -597,66 +597,218 @@ internal static class Av1ForwardTransformer
     {
         if (Vector512.IsHardwareAccelerated && transformCount >= Vector512<int>.Count)
         {
-            TransformAxis<TOperator, int, Vector512<int>>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+            TransformExpandedVector512<TOperator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
             return;
         }
 
         if (Vector256.IsHardwareAccelerated && transformCount >= Vector256<int>.Count)
         {
-            TransformAxis<TOperator, int, Vector256<int>>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+            TransformExpandedVector256<TOperator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
             return;
         }
 
         if (Vector128.IsHardwareAccelerated && transformCount >= Vector128<int>.Count)
         {
-            TransformAxis<TOperator, int, Vector128<int>>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+            TransformExpandedVector128<TOperator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
             return;
         }
 
-        TransformAxis<TOperator, int, int>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
+        TransformExpandedScalar<TOperator>(buffer, transformCount, inputStride, outputStride, cosBit, workspace);
     }
 
     /// <summary>
-    /// Applies one transform stage network to independent axes held in scalar or SIMD lanes.
+    /// Applies a packed transform to thirty-two independent axes.
     /// </summary>
-    /// <typeparam name="TOperator">The transform operator applied to each independent axis.</typeparam>
-    /// <typeparam name="TElement">The scalar storage element.</typeparam>
-    /// <typeparam name="TValue">The scalar or SIMD value containing independent transform axes.</typeparam>
-    /// <param name="buffer">The transform block.</param>
-    /// <param name="transformCount">The number of independent axes.</param>
-    /// <param name="inputStride">The number of storage elements between input positions.</param>
-    /// <param name="outputStride">The number of storage elements between output positions.</param>
-    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
-    /// <param name="workspace">The reusable transform-stage workspace.</param>
-    private static void TransformAxis<TOperator, TElement, TValue>(
-        Span<TElement> buffer,
+    private static void TransformPackedVector512<TOperator>(
+        Span<short> buffer,
         int transformCount,
         int inputStride,
         int outputStride,
         int cosBit,
         Span<int> workspace)
         where TOperator : struct, IAv1ForwardTransform1dOperator
-        where TElement : unmanaged
-        where TValue : struct
     {
-        int vectorByteLength = Unsafe.SizeOf<Av1TransformVector<TValue>>();
-        int laneCount = Unsafe.SizeOf<TValue>() / Unsafe.SizeOf<TElement>();
-        ref byte workspaceBase = ref Unsafe.As<int, byte>(ref MemoryMarshal.GetReference(workspace));
-        ref Av1TransformVector<TValue> buffer0 = ref Unsafe.As<byte, Av1TransformVector<TValue>>(ref workspaceBase);
-        ref Av1TransformVector<TValue> buffer1 =
-            ref Unsafe.As<byte, Av1TransformVector<TValue>>(ref Unsafe.Add(ref workspaceBase, vectorByteLength));
+        ref Av1TransformVector<Vector512<short>> buffer0 =
+            ref Unsafe.As<int, Av1TransformVector<Vector512<short>>>(ref MemoryMarshal.GetReference(workspace));
+        ref Av1TransformVector<Vector512<short>> buffer1 =
+            ref Unsafe.Add(ref buffer0, 1);
+        ref short source = ref MemoryMarshal.GetReference(buffer);
+        nint inputByteStride = inputStride * sizeof(short);
+        nint outputByteStride = outputStride * sizeof(short);
 
-        ref TElement sourceBase = ref MemoryMarshal.GetReference(buffer);
-        nint inputByteStride = inputStride * Unsafe.SizeOf<TElement>();
-        nint outputByteStride = outputStride * Unsafe.SizeOf<TElement>();
-
-        // Each lane is an independent row or column. The operators load from and retire coefficients directly to
-        // the strided block, matching Highway's two-buffer stage network without a separate input/output copy pass.
-        for (int batch = 0; batch < transformCount; batch += laneCount)
+        for (int batch = 0; batch < transformCount; batch += Vector512<short>.Count)
         {
-            ref byte values = ref Unsafe.As<TElement, byte>(ref Unsafe.Add(ref sourceBase, batch));
+            ref byte values = ref Unsafe.As<short, byte>(ref Unsafe.Add(ref source, batch));
 
-            TOperator.Transform<TValue>(ref values, inputByteStride, outputByteStride, ref buffer0, ref buffer1, cosBit);
+            TOperator.Transform(ref values, inputByteStride, outputByteStride, ref buffer0, ref buffer1, cosBit);
+        }
+    }
+
+    /// <summary>
+    /// Applies a packed transform to sixteen independent axes.
+    /// </summary>
+    private static void TransformPackedVector256<TOperator>(
+        Span<short> buffer,
+        int transformCount,
+        int inputStride,
+        int outputStride,
+        int cosBit,
+        Span<int> workspace)
+        where TOperator : struct, IAv1ForwardTransform1dOperator
+    {
+        ref Av1TransformVector<Vector256<short>> buffer0 =
+            ref Unsafe.As<int, Av1TransformVector<Vector256<short>>>(ref MemoryMarshal.GetReference(workspace));
+        ref Av1TransformVector<Vector256<short>> buffer1 =
+            ref Unsafe.Add(ref buffer0, 1);
+        ref short source = ref MemoryMarshal.GetReference(buffer);
+        nint inputByteStride = inputStride * sizeof(short);
+        nint outputByteStride = outputStride * sizeof(short);
+
+        for (int batch = 0; batch < transformCount; batch += Vector256<short>.Count)
+        {
+            ref byte values = ref Unsafe.As<short, byte>(ref Unsafe.Add(ref source, batch));
+
+            TOperator.Transform(ref values, inputByteStride, outputByteStride, ref buffer0, ref buffer1, cosBit);
+        }
+    }
+
+    /// <summary>
+    /// Applies a packed transform to eight independent axes.
+    /// </summary>
+    private static void TransformPackedVector128<TOperator>(
+        Span<short> buffer,
+        int transformCount,
+        int inputStride,
+        int outputStride,
+        int cosBit,
+        Span<int> workspace)
+        where TOperator : struct, IAv1ForwardTransform1dOperator
+    {
+        ref Av1TransformVector<Vector128<short>> buffer0 =
+            ref Unsafe.As<int, Av1TransformVector<Vector128<short>>>(ref MemoryMarshal.GetReference(workspace));
+        ref Av1TransformVector<Vector128<short>> buffer1 =
+            ref Unsafe.Add(ref buffer0, 1);
+        ref short source = ref MemoryMarshal.GetReference(buffer);
+        nint inputByteStride = inputStride * sizeof(short);
+        nint outputByteStride = outputStride * sizeof(short);
+
+        for (int batch = 0; batch < transformCount; batch += Vector128<short>.Count)
+        {
+            ref byte values = ref Unsafe.As<short, byte>(ref Unsafe.Add(ref source, batch));
+
+            TOperator.Transform(ref values, inputByteStride, outputByteStride, ref buffer0, ref buffer1, cosBit);
+        }
+    }
+
+    /// <summary>
+    /// Applies an expanded transform to sixteen independent axes.
+    /// </summary>
+    private static void TransformExpandedVector512<TOperator>(
+        Span<int> buffer,
+        int transformCount,
+        int inputStride,
+        int outputStride,
+        int cosBit,
+        Span<int> workspace)
+        where TOperator : struct, IAv1ForwardTransform1dOperator
+    {
+        ref Av1TransformVector<Vector512<int>> buffer0 =
+            ref Unsafe.As<int, Av1TransformVector<Vector512<int>>>(ref MemoryMarshal.GetReference(workspace));
+        ref Av1TransformVector<Vector512<int>> buffer1 =
+            ref Unsafe.Add(ref buffer0, 1);
+        ref int source = ref MemoryMarshal.GetReference(buffer);
+        nint inputByteStride = inputStride * sizeof(int);
+        nint outputByteStride = outputStride * sizeof(int);
+
+        for (int batch = 0; batch < transformCount; batch += Vector512<int>.Count)
+        {
+            ref byte values = ref Unsafe.As<int, byte>(ref Unsafe.Add(ref source, batch));
+
+            TOperator.Transform(ref values, inputByteStride, outputByteStride, ref buffer0, ref buffer1, cosBit);
+        }
+    }
+
+    /// <summary>
+    /// Applies an expanded transform to eight independent axes.
+    /// </summary>
+    private static void TransformExpandedVector256<TOperator>(
+        Span<int> buffer,
+        int transformCount,
+        int inputStride,
+        int outputStride,
+        int cosBit,
+        Span<int> workspace)
+        where TOperator : struct, IAv1ForwardTransform1dOperator
+    {
+        ref Av1TransformVector<Vector256<int>> buffer0 =
+            ref Unsafe.As<int, Av1TransformVector<Vector256<int>>>(ref MemoryMarshal.GetReference(workspace));
+        ref Av1TransformVector<Vector256<int>> buffer1 =
+            ref Unsafe.Add(ref buffer0, 1);
+        ref int source = ref MemoryMarshal.GetReference(buffer);
+        nint inputByteStride = inputStride * sizeof(int);
+        nint outputByteStride = outputStride * sizeof(int);
+
+        for (int batch = 0; batch < transformCount; batch += Vector256<int>.Count)
+        {
+            ref byte values = ref Unsafe.As<int, byte>(ref Unsafe.Add(ref source, batch));
+
+            TOperator.Transform(ref values, inputByteStride, outputByteStride, ref buffer0, ref buffer1, cosBit);
+        }
+    }
+
+    /// <summary>
+    /// Applies an expanded transform to four independent axes.
+    /// </summary>
+    private static void TransformExpandedVector128<TOperator>(
+        Span<int> buffer,
+        int transformCount,
+        int inputStride,
+        int outputStride,
+        int cosBit,
+        Span<int> workspace)
+        where TOperator : struct, IAv1ForwardTransform1dOperator
+    {
+        ref Av1TransformVector<Vector128<int>> buffer0 =
+            ref Unsafe.As<int, Av1TransformVector<Vector128<int>>>(ref MemoryMarshal.GetReference(workspace));
+        ref Av1TransformVector<Vector128<int>> buffer1 =
+            ref Unsafe.Add(ref buffer0, 1);
+        ref int source = ref MemoryMarshal.GetReference(buffer);
+        nint inputByteStride = inputStride * sizeof(int);
+        nint outputByteStride = outputStride * sizeof(int);
+
+        for (int batch = 0; batch < transformCount; batch += Vector128<int>.Count)
+        {
+            ref byte values = ref Unsafe.As<int, byte>(ref Unsafe.Add(ref source, batch));
+
+            TOperator.Transform(ref values, inputByteStride, outputByteStride, ref buffer0, ref buffer1, cosBit);
+        }
+    }
+
+    /// <summary>
+    /// Applies an expanded transform to one axis.
+    /// </summary>
+    private static void TransformExpandedScalar<TOperator>(
+        Span<int> buffer,
+        int transformCount,
+        int inputStride,
+        int outputStride,
+        int cosBit,
+        Span<int> workspace)
+        where TOperator : struct, IAv1ForwardTransform1dOperator
+    {
+        ref Av1TransformVector<int> buffer0 =
+            ref Unsafe.As<int, Av1TransformVector<int>>(ref MemoryMarshal.GetReference(workspace));
+        ref Av1TransformVector<int> buffer1 =
+            ref Unsafe.Add(ref buffer0, 1);
+        ref int source = ref MemoryMarshal.GetReference(buffer);
+        nint inputByteStride = inputStride * sizeof(int);
+        nint outputByteStride = outputStride * sizeof(int);
+
+        for (int batch = 0; batch < transformCount; batch++)
+        {
+            ref byte values = ref Unsafe.As<int, byte>(ref Unsafe.Add(ref source, batch));
+
+            TOperator.Transform(ref values, inputByteStride, outputByteStride, ref buffer0, ref buffer1, cosBit);
         }
     }
 

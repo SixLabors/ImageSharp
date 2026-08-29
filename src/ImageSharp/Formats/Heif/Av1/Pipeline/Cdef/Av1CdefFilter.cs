@@ -18,53 +18,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 /// one eight-by-eight block per 128-bit lane so AVX2 can evaluate two independent blocks together. Scalar kernels retain
 /// the same constrain, clipping, and tie-breaking rules for unsupported hardware and partial edge blocks.
 /// </remarks>
-internal static class Av1CdefFilter
+internal static partial class Av1CdefFilter
 {
     /// <summary>
     /// The sample value used in the bordered source plane for neighbors outside the coded frame.
     /// </summary>
     public const ushort VeryLarge = 0x4000;
-
-    /// <summary>
-    /// Defines storage-specific writes for one filtered row.
-    /// </summary>
-    /// <typeparam name="TSample">The destination sample storage type.</typeparam>
-    private interface IOutputOperator<TSample>
-        where TSample : unmanaged
-    {
-        /// <summary>
-        /// Stores four or eight filtered samples from the low vector lanes.
-        /// </summary>
-        /// <param name="destination">The first element in the destination plane.</param>
-        /// <param name="offset">The offset of the first sample to write.</param>
-        /// <param name="value">The filtered samples in the low lanes.</param>
-        /// <param name="count">The number of valid lanes.</param>
-        public static abstract void StoreVector(ref TSample destination, int offset, Vector128<short> value, int count);
-
-        /// <summary>
-        /// Stores one filtered sample.
-        /// </summary>
-        /// <param name="destination">The first element in the destination plane.</param>
-        /// <param name="offset">The offset of the sample to write.</param>
-        /// <param name="value">The filtered sample.</param>
-        public static abstract void StoreScalar(ref TSample destination, int offset, int value);
-    }
-
-    /// <summary>
-    /// Defines which groups of directional taps participate in one closed filter kernel.
-    /// </summary>
-    private interface IFilterOperator
-    {
-        /// <summary>
-        /// Gets a value indicating whether the primary directional taps are enabled.
-        /// </summary>
-        public static abstract bool EnablePrimary { get; }
-
-        /// <summary>
-        /// Gets a value indicating whether the secondary off-axis taps are enabled.
-        /// </summary>
-        public static abstract bool EnableSecondary { get; }
-    }
 
     /// <summary>
     /// Copies an eight-bit sample rectangle into the 16-bit CDEF working plane.
@@ -1732,100 +1691,4 @@ internal static class Av1CdefFilter
         6 => tap == 0 ? stride : 2 * stride,
         _ => tap == 0 ? stride : (2 * stride) - 1
     };
-
-    /// <summary>
-    /// Enables both directional tap groups and their combined clipping rule.
-    /// </summary>
-    private readonly struct PrimaryAndSecondaryFilterOperator : IFilterOperator
-    {
-        /// <inheritdoc/>
-        public static bool EnablePrimary => true;
-
-        /// <inheritdoc/>
-        public static bool EnableSecondary => true;
-    }
-
-    /// <summary>
-    /// Enables only the primary directional taps.
-    /// </summary>
-    private readonly struct PrimaryFilterOperator : IFilterOperator
-    {
-        /// <inheritdoc/>
-        public static bool EnablePrimary => true;
-
-        /// <inheritdoc/>
-        public static bool EnableSecondary => false;
-    }
-
-    /// <summary>
-    /// Enables only the secondary off-axis taps.
-    /// </summary>
-    private readonly struct SecondaryFilterOperator : IFilterOperator
-    {
-        /// <inheritdoc/>
-        public static bool EnablePrimary => false;
-
-        /// <inheritdoc/>
-        public static bool EnableSecondary => true;
-    }
-
-    /// <summary>
-    /// Disables both tap groups so the source block is copied unchanged.
-    /// </summary>
-    private readonly struct CopyFilterOperator : IFilterOperator
-    {
-        /// <inheritdoc/>
-        public static bool EnablePrimary => false;
-
-        /// <inheritdoc/>
-        public static bool EnableSecondary => false;
-    }
-
-    /// <summary>
-    /// Writes filtered samples to eight-bit plane storage.
-    /// </summary>
-    private readonly struct ByteOutputOperator : IOutputOperator<byte>
-    {
-        /// <inheritdoc/>
-        public static void StoreVector(ref byte destination, int offset, Vector128<short> value, int count)
-        {
-            Vector64<byte> packed = Vector128.Narrow(value.AsUInt16(), Vector128<ushort>.Zero).GetLower();
-            ref byte output = ref Unsafe.Add(ref destination, offset);
-            if (count == 8)
-            {
-                packed.StoreUnsafe(ref output);
-            }
-            else
-            {
-                Unsafe.WriteUnaligned(ref output, packed.AsUInt32().ToScalar());
-            }
-        }
-
-        /// <inheritdoc/>
-        public static void StoreScalar(ref byte destination, int offset, int value) => Unsafe.Add(ref destination, offset) = (byte)value;
-    }
-
-    /// <summary>
-    /// Writes filtered samples to 16-bit plane storage.
-    /// </summary>
-    private readonly struct UInt16OutputOperator : IOutputOperator<ushort>
-    {
-        /// <inheritdoc/>
-        public static void StoreVector(ref ushort destination, int offset, Vector128<short> value, int count)
-        {
-            ref ushort output = ref Unsafe.Add(ref destination, offset);
-            if (count == 8)
-            {
-                value.AsUInt16().StoreUnsafe(ref output);
-            }
-            else
-            {
-                ref byte outputBytes = ref Unsafe.As<ushort, byte>(ref output);
-                Unsafe.WriteUnaligned(ref outputBytes, value.AsUInt64().GetLower().ToScalar());
-            }
-        }
-
-        /// <inheritdoc/>
-        public static void StoreScalar(ref ushort destination, int offset, int value) => Unsafe.Add(ref destination, offset) = (ushort)value;
-    }
 }

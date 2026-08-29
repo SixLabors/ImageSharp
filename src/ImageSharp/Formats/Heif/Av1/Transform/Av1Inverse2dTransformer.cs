@@ -4,7 +4,6 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Transform.Inverse;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -17,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// cross-lane permutations. Reconstruction adds the final residuals to their matching prediction lanes before
 /// narrowing to the decoded sample depth.
 /// </remarks>
-internal static class Av1Inverse2dTransformer
+internal static partial class Av1Inverse2dTransformer
 {
     /// <summary>
     /// Applies an inverse transform and adds its residual to high-bit-depth predicted samples.
@@ -39,7 +38,7 @@ internal static class Av1Inverse2dTransformer
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace,
         int bitDepth)
-        => Transform2dAdd<short, Av1InverseTransformOutputOperator<short>>(
+        => Transform2dAdd<short, Av1InverseTransformer.HighBitDepthOutputOperator>(
             input,
             outputForRead,
             strideForRead,
@@ -67,7 +66,7 @@ internal static class Av1Inverse2dTransformer
         int strideForWrite,
         ref Av1Transform2dFlipConfiguration config,
         Span<int> workspace)
-        => Transform2dAdd<byte, Av1InverseTransformOutputOperator<byte>>(
+        => Transform2dAdd<byte, Av1InverseTransformer.ByteOutputOperator>(
             input,
             outputForRead,
             strideForRead,
@@ -90,68 +89,68 @@ internal static class Av1Inverse2dTransformer
         Span<int> workspace,
         int bitDepth)
         where TSample : unmanaged
-        where TOutputOperator : struct, IAv1InverseTransformOutputOperator<TSample>
+        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
     {
         Guard.MustBeSizedAtLeast(workspace, Av1TransformWorkspace.GetRequiredLength(config.TransformSize), nameof(workspace));
         switch (config.TransformFunctionTypeColumn)
         {
             case Av1TransformFunctionType.Dct4:
-                DispatchRow<TSample, TOutputOperator, Av1Dct4Inverse1dOperator>(
+                DispatchRow<TSample, TOutputOperator, Dct4Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct8:
-                DispatchRow<TSample, TOutputOperator, Av1Dct8Inverse1dOperator>(
+                DispatchRow<TSample, TOutputOperator, Dct8Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct16:
-                DispatchRow<TSample, TOutputOperator, Av1Dct16Inverse1dOperator>(
+                DispatchRow<TSample, TOutputOperator, Dct16Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct32:
-                DispatchRow<TSample, TOutputOperator, Av1Dct32Inverse1dOperator>(
+                DispatchRow<TSample, TOutputOperator, Dct32Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct64:
-                DispatchRow<TSample, TOutputOperator, Av1Dct64Inverse1dOperator>(
+                DispatchRow<TSample, TOutputOperator, Dct64Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Adst4:
-                DispatchRow<TSample, TOutputOperator, Av1Adst4Inverse1dOperator>(
+                DispatchRow<TSample, TOutputOperator, Adst4Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Adst8:
-                DispatchRow<TSample, TOutputOperator, Av1Adst8Inverse1dOperator>(
+                DispatchRow<TSample, TOutputOperator, Adst8Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Adst16:
-                DispatchRow<TSample, TOutputOperator, Av1Adst16Inverse1dOperator>(
+                DispatchRow<TSample, TOutputOperator, Adst16Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Identity4:
-                DispatchRow<TSample, TOutputOperator, Av1Identity4Inverse1dOperator>(
+                DispatchRow<TSample, TOutputOperator, Identity4Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Identity8:
-                DispatchRow<TSample, TOutputOperator, Av1Identity8Inverse1dOperator>(
+                DispatchRow<TSample, TOutputOperator, Identity8Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Identity16:
-                DispatchRow<TSample, TOutputOperator, Av1Identity16Inverse1dOperator>(
+                DispatchRow<TSample, TOutputOperator, Identity16Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Identity32:
-                DispatchRow<TSample, TOutputOperator, Av1Identity32Inverse1dOperator>(
+                DispatchRow<TSample, TOutputOperator, Identity32Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
@@ -173,68 +172,68 @@ internal static class Av1Inverse2dTransformer
         Span<int> workspace,
         int bitDepth)
         where TSample : unmanaged
-        where TOutputOperator : struct, IAv1InverseTransformOutputOperator<TSample>
+        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
         where TColumnOperator : struct, IAv1Transform1dOperator
     {
         switch (config.TransformFunctionTypeRow)
         {
             case Av1TransformFunctionType.Dct4:
-                Transform2d<TSample, TOutputOperator, TColumnOperator, Av1Dct4Inverse1dOperator>(
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Dct4Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct8:
-                Transform2d<TSample, TOutputOperator, TColumnOperator, Av1Dct8Inverse1dOperator>(
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Dct8Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct16:
-                Transform2d<TSample, TOutputOperator, TColumnOperator, Av1Dct16Inverse1dOperator>(
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Dct16Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct32:
-                Transform2d<TSample, TOutputOperator, TColumnOperator, Av1Dct32Inverse1dOperator>(
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Dct32Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Dct64:
-                Transform2d<TSample, TOutputOperator, TColumnOperator, Av1Dct64Inverse1dOperator>(
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Dct64Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Adst4:
-                Transform2d<TSample, TOutputOperator, TColumnOperator, Av1Adst4Inverse1dOperator>(
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Adst4Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Adst8:
-                Transform2d<TSample, TOutputOperator, TColumnOperator, Av1Adst8Inverse1dOperator>(
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Adst8Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Adst16:
-                Transform2d<TSample, TOutputOperator, TColumnOperator, Av1Adst16Inverse1dOperator>(
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Adst16Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Identity4:
-                Transform2d<TSample, TOutputOperator, TColumnOperator, Av1Identity4Inverse1dOperator>(
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Identity4Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Identity8:
-                Transform2d<TSample, TOutputOperator, TColumnOperator, Av1Identity8Inverse1dOperator>(
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Identity8Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Identity16:
-                Transform2d<TSample, TOutputOperator, TColumnOperator, Av1Identity16Inverse1dOperator>(
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Identity16Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
             case Av1TransformFunctionType.Identity32:
-                Transform2d<TSample, TOutputOperator, TColumnOperator, Av1Identity32Inverse1dOperator>(
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Identity32Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
@@ -256,7 +255,7 @@ internal static class Av1Inverse2dTransformer
         Span<int> workspace,
         int bitDepth)
         where TSample : unmanaged
-        where TOutputOperator : struct, IAv1InverseTransformOutputOperator<TSample>
+        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
         where TColumnOperator : struct, IAv1Transform1dOperator
         where TRowOperator : struct, IAv1Transform1dOperator
     {
@@ -308,7 +307,7 @@ internal static class Av1Inverse2dTransformer
         Span<int> workspace,
         int bitDepth)
         where TSample : unmanaged
-        where TOutputOperator : struct, IAv1InverseTransformOutputOperator<TSample>
+        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
         where TColumnOperator : struct, IAv1Transform1dOperator
         where TRowOperator : struct, IAv1Transform1dOperator
     {
@@ -464,7 +463,7 @@ internal static class Av1Inverse2dTransformer
         Span<int> workspace,
         int bitDepth)
         where TSample : unmanaged
-        where TOutputOperator : struct, IAv1InverseTransformOutputOperator<TSample>
+        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
         where TColumnOperator : struct, IAv1Transform1dOperator
         where TRowOperator : struct, IAv1Transform1dOperator
     {
@@ -596,7 +595,7 @@ internal static class Av1Inverse2dTransformer
         Span<int> workspace,
         int bitDepth)
         where TSample : unmanaged
-        where TOutputOperator : struct, IAv1InverseTransformOutputOperator<TSample>
+        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
         where TColumnOperator : struct, IAv1Transform1dOperator
         where TRowOperator : struct, IAv1Transform1dOperator
     {

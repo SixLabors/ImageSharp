@@ -51,37 +51,6 @@ internal static partial class HevcIntraPredictor
     private const int MaximumBlockSize = 32;
 
     /// <summary>
-    /// Defines one closed intra-prediction operation selected by the decoded mode.
-    /// </summary>
-    /// <typeparam name="TOperator">The implementing operator type.</typeparam>
-    private interface IHevcIntraPredictionOperator<TOperator>
-        where TOperator : struct, IHevcIntraPredictionOperator<TOperator>
-    {
-        /// <summary>
-        /// Reconstructs one square prediction block.
-        /// </summary>
-        /// <param name="top">The top-left, top, and top-right reference samples.</param>
-        /// <param name="left">The top-left, left, and below-left reference samples.</param>
-        /// <param name="destination">The destination buffer beginning at the block origin.</param>
-        /// <param name="destinationStride">The destination row stride in samples.</param>
-        /// <param name="size">The square block side in samples.</param>
-        /// <param name="mode">The decoded prediction mode.</param>
-        /// <param name="bitDepth">The reconstructed component precision.</param>
-        /// <param name="filterPredictionEdges">Whether the luma edge filter applies to the selected block.</param>
-        /// <param name="scratch">The caller-owned block and extended-reference scratch space.</param>
-        public static abstract void Predict(
-            ReadOnlySpan<ushort> top,
-            ReadOnlySpan<ushort> left,
-            Span<ushort> destination,
-            int destinationStride,
-            int size,
-            int mode,
-            int bitDepth,
-            bool filterPredictionEdges,
-            Span<ushort> scratch);
-    }
-
-    /// <summary>
     /// Gets the angle selected by each absolute angular-mode displacement.
     /// </summary>
     private static ReadOnlySpan<int> PredictionAngles => [0, 2, 5, 9, 13, 17, 21, 26, 32];
@@ -133,7 +102,7 @@ internal static partial class HevcIntraPredictor
         switch (mode)
         {
             case PlanarMode:
-                Predict<PlanarPredictionOperator>(
+                Predict<PlanarOperator>(
                     top,
                     left,
                     destination,
@@ -145,7 +114,7 @@ internal static partial class HevcIntraPredictor
                     scratch);
                 break;
             case DcMode:
-                Predict<DcPredictionOperator>(
+                Predict<DcOperator>(
                     top,
                     left,
                     destination,
@@ -157,7 +126,7 @@ internal static partial class HevcIntraPredictor
                     scratch);
                 break;
             default:
-                Predict<AngularPredictionOperator>(
+                Predict<AngularOperator>(
                     top,
                     left,
                     destination,
@@ -243,7 +212,7 @@ internal static partial class HevcIntraPredictor
         int bitDepth,
         bool filterPredictionEdges,
         Span<ushort> scratch)
-        where TOperator : struct, IHevcIntraPredictionOperator<TOperator>
+        where TOperator : struct, IHevcIntraPredictionOperator
         => TOperator.Predict(
             top,
             left,

@@ -16,6 +16,15 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 internal static partial class HevcInverseTransformer
 {
     /// <summary>
+    /// Gets the common inverse-DCT magnitudes ordered on the pi-over-sixty-four angle grid.
+    /// </summary>
+    private static ReadOnlySpan<sbyte> DiscreteCosineMagnitudes =>
+    [
+        90, 90, 90, 90, 89, 88, 87, 85, 83, 82, 80, 78, 75, 73, 70, 67, 64,
+        61, 57, 54, 50, 46, 43, 38, 36, 31, 25, 22, 18, 13, 9, 4, 0
+    ];
+
+    /// <summary>
     /// Calculates the disjoint odd-frequency groups that seed the HEVC partial-butterfly reconstruction.
     /// </summary>
     /// <typeparam name="TOperator">The selected inverse-DCT operator.</typeparam>
@@ -23,7 +32,7 @@ internal static partial class HevcInverseTransformer
     /// <param name="groups">The destination group rows.</param>
     /// <param name="lineCount">The number of independent lines transformed together.</param>
     private static void PopulateButterflyGroups<TOperator>(ReadOnlySpan<int> source, Span<int> groups, int lineCount)
-        where TOperator : struct, IHevcInverseTransformOperator<TOperator>
+        where TOperator : struct, IHevcInverseTransformOperator
     {
         int size = TOperator.Size;
         int groupOffset = 0;
@@ -76,7 +85,7 @@ internal static partial class HevcInverseTransformer
         int firstFrequency,
         int frequencyStep,
         int position)
-        where TOperator : struct, IHevcInverseTransformOperator<TOperator>
+        where TOperator : struct, IHevcInverseTransformOperator
     {
         ref int sourceBase = ref MemoryMarshal.GetReference(source);
         ref int destinationBase = ref MemoryMarshal.GetReference(destination);
@@ -162,7 +171,7 @@ internal static partial class HevcInverseTransformer
         int shift,
         int minimum,
         int maximum)
-        where TOperator : struct, IHevcInverseTransformOperator<TOperator>
+        where TOperator : struct, IHevcInverseTransformOperator
     {
         int size = TOperator.Size;
         int combinedSize = 2;
@@ -313,7 +322,7 @@ internal static partial class HevcInverseTransformer
         int shift,
         int minimum,
         int maximum)
-        where TOperator : struct, IHevcInverseTransformOperator<TOperator>
+        where TOperator : struct, IHevcInverseTransformOperator
     {
         ref int sourceBase = ref MemoryMarshal.GetReference(source);
         ref int destinationBase = ref MemoryMarshal.GetReference(destination);

@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Hevc;
 /// and identity cases outside the row loops. Saturation to the residual range and clipping to sample depth occur at the
 /// same stage in every vector width and in the scalar tail.
 /// </remarks>
-internal static class HevcResidualReconstructor
+internal static partial class HevcResidualReconstructor
 {
     /// <summary>
     /// The minimum residual sample represented by the decoder reconstruction pipeline.
@@ -27,44 +27,6 @@ internal static class HevcResidualReconstructor
     /// The maximum residual sample represented by the decoder reconstruction pipeline.
     /// </summary>
     private const int ResidualMaximum = short.MaxValue;
-
-    /// <summary>
-    /// Defines a closed transform-skip normalization operator for every SIMD width and the scalar tail.
-    /// </summary>
-    private interface ITransformSkipOperator
-    {
-        /// <summary>
-        /// Normalizes sixteen transform-skipped coefficients.
-        /// </summary>
-        /// <param name="values">The dequantized coefficients.</param>
-        /// <param name="shift">The nonnegative shift magnitude.</param>
-        /// <returns>The reconstructed residuals.</returns>
-        static abstract Vector512<int> Invoke(Vector512<int> values, int shift);
-
-        /// <summary>
-        /// Normalizes eight transform-skipped coefficients.
-        /// </summary>
-        /// <param name="values">The dequantized coefficients.</param>
-        /// <param name="shift">The nonnegative shift magnitude.</param>
-        /// <returns>The reconstructed residuals.</returns>
-        static abstract Vector256<int> Invoke(Vector256<int> values, int shift);
-
-        /// <summary>
-        /// Normalizes four transform-skipped coefficients.
-        /// </summary>
-        /// <param name="values">The dequantized coefficients.</param>
-        /// <param name="shift">The nonnegative shift magnitude.</param>
-        /// <returns>The reconstructed residuals.</returns>
-        static abstract Vector128<int> Invoke(Vector128<int> values, int shift);
-
-        /// <summary>
-        /// Normalizes one transform-skipped coefficient.
-        /// </summary>
-        /// <param name="value">The dequantized coefficient.</param>
-        /// <param name="shift">The nonnegative shift magnitude.</param>
-        /// <returns>The reconstructed residual.</returns>
-        static abstract int Invoke(int value, int shift);
-    }
 
     /// <summary>
     /// Copies one transquant-bypass coefficient block into residual sample order.
@@ -612,52 +574,5 @@ internal static class HevcResidualReconstructor
         // Out-of-range index four supplies the zero lanes needed at distances one and two.
         values += Vector128.Shuffle(values, Vector128.Create(4, 0, 1, 2));
         return values + Vector128.Shuffle(values, Vector128.Create(4, 4, 0, 1));
-    }
-
-    /// <summary>
-    /// Applies the rounded right shift used by ordinary transform-skip reconstruction.
-    /// </summary>
-    private readonly struct RightShiftTransformSkipOperator : ITransformSkipOperator
-    {
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<int> Invoke(Vector512<int> values, int shift)
-            => shift == 0 ? values : (values + Vector512.Create(1 << (shift - 1))) >> shift;
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<int> Invoke(Vector256<int> values, int shift)
-            => shift == 0 ? values : (values + Vector256.Create(1 << (shift - 1))) >> shift;
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<int> Invoke(Vector128<int> values, int shift)
-            => shift == 0 ? values : (values + Vector128.Create(1 << (shift - 1))) >> shift;
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Invoke(int value, int shift) => shift == 0 ? value : (value + (1 << (shift - 1))) >> shift;
-    }
-
-    /// <summary>
-    /// Applies the exact left shift used by high-bit-depth transform-skip reconstruction.
-    /// </summary>
-    private readonly struct LeftShiftTransformSkipOperator : ITransformSkipOperator
-    {
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector512<int> Invoke(Vector512<int> values, int shift) => values << shift;
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector256<int> Invoke(Vector256<int> values, int shift) => values << shift;
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static Vector128<int> Invoke(Vector128<int> values, int shift) => values << shift;
-
-        /// <inheritdoc/>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static int Invoke(int value, int shift) => value << shift;
     }
 }

@@ -40,18 +40,18 @@ public class Av1ForwardTransformTests
     [Fact]
     public void OneDimensionalOperatorsMatchAnalyticalReference()
     {
-        AssertOperatorAccuracy<Av1Dct4Forward1dOperator>(Av1TransformType1d.Dct, 4);
-        AssertOperatorAccuracy<Av1Dct8Forward1dOperator>(Av1TransformType1d.Dct, 8);
-        AssertOperatorAccuracy<Av1Dct16Forward1dOperator>(Av1TransformType1d.Dct, 16);
-        AssertOperatorAccuracy<Av1Dct32Forward1dOperator>(Av1TransformType1d.Dct, 32);
-        AssertOperatorAccuracy<Av1Dct64Forward1dOperator>(Av1TransformType1d.Dct, 64);
-        AssertOperatorAccuracy<Av1Adst4Forward1dOperator>(Av1TransformType1d.Adst, 4);
-        AssertOperatorAccuracy<Av1Adst8Forward1dOperator>(Av1TransformType1d.Adst, 8);
-        AssertOperatorAccuracy<Av1Adst16Forward1dOperator>(Av1TransformType1d.Adst, 16);
-        AssertOperatorAccuracy<Av1Identity4Forward1dOperator>(Av1TransformType1d.Identity, 4);
-        AssertOperatorAccuracy<Av1Identity8Forward1dOperator>(Av1TransformType1d.Identity, 8);
-        AssertOperatorAccuracy<Av1Identity16Forward1dOperator>(Av1TransformType1d.Identity, 16);
-        AssertOperatorAccuracy<Av1Identity32Forward1dOperator>(Av1TransformType1d.Identity, 32);
+        AssertOperatorAccuracy<Av1ForwardTransformer.Dct4Operator>(Av1TransformType1d.Dct, 4);
+        AssertOperatorAccuracy<Av1ForwardTransformer.Dct8Operator>(Av1TransformType1d.Dct, 8);
+        AssertOperatorAccuracy<Av1ForwardTransformer.Dct16Operator>(Av1TransformType1d.Dct, 16);
+        AssertOperatorAccuracy<Av1ForwardTransformer.Dct32Operator>(Av1TransformType1d.Dct, 32);
+        AssertOperatorAccuracy<Av1ForwardTransformer.Dct64Operator>(Av1TransformType1d.Dct, 64);
+        AssertOperatorAccuracy<Av1ForwardTransformer.Adst4Operator>(Av1TransformType1d.Adst, 4);
+        AssertOperatorAccuracy<Av1ForwardTransformer.Adst8Operator>(Av1TransformType1d.Adst, 8);
+        AssertOperatorAccuracy<Av1ForwardTransformer.Adst16Operator>(Av1TransformType1d.Adst, 16);
+        AssertOperatorAccuracy<Av1ForwardTransformer.Identity4Operator>(Av1TransformType1d.Identity, 4);
+        AssertOperatorAccuracy<Av1ForwardTransformer.Identity8Operator>(Av1TransformType1d.Identity, 8);
+        AssertOperatorAccuracy<Av1ForwardTransformer.Identity16Operator>(Av1TransformType1d.Identity, 16);
+        AssertOperatorAccuracy<Av1ForwardTransformer.Identity32Operator>(Av1TransformType1d.Identity, 32);
     }
 
     /// <summary>
@@ -88,18 +88,18 @@ public class Av1ForwardTransformTests
     /// </summary>
     private static void AssertOneDimensionalOperators()
     {
-        AssertOperator<Av1Dct4Forward1dOperator>(4);
-        AssertOperator<Av1Dct8Forward1dOperator>(8);
-        AssertOperator<Av1Dct16Forward1dOperator>(16);
-        AssertOperator<Av1Dct32Forward1dOperator>(32);
-        AssertOperator<Av1Dct64Forward1dOperator>(64);
-        AssertOperator<Av1Adst4Forward1dOperator>(4);
-        AssertOperator<Av1Adst8Forward1dOperator>(8);
-        AssertOperator<Av1Adst16Forward1dOperator>(16);
-        AssertOperator<Av1Identity4Forward1dOperator>(4);
-        AssertOperator<Av1Identity8Forward1dOperator>(8);
-        AssertOperator<Av1Identity16Forward1dOperator>(16);
-        AssertOperator<Av1Identity32Forward1dOperator>(32);
+        AssertOperator<Av1ForwardTransformer.Dct4Operator>(4);
+        AssertOperator<Av1ForwardTransformer.Dct8Operator>(8);
+        AssertOperator<Av1ForwardTransformer.Dct16Operator>(16);
+        AssertOperator<Av1ForwardTransformer.Dct32Operator>(32);
+        AssertOperator<Av1ForwardTransformer.Dct64Operator>(64);
+        AssertOperator<Av1ForwardTransformer.Adst4Operator>(4);
+        AssertOperator<Av1ForwardTransformer.Adst8Operator>(8);
+        AssertOperator<Av1ForwardTransformer.Adst16Operator>(16);
+        AssertOperator<Av1ForwardTransformer.Identity4Operator>(4);
+        AssertOperator<Av1ForwardTransformer.Identity8Operator>(8);
+        AssertOperator<Av1ForwardTransformer.Identity16Operator>(16);
+        AssertOperator<Av1ForwardTransformer.Identity32Operator>(32);
     }
 
     /// <summary>
@@ -108,32 +108,32 @@ public class Av1ForwardTransformTests
     /// <typeparam name="TOperator">The transform operator.</typeparam>
     /// <param name="length">The transform length.</param>
     private static void AssertOperator<TOperator>(int length)
-        where TOperator : struct, IAv1ForwardTransform1dOperator
+        where TOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
     {
         const int cosBit = 12;
 
-        AssertInt32Operator<TOperator, Vector128<int>>(length, cosBit);
+        AssertInt32Vector128Operator<TOperator>(length, cosBit);
 
         if (Vector256.IsHardwareAccelerated)
         {
-            AssertInt32Operator<TOperator, Vector256<int>>(length, cosBit);
+            AssertInt32Vector256Operator<TOperator>(length, cosBit);
         }
 
         if (Vector512.IsHardwareAccelerated)
         {
-            AssertInt32Operator<TOperator, Vector512<int>>(length, cosBit);
+            AssertInt32Vector512Operator<TOperator>(length, cosBit);
         }
 
-        AssertInt16Operator<TOperator, Vector128<short>>(length, cosBit);
+        AssertInt16Vector128Operator<TOperator>(length, cosBit);
 
         if (Avx2.IsSupported)
         {
-            AssertInt16Operator<TOperator, Vector256<short>>(length, cosBit);
+            AssertInt16Vector256Operator<TOperator>(length, cosBit);
         }
 
         if (Avx512BW.IsSupported)
         {
-            AssertInt16Operator<TOperator, Vector512<short>>(length, cosBit);
+            AssertInt16Vector512Operator<TOperator>(length, cosBit);
         }
     }
 
@@ -144,7 +144,7 @@ public class Av1ForwardTransformTests
     /// <param name="transformType">The analytical transform definition.</param>
     /// <param name="length">The transform length.</param>
     private static void AssertOperatorAccuracy<TOperator>(Av1TransformType1d transformType, int length)
-        where TOperator : struct, IAv1ForwardTransform1dOperator
+        where TOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
     {
         const int cosBit = 13;
         const int testBlockCount = 500;
@@ -167,7 +167,7 @@ public class Av1ForwardTransformTests
 
             ref byte valuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<int>, byte>(ref values);
 
-            TOperator.Transform<int>(ref valuesBase, sizeof(int), sizeof(int), ref buffer0, ref buffer1, cosBit);
+            TOperator.Transform(ref valuesBase, sizeof(int), sizeof(int), ref buffer0, ref buffer1, cosBit);
             Av1ReferenceTransform.ReferenceTransform1d(transformType, referenceInput, referenceOutput, length);
 
             // libaom permits seven integer coefficient units because each fixed-point butterfly rounds independently.
@@ -184,24 +184,22 @@ public class Av1ForwardTransformTests
     }
 
     /// <summary>
-    /// Compares one Int32 vector representation with the scalar Int32 stage network lane by lane.
+    /// Compares the Vector128 Int32 representation with the scalar stage network lane by lane.
     /// </summary>
     /// <typeparam name="TOperator">The transform operator.</typeparam>
-    /// <typeparam name="TVector">The SIMD value containing independent transform axes.</typeparam>
     /// <param name="length">The transform length.</param>
     /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
-    private static void AssertInt32Operator<TOperator, TVector>(int length, int cosBit)
-        where TOperator : struct, IAv1ForwardTransform1dOperator
-        where TVector : struct
+    private static void AssertInt32Vector128Operator<TOperator>(int length, int cosBit)
+        where TOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
     {
-        int laneCount = System.Runtime.CompilerServices.Unsafe.SizeOf<TVector>() / sizeof(int);
-        Av1TransformVector<TVector> vectorValues = default;
-        Av1TransformVector<TVector> vectorBuffer0 = default;
-        Av1TransformVector<TVector> vectorBuffer1 = default;
+        int laneCount = System.Runtime.CompilerServices.Unsafe.SizeOf<Vector128<int>>() / sizeof(int);
+        Av1TransformVector<Vector128<int>> vectorValues = default;
+        Av1TransformVector<Vector128<int>> vectorBuffer0 = default;
+        Av1TransformVector<Vector128<int>> vectorBuffer1 = default;
 
         for (int index = 0; index < length; index++)
         {
-            ref int firstLane = ref System.Runtime.CompilerServices.Unsafe.As<TVector, int>(ref vectorValues[index]);
+            ref int firstLane = ref System.Runtime.CompilerServices.Unsafe.As<Vector128<int>, int>(ref vectorValues[index]);
 
             for (int lane = 0; lane < laneCount; lane++)
             {
@@ -209,10 +207,10 @@ public class Av1ForwardTransformTests
             }
         }
 
-        ref byte vectorValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<TVector>, byte>(ref vectorValues);
-        nint vectorStride = System.Runtime.CompilerServices.Unsafe.SizeOf<TVector>();
+        ref byte vectorValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<Vector128<int>>, byte>(ref vectorValues);
+        nint vectorStride = System.Runtime.CompilerServices.Unsafe.SizeOf<Vector128<int>>();
 
-        TOperator.Transform<TVector>(ref vectorValuesBase, vectorStride, vectorStride, ref vectorBuffer0, ref vectorBuffer1, cosBit);
+        TOperator.Transform(ref vectorValuesBase, vectorStride, vectorStride, ref vectorBuffer0, ref vectorBuffer1, cosBit);
 
         for (int lane = 0; lane < laneCount; lane++)
         {
@@ -227,35 +225,137 @@ public class Av1ForwardTransformTests
 
             ref byte scalarValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<int>, byte>(ref scalarValues);
 
-            TOperator.Transform<int>(ref scalarValuesBase, sizeof(int), sizeof(int), ref scalarBuffer0, ref scalarBuffer1, cosBit);
+            TOperator.Transform(ref scalarValuesBase, sizeof(int), sizeof(int), ref scalarBuffer0, ref scalarBuffer1, cosBit);
 
             for (int index = 0; index < length; index++)
             {
-                ref int firstLane = ref System.Runtime.CompilerServices.Unsafe.As<TVector, int>(ref vectorValues[index]);
+                ref int firstLane = ref System.Runtime.CompilerServices.Unsafe.As<Vector128<int>, int>(ref vectorValues[index]);
                 Assert.Equal(scalarValues[index], System.Runtime.CompilerServices.Unsafe.Add(ref firstLane, lane));
             }
         }
     }
 
     /// <summary>
-    /// Compares one Int16 vector representation with the scalar Int16 stage network lane by lane.
+    /// Compares the Vector256 Int32 representation with the scalar stage network lane by lane.
     /// </summary>
     /// <typeparam name="TOperator">The transform operator.</typeparam>
-    /// <typeparam name="TVector">The SIMD value containing independent transform axes.</typeparam>
     /// <param name="length">The transform length.</param>
     /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
-    private static void AssertInt16Operator<TOperator, TVector>(int length, int cosBit)
-        where TOperator : struct, IAv1ForwardTransform1dOperator
-        where TVector : struct
+    private static void AssertInt32Vector256Operator<TOperator>(int length, int cosBit)
+        where TOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
     {
-        int laneCount = System.Runtime.CompilerServices.Unsafe.SizeOf<TVector>() / sizeof(short);
-        Av1TransformVector<TVector> vectorValues = default;
-        Av1TransformVector<TVector> vectorBuffer0 = default;
-        Av1TransformVector<TVector> vectorBuffer1 = default;
+        int laneCount = System.Runtime.CompilerServices.Unsafe.SizeOf<Vector256<int>>() / sizeof(int);
+        Av1TransformVector<Vector256<int>> vectorValues = default;
+        Av1TransformVector<Vector256<int>> vectorBuffer0 = default;
+        Av1TransformVector<Vector256<int>> vectorBuffer1 = default;
 
         for (int index = 0; index < length; index++)
         {
-            ref short firstLane = ref System.Runtime.CompilerServices.Unsafe.As<TVector, short>(ref vectorValues[index]);
+            ref int firstLane = ref System.Runtime.CompilerServices.Unsafe.As<Vector256<int>, int>(ref vectorValues[index]);
+
+            for (int lane = 0; lane < laneCount; lane++)
+            {
+                System.Runtime.CompilerServices.Unsafe.Add(ref firstLane, lane) = GetInputValue(index, lane);
+            }
+        }
+
+        ref byte vectorValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<Vector256<int>>, byte>(ref vectorValues);
+        nint vectorStride = System.Runtime.CompilerServices.Unsafe.SizeOf<Vector256<int>>();
+
+        TOperator.Transform(ref vectorValuesBase, vectorStride, vectorStride, ref vectorBuffer0, ref vectorBuffer1, cosBit);
+
+        for (int lane = 0; lane < laneCount; lane++)
+        {
+            Av1TransformVector<int> scalarValues = default;
+            Av1TransformVector<int> scalarBuffer0 = default;
+            Av1TransformVector<int> scalarBuffer1 = default;
+
+            for (int index = 0; index < length; index++)
+            {
+                scalarValues[index] = GetInputValue(index, lane);
+            }
+
+            ref byte scalarValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<int>, byte>(ref scalarValues);
+
+            TOperator.Transform(ref scalarValuesBase, sizeof(int), sizeof(int), ref scalarBuffer0, ref scalarBuffer1, cosBit);
+
+            for (int index = 0; index < length; index++)
+            {
+                ref int firstLane = ref System.Runtime.CompilerServices.Unsafe.As<Vector256<int>, int>(ref vectorValues[index]);
+                Assert.Equal(scalarValues[index], System.Runtime.CompilerServices.Unsafe.Add(ref firstLane, lane));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Compares the Vector512 Int32 representation with the scalar stage network lane by lane.
+    /// </summary>
+    /// <typeparam name="TOperator">The transform operator.</typeparam>
+    /// <param name="length">The transform length.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    private static void AssertInt32Vector512Operator<TOperator>(int length, int cosBit)
+        where TOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
+    {
+        int laneCount = System.Runtime.CompilerServices.Unsafe.SizeOf<Vector512<int>>() / sizeof(int);
+        Av1TransformVector<Vector512<int>> vectorValues = default;
+        Av1TransformVector<Vector512<int>> vectorBuffer0 = default;
+        Av1TransformVector<Vector512<int>> vectorBuffer1 = default;
+
+        for (int index = 0; index < length; index++)
+        {
+            ref int firstLane = ref System.Runtime.CompilerServices.Unsafe.As<Vector512<int>, int>(ref vectorValues[index]);
+
+            for (int lane = 0; lane < laneCount; lane++)
+            {
+                System.Runtime.CompilerServices.Unsafe.Add(ref firstLane, lane) = GetInputValue(index, lane);
+            }
+        }
+
+        ref byte vectorValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<Vector512<int>>, byte>(ref vectorValues);
+        nint vectorStride = System.Runtime.CompilerServices.Unsafe.SizeOf<Vector512<int>>();
+
+        TOperator.Transform(ref vectorValuesBase, vectorStride, vectorStride, ref vectorBuffer0, ref vectorBuffer1, cosBit);
+
+        for (int lane = 0; lane < laneCount; lane++)
+        {
+            Av1TransformVector<int> scalarValues = default;
+            Av1TransformVector<int> scalarBuffer0 = default;
+            Av1TransformVector<int> scalarBuffer1 = default;
+
+            for (int index = 0; index < length; index++)
+            {
+                scalarValues[index] = GetInputValue(index, lane);
+            }
+
+            ref byte scalarValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<int>, byte>(ref scalarValues);
+
+            TOperator.Transform(ref scalarValuesBase, sizeof(int), sizeof(int), ref scalarBuffer0, ref scalarBuffer1, cosBit);
+
+            for (int index = 0; index < length; index++)
+            {
+                ref int firstLane = ref System.Runtime.CompilerServices.Unsafe.As<Vector512<int>, int>(ref vectorValues[index]);
+                Assert.Equal(scalarValues[index], System.Runtime.CompilerServices.Unsafe.Add(ref firstLane, lane));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Compares the Vector128 Int16 representation with the scalar stage network lane by lane.
+    /// </summary>
+    /// <typeparam name="TOperator">The transform operator.</typeparam>
+    /// <param name="length">The transform length.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    private static void AssertInt16Vector128Operator<TOperator>(int length, int cosBit)
+        where TOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
+    {
+        int laneCount = System.Runtime.CompilerServices.Unsafe.SizeOf<Vector128<short>>() / sizeof(short);
+        Av1TransformVector<Vector128<short>> vectorValues = default;
+        Av1TransformVector<Vector128<short>> vectorBuffer0 = default;
+        Av1TransformVector<Vector128<short>> vectorBuffer1 = default;
+
+        for (int index = 0; index < length; index++)
+        {
+            ref short firstLane = ref System.Runtime.CompilerServices.Unsafe.As<Vector128<short>, short>(ref vectorValues[index]);
 
             for (int lane = 0; lane < laneCount; lane++)
             {
@@ -263,10 +363,10 @@ public class Av1ForwardTransformTests
             }
         }
 
-        ref byte vectorValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<TVector>, byte>(ref vectorValues);
-        nint vectorStride = System.Runtime.CompilerServices.Unsafe.SizeOf<TVector>();
+        ref byte vectorValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<Vector128<short>>, byte>(ref vectorValues);
+        nint vectorStride = System.Runtime.CompilerServices.Unsafe.SizeOf<Vector128<short>>();
 
-        TOperator.Transform<TVector>(ref vectorValuesBase, vectorStride, vectorStride, ref vectorBuffer0, ref vectorBuffer1, cosBit);
+        TOperator.Transform(ref vectorValuesBase, vectorStride, vectorStride, ref vectorBuffer0, ref vectorBuffer1, cosBit);
 
         for (int lane = 0; lane < laneCount; lane++)
         {
@@ -281,11 +381,115 @@ public class Av1ForwardTransformTests
 
             ref byte scalarValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<short>, byte>(ref scalarValues);
 
-            TOperator.Transform<short>(ref scalarValuesBase, sizeof(short), sizeof(short), ref scalarBuffer0, ref scalarBuffer1, cosBit);
+            TOperator.Transform(ref scalarValuesBase, sizeof(short), sizeof(short), ref scalarBuffer0, ref scalarBuffer1, cosBit);
 
             for (int index = 0; index < length; index++)
             {
-                ref short firstLane = ref System.Runtime.CompilerServices.Unsafe.As<TVector, short>(ref vectorValues[index]);
+                ref short firstLane = ref System.Runtime.CompilerServices.Unsafe.As<Vector128<short>, short>(ref vectorValues[index]);
+                Assert.Equal(scalarValues[index], System.Runtime.CompilerServices.Unsafe.Add(ref firstLane, lane));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Compares the Vector256 Int16 representation with the scalar stage network lane by lane.
+    /// </summary>
+    /// <typeparam name="TOperator">The transform operator.</typeparam>
+    /// <param name="length">The transform length.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    private static void AssertInt16Vector256Operator<TOperator>(int length, int cosBit)
+        where TOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
+    {
+        int laneCount = System.Runtime.CompilerServices.Unsafe.SizeOf<Vector256<short>>() / sizeof(short);
+        Av1TransformVector<Vector256<short>> vectorValues = default;
+        Av1TransformVector<Vector256<short>> vectorBuffer0 = default;
+        Av1TransformVector<Vector256<short>> vectorBuffer1 = default;
+
+        for (int index = 0; index < length; index++)
+        {
+            ref short firstLane = ref System.Runtime.CompilerServices.Unsafe.As<Vector256<short>, short>(ref vectorValues[index]);
+
+            for (int lane = 0; lane < laneCount; lane++)
+            {
+                System.Runtime.CompilerServices.Unsafe.Add(ref firstLane, lane) = GetPackedInputValue(index, lane);
+            }
+        }
+
+        ref byte vectorValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<Vector256<short>>, byte>(ref vectorValues);
+        nint vectorStride = System.Runtime.CompilerServices.Unsafe.SizeOf<Vector256<short>>();
+
+        TOperator.Transform(ref vectorValuesBase, vectorStride, vectorStride, ref vectorBuffer0, ref vectorBuffer1, cosBit);
+
+        for (int lane = 0; lane < laneCount; lane++)
+        {
+            Av1TransformVector<short> scalarValues = default;
+            Av1TransformVector<short> scalarBuffer0 = default;
+            Av1TransformVector<short> scalarBuffer1 = default;
+
+            for (int index = 0; index < length; index++)
+            {
+                scalarValues[index] = GetPackedInputValue(index, lane);
+            }
+
+            ref byte scalarValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<short>, byte>(ref scalarValues);
+
+            TOperator.Transform(ref scalarValuesBase, sizeof(short), sizeof(short), ref scalarBuffer0, ref scalarBuffer1, cosBit);
+
+            for (int index = 0; index < length; index++)
+            {
+                ref short firstLane = ref System.Runtime.CompilerServices.Unsafe.As<Vector256<short>, short>(ref vectorValues[index]);
+                Assert.Equal(scalarValues[index], System.Runtime.CompilerServices.Unsafe.Add(ref firstLane, lane));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Compares the Vector512 Int16 representation with the scalar stage network lane by lane.
+    /// </summary>
+    /// <typeparam name="TOperator">The transform operator.</typeparam>
+    /// <param name="length">The transform length.</param>
+    /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
+    private static void AssertInt16Vector512Operator<TOperator>(int length, int cosBit)
+        where TOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
+    {
+        int laneCount = System.Runtime.CompilerServices.Unsafe.SizeOf<Vector512<short>>() / sizeof(short);
+        Av1TransformVector<Vector512<short>> vectorValues = default;
+        Av1TransformVector<Vector512<short>> vectorBuffer0 = default;
+        Av1TransformVector<Vector512<short>> vectorBuffer1 = default;
+
+        for (int index = 0; index < length; index++)
+        {
+            ref short firstLane = ref System.Runtime.CompilerServices.Unsafe.As<Vector512<short>, short>(ref vectorValues[index]);
+
+            for (int lane = 0; lane < laneCount; lane++)
+            {
+                System.Runtime.CompilerServices.Unsafe.Add(ref firstLane, lane) = GetPackedInputValue(index, lane);
+            }
+        }
+
+        ref byte vectorValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<Vector512<short>>, byte>(ref vectorValues);
+        nint vectorStride = System.Runtime.CompilerServices.Unsafe.SizeOf<Vector512<short>>();
+
+        TOperator.Transform(ref vectorValuesBase, vectorStride, vectorStride, ref vectorBuffer0, ref vectorBuffer1, cosBit);
+
+        for (int lane = 0; lane < laneCount; lane++)
+        {
+            Av1TransformVector<short> scalarValues = default;
+            Av1TransformVector<short> scalarBuffer0 = default;
+            Av1TransformVector<short> scalarBuffer1 = default;
+
+            for (int index = 0; index < length; index++)
+            {
+                scalarValues[index] = GetPackedInputValue(index, lane);
+            }
+
+            ref byte scalarValuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<short>, byte>(ref scalarValues);
+
+            TOperator.Transform(ref scalarValuesBase, sizeof(short), sizeof(short), ref scalarBuffer0, ref scalarBuffer1, cosBit);
+
+            for (int index = 0; index < length; index++)
+            {
+                ref short firstLane = ref System.Runtime.CompilerServices.Unsafe.As<Vector512<short>, short>(ref vectorValues[index]);
                 Assert.Equal(scalarValues[index], System.Runtime.CompilerServices.Unsafe.Add(ref firstLane, lane));
             }
         }
@@ -368,40 +572,40 @@ public class Av1ForwardTransformTests
         switch (config.TransformFunctionTypeColumn)
         {
             case Av1TransformFunctionType.Dct4:
-                DispatchReferenceRow<Av1Dct4Forward1dOperator>(input, stride, output, ref config);
+                DispatchReferenceRow<Av1ForwardTransformer.Dct4Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Dct8:
-                DispatchReferenceRow<Av1Dct8Forward1dOperator>(input, stride, output, ref config);
+                DispatchReferenceRow<Av1ForwardTransformer.Dct8Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Dct16:
-                DispatchReferenceRow<Av1Dct16Forward1dOperator>(input, stride, output, ref config);
+                DispatchReferenceRow<Av1ForwardTransformer.Dct16Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Dct32:
-                DispatchReferenceRow<Av1Dct32Forward1dOperator>(input, stride, output, ref config);
+                DispatchReferenceRow<Av1ForwardTransformer.Dct32Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Dct64:
-                DispatchReferenceRow<Av1Dct64Forward1dOperator>(input, stride, output, ref config);
+                DispatchReferenceRow<Av1ForwardTransformer.Dct64Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Adst4:
-                DispatchReferenceRow<Av1Adst4Forward1dOperator>(input, stride, output, ref config);
+                DispatchReferenceRow<Av1ForwardTransformer.Adst4Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Adst8:
-                DispatchReferenceRow<Av1Adst8Forward1dOperator>(input, stride, output, ref config);
+                DispatchReferenceRow<Av1ForwardTransformer.Adst8Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Adst16:
-                DispatchReferenceRow<Av1Adst16Forward1dOperator>(input, stride, output, ref config);
+                DispatchReferenceRow<Av1ForwardTransformer.Adst16Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Identity4:
-                DispatchReferenceRow<Av1Identity4Forward1dOperator>(input, stride, output, ref config);
+                DispatchReferenceRow<Av1ForwardTransformer.Identity4Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Identity8:
-                DispatchReferenceRow<Av1Identity8Forward1dOperator>(input, stride, output, ref config);
+                DispatchReferenceRow<Av1ForwardTransformer.Identity8Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Identity16:
-                DispatchReferenceRow<Av1Identity16Forward1dOperator>(input, stride, output, ref config);
+                DispatchReferenceRow<Av1ForwardTransformer.Identity16Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Identity32:
-                DispatchReferenceRow<Av1Identity32Forward1dOperator>(input, stride, output, ref config);
+                DispatchReferenceRow<Av1ForwardTransformer.Identity32Operator>(input, stride, output, ref config);
                 break;
         }
     }
@@ -415,45 +619,45 @@ public class Av1ForwardTransformTests
     /// <param name="output">The destination reference coefficients.</param>
     /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
     private static void DispatchReferenceRow<TColumnOperator>(Span<short> input, int stride, Span<int> output, ref Av1Transform2dFlipConfiguration config)
-        where TColumnOperator : struct, IAv1ForwardTransform1dOperator
+        where TColumnOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
     {
         switch (config.TransformFunctionTypeRow)
         {
             case Av1TransformFunctionType.Dct4:
-                TransformReference<TColumnOperator, Av1Dct4Forward1dOperator>(input, stride, output, ref config);
+                TransformReference<TColumnOperator, Av1ForwardTransformer.Dct4Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Dct8:
-                TransformReference<TColumnOperator, Av1Dct8Forward1dOperator>(input, stride, output, ref config);
+                TransformReference<TColumnOperator, Av1ForwardTransformer.Dct8Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Dct16:
-                TransformReference<TColumnOperator, Av1Dct16Forward1dOperator>(input, stride, output, ref config);
+                TransformReference<TColumnOperator, Av1ForwardTransformer.Dct16Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Dct32:
-                TransformReference<TColumnOperator, Av1Dct32Forward1dOperator>(input, stride, output, ref config);
+                TransformReference<TColumnOperator, Av1ForwardTransformer.Dct32Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Dct64:
-                TransformReference<TColumnOperator, Av1Dct64Forward1dOperator>(input, stride, output, ref config);
+                TransformReference<TColumnOperator, Av1ForwardTransformer.Dct64Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Adst4:
-                TransformReference<TColumnOperator, Av1Adst4Forward1dOperator>(input, stride, output, ref config);
+                TransformReference<TColumnOperator, Av1ForwardTransformer.Adst4Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Adst8:
-                TransformReference<TColumnOperator, Av1Adst8Forward1dOperator>(input, stride, output, ref config);
+                TransformReference<TColumnOperator, Av1ForwardTransformer.Adst8Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Adst16:
-                TransformReference<TColumnOperator, Av1Adst16Forward1dOperator>(input, stride, output, ref config);
+                TransformReference<TColumnOperator, Av1ForwardTransformer.Adst16Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Identity4:
-                TransformReference<TColumnOperator, Av1Identity4Forward1dOperator>(input, stride, output, ref config);
+                TransformReference<TColumnOperator, Av1ForwardTransformer.Identity4Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Identity8:
-                TransformReference<TColumnOperator, Av1Identity8Forward1dOperator>(input, stride, output, ref config);
+                TransformReference<TColumnOperator, Av1ForwardTransformer.Identity8Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Identity16:
-                TransformReference<TColumnOperator, Av1Identity16Forward1dOperator>(input, stride, output, ref config);
+                TransformReference<TColumnOperator, Av1ForwardTransformer.Identity16Operator>(input, stride, output, ref config);
                 break;
             case Av1TransformFunctionType.Identity32:
-                TransformReference<TColumnOperator, Av1Identity32Forward1dOperator>(input, stride, output, ref config);
+                TransformReference<TColumnOperator, Av1ForwardTransformer.Identity32Operator>(input, stride, output, ref config);
                 break;
         }
     }
@@ -472,8 +676,8 @@ public class Av1ForwardTransformTests
         int stride,
         Span<int> output,
         ref Av1Transform2dFlipConfiguration config)
-        where TColumnOperator : struct, IAv1ForwardTransform1dOperator
-        where TRowOperator : struct, IAv1ForwardTransform1dOperator
+        where TColumnOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
+        where TRowOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
     {
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
@@ -494,7 +698,7 @@ public class Av1ForwardTransformTests
 
             ref byte valuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<int>, byte>(ref values);
 
-            TColumnOperator.Transform<int>(ref valuesBase, sizeof(int), sizeof(int), ref buffer0, ref buffer1, config.CosBitColumn);
+            TColumnOperator.Transform(ref valuesBase, sizeof(int), sizeof(int), ref buffer0, ref buffer1, config.CosBitColumn);
             int destinationColumn = config.FlipLeftToRight ? width - column - 1 : column;
 
             for (int row = 0; row < height; row++)
@@ -514,7 +718,7 @@ public class Av1ForwardTransformTests
 
             ref byte valuesBase = ref System.Runtime.CompilerServices.Unsafe.As<Av1TransformVector<int>, byte>(ref values);
 
-            TRowOperator.Transform<int>(ref valuesBase, sizeof(int), sizeof(int), ref buffer0, ref buffer1, config.CosBitRow);
+            TRowOperator.Transform(ref valuesBase, sizeof(int), sizeof(int), ref buffer0, ref buffer1, config.CosBitRow);
 
             for (int column = 0; column < outputWidth; column++)
             {

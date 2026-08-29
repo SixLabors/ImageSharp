@@ -202,6 +202,21 @@ public class Av1ReconstructionConformanceTests
     private const int OfficialTwoSpatialLayerFixtureFrameCount = 8;
 
     /// <summary>
+    /// The displayed width of the official libaom two-temporal-layer sequence.
+    /// </summary>
+    private const int OfficialTwoTemporalLayerFixtureWidth = 640;
+
+    /// <summary>
+    /// The displayed height of the official libaom two-temporal-layer sequence.
+    /// </summary>
+    private const int OfficialTwoTemporalLayerFixtureHeight = 360;
+
+    /// <summary>
+    /// The number of default-operating-point frames in the official libaom two-temporal-layer sequence.
+    /// </summary>
+    private const int OfficialTwoTemporalLayerFixtureFrameCount = 8;
+
+    /// <summary>
     /// The coverage bit representing tile-local adaptive CDF updates.
     /// </summary>
     private const int TileCdfUpdateCoverage = 1 << 0;
@@ -1283,6 +1298,56 @@ public class Av1ReconstructionConformanceTests
             OfficialTwoSpatialLayerFixtureFrameCount,
             OfficialTwoSpatialLayerFixtureWidth,
             OfficialTwoSpatialLayerFixtureHeight);
+
+    /// <summary>
+    /// Verifies the default operating point of an official two-temporal-layer sequence against exact pinned-libaom
+    /// native output under normal and scalar dispatch.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialTwoTemporalLayerSequenceMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateOfficialTwoTemporalLayerFixture,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Verifies the official two-temporal-layer sequence through constrained tracked allocation.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodeOfficialTwoTemporalLayerSequenceWithConstrainedAllocator()
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 8_192 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        ValidateOfficialCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialTwoTemporalLayerSequence,
+            TestImages.Heif.Av1OfficialTwoTemporalLayerSequenceNativeReference,
+            OfficialTwoTemporalLayerFixtureFrameCount,
+            OfficialTwoTemporalLayerFixtureWidth,
+            OfficialTwoTemporalLayerFixtureHeight);
+
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.AllocationId == allocation.AllocationId));
+    }
+
+    /// <summary>
+    /// Decodes the default operating point of the official two-temporal-layer sequence.
+    /// </summary>
+    private static void ValidateOfficialTwoTemporalLayerFixture()
+        => ValidateOfficialCompactSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1OfficialTwoTemporalLayerSequence,
+            TestImages.Heif.Av1OfficialTwoTemporalLayerSequenceNativeReference,
+            OfficialTwoTemporalLayerFixtureFrameCount,
+            OfficialTwoTemporalLayerFixtureWidth,
+            OfficialTwoTemporalLayerFixtureHeight);
 
     /// <summary>
     /// Decodes one compact official IVF sequence, compares every native sample, and returns its active frame-state

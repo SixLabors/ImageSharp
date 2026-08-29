@@ -1400,6 +1400,8 @@ public static class TestImages
         public const string Av1OfficialIntraBlockCopySequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-16-intra_only-intrabc-extreme-dv-libaom.y4m";
         public const string Av1OfficialTwoSpatialLayerSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-22-svc-L2T1.ivf";
         public const string Av1OfficialTwoSpatialLayerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-22-svc-L2T1-libaom.y4m";
+        public const string Av1OfficialTwoTemporalLayerSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-22-svc-L1T2.ivf";
+        public const string Av1OfficialTwoTemporalLayerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-22-svc-L1T2-libaom.y4m";
         public const string Av1Cdef8BitPayload = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b.bit";
         public const string Av1Cdef8BitReference = "Heif/Av1/Conformance/libaom-cdef-kodim23-8b-libaom.yuv";
         public const string Av1Cdef8BitAvif = "Heif/Av1/Conformance/libavif-cdef-kodim23-8b.avif";

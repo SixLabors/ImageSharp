@@ -18,38 +18,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Eight-bit blocks use saturating 16-bit stages where their normative ranges permit it; high-bit-depth and scalar
 /// fallback paths retain 32-bit stages. Both representations produce the same row-major coefficient contract.
 /// </remarks>
-internal static partial class Av1ForwardTransformer
+internal static class Av1ForwardTransformer
 {
-    /// <summary>
-    /// Defines one AV1 forward transform which can be specialized for the selected sample and SIMD lane type.
-    /// </summary>
-    /// <remarks>
-    /// A concrete operator identifies the transform stage network. The two-dimensional driver selects the sample type
-    /// and vector width once per block, allowing the JIT to specialize the complete network without interface dispatch
-    /// inside the transform stages.
-    /// </remarks>
-    internal interface IAv1ForwardTransform1dOperator
-    {
-        /// <summary>
-        /// Transforms the independent axes stored in each value lane.
-        /// </summary>
-        /// <typeparam name="TValue">The scalar or SIMD value containing the independent transform axes.</typeparam>
-        /// <param name="values">The first value in the strided transform block.</param>
-        /// <param name="inputStride">The byte distance between consecutive input positions.</param>
-        /// <param name="outputStride">The byte distance between consecutive output positions.</param>
-        /// <param name="buffer0">The first fixed transform-stage buffer.</param>
-        /// <param name="buffer1">The second fixed transform-stage buffer.</param>
-        /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
-        public static abstract void Transform<TValue>(
-            ref byte values,
-            nint inputStride,
-            nint outputStride,
-            ref Av1TransformVector<TValue> buffer0,
-            ref Av1TransformVector<TValue> buffer1,
-            int cosBit)
-            where TValue : struct;
-    }
-
     /// <summary>
     /// Resolves and applies the configured two-dimensional AV1 forward transform.
     /// </summary>
@@ -95,40 +65,40 @@ internal static partial class Av1ForwardTransformer
         switch (config.TransformFunctionTypeColumn)
         {
             case Av1TransformFunctionType.Dct4:
-                DispatchRow<Dct4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Av1Dct4Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct8:
-                DispatchRow<Dct8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Av1Dct8Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct16:
-                DispatchRow<Dct16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Av1Dct16Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct32:
-                DispatchRow<Dct32Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Av1Dct32Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct64:
-                DispatchRow<Dct64Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Av1Dct64Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Adst4:
-                DispatchRow<Adst4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Av1Adst4Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Adst8:
-                DispatchRow<Adst8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Av1Adst8Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Adst16:
-                DispatchRow<Adst16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Av1Adst16Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity4:
-                DispatchRow<Identity4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Av1Identity4Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity8:
-                DispatchRow<Identity8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Av1Identity8Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity16:
-                DispatchRow<Identity16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Av1Identity16Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity32:
-                DispatchRow<Identity32Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                DispatchRow<Av1Identity32Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             default:
                 throw new InvalidImageContentException($"The {config.TransformFunctionTypeColumn} column transform is not valid for {config.TransformSize}.");
@@ -157,40 +127,40 @@ internal static partial class Av1ForwardTransformer
         switch (config.TransformFunctionTypeRow)
         {
             case Av1TransformFunctionType.Dct4:
-                Transform2d<TColumnOperator, Dct4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Av1Dct4Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct8:
-                Transform2d<TColumnOperator, Dct8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Av1Dct8Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct16:
-                Transform2d<TColumnOperator, Dct16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Av1Dct16Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct32:
-                Transform2d<TColumnOperator, Dct32Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Av1Dct32Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Dct64:
-                Transform2d<TColumnOperator, Dct64Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Av1Dct64Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Adst4:
-                Transform2d<TColumnOperator, Adst4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Av1Adst4Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Adst8:
-                Transform2d<TColumnOperator, Adst8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Av1Adst8Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Adst16:
-                Transform2d<TColumnOperator, Adst16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Av1Adst16Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity4:
-                Transform2d<TColumnOperator, Identity4Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Av1Identity4Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity8:
-                Transform2d<TColumnOperator, Identity8Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Av1Identity8Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity16:
-                Transform2d<TColumnOperator, Identity16Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Av1Identity16Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             case Av1TransformFunctionType.Identity32:
-                Transform2d<TColumnOperator, Identity32Operator>(input, coefficients, stride, bitDepth, ref config, workspace);
+                Transform2d<TColumnOperator, Av1Identity32Forward1dOperator>(input, coefficients, stride, bitDepth, ref config, workspace);
                 break;
             default:
                 throw new InvalidImageContentException($"The {config.TransformFunctionTypeRow} row transform is not valid for {config.TransformSize}.");

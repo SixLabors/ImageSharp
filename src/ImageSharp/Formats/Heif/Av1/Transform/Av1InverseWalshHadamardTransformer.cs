@@ -40,7 +40,7 @@ internal static class Av1InverseWalshHadamardTransformer
         int writeStride,
         int coefficientCount,
         Span<int> workspace)
-        => TransformAdd<byte, Av1InverseTransformer.OutputOperator<byte>>(
+        => TransformAdd<byte, Av1InverseTransformOutputOperator<byte>>(
             coefficients,
             readBuffer,
             readStride,
@@ -70,7 +70,7 @@ internal static class Av1InverseWalshHadamardTransformer
         int coefficientCount,
         Span<int> workspace,
         int bitDepth)
-        => TransformAdd<short, Av1InverseTransformer.OutputOperator<short>>(
+        => TransformAdd<short, Av1InverseTransformOutputOperator<short>>(
             coefficients,
             readBuffer,
             readStride,
@@ -93,7 +93,7 @@ internal static class Av1InverseWalshHadamardTransformer
         Span<int> workspace,
         int bitDepth)
         where TSample : unmanaged
-        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
+        where TOutputOperator : struct, IAv1InverseTransformOutputOperator<TSample>
     {
         if (Vector128.IsHardwareAccelerated)
         {
@@ -116,7 +116,7 @@ internal static class Av1InverseWalshHadamardTransformer
         int coefficientCount,
         int bitDepth)
         where TSample : unmanaged
-        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
+        where TOutputOperator : struct, IAv1InverseTransformOutputOperator<TSample>
     {
         ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
         Vector128<int> row0;
@@ -172,7 +172,7 @@ internal static class Av1InverseWalshHadamardTransformer
         Span<int> workspace,
         int bitDepth)
         where TSample : unmanaged
-        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
+        where TOutputOperator : struct, IAv1InverseTransformOutputOperator<TSample>
     {
         ref TSample readBase = ref MemoryMarshal.GetReference(readBuffer);
         ref TSample writeBase = ref MemoryMarshal.GetReference(writeBuffer);
@@ -300,7 +300,7 @@ internal static class Av1InverseWalshHadamardTransformer
         Vector128<int> row3,
         int bitDepth)
         where TSample : unmanaged
-        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
+        where TOutputOperator : struct, IAv1InverseTransformOutputOperator<TSample>
     {
         ref TSample readBase = ref MemoryMarshal.GetReference(readBuffer);
         ref TSample writeBase = ref MemoryMarshal.GetReference(writeBuffer);

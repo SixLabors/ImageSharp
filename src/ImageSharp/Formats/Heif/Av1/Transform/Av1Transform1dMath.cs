@@ -18,6 +18,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 internal static class Av1Transform1dMath
 {
     /// <summary>
+    /// The signed stage width whose fixed-point terminal operations require widened SIMD intermediates.
+    /// </summary>
+    public const byte WidenedIntermediateBitCount = 20;
+
+    /// <summary>
     /// The fixed-point representation of the square root of two with twelve fractional bits.
     /// </summary>
     public const int NewSqrt2 = 5793;

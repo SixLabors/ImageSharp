@@ -82,14 +82,24 @@ internal sealed partial class HevcPictureDecoder : IDisposable
     private readonly IMemoryOwner<bool> availabilityScratch;
 
     /// <summary>
-    /// The adaptive contexts captured after the second coding-tree block of a wavefront row.
+    /// The per-color-plane adaptive contexts captured after the second coding-tree block of a wavefront row.
     /// </summary>
-    private readonly HevcCabacContext[] wavefrontContexts = new HevcCabacContext[HevcCabacContexts.ContextCount];
+    private readonly HevcCabacContext[] wavefrontContexts = new HevcCabacContext[HevcCabacContexts.ContextCount * 3];
 
     /// <summary>
-    /// The persistent Rice statistics captured with the wavefront probability contexts.
+    /// The per-color-plane persistent Rice statistics captured with the wavefront probability contexts.
     /// </summary>
-    private InlineArray4<int> wavefrontRiceAdaptation;
+    private readonly int[] wavefrontRiceAdaptation = new int[12];
+
+    /// <summary>
+    /// Whether retained wavefront contexts are available for each color plane.
+    /// </summary>
+    private InlineArray4<bool> hasWavefrontContexts;
+
+    /// <summary>
+    /// The tile that owns each color plane's retained wavefront contexts.
+    /// </summary>
+    private InlineArray4<int> wavefrontContextTileIndices;
 
     /// <summary>
     /// The adaptive contexts retained at the end of a dependent-slice prediction region.

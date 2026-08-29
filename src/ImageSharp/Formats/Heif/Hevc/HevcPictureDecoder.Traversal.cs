@@ -41,16 +41,54 @@ internal sealed partial class HevcPictureDecoder
 
         int contextOffset = colorPlaneIndex * HevcCabacContexts.ContextCount;
         int riceOffset = colorPlaneIndex * 4;
-        if (slice.DependentSliceSegment && this.hasSliceSegmentContexts[colorPlaneIndex])
+        int startRasterAddress = tileLayout.GetRasterAddress(startAddressInTileScan);
+        tileLayout.GetTilePosition(
+            startRasterAddress,
+            out int startTileIndex,
+            out int startColumnInTile,
+            out int startRowInTile,
+            out int startTileWidth,
+            out _);
+
+        bool startsAtTileOrigin = startColumnInTile == 0 && startRowInTile == 0;
+        bool canInheritSliceSegmentContexts = !startsAtTileOrigin
+            && (startTileWidth >= 2 || !this.pictureParameterSet.EntropyCodingSynchronizationEnabled);
+
+        // A dependent segment normally resumes the preceding CABAC state. Tile origins and one-CTB-wide WPP
+        // rows are initialization boundaries instead, matching the availability rules used by the reference decoder.
+        if (slice.DependentSliceSegment
+            && canInheritSliceSegmentContexts
+            && this.hasSliceSegmentContexts[colorPlaneIndex])
         {
             reader.CopyContextsFrom(this.sliceSegmentContexts.AsSpan(contextOffset, HevcCabacContexts.ContextCount));
             this.coefficientDecoder.CopyRiceAdaptationFrom(this.sliceSegmentRiceAdaptation.AsSpan(riceOffset, 4));
         }
 
+        if (!slice.DependentSliceSegment)
+        {
+            // An independent slice starts a new prediction region, so an upper-right CTB from the preceding
+            // independent slice cannot supply wavefront contexts to its first row.
+            this.hasWavefrontContexts[colorPlaneIndex] = false;
+        }
+
+        bool startsAtWavefrontRow = this.pictureParameterSet.EntropyCodingSynchronizationEnabled
+            && startColumnInTile == 0
+            && startRowInTile > 0;
+
+        if (startsAtWavefrontRow
+            && startTileWidth > 1
+            && this.hasWavefrontContexts[colorPlaneIndex]
+            && this.wavefrontContextTileIndices[colorPlaneIndex] == startTileIndex)
+        {
+            // A dependent segment can begin exactly at a wavefront row boundary. Its first substream still uses
+            // the upper-right state captured from the preceding row; no substream transition occurs inside this call.
+            reader.CopyContextsFrom(this.wavefrontContexts.AsSpan(contextOffset, HevcCabacContexts.ContextCount));
+            this.coefficientDecoder.CopyRiceAdaptationFrom(this.wavefrontRiceAdaptation.AsSpan(riceOffset, 4));
+        }
+
         int codingTreeBlockSize = 1 << this.sequenceParameterSet.CodingTreeBlockLog2;
         int tileScanAddress = startAddressInTileScan;
         bool firstCodingTreeBlock = true;
-        bool wavefrontStateAvailable = false;
         while (tileScanAddress < tileLayout.Width * tileLayout.Height)
         {
             int rasterAddress = tileLayout.GetRasterAddress(tileScanAddress);
@@ -81,10 +119,13 @@ internal sealed partial class HevcPictureDecoder
                 reader = new HevcCabacSyntaxReader(slice.GetEntropySubstream(substreamIndex).Span, sliceQuantizationParameter);
                 this.coefficientDecoder.ResetRiceAdaptation();
                 this.lastCodedQuantizationParameter = sliceQuantizationParameter;
-                if (startsWavefrontRow && tileWidth > 1 && wavefrontStateAvailable)
+                if (startsWavefrontRow
+                    && tileWidth > 1
+                    && this.hasWavefrontContexts[colorPlaneIndex]
+                    && this.wavefrontContextTileIndices[colorPlaneIndex] == tileIndex)
                 {
-                    reader.CopyContextsFrom(this.wavefrontContexts);
-                    this.coefficientDecoder.CopyRiceAdaptationFrom(this.wavefrontRiceAdaptation[..4]);
+                    reader.CopyContextsFrom(this.wavefrontContexts.AsSpan(contextOffset, HevcCabacContexts.ContextCount));
+                    this.coefficientDecoder.CopyRiceAdaptationFrom(this.wavefrontRiceAdaptation.AsSpan(riceOffset, 4));
                 }
             }
 
@@ -121,9 +162,10 @@ internal sealed partial class HevcPictureDecoder
             // row. The next row starts with those contexts but a newly initialized arithmetic register.
             if (this.pictureParameterSet.EntropyCodingSynchronizationEnabled && columnInTile == 1)
             {
-                reader.CopyContextsTo(this.wavefrontContexts);
-                this.coefficientDecoder.CopyRiceAdaptationTo(this.wavefrontRiceAdaptation[..4]);
-                wavefrontStateAvailable = true;
+                reader.CopyContextsTo(this.wavefrontContexts.AsSpan(contextOffset, HevcCabacContexts.ContextCount));
+                this.coefficientDecoder.CopyRiceAdaptationTo(this.wavefrontRiceAdaptation.AsSpan(riceOffset, 4));
+                this.hasWavefrontContexts[colorPlaneIndex] = true;
+                this.wavefrontContextTileIndices[colorPlaneIndex] = tileIndex;
             }
 
             tileScanAddress++;

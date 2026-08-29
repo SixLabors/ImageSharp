@@ -65,6 +65,43 @@ public class HevcPictureDecoderTests
     }
 
     /// <summary>
+    /// Identifies parallelization syntax that an official independently decoded picture must exercise.
+    /// </summary>
+    [Flags]
+    public enum ParallelizationTools
+    {
+        /// <summary>
+        /// No parallelization syntax is signaled.
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// Dependent slice segments are signaled.
+        /// </summary>
+        DependentSliceSegments = 1,
+
+        /// <summary>
+        /// Tile boundaries are signaled.
+        /// </summary>
+        Tiles = 2,
+
+        /// <summary>
+        /// Wavefront row entry points are signaled.
+        /// </summary>
+        Wavefront = 4,
+
+        /// <summary>
+        /// Slice-header extension bytes are signaled.
+        /// </summary>
+        SliceHeaderExtensions = 8,
+
+        /// <summary>
+        /// One or more entropy entry points are signaled.
+        /// </summary>
+        EntryPoints = 16,
+    }
+
+    /// <summary>
     /// Verifies the first independently coded picture from official ITU RExt conformance streams against its
     /// published decoded-picture hashes.
     /// </summary>
@@ -464,6 +501,152 @@ public class HevcPictureDecoderTests
         Assert.Equal(lumaDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Y));
         Assert.Equal(chromaBlueDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cb));
         Assert.Equal(chromaRedDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cr));
+    }
+
+    /// <summary>
+    /// Verifies the complete sequential decoder path for HEVC tiles, wavefront entry points, dependent slice
+    /// segments, and slice-header extensions against native-plane digests from published or pinned-HM output.
+    /// </summary>
+    /// <param name="path">The official Annex B conformance stream.</param>
+    /// <param name="expectedTools">The parallelization syntax that the retained picture signals.</param>
+    /// <param name="expectedCodingTreeBlockLog2">The expected coding-tree-block size logarithm.</param>
+    /// <param name="expectedCodingTreeBlockWidth">The expected picture width in coding-tree blocks.</param>
+    /// <param name="expectedTileColumns">The exact tile-column count, or zero when only a multi-tile assertion applies.</param>
+    /// <param name="expectedTileRows">The exact tile-row count, or zero when only a multi-tile assertion applies.</param>
+    /// <param name="lumaDigest">The pinned-HM or published luma-plane MD5 digest.</param>
+    /// <param name="chromaBlueDigest">The pinned-HM or published blue-difference-plane MD5 digest.</param>
+    /// <param name="chromaRedDigest">The pinned-HM or published red-difference-plane MD5 digest.</param>
+    [Theory]
+    [InlineData(TestImages.Heif.DependentSlicesA, ParallelizationTools.DependentSliceSegments, 6, 30, 1, 1, "00dc01343ab9dc53c078344d7f77dab1", "899538536f2b327d84894c947f87bbc2", "a1bc8421c5a72ce2792b40847e95d438")]
+    [InlineData(TestImages.Heif.DependentSlicesB, ParallelizationTools.DependentSliceSegments | ParallelizationTools.Wavefront, 6, 30, 1, 1, "d048cfe1b7f0e6a6e3689733914caa19", "d7400a314011173564516b81407c3f42", "7bddfaa6d440f8490ec88b94fdbac706")]
+    [InlineData(TestImages.Heif.DependentSlicesC, ParallelizationTools.DependentSliceSegments | ParallelizationTools.Tiles, 6, 30, 0, 0, "a8c96c581d9de294a4fe798cede17817", "afb4cdebbbb31edfeab504d64c779895", "e593a80b1f17724f930728068993c06c")]
+    [InlineData(TestImages.Heif.TilesA, ParallelizationTools.Tiles | ParallelizationTools.EntryPoints, 6, 30, 5, 5, "6828e4b27ab4fda31fe3b8bcdb3bccef", "1f899aff0a453d133de048232d3ee1c0", "87ca938e4a19cd289bdaa85023c704c5")]
+    [InlineData(TestImages.Heif.TilesB, ParallelizationTools.Tiles | ParallelizationTools.EntryPoints, 6, 30, 5, 5, "aa44a1bf0f77f5a78e514eab3621aab2", "53a29305bb7b60dcd3a0082ce5aed9f4", "0e7ad4ea85eedf8fa06ac9b366323175")]
+    [InlineData(TestImages.Heif.WavefrontA, ParallelizationTools.Wavefront | ParallelizationTools.SliceHeaderExtensions | ParallelizationTools.EntryPoints, 6, 7, 1, 1, "69bd520cd6b017b49144275f1c3b498c", "33bb1c6216561f30fbefb89ce87c0956", "1f88fd804c87d8f5c8c72cee4043d140")]
+    [InlineData(TestImages.Heif.WavefrontB, ParallelizationTools.Wavefront | ParallelizationTools.SliceHeaderExtensions | ParallelizationTools.EntryPoints, 5, 13, 1, 1, "ff78fcf56cf449c195708626a975e870", "b230844124f07aad4102aa21e2fc0f15", "e10c05f8c4007b14ddc6a7cf858f374e")]
+    [InlineData(TestImages.Heif.WavefrontC, ParallelizationTools.Wavefront | ParallelizationTools.SliceHeaderExtensions | ParallelizationTools.EntryPoints, 4, 26, 1, 1, "d55877b038bbe2af6a4b35eeff27b26f", "4e1145cc891c295543407b6c62c7ad55", "8fa9c17216a9b02a65582c322206216b")]
+    [InlineData(TestImages.Heif.WavefrontD, ParallelizationTools.Wavefront | ParallelizationTools.SliceHeaderExtensions | ParallelizationTools.EntryPoints, 6, 1, 1, 1, "ab7c74b80340e5bde0858276f11a37ed", "4fe6b63cfe5656bf88912ccf9caeb85a", "3dbb149d5b90a49cf72d4e2d5fbb0511")]
+    [InlineData(TestImages.Heif.WavefrontE, ParallelizationTools.Wavefront | ParallelizationTools.SliceHeaderExtensions | ParallelizationTools.EntryPoints, 6, 2, 1, 1, "d2b8cd7d9e7baf4dd3e383ba8fef3c22", "315f19843d4e637dc41f964c4adff626", "07f619c6aedd51a04ba99d2bfc0ecb2c")]
+    [InlineData(TestImages.Heif.WavefrontF, ParallelizationTools.Wavefront | ParallelizationTools.SliceHeaderExtensions | ParallelizationTools.EntryPoints, 6, 3, 1, 1, "797335a8e293c6ce6dd87fde6f797f07", "77f74454394860093d4b18ae9ae793fe", "e99ff04282a3457a44685378008ff86a")]
+    [InlineData(TestImages.Heif.EntryPointsA, ParallelizationTools.Tiles | ParallelizationTools.EntryPoints, 6, 30, 2, 2, "ea26d532556e6b71b369b41def35af93", "295a5552a8152035a1cae2405a690251", "1d81ff340ac8a37d75f7782ca140cae3")]
+    [InlineData(TestImages.Heif.EntryPointsC, ParallelizationTools.Wavefront | ParallelizationTools.EntryPoints, 6, 30, 1, 1, "81b087fcf7df2626c7592ec5d39ec1fc", "93bd06e1a216a388568c069ead14f98e", "f0446d71e2061a8c3a6281fede767d81")]
+    public void DecodeOfficialParallelizationPictureMatchesPublishedReference(
+        string path,
+        ParallelizationTools expectedTools,
+        int expectedCodingTreeBlockLog2,
+        int expectedCodingTreeBlockWidth,
+        int expectedTileColumns,
+        int expectedTileRows,
+        string lumaDigest,
+        string chromaBlueDigest,
+        string chromaRedDigest)
+    {
+        byte[] annexB = TestFile.Create(path).Bytes;
+        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        HevcCodecConfiguration configuration = new(configurationData);
+        HevcImageItemBitstream bitstream = new(itemData, configuration);
+        HevcPictureParameterSet pictureParameterSet = bitstream.SliceSegments[0].PictureParameterSet;
+        HevcSequenceParameterSet sequenceParameterSet = pictureParameterSet.SequenceParameterSet;
+        using HevcPictureDecoder decoder = new(Configuration.Default, pictureParameterSet);
+
+        decoder.Decode(bitstream);
+
+        bool hasDependentSliceSegments = false;
+        bool hasEntryPoints = false;
+        foreach (HevcSliceSegmentHeader sliceSegment in bitstream.SliceSegments)
+        {
+            hasDependentSliceSegments |= sliceSegment.DependentSliceSegment;
+            hasEntryPoints |= sliceSegment.EntryPointOffsets.Count != 0;
+        }
+
+        bool expectsTiles = (expectedTools & ParallelizationTools.Tiles) != 0;
+        bool expectsWavefront = (expectedTools & ParallelizationTools.Wavefront) != 0;
+        int codingTreeBlockSize = 1 << sequenceParameterSet.CodingTreeBlockLog2;
+        int codingTreeBlockWidth = (sequenceParameterSet.Width + codingTreeBlockSize - 1) / codingTreeBlockSize;
+
+        Assert.Equal((expectedTools & ParallelizationTools.DependentSliceSegments) != 0, hasDependentSliceSegments);
+        Assert.Equal(expectsTiles, pictureParameterSet.TilesEnabled);
+        Assert.Equal(expectsWavefront, pictureParameterSet.EntropyCodingSynchronizationEnabled);
+        Assert.Equal((expectedTools & ParallelizationTools.SliceHeaderExtensions) != 0, pictureParameterSet.SliceSegmentHeaderExtensionPresent);
+        Assert.Equal((expectedTools & ParallelizationTools.EntryPoints) != 0, hasEntryPoints);
+        Assert.Equal(expectedCodingTreeBlockLog2, sequenceParameterSet.CodingTreeBlockLog2);
+        Assert.Equal(expectedCodingTreeBlockWidth, codingTreeBlockWidth);
+
+        if (expectedTileColumns == 0)
+        {
+            Assert.True(pictureParameterSet.TileColumnWidths.Count > 1);
+            Assert.True(pictureParameterSet.TileRowHeights.Count > 1);
+        }
+        else
+        {
+            Assert.Equal(expectedTileColumns, pictureParameterSet.TileColumnWidths.Count);
+            Assert.Equal(expectedTileRows, pictureParameterSet.TileRowHeights.Count);
+        }
+
+        Assert.Equal(lumaDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Y));
+        Assert.Equal(chromaBlueDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cb));
+        Assert.Equal(chromaRedDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cr));
+    }
+
+    /// <summary>
+    /// Verifies the dependent-slice tile and wavefront combinations through split allocator groups with balanced
+    /// final disposal.
+    /// </summary>
+    /// <param name="path">The official Annex B conformance stream.</param>
+    /// <param name="lumaDigest">The pinned-HM luma-plane MD5 digest.</param>
+    /// <param name="chromaBlueDigest">The pinned-HM blue-difference-plane MD5 digest.</param>
+    /// <param name="chromaRedDigest">The pinned-HM red-difference-plane MD5 digest.</param>
+    [Theory]
+    [InlineData(TestImages.Heif.DependentSlicesB, "d048cfe1b7f0e6a6e3689733914caa19", "d7400a314011173564516b81407c3f42", "7bddfaa6d440f8490ec88b94fdbac706")]
+    [InlineData(TestImages.Heif.DependentSlicesC, "a8c96c581d9de294a4fe798cede17817", "afb4cdebbbb31edfeab504d64c779895", "e593a80b1f17724f930728068993c06c")]
+    public void DecodeOfficialParallelizationPicturesWithConstrainedAllocatorMatchPinnedHmDigest(
+        string path,
+        string lumaDigest,
+        string chromaBlueDigest,
+        string chromaRedDigest)
+    {
+        byte[] annexB = TestFile.Create(path).Bytes;
+        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        HevcCodecConfiguration codecConfiguration = new(configurationData);
+        HevcImageItemBitstream bitstream = new(itemData, codecConfiguration);
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 4_096 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        using (HevcPictureDecoder decoder = new(configuration, bitstream.SliceSegments[0].PictureParameterSet))
+        {
+            decoder.Decode(bitstream);
+
+            Assert.Equal(lumaDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Y));
+            Assert.Equal(chromaBlueDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cb));
+            Assert.Equal(chromaRedDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cr));
+        }
+
+        Assert.NotEmpty(allocator.AllocationLog);
+        AssertBalancedAllocations(allocator);
+    }
+
+    /// <summary>
+    /// Verifies that entry-point byte lengths exclude emulation-prevention bytes from the decoded substream.
+    /// </summary>
+    [Fact]
+    public void EntryPointOffsetsExcludeEmulationPreventionBytes()
+    {
+        ReadOnlySpan<int> preventionBytePositions = [3, 8, 14];
+
+        const int DecodedHeaderLength = 4;
+        int encodedHeaderLength = HevcSliceSegmentHeader.GetEncodedPayloadOffset(
+            DecodedHeaderLength,
+            preventionBytePositions);
+
+        const int EncodedSubstreamLength = 11;
+        int decodedBoundary = HevcSliceSegmentHeader.GetDecodedPayloadOffset(
+            encodedHeaderLength + EncodedSubstreamLength,
+            preventionBytePositions);
+
+        Assert.Equal(5, encodedHeaderLength);
+        Assert.Equal(13, decodedBoundary);
+        Assert.Equal(9, decodedBoundary - DecodedHeaderLength);
     }
 
     /// <summary>

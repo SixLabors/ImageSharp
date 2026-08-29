@@ -187,6 +187,21 @@ public class Av1ReconstructionConformanceTests
     private const int OfficialIntraBlockCopyFixtureFrameCount = 2;
 
     /// <summary>
+    /// The displayed width of the official libaom two-spatial-layer sequence.
+    /// </summary>
+    private const int OfficialTwoSpatialLayerFixtureWidth = 1280;
+
+    /// <summary>
+    /// The displayed height of the official libaom two-spatial-layer sequence.
+    /// </summary>
+    private const int OfficialTwoSpatialLayerFixtureHeight = 720;
+
+    /// <summary>
+    /// The number of default-operating-point frames in the official libaom two-spatial-layer sequence.
+    /// </summary>
+    private const int OfficialTwoSpatialLayerFixtureFrameCount = 8;
+
+    /// <summary>
     /// The coverage bit representing tile-local adaptive CDF updates.
     /// </summary>
     private const int TileCdfUpdateCoverage = 1 << 0;
@@ -1220,6 +1235,56 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
+    /// Verifies the default operating point of an official two-spatial-layer sequence against exact pinned-libaom
+    /// native output under normal and scalar dispatch.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialTwoSpatialLayerSequenceMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateOfficialTwoSpatialLayerFixture,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Verifies the official two-spatial-layer sequence through constrained tracked allocation.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodeOfficialTwoSpatialLayerSequenceWithConstrainedAllocator()
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 8_192 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        ValidateOfficialCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialTwoSpatialLayerSequence,
+            TestImages.Heif.Av1OfficialTwoSpatialLayerSequenceNativeReference,
+            OfficialTwoSpatialLayerFixtureFrameCount,
+            OfficialTwoSpatialLayerFixtureWidth,
+            OfficialTwoSpatialLayerFixtureHeight);
+
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.AllocationId == allocation.AllocationId));
+    }
+
+    /// <summary>
+    /// Decodes the default operating point of the official two-spatial-layer sequence.
+    /// </summary>
+    private static void ValidateOfficialTwoSpatialLayerFixture()
+        => ValidateOfficialCompactSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1OfficialTwoSpatialLayerSequence,
+            TestImages.Heif.Av1OfficialTwoSpatialLayerSequenceNativeReference,
+            OfficialTwoSpatialLayerFixtureFrameCount,
+            OfficialTwoSpatialLayerFixtureWidth,
+            OfficialTwoSpatialLayerFixtureHeight);
+
+    /// <summary>
     /// Decodes one compact official IVF sequence, compares every native sample, and returns its active frame-state
     /// coverage mask.
     /// </summary>
@@ -1227,19 +1292,23 @@ public class Av1ReconstructionConformanceTests
         Configuration configuration,
         string fixturePath,
         string nativeReferencePath,
-        int expectedFrameCount)
+        int expectedFrameCount,
+        int expectedWidth = OfficialMotionVectorFixtureWidth,
+        int expectedHeight = OfficialMotionVectorFixtureHeight)
     {
         byte[] ivf = TestFile.Create(fixturePath).Bytes;
         byte[] nativeReference = TestFile.Create(nativeReferencePath).Bytes;
-        ReadOnlySpan<byte> y4mFileHeader = "YUV4MPEG2 W352 H288 F30:1 Ip C420jpeg\n"u8;
+        byte[] y4mFileHeader =
+            Encoding.ASCII.GetBytes($"YUV4MPEG2 W{expectedWidth} H{expectedHeight} F30:1 Ip C420jpeg\n");
+
         ReadOnlySpan<byte> y4mFrameHeader = "FRAME\n"u8;
 
         Assert.True(ivf.AsSpan(0, 4).SequenceEqual("DKIF"u8));
         Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(4, 2)));
         Assert.Equal(32, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(6, 2)));
         Assert.True(ivf.AsSpan(8, 4).SequenceEqual("AV01"u8));
-        Assert.Equal(OfficialMotionVectorFixtureWidth, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(12, 2)));
-        Assert.Equal(OfficialMotionVectorFixtureHeight, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(14, 2)));
+        Assert.Equal(expectedWidth, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(12, 2)));
+        Assert.Equal(expectedHeight, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(14, 2)));
         Assert.Equal(
             expectedFrameCount,
             checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(24, 4))));
@@ -1249,8 +1318,8 @@ public class Av1ReconstructionConformanceTests
         int ivfOffset = 32;
         int nativeOffset = y4mFileHeader.Length;
         int nativeFrameLength =
-            (OfficialMotionVectorFixtureWidth * OfficialMotionVectorFixtureHeight) +
-            (2 * (OfficialMotionVectorFixtureWidth >> 1) * (OfficialMotionVectorFixtureHeight >> 1));
+            (expectedWidth * expectedHeight) +
+            (2 * (expectedWidth >> 1) * (expectedHeight >> 1));
 
         int coverage = 0;
         using Av1Decoder decoder = new(configuration);
@@ -1264,8 +1333,8 @@ public class Av1ReconstructionConformanceTests
                 null);
 
             ivfOffset += payloadLength;
-            Assert.Equal(OfficialMotionVectorFixtureWidth, frame.Width);
-            Assert.Equal(OfficialMotionVectorFixtureHeight, frame.Height);
+            Assert.Equal(expectedWidth, frame.Width);
+            Assert.Equal(expectedHeight, frame.Height);
             Assert.True(nativeReference.AsSpan(nativeOffset).StartsWith(y4mFrameHeader));
             nativeOffset += y4mFrameHeader.Length;
 

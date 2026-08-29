@@ -48,10 +48,19 @@ internal static partial class Av1Inverse2dTransformer
             int cosBit,
             Av1TransformStageRange stageRange)
         {
-            Av1IdentityTransform1d.Transform(ref input, ref output, 4, Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+            // Only a twelve-bit row transform has the 20-bit input range that can overflow this fixed-point product.
+            // Match libaom's high-bit-depth kernel there while retaining the compact Int32 path for narrower ranges.
+            if (stageRange[0] >= WidenedIntermediateBitCount)
+            {
+                Av1IdentityTransform1d.TransformWidened(ref input, ref output, 4, Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+            }
+            else
+            {
+                Av1IdentityTransform1d.Transform(ref input, ref output, 4, Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+            }
+
             _ = step;
             _ = cosBit;
-            _ = stageRange;
         }
 
         /// <inheritdoc/>
@@ -62,10 +71,17 @@ internal static partial class Av1Inverse2dTransformer
             int cosBit,
             Av1TransformStageRange stageRange)
         {
-            Av1IdentityTransform1d.Transform(ref input, ref output, 4, Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+            if (stageRange[0] >= WidenedIntermediateBitCount)
+            {
+                Av1IdentityTransform1d.TransformWidened(ref input, ref output, 4, Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+            }
+            else
+            {
+                Av1IdentityTransform1d.Transform(ref input, ref output, 4, Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+            }
+
             _ = step;
             _ = cosBit;
-            _ = stageRange;
         }
     }
 }

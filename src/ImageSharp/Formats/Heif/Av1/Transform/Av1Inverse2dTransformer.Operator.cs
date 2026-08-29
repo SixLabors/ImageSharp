@@ -19,6 +19,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 internal static partial class Av1Inverse2dTransformer
 {
     /// <summary>
+    /// The signed stage width whose fixed-point terminal operations require widened SIMD intermediates.
+    /// </summary>
+    private const byte WidenedIntermediateBitCount = 20;
+
+    /// <summary>
     /// Defines the scalar and SIMD arithmetic for one AV1 one-dimensional inverse transform.
     /// </summary>
     /// <remarks>

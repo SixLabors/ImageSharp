@@ -71,6 +71,40 @@ internal static class Av1IdentityTransform1d
     }
 
     /// <summary>
+    /// Scales four independent identity-transform axes with widened fixed-point products.
+    /// </summary>
+    /// <param name="input">The source values for four transform axes.</param>
+    /// <param name="output">The destination values for four transform axes.</param>
+    /// <param name="length">The number of values in each axis.</param>
+    /// <param name="multiplier">The fixed-point identity scale.</param>
+    /// <param name="fractionalBits">The number of fractional bits in <paramref name="multiplier"/>.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void TransformWidened(ref Av1TransformVector<Vector128<int>> input, ref Av1TransformVector<Vector128<int>> output, int length, int multiplier, int fractionalBits)
+    {
+        for (int i = 0; i < length; i++)
+        {
+            output[i] = Av1Transform1dMath.MultiplyRoundWidened(input[i], multiplier, fractionalBits);
+        }
+    }
+
+    /// <summary>
+    /// Scales eight independent identity-transform axes with widened fixed-point products.
+    /// </summary>
+    /// <param name="input">The source values for eight transform axes.</param>
+    /// <param name="output">The destination values for eight transform axes.</param>
+    /// <param name="length">The number of values in each axis.</param>
+    /// <param name="multiplier">The fixed-point identity scale.</param>
+    /// <param name="fractionalBits">The number of fractional bits in <paramref name="multiplier"/>.</param>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void TransformWidened(ref Av1TransformVector<Vector256<int>> input, ref Av1TransformVector<Vector256<int>> output, int length, int multiplier, int fractionalBits)
+    {
+        for (int i = 0; i < length; i++)
+        {
+            output[i] = Av1Transform1dMath.MultiplyRoundWidened(input[i], multiplier, fractionalBits);
+        }
+    }
+
+    /// <summary>
     /// Scales sixteen independent identity-transform axes in parallel.
     /// </summary>
     /// <param name="input">The source values for sixteen transform axes.</param>

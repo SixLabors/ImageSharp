@@ -42,6 +42,13 @@ public class Av1InverseTransformTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertIdentityOperatorParity, TransformConfigurations);
 
     /// <summary>
+    /// Verifies the pinned-libaom widened operations at the twelve-bit inverse row-stage bounds.
+    /// </summary>
+    [Fact]
+    public void TwelveBitWideIntermediatesMatchPinnedLibaom()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertTwelveBitWideIntermediateParity, TransformConfigurations);
+
+    /// <summary>
     /// Verifies the inverse DCT operators against their scalar implementations.
     /// </summary>
     private static void AssertDctOperatorParity()
@@ -72,6 +79,133 @@ public class Av1InverseTransformTests
         AssertOperatorParity<Av1Inverse2dTransformer.Identity8Operator>(8);
         AssertOperatorParity<Av1Inverse2dTransformer.Identity16Operator>(16);
         AssertOperatorParity<Av1Inverse2dTransformer.Identity32Operator>(32);
+    }
+
+    /// <summary>
+    /// Exercises the exact ADST4 rounding and identity-product overflows that are possible at a twenty-bit row range.
+    /// </summary>
+    private static void AssertTwelveBitWideIntermediateParity()
+    {
+        const int cosBit = 12;
+        Av1TransformStageRange stageRange = default;
+        for (int index = 0; index < Av1Transform2dFlipConfiguration.MaxStageNumber; index++)
+        {
+            stageRange[index] = 20;
+        }
+
+        Av1TransformVector<Vector128<int>> adstInput128 = default;
+        adstInput128.V0 = Vector128.Create(196_118, -196_118, 196_117, -196_117);
+        adstInput128.V1 = Vector128.Create(196_117, -196_117, 196_117, -196_117);
+        adstInput128.V2 = Vector128.Create(196_117, -196_117, 196_117, -196_117);
+        adstInput128.V3 = Vector128.Create(196_117, -196_117, 196_117, -196_117);
+        Av1TransformVector<Vector256<int>> adstInput256 = default;
+        adstInput256.V0 = Vector256.Create(196_118, -196_118, 196_117, -196_117, 196_118, -196_118, 196_117, -196_117);
+        adstInput256.V1 = Vector256.Create(196_117, -196_117, 196_117, -196_117, 196_117, -196_117, 196_117, -196_117);
+        adstInput256.V2 = adstInput256.V1;
+        adstInput256.V3 = adstInput256.V1;
+        Av1TransformVector<Vector128<int>> adstOutput128 = default;
+        Av1TransformVector<Vector128<int>> adstStep128 = default;
+        Av1TransformVector<Vector256<int>> adstOutput256 = default;
+        Av1TransformVector<Vector256<int>> adstStep256 = default;
+
+        Av1Inverse2dTransformer.Adst4Operator.Transform(
+            ref adstInput128,
+            ref adstOutput128,
+            ref adstStep128,
+            cosBit,
+            stageRange);
+
+        Av1Inverse2dTransformer.Adst4Operator.Transform(
+            ref adstInput256,
+            ref adstOutput256,
+            ref adstStep256,
+            cosBit,
+            stageRange);
+
+        // These are the exact outputs of pinned libaom's signed Int64 terminal round. The first positive lane has an
+        // Int32 fixed-point sum of 2,147,482,471, so adding the 2,048 rounding bias in Int32 would wrap.
+        Vector128<int> adstExpected0 = Vector128.Create(524_288, -524_288, 524_287, -524_287);
+        Vector128<int> adstExpected1 = Vector128.Create(33_612, -33_612, 33_612, -33_612);
+        Vector128<int> adstExpected2 = Vector128.Create(160_112, -160_112, 160_111, -160_111);
+        Vector128<int> adstExpected3 = Vector128.Create(77_567, -77_567, 77_566, -77_566);
+        Assert.Equal(adstExpected0, adstOutput128.V0);
+        Assert.Equal(adstExpected1, adstOutput128.V1);
+        Assert.Equal(adstExpected2, adstOutput128.V2);
+        Assert.Equal(adstExpected3, adstOutput128.V3);
+        Assert.Equal(Vector256.Create(adstExpected0, adstExpected0), adstOutput256.V0);
+        Assert.Equal(Vector256.Create(adstExpected1, adstExpected1), adstOutput256.V1);
+        Assert.Equal(Vector256.Create(adstExpected2, adstExpected2), adstOutput256.V2);
+        Assert.Equal(Vector256.Create(adstExpected3, adstExpected3), adstOutput256.V3);
+
+        Vector128<int> identityInput128 = Vector128.Create(524_287, -524_288, 524_286, -524_287);
+        Vector256<int> identityInput256 = Vector256.Create(
+            524_287,
+            -524_288,
+            524_286,
+            -524_287,
+            370_727,
+            -370_728,
+            262_143,
+            -262_144);
+
+        AssertWidenedIdentityOperator<Av1Inverse2dTransformer.Identity4Operator>(
+            4,
+            identityInput128,
+            Vector128.Create(741_503, -741_504, 741_501, -741_503),
+            identityInput256,
+            Vector256.Create(741_503, -741_504, 741_501, -741_503, 524_322, -524_323, 370_751, -370_752),
+            stageRange);
+
+        AssertWidenedIdentityOperator<Av1Inverse2dTransformer.Identity16Operator>(
+            16,
+            identityInput128,
+            Vector128.Create(1_483_005, -1_483_008, 1_483_002, -1_483_005),
+            identityInput256,
+            Vector256.Create(1_483_005, -1_483_008, 1_483_002, -1_483_005, 1_048_643, -1_048_646, 741_501, -741_504),
+            stageRange);
+    }
+
+    /// <summary>
+    /// Verifies one identity operator against exact pinned-libaom widened fixed-point results.
+    /// </summary>
+    /// <typeparam name="TOperator">The inverse identity operator.</typeparam>
+    /// <param name="length">The identity-transform length.</param>
+    /// <param name="input128">The four-lane bounded input.</param>
+    /// <param name="expected128">The exact four-lane result.</param>
+    /// <param name="input256">The eight-lane bounded input.</param>
+    /// <param name="expected256">The exact eight-lane result.</param>
+    /// <param name="stageRange">The twelve-bit inverse row-stage range.</param>
+    private static void AssertWidenedIdentityOperator<TOperator>(
+        int length,
+        Vector128<int> input128,
+        Vector128<int> expected128,
+        Vector256<int> input256,
+        Vector256<int> expected256,
+        Av1TransformStageRange stageRange)
+        where TOperator : struct, Av1Inverse2dTransformer.IAv1InverseTransform1dOperator
+    {
+        const int cosBit = 12;
+        Av1TransformVector<Vector128<int>> values128 = default;
+        Av1TransformVector<Vector128<int>> output128 = default;
+        Av1TransformVector<Vector128<int>> step128 = default;
+        Av1TransformVector<Vector256<int>> values256 = default;
+        Av1TransformVector<Vector256<int>> output256 = default;
+        Av1TransformVector<Vector256<int>> step256 = default;
+
+        for (int index = 0; index < length; index++)
+        {
+            values128[index] = input128;
+            values256[index] = input256;
+        }
+
+        TOperator.Transform(ref values128, ref output128, ref step128, cosBit, stageRange);
+        TOperator.Transform(ref values256, ref output256, ref step256, cosBit, stageRange);
+
+        for (int index = 0; index < length; index++)
+        {
+            Assert.Equal(expected128, output128[index]);
+            Assert.Equal(expected256, output256[index]);
+        }
     }
 
     [Theory]

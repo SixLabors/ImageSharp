@@ -397,6 +397,44 @@ internal static class Av1Transform1dMath
         => HalfButterfly(multiplier, value, 0, Vector512<int>.Zero, fractionalBits);
 
     /// <summary>
+    /// Multiplies and rounds four fixed-point values with signed sixty-four-bit intermediate lanes.
+    /// </summary>
+    /// <param name="value">The four values to scale.</param>
+    /// <param name="multiplier">The fixed-point multiplier.</param>
+    /// <param name="fractionalBits">The number of fractional bits in the multiplier.</param>
+    /// <returns>The four rounded results.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<int> MultiplyRoundWidened(Vector128<int> value, int multiplier, int fractionalBits)
+    {
+        (Vector128<long> lower, Vector128<long> upper) = Vector128.Widen(value);
+        Vector128<long> rounding = Vector128.Create(1L << (fractionalBits - 1));
+
+        // Pinned libaom's high-bit-depth identity kernels multiply in signed 64-bit lanes. Widen before both the
+        // product and rounding addition so a valid 20-bit twelve-bit row value cannot wrap through Int32.
+        lower = ((lower * multiplier) + rounding) >> fractionalBits;
+        upper = ((upper * multiplier) + rounding) >> fractionalBits;
+        return Vector128.Narrow(lower, upper);
+    }
+
+    /// <summary>
+    /// Multiplies and rounds eight fixed-point values with signed sixty-four-bit intermediate lanes.
+    /// </summary>
+    /// <param name="value">The eight values to scale.</param>
+    /// <param name="multiplier">The fixed-point multiplier.</param>
+    /// <param name="fractionalBits">The number of fractional bits in the multiplier.</param>
+    /// <returns>The eight rounded results.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> MultiplyRoundWidened(Vector256<int> value, int multiplier, int fractionalBits)
+    {
+        (Vector256<long> lower, Vector256<long> upper) = Vector256.Widen(value);
+        Vector256<long> rounding = Vector256.Create(1L << (fractionalBits - 1));
+
+        lower = ((lower * multiplier) + rounding) >> fractionalBits;
+        upper = ((upper * multiplier) + rounding) >> fractionalBits;
+        return Vector256.Narrow(lower, upper);
+    }
+
+    /// <summary>
     /// Multiplies four scalar inputs by fixed-point weights and rounds their sum.
     /// </summary>
     /// <param name="weight0">The first fixed-point weight.</param>
@@ -503,5 +541,65 @@ internal static class Av1Transform1dMath
     {
         Vector512<int> weightedSum = (input0 * weight0) + (input1 * weight1) + (input2 * weight2) + (input3 * weight3);
         return (weightedSum + Vector512.Create(1 << (fractionalBits - 1))) >> fractionalBits;
+    }
+
+    /// <summary>
+    /// Multiplies four sets of four inputs in signed thirty-two-bit lanes, then widens the terminal rounding step.
+    /// </summary>
+    /// <param name="weight0">The first fixed-point weight.</param>
+    /// <param name="input0">The first four input values.</param>
+    /// <param name="weight1">The second fixed-point weight.</param>
+    /// <param name="input1">The second four input values.</param>
+    /// <param name="weight2">The third fixed-point weight.</param>
+    /// <param name="input2">The third four input values.</param>
+    /// <param name="weight3">The fourth fixed-point weight.</param>
+    /// <param name="input3">The fourth four input values.</param>
+    /// <param name="fractionalBits">The number of fractional bits in each weight.</param>
+    /// <returns>The four rounded fixed-point sums.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<int> MultiplyAdd4WidenedRound(
+        int weight0,
+        Vector128<int> input0,
+        int weight1,
+        Vector128<int> input1,
+        int weight2,
+        Vector128<int> input2,
+        int weight3,
+        Vector128<int> input3,
+        int fractionalBits)
+    {
+        // libaom keeps conformant ADST4 sine products and their factorized sums in Int32, then widens the terminal
+        // scaling and rounding. Preserve that exact boundary instead of widening every transform multiplication.
+        Vector128<int> weightedSum = (input0 * weight0) + (input1 * weight1) + (input2 * weight2) + (input3 * weight3);
+        return MultiplyRoundWidened(weightedSum, 1, fractionalBits);
+    }
+
+    /// <summary>
+    /// Multiplies four sets of eight inputs in signed thirty-two-bit lanes, then widens the terminal rounding step.
+    /// </summary>
+    /// <param name="weight0">The first fixed-point weight.</param>
+    /// <param name="input0">The first eight input values.</param>
+    /// <param name="weight1">The second fixed-point weight.</param>
+    /// <param name="input1">The second eight input values.</param>
+    /// <param name="weight2">The third fixed-point weight.</param>
+    /// <param name="input2">The third eight input values.</param>
+    /// <param name="weight3">The fourth fixed-point weight.</param>
+    /// <param name="input3">The fourth eight input values.</param>
+    /// <param name="fractionalBits">The number of fractional bits in each weight.</param>
+    /// <returns>The eight rounded fixed-point sums.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<int> MultiplyAdd4WidenedRound(
+        int weight0,
+        Vector256<int> input0,
+        int weight1,
+        Vector256<int> input1,
+        int weight2,
+        Vector256<int> input2,
+        int weight3,
+        Vector256<int> input3,
+        int fractionalBits)
+    {
+        Vector256<int> weightedSum = (input0 * weight0) + (input1 * weight1) + (input2 * weight2) + (input3 * weight3);
+        return MultiplyRoundWidened(weightedSum, 1, fractionalBits);
     }
 }

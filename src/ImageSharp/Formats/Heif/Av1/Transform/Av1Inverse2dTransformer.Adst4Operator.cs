@@ -84,9 +84,8 @@ internal static partial class Av1Inverse2dTransformer
             int cosBit,
             Av1TransformStageRange stageRange)
         {
-            TransformCore(ref input, ref output, cosBit);
+            TransformCore(ref input, ref output, cosBit, stageRange[0] >= WidenedIntermediateBitCount);
             _ = step;
-            _ = stageRange;
         }
 
         /// <inheritdoc/>
@@ -97,9 +96,8 @@ internal static partial class Av1Inverse2dTransformer
             int cosBit,
             Av1TransformStageRange stageRange)
         {
-            TransformCore(ref input, ref output, cosBit);
+            TransformCore(ref input, ref output, cosBit, stageRange[0] >= WidenedIntermediateBitCount);
             _ = step;
-            _ = stageRange;
         }
 
         /// <summary>
@@ -108,7 +106,12 @@ internal static partial class Av1Inverse2dTransformer
         /// <param name="input">The source values for four transform axes.</param>
         /// <param name="output">The destination values for four transform axes.</param>
         /// <param name="cosBit">The fixed-point precision of the sine constants.</param>
-        private static void TransformCore(ref Av1TransformVector<Vector128<int>> input, ref Av1TransformVector<Vector128<int>> output, int cosBit)
+        /// <param name="widenedRound">Whether the terminal fixed-point rounding requires signed 64-bit lanes.</param>
+        private static void TransformCore(
+            ref Av1TransformVector<Vector128<int>> input,
+            ref Av1TransformVector<Vector128<int>> output,
+            int cosBit,
+            bool widenedRound)
         {
             ReadOnlySpan<int> sinpi = Av1SinusConstants.SinusPi(cosBit);
             Vector128<int> x0 = input.V0;
@@ -116,8 +119,18 @@ internal static partial class Av1Inverse2dTransformer
             Vector128<int> x2 = input.V2;
             Vector128<int> x3 = input.V3;
 
-            // The products retain the sine-table scale across the complete matrix. The bounded transform inputs make
-            // the optimized kernels' wrapping 32-bit multiply/add sequence valid until the terminal rounding shift.
+            // Pinned libaom retains the sine-table scale in Int32 products and sums, but performs the twelve-bit row
+            // kernel's terminal scaling and rounding in Int64. This is the only stage whose rounding bias can overflow
+            // a valid Int32 fixed-point sum.
+            if (widenedRound)
+            {
+                output.V0 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[1], x0, sinpi[3], x1, sinpi[4], x2, sinpi[2], x3, cosBit);
+                output.V1 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[2], x0, sinpi[3], x1, -sinpi[1], x2, -sinpi[4], x3, cosBit);
+                output.V2 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[3], x0, 0, x1, -sinpi[3], x2, sinpi[3], x3, cosBit);
+                output.V3 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[1] + sinpi[2], x0, -sinpi[3], x1, sinpi[4] - sinpi[1], x2, sinpi[2] - sinpi[4], x3, cosBit);
+                return;
+            }
+
             output.V0 = Av1Transform1dMath.MultiplyAdd4(sinpi[1], x0, sinpi[3], x1, sinpi[4], x2, sinpi[2], x3, cosBit);
             output.V1 = Av1Transform1dMath.MultiplyAdd4(sinpi[2], x0, sinpi[3], x1, -sinpi[1], x2, -sinpi[4], x3, cosBit);
             output.V2 = Av1Transform1dMath.MultiplyAdd4(sinpi[3], x0, 0, x1, -sinpi[3], x2, sinpi[3], x3, cosBit);
@@ -130,13 +143,27 @@ internal static partial class Av1Inverse2dTransformer
         /// <param name="input">The source values for eight transform axes.</param>
         /// <param name="output">The destination values for eight transform axes.</param>
         /// <param name="cosBit">The fixed-point precision of the sine constants.</param>
-        private static void TransformCore(ref Av1TransformVector<Vector256<int>> input, ref Av1TransformVector<Vector256<int>> output, int cosBit)
+        /// <param name="widenedRound">Whether the terminal fixed-point rounding requires signed 64-bit lanes.</param>
+        private static void TransformCore(
+            ref Av1TransformVector<Vector256<int>> input,
+            ref Av1TransformVector<Vector256<int>> output,
+            int cosBit,
+            bool widenedRound)
         {
             ReadOnlySpan<int> sinpi = Av1SinusConstants.SinusPi(cosBit);
             Vector256<int> x0 = input.V0;
             Vector256<int> x1 = input.V1;
             Vector256<int> x2 = input.V2;
             Vector256<int> x3 = input.V3;
+
+            if (widenedRound)
+            {
+                output.V0 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[1], x0, sinpi[3], x1, sinpi[4], x2, sinpi[2], x3, cosBit);
+                output.V1 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[2], x0, sinpi[3], x1, -sinpi[1], x2, -sinpi[4], x3, cosBit);
+                output.V2 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[3], x0, 0, x1, -sinpi[3], x2, sinpi[3], x3, cosBit);
+                output.V3 = Av1Transform1dMath.MultiplyAdd4WidenedRound(sinpi[1] + sinpi[2], x0, -sinpi[3], x1, sinpi[4] - sinpi[1], x2, sinpi[2] - sinpi[4], x3, cosBit);
+                return;
+            }
 
             output.V0 = Av1Transform1dMath.MultiplyAdd4(sinpi[1], x0, sinpi[3], x1, sinpi[4], x2, sinpi[2], x3, cosBit);
             output.V1 = Av1Transform1dMath.MultiplyAdd4(sinpi[2], x0, sinpi[3], x1, -sinpi[1], x2, -sinpi[4], x3, cosBit);

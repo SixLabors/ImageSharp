@@ -48,10 +48,19 @@ internal static partial class Av1Inverse2dTransformer
             int cosBit,
             Av1TransformStageRange stageRange)
         {
-            Av1IdentityTransform1d.Transform(ref input, ref output, 16, 2 * Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+            // The doubled scale exceeds Int32 only for the 20-bit twelve-bit row range. Widen that exact product and
+            // rounding sequence, matching libaom without changing the established lower-range SIMD path.
+            if (stageRange[0] >= WidenedIntermediateBitCount)
+            {
+                Av1IdentityTransform1d.TransformWidened(ref input, ref output, 16, 2 * Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+            }
+            else
+            {
+                Av1IdentityTransform1d.Transform(ref input, ref output, 16, 2 * Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+            }
+
             _ = step;
             _ = cosBit;
-            _ = stageRange;
         }
 
         /// <inheritdoc/>
@@ -62,10 +71,17 @@ internal static partial class Av1Inverse2dTransformer
             int cosBit,
             Av1TransformStageRange stageRange)
         {
-            Av1IdentityTransform1d.Transform(ref input, ref output, 16, 2 * Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+            if (stageRange[0] >= WidenedIntermediateBitCount)
+            {
+                Av1IdentityTransform1d.TransformWidened(ref input, ref output, 16, 2 * Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+            }
+            else
+            {
+                Av1IdentityTransform1d.Transform(ref input, ref output, 16, 2 * Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);
+            }
+
             _ = step;
             _ = cosBit;
-            _ = stageRange;
         }
     }
 }

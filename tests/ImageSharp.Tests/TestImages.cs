@@ -1390,6 +1390,14 @@ public static class TestImages
         public const string Av1GlobalWarpSequencePresentationReference = "Heif/Av1/Conformance/libavif-rotating-grid-global-warp-libavif.png";
         public const string Av1OfficialAllIntraSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-02-allintra.ivf";
         public const string Av1OfficialAllIntraSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-02-allintra-libaom.y4m";
+        public const string Av1OfficialEightBitMinimumQuantizerSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-00-quantizer-00.ivf";
+        public const string Av1OfficialEightBitMinimumQuantizerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-00-quantizer-00-libaom.y4m";
+        public const string Av1OfficialEightBitMaximumQuantizerSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-00-quantizer-63.ivf";
+        public const string Av1OfficialEightBitMaximumQuantizerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-00-quantizer-63-libaom.y4m";
+        public const string Av1OfficialTenBitMinimumQuantizerSequence = "Heif/Av1/Conformance/libaom-av1-1-b10-00-quantizer-00.ivf";
+        public const string Av1OfficialTenBitMinimumQuantizerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b10-00-quantizer-00-libaom.y4m";
+        public const string Av1OfficialTenBitMaximumQuantizerSequence = "Heif/Av1/Conformance/libaom-av1-1-b10-00-quantizer-63.ivf";
+        public const string Av1OfficialTenBitMaximumQuantizerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b10-00-quantizer-63-libaom.y4m";
         public const string Av1OfficialCdfUpdateSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-04-cdfupdate.ivf";
         public const string Av1OfficialCdfUpdateSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-04-cdfupdate-libaom.y4m";
         public const string Av1OfficialMotionVectorSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-05-mv.ivf";

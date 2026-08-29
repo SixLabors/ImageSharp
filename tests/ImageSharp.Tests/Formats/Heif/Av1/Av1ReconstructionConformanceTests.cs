@@ -252,6 +252,31 @@ public class Av1ReconstructionConformanceTests
     private const int OfficialMonochromeFixtureFrameCount = 10;
 
     /// <summary>
+    /// The width of the official libaom eight-bit quantizer-boundary sequences.
+    /// </summary>
+    private const int OfficialEightBitQuantizerFixtureWidth = 352;
+
+    /// <summary>
+    /// The height of the official libaom eight-bit quantizer-boundary sequences.
+    /// </summary>
+    private const int OfficialEightBitQuantizerFixtureHeight = 288;
+
+    /// <summary>
+    /// The width of the official libaom ten-bit quantizer-boundary sequences.
+    /// </summary>
+    private const int OfficialTenBitQuantizerFixtureWidth = 640;
+
+    /// <summary>
+    /// The height of the official libaom ten-bit quantizer-boundary sequences.
+    /// </summary>
+    private const int OfficialTenBitQuantizerFixtureHeight = 360;
+
+    /// <summary>
+    /// The number of frames in each official libaom quantizer-boundary sequence.
+    /// </summary>
+    private const int OfficialQuantizerFixtureFrameCount = 2;
+
+    /// <summary>
     /// The coverage bit representing tile-local adaptive CDF updates.
     /// </summary>
     private const int TileCdfUpdateCoverage = 1 << 0;
@@ -1634,6 +1659,109 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
+    /// Verifies the official eight-bit quantizer boundaries against exact pinned-libaom native output.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialEightBitQuantizerBoundarySequencesMatchPinnedLibaomReferences()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateOfficialEightBitQuantizerBoundaryFixtures,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Decodes the official eight-bit quantizer boundaries.
+    /// </summary>
+    private static void ValidateOfficialEightBitQuantizerBoundaryFixtures()
+        => ValidateOfficialEightBitQuantizerBoundaryFixturesWithConfiguration(Configuration.Default);
+
+    /// <summary>
+    /// Verifies the official ten-bit quantizer boundaries against exact pinned-libaom native output.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialTenBitQuantizerBoundarySequencesMatchPinnedLibaomReferences()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateOfficialTenBitQuantizerBoundaryFixtures,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Decodes the official ten-bit quantizer boundaries.
+    /// </summary>
+    private static void ValidateOfficialTenBitQuantizerBoundaryFixtures()
+        => ValidateOfficialTenBitQuantizerBoundaryFixturesWithConfiguration(Configuration.Default);
+
+    /// <summary>
+    /// Verifies the official quantizer boundaries through constrained tracked allocation.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodeOfficialQuantizerBoundarySequencesWithConstrainedAllocator()
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_560 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        ValidateOfficialEightBitQuantizerBoundaryFixturesWithConfiguration(configuration);
+        ValidateOfficialTenBitQuantizerBoundaryFixturesWithConfiguration(configuration);
+
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.AllocationId == allocation.AllocationId));
+    }
+
+    /// <summary>
+    /// Decodes both retained official eight-bit quantizer-boundary fixtures.
+    /// </summary>
+    private static void ValidateOfficialEightBitQuantizerBoundaryFixturesWithConfiguration(Configuration configuration)
+    {
+        ValidateOfficialCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialEightBitMinimumQuantizerSequence,
+            TestImages.Heif.Av1OfficialEightBitMinimumQuantizerSequenceNativeReference,
+            OfficialQuantizerFixtureFrameCount,
+            OfficialEightBitQuantizerFixtureWidth,
+            OfficialEightBitQuantizerFixtureHeight);
+
+        ValidateOfficialCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialEightBitMaximumQuantizerSequence,
+            TestImages.Heif.Av1OfficialEightBitMaximumQuantizerSequenceNativeReference,
+            OfficialQuantizerFixtureFrameCount,
+            OfficialEightBitQuantizerFixtureWidth,
+            OfficialEightBitQuantizerFixtureHeight);
+    }
+
+    /// <summary>
+    /// Decodes both retained official ten-bit quantizer-boundary fixtures.
+    /// </summary>
+    private static void ValidateOfficialTenBitQuantizerBoundaryFixturesWithConfiguration(Configuration configuration)
+    {
+        ValidateOfficialCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialTenBitMinimumQuantizerSequence,
+            TestImages.Heif.Av1OfficialTenBitMinimumQuantizerSequenceNativeReference,
+            OfficialQuantizerFixtureFrameCount,
+            OfficialTenBitQuantizerFixtureWidth,
+            OfficialTenBitQuantizerFixtureHeight,
+            Av1ColorFormat.Yuv420,
+            Av1BitDepth.TenBit,
+            "60:1");
+
+        ValidateOfficialCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialTenBitMaximumQuantizerSequence,
+            TestImages.Heif.Av1OfficialTenBitMaximumQuantizerSequenceNativeReference,
+            OfficialQuantizerFixtureFrameCount,
+            OfficialTenBitQuantizerFixtureWidth,
+            OfficialTenBitQuantizerFixtureHeight,
+            Av1ColorFormat.Yuv420,
+            Av1BitDepth.TenBit,
+            "60:1");
+    }
+
+    /// <summary>
     /// Decodes one compact official IVF sequence, compares every native sample, and returns its active frame-state
     /// coverage mask.
     /// </summary>
@@ -1645,7 +1773,8 @@ public class Av1ReconstructionConformanceTests
         int expectedWidth = OfficialMotionVectorFixtureWidth,
         int expectedHeight = OfficialMotionVectorFixtureHeight,
         Av1ColorFormat expectedColorFormat = Av1ColorFormat.Yuv420,
-        Av1BitDepth expectedBitDepth = Av1BitDepth.EightBit)
+        Av1BitDepth expectedBitDepth = Av1BitDepth.EightBit,
+        string expectedFrameRate = "30:1")
     {
         byte[] ivf = TestFile.Create(fixturePath).Bytes;
         byte[] nativeReference = TestFile.Create(nativeReferencePath).Bytes;
@@ -1671,7 +1800,7 @@ public class Av1ReconstructionConformanceTests
 
         ReadOnlySpan<byte> y4mFileHeader = hasY4mHeaders
             ? Encoding.ASCII.GetBytes(
-                $"YUV4MPEG2 W{expectedWidth} H{expectedHeight} F30:1 Ip {y4mColorSpace}\n")
+                $"YUV4MPEG2 W{expectedWidth} H{expectedHeight} F{expectedFrameRate} Ip {y4mColorSpace}\n")
             : [];
 
         ReadOnlySpan<byte> y4mFrameHeader = "FRAME\n"u8;

@@ -36,6 +36,7 @@ The reference builds use `AOM_TARGET_CPU=generic` and disable libyuv. Native rec
 | `*-intrabc-*` | Intra-block copy at every supported bit depth |
 | `*-lossless-*` | Lossless quantization, reversible transforms, and exact presentation |
 | `*-film-grain-*` | Full and restricted range, monochrome, identity matrix, 8/10/12-bit synthesis, overlap, and odd frame dimensions |
+| `libaom-av1-1-b8-00-quantizer-*`, `libaom-av1-1-b10-00-quantizer-*` | Official minimum- and maximum-quantizer dependent-frame reconstruction |
 | `libaom-av1-1-b10-23`, `libaom-av1-1-b10-24` | Official ten-bit dependent-frame film grain and monochrome sequence reconstruction |
 | `libavif-progressive-draw-points-8b` | A real two-layer color item whose final frame uses single-reference inter reconstruction, plus its progressive auxiliary alpha item |
 | `libavif-webp-logo-average-compound` | A 19-frame YUV444 image sequence whose retained references reach equal-weight compound inter reconstruction |
@@ -61,6 +62,12 @@ aomdec --threads=1 --output=libaom-av1-1-b10-24-monochrome-libaom.y4m libaom-av1
 ```
 
 The film-grain Y4M SHA-256 is `A1B553BE140F48ABDDB2A6D39917AB714BA03AC7FFD6359EAA1CB0D89C985A3B`, and the monochrome Y4M SHA-256 is `7394BC8146485D200BFDEC62E170482F8B1A85A64D21FAC62D10116FB1BB140D`. The tests decode and compare all ten frames from each sequence exactly under normal and scalar dispatch. The film-grain stream retains dependent ungrained references while applying ten-bit grain to each displayed 352x288 YUV420 frame; the monochrome stream verifies every 320x180 ten-bit luma sample without manufacturing chroma in ImageSharp. Both sequences also run through a constrained tracked allocator.
+
+## Official quantizer-boundary fixtures
+
+The retained `quantizer-00` and `quantizer-63` streams are the minimum- and maximum-quantizer boundaries from libaom's official eight- and ten-bit test matrices. Their SHA-1 values are `C2E1EC9936B95254187A359E94AA32A9F3DAD1B7`, `2A8AA33513D8E01AE9410C4BF5FE1E471B775482`, `9BBE8499796AA588FF02E313FB0D4349940D2FEA`, and `8B6EB3FFF2E0DB7EAC775B08C745250CA591E2D9`, exactly matching `test/test-data.sha1` at pinned libaom commit `03087864cf4bea6abb0d28f95cf7843511413d8f`. Their SHA-256 values, in the same order, are `6382DBD2BEFBBC93D4EA283586F4FB43FEA5F1C52400E3D2C5281A46B1104C00`, `0E4EC80680F7AF8DE9621B016E0F2D7C0858B2951DEBC173DDA50C6A051547D3`, `FE6053CE4EE20A1C0EC6F7FE35DB097E92AD25D8A3505598BD89162C74D7944F`, and `39759AB77483E1D11049DC38B5F5262158FD9C3CBC9D1F82A02462FC5DF30E0C`.
+
+The native references were generated with the pinned generic `aomdec --threads=1` build. Their SHA-256 values are `D499028E0606DB70CD56A72F151E04F36C09F300A448CCCD8430DD920D3589C5`, `4CC9892B3EE3399B293E31014B9F566C21E0C7A4765FC5F444528769C33E6D67`, `78373C28F401EB95D3E563D146622ED6C714ED96661E5E57C539CE71D7BED599`, and `A9DF86F671B8CF01EFC130660556412D4EBAF31A81D6F26FBDAEB0A7E839D8EA`. Each reference's two raw-frame MD5 values also match the corresponding official `.ivf.md5` file exactly. The tests compare every native sample under normal and scalar `FeatureTestRunner` dispatch and run all four sequences through a 2,560-byte row-aligned constrained tracked allocator.
 
 ## Progressive dependent-frame fixture
 

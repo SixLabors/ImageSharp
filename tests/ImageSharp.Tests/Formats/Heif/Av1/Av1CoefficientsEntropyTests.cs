@@ -150,7 +150,7 @@ public class Av1CoefficientsEntropyTests
 
         // Act
         encoder.WriteCoefficients(transformSize, transformType, intraDirection, coefficientsBuffer, componentType, transformBlockContext, endOfBlock, true, filterIntraMode);
-        IMemoryOwner<byte> encoded = encoder.Exit();
+        using IMemoryOwner<byte> encoded = encoder.Exit();
 
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
         int plane = Math.Min((int)componentType, 1);
@@ -161,7 +161,13 @@ public class Av1CoefficientsEntropyTests
 
         // Assert
         Assert.Equal(endOfBlock, actuals[0]);
-        Assert.Equal(coefficientsBuffer[..endOfBlock], actuals[1..(endOfBlock + 1)]);
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+
+        // The parser retains quantized levels in entropy scan order; inverse quantization maps them back to raster positions.
+        for (int coefficientIndex = 0; coefficientIndex < endOfBlock; coefficientIndex++)
+        {
+            Assert.Equal(coefficientsBuffer[scan[coefficientIndex]], actuals[coefficientIndex + 1]);
+        }
     }
 
     public static TheoryData<int> GetTransformTypes()

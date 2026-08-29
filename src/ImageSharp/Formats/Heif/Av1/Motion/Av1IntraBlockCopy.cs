@@ -109,6 +109,20 @@ internal static class Av1IntraBlockCopy
         SortByWeight(candidates, weights, 0, nearestCandidateCount);
         SortByWeight(candidates, weights, nearestCandidateCount, candidateCount);
 
+        // Libaom clamps the ranked stack before selecting nearest and near. The displacement entropy syntax is
+        // differential, so using an unclamped spatial candidate changes every following component even though the
+        // final decoded displacement is validated separately against the stricter intra-block-copy source limits.
+        for (int index = 0; index < candidateCount; index++)
+        {
+            candidates[index] = candidates[index].ClampReference(
+                blockSize.GetWidth(),
+                blockSize.GetHeight(),
+                partitionInfo.ModeBlockToLeftEdge,
+                partitionInfo.ModeBlockToRightEdge,
+                partitionInfo.ModeBlockToTopEdge,
+                partitionInfo.ModeBlockToBottomEdge);
+        }
+
         Av1MotionVector reference = candidateCount > 0 ? candidates[0] : default;
         if (reference.IsZero && candidateCount > 1)
         {
@@ -227,7 +241,8 @@ internal static class Av1IntraBlockCopy
             }
         }
 
-        bool useFourUnitStep = width >= 4;
+        // Libaom uses the four-mode-info-unit step only once the active block reaches 64 samples.
+        bool useFourUnitStep = width >= 16;
         for (int index = 0; index < end;)
         {
             Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(
@@ -281,7 +296,8 @@ internal static class Av1IntraBlockCopy
             }
         }
 
-        bool useFourUnitStep = height >= 4;
+        // Libaom uses the four-mode-info-unit step only once the active block reaches 64 samples.
+        bool useFourUnitStep = height >= 16;
         for (int index = 0; index < end;)
         {
             Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(

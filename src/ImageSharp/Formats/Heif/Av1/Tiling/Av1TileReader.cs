@@ -1361,7 +1361,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             Av1BlockModeInfo aboveModeInfo = superblockInfo.GetModeInfoAt(
                 new Point(partitionInfo.ColumnIndex, partitionInfo.RowIndex - 1));
 
-            if (aboveModeInfo.ReferenceFrames[0] > Av1ReferenceFrameType.Intra)
+            if (aboveModeInfo.UseIntraBlockCopy || aboveModeInfo.ReferenceFrames[0] > Av1ReferenceFrameType.Intra)
             {
                 above = aboveModeInfo.BlockSize.GetWidth() >= maxTransformSize.GetWidth() ? 1 : 0;
             }
@@ -1372,7 +1372,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             Av1BlockModeInfo leftModeInfo = superblockInfo.GetModeInfoAt(
                 new Point(partitionInfo.ColumnIndex - 1, partitionInfo.RowIndex));
 
-            if (leftModeInfo.ReferenceFrames[0] > Av1ReferenceFrameType.Intra)
+            if (leftModeInfo.UseIntraBlockCopy || leftModeInfo.ReferenceFrames[0] > Av1ReferenceFrameType.Intra)
             {
                 left = leftModeInfo.BlockSize.GetHeight() >= maxTransformSize.GetHeight() ? 1 : 0;
             }
@@ -2263,9 +2263,13 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 this.displacementVectorWeights);
 
             Av1MotionVector displacement = reader.ReadDisplacementVector(reference);
+
             if (!Av1IntraBlockCopy.IsValid(displacement, ref partitionInfo, tileInfo, this.SequenceHeader))
             {
-                throw new InvalidImageContentException("Invalid AV1 intra-block-copy displacement vector.");
+                throw new InvalidImageContentException(
+                    $"Invalid AV1 intra-block-copy displacement vector at ({partitionInfo.ColumnIndex}, {partitionInfo.RowIndex}) " +
+                    $"for {partitionInfo.ModeInfo.BlockSize}: reference ({reference.Row}, {reference.Column}), " +
+                    $"decoded ({displacement.Row}, {displacement.Column}).");
             }
 
             partitionInfo.ModeInfo.DisplacementVector = displacement;

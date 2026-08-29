@@ -338,7 +338,7 @@ internal sealed class Av1ReferenceMotionVectors
         else
         {
             // When the direct single-reference stack has fewer than two entries, AV1 extends it from every inter
-            // reference on the immediate above and left blocks. Opposite temporal directions are sign-reversed.
+            // reference in the immediate above and left spatial blocks. Differing reference sign biases are reversed.
             for (int index = 0; Math.Abs(maximumRowOffset) >= 1 && index < extensionLength && this.Count < 2;)
             {
                 Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(column + index, row - 1));

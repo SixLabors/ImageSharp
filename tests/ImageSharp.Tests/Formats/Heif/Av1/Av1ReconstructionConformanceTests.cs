@@ -172,6 +172,21 @@ public class Av1ReconstructionConformanceTests
     private const int OfficialMotionFieldFixtureFrameCount = 4;
 
     /// <summary>
+    /// The displayed width of the official libaom extreme-displacement intra-block-copy sequence.
+    /// </summary>
+    private const int OfficialIntraBlockCopyFixtureWidth = 1920;
+
+    /// <summary>
+    /// The displayed height of the official libaom extreme-displacement intra-block-copy sequence.
+    /// </summary>
+    private const int OfficialIntraBlockCopyFixtureHeight = 1080;
+
+    /// <summary>
+    /// The number of shown frames in the official libaom extreme-displacement intra-block-copy sequence.
+    /// </summary>
+    private const int OfficialIntraBlockCopyFixtureFrameCount = 2;
+
+    /// <summary>
     /// The coverage bit representing tile-local adaptive CDF updates.
     /// </summary>
     private const int TileCdfUpdateCoverage = 1 << 0;
@@ -1068,6 +1083,84 @@ public class Av1ReconstructionConformanceTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialMotionFieldFixture,
             ReconstructionConfigurations);
+
+    /// <summary>
+    /// Verifies extreme intra-block-copy displacement vectors against the official pinned-libaom sequence and exact
+    /// native output under normal and scalar dispatch.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialIntraBlockCopySequenceMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateOfficialIntraBlockCopyFixture,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Decodes the official intra-block-copy sequence and proves that the active copied blocks reconstruct exactly.
+    /// </summary>
+    private static void ValidateOfficialIntraBlockCopyFixture()
+    {
+        byte[] ivf = TestFile.Create(TestImages.Heif.Av1OfficialIntraBlockCopySequence).Bytes;
+        byte[] nativeReference = TestFile.Create(TestImages.Heif.Av1OfficialIntraBlockCopySequenceNativeReference).Bytes;
+        ReadOnlySpan<byte> y4mFileHeader = "YUV4MPEG2 W1920 H1080 F30:1 Ip C420jpeg\n"u8;
+        ReadOnlySpan<byte> y4mFrameHeader = "FRAME\n"u8;
+
+        Assert.True(ivf.AsSpan(0, 4).SequenceEqual("DKIF"u8));
+        Assert.Equal(0, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(4, 2)));
+        Assert.Equal(32, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(6, 2)));
+        Assert.True(ivf.AsSpan(8, 4).SequenceEqual("AV01"u8));
+        Assert.Equal(OfficialIntraBlockCopyFixtureWidth, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(12, 2)));
+        Assert.Equal(OfficialIntraBlockCopyFixtureHeight, BinaryPrimitives.ReadUInt16LittleEndian(ivf.AsSpan(14, 2)));
+        Assert.Equal(
+            OfficialIntraBlockCopyFixtureFrameCount,
+            checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(24, 4))));
+
+        Assert.True(nativeReference.AsSpan().StartsWith(y4mFileHeader));
+
+        int ivfOffset = 32;
+        int nativeOffset = y4mFileHeader.Length;
+        int nativeFrameLength =
+            (OfficialIntraBlockCopyFixtureWidth * OfficialIntraBlockCopyFixtureHeight) +
+            (2 * (OfficialIntraBlockCopyFixtureWidth >> 1) * (OfficialIntraBlockCopyFixtureHeight >> 1));
+
+        int intraBlockCopyBlockCount = 0;
+        bool allowIntraBlockCopy = false;
+        using Av1Decoder decoder = new(Configuration.Default);
+        for (int frameIndex = 0; frameIndex < OfficialIntraBlockCopyFixtureFrameCount; frameIndex++)
+        {
+            int payloadLength = checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(ivfOffset, 4)));
+            ivfOffset += 12;
+            using ImageFrame<Rgba32> frame = decoder.DecodeSequenceFrame<Rgba32>(
+                ivf.AsSpan(ivfOffset, payloadLength),
+                null,
+                null);
+
+            ivfOffset += payloadLength;
+            Assert.Equal(OfficialIntraBlockCopyFixtureWidth, frame.Width);
+            Assert.Equal(OfficialIntraBlockCopyFixtureHeight, frame.Height);
+            Assert.True(nativeReference.AsSpan(nativeOffset).StartsWith(y4mFrameHeader));
+            nativeOffset += y4mFrameHeader.Length;
+
+            Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
+            Assert.Equal(OfficialIntraBlockCopyFixtureWidth, frameBuffer.Width);
+            Assert.Equal(OfficialIntraBlockCopyFixtureHeight, frameBuffer.Height);
+            Assert.Equal(Av1BitDepth.EightBit, frameBuffer.BitDepth);
+            Assert.Equal(Av1ColorFormat.Yuv420, frameBuffer.ColorFormat);
+            AssertNativePlanesEqual(
+                decoder,
+                frameBuffer,
+                nativeReference.AsSpan(nativeOffset, nativeFrameLength));
+
+            nativeOffset += nativeFrameLength;
+            ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
+            allowIntraBlockCopy |= frameHeader.AllowIntraBlockCopy;
+            intraBlockCopyBlockCount += GetIntraBlockCopyBlockCount(decoder);
+        }
+
+        Assert.Equal(ivf.Length, ivfOffset);
+        Assert.Equal(nativeReference.Length, nativeOffset);
+        Assert.True(allowIntraBlockCopy);
+        Assert.NotEqual(0, intraBlockCopyBlockCount);
+    }
 
     /// <summary>
     /// Verifies exact temporal motion-field reconstruction and balanced ownership with a constrained allocator.

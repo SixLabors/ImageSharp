@@ -1398,6 +1398,14 @@ public static class TestImages
         public const string Av1OfficialTenBitMinimumQuantizerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b10-00-quantizer-00-libaom.y4m";
         public const string Av1OfficialTenBitMaximumQuantizerSequence = "Heif/Av1/Conformance/libaom-av1-1-b10-00-quantizer-63.ivf";
         public const string Av1OfficialTenBitMaximumQuantizerSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b10-00-quantizer-63-libaom.y4m";
+        public const string Av1OfficialMinimumFrameSizeSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-196x196.ivf";
+        public const string Av1OfficialMinimumFrameSizeSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-196x196-libaom.y4m";
+        public const string Av1OfficialMinimumWidthMaximumHeightSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-196x226.ivf";
+        public const string Av1OfficialMinimumWidthMaximumHeightSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-196x226-libaom.y4m";
+        public const string Av1OfficialMaximumWidthMinimumHeightSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-226x196.ivf";
+        public const string Av1OfficialMaximumWidthMinimumHeightSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-226x196-libaom.y4m";
+        public const string Av1OfficialMaximumFrameSizeSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-226x226.ivf";
+        public const string Av1OfficialMaximumFrameSizeSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-01-size-226x226-libaom.y4m";
         public const string Av1OfficialCdfUpdateSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-04-cdfupdate.ivf";
         public const string Av1OfficialCdfUpdateSequenceNativeReference = "Heif/Av1/Conformance/libaom-av1-1-b8-04-cdfupdate-libaom.y4m";
         public const string Av1OfficialMotionVectorSequence = "Heif/Av1/Conformance/libaom-av1-1-b8-05-mv.ivf";

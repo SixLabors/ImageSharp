@@ -277,6 +277,21 @@ public class Av1ReconstructionConformanceTests
     private const int OfficialQuantizerFixtureFrameCount = 2;
 
     /// <summary>
+    /// The minimum dimension retained from the official libaom frame-size matrix.
+    /// </summary>
+    private const int OfficialFrameSizeFixtureMinimumDimension = 196;
+
+    /// <summary>
+    /// The maximum dimension retained from the official libaom frame-size matrix.
+    /// </summary>
+    private const int OfficialFrameSizeFixtureMaximumDimension = 226;
+
+    /// <summary>
+    /// The number of frames in each official libaom frame-size sequence.
+    /// </summary>
+    private const int OfficialFrameSizeFixtureFrameCount = 2;
+
+    /// <summary>
     /// The coverage bit representing tile-local adaptive CDF updates.
     /// </summary>
     private const int TileCdfUpdateCoverage = 1 << 0;
@@ -1759,6 +1774,81 @@ public class Av1ReconstructionConformanceTests
             Av1ColorFormat.Yuv420,
             Av1BitDepth.TenBit,
             "60:1");
+    }
+
+    /// <summary>
+    /// Verifies all four corners of the official frame-size matrix against exact pinned-libaom native output.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialFrameSizeCornerSequencesMatchPinnedLibaomReferences()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateOfficialFrameSizeCornerFixtures,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Decodes all four retained frame-size corners.
+    /// </summary>
+    private static void ValidateOfficialFrameSizeCornerFixtures()
+        => ValidateOfficialFrameSizeCornerFixturesWithConfiguration(Configuration.Default);
+
+    /// <summary>
+    /// Verifies all four frame-size corners through constrained tracked allocation.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodeOfficialFrameSizeCornerSequencesWithConstrainedAllocator()
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        ValidateOfficialFrameSizeCornerFixturesWithConfiguration(configuration);
+
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.AllocationId == allocation.AllocationId));
+    }
+
+    /// <summary>
+    /// Decodes every retained official frame-size fixture and compares every native sample.
+    /// </summary>
+    private static void ValidateOfficialFrameSizeCornerFixturesWithConfiguration(Configuration configuration)
+    {
+        ValidateOfficialCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialMinimumFrameSizeSequence,
+            TestImages.Heif.Av1OfficialMinimumFrameSizeSequenceNativeReference,
+            OfficialFrameSizeFixtureFrameCount,
+            OfficialFrameSizeFixtureMinimumDimension,
+            OfficialFrameSizeFixtureMinimumDimension);
+
+        ValidateOfficialCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialMinimumWidthMaximumHeightSequence,
+            TestImages.Heif.Av1OfficialMinimumWidthMaximumHeightSequenceNativeReference,
+            OfficialFrameSizeFixtureFrameCount,
+            OfficialFrameSizeFixtureMinimumDimension,
+            OfficialFrameSizeFixtureMaximumDimension);
+
+        ValidateOfficialCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialMaximumWidthMinimumHeightSequence,
+            TestImages.Heif.Av1OfficialMaximumWidthMinimumHeightSequenceNativeReference,
+            OfficialFrameSizeFixtureFrameCount,
+            OfficialFrameSizeFixtureMaximumDimension,
+            OfficialFrameSizeFixtureMinimumDimension);
+
+        ValidateOfficialCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialMaximumFrameSizeSequence,
+            TestImages.Heif.Av1OfficialMaximumFrameSizeSequenceNativeReference,
+            OfficialFrameSizeFixtureFrameCount,
+            OfficialFrameSizeFixtureMaximumDimension,
+            OfficialFrameSizeFixtureMaximumDimension);
     }
 
     /// <summary>

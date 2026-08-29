@@ -15,3 +15,10 @@ The Main-profile traversal matrix comes from the official `RQT_A_HHI_4` through 
 - `STRUCT_A_Samsung_7`: `02f02cc9a67222004ae18ee6bebd475a`
 - `STRUCT_B_Samsung_7`: `1f472e014aff120681e8482c8a04ef93`
 - `TUSIZE_A_Samsung_1`: `5e6c198c852e92cdcca0e137fc2610c4`
+
+The intra-prediction fixtures come from the same official HEVC v1 attachment:
+
+- `IPRED_B_Nokia_3` is the one-picture Main Still Picture stream identified by H.265.1 Table 1. Its published description states that it uses all 35 modes at each of the luma 32x32, 16x16, 8x8, and 4x4 sizes and the chroma 16x16, 8x8, and 4x4 sizes, for 245 mode-and-size combinations. The archive SHA-256 is `738E35AF4CED173E8CCB558464DC6A1B8B791FB1BB957C073633AA6037288CD0`; the published bitstream MD5 is `1be12a94d9da6b84af78cd6cfd5e4407`; and the retained published YUV has MD5 `ec3bcad4f9174404e52d132206b6617b`.
+- `CIP_A_Panasonic_3` signals constrained intra prediction and contains one I picture followed by one B picture. The bounded still decoder test extracts only the independently coded I picture. The archive SHA-256 is `5C55B3594E5C951C9F5312913961750283EB2DADD15844FE35F9BEB94A9A548C`, and the published bitstream MD5 is `e1e00592fc8a158da9109b4dc05d03be`.
+
+HM at commit `9c1f298659ab0cee9dc13d23d0304221575410b9` reproduces the published `IPRED_B_Nokia_3` YUV MD5 exactly and reports decoded-picture hashes `200ef9f7d2efde44ab872a78a40ece42`, `bfe9de3bef5ce5596a71bbfdbfb823fc`, and `5b14acdd5c5bf8c6887160817ee1ad11`. The same pinned decoder reproduces `CIP_A_Panasonic_3`'s published complete two-picture YUV MD5 `4cbf601ba98d63f642defab5eaa12c8d`; its independently coded first picture reports plane hashes `69a20189e6bbb9c088e3adc967244ca1`, `26502d354bb123f54c20413f14360ddb`, and `baafaef47a55ae2e876862b30b3bc720`.

@@ -81,6 +81,70 @@ public class HevcPictureDecoderTests
     }
 
     /// <summary>
+    /// Verifies the official Main Still Picture stream containing every luma and chroma intra mode at every
+    /// conformance block size against its published native planar output.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialIntraPredictionPictureMatchesPublishedReference()
+    {
+        byte[] annexB = TestFile.Create(TestImages.Heif.IntraPredictionB).Bytes;
+        byte[] expectedYuv = TestFile.Create(TestImages.Heif.IntraPredictionBReference).Bytes;
+        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        HevcCodecConfiguration configuration = new(configurationData);
+        HevcImageItemBitstream bitstream = new(itemData, configuration);
+        HevcPictureParameterSet pictureParameterSet = bitstream.SliceSegments[0].PictureParameterSet;
+        HevcSequenceParameterSet sequenceParameterSet = pictureParameterSet.SequenceParameterSet;
+        using HevcPictureDecoder decoder = new(Configuration.Default, pictureParameterSet);
+
+        decoder.Decode(bitstream);
+
+        Assert.Equal(3, configuration.GeneralProfileIdc);
+        Assert.Equal(1920, sequenceParameterSet.DisplayWidth);
+        Assert.Equal(1080, sequenceParameterSet.DisplayHeight);
+        Assert.True(sequenceParameterSet.StrongIntraSmoothingEnabled);
+        Assert.False(sequenceParameterSet.IntraSmoothingDisabled);
+        Assert.False(pictureParameterSet.ConstrainedIntraPredictionEnabled);
+
+        int expectedLength = sequenceParameterSet.DisplayWidth * sequenceParameterSet.DisplayHeight;
+        int chromaWidth = GetDisplaySize(sequenceParameterSet.DisplayWidth, decoder.Picture.GetSubsamplingX(HevcPlane.Cb));
+        int chromaHeight = GetDisplaySize(sequenceParameterSet.DisplayHeight, decoder.Picture.GetSubsamplingY(HevcPlane.Cb));
+        expectedLength += 2 * chromaWidth * chromaHeight;
+        Assert.Equal(expectedLength, expectedYuv.Length);
+
+        int offset = 0;
+        AssertPlaneEqual(decoder.Picture, sequenceParameterSet, HevcPlane.Y, expectedYuv, ref offset);
+        AssertPlaneEqual(decoder.Picture, sequenceParameterSet, HevcPlane.Cb, expectedYuv, ref offset);
+        AssertPlaneEqual(decoder.Picture, sequenceParameterSet, HevcPlane.Cr, expectedYuv, ref offset);
+        Assert.Equal(expectedYuv.Length, offset);
+    }
+
+    /// <summary>
+    /// Verifies the independently coded first picture of the official constrained-intra stream against its
+    /// decoded-picture hashes while the production PPS path retains the enabled constraint.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialConstrainedIntraPictureMatchesPublishedDigest()
+    {
+        byte[] annexB = TestFile.Create(TestImages.Heif.ConstrainedIntraPredictionA).Bytes;
+        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        HevcCodecConfiguration configuration = new(configurationData);
+        HevcImageItemBitstream bitstream = new(itemData, configuration);
+        HevcPictureParameterSet pictureParameterSet = bitstream.SliceSegments[0].PictureParameterSet;
+        HevcSequenceParameterSet sequenceParameterSet = pictureParameterSet.SequenceParameterSet;
+        using HevcPictureDecoder decoder = new(Configuration.Default, pictureParameterSet);
+
+        decoder.Decode(bitstream);
+
+        Assert.Equal(1, configuration.GeneralProfileIdc);
+        Assert.Equal(416, sequenceParameterSet.DisplayWidth);
+        Assert.Equal(240, sequenceParameterSet.DisplayHeight);
+        Assert.True(pictureParameterSet.ConstrainedIntraPredictionEnabled);
+        Assert.Equal("69a20189e6bbb9c088e3adc967244ca1", GetPlaneDigest(decoder.Picture, HevcPlane.Y));
+        Assert.Equal("26502d354bb123f54c20413f14360ddb", GetPlaneDigest(decoder.Picture, HevcPlane.Cb));
+        Assert.Equal("baafaef47a55ae2e876862b30b3bc720", GetPlaneDigest(decoder.Picture, HevcPlane.Cr));
+    }
+
+    /// <summary>
     /// Verifies coding-tree and transform-tree conformance streams against native-plane digests produced by the
     /// pinned HM decoder from output that matches each archive's published checksum.
     /// </summary>

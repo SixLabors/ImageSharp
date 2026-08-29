@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using SixLabors.ImageSharp.Formats.Heif.Hevc;
+using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Hevc;
 
@@ -12,6 +13,12 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Hevc;
 [Trait("Format", "Heic")]
 public class HevcIntraPredictorTests
 {
+    /// <summary>
+    /// The hardware configurations required to exercise each SIMD tier and the complete scalar fallback.
+    /// </summary>
+    private const HwIntrinsics PredictorConfigurations =
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+
     /// <summary>
     /// Verifies fixed four-by-four prediction results derived from the HEVC intra-prediction equations.
     /// </summary>
@@ -92,10 +99,23 @@ public class HevcIntraPredictorTests
     }
 
     /// <summary>
-    /// Verifies that eligible thirty-two-sample references use strong bilinear smoothing rather than local three-tap filtering.
+    /// Verifies strong bilinear and normal three-tap reference filtering through every SIMD tier and the scalar fallback.
     /// </summary>
     [Fact]
-    public void StrongSmoothingReplacesEligibleNonlinearReferences()
+    public void ReferenceFiltersMatchScalarDefinitionsAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateReferenceFilters, PredictorConfigurations);
+
+    /// <summary>
+    /// Compares every prediction mode and block width with a specification-shaped scalar oracle through every SIMD tier.
+    /// </summary>
+    [Fact]
+    public void EveryModeMatchesScalarOracleAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateEveryMode, PredictorConfigurations);
+
+    /// <summary>
+    /// Verifies strong bilinear and normal three-tap reference filtering under the selected hardware configuration.
+    /// </summary>
+    private static void ValidateReferenceFilters()
     {
         const int size = 32;
         ushort[] top = new ushort[(size * 2) + 1];
@@ -123,43 +143,53 @@ public class HevcIntraPredictorTests
             Assert.Equal((ushort)(100 + i), filteredTop[i]);
             Assert.Equal((ushort)(100 + (2 * i)), filteredLeft[i]);
         }
+
+        HevcIntraPredictor.FilterReferenceSamples(top, left, filteredTop, filteredLeft, 5, 10, false);
+
+        Assert.Equal((ushort)((left[1] + (2 * top[0]) + top[1] + 2) >> 2), filteredTop[0]);
+        Assert.Equal(filteredTop[0], filteredLeft[0]);
+        for (int i = 1; i < top.Length - 1; i++)
+        {
+            Assert.Equal((ushort)((top[i - 1] + (2 * top[i]) + top[i + 1] + 2) >> 2), filteredTop[i]);
+            Assert.Equal((ushort)((left[i - 1] + (2 * left[i]) + left[i + 1] + 2) >> 2), filteredLeft[i]);
+        }
+
+        Assert.Equal(top[^1], filteredTop[^1]);
+        Assert.Equal(left[^1], filteredLeft[^1]);
     }
 
     /// <summary>
-    /// Compares every prediction mode and block width with a specification-shaped scalar oracle.
+    /// Compares every prediction mode and block width with the scalar oracle under the selected hardware configuration.
     /// </summary>
-    /// <param name="log2Size">The base-two logarithm of the tested block side.</param>
-    /// <param name="bitDepth">The reconstructed component precision.</param>
-    [Theory]
-    [InlineData(2, 8)]
-    [InlineData(3, 10)]
-    [InlineData(4, 12)]
-    [InlineData(5, 12)]
-    public void EveryModeMatchesScalarOracle(int log2Size, int bitDepth)
+    private static void ValidateEveryMode()
     {
-        int size = 1 << log2Size;
-        int maximum = (1 << bitDepth) - 1;
-        int referenceLength = (size * 2) + 1;
-        ushort[] top = new ushort[referenceLength];
-        ushort[] left = new ushort[referenceLength];
-        top[0] = left[0] = (ushort)(maximum / 3);
-        for (int i = 1; i < referenceLength; i++)
+        ReadOnlySpan<(int Log2Size, int BitDepth)> cases = [(2, 8), (3, 10), (4, 12), (5, 12)];
+        foreach ((int log2Size, int bitDepth) in cases)
         {
-            top[i] = (ushort)((top[0] + (37 * i) + (3 * size)) & maximum);
-            left[i] = (ushort)((left[0] + (53 * i) + (5 * size)) & maximum);
-        }
+            int size = 1 << log2Size;
+            int maximum = (1 << bitDepth) - 1;
+            int referenceLength = (size * 2) + 1;
+            ushort[] top = new ushort[referenceLength];
+            ushort[] left = new ushort[referenceLength];
+            top[0] = left[0] = (ushort)(maximum / 3);
+            for (int i = 1; i < referenceLength; i++)
+            {
+                top[i] = (ushort)((top[0] + (37 * i) + (3 * size)) & maximum);
+                left[i] = (ushort)((left[0] + (53 * i) + (5 * size)) & maximum);
+            }
 
-        int stride = size + 3;
-        ushort[] expected = new ushort[stride * size];
-        ushort[] actual = new ushort[stride * size];
-        ushort[] scratch = new ushort[HevcIntraPredictor.GetScratchLength(log2Size)];
-        for (int mode = 0; mode <= 34; mode++)
-        {
-            expected.AsSpan().Clear();
-            actual.AsSpan().Clear();
-            PredictScalar(top, left, expected, stride, size, mode, bitDepth, true);
-            HevcIntraPredictor.Predict(top, left, actual, stride, log2Size, mode, bitDepth, true, scratch);
-            Assert.True(expected.AsSpan().SequenceEqual(actual), $"Mode {mode}, size {size}, and bit depth {bitDepth} did not match the scalar oracle.");
+            int stride = size + 3;
+            ushort[] expected = new ushort[stride * size];
+            ushort[] actual = new ushort[stride * size];
+            ushort[] scratch = new ushort[HevcIntraPredictor.GetScratchLength(log2Size)];
+            for (int mode = 0; mode <= 34; mode++)
+            {
+                expected.AsSpan().Clear();
+                actual.AsSpan().Clear();
+                PredictScalar(top, left, expected, stride, size, mode, bitDepth, true);
+                HevcIntraPredictor.Predict(top, left, actual, stride, log2Size, mode, bitDepth, true, scratch);
+                Assert.True(expected.AsSpan().SequenceEqual(actual), $"Mode {mode}, size {size}, and bit depth {bitDepth} did not match the scalar oracle.");
+            }
         }
     }
 

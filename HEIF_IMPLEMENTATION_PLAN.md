@@ -149,7 +149,7 @@ Immediate checkpoint: **current — complete the remaining HEVC profile and Rang
 - [x] Verify HEVC CABAC arithmetic and every required context transition against pinned HM tables and complete production slices.
 - [x] Complete coding-tree, coding-unit, prediction-unit, and transform-unit traversal across every permitted size and partition mode. Eight official ITU first pictures compare exactly with pinned-HM native planes, pinned HM matches every archive complete-sequence MD5 and every RQT decoded-picture hash SEI, analyser output proves the recorded coding and transform sizes and partition alternatives, and all 150 focused HEVC decoder cases pass in Release. Commit `66d1f3c41b0baeaa98726b57d5feaeba50874f16` records the checkpoint.
 - [x] Complete HEVC intra prediction for every luma and chroma mode, including strong intra smoothing and constrained prediction rules. The official `IPRED_B_Nokia_3` native output and independently coded first `CIP_A_Panasonic_3` picture match pinned HM, all 149 focused HEVC decoder cases pass in Release, and commit `9bc5b9842` records the checkpoint.
-- [ ] **Current:** complete presentation-changing HEVC supplemental enhancement information and the remaining exact native-plane profile and Range Extensions matrix, then close Phase 4 still-image decoding.
+- [ ] **Current:** complete the remaining exact HEVC native-plane profile and Range Extensions matrix, then close Phase 4 still-image decoding.
 - [ ] Close shared decoded presentation, ICC, alpha, grid, transform, metadata, and animated AV1/HEVC decode gates.
 - [ ] Implement and independently verify real AV1/AVIF still encoding.
 - [ ] Implement and independently verify real HEVC/HEIC still encoding.

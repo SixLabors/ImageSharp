@@ -98,10 +98,14 @@ public class HevcPictureDecoderTests
         ConvertAnnexBStillPicture(annexB, bitDepth, chromaFormat, out byte[] configurationData, out byte[] itemData);
         HevcCodecConfiguration configuration = new(configurationData);
         HevcImageItemBitstream bitstream = new(itemData, configuration);
-        using HevcPictureDecoder decoder = new(Configuration.Default, bitstream.SliceSegments[0].PictureParameterSet);
+        HevcSliceSegmentHeader sliceHeader = bitstream.SliceSegments[0];
+        HevcSequenceParameterSet sequenceParameterSet = sliceHeader.PictureParameterSet.SequenceParameterSet;
+        using HevcPictureDecoder decoder = new(Configuration.Default, sliceHeader.PictureParameterSet);
 
         decoder.Decode(bitstream);
 
+        Assert.True(sequenceParameterSet.SampleAdaptiveOffsetEnabled);
+        Assert.False(sliceHeader.DeblockingFilterDisabled);
         Assert.Equal(bitDepth, decoder.Picture.BitDepthLuma);
         Assert.Equal(chromaFormat, decoder.Picture.ChromaFormat);
         int expectedLength = decoder.Picture.GetWidth(HevcPlane.Y) * decoder.Picture.GetHeight(HevcPlane.Y) * (bitDepth > 8 ? 2 : 1);

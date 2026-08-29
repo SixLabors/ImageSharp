@@ -458,19 +458,28 @@ public class Av1ReconstructionConformanceTests
     public void DecodeProgressiveSingleReferenceMatchesPinnedReferences()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateProgressiveSingleReferenceFixtureWithDefaultConfiguration,
-            ReconstructionConfigurations);
+            PresentationConfigurations);
 
     /// <summary>
     /// Verifies production single-reference inter reconstruction with a constrained allocator.
     /// </summary>
     [Fact]
+    [ValidateDisposedMemoryAllocations]
     public void DecodeProgressiveSingleReferenceWithConstrainedAllocator()
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
+        allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
 
-        ValidateProgressiveSingleReferenceFixture(configuration, verifyPresentation: false);
+        ValidateProgressiveSingleReferenceFixture(configuration, verifyPresentation: true);
+
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.AllocationId == allocation.AllocationId));
     }
 
     /// <summary>
@@ -481,7 +490,7 @@ public class Av1ReconstructionConformanceTests
     public void DecodeSelectedProgressiveSpatialLayerMatchesPinnedReferences()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateSelectedProgressiveSpatialLayerWithDefaultConfiguration,
-            ReconstructionConfigurations);
+            PresentationConfigurations);
 
     /// <summary>
     /// Verifies selected-layer native reconstruction and public presentation with constrained tracked allocation.
@@ -2126,6 +2135,7 @@ public class Av1ReconstructionConformanceTests
         // The Y4M stores the color item's Y, U, and V planes before the auxiliary alpha plane. Native AV1 reconstruction
         // is compared with exactly those first three planes of the final dependent frame.
         ReadOnlySpan<byte> colorReference = finalFrameReference[..(planeSampleCount * 3)];
+        ReadOnlySpan<byte> alphaReference = finalFrameReference[(planeSampleCount * 3)..];
 
         using Av1Decoder decoder = new(configuration);
         using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(
@@ -2194,6 +2204,18 @@ public class Av1ReconstructionConformanceTests
         Assert.Single(image.Frames);
         Assert.Equal(HeifBitDepth.Bit8, image.Metadata.GetHeifMetadata().BitDepth);
         ImageComparer.Exact.VerifySimilarity(presentationReference, image);
+
+        // The complete PNG comparison already covers alpha, but compare the composed channel with the independent
+        // native auxiliary plane as well so a color-path agreement cannot conceal an alpha-item regression.
+        for (int y = 0; y < ProgressiveFixtureHeight; y++)
+        {
+            Span<Rgba32> imageRow = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            ReadOnlySpan<byte> alphaRow = alphaReference.Slice(y * ProgressiveFixtureWidth, ProgressiveFixtureWidth);
+            for (int x = 0; x < ProgressiveFixtureWidth; x++)
+            {
+                Assert.Equal(alphaRow[x], imageRow[x].A);
+            }
+        }
     }
 
     /// <summary>

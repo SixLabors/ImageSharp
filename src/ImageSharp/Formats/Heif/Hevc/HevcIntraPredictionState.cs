@@ -85,17 +85,34 @@ internal sealed class HevcIntraPredictionState : IDisposable
             sequenceParameterSet.Height,
             MinPredictionBlockLog2);
 
-        this.lumaModes = configuration.MemoryAllocator.Allocate2D<byte>(
-            this.WidthInMinPredictionBlocks,
-            this.HeightInMinPredictionBlocks);
+        Buffer2D<byte>? lumaModes = null;
+        Buffer2D<byte>? chromaModes = null;
+        Buffer2D<byte>? effectiveChromaModes = null;
+        try
+        {
+            lumaModes = configuration.MemoryAllocator.Allocate2D<byte>(
+                this.WidthInMinPredictionBlocks,
+                this.HeightInMinPredictionBlocks);
 
-        this.chromaModes = configuration.MemoryAllocator.Allocate2D<byte>(
-            this.WidthInMinPredictionBlocks,
-            this.HeightInMinPredictionBlocks);
+            chromaModes = configuration.MemoryAllocator.Allocate2D<byte>(
+                this.WidthInMinPredictionBlocks,
+                this.HeightInMinPredictionBlocks);
 
-        this.effectiveChromaModes = configuration.MemoryAllocator.Allocate2D<byte>(
-            this.WidthInMinPredictionBlocks,
-            this.HeightInMinPredictionBlocks);
+            effectiveChromaModes = configuration.MemoryAllocator.Allocate2D<byte>(
+                this.WidthInMinPredictionBlocks,
+                this.HeightInMinPredictionBlocks);
+
+            this.lumaModes = lumaModes;
+            this.chromaModes = chromaModes;
+            this.effectiveChromaModes = effectiveChromaModes;
+        }
+        catch
+        {
+            effectiveChromaModes?.Dispose();
+            chromaModes?.Dispose();
+            lumaModes?.Dispose();
+            throw;
+        }
 
         this.derivedChromaUsesColocatedLuma = sequenceParameterSet.ChromaFormat == 3;
         this.codingTreeBlockMask = (1 << sequenceParameterSet.CodingTreeBlockLog2) - 1;

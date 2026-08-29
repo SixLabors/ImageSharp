@@ -4,11 +4,13 @@
 using System.Buffers.Binary;
 using System.Security.Cryptography;
 using SixLabors.ImageSharp.Formats.Heif.Hevc;
+using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Tests.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Hevc;
 
 /// <summary>
-/// Validates complete HEVC still-picture reconstruction against independently decoded samples.
+/// Validates complete HEVC still-picture reconstruction and decoder ownership against independent results.
 /// </summary>
 [Trait("Format", "Heif")]
 public class HevcPictureDecoderTests
@@ -120,6 +122,67 @@ public class HevcPictureDecoderTests
         }
 
         Assert.Equal(expectedYuv.Length, offset);
+    }
+
+    /// <summary>
+    /// Verifies that every possible allocator failure during decoder construction releases all earlier owners.
+    /// </summary>
+    [Fact]
+    public void ConstructorFailureReleasesEveryEarlierAllocation()
+    {
+        byte[] configurationData = TestFile.Create(TestImages.Heif.Image1TileHvcConfiguration).Bytes;
+        byte[] itemData = TestFile.Create(TestImages.Heif.Image1Tile1Payload).Bytes;
+        HevcCodecConfiguration codecConfiguration = new(configurationData);
+        HevcImageItemBitstream bitstream = new(itemData, codecConfiguration);
+        HevcPictureParameterSet pictureParameterSet = bitstream.SliceSegments[0].PictureParameterSet;
+
+        FailingTestMemoryAllocator successfulAllocator = new(int.MaxValue);
+        Configuration successfulConfiguration = Configuration.Default.Clone();
+        successfulConfiguration.MemoryAllocator = successfulAllocator;
+        using (new HevcPictureDecoder(successfulConfiguration, pictureParameterSet))
+        {
+        }
+
+        int allocationCount = successfulAllocator.AllocationAttemptCount;
+        Assert.True(allocationCount > 0);
+        AssertBalancedAllocations(successfulAllocator);
+
+        for (int failureAllocationNumber = 1; failureAllocationNumber <= allocationCount; failureAllocationNumber++)
+        {
+            FailingTestMemoryAllocator allocator = new(failureAllocationNumber);
+            Configuration configuration = Configuration.Default.Clone();
+            configuration.MemoryAllocator = allocator;
+
+            Assert.Throws<InvalidMemoryOperationException>(
+                () => new HevcPictureDecoder(configuration, pictureParameterSet));
+
+            Assert.Equal(failureAllocationNumber, allocator.AllocationAttemptCount);
+            Assert.Equal(failureAllocationNumber - 1, allocator.AllocationLog.Count);
+            AssertBalancedAllocations(allocator);
+        }
+    }
+
+    /// <summary>
+    /// Verifies successful production reconstruction with split allocator groups and balanced final disposal.
+    /// </summary>
+    [Fact]
+    public void DecodeWithConstrainedAllocatorReleasesEveryAllocation()
+    {
+        byte[] configurationData = TestFile.Create(TestImages.Heif.Image1TileHvcConfiguration).Bytes;
+        byte[] itemData = TestFile.Create(TestImages.Heif.Image1Tile1Payload).Bytes;
+        HevcCodecConfiguration codecConfiguration = new(configurationData);
+        HevcImageItemBitstream bitstream = new(itemData, codecConfiguration);
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        using (HevcPictureDecoder decoder = new(configuration, bitstream.SliceSegments[0].PictureParameterSet))
+        {
+            decoder.Decode(bitstream);
+        }
+
+        Assert.NotEmpty(allocator.AllocationLog);
+        AssertBalancedAllocations(allocator);
     }
 
     /// <summary>
@@ -516,5 +579,60 @@ public class HevcPictureDecoderTests
         }
 
         return Convert.ToHexString(hash.GetHashAndReset()).ToLowerInvariant();
+    }
+
+    /// <summary>
+    /// Verifies that every tracked allocation was returned exactly once.
+    /// </summary>
+    /// <param name="allocator">The allocator whose ownership log is complete.</param>
+    private static void AssertBalancedAllocations(TestMemoryAllocator allocator)
+    {
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        foreach (TestMemoryAllocator.AllocationRequest allocation in allocator.AllocationLog)
+        {
+            Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.AllocationId == allocation.AllocationId);
+
+        }
+    }
+
+    /// <summary>
+    /// Provides tracked owners until the configured allocation attempt fails.
+    /// </summary>
+    private sealed class FailingTestMemoryAllocator : TestMemoryAllocator
+    {
+        private readonly int failureAllocationNumber;
+        private int allocationAttemptCount;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FailingTestMemoryAllocator"/> class.
+        /// </summary>
+        /// <param name="failureAllocationNumber">The one-based allocation attempt that must fail.</param>
+        public FailingTestMemoryAllocator(int failureAllocationNumber)
+        {
+            this.failureAllocationNumber = failureAllocationNumber;
+            this.EnableNonThreadSafeLogging();
+        }
+
+        /// <summary>
+        /// Gets the number of backing-owner allocation attempts.
+        /// </summary>
+        public int AllocationAttemptCount => this.allocationAttemptCount;
+
+        /// <inheritdoc/>
+        protected override AllocationTrackedMemoryManager<T> AllocateCore<T>(
+            int length,
+            AllocationOptions options = AllocationOptions.None)
+        {
+            this.allocationAttemptCount++;
+            if (this.allocationAttemptCount == this.failureAllocationNumber)
+            {
+                // Fail before delegation so the failed attempt never creates an owner that needs rollback.
+                throw new InvalidMemoryOperationException("The configured HEVC allocation failed.");
+            }
+
+            return base.AllocateCore<T>(length, options);
+        }
     }
 }

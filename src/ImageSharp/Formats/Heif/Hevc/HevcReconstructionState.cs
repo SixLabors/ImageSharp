@@ -54,14 +54,25 @@ internal sealed class HevcReconstructionState : IDisposable
         this.chromaSubsamplingX = !sequenceParameterSet.SeparateColorPlaneFlag && sequenceParameterSet.ChromaFormat is 1 or 2 ? 1 : 0;
         this.chromaSubsamplingY = !sequenceParameterSet.SeparateColorPlaneFlag && sequenceParameterSet.ChromaFormat == 1 ? 1 : 0;
 
-        // Region identifiers gate every reconstructed-neighbor read. A stale pooled identifier can match the first
-        // region of a later picture, so these maps must begin at the reserved unavailable value zero.
-        this.regions =
-        [
-            configuration.MemoryAllocator.Allocate2D<int>(widthInUnits, heightInUnits, AllocationOptions.Clean),
-            configuration.MemoryAllocator.Allocate2D<int>(widthInUnits, heightInUnits, AllocationOptions.Clean),
-            configuration.MemoryAllocator.Allocate2D<int>(widthInUnits, heightInUnits, AllocationOptions.Clean),
-        ];
+        Buffer2D<int>? lumaRegions = null;
+        Buffer2D<int>? chromaBlueRegions = null;
+        Buffer2D<int>? chromaRedRegions = null;
+        try
+        {
+            // Region identifiers gate every reconstructed-neighbor read. A stale pooled identifier can match the first
+            // region of a later picture, so these maps must begin at the reserved unavailable value zero.
+            lumaRegions = configuration.MemoryAllocator.Allocate2D<int>(widthInUnits, heightInUnits, AllocationOptions.Clean);
+            chromaBlueRegions = configuration.MemoryAllocator.Allocate2D<int>(widthInUnits, heightInUnits, AllocationOptions.Clean);
+            chromaRedRegions = configuration.MemoryAllocator.Allocate2D<int>(widthInUnits, heightInUnits, AllocationOptions.Clean);
+            this.regions = [lumaRegions, chromaBlueRegions, chromaRedRegions];
+        }
+        catch
+        {
+            chromaRedRegions?.Dispose();
+            chromaBlueRegions?.Dispose();
+            lumaRegions?.Dispose();
+            throw;
+        }
     }
 
     /// <summary>

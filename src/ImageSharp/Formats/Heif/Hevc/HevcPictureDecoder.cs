@@ -151,42 +151,96 @@ internal sealed partial class HevcPictureDecoder : IDisposable
         this.configuration = configuration;
         this.pictureParameterSet = pictureParameterSet;
         this.sequenceParameterSet = pictureParameterSet.SequenceParameterSet;
-        this.Picture = new HevcPictureBuffer(configuration, this.sequenceParameterSet);
-        int codingTreeStateCount = this.sequenceParameterSet.SeparateColorPlaneFlag ? 3 : 1;
-        this.codingTreeStates = new HevcCodingTreeState[codingTreeStateCount];
-        for (int index = 0; index < this.codingTreeStates.Length; index++)
+        HevcPictureBuffer? picture = null;
+        HevcCodingTreeState[]? codingTreeStates = null;
+        HevcIntraPredictionState[]? intraPredictionStates = null;
+        HevcReconstructionState? reconstructionState = null;
+        HevcCoefficientDecoder? coefficientDecoder = null;
+        HevcSampleAdaptiveOffsetState? sampleAdaptiveOffsetState = null;
+        HevcDeblockingState? deblockingState = null;
+        IMemoryOwner<int>? integerScratch = null;
+        IMemoryOwner<ushort>? predictionScratch = null;
+        IMemoryOwner<bool>? availabilityScratch = null;
+        try
         {
-            this.codingTreeStates[index] = new HevcCodingTreeState(configuration, this.sequenceParameterSet);
-        }
+            picture = new HevcPictureBuffer(configuration, this.sequenceParameterSet);
+            int codingTreeStateCount = this.sequenceParameterSet.SeparateColorPlaneFlag ? 3 : 1;
+            codingTreeStates = new HevcCodingTreeState[codingTreeStateCount];
+            for (int index = 0; index < codingTreeStates.Length; index++)
+            {
+                codingTreeStates[index] = new HevcCodingTreeState(configuration, this.sequenceParameterSet);
+            }
 
-        int intraPredictionStateCount = this.sequenceParameterSet.SeparateColorPlaneFlag ? 3 : 1;
-        this.intraPredictionStates = new HevcIntraPredictionState[intraPredictionStateCount];
-        for (int index = 0; index < this.intraPredictionStates.Length; index++)
+            int intraPredictionStateCount = this.sequenceParameterSet.SeparateColorPlaneFlag ? 3 : 1;
+            intraPredictionStates = new HevcIntraPredictionState[intraPredictionStateCount];
+            for (int index = 0; index < intraPredictionStates.Length; index++)
+            {
+                intraPredictionStates[index] = new HevcIntraPredictionState(configuration, this.sequenceParameterSet);
+            }
+
+            reconstructionState = new HevcReconstructionState(configuration, this.sequenceParameterSet);
+            coefficientDecoder = new HevcCoefficientDecoder(configuration);
+            int codingTreeBlockCount = HevcParameterSetSyntax.GetCodingTreeBlockCount(
+                this.sequenceParameterSet.Width,
+                this.sequenceParameterSet.CodingTreeBlockLog2)
+                * HevcParameterSetSyntax.GetCodingTreeBlockCount(
+                    this.sequenceParameterSet.Height,
+                    this.sequenceParameterSet.CodingTreeBlockLog2);
+
+            sampleAdaptiveOffsetState = new HevcSampleAdaptiveOffsetState(configuration, codingTreeBlockCount);
+            deblockingState = new HevcDeblockingState(configuration, this.sequenceParameterSet);
+
+            // Six transform-sized integer regions retain quantized, dequantized, reconstructed, cross-component, and
+            // two-pass inverse-transform data without allocating in coding-unit or transform-unit loops.
+            integerScratch = configuration.MemoryAllocator.Allocate<int>(MaximumTransformSampleCount * 6);
+            int maximumPredictionScratch = HevcIntraPredictor.GetScratchLength(5);
+            int maximumReferenceScratch = HevcIntraPredictor.GetReferenceScratchLength(5, 4);
+            predictionScratch = configuration.MemoryAllocator.Allocate<ushort>(
+                MaximumTransformSampleCount + maximumPredictionScratch + maximumReferenceScratch + (MaximumReferenceLength * 4));
+
+            availabilityScratch = configuration.MemoryAllocator.Allocate<bool>((4 * 32 / 2) + 1);
+
+            this.Picture = picture;
+            this.codingTreeStates = codingTreeStates;
+            this.intraPredictionStates = intraPredictionStates;
+            this.reconstructionState = reconstructionState;
+            this.coefficientDecoder = coefficientDecoder;
+            this.sampleAdaptiveOffsetState = sampleAdaptiveOffsetState;
+            this.deblockingState = deblockingState;
+            this.integerScratch = integerScratch;
+            this.predictionScratch = predictionScratch;
+            this.availabilityScratch = availabilityScratch;
+        }
+        catch
         {
-            this.intraPredictionStates[index] = new HevcIntraPredictionState(configuration, this.sequenceParameterSet);
+            // No decoder ownership is published when construction fails. Unwind every completed child owner in reverse
+            // order because the caller cannot dispose an object whose constructor did not return.
+            availabilityScratch?.Dispose();
+            predictionScratch?.Dispose();
+            integerScratch?.Dispose();
+            deblockingState?.Dispose();
+            sampleAdaptiveOffsetState?.Dispose();
+            coefficientDecoder?.Dispose();
+            reconstructionState?.Dispose();
+            if (intraPredictionStates is not null)
+            {
+                for (int index = intraPredictionStates.Length - 1; index >= 0; index--)
+                {
+                    intraPredictionStates[index]?.Dispose();
+                }
+            }
+
+            if (codingTreeStates is not null)
+            {
+                for (int index = codingTreeStates.Length - 1; index >= 0; index--)
+                {
+                    codingTreeStates[index]?.Dispose();
+                }
+            }
+
+            picture?.Dispose();
+            throw;
         }
-
-        this.reconstructionState = new HevcReconstructionState(configuration, this.sequenceParameterSet);
-        this.coefficientDecoder = new HevcCoefficientDecoder(configuration);
-        int codingTreeBlockCount = HevcParameterSetSyntax.GetCodingTreeBlockCount(
-            this.sequenceParameterSet.Width,
-            this.sequenceParameterSet.CodingTreeBlockLog2)
-            * HevcParameterSetSyntax.GetCodingTreeBlockCount(
-                this.sequenceParameterSet.Height,
-                this.sequenceParameterSet.CodingTreeBlockLog2);
-
-        this.sampleAdaptiveOffsetState = new HevcSampleAdaptiveOffsetState(configuration, codingTreeBlockCount);
-        this.deblockingState = new HevcDeblockingState(configuration, this.sequenceParameterSet);
-
-        // Six transform-sized integer regions retain quantized, dequantized, reconstructed, cross-component, and
-        // two-pass inverse-transform data without allocating in coding-unit or transform-unit loops.
-        this.integerScratch = configuration.MemoryAllocator.Allocate<int>(MaximumTransformSampleCount * 6);
-        int maximumPredictionScratch = HevcIntraPredictor.GetScratchLength(5);
-        int maximumReferenceScratch = HevcIntraPredictor.GetReferenceScratchLength(5, 4);
-        this.predictionScratch = configuration.MemoryAllocator.Allocate<ushort>(
-            MaximumTransformSampleCount + maximumPredictionScratch + maximumReferenceScratch + (MaximumReferenceLength * 4));
-
-        this.availabilityScratch = configuration.MemoryAllocator.Allocate<bool>((4 * 32 / 2) + 1);
     }
 
     /// <summary>

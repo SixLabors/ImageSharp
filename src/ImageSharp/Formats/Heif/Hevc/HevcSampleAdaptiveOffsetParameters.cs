@@ -281,13 +281,30 @@ internal sealed class HevcSampleAdaptiveOffsetState : IDisposable
     /// <param name="codingTreeBlockCount">The raster-ordered coding-tree-block count.</param>
     public HevcSampleAdaptiveOffsetState(Configuration configuration, int codingTreeBlockCount)
     {
-        this.parameters = configuration.MemoryAllocator.Allocate<HevcSampleAdaptiveOffsetParameters>(codingTreeBlockCount * 3);
+        IMemoryOwner<HevcSampleAdaptiveOffsetParameters>? parameters = null;
+        IMemoryOwner<int>? regions = null;
+        IMemoryOwner<HevcLoopFilterRegion>? loopFilterRegions = null;
+        try
+        {
+            parameters = configuration.MemoryAllocator.Allocate<HevcSampleAdaptiveOffsetParameters>(codingTreeBlockCount * 3);
 
-        // Slice headers can disable SAO independently for luma and chroma. Initialize every component record to Off
-        // so an enabled component never causes untouched records from pooled memory to enter the picture-level pass.
-        this.parameters.Memory.Span.Clear();
-        this.regions = configuration.MemoryAllocator.Allocate<int>(codingTreeBlockCount * 3);
-        this.loopFilterRegions = configuration.MemoryAllocator.Allocate<HevcLoopFilterRegion>(codingTreeBlockCount * 3);
+            // Slice headers can disable SAO independently for luma and chroma. Initialize every component record to Off
+            // so an enabled component never causes untouched records from pooled memory to enter the picture-level pass.
+            parameters.Memory.Span.Clear();
+            regions = configuration.MemoryAllocator.Allocate<int>(codingTreeBlockCount * 3);
+            loopFilterRegions = configuration.MemoryAllocator.Allocate<HevcLoopFilterRegion>(codingTreeBlockCount * 3);
+
+            this.parameters = parameters;
+            this.regions = regions;
+            this.loopFilterRegions = loopFilterRegions;
+        }
+        catch
+        {
+            loopFilterRegions?.Dispose();
+            regions?.Dispose();
+            parameters?.Dispose();
+            throw;
+        }
     }
 
     /// <summary>

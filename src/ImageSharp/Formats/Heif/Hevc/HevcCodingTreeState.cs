@@ -61,25 +61,48 @@ internal sealed class HevcCodingTreeState : IDisposable
             sequenceParameterSet.Height,
             this.MinCodingBlockLog2);
 
-        this.depths = configuration.MemoryAllocator.Allocate2D<byte>(
-            this.WidthInMinCodingBlocks,
-            this.HeightInMinCodingBlocks);
+        Buffer2D<byte>? depths = null;
+        Buffer2D<sbyte>? quantizationParameters = null;
+        Buffer2D<sbyte>? chromaBlueQuantizationOffsets = null;
+        Buffer2D<sbyte>? chromaRedQuantizationOffsets = null;
+        Buffer2D<byte>? flags = null;
+        try
+        {
+            depths = configuration.MemoryAllocator.Allocate2D<byte>(
+                this.WidthInMinCodingBlocks,
+                this.HeightInMinCodingBlocks);
 
-        this.quantizationParameters = configuration.MemoryAllocator.Allocate2D<sbyte>(
-            this.WidthInMinCodingBlocks,
-            this.HeightInMinCodingBlocks);
+            quantizationParameters = configuration.MemoryAllocator.Allocate2D<sbyte>(
+                this.WidthInMinCodingBlocks,
+                this.HeightInMinCodingBlocks);
 
-        this.chromaBlueQuantizationOffsets = configuration.MemoryAllocator.Allocate2D<sbyte>(
-            this.WidthInMinCodingBlocks,
-            this.HeightInMinCodingBlocks);
+            chromaBlueQuantizationOffsets = configuration.MemoryAllocator.Allocate2D<sbyte>(
+                this.WidthInMinCodingBlocks,
+                this.HeightInMinCodingBlocks);
 
-        this.chromaRedQuantizationOffsets = configuration.MemoryAllocator.Allocate2D<sbyte>(
-            this.WidthInMinCodingBlocks,
-            this.HeightInMinCodingBlocks);
+            chromaRedQuantizationOffsets = configuration.MemoryAllocator.Allocate2D<sbyte>(
+                this.WidthInMinCodingBlocks,
+                this.HeightInMinCodingBlocks);
 
-        this.flags = configuration.MemoryAllocator.Allocate2D<byte>(
-            this.WidthInMinCodingBlocks,
-            this.HeightInMinCodingBlocks);
+            flags = configuration.MemoryAllocator.Allocate2D<byte>(
+                this.WidthInMinCodingBlocks,
+                this.HeightInMinCodingBlocks);
+
+            this.depths = depths;
+            this.quantizationParameters = quantizationParameters;
+            this.chromaBlueQuantizationOffsets = chromaBlueQuantizationOffsets;
+            this.chromaRedQuantizationOffsets = chromaRedQuantizationOffsets;
+            this.flags = flags;
+        }
+        catch
+        {
+            flags?.Dispose();
+            chromaRedQuantizationOffsets?.Dispose();
+            chromaBlueQuantizationOffsets?.Dispose();
+            quantizationParameters?.Dispose();
+            depths?.Dispose();
+            throw;
+        }
     }
 
     /// <summary>

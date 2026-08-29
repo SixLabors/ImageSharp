@@ -72,14 +72,33 @@ internal sealed class HevcPictureBuffer : IDisposable
         this.chromaSubsamplingY = !this.SeparateColorPlane && this.ChromaFormat == 1 ? 1 : 0;
         int storageWidth = DivideCeilingByPowerOfTwo(this.Width, BitOperations.Log2((uint)storageAlignment)) * storageAlignment;
         int storageHeight = DivideCeilingByPowerOfTwo(this.Height, BitOperations.Log2((uint)storageAlignment)) * storageAlignment;
-        this.Luma = configuration.MemoryAllocator.Allocate2D<ushort>(storageWidth, storageHeight);
-        if (this.ChromaFormat != 0)
+        Buffer2D<ushort>? luma = null;
+        Buffer2D<ushort>? chromaBlue = null;
+        Buffer2D<ushort>? chromaRed = null;
+        try
         {
-            int chromaWidth = DivideCeilingByPowerOfTwo(storageWidth, this.chromaSubsamplingX);
-            int chromaHeight = DivideCeilingByPowerOfTwo(storageHeight, this.chromaSubsamplingY);
+            luma = configuration.MemoryAllocator.Allocate2D<ushort>(storageWidth, storageHeight);
+            if (this.ChromaFormat != 0)
+            {
+                int chromaWidth = DivideCeilingByPowerOfTwo(storageWidth, this.chromaSubsamplingX);
+                int chromaHeight = DivideCeilingByPowerOfTwo(storageHeight, this.chromaSubsamplingY);
 
-            this.ChromaBlue = configuration.MemoryAllocator.Allocate2D<ushort>(chromaWidth, chromaHeight);
-            this.ChromaRed = configuration.MemoryAllocator.Allocate2D<ushort>(chromaWidth, chromaHeight);
+                chromaBlue = configuration.MemoryAllocator.Allocate2D<ushort>(chromaWidth, chromaHeight);
+                chromaRed = configuration.MemoryAllocator.Allocate2D<ushort>(chromaWidth, chromaHeight);
+            }
+
+            this.Luma = luma;
+            this.ChromaBlue = chromaBlue;
+            this.ChromaRed = chromaRed;
+        }
+        catch
+        {
+            // Construction transfers no plane ownership when a later rent fails, so unwind the unpublished owners
+            // here instead of relying on Dispose being reachable through a fully constructed picture buffer.
+            chromaRed?.Dispose();
+            chromaBlue?.Dispose();
+            luma?.Dispose();
+            throw;
         }
     }
 

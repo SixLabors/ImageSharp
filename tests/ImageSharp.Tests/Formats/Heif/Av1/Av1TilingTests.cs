@@ -84,7 +84,7 @@ public class Av1TilingTests
         string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, filename);
         byte[] content = File.ReadAllBytes(filePath);
         Span<byte> headerSpan = content.AsSpan(dataOffset, dataSize);
-        Span<byte> tileSpan = content.AsSpan(tileOffset, dataSize - tileOffset);
+        Span<byte> tileSpan = content.AsSpan(dataOffset + tileOffset, dataSize - tileOffset);
         Av1BitStreamReader bitStreamReader = new(headerSpan);
         IAv1TileReader stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
@@ -114,7 +114,7 @@ public class Av1TilingTests
         const int dataSize = 0x001D;
         const int tileOffset = 21;
         Span<byte> headerSpan = content.AsSpan(dataOffset, dataSize);
-        Span<byte> tileSpan = content.AsSpan(tileOffset, dataSize - tileOffset);
+        Span<byte> tileSpan = content.AsSpan(dataOffset + tileOffset, dataSize - tileOffset);
         Av1BitStreamReader bitStreamReader = new(headerSpan);
         IAv1TileReader stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
@@ -143,7 +143,7 @@ public class Av1TilingTests
         string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, filename);
         byte[] content = File.ReadAllBytes(filePath);
         Span<byte> headerSpan = content.AsSpan(dataOffset, dataSize);
-        Span<byte> tileSpan = content.AsSpan(tileOffset, dataSize - tileOffset);
+        Span<byte> tileSpan = content.AsSpan(dataOffset + tileOffset, dataSize - tileOffset);
         Av1BitStreamReader bitStreamReader = new(headerSpan);
         IAv1TileReader stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
@@ -170,7 +170,7 @@ public class Av1TilingTests
         const int dataSize = 0x03CC;
         const int tileOffset = 18;
         Span<byte> headerSpan = content.AsSpan(dataOffset, dataSize);
-        Span<byte> tileSpan = content.AsSpan(tileOffset, dataSize - tileOffset);
+        Span<byte> tileSpan = content.AsSpan(dataOffset + tileOffset, dataSize - tileOffset);
         Av1BitStreamReader bitStreamReader = new(headerSpan);
         IAv1TileReader stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
@@ -224,7 +224,7 @@ public class Av1TilingTests
         const int dataSize = 0x03CC;
         const int tileOffset = 18;
         Span<byte> headerSpan = content.AsSpan(dataOffset, dataSize);
-        Span<byte> tileSpan = content.AsSpan(tileOffset, dataSize - tileOffset);
+        Span<byte> tileSpan = content.AsSpan(dataOffset + tileOffset, dataSize - tileOffset);
         Av1BitStreamReader bitStreamReader = new(headerSpan);
         IAv1TileReader stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
@@ -293,7 +293,7 @@ public class Av1TilingTests
         string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, filename);
         byte[] content = File.ReadAllBytes(filePath);
         Span<byte> headerSpan = content.AsSpan(dataOffset, dataSize);
-        Span<byte> tileSpan = content.AsSpan(tileOffset, dataSize - tileOffset);
+        Span<byte> tileSpan = content.AsSpan(dataOffset + tileOffset, dataSize - tileOffset);
         Av1BitStreamReader bitStreamReader = new(headerSpan);
         ObuReader obuReader = new();
         Av1FrameDecoderStub frameDecoder = new();

@@ -20,14 +20,17 @@ internal class ObuPrettyPrint
         MemberInfo[] properties = obj.GetType().FindMembers(MemberTypes.Property, BindingFlags.Instance | BindingFlags.Public, null, null);
         foreach (MemberInfo member in properties)
         {
-            builder.Append(Spaces, 0, indent);
-            if (member is PropertyInfo property)
+            if (member is not PropertyInfo property || property.PropertyType.IsByRefLike)
             {
-                builder.Append(property.Name);
-                builder.Append(" = ");
-                object value = property.GetValue(obj) ?? "NULL";
-                PrettyPrintValue(builder, value, indent);
+                // Reflection cannot box Span<T> or ReadOnlySpan<T>; their owning scalar syntax remains comparable.
+                continue;
             }
+
+            builder.Append(Spaces, 0, indent);
+            builder.Append(property.Name);
+            builder.Append(" = ");
+            object value = property.GetValue(obj) ?? "NULL";
+            PrettyPrintValue(builder, value, indent);
         }
 
         indent -= 2;

@@ -1304,6 +1304,14 @@ public static class TestImages
         public const string General12Bit420 = "Heif/Hevc/Conformance/GENERAL_12b_420_RExt_Sony_1.bit";
         public const string General12Bit422 = "Heif/Hevc/Conformance/GENERAL_12b_422_RExt_Sony_1.bit";
         public const string General12Bit444 = "Heif/Hevc/Conformance/GENERAL_12b_444_RExt_Sony_2.bit";
+        public const string RqtA = "Heif/Hevc/Conformance/RQT_A_HHI_4.bit";
+        public const string RqtB = "Heif/Hevc/Conformance/RQT_B_HHI_4.bit";
+        public const string RqtC = "Heif/Hevc/Conformance/RQT_C_HHI_4.bit";
+        public const string RqtD = "Heif/Hevc/Conformance/RQT_D_HHI_4.bit";
+        public const string RqtE = "Heif/Hevc/Conformance/RQT_E_HHI_4.bit";
+        public const string StructA = "Heif/Hevc/Conformance/STRUCT_A_Samsung_7.bit";
+        public const string StructB = "Heif/Hevc/Conformance/STRUCT_B_Samsung_7.bit";
+        public const string TuSizeA = "Heif/Hevc/Conformance/TUSIZE_A_Samsung_1.bit";
         public const string Image1 = "Heif/image1.heic";
         public const string Image2 = "Heif/image2.heic";
         public const string Image3 = "Heif/image3.heic";

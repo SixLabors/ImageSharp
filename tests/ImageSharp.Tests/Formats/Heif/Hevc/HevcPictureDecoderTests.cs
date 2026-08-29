@@ -81,6 +81,57 @@ public class HevcPictureDecoderTests
     }
 
     /// <summary>
+    /// Verifies coding-tree and transform-tree conformance streams against native-plane digests produced by the
+    /// pinned HM decoder from output that matches each archive's published checksum.
+    /// </summary>
+    /// <param name="path">The official Annex B conformance stream.</param>
+    /// <param name="expectedCodingTreeBlockLog2">The expected coding-tree-block size logarithm.</param>
+    /// <param name="expectedMinCodingBlockLog2">The expected minimum coding-block size logarithm.</param>
+    /// <param name="expectedMinTransformBlockLog2">The expected minimum transform-block size logarithm.</param>
+    /// <param name="expectedMaxTransformHierarchyDepthIntra">The expected internal intra transform-depth limit.</param>
+    /// <param name="lumaDigest">The reference luma-plane MD5 digest.</param>
+    /// <param name="chromaBlueDigest">The reference blue-difference-plane MD5 digest.</param>
+    /// <param name="chromaRedDigest">The reference red-difference-plane MD5 digest.</param>
+    [Theory]
+    [InlineData(TestImages.Heif.RqtA, 6, 3, 2, 1, "adf2bfab6de808840c82f48eee31a0a5", "4b29b1d2699b77e42a4e22fb0d70993e", "8ada6d784647329a4f0da232176914f4")]
+    [InlineData(TestImages.Heif.RqtB, 6, 3, 2, 2, "797f41be9a4d53b640332f9d03b1f304", "ef67e5ceff912f7aeb14f2e00ddd5cbf", "e2af5fa6f3c4bcc96dfa95cb8947a7db")]
+    [InlineData(TestImages.Heif.RqtC, 6, 3, 2, 3, "5d431346cd0b3f52846fc20fc0afdcc4", "ff9355b8cc72d77edbad6f5bd4938df1", "24f8aae8c00f418af487be29d2a5a126")]
+    [InlineData(TestImages.Heif.RqtD, 6, 3, 2, 4, "30138fa13664590d16355be8f7362eb2", "6198b3d1e990baadcaa533b4c44a5be2", "45f5427aec28b4f4655240812387607b")]
+    [InlineData(TestImages.Heif.RqtE, 6, 3, 2, 5, "e9e182380f3209ef877b75199b546c00", "f555fd054855dc5a1cb82cb8f3393b5a", "baed53765a5424fbc38aa541917d0625")]
+    [InlineData(TestImages.Heif.StructA, 4, 3, 2, 2, "bf47fb8ff96a225c2646c0539744ac93", "c105b60fd0e8740574fb76972bbc3b1a", "f9e2d8327da50734b54771df29b343bb")]
+    [InlineData(TestImages.Heif.StructB, 5, 4, 2, 2, "61e13729a4e3d6fd96f5002a501d1d60", "fee8312ceaccb1f254ef21449f104e4e", "dbe684d5fffbbc2f5ca90b205018060c")]
+    [InlineData(TestImages.Heif.TuSizeA, 6, 5, 4, 3, "17a84e6f516dbcb8810c7548bf6e216c", "edd3085f7a152d7ffaabae816f4942ac", "e8b47494064c1a730aca3c6ee23572c8")]
+    public void DecodeOfficialTraversalPictureMatchesPinnedHmDigest(
+        string path,
+        int expectedCodingTreeBlockLog2,
+        int expectedMinCodingBlockLog2,
+        int expectedMinTransformBlockLog2,
+        int expectedMaxTransformHierarchyDepthIntra,
+        string lumaDigest,
+        string chromaBlueDigest,
+        string chromaRedDigest)
+    {
+        byte[] annexB = TestFile.Create(path).Bytes;
+        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        HevcCodecConfiguration configuration = new(configurationData);
+        HevcImageItemBitstream bitstream = new(itemData, configuration);
+        HevcSequenceParameterSet sequenceParameterSet = bitstream.SliceSegments[0].PictureParameterSet.SequenceParameterSet;
+        using HevcPictureDecoder decoder = new(Configuration.Default, bitstream.SliceSegments[0].PictureParameterSet);
+
+        decoder.Decode(bitstream);
+
+        Assert.Equal(8, decoder.Picture.BitDepthLuma);
+        Assert.Equal(1, decoder.Picture.ChromaFormat);
+        Assert.Equal(expectedCodingTreeBlockLog2, sequenceParameterSet.CodingTreeBlockLog2);
+        Assert.Equal(expectedMinCodingBlockLog2, sequenceParameterSet.MinCodingBlockLog2);
+        Assert.Equal(expectedMinTransformBlockLog2, sequenceParameterSet.MinTransformBlockLog2);
+        Assert.Equal(expectedMaxTransformHierarchyDepthIntra, sequenceParameterSet.MaxTransformHierarchyDepthIntra);
+        Assert.Equal(lumaDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Y));
+        Assert.Equal(chromaBlueDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cb));
+        Assert.Equal(chromaRedDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cr));
+    }
+
+    /// <summary>
     /// Verifies all reconstructed samples from a real HEIC grid tile against the HM reference decoder.
     /// </summary>
     /// <param name="configurationPath">The exact HEVC decoder-configuration record associated with the item.</param>
@@ -290,11 +341,12 @@ public class HevcPictureDecoderTests
             }
         }
 
-        Assert.True(
-            mismatchCount == 0,
+        string message =
             $"{plane} contained {mismatchCount} differing samples. The maximum difference was {maximumDifference}; " +
             $"the mismatches span ({minimumMismatchX}, {minimumMismatchY}) through ({maximumMismatchX}, {maximumMismatchY}), " +
-            $"and the first mismatch at ({firstMismatchX}, {firstMismatchY}) was {firstActual}, expected {firstExpected}.");
+            $"and the first mismatch at ({firstMismatchX}, {firstMismatchY}) was {firstActual}, expected {firstExpected}.";
+
+        Assert.True(mismatchCount == 0, message);
     }
 
     /// <summary>
@@ -593,7 +645,6 @@ public class HevcPictureDecoderTests
             Assert.Single(
                 allocator.ReturnLog,
                 returned => returned.AllocationId == allocation.AllocationId);
-
         }
     }
 

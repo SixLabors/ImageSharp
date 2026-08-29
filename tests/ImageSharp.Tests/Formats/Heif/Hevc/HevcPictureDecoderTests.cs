@@ -3,8 +3,13 @@
 
 using System.Buffers.Binary;
 using System.Security.Cryptography;
+using SixLabors.ImageSharp.Advanced;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Hevc;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
+using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
@@ -21,6 +26,37 @@ public class HevcPictureDecoderTests
     /// </summary>
     private const HwIntrinsics LoopFilterConfigurations =
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+
+    /// <summary>
+    /// Gets a complete prefix SEI RBSP carrying one unknown message followed by every supported metadata message.
+    /// The values use the exact field widths and G, B, R ordering read by pinned HM.
+    /// </summary>
+    private static ReadOnlySpan<byte> SupplementalMetadataRbsp =>
+    [
+        0xFF, 0x2D, 0x01, 0x7A,
+        0x89, 0x18,
+        0x3A, 0x98, 0x75, 0x30,
+        0x1D, 0x4C, 0x13, 0x88,
+        0x7D, 0x00, 0x3E, 0x80,
+        0x3D, 0x13, 0x40, 0x42,
+        0x02, 0x03, 0x04, 0x05,
+        0x01, 0x02, 0x03, 0x04,
+        0x90, 0x04, 0x03, 0xE8, 0x01, 0x90,
+        0x93, 0x01, 0x10,
+        0x94, 0x08, 0x00, 0x0F, 0x42, 0x40, 0x3D, 0x13, 0x40, 0x42,
+        0x95, 0x0D, 0x1C, 0x00, 0x3D, 0x09, 0x00, 0x01, 0x31, 0x2D, 0x00, 0x00, 0xB7, 0x1B, 0x02,
+        0x80
+    ];
+
+    /// <summary>
+    /// Gets a display-orientation prefix SEI RBSP that flips horizontally and then rotates a quarter turn
+    /// anticlockwise.
+    /// </summary>
+    private static ReadOnlySpan<byte> DisplayOrientationRbsp =>
+    [
+        0x2F, 0x03, 0x48, 0x00, 0x08,
+        0x80
+    ];
 
     /// <summary>
     /// Identifies residual-tool signaling that an official independently decoded picture must exercise.
@@ -650,6 +686,140 @@ public class HevcPictureDecoderTests
     }
 
     /// <summary>
+    /// Verifies every supported prefix SEI payload against the field ordering and fixed-point units read by pinned HM.
+    /// </summary>
+    [Fact]
+    public void SupplementalEnhancementInformationReadsPinnedHmSyntax()
+    {
+        HevcSupplementalEnhancementInformation supplementalEnhancementInformation = new();
+        supplementalEnhancementInformation.ReadPrefixNalUnit(SupplementalMetadataRbsp);
+        supplementalEnhancementInformation.ReadPrefixNalUnit(DisplayOrientationRbsp);
+
+        Assert.True(supplementalEnhancementInformation.HasDisplayOrientation);
+        Assert.True(supplementalEnhancementInformation.HorizontalFlip);
+        Assert.False(supplementalEnhancementInformation.VerticalFlip);
+        Assert.Equal((ushort)16384, supplementalEnhancementInformation.AnticlockwiseRotation);
+        Assert.Equal((byte)CicpTransferCharacteristics.SmpteSt2084, supplementalEnhancementInformation.PreferredTransferCharacteristics);
+
+        HeifContentLightLevel contentLightLevel = supplementalEnhancementInformation.ContentLightLevel.Value;
+        Assert.Equal((ushort)1000, contentLightLevel.MaximumContentLightLevel);
+        Assert.Equal((ushort)400, contentLightLevel.MaximumPictureAverageLightLevel);
+
+        HeifMasteringDisplayColorVolume masteringDisplayColorVolume
+            = supplementalEnhancementInformation.MasteringDisplayColorVolume.Value;
+
+        Assert.Equal(0.64F, masteringDisplayColorVolume.Primaries.R.X, 5);
+        Assert.Equal(0.32F, masteringDisplayColorVolume.Primaries.R.Y, 5);
+        Assert.Equal(3375.2069D, masteringDisplayColorVolume.MaximumLuminance, 4);
+        Assert.Equal(1690.906D, masteringDisplayColorVolume.MinimumLuminance, 4);
+
+        HeifAmbientViewingEnvironment ambientViewingEnvironment
+            = supplementalEnhancementInformation.AmbientViewingEnvironment.Value;
+
+        Assert.Equal(100D, ambientViewingEnvironment.Illuminance);
+        Assert.Equal(0.3127F, ambientViewingEnvironment.AmbientLight.X, 5);
+        Assert.Equal(0.329F, ambientViewingEnvironment.AmbientLight.Y, 5);
+
+        HeifContentColorVolume contentColorVolume = supplementalEnhancementInformation.ContentColorVolume.Value;
+        Assert.Null(contentColorVolume.Primaries);
+        Assert.Equal(0.1D, contentColorVolume.MinimumLuminance.Value, 5);
+        Assert.Equal(0.5D, contentColorVolume.MaximumLuminance.Value, 5);
+        Assert.Equal(0.3D, contentColorVolume.AverageLuminance.Value, 5);
+
+        ReadOnlySpan<byte> cancellationRbsp =
+        [
+            0x2F, 0x01, 0xC0,
+            0x95, 0x01, 0xC0,
+            0x80
+        ];
+
+        supplementalEnhancementInformation.ReadPrefixNalUnit(cancellationRbsp);
+
+        Assert.False(supplementalEnhancementInformation.HasDisplayOrientation);
+        Assert.Null(supplementalEnhancementInformation.ContentColorVolume);
+        Assert.NotNull(supplementalEnhancementInformation.ContentLightLevel);
+    }
+
+    /// <summary>
+    /// Verifies malformed SEI framing and payload trailing bits fail at the bounded NAL boundary.
+    /// </summary>
+    [Fact]
+    public void SupplementalEnhancementInformationRejectsMalformedPayloads()
+    {
+        byte[] emptyRbsp = [];
+        byte[] truncatedHeader = [0xFF, 0x80];
+        byte[] truncatedPayload = [0x90, 0x04, 0x03, 0xE8, 0x80];
+        byte[] missingPayloadMarker = [0x2F, 0x03, 0x48, 0x00, 0x00, 0x80];
+
+        Assert.Throws<InvalidImageContentException>(
+            () => new HevcSupplementalEnhancementInformation().ReadPrefixNalUnit(emptyRbsp));
+
+        Assert.Throws<InvalidImageContentException>(
+            () => new HevcSupplementalEnhancementInformation().ReadPrefixNalUnit(truncatedHeader));
+
+        Assert.Throws<InvalidImageContentException>(
+            () => new HevcSupplementalEnhancementInformation().ReadPrefixNalUnit(truncatedPayload));
+
+        Assert.Throws<InvalidImageContentException>(
+            () => new HevcSupplementalEnhancementInformation().ReadPrefixNalUnit(missingPayloadMarker));
+    }
+
+    /// <summary>
+    /// Verifies HEVC item metadata and complete HEIF presentation under normal and scalar execution while every
+    /// constrained allocator group is returned exactly once.
+    /// </summary>
+    [Fact]
+    public void DecodeSupplementalPresentationAndMetadataAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateSupplementalPresentationAndMetadata,
+            HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic);
+
+    /// <summary>
+    /// Verifies no-display and conflicting item-property metadata are rejected by the complete item decoder.
+    /// </summary>
+    [Fact]
+    public void DecodeRejectsNonDisplayAndConflictingSupplementalMetadata()
+    {
+        byte[] annexB = TestFile.Create(TestImages.Heif.IntraPredictionB).Bytes;
+        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        HevcCodecConfiguration codecConfiguration = new(configurationData);
+        HeifItem item = new(Heif4CharCode.Hvc1, 1) { HevcCodecConfiguration = codecConfiguration };
+        HevcHeifItemDecoder<Rgba32> itemDecoder = new();
+        DecoderOptions options = new();
+        ReadOnlySpan<byte> noDisplayRbsp = [0x87, 0x00, 0x80];
+
+        byte[] noDisplayItemData = PrependPrefixSeiNalUnit(itemData, noDisplayRbsp);
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = itemDecoder.DecodeItemData(
+                options,
+                item,
+                noDisplayItemData,
+                null,
+                TestContext.Current.CancellationToken);
+        });
+
+        item.ContentLightLevel = new HeifContentLightLevel(1, 2);
+        byte[] supplementalItemData = PrependPrefixSeiNalUnit(itemData, SupplementalMetadataRbsp);
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Image<Rgba32> image = itemDecoder.DecodeItemData(
+                options,
+                item,
+                supplementalItemData,
+                null,
+                TestContext.Current.CancellationToken);
+        });
+
+        int prefixNalLength = supplementalItemData.Length - itemData.Length;
+        byte[] postVclPrefixSeiItemData = new byte[supplementalItemData.Length];
+        itemData.CopyTo(postVclPrefixSeiItemData, 0);
+        supplementalItemData.AsSpan(0, prefixNalLength).CopyTo(postVclPrefixSeiItemData.AsSpan(itemData.Length));
+        Assert.Throws<InvalidImageContentException>(
+            () => new HevcImageItemBitstream(postVclPrefixSeiItemData, codecConfiguration));
+    }
+
+    /// <summary>
     /// Verifies all reconstructed samples from a real HEIC grid tile against the HM reference decoder.
     /// </summary>
     /// <param name="configurationPath">The exact HEVC decoder-configuration record associated with the item.</param>
@@ -874,6 +1044,243 @@ public class HevcPictureDecoderTests
     /// <param name="subsampling">The component subsampling shift.</param>
     /// <returns>The displayed component extent.</returns>
     private static int GetDisplaySize(int lumaSize, int subsampling) => (lumaSize + (1 << subsampling) - 1) >> subsampling;
+
+    /// <summary>
+    /// Verifies HEVC item metadata and the complete public HEIF presentation path in the active intrinsic
+    /// configuration.
+    /// </summary>
+    private static void ValidateSupplementalPresentationAndMetadata()
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 8_192 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        DecoderOptions options = new() { Configuration = configuration };
+
+        // FeatureTestRunner executes this method outside the originating xUnit context when it disables
+        // intrinsics, so the remote process cannot obtain the test's cancellation token.
+        CancellationToken cancellationToken = CancellationToken.None;
+        byte[] annexB = TestFile.Create(TestImages.Heif.IntraPredictionB).Bytes;
+        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        HevcCodecConfiguration codecConfiguration = new(configurationData);
+        HeifItem item = new(Heif4CharCode.Hvc1, 1) { HevcCodecConfiguration = codecConfiguration };
+        byte[] supplementalItemData = PrependPrefixSeiNalUnit(itemData, SupplementalMetadataRbsp);
+        HevcHeifItemDecoder<Rgba32> itemDecoder = new();
+        using (Image<Rgba32> metadataImage = itemDecoder.DecodeItemData(
+            options,
+            item,
+            supplementalItemData,
+            null,
+            cancellationToken))
+        {
+            Assert.Equal(CicpTransferCharacteristics.SmpteSt2084, metadataImage.Metadata.CicpProfile.TransferCharacteristics);
+            HeifMetadata metadata = metadataImage.Metadata.GetHeifMetadata();
+            Assert.Equal((ushort)1000, metadata.ContentLightLevel.Value.MaximumContentLightLevel);
+            Assert.NotNull(metadata.MasteringDisplayColorVolume);
+            Assert.NotNull(metadata.ContentColorVolume);
+            Assert.NotNull(metadata.AmbientViewingEnvironment);
+        }
+
+        byte[] source = [.. TestFile.Create(TestImages.Heif.Image4).Bytes];
+        byte[] orientedContainer = InsertPrimaryItemPrefixSeiNalUnit(source, DisplayOrientationRbsp);
+        string referencePath = Path.Combine(
+            TestEnvironment.ReferenceOutputDirectoryFullPath,
+            "HeifDecoderTests",
+            "DecodeHevcStillImage_Rgba32_image4.png");
+
+        using (Image<Rgba32> baseline = Image.Load<Rgba32>(referencePath))
+        using (Image<Rgba32> actual = Image.Load<Rgba32>(options, orientedContainer))
+        {
+            Assert.Equal(baseline.Height, actual.Width);
+            Assert.Equal(baseline.Width, actual.Height);
+            ImageFrame<Rgba32> baselineFrame = baseline.Frames.RootFrame;
+            ImageFrame<Rgba32> actualFrame = actual.Frames.RootFrame;
+
+            // A horizontal flip followed by the signaled anticlockwise quarter turn is an exact transpose. Compare
+            // every RGBA sample directly so both color and auxiliary alpha must share the production transform.
+            for (int y = 0; y < actual.Height; y++)
+            {
+                ReadOnlySpan<Rgba32> actualRow = actualFrame.DangerousGetPixelRowMemory(y).Span;
+                for (int x = 0; x < actual.Width; x++)
+                {
+                    Assert.Equal(baselineFrame.DangerousGetPixelRowMemory(x).Span[y], actualRow[x]);
+                }
+            }
+        }
+
+        Assert.NotEmpty(allocator.AllocationLog);
+        AssertBalancedAllocations(allocator);
+    }
+
+    /// <summary>
+    /// Inserts one prefix SEI NAL unit at the start of the real fixture's primary file-relative extent.
+    /// </summary>
+    private static byte[] InsertPrimaryItemPrefixSeiNalUnit(byte[] container, ReadOnlySpan<byte> rbsp)
+    {
+        int metaOffset = FindBoxOffset(container, Heif4CharCode.Meta, 0, container.Length);
+        Assert.True(metaOffset >= 0);
+        int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(container.AsSpan(metaOffset));
+        int primaryItemOffset = FindBoxOffset(container, Heif4CharCode.Pitm, metaOffset + 12, metaSize - 12);
+        int itemLocationOffset = FindBoxOffset(container, Heif4CharCode.Iloc, metaOffset + 12, metaSize - 12);
+        int mediaDataOffset = FindBoxOffset(container, Heif4CharCode.Mdat, 0, container.Length);
+        Assert.True(primaryItemOffset >= 0);
+        Assert.True(itemLocationOffset >= 0);
+        Assert.True(mediaDataOffset >= 0);
+
+        Assert.Equal(0, container[primaryItemOffset + 8]);
+        ushort primaryItemId = BinaryPrimitives.ReadUInt16BigEndian(container.AsSpan(primaryItemOffset + 12));
+
+        int position = itemLocationOffset + 8;
+        Assert.Equal(0, container[position]);
+        position += 4;
+        byte fieldSizes = container[position++];
+        byte baseOffsetSizes = container[position++];
+        Assert.Equal(4, fieldSizes >> 4);
+        Assert.Equal(4, fieldSizes & 15);
+        Assert.Equal(0, baseOffsetSizes >> 4);
+        ushort itemCount = BinaryPrimitives.ReadUInt16BigEndian(container.AsSpan(position));
+        position += 2;
+        Assert.True(itemCount > 0);
+
+        ushort firstItemId = BinaryPrimitives.ReadUInt16BigEndian(container.AsSpan(position));
+        position += 2;
+        Assert.Equal(primaryItemId, firstItemId);
+        Assert.Equal(0, BinaryPrimitives.ReadUInt16BigEndian(container.AsSpan(position)));
+        position += 2;
+        ushort primaryExtentCount = BinaryPrimitives.ReadUInt16BigEndian(container.AsSpan(position));
+        position += 2;
+        Assert.Equal(1, primaryExtentCount);
+
+        int primaryOffsetField = position;
+        int insertionOffset = (int)BinaryPrimitives.ReadUInt32BigEndian(container.AsSpan(position));
+        position += 4;
+        int primaryLengthField = position;
+        uint primaryLength = BinaryPrimitives.ReadUInt32BigEndian(container.AsSpan(position));
+        position += 4;
+
+        byte[] prefixNalUnit = PrependPrefixSeiNalUnit([], rbsp);
+        BinaryPrimitives.WriteUInt32BigEndian(
+            container.AsSpan(primaryLengthField),
+            checked(primaryLength + (uint)prefixNalUnit.Length));
+
+        // The fixture stores every extent as an absolute file offset. Inserting into the first extent shifts only
+        // later extents; its own offset remains the exact start at which the prefix NAL is inserted.
+        for (int itemIndex = 1; itemIndex < itemCount; itemIndex++)
+        {
+            position += 4;
+            ushort extentCount = BinaryPrimitives.ReadUInt16BigEndian(container.AsSpan(position));
+            position += 2;
+            for (int extentIndex = 0; extentIndex < extentCount; extentIndex++)
+            {
+                int extentOffsetField = position;
+                uint extentOffset = BinaryPrimitives.ReadUInt32BigEndian(container.AsSpan(position));
+                position += 8;
+                if (extentOffset > insertionOffset)
+                {
+                    BinaryPrimitives.WriteUInt32BigEndian(
+                        container.AsSpan(extentOffsetField),
+                        checked(extentOffset + (uint)prefixNalUnit.Length));
+                }
+            }
+        }
+
+        Assert.Equal(
+            (uint)insertionOffset,
+            BinaryPrimitives.ReadUInt32BigEndian(container.AsSpan(primaryOffsetField)));
+
+        uint compactMediaDataSize = BinaryPrimitives.ReadUInt32BigEndian(container.AsSpan(mediaDataOffset));
+        ulong mediaDataSize = compactMediaDataSize == 1
+            ? BinaryPrimitives.ReadUInt64BigEndian(container.AsSpan(mediaDataOffset + 8))
+            : compactMediaDataSize;
+
+        if (compactMediaDataSize == 1)
+        {
+            BinaryPrimitives.WriteUInt64BigEndian(
+                container.AsSpan(mediaDataOffset + 8),
+                checked(mediaDataSize + (uint)prefixNalUnit.Length));
+        }
+        else
+        {
+            BinaryPrimitives.WriteUInt32BigEndian(
+                container.AsSpan(mediaDataOffset),
+                checked((uint)mediaDataSize + (uint)prefixNalUnit.Length));
+        }
+
+        byte[] result = new byte[container.Length + prefixNalUnit.Length];
+        container.AsSpan(0, insertionOffset).CopyTo(result);
+        prefixNalUnit.CopyTo(result.AsSpan(insertionOffset));
+        container.AsSpan(insertionOffset).CopyTo(result.AsSpan(insertionOffset + prefixNalUnit.Length));
+        return result;
+    }
+
+    /// <summary>
+    /// Finds a bounded ISO BMFF child box, including boxes that use a 64-bit extended size.
+    /// </summary>
+    private static int FindBoxOffset(ReadOnlySpan<byte> data, Heif4CharCode type, int offset, int length)
+    {
+        int endOffset = offset + length;
+        while (offset < endOffset)
+        {
+            uint compactSize = BinaryPrimitives.ReadUInt32BigEndian(data[offset..]);
+            ulong boxSize = compactSize == 1
+                ? BinaryPrimitives.ReadUInt64BigEndian(data[(offset + 8)..])
+                : compactSize;
+
+            Assert.InRange(boxSize, 8UL, (ulong)(endOffset - offset));
+            Heif4CharCode boxType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(data[(offset + 4)..]);
+            if (boxType == type)
+            {
+                return offset;
+            }
+
+            offset += (int)boxSize;
+        }
+
+        return -1;
+    }
+
+    /// <summary>
+    /// Prepends one valid prefix SEI NAL unit to a length-delimited HEVC item payload.
+    /// </summary>
+    private static byte[] PrependPrefixSeiNalUnit(ReadOnlySpan<byte> itemData, ReadOnlySpan<byte> rbsp)
+    {
+        int preventionByteCount = 0;
+        int consecutiveZeroBytes = 0;
+        foreach (byte value in rbsp)
+        {
+            if (consecutiveZeroBytes == 2 && value <= 3)
+            {
+                preventionByteCount++;
+                consecutiveZeroBytes = 0;
+            }
+
+            consecutiveZeroBytes = value == 0 ? consecutiveZeroBytes + 1 : 0;
+        }
+
+        const int lengthFieldLength = 4;
+        const int nalHeaderLength = 2;
+        int nalLength = nalHeaderLength + rbsp.Length + preventionByteCount;
+        byte[] result = new byte[lengthFieldLength + nalLength + itemData.Length];
+        BinaryPrimitives.WriteUInt32BigEndian(result, (uint)nalLength);
+        result[lengthFieldLength] = 0x4E;
+        result[lengthFieldLength + 1] = 0x01;
+        int destinationOffset = lengthFieldLength + nalHeaderLength;
+        consecutiveZeroBytes = 0;
+        foreach (byte value in rbsp)
+        {
+            if (consecutiveZeroBytes == 2 && value <= 3)
+            {
+                result[destinationOffset++] = 3;
+                consecutiveZeroBytes = 0;
+            }
+
+            result[destinationOffset++] = value;
+            consecutiveZeroBytes = value == 0 ? consecutiveZeroBytes + 1 : 0;
+        }
+
+        itemData.CopyTo(result.AsSpan(destinationOffset));
+        return result;
+    }
 
     /// <summary>
     /// Adapts the first independently coded Annex B picture to the bounded <c>hvc1</c> item contract used by the

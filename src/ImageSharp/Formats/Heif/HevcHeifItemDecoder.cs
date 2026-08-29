@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif.Hevc.Color;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Formats.Heif;
 
@@ -17,6 +18,8 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 internal sealed class HevcHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlphaItemDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
+    private HevcSupplementalEnhancementInformation? supplementalEnhancementInformation;
+
     /// <summary>
     /// Gets the HEVC-coded image item type.
     /// </summary>
@@ -43,6 +46,7 @@ internal sealed class HevcHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
         CicpProfile? colorProfile,
         CancellationToken cancellationToken)
     {
+        this.supplementalEnhancementInformation = null;
         using HevcPictureDecoder decoder = DecodePicture(
             options,
             item,
@@ -52,9 +56,19 @@ internal sealed class HevcHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
             out HevcCodecConfiguration codecConfiguration,
             out HevcSequenceParameterSet sequenceParameterSet,
             out CicpProfile effectiveColorProfile,
-            out HevcChromaSampleLocation chromaSampleLocation);
+            out HevcChromaSampleLocation chromaSampleLocation,
+            out HevcSupplementalEnhancementInformation supplementalEnhancementInformation);
+
+        if (supplementalEnhancementInformation.NoDisplay)
+        {
+            throw new InvalidImageContentException($"HEVC image item {item.Id} is marked as unavailable for display.");
+        }
+
+        ValidateSupplementalMetadata(item, supplementalEnhancementInformation);
+        this.supplementalEnhancementInformation = supplementalEnhancementInformation;
 
         ImageFrame<TPixel>? frame = null;
+        Image<TPixel>? image = null;
         try
         {
             frame = new ImageFrame<TPixel>(options.Configuration, sequenceParameterSet.DisplayWidth, sequenceParameterSet.DisplayHeight);
@@ -76,14 +90,73 @@ internal sealed class HevcHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
             heifMetadata.CompressionMethod = this.CompressionMethod;
             heifMetadata.BitDepth = codecConfiguration.BitDepth;
             heifMetadata.IsMonochrome = codecConfiguration.IsMonochrome;
-            return new Image<TPixel>(options.Configuration, metadata, [frame]);
+            heifMetadata.ContentLightLevel = supplementalEnhancementInformation.ContentLightLevel;
+            heifMetadata.MasteringDisplayColorVolume = supplementalEnhancementInformation.MasteringDisplayColorVolume;
+            heifMetadata.ContentColorVolume = supplementalEnhancementInformation.ContentColorVolume;
+            heifMetadata.AmbientViewingEnvironment = supplementalEnhancementInformation.AmbientViewingEnvironment;
+
+            image = new Image<TPixel>(options.Configuration, metadata, [frame]);
+            frame = null;
+            return image;
         }
         catch
         {
-            // Ownership transfers only after the image constructor accepts the completely converted frame.
+            // Before the image constructor succeeds the frame remains locally owned. Afterwards the image owns it and
+            // every processor-created replacement buffer, so unwind exactly one of those two ownership states.
+            image?.Dispose();
             frame?.Dispose();
             throw;
         }
+    }
+
+    /// <summary>
+    /// Applies the active HEVC display-orientation message to the complete presented image.
+    /// </summary>
+    /// <param name="image">The decoded image after item scaling and auxiliary-alpha composition.</param>
+    public void ApplySupplementalPresentation(Image<TPixel> image)
+    {
+        HevcSupplementalEnhancementInformation supplementalEnhancementInformation
+            = this.supplementalEnhancementInformation!;
+
+        if (!supplementalEnhancementInformation.HasDisplayOrientation)
+        {
+            return;
+        }
+
+        image.Mutate(context =>
+        {
+            // H.265 applies both flips to the cropped decoded picture before its anticlockwise rotation.
+            // ImageSharp's positive rotation is clockwise, so quarter turns use the exact optimized modes and
+            // all other coded angles use the equivalent positive clockwise angle.
+            if (supplementalEnhancementInformation.HorizontalFlip)
+            {
+                context.Flip(FlipMode.Horizontal);
+            }
+
+            if (supplementalEnhancementInformation.VerticalFlip)
+            {
+                context.Flip(FlipMode.Vertical);
+            }
+
+            ushort rotation = supplementalEnhancementInformation.AnticlockwiseRotation;
+            switch (rotation)
+            {
+                case 0:
+                    break;
+                case 16384:
+                    context.Rotate(RotateMode.Rotate270);
+                    break;
+                case 32768:
+                    context.Rotate(RotateMode.Rotate180);
+                    break;
+                case 49152:
+                    context.Rotate(RotateMode.Rotate90);
+                    break;
+                default:
+                    context.Rotate(360F - ((360F * rotation) / 65536F));
+                    break;
+            }
+        });
     }
 
     /// <inheritdoc/>
@@ -106,7 +179,8 @@ internal sealed class HevcHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
             out _,
             out HevcSequenceParameterSet sequenceParameterSet,
             out CicpProfile effectiveColorProfile,
-            out HevcChromaSampleLocation chromaSampleLocation);
+            out HevcChromaSampleLocation chromaSampleLocation,
+            out _);
 
         Rectangle sourceRectangle = new(
             sequenceParameterSet.ConformanceWindowLeftOffset,
@@ -143,6 +217,7 @@ internal sealed class HevcHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
     /// <param name="sequenceParameterSet">Receives the sequence parameters describing the visible picture.</param>
     /// <param name="effectiveColorProfile">Receives the effective CICP description used for presentation.</param>
     /// <param name="chromaSampleLocation">Receives the progressive-frame chroma sample location.</param>
+    /// <param name="supplementalEnhancementInformation">Receives the bounded presentation and metadata SEI state.</param>
     /// <returns>The decoder owning the reconstructed native picture. Ownership transfers to the caller.</returns>
     private static HevcPictureDecoder DecodePicture(
         DecoderOptions options,
@@ -153,7 +228,8 @@ internal sealed class HevcHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
         out HevcCodecConfiguration codecConfiguration,
         out HevcSequenceParameterSet sequenceParameterSet,
         out CicpProfile effectiveColorProfile,
-        out HevcChromaSampleLocation chromaSampleLocation)
+        out HevcChromaSampleLocation chromaSampleLocation,
+        out HevcSupplementalEnhancementInformation supplementalEnhancementInformation)
     {
         cancellationToken.ThrowIfCancellationRequested();
         codecConfiguration = item.HevcCodecConfiguration
@@ -165,12 +241,23 @@ internal sealed class HevcHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
         }
 
         HevcImageItemBitstream bitstream = new(data, codecConfiguration);
+        supplementalEnhancementInformation = bitstream.SupplementalEnhancementInformation;
         HevcPictureParameterSet pictureParameterSet = bitstream.SliceSegments[0].PictureParameterSet;
         sequenceParameterSet = pictureParameterSet.SequenceParameterSet;
         HevcVideoUsabilityInformation? vui = sequenceParameterSet.VideoUsabilityInformation;
+        byte transferCharacteristics = vui?.ColorDescriptionPresent == true
+            ? vui.TransferCharacteristics
+            : (byte)CicpTransferCharacteristics.Unspecified;
+
+        byte? preferredTransferCharacteristics = supplementalEnhancementInformation.PreferredTransferCharacteristics;
+        if (colorProfile is null && preferredTransferCharacteristics is not null)
+        {
+            transferCharacteristics = preferredTransferCharacteristics.Value;
+        }
 
         // ISO BMFF color information takes precedence when both the container and HEVC VUI describe the image.
-        // Otherwise, retain the VUI values used by conversion so bitstream-only color information reaches metadata.
+        // Otherwise, retain the VUI values and the SEI-preferred transfer function used by conversion so bitstream-only
+        // color information reaches metadata.
         effectiveColorProfile = colorProfile is not null
             ? new CicpProfile(
                 (byte)colorProfile.ColorPrimaries,
@@ -179,7 +266,7 @@ internal sealed class HevcHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
                 colorProfile.FullRange)
             : new CicpProfile(
                 vui?.ColorDescriptionPresent == true ? vui.ColorPrimaries : (byte)CicpColorPrimaries.Unspecified,
-                vui?.ColorDescriptionPresent == true ? vui.TransferCharacteristics : (byte)CicpTransferCharacteristics.Unspecified,
+                transferCharacteristics,
                 vui?.ColorDescriptionPresent == true ? vui.MatrixCoefficients : (byte)CicpMatrixCoefficients.Unspecified,
                 vui?.VideoSignalTypePresent == true && vui.FullRange);
 
@@ -198,6 +285,53 @@ internal sealed class HevcHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
         {
             decoder.Dispose();
             throw;
+        }
+    }
+
+    /// <summary>
+    /// Validates equivalent codec and item-property HDR metadata before either representation is exposed.
+    /// </summary>
+    private static void ValidateSupplementalMetadata(
+        HeifItem item,
+        HevcSupplementalEnhancementInformation supplementalEnhancementInformation)
+    {
+        HeifContentLightLevel? supplementalContentLightLevel = supplementalEnhancementInformation.ContentLightLevel;
+        HeifContentLightLevel? itemContentLightLevel = item.ContentLightLevel;
+        if (supplementalContentLightLevel is not null
+            && itemContentLightLevel is not null
+            && (supplementalContentLightLevel.Value.MaximumContentLightLevel != itemContentLightLevel.Value.MaximumContentLightLevel
+                || supplementalContentLightLevel.Value.MaximumPictureAverageLightLevel
+                    != itemContentLightLevel.Value.MaximumPictureAverageLightLevel))
+        {
+            throw new InvalidImageContentException($"HEVC image item {item.Id} has conflicting content light-level metadata.");
+        }
+
+        HeifMasteringDisplayColorVolume? supplementalMasteringDisplayColorVolume
+            = supplementalEnhancementInformation.MasteringDisplayColorVolume;
+
+        if (supplementalMasteringDisplayColorVolume is not null
+            && item.MasteringDisplayColorVolume is not null
+            && supplementalMasteringDisplayColorVolume.Value != item.MasteringDisplayColorVolume.Value)
+        {
+            throw new InvalidImageContentException($"HEVC image item {item.Id} has conflicting mastering-display metadata.");
+        }
+
+        HeifContentColorVolume? supplementalContentColorVolume = supplementalEnhancementInformation.ContentColorVolume;
+        if (supplementalContentColorVolume is not null
+            && item.ContentColorVolume is not null
+            && supplementalContentColorVolume.Value != item.ContentColorVolume.Value)
+        {
+            throw new InvalidImageContentException($"HEVC image item {item.Id} has conflicting content color-volume metadata.");
+        }
+
+        HeifAmbientViewingEnvironment? supplementalAmbientViewingEnvironment
+            = supplementalEnhancementInformation.AmbientViewingEnvironment;
+
+        if (supplementalAmbientViewingEnvironment is not null
+            && item.AmbientViewingEnvironment is not null
+            && supplementalAmbientViewingEnvironment.Value != item.AmbientViewingEnvironment.Value)
+        {
+            throw new InvalidImageContentException($"HEVC image item {item.Id} has conflicting ambient-viewing metadata.");
         }
     }
 }

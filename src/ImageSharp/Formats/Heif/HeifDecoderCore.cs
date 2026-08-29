@@ -2352,8 +2352,15 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 this.ApplyAssociatedMetadata(image.Metadata, rootItem, buffers);
             }
 
+            if (itemDecoder is HevcHeifItemDecoder<TPixel> hevcItemDecoder)
+            {
+                // The codec orientation describes the complete cropped picture. Item scaling and alpha composition
+                // must finish first so rotation neither resizes back to ispe nor leaves the auxiliary plane unrotated.
+                hevcItemDecoder.ApplySupplementalPresentation(image);
+            }
+
             // MIAF defines crop, rotation, and mirror as presentation operations in that order. Applying the
-            // implemented transforms after alpha composition keeps the auxiliary plane in the same coordinate space.
+            // container transforms after codec presentation keeps every composed plane in the same coordinate space.
             ApplyPresentationTransforms(image, itemToDecode);
 
             if (!this.Options.SkipMetadata)

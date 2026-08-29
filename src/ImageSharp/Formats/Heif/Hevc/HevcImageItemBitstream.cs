@@ -21,6 +21,7 @@ internal sealed class HevcImageItemBitstream
     {
         List<HevcNalUnit> nalUnits = [];
         List<HevcSliceSegmentHeader> sliceSegments = [];
+        HevcSupplementalEnhancementInformation supplementalEnhancementInformation = new();
         int offset = 0;
         while (offset < data.Length)
         {
@@ -77,6 +78,20 @@ internal sealed class HevcImageItemBitstream
             {
                 throw new InvalidImageContentException("The HEVC image item contains an end-of-sequence NAL unit.");
             }
+
+            if (nalUnit.Header.NalUnitType == 39)
+            {
+                // Prefix SEI belongs to the following VCL NAL unit. Once this bounded item has started its only
+                // picture, another prefix unit would describe a second access unit that the item is not allowed to carry.
+                if (sliceSegments.Count != 0)
+                {
+                    throw new InvalidImageContentException("The HEVC image item contains prefix SEI after its first coded slice.");
+                }
+
+                // Prefix SEI messages are associated with this item's only access unit. Parse the observable still-image
+                // state in NAL and message order without retaining generic video persistence or timing state.
+                supplementalEnhancementInformation.ReadPrefixNalUnit(nalUnit.Rbsp.Span);
+            }
         }
 
         if (sliceSegments.Count == 0)
@@ -86,6 +101,7 @@ internal sealed class HevcImageItemBitstream
 
         this.NalUnits = nalUnits;
         this.SliceSegments = sliceSegments;
+        this.SupplementalEnhancementInformation = supplementalEnhancementInformation;
     }
 
     /// <summary>
@@ -97,6 +113,11 @@ internal sealed class HevcImageItemBitstream
     /// Gets the ordered slice segments that reconstruct the item's single IDR picture.
     /// </summary>
     public IReadOnlyList<HevcSliceSegmentHeader> SliceSegments { get; }
+
+    /// <summary>
+    /// Gets the presentation and exposed metadata decoded from prefix SEI NAL units.
+    /// </summary>
+    public HevcSupplementalEnhancementInformation SupplementalEnhancementInformation { get; }
 
     /// <summary>
     /// Reads an unsigned one-through-four-byte NAL-unit length without assuming four-byte item framing.

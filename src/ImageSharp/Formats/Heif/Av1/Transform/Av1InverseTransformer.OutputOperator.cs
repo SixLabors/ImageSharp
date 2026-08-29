@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <content>
 /// Provides the sample-output operator shared by inverse transform traversals.
 /// </content>
-internal static partial class Av1Inverse2dTransformer
+internal static partial class Av1InverseTransformer
 {
     /// <summary>
     /// Reconstructs AV1 samples from predicted values and inverse-transform residuals.

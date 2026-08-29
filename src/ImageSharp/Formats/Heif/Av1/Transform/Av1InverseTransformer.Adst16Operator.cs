@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <content>
 /// Provides the sixteen-point asymmetric discrete sine inverse transform operator.
 /// </content>
-internal static partial class Av1Inverse2dTransformer
+internal static partial class Av1InverseTransformer
 {
     /// <summary>
     /// Defines the 16-point AV1 inverse asymmetric discrete sine transform operator.

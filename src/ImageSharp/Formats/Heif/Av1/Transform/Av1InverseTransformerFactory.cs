@@ -49,7 +49,7 @@ internal static class Av1InverseTransformerFactory
             transformFunctionParameters.TransformSize,
             transformFunctionParameters.BitDepth);
 
-        Av1Inverse2dTransformer.Transform2dAdd(coefficients, readBuffer, readStride, writeBuffer, writeStride, ref config, workspace);
+        Av1InverseTransformer.Transform2dAdd(coefficients, readBuffer, readStride, writeBuffer, writeStride, ref config, workspace);
     }
 
     /// <summary>
@@ -93,6 +93,6 @@ internal static class Av1InverseTransformerFactory
             transformFunctionParameters.TransformSize,
             transformFunctionParameters.BitDepth);
 
-        Av1Inverse2dTransformer.Transform2dAdd(coefficients, readBuffer, readStride, writeBuffer, writeStride, ref config, workspace, transformFunctionParameters.BitDepth);
+        Av1InverseTransformer.Transform2dAdd(coefficients, readBuffer, readStride, writeBuffer, writeStride, ref config, workspace, transformFunctionParameters.BitDepth);
     }
 }

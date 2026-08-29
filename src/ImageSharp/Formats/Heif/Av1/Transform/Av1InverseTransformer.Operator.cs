@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// cross-lane permutations. Reconstruction adds the final residuals to their matching prediction lanes before
 /// narrowing to the decoded sample depth.
 /// </remarks>
-internal static partial class Av1Inverse2dTransformer
+internal static partial class Av1InverseTransformer
 {
     /// <summary>
     /// The signed stage width whose fixed-point terminal operations require widened SIMD intermediates.

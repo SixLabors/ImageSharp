@@ -246,7 +246,13 @@ internal sealed partial class HevcPictureDecoder
                 int quantizationParameterP = codingTreeState.GetQuantizationParameter(pX, pY);
                 int quantizationParameterQ = codingTreeState.GetQuantizationParameter(qX, qY);
                 int averageQuantizationParameter = (quantizationParameterP + quantizationParameterQ + 1) >> 1;
-                int componentOffset = codingTreeState.GetChromaQuantizationOffset(plane, qX, qY);
+
+                // Chroma deblocking uses only the picture-level component offset. Slice offsets and the RExt
+                // coding-unit adjustment affect inverse quantization, but H.265 excludes both from tc derivation.
+                int componentOffset = plane == HevcPlane.Cb
+                    ? this.pictureParameterSet.ChromaCbQuantizationParameterOffset
+                    : this.pictureParameterSet.ChromaCrQuantizationParameterOffset;
+
                 int chromaQuantizationParameter = HevcQuantizationParameters.GetChromaQuantizationParameter(
                     averageQuantizationParameter,
                     componentOffset,

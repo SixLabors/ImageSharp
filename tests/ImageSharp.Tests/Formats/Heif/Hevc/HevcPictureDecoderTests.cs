@@ -138,6 +138,68 @@ public class HevcPictureDecoderTests
     }
 
     /// <summary>
+    /// Identifies Range Extensions syntax that an official independently decoded picture must exercise.
+    /// </summary>
+    [Flags]
+    public enum RangeExtensionTools
+    {
+        /// <summary>
+        /// No additional tool assertion is required beyond the profile, precision, chroma layout, and plane hashes.
+        /// </summary>
+        None = 0,
+
+        /// <summary>
+        /// Cross-component residual prediction is enabled.
+        /// </summary>
+        CrossComponentPrediction = 1,
+
+        /// <summary>
+        /// Luma and chroma use different sample precisions.
+        /// </summary>
+        UnequalBitDepth = 2,
+
+        /// <summary>
+        /// Persistent Golomb-Rice adaptation is enabled.
+        /// </summary>
+        PersistentRice = 4,
+
+        /// <summary>
+        /// Extended-precision transform processing is enabled.
+        /// </summary>
+        ExtendedPrecision = 8,
+
+        /// <summary>
+        /// Pulse-code-modulated coding units are enabled.
+        /// </summary>
+        Pcm = 16,
+
+        /// <summary>
+        /// Transform-skip-specific coefficient contexts are enabled.
+        /// </summary>
+        TransformSkipContext = 32,
+
+        /// <summary>
+        /// Tile entry points are enabled.
+        /// </summary>
+        Tiles = 64,
+
+        /// <summary>
+        /// Wavefront row entry points are enabled.
+        /// </summary>
+        Wavefront = 128,
+
+        /// <summary>
+        /// CABAC bypass bins are byte-aligned.
+        /// </summary>
+        CabacBypassAlignment = 256,
+
+        /// <summary>
+        /// A coding-unit chroma quantization-offset list is enabled.
+        /// </summary>
+        ChromaQuantizationAdjustment = 512,
+    }
+
+    /// <summary>
     /// Verifies the first independently coded picture from official ITU RExt conformance streams against its
     /// published decoded-picture hashes.
     /// </summary>
@@ -168,7 +230,7 @@ public class HevcPictureDecoderTests
     {
         byte[] annexB = TestFile.Create(path).Bytes;
         byte[] expectedYuv = TestFile.Create($"{path[..^4]}_frame0.yuv").Bytes;
-        ConvertAnnexBStillPicture(annexB, bitDepth, chromaFormat, out byte[] configurationData, out byte[] itemData);
+        ConvertAnnexBStillPicture(annexB, bitDepth, bitDepth, chromaFormat, out byte[] configurationData, out byte[] itemData);
         HevcCodecConfiguration configuration = new(configurationData);
         HevcImageItemBitstream bitstream = new(itemData, configuration);
         HevcSliceSegmentHeader sliceHeader = bitstream.SliceSegments[0];
@@ -207,6 +269,127 @@ public class HevcPictureDecoderTests
     }
 
     /// <summary>
+    /// Verifies the remaining supported Range Extensions profiles and independently coded tools against normative
+    /// decoded-picture hashes or first pictures from published reference output.
+    /// </summary>
+    /// <param name="path">The provenance-preserving extracted Annex B picture.</param>
+    /// <param name="bitDepthLuma">The signaled luma precision.</param>
+    /// <param name="bitDepthChroma">The signaled chroma precision.</param>
+    /// <param name="chromaFormat">The signaled HEVC chroma-format identifier.</param>
+    /// <param name="profileIdc">The signaled HEVC profile identifier.</param>
+    /// <param name="requiredTools">The Range Extensions syntax that the retained picture must enable.</param>
+    /// <param name="lumaDigest">The normative luma-plane MD5 digest.</param>
+    /// <param name="chromaBlueDigest">The normative blue-difference-plane MD5 digest.</param>
+    /// <param name="chromaRedDigest">The normative red-difference-plane MD5 digest.</param>
+    [Theory]
+    [InlineData(TestImages.Heif.RangeExtensionChromaAngle422, 10, 10, 2, 4, RangeExtensionTools.None, "90085930ec5de68c8e0c95ed59ec0ce4", "a2053b886e4d2b26569472c4e65865ca", "82fc61a1450dc6df0b87d1e17c4d66db")]
+    [InlineData(TestImages.Heif.RangeExtensionCrossComponent8Bit444, 8, 8, 3, 4, RangeExtensionTools.CrossComponentPrediction, "ab4619c33dc1f67d332ec1945acab23f", "2cc70454f33f32f97c7ecf244d858398", "c54605014b2e9133d66867bf572c3ac6")]
+    [InlineData(TestImages.Heif.RangeExtensionCrossComponent10Bit444, 10, 10, 3, 4, RangeExtensionTools.CrossComponentPrediction, "daa07e34beaa525d416211025b9ee73d", "7ca36368377b0c02cdf53767ea43c36a", "d2a777f65e1fe6c2e638ae0d4f8ad884")]
+    [InlineData(TestImages.Heif.RangeExtensionCrossComponent12Bit444, 12, 12, 3, 4, RangeExtensionTools.CrossComponentPrediction, "7bed50ae49c39dd30e1085e7578d3555", "d2a06b27ddfba5fd2f14463f5d88e10d", "1a06a414d88ec6a7819a464021b1e935")]
+    [InlineData(TestImages.Heif.RangeExtensionLuma12Chroma8, 12, 8, 3, 4, RangeExtensionTools.UnequalBitDepth, "c8a92f6c83830232615157130460aa52", "1a88d067a709f8d4ee66e608edcf1454", "7582e448a0ca0ec91d84e86264048c58")]
+    [InlineData(TestImages.Heif.RangeExtensionLuma8Chroma12, 8, 12, 3, 4, RangeExtensionTools.UnequalBitDepth, "0f0b9d9ae27e541854f985d2b4f1cb8c", "a1834614ecd2d873cf748af0d182fccd", "cc733d65275087e6ad480f98150139e5")]
+    [InlineData(TestImages.Heif.ExtendedPrecision8Bit444, 8, 8, 3, 4, RangeExtensionTools.ExtendedPrecision, "abef53fa20dab9ab755b51b6eafac2a8", "eb3fb765be767658b515ce4260a011e9", "e9f741b608b8c2c8efa4607c5fee6664")]
+    [InlineData(TestImages.Heif.ExtendedPrecision10Bit444, 10, 10, 3, 4, RangeExtensionTools.ExtendedPrecision, "0a6955b11ede15c22279186dcef5f75e", "3de15052d5e92ffc8cc98db58ed3db5c", "bfe0b418ca96bafc86953d9e0065315b")]
+    [InlineData(TestImages.Heif.ExtendedPrecision12Bit444, 12, 12, 3, 4, RangeExtensionTools.ExtendedPrecision, "c8664d56d8391b236a8347397eb97a08", "08cd345d8798ac2714b2939462ac45e2", "5424bce4562f298e983302da697db849")]
+    [InlineData(TestImages.Heif.HighThroughputExtendedPrecision8Bit444, 8, 8, 3, 5, RangeExtensionTools.ExtendedPrecision, "ca77f9c29a2d25266d33d77bea0edc66", "473d1bd93cfebffa04f99cfe7e37eb0d", "8ab614af0526c77685ade3c9bbde2510")]
+    [InlineData(TestImages.Heif.HighThroughputExtendedPrecision10Bit444, 10, 10, 3, 5, RangeExtensionTools.ExtendedPrecision, "635507721877b619dc04593abafcfb1d", "d486efd70d9d3cbc3bcd2110abab6e87", "2b9966cd21c5b1fba41e3c793a40ebcb")]
+    [InlineData(TestImages.Heif.HighThroughputExtendedPrecision12Bit444, 12, 12, 3, 5, RangeExtensionTools.ExtendedPrecision, "cf547552a75b5e7b819937b82abf7985", "f2b863051a7c8f9af29bddd18401f291", "39a89074bc70d212dfe082ce544a43a0")]
+    [InlineData(TestImages.Heif.RangeExtensionPcm10Bit422, 10, 10, 2, 4, RangeExtensionTools.Pcm, "32248d41f772b2f69ae921d59b19f878", "678aec54e4b2af3578d06eefd8d6d097", "072613ebc1393dc2a5c17f882d1476f1")]
+    [InlineData(TestImages.Heif.RangeExtensionPcm12Bit444, 12, 12, 3, 4, RangeExtensionTools.Pcm, "0d91f6c4b691e47f48cf039b6c948d50", "5578d8774855b2a52f26cffda0edf10c", "e7860063b7b05ff55cf8ad981d08ee0f")]
+    [InlineData(TestImages.Heif.PersistentRice12Bit444, 12, 12, 3, 4, RangeExtensionTools.PersistentRice, "ddea37dedd9b541aaf371351d73e821b", "eb611e94654b76eb14fbcf20295a33ec", "b1655845f49114550fd26ab722ccc335")]
+    [InlineData(TestImages.Heif.TransformSkipContext8Bit444, 8, 8, 3, 4, RangeExtensionTools.TransformSkipContext, "c148a3f5610b0ec1369b702fc1383445", "82b10517c01f4fe5ca0aa19f5f8f2a0a", "29a841e63b5bf84fd9f8734dcc5df4e7")]
+    [InlineData(TestImages.Heif.TransformSkipContext10Bit444, 10, 10, 3, 4, RangeExtensionTools.TransformSkipContext, "006f3314efb25b15adc1c734fe7845b0", "99fa977f7603eeaa4981d9ac08b5aec1", "16aa20a082b534aec5e91bc9924060d3")]
+    [InlineData(TestImages.Heif.TransformSkipContext12Bit444, 12, 12, 3, 4, RangeExtensionTools.TransformSkipContext, "f26cffd119796bcbd2c4730eac6cc0c7", "e12a6a3faccadc8cf77952a7ef443c27", "f96fff6246848c9bd6808d65d1f3337d")]
+    [InlineData(TestImages.Heif.Main42210A, 10, 10, 2, 4, RangeExtensionTools.ChromaQuantizationAdjustment, "41746faffb59051c7b9002d7c79dc05d", "5180c8020b597bc66d0c1ec3a35656f6", "44140b531120e0737afc57fb25d16207")]
+    [InlineData(TestImages.Heif.Main42210B, 10, 10, 2, 4, RangeExtensionTools.ChromaQuantizationAdjustment, "845e930817261106c8edb352a1cdc9d6", "ca1e0aa4fd8ea6ba6ebacb3997bc32d1", "4377426b33fee59375d9dedd3b1eee9b")]
+    [InlineData(TestImages.Heif.HighThroughput10Bit422TilesWavefront, 10, 10, 2, 5, RangeExtensionTools.Tiles | RangeExtensionTools.Wavefront, "efd80653065c89989303827c56eca1ad", "7966084cebcd537109bf49084de31ced", "8030bdf42331b9a1033d0c62ce3ea452")]
+    [InlineData(TestImages.Heif.HighThroughput8Bit420TilesWavefront, 8, 8, 1, 5, RangeExtensionTools.Tiles | RangeExtensionTools.Wavefront, "6a99581bc96d002befb1bc6ef1c610aa", "79c51aa1ea347d81edcd7a2128e14060", "103dcfa2c88f4d98a24044a0e283cf87")]
+    [InlineData(TestImages.Heif.HighThroughput8Bit420Wavefront, 8, 8, 1, 5, RangeExtensionTools.Wavefront, "6b7404a197543d0adb7a2711b04273c2", "2f0e9ce1af96ff80ad2c5028d0109685", "a5d0b489441120fe235b7110f4fcaa45")]
+    [InlineData(TestImages.Heif.HighThroughput8Bit420CabacBypassAlignment, 8, 8, 1, 5, RangeExtensionTools.Tiles | RangeExtensionTools.Wavefront | RangeExtensionTools.CabacBypassAlignment, "6a783152cea8c612766d2173f2a30c5b", "9329df9e4ad589dfc24ac64acc9db1ea", "b01428a538cd555d61a9d3e950faf1cd")]
+    [InlineData(TestImages.Heif.HighThroughput8Bit420ExtendedPrecision, 8, 8, 1, 5, RangeExtensionTools.Tiles | RangeExtensionTools.Wavefront | RangeExtensionTools.ExtendedPrecision, "2e49cc92405a262f3b0065b764c96c7c", "f2f7073c45814147362ae156eadaaaa9", "b002b9b7a0da39301d112666ce4435d9")]
+    public void DecodeOfficialRangeExtensionProfilePictureMatchesDecodedPictureHash(
+        string path,
+        int bitDepthLuma,
+        int bitDepthChroma,
+        byte chromaFormat,
+        byte profileIdc,
+        RangeExtensionTools requiredTools,
+        string lumaDigest,
+        string chromaBlueDigest,
+        string chromaRedDigest)
+    {
+        byte[] annexB = TestFile.Create(path).Bytes;
+        ConvertAnnexBStillPicture(annexB, bitDepthLuma, bitDepthChroma, chromaFormat, out byte[] configurationData, out byte[] itemData);
+        HevcCodecConfiguration configuration = new(configurationData);
+        HevcImageItemBitstream bitstream = new(itemData, configuration);
+        HevcPictureParameterSet pictureParameterSet = bitstream.SliceSegments[0].PictureParameterSet;
+        HevcSequenceParameterSet sequenceParameterSet = pictureParameterSet.SequenceParameterSet;
+        using HevcPictureDecoder decoder = new(Configuration.Default, pictureParameterSet);
+
+        decoder.Decode(bitstream);
+
+        Assert.Equal(profileIdc, sequenceParameterSet.ProfileTierLevel.ProfileIdc);
+        Assert.Equal(bitDepthLuma, decoder.Picture.BitDepthLuma);
+        Assert.Equal(bitDepthChroma, decoder.Picture.BitDepthChroma);
+        Assert.Equal(chromaFormat, decoder.Picture.ChromaFormat);
+        if ((requiredTools & RangeExtensionTools.CrossComponentPrediction) != 0)
+        {
+            Assert.True(pictureParameterSet.CrossComponentPredictionEnabled);
+        }
+
+        if ((requiredTools & RangeExtensionTools.UnequalBitDepth) != 0)
+        {
+            Assert.NotEqual(decoder.Picture.BitDepthLuma, decoder.Picture.BitDepthChroma);
+        }
+
+        if ((requiredTools & RangeExtensionTools.PersistentRice) != 0)
+        {
+            Assert.True(sequenceParameterSet.PersistentRiceAdaptationEnabled);
+        }
+
+        if ((requiredTools & RangeExtensionTools.ExtendedPrecision) != 0)
+        {
+            Assert.True(sequenceParameterSet.ExtendedPrecisionProcessingEnabled);
+        }
+
+        if ((requiredTools & RangeExtensionTools.Pcm) != 0)
+        {
+            Assert.True(sequenceParameterSet.PcmEnabled);
+        }
+
+        if ((requiredTools & RangeExtensionTools.TransformSkipContext) != 0)
+        {
+            Assert.True(pictureParameterSet.TransformSkipEnabled);
+            Assert.True(sequenceParameterSet.TransformSkipContextEnabled);
+        }
+
+        if ((requiredTools & RangeExtensionTools.Tiles) != 0)
+        {
+            Assert.True(pictureParameterSet.TilesEnabled);
+        }
+
+        if ((requiredTools & RangeExtensionTools.Wavefront) != 0)
+        {
+            Assert.True(pictureParameterSet.EntropyCodingSynchronizationEnabled);
+        }
+
+        if ((requiredTools & RangeExtensionTools.CabacBypassAlignment) != 0)
+        {
+            Assert.True(sequenceParameterSet.CabacBypassAlignmentEnabled);
+        }
+
+        if ((requiredTools & RangeExtensionTools.ChromaQuantizationAdjustment) != 0)
+        {
+            Assert.NotEmpty(pictureParameterSet.ChromaQuantizationParameterOffsetsCb);
+            Assert.NotEmpty(pictureParameterSet.ChromaQuantizationParameterOffsetsCr);
+        }
+
+        Assert.Equal(lumaDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Y));
+        Assert.Equal(chromaBlueDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cb));
+        Assert.Equal(chromaRedDigest, GetPlaneDigest(decoder.Picture, HevcPlane.Cr));
+    }
+
+    /// <summary>
     /// Verifies the official Main Still Picture stream containing every luma and chroma intra mode at every
     /// conformance block size against its published native planar output.
     /// </summary>
@@ -215,7 +398,7 @@ public class HevcPictureDecoderTests
     {
         byte[] annexB = TestFile.Create(TestImages.Heif.IntraPredictionB).Bytes;
         byte[] expectedYuv = TestFile.Create(TestImages.Heif.IntraPredictionBReference).Bytes;
-        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        ConvertAnnexBStillPicture(annexB, 8, 8, 1, out byte[] configurationData, out byte[] itemData);
         HevcCodecConfiguration configuration = new(configurationData);
         HevcImageItemBitstream bitstream = new(itemData, configuration);
         HevcPictureParameterSet pictureParameterSet = bitstream.SliceSegments[0].PictureParameterSet;
@@ -252,7 +435,7 @@ public class HevcPictureDecoderTests
     public void DecodeOfficialConstrainedIntraPictureMatchesPublishedDigest()
     {
         byte[] annexB = TestFile.Create(TestImages.Heif.ConstrainedIntraPredictionA).Bytes;
-        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        ConvertAnnexBStillPicture(annexB, 8, 8, 1, out byte[] configurationData, out byte[] itemData);
         HevcCodecConfiguration configuration = new(configurationData);
         HevcImageItemBitstream bitstream = new(itemData, configuration);
         HevcPictureParameterSet pictureParameterSet = bitstream.SliceSegments[0].PictureParameterSet;
@@ -296,7 +479,7 @@ public class HevcPictureDecoderTests
         string chromaRedDigest)
     {
         byte[] annexB = TestFile.Create(path).Bytes;
-        ConvertAnnexBStillPicture(annexB, bitDepth, chromaFormat, out byte[] configurationData, out byte[] itemData);
+        ConvertAnnexBStillPicture(annexB, bitDepth, bitDepth, chromaFormat, out byte[] configurationData, out byte[] itemData);
         HevcCodecConfiguration configuration = new(configurationData);
         HevcImageItemBitstream bitstream = new(itemData, configuration);
         HevcPictureParameterSet pictureParameterSet = bitstream.SliceSegments[0].PictureParameterSet;
@@ -374,7 +557,7 @@ public class HevcPictureDecoderTests
     public void DecodeOfficialLoopFilterPictureWithConstrainedAllocatorMatchesPinnedHmDigest()
     {
         byte[] annexB = TestFile.Create(TestImages.Heif.SampleAdaptiveOffsetA).Bytes;
-        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        ConvertAnnexBStillPicture(annexB, 8, 8, 1, out byte[] configurationData, out byte[] itemData);
         HevcCodecConfiguration codecConfiguration = new(configurationData);
         HevcImageItemBitstream bitstream = new(itemData, codecConfiguration);
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
@@ -468,7 +651,7 @@ public class HevcPictureDecoderTests
         string chromaRedDigest)
     {
         byte[] annexB = TestFile.Create(path).Bytes;
-        ConvertAnnexBStillPicture(annexB, bitDepth, chromaFormat, out byte[] configurationData, out byte[] itemData);
+        ConvertAnnexBStillPicture(annexB, bitDepth, bitDepth, chromaFormat, out byte[] configurationData, out byte[] itemData);
         HevcCodecConfiguration configuration = new(configurationData);
         HevcImageItemBitstream bitstream = new(itemData, configuration);
         HevcSliceSegmentHeader sliceHeader = bitstream.SliceSegments[0];
@@ -520,7 +703,7 @@ public class HevcPictureDecoderTests
         string chromaRedDigest)
     {
         byte[] annexB = TestFile.Create(path).Bytes;
-        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        ConvertAnnexBStillPicture(annexB, 8, 8, 1, out byte[] configurationData, out byte[] itemData);
         HevcCodecConfiguration configuration = new(configurationData);
         HevcImageItemBitstream bitstream = new(itemData, configuration);
         HevcSequenceParameterSet sequenceParameterSet = bitstream.SliceSegments[0].PictureParameterSet.SequenceParameterSet;
@@ -578,7 +761,7 @@ public class HevcPictureDecoderTests
         string chromaRedDigest)
     {
         byte[] annexB = TestFile.Create(path).Bytes;
-        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        ConvertAnnexBStillPicture(annexB, 8, 8, 1, out byte[] configurationData, out byte[] itemData);
         HevcCodecConfiguration configuration = new(configurationData);
         HevcImageItemBitstream bitstream = new(itemData, configuration);
         HevcPictureParameterSet pictureParameterSet = bitstream.SliceSegments[0].PictureParameterSet;
@@ -642,7 +825,7 @@ public class HevcPictureDecoderTests
         string chromaRedDigest)
     {
         byte[] annexB = TestFile.Create(path).Bytes;
-        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        ConvertAnnexBStillPicture(annexB, 8, 8, 1, out byte[] configurationData, out byte[] itemData);
         HevcCodecConfiguration codecConfiguration = new(configurationData);
         HevcImageItemBitstream bitstream = new(itemData, codecConfiguration);
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 4_096 };
@@ -781,7 +964,7 @@ public class HevcPictureDecoderTests
     public void DecodeRejectsNonDisplayAndConflictingSupplementalMetadata()
     {
         byte[] annexB = TestFile.Create(TestImages.Heif.IntraPredictionB).Bytes;
-        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        ConvertAnnexBStillPicture(annexB, 8, 8, 1, out byte[] configurationData, out byte[] itemData);
         HevcCodecConfiguration codecConfiguration = new(configurationData);
         HeifItem item = new(Heif4CharCode.Hvc1, 1) { HevcCodecConfiguration = codecConfiguration };
         HevcHeifItemDecoder<Rgba32> itemDecoder = new();
@@ -1061,7 +1244,7 @@ public class HevcPictureDecoderTests
         // intrinsics, so the remote process cannot obtain the test's cancellation token.
         CancellationToken cancellationToken = CancellationToken.None;
         byte[] annexB = TestFile.Create(TestImages.Heif.IntraPredictionB).Bytes;
-        ConvertAnnexBStillPicture(annexB, 8, 1, out byte[] configurationData, out byte[] itemData);
+        ConvertAnnexBStillPicture(annexB, 8, 8, 1, out byte[] configurationData, out byte[] itemData);
         HevcCodecConfiguration codecConfiguration = new(configurationData);
         HeifItem item = new(Heif4CharCode.Hvc1, 1) { HevcCodecConfiguration = codecConfiguration };
         byte[] supplementalItemData = PrependPrefixSeiNalUnit(itemData, SupplementalMetadataRbsp);
@@ -1287,13 +1470,15 @@ public class HevcPictureDecoderTests
     /// production decoder.
     /// </summary>
     /// <param name="annexB">The complete official conformance stream.</param>
-    /// <param name="bitDepth">The stream's published component precision.</param>
+    /// <param name="bitDepthLuma">The stream's published luma precision.</param>
+    /// <param name="bitDepthChroma">The stream's published chroma precision.</param>
     /// <param name="chromaFormat">The stream's published chroma-format identifier.</param>
     /// <param name="configurationData">The generated item-local HEVC decoder configuration.</param>
     /// <param name="itemData">The generated length-delimited payload containing only the first picture.</param>
     private static void ConvertAnnexBStillPicture(
         ReadOnlySpan<byte> annexB,
-        int bitDepth,
+        int bitDepthLuma,
+        int bitDepthChroma,
         byte chromaFormat,
         out byte[] configurationData,
         out byte[] itemData)
@@ -1377,8 +1562,8 @@ public class HevcPictureDecoderTests
         configurationData[13] = 0xF0; // reserved and min_spatial_segmentation_idc = 0
         configurationData[15] = 0xFC; // reserved and parallelismType = 0
         configurationData[16] = (byte)(0xFC | chromaFormat); // reserved and chromaFormat
-        configurationData[17] = (byte)(0xF8 | (bitDepth - 8)); // reserved and bitDepthLumaMinus8
-        configurationData[18] = (byte)(0xF8 | (chromaFormat == 0 ? 0 : bitDepth - 8)); // reserved and bitDepthChromaMinus8
+        configurationData[17] = (byte)(0xF8 | (bitDepthLuma - 8)); // reserved and bitDepthLumaMinus8
+        configurationData[18] = (byte)(0xF8 | (chromaFormat == 0 ? 0 : bitDepthChroma - 8)); // reserved and bitDepthChromaMinus8
 
         int maxSubLayers = ((spsRbspPrefix[0] >> 1) & 7) + 1;
         int temporalIdNesting = spsRbspPrefix[0] & 1;

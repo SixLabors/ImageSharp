@@ -351,15 +351,12 @@ internal sealed partial class HevcPictureDecoder
                 default);
         }
 
-        HevcQuantizationParameters quantizationParameters = this.CreateQuantizationParameters();
         this.codingTreeStates[colorPlaneIndex].SetCodingUnit(
             x,
             y,
             log2Size,
             depth,
             this.currentQuantizationParameter,
-            quantizationParameters.CbOffset,
-            quantizationParameters.CrOffset,
             transquantBypass,
             pcm);
 

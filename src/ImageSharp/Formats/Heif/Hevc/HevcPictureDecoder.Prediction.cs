@@ -215,12 +215,15 @@ internal sealed partial class HevcPictureDecoder
         int bitDepth,
         int regionId)
     {
+        // PCM samples can use fewer bits than the reconstructed component. H.265 places those bits at the
+        // most-significant end of the component range, so the raw code value must be restored before filtering.
+        int bitDepthShift = this.Picture.GetBitDepth(plane) - bitDepth;
         for (int row = 0; row < height; row++)
         {
             Span<ushort> destination = this.Picture.GetRowSpan(plane, y + row).Slice(x, width);
             for (int column = 0; column < width; column++)
             {
-                destination[column] = reader.ReadPcmSample(bitDepth);
+                destination[column] = (ushort)(reader.ReadPcmSample(bitDepth) << bitDepthShift);
             }
         }
 

@@ -19,7 +19,7 @@ The reference builds use `AOM_TARGET_CPU=generic` and disable libyuv. Native rec
 - `.bit` files contain the exact AV1 elementary-stream payload used by reconstruction tests.
 - `-libaom.yuv` files contain headerless planar Y, U, and V reference samples. Samples above eight bits are stored as little-endian 16-bit values.
 - `-libaom-y4m.yuv` files retain the Y4M header together with the native planar frame.
-- `-libaom.y4m` files retain the Y4M header together with the selected native sequence frame.
+- `-libaom.y4m` files retain the Y4M header together with the native sequence frames selected for comparison.
 - `.png` files contain the eight-bit RGBA presentation reference produced by the pinned scalar libavif build.
 
 ## Coverage
@@ -36,6 +36,7 @@ The reference builds use `AOM_TARGET_CPU=generic` and disable libyuv. Native rec
 | `*-intrabc-*` | Intra-block copy at every supported bit depth |
 | `*-lossless-*` | Lossless quantization, reversible transforms, and exact presentation |
 | `*-film-grain-*` | Full and restricted range, monochrome, identity matrix, 8/10/12-bit synthesis, overlap, and odd frame dimensions |
+| `libaom-av1-1-b10-23`, `libaom-av1-1-b10-24` | Official ten-bit dependent-frame film grain and monochrome sequence reconstruction |
 | `libavif-progressive-draw-points-8b` | A real two-layer color item whose final frame uses single-reference inter reconstruction, plus its progressive auxiliary alpha item |
 | `libavif-webp-logo-average-compound` | A 19-frame YUV444 image sequence whose retained references reach equal-weight compound inter reconstruction |
 | `libavif-webp-logo-distance-weighted-compound` | Selectable distance-weighted compound prediction |
@@ -47,6 +48,19 @@ The reference builds use `AOM_TARGET_CPU=generic` and disable libyuv. Native rec
 | `libavif-rotating-grid-global-warp` | Non-translational rotation/zoom GLOBALMV prediction through a two-frame dependent sequence |
 
 The corresponding tests also assert the syntax required by each family before comparing output. This prevents an inactive tool or an incorrectly substituted stream from passing solely because its final pixels happen to match.
+
+## Official ten-bit sequence fixtures
+
+The `libaom-av1-1-b10-23-film-grain-50.ivf` and `libaom-av1-1-b10-24-monochrome.ivf` streams are the official files from libaom's test-data bucket. Their SHA-1 values are `2F883C7E11C21A31F79BD9C809541BE90B0C7C4A` and `03A8D002594CCC51932332002BB6F9837EF46D0F`, exactly matching `test/test-data.sha1` at pinned libaom commit `03087864cf4bea6abb0d28f95cf7843511413d8f`. Their SHA-256 values are `C36CF5AB6A2E9E27C212C06863759B60791E3FA681A0800B5D57FD4192EF29CB` and `6A1B0729305A167F10737A5375F0570139F055BCD7916DF260B653AB2210ADC1`.
+
+The retained native references were generated from the pinned generic libaom build with:
+
+```text
+aomdec --threads=1 --output=libaom-av1-1-b10-23-film-grain-50-libaom.y4m libaom-av1-1-b10-23-film-grain-50.ivf
+aomdec --threads=1 --output=libaom-av1-1-b10-24-monochrome-libaom.y4m libaom-av1-1-b10-24-monochrome.ivf
+```
+
+The film-grain Y4M SHA-256 is `A1B553BE140F48ABDDB2A6D39917AB714BA03AC7FFD6359EAA1CB0D89C985A3B`, and the monochrome Y4M SHA-256 is `7394BC8146485D200BFDEC62E170482F8B1A85A64D21FAC62D10116FB1BB140D`. The tests decode and compare all ten frames from each sequence exactly under normal and scalar dispatch. The film-grain stream retains dependent ungrained references while applying ten-bit grain to each displayed 352x288 YUV420 frame; the monochrome stream verifies every 320x180 ten-bit luma sample without manufacturing chroma in ImageSharp. Both sequences also run through a constrained tracked allocator.
 
 ## Progressive dependent-frame fixture
 

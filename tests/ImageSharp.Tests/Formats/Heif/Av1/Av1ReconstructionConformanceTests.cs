@@ -1491,6 +1491,33 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
+    /// Verifies the official ten-bit film-grain sequence against exact pinned-libaom native output.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialTenBitFilmGrainSequenceMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateOfficialTenBitFilmGrainFixture,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Decodes the official ten-bit film-grain sequence and verifies that synthesis is active.
+    /// </summary>
+    private static void ValidateOfficialTenBitFilmGrainFixture()
+    {
+        int coverage = ValidateOfficialCompactSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1OfficialTenBitFilmGrainSequence,
+            TestImages.Heif.Av1OfficialTenBitFilmGrainSequenceNativeReference,
+            OfficialFilmGrainFixtureFrameCount,
+            OfficialMotionVectorFixtureWidth,
+            OfficialMotionVectorFixtureHeight,
+            Av1ColorFormat.Yuv420,
+            Av1BitDepth.TenBit);
+
+        Assert.NotEqual(0, coverage & FilmGrainCoverage);
+    }
+
+    /// <summary>
     /// Verifies the official eight-bit monochrome sequence against exact pinned-libaom native output under normal and
     /// scalar dispatch.
     /// </summary>
@@ -1543,6 +1570,70 @@ public class Av1ReconstructionConformanceTests
             Av1ColorFormat.Yuv400);
 
     /// <summary>
+    /// Verifies the official ten-bit monochrome sequence against exact pinned-libaom native output.
+    /// </summary>
+    [Fact]
+    public void DecodeOfficialTenBitMonochromeSequenceMatchesPinnedLibaomReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateOfficialTenBitMonochromeFixture,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Decodes the official ten-bit monochrome sequence.
+    /// </summary>
+    private static void ValidateOfficialTenBitMonochromeFixture()
+        => ValidateOfficialCompactSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1OfficialTenBitMonochromeSequence,
+            TestImages.Heif.Av1OfficialTenBitMonochromeSequenceNativeReference,
+            OfficialMonochromeFixtureFrameCount,
+            OfficialMonochromeFixtureWidth,
+            OfficialMonochromeFixtureHeight,
+            Av1ColorFormat.Yuv400,
+            Av1BitDepth.TenBit);
+
+    /// <summary>
+    /// Verifies both official ten-bit sequences through constrained tracked allocation.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodeOfficialTenBitSequencesWithConstrainedAllocator()
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        int filmGrainCoverage = ValidateOfficialCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialTenBitFilmGrainSequence,
+            TestImages.Heif.Av1OfficialTenBitFilmGrainSequenceNativeReference,
+            OfficialFilmGrainFixtureFrameCount,
+            OfficialMotionVectorFixtureWidth,
+            OfficialMotionVectorFixtureHeight,
+            Av1ColorFormat.Yuv420,
+            Av1BitDepth.TenBit);
+
+        ValidateOfficialCompactSequence(
+            configuration,
+            TestImages.Heif.Av1OfficialTenBitMonochromeSequence,
+            TestImages.Heif.Av1OfficialTenBitMonochromeSequenceNativeReference,
+            OfficialMonochromeFixtureFrameCount,
+            OfficialMonochromeFixtureWidth,
+            OfficialMonochromeFixtureHeight,
+            Av1ColorFormat.Yuv400,
+            Av1BitDepth.TenBit);
+
+        Assert.NotEqual(0, filmGrainCoverage & FilmGrainCoverage);
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.AllocationId == allocation.AllocationId));
+    }
+
+    /// <summary>
     /// Decodes one compact official IVF sequence, compares every native sample, and returns its active frame-state
     /// coverage mask.
     /// </summary>
@@ -1553,13 +1644,34 @@ public class Av1ReconstructionConformanceTests
         int expectedFrameCount,
         int expectedWidth = OfficialMotionVectorFixtureWidth,
         int expectedHeight = OfficialMotionVectorFixtureHeight,
-        Av1ColorFormat expectedColorFormat = Av1ColorFormat.Yuv420)
+        Av1ColorFormat expectedColorFormat = Av1ColorFormat.Yuv420,
+        Av1BitDepth expectedBitDepth = Av1BitDepth.EightBit)
     {
         byte[] ivf = TestFile.Create(fixturePath).Bytes;
         byte[] nativeReference = TestFile.Create(nativeReferencePath).Bytes;
-        bool hasY4mHeaders = expectedColorFormat != Av1ColorFormat.Yuv400;
+        bool hasY4mHeaders = nativeReference.AsSpan().StartsWith("YUV4MPEG2 "u8);
+        int bitDepth = expectedBitDepth switch
+        {
+            Av1BitDepth.EightBit => 8,
+            Av1BitDepth.TenBit => 10,
+            Av1BitDepth.TwelveBit => 12,
+            _ => throw new InvalidOperationException("The compact official sequence oracle requires a valid AV1 bit depth.")
+        };
+
+        string y4mColorSpace = expectedColorFormat switch
+        {
+            Av1ColorFormat.Yuv400 => expectedBitDepth == Av1BitDepth.EightBit
+                ? "Cmono"
+                : $"Cmono{bitDepth}",
+            Av1ColorFormat.Yuv420 => expectedBitDepth == Av1BitDepth.EightBit
+                ? "C420jpeg"
+                : $"C420p{bitDepth} XYSCSS=420P{bitDepth}",
+            _ => throw new InvalidOperationException("The compact official sequence oracle supports YUV400 and YUV420 references.")
+        };
+
         ReadOnlySpan<byte> y4mFileHeader = hasY4mHeaders
-            ? Encoding.ASCII.GetBytes($"YUV4MPEG2 W{expectedWidth} H{expectedHeight} F30:1 Ip C420jpeg\n")
+            ? Encoding.ASCII.GetBytes(
+                $"YUV4MPEG2 W{expectedWidth} H{expectedHeight} F30:1 Ip {y4mColorSpace}\n")
             : [];
 
         ReadOnlySpan<byte> y4mFrameHeader = "FRAME\n"u8;
@@ -1574,16 +1686,16 @@ public class Av1ReconstructionConformanceTests
             expectedFrameCount,
             checked((int)BinaryPrimitives.ReadUInt32LittleEndian(ivf.AsSpan(24, 4))));
 
-        if (hasY4mHeaders)
-        {
-            Assert.True(nativeReference.AsSpan().StartsWith(y4mFileHeader));
-        }
+        Assert.True(nativeReference.AsSpan().StartsWith(y4mFileHeader));
 
         int ivfOffset = 32;
         int nativeOffset = y4mFileHeader.Length;
-        int nativeFrameLength = expectedColorFormat == Av1ColorFormat.Yuv400
+        int nativeSampleCount = expectedColorFormat == Av1ColorFormat.Yuv400
             ? expectedWidth * expectedHeight
-            : (expectedWidth * expectedHeight) + (2 * (expectedWidth >> 1) * (expectedHeight >> 1));
+            : (expectedWidth * expectedHeight) +
+                (2 * GetSubsampledSize(expectedWidth, 1) * GetSubsampledSize(expectedHeight, 1));
+
+        int nativeFrameLength = nativeSampleCount * (expectedBitDepth == Av1BitDepth.EightBit ? 1 : sizeof(ushort));
 
         int coverage = 0;
         using Av1Decoder decoder = new(configuration);
@@ -1606,6 +1718,7 @@ public class Av1ReconstructionConformanceTests
             }
 
             Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
+            Assert.Equal(expectedBitDepth, frameBuffer.BitDepth);
             Assert.Equal(expectedColorFormat, frameBuffer.ColorFormat);
             AssertNativePlanesEqual(
                 decoder,

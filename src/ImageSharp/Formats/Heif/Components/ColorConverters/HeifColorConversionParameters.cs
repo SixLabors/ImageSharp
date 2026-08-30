@@ -182,7 +182,7 @@ internal readonly struct HeifColorConversionParameters
     public float RgbSampleMaximum { get; }
 
     /// <summary>
-    /// Resolves the H.273 matrix coefficients and sample ranges shared by HEVC and AV1 image items.
+    /// Resolves the H.273 matrix coefficients and sample ranges used by AV1 image items.
     /// </summary>
     /// <param name="colorPrimaries">The H.273 color-primary code point.</param>
     /// <param name="transferCharacteristics">The H.273 transfer-characteristic code point.</param>

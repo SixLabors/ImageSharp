@@ -9,11 +9,6 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 public enum HeifCompressionMethod
 {
     /// <summary>
-    /// High Efficiency Video Coding (HEVC).
-    /// </summary>
-    Hevc,
-
-    /// <summary>
     /// Legacy JPEG coding.
     /// </summary>
     LegacyJpeg,

@@ -239,11 +239,6 @@ public enum Heif4CharCode : uint
     Ndwt = 0x6E647774U,
 
     /// <summary>
-    /// HEVC codec-configuration item property.
-    /// </summary>
-    HvcC = 0x68766343U,
-
-    /// <summary>
     /// AV1 configuration.
     /// </summary>
     Av1C = 0x61763143U,
@@ -324,36 +319,6 @@ public enum Heif4CharCode : uint
     Ipma = 0x69706D61U,
 
     /// <summary>
-    /// High Efficient Image Coding brand.
-    /// </summary>
-    Heic = 0x68656963U,
-
-    /// <summary>
-    /// High Efficient Image Coding brand (legacy name).
-    /// </summary>
-    Heix = 0x68656978U,
-
-    /// <summary>
-    /// HEVC image sequence brand.
-    /// </summary>
-    Hevc = 0x68657663U,
-
-    /// <summary>
-    /// HEVC Main 10 image sequence brand.
-    /// </summary>
-    Hevx = 0x68657678U,
-
-    /// <summary>
-    /// Layered HEVC image sequence brand.
-    /// </summary>
-    Hevm = 0x6865766DU,
-
-    /// <summary>
-    /// Layered HEVC image sequence brand.
-    /// </summary>
-    Hevs = 0x68657673U,
-
-    /// <summary>
     /// High Efficient File brand.
     /// </summary>
     Mif1 = 0x6D696631U,
@@ -382,21 +347,6 @@ public enum Heif4CharCode : uint
     /// ISO base media version 8 structural brand.
     /// </summary>
     Iso8 = 0x69736F38U,
-
-    /// <summary>
-    /// HEVC-coded image item.
-    /// </summary>
-    Hvc1 = 0x68766331U,
-
-    /// <summary>
-    /// Layered High Efficiency Coding sample.
-    /// </summary>
-    Hvc2 = 0x68766332U,
-
-    /// <summary>
-    /// Layered High Efficiency Coding sample.
-    /// </summary>
-    Lhv1 = 0x6C687631U,
 
     /// <summary>
     /// Legacy JPEG coded tile.

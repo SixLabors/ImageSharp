@@ -438,28 +438,6 @@ public class HeifSequenceParserTests
     }
 
     /// <summary>
-    /// Verifies that HEVC composition offsets and composition-to-decode information identify hidden samples and
-    /// assign the expected presentation time to the visible sample.
-    /// </summary>
-    [Fact]
-    public void ParseMarksHiddenHevcSamples()
-    {
-        byte[] data = CreateSequenceFile(SyntheticChunkOffset, hevc: true, compositionOffsets: true);
-        using MemoryStream stream = new(data, false);
-        HeifSequenceParser parser = CreateParser(SyntheticSampleCount);
-        stream.Position = BoxHeaderLength;
-
-        HeifSequence sequence = parser.Parse(stream, GetMoviePayloadLength(data));
-
-        Assert.Equal(Heif4CharCode.Hvc1, sequence.ColorTrack.CodecType);
-        Assert.NotNull(sequence.ColorTrack.HevcCodecConfiguration);
-        Assert.True(sequence.ColorTrack.Samples[0].IsHidden);
-        Assert.Equal(long.MinValue, sequence.ColorTrack.Samples[0].CompositionTime);
-        Assert.False(sequence.ColorTrack.Samples[1].IsHidden);
-        Assert.Equal(100, sequence.ColorTrack.Samples[1].CompositionTime);
-    }
-
-    /// <summary>
     /// Verifies that auxiliary-track and premultiplication references are resolved by track identifier and remain
     /// valid when matching presentation properties are present on either track.
     /// </summary>
@@ -559,8 +537,7 @@ public class HeifSequenceParserTests
     }
 
     /// <summary>
-    /// Verifies that AV1 image-sequence tracks reject composition-offset tables, which are only supported for the
-    /// HEVC hidden-sample presentation model.
+    /// Verifies that AV1 image-sequence tracks reject prohibited composition timing boxes.
     /// </summary>
     [Fact]
     public void ParseRejectsCompositionOffsetsForAv1()
@@ -756,8 +733,7 @@ public class HeifSequenceParserTests
     /// outside the movie so tests can independently control sample offsets and source-length validation.
     /// </summary>
     /// <param name="chunkOffset">The absolute file offset of the track's single sample chunk.</param>
-    /// <param name="hevc">Whether the visual sample entry describes HEVC instead of AV1.</param>
-    /// <param name="compositionOffsets">Whether to write HEVC composition-offset and shift boxes.</param>
+    /// <param name="compositionOffsets">Whether to write prohibited composition timing boxes.</param>
     /// <param name="directReferences">Whether to write AV1 direct-reference sample groups.</param>
     /// <param name="directReferenceSampleId">The sample identifier named by the dependent sample.</param>
     /// <param name="trackProperties">Whether to write image presentation properties in the sample entry.</param>
@@ -778,7 +754,6 @@ public class HeifSequenceParserTests
     /// <returns>The fixed-length synthetic file containing the serialized movie box.</returns>
     private static byte[] CreateSequenceFile(
         uint chunkOffset,
-        bool hevc = false,
         bool compositionOffsets = false,
         bool directReferences = false,
         uint directReferenceSampleId = ColorTrackId,
@@ -843,7 +818,6 @@ public class HeifSequenceParserTests
         WriteSampleTable(
             writer,
             chunkOffset,
-            hevc,
             compositionOffsets,
             directReferences,
             directReferenceSampleId,
@@ -931,7 +905,6 @@ public class HeifSequenceParserTests
         WriteSampleTable(
             writer,
             alphaChunkOffset ?? chunkOffset,
-            false,
             false,
             false,
             ColorTrackId,
@@ -1341,8 +1314,7 @@ public class HeifSequenceParserTests
     /// </summary>
     /// <param name="writer">The writer receiving the SampleTableBox.</param>
     /// <param name="chunkOffset">The absolute file offset of the single sample chunk.</param>
-    /// <param name="hevc">Whether the sample description uses HEVC instead of AV1.</param>
-    /// <param name="compositionOffsets">Whether to write composition-offset and shift boxes.</param>
+    /// <param name="compositionOffsets">Whether to write prohibited composition timing boxes.</param>
     /// <param name="directReferences">Whether to write AV1 direct-reference grouping.</param>
     /// <param name="directReferenceSampleId">The sample identifier referenced by the second sample.</param>
     /// <param name="trackProperties">Whether the visual sample entry contains presentation properties.</param>
@@ -1357,7 +1329,6 @@ public class HeifSequenceParserTests
     private static void WriteSampleTable(
         BinaryWriter writer,
         uint chunkOffset,
-        bool hevc,
         bool compositionOffsets,
         bool directReferences,
         uint directReferenceSampleId,
@@ -1377,7 +1348,7 @@ public class HeifSequenceParserTests
         const uint variableSampleSizes = 0;
 
         long sampleTable = BeginBox(writer, Heif4CharCode.Stbl);
-        WriteSampleDescription(writer, hevc, trackProperties, invalidRotation, width, height, av1Configuration, allSamplesSync, alpha);
+        WriteSampleDescription(writer, trackProperties, invalidRotation, width, height, av1Configuration, allSamplesSync, alpha);
 
         long timing = BeginBox(writer, Heif4CharCode.Stts);
         WriteFullBoxHeader(writer, 0, 0);
@@ -1508,7 +1479,6 @@ public class HeifSequenceParserTests
     /// properties, and CodingConstraintsBox.
     /// </summary>
     /// <param name="writer">The writer receiving the SampleDescriptionBox.</param>
-    /// <param name="hevc">Whether the entry uses HEVC instead of AV1.</param>
     /// <param name="trackProperties">Whether to append image presentation properties.</param>
     /// <param name="invalidRotation">Whether the rotation property contains reserved high bits.</param>
     /// <param name="width">The coded sample width in pixels.</param>
@@ -1518,7 +1488,6 @@ public class HeifSequenceParserTests
     /// <param name="alpha">Whether the entry carries the HEIF alpha auxiliary type.</param>
     private static void WriteSampleDescription(
         BinaryWriter writer,
-        bool hevc,
         bool trackProperties,
         bool invalidRotation,
         int width,
@@ -1539,7 +1508,7 @@ public class HeifSequenceParserTests
         long description = BeginBox(writer, Heif4CharCode.Stsd);
         WriteFullBoxHeader(writer, 0, 0);
         WriteUInt32(writer, 1);
-        long sampleEntry = BeginBox(writer, hevc ? Heif4CharCode.Hvc1 : Heif4CharCode.Av01);
+        long sampleEntry = BeginBox(writer, Heif4CharCode.Av01);
 
         // ISO/IEC 14496-12 Section 12.1.3 defines six reserved bytes and a data-reference index before the visual
         // sample entry's predefined words, dimensions, 16.16 resolution, frame count, fixed compressor-name field,
@@ -1557,18 +1526,11 @@ public class HeifSequenceParserTests
         WriteUInt16(writer, SyntheticPixelDepth);
         WriteUInt16(writer, noColorTable);
 
-        if (hevc)
-        {
-            WriteHevcConfiguration(writer);
-        }
-        else
-        {
-            long configuration = BeginBox(writer, Heif4CharCode.Av1C);
-            ReadOnlySpan<byte> configurationPayload = av1Configuration is null ? DefaultAv1Configuration : av1Configuration;
+        long configuration = BeginBox(writer, Heif4CharCode.Av1C);
+        ReadOnlySpan<byte> configurationPayload = av1Configuration is null ? DefaultAv1Configuration : av1Configuration;
 
-            writer.Write(configurationPayload);
-            EndBox(writer, configuration);
-        }
+        writer.Write(configurationPayload);
+        EndBox(writer, configuration);
 
         if (alpha)
         {
@@ -1727,41 +1689,6 @@ public class HeifSequenceParserTests
         WriteFullBoxHeader(writer, 0, 0);
         WriteUInt32(writer, nominalDiffuseWhiteLuminance);
         EndBox(writer, nominalDiffuseWhite);
-    }
-
-    /// <summary>
-    /// Writes the minimal HEVCDecoderConfigurationRecord accepted by the parser, with no parameter-set arrays,
-    /// because sample-table tests exercise container timing rather than HEVC bitstream decoding.
-    /// </summary>
-    /// <param name="writer">The writer receiving the HEVCConfigurationBox.</param>
-    private static void WriteHevcConfiguration(BinaryWriter writer)
-    {
-        const byte configurationVersion = 1;
-        const byte mainProfileIdc = 1;
-        const ushort reservedMinSpatialSegmentationIdc = 0xF000;
-        const byte reservedParallelismType = 0xFC;
-        const byte reservedChromaFormat420 = 0xFD;
-        const byte reservedEightBitDepth = 0xF8;
-        const byte fourByteNalUnitLength = 3;
-
-        long configuration = BeginBox(writer, Heif4CharCode.HvcC);
-
-        // ISO/IEC 14496-15 defines this HEVCDecoderConfigurationRecord layout. Only the profile and NAL-unit length
-        // fields are material to these container tests; compatibility, constraints, level, timing, and arrays are empty.
-        writer.Write(configurationVersion);
-        writer.Write(mainProfileIdc);
-        WriteUInt32(writer, 0);
-        WriteZeros(writer, 6);
-        writer.Write((byte)0);
-        WriteUInt16(writer, reservedMinSpatialSegmentationIdc);
-        writer.Write(reservedParallelismType);
-        writer.Write(reservedChromaFormat420);
-        writer.Write(reservedEightBitDepth);
-        writer.Write(reservedEightBitDepth);
-        WriteUInt16(writer, 0);
-        writer.Write(fourByteNalUnitLength);
-        writer.Write((byte)0);
-        EndBox(writer, configuration);
     }
 
     /// <summary>

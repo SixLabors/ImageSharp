@@ -11,29 +11,19 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 internal static class HeifConstants
 {
     /// <summary>
-    /// The HEIC still-image brand written by the encoder.
-    /// </summary>
-    public const Heif4CharCode HeicBrand = Heif4CharCode.Heic;
-
-    /// <summary>
     /// The auxiliary-type URN used by current HEIF alpha image items.
     /// </summary>
     public const string AlphaAuxiliaryType = "urn:mpeg:mpegB:cicp:systems:auxiliary:alpha";
 
     /// <summary>
-    /// The auxiliary-type URN used by legacy HEVC alpha image items.
+    /// The MIME types recognized by this HEIF implementation.
     /// </summary>
-    public const string LegacyAlphaAuxiliaryType = "urn:mpeg:hevc:2015:auxid:1";
+    public static readonly IEnumerable<string> MimeTypes = new[] { "image/heif", "image/avif" };
 
     /// <summary>
-    /// The list of mimetypes that equate to a HEIC.
+    /// The file extensions recognized by this HEIF implementation.
     /// </summary>
-    public static readonly IEnumerable<string> MimeTypes = new[] { "image/heif", "image/heic", "image/avif" };
-
-    /// <summary>
-    /// The list of file extensions that equate to a HEIC.
-    /// </summary>
-    public static readonly IEnumerable<string> FileExtensions = new[] { "heic", "heif", "hif", "avif" };
+    public static readonly IEnumerable<string> FileExtensions = new[] { "heif", "hif", "avif" };
 
     /// <summary>
     /// Determines the supported image presentation declared by a file-type box.
@@ -98,9 +88,9 @@ internal static class HeifConstants
     /// Determines whether an auxiliary-type property identifies an alpha image plane.
     /// </summary>
     /// <param name="auxiliaryType">The null-terminated auxiliary type decoded from an <c>auxC</c> property.</param>
-    /// <returns><see langword="true"/> when the type is either registered HEIF alpha URN.</returns>
+    /// <returns><see langword="true"/> when the type is the registered HEIF alpha URN.</returns>
     public static bool IsAlphaAuxiliaryType(string? auxiliaryType)
-        => auxiliaryType is AlphaAuxiliaryType or LegacyAlphaAuxiliaryType;
+        => auxiliaryType == AlphaAuxiliaryType;
 
     /// <summary>
     /// Determines whether <paramref name="brand"/> identifies a still-image container supported by this codec.
@@ -108,9 +98,7 @@ internal static class HeifConstants
     /// <param name="brand">The registered file-type brand.</param>
     /// <returns><see langword="true"/> when the brand identifies a supported still-image container.</returns>
     private static bool IsSupportedStillImageBrand(Heif4CharCode brand)
-        => brand is Heif4CharCode.Heic
-            or Heif4CharCode.Heix
-            or Heif4CharCode.Mif1
+        => brand is Heif4CharCode.Mif1
             or Heif4CharCode.Avif
             or Heif4CharCode.Jpeg;
 
@@ -120,17 +108,13 @@ internal static class HeifConstants
     /// <param name="brand">The registered file-type brand.</param>
     /// <returns><see langword="true"/> when the brand identifies a supported timed image sequence.</returns>
     private static bool IsSupportedSequenceBrand(Heif4CharCode brand)
-        => brand is Heif4CharCode.Hevc
-            or Heif4CharCode.Hevx
-            or Heif4CharCode.Avis;
+        => brand is Heif4CharCode.Avis;
 
     /// <summary>
     /// Determines whether <paramref name="brand"/> requires an image-sequence profile outside the implemented scope.
     /// </summary>
     /// <param name="brand">The registered file-type brand.</param>
-    /// <returns><see langword="true"/> when the major brand requires layered HEVC or JPEG sequence support.</returns>
+    /// <returns><see langword="true"/> when the major brand requires unsupported JPEG sequence support.</returns>
     private static bool IsUnsupportedSequenceBrand(Heif4CharCode brand)
-        => brand is Heif4CharCode.Hevm
-            or Heif4CharCode.Hevs
-            or Heif4CharCode.Jpgs;
+        => brand is Heif4CharCode.Jpgs;
 }

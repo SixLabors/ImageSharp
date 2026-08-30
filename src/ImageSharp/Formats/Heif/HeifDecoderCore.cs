@@ -7,7 +7,6 @@ using System.Text;
 using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Components.Alpha;
-using SixLabors.ImageSharp.Formats.Heif.Hevc;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
@@ -254,7 +253,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Locates and parses the single movie box of a supported HEIC or AVIF image sequence.
+    /// Locates and parses the single movie box of a supported AVIF image sequence.
     /// </summary>
     /// <param name="stream">The complete container stream positioned after its file-type box.</param>
     /// <returns>The bounded selected image-sequence model.</returns>
@@ -284,7 +283,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Creates image and frame metadata from a parsed HEIC or AVIF image sequence without decoding its samples.
+    /// Creates image and frame metadata from a parsed AVIF image sequence without decoding its samples.
     /// </summary>
     /// <param name="sequence">The parsed selected image sequence.</param>
     /// <returns>The identified dimensions and bounded visible-frame metadata.</returns>
@@ -298,7 +297,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
-    /// Decodes the retained visible samples of a HEIC or AVIF image sequence into one multi-frame image.
+    /// Decodes the retained visible samples of an AVIF image sequence into one multi-frame image.
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel format.</typeparam>
     /// <param name="stream">The complete seekable HEIF stream.</param>
@@ -653,14 +652,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 heifMetadata.BitDepth = av1Configuration.BitDepth;
                 heifMetadata.IsMonochrome = av1Configuration.IsMonochrome;
                 break;
-            case Heif4CharCode.Hvc1:
-                HevcCodecConfiguration hevcConfiguration = colorTrack.HevcCodecConfiguration
-                    ?? throw new InvalidImageContentException("The HEVC image-sequence track has no codec configuration.");
-
-                heifMetadata.CompressionMethod = HeifCompressionMethod.Hevc;
-                heifMetadata.BitDepth = hevcConfiguration.BitDepth;
-                heifMetadata.IsMonochrome = hevcConfiguration.IsMonochrome;
-                break;
             default:
                 throw new InvalidImageContentException($"The image-sequence sample entry '{colorTrack.CodecType}' is not supported.");
         }
@@ -785,7 +776,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         }
 
         HeifMetadata meta = metadata.GetHeifMetadata();
-        HeifCompressionMethod compressionMethod = HeifCompressionMethod.Hevc;
+        HeifCompressionMethod compressionMethod;
         if (metadataItem.Type == Heif4CharCode.Av01)
         {
             Av1CodecConfiguration codecConfiguration = metadataItem.Av1CodecConfiguration
@@ -795,22 +786,13 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             meta.BitDepth = codecConfiguration.BitDepth;
             meta.IsMonochrome = codecConfiguration.IsMonochrome;
         }
-        else if (metadataItem.Type == Heif4CharCode.Hvc1)
-        {
-            HevcCodecConfiguration codecConfiguration = metadataItem.HevcCodecConfiguration
-                ?? throw new InvalidImageContentException($"HEVC image item {metadataItem.Id} has no codec configuration property.");
-
-            if (metadataItem.ChannelBitDepths is not null)
-            {
-                codecConfiguration.ValidateChannelBitDepths(metadataItem.ChannelBitDepths);
-            }
-
-            meta.BitDepth = codecConfiguration.BitDepth;
-            meta.IsMonochrome = codecConfiguration.IsMonochrome;
-        }
         else if (metadataItem.Type == Heif4CharCode.Jpeg)
         {
             compressionMethod = HeifCompressionMethod.LegacyJpeg;
+        }
+        else
+        {
+            throw new InvalidImageContentException($"Image item {metadataItem.Id} uses unsupported item type '{metadataItem.Type}'.");
         }
 
         meta.CompressionMethod = compressionMethod;
@@ -1512,13 +1494,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                                 HeifPropertyParser.ParseAv1LayeredImageIndex(boxBuffer)));
 
                         break;
-                    case Heif4CharCode.HvcC:
-                        properties.Add(
-                            new KeyValuePair<Heif4CharCode, object>(
-                                Heif4CharCode.HvcC,
-                                new HevcCodecConfiguration(boxBuffer)));
-
-                        break;
                     case Heif4CharCode.Clap:
                         properties.Add(
                             new KeyValuePair<Heif4CharCode, object>(
@@ -1797,29 +1772,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                             }
 
                             item.Av1LayeredImageIndex = layeredImageIndex;
-                        }
-
-                        break;
-                    case Heif4CharCode.HvcC:
-                        if (prop.Value is HevcCodecConfiguration hevcCodecConfiguration)
-                        {
-                            if (item.Type != Heif4CharCode.Hvc1)
-                            {
-                                this.ThrowOrIgnoreImageDataSegmentError(
-                                    $"Item {itemId} associates an HEVC codec configuration with non-HEVC item type '{item.Type}'.");
-
-                                break;
-                            }
-
-                            if (item.HevcCodecConfiguration is not null)
-                            {
-                                this.ThrowOrIgnoreImageDataSegmentError(
-                                    $"Item {itemId} associates more than one HEVC codec configuration property.");
-
-                                break;
-                            }
-
-                            item.HevcCodecConfiguration = hevcCodecConfiguration;
                         }
 
                         break;
@@ -2352,15 +2304,8 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 this.ApplyAssociatedMetadata(image.Metadata, rootItem, buffers);
             }
 
-            if (itemDecoder is HevcHeifItemDecoder<TPixel> hevcItemDecoder)
-            {
-                // The codec orientation describes the complete cropped picture. Item scaling and alpha composition
-                // must finish first so rotation neither resizes back to ispe nor leaves the auxiliary plane unrotated.
-                hevcItemDecoder.ApplySupplementalPresentation(image);
-            }
-
             // MIAF defines crop, rotation, and mirror as presentation operations in that order. Applying the
-            // container transforms after codec presentation keeps every composed plane in the same coordinate space.
+            // container transforms after item composition keeps every composed plane in the same coordinate space.
             ApplyPresentationTransforms(image, itemToDecode);
 
             if (!this.Options.SkipMetadata)

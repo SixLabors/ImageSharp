@@ -19,7 +19,7 @@ internal enum HeifFileType
     StillImage,
 
     /// <summary>
-    /// The container presents a timed HEIC or AVIF image sequence.
+    /// The container presents a timed AVIF image sequence.
     /// </summary>
     ImageSequence
 }

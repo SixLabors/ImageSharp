@@ -10,7 +10,6 @@ using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
-using SixLabors.ImageSharp.Tests.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
@@ -21,9 +20,6 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 public class HeifDecoderTests
 {
     private const uint UnknownBoxType = 0x74657374U;
-
-    private const HwIntrinsics HevcPresentationConfigurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     private static ReadOnlySpan<byte> MalformedJpegApp13 =>
     [
@@ -36,9 +32,6 @@ public class HeifDecoderTests
     ];
 
     [Theory]
-    [InlineData(TestImages.Heif.Image1, HeifCompressionMethod.Hevc, HeifBitDepth.Bit8, 3992, 2992)]
-    [InlineData(TestImages.Heif.Sample640x427, HeifCompressionMethod.Hevc, HeifBitDepth.Bit8, 640, 428)]
-    [InlineData(TestImages.Heif.FujiFilmHif, HeifCompressionMethod.LegacyJpeg, HeifBitDepth.Bit8, 7728, 5152)]
     [InlineData(TestImages.Heif.IrvineAvif, HeifCompressionMethod.Av1, HeifBitDepth.Bit8, 480, 640)]
     public void Identify(string imagePath, HeifCompressionMethod compressionMethod, HeifBitDepth bitDepth, int width, int height)
     {
@@ -46,303 +39,14 @@ public class HeifDecoderTests
         using MemoryStream stream = new(testFile.Bytes, false);
 
         ImageInfo imageInfo = Image.Identify(stream);
-        HeifMetadata heicMetadata = imageInfo.Metadata.GetHeifMetadata();
+        HeifMetadata heifMetadata = imageInfo.Metadata.GetHeifMetadata();
 
         Assert.NotNull(imageInfo);
         Assert.Equal(HeifFormat.Instance, imageInfo.Metadata.DecodedImageFormat);
-        Assert.Equal(compressionMethod, heicMetadata.CompressionMethod);
-        Assert.Equal(bitDepth, heicMetadata.BitDepth);
+        Assert.Equal(compressionMethod, heifMetadata.CompressionMethod);
+        Assert.Equal(bitDepth, heifMetadata.BitDepth);
         Assert.Equal(width, imageInfo.Width);
         Assert.Equal(height, imageInfo.Height);
-    }
-
-    [Theory]
-    [WithFile(TestImages.Heif.FujiFilmHif, PixelTypes.Rgba32)]
-    public void Decode<TPixel>(TestImageProvider<TPixel> provider)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using Image<TPixel> image = provider.GetImage();
-        HeifMetadata heicMetadata = image.Metadata.GetHeifMetadata();
-        image.DebugSave(provider);
-
-        image.CompareToReferenceOutput(provider);
-        Assert.Equal(HeifCompressionMethod.LegacyJpeg, heicMetadata.CompressionMethod);
-    }
-
-    /// <summary>
-    /// Verifies complete HEVC still-image decoding for real grid, auxiliary-alpha, 4:2:0, and 4:4:4 HEIC inputs.
-    /// </summary>
-    /// <param name="provider">The real HEIC input and matching output naming context.</param>
-    /// <param name="width">The independently reported presented width.</param>
-    /// <param name="height">The independently reported presented height.</param>
-    /// <param name="hasIccProfile">Whether the presented image carries an ICC profile.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.Image1, PixelTypes.Rgba32, 3992, 2992, true)]
-    [WithFile(TestImages.Heif.Image2, PixelTypes.Rgba32, 3464, 2130, true)]
-    [WithFile(TestImages.Heif.Image3, PixelTypes.Rgba32, 4242, 2828, true)]
-    [WithFile(TestImages.Heif.Image4, PixelTypes.Rgba32, 700, 476, true)]
-    [WithFile(TestImages.Heif.Sample640x427, PixelTypes.Rgba32, 640, 428, false)]
-    public void DecodeHevcStillImage<TPixel>(TestImageProvider<TPixel> provider, int width, int height, bool hasIccProfile)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        using Image<TPixel> image = provider.GetImage();
-        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
-        image.DebugSave(provider);
-
-        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
-
-        Assert.Equal(new Size(width, height), image.Size);
-        Assert.Equal(HeifCompressionMethod.Hevc, metadata.CompressionMethod);
-        Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
-        Assert.Equal(hasIccProfile, image.Metadata.IccProfile is not null);
-    }
-
-    /// <summary>
-    /// Verifies genuine HEIC presentation for the official HEVC profile and Range Extensions matrix against
-    /// independently pinned presentation references.
-    /// </summary>
-    /// <param name="provider">The genuine HEIC input and matching reference-output naming context.</param>
-    /// <param name="width">The independently reported presented width.</param>
-    /// <param name="height">The independently reported presented height.</param>
-    /// <param name="bitDepth">The maximum coded component precision.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.General8Bit444Heic, PixelTypes.Rgba32, 400, 384, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.General10Bit420Heic, PixelTypes.Rgba32, 400, 384, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.General10Bit422Heic, PixelTypes.Rgba32, 400, 384, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.General10Bit444Heic, PixelTypes.Rgba32, 400, 384, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.General12Bit420Heic, PixelTypes.Rgba32, 400, 384, HeifBitDepth.Bit12)]
-    [WithFile(TestImages.Heif.General12Bit422Heic, PixelTypes.Rgba32, 400, 384, HeifBitDepth.Bit12)]
-    [WithFile(TestImages.Heif.General12Bit444Heic, PixelTypes.Rgba32, 400, 384, HeifBitDepth.Bit12)]
-    [WithFile(TestImages.Heif.RangeExtensionChromaAngle422Heic, PixelTypes.Rgba32, 1920, 1080, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.RangeExtensionCrossComponent8Bit444Heic, PixelTypes.Rgba32, 1280, 720, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.RangeExtensionCrossComponent10Bit444Heic, PixelTypes.Rgba32, 1920, 1080, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.RangeExtensionCrossComponent12Bit444Heic, PixelTypes.Rgba32, 2560, 1600, HeifBitDepth.Bit12)]
-    [WithFile(TestImages.Heif.ExtendedPrecision8Bit444Heic, PixelTypes.Rgba32, 400, 384, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.ExtendedPrecision10Bit444Heic, PixelTypes.Rgba32, 400, 384, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.ExtendedPrecision12Bit444Heic, PixelTypes.Rgba32, 400, 384, HeifBitDepth.Bit12)]
-    [WithFile(TestImages.Heif.RangeExtensionPcm10Bit422Heic, PixelTypes.Rgba32, 416, 240, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.RangeExtensionPcm12Bit444Heic, PixelTypes.Rgba32, 416, 240, HeifBitDepth.Bit12)]
-    [WithFile(TestImages.Heif.PersistentRice12Bit444Heic, PixelTypes.Rgba32, 400, 384, HeifBitDepth.Bit12)]
-    [WithFile(TestImages.Heif.TransformSkipContext8Bit444Heic, PixelTypes.Rgba32, 1920, 1080, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.TransformSkipContext10Bit444Heic, PixelTypes.Rgba32, 1920, 1080, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.TransformSkipContext12Bit444Heic, PixelTypes.Rgba32, 2560, 1600, HeifBitDepth.Bit12)]
-    [WithFile(TestImages.Heif.Main42210AHeic, PixelTypes.Rgba32, 1920, 1080, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.Main42210BHeic, PixelTypes.Rgba32, 2560, 1600, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.HighThroughput8Bit420WavefrontHeic, PixelTypes.Rgba32, 1024, 768, HeifBitDepth.Bit8)]
-    public void DecodeHevcRangeExtensionStillImageMatchesPinnedPresentation(
-        TestImageProvider<Rgba32> provider,
-        int width,
-        int height,
-        HeifBitDepth bitDepth)
-    {
-        using Image<Rgba32> image = provider.GetImage();
-        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
-        image.DebugSave(provider);
-
-        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
-
-        Assert.Equal(new Size(width, height), image.Size);
-        Assert.Equal(HeifCompressionMethod.Hevc, metadata.CompressionMethod);
-        Assert.Equal(bitDepth, metadata.BitDepth);
-        Assert.Null(image.Metadata.IccProfile);
-    }
-
-    /// <summary>
-    /// Verifies genuine monochrome HEIC presentation against pinned libheif output.
-    /// </summary>
-    /// <param name="provider">The image provider.</param>
-    /// <param name="bitDepth">The coded luma precision.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.General8BitMonochromeHeic, PixelTypes.Rgba32, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.General12BitMonochromeHeic, PixelTypes.Rgba32, HeifBitDepth.Bit12)]
-    public void DecodeHevcMonochromeStillImageMatchesPinnedLibheif(
-        TestImageProvider<Rgba32> provider,
-        HeifBitDepth bitDepth)
-    {
-        using Image<Rgba32> image = provider.GetImage();
-        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
-        image.DebugSave(provider);
-
-        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
-
-        Assert.Equal(new Size(400, 384), image.Size);
-        Assert.Equal(HeifCompressionMethod.Hevc, metadata.CompressionMethod);
-        Assert.Equal(bitDepth, metadata.BitDepth);
-        Assert.Null(image.Metadata.IccProfile);
-    }
-
-    /// <summary>
-    /// Verifies that high-bit-depth monochrome HEIC presentation preserves its source precision.
-    /// </summary>
-    /// <param name="provider">The image provider.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.General12BitMonochromeHeic, PixelTypes.Rgba64)]
-    public void DecodeHevcMonochromeHighBitDepthPreservesSourcePrecision(TestImageProvider<Rgba64> provider)
-    {
-        using Image<Rgba64> image = provider.GetImage();
-        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
-        image.DebugSave(provider);
-
-        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
-
-        Assert.Equal(new Size(400, 384), image.Size);
-        Assert.Equal(HeifCompressionMethod.Hevc, metadata.CompressionMethod);
-        Assert.Equal(HeifBitDepth.Bit12, metadata.BitDepth);
-        Assert.Null(image.Metadata.IccProfile);
-    }
-
-    /// <summary>
-    /// Verifies genuine HEIC presentation for the official high-throughput Range Extensions streams against
-    /// independently pinned presentation references.
-    /// </summary>
-    /// <param name="provider">The genuine HEIC input and matching reference-output naming context.</param>
-    /// <param name="width">The independently reported presented width.</param>
-    /// <param name="height">The independently reported presented height.</param>
-    /// <param name="bitDepth">The maximum coded component precision.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.HighThroughputExtendedPrecision8Bit444Heic, PixelTypes.Rgba32, 400, 384, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.HighThroughputExtendedPrecision10Bit444Heic, PixelTypes.Rgba32, 400, 384, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.HighThroughput10Bit422TilesWavefrontHeic, PixelTypes.Rgba32, 1920, 1080, HeifBitDepth.Bit10)]
-    [WithFile(TestImages.Heif.HighThroughput8Bit420TilesWavefrontHeic, PixelTypes.Rgba32, 1024, 768, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.HighThroughput8Bit420CabacBypassAlignmentHeic, PixelTypes.Rgba32, 1024, 768, HeifBitDepth.Bit8)]
-    [WithFile(TestImages.Heif.HighThroughput8Bit420ExtendedPrecisionHeic, PixelTypes.Rgba32, 1024, 768, HeifBitDepth.Bit8)]
-    public void DecodeHevcHighThroughputStillImageMatchesPinnedPresentation(
-        TestImageProvider<Rgba32> provider,
-        int width,
-        int height,
-        HeifBitDepth bitDepth)
-    {
-        using Image<Rgba32> image = provider.GetImage();
-        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
-        image.DebugSave(provider);
-
-        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
-
-        Assert.Equal(new Size(width, height), image.Size);
-        Assert.Equal(HeifCompressionMethod.Hevc, metadata.CompressionMethod);
-        Assert.Equal(bitDepth, metadata.BitDepth);
-        Assert.Null(image.Metadata.IccProfile);
-    }
-
-    /// <summary>
-    /// Verifies genuine HEIC presentation for unequal luma and chroma precision, which independent HEIF decoders
-    /// currently reject after reconstructing the native planes.
-    /// </summary>
-    /// <param name="provider">The retained genuine HEIC input.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.RangeExtensionLuma12Chroma8Heic, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.RangeExtensionLuma8Chroma12Heic, PixelTypes.Rgba32)]
-    public void DecodeHevcRangeExtensionUnequalBitDepthStillImage(TestImageProvider<Rgba32> provider)
-    {
-        using Image<Rgba32> image = provider.GetImage();
-        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
-
-        Assert.Equal(new Size(1920, 1080), image.Size);
-        Assert.Equal(HeifCompressionMethod.Hevc, metadata.CompressionMethod);
-        Assert.Equal(HeifBitDepth.Bit12, metadata.BitDepth);
-        Assert.Null(image.Metadata.IccProfile);
-    }
-
-    /// <summary>
-    /// Verifies representative genuine HEIC Range Extensions presentation with allocator-split buffers and
-    /// exactly-once final disposal.
-    /// </summary>
-    /// <param name="provider">The genuine HEIC input and allocator configuration.</param>
-    /// <param name="width">The independently reported presented width.</param>
-    /// <param name="height">The independently reported presented height.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.General8Bit420Heic, PixelTypes.Rgba32, 400, 384)]
-    [WithFile(TestImages.Heif.General10Bit422Heic, PixelTypes.Rgba32, 400, 384)]
-    [WithFile(TestImages.Heif.General12Bit444Heic, PixelTypes.Rgba32, 400, 384)]
-    [WithFile(TestImages.Heif.General12BitMonochromeHeic, PixelTypes.Rgba32, 400, 384)]
-    [WithFile(TestImages.Heif.HighThroughput8Bit420ExtendedPrecisionHeic, PixelTypes.Rgba32, 1024, 768)]
-    public void DecodeHevcRangeExtensionStillImageWithConstrainedAllocator(
-        TestImageProvider<Rgba32> provider,
-        int width,
-        int height)
-    {
-        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 4_096 };
-        allocator.EnableNonThreadSafeLogging();
-        Configuration configuration = Configuration.Default.Clone();
-        configuration.MemoryAllocator = allocator;
-        provider.Configuration = configuration;
-
-        using (Image<Rgba32> image = provider.GetImage())
-        {
-            Assert.Equal(new Size(width, height), image.Size);
-        }
-
-        Assert.NotEmpty(allocator.AllocationLog);
-        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
-
-    }
-
-    /// <summary>
-    /// Verifies representative eight-bit subsampled and high-bit-depth full-resolution presentation through every
-    /// available vector width and the scalar fallback.
-    /// </summary>
-    /// <param name="provider">The genuine HEIC input and matching reference-output naming context.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.General8Bit420Heic, PixelTypes.Rgba32)]
-    [WithFile(TestImages.Heif.HighThroughputExtendedPrecision12Bit444Heic, PixelTypes.Rgba32)]
-    public void DecodeHevcRangeExtensionPresentationMatchesAcrossIntrinsicWidths(
-        TestImageProvider<Rgba32> provider)
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateHevcRangeExtensionPresentation,
-            HevcPresentationConfigurations,
-            provider);
-
-    /// <summary>
-    /// Verifies high-bit-depth HEVC presentation precision through every available vector width and the scalar fallback.
-    /// </summary>
-    /// <param name="provider">The genuine HEIC input and matching reference-output naming context.</param>
-    [Theory]
-    [WithFile(TestImages.Heif.General12Bit444Heic, PixelTypes.Rgba64)]
-    public void DecodeHevcHighBitDepthPresentationPreservesPrecisionAcrossIntrinsicWidths(
-        TestImageProvider<Rgba64> provider)
-    {
-        using Image<Rgba64> image = provider.GetImage();
-        image.DebugSave(provider);
-
-        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
-
-        FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateHevcHighBitDepthPresentation,
-            HevcPresentationConfigurations,
-            provider);
-    }
-
-    /// <summary>
-    /// Verifies one HEVC presentation with the feature-runner configuration and the repository reference API.
-    /// </summary>
-    /// <param name="providerDump">The serialized input provider and reference-output naming context.</param>
-    private static void ValidateHevcRangeExtensionPresentation(string providerDump)
-    {
-        TestImageProvider<Rgba32> provider =
-            FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
-
-        using Image<Rgba32> image = provider.GetImage();
-        image.DebugSave(provider);
-
-        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
-    }
-
-    /// <summary>
-    /// Verifies one high-bit-depth HEVC presentation with the feature-runner configuration and the repository reference API.
-    /// </summary>
-    /// <param name="providerDump">The serialized input provider and reference-output naming context.</param>
-    private static void ValidateHevcHighBitDepthPresentation(string providerDump)
-    {
-        TestImageProvider<Rgba64> provider =
-            FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba64>>(providerDump);
-
-        using Image<Rgba64> image = provider.GetImage();
-        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
 
     /// <summary>
@@ -919,8 +623,6 @@ public class HeifDecoderTests
     }
 
     [Theory]
-    [InlineData(Heif4CharCode.Heic)]
-    [InlineData(Heif4CharCode.Heix)]
     [InlineData(Heif4CharCode.Mif1)]
     [InlineData(Heif4CharCode.Avif)]
     [InlineData(Heif4CharCode.Jpeg)]
@@ -936,20 +638,7 @@ public class HeifDecoderTests
         Assert.Same(HeifFormat.Instance, format);
     }
 
-    [Fact]
-    public void IdentifyAcceptsSupportedCompatibleBrand()
-    {
-        byte[] data = CreateEncodedContainer();
-        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), UnknownBoxType);
-
-        ImageInfo imageInfo = Image.Identify(data);
-
-        Assert.Equal(new Size(2, 3), imageInfo.Size);
-    }
-
     [Theory]
-    [InlineData(Heif4CharCode.Hevc)]
-    [InlineData(Heif4CharCode.Hevx)]
     [InlineData(Heif4CharCode.Avis)]
     public void DetectorRecognizesSupportedSequenceMajorBrand(Heif4CharCode brand)
     {
@@ -964,8 +653,6 @@ public class HeifDecoderTests
     }
 
     [Theory]
-    [InlineData(Heif4CharCode.Hevm)]
-    [InlineData(Heif4CharCode.Hevs)]
     [InlineData(Heif4CharCode.Jpgs)]
     public void DetectorRejectsUnsupportedSequenceMajorBrand(Heif4CharCode brand)
     {

@@ -2,6 +2,6 @@
 
 [MPEG-4 register authority](https://mp4ra.org/)
 
-[HEIF reference implementation from Nokia](https://github.com/nokiatech/heif)
+[AV1 bitstream and decoding reference implementation](https://aomedia.googlesource.com/aom/)
 
-[Apple's metadata syntax in HEIC images](http://cheeky4n6monkey.blogspot.com/2017/10/monkey-takes-heic.html)
+[AV1 bitstream specification](https://aomediacodec.github.io/av1-spec/)

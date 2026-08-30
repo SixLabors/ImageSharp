@@ -52,7 +52,6 @@ internal sealed class HeifEncoderCore
         {
             HeifCompressionMethod.LegacyJpeg => this.CompressPixels(image, cancellationToken),
             HeifCompressionMethod.Av1 => throw new NotSupportedException("AV1 encoding is not implemented."),
-            HeifCompressionMethod.Hevc => throw new NotSupportedException("HEVC encoding is not implemented."),
             _ => throw new NotSupportedException($"HEIF compression method '{this.encoder.CompressionMethod}' is not supported.")
         };
 
@@ -139,15 +138,11 @@ internal sealed class HeifEncoderCore
     /// <param name="stream">The destination stream.</param>
     private void WriteFileTypeBox(Stream stream)
     {
-        Span<byte> buffer = stackalloc byte[24];
+        Span<byte> buffer = stackalloc byte[16];
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Ftyp);
-        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Heic);
-        bytesWritten += 4;
-        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], 0);
-        bytesWritten += 4;
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Mif1);
         bytesWritten += 4;
-        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Heic);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], 0);
         bytesWritten += 4;
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
@@ -455,7 +450,7 @@ internal sealed class HeifEncoderCore
 
         if (this.encoder.Quality == 0)
         {
-            // Zero is meaningful to the AV1 and HEVC quality scales, but ImageSharp's JPEG encoder deliberately
+            // Zero is meaningful to the AV1 quality scale, but ImageSharp's JPEG encoder deliberately
             // exposes the JPEG quality scale as 1 through 100. Reject the codec-specific mismatch at this boundary.
             throw new NotSupportedException("Legacy JPEG image items support quality values in the range [1..100].");
         }

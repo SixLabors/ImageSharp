@@ -96,7 +96,7 @@ public class HeifEncoderTests
     }
 
     [Theory]
-    [WithFile(TestImages.Heif.Sample640x427, PixelTypes.Rgba32, HeifCompressionMethod.LegacyJpeg)]
+    [WithFile(TestImages.Heif.IrvineAvif, PixelTypes.Rgba32, HeifCompressionMethod.LegacyJpeg)]
     public static void Encode<TPixel>(TestImageProvider<TPixel> provider, HeifCompressionMethod compressionMethod)
         where TPixel : unmanaged, IPixel<TPixel>
     {

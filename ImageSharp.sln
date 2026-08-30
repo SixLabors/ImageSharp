@@ -666,12 +666,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Qoi", "Qoi", "{E801B508-493
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Heif", "Heif", "{BA5D603A-C84C-43E5-B300-8BB886B02936}"
 	ProjectSection(SolutionItems) = preProject
-		tests\Images\Input\Heif\dwsample-heic-640.heic = tests\Images\Input\Heif\dwsample-heic-640.heic
-		tests\Images\Input\Heif\image1.heic = tests\Images\Input\Heif\image1.heic
-		tests\Images\Input\Heif\image2.heic = tests\Images\Input\Heif\image2.heic
-		tests\Images\Input\Heif\image3.heic = tests\Images\Input\Heif\image3.heic
-		tests\Images\Input\Heif\image4.heic = tests\Images\Input\Heif\image4.heic
-		tests\Images\Input\Heif\IMG-20230508-0053.hif = tests\Images\Input\Heif\IMG-20230508-0053.hif
 		tests\Images\Input\Heif\Irvine_CA.avif = tests\Images\Input\Heif\Irvine_CA.avif
 		tests\Images\Input\Heif\jpeg444_xnconvert.avif = tests\Images\Input\Heif\jpeg444_xnconvert.avif
 		tests\Images\Input\Heif\Orange4x4.avif = tests\Images\Input\Heif\Orange4x4.avif

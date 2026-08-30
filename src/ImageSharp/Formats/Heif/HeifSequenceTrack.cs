@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1;
-using SixLabors.ImageSharp.Formats.Heif.Hevc;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 
@@ -69,11 +68,6 @@ internal sealed class HeifSequenceTrack
     /// Gets or sets the parsed AV1 configuration when <see cref="CodecType"/> is <see cref="Heif4CharCode.Av01"/>.
     /// </summary>
     public Av1CodecConfiguration? Av1CodecConfiguration { get; set; }
-
-    /// <summary>
-    /// Gets or sets the parsed HEVC configuration when <see cref="CodecType"/> is <see cref="Heif4CharCode.Hvc1"/>.
-    /// </summary>
-    public HevcCodecConfiguration? HevcCodecConfiguration { get; set; }
 
     /// <summary>
     /// Gets or sets the ICC profile associated with the image sequence.

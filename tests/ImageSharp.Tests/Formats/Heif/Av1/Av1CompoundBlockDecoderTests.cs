@@ -151,6 +151,15 @@ public class Av1CompoundBlockDecoderTests
             CompoundPredictionConfigurations);
 
     /// <summary>
+    /// Verifies that high-bit-depth subpixel predictors retain no-round precision through difference masking and blending.
+    /// </summary>
+    [Fact]
+    public void DecodeBlockReconstructsSubpixelHighBitDepthDifferenceWeightedCompoundPrediction()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateSubpixelHighBitDepthDifferenceWeightedCompoundPrediction,
+            CompoundPredictionConfigurations);
+
+    /// <summary>
     /// Verifies that both references of a GLOBAL_GLOBALMV block use their complete matrix before compound averaging.
     /// </summary>
     [Fact]
@@ -694,13 +703,32 @@ public class Av1CompoundBlockDecoderTests
     }
 
     /// <summary>
+    /// Reconstructs both high-bit-depth subpixel difference-mask orientations at every supported source precision.
+    /// </summary>
+    private static void ValidateSubpixelHighBitDepthDifferenceWeightedCompoundPrediction()
+    {
+        foreach (Av1BitDepth bitDepth in new[] { Av1BitDepth.TenBit, Av1BitDepth.TwelveBit })
+        {
+            foreach (Av1DifferenceWeightedMaskType maskType in Enum.GetValues<Av1DifferenceWeightedMaskType>())
+            {
+                ValidateSubpixelHighBitDepthCompoundPredictionAtBitDepth(
+                    bitDepth,
+                    Av1CompoundType.DifferenceWeighted,
+                    maskType);
+            }
+        }
+    }
+
+    /// <summary>
     /// Reconstructs one high-bit-depth half-sample compound block and compares it with the scalar no-round pipeline.
     /// </summary>
     /// <param name="bitDepth">The native sample depth.</param>
     /// <param name="compoundType">The final compound operation.</param>
+    /// <param name="differenceWeightedMaskType">The difference-mask orientation when that compound operation is selected.</param>
     private static void ValidateSubpixelHighBitDepthCompoundPredictionAtBitDepth(
         Av1BitDepth bitDepth,
-        Av1CompoundType compoundType)
+        Av1CompoundType compoundType,
+        Av1DifferenceWeightedMaskType differenceWeightedMaskType = Av1DifferenceWeightedMaskType.Type38)
     {
         const int frameSize = 32;
         const int blockOrigin = 8;
@@ -734,6 +762,7 @@ public class Av1CompoundBlockDecoderTests
             CompoundType = compoundType,
             CompoundWedgeIndex = 0,
             CompoundWedgeSign = true,
+            DifferenceWeightedMaskType = differenceWeightedMaskType,
         };
 
         modeInfo.ReferenceFrames[0] = Av1ReferenceFrameType.Last;
@@ -831,6 +860,54 @@ public class Av1CompoundBlockDecoderTests
                 bitDepth.GetBitCount());
 
             Assert.NotEqual((ushort)60, expected[0]);
+        }
+        else if (compoundType == Av1CompoundType.DifferenceWeighted)
+        {
+            int bitCount = bitDepth.GetBitCount();
+            int intermediateRange = bitCount + 7 - 3 + 2;
+            int round0 = 3 + Math.Max(intermediateRange - 16, 0);
+            int roundBits = 14 - round0 - 7;
+            int offsetBits = bitCount + 14 - round0;
+            int roundOffset = (1 << (offsetBits - 7)) + (1 << (offsetBits - 8));
+            int differenceRound = roundBits + bitCount - 8;
+            int maximum = (1 << bitCount) - 1;
+            byte[] expectedMask = new byte[blockSize * blockSize];
+            byte[] actualMask = new byte[blockSize * blockSize];
+
+            for (int index = 0; index < expected.Length; index++)
+            {
+                int difference = Math.Abs(expectedFirst[index] - expectedSecond[index]);
+                difference = (difference + (1 << (differenceRound - 1))) >> differenceRound;
+                int alpha = Math.Min(64, 38 + (difference >> 4));
+                if (differenceWeightedMaskType == Av1DifferenceWeightedMaskType.Type38Inverse)
+                {
+                    alpha = 64 - alpha;
+                }
+
+                expectedMask[index] = (byte)alpha;
+                int result = ((alpha * expectedFirst[index]) + ((64 - alpha) * expectedSecond[index])) >> 6;
+                result -= roundOffset;
+                if (roundBits != 0)
+                {
+                    result = (result + (1 << (roundBits - 1))) >> roundBits;
+                }
+
+                expected[index] = (ushort)Math.Clamp(result, 0, maximum);
+            }
+
+            Av1CompoundIntermediateDifferenceWeightedMaskBuilder.FillDifferenceWeightedIntermediateMask(
+                actualMask,
+                blockSize,
+                expectedFirst,
+                blockSize,
+                expectedSecond,
+                blockSize,
+                blockSize,
+                blockSize,
+                bitCount,
+                differenceWeightedMaskType);
+
+            Assert.Equal(expectedMask, actualMask);
         }
         else if (compoundType == Av1CompoundType.Wedge)
         {

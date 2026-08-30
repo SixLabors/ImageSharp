@@ -375,7 +375,8 @@ internal sealed class Av1BlockDecoder : IDisposable
                     modeInfo.CompoundType is
                         Av1CompoundType.Average or
                         Av1CompoundType.DistanceWeighted or
-                        Av1CompoundType.Wedge &&
+                        Av1CompoundType.Wedge or
+                        Av1CompoundType.DifferenceWeighted &&
                     modeInfo.MotionMode != Av1MotionMode.Warped &&
                     modeInfo.YMode != Av1PredictionMode.GlobalGlobalMotionVector;
 
@@ -761,6 +762,43 @@ internal sealed class Av1BlockDecoder : IDisposable
                                     predictionHeight,
                                     subX: 0,
                                     subY: 0,
+                                    this.frameBuffer.BitDepth.GetBitCount());
+                            }
+                            else if (modeInfo.CompoundType == Av1CompoundType.DifferenceWeighted)
+                            {
+                                int lumaWidth = blockSize.GetWidth();
+                                if (plane == 0)
+                                {
+                                    // Difference-weighted chroma reuses the luma-derived segment mask. Building it
+                                    // only for plane zero preserves that decoded contract before chroma subsampling.
+                                    Av1CompoundIntermediateDifferenceWeightedMaskBuilder.FillDifferenceWeightedIntermediateMask(
+                                        compoundMask,
+                                        lumaWidth,
+                                        first,
+                                        predictionWidth,
+                                        highBitDepthSecondPrediction,
+                                        predictionWidth,
+                                        predictionWidth,
+                                        predictionHeight,
+                                        this.frameBuffer.BitDepth.GetBitCount(),
+                                        modeInfo.DifferenceWeightedMaskType);
+                                }
+
+                                // The d16 mask and final blend consume the same no-round intermediates. Rounding
+                                // either reference first changes both the derived mask and the reconstructed sample.
+                                Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
+                                    highBitDepthDestination,
+                                    reconstructionStride,
+                                    first,
+                                    predictionWidth,
+                                    highBitDepthSecondPrediction,
+                                    predictionWidth,
+                                    compoundMask,
+                                    lumaWidth,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    subX,
+                                    subY,
                                     this.frameBuffer.BitDepth.GetBitCount());
                             }
                             else

@@ -170,14 +170,14 @@ public class Av1CompoundInterPredictorTests
     }
 
     /// <summary>
-    /// Verifies both difference-mask orientations at each supported bit depth.
+    /// Verifies the current libaom difference-mask formula in both orientations at each supported bit depth.
     /// </summary>
     [Fact]
-    public void DifferenceWeightedMasksMatchPinnedFormula()
+    public void DifferenceWeightedMasksMatchCurrentLibaomFormula()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateDifferenceWeightedMasks, PredictorConfigurations);
 
     /// <summary>
-    /// Applies the pinned difference-mask formula at every bit depth and intrinsic width.
+    /// Applies the current libaom difference-mask formula at every bit depth and intrinsic width.
     /// </summary>
     private static void ValidateDifferenceWeightedMasks()
     {
@@ -634,6 +634,48 @@ public class Av1CompoundInterPredictorTests
                         bitDepth);
 
                     Assert.Equal(expectedMasked, actualMasked);
+
+                    int differenceRound = roundBits + bitDepth - 8;
+                    foreach (Av1DifferenceWeightedMaskType maskType in Enum.GetValues<Av1DifferenceWeightedMaskType>())
+                    {
+                        byte[] expectedDifferenceMask = new byte[maskStride * height];
+                        byte[] actualDifferenceMask = new byte[maskStride * height];
+                        expectedDifferenceMask.AsSpan().Fill(0xA5);
+                        actualDifferenceMask.AsSpan().Fill(0xA5);
+
+                        for (int row = 0; row < height; row++)
+                        {
+                            for (int column = 0; column < width; column++)
+                            {
+                                int intermediateIndex = (row * intermediateStride) + column;
+                                int difference = Math.Abs(
+                                    expectedFirst[intermediateIndex] - expectedSecond[intermediateIndex]);
+
+                                difference = (difference + (1 << (differenceRound - 1))) >> differenceRound;
+                                int alpha = Math.Min(64, 38 + (difference >> 4));
+                                if (maskType == Av1DifferenceWeightedMaskType.Type38Inverse)
+                                {
+                                    alpha = 64 - alpha;
+                                }
+
+                                expectedDifferenceMask[(row * maskStride) + column] = (byte)alpha;
+                            }
+                        }
+
+                        Av1CompoundIntermediateDifferenceWeightedMaskBuilder.FillDifferenceWeightedIntermediateMask(
+                            actualDifferenceMask,
+                            maskStride,
+                            actualFirst,
+                            intermediateStride,
+                            actualSecond,
+                            intermediateStride,
+                            width,
+                            height,
+                            bitDepth,
+                            maskType);
+
+                        Assert.Equal(expectedDifferenceMask, actualDifferenceMask);
+                    }
                 }
             }
         }

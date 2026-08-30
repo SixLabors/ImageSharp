@@ -30,7 +30,7 @@ Reference checkout evidence on 2026-08-31:
 Reconciled with the worktree on 2026-08-31.
 
 - [~] The bounded container reader, still-image path, sequence parser, AV1 decoder, color pipeline, presentation pipeline, and broad AV1 test suite exist locally.
-- [~] The inter-frame decoder has verified checkpoints through wedge compound prediction. Difference-weighted compound prediction, OBMC, scaled references, local warped motion, and global motion exist locally but remain open until their ordered checkpoints below are completed.
+- [~] The inter-frame decoder has verified checkpoints through difference-weighted compound prediction. OBMC, scaled references, local warped motion, and global motion exist locally but remain open until their ordered checkpoints below are completed.
 - [~] Loop filtering, CDEF, super-resolution, restoration, film grain, layered presentation, alpha composition, and color conversion exist locally. Shared-source cleanup changed the current tree, so final production-path verification is open.
 - [~] AV1 writer primitives, forward transforms, symbol encoding, and tile-writing source exist locally, but they are not connected to the public encoder.
 - [ ] The public AV1 encoder is not implemented. HeifEncoderCore.Encode throws NotSupportedException when AV1 is selected.
@@ -180,8 +180,8 @@ The single-reference syntax, buffer, reconstruction, and ownership foundation is
 - [x] Inter-intra prediction.
 - [x] Distance-weighted compound prediction.
 - [x] Wedge compound prediction.
-- [~] Difference-weighted compound prediction. Current item.
-- [~] OBMC.
+- [x] Difference-weighted compound prediction.
+- [~] OBMC. Current item.
 - [~] Scaled-reference prediction.
 - [~] Local warped prediction.
 - [~] Non-translational global prediction.
@@ -320,6 +320,42 @@ Verified wedge compound checkpoint evidence on 2026-08-31:
   established reference-output API, and repeats the complete decode with a 1,024-byte constrained
   tracked allocator and exactly-once return checks.
 - [x] The focused Release checkpoint set passes 35/35 on net10.0 and 35/35 on net11.0, with zero
+  failures or skips. Scoped analyzer and whitespace verification pass for every changed C# file.
+  Roslynk reports zero compiler errors, `git diff --check` passes, and `.gitattributes` is unchanged.
+- [x] The completed checkpoint was committed as `9883a24dc319e16b471f68be632d4f62f2c1cd5e`
+  with author and committer `James Jackson-South <james_south@hotmail.com>`.
+
+Verified difference-weighted compound checkpoint evidence on 2026-08-31:
+
+- [x] Audited syntax against current libaom `av1/decoder/decodemv.c`. ImageSharp applies the same
+  masked-compound enable and block-size gates, selects difference-weighted compound directly when wedge
+  is unavailable, and reads the same one-bit type-38 mask orientation.
+- [x] Audited mask generation and reconstruction against current libaom `av1/common/reconinter.c` and
+  `aom_dsp/blend_a64_mask.c`. The d16 path rounds the absolute intermediate difference by the
+  convolution and bit-depth shift, scales it by 1/16, adds the type-38 base, clamps or inverts the mask,
+  and then blends the original no-round intermediates before final rounding and clipping. Chroma reuses
+  the luma-derived mask through rounded subsampling.
+- [x] Corrected the production 10/12-bit subpixel eligibility gate, which previously rounded both
+  references before difference-mask construction and blending. Difference-weighted blocks now use the
+  existing semantic intermediate mask-builder and mask-blend predictor/operator families through the
+  sole final rounding step. No new operator family, per-block allocation, or copy was introduced.
+- [x] Renamed the stale “pinned formula” test and extended FeatureTestRunner's independent oracle across
+  current-libaom regular and d16 mask arithmetic, both mask orientations, 8/10/12-bit samples, widths
+  that cross every Vector512, Vector256, Vector128, and scalar boundary, subpixel phases, and row-padding
+  sentinels.
+- [x] Added a complete `Av1BlockDecoder.DecodeBlock` regression for 10/12-bit half-sample prediction
+  and both type-38 orientations. Its expected mask and reconstruction are calculated directly from the
+  current-libaom equations, independently of the production mask builder and finalizer.
+- [x] Extracted the fixture's 5,358-byte AV1 `mdat` payload and decoded it with refreshed current
+  libaom `aomdec`, using one thread with row threading disabled. All 19 frames decoded. The final
+  19,200 YUV444 samples have SHA-256
+  `E8CAA650F1571C5B9CACAF8C06E1DDF5F5D2ED35F65F1C34377076C573425899` and match the retained native
+  reference with zero differing samples.
+- [x] The real 19-frame production sequence requires both difference-mask orientations, compares final
+  native Y, Cb, and Cr planes exactly, compares final RGBA presentation through ImageSharp's established
+  reference-output API, and repeats the complete decode with a 1,024-byte constrained tracked allocator
+  and exactly-once return checks.
+- [x] The focused Release checkpoint set passes 37/37 on net10.0 and 37/37 on net11.0, with zero
   failures or skips. Scoped analyzer and whitespace verification pass for every changed C# file.
   Roslynk reports zero compiler errors, `git diff --check` passes, and `.gitattributes` is unchanged.
 

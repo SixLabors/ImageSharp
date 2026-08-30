@@ -1,17 +1,19 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
 /// Stores block-size, intra/inter prediction, transform, and palette decisions shared by AV1 block processing.
 /// </summary>
-internal class Av1BlockModeInfo
+internal struct Av1BlockModeInfo
 {
     /// <summary>
     /// Stores the primary and optional secondary reference-frame labels.
@@ -56,12 +58,12 @@ internal class Av1BlockModeInfo
     /// <summary>
     /// Stores the luma palette color-index map.
     /// </summary>
-    private byte[] lumaPaletteColorIndexMap = [];
+    private Buffer2DRegion<byte> lumaPaletteColorIndexMap;
 
     /// <summary>
     /// Stores the shared chroma palette color-index map.
     /// </summary>
-    private byte[] chromaPaletteColorIndexMap = [];
+    private Buffer2DRegion<byte> chromaPaletteColorIndexMap;
 
     /// <summary>
     /// The directional prediction angle adjustment for luma.
@@ -94,7 +96,7 @@ internal class Av1BlockModeInfo
     private int chromaTransformUnitCount;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1BlockModeInfo"/> class.
+    /// Initializes a new instance of the <see cref="Av1BlockModeInfo"/> structure.
     /// </summary>
     /// <param name="blockSize">The decoded block size.</param>
     /// <param name="positionInSuperblock">The block origin relative to its superblock in 4x4 mode-information units.</param>
@@ -115,6 +117,11 @@ internal class Av1BlockModeInfo
     public Av1BlockSize BlockSize { get; }
 
     /// <summary>
+    /// Gets or sets the frame storage index shared by every mode-information position covered by this block.
+    /// </summary>
+    public int ModeInfoIndex { get; set; }
+
+    /// <summary>
     /// Gets or sets the <see cref="Av1PredictionMode"/> for the luminance channel.
     /// </summary>
     public Av1PredictionMode YMode { get; set; }
@@ -127,11 +134,13 @@ internal class Av1BlockModeInfo
     /// block, <see cref="Av1ReferenceFrameType.Intra"/> for an inter-intra block, or the secondary inter-reference label
     /// for compound prediction.
     /// </remarks>
+    [UnscopedRef]
     public Span<Av1ReferenceFrameType> ReferenceFrames => this.referenceFrames;
 
     /// <summary>
     /// Gets the decoded motion vectors corresponding to <see cref="ReferenceFrames"/>.
     /// </summary>
+    [UnscopedRef]
     public Span<Av1MotionVector> MotionVectors => this.motionVectors;
 
     /// <summary>
@@ -141,6 +150,7 @@ internal class Av1BlockModeInfo
     /// Index zero is the vertical filter and index one is the horizontal filter, matching libaom's
     /// <c>InterpFilters.y_filter</c> and <c>InterpFilters.x_filter</c> layout.
     /// </remarks>
+    [UnscopedRef]
     public Span<Av1InterpolationFilter> InterpolationFilters => this.interpolationFilters;
 
     /// <summary>
@@ -392,6 +402,7 @@ internal class Av1BlockModeInfo
     /// </summary>
     /// <param name="plane">The color plane.</param>
     /// <returns>The palette colors in prediction-index order.</returns>
+    [UnscopedRef]
     public ReadOnlySpan<ushort> GetPaletteColors(Av1Plane plane)
     {
         if (plane == Av1Plane.Y)
@@ -430,7 +441,7 @@ internal class Av1BlockModeInfo
     /// </summary>
     /// <param name="plane">The color plane.</param>
     /// <returns>The luma map for <see cref="Av1Plane.Y"/> or the shared chroma map for either chroma plane.</returns>
-    public ReadOnlySpan<byte> GetPaletteColorIndexMap(Av1Plane plane)
+    public Buffer2DRegion<byte> GetPaletteColorIndexMap(Av1Plane plane)
         => plane == Av1Plane.Y ? this.lumaPaletteColorIndexMap : this.chromaPaletteColorIndexMap;
 
     /// <summary>
@@ -438,7 +449,7 @@ internal class Av1BlockModeInfo
     /// </summary>
     /// <param name="planeType">The luma or shared chroma plane class.</param>
     /// <param name="colorIndexMap">The row-major color-index map including coded-block edge padding.</param>
-    public void SetPaletteColorIndexMap(Av1PlaneType planeType, byte[] colorIndexMap)
+    public void SetPaletteColorIndexMap(Av1PlaneType planeType, Buffer2DRegion<byte> colorIndexMap)
     {
         if (planeType == Av1PlaneType.Y)
         {

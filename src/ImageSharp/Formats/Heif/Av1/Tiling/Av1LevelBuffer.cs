@@ -19,11 +19,14 @@ internal sealed class Av1LevelBuffer : IDisposable
     private IMemoryOwner<byte>? memory;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1LevelBuffer"/> class for the maximum AV1 transform size.
+    /// Initializes a new instance of the <see cref="Av1LevelBuffer"/> class for the maximum entropy-coded
+    /// coefficient dimensions.
     /// </summary>
     /// <param name="configuration">The configuration providing the memory allocator.</param>
     public Av1LevelBuffer(Configuration configuration)
-        : this(configuration, new Size(Av1Constants.MaxTransformSize, Av1Constants.MaxTransformSize))
+        : this(
+            configuration,
+            new Size(Av1Constants.MaxTransformSize / 2, Av1Constants.MaxTransformSize / 2))
     {
     }
 
@@ -46,12 +49,12 @@ internal sealed class Av1LevelBuffer : IDisposable
     /// <summary>
     /// Gets the unpadded coefficient dimensions.
     /// </summary>
-    public Size Size { get; }
+    public Size Size { get; private set; }
 
     /// <summary>
     /// Gets the padded row stride in bytes.
     /// </summary>
-    public int Stride { get; }
+    public int Stride { get; private set; }
 
     /// <summary>
     /// Gets the coefficient level at the specified unpadded position.
@@ -119,6 +122,22 @@ internal sealed class Av1LevelBuffer : IDisposable
     {
         this.memory?.Dispose();
         this.memory = null;
+    }
+
+    /// <summary>
+    /// Selects new active coefficient dimensions and clears their padded context storage.
+    /// </summary>
+    /// <param name="size">The unpadded coefficient dimensions.</param>
+    public void Reset(Size size)
+    {
+        ObjectDisposedException.ThrowIf(this.memory == null, this);
+        this.Size = size;
+        this.Stride = Av1Constants.TransformPadHorizontal + size.Width;
+
+        // Tile parsing is sequential, so one maximum-sized rent can serve every transform. Clear only the active
+        // layout because stale neighboring levels would otherwise select the wrong coefficient distributions.
+        int totalHeight = Av1Constants.TransformPadTop + size.Height + Av1Constants.TransformPadBottom;
+        this.memory.Memory.Span[..(this.Stride * totalHeight)].Clear();
     }
 
     /// <summary>

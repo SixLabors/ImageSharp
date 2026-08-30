@@ -43,6 +43,7 @@ public class Av1InterFrameModeInfoTests
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Memory.Span, 0, updateCdf: true);
 
         tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, frameHeader));
+        modeInfo = partitionInfo.ModeInfo;
 
         Assert.False(modeInfo.SkipMode);
         Assert.False(modeInfo.Skip);
@@ -89,7 +90,7 @@ public class Av1InterFrameModeInfoTests
         using IMemoryOwner<byte> encoded = writer.Exit();
         Memory<byte> encodedMemory = encoded.Memory;
 
-        ReadInterFrameModeInfo(tileReader, encodedMemory, modeInfo, aboveModeInfo);
+        modeInfo = ReadInterFrameModeInfo(tileReader, encodedMemory, modeInfo, aboveModeInfo);
 
         Assert.True(modeInfo.SkipMode);
         Assert.True(modeInfo.Skip);
@@ -139,6 +140,7 @@ public class Av1InterFrameModeInfoTests
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0, updateCdf: true);
 
         tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, frameHeader));
+        modeInfo = partitionInfo.ModeInfo;
 
         Assert.Equal(Av1InterpolationFilter.Smooth, modeInfo.InterpolationFilters[0]);
         Assert.Equal((Av1InterpolationFilter)expectedHorizontalFilter, modeInfo.InterpolationFilters[1]);
@@ -173,6 +175,7 @@ public class Av1InterFrameModeInfoTests
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0, updateCdf: true);
 
         tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, frameHeader));
+        modeInfo = partitionInfo.ModeInfo;
 
         Assert.Equal(Av1InterpolationFilter.Regular, modeInfo.InterpolationFilters[0]);
         Assert.Equal(Av1InterpolationFilter.Regular, modeInfo.InterpolationFilters[1]);
@@ -213,7 +216,7 @@ public class Av1InterFrameModeInfoTests
         using IMemoryOwner<byte> encoded = writer.Exit();
         Memory<byte> encodedMemory = encoded.Memory;
 
-        ReadInterFrameModeInfo(tileReader, encodedMemory, modeInfo);
+        modeInfo = ReadInterFrameModeInfo(tileReader, encodedMemory, modeInfo);
 
         Assert.Equal((Av1ReferenceFrameType)expectedPrimary, modeInfo.ReferenceFrames[0]);
         Assert.Equal((Av1ReferenceFrameType)expectedSecondary, modeInfo.ReferenceFrames[1]);
@@ -285,7 +288,7 @@ public class Av1InterFrameModeInfoTests
         writer.WriteSymbol((int)Av1InterpolationFilter.Sharp, Av1DefaultDistributions.SwitchableInterpolation[3]);
 
         using IMemoryOwner<byte> encoded = writer.Exit();
-        ReadInterFrameModeInfo(tileReader, encoded.Memory, modeInfo);
+        modeInfo = ReadInterFrameModeInfo(tileReader, encoded.Memory, modeInfo);
 
         Assert.Equal(Av1ReferenceFrameType.Last, modeInfo.ReferenceFrames[0]);
         Assert.Equal(Av1ReferenceFrameType.Last2, modeInfo.ReferenceFrames[1]);
@@ -311,7 +314,8 @@ public class Av1InterFrameModeInfoTests
     /// <param name="encoded">The range-coded block-prefix symbols.</param>
     /// <param name="modeInfo">The current coding block.</param>
     /// <param name="aboveModeInfo">The available above block supplying skip-mode context.</param>
-    private static void ReadInterFrameModeInfo(
+    /// <returns>The decoded block mode information.</returns>
+    private static Av1BlockModeInfo ReadInterFrameModeInfo(
         Av1TileReader tileReader,
         Memory<byte> encoded,
         Av1BlockModeInfo modeInfo,
@@ -326,12 +330,14 @@ public class Av1InterFrameModeInfoTests
 
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Span, 0, updateCdf: true);
         tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, tileReader.FrameHeader));
+        return partitionInfo.ModeInfo;
     }
 
     /// <summary>
     /// Invokes the ref-struct mode parser without spatial neighbors.
     /// </summary>
-    private static void ReadInterFrameModeInfo(
+    /// <returns>The decoded block mode information.</returns>
+    private static Av1BlockModeInfo ReadInterFrameModeInfo(
         Av1TileReader tileReader,
         Memory<byte> encoded,
         Av1BlockModeInfo modeInfo)
@@ -340,6 +346,7 @@ public class Av1InterFrameModeInfoTests
         Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, false, Av1PartitionType.None);
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Span, 0, updateCdf: true);
         tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, tileReader.FrameHeader));
+        return partitionInfo.ModeInfo;
     }
 
     /// <summary>

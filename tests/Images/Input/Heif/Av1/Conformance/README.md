@@ -102,7 +102,33 @@ The film-grain Y4M SHA-256 is `A1B553BE140F48ABDDB2A6D39917AB714BA03AC7FFD6359EA
 
 The retained `quantizer-00` and `quantizer-63` streams are the minimum- and maximum-quantizer boundaries from libaom's official eight- and ten-bit test matrices. Their SHA-1 values are `C2E1EC9936B95254187A359E94AA32A9F3DAD1B7`, `2A8AA33513D8E01AE9410C4BF5FE1E471B775482`, `9BBE8499796AA588FF02E313FB0D4349940D2FEA`, and `8B6EB3FFF2E0DB7EAC775B08C745250CA591E2D9`, exactly matching `test/test-data.sha1` at pinned libaom commit `03087864cf4bea6abb0d28f95cf7843511413d8f`. Their SHA-256 values, in the same order, are `6382DBD2BEFBBC93D4EA283586F4FB43FEA5F1C52400E3D2C5281A46B1104C00`, `0E4EC80680F7AF8DE9621B016E0F2D7C0858B2951DEBC173DDA50C6A051547D3`, `FE6053CE4EE20A1C0EC6F7FE35DB097E92AD25D8A3505598BD89162C74D7944F`, and `39759AB77483E1D11049DC38B5F5262158FD9C3CBC9D1F82A02462FC5DF30E0C`.
 
-The native references were generated with the pinned generic `aomdec --threads=1` build. Their SHA-256 values are `D499028E0606DB70CD56A72F151E04F36C09F300A448CCCD8430DD920D3589C5`, `4CC9892B3EE3399B293E31014B9F566C21E0C7A4765FC5F444528769C33E6D67`, `78373C28F401EB95D3E563D146622ED6C714ED96661E5E57C539CE71D7BED599`, and `A9DF86F671B8CF01EFC130660556412D4EBAF31A81D6F26FBDAEB0A7E839D8EA`. Each reference's two raw-frame MD5 values also match the corresponding official `.ivf.md5` file exactly. The tests compare every native sample under normal and scalar `FeatureTestRunner` dispatch and run all four sequences through a 2,560-byte row-aligned constrained tracked allocator.
+The native references were originally generated with the historical generic `aomdec --threads=1` build. On 2026-08-31 current official libaom `main` at observed revision `441c439b9916474cac15d2822af47a9ad70674a8` reproduced all four references byte for byte. Their SHA-256 values are `D499028E0606DB70CD56A72F151E04F36C09F300A448CCCD8430DD920D3589C5`, `4CC9892B3EE3399B293E31014B9F566C21E0C7A4765FC5F444528769C33E6D67`, `78373C28F401EB95D3E563D146622ED6C714ED96661E5E57C539CE71D7BED599`, and `A9DF86F671B8CF01EFC130660556412D4EBAF31A81D6F26FBDAEB0A7E839D8EA`. Each reference's two raw-frame MD5 values also match the corresponding official `.ivf.md5` file exactly. The tests compare every native sample under normal and scalar `FeatureTestRunner` dispatch and run all four sequences through a 2,560-byte row-aligned constrained tracked allocator.
+
+## Palette reconstruction fixture
+
+The 42-byte `libaom-palette-draw-points-8b-444.bit` payload has SHA-256
+`F412A9E7F19D1C009D0329B993BB503D74CCDA58505C54BAE8FB3C16142181DC`. On 2026-08-31
+current official libaom `main` at observed revision `441c439b9916474cac15d2822af47a9ad70674a8`
+decoded it with one thread, row threading disabled, raw output, and eight-bit output depth. The resulting
+1,089-byte YUV444 output matches the retained native reference exactly at SHA-256
+`E05F7C0DF06ECCF0E43869D1D7B03DAA1D635ACD26A766F8940899BE18D53251`.
+
+The production tests require active luma and chroma palette syntax, compare every native sample under
+`FeatureTestRunner`, and compare the final AVIF presentation through the established reference-output API.
+The retained PNG has SHA-256
+`1148EBF6AA4B0F2D069D5E9B9605F6FB2A315E525F18016CDCAE23EFDD81DA84`. A 1 KiB
+constrained tracked allocator forces both frame-owned palette map surfaces across multiple memory groups;
+the test verifies exact reconstruction and exactly one return for every recorded allocation.
+
+## Official all-intra fixture
+
+On 2026-08-31 current official libaom `main` at observed revision
+`441c439b9916474cac15d2822af47a9ad70674a8` reproduced the retained 39-frame all-intra Y4M byte for
+byte. The IVF SHA-256 is `5FCD265FD9F9BDD0D3179340B4C4532F1422CA5E5D97741C7481B84CB5DC122F`;
+the native reference SHA-256 is
+`1211EBEFBC9CCEF9ED19BE4CCE3F807D69FFFE338E95CCA1B5F4CA8023482175`. The production test
+decodes all 39 frames in one decoder session, compares every native sample exactly, and requires coverage
+of every intra prediction mode and all seven transform types selected by the fixture.
 
 ## Official frame-size corner fixtures
 

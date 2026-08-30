@@ -559,7 +559,7 @@ For every item:
 Previously verified algorithm checkpoints remain valuable evidence, but the final decoder gate requires a fresh current-tree run after the inter and cleanup corrections.
 
 - [x] Bounded OBU framing, sequence headers, frame headers, tile groups, alignment, and trailing-bit parsing have been re-audited and verified against current libaom `main`.
-- [~] Partition traversal, mode information, segmentation, delta quantization, transform-size selection, coefficient decoding, inverse quantization, and inverse transforms have historical checkpoint evidence against an obsolete pinned tree. Re-audit the current libaom `main` implementation before restoring verified status.
+- [x] Partition traversal, mode information, segmentation, delta quantization, transform-size selection, coefficient decoding, inverse quantization, and inverse transforms have been re-audited and verified against current libaom `main`.
 - [x] Intra prediction covers directional, DC, smooth, Paeth, chroma-from-luma, filter-intra, and palette families with the established operator architecture.
 - [x] Intra-block copy has exact native reconstruction and feature-isolated SIMD evidence.
 - [x] Lossless inverse transform, loop filtering, CDEF, super-resolution, restoration, and film grain have focused checkpoint evidence.
@@ -604,6 +604,51 @@ Verified bounded-OBU checkpoint evidence on 2026-08-31:
   `diff=lfs`, and `.gitattributes` was not edited.
 - [x] Release source builds pass for net10.0 and net11.0 with zero warnings and zero errors. Roslynk reports
   zero compiler errors, and scoped production and test analyzer verification reports no changes.
+- [x] The completed checkpoint was committed as `243524c2c0b52a49d8d161fab806ab092cabe47c` with author
+  and committer `James Jackson-South <james_south@hotmail.com>`.
+
+Verified partition, mode, segmentation, quantization, and transform checkpoint evidence on 2026-08-31:
+
+- [x] Audited partition traversal and chroma representability against `read_partition` and the subsampled
+  plane-size rejection in current libaom `av1/decoder/decodeframe.c`; spatial segment-ID decoding and
+  corruption handling against `read_segment_id` in `av1/decoder/decodemv.c`; delta-Q syntax, resolution,
+  arithmetic, and clamping against `read_delta_qindex` and `read_delta_q_params` in the same file.
+- [x] Audited selected and variable transform-size traversal against `read_tx_size`, `read_tx_size_vartx`,
+  and transform-block traversal in `av1/decoder/decodeframe.c`; coefficient syntax and arithmetic against
+  `av1_read_coeffs_txb` in `av1/decoder/decodetxb.c`; inverse quantization and transform application against
+  current `av1/decoder/decodeframe.c`, `av1/common/idct.c`, and the current libaom transform test oracle.
+  The observed clean `HEAD` and `origin/main` revision was
+  `441c439b9916474cac15d2822af47a9ad70674a8`; this is verification evidence, not a pin.
+- [x] Partition decoding now rejects an invalid partition subsize and a block size that cannot represent the
+  current subsampled chroma plane. Spatial segmentation rejects decoded IDs above the active segment range.
+  Focused tests exercise both current-libaom corruption boundaries through the production tile reader.
+- [x] Coefficient entropy decoding uses one allocator-owned maximum-size `Av1LevelBuffer` per tile reader.
+  Each transform resets and clears only its active padded geometry, so no transform creates an allocation.
+  Allocation tracking over all eight minimum- and maximum-quantizer frames proves exactly one coefficient
+  scratch allocation per frame and exactly-once return after decoder disposal.
+- [x] Palette index maps are allocator-backed frame surfaces addressed row by row through `Buffer2DRegion`.
+  The wavefront context, stable neighbor ordering, right/bottom padding, transform offsets, and prediction
+  were audited against current libaom `av1/decoder/detokenize.c`, `av1/common/entropymode.c`,
+  `av1/decoder/decodeframe.c`, and `av1/common/reconintra.c`. A 1 KiB constrained allocator forces both
+  luma and chroma maps across multiple memory groups without copies or per-block allocations and proves
+  exactly-once disposal.
+- [x] `Av1BlockModeInfo` is value storage, removing the managed object allocation formerly created for every
+  decoded coding block. Explicit `ModeInfoIndex` values preserve libaom's mode-info identity semantics at
+  prediction-unit loop-filter edges, and the frame map now uses integer offsets so more than 65,535 decoded
+  blocks cannot wrap its lookup identity.
+- [x] Current official libaom reproduced the 39-frame all-intra reference and all four 8/10-bit minimum- and
+  maximum-quantizer references byte for byte. The production tests compare every native sample exactly,
+  cover every intra mode and seven selected transform types, execute SIMD and scalar paths through
+  `FeatureTestRunner`, and exercise the quantizer sequences under constrained tracked allocation.
+- [x] Current official libaom decoded the 42-byte palette payload into the retained 1,089-byte YUV444
+  reference at SHA-256 `E05F7C0DF06ECCF0E43869D1D7B03DAA1D635ACD26A766F8940899BE18D53251`.
+  The exact native test requires luma and chroma palette syntax. The established reference-output test uses
+  the unchanged presentation PNG at SHA-256
+  `1148EBF6AA4B0F2D069D5E9B9605F6FB2A315E525F18016CDCAE23EFDD81DA84`, whose renamed path still
+  resolves to `diff=lfs`; `.gitattributes` was not edited.
+- [x] The exact final AV1 namespace passes 8,732 of 8,732 cases on net10.0 and 8,732 of 8,732 cases on
+  net11.0, with zero failures or skips. Release source builds pass for net10.0 and net11.0 with zero warnings
+  and zero errors. Roslynk reports zero compiler errors, and scoped analyzer verification reports no changes.
 
 Decoder exit gate:
 

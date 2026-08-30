@@ -245,20 +245,19 @@ public class Av1ReferenceMotionVectorsTests
         frameInfo.InitializeMotionField(Configuration.Default, sequenceHeader, frameHeader, referenceFrames);
         FillFrameWithIntraBlocks(frameInfo, sequenceHeader);
         Av1MotionVector direct = new(16, 24);
-        Av1BlockModeInfo candidate = AddModeInfo(
+        AddModeInfo(
             frameInfo,
             sequenceHeader,
             new Point(8, 4),
             Av1BlockSize.Block16x16,
             Av1ReferenceFrameType.Last,
             direct,
-            Av1PredictionMode.NearestMotionVector);
+            Av1PredictionMode.NearestMotionVector,
+            Av1ReferenceFrameType.Backward,
+            new Av1MotionVector(40, -24));
 
         // The direct scan adds the first reference with its normative adjacent weight. Extension visits both entries:
         // it must ignore that duplicate and append only the sign-corrected backward-reference vector.
-        candidate.ReferenceFrames[1] = Av1ReferenceFrameType.Backward;
-        candidate.MotionVectors[1] = new Av1MotionVector(40, -24);
-
         Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(Point.Empty);
         Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block16x16, new Point(8, 8));
         Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, true, Av1PartitionType.None)
@@ -361,31 +360,29 @@ public class Av1ReferenceMotionVectorsTests
 
         Av1MotionVector abovePrimary = new(8, 16);
         Av1MotionVector aboveSecondary = new(24, 32);
-        Av1BlockModeInfo above = AddModeInfo(
+        AddModeInfo(
             frameInfo,
             sequenceHeader,
             new Point(8, 4),
             Av1BlockSize.Block16x16,
             Av1ReferenceFrameType.Last,
             abovePrimary,
-            Av1PredictionMode.NewNewMotionVector);
-
-        above.ReferenceFrames[1] = Av1ReferenceFrameType.Backward;
-        above.MotionVectors[1] = aboveSecondary;
+            Av1PredictionMode.NewNewMotionVector,
+            Av1ReferenceFrameType.Backward,
+            aboveSecondary);
 
         Av1MotionVector leftPrimary = new(40, 48);
         Av1MotionVector leftSecondary = new(56, 64);
-        Av1BlockModeInfo left = AddModeInfo(
+        AddModeInfo(
             frameInfo,
             sequenceHeader,
             new Point(4, 8),
             Av1BlockSize.Block16x16,
             Av1ReferenceFrameType.Last,
             leftPrimary,
-            Av1PredictionMode.NearestNearestMotionVector);
-
-        left.ReferenceFrames[1] = Av1ReferenceFrameType.Backward;
-        left.MotionVectors[1] = leftSecondary;
+            Av1PredictionMode.NearestNearestMotionVector,
+            Av1ReferenceFrameType.Backward,
+            leftSecondary);
 
         Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(Point.Empty);
         Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block16x16, new Point(8, 8));
@@ -592,6 +589,8 @@ public class Av1ReferenceMotionVectorsTests
     /// <param name="referenceFrame">The primary prediction reference.</param>
     /// <param name="motionVector">The primary motion vector.</param>
     /// <param name="predictionMode">The decoded luma or inter prediction mode.</param>
+    /// <param name="secondaryReferenceFrame">The optional secondary prediction reference.</param>
+    /// <param name="secondaryMotionVector">The optional secondary motion vector.</param>
     /// <returns>The mapped mode-information block.</returns>
     private static Av1BlockModeInfo AddModeInfo(
         Av1FrameInfo frameInfo,
@@ -600,7 +599,9 @@ public class Av1ReferenceMotionVectorsTests
         Av1BlockSize blockSize,
         Av1ReferenceFrameType referenceFrame,
         Av1MotionVector motionVector,
-        Av1PredictionMode predictionMode)
+        Av1PredictionMode predictionMode,
+        Av1ReferenceFrameType secondaryReferenceFrame = Av1ReferenceFrameType.None,
+        Av1MotionVector secondaryMotionVector = default)
     {
         int superblockSize = sequenceHeader.SuperblockModeInfoSize;
         Point superblockPosition = new(position.X / superblockSize, position.Y / superblockSize);
@@ -612,7 +613,9 @@ public class Av1ReferenceMotionVectorsTests
         };
 
         modeInfo.ReferenceFrames[0] = referenceFrame;
+        modeInfo.ReferenceFrames[1] = secondaryReferenceFrame;
         modeInfo.MotionVectors[0] = motionVector;
+        modeInfo.MotionVectors[1] = secondaryMotionVector;
         frameInfo.UpdateModeInfo(modeInfo, superblockInfo);
         superblockInfo.BlockCount++;
         return modeInfo;

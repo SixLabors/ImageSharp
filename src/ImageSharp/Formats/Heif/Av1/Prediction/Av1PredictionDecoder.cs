@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
@@ -462,22 +463,24 @@ internal class Av1PredictionDecoder
         if (usePalette)
         {
             ReadOnlySpan<ushort> paletteColors = modeInfo.GetPaletteColors(plane);
-            ReadOnlySpan<byte> colorIndexMap = modeInfo.GetPaletteColorIndexMap(plane);
-            int paletteStride = partitionInfo.GetWidthInPixels(plane);
-            int mapOffset = ((blockModeInfoRowOffset << Av1Constants.ModeInfoSizeLog2) * paletteStride) +
-                (blockModeInfoColumnOffset << Av1Constants.ModeInfoSizeLog2);
+            Buffer2DRegion<byte> colorIndexMap = modeInfo.GetPaletteColorIndexMap(plane);
+            Buffer2DRegion<byte> transformColorIndexMap = colorIndexMap.GetSubRegion(
+                blockModeInfoColumnOffset << Av1Constants.ModeInfoSizeLog2,
+                blockModeInfoRowOffset << Av1Constants.ModeInfoSizeLog2,
+                transformWidth,
+                transformHeight);
 
-            // Every transform reconstructs its own window of the block-level palette map. Keeping the map padded to
-            // the coded block dimensions lets edge transforms use the same addressing rule as interior transforms.
+            // Every transform reconstructs its own window of the block-level palette map. The row-oriented region
+            // keeps this traversal valid when the frame-owned map spans multiple allocator memory groups.
             if (typeof(T) == typeof(byte))
             {
                 Span<byte> byteDestination = MemoryMarshal.Cast<T, byte>(pixelBuffer);
-                Av1PalettePredictor.Predict(paletteColors, colorIndexMap[mapOffset..], paletteStride, byteDestination, pixelBufferStride, transformWidth, transformHeight);
+                Av1PalettePredictor.Predict(paletteColors, transformColorIndexMap, byteDestination, pixelBufferStride, transformWidth, transformHeight);
             }
             else
             {
                 Span<short> highBitDepthDestination = MemoryMarshal.Cast<T, short>(pixelBuffer);
-                Av1PalettePredictor.Predict(paletteColors, colorIndexMap[mapOffset..], paletteStride, highBitDepthDestination, pixelBufferStride, transformWidth, transformHeight);
+                Av1PalettePredictor.Predict(paletteColors, transformColorIndexMap, highBitDepthDestination, pixelBufferStride, transformWidth, transformHeight);
             }
 
             return;
@@ -1983,8 +1986,8 @@ internal class Av1PredictionDecoder
             left = partitionInfo.LeftModeInfoForChroma;
         }
 
-        bool aboveIsSmooth = (above != null) && IsSmooth(above, plane);
-        bool leftIsSmooth = (left != null) && IsSmooth(left, plane);
+        bool aboveIsSmooth = above is not null && IsSmooth(above.Value, plane);
+        bool leftIsSmooth = left is not null && IsSmooth(left.Value, plane);
         return aboveIsSmooth || leftIsSmooth;
     }
 

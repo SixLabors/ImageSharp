@@ -461,7 +461,7 @@ public class Av1ReconstructionConformanceTests
     /// under normal SIMD dispatch and with hardware intrinsics disabled.
     /// </summary>
     [Fact]
-    public void DecodeWithActiveCdefMatchesPinnedLibaomReference()
+    public void DecodeWithActiveCdefMatchesCurrentLibaomReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateActiveCdefFixtures, ReconstructionConfigurations);
 
     /// <summary>
@@ -547,12 +547,69 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies decoded luma and chroma palette syntax and exact native samples against scalar libaom for an
+    /// Verifies decoded luma and chroma palette syntax and exact native samples against current official libaom for an
     /// independently encoded AV1 still-picture stream.
     /// </summary>
     [Fact]
-    public void DecodeWithPaletteMatchesPinnedLibaomReference()
+    public void DecodeWithPaletteMatchesCurrentLibaomReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePaletteNativeFixture, PaletteConfigurations);
+
+    /// <summary>
+    /// Verifies exact palette reconstruction through segmented frame-owned map storage and tracked disposal.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void DecodePaletteWithConstrainedAllocator()
+    {
+        TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        byte[] payload = TestFile.Create(TestImages.Heif.Av1Palette8BitPayload).Bytes;
+        byte[] reference = TestFile.Create(TestImages.Heif.Av1Palette8BitReference).Bytes;
+        bool foundSegmentedLumaMap = false;
+        bool foundSegmentedChromaMap = false;
+
+        using (Av1Decoder decoder = new(configuration))
+        {
+            using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
+
+            Assert.Equal(RequiredPaletteCoverage, GetPaletteCoverage(decoder));
+            AssertNativePlanesEqual(decoder, frameBuffer, reference);
+            Assert.NotNull(decoder.FrameHeader);
+            Assert.NotNull(decoder.FrameInfo);
+            int modeInfoWidth = Av1Math.DivideLog2Ceiling(decoder.FrameHeader.FrameSize.FrameWidth, Av1Constants.ModeInfoSizeLog2);
+            int modeInfoHeight = Av1Math.DivideLog2Ceiling(decoder.FrameHeader.FrameSize.FrameHeight, Av1Constants.ModeInfoSizeLog2);
+            for (int y = 0; y < modeInfoHeight && (!foundSegmentedLumaMap || !foundSegmentedChromaMap); y++)
+            {
+                for (int x = 0; x < modeInfoWidth && (!foundSegmentedLumaMap || !foundSegmentedChromaMap); x++)
+                {
+                    Av1BlockModeInfo modeInfo = decoder.FrameInfo.GetModeInfoAt(new Point(x, y));
+                    if (!foundSegmentedLumaMap && modeInfo.GetPaletteSize(Av1PlaneType.Y) != 0)
+                    {
+                        Buffer2DRegion<byte> map = modeInfo.GetPaletteColorIndexMap(Av1Plane.Y);
+                        foundSegmentedLumaMap = map.Buffer.MemoryGroup.Count > 1;
+                    }
+
+                    if (!foundSegmentedChromaMap && modeInfo.GetPaletteSize(Av1PlaneType.Uv) != 0)
+                    {
+                        Buffer2DRegion<byte> map = modeInfo.GetPaletteColorIndexMap(Av1Plane.U);
+                        foundSegmentedChromaMap = map.Buffer.MemoryGroup.Count > 1;
+                    }
+                }
+            }
+
+            Assert.True(foundSegmentedLumaMap);
+            Assert.True(foundSegmentedChromaMap);
+        }
+
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.AllocationId == allocation.AllocationId));
+    }
 
     /// <summary>
     /// Verifies that a real palette frame whose tile entropy payload ends early is rejected instead of being decoded
@@ -607,13 +664,13 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies decoded luma and chroma palette syntax and exact presented pixels for an independently encoded AVIF
-    /// image across the available vector widths and the scalar fallback.
+    /// Verifies decoded luma and chroma palette syntax and exact presented pixels against the retained reference image
+    /// across the available vector widths and the scalar fallback.
     /// </summary>
     /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
     [Theory]
     [WithFile(TestImages.Heif.Av1Palette8BitAvif, PixelTypes.Rgba32)]
-    public void DecodeWithPaletteMatchesPinnedLibavifPresentation(TestImageProvider<Rgba32> provider)
+    public void DecodeWithPaletteMatchesRetainedPresentationReference(TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidatePresentedFixture,
             PresentationConfigurations,
@@ -1145,10 +1202,10 @@ public class Av1ReconstructionConformanceTests
 
     /// <summary>
     /// Verifies every intra prediction mode and the fixture's seven transform types against the official
-    /// pinned-libaom all-intra conformance sequence and its exact native output.
+    /// current-libaom all-intra conformance sequence and its exact native output.
     /// </summary>
     [Fact]
-    public void DecodeOfficialAllIntraSequenceMatchesPinnedLibaomReference() => ValidateOfficialAllIntraFixture();
+    public void DecodeOfficialAllIntraSequenceMatchesCurrentLibaomReference() => ValidateOfficialAllIntraFixture();
 
     /// <summary>
     /// Decodes every all-intra IVF sample in one session, compares each frame exactly, and records the syntax
@@ -1746,10 +1803,10 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies the official eight-bit quantizer boundaries against exact pinned-libaom native output.
+    /// Verifies the official eight-bit quantizer boundaries against exact current-libaom native output.
     /// </summary>
     [Fact]
-    public void DecodeOfficialEightBitQuantizerBoundarySequencesMatchPinnedLibaomReferences()
+    public void DecodeOfficialEightBitQuantizerBoundarySequencesMatchCurrentLibaomReferences()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialEightBitQuantizerBoundaryFixtures,
             ReconstructionConfigurations);
@@ -1761,10 +1818,10 @@ public class Av1ReconstructionConformanceTests
         => ValidateOfficialEightBitQuantizerBoundaryFixturesWithConfiguration(Configuration.Default);
 
     /// <summary>
-    /// Verifies the official ten-bit quantizer boundaries against exact pinned-libaom native output.
+    /// Verifies the official ten-bit quantizer boundaries against exact current-libaom native output.
     /// </summary>
     [Fact]
-    public void DecodeOfficialTenBitQuantizerBoundarySequencesMatchPinnedLibaomReferences()
+    public void DecodeOfficialTenBitQuantizerBoundarySequencesMatchCurrentLibaomReferences()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialTenBitQuantizerBoundaryFixtures,
             ReconstructionConfigurations);
@@ -1790,6 +1847,16 @@ public class Av1ReconstructionConformanceTests
         ValidateOfficialEightBitQuantizerBoundaryFixturesWithConfiguration(configuration);
         ValidateOfficialTenBitQuantizerBoundaryFixturesWithConfiguration(configuration);
 
+        // Each decoded frame owns one maximum-sized coefficient-context scratch rent. An allocation per transform
+        // would produce hundreds of identically typed smaller rents for these deliberately dense fixtures.
+        int coefficientScratchLength =
+            ((Av1Constants.MaxTransformSize / 2) + Av1Constants.TransformPadHorizontal) *
+            (Av1Constants.TransformPadTop + (Av1Constants.MaxTransformSize / 2) + Av1Constants.TransformPadBottom);
+
+        int coefficientScratchAllocations = allocator.AllocationLog.Count(
+            allocation => allocation.ElementType == typeof(byte) && allocation.Length == coefficientScratchLength);
+
+        Assert.Equal(4 * OfficialQuantizerFixtureFrameCount, coefficientScratchAllocations);
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
         Assert.All(
             allocator.AllocationLog,
@@ -4194,13 +4261,15 @@ public class Av1ReconstructionConformanceTests
             int modeInfoRow = (y << subsamplingY) >> Av1Constants.ModeInfoSizeLog2;
             Av1BlockModeInfo modeInfo = frameInfo.GetModeInfoAt(new Point(modeInfoColumn, modeInfoRow));
             int blockColumn = modeInfoColumn;
-            while (blockColumn > 0 && ReferenceEquals(frameInfo.GetModeInfoAt(new Point(blockColumn - 1, modeInfoRow)), modeInfo))
+            while (blockColumn > 0 &&
+                frameInfo.GetModeInfoAt(new Point(blockColumn - 1, modeInfoRow)).ModeInfoIndex == modeInfo.ModeInfoIndex)
             {
                 blockColumn--;
             }
 
             int blockRow = modeInfoRow;
-            while (blockRow > 0 && ReferenceEquals(frameInfo.GetModeInfoAt(new Point(modeInfoColumn, blockRow - 1)), modeInfo))
+            while (blockRow > 0 &&
+                frameInfo.GetModeInfoAt(new Point(modeInfoColumn, blockRow - 1)).ModeInfoIndex == modeInfo.ModeInfoIndex)
             {
                 blockRow--;
             }

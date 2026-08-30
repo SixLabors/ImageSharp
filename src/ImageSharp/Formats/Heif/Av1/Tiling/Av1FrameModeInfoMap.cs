@@ -9,14 +9,14 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 internal partial class Av1FrameInfo
 {
     /// <summary>
-    /// Mapping of <see cref="Av1BlockModeInfo"/> instances, from position to index into the <see cref="Av1FrameInfo"/>.
+    /// Mapping of <see cref="Av1BlockModeInfo"/> values, from position to index into the <see cref="Av1FrameInfo"/>.
     /// </summary>
     public class Av1FrameModeInfoMap
     {
         /// <summary>
         /// Stores the mode-information index assigned to each aligned 4x4 frame location.
         /// </summary>
-        private readonly ushort[] offsets;
+        private readonly int[] offsets;
 
         /// <summary>
         /// The dimensions of <see cref="offsets"/> in 4x4 mode-information units.
@@ -31,7 +31,7 @@ internal partial class Av1FrameInfo
         {
             this.alignedModeInfoCount = modeInfoCount;
             this.NextIndex = 0;
-            this.offsets = new ushort[this.alignedModeInfoCount.Width * this.alignedModeInfoCount.Height];
+            this.offsets = new int[this.alignedModeInfoCount.Width * this.alignedModeInfoCount.Height];
         }
 
         /// <summary>
@@ -70,7 +70,7 @@ internal partial class Av1FrameInfo
             // because later blocks query their above and left neighbors at cell granularity.
             for (int i = modeInfoLocation.Y; i < modeInfoLocation.Y + bh4; i++)
             {
-                Array.Fill(this.offsets, (ushort)this.NextIndex, (i * this.alignedModeInfoCount.Width) + modeInfoLocation.X, bw4);
+                Array.Fill(this.offsets, this.NextIndex, (i * this.alignedModeInfoCount.Width) + modeInfoLocation.X, bw4);
             }
 
             this.NextIndex++;

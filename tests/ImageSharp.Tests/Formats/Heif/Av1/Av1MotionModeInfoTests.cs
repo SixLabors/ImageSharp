@@ -47,6 +47,7 @@ public class Av1MotionModeInfoTests
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Memory.Span, 0, updateCdf: true);
 
         tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, frameHeader));
+        modeInfo = partitionInfo.ModeInfo;
 
         Assert.Equal(Av1MotionMode.SimpleTranslation, modeInfo.MotionMode);
         Assert.Equal(Av1InterpolationFilter.Sharp, modeInfo.InterpolationFilters[0]);
@@ -103,7 +104,7 @@ public class Av1MotionModeInfoTests
 
         aboveModeInfo.ReferenceFrames[0] = Av1ReferenceFrameType.Last;
         aboveModeInfo.ReferenceFrames[1] = Av1ReferenceFrameType.None;
-        aboveModeInfo.InterpolationFilters.Fill(Av1InterpolationFilter.Regular);
+        aboveModeInfo.InterpolationFilters.Clear();
         tileReader.FrameInfo.UpdateModeInfo(aboveModeInfo, superblockInfo);
         superblockInfo.BlockCount++;
 
@@ -137,6 +138,7 @@ public class Av1MotionModeInfoTests
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Memory.Span, 0, updateCdf: true);
 
         tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, frameHeader));
+        modeInfo = partitionInfo.ModeInfo;
 
         Assert.Equal(Av1ReferenceFrameType.Last, modeInfo.ReferenceFrames[0]);
         Assert.Equal(Av1ReferenceFrameType.None, modeInfo.ReferenceFrames[1]);
@@ -187,6 +189,7 @@ public class Av1MotionModeInfoTests
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.Memory.Span, 0, updateCdf: true);
 
         tileReader.ReadInterFrameModeInfo(ref decoder, ref partitionInfo, new Av1TileInfo(0, 0, frameHeader));
+        modeInfo = partitionInfo.ModeInfo;
 
         Assert.Equal(Av1ReferenceFrameType.Last, modeInfo.ReferenceFrames[0]);
         Assert.Equal(Av1ReferenceFrameType.Intra, modeInfo.ReferenceFrames[1]);

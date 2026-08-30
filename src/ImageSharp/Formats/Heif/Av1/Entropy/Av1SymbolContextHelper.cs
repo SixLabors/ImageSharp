@@ -200,17 +200,19 @@ internal static class Av1SymbolContextHelper
         int aboveContext = 0;
         if (above is not null)
         {
-            aboveContext = above.ReferenceFrames[1] > Av1ReferenceFrameType.Intra
-                ? above.CompoundGroupIndex ? 1 : 0
-                : above.ReferenceFrames[0] == Av1ReferenceFrameType.Alternate ? 3 : 0;
+            Av1BlockModeInfo aboveModeInfo = above.Value;
+            aboveContext = aboveModeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra
+                ? aboveModeInfo.CompoundGroupIndex ? 1 : 0
+                : aboveModeInfo.ReferenceFrames[0] == Av1ReferenceFrameType.Alternate ? 3 : 0;
         }
 
         int leftContext = 0;
         if (left is not null)
         {
-            leftContext = left.ReferenceFrames[1] > Av1ReferenceFrameType.Intra
-                ? left.CompoundGroupIndex ? 1 : 0
-                : left.ReferenceFrames[0] == Av1ReferenceFrameType.Alternate ? 3 : 0;
+            Av1BlockModeInfo leftModeInfo = left.Value;
+            leftContext = leftModeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra
+                ? leftModeInfo.CompoundGroupIndex ? 1 : 0
+                : leftModeInfo.ReferenceFrames[0] == Av1ReferenceFrameType.Alternate ? 3 : 0;
         }
 
         return Math.Min(5, aboveContext + leftContext);
@@ -244,17 +246,19 @@ internal static class Av1SymbolContextHelper
         int aboveContext = 0;
         if (above is not null)
         {
-            aboveContext = above.ReferenceFrames[1] > Av1ReferenceFrameType.Intra
-                ? above.CompoundIndex ? 1 : 0
-                : above.ReferenceFrames[0] == Av1ReferenceFrameType.Alternate ? 1 : 0;
+            Av1BlockModeInfo aboveModeInfo = above.Value;
+            aboveContext = aboveModeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra
+                ? aboveModeInfo.CompoundIndex ? 1 : 0
+                : aboveModeInfo.ReferenceFrames[0] == Av1ReferenceFrameType.Alternate ? 1 : 0;
         }
 
         int leftContext = 0;
         if (left is not null)
         {
-            leftContext = left.ReferenceFrames[1] > Av1ReferenceFrameType.Intra
-                ? left.CompoundIndex ? 1 : 0
-                : left.ReferenceFrames[0] == Av1ReferenceFrameType.Alternate ? 1 : 0;
+            Av1BlockModeInfo leftModeInfo = left.Value;
+            leftContext = leftModeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra
+                ? leftModeInfo.CompoundIndex ? 1 : 0
+                : leftModeInfo.ReferenceFrames[0] == Av1ReferenceFrameType.Alternate ? 1 : 0;
         }
 
         return aboveContext + leftContext + (forwardDistance == backwardDistance ? 3 : 0);
@@ -703,8 +707,10 @@ internal static class Av1SymbolContextHelper
     {
         if (above is not null && left is not null)
         {
-            bool aboveIsIntra = above.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra;
-            bool leftIsIntra = left.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra;
+            Av1BlockModeInfo aboveModeInfo = above.Value;
+            Av1BlockModeInfo leftModeInfo = left.Value;
+            bool aboveIsIntra = aboveModeInfo.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra;
+            bool leftIsIntra = leftModeInfo.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra;
 
             // AV1 reserves context three for two intra neighbors, context one for a mixed pair, and context zero for
             // two inter neighbors. These values directly index intra_inter_cdf and are not probability ranks.
@@ -720,12 +726,12 @@ internal static class Av1SymbolContextHelper
         // context zero, matching the unavailable-neighbor behavior in libaom's av1_get_intra_inter_context.
         if (above is not null)
         {
-            return above.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra ? 2 : 0;
+            return above.Value.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra ? 2 : 0;
         }
 
         if (left is not null)
         {
-            return left.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra ? 2 : 0;
+            return left.Value.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra ? 2 : 0;
         }
 
         return 0;
@@ -743,29 +749,31 @@ internal static class Av1SymbolContextHelper
         // their forward/backward direction, while intra neighbors take the same branch as a non-forward reference.
         if (above is not null && left is not null)
         {
-            bool aboveIsCompound = above.ReferenceFrames[1] > Av1ReferenceFrameType.Intra;
-            bool leftIsCompound = left.ReferenceFrames[1] > Av1ReferenceFrameType.Intra;
+            Av1BlockModeInfo aboveModeInfo = above.Value;
+            Av1BlockModeInfo leftModeInfo = left.Value;
+            bool aboveIsCompound = aboveModeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra;
+            bool leftIsCompound = leftModeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra;
 
             if (!aboveIsCompound && !leftIsCompound)
             {
-                bool aboveIsBackward = above.ReferenceFrames[0] >= Av1ReferenceFrameType.Backward;
-                bool leftIsBackward = left.ReferenceFrames[0] >= Av1ReferenceFrameType.Backward;
+                bool aboveIsBackward = aboveModeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Backward;
+                bool leftIsBackward = leftModeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Backward;
 
                 return aboveIsBackward == leftIsBackward ? 0 : 1;
             }
 
             if (!aboveIsCompound)
             {
-                bool aboveIsBackward = above.ReferenceFrames[0] >= Av1ReferenceFrameType.Backward;
-                bool aboveIsIntra = above.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra;
+                bool aboveIsBackward = aboveModeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Backward;
+                bool aboveIsIntra = aboveModeInfo.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra;
 
                 return 2 + (aboveIsBackward || aboveIsIntra ? 1 : 0);
             }
 
             if (!leftIsCompound)
             {
-                bool leftIsBackward = left.ReferenceFrames[0] >= Av1ReferenceFrameType.Backward;
-                bool leftIsIntra = left.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra;
+                bool leftIsBackward = leftModeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Backward;
+                bool leftIsIntra = leftModeInfo.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra;
 
                 return 2 + (leftIsBackward || leftIsIntra ? 1 : 0);
             }
@@ -777,14 +785,15 @@ internal static class Av1SymbolContextHelper
 
         if (neighbor is not null)
         {
-            bool isCompound = neighbor.ReferenceFrames[1] > Av1ReferenceFrameType.Intra;
+            Av1BlockModeInfo neighborModeInfo = neighbor.Value;
+            bool isCompound = neighborModeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra;
 
             if (isCompound)
             {
                 return 3;
             }
 
-            return neighbor.ReferenceFrames[0] >= Av1ReferenceFrameType.Backward ? 1 : 0;
+            return neighborModeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Backward ? 1 : 0;
         }
 
         // With no spatial votes, AV1 uses the neutral single-versus-compound context rather than context zero.
@@ -801,8 +810,10 @@ internal static class Av1SymbolContextHelper
     {
         if (above is not null && left is not null)
         {
-            bool aboveIntra = !IsInterBlock(above);
-            bool leftIntra = !IsInterBlock(left);
+            Av1BlockModeInfo aboveModeInfo = above.Value;
+            Av1BlockModeInfo leftModeInfo = left.Value;
+            bool aboveIntra = !IsInterBlock(aboveModeInfo);
+            bool leftIntra = !IsInterBlock(leftModeInfo);
             if (aboveIntra && leftIntra)
             {
                 return 2;
@@ -810,14 +821,14 @@ internal static class Av1SymbolContextHelper
 
             if (aboveIntra || leftIntra)
             {
-                Av1BlockModeInfo inter = aboveIntra ? left : above;
+                Av1BlockModeInfo inter = aboveIntra ? leftModeInfo : aboveModeInfo;
                 return HasCompoundReference(inter) ? 1 + (2 * (HasUnidirectionalCompoundReferences(inter) ? 1 : 0)) : 2;
             }
 
-            bool aboveSingle = !HasCompoundReference(above);
-            bool leftSingle = !HasCompoundReference(left);
-            Av1ReferenceFrameType abovePrimary = above.ReferenceFrames[0];
-            Av1ReferenceFrameType leftPrimary = left.ReferenceFrames[0];
+            bool aboveSingle = !HasCompoundReference(aboveModeInfo);
+            bool leftSingle = !HasCompoundReference(leftModeInfo);
+            Av1ReferenceFrameType abovePrimary = aboveModeInfo.ReferenceFrames[0];
+            Av1ReferenceFrameType leftPrimary = leftModeInfo.ReferenceFrames[0];
             if (aboveSingle && leftSingle)
             {
                 return 1 + (2 * (IsBackwardReference(abovePrimary) == IsBackwardReference(leftPrimary) ? 1 : 0));
@@ -825,7 +836,7 @@ internal static class Av1SymbolContextHelper
 
             if (aboveSingle || leftSingle)
             {
-                Av1BlockModeInfo compound = aboveSingle ? left : above;
+                Av1BlockModeInfo compound = aboveSingle ? leftModeInfo : aboveModeInfo;
                 if (!HasUnidirectionalCompoundReferences(compound))
                 {
                     return 1;
@@ -834,8 +845,8 @@ internal static class Av1SymbolContextHelper
                 return 3 + (IsBackwardReference(abovePrimary) == IsBackwardReference(leftPrimary) ? 1 : 0);
             }
 
-            bool aboveUnidirectional = HasUnidirectionalCompoundReferences(above);
-            bool leftUnidirectional = HasUnidirectionalCompoundReferences(left);
+            bool aboveUnidirectional = HasUnidirectionalCompoundReferences(aboveModeInfo);
+            bool leftUnidirectional = HasUnidirectionalCompoundReferences(leftModeInfo);
             if (!aboveUnidirectional && !leftUnidirectional)
             {
                 return 0;
@@ -850,12 +861,18 @@ internal static class Av1SymbolContextHelper
         }
 
         Av1BlockModeInfo? edge = above ?? left;
-        if (edge is null || !IsInterBlock(edge) || !HasCompoundReference(edge))
+        if (edge is null)
         {
             return 2;
         }
 
-        return HasUnidirectionalCompoundReferences(edge) ? 4 : 0;
+        Av1BlockModeInfo edgeModeInfo = edge.Value;
+        if (!IsInterBlock(edgeModeInfo) || !HasCompoundReference(edgeModeInfo))
+        {
+            return 2;
+        }
+
+        return HasUnidirectionalCompoundReferences(edgeModeInfo) ? 4 : 0;
     }
 
     /// <summary>
@@ -984,12 +1001,12 @@ internal static class Av1SymbolContextHelper
 
         if (above is not null)
         {
-            AddNeighborReferenceCounts(above, referenceCounts);
+            AddNeighborReferenceCounts(above.Value, referenceCounts);
         }
 
         if (left is not null)
         {
-            AddNeighborReferenceCounts(left, referenceCounts);
+            AddNeighborReferenceCounts(left.Value, referenceCounts);
         }
     }
 
@@ -1144,8 +1161,8 @@ internal static class Av1SymbolContextHelper
     /// <returns>The context in the inclusive range zero through two.</returns>
     public static int GetSegmentIdPredictedContext(Av1BlockModeInfo? aboveModeInfo, Av1BlockModeInfo? leftModeInfo)
     {
-        int abovePredicted = aboveModeInfo is not null && aboveModeInfo.SegmentIdPredicted ? 1 : 0;
-        int leftPredicted = leftModeInfo is not null && leftModeInfo.SegmentIdPredicted ? 1 : 0;
+        int abovePredicted = aboveModeInfo is not null && aboveModeInfo.Value.SegmentIdPredicted ? 1 : 0;
+        int leftPredicted = leftModeInfo is not null && leftModeInfo.Value.SegmentIdPredicted ? 1 : 0;
         return abovePredicted + leftPredicted;
     }
 
@@ -1306,7 +1323,8 @@ internal static class Av1SymbolContextHelper
             return SwitchableInterpolationFilterCount;
         }
 
-        ReadOnlySpan<Av1ReferenceFrameType> referenceFrames = modeInfo.ReferenceFrames;
+        Av1BlockModeInfo neighborModeInfo = modeInfo.Value;
+        ReadOnlySpan<Av1ReferenceFrameType> referenceFrames = neighborModeInfo.ReferenceFrames;
 
         // A compound neighbor contributes when either of its references matches the current primary reference.
         if (referenceFrames[0] != referenceFrame && referenceFrames[1] != referenceFrame)
@@ -1314,6 +1332,6 @@ internal static class Av1SymbolContextHelper
             return SwitchableInterpolationFilterCount;
         }
 
-        return (int)modeInfo.InterpolationFilters[direction];
+        return (int)neighborModeInfo.InterpolationFilters[direction];
     }
 }

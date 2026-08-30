@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 
@@ -97,26 +98,24 @@ internal static class Av1PalettePredictor
     /// </summary>
     public static void Predict(
         ReadOnlySpan<ushort> paletteColors,
-        ReadOnlySpan<byte> colorIndexMap,
-        int colorIndexMapStride,
+        Buffer2DRegion<byte> colorIndexMap,
         Span<byte> destination,
         int destinationStride,
         int width,
         int height)
-        => Predictor<PaletteOperator>.Predict(paletteColors, colorIndexMap, colorIndexMapStride, destination, destinationStride, width, height);
+        => Predictor<PaletteOperator>.Predict(paletteColors, colorIndexMap, destination, destinationStride, width, height);
 
     /// <summary>
     /// Reconstructs a high-bit-depth palette-predicted block.
     /// </summary>
     public static void Predict(
         ReadOnlySpan<ushort> paletteColors,
-        ReadOnlySpan<byte> colorIndexMap,
-        int colorIndexMapStride,
+        Buffer2DRegion<byte> colorIndexMap,
         Span<short> destination,
         int destinationStride,
         int width,
         int height)
-        => Predictor<PaletteOperator>.Predict(paletteColors, colorIndexMap, colorIndexMapStride, destination, destinationStride, width, height);
+        => Predictor<PaletteOperator>.Predict(paletteColors, colorIndexMap, destination, destinationStride, width, height);
 
     /// <summary>
     /// Maps decoded palette indices to reconstructed samples.
@@ -186,14 +185,12 @@ internal static class Av1PalettePredictor
         /// </summary>
         public static void Predict(
             ReadOnlySpan<ushort> paletteColors,
-            ReadOnlySpan<byte> colorIndexMap,
-            int colorIndexMapStride,
+            Buffer2DRegion<byte> colorIndexMap,
             Span<byte> destination,
             int destinationStride,
             int width,
             int height)
         {
-            ref byte mapBase = ref MemoryMarshal.GetReference(colorIndexMap);
             ref byte destinationBase = ref MemoryMarshal.GetReference(destination);
 
             // AV1 palettes contain at most eight colors. Repeating all eight entries in every 128-bit lane keeps native
@@ -209,7 +206,7 @@ internal static class Av1PalettePredictor
 
             for (int row = 0; row < height; row++)
             {
-                ref byte mapRow = ref Unsafe.Add(ref mapBase, row * colorIndexMapStride);
+                ref byte mapRow = ref MemoryMarshal.GetReference(colorIndexMap.DangerousGetRowSpan(row));
                 ref byte destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
                 int column = 0;
 
@@ -278,14 +275,12 @@ internal static class Av1PalettePredictor
         /// </summary>
         public static void Predict(
             ReadOnlySpan<ushort> paletteColors,
-            ReadOnlySpan<byte> colorIndexMap,
-            int colorIndexMapStride,
+            Buffer2DRegion<byte> colorIndexMap,
             Span<short> destination,
             int destinationStride,
             int width,
             int height)
         {
-            ref byte mapBase = ref MemoryMarshal.GetReference(colorIndexMap);
             ref short destinationBase = ref MemoryMarshal.GetReference(destination);
             InlineArray8<ushort> paletteStorage = default;
             paletteColors.CopyTo(paletteStorage);
@@ -295,7 +290,7 @@ internal static class Av1PalettePredictor
 
             for (int row = 0; row < height; row++)
             {
-                ref byte mapRow = ref Unsafe.Add(ref mapBase, row * colorIndexMapStride);
+                ref byte mapRow = ref MemoryMarshal.GetReference(colorIndexMap.DangerousGetRowSpan(row));
                 ref short destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
                 int column = 0;
 

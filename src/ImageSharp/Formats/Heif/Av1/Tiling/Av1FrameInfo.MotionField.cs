@@ -486,19 +486,23 @@ internal partial class Av1FrameInfo
     }
 
     /// <summary>
-    /// Releases one owner and returns motion-field storage after the final owner is released.
+    /// Releases one owner and returns allocator-backed frame storage after the final owner is released.
     /// </summary>
     public void ReleaseOwner()
     {
         this.ownerCount--;
         if (this.ownerCount == 0)
         {
-            // Retained and temporal fields can each be frame-sized. Return both together only after the tile reader,
-            // every reference or presentation frame, and the decoder's inspectable result have released ownership.
+            // Frame-sized motion and palette storage remains addressable through retained mode information. Return
+            // all of it together only after tile, reference, presentation, and decoder-result owners are gone.
             this.retainedMotionField?.Dispose();
             this.retainedMotionField = null;
             this.temporalMotionField?.Dispose();
             this.temporalMotionField = null;
+            this.lumaPaletteColorIndexMap?.Dispose();
+            this.lumaPaletteColorIndexMap = null;
+            this.chromaPaletteColorIndexMap?.Dispose();
+            this.chromaPaletteColorIndexMap = null;
         }
     }
 

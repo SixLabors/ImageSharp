@@ -160,7 +160,7 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     /// Reconstructs every tile row in one tile column.
     /// </summary>
     /// <param name="tileColumn">The zero-based tile-column index.</param>
-    /// <remarks>SVT-AV1: <c>decode_tile</c>.</remarks>
+    /// <remarks>Follows libaom's single-threaded <c>decode_tiles</c> ordering.</remarks>
     private void DecodeFrameTiles(int tileColumn)
     {
         ObuTileGroupHeader tileInfo = this.frameHeader.TilesInfo;
@@ -187,7 +187,7 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     /// <param name="tileColumn">The zero-based tile-column index.</param>
     /// <param name="modeInfoRow">The frame-relative row in 4x4 mode-info units.</param>
     /// <param name="superblockRow">The frame-relative superblock row.</param>
-    /// <remarks>SVT-AV1: <c>decode_tile_row</c>.</remarks>
+    /// <remarks>Corresponds to the superblock-row traversal in libaom's <c>decode_tile</c>.</remarks>
     private void DecodeTileSuperblockRow(int tileRow, int tileColumn, int modeInfoRow, int superblockRow)
     {
         ObuTileGroupHeader tileInfo = this.frameHeader.TilesInfo;
@@ -210,7 +210,7 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     /// <param name="modeInfoPosition">The superblock's top-left position in 4x4 mode-info units.</param>
     /// <param name="superblockInfo">The decoded syntax and block modes for the superblock.</param>
     /// <param name="tileInfo">The tile that contains the superblock.</param>
-    /// <remarks>SVT-AV1: <c>svt_aom_decode_super_block</c>.</remarks>
+    /// <remarks>Corresponds to libaom's superblock decode boundary.</remarks>
     public void DecodeSuperblock(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         this.blockDecoder.UpdateSuperblock(superblockInfo);
@@ -224,7 +224,7 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     /// <param name="modeInfoPosition">The superblock's frame-relative origin in 4x4 mode-info units.</param>
     /// <param name="superblockInfo">The superblock whose block modes are traversed.</param>
     /// <param name="tileInfo">The tile boundary information used by intra prediction.</param>
-    /// <remarks>SVT-AV1: <c>decode_partition</c>.</remarks>
+    /// <remarks>Replays the depth-first block order produced by libaom's <c>decode_partition</c>.</remarks>
     private void DecodePartition(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())

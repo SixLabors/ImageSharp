@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -12,6 +13,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// </summary>
 internal ref struct Av1PartitionInfo
 {
+    /// <summary>
+    /// The decoded mode information populated for this partition.
+    /// </summary>
+    private Av1BlockModeInfo modeInfo;
+
     /// <summary>
     /// The luma block width in samples.
     /// </summary>
@@ -41,7 +47,7 @@ internal ref struct Av1PartitionInfo
     /// <param name="partitionType">The partition type that produced the block.</param>
     public Av1PartitionInfo(Av1BlockModeInfo modeInfo, Av1SuperblockInfo superblockInfo, bool isChroma, Av1PartitionType partitionType)
     {
-        this.ModeInfo = modeInfo;
+        this.modeInfo = modeInfo;
         this.SuperblockInfo = superblockInfo;
         this.IsChroma = isChroma;
         this.Type = partitionType;
@@ -50,7 +56,8 @@ internal ref struct Av1PartitionInfo
     /// <summary>
     /// Gets the decoded block mode information.
     /// </summary>
-    public Av1BlockModeInfo ModeInfo { get; }
+    [UnscopedRef]
+    public ref Av1BlockModeInfo ModeInfo => ref this.modeInfo;
 
     /// <summary>
     /// Gets the <see cref="Av1SuperblockInfo"/> this partition resides inside.
@@ -120,6 +127,7 @@ internal ref struct Av1PartitionInfo
     /// <summary>
     /// Gets the reference-frame types selected for the block.
     /// </summary>
+    [UnscopedRef]
     public Span<Av1ReferenceFrameType> ReferenceFrames => this.ModeInfo.ReferenceFrames;
 
     /// <summary>

@@ -26,7 +26,7 @@ internal class Av1DeQuantizationContext
     /// </summary>
     /// <param name="sequenceHeader">The sequence header that supplies the coded bit depth.</param>
     /// <param name="frameHeader">The frame header that supplies segmentation and quantization parameters.</param>
-    /// <remarks>SVT-AV1: <c>svt_aom_setup_segmentation_dequant</c>.</remarks>
+    /// <remarks>Corresponds to <c>setup_segmentation_dequant</c> in libaom.</remarks>
     public Av1DeQuantizationContext(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         Av1BitDepth bitDepth = sequenceHeader.ColorConfig.BitDepth;
@@ -40,11 +40,11 @@ internal class Av1DeQuantizationContext
 
             for (int plane = 0; plane < Av1Constants.MaxPlanes; plane++)
             {
-                int dc_delta_q = frameHeader.QuantizationParameters.DeltaQDc[plane];
-                int ac_delta_q = frameHeader.QuantizationParameters.DeltaQAc[plane];
+                int dcDeltaQ = frameHeader.QuantizationParameters.DeltaQDc[plane];
+                int acDeltaQ = frameHeader.QuantizationParameters.DeltaQAc[plane];
 
-                this.dcContent[segmentId][plane] = Av1QuantizationLookup.GetDcQuant(qindex, dc_delta_q, bitDepth);
-                this.acContent[segmentId][plane] = Av1QuantizationLookup.GetAcQuant(qindex, ac_delta_q, bitDepth);
+                this.dcContent[segmentId][plane] = Av1QuantizationLookup.GetDcQuant(qindex, dcDeltaQ, bitDepth);
+                this.acContent[segmentId][plane] = Av1QuantizationLookup.GetAcQuant(qindex, acDeltaQ, bitDepth);
             }
         }
     }

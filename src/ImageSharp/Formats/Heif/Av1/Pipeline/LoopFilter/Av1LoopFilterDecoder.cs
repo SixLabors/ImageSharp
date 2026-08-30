@@ -237,9 +237,9 @@ internal class Av1LoopFilterDecoder
         bool currentSkippedTransform = modeInfo.Skip && modeInfo.ReferenceFrames[0] > Av1ReferenceFrameType.Intra;
         bool previousSkippedTransform = previousModeInfo.Skip && previousModeInfo.ReferenceFrames[0] > Av1ReferenceFrameType.Intra;
 
-        // The mode-info map stores one object for every covered position, so object identity is the exact equivalent
-        // of libaom's current-versus-previous MB_MODE_INFO pointer comparison at a prediction-unit boundary.
-        bool isBlockEdge = !ReferenceEquals(modeInfo, previousModeInfo);
+        // Every covered 4x4 position carries the owning block's storage index. Comparing those indices is the value-type
+        // equivalent of libaom's current-versus-previous MB_MODE_INFO pointer comparison at a prediction-unit boundary.
+        bool isBlockEdge = modeInfo.ModeInfoIndex != previousModeInfo.ModeInfoIndex;
         bool applyFilter = isTransformEdge && (isBlockEdge || !currentSkippedTransform || !previousSkippedTransform);
         if (!applyFilter)
         {

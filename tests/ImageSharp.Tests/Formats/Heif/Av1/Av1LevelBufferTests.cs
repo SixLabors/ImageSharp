@@ -20,7 +20,7 @@ public class Av1LevelBufferTests
     {
         // Arrange
         Size size = new(width, height);
-        Av1LevelBuffer levels = new(Configuration.Default, size);
+        using Av1LevelBuffer levels = new(Configuration.Default, size);
         for (byte i = 0; i < 4; i++)
         {
             levels.GetRow(i).Fill(i);
@@ -43,7 +43,7 @@ public class Av1LevelBufferTests
     {
         // Arrange
         Size size = new(width, height);
-        Av1LevelBuffer levels = new(Configuration.Default, size);
+        using Av1LevelBuffer levels = new(Configuration.Default, size);
         for (byte i = 0; i < height; i++)
         {
             levels.GetRow(i).Fill(i);
@@ -69,7 +69,7 @@ public class Av1LevelBufferTests
     {
         // Arrange
         Size size = new(width, height);
-        Av1LevelBuffer levels = new(Configuration.Default, size);
+        using Av1LevelBuffer levels = new(Configuration.Default, size);
         for (byte i = 0; i < height; i++)
         {
             levels.GetRow(i).Fill(i);

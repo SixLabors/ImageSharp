@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
@@ -40,12 +41,19 @@ public class Av1PalettePredictorTests
                 int mapStride = width + 5;
                 int destinationStride = width + 9;
                 byte[] colorIndexMap = CreateColorIndexMap(mapStride, height, width, paletteSize);
+                using Buffer2D<byte> colorIndexMapBuffer = Configuration.Default.MemoryAllocator.Allocate2D<byte>(mapStride, height);
+                for (int row = 0; row < height; row++)
+                {
+                    colorIndexMap.AsSpan(row * mapStride, mapStride).CopyTo(colorIndexMapBuffer.DangerousGetRowSpan(row));
+                }
+
+                Buffer2DRegion<byte> colorIndexMapRegion = new(colorIndexMapBuffer);
                 ushort[] bytePalette = CreatePalette(paletteSize, 8);
                 byte[] expectedBytes = Enumerable.Repeat((byte)251, destinationStride * height).ToArray();
                 byte[] actualBytes = (byte[])expectedBytes.Clone();
 
                 ApplyReference(bytePalette, colorIndexMap, mapStride, expectedBytes, destinationStride, width, height);
-                Av1PalettePredictor.Predict(bytePalette, colorIndexMap, mapStride, actualBytes, destinationStride, width, height);
+                Av1PalettePredictor.Predict(bytePalette, colorIndexMapRegion, actualBytes, destinationStride, width, height);
                 Assert.Equal(expectedBytes, actualBytes);
 
                 foreach (int bitDepth in new[] { 10, 12 })
@@ -55,7 +63,7 @@ public class Av1PalettePredictorTests
                     short[] actual = (short[])expected.Clone();
 
                     ApplyReference(palette, colorIndexMap, mapStride, expected, destinationStride, width, height);
-                    Av1PalettePredictor.Predict(palette, colorIndexMap, mapStride, actual, destinationStride, width, height);
+                    Av1PalettePredictor.Predict(palette, colorIndexMapRegion, actual, destinationStride, width, height);
                     Assert.Equal(expected, actual);
                 }
             }

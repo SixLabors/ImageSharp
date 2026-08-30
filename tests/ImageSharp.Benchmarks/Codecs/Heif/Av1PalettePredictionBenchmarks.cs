@@ -6,6 +6,7 @@ using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Benchmarks.Codecs.Heif;
 
@@ -46,7 +47,12 @@ public class Av1PalettePredictionBenchmarks
     /// <summary>
     /// The decoded color-index map for one maximum-size palette block.
     /// </summary>
-    private readonly byte[] colorIndexMap = new byte[BlockSize * BlockSize];
+    private Buffer2D<byte> colorIndexMapBuffer;
+
+    /// <summary>
+    /// The row-addressable view of <see cref="colorIndexMapBuffer"/>.
+    /// </summary>
+    private Buffer2DRegion<byte> colorIndexMap;
 
     /// <summary>
     /// The frame-wide 8-bit reconstruction surface.
@@ -64,14 +70,23 @@ public class Av1PalettePredictionBenchmarks
     [GlobalSetup]
     public void Setup()
     {
+        this.colorIndexMapBuffer = SixLabors.ImageSharp.Configuration.Default.MemoryAllocator.Allocate2D<byte>(BlockSize, BlockSize);
+        this.colorIndexMap = new Buffer2DRegion<byte>(this.colorIndexMapBuffer);
         for (int row = 0; row < BlockSize; row++)
         {
+            Span<byte> colorIndexRow = this.colorIndexMap.DangerousGetRowSpan(row);
             for (int column = 0; column < BlockSize; column++)
             {
-                this.colorIndexMap[(row * BlockSize) + column] = (byte)(((row * 5) + (column * 3)) & 7);
+                colorIndexRow[column] = (byte)(((row * 5) + (column * 3)) & 7);
             }
         }
     }
+
+    /// <summary>
+    /// Releases the row-addressable color-index map after the benchmark run.
+    /// </summary>
+    [GlobalCleanup]
+    public void Cleanup() => this.colorIndexMapBuffer?.Dispose();
 
     /// <summary>
     /// Measures frame-wide 8-bit palette reconstruction.
@@ -85,7 +100,7 @@ public class Av1PalettePredictionBenchmarks
         {
             for (int column = 0; column < Width; column += BlockSize)
             {
-                Av1PalettePredictor.Predict(this.palette8, this.colorIndexMap, BlockSize, this.destination8.AsSpan((row * Width) + column), Width, BlockSize, BlockSize);
+                Av1PalettePredictor.Predict(this.palette8, this.colorIndexMap, this.destination8.AsSpan((row * Width) + column), Width, BlockSize, BlockSize);
             }
         }
 
@@ -104,7 +119,7 @@ public class Av1PalettePredictionBenchmarks
         {
             for (int column = 0; column < Width; column += BlockSize)
             {
-                Av1PalettePredictor.Predict(this.palette12, this.colorIndexMap, BlockSize, this.destination12.AsSpan((row * Width) + column), Width, BlockSize, BlockSize);
+                Av1PalettePredictor.Predict(this.palette12, this.colorIndexMap, this.destination12.AsSpan((row * Width) + column), Width, BlockSize, BlockSize);
             }
         }
 

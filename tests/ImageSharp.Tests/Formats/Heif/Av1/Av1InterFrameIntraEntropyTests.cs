@@ -160,8 +160,8 @@ public class Av1InterFrameIntraEntropyTests
         bool leftIsInter,
         int expected)
     {
-        Av1BlockModeInfo above = hasAbove ? CreateModeInfo(aboveIsInter) : null;
-        Av1BlockModeInfo left = hasLeft ? CreateModeInfo(leftIsInter) : null;
+        Av1BlockModeInfo? above = hasAbove ? CreateModeInfo(aboveIsInter) : null;
+        Av1BlockModeInfo? left = hasLeft ? CreateModeInfo(leftIsInter) : null;
 
         int actual = Av1SymbolContextHelper.GetIntraInterContext(above, left);
 

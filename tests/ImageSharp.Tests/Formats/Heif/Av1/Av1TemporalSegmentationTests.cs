@@ -62,6 +62,32 @@ public class Av1TemporalSegmentationTests
     }
 
     /// <summary>
+    /// Verifies that a spatial segment symbol cannot select an identifier above the frame's last active segment.
+    /// </summary>
+    [Fact]
+    public void SpatialSegmentIdOutsideActiveRangeIsRejected()
+    {
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(64, 64);
+        ObuFrameHeader frameHeader = CreateFrameHeader(16, 16, segmentationUpdateMap: 1, segmentationTemporalUpdate: 0);
+        frameHeader.SegmentationParameters.LastActiveSegmentId = 0;
+        using Av1TileReader tileReader = new(Configuration.Default, sequenceHeader, frameHeader);
+        using Av1SymbolWriter writer = new(Configuration.Default, 1, updateCdf: true);
+        writer.WriteSymbol(Av1Constants.MaxSegmentCount - 1, Av1DefaultDistributions.SegmentId[0]);
+        using IMemoryOwner<byte> encoded = writer.Exit();
+
+        Assert.Throws<InvalidImageContentException>(
+            () =>
+            {
+                Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, Point.Empty);
+                Av1SuperblockInfo superblockInfo = new(tileReader.FrameInfo, Point.Empty);
+                Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, false, Av1PartitionType.None);
+                Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0, updateCdf: true);
+
+                tileReader.ReadInterSegmentId(ref decoder, ref partitionInfo, beforeSkip: false);
+            });
+    }
+
+    /// <summary>
     /// Verifies that only neighboring blocks which selected temporal prediction contribute to the binary CDF context.
     /// </summary>
     /// <param name="hasAbove">Whether an above block is available.</param>
@@ -82,8 +108,8 @@ public class Av1TemporalSegmentationTests
         bool leftPredicted,
         int expected)
     {
-        Av1BlockModeInfo aboveModeInfo = hasAbove ? CreateModeInfo(abovePredicted) : null;
-        Av1BlockModeInfo leftModeInfo = hasLeft ? CreateModeInfo(leftPredicted) : null;
+        Av1BlockModeInfo? aboveModeInfo = hasAbove ? CreateModeInfo(abovePredicted) : null;
+        Av1BlockModeInfo? leftModeInfo = hasLeft ? CreateModeInfo(leftPredicted) : null;
 
         int actual = Av1SymbolContextHelper.GetSegmentIdPredictedContext(aboveModeInfo, leftModeInfo);
 
@@ -146,6 +172,7 @@ public class Av1TemporalSegmentationTests
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0, updateCdf: true);
 
         tileReader.ReadInterSegmentId(ref decoder, ref partitionInfo, beforeSkip: segmentIdPrecedesSkip);
+        modeInfo = partitionInfo.ModeInfo;
 
         Assert.True(modeInfo.SegmentIdPredicted);
         Assert.Equal(2, modeInfo.SegmentId);
@@ -194,6 +221,7 @@ public class Av1TemporalSegmentationTests
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), 0, updateCdf: true);
 
         tileReader.ReadInterSegmentId(ref decoder, ref partitionInfo, beforeSkip: false);
+        modeInfo = partitionInfo.ModeInfo;
 
         Assert.False(modeInfo.SegmentIdPredicted);
         Assert.Equal(3, modeInfo.SegmentId);

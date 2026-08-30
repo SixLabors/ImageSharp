@@ -1,7 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -15,6 +17,23 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 [Trait("Format", "Avif")]
 public class Av1TilingTests
 {
+    /// <summary>
+    /// Verifies that frame mode-information indices do not wrap at the unsigned 16-bit boundary.
+    /// </summary>
+    [Fact]
+    public void ModeInfoMapSupportsMoreThanUShortMaxBlocks()
+    {
+        const int blockCount = ushort.MaxValue + 2;
+        Av1FrameInfo.Av1FrameModeInfoMap map = new(new Size(blockCount, 1));
+        for (int index = 0; index < blockCount; index++)
+        {
+            map.Update(new Point(index, 0), Av1BlockSize.Block4x4);
+        }
+
+        Assert.Equal(blockCount, map.NextIndex);
+        Assert.Equal(blockCount - 1, map[new Point(blockCount - 1, 0)]);
+    }
+
     /// <summary>
     /// Verifies the decoded block geometry and prediction modes against libaom inspection output for a real AVIF image item.
     /// </summary>
@@ -73,6 +92,59 @@ public class Av1TilingTests
         Assert.Equal(4, image.Width);
         Assert.Equal(4, image.Height);
         Assert.True(image.Frames.RootFrame.PixelBuffer.DangerousGetSingleSpan().ContainsAnyExcept(default(Rgba32)));
+    }
+
+    /// <summary>
+    /// Verifies that partition syntax cannot produce a luma block with no valid 4:2:0 chroma representation.
+    /// </summary>
+    [Fact]
+    public void RejectsPartitionThatCannotRepresentSubsampledChroma()
+    {
+        ObuSequenceHeader sequenceHeader = new()
+        {
+            MaxFrameWidth = 64,
+            MaxFrameHeight = 64,
+            Use128x128Superblock = false,
+            ColorConfig = new ObuColorConfig
+            {
+                BitDepth = Av1BitDepth.EightBit,
+                SubSamplingX = true,
+                SubSamplingY = true
+            }
+        };
+        ObuTileGroupHeader tileInfo = new()
+        {
+            TileColumnCount = 1,
+            TileRowCount = 1
+        };
+        tileInfo.TileColumnStartModeInfo[1] = sequenceHeader.SuperblockModeInfoSize;
+        tileInfo.TileRowStartModeInfo[1] = sequenceHeader.SuperblockModeInfoSize;
+        ObuFrameHeader frameHeader = new()
+        {
+            ModeInfoColumnCount = sequenceHeader.SuperblockModeInfoSize,
+            ModeInfoRowCount = sequenceHeader.SuperblockModeInfoSize,
+            ModeInfoStride = sequenceHeader.SuperblockModeInfoSize,
+            TilesInfo = tileInfo,
+            DisableCdfUpdate = true,
+            DisableFrameEndUpdateCdf = true
+        };
+
+        using Av1SymbolWriter writer = new(Configuration.Default, 1, updateCdf: false);
+        Av1Distribution[] partitionTypes = Av1DefaultDistributions.PartitionTypes;
+        Av1BlockSize blockSize = sequenceHeader.SuperblockSize;
+        while (blockSize > Av1BlockSize.Block8x8)
+        {
+            int blockSizeLog = blockSize.Get4x4WidthLog2() - Av1BlockSize.Block8x8.Get4x4WidthLog2();
+            int context = blockSizeLog * Av1Constants.PartitionProbabilitySet;
+            writer.WriteSymbol((int)Av1PartitionType.Split, partitionTypes[context]);
+            blockSize = Av1PartitionType.Split.GetBlockSubSize(blockSize);
+        }
+
+        writer.WriteSymbol((int)Av1PartitionType.Horizontal, partitionTypes[0]);
+        using IMemoryOwner<byte> encoded = writer.Exit();
+        using Av1TileReader tileReader = new(Configuration.Default, sequenceHeader, frameHeader);
+
+        Assert.Throws<InvalidImageContentException>(() => tileReader.ReadTile(encoded.GetSpan(), 0));
     }
 
     [Theory]
@@ -190,8 +262,7 @@ public class Av1TilingTests
                 Span<Av1BlockModeInfo> modeInfos = superblockInfo.GetModeInfos();
 
                 Assert.Equal(superblockInfo.BlockCount, modeInfos.Length);
-                Assert.DoesNotContain(modeInfos.ToArray(), modeInfo => modeInfo is null);
-                Assert.Same(modeInfos[0], tileReader.FrameInfo.GetModeInfo(superblockPosition));
+                Assert.Equal(modeInfos[0].ModeInfoIndex, tileReader.FrameInfo.GetModeInfo(superblockPosition).ModeInfoIndex);
 
                 foreach (Av1BlockModeInfo modeInfo in modeInfos)
                 {
@@ -203,7 +274,9 @@ public class Av1TilingTests
                     {
                         for (int x = 0; x < modeInfo.BlockSize.Get4x4WideCount(); x++)
                         {
-                            Assert.Same(modeInfo, tileReader.FrameInfo.GetModeInfoAt(new Point(modeInfoPosition.X + x, modeInfoPosition.Y + y)));
+                            Assert.Equal(
+                                modeInfo.ModeInfoIndex,
+                                tileReader.FrameInfo.GetModeInfoAt(new Point(modeInfoPosition.X + x, modeInfoPosition.Y + y)).ModeInfoIndex);
                         }
                     }
                 }

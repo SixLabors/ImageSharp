@@ -21,11 +21,6 @@ internal ref struct Av1SymbolDecoder
     private readonly Av1FrameEntropyContext context;
 
     /// <summary>
-    /// The configuration providing temporary coefficient-context memory.
-    /// </summary>
-    private readonly Configuration configuration;
-
-    /// <summary>
     /// The range decoder over the current tile payload.
     /// </summary>
     private Av1SymbolReader reader;
@@ -59,7 +54,6 @@ internal ref struct Av1SymbolDecoder
         // The context owner controls reset and publication. Holding one reference here keeps the range decoder small
         // and prevents a second set of aliases from becoming a competing source of entropy state.
         this.context = context;
-        this.configuration = configuration;
         this.reader = new Av1SymbolReader(tileData, updateCdf);
     }
 
@@ -345,15 +339,15 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         Av1PredictionMode aboveMode = Av1PredictionMode.DC;
-        if (aboveModeInfo != null)
+        if (aboveModeInfo is not null)
         {
-            aboveMode = aboveModeInfo.YMode;
+            aboveMode = aboveModeInfo.Value.YMode;
         }
 
         Av1PredictionMode leftMode = Av1PredictionMode.DC;
-        if (leftModeInfo != null)
+        if (leftModeInfo is not null)
         {
-            leftMode = leftModeInfo.YMode;
+            leftMode = leftModeInfo.Value.YMode;
         }
 
         int aboveContext = IntraModeContext[(int)aboveMode];
@@ -971,6 +965,7 @@ internal ref struct Av1SymbolDecoder
     /// <param name="transformInfo">The transform descriptor updated with the decoded type and coded-block flag.</param>
     /// <param name="modeBlocksToRightEdge">The signed distance from the mode block to the right frame edge.</param>
     /// <param name="modeBlocksToBottomEdge">The signed distance from the mode block to the bottom frame edge.</param>
+    /// <param name="levels">Reusable padded coefficient-context storage owned by the tile reader.</param>
     /// <param name="coefficientBuffer">The destination receiving the coefficient count followed by scan-ordered signed levels.</param>
     /// <returns>The one-based end-of-block position, or zero for an empty transform block.</returns>
     public int ReadCoefficients(
@@ -991,6 +986,7 @@ internal ref struct Av1SymbolDecoder
         ref Av1TransformInfo transformInfo,
         int modeBlocksToRightEdge,
         int modeBlocksToBottomEdge,
+        Av1LevelBuffer levels,
         Span<int> coefficientBuffer)
     {
         Av1TransformSize adjustedTransformSize = transformSize.GetAdjusted();
@@ -1000,8 +996,9 @@ internal ref struct Av1SymbolDecoder
         Av1PlaneType planeType = (Av1PlaneType)Math.Min(plane, 1);
         int culLevel = 0;
 
-        // AV1 omits high-frequency coefficients beyond 32 samples on every 64-point transform dimension.
-        using Av1LevelBuffer levels = new(this.configuration, new Size(width, height));
+        // AV1 omits high-frequency coefficients beyond 32 samples on every 64-point transform dimension. Reusing
+        // tile-owned storage avoids an allocator round trip for every transform block.
+        levels.Reset(new Size(width, height));
 
         bool allZero = this.ReadTransformBlockSkip(transformSizeContext, transformBlockContext.SkipContext);
         int endOfBlock;

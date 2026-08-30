@@ -8,21 +8,11 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 internal class Av1ReferenceTransform
 {
-    /******************************************************************************
-     * SVT file: test/ref/TxfmRef.cc
-     *
-     * Reference implementation for txfm, including :
-     * - reference_dct_1d
-     * - reference_adst_1d
-     * - reference_idtx_1d
-     * - reference_txfm_1d
-     * - reference_txfm_2d
-     * - fadst_ref
-     *
-     * Original authors: Cidana-Edmond, Cidana-Wenyao
-     *
-     ******************************************************************************/
-
+    /// <summary>
+    /// Gets the analytical amplification used by current libaom's forward-transform tests.
+    /// </summary>
+    /// <param name="config">The transform configuration.</param>
+    /// <returns>The two-dimensional transform amplification.</returns>
     public static double GetScaleFactor(Av1Transform2dFlipConfiguration config)
     {
         int transformWidth = config.TransformSize.GetWidth();
@@ -42,8 +32,14 @@ internal class Av1ReferenceTransform
     }
 
     /// <summary>
-    /// SVT: reference_txfm_2d
+    /// Applies the analytical two-dimensional transform used by current libaom's
+    /// <c>test/av1_txfm_test.cc</c>.
     /// </summary>
+    /// <param name="input">The raster input samples.</param>
+    /// <param name="output">The raster output coefficients.</param>
+    /// <param name="transformType">The two-dimensional transform type.</param>
+    /// <param name="transformSize">The transform dimensions.</param>
+    /// <param name="scaleFactor">The configured two-dimensional amplification.</param>
     public static void ReferenceTransformFunction2d(Span<double> input, Span<double> output, Av1TransformType transformType, Av1TransformSize transformSize, double scaleFactor)
     {
         // Get transform type and size of each dimension.
@@ -99,7 +95,7 @@ internal class Av1ReferenceTransform
         }
     }
 
-    private static void Adst4Reference(Span<int> input, Span<int> output)
+    private static void Adst4Reference(ReadOnlySpan<int> input, Span<int> output)
     {
         // 16384 * sqrt(2) * sin(kPi/9) * 2 / 3
         const long sinPi19 = 5283;
@@ -146,7 +142,7 @@ internal class Av1ReferenceTransform
         output[3] = Av1Math.RoundShift(s3, 14);
     }
 
-    private static void ReferenceIdentity1d(Span<double> input, Span<double> output, int size)
+    private static void ReferenceIdentity1d(ReadOnlySpan<double> input, Span<double> output, int size)
     {
         const double sqrt2 = 1.4142135623730950488016887242097f;
         double scale = 0;
@@ -178,7 +174,7 @@ internal class Av1ReferenceTransform
         }
     }
 
-    private static void ReferenceDct1d(Span<double> input, Span<double> output, int size)
+    private static void ReferenceDct1d(ReadOnlySpan<double> input, Span<double> output, int size)
     {
         const double kInvSqrt2 = 0.707106781186547524400844362104f;
         for (int k = 0; k < size; ++k)
@@ -196,7 +192,7 @@ internal class Av1ReferenceTransform
         }
     }
 
-    private static void ReferenceAdst1d(Span<double> input, Span<double> output, int size)
+    private static void ReferenceAdst1d(ReadOnlySpan<double> input, Span<double> output, int size)
     {
         if (size == 4)
         {
@@ -227,7 +223,7 @@ internal class Av1ReferenceTransform
         }
     }
 
-    internal static void ReferenceTransform1d(Av1TransformType1d type, Span<double> input, Span<double> output, int size)
+    internal static void ReferenceTransform1d(Av1TransformType1d type, ReadOnlySpan<double> input, Span<double> output, int size)
     {
         switch (type)
         {

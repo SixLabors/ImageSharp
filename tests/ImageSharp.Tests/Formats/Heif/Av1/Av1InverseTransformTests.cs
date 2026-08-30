@@ -43,10 +43,10 @@ public class Av1InverseTransformTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertIdentityOperatorParity, TransformConfigurations);
 
     /// <summary>
-    /// Verifies the pinned-libaom widened operations at the twelve-bit inverse row-stage bounds.
+    /// Verifies the current-libaom widened operations at the twelve-bit inverse row-stage bounds.
     /// </summary>
     [Fact]
-    public void TwelveBitWideIntermediatesMatchPinnedLibaom()
+    public void TwelveBitWideIntermediatesMatchCurrentLibaom()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertTwelveBitWideIntermediateParity, TransformConfigurations);
 
     /// <summary>
@@ -123,7 +123,7 @@ public class Av1InverseTransformTests
             cosBit,
             stageRange);
 
-        // These are the exact outputs of pinned libaom's signed Int64 terminal round. The first positive lane has an
+        // These are the exact outputs of current libaom's signed Int64 terminal round. The first positive lane has an
         // Int32 fixed-point sum of 2,147,482,471, so adding the 2,048 rounding bias in Int32 would wrap.
         Vector128<int> adstExpected0 = Vector128.Create(524_288, -524_288, 524_287, -524_287);
         Vector128<int> adstExpected1 = Vector128.Create(33_612, -33_612, 33_612, -33_612);
@@ -167,7 +167,7 @@ public class Av1InverseTransformTests
     }
 
     /// <summary>
-    /// Verifies one identity operator against exact pinned-libaom widened fixed-point results.
+    /// Verifies one identity operator against exact current-libaom widened fixed-point results.
     /// </summary>
     /// <typeparam name="TOperator">The inverse identity operator.</typeparam>
     /// <param name="length">The identity-transform length.</param>

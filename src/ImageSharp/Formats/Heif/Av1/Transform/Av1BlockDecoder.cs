@@ -363,17 +363,15 @@ internal sealed class Av1BlockDecoder : IDisposable
 
                 int referenceCount = usesSub8x8ChromaPrediction ? 0 : isCompound ? 2 : 1;
 
-                // Compound convolution is combined before its final rounding step. Scaled and ordinary translational
-                // predictors share that no-round domain; high-bit-depth warped/global models retain their own kernels.
+                // Every compound predictor is combined before its final rounding step. Warped prediction has its own
+                // convolution kernels, but current libaom writes their output into the same unsigned no-round domain.
                 bool useHighBitDepthCompoundIntermediates =
                     highBitDepth &&
-                    modeInfo.CompoundType is
+                    modeInfo.CompoundType is (
                         Av1CompoundType.Average or
                         Av1CompoundType.DistanceWeighted or
                         Av1CompoundType.Wedge or
-                        Av1CompoundType.DifferenceWeighted &&
-                    modeInfo.MotionMode != Av1MotionMode.Warped &&
-                    modeInfo.YMode != Av1PredictionMode.GlobalGlobalMotionVector;
+                        Av1CompoundType.DifferenceWeighted);
 
                 bool useCompoundIntermediates =
                     isCompound &&
@@ -445,27 +443,53 @@ internal sealed class Av1BlockDecoder : IDisposable
                                 out int sourceStride,
                                 out Point sourceOrigin);
 
-                            Span<ushort> destination = MemoryMarshal.Cast<short, ushort>(
-                                referenceIndex == 0
-                                    ? highBitDepthBlockReconstructionBuffer[reconstructionStride..]
-                                    : secondPredictionStorage);
+                            if (useCompoundIntermediates)
+                            {
+                                Span<ushort> destination = referenceIndex == 0
+                                    ? firstCompoundPrediction
+                                    : highBitDepthSecondPrediction;
 
-                            Av1WarpedInterPredictor.PredictWarped(
-                                source,
-                                sourceStride,
-                                sourceOrigin,
-                                referencePlaneWidth,
-                                referencePlaneHeight,
-                                destination,
-                                destinationStride,
-                                pixelPosition,
-                                predictionWidth,
-                                predictionHeight,
-                                subX,
-                                subY,
-                                this.frameBuffer.BitDepth.GetBitCount(),
-                                warpedMotionParameters,
-                                predictionScratch);
+                                Av1WarpedInterPredictor.PredictWarpedCompound(
+                                    source,
+                                    sourceStride,
+                                    sourceOrigin,
+                                    referencePlaneWidth,
+                                    referencePlaneHeight,
+                                    destination,
+                                    destinationStride,
+                                    pixelPosition,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    subX,
+                                    subY,
+                                    this.frameBuffer.BitDepth.GetBitCount(),
+                                    warpedMotionParameters,
+                                    predictionScratch);
+                            }
+                            else
+                            {
+                                Span<ushort> destination = MemoryMarshal.Cast<short, ushort>(
+                                    referenceIndex == 0
+                                        ? highBitDepthBlockReconstructionBuffer[reconstructionStride..]
+                                        : secondPredictionStorage);
+
+                                Av1WarpedInterPredictor.PredictWarped(
+                                    source,
+                                    sourceStride,
+                                    sourceOrigin,
+                                    referencePlaneWidth,
+                                    referencePlaneHeight,
+                                    destination,
+                                    destinationStride,
+                                    pixelPosition,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    subX,
+                                    subY,
+                                    this.frameBuffer.BitDepth.GetBitCount(),
+                                    warpedMotionParameters,
+                                    predictionScratch);
+                            }
                         }
                         else
                         {

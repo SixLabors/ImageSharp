@@ -21,17 +21,17 @@ public class Av1WarpedInterPredictorTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies exact 8-bit prediction against the current libaom scalar equations.
+    /// Verifies exact 8-bit native and compound prediction against the current libaom scalar equations.
     /// </summary>
     [Fact]
-    public void BytePredictionMatchesCurrentLibaomOracleAcrossIntrinsicConfigurations()
+    public void ByteNativeAndCompoundPredictionMatchesCurrentLibaomOracleAcrossIntrinsicConfigurations()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateBytePrediction, PredictorConfigurations);
 
     /// <summary>
-    /// Verifies exact 8-, 10-, and 12-bit prediction against the current libaom scalar equations.
+    /// Verifies exact 8-, 10-, and 12-bit native and compound prediction against the current libaom scalar equations.
     /// </summary>
     [Fact]
-    public void HighBitDepthPredictionMatchesCurrentLibaomOracleAcrossIntrinsicConfigurations()
+    public void HighBitDepthNativeAndCompoundPredictionMatchesCurrentLibaomOracleAcrossIntrinsicConfigurations()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthPrediction, PredictorConfigurations);
 
     /// <summary>
@@ -78,7 +78,8 @@ public class Av1WarpedInterPredictorTests
                 subsampling,
                 subsampling,
                 8,
-                parameters);
+                parameters,
+                compound: false);
 
             Av1WarpedInterPredictor.PredictWarped(
                 source,
@@ -97,6 +98,46 @@ public class Av1WarpedInterPredictorTests
                 actualScratch);
 
             Assert.Equal(expected, actual);
+
+            ushort[] expectedCompound = new ushort[destinationStride * height];
+            ushort[] actualCompound = new ushort[destinationStride * height];
+            Array.Fill(expectedCompound, (ushort)0xDEAD);
+            Array.Fill(actualCompound, (ushort)0xDEAD);
+
+            PredictCurrentLibaomReference(
+                source,
+                sourceStride,
+                new Point(padding, padding),
+                activeSize,
+                activeSize,
+                expectedCompound,
+                destinationStride,
+                destinationPosition,
+                width,
+                height,
+                subsampling,
+                subsampling,
+                8,
+                parameters,
+                compound: true);
+
+            Av1WarpedInterPredictor.PredictWarpedCompound(
+                source,
+                sourceStride,
+                new Point(padding, padding),
+                activeSize,
+                activeSize,
+                actualCompound,
+                destinationStride,
+                destinationPosition,
+                width,
+                height,
+                subsampling,
+                subsampling,
+                parameters,
+                actualScratch);
+
+            Assert.Equal(expectedCompound, actualCompound);
         }
     }
 
@@ -148,7 +189,8 @@ public class Av1WarpedInterPredictorTests
                     subsampling,
                     subsampling,
                     bitDepth,
-                    parameters);
+                    parameters,
+                    compound: false);
 
                 Av1WarpedInterPredictor.PredictWarped(
                     source,
@@ -168,6 +210,47 @@ public class Av1WarpedInterPredictorTests
                     actualScratch);
 
                 Assert.Equal(expected, actual);
+
+                ushort[] expectedCompound = new ushort[destinationStride * height];
+                ushort[] actualCompound = new ushort[destinationStride * height];
+                Array.Fill(expectedCompound, (ushort)0xDEAD);
+                Array.Fill(actualCompound, (ushort)0xDEAD);
+
+                PredictCurrentLibaomReference(
+                    source,
+                    sourceStride,
+                    new Point(padding, padding),
+                    activeSize,
+                    activeSize,
+                    expectedCompound,
+                    destinationStride,
+                    destinationPosition,
+                    width,
+                    height,
+                    subsampling,
+                    subsampling,
+                    bitDepth,
+                    parameters,
+                    compound: true);
+
+                Av1WarpedInterPredictor.PredictWarpedCompound(
+                    source,
+                    sourceStride,
+                    new Point(padding, padding),
+                    activeSize,
+                    activeSize,
+                    actualCompound,
+                    destinationStride,
+                    destinationPosition,
+                    width,
+                    height,
+                    subsampling,
+                    subsampling,
+                    bitDepth,
+                    parameters,
+                    actualScratch);
+
+                Assert.Equal(expectedCompound, actualCompound);
             }
         }
     }
@@ -175,13 +258,13 @@ public class Av1WarpedInterPredictorTests
     /// <summary>
     /// Reconstructs one warped block by directly transcribing current libaom's scalar affine loops.
     /// </summary>
-    private static void PredictCurrentLibaomReference<TPixel>(
-        ReadOnlySpan<TPixel> source,
+    private static void PredictCurrentLibaomReference<TSource, TDestination>(
+        ReadOnlySpan<TSource> source,
         int sourceStride,
         Point sourceOrigin,
         int sourceWidth,
         int sourceHeight,
-        Span<TPixel> destination,
+        Span<TDestination> destination,
         int destinationStride,
         Point destinationPosition,
         int width,
@@ -189,8 +272,10 @@ public class Av1WarpedInterPredictorTests
         int subsamplingX,
         int subsamplingY,
         int bitDepth,
-        Av1GlobalMotionParameters parameters)
-        where TPixel : unmanaged, IBinaryInteger<TPixel>
+        Av1GlobalMotionParameters parameters,
+        bool compound)
+        where TSource : unmanaged, IBinaryInteger<TSource>
+        where TDestination : unmanaged, IBinaryInteger<TDestination>
     {
         const int filterBits = 7;
         const int filterTaps = 8;
@@ -204,7 +289,7 @@ public class Av1WarpedInterPredictorTests
         // remains representable in 16 bits, then removes those two bits from the vertical rounding.
         int intermediateRange = bitDepth + filterBits - 3 + 2;
         int round0 = 3 + Math.Max(intermediateRange - 16, 0);
-        int verticalRound = (2 * filterBits) - round0;
+        int verticalRound = compound ? 7 : (2 * filterBits) - round0;
         int horizontalBias = 1 << (bitDepth + filterBits - 1);
         int verticalBias = 1 << (bitDepth + (2 * filterBits) - round0);
         int maximum = (1 << bitDepth) - 1;
@@ -273,7 +358,13 @@ public class Av1WarpedInterPredictorTests
                             sum += intermediate[intermediateIndex] * CurrentLibaomWarpedFilter[coefficientOffset + tap];
                         }
 
-                        int value = RoundPowerOfTwo(sum, verticalRound) - (1 << (bitDepth - 1)) - (1 << bitDepth);
+                        int value = RoundPowerOfTwo(sum, verticalRound);
+                        if (!compound)
+                        {
+                            value -= (1 << (bitDepth - 1)) + (1 << bitDepth);
+                            value = Math.Clamp(value, 0, maximum);
+                        }
+
                         int destinationIndex =
                             ((tileRow - destinationPosition.Y + row + 4) * destinationStride) +
                             tileColumn -
@@ -281,7 +372,7 @@ public class Av1WarpedInterPredictorTests
                             column +
                             4;
 
-                        destination[destinationIndex] = TPixel.CreateChecked(Math.Clamp(value, 0, maximum));
+                        destination[destinationIndex] = TDestination.CreateChecked(value);
                         phase += parameters.Gamma;
                     }
                 }

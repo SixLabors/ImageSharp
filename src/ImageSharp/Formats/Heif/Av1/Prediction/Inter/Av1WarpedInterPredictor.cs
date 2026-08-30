@@ -148,6 +148,43 @@ internal static partial class Av1WarpedInterPredictor
             useHardwareIntrinsics: true);
 
     /// <summary>
+    /// Reconstructs a high-bit-depth affine warped reference into AV1's unsigned compound intermediate format.
+    /// </summary>
+    public static void PredictWarpedCompound(
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
+        Point sourceOrigin,
+        int sourceWidth,
+        int sourceHeight,
+        Span<ushort> destination,
+        int destinationStride,
+        Point destinationPosition,
+        int width,
+        int height,
+        int subsamplingX,
+        int subsamplingY,
+        int bitDepth,
+        Av1GlobalMotionParameters parameters,
+        Span<short> scratch)
+        => PredictWarpedCompound<WarpedOperator>(
+            source,
+            sourceStride,
+            sourceOrigin,
+            sourceWidth,
+            sourceHeight,
+            destination,
+            destinationStride,
+            destinationPosition,
+            width,
+            height,
+            subsamplingX,
+            subsamplingY,
+            bitDepth,
+            parameters,
+            scratch,
+            useHardwareIntrinsics: true);
+
+    /// <summary>
     /// Reconstructs an 8-bit affine warped prediction without explicit hardware intrinsics.
     /// </summary>
     public static void PredictWarpedScalar(
@@ -237,6 +274,43 @@ internal static partial class Av1WarpedInterPredictor
         Av1GlobalMotionParameters parameters,
         Span<short> scratch)
         => PredictWarped<WarpedOperator>(
+            source,
+            sourceStride,
+            sourceOrigin,
+            sourceWidth,
+            sourceHeight,
+            destination,
+            destinationStride,
+            destinationPosition,
+            width,
+            height,
+            subsamplingX,
+            subsamplingY,
+            bitDepth,
+            parameters,
+            scratch,
+            useHardwareIntrinsics: false);
+
+    /// <summary>
+    /// Reconstructs a high-bit-depth affine warped reference into compound intermediates without explicit hardware intrinsics.
+    /// </summary>
+    public static void PredictWarpedCompoundScalar(
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
+        Point sourceOrigin,
+        int sourceWidth,
+        int sourceHeight,
+        Span<ushort> destination,
+        int destinationStride,
+        Point destinationPosition,
+        int width,
+        int height,
+        int subsamplingX,
+        int subsamplingY,
+        int bitDepth,
+        Av1GlobalMotionParameters parameters,
+        Span<short> scratch)
+        => PredictWarpedCompound<WarpedOperator>(
             source,
             sourceStride,
             sourceOrigin,
@@ -886,6 +960,92 @@ internal static partial class Av1WarpedInterPredictor
                     intermediate,
                     horizontalBias,
                     Round0Bits,
+                    useHardwareIntrinsics);
+
+                int tileHeight = Math.Min(WarpedTileSize, destinationPosition.Y + height - tileRow);
+                int tileWidth = Math.Min(WarpedTileSize, destinationPosition.X + width - tileColumn);
+                for (int row = 0; row < tileHeight; row++)
+                {
+                    int phase = phaseY + (parameters.Delta * row);
+                    int destinationRowOffset = (tileRow - destinationPosition.Y + row) * destinationStride;
+                    ref ushort intermediateSource = ref intermediate[row * WarpedTileSize];
+                    ref ushort destinationRow = ref Unsafe.Add(
+                        ref destinationBase,
+                        destinationRowOffset + tileColumn - destinationPosition.X);
+
+                    FilterWarpedCompoundVertical<TOperator>(
+                        ref intermediateSource,
+                        ref destinationRow,
+                        tileWidth,
+                        phase,
+                        parameters.Gamma,
+                        verticalBias,
+                        useHardwareIntrinsics);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reconstructs one high-bit-depth warped reference without discarding the compound convolution precision.
+    /// </summary>
+    private static void PredictWarpedCompound<TOperator>(
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
+        Point sourceOrigin,
+        int sourceWidth,
+        int sourceHeight,
+        Span<ushort> destination,
+        int destinationStride,
+        Point destinationPosition,
+        int width,
+        int height,
+        int subsamplingX,
+        int subsamplingY,
+        int bitDepth,
+        Av1GlobalMotionParameters parameters,
+        Span<short> scratch,
+        bool useHardwareIntrinsics)
+        where TOperator : struct, IAv1WarpedPredictionOperator
+    {
+        ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
+        ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
+        Span<ushort> intermediate = MemoryMarshal.Cast<short, ushort>(scratch)[..WarpedScratchLength];
+
+        // Twelve-bit input raises round0 so every biased horizontal sample fits in the shared 16-bit scratch tile.
+        // Compound prediction keeps round1 at seven; its final blend removes the remaining two normative bits.
+        int intermediateRange = bitDepth + FilterBits - Round0Bits + 2;
+        int round0 = Round0Bits + Math.Max(intermediateRange - 16, 0);
+        int horizontalBias = 1 << (bitDepth + FilterBits - 1);
+        int verticalBias = 1 << (bitDepth + (2 * FilterBits) - round0);
+
+        for (int tileRow = destinationPosition.Y; tileRow < destinationPosition.Y + height; tileRow += WarpedTileSize)
+        {
+            for (int tileColumn = destinationPosition.X; tileColumn < destinationPosition.X + width; tileColumn += WarpedTileSize)
+            {
+                DeriveWarpedTilePosition(
+                    parameters,
+                    tileColumn,
+                    tileRow,
+                    subsamplingX,
+                    subsamplingY,
+                    out int integerX,
+                    out int integerY,
+                    out int phaseX,
+                    out int phaseY);
+
+                FilterWarpedHorizontal<TOperator>(
+                    ref sourceBase,
+                    sourceStride,
+                    sourceOrigin,
+                    sourceHeight,
+                    integerX,
+                    integerY,
+                    phaseX,
+                    parameters,
+                    intermediate,
+                    horizontalBias,
+                    round0,
                     useHardwareIntrinsics);
 
                 int tileHeight = Math.Min(WarpedTileSize, destinationPosition.Y + height - tileRow);

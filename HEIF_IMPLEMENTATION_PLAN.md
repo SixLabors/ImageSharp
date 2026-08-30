@@ -30,8 +30,8 @@ Reference checkout evidence on 2026-08-31:
 Reconciled with the worktree on 2026-08-31.
 
 - [~] The bounded container reader, still-image path, sequence parser, AV1 decoder, color pipeline, presentation pipeline, and broad AV1 test suite exist locally.
-- [~] The inter-frame decoder has verified checkpoints through local warped prediction. Global motion exists
-  locally but remains open until its ordered checkpoint below is completed.
+- [~] The inter-frame decoder has verified checkpoints through non-translational global prediction. Inter
+  deblocking decisions and reference/mode deltas remain open as the next ordered checkpoint.
 - [~] Loop filtering, CDEF, super-resolution, restoration, film grain, layered presentation, alpha composition, and color conversion exist locally. Shared-source cleanup changed the current tree, so final production-path verification is open.
 - [~] AV1 writer primitives, forward transforms, symbol encoding, and tile-writing source exist locally, but they are not connected to the public encoder.
 - [ ] The public AV1 encoder is not implemented. HeifEncoderCore.Encode throws NotSupportedException when AV1 is selected.
@@ -185,8 +185,8 @@ The single-reference syntax, buffer, reconstruction, and ownership foundation is
 - [x] OBMC.
 - [x] Scaled-reference prediction.
 - [x] Local warped prediction.
-- [~] Non-translational global prediction. Next item.
-- [~] Inter deblocking decisions and reference/mode deltas.
+- [x] Non-translational global prediction.
+- [~] Inter deblocking decisions and reference/mode deltas. Current item.
 
 Verified equal-average compound checkpoint evidence on 2026-08-31:
 
@@ -465,6 +465,43 @@ Verified local warped-prediction checkpoint evidence on 2026-08-31:
 - [x] The focused Release checkpoint set passes 4/4 on net10.0 and 4/4 on net11.0, with zero failures or
   skips. Scoped analyzer verification passes for both changed C# files. Roslynk reports zero compiler errors,
   `git diff --check` passes, and `.gitattributes` is unchanged.
+- [x] The completed checkpoint was committed as `27a522424fe7aaea25078e705d71a501da110727`
+  with author and committer `James Jackson-South <james_south@hotmail.com>`.
+
+Verified non-translational global-prediction checkpoint evidence on 2026-08-31:
+
+- [x] Audited global-motion syntax, coefficient decoding, previous-reference recentering, shear validation,
+  motion-vector projection, and warped-prediction eligibility against current official libaom `main` at the
+  observed revision `441c439b9916474cac15d2822af47a9ad70674a8`. The implementation matches
+  `read_global_motion_params`, `read_global_motion_model`, `gm_get_motion_vector`, `is_global_mv_block`,
+  and the WARP_PRED selection in `av1/common/reconinter.c`.
+- [x] Corrected high-bit-depth compound warped/global prediction to retain both references in libaom's
+  unsigned no-round compound domain. Current `get_conv_params_no_round`, `av1_warp_plane`, and
+  `av1_highbd_warp_affine_c` require the 12-bit first-round adjustment while retaining a seven-bit second
+  round; native clipping now occurs only after the compound blend.
+- [x] The independent scalar libaom transcription validates native and no-round compound output for byte,
+  8-bit, 10-bit, and 12-bit sources, including tail widths and destination-stride preservation. All cases pass
+  through AVX-512, AVX, 128-bit, and scalar dispatch with `FeatureTestRunner`. Direct
+  `Av1BlockDecoder.DecodeBlock()` coverage validates `GLOBAL_GLOBALMV` compound reconstruction at all
+  supported bit depths.
+- [x] Extracted the fixture's exact 38,475-byte AV1 `mdat` payload at AVIF offset 997. Its SHA-256 is
+  `6AC7EC9984B1FF5C00403D7E3858441E9CEE75128F7414101D06DEEE59A351D0`. Current
+  official libaom decoded both 256x256 YUV444 frames with one thread, row threading disabled, and all layers
+  enabled. The complete Y4M SHA-256 is
+  `84754DE0B9FABC4F3F8F344C848183EC17B625BFD87E4519C3D8AD7DEFD20F2C`; the final
+  frame's 196,608 native samples have SHA-256
+  `FEC89E2DE7496980389806B194425042F3800C7BAA817249D1A51D44A2B37A8E` and match the
+  retained native reference with zero differences.
+- [x] The real two-frame fixture exercises the production decoder, requires decoded non-translational global
+  motion, compares final native Y, U, and V planes exactly, compares the retained presentation through
+  ImageSharp's established reference-output API, and passes the constrained tracked-allocator path.
+- [x] Renamed the stale pinned-reference test and its contract-derived PNG together without changing the PNG
+  bytes. Its SHA-256 remains
+  `F7D27ABF79450DFA311F72106FD1DA80997EABC0937F2F5578EF627119FF83B0`, and Git
+  attributes select the LFS filter and diff driver.
+- [x] The focused Release checkpoint set passes 11/11 on net10.0 and 11/11 on net11.0, with zero failures or
+  skips. Scoped analyzer verification passes for all six changed C# files. Roslynk reports zero compiler
+  errors, `git diff --check` passes, and `.gitattributes` is unchanged.
 
 For every item:
 

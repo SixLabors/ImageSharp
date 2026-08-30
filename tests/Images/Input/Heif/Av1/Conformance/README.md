@@ -20,7 +20,7 @@ The reference builds use `AOM_TARGET_CPU=generic` and disable libyuv. Native rec
 - `-libaom.yuv` files contain headerless planar Y, U, and V reference samples. Samples above eight bits are stored as little-endian 16-bit values.
 - `-libaom-y4m.yuv` files retain the Y4M header together with the native planar frame.
 - `-libaom.y4m` files retain the Y4M header together with the native sequence frames selected for comparison.
-- Reference-output `.png` files contain the eight-bit RGBA presentation produced by the pinned scalar libavif build. Their names combine the public test method, `Rgba32`, and the input AVIF basename so `CompareToReferenceOutput` resolves them directly.
+- Reference-output `.png` files contain retained eight-bit RGBA presentations. Their names combine the public test method, `Rgba32`, and the input AVIF basename so `CompareToReferenceOutput` resolves them directly.
 
 ## Coverage
 
@@ -265,15 +265,40 @@ AVX, 128-bit, and scalar execution.
 
 ## Global warped-motion fixture
 
-The `libavif-rotating-grid-global-warp.avif` fixture uses the same deterministic two-frame 256x256 limited-range YUV444 source and its `82C1468C95C996B05165590417184F59373D67896F8C7B0EB398582C29C9C7A7` SHA-256. Pinned libavif commit `062e582e8afda88e6baf988fdcf046a801efa0f5` and libaom commit `03087864cf4bea6abb0d28f95cf7843511413d8f` generated the fixture and references with:
+The `libavif-rotating-grid-global-warp.avif` file is retained solely as interoperability input. It uses
+the same deterministic two-frame 256x256 limited-range YUV444 source as the local-warp fixture. The original
+packaging command records fixture provenance only; libavif is not used as an AV1 implementation or
+reconstruction reference:
 
 ```text
 ./avifenc -j 1 -s 0 -q 100 -a color:enable-warped-motion=0 -a color:enable-global-motion=1 -a color:enable-obmc=0 rotating-grid-256-two-frame.y4m libavif-rotating-grid-global-warp.avif
-./avifdec -j 1 --index 1 libavif-rotating-grid-global-warp.avif libavif-rotating-grid-global-warp-libaom.y4m
-./avifdec -j 1 --index 1 libavif-rotating-grid-global-warp.avif libavif-rotating-grid-global-warp-libavif.png
 ```
 
-The AVIF SHA-256 is `EE8CDF6DF36FB2999A17D2A86C41040D8BE13B958A1D5AE53E37343C6FB49E0E`. The retained frame-1 Y4M SHA-256 is `A36D445778BB2D37D69526A1058E3569DA24F3913317EFE22ADB61748A0F7511`, and the frame-1 PNG SHA-256 is `F7D27ABF79450DFA311F72106FD1DA80997EABC0937F2F5578EF627119FF83B0`. Pinned libaom tracing records seven actual `GLOBALMV` blocks using the valid rotation/zoom matrix `[-357376, 372736, 65468, 2856, -2856, 65468]` and reduced shear `[-64, 2880, -2880, 64]`. The production sequence test requires that decoded model and mode state, compares every final native Y, U, and V sample and the final RGBA presentation exactly, runs normal and scalar dispatch through `FeatureTestRunner`, and repeats reconstruction with constrained tracked allocation. A direct production-branch test independently drives both references of `GLOBAL_GLOBALMV` through the matrix predictor and compound averaging at 8, 10, and 12 bits.
+On 2026-08-31 the clean official libaom `main` checkout was refreshed from its upstream remote. At the
+observed revision `441c439b9916474cac15d2822af47a9ad70674a8`, the fixture's 38,475-byte AV1
+`mdat` payload at AVIF offset 997 has SHA-256
+`6AC7EC9984B1FF5C00403D7E3858441E9CEE75128F7414101D06DEEE59A351D0` and was decoded with:
+
+```text
+aomdec --codec=av1 --threads=1 --row-mt=0 --all-layers --output-bit-depth=8 -o global-warp-current-main.y4m global-warp-current-main.obu
+```
+
+Current libaom produced two 256x256 YUV444 frames. The complete Y4M has SHA-256
+`84754DE0B9FABC4F3F8F344C848183EC17B625BFD87E4519C3D8AD7DEFD20F2C`. Its final
+frame's 196,608 native samples have SHA-256
+`FEC89E2DE7496980389806B194425042F3800C7BAA817249D1A51D44A2B37A8E` and match the
+retained `libavif-rotating-grid-global-warp-libaom.y4m` reference with zero differing samples.
+
+The decoded stream contains non-translational `GLOBALMV` blocks using rotation/zoom matrix
+`[-357376, 372736, 65468, 2856, -2856, 65468]` and reduced shear
+`[-64, 2880, -2880, 64]`. The production sequence test requires that decoded model and mode state,
+compares every final native Y, U, and V sample exactly, compares the retained final presentation through
+the established image-reference API, runs intrinsic and scalar dispatch through `FeatureTestRunner`, and
+repeats reconstruction with constrained tracked allocation. A direct `Av1BlockDecoder.DecodeBlock()`
+test drives both references of `GLOBAL_GLOBALMV` through matrix prediction and no-round compound averaging
+at 8, 10, and 12 bits. High-bit-depth warped references remain in current libaom's unsigned
+`CONV_BUF_TYPE` domain until the final blend; 12-bit prediction uses the corresponding adjusted round0 and
+two-bit final rounding.
 
 ## Updating fixtures
 

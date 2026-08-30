@@ -1120,11 +1120,11 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies production non-translational global-motion reconstruction against pinned native and presentation references.
+    /// Verifies production non-translational global motion against current-libaom native and retained presentation references.
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.Av1GlobalWarpSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeRealLibavifGlobalWarpSequenceMatchesPinnedReferences(TestImageProvider<Rgba32> provider)
+    public void DecodeRealLibavifGlobalWarpSequenceMatchesCurrentLibaomReferences(TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateGlobalWarpSequenceWithDefaultConfiguration,
             ReconstructionConfigurations,

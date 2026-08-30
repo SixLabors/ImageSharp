@@ -1271,7 +1271,7 @@ public class Av1CompoundBlockDecoderTests
     }
 
     /// <summary>
-    /// Reconstructs one compound global-warp block and compares it with independently invoked scalar predictors.
+    /// Reconstructs one compound global-warp block and compares it with direct scalar compound predictors.
     /// </summary>
     /// <param name="bitDepth">The native sample depth.</param>
     private static void ValidateCompoundGlobalWarpPredictionAtBitDepth(Av1BitDepth bitDepth)
@@ -1279,8 +1279,20 @@ public class Av1CompoundBlockDecoderTests
         const int frameSize = 32;
         const int blockOrigin = 8;
         const int blockSize = 8;
-        const int compoundRoundBits = 4;
-        const int compoundRoundOffset = (1 << 12) + (1 << 11);
+        int bitDepthValue = bitDepth.GetBitCount();
+        int intermediateRange = bitDepthValue + Av1InterPredictor.FilterBits - Av1InterPredictor.Round0Bits + 2;
+        int round0 = Av1InterPredictor.Round0Bits + Math.Max(intermediateRange - 16, 0);
+        int compoundRoundBits =
+            (2 * Av1InterPredictor.FilterBits) - round0 - Av1CompoundInterPredictor.CompoundRound1Bits;
+
+        int compoundOffsetBits =
+            bitDepthValue +
+            (2 * Av1InterPredictor.FilterBits) -
+            round0 -
+            Av1CompoundInterPredictor.CompoundRound1Bits;
+
+        int compoundRoundOffset = (1 << compoundOffsetBits) + (1 << (compoundOffsetBits - 1));
+        int maximum = (1 << bitDepthValue) - 1;
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader(bitDepth, frameSize);
         ObuFrameHeader frameHeader = CreateFrameHeader(frameSize);
         frameHeader.GetReferenceFrameIndices()[0] = 0;
@@ -1381,8 +1393,7 @@ public class Av1CompoundBlockDecoderTests
                 out int secondStride,
                 out Point secondOrigin);
 
-            int bitDepthValue = bitDepth.GetBitCount();
-            Av1WarpedInterPredictor.PredictWarpedScalar(
+            Av1WarpedInterPredictor.PredictWarpedCompoundScalar(
                 firstSource,
                 firstStride,
                 firstOrigin,
@@ -1399,7 +1410,7 @@ public class Av1CompoundBlockDecoderTests
                 globalMotionParameters,
                 firstScratch);
 
-            Av1WarpedInterPredictor.PredictWarpedScalar(
+            Av1WarpedInterPredictor.PredictWarpedCompoundScalar(
                 secondSource,
                 secondStride,
                 secondOrigin,
@@ -1463,28 +1474,26 @@ public class Av1CompoundBlockDecoderTests
             for (int column = 0; column < blockSize; column++)
             {
                 int predictionIndex = (row * blockSize) + column;
+
+                // Libaom truncates the equal average before removing the compound bias, then performs the sole final
+                // rounding step. Reconstructing each reference to native pixels first can differ from this result.
+                int intermediate = ((firstHighBitDepthPrediction[predictionIndex] +
+                    secondHighBitDepthPrediction[predictionIndex]) >> 1) - compoundRoundOffset;
+
+                int expected = Math.Clamp(
+                    (intermediate + (1 << (compoundRoundBits - 1))) >> compoundRoundBits,
+                    0,
+                    maximum);
+
                 if (bitDepth == Av1BitDepth.EightBit)
                 {
-                    // Libaom truncates the equal average before removing the Q4 compound bias, then performs the
-                    // sole final rounding step. Averaging two already reconstructed pixels can differ by one.
-                    int intermediate = ((firstHighBitDepthPrediction[predictionIndex] +
-                        secondHighBitDepthPrediction[predictionIndex]) >> 1) - compoundRoundOffset;
-
-                    byte expected = (byte)Math.Clamp(
-                        (intermediate + (1 << (compoundRoundBits - 1))) >> compoundRoundBits,
-                        0,
-                        byte.MaxValue);
-
                     Span<byte> samples = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(blockOrigin + row);
-                    Assert.Equal(expected, samples[blockOrigin + column]);
+                    Assert.Equal((byte)expected, samples[blockOrigin + column]);
                 }
                 else
                 {
-                    ushort expected = (ushort)((firstHighBitDepthPrediction[predictionIndex] +
-                        secondHighBitDepthPrediction[predictionIndex] + 1) >> 1);
-
                     Span<ushort> samples = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, blockOrigin + row, 0, 0);
-                    Assert.Equal(expected, samples[blockOrigin + column]);
+                    Assert.Equal((ushort)expected, samples[blockOrigin + column]);
                 }
             }
         }

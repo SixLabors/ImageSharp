@@ -1079,11 +1079,11 @@ public class Av1ReconstructionConformanceTests
             AverageCompoundFixtureFrameCount);
 
     /// <summary>
-    /// Verifies production local warped-motion reconstruction against pinned native and presentation references.
+    /// Verifies production local warped-motion reconstruction against current-libaom native and retained presentation references.
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.Av1LocalWarpSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeRealLibavifLocalWarpSequenceMatchesPinnedReferences(TestImageProvider<Rgba32> provider)
+    public void DecodeRealLibavifLocalWarpSequenceMatchesCurrentLibaomReferences(TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateLocalWarpSequenceWithDefaultConfiguration,
             ReconstructionConfigurations,

@@ -229,15 +229,39 @@ bytes. Their SHA-256 values remain
 
 ## Local warped-motion fixture
 
-The `libavif-rotating-grid-local-warp.avif` fixture was encoded from a deterministic two-frame 256x256 limited-range YUV444 source. The source combines checkerboard, ring, and chroma-gradient detail; its second frame rotates the first by 2.5 degrees with nearest-neighbor sampling and edge clamping. The two-frame source Y4M SHA-256 is `82C1468C95C996B05165590417184F59373D67896F8C7B0EB398582C29C9C7A7`. Pinned scalar libavif and libaom generated the fixture and references with:
+The `libavif-rotating-grid-local-warp.avif` file is retained solely as interoperability input. It was
+originally encoded from a deterministic two-frame 256x256 limited-range YUV444 source whose second frame
+rotates the first by 2.5 degrees. The original packaging command records fixture provenance only; libavif
+is not used as an AV1 implementation or reconstruction reference:
 
 ```text
 ./avifenc -j 1 -s 0 -q 60 -a color:enable-warped-motion=1 -a color:enable-global-motion=0 -a color:enable-obmc=0 rotating-grid-256-two-frame.y4m libavif-rotating-grid-local-warp.avif
-./avifdec -j 1 --index 1 libavif-rotating-grid-local-warp.avif libavif-rotating-grid-local-warp-libaom.y4m
-./avifdec -j 1 --index 1 libavif-rotating-grid-local-warp.avif libavif-rotating-grid-local-warp-libavif.png
 ```
 
-The AVIF SHA-256 is `990BAC4AD443005C217B0DA4FCCFA9ADFB3AA147AD06C85F9A655A4433E9E8A7`. The retained frame-1 Y4M SHA-256 is `984B2815CEE0C05FDE26430F150A21B5C993141E25BA1ED4FDE09372DB64AC13`, and the frame-1 PNG SHA-256 is `4490D62FB6679378E92CACA48427359091AD2106BE49FC1A3848F78BE03BEEB1`. Pinned libaom tracing records many actual `WARPED_CAUSAL` blocks. The multi-sample model at mode-information row 6, column 8 derives matrix `[-191565, 599107, 61755, -140, -6909, 62012]` and reduced shear `[-3776, -128, -7360, -3520]` from four retained neighbor samples. The production test requires decoded warped mode state, compares every final native Y, U, and V sample and the final RGBA presentation exactly, runs normal and scalar dispatch through `FeatureTestRunner`, and repeats reconstruction with constrained tracked allocation.
+On 2026-08-31 the clean official libaom `main` checkout was refreshed from its upstream remote. At the
+observed revision `441c439b9916474cac15d2822af47a9ad70674a8`, the fixture's 2,310-byte AV1 `mdat`
+payload at AVIF offset 997 has SHA-256
+`644D04FE1D1A32BB7A3856AD7EB49CF1EFDE0AC845E55BEAC4170F72353F2391` and was decoded with:
+
+```text
+aomdec --codec=av1 --threads=1 --row-mt=0 --all-layers --output-bit-depth=8 -o local-warp-current-main.y4m local-warp-current-main.obu
+```
+
+Current libaom produced two 256x256 YUV444 frames. The complete Y4M has SHA-256
+`8FDC5D46014F5E5A7455A83643AB6F0DA66FC5A984E72A43F8C75BAD8271C299`. Its final
+frame's 196,608 native samples have SHA-256
+`47B2AB39BF3B9DA15C1EC59840F964DFDF227760947F6E1295FB38A84555F75C` and match the
+retained `libavif-rotating-grid-local-warp-libaom.y4m` reference with zero differing samples.
+
+The multi-sample model at mode-information row 6, column 8 derives matrix
+`[-191565, 599107, 61755, -140, -6909, 62012]` and reduced shear
+`[-3776, -128, -7360, -3520]` from four retained spatial neighbor samples. The production test requires
+decoded `WARPED_CAUSAL` state through `Av1BlockDecoder.DecodeBlock()`, compares every final native Y,
+U, and V sample exactly, compares the retained final presentation through the established image-reference
+API, runs intrinsic and scalar dispatch through `FeatureTestRunner`, and repeats reconstruction with a
+constrained tracked allocator. Separate 8-, 10-, and 12-bit operator tests use an independent scalar
+transcription of current libaom's affine loops and all 1,544 current filter coefficients across AVX-512,
+AVX, 128-bit, and scalar execution.
 
 ## Global warped-motion fixture
 

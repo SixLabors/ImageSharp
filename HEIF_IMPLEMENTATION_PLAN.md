@@ -30,8 +30,8 @@ Reference checkout evidence on 2026-08-31:
 Reconciled with the worktree on 2026-08-31.
 
 - [~] The bounded container reader, still-image path, sequence parser, AV1 decoder, color pipeline, presentation pipeline, and broad AV1 test suite exist locally.
-- [~] The inter-frame decoder has verified checkpoints through scaled-reference prediction. Local warped
-  motion and global motion exist locally but remain open until their ordered checkpoints below are completed.
+- [~] The inter-frame decoder has verified checkpoints through local warped prediction. Global motion exists
+  locally but remains open until its ordered checkpoint below is completed.
 - [~] Loop filtering, CDEF, super-resolution, restoration, film grain, layered presentation, alpha composition, and color conversion exist locally. Shared-source cleanup changed the current tree, so final production-path verification is open.
 - [~] AV1 writer primitives, forward transforms, symbol encoding, and tile-writing source exist locally, but they are not connected to the public encoder.
 - [ ] The public AV1 encoder is not implemented. HeifEncoderCore.Encode throws NotSupportedException when AV1 is selected.
@@ -184,8 +184,8 @@ The single-reference syntax, buffer, reconstruction, and ownership foundation is
 - [x] Difference-weighted compound prediction.
 - [x] OBMC.
 - [x] Scaled-reference prediction.
-- [~] Local warped prediction. Next item.
-- [~] Non-translational global prediction.
+- [x] Local warped prediction.
+- [~] Non-translational global prediction. Next item.
 - [~] Inter deblocking decisions and reference/mode deltas.
 
 Verified equal-average compound checkpoint evidence on 2026-08-31:
@@ -429,6 +429,42 @@ Verified scaled-reference checkpoint evidence on 2026-08-31:
 - [x] The focused Release checkpoint set passes 10/10 on net10.0 and 10/10 on net11.0, with zero failures
   or skips. Scoped analyzer and whitespace verification pass for every changed C# file. Roslynk reports
   zero compiler errors, `git diff --check` passes, and `.gitattributes` is unchanged.
+- [x] The completed checkpoint was committed as `658a9cd1b6e22806decbae923da8800bca03a09e`
+  with author and committer `James Jackson-South <james_south@hotmail.com>`.
+
+Verified local warped-prediction checkpoint evidence on 2026-08-31:
+
+- [x] Refreshed the clean official libaom `main` checkout and audited the observed revision
+  `441c439b9916474cac15d2822af47a9ad70674a8`. Motion-mode eligibility and CDF selection match
+  `read_motion_mode` in `av1/decoder/decodemv.c`; above, left, top-left, and top-right spatial projection
+  samples and threshold selection match `findSamples` and `selectSamples` in
+  `av1/common/mvref_common.c`; affine fitting, shear reduction, phase derivation, filters, rounding,
+  clipping, and invalid-model fallback match `av1/common/warped_motion.c` and
+  `av1/common/reconinter.c`.
+- [x] Mechanically compared all 1,544 ImageSharp and independent-test warped-filter coefficients against
+  current libaom's `av1_warped_filter`; both comparisons have zero differences. The separate scalar test
+  transcription covers 8-, 10-, and 12-bit luma and subsampled-chroma coordinates, tail widths, destination
+  stride preservation, libaom's 12-bit round adjustment, and AVX-512, AVX, 128-bit, and scalar dispatch
+  through `FeatureTestRunner`.
+- [x] Extracted the fixture's exact 2,310-byte AV1 `mdat` payload at AVIF offset 997. Its SHA-256 is
+  `644D04FE1D1A32BB7A3856AD7EB49CF1EFDE0AC845E55BEAC4170F72353F2391`. Current official
+  libaom decoded both 256x256 YUV444 frames with one thread, row threading disabled, and all layers enabled.
+  The complete Y4M SHA-256 is
+  `8FDC5D46014F5E5A7455A83643AB6F0DA66FC5A984E72A43F8C75BAD8271C299`; the final
+  frame's 196,608 native samples have SHA-256
+  `47B2AB39BF3B9DA15C1EC59840F964DFDF227760947F6E1295FB38A84555F75C` and match the
+  retained native reference with zero differences.
+- [x] The real two-frame fixture exercises `Av1BlockDecoder.DecodeBlock()`, requires decoded
+  `WARPED_CAUSAL` state and the expected multi-sample affine model, compares final native Y, U, and V
+  planes exactly, compares the retained final presentation through ImageSharp's established reference-output
+  API, and passes through intrinsic and scalar dispatch. The 1,024-byte constrained tracked-allocator path
+  passes with motion-field allocations present and balanced exactly-once returns.
+- [x] Renamed the stale pinned-reference test and its contract-derived PNG together without changing the PNG
+  bytes. Its SHA-256 remains
+  `4490D62FB6679378E92CACA48427359091AD2106BE49FC1A3848F78BE03BEEB1`.
+- [x] The focused Release checkpoint set passes 4/4 on net10.0 and 4/4 on net11.0, with zero failures or
+  skips. Scoped analyzer verification passes for both changed C# files. Roslynk reports zero compiler errors,
+  `git diff --check` passes, and `.gitattributes` is unchanged.
 
 For every item:
 

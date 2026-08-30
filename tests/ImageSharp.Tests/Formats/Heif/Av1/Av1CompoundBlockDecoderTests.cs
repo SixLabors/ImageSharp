@@ -133,6 +133,15 @@ public class Av1CompoundBlockDecoderTests
             CompoundPredictionConfigurations);
 
     /// <summary>
+    /// Verifies that high-bit-depth subpixel predictors retain no-round precision until distance weighting.
+    /// </summary>
+    [Fact]
+    public void DecodeBlockReconstructsSubpixelHighBitDepthDistanceWeightedCompoundPrediction()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateSubpixelHighBitDepthDistanceWeightedCompoundPrediction,
+            CompoundPredictionConfigurations);
+
+    /// <summary>
     /// Verifies that both references of a GLOBAL_GLOBALMV block use their complete matrix before compound averaging.
     /// </summary>
     [Fact]
@@ -649,7 +658,18 @@ public class Av1CompoundBlockDecoderTests
     {
         foreach (Av1BitDepth bitDepth in new[] { Av1BitDepth.TenBit, Av1BitDepth.TwelveBit })
         {
-            ValidateSubpixelHighBitDepthEqualAverageCompoundPredictionAtBitDepth(bitDepth);
+            ValidateSubpixelHighBitDepthCompoundPredictionAtBitDepth(bitDepth, Av1CompoundType.Average);
+        }
+    }
+
+    /// <summary>
+    /// Reconstructs the high-bit-depth subpixel distance-weighted regression at every supported source precision.
+    /// </summary>
+    private static void ValidateSubpixelHighBitDepthDistanceWeightedCompoundPrediction()
+    {
+        foreach (Av1BitDepth bitDepth in new[] { Av1BitDepth.TenBit, Av1BitDepth.TwelveBit })
+        {
+            ValidateSubpixelHighBitDepthCompoundPredictionAtBitDepth(bitDepth, Av1CompoundType.DistanceWeighted);
         }
     }
 
@@ -657,15 +677,23 @@ public class Av1CompoundBlockDecoderTests
     /// Reconstructs one high-bit-depth half-sample compound block and compares it with the scalar no-round pipeline.
     /// </summary>
     /// <param name="bitDepth">The native sample depth.</param>
-    private static void ValidateSubpixelHighBitDepthEqualAverageCompoundPredictionAtBitDepth(Av1BitDepth bitDepth)
+    /// <param name="compoundType">The final compound operation.</param>
+    private static void ValidateSubpixelHighBitDepthCompoundPredictionAtBitDepth(
+        Av1BitDepth bitDepth,
+        Av1CompoundType compoundType)
     {
         const int frameSize = 32;
         const int blockOrigin = 8;
         const int blockSize = 8;
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader(bitDepth, frameSize);
+        sequenceHeader.OrderHintInfo.EnableOrderHint = true;
+        sequenceHeader.OrderHintInfo.OrderHintBits = 5;
         ObuFrameHeader frameHeader = CreateFrameHeader(frameSize);
+        frameHeader.OrderHint = 10;
         frameHeader.GetReferenceFrameIndices()[0] = 0;
         frameHeader.GetReferenceFrameIndices()[1] = 1;
+        frameHeader.GetReferenceOrderHints()[0] = 9;
+        frameHeader.GetReferenceOrderHints()[1] = 5;
 
         using Av1ReferenceFrameStore referenceFrames = new();
         Assert.True(referenceFrames.Commit(
@@ -682,8 +710,8 @@ public class Av1CompoundBlockDecoderTests
         {
             Skip = true,
             YMode = Av1PredictionMode.NearestNearestMotionVector,
-            CompoundIndex = true,
-            CompoundType = Av1CompoundType.Average,
+            CompoundIndex = compoundType != Av1CompoundType.DistanceWeighted,
+            CompoundType = compoundType,
         };
 
         modeInfo.ReferenceFrames[0] = Av1ReferenceFrameType.Last;
@@ -735,18 +763,46 @@ public class Av1CompoundBlockDecoderTests
         }
 
         ushort[] expected = new ushort[blockSize * blockSize];
-        Av1CompoundIntermediateAveragePredictor.AverageIntermediate(
-            expected,
-            blockSize,
-            expectedFirst,
-            blockSize,
-            expectedSecond,
-            blockSize,
-            blockSize,
-            blockSize,
-            bitDepth.GetBitCount());
+        if (compoundType == Av1CompoundType.DistanceWeighted)
+        {
+            Av1CompoundDistanceWeights.Derive(
+                sequenceHeader.OrderHintInfo,
+                frameHeader,
+                modeInfo.ReferenceFrames[0],
+                modeInfo.ReferenceFrames[1],
+                out int firstWeight,
+                out int secondWeight);
 
-        Assert.Equal((ushort)60, expected[0]);
+            Av1CompoundIntermediateDistanceWeightedPredictor.DistanceWeightedIntermediate(
+                expected,
+                blockSize,
+                expectedFirst,
+                blockSize,
+                expectedSecond,
+                blockSize,
+                blockSize,
+                blockSize,
+                firstWeight,
+                secondWeight,
+                bitDepth.GetBitCount());
+
+            Assert.NotEqual((ushort)60, expected[0]);
+        }
+        else
+        {
+            Av1CompoundIntermediateAveragePredictor.AverageIntermediate(
+                expected,
+                blockSize,
+                expectedFirst,
+                blockSize,
+                expectedSecond,
+                blockSize,
+                blockSize,
+                blockSize,
+                bitDepth.GetBitCount());
+
+            Assert.Equal((ushort)60, expected[0]);
+        }
 
         using Av1FrameBuffer<byte> frameBuffer = new(
             Configuration.Default,

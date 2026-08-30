@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Tests.TestUtilities;
@@ -34,13 +35,61 @@ public class Av1CompoundInterPredictorTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthAverage, PredictorConfigurations);
 
     /// <summary>
-    /// Verifies 10/12-bit no-round prediction and final equal averaging across every intrinsic width.
+    /// Verifies 10/12-bit no-round prediction and compound finalization across every intrinsic width.
     /// </summary>
     [Fact]
-    public void HighBitDepthIntermediateAverageMatchesIndependentOracleAcrossIntrinsicWidths()
+    public void HighBitDepthCompoundIntermediatesMatchIndependentOracleAcrossIntrinsicWidths()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateHighBitDepthIntermediateAverage,
+            ValidateHighBitDepthCompoundIntermediates,
             PredictorConfigurations);
+
+    /// <summary>
+    /// Verifies every current libaom display-distance quantization class in both temporal directions.
+    /// </summary>
+    /// <param name="firstOrderHint">The first reference order hint.</param>
+    /// <param name="secondOrderHint">The second reference order hint.</param>
+    /// <param name="expectedFirstWeight">The expected first predictor weight.</param>
+    /// <param name="expectedSecondWeight">The expected second predictor weight.</param>
+    [Theory]
+    [InlineData(13, 20, 9, 7)]
+    [InlineData(15, 18, 11, 5)]
+    [InlineData(15, 19, 12, 4)]
+    [InlineData(15, 20, 13, 3)]
+    [InlineData(12, 19, 7, 9)]
+    [InlineData(14, 17, 5, 11)]
+    [InlineData(13, 17, 4, 12)]
+    [InlineData(12, 17, 3, 13)]
+    [InlineData(12, 16, 3, 13)]
+    [InlineData(16, 20, 13, 3)]
+    public void DistanceWeightsMatchCurrentLibaomQuantization(
+        int firstOrderHint,
+        int secondOrderHint,
+        int expectedFirstWeight,
+        int expectedSecondWeight)
+    {
+        ObuOrderHintInfo orderHintInfo = new()
+        {
+            EnableOrderHint = true,
+            OrderHintBits = 5,
+        };
+
+        ObuFrameHeader frameHeader = new() { OrderHint = 16 };
+        frameHeader.GetReferenceFrameIndices()[0] = 0;
+        frameHeader.GetReferenceFrameIndices()[1] = 1;
+        frameHeader.GetReferenceOrderHints()[0] = (uint)firstOrderHint;
+        frameHeader.GetReferenceOrderHints()[1] = (uint)secondOrderHint;
+
+        Av1CompoundDistanceWeights.Derive(
+            orderHintInfo,
+            frameHeader,
+            Av1ReferenceFrameType.Last,
+            Av1ReferenceFrameType.Last2,
+            out int firstWeight,
+            out int secondWeight);
+
+        Assert.Equal(expectedFirstWeight, firstWeight);
+        Assert.Equal(expectedSecondWeight, secondWeight);
+    }
 
     /// <summary>
     /// Verifies 8-bit distance and per-sample mask blending across every intrinsic width and scalar tail.
@@ -294,7 +343,7 @@ public class Av1CompoundInterPredictorTests
     /// <summary>
     /// Applies the high-bit-depth no-round convolution equations independently of the production operators.
     /// </summary>
-    private static void ValidateHighBitDepthIntermediateAverage()
+    private static void ValidateHighBitDepthCompoundIntermediates()
     {
         ReadOnlySpan<int> widths = [9, 17, 33, 65];
         ReadOnlySpan<(int Horizontal, int Vertical)> phases =
@@ -503,6 +552,47 @@ public class Av1CompoundInterPredictorTests
                         bitDepth);
 
                     Assert.Equal(expectedDestination, actualDestination);
+
+                    ReadOnlySpan<int> distanceWeights = [9, 7, 11, 5, 12, 4, 13, 3];
+                    for (int weightIndex = 0; weightIndex < distanceWeights.Length; weightIndex += 2)
+                    {
+                        ushort[] expectedWeighted = new ushort[destinationStride * height];
+                        ushort[] actualWeighted = new ushort[destinationStride * height];
+                        expectedWeighted.AsSpan().Fill(0xA5A5);
+                        actualWeighted.AsSpan().Fill(0xA5A5);
+                        int firstWeight = distanceWeights[weightIndex];
+                        int secondWeight = distanceWeights[weightIndex + 1];
+
+                        for (int row = 0; row < height; row++)
+                        {
+                            for (int column = 0; column < width; column++)
+                            {
+                                int intermediateIndex = (row * intermediateStride) + column;
+                                int result = ((expectedFirst[intermediateIndex] * firstWeight) +
+                                    (expectedSecond[intermediateIndex] * secondWeight)) >> 4;
+
+                                result -= roundOffset;
+                                result = (result + (1 << (roundBits - 1))) >> roundBits;
+                                expectedWeighted[(row * destinationStride) + column] =
+                                    (ushort)Math.Clamp(result, 0, maximum);
+                            }
+                        }
+
+                        Av1CompoundIntermediateDistanceWeightedPredictor.DistanceWeightedIntermediate(
+                            actualWeighted,
+                            destinationStride,
+                            actualFirst,
+                            intermediateStride,
+                            actualSecond,
+                            intermediateStride,
+                            width,
+                            height,
+                            firstWeight,
+                            secondWeight,
+                            bitDepth);
+
+                        Assert.Equal(expectedWeighted, actualWeighted);
+                    }
                 }
             }
         }

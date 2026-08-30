@@ -144,11 +144,17 @@ with row threading disabled. Current `aomdec` produced all 19 YUV444 frames. The
 native samples have SHA-256 `E8B776C2751DC30CA838931A4B74535FC6E681179568A1278747A38CFF2E5BFA`
 and match the retained Y4M with zero differing samples.
 
-The production tests independently require their decoded mode states. The inter-intra input must exercise
-both smooth and wedge inter-intra prediction, decode all preceding samples, compare the final native Y,
-Cb, and Cr planes exactly, compare final RGBA presentation through ImageSharp's established
-reference-output API, and repeat reconstruction with constrained tracked allocation. The retained PNG is
-presentation evidence only and is not an AV1 reconstruction reference.
+The distance-weighted fixture's 5,372-byte AV1 `mdat` payload was decoded under the same current-libaom
+conditions. Current `aomdec` produced all 19 YUV444 frames. The final frame's 19,200 native samples have
+SHA-256 `E8CAA650F1571C5B9CACAF8C06E1DDF5F5D2ED35F65F1C34377076C573425899` and match the retained
+Y4M with zero differing samples.
+
+The production tests independently require their decoded mode states. The distance-weighted input must
+exercise distance-weighted compound prediction and the inter-intra input must exercise both smooth and
+wedge inter-intra prediction. The tests decode all preceding samples, compare final native Y, Cb, and Cr
+planes exactly, compare final RGBA presentation through ImageSharp's established reference-output API,
+and repeat reconstruction with constrained tracked allocation. The retained PNG files are presentation
+evidence only and are not AV1 reconstruction references.
 
 ## Overlapping motion-compensation fixture
 

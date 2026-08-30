@@ -153,4 +153,131 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
             }
         }
     }
+
+    /// <summary>
+    /// Combines two high-bit-depth compound intermediates using the decoded display-distance weights.
+    /// </summary>
+    public static void DistanceWeightedIntermediate(
+        Span<ushort> destination,
+        int destinationStride,
+        ReadOnlySpan<ushort> first,
+        int firstStride,
+        ReadOnlySpan<ushort> second,
+        int secondStride,
+        int width,
+        int height,
+        int firstWeight,
+        int secondWeight,
+        int bitDepth)
+        => DistanceWeightedIntermediate<CompoundIntermediateDistanceWeightedOperator>(
+            destination,
+            destinationStride,
+            first,
+            firstStride,
+            second,
+            secondStride,
+            width,
+            height,
+            firstWeight,
+            secondWeight,
+            bitDepth);
+
+    /// <summary>
+    /// Executes one closed high-bit-depth distance-weighted compound-intermediate operator.
+    /// </summary>
+    /// <typeparam name="TOperator">The compound-intermediate operator.</typeparam>
+    private static void DistanceWeightedIntermediate<TOperator>(
+        Span<ushort> destination,
+        int destinationStride,
+        ReadOnlySpan<ushort> first,
+        int firstStride,
+        ReadOnlySpan<ushort> second,
+        int secondStride,
+        int width,
+        int height,
+        int firstWeight,
+        int secondWeight,
+        int bitDepth)
+        where TOperator : struct, IAv1CompoundIntermediateDistanceWeightedOperator
+    {
+        GetIntermediateRounding(bitDepth, out int roundBits, out int roundOffset);
+        int maximum = (1 << bitDepth) - 1;
+
+        for (int row = 0; row < height; row++)
+        {
+            Span<ushort> destinationRow = destination.Slice(row * destinationStride, width);
+            ReadOnlySpan<ushort> firstRow = first.Slice(row * firstStride, width);
+            ReadOnlySpan<ushort> secondRow = second.Slice(row * secondStride, width);
+            ref ushort destinationReference = ref MemoryMarshal.GetReference(destinationRow);
+            ref ushort firstReference = ref MemoryMarshal.GetReference(firstRow);
+            ref ushort secondReference = ref MemoryMarshal.GetReference(secondRow);
+            int column = 0;
+
+            if (Vector512.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector512<ushort>.Count;
+                for (; column <= vectorEnd; column += Vector512<ushort>.Count)
+                {
+                    Vector512<ushort> firstVector = Vector512.LoadUnsafe(ref firstReference, (nuint)column);
+                    Vector512<ushort> secondVector = Vector512.LoadUnsafe(ref secondReference, (nuint)column);
+                    TOperator.DistanceWeightedHighBitDepth(
+                        firstVector,
+                        secondVector,
+                        firstWeight,
+                        secondWeight,
+                        roundBits,
+                        roundOffset,
+                        maximum).StoreUnsafe(ref destinationReference, (nuint)column);
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector256<ushort>.Count;
+                for (; column <= vectorEnd; column += Vector256<ushort>.Count)
+                {
+                    Vector256<ushort> firstVector = Vector256.LoadUnsafe(ref firstReference, (nuint)column);
+                    Vector256<ushort> secondVector = Vector256.LoadUnsafe(ref secondReference, (nuint)column);
+                    TOperator.DistanceWeightedHighBitDepth(
+                        firstVector,
+                        secondVector,
+                        firstWeight,
+                        secondWeight,
+                        roundBits,
+                        roundOffset,
+                        maximum).StoreUnsafe(ref destinationReference, (nuint)column);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector128<ushort>.Count;
+                for (; column <= vectorEnd; column += Vector128<ushort>.Count)
+                {
+                    Vector128<ushort> firstVector = Vector128.LoadUnsafe(ref firstReference, (nuint)column);
+                    Vector128<ushort> secondVector = Vector128.LoadUnsafe(ref secondReference, (nuint)column);
+                    TOperator.DistanceWeightedHighBitDepth(
+                        firstVector,
+                        secondVector,
+                        firstWeight,
+                        secondWeight,
+                        roundBits,
+                        roundOffset,
+                        maximum).StoreUnsafe(ref destinationReference, (nuint)column);
+                }
+            }
+
+            for (; column < width; column++)
+            {
+                destinationRow[column] = TOperator.DistanceWeightedHighBitDepth(
+                    firstRow[column],
+                    secondRow[column],
+                    firstWeight,
+                    secondWeight,
+                    roundBits,
+                    roundOffset,
+                    maximum);
+            }
+        }
+    }
 }

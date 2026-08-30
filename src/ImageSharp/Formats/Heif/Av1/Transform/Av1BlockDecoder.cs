@@ -714,16 +714,36 @@ internal sealed class Av1BlockDecoder : IDisposable
                             Span<ushort> highBitDepthDestination = MemoryMarshal.Cast<short, ushort>(
                                 highBitDepthBlockReconstructionBuffer[reconstructionStride..]);
 
-                            Av1CompoundIntermediateAveragePredictor.AverageIntermediate(
-                                highBitDepthDestination,
-                                reconstructionStride,
-                                first,
-                                predictionWidth,
-                                highBitDepthSecondPrediction,
-                                predictionWidth,
-                                predictionWidth,
-                                predictionHeight,
-                                this.frameBuffer.BitDepth.GetBitCount());
+                            if (modeInfo.CompoundType == Av1CompoundType.DistanceWeighted)
+                            {
+                                // Distance weighting must consume the no-round intermediates. Equal-averaging the
+                                // already filtered references loses the decoded display-distance contribution.
+                                Av1CompoundIntermediateDistanceWeightedPredictor.DistanceWeightedIntermediate(
+                                    highBitDepthDestination,
+                                    reconstructionStride,
+                                    first,
+                                    predictionWidth,
+                                    highBitDepthSecondPrediction,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    firstCompoundWeight,
+                                    secondCompoundWeight,
+                                    this.frameBuffer.BitDepth.GetBitCount());
+                            }
+                            else
+                            {
+                                Av1CompoundIntermediateAveragePredictor.AverageIntermediate(
+                                    highBitDepthDestination,
+                                    reconstructionStride,
+                                    first,
+                                    predictionWidth,
+                                    highBitDepthSecondPrediction,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    this.frameBuffer.BitDepth.GetBitCount());
+                            }
                         }
                         else
                         {

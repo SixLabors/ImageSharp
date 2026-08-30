@@ -178,8 +178,8 @@ The single-reference syntax, buffer, reconstruction, and ownership foundation is
 
 - [x] Compound reference selection, paired reference-MV derivation, and equal averaging.
 - [x] Inter-intra prediction.
-- [~] Distance-weighted compound prediction. Current item.
-- [~] Wedge compound prediction.
+- [x] Distance-weighted compound prediction.
+- [~] Wedge compound prediction. Current item.
 - [~] Difference-weighted compound prediction.
 - [~] OBMC.
 - [~] Scaled-reference prediction.
@@ -251,6 +251,41 @@ Verified inter-intra checkpoint evidence on 2026-08-31:
   failures or skips. Scoped analyzer and whitespace verification pass for both changed C# files.
   Roslynk reports zero compiler errors and no diagnostics in the changed files, `git diff --check`
   passes, and `.gitattributes` is unchanged.
+- [x] The completed checkpoint was committed as `18b1c881271a3494489ca6f410ab140544902e2d`
+  with author and committer `James Jackson-South <james_south@hotmail.com>`.
+
+Verified distance-weighted compound checkpoint evidence on 2026-08-31:
+
+- [x] Audited reference-distance quantization against `quant_dist_weight` and
+  `quant_dist_lookup_table` in current libaom `av1/common/common_data.h`, and audited order-hint
+  distance selection and forward/backward reference assignment against
+  `av1_dist_wtd_comp_weight_assign` in `av1/common/reconinter.c`.
+- [x] Audited reconstruction against current libaom `av1/common/convolve.c`. Corrected the production
+  10/12-bit subpixel path, which incorrectly finalized its two no-round compound intermediates with an
+  equal average instead of the signaled distance weights. The fixed path applies libaom's 4-bit weighted
+  shift before bias removal, final rounding, and clipping.
+- [x] Added descending Vector512, Vector256, Vector128, and scalar traversal to the existing semantic
+  distance-weighted intermediate predictor family. Unsigned widening preserves the biased 12-bit
+  intermediate range. No per-block, per-row, or per-scanline allocation or copy was added.
+- [x] Added FeatureTestRunner coverage for every current-libaom distance-weight class in both reference
+  orders, and for 10/12-bit copy, horizontal, vertical, and separable subpixel prediction at widths 9,
+  17, 33, and 65, with an independent no-round oracle and row-padding sentinels.
+- [x] Added a complete `Av1BlockDecoder.DecodeBlock` 10/12-bit half-sample regression that selects the
+  13:3 distance weights through real order hints. Its first reconstructed sample differs from the old
+  equal-average result, so the test proves the corrected production branch is executed.
+- [x] Extracted the fixture's 5,372-byte AV1 `mdat` payload and decoded it with the refreshed current
+  libaom `aomdec`, using one thread with row threading disabled. All 19 frames decoded. The final 19,200
+  YUV444 samples have SHA-256
+  `E8CAA650F1571C5B9CACAF8C06E1DDF5F5D2ED35F65F1C34377076C573425899` and match the retained native
+  reference with zero differing samples.
+- [x] The real 19-frame production sequence requires decoded distance-weighted compound blocks, compares
+  the final native Y, Cb, and Cr planes exactly, compares final RGBA presentation through ImageSharp's
+  established reference-output API, and repeats the complete decode with a 1,024-byte constrained
+  tracked allocator and exactly-once return checks.
+- [x] The focused Release checkpoint set passes 44/44 on net10.0 and 44/44 on net11.0, with zero failures
+  or skips. Scoped analyzer and whitespace verification pass for every changed C# file. Roslynk reports
+  zero compiler errors and no diagnostics in the changed files, `git diff --check` passes, and
+  `.gitattributes` is unchanged.
 
 For every item:
 

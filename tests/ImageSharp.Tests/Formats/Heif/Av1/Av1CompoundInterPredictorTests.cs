@@ -593,6 +593,47 @@ public class Av1CompoundInterPredictorTests
 
                         Assert.Equal(expectedWeighted, actualWeighted);
                     }
+
+                    int maskStride = width + 5;
+                    byte[] mask = new byte[maskStride * height];
+                    ushort[] expectedMasked = new ushort[destinationStride * height];
+                    ushort[] actualMasked = new ushort[destinationStride * height];
+                    expectedMasked.AsSpan().Fill(0xA5A5);
+                    actualMasked.AsSpan().Fill(0xA5A5);
+
+                    for (int row = 0; row < height; row++)
+                    {
+                        for (int column = 0; column < width; column++)
+                        {
+                            byte alpha = (byte)(((row * 29) + (column * 17) + 3) % 65);
+                            mask[(row * maskStride) + column] = alpha;
+                            int intermediateIndex = (row * intermediateStride) + column;
+                            int result = ((alpha * expectedFirst[intermediateIndex]) +
+                                ((64 - alpha) * expectedSecond[intermediateIndex])) >> 6;
+
+                            result -= roundOffset;
+                            result = (result + (1 << (roundBits - 1))) >> roundBits;
+                            expectedMasked[(row * destinationStride) + column] =
+                                (ushort)Math.Clamp(result, 0, maximum);
+                        }
+                    }
+
+                    Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
+                        actualMasked,
+                        destinationStride,
+                        actualFirst,
+                        intermediateStride,
+                        actualSecond,
+                        intermediateStride,
+                        mask,
+                        maskStride,
+                        width,
+                        height,
+                        subX: 0,
+                        subY: 0,
+                        bitDepth);
+
+                    Assert.Equal(expectedMasked, actualMasked);
                 }
             }
         }

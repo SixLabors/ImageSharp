@@ -142,6 +142,15 @@ public class Av1CompoundBlockDecoderTests
             CompoundPredictionConfigurations);
 
     /// <summary>
+    /// Verifies that high-bit-depth subpixel predictors retain no-round precision until wedge blending.
+    /// </summary>
+    [Fact]
+    public void DecodeBlockReconstructsSubpixelHighBitDepthWedgeCompoundPrediction()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateSubpixelHighBitDepthWedgeCompoundPrediction,
+            CompoundPredictionConfigurations);
+
+    /// <summary>
     /// Verifies that both references of a GLOBAL_GLOBALMV block use their complete matrix before compound averaging.
     /// </summary>
     [Fact]
@@ -674,6 +683,17 @@ public class Av1CompoundBlockDecoderTests
     }
 
     /// <summary>
+    /// Reconstructs the high-bit-depth subpixel wedge regression at every supported source precision.
+    /// </summary>
+    private static void ValidateSubpixelHighBitDepthWedgeCompoundPrediction()
+    {
+        foreach (Av1BitDepth bitDepth in new[] { Av1BitDepth.TenBit, Av1BitDepth.TwelveBit })
+        {
+            ValidateSubpixelHighBitDepthCompoundPredictionAtBitDepth(bitDepth, Av1CompoundType.Wedge);
+        }
+    }
+
+    /// <summary>
     /// Reconstructs one high-bit-depth half-sample compound block and compares it with the scalar no-round pipeline.
     /// </summary>
     /// <param name="bitDepth">The native sample depth.</param>
@@ -712,6 +732,8 @@ public class Av1CompoundBlockDecoderTests
             YMode = Av1PredictionMode.NearestNearestMotionVector,
             CompoundIndex = compoundType != Av1CompoundType.DistanceWeighted,
             CompoundType = compoundType,
+            CompoundWedgeIndex = 0,
+            CompoundWedgeSign = true,
         };
 
         modeInfo.ReferenceFrames[0] = Av1ReferenceFrameType.Last;
@@ -727,6 +749,9 @@ public class Av1CompoundBlockDecoderTests
         ushort[] expectedFirst = new ushort[blockSize * blockSize];
         ushort[] expectedSecond = new ushort[blockSize * blockSize];
         Span<ushort> expectedPredictions = expectedFirst;
+        ushort[] actualFirst = new ushort[blockSize * blockSize];
+        ushort[] actualSecond = new ushort[blockSize * blockSize];
+        Span<ushort> actualPredictions = actualFirst;
         short[] predictionScratch = new short[128 * (blockSize + 8)];
         for (int referenceIndex = 0; referenceIndex < 2; referenceIndex++)
         {
@@ -759,8 +784,27 @@ public class Av1CompoundBlockDecoderTests
                 bitDepth.GetBitCount(),
                 predictionScratch);
 
+            Av1CompoundInterPredictor.PredictCompound(
+                source,
+                sourceStride,
+                sourceIndex,
+                actualPredictions,
+                blockSize,
+                blockSize,
+                blockSize,
+                Av1InterpolationFilter.Bilinear,
+                Av1InterpolationFilter.Bilinear,
+                sourceColumnQ4 & 15,
+                sourceRowQ4 & 15,
+                bitDepth.GetBitCount(),
+                predictionScratch);
+
             expectedPredictions = expectedSecond;
+            actualPredictions = actualSecond;
         }
+
+        Assert.Equal(expectedFirst, actualFirst);
+        Assert.Equal(expectedSecond, actualSecond);
 
         ushort[] expected = new ushort[blockSize * blockSize];
         if (compoundType == Av1CompoundType.DistanceWeighted)
@@ -784,6 +828,50 @@ public class Av1CompoundBlockDecoderTests
                 blockSize,
                 firstWeight,
                 secondWeight,
+                bitDepth.GetBitCount());
+
+            Assert.NotEqual((ushort)60, expected[0]);
+        }
+        else if (compoundType == Av1CompoundType.Wedge)
+        {
+            ReadOnlySpan<byte> wedgeMask =
+            [
+                0, 0, 0, 1, 1, 2, 4, 6,
+                0, 1, 1, 2, 4, 6, 11, 18,
+                1, 2, 4, 6, 11, 18, 27, 37,
+                4, 6, 11, 18, 27, 37, 46, 53,
+                11, 18, 27, 37, 46, 53, 58, 60,
+                27, 37, 46, 53, 58, 60, 62, 63,
+                46, 53, 58, 60, 62, 63, 63, 64,
+                58, 60, 62, 63, 63, 64, 64, 64,
+            ];
+
+            byte[] generatedWedgeMask = new byte[blockSize * blockSize];
+            Av1WedgeMask.Fill(
+                generatedWedgeMask,
+                blockSize,
+                Av1BlockSize.Block8x8,
+                wedgeIndex: 0,
+                wedgeSign: true,
+                subX: 0,
+                subY: 0,
+                invert: false);
+
+            Assert.Equal(wedgeMask, generatedWedgeMask);
+
+            Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
+                expected,
+                blockSize,
+                expectedFirst,
+                blockSize,
+                expectedSecond,
+                blockSize,
+                wedgeMask,
+                blockSize,
+                blockSize,
+                blockSize,
+                subX: 0,
+                subY: 0,
                 bitDepth.GetBitCount());
 
             Assert.NotEqual((ushort)60, expected[0]);

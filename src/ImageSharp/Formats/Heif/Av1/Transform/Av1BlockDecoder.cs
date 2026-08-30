@@ -372,7 +372,10 @@ internal sealed class Av1BlockDecoder : IDisposable
                 // warped/global models have separate kernels and remain with their owning later prediction checkpoints.
                 bool useHighBitDepthCompoundIntermediates =
                     highBitDepth &&
-                    modeInfo.CompoundType == Av1CompoundType.Average &&
+                    modeInfo.CompoundType is
+                        Av1CompoundType.Average or
+                        Av1CompoundType.DistanceWeighted or
+                        Av1CompoundType.Wedge &&
                     modeInfo.MotionMode != Av1MotionMode.Warped &&
                     modeInfo.YMode != Av1PredictionMode.GlobalGlobalMotionVector;
 
@@ -729,6 +732,35 @@ internal sealed class Av1BlockDecoder : IDisposable
                                     predictionHeight,
                                     firstCompoundWeight,
                                     secondCompoundWeight,
+                                    this.frameBuffer.BitDepth.GetBitCount());
+                            }
+                            else if (modeInfo.CompoundType == Av1CompoundType.Wedge)
+                            {
+                                Av1WedgeMask.Fill(
+                                    compoundMask,
+                                    predictionWidth,
+                                    blockSize,
+                                    modeInfo.CompoundWedgeIndex,
+                                    modeInfo.CompoundWedgeSign,
+                                    subX,
+                                    subY,
+                                    invert: false);
+
+                                // Masked compound prediction must blend the same no-round intermediates as libaom's
+                                // high-bit-depth d16 path so the mask is applied before the sole final rounding step.
+                                Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
+                                    highBitDepthDestination,
+                                    reconstructionStride,
+                                    first,
+                                    predictionWidth,
+                                    highBitDepthSecondPrediction,
+                                    predictionWidth,
+                                    compoundMask,
+                                    predictionWidth,
+                                    predictionWidth,
+                                    predictionHeight,
+                                    subX: 0,
+                                    subY: 0,
                                     this.frameBuffer.BitDepth.GetBitCount());
                             }
                             else

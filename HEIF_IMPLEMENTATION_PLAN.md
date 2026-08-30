@@ -30,13 +30,13 @@ Reference checkout evidence on 2026-08-31:
 Reconciled with the worktree on 2026-08-31.
 
 - [~] The bounded container reader, still-image path, sequence parser, AV1 decoder, color pipeline, presentation pipeline, and broad AV1 test suite exist locally.
-- [~] The inter-frame decoder contains implementations for single-reference prediction, compound references, inter-intra prediction, selectable compound blending, OBMC, scaled references, local warped motion, and global motion. These downstream paths must not be called verified until the single-reference checkpoint below is corrected and rerun.
+- [~] The inter-frame decoder has verified checkpoints through wedge compound prediction. Difference-weighted compound prediction, OBMC, scaled references, local warped motion, and global motion exist locally but remain open until their ordered checkpoints below are completed.
 - [~] Loop filtering, CDEF, super-resolution, restoration, film grain, layered presentation, alpha composition, and color conversion exist locally. Shared-source cleanup changed the current tree, so final production-path verification is open.
 - [~] AV1 writer primitives, forward transforms, symbol encoding, and tile-writing source exist locally, but they are not connected to the public encoder.
 - [ ] The public AV1 encoder is not implemented. HeifEncoderCore.Encode throws NotSupportedException when AV1 is selected.
 - [x] Patented codec production code, registrations, tests, benchmarks, fixtures, reference outputs, and notices were manually deleted and committed by `78a74d448`.
 - [x] Remaining task-created HM, HEVC, libheif, GPAC, Nokia, FFmpeg, Pillow HEIF, libavif-build, and libjpeg-build directories were traced to their creation commands in the recovered Codex session history and deleted on 2026-08-31. The user-provided repositories and all libaom-only source, build, and reference data were left untouched.
-- [~] A PNG metadata-suppression fix and three HEIF/AV1 diagnostic-save call-site corrections are implemented in the current worktree. The exact 34 cases that failed in the net11.0 ARM CI job now pass in Release, but these changes are not yet committed and are not decoder or encoder completion evidence.
+- [x] The PNG metadata-suppression fix and three HEIF/AV1 diagnostic-save call-site corrections passed the exact 34 net11.0 ARM CI cases and were committed with the single-reference checkpoint as `54bb6cbe59bd113058854a3ee31448cf61f462ca`. They are infrastructure evidence, not decoder or encoder completion evidence.
 - [ ] The complete decoder and encoder release matrix is not complete.
 
 ## Immediate execution queue
@@ -50,10 +50,10 @@ Work must proceed in this order. Do not skip to a later item while an earlier ch
 - [x] Retain the official current-main libaom checkout and libaom-only build artifacts required for AV1 verification.
 - [x] Retain user-supplied AV1 fixtures and their recorded expected outputs.
 - [x] Audit production source, tests, benchmarks, assets, project files, notices, and documentation for stale removed-code references.
-- [~] The prior cleanup tree built in Release with restore disabled, build servers disabled, and one MSBuild node. A fresh current-worktree build remains required after the local PNG cICP fix.
-- [~] The prior focused AV1/container set passed, but it missed the net11.0 PNG cICP diagnostic-save failures. The exact 34 CI failures now pass after the local fix; the final current-worktree checkpoint set remains required.
-- [~] Roslynk currently reports zero compiler errors for the local fix, and `git diff --check` passes. Scoped StyleCop and final current-worktree inspection remain required.
-- [~] Record the final current-worktree cleanup and cICP evidence after the checkpoint verification completes.
+- [x] The cleanup and cICP tree built in Release for net10.0 and net11.0 with restore disabled, build servers disabled, and one MSBuild node.
+- [x] The exact 34 net11.0 ARM CI failures pass after the cICP correction, and the subsequent single-reference checkpoint set passes on net10.0 and net11.0.
+- [x] Roslynk, scoped StyleCop, whitespace, and `git diff --check` accepted the cleanup and cICP checkpoint.
+- [x] The cleanup and cICP evidence was recorded and committed with the single-reference checkpoint.
 
 Historical cleanup evidence from 2026-08-30, retained with its limitation:
 
@@ -179,8 +179,8 @@ The single-reference syntax, buffer, reconstruction, and ownership foundation is
 - [x] Compound reference selection, paired reference-MV derivation, and equal averaging.
 - [x] Inter-intra prediction.
 - [x] Distance-weighted compound prediction.
-- [~] Wedge compound prediction. Current item.
-- [~] Difference-weighted compound prediction.
+- [x] Wedge compound prediction.
+- [~] Difference-weighted compound prediction. Current item.
 - [~] OBMC.
 - [~] Scaled-reference prediction.
 - [~] Local warped prediction.
@@ -286,6 +286,42 @@ Verified distance-weighted compound checkpoint evidence on 2026-08-31:
   or skips. Scoped analyzer and whitespace verification pass for every changed C# file. Roslynk reports
   zero compiler errors and no diagnostics in the changed files, `git diff --check` passes, and
   `.gitattributes` is unchanged.
+- [x] The completed checkpoint was committed as `7e2de7a2c25852acc374b17936a1a644464f77f3`
+  with author and committer `James Jackson-South <james_south@hotmail.com>`.
+
+Verified wedge compound checkpoint evidence on 2026-08-31:
+
+- [x] Audited mask generation against current libaom `tools/gen_wedge_masks_data.py` and
+  `av1/common/reconinter.c`, including the master prototypes, direction transforms, block-size
+  codebooks, sign flips, offsets, and luma/chroma mask sampling. ImageSharp's generated masks match
+  those definitions; only stale “pinned” documentation required correction.
+- [x] Audited reconstruction against current libaom `aom_dsp/blend_a64_mask.c`. The high-bit-depth
+  d16 path applies the Q6 mask to both no-round intermediates before bias removal, the sole final
+  rounding step, and clipping.
+- [x] Corrected the production high-bit-depth intermediate eligibility gate, which admitted only
+  equal-average blocks and made the distance-weighted and wedge no-round finalizers unreachable.
+  Average, distance-weighted, and wedge subpixel blocks now retain both intermediates until their
+  signaled finalizer; difference-weighted blending remains excluded for its next ordered checkpoint.
+- [x] Added high-bit-depth traversal to the existing semantic mask-blend predictor and readonly
+  operator family with descending Vector512, Vector256, Vector128, and scalar dispatch. Unsigned
+  widening preserves the biased 12-bit intermediate range. No per-block, per-row, or per-scanline
+  allocation or copy was added.
+- [x] Extended FeatureTestRunner coverage with an independent Q6 mask oracle across 10/12-bit copy,
+  horizontal, vertical, and separable subpixel prediction, widths 9, 17, 33, and 65, all mask weights
+  from 0 through 64, and row-padding sentinels. A complete `Av1BlockDecoder.DecodeBlock` regression
+  verifies the current-libaom 8x8 wedge mask and the production no-round branch.
+- [x] Extracted the fixture's 5,374-byte AV1 `mdat` payload and decoded it with refreshed current
+  libaom `aomdec`, using one thread with row threading disabled. All 19 frames decoded. The final
+  19,200 YUV444 samples have SHA-256
+  `E8CAA650F1571C5B9CACAF8C06E1DDF5F5D2ED35F65F1C34377076C573425899` and match the retained native
+  reference with zero differing samples.
+- [x] The real 19-frame production sequence requires both wedge-mask orientations, compares final
+  native Y, Cb, and Cr planes exactly, compares final RGBA presentation through ImageSharp's
+  established reference-output API, and repeats the complete decode with a 1,024-byte constrained
+  tracked allocator and exactly-once return checks.
+- [x] The focused Release checkpoint set passes 35/35 on net10.0 and 35/35 on net11.0, with zero
+  failures or skips. Scoped analyzer and whitespace verification pass for every changed C# file.
+  Roslynk reports zero compiler errors, `git diff --check` passes, and `.gitattributes` is unchanged.
 
 For every item:
 

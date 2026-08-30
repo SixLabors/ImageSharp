@@ -14,7 +14,7 @@ internal static class Av1WedgeMask
     private const int MasterSize = 64;
 
     /// <summary>
-    /// Gets the odd-row oblique prototype from pinned libaom.
+    /// Gets the odd-row oblique prototype defined by libaom.
     /// </summary>
     private static ReadOnlySpan<byte> MasterObliqueOdd =>
     [
@@ -25,7 +25,7 @@ internal static class Av1WedgeMask
     ];
 
     /// <summary>
-    /// Gets the even-row oblique prototype from pinned libaom.
+    /// Gets the even-row oblique prototype defined by libaom.
     /// </summary>
     private static ReadOnlySpan<byte> MasterObliqueEven =>
     [
@@ -36,7 +36,7 @@ internal static class Av1WedgeMask
     ];
 
     /// <summary>
-    /// Gets the vertical prototype from pinned libaom.
+    /// Gets the vertical prototype defined by libaom.
     /// </summary>
     private static ReadOnlySpan<byte> MasterVertical =>
     [

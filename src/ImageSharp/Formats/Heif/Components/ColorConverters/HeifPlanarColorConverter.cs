@@ -48,7 +48,7 @@ internal static class HeifPlanarColorConverter
         where TPixel : unmanaged, IPixel<TPixel>
         where TBuffer : struct, IHeifPlanarSampleBuffer<ushort>
     {
-        if (HeifYuv420ToRgb8Converter.IsSupported(
+        if (HeifYuvToRgb8Converter.SupportsFixedPointConversion(
             buffer.ChromaSubsamplingX,
             buffer.ChromaSubsamplingY,
             buffer.LumaBitDepth,
@@ -59,7 +59,7 @@ internal static class HeifPlanarColorConverter
         {
             // The fixed-point operator preserves the exact code-value rounding used by the verified eight-bit
             // presentation path. Selection belongs here so no codec can acquire a private color-conversion route.
-            HeifYuv420ToRgb8Converter.Convert(configuration, buffer, image, in parameters, sourceX, sourceY);
+            HeifYuvToRgb8Converter.ConvertFixedPoint(configuration, buffer, image, in parameters, sourceX, sourceY);
             return;
         }
 

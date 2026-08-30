@@ -36,6 +36,50 @@ internal static class HevcYuvConverter
     {
         HeifColorConversionParameters parameters = GetConversionParameters(picture, colorProfile, out HeifColorConversionMode mode);
         HevcPlanarSampleBuffer buffer = new(picture, chromaSampleLocation);
+        if (HeifYuvToRgb8Converter.SupportsLibheifConversion(
+            buffer.ChromaSubsamplingX,
+            buffer.ChromaSubsamplingY,
+            buffer.LumaBitDepth,
+            buffer.ChromaBitDepth,
+            buffer.IsMonochrome,
+            mode))
+        {
+            // libheif 1.23.1 is the pinned HEIC presentation implementation. Its pipeline search selects the
+            // lower-cost direct YCbCr operation when preferred-only upsampling is disabled, so subsampled chroma is
+            // nearest-replicated and high-bit-depth RGB is rounded before a separate shift to eight bits.
+            HeifYuvToRgb8Converter.ConvertLibheif(
+                configuration,
+                buffer,
+                image,
+                in parameters,
+                sourceX,
+                sourceY);
+
+            return;
+        }
+
+        if (HeifYuvToRgb16Converter.SupportsLibheifConversion(
+            buffer.ChromaSubsamplingX,
+            buffer.ChromaSubsamplingY,
+            buffer.LumaBitDepth,
+            buffer.ChromaBitDepth,
+            buffer.IsMonochrome,
+            mode))
+        {
+            // High-bit-depth conversion retains every rounded source-precision RGB bit in UInt16 storage before
+            // PixelOperations performs the requested TPixel conversion. This prevents an Rgba32 test from concealing
+            // precision loss in Rgba64, Rgb48, or floating-point decoder output.
+            HeifYuvToRgb16Converter.Convert(
+                configuration,
+                buffer,
+                image,
+                in parameters,
+                sourceX,
+                sourceY);
+
+            return;
+        }
+
         HeifPlanarColorConverter.ConvertToRgb<TPixel, HevcPlanarSampleBuffer>(
             configuration,
             buffer,

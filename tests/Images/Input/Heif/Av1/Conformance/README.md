@@ -1,6 +1,6 @@
 # AV1 reconstruction conformance fixtures
 
-These fixtures provide independent reference output for AV1 reconstruction and AVIF presentation tests. ImageSharp output is compared exactly with the retained native YUV planes and presented PNG files; the tests do not use a tolerance.
+These fixtures provide independent reference output for AV1 reconstruction and AVIF presentation tests. ImageSharp output is compared exactly with the retained native YUV planes and presented PNG files; the tests do not use a tolerance. Native fixtures remain beside their inputs here, while the PNG files use the repository reference-output naming contract under `tests/Images/External/ReferenceOutput/Av1ReconstructionConformanceTests`.
 
 ## Provenance
 
@@ -20,7 +20,7 @@ The reference builds use `AOM_TARGET_CPU=generic` and disable libyuv. Native rec
 - `-libaom.yuv` files contain headerless planar Y, U, and V reference samples. Samples above eight bits are stored as little-endian 16-bit values.
 - `-libaom-y4m.yuv` files retain the Y4M header together with the native planar frame.
 - `-libaom.y4m` files retain the Y4M header together with the native sequence frames selected for comparison.
-- `.png` files contain the eight-bit RGBA presentation reference produced by the pinned scalar libavif build.
+- Reference-output `.png` files contain the eight-bit RGBA presentation produced by the pinned scalar libavif build. Their names combine the public test method, `Rgba32`, and the input AVIF basename so `CompareToReferenceOutput` resolves them directly.
 
 ## Coverage
 

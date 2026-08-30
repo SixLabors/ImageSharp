@@ -467,9 +467,27 @@ public class Av1ReconstructionConformanceTests
     /// Verifies exact presented pixels and public metadata for independently encoded eight-, ten-, and twelve-bit
     /// active-CDEF AVIF images across the available vector widths and the scalar fallback.
     /// </summary>
-    [Fact]
-    public void DecodeWithActiveCdefMatchesPinnedLibavifPresentation()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePresentedFixtures, PresentationConfigurations);
+    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
+    /// <param name="width">The expected presented width.</param>
+    /// <param name="height">The expected presented height.</param>
+    /// <param name="bitDepth">The expected public sample precision.</param>
+    [Theory]
+    [WithFile(TestImages.Heif.Av1Cdef8BitAvif, PixelTypes.Rgba32, 768, 512, HeifBitDepth.Bit8)]
+    [WithFile(TestImages.Heif.Av1Cdef10BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit10)]
+    [WithFile(TestImages.Heif.Av1Cdef12BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit12)]
+    public void DecodeWithActiveCdefMatchesPinnedLibavifPresentation(
+        TestImageProvider<Rgba32> provider,
+        int width,
+        int height,
+        HeifBitDepth bitDepth)
+    {
+        AssertPresentedMetadata(provider, width, height, bitDepth);
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidatePresentedFixture,
+            PresentationConfigurations,
+            provider);
+    }
 
     /// <summary>
     /// Verifies exact native reconstruction for every valid AV1 profile, bit-depth, and chroma-format combination
@@ -491,17 +509,41 @@ public class Av1ReconstructionConformanceTests
     /// Verifies exact presented pixels, public bit-depth metadata, and CICP signaling for every valid AV1 profile,
     /// bit-depth, and chroma-format combination supported by AVIF.
     /// </summary>
-    [Fact]
-    public void DecodeProfileMatrixMatchesPinnedLibavifPresentation()
-        => ValidateProfilePresentedFixtures();
+    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
+    /// <param name="bitDepth">The expected public sample precision.</param>
+    [Theory]
+    [WithFile(TestImages.Heif.Av1Profile8BitMonochromeAvif, PixelTypes.Rgba32, HeifBitDepth.Bit8)]
+    [WithFile(TestImages.Heif.Av1Profile8Bit420Avif, PixelTypes.Rgba32, HeifBitDepth.Bit8)]
+    [WithFile(TestImages.Heif.Av1Profile8Bit422Avif, PixelTypes.Rgba32, HeifBitDepth.Bit8)]
+    [WithFile(TestImages.Heif.Av1Profile8Bit444Avif, PixelTypes.Rgba32, HeifBitDepth.Bit8)]
+    [WithFile(TestImages.Heif.Av1Profile10BitMonochromeAvif, PixelTypes.Rgba32, HeifBitDepth.Bit10)]
+    [WithFile(TestImages.Heif.Av1Profile10Bit420Avif, PixelTypes.Rgba32, HeifBitDepth.Bit10)]
+    [WithFile(TestImages.Heif.Av1Profile10Bit422Avif, PixelTypes.Rgba32, HeifBitDepth.Bit10)]
+    [WithFile(TestImages.Heif.Av1Profile10Bit444Avif, PixelTypes.Rgba32, HeifBitDepth.Bit10)]
+    [WithFile(TestImages.Heif.Av1Profile12BitMonochromeAvif, PixelTypes.Rgba32, HeifBitDepth.Bit12)]
+    [WithFile(TestImages.Heif.Av1Profile12Bit420Avif, PixelTypes.Rgba32, HeifBitDepth.Bit12)]
+    [WithFile(TestImages.Heif.Av1Profile12Bit422Avif, PixelTypes.Rgba32, HeifBitDepth.Bit12)]
+    [WithFile(TestImages.Heif.Av1Profile12Bit444Avif, PixelTypes.Rgba32, HeifBitDepth.Bit12)]
+    public void DecodeProfileMatrixMatchesPinnedLibavifPresentation(
+        TestImageProvider<Rgba32> provider,
+        HeifBitDepth bitDepth)
+    {
+        using Image<Rgba32> image = provider.GetImage();
+        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
+        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
+        Assert.Equal(bitDepth, metadata.BitDepth);
 
-    /// <summary>
-    /// Verifies exact presented pixels, public bit-depth metadata, and CICP signaling under each narrower vector width
-    /// and the scalar fallback.
-    /// </summary>
-    [Fact]
-    public void DecodeProfileMatrixFallbacksMatchPinnedLibavifPresentation()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateProfilePresentedFixtures, ProfileFallbackConfigurations);
+        CicpProfile colorProfile = Assert.IsType<CicpProfile>(image.Metadata.CicpProfile);
+        Assert.Equal(CicpColorPrimaries.ItuRBt709_6, colorProfile.ColorPrimaries);
+        Assert.Equal(CicpTransferCharacteristics.Iec61966_2_1, colorProfile.TransferCharacteristics);
+        Assert.Equal(CicpMatrixCoefficients.ItuRBt601_7_525, colorProfile.MatrixCoefficients);
+        Assert.True(colorProfile.FullRange);
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidatePresentedFixture,
+            PresentationConfigurations,
+            provider);
+    }
 
     /// <summary>
     /// Verifies decoded luma and chroma palette syntax and exact native samples against scalar libaom for an
@@ -567,9 +609,14 @@ public class Av1ReconstructionConformanceTests
     /// Verifies decoded luma and chroma palette syntax and exact presented pixels for an independently encoded AVIF
     /// image across the available vector widths and the scalar fallback.
     /// </summary>
-    [Fact]
-    public void DecodeWithPaletteMatchesPinnedLibavifPresentation()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePalettePresentedFixture, PresentationConfigurations);
+    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
+    [Theory]
+    [WithFile(TestImages.Heif.Av1Palette8BitAvif, PixelTypes.Rgba32)]
+    public void DecodeWithPaletteMatchesPinnedLibavifPresentation(TestImageProvider<Rgba32> provider)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidatePresentedFixture,
+            PresentationConfigurations,
+            provider);
 
     /// <summary>
     /// Verifies that malformed data following a decoded palette tile releases its frame state before the same decoder
@@ -619,19 +666,31 @@ public class Av1ReconstructionConformanceTests
     /// Verifies exact presented pixels for independently encoded intra-block-copy AVIF images across the available
     /// vector widths and the scalar fallback.
     /// </summary>
-    [Fact]
-    public void DecodeWithIntraBlockCopyMatchesPinnedLibavifPresentation()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateIntraBlockCopyPresentedFixtures, PresentationConfigurations);
+    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
+    [Theory]
+    [WithFile(TestImages.Heif.Av1IntraBlockCopy8BitAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1IntraBlockCopy10BitAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1IntraBlockCopy12BitAvif, PixelTypes.Rgba32)]
+    public void DecodeWithIntraBlockCopyMatchesPinnedLibavifPresentation(
+        TestImageProvider<Rgba32> provider)
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidatePresentedFixture,
+            PresentationConfigurations,
+            provider);
 
     /// <summary>
     /// Verifies the production single-reference inter-reconstruction path against exact native and presentation
     /// references across the available vector widths and scalar fallback.
     /// </summary>
-    [Fact]
-    public void DecodeProgressiveSingleReferenceMatchesPinnedReferences()
+    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
+    [Theory]
+    [WithFile(TestImages.Heif.Av1Progressive8BitAvif, PixelTypes.Rgba32)]
+    public void DecodeProgressiveSingleReferenceMatchesPinnedReferences(
+        TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateProgressiveSingleReferenceFixtureWithDefaultConfiguration,
-            PresentationConfigurations);
+            PresentationConfigurations,
+            provider);
 
     /// <summary>
     /// Verifies production single-reference inter reconstruction with a constrained allocator.
@@ -645,7 +704,7 @@ public class Av1ReconstructionConformanceTests
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
 
-        ValidateProgressiveSingleReferenceFixture(configuration, verifyPresentation: true);
+        ValidateProgressiveSingleReferenceFixture(configuration);
 
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
         Assert.All(
@@ -659,11 +718,15 @@ public class Av1ReconstructionConformanceTests
     /// Verifies that an essential lsel property returns the selected base spatial layer rather than the final
     /// progressive layer, with exact pinned-libaom native planes and pinned-libavif presentation.
     /// </summary>
-    [Fact]
-    public void DecodeSelectedProgressiveSpatialLayerMatchesPinnedReferences()
+    /// <param name="provider">The selected-layer AVIF input and matching reference-output naming context.</param>
+    [Theory]
+    [WithFile(TestImages.Heif.Av1ScaledReferenceSelectedLayerAvif, PixelTypes.Rgba32)]
+    public void DecodeSelectedProgressiveSpatialLayerMatchesPinnedReferences(
+        TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateSelectedProgressiveSpatialLayerWithDefaultConfiguration,
-            PresentationConfigurations);
+            PresentationConfigurations,
+            provider);
 
     /// <summary>
     /// Verifies selected-layer native reconstruction and public presentation with constrained tracked allocation.
@@ -691,11 +754,14 @@ public class Av1ReconstructionConformanceTests
     /// Verifies an independently encoded 40x40 retained layer scaled into an 80x80 dependent layer against exact
     /// pinned-libaom native planes and pinned-libavif presentation.
     /// </summary>
-    [Fact]
-    public void DecodeScaledReferenceMatchesPinnedReferences()
+    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
+    [Theory]
+    [WithFile(TestImages.Heif.Av1ScaledReferenceAvif, PixelTypes.Rgba32)]
+    public void DecodeScaledReferenceMatchesPinnedReferences(TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateScaledReferenceFixtureWithDefaultConfiguration,
-            ReconstructionConfigurations);
+            ReconstructionConfigurations,
+            provider);
 
     /// <summary>
     /// Verifies scaled-reference reconstruction with constrained tracked allocation and contiguous frame planes.
@@ -709,7 +775,7 @@ public class Av1ReconstructionConformanceTests
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
 
-        ValidateScaledReferenceFixture(configuration, verifyPresentation: false);
+        ValidateScaledReferenceFixture(configuration);
 
         Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
         Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
@@ -783,11 +849,15 @@ public class Av1ReconstructionConformanceTests
     /// Verifies exact native reconstruction and presentation for a genuine pinned-libavif image sequence that uses
     /// equal-weight compound prediction.
     /// </summary>
-    [Fact]
-    public void DecodeRealLibavifSequenceWithEqualAverageCompoundMatchesPinnedReferences()
+    [Theory]
+    [WithFile(TestImages.Heif.Av1AverageCompoundSequenceAvif, PixelTypes.Rgba32)]
+    public void DecodeRealLibavifSequenceWithEqualAverageCompoundMatchesPinnedReferences(
+        TestImageProvider<Rgba32> provider)
+
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateAverageCompoundSequenceWithDefaultConfiguration,
-            ReconstructionConfigurations);
+            ReconstructionConfigurations,
+            provider);
 
     /// <summary>
     /// Verifies the complete compound sequence through a constrained allocator.
@@ -801,7 +871,7 @@ public class Av1ReconstructionConformanceTests
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
 
-        ValidateAverageCompoundSequence(configuration, null);
+        ValidateAverageCompoundSequence(configuration);
 
         Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
         Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
@@ -816,22 +886,18 @@ public class Av1ReconstructionConformanceTests
     /// <summary>
     /// Runs the exact compound-sequence comparisons with the default configuration.
     /// </summary>
-    private static void ValidateAverageCompoundSequenceWithDefaultConfiguration()
+    /// <param name="providerDump">The serialized input provider and reference-output naming context.</param>
+    private static void ValidateAverageCompoundSequenceWithDefaultConfiguration(string providerDump)
     {
-        byte[] presentationBytes = TestFile.Create(TestImages.Heif.Av1AverageCompoundSequencePresentationReference).Bytes;
-        using Image<Rgba32> presentationReference = Image.Load<Rgba32>(presentationBytes);
-
-        ValidateAverageCompoundSequence(Configuration.Default, presentationReference.Frames.RootFrame);
+        ValidateAverageCompoundSequence(Configuration.Default);
+        ValidateFinalSequencePresentation(providerDump);
     }
 
     /// <summary>
-    /// Validates the complete compound sequence with the requested allocator and optional presentation reference.
+    /// Validates the complete compound sequence with the requested allocator.
     /// </summary>
     /// <param name="configuration">The decoder configuration.</param>
-    /// <param name="presentationReference">The exact final presented frame, or <see langword="null"/>.</param>
-    private static void ValidateAverageCompoundSequence(
-        Configuration configuration,
-        ImageFrame<Rgba32> presentationReference)
+    private static void ValidateAverageCompoundSequence(Configuration configuration)
     {
         byte[] fileBytes = TestFile.Create(TestImages.Heif.Av1AverageCompoundSequenceAvif).Bytes;
         byte[] referenceBytes = TestFile.Create(TestImages.Heif.Av1AverageCompoundSequenceNativeReference).Bytes;
@@ -852,7 +918,6 @@ public class Av1ReconstructionConformanceTests
         int compoundBlockCount = 0;
         int visibleFrameCount = 0;
         bool nativeCompared = false;
-        bool presentationCompared = false;
 
         using Av1Decoder decoder = new(configuration);
         for (int sampleIndex = 0; sampleIndex < track.Samples.Length; sampleIndex++)
@@ -925,15 +990,6 @@ public class Av1ReconstructionConformanceTests
                 Assert.Equal(Av1ColorFormat.Yuv444, frameBuffer.ColorFormat);
                 AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
                 nativeCompared = true;
-
-                if (presentationReference is not null)
-                {
-                    ImageSimilarityReport<Rgba32, Rgba32> report =
-                        ImageComparer.Exact.CompareImagesOrFrames(visibleFrameCount, presentationReference, frame);
-
-                    Assert.True(report.IsEmpty, report.ToString());
-                    presentationCompared = true;
-                }
             }
 
             visibleFrameCount++;
@@ -942,17 +998,23 @@ public class Av1ReconstructionConformanceTests
         Assert.Equal(AverageCompoundFixtureFrameCount, visibleFrameCount);
         Assert.NotEqual(0, compoundBlockCount);
         Assert.True(nativeCompared);
-        Assert.Equal(presentationReference is not null, presentationCompared);
     }
 
     /// <summary>
     /// Verifies every selectable compound and inter-intra production branch against pinned native and presentation references.
     /// </summary>
-    [Fact]
-    public void DecodeRealLibavifSequencesWithSelectableCompoundAndInterIntraMatchesPinnedReferences()
+    [Theory]
+    [WithFile(TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1WedgeCompoundSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif, PixelTypes.Rgba32)]
+    [WithFile(TestImages.Heif.Av1InterIntraSequenceAvif, PixelTypes.Rgba32)]
+    public void DecodeRealLibavifSequencesWithSelectableCompoundAndInterIntraMatchesPinnedReferences(
+        TestImageProvider<Rgba32> provider)
+
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
-            ValidateSelectableCompoundSequencesWithDefaultConfiguration,
-            ReconstructionConfigurations);
+            ValidateSelectableCompoundSequenceWithDefaultConfiguration,
+            ReconstructionConfigurations,
+            provider);
 
     /// <summary>
     /// Verifies selectable compound and inter-intra reconstruction through a constrained allocator.
@@ -964,36 +1026,42 @@ public class Av1ReconstructionConformanceTests
         ValidateInterPredictionSequenceWithConstrainedAllocator(
             TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif,
             TestImages.Heif.Av1DistanceWeightedCompoundSequenceNativeReference,
-            TestImages.Heif.Av1DistanceWeightedCompoundSequencePresentationReference,
-            DistanceWeightedCompoundCoverage);
+            DistanceWeightedCompoundCoverage,
+            AverageCompoundFixtureSize,
+            AverageCompoundFixtureFrameCount);
 
         ValidateInterPredictionSequenceWithConstrainedAllocator(
             TestImages.Heif.Av1WedgeCompoundSequenceAvif,
             TestImages.Heif.Av1WedgeCompoundSequenceNativeReference,
-            TestImages.Heif.Av1WedgeCompoundSequencePresentationReference,
-            WedgeCompoundCoverage | InvertedWedgeCompoundCoverage);
+            WedgeCompoundCoverage | InvertedWedgeCompoundCoverage,
+            AverageCompoundFixtureSize,
+            AverageCompoundFixtureFrameCount);
 
         ValidateInterPredictionSequenceWithConstrainedAllocator(
             TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif,
             TestImages.Heif.Av1DifferenceWeightedCompoundSequenceNativeReference,
-            TestImages.Heif.Av1DifferenceWeightedCompoundSequencePresentationReference,
-            DifferenceWeightedCompoundCoverage | InvertedDifferenceWeightedCompoundCoverage);
+            DifferenceWeightedCompoundCoverage | InvertedDifferenceWeightedCompoundCoverage,
+            AverageCompoundFixtureSize,
+            AverageCompoundFixtureFrameCount);
 
         ValidateInterPredictionSequenceWithConstrainedAllocator(
             TestImages.Heif.Av1InterIntraSequenceAvif,
             TestImages.Heif.Av1InterIntraSequenceNativeReference,
-            TestImages.Heif.Av1InterIntraSequencePresentationReference,
-            SmoothInterIntraCoverage | WedgeInterIntraCoverage);
+            SmoothInterIntraCoverage | WedgeInterIntraCoverage,
+            AverageCompoundFixtureSize,
+            AverageCompoundFixtureFrameCount);
     }
 
     /// <summary>
     /// Verifies production OBMC reconstruction against pinned native and presentation references.
     /// </summary>
-    [Fact]
-    public void DecodeRealLibavifObmcSequenceMatchesPinnedReferences()
+    [Theory]
+    [WithFile(TestImages.Heif.Av1ObmcSequenceAvif, PixelTypes.Rgba32)]
+    public void DecodeRealLibavifObmcSequenceMatchesPinnedReferences(TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateObmcSequenceWithDefaultConfiguration,
-            ReconstructionConfigurations);
+            ReconstructionConfigurations,
+            provider);
 
     /// <summary>
     /// Verifies production OBMC reconstruction through a constrained allocator.
@@ -1004,17 +1072,20 @@ public class Av1ReconstructionConformanceTests
         => ValidateInterPredictionSequenceWithConstrainedAllocator(
             TestImages.Heif.Av1ObmcSequenceAvif,
             TestImages.Heif.Av1ObmcSequenceNativeReference,
-            TestImages.Heif.Av1ObmcSequencePresentationReference,
-            ObmcCoverage);
+            ObmcCoverage,
+            AverageCompoundFixtureSize,
+            AverageCompoundFixtureFrameCount);
 
     /// <summary>
     /// Verifies production local warped-motion reconstruction against pinned native and presentation references.
     /// </summary>
-    [Fact]
-    public void DecodeRealLibavifLocalWarpSequenceMatchesPinnedReferences()
+    [Theory]
+    [WithFile(TestImages.Heif.Av1LocalWarpSequenceAvif, PixelTypes.Rgba32)]
+    public void DecodeRealLibavifLocalWarpSequenceMatchesPinnedReferences(TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateLocalWarpSequenceWithDefaultConfiguration,
-            ReconstructionConfigurations);
+            ReconstructionConfigurations,
+            provider);
 
     /// <summary>
     /// Verifies production local warped-motion reconstruction through a constrained allocator.
@@ -1032,11 +1103,9 @@ public class Av1ReconstructionConformanceTests
             configuration,
             TestImages.Heif.Av1LocalWarpSequenceAvif,
             TestImages.Heif.Av1LocalWarpSequenceNativeReference,
-            TestImages.Heif.Av1LocalWarpSequencePresentationReference,
             LocalWarpCoverage,
-            comparePresentation: false,
-            fixtureSize: 256,
-            visibleFrameCount: 2);
+            256,
+            2);
 
         Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
         Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
@@ -1051,11 +1120,13 @@ public class Av1ReconstructionConformanceTests
     /// <summary>
     /// Verifies production non-translational global-motion reconstruction against pinned native and presentation references.
     /// </summary>
-    [Fact]
-    public void DecodeRealLibavifGlobalWarpSequenceMatchesPinnedReferences()
+    [Theory]
+    [WithFile(TestImages.Heif.Av1GlobalWarpSequenceAvif, PixelTypes.Rgba32)]
+    public void DecodeRealLibavifGlobalWarpSequenceMatchesPinnedReferences(TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateGlobalWarpSequenceWithDefaultConfiguration,
-            ReconstructionConfigurations);
+            ReconstructionConfigurations,
+            provider);
 
     /// <summary>
     /// Verifies production non-translational global-motion reconstruction through a constrained allocator.
@@ -1066,10 +1137,9 @@ public class Av1ReconstructionConformanceTests
         => ValidateInterPredictionSequenceWithConstrainedAllocator(
             TestImages.Heif.Av1GlobalWarpSequenceAvif,
             TestImages.Heif.Av1GlobalWarpSequenceNativeReference,
-            TestImages.Heif.Av1GlobalWarpSequencePresentationReference,
             GlobalWarpCoverage,
-            fixtureSize: 256,
-            visibleFrameCount: 2);
+            256,
+            2);
 
     /// <summary>
     /// Verifies every intra prediction mode and the fixture's seven transform types against the official
@@ -2103,10 +2173,9 @@ public class Av1ReconstructionConformanceTests
     private static void ValidateInterPredictionSequenceWithConstrainedAllocator(
         string imagePath,
         string nativeReferencePath,
-        string presentationReferencePath,
         int requiredCoverage,
-        int fixtureSize = AverageCompoundFixtureSize,
-        int visibleFrameCount = AverageCompoundFixtureFrameCount)
+        int fixtureSize,
+        int visibleFrameCount)
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
         allocator.EnableNonThreadSafeLogging();
@@ -2117,9 +2186,7 @@ public class Av1ReconstructionConformanceTests
             configuration,
             imagePath,
             nativeReferencePath,
-            presentationReferencePath,
             requiredCoverage,
-            comparePresentation: false,
             fixtureSize,
             visibleFrameCount);
 
@@ -2134,103 +2201,100 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Runs every selectable compound fixture with exact final presentation comparison.
+    /// Runs one selectable compound fixture with exact native and final presentation comparisons.
     /// </summary>
-    private static void ValidateSelectableCompoundSequencesWithDefaultConfiguration()
-        => ValidateSelectableCompoundSequences(Configuration.Default, comparePresentation: true);
+    /// <param name="providerDump">The serialized input provider and reference-output naming context.</param>
+    private static void ValidateSelectableCompoundSequenceWithDefaultConfiguration(string providerDump)
+    {
+        TestImageProvider<Rgba32> provider =
+            FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+
+        (string NativeReferencePath, int RequiredCoverage) expected =
+            provider.SourceFileOrDescription switch
+            {
+                TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif =>
+                    (TestImages.Heif.Av1DistanceWeightedCompoundSequenceNativeReference, DistanceWeightedCompoundCoverage),
+                TestImages.Heif.Av1WedgeCompoundSequenceAvif =>
+                    (TestImages.Heif.Av1WedgeCompoundSequenceNativeReference, WedgeCompoundCoverage | InvertedWedgeCompoundCoverage),
+                TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif =>
+                    (TestImages.Heif.Av1DifferenceWeightedCompoundSequenceNativeReference, DifferenceWeightedCompoundCoverage | InvertedDifferenceWeightedCompoundCoverage),
+                TestImages.Heif.Av1InterIntraSequenceAvif =>
+                    (TestImages.Heif.Av1InterIntraSequenceNativeReference, SmoothInterIntraCoverage | WedgeInterIntraCoverage),
+                _ => throw new InvalidOperationException($"Unexpected selectable-compound fixture: {provider.SourceFileOrDescription}.")
+            };
+
+        ValidateInterPredictionSequence(
+            Configuration.Default,
+            provider.SourceFileOrDescription,
+            expected.NativeReferencePath,
+            expected.RequiredCoverage,
+            AverageCompoundFixtureSize,
+            AverageCompoundFixtureFrameCount);
+
+        ValidateFinalSequencePresentation(providerDump);
+    }
 
     /// <summary>
     /// Runs the OBMC sequence with exact final presentation comparison.
     /// </summary>
-    private static void ValidateObmcSequenceWithDefaultConfiguration()
-        => ValidateInterPredictionSequence(
+    /// <param name="providerDump">The serialized input provider and reference-output naming context.</param>
+    private static void ValidateObmcSequenceWithDefaultConfiguration(string providerDump)
+    {
+        ValidateInterPredictionSequence(
             Configuration.Default,
             TestImages.Heif.Av1ObmcSequenceAvif,
             TestImages.Heif.Av1ObmcSequenceNativeReference,
-            TestImages.Heif.Av1ObmcSequencePresentationReference,
             ObmcCoverage,
-            comparePresentation: true);
+            AverageCompoundFixtureSize,
+            AverageCompoundFixtureFrameCount);
+
+        ValidateFinalSequencePresentation(providerDump);
+    }
 
     /// <summary>
     /// Runs the local warped-motion sequence with exact final presentation comparison.
     /// </summary>
-    private static void ValidateLocalWarpSequenceWithDefaultConfiguration()
-        => ValidateInterPredictionSequence(
+    /// <param name="providerDump">The serialized input provider and reference-output naming context.</param>
+    private static void ValidateLocalWarpSequenceWithDefaultConfiguration(string providerDump)
+    {
+        ValidateInterPredictionSequence(
             Configuration.Default,
             TestImages.Heif.Av1LocalWarpSequenceAvif,
             TestImages.Heif.Av1LocalWarpSequenceNativeReference,
-            TestImages.Heif.Av1LocalWarpSequencePresentationReference,
             LocalWarpCoverage,
-            comparePresentation: true,
-            fixtureSize: 256,
-            visibleFrameCount: 2);
+            256,
+            2);
+
+        ValidateFinalSequencePresentation(providerDump);
+    }
 
     /// <summary>
     /// Runs the non-translational global-motion sequence with exact final presentation comparison.
     /// </summary>
-    private static void ValidateGlobalWarpSequenceWithDefaultConfiguration()
-        => ValidateInterPredictionSequence(
+    /// <param name="providerDump">The serialized input provider and reference-output naming context.</param>
+    private static void ValidateGlobalWarpSequenceWithDefaultConfiguration(string providerDump)
+    {
+        ValidateInterPredictionSequence(
             Configuration.Default,
             TestImages.Heif.Av1GlobalWarpSequenceAvif,
             TestImages.Heif.Av1GlobalWarpSequenceNativeReference,
-            TestImages.Heif.Av1GlobalWarpSequencePresentationReference,
             GlobalWarpCoverage,
-            comparePresentation: true,
-            fixtureSize: 256,
-            visibleFrameCount: 2);
+            256,
+            2);
 
-    /// <summary>
-    /// Validates every selectable compound fixture with the requested decoder configuration.
-    /// </summary>
-    /// <param name="configuration">The decoder configuration.</param>
-    /// <param name="comparePresentation">Whether to compare the final presented frame.</param>
-    private static void ValidateSelectableCompoundSequences(Configuration configuration, bool comparePresentation)
-    {
-        ValidateInterPredictionSequence(
-            configuration,
-            TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif,
-            TestImages.Heif.Av1DistanceWeightedCompoundSequenceNativeReference,
-            TestImages.Heif.Av1DistanceWeightedCompoundSequencePresentationReference,
-            DistanceWeightedCompoundCoverage,
-            comparePresentation);
-
-        ValidateInterPredictionSequence(
-            configuration,
-            TestImages.Heif.Av1WedgeCompoundSequenceAvif,
-            TestImages.Heif.Av1WedgeCompoundSequenceNativeReference,
-            TestImages.Heif.Av1WedgeCompoundSequencePresentationReference,
-            WedgeCompoundCoverage | InvertedWedgeCompoundCoverage,
-            comparePresentation);
-
-        ValidateInterPredictionSequence(
-            configuration,
-            TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif,
-            TestImages.Heif.Av1DifferenceWeightedCompoundSequenceNativeReference,
-            TestImages.Heif.Av1DifferenceWeightedCompoundSequencePresentationReference,
-            DifferenceWeightedCompoundCoverage | InvertedDifferenceWeightedCompoundCoverage,
-            comparePresentation);
-
-        ValidateInterPredictionSequence(
-            configuration,
-            TestImages.Heif.Av1InterIntraSequenceAvif,
-            TestImages.Heif.Av1InterIntraSequenceNativeReference,
-            TestImages.Heif.Av1InterIntraSequencePresentationReference,
-            SmoothInterIntraCoverage | WedgeInterIntraCoverage,
-            comparePresentation);
+        ValidateFinalSequencePresentation(providerDump);
     }
 
     /// <summary>
-    /// Decodes one complete retained-reference sequence and compares its final native and presented samples exactly.
+    /// Decodes one complete retained-reference sequence and compares its final native samples exactly.
     /// </summary>
     private static void ValidateInterPredictionSequence(
         Configuration configuration,
         string imagePath,
         string nativeReferencePath,
-        string presentationReferencePath,
         int requiredCoverage,
-        bool comparePresentation,
-        int fixtureSize = AverageCompoundFixtureSize,
-        int visibleFrameCount = AverageCompoundFixtureFrameCount)
+        int fixtureSize,
+        int visibleFrameCount)
     {
         byte[] fileBytes = TestFile.Create(imagePath).Bytes;
         byte[] referenceBytes = TestFile.Create(nativeReferencePath).Bytes;
@@ -2248,15 +2312,11 @@ public class Av1ReconstructionConformanceTests
         nativeReference = nativeReference[frameHeader.Length..];
         Assert.Equal(fixtureSize * fixtureSize * 3, nativeReference.Length);
 
-        using Image<Rgba32> presentationReference =
-            Image.Load<Rgba32>(TestFile.Create(presentationReferencePath).Bytes);
-
         HeifSequence sequence = ParseImageSequence(fileBytes);
         HeifSequenceTrack track = sequence.ColorTrack;
         int coverage = 0;
         int decodedVisibleFrameCount = 0;
         bool nativeCompared = false;
-        bool presentationCompared = false;
 
         using Av1Decoder decoder = new(configuration);
         for (int sampleIndex = 0; sampleIndex < track.Samples.Length; sampleIndex++)
@@ -2291,18 +2351,6 @@ public class Av1ReconstructionConformanceTests
             {
                 AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
                 nativeCompared = true;
-
-                if (comparePresentation)
-                {
-                    ImageSimilarityReport<Rgba32, Rgba32> report =
-                        ImageComparer.Exact.CompareImagesOrFrames(
-                            decodedVisibleFrameCount,
-                            presentationReference.Frames.RootFrame,
-                            frame);
-
-                    Assert.True(report.IsEmpty, report.ToString());
-                    presentationCompared = true;
-                }
             }
 
             decodedVisibleFrameCount++;
@@ -2311,7 +2359,6 @@ public class Av1ReconstructionConformanceTests
         Assert.Equal(visibleFrameCount, decodedVisibleFrameCount);
         Assert.Equal(requiredCoverage, coverage & requiredCoverage);
         Assert.True(nativeCompared);
-        Assert.Equal(comparePresentation, presentationCompared);
     }
 
     /// <summary>
@@ -2404,9 +2451,23 @@ public class Av1ReconstructionConformanceTests
     /// Verifies exact presented pixels for independently encoded lossless eight-, ten-, and twelve-bit AVIF images
     /// across the available vector widths and the scalar fallback.
     /// </summary>
-    [Fact]
-    public void DecodeLosslessMatchesPinnedLibavifPresentation()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateLosslessPresentedFixtures, PresentationConfigurations);
+    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
+    /// <param name="bitDepth">The expected public sample precision.</param>
+    [Theory]
+    [WithFile(TestImages.Heif.Av1Lossless8BitAvif, PixelTypes.Rgba32, HeifBitDepth.Bit8)]
+    [WithFile(TestImages.Heif.Av1Lossless10BitAvif, PixelTypes.Rgba32, HeifBitDepth.Bit10)]
+    [WithFile(TestImages.Heif.Av1Lossless12BitAvif, PixelTypes.Rgba32, HeifBitDepth.Bit12)]
+    public void DecodeLosslessMatchesPinnedLibavifPresentation(
+        TestImageProvider<Rgba32> provider,
+        HeifBitDepth bitDepth)
+    {
+        AssertPresentedMetadata(provider, LosslessFixtureWidth, LosslessFixtureHeight, bitDepth);
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidatePresentedFixture,
+            PresentationConfigurations,
+            provider);
+    }
 
     /// <summary>
     /// Verifies active normative super-resolution, chroma-width rounding, replicated edges, and exact native samples
@@ -2420,9 +2481,27 @@ public class Av1ReconstructionConformanceTests
     /// Verifies exact presented pixels and public metadata for independently packaged eight-, ten-, and twelve-bit
     /// active-super-resolution AVIF images across the available vector widths and the scalar fallback.
     /// </summary>
-    [Fact]
-    public void DecodeWithSuperResolutionMatchesPinnedLibavifPresentation()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSuperResolutionPresentedFixtures, PresentationConfigurations);
+    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
+    /// <param name="width">The expected presented width.</param>
+    /// <param name="height">The expected presented height.</param>
+    /// <param name="bitDepth">The expected public sample precision.</param>
+    [Theory]
+    [WithFile(TestImages.Heif.Av1SuperResolution8BitAvif, PixelTypes.Rgba32, 768, 512, HeifBitDepth.Bit8)]
+    [WithFile(TestImages.Heif.Av1SuperResolution10BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit10)]
+    [WithFile(TestImages.Heif.Av1SuperResolution12BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit12)]
+    public void DecodeWithSuperResolutionMatchesPinnedLibavifPresentation(
+        TestImageProvider<Rgba32> provider,
+        int width,
+        int height,
+        HeifBitDepth bitDepth)
+    {
+        AssertPresentedMetadata(provider, width, height, bitDepth);
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidatePresentedFixture,
+            PresentationConfigurations,
+            provider);
+    }
 
     /// <summary>
     /// Verifies active normative loop restoration and exact native samples against scalar libaom for independently
@@ -2463,9 +2542,27 @@ public class Av1ReconstructionConformanceTests
     /// Verifies exact presented pixels and public metadata for independently encoded eight-, ten-, and twelve-bit
     /// active-restoration AVIF images across the available vector widths and the scalar fallback.
     /// </summary>
-    [Fact]
-    public void DecodeWithLoopRestorationMatchesPinnedLibavifPresentation()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateRestorationPresentedFixtures, PresentationConfigurations);
+    /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
+    /// <param name="width">The expected presented width.</param>
+    /// <param name="height">The expected presented height.</param>
+    /// <param name="bitDepth">The expected public sample precision.</param>
+    [Theory]
+    [WithFile(TestImages.Heif.Av1Restoration8BitAvif, PixelTypes.Rgba32, 768, 512, HeifBitDepth.Bit8)]
+    [WithFile(TestImages.Heif.Av1Restoration10BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit10)]
+    [WithFile(TestImages.Heif.Av1Restoration12BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit12)]
+    public void DecodeWithLoopRestorationMatchesPinnedLibavifPresentation(
+        TestImageProvider<Rgba32> provider,
+        int width,
+        int height,
+        HeifBitDepth bitDepth)
+    {
+        AssertPresentedMetadata(provider, width, height, bitDepth);
+
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidatePresentedFixture,
+            PresentationConfigurations,
+            provider);
+    }
 
     /// <summary>
     /// Verifies that the independently encoded AVIF presentation fixtures collectively select both restoration algorithms.
@@ -2594,73 +2691,6 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Validates every presented profile fixture under the hardware configuration selected by
-    /// <see cref="FeatureTestRunner"/>.
-    /// </summary>
-    private static void ValidateProfilePresentedFixtures()
-    {
-        ValidateProfilePresentedFixture(
-            TestImages.Heif.Av1Profile8BitMonochromeAvif,
-            TestImages.Heif.Av1Profile8BitMonochromePresentationReference,
-            HeifBitDepth.Bit8);
-
-        ValidateProfilePresentedFixture(
-            TestImages.Heif.Av1Profile8Bit420Avif,
-            TestImages.Heif.Av1Profile8Bit420PresentationReference,
-            HeifBitDepth.Bit8);
-
-        ValidateProfilePresentedFixture(
-            TestImages.Heif.Av1Profile8Bit422Avif,
-            TestImages.Heif.Av1Profile8Bit422PresentationReference,
-            HeifBitDepth.Bit8);
-
-        ValidateProfilePresentedFixture(
-            TestImages.Heif.Av1Profile8Bit444Avif,
-            TestImages.Heif.Av1Profile8Bit444PresentationReference,
-            HeifBitDepth.Bit8);
-
-        ValidateProfilePresentedFixture(
-            TestImages.Heif.Av1Profile10BitMonochromeAvif,
-            TestImages.Heif.Av1Profile10BitMonochromePresentationReference,
-            HeifBitDepth.Bit10);
-
-        ValidateProfilePresentedFixture(
-            TestImages.Heif.Av1Profile10Bit420Avif,
-            TestImages.Heif.Av1Profile10Bit420PresentationReference,
-            HeifBitDepth.Bit10);
-
-        ValidateProfilePresentedFixture(
-            TestImages.Heif.Av1Profile10Bit422Avif,
-            TestImages.Heif.Av1Profile10Bit422PresentationReference,
-            HeifBitDepth.Bit10);
-
-        ValidateProfilePresentedFixture(
-            TestImages.Heif.Av1Profile10Bit444Avif,
-            TestImages.Heif.Av1Profile10Bit444PresentationReference,
-            HeifBitDepth.Bit10);
-
-        ValidateProfilePresentedFixture(
-            TestImages.Heif.Av1Profile12BitMonochromeAvif,
-            TestImages.Heif.Av1Profile12BitMonochromePresentationReference,
-            HeifBitDepth.Bit12);
-
-        ValidateProfilePresentedFixture(
-            TestImages.Heif.Av1Profile12Bit420Avif,
-            TestImages.Heif.Av1Profile12Bit420PresentationReference,
-            HeifBitDepth.Bit12);
-
-        ValidateProfilePresentedFixture(
-            TestImages.Heif.Av1Profile12Bit422Avif,
-            TestImages.Heif.Av1Profile12Bit422PresentationReference,
-            HeifBitDepth.Bit12);
-
-        ValidateProfilePresentedFixture(
-            TestImages.Heif.Av1Profile12Bit444Avif,
-            TestImages.Heif.Av1Profile12Bit444PresentationReference,
-            HeifBitDepth.Bit12);
-    }
-
-    /// <summary>
     /// Validates one independently encoded AVIF against its native Y4M reference and signaled sequence profile.
     /// </summary>
     /// <param name="imagePath">The complete AVIF container.</param>
@@ -2712,36 +2742,6 @@ public class Av1ReconstructionConformanceTests
         Assert.Equal(ObuMatrixCoefficients.Bt601, colorConfig.MatrixCoefficients);
         Assert.True(colorConfig.ColorRange);
         AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
-    }
-
-    /// <summary>
-    /// Validates the exact public presentation and metadata of one independently encoded AVIF profile fixture.
-    /// </summary>
-    /// <param name="imagePath">The complete AVIF container.</param>
-    /// <param name="referencePath">The eight-bit RGBA output produced by the pinned scalar libavif decoder.</param>
-    /// <param name="metadataBitDepth">The expected public HEIF sample precision.</param>
-    private static void ValidateProfilePresentedFixture(string imagePath, string referencePath, HeifBitDepth metadataBitDepth)
-    {
-        DecoderOptions options = new() { MaxFrames = 1 };
-        byte[] imageBytes = TestFile.Create(imagePath).Bytes;
-        byte[] referenceBytes = TestFile.Create(referencePath).Bytes;
-        using Image<Rgba32> image = Image.Load<Rgba32>(options, imageBytes);
-        using Image<Rgba32> reference = Image.Load<Rgba32>(referenceBytes);
-
-        Assert.Equal(ProfileFixtureWidth, image.Width);
-        Assert.Equal(ProfileFixtureHeight, image.Height);
-        Assert.Single(image.Frames);
-
-        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
-        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
-        Assert.Equal(metadataBitDepth, metadata.BitDepth);
-
-        CicpProfile colorProfile = Assert.IsType<CicpProfile>(image.Metadata.CicpProfile);
-        Assert.Equal(CicpColorPrimaries.ItuRBt709_6, colorProfile.ColorPrimaries);
-        Assert.Equal(CicpTransferCharacteristics.Iec61966_2_1, colorProfile.TransferCharacteristics);
-        Assert.Equal(CicpMatrixCoefficients.ItuRBt601_7_525, colorProfile.MatrixCoefficients);
-        Assert.True(colorProfile.FullRange);
-        ImageComparer.Exact.VerifySimilarity(reference, image);
     }
 
     /// <summary>
@@ -2800,47 +2800,6 @@ public class Av1ReconstructionConformanceTests
             Av1BitDepth.TwelveBit,
             Av1ColorFormat.Yuv444);
     }
-
-    /// <summary>
-    /// Validates every active-CDEF presentation fixture under the hardware configuration selected by
-    /// <see cref="FeatureTestRunner"/>.
-    /// </summary>
-    private static void ValidatePresentedFixtures()
-    {
-        ValidatePresentedFixture(
-            TestImages.Heif.Av1Cdef8BitAvif,
-            TestImages.Heif.Av1Cdef8BitPresentationReference,
-            768,
-            512,
-            HeifBitDepth.Bit8);
-
-        ValidatePresentedFixture(
-            TestImages.Heif.Av1Cdef10BitAvif,
-            TestImages.Heif.Av1Cdef10BitPresentationReference,
-            1024,
-            428,
-            HeifBitDepth.Bit10);
-
-        ValidatePresentedFixture(
-            TestImages.Heif.Av1Cdef12BitAvif,
-            TestImages.Heif.Av1Cdef12BitPresentationReference,
-            1024,
-            428,
-            HeifBitDepth.Bit12);
-    }
-
-    /// <summary>
-    /// Validates the active-palette presentation fixture under the hardware configuration selected by
-    /// <see cref="FeatureTestRunner"/>.
-    /// </summary>
-    private static void ValidatePalettePresentedFixture()
-        => ValidatePresentedFixture(
-            TestImages.Heif.Av1Palette8BitAvif,
-            TestImages.Heif.Av1Palette8BitPresentationReference,
-            33,
-            11,
-            HeifBitDepth.Bit8,
-            requirePalette: true);
 
     /// <summary>
     /// Validates the active-palette native fixture under the hardware configuration selected by
@@ -2922,60 +2881,40 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Validates every active intra-block-copy presentation fixture under the hardware configuration selected by
-    /// <see cref="FeatureTestRunner"/>.
-    /// </summary>
-    private static void ValidateIntraBlockCopyPresentedFixtures()
-    {
-        ValidatePresentedFixture(
-            TestImages.Heif.Av1IntraBlockCopy8BitAvif,
-            TestImages.Heif.Av1IntraBlockCopy8BitPresentationReference,
-            512,
-            256,
-            HeifBitDepth.Bit8,
-            requireIntraBlockCopy: true);
-
-        ValidatePresentedFixture(
-            TestImages.Heif.Av1IntraBlockCopy10BitAvif,
-            TestImages.Heif.Av1IntraBlockCopy10BitPresentationReference,
-            512,
-            256,
-            HeifBitDepth.Bit10,
-            requireIntraBlockCopy: true);
-
-        ValidatePresentedFixture(
-            TestImages.Heif.Av1IntraBlockCopy12BitAvif,
-            TestImages.Heif.Av1IntraBlockCopy12BitPresentationReference,
-            512,
-            256,
-            HeifBitDepth.Bit12,
-            requireIntraBlockCopy: true);
-    }
-
-    /// <summary>
     /// Runs the exact final-layer native and presentation comparisons with the default configuration.
     /// </summary>
-    private static void ValidateProgressiveSingleReferenceFixtureWithDefaultConfiguration()
-        => ValidateProgressiveSingleReferenceFixture(Configuration.Default, verifyPresentation: true);
+    /// <param name="providerDump">The serialized AVIF input provider and reference-output naming context.</param>
+    private static void ValidateProgressiveSingleReferenceFixtureWithDefaultConfiguration(string providerDump)
+    {
+        ValidateProgressiveSingleReferenceFixture(Configuration.Default);
+        ValidatePresentedFixture(providerDump);
+    }
 
     /// <summary>
     /// Runs the selected-spatial-layer native and presentation comparisons with the default configuration.
     /// </summary>
-    private static void ValidateSelectedProgressiveSpatialLayerWithDefaultConfiguration()
-        => ValidateSelectedProgressiveSpatialLayer(Configuration.Default);
+    /// <param name="providerDump">The serialized selected-layer provider and reference-output naming context.</param>
+    private static void ValidateSelectedProgressiveSpatialLayerWithDefaultConfiguration(string providerDump)
+    {
+        ValidateSelectedProgressiveSpatialLayer(Configuration.Default);
+        ValidatePresentedFixture(providerDump);
+    }
 
     /// <summary>
     /// Runs the exact scaled-reference native and presentation comparison with the default configuration.
     /// </summary>
-    private static void ValidateScaledReferenceFixtureWithDefaultConfiguration()
-        => ValidateScaledReferenceFixture(Configuration.Default, verifyPresentation: true);
+    /// <param name="providerDump">The serialized AVIF input provider and reference-output naming context.</param>
+    private static void ValidateScaledReferenceFixtureWithDefaultConfiguration(string providerDump)
+    {
+        ValidateScaledReferenceFixture(Configuration.Default);
+        ValidatePresentedFixture(providerDump);
+    }
 
     /// <summary>
     /// Verifies the genuine size-changing layered fixture with the requested allocator.
     /// </summary>
     /// <param name="configuration">The decoder configuration.</param>
-    /// <param name="verifyPresentation">Whether to verify the public RGBA presentation.</param>
-    private static void ValidateScaledReferenceFixture(Configuration configuration, bool verifyPresentation)
+    private static void ValidateScaledReferenceFixture(Configuration configuration)
     {
         byte[] payload = TestFile.Create(TestImages.Heif.Av1ScaledReferencePayload).Bytes;
         byte[] baseReferenceBytes = TestFile.Create(TestImages.Heif.Av1ScaledReferenceBaseNativeReference).Bytes;
@@ -3085,23 +3024,6 @@ public class Av1ReconstructionConformanceTests
         Assert.NotEqual(0, intraBlockCount);
         Assert.NotEqual(0, skippedInterBlockCount);
         AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
-
-        if (!verifyPresentation)
-        {
-            return;
-        }
-
-        DecoderOptions options = new() { Configuration = configuration, MaxFrames = 1 };
-        byte[] imageBytes = TestFile.Create(TestImages.Heif.Av1ScaledReferenceAvif).Bytes;
-        byte[] presentationBytes = TestFile.Create(TestImages.Heif.Av1ScaledReferencePresentationReference).Bytes;
-        using Image<Rgba32> image = Image.Load<Rgba32>(options, imageBytes);
-        using Image<Rgba32> presentationReference = Image.Load<Rgba32>(presentationBytes);
-
-        Assert.Equal(ScaledReferenceFixtureSize, image.Width);
-        Assert.Equal(ScaledReferenceFixtureSize, image.Height);
-        Assert.Single(image.Frames);
-        Assert.Equal(HeifBitDepth.Bit8, image.Metadata.GetHeifMetadata().BitDepth);
-        ImageComparer.Exact.VerifySimilarity(presentationReference, image);
     }
 
     /// <summary>
@@ -3137,37 +3059,13 @@ public class Av1ReconstructionConformanceTests
         Assert.Equal(Av1ColorFormat.Yuv444, frameBuffer.ColorFormat);
         Assert.Equal(ObuFrameType.KeyFrame, Assert.IsType<ObuFrameHeader>(decoder.FrameHeader).FrameType);
         AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
-
-        DecoderOptions options = new() { Configuration = configuration, MaxFrames = 1 };
-        byte[] imageBytes = TestFile.Create(TestImages.Heif.Av1ScaledReferenceSelectedLayerAvif).Bytes;
-        byte[] presentationBytes =
-            TestFile.Create(TestImages.Heif.Av1ScaledReferenceSelectedLayerPresentationReference).Bytes;
-
-        byte[] finalPresentationBytes =
-            TestFile.Create(TestImages.Heif.Av1ScaledReferencePresentationReference).Bytes;
-
-        using Image<Rgba32> image = Image.Load<Rgba32>(options, imageBytes);
-        using Image<Rgba32> presentationReference = Image.Load<Rgba32>(presentationBytes);
-        using Image<Rgba32> finalPresentationReference = Image.Load<Rgba32>(finalPresentationBytes);
-
-        // HEIF presents a selected lower-resolution spatial layer at the item's ispe extent. Exact comparison with
-        // libavif therefore proves both layer selection and the required 40x40-to-80x80 presentation scaling.
-        Assert.Equal(ScaledReferenceFixtureSize, image.Width);
-        Assert.Equal(ScaledReferenceFixtureSize, image.Height);
-        Assert.Single(image.Frames);
-        Assert.Equal(HeifBitDepth.Bit8, image.Metadata.GetHeifMetadata().BitDepth);
-        ImageComparer.Exact.VerifySimilarity(presentationReference, image);
-        Assert.NotEmpty(ImageComparer.Exact.CompareImages(finalPresentationReference, image));
     }
 
     /// <summary>
     /// Verifies the final dependent layer with the requested allocator.
     /// </summary>
     /// <param name="configuration">The decoder configuration.</param>
-    /// <param name="verifyPresentation">Whether to verify the final public RGBA presentation.</param>
-    private static void ValidateProgressiveSingleReferenceFixture(
-        Configuration configuration,
-        bool verifyPresentation)
+    private static void ValidateProgressiveSingleReferenceFixture(Configuration configuration)
     {
         byte[] payload = TestFile.Create(TestImages.Heif.Av1Progressive8BitPayload).Bytes;
         byte[] referenceBytes = TestFile.Create(TestImages.Heif.Av1Progressive8BitReference).Bytes;
@@ -3249,25 +3147,17 @@ public class Av1ReconstructionConformanceTests
         Assert.NotEqual(0, interBlockCount);
         AssertNativePlanesEqual(decoder, frameBuffer, colorReference);
 
-        if (!verifyPresentation)
-        {
-            return;
-        }
-
         DecoderOptions options = new() { Configuration = configuration, MaxFrames = 1 };
         byte[] imageBytes = TestFile.Create(TestImages.Heif.Av1Progressive8BitAvif).Bytes;
-        byte[] presentationBytes = TestFile.Create(TestImages.Heif.Av1Progressive8BitPresentationReference).Bytes;
         using Image<Rgba32> image = Image.Load<Rgba32>(options, imageBytes);
-        using Image<Rgba32> presentationReference = Image.Load<Rgba32>(presentationBytes);
 
         Assert.Equal(ProgressiveFixtureWidth, image.Width);
         Assert.Equal(ProgressiveFixtureHeight, image.Height);
         Assert.Single(image.Frames);
         Assert.Equal(HeifBitDepth.Bit8, image.Metadata.GetHeifMetadata().BitDepth);
-        ImageComparer.Exact.VerifySimilarity(presentationReference, image);
 
-        // The complete PNG comparison already covers alpha, but compare the composed channel with the independent
-        // native auxiliary plane as well so a color-path agreement cannot conceal an alpha-item regression.
+        // The feature-runner wrapper compares the complete RGBA image through CompareToReferenceOutput. Bind the
+        // composed alpha channel to the independent native auxiliary plane here as separate codec evidence.
         for (int y = 0; y < ProgressiveFixtureHeight; y++)
         {
             Span<Rgba32> imageRow = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
@@ -3333,34 +3223,6 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Validates every lossless presentation fixture under the hardware configuration selected by
-    /// <see cref="FeatureTestRunner"/>.
-    /// </summary>
-    private static void ValidateLosslessPresentedFixtures()
-    {
-        ValidatePresentedFixture(
-            TestImages.Heif.Av1Lossless8BitAvif,
-            TestImages.Heif.Av1Lossless8BitPresentationReference,
-            LosslessFixtureWidth,
-            LosslessFixtureHeight,
-            HeifBitDepth.Bit8);
-
-        ValidatePresentedFixture(
-            TestImages.Heif.Av1Lossless10BitAvif,
-            TestImages.Heif.Av1Lossless10BitPresentationReference,
-            LosslessFixtureWidth,
-            LosslessFixtureHeight,
-            HeifBitDepth.Bit10);
-
-        ValidatePresentedFixture(
-            TestImages.Heif.Av1Lossless12BitAvif,
-            TestImages.Heif.Av1Lossless12BitPresentationReference,
-            LosslessFixtureWidth,
-            LosslessFixtureHeight,
-            HeifBitDepth.Bit12);
-    }
-
-    /// <summary>
     /// Validates every active super-resolution fixture under the hardware configuration selected by
     /// <see cref="FeatureTestRunner"/>.
     /// </summary>
@@ -3389,37 +3251,6 @@ public class Av1ReconstructionConformanceTests
             428,
             Av1BitDepth.TwelveBit,
             Av1ColorFormat.Yuv444);
-    }
-
-    /// <summary>
-    /// Validates every active-super-resolution presentation fixture under the hardware configuration selected by
-    /// <see cref="FeatureTestRunner"/>.
-    /// </summary>
-    private static void ValidateSuperResolutionPresentedFixtures()
-    {
-        ValidatePresentedFixture(
-            TestImages.Heif.Av1SuperResolution8BitAvif,
-            TestImages.Heif.Av1SuperResolution8BitPresentationReference,
-            768,
-            512,
-            HeifBitDepth.Bit8,
-            requireSuperResolution: true);
-
-        ValidatePresentedFixture(
-            TestImages.Heif.Av1SuperResolution10BitAvif,
-            TestImages.Heif.Av1SuperResolution10BitPresentationReference,
-            1024,
-            428,
-            HeifBitDepth.Bit10,
-            requireSuperResolution: true);
-
-        ValidatePresentedFixture(
-            TestImages.Heif.Av1SuperResolution12BitAvif,
-            TestImages.Heif.Av1SuperResolution12BitPresentationReference,
-            1024,
-            428,
-            HeifBitDepth.Bit12,
-            requireSuperResolution: true);
     }
 
     /// <summary>
@@ -3496,34 +3327,6 @@ public class Av1ReconstructionConformanceTests
             Av1BitDepth.TwelveBit,
             Av1ColorFormat.Yuv444,
             requireSuperResolution: true);
-
-    /// <summary>
-    /// Validates every active-restoration presentation fixture under the hardware configuration selected by
-    /// <see cref="FeatureTestRunner"/>.
-    /// </summary>
-    private static void ValidateRestorationPresentedFixtures()
-    {
-        ValidatePresentedFixture(
-            TestImages.Heif.Av1Restoration8BitAvif,
-            TestImages.Heif.Av1Restoration8BitPresentationReference,
-            768,
-            512,
-            HeifBitDepth.Bit8);
-
-        ValidatePresentedFixture(
-            TestImages.Heif.Av1Restoration10BitAvif,
-            TestImages.Heif.Av1Restoration10BitPresentationReference,
-            1024,
-            428,
-            HeifBitDepth.Bit10);
-
-        ValidatePresentedFixture(
-            TestImages.Heif.Av1Restoration12BitAvif,
-            TestImages.Heif.Av1Restoration12BitPresentationReference,
-            1024,
-            428,
-            HeifBitDepth.Bit12);
-    }
 
     /// <summary>
     /// Validates every active film-grain fixture under the hardware configuration selected by
@@ -3954,55 +3757,57 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Validates the exact public presentation of one independently encoded AVIF image against pinned scalar-libavif output.
+    /// Verifies the public dimensions, frame count, compression method, and sample precision of one AVIF input.
     /// </summary>
-    /// <param name="imagePath">The complete AVIF container.</param>
-    /// <param name="referencePath">The eight-bit RGBA output produced by the pinned scalar libavif decoder.</param>
+    /// <param name="provider">The AVIF input provider.</param>
     /// <param name="width">The expected displayed width.</param>
     /// <param name="height">The expected displayed height.</param>
-    /// <param name="metadataBitDepth">The expected public HEIF sample precision.</param>
-    /// <param name="requireSuperResolution">Whether the AV1 item must upscale from a narrower coded frame.</param>
-    /// <param name="requirePalette">Whether the AV1 item must select palette prediction for luma and chroma.</param>
-    /// <param name="requireIntraBlockCopy">Whether the AV1 item must select intra-block-copy prediction.</param>
-    private static void ValidatePresentedFixture(
-        string imagePath,
-        string referencePath,
+    /// <param name="bitDepth">The expected public HEIF sample precision.</param>
+    private static void AssertPresentedMetadata(
+        TestImageProvider<Rgba32> provider,
         int width,
         int height,
-        HeifBitDepth metadataBitDepth,
-        bool requireSuperResolution = false,
-        bool requirePalette = false,
-        bool requireIntraBlockCopy = false)
+        HeifBitDepth bitDepth)
     {
-        DecoderOptions options = new() { MaxFrames = 1 };
-        byte[] imageBytes = TestFile.Create(imagePath).Bytes;
-        byte[] referenceBytes = TestFile.Create(referencePath).Bytes;
-
-        if (requireSuperResolution)
-        {
-            AssertUsesSuperResolution(imageBytes);
-        }
-
-        if (requirePalette)
-        {
-            AssertUsesPalette(imageBytes);
-        }
-
-        if (requireIntraBlockCopy)
-        {
-            AssertUsesIntraBlockCopy(imageBytes);
-        }
-
-        using Image<Rgba32> image = Image.Load<Rgba32>(options, imageBytes);
-        using Image<Rgba32> reference = Image.Load<Rgba32>(referenceBytes);
-
+        using Image<Rgba32> image = provider.GetImage();
         Assert.Equal(width, image.Width);
         Assert.Equal(height, image.Height);
         Assert.Single(image.Frames);
+
         HeifMetadata metadata = image.Metadata.GetHeifMetadata();
         Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
-        Assert.Equal(metadataBitDepth, metadata.BitDepth);
-        ImageComparer.Exact.VerifySimilarity(reference, image);
+        Assert.Equal(bitDepth, metadata.BitDepth);
+    }
+
+    /// <summary>
+    /// Compares one AVIF presentation with its retained output through the repository reference-image contract.
+    /// </summary>
+    /// <param name="providerDump">The serialized input provider and reference-output naming context.</param>
+    private static void ValidatePresentedFixture(string providerDump)
+    {
+        TestImageProvider<Rgba32> provider =
+            FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+
+        using Image<Rgba32> image = provider.GetImage();
+        image.DebugSave(provider);
+
+        image.CompareToReferenceOutput(ImageComparer.Exact, provider);
+    }
+
+    /// <summary>
+    /// Compares the final visible frame of one AVIF sequence through the repository reference-image contract.
+    /// </summary>
+    /// <param name="providerDump">The serialized input provider and reference-output naming context.</param>
+    private static void ValidateFinalSequencePresentation(string providerDump)
+    {
+        TestImageProvider<Rgba32> provider =
+            FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
+
+        using Image<Rgba32> sequence = provider.GetImage();
+        using Image<Rgba32> finalFrame = sequence.Frames.CloneFrame(sequence.Frames.Count - 1);
+        finalFrame.DebugSave(provider);
+
+        finalFrame.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
 
     /// <summary>

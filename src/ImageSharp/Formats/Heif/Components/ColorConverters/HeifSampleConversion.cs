@@ -590,6 +590,81 @@ internal static class HeifSampleConversion
     }
 
     /// <summary>
+    /// Packs 16-bit RGB component rows into opaque 16-bit RGBA pixels.
+    /// </summary>
+    /// <param name="red">The red components.</param>
+    /// <param name="green">The green components.</param>
+    /// <param name="blue">The blue components.</param>
+    /// <param name="destination">The destination pixels.</param>
+    public static void PackRgba64(ReadOnlySpan<ushort> red, ReadOnlySpan<ushort> green, ReadOnlySpan<ushort> blue, Span<Rgba64> destination)
+    {
+        ref ushort redBase = ref MemoryMarshal.GetReference(red);
+        ref ushort greenBase = ref MemoryMarshal.GetReference(green);
+        ref ushort blueBase = ref MemoryMarshal.GetReference(blue);
+        ref Rgba64 destinationBase = ref MemoryMarshal.GetReference(destination);
+        int length = destination.Length;
+        int i = 0;
+
+        if (Vector512.IsHardwareAccelerated)
+        {
+            int oneVectorFromEnd = length - Vector512<int>.Count;
+            for (; i <= oneVectorFromEnd; i += Vector512<int>.Count)
+            {
+                (Vector256<uint> redLower, Vector256<uint> redUpper) = Vector256.Widen(Vector256.LoadUnsafe(ref Unsafe.Add(ref redBase, i)));
+                (Vector256<uint> greenLower, Vector256<uint> greenUpper) = Vector256.Widen(Vector256.LoadUnsafe(ref Unsafe.Add(ref greenBase, i)));
+                (Vector256<uint> blueLower, Vector256<uint> blueUpper) = Vector256.Widen(Vector256.LoadUnsafe(ref Unsafe.Add(ref blueBase, i)));
+                Vector512<int> r = Vector512.Create(redLower, redUpper).AsInt32();
+                Vector512<int> g = Vector512.Create(greenLower, greenUpper).AsInt32();
+                Vector512<int> b = Vector512.Create(blueLower, blueUpper).AsInt32();
+                StoreRgba64Batch(r.GetLower().GetLower(), g.GetLower().GetLower(), b.GetLower().GetLower(), ref Unsafe.Add(ref destinationBase, i));
+                StoreRgba64Batch(r.GetLower().GetUpper(), g.GetLower().GetUpper(), b.GetLower().GetUpper(), ref Unsafe.Add(ref destinationBase, i + 4));
+                StoreRgba64Batch(r.GetUpper().GetLower(), g.GetUpper().GetLower(), b.GetUpper().GetLower(), ref Unsafe.Add(ref destinationBase, i + 8));
+                StoreRgba64Batch(r.GetUpper().GetUpper(), g.GetUpper().GetUpper(), b.GetUpper().GetUpper(), ref Unsafe.Add(ref destinationBase, i + 12));
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            int oneVectorFromEnd = length - Vector256<int>.Count;
+            for (; i <= oneVectorFromEnd; i += Vector256<int>.Count)
+            {
+                Vector128<ushort> red16 = Vector128.LoadUnsafe(ref Unsafe.Add(ref redBase, i));
+                Vector128<ushort> green16 = Vector128.LoadUnsafe(ref Unsafe.Add(ref greenBase, i));
+                Vector128<ushort> blue16 = Vector128.LoadUnsafe(ref Unsafe.Add(ref blueBase, i));
+                Vector256<int> r = Vector256.Create(Vector128.WidenLower(red16), Vector128.WidenUpper(red16)).AsInt32();
+                Vector256<int> g = Vector256.Create(Vector128.WidenLower(green16), Vector128.WidenUpper(green16)).AsInt32();
+                Vector256<int> b = Vector256.Create(Vector128.WidenLower(blue16), Vector128.WidenUpper(blue16)).AsInt32();
+                StoreRgba64Batch(r.GetLower(), g.GetLower(), b.GetLower(), ref Unsafe.Add(ref destinationBase, i));
+                StoreRgba64Batch(r.GetUpper(), g.GetUpper(), b.GetUpper(), ref Unsafe.Add(ref destinationBase, i + 4));
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            int oneVectorFromEnd = length - Vector128<int>.Count;
+            for (; i <= oneVectorFromEnd; i += Vector128<int>.Count)
+            {
+                ulong packedRed = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref redBase, i)));
+                ulong packedGreen = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref greenBase, i)));
+                ulong packedBlue = Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<ushort, byte>(ref Unsafe.Add(ref blueBase, i)));
+                Vector128<int> r = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packedRed).AsUInt16()).AsInt32();
+                Vector128<int> g = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packedGreen).AsUInt16()).AsInt32();
+                Vector128<int> b = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packedBlue).AsUInt16()).AsInt32();
+                StoreRgba64Batch(r, g, b, ref Unsafe.Add(ref destinationBase, i));
+            }
+        }
+
+        for (; i < length; i++)
+        {
+            Unsafe.Add(ref destinationBase, i) = new Rgba64(
+                Unsafe.Add(ref redBase, i),
+                Unsafe.Add(ref greenBase, i),
+                Unsafe.Add(ref blueBase, i),
+                ushort.MaxValue);
+        }
+    }
+
+    /// <summary>
     /// Packs normalized RGB component rows into opaque 16-bit RGBA pixels.
     /// </summary>
     /// <param name="red">The normalized red components.</param>

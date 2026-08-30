@@ -6,12 +6,15 @@ These fixtures provide independent reference output for AV1 reconstruction and A
 
 The source images and original AVIF files come from `libavif/tests/data` at commit `062e582e8afda88e6baf988fdcf046a801efa0f5`. Their licenses are recorded in libavif's `tests/data/README.md` and continue to apply to the derived fixtures. This includes the unrestricted Kodak image, the CC BY 3.0 Cosmos Laundromat frame, and files distributed under libavif's BSD-2-Clause license.
 
-Reference files were generated with scalar builds of:
+Original fixture-generation records name scalar builds of:
 
 - libaom commit `03087864cf4bea6abb0d28f95cf7843511413d8f`;
 - libavif 1.4.2 from commit `062e582e8afda88e6baf988fdcf046a801efa0f5`, linked to that libaom build.
 
-The reference builds use `AOM_TARGET_CPU=generic` and disable libyuv. Native reconstruction therefore comes from libaom, and AVIF presentation comes from libavif's own conversion path, without architecture-specific SIMD or ImageSharp code.
+Those revisions describe how the retained assets were originally produced; they do not pin the current
+verification checkout. Current AV1 algorithm, arithmetic, syntax, and native-output verification uses only
+the clean official libaom `main` checkout. Libavif commands record container and presentation provenance
+only and are not used as an AV1 implementation reference.
 
 ## File conventions
 
@@ -51,6 +54,36 @@ The reference builds use `AOM_TARGET_CPU=generic` and disable libyuv. Native rec
 | `libavif-rotating-grid-global-warp` | Non-translational rotation/zoom GLOBALMV prediction through a two-frame dependent sequence |
 
 The corresponding tests also assert the syntax required by each family before comparing output. This prevents an inactive tool or an incorrectly substituted stream from passing solely because its final pixels happen to match.
+
+## Baseline deblocking fixtures
+
+On 2026-08-31 current official libaom `main` at observed revision
+`441c439b9916474cac15d2822af47a9ad70674a8` decoded the baseline 8-, 10-, and 12-bit
+elementary streams using one thread, row threading disabled, raw output, and the corresponding native
+output depth:
+
+```text
+aomdec --codec=av1 --threads=1 --row-mt=0 --rawvideo --output-bit-depth=8 -o deblocking-8b.yuv libavif-kodim23-8b.bit
+aomdec --codec=av1 --threads=1 --row-mt=0 --rawvideo --output-bit-depth=10 -o deblocking-10b.yuv libavif-cosmos1650-10b.bit
+aomdec --codec=av1 --threads=1 --row-mt=0 --rawvideo --output-bit-depth=12 -o deblocking-12b.yuv libaom-cosmos1650-12b.bit
+```
+
+The payloads contain 20,750, 37,169, and 23,769 bytes. Their SHA-256 values are
+`B7B1D3F85A870475ACF579FBB7A0B59FF94C30F84B3F3A066411A50F9BA1BD20`,
+`F930BF11EB2F61BF4EE0FE61853CD387A4C3DBE53503707DB7B2C59D9D273FF3`, and
+`A45F9653255C1A660906554BAFCC13FDEE04F88CC6D0E08E1EFA169CF0C6DDD2`. The generated
+native outputs contain 589,824, 2,629,632, and 2,629,632 bytes and match the retained references exactly.
+Their SHA-256 values are
+`8DDE2EEC742C39F0579C29AE84CBA0FE01522A9008ADCB2CFFCCEC0295D18141`,
+`9A59DD92A0C579F942ACCA8281EBD0465DC848BE200A4D2FF57EAFF589445F6C`, and
+`EF712BE32AF7CF0A95C5C41BDCC51AFC05A4AB7C047383F5F65EDAD2BB986712`.
+
+The focused production test covers active 8-, 10-, and 12-bit deblocking. A separate current-main
+dependent sequence exercises inter, intra, and skipped-inter blocks with reference/mode deltas enabled,
+compares native reconstruction exactly, compares final presentation through the established reference-output
+API, and repeats under constrained tracked allocation. The direct production filter test independently
+distinguishes global and non-global mode-delta classes, LAST and GOLDEN reference deltas, internal transform
+edges, and skipped prediction-unit boundaries.
 
 ## Official ten-bit sequence fixtures
 

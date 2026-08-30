@@ -11,9 +11,6 @@ internal partial class Av1FrameInfo
     /// <summary>
     /// Mapping of <see cref="Av1BlockModeInfo"/> instances, from position to index into the <see cref="Av1FrameInfo"/>.
     /// </summary>
-    /// <remarks>
-    /// For a visual representation of how this map looks in practice, see <seealso href="https://gitlab.com/AOMediaCodec/SVT-AV1/-/blob/v2.1.0/Docs/svt-av1-decoder-design.md?ref_type=tags#blockmodeinfo"/>
-    /// </remarks>
     public class Av1FrameModeInfoMap
     {
         /// <summary>

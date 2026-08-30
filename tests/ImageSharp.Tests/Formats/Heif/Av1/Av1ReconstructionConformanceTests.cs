@@ -421,7 +421,7 @@ public class Av1ReconstructionConformanceTests
     /// and twelve-bit AV1 and AVIF content.
     /// </summary>
     [Fact]
-    public void DecodeMatchesPinnedLibaomReference()
+    public void DecodeDeblockingFixturesMatchCurrentLibaomReference()
     {
         ValidateFixture(
             TestImages.Heif.Av1Deblocking8BitAvif,
@@ -3389,7 +3389,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     /// <param name="imagePath">The complete AVIF container.</param>
     /// <param name="payloadPath">The AV1 elementary-stream sample extracted from the container.</param>
-    /// <param name="referencePath">The native planar output produced by the pinned libaom decoder.</param>
+    /// <param name="referencePath">The retained native planar output.</param>
     /// <param name="width">The expected displayed width.</param>
     /// <param name="height">The expected displayed height.</param>
     /// <param name="bitDepth">The expected AV1 sample precision.</param>
@@ -3413,7 +3413,7 @@ public class Av1ReconstructionConformanceTests
     /// Validates complete native-plane reconstruction for one AV1 elementary-stream sample.
     /// </summary>
     /// <param name="payloadPath">The AV1 elementary-stream sample.</param>
-    /// <param name="referencePath">The native planar output produced by the pinned libaom decoder.</param>
+    /// <param name="referencePath">The retained native planar output.</param>
     /// <param name="width">The expected reconstructed width.</param>
     /// <param name="height">The expected reconstructed height.</param>
     /// <param name="bitDepth">The expected AV1 sample precision.</param>

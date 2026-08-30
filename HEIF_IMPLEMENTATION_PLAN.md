@@ -30,8 +30,8 @@ Reference checkout evidence on 2026-08-31:
 Reconciled with the worktree on 2026-08-31.
 
 - [~] The bounded container reader, still-image path, sequence parser, AV1 decoder, color pipeline, presentation pipeline, and broad AV1 test suite exist locally.
-- [~] The inter-frame decoder has verified checkpoints through non-translational global prediction. Inter
-  deblocking decisions and reference/mode deltas remain open as the next ordered checkpoint.
+- [x] The inter-frame decoder has verified checkpoints through inter deblocking decisions and
+  reference/mode deltas.
 - [~] Loop filtering, CDEF, super-resolution, restoration, film grain, layered presentation, alpha composition, and color conversion exist locally. Shared-source cleanup changed the current tree, so final production-path verification is open.
 - [~] AV1 writer primitives, forward transforms, symbol encoding, and tile-writing source exist locally, but they are not connected to the public encoder.
 - [ ] The public AV1 encoder is not implemented. HeifEncoderCore.Encode throws NotSupportedException when AV1 is selected.
@@ -186,7 +186,7 @@ The single-reference syntax, buffer, reconstruction, and ownership foundation is
 - [x] Scaled-reference prediction.
 - [x] Local warped prediction.
 - [x] Non-translational global prediction.
-- [~] Inter deblocking decisions and reference/mode deltas. Current item.
+- [x] Inter deblocking decisions and reference/mode deltas.
 
 Verified equal-average compound checkpoint evidence on 2026-08-31:
 
@@ -502,6 +502,45 @@ Verified non-translational global-prediction checkpoint evidence on 2026-08-31:
 - [x] The focused Release checkpoint set passes 11/11 on net10.0 and 11/11 on net11.0, with zero failures or
   skips. Scoped analyzer verification passes for all six changed C# files. Roslynk reports zero compiler
   errors, `git diff --check` passes, and `.gitattributes` is unchanged.
+- [x] The completed checkpoint was committed as `25295683d39a2336e9b98484c9fd54f33107ea66`
+  with author and committer `James Jackson-South <james_south@hotmail.com>`.
+
+Verified inter-deblocking checkpoint evidence on 2026-08-31:
+
+- [x] Audited frame-level loop-filter syntax and primary-reference inheritance against
+  `setup_loopfilter` in current `av1/decoder/decodeframe.c`; per-superblock delta-LF parsing and
+  prediction against `read_delta_q_params` in `av1/decoder/decodemv.c`; and default reference/mode
+  deltas against `av1/common/entropymode.c` at observed current-main revision
+  `441c439b9916474cac15d2822af47a9ad70674a8`.
+- [x] Audited filter-level derivation, segmentation adjustment, reference scaling, global/non-global
+  mode classes, skipped-transform prediction-unit decisions, transform-edge selection, kernel length,
+  sharpness limits, and vertical-then-horizontal traversal against `get_filter_level`,
+  `set_lpf_parameters`, `av1_filter_block_plane_vert`, `av1_filter_block_plane_horz`, and
+  `av1_thread_loop_filter_rows`. No production arithmetic change was required.
+- [x] Added direct production `Av1LoopFilterDecoder.DecodeFrame()` coverage using adjacent skipped
+  16x8 inter blocks split into 8x8 transforms. An independent scalar oracle proves that internal
+  transform edges remain untouched and the prediction-unit edge uses current-libaom levels 17 for
+  LAST/GLOBALMV, 21 for LAST/NEWMV, and 22 for GOLDEN/GLOBALMV. Existing `FeatureTestRunner`
+  coverage continues to verify every filter width at 8, 10, and 12 bits under intrinsic and scalar
+  dispatch.
+- [x] Current official libaom decoded the retained 20,750-byte 8-bit, 37,169-byte 10-bit, and
+  23,769-byte 12-bit elementary streams with one thread, row threading disabled, raw output, and their
+  native output depths. The generated native files match the retained references byte for byte. Their
+  output SHA-256 values are
+  `8DDE2EEC742C39F0579C29AE84CBA0FE01522A9008ADCB2CFFCCEC0295D18141`,
+  `9A59DD92A0C579F942ACCA8281EBD0465DC848BE200A4D2FF57EAFF589445F6C`, and
+  `EF712BE32AF7CF0A95C5C41BDCC51AFC05A4AB7C047383F5F65EDAD2BB986712`.
+- [x] Reused the already current-main scaled-reference sequence as the real inter checkpoint. It
+  requires an inter frame with reference/mode-delta processing enabled, nonzero chroma filter levels,
+  intra, inter, and skipped-inter blocks; compares both decoded native frames exactly; compares final
+  presentation through ImageSharp's established reference-output API; and passes constrained tracked
+  allocation with balanced returns.
+- [x] Removed an obsolete SVT-AV1 design link from mode-map documentation. Current official libaom
+  remains the sole external codec implementation source.
+- [x] The focused Release checkpoint set passes 6/6 on net10.0 and 6/6 on net11.0, with zero failures
+  or skips.
+- [x] Scoped analyzer verification passes for all four changed C# files. Roslynk reports zero compiler
+  errors, `git diff --check` passes, and `.gitattributes` is unchanged.
 
 For every item:
 
@@ -517,7 +556,7 @@ For every item:
 
 Previously verified algorithm checkpoints remain valuable evidence, but the final decoder gate requires a fresh current-tree run after the inter and cleanup corrections.
 
-- [~] Bounded OBU framing, sequence headers, frame headers, tile groups, alignment, and trailing-bit parsing have historical checkpoint evidence against an obsolete pinned tree. Re-audit the current libaom `main` implementation before restoring verified status.
+- [~] Bounded OBU framing, sequence headers, frame headers, tile groups, alignment, and trailing-bit parsing have historical checkpoint evidence against an obsolete pinned tree. Re-audit the current libaom `main` implementation before restoring verified status. Current item.
 - [~] Partition traversal, mode information, segmentation, delta quantization, transform-size selection, coefficient decoding, inverse quantization, and inverse transforms have historical checkpoint evidence against an obsolete pinned tree. Re-audit the current libaom `main` implementation before restoring verified status.
 - [x] Intra prediction covers directional, DC, smooth, Paeth, chroma-from-luma, filter-intra, and palette families with the established operator architecture.
 - [x] Intra-block copy has exact native reconstruction and feature-isolated SIMD evidence.

@@ -1308,8 +1308,8 @@ public static class TestImages
         public const string Animated8BitWithAlphaExifXmp = "Heif/colors-animated-8bpc-alpha-exif-xmp.avif";
         public const string Animated12BitWithKeyframes = "Heif/colors-animated-12bpc-keyframes-0-2-3.avif";
 
-        // Genuine libavif AVIF inputs, independently encoded AV1 samples, and exact native-plane output from the
-        // pinned scalar libaom reference decoder. See the fixture README for source and encoding details.
+        // Genuine AVIF inputs, independently encoded AV1 samples, and retained exact native-plane output. The
+        // fixture README records provenance and the current-main verification status for each checkpoint.
         public const string Av1Deblocking8BitAvif = "Heif/Av1/Conformance/libavif-kodim23-8b.avif";
         public const string Av1Deblocking8BitPayload = "Heif/Av1/Conformance/libavif-kodim23-8b.bit";
         public const string Av1Deblocking8BitReference = "Heif/Av1/Conformance/libavif-kodim23-8b-libaom.yuv";

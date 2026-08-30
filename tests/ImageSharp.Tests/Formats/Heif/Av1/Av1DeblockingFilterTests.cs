@@ -1,8 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Tests.TestUtilities;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
@@ -47,6 +51,28 @@ public class Av1DeblockingFilterTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilters, Configurations);
 
     /// <summary>
+    /// Verifies skipped inter-edge decisions and reference and mode level deltas through the production frame filter.
+    /// </summary>
+    [Fact]
+    public void DecodeFrameMatchesCurrentLibaomInterEdgeAndDeltaDecisions()
+    {
+        ValidateInterEdgeAndDeltaDecisions(
+            Av1PredictionMode.GlobalMotionVector,
+            Av1ReferenceFrameType.Last,
+            17);
+
+        ValidateInterEdgeAndDeltaDecisions(
+            Av1PredictionMode.NewMotionVector,
+            Av1ReferenceFrameType.Last,
+            21);
+
+        ValidateInterEdgeAndDeltaDecisions(
+            Av1PredictionMode.GlobalMotionVector,
+            Av1ReferenceFrameType.Golden,
+            22);
+    }
+
+    /// <summary>
     /// Exercises mixed flatness, high-edge-variance, disabled-mask, direction, and bit-depth cases.
     /// </summary>
     private static void ValidateFilters()
@@ -74,6 +100,109 @@ public class Av1DeblockingFilterTests
                     }
                 }
             }
+        }
+    }
+
+    /// <summary>
+    /// Filters two adjacent skipped inter blocks and compares the visible luma plane with the scalar definition.
+    /// </summary>
+    private static void ValidateInterEdgeAndDeltaDecisions(
+        Av1PredictionMode mode,
+        Av1ReferenceFrameType referenceFrame,
+        int expectedLevel)
+    {
+        const int width = Stride;
+        const int height = 8;
+        const int edge = 16;
+        const int baseLevel = 20;
+        ObuSequenceHeader sequenceHeader = new()
+        {
+            MaxFrameWidth = width,
+            MaxFrameHeight = height,
+            Use128x128Superblock = false,
+            ColorConfig = new ObuColorConfig
+            {
+                IsMonochrome = true,
+                BitDepth = Av1BitDepth.EightBit,
+            },
+        };
+
+        ObuFrameHeader frameHeader = new()
+        {
+            FrameType = ObuFrameType.InterFrame,
+            ModeInfoColumnCount = width >> Av1Constants.ModeInfoSizeLog2,
+            ModeInfoRowCount = height >> Av1Constants.ModeInfoSizeLog2,
+            FrameSize = new ObuFrameSize
+            {
+                FrameWidth = width,
+                FrameHeight = height,
+            },
+        };
+
+        ObuLoopFilterParameters filterParameters = frameHeader.LoopFilterParameters;
+        filterParameters.FilterLevel[0] = baseLevel;
+        filterParameters.ReferenceDeltaModeEnabled = true;
+        filterParameters.ReferenceDeltas[(int)Av1ReferenceFrameType.Last] = -3;
+        filterParameters.ReferenceDeltas[(int)Av1ReferenceFrameType.Golden] = 2;
+        filterParameters.ModeDeltas[1] = 4;
+
+        using Av1FrameBuffer<byte> frameBuffer = new(
+            Configuration.Default,
+            sequenceHeader,
+            Av1ColorFormat.Yuv400,
+            false);
+
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
+        Av1SuperblockInfo superblock = frameInfo.GetSuperblock(Point.Empty);
+        Av1BlockModeInfo leftModeInfo = new(Av1BlockSize.Block16x8, Point.Empty)
+        {
+            Skip = true,
+            YMode = mode,
+        };
+
+        Av1BlockModeInfo rightModeInfo = new(Av1BlockSize.Block16x8, new Point(4, 0))
+        {
+            Skip = true,
+            YMode = mode,
+        };
+
+        leftModeInfo.ReferenceFrames[0] = referenceFrame;
+        rightModeInfo.ReferenceFrames[0] = referenceFrame;
+        frameInfo.UpdateModeInfo(leftModeInfo, superblock);
+        frameInfo.UpdateModeInfo(rightModeInfo, superblock);
+        superblock.BlockCount = 2;
+
+        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
+        loopFilterContext.SetTransformSize(Av1Plane.Y, Point.Empty, Av1TransformSize.Size8x8);
+        loopFilterContext.SetTransformSize(Av1Plane.Y, new Point(2, 0), Av1TransformSize.Size8x8);
+        loopFilterContext.SetTransformSize(Av1Plane.Y, new Point(4, 0), Av1TransformSize.Size8x8);
+        loopFilterContext.SetTransformSize(Av1Plane.Y, new Point(6, 0), Av1TransformSize.Size8x8);
+
+        byte[] expected = new byte[width * height];
+        for (int row = 0; row < height; row++)
+        {
+            Span<byte> expectedRow = expected.AsSpan(row * width, width);
+            Span<byte> actualRow = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(row);
+            expectedRow[..edge].Fill(100);
+            expectedRow[edge..].Fill(130);
+            actualRow[..edge].Fill(100);
+            actualRow[edge..].Fill(130);
+        }
+
+        int limit = expectedLevel;
+        int boundaryLimit = (2 * (expectedLevel + 2)) + limit;
+        int highEdgeVarianceThreshold = expectedLevel >> 4;
+        ApplyReference(expected, true, edge, 8, limit, boundaryLimit, highEdgeVarianceThreshold, 8);
+        ApplyReference(expected, true, (4 * width) + edge, 8, limit, boundaryLimit, highEdgeVarianceThreshold, 8);
+
+        Av1LoopFilterDecoder decoder = new(sequenceHeader, frameHeader, frameInfo, frameBuffer, loopFilterContext);
+        decoder.DecodeFrame();
+
+        for (int row = 0; row < height; row++)
+        {
+            ReadOnlySpan<byte> expectedRow = expected.AsSpan(row * width, width);
+            ReadOnlySpan<byte> actualRow = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(row);
+            Assert.Equal(expectedRow, actualRow);
         }
     }
 

@@ -59,6 +59,7 @@ internal class Av1FrameBuffer<T> : IDisposable
     /// <param name="sequenceHeader">The sequence header defining maximum dimensions, bit depth, and chroma layout.</param>
     /// <param name="maxColorFormat">The maximum color format to allocate for a non-monochrome sequence.</param>
     /// <param name="is16BitPipeline">Indicates whether reconstruction uses native 16-bit sample storage.</param>
+    /// <exception cref="InvalidImageContentException">The padded frame planes cannot be represented as contiguous allocations.</exception>
     public Av1FrameBuffer(Configuration configuration, ObuSequenceHeader sequenceHeader, Av1ColorFormat maxColorFormat, bool is16BitPipeline)
     {
         this.MemoryAllocator = configuration.MemoryAllocator;
@@ -105,6 +106,19 @@ internal class Av1FrameBuffer<T> : IDisposable
                 strideChroma = strideY;
                 heightChroma = heightY;
                 break;
+        }
+
+        long lumaElementCount = (long)strideY * this.storageElementsPerSample * heightY;
+        long chromaElementCount = (long)strideChroma * this.storageElementsPerSample * heightChroma;
+        bool planesExceedContiguousLimit =
+            lumaElementCount >= int.MaxValue ||
+            (bufferEnableMask == PictureBufferFullMask && chromaElementCount >= int.MaxValue);
+
+        if (planesExceedContiguousLimit)
+        {
+            // The reconstruction operators use one span plus a constant stride to address padded neighbors. Reject an
+            // external geometry that cannot satisfy that ownership contract before Allocate2D falls back to groups.
+            throw new InvalidImageContentException("The AV1 frame dimensions exceed the contiguous decoder plane limit.");
         }
 
         this.BufferY = null;

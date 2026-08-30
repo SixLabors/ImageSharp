@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.ColorProfiles;
 using SixLabors.ImageSharp.ColorProfiles.Icc;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
@@ -86,7 +87,12 @@ public class HeifDecoderTests
         Assert.Null(converted.Metadata.IccProfile);
         Assert.NotEmpty(ImageComparer.Exact.CompareImages(preserved, converted));
 
-        converted.DebugSave(provider, testOutputDetails: "IccConverted");
+        // The decoded metadata retains the AVIF source matrix, which PNG cannot represent. The debug output exists
+        // only to inspect converted pixels, so omit metadata without altering the image under test.
+        converted.DebugSave(
+            provider,
+            new PngEncoder { SkipMetadata = true },
+            testOutputDetails: "IccConverted");
 
         // The PNG is the independent RGB source used by libavif's avifenc. A tolerant comparison accounts for the
         // AV1 loss while proving the AVIF ICC stage produces the same target-profile interpretation.

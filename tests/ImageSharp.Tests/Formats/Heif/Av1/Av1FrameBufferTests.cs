@@ -49,6 +49,33 @@ public class Av1FrameBufferTests
     }
 
     /// <summary>
+    /// Verifies that an external frame geometry cannot make the padded-plane owner fall back to multiple groups.
+    /// </summary>
+    [Fact]
+    public void ConstructorRejectsPaddedPlaneThatCannotBeContiguous()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        ObuSequenceHeader sequenceHeader = new()
+        {
+            MaxFrameWidth = 65_536,
+            MaxFrameHeight = 65_536,
+            ColorConfig = new ObuColorConfig
+            {
+                IsMonochrome = true,
+                BitDepth = Av1BitDepth.EightBit
+            }
+        };
+
+        Assert.Throws<InvalidImageContentException>(
+            () => new Av1FrameBuffer<byte>(configuration, sequenceHeader, Av1ColorFormat.Yuv400, false));
+
+        Assert.Empty(allocator.AllocationLog);
+    }
+
+    /// <summary>
     /// Verifies that a failure while renting the final chroma plane releases every previously rented plane.
     /// </summary>
     [Fact]
@@ -72,7 +99,6 @@ public class Av1FrameBufferTests
 
         // All three padded planes fit in one backing owner each, making attempt three the Cr plane rent after Y and
         // Cb have succeeded. The allocator log therefore contains exactly the two owners requiring rollback.
-
         Assert.Throws<InvalidMemoryOperationException>(
             () => new Av1FrameBuffer<byte>(configuration, sequenceHeader, Av1ColorFormat.Yuv420, false));
 
@@ -116,10 +142,11 @@ public class Av1FrameBufferTests
         Assert.Throws<InvalidMemoryOperationException>(
             () => new Av1BlockDecoder(sequenceHeader, frameHeader, frameBuffer, loopFilterContext, inverseQuantizer));
 
+        TestMemoryAllocator.AllocationRequest allocation = Assert.Single(allocator.AllocationLog);
+        TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
+
         Assert.Equal(3, allocator.AllocationAttemptCount);
-        Assert.Single(allocator.AllocationLog);
-        Assert.Single(allocator.ReturnLog);
-        Assert.Equal(allocator.AllocationLog[0].HashCodeOfBuffer, allocator.ReturnLog[0].HashCodeOfBuffer);
+        Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
     /// <summary>

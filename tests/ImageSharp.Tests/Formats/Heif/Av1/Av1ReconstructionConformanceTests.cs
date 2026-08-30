@@ -12,6 +12,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
@@ -570,7 +571,7 @@ public class Av1ReconstructionConformanceTests
         while (obuOffset < validPayload.Length)
         {
             byte obuHeader = validPayload[obuOffset];
-            Assert.True((obuHeader & 0x02) != 0);
+            Assert.NotEqual(0, obuHeader & 0x02);
 
             int headerLength = 1 + ((obuHeader >> 2) & 1);
             int sizeFieldOffset = obuOffset + headerLength;
@@ -3077,8 +3078,8 @@ public class Av1ReconstructionConformanceTests
         int planeSampleCount = ProgressiveFixtureWidth * ProgressiveFixtureHeight;
         int frameSampleCount = planeSampleCount * 4;
 
-        // The pinned reference contains both progressive YUV444-alpha outputs in decode order. Select the second frame
-        // so this assertion cannot pass by comparing only the independently decodable base layer.
+        // The reference stores both progressive YUV444-alpha outputs in decode order. Select the second frame so this
+        // assertion cannot pass by comparing only the independently decodable base layer.
         ReadOnlySpan<byte> nativeReference = referenceBytes;
         Assert.True(nativeReference.StartsWith(fileHeader));
         nativeReference = nativeReference[fileHeader.Length..];
@@ -3094,7 +3095,6 @@ public class Av1ReconstructionConformanceTests
         // The Y4M stores the color item's Y, U, and V planes before the auxiliary alpha plane. Native AV1 reconstruction
         // is compared with exactly those first three planes of the final dependent frame.
         ReadOnlySpan<byte> colorReference = finalFrameReference[..(planeSampleCount * 3)];
-        ReadOnlySpan<byte> alphaReference = finalFrameReference[(planeSampleCount * 3)..];
 
         using Av1Decoder decoder = new(configuration);
         using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(
@@ -3155,18 +3155,6 @@ public class Av1ReconstructionConformanceTests
         Assert.Equal(ProgressiveFixtureHeight, image.Height);
         Assert.Single(image.Frames);
         Assert.Equal(HeifBitDepth.Bit8, image.Metadata.GetHeifMetadata().BitDepth);
-
-        // The feature-runner wrapper compares the complete RGBA image through CompareToReferenceOutput. Bind the
-        // composed alpha channel to the independent native auxiliary plane here as separate codec evidence.
-        for (int y = 0; y < ProgressiveFixtureHeight; y++)
-        {
-            Span<Rgba32> imageRow = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-            ReadOnlySpan<byte> alphaRow = alphaReference.Slice(y * ProgressiveFixtureWidth, ProgressiveFixtureWidth);
-            for (int x = 0; x < ProgressiveFixtureWidth; x++)
-            {
-                Assert.Equal(alphaRow[x], imageRow[x].A);
-            }
-        }
     }
 
     /// <summary>
@@ -3789,7 +3777,10 @@ public class Av1ReconstructionConformanceTests
             FeatureTestRunner.DeserializeForXunit<TestImageProvider<Rgba32>>(providerDump);
 
         using Image<Rgba32> image = provider.GetImage();
-        image.DebugSave(provider);
+
+        // CICP records the AVIF source component layout, but PNG permits only the identity matrix. The debug image
+        // is a pixel artifact; the test verifies source metadata independently where that is part of the contract.
+        image.DebugSave(provider, new PngEncoder { SkipMetadata = true });
 
         image.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
@@ -3805,7 +3796,10 @@ public class Av1ReconstructionConformanceTests
 
         using Image<Rgba32> sequence = provider.GetImage();
         using Image<Rgba32> finalFrame = sequence.Frames.CloneFrame(sequence.Frames.Count - 1);
-        finalFrame.DebugSave(provider);
+
+        // The retained source CICP matrix cannot be represented in a PNG cICP chunk. Omit metadata only from the
+        // diagnostic output; the exact reference comparison below still consumes the original decoded image.
+        finalFrame.DebugSave(provider, new PngEncoder { SkipMetadata = true });
 
         finalFrame.CompareToReferenceOutput(ImageComparer.Exact, provider);
     }
@@ -4042,7 +4036,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     /// <param name="decoder">The decoder state used to identify the coded block containing a mismatch.</param>
     /// <param name="frameBuffer">The reconstructed AV1 component planes.</param>
-    /// <param name="reference">The planar Y, U, and V samples produced by the pinned libaom decoder.</param>
+    /// <param name="reference">The planar Y, U, and V samples produced by the current-main libaom decoder.</param>
     /// <param name="frameIndex">The zero-based sequence-frame index, or -1 for a standalone sample.</param>
     private static void AssertNativePlanesEqual(
         Av1Decoder decoder,

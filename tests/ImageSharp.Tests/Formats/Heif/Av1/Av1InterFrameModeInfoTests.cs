@@ -165,8 +165,8 @@ public class Av1InterFrameModeInfoTests
         using Av1SymbolWriter writer = new(Configuration.Default, 3, updateCdf: true);
         writer.WriteSymbol(false, Av1DefaultDistributions.Skip[0]);
 
-        // Pinned libaom's is_nontrans_global_motion rejects only TRANSLATION, so the default identity model omits these
-        // sentinel symbols even though is_global_mv_block uses the separate greater-than-translation classification.
+        // Current libaom's is_nontrans_global_motion rejects only TRANSLATION, so the default identity model omits
+        // these sentinel symbols even though is_global_mv_block uses the separate greater-than-translation classification.
         writer.WriteSymbol((int)Av1InterpolationFilter.Smooth, Av1DefaultDistributions.SwitchableInterpolation[3]);
         writer.WriteSymbol((int)Av1InterpolationFilter.Sharp, Av1DefaultDistributions.SwitchableInterpolation[11]);
         using IMemoryOwner<byte> encoded = writer.Exit();

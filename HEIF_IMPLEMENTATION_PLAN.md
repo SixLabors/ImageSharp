@@ -177,8 +177,8 @@ foreach ($aomEntry in $aomEnvironment)
 The single-reference syntax, buffer, reconstruction, and ownership foundation is verified by `54bb6cbe59bd113058854a3ee31448cf61f462ca`. Reverify the existing downstream implementations in this exact order, treating each as locally implemented but unverified until its current-main evidence is recorded.
 
 - [x] Compound reference selection, paired reference-MV derivation, and equal averaging.
-- [~] Inter-intra prediction. Current item.
-- [~] Distance-weighted compound prediction.
+- [x] Inter-intra prediction.
+- [~] Distance-weighted compound prediction. Current item.
 - [~] Wedge compound prediction.
 - [~] Difference-weighted compound prediction.
 - [~] OBMC.
@@ -220,6 +220,37 @@ Verified equal-average compound checkpoint evidence on 2026-08-31:
   failures or skips. Scoped analyzer and whitespace verification pass for every changed C# file,
   Roslynk reports zero compiler errors and no diagnostics in the changed files, and `git diff --check`
   passes. `.gitattributes` is unchanged.
+- [x] The completed checkpoint was committed as `4075a0844836e863a93cb2e2f3ca42d202c7df1b`
+  with author and committer `James Jackson-South <james_south@hotmail.com>`.
+
+Verified inter-intra checkpoint evidence on 2026-08-31:
+
+- [x] Audited syntax against current libaom `av1/decoder/decodemv.c` and
+  `av1/common/blockd.h`. ImageSharp applies the same sequence enable, skip-mode, block-size, and
+  single-reference gates, reads the same four-mode CDF, and reads wedge syntax only within libaom's
+  wedge-supported `BLOCK_8X8` through `BLOCK_32X32` range.
+- [x] Audited reconstruction against `ii_weights1d`, `ii_size_scales`,
+  `build_smooth_interintra_mask`, and `combine_interintra` in current
+  `av1/common/reconinter.c`. The ImageSharp weights, plane-size scaling, smooth-mask direction,
+  complemented destination orientation, wedge sign, subsampling, and final 6-bit blend match. No
+  production change was required.
+- [x] The mask tests cover all four inter-intra modes, complemented orientation, row-padding
+  sentinels, and the 32-wide curve. FeatureTestRunner covers byte and high-bit-depth selectable
+  blending under SIMD and scalar dispatch, and complete `Av1BlockDecoder.DecodeBlock` tests execute
+  smooth inter-intra reconstruction at 8, 10, and 12 bits.
+- [x] Extracted the fixture's 5,327-byte AV1 `mdat` payload and decoded it with the refreshed current
+  libaom `aomdec`, using one thread with row threading disabled. All 19 frames decoded. The final
+  19,200 YUV444 samples have SHA-256
+  `E8B776C2751DC30CA838931A4B74535FC6E681179568A1278747A38CFF2E5BFA` and match the retained
+  native reference with zero differing samples.
+- [x] The real production sequence requires both smooth and wedge inter-intra blocks, compares the
+  final native Y, Cb, and Cr planes exactly, and compares final RGBA presentation through
+  ImageSharp's established reference-output API. Its constrained 1,024-byte tracked-allocator run
+  proves motion-field allocation and exactly one return for every allocation.
+- [x] The focused Release checkpoint set passes 50/50 on net10.0 and 50/50 on net11.0, with zero
+  failures or skips. Scoped analyzer and whitespace verification pass for both changed C# files.
+  Roslynk reports zero compiler errors and no diagnostics in the changed files, `git diff --check`
+  passes, and `.gitattributes` is unchanged.
 
 For every item:
 

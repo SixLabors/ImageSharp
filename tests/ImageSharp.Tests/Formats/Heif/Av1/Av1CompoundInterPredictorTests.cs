@@ -60,7 +60,7 @@ public class Av1CompoundInterPredictorTests
     /// Verifies the four smooth inter-intra modes and their complemented destination orientation.
     /// </summary>
     [Fact]
-    public void SmoothInterIntraMasksMatchPinnedWeights()
+    public void SmoothInterIntraMasksMatchCurrentLibaomWeights()
     {
         ReadOnlySpan<byte> weights = [60, 34, 19, 11, 6, 4, 2, 1];
 
@@ -103,10 +103,10 @@ public class Av1CompoundInterPredictorTests
     }
 
     /// <summary>
-    /// Verifies the pinned horizontal curve at the index exercised by a 32-by-16 inter-intra block.
+    /// Verifies the current libaom horizontal curve at the index exercised by a 32-by-16 inter-intra block.
     /// </summary>
     [Fact]
-    public void HorizontalInterIntraMaskMatchesPinnedThirtyTwoWideCurve()
+    public void HorizontalInterIntraMaskMatchesCurrentLibaomThirtyTwoWideCurve()
     {
         const int width = 32;
         const int height = 16;

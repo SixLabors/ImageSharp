@@ -1002,14 +1002,14 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies every selectable compound and inter-intra production branch against pinned native and presentation references.
+    /// Verifies every selectable compound and inter-intra production branch against retained native and presentation references.
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1WedgeCompoundSequenceAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1InterIntraSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeRealLibavifSequencesWithSelectableCompoundAndInterIntraMatchesPinnedReferences(
+    public void DecodeRealLibavifSequencesWithSelectableCompoundAndInterIntraMatchesRetainedReferences(
         TestImageProvider<Rgba32> provider)
 
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(

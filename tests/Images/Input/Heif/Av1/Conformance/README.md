@@ -118,7 +118,11 @@ only and is not used to establish AV1 reconstruction arithmetic.
 
 ## Selectable compound and inter-intra fixtures
 
-The four selectable-compound fixtures use the same pinned `tests/data/webp_logo_animated.y4m` source and its `0872208D9C19B68B10A1647FA6849CFC4E2B21A19561ACD672E0629C70EFACA2` SHA-256. They were encoded at speed zero after disabling later inter-mode checkpoints. Each command also disables competing prediction tools that would prevent the resulting stream from isolating its named mode:
+The four AVIF files are retained solely as interoperability inputs. Their original creation commands
+used the same `tests/data/webp_logo_animated.y4m` source and encoded at speed zero after disabling later
+inter-mode checkpoints. These commands record container-fixture provenance only; they are not codec
+implementation references. Each command also disables competing prediction tools that would prevent the
+resulting stream from isolating its named mode:
 
 ```text
 ./avifenc -j 1 -c aom -s 0 -q 80 -a enable-obmc=0 -a enable-warped-motion=0 -a enable-global-motion=0 -a enable-masked-comp=0 -a enable-interintra-comp=0 tests/data/webp_logo_animated.y4m libavif-webp-logo-distance-weighted-compound.avif
@@ -127,21 +131,24 @@ The four selectable-compound fixtures use the same pinned `tests/data/webp_logo_
 ./avifenc -j 1 -c aom -s 0 -q 80 -a enable-obmc=0 -a enable-warped-motion=0 -a enable-global-motion=0 -a enable-dist-wtd-comp=0 -a enable-masked-comp=0 tests/data/webp_logo_animated.y4m libavif-webp-logo-inter-intra.avif
 ```
 
-Pinned scalar libavif generated each final native and presentation reference with:
-
-```text
-./avifdec -j 1 -c aom --index 18 <fixture>.avif <fixture>-libaom.y4m
-./avifdec -j 1 -c aom --index 18 <fixture>.avif <fixture>-libavif.png
-```
-
-| Fixture | AVIF SHA-256 | Frame-18 Y4M SHA-256 | Frame-18 PNG SHA-256 |
+| Fixture | AVIF SHA-256 | Retained frame-18 Y4M SHA-256 | Retained frame-18 PNG SHA-256 |
 | --- | --- | --- | --- |
 | `libavif-webp-logo-distance-weighted-compound` | `DA710D11C60F03EEA209E4360E2FC807B89C49AD50671F0DFB1BCF4AD5EF76DD` | `904D1B5B3E7F334CE8D44040F9A7BDCAC1F7773122FF1C5F06A5B4DD31A62A97` | `D2CB388C9092EF17C4F0382C0150DD30D6F9D0EE247FF45AB5D7D4D312CEB23C` |
 | `libavif-webp-logo-wedge-compound` | `98640640A445055FEA3D9E2F4A78FEEF54E97F8171B472CF57D99156E1C553B2` | `904D1B5B3E7F334CE8D44040F9A7BDCAC1F7773122FF1C5F06A5B4DD31A62A97` | `D2CB388C9092EF17C4F0382C0150DD30D6F9D0EE247FF45AB5D7D4D312CEB23C` |
 | `libavif-webp-logo-difference-weighted-compound` | `FC6459CD334762D74D9D2654640221E80C463CC01B82B29A5866C9E725ABE273` | `904D1B5B3E7F334CE8D44040F9A7BDCAC1F7773122FF1C5F06A5B4DD31A62A97` | `D2CB388C9092EF17C4F0382C0150DD30D6F9D0EE247FF45AB5D7D4D312CEB23C` |
 | `libavif-webp-logo-inter-intra` | `71DF22E63626B5BC9001FF1E88076B90F11BB47D18089750853E66F0CBBB084B` | `502265688138641A7B12C8C4190B66C76CD4808D9AED05B06486056B39D7E9A0` | `F0DE4CCDFB6D95A400E69B69FA4C57F0BEEEEE75825722C31613385F0B3FD9FC` |
 
-Pinned libaom block tracing confirms that these streams select distance weighting, both wedge signs, both difference-mask types, and both smooth and wedge inter-intra prediction. The production test independently requires those decoded mode states, decodes all preceding samples, compares the final native Y, U, and V planes exactly, compares the final RGBA presentation exactly, and repeats reconstruction with constrained tracked allocation.
+The inter-intra fixture's 5,327-byte AV1 `mdat` payload was decoded directly with the current official
+libaom `main` checkout observed at `441c439b9916474cac15d2822af47a9ad70674a8`, using one thread and
+with row threading disabled. Current `aomdec` produced all 19 YUV444 frames. The final frame's 19,200
+native samples have SHA-256 `E8B776C2751DC30CA838931A4B74535FC6E681179568A1278747A38CFF2E5BFA`
+and match the retained Y4M with zero differing samples.
+
+The production tests independently require their decoded mode states. The inter-intra input must exercise
+both smooth and wedge inter-intra prediction, decode all preceding samples, compare the final native Y,
+Cb, and Cr planes exactly, compare final RGBA presentation through ImageSharp's established
+reference-output API, and repeat reconstruction with constrained tracked allocation. The retained PNG is
+presentation evidence only and is not an AV1 reconstruction reference.
 
 ## Overlapping motion-compensation fixture
 

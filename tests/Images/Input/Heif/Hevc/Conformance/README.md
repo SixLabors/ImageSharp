@@ -35,6 +35,27 @@ The remaining Range Extensions fixtures come from the official H.265.1 RExt atta
 
 The expected plane hashes come directly from each selected picture's decoded-picture-hash SEI message when present. The CCP 8/10/12-bit, IPCM A/B, and Main 4:2:2 10 B streams omit that per-picture message. Their first reference pictures were extracted only after FFmpeg 9.0.1 reproduced the archives' published complete-output MD5 values `54231c6f121ca65d8b94a747b9504b8b`, `363f55fc6097a3bb7525392b87a6498a`, `f3e914fccdb820eac85f46642ea0e168`, `8d4eb18812338f9f475035b8da27e74a`, `eea32e6e1f88b7782515e53f8122be7d`, and `fd163bcbdc24792a23781ee7aace74eb`, respectively.
 
+## Genuine HEIC presentation matrix
+
+The 35 `.heic` files pair every retained official Range Extensions picture above with a real ISO BMFF image item. GPAC `MP4Box` 26.07 (`26.07-rev0-ga07cbfff-master`) wrote the containers. FFmpeg 9.0.1 first copied one complete picture, including its active VPS, SPS, and PPS, from each supported Annex B stream so the `hvcC` configuration and item payload cannot select parameter sets from different concatenated pictures. The two unequal-precision streams are already bounded pictures and were passed directly to GPAC because FFmpeg rejects unequal luma and chroma precision.
+
+The generation templates were:
+
+```text
+ffmpeg -threads 1 -i input.bit -map 0:v:0 -frames:v 1 -c copy frame0.hevc
+MP4Box -add-image frame0.hevc:primary -new output.heic
+```
+
+The monochrome files add `image-pixi=8` or `image-pixi=12` to the `-add-image` argument so their `pixi` property contains exactly one channel. No `colr` property is added; the decoder must retain the HEVC VUI color description.
+
+Twenty-four `*-ffmpeg.png` files are FFmpeg 9.0.1 presentations decoded directly from the resulting HEIC files. Nine `*-hm-ffmpeg.png` files use native samples from pinned HM commit `9c1f298659ab0cee9dc13d23d0304221575410b9`, built with `HIGH_BITDEPTH=ON`, followed by FFmpeg raw-video color conversion. Every HM plane used by those references matches the official decoded-picture-hash values. This split is intentional: FFmpeg does not reconstruct seven of the retained high-throughput pictures to their published plane digests, and its direct monochrome-to-PNG path does not expand the signaled limited luma range. The monochrome references therefore apply the exact 8- or 12-bit limited-range scale before RGB packing.
+
+The two unequal-precision HEIC files have no PNG reference because FFmpeg and libheif reject that HEVC profile combination. Their public tests require successful bounded HEIC presentation and correct metadata, while the companion native tests compare all three planes with the published digests.
+
+`HeifDecoderTests` covers all 35 genuine HEIC files. The 33 independently presentable cases use the repository's narrow `TolerantPercentage(1F, 20)` public-pixel contract because HEVC does not prescribe one chroma upsampling filter. Exact native-plane tests remain the reconstruction oracle. Representative 8/10/12-bit, monochrome, 4:2:0, 4:2:2, 4:4:4, and high-throughput files also pass with 4 KiB allocator groups and exactly-once returns. Eight-bit subsampled and 12-bit full-resolution presentation repeat through AVX-512, AVX, narrower vector, and scalar `FeatureTestRunner` configurations.
+
+[`PRESENTATION_SHA256.md`](PRESENTATION_SHA256.md) records every retained HEIC and PNG SHA-256.
+
 The SHA-256 columns below identify the downloaded archive, its original Annex B payload, and the retained bounded picture:
 
 | Retained picture | Archive SHA-256 | Original payload SHA-256 | Retained SHA-256 |

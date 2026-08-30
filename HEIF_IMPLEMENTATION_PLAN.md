@@ -120,7 +120,7 @@ Checkpoint gate:
 - [x] Release builds for net10.0 and net11.0 pass with zero errors.
 - [x] Focused Release tests pass with zero failures or skips.
 - [x] Scoped semantic, StyleCop, whitespace, and git diff checks pass.
-- [ ] Only after all evidence is recorded may this checkpoint be committed.
+- [x] The completed checkpoint was committed as `54bb6cbe59bd113058854a3ee31448cf61f462ca` with author and committer `James Jackson-South <james_south@hotmail.com>`.
 
 Verified single-reference checkpoint evidence on 2026-08-31:
 
@@ -174,10 +174,10 @@ foreach ($aomEntry in $aomEnvironment)
 
 ### 3. Reverify downstream inter prediction in recorded order
 
-These implementations exist locally but inherit the open single-reference syntax, buffer, and ownership foundation.
+The single-reference syntax, buffer, reconstruction, and ownership foundation is verified by `54bb6cbe59bd113058854a3ee31448cf61f462ca`. Reverify the existing downstream implementations in this exact order, treating each as locally implemented but unverified until its current-main evidence is recorded.
 
-- [~] Compound reference selection, paired reference-MV derivation, and equal averaging.
-- [~] Inter-intra prediction.
+- [x] Compound reference selection, paired reference-MV derivation, and equal averaging.
+- [~] Inter-intra prediction. Current item.
 - [~] Distance-weighted compound prediction.
 - [~] Wedge compound prediction.
 - [~] Difference-weighted compound prediction.
@@ -186,6 +186,40 @@ These implementations exist locally but inherit the open single-reference syntax
 - [~] Local warped prediction.
 - [~] Non-translational global prediction.
 - [~] Inter deblocking decisions and reference/mode deltas.
+
+Verified equal-average compound checkpoint evidence on 2026-08-31:
+
+- [x] Refreshed the clean official libaom `main` checkout and audited the observed revision
+  `441c439b9916474cac15d2822af47a9ad70674a8`. Reference selection and compound mode syntax match
+  `read_comp_reference_type` and `read_ref_frames` in `av1/decoder/decodemv.c`; contexts match
+  `av1/common/pred_common.c`; paired reference-MV construction and eight-entry extension match
+  `process_compound_ref_mv_candidate` and `setup_ref_mv_list` in `av1/common/mvref_common.c`.
+- [x] Audited equal-average reconstruction against `av1/common/convolve.c` and
+  `av1/common/convolve.h`. Corrected the unscaled 10/12-bit translational path so both references
+  retain libaom's no-round compound intermediates until the sole final average and clipping step,
+  including the larger first-round shift required for 12-bit horizontal intermediates.
+- [x] Added descending Vector512, Vector256, Vector128, and scalar high-bit-depth traversal to the
+  existing semantic compound-prediction operator families. No per-block, per-row, or per-scanline
+  allocation or copy was added.
+- [x] Added FeatureTestRunner coverage for 10/12-bit copy, horizontal, vertical, and separable
+  subpixel prediction at widths 9, 17, 33, and 65, with an independent no-round bilinear oracle,
+  row-padding sentinels, and explicit scalar comparison.
+- [x] Added a complete `Av1BlockDecoder.DecodeBlock` 10/12-bit half-sample regression whose expected
+  result comes from the scalar no-round pipeline. The selected vector differs by one sample from the
+  obsolete round-each-reference behavior, so the test proves the production branch selection.
+- [x] Refreshed the official libaom `main` remote immediately before verification and decoded the
+  fixture's 5,465-byte AV1 `mdat` payload with current `aomdec`, one thread and row threading
+  disabled. All 19 frames decoded; the final 19,200 YUV444 samples have SHA-256
+  `E79D2F49C260B1AC9B1B9BBBB2D611126AFD3B241DA389EB9E7BD4EA0ED42080` and match the retained native
+  reference with zero differing samples.
+- [x] The real 19-frame production sequence requires decoded equal-average compound blocks, compares
+  the final native Y, U, and V planes exactly, compares final RGBA presentation through ImageSharp's
+  established reference-output API, and repeats the complete decode with a 1,024-byte constrained
+  tracked allocator and exactly-once return checks.
+- [x] The focused Release checkpoint set passes 31/31 on net10.0 and 31/31 on net11.0, with zero
+  failures or skips. Scoped analyzer and whitespace verification pass for every changed C# file,
+  Roslynk reports zero compiler errors and no diagnostics in the changed files, and `git diff --check`
+  passes. `.gitattributes` is unchanged.
 
 For every item:
 

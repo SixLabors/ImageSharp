@@ -847,12 +847,12 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies exact native reconstruction and presentation for a genuine pinned-libavif image sequence that uses
-    /// equal-weight compound prediction.
+    /// Verifies exact native reconstruction and presentation for an image sequence that exercises equal-weight
+    /// compound prediction. The native reference has been reverified against current official libaom main.
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.Av1AverageCompoundSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeRealLibavifSequenceWithEqualAverageCompoundMatchesPinnedReferences(
+    public void DecodeRealLibavifSequenceWithEqualAverageCompoundMatchesVerifiedReferences(
         TestImageProvider<Rgba32> provider)
 
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -945,7 +945,7 @@ public class Av1ReconstructionConformanceTests
             }
             catch (InvalidImageContentException exception)
             {
-                throw new InvalidImageContentException($"The pinned compound fixture failed at sample {sampleIndex}.", exception);
+                throw new InvalidImageContentException($"The verified compound fixture failed at sample {sampleIndex}.", exception);
             }
 
             using ImageFrame<Rgba32> frame = decodedFrame;

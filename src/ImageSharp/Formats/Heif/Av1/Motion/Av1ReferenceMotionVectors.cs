@@ -1154,7 +1154,7 @@ internal sealed class Av1ReferenceMotionVectors
         }
 
         // The fallback list is positional rather than a weighted candidate scan. Preserve both entries even when
-        // they are equal so DRL indices have the same meaning as the pinned libaom implementation.
+        // they are equal so DRL indices have the same meaning as the current libaom main implementation.
         for (int index = 0; index < 2; index++)
         {
             this.candidates[index] = primaryList[index];

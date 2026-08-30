@@ -34,6 +34,15 @@ public class Av1CompoundInterPredictorTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthAverage, PredictorConfigurations);
 
     /// <summary>
+    /// Verifies 10/12-bit no-round prediction and final equal averaging across every intrinsic width.
+    /// </summary>
+    [Fact]
+    public void HighBitDepthIntermediateAverageMatchesIndependentOracleAcrossIntrinsicWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateHighBitDepthIntermediateAverage,
+            PredictorConfigurations);
+
+    /// <summary>
     /// Verifies 8-bit distance and per-sample mask blending across every intrinsic width and scalar tail.
     /// </summary>
     [Fact]
@@ -278,6 +287,223 @@ public class Av1CompoundInterPredictorTests
 
                 Assert.Equal(expected, actual);
                 Assert.Equal(expected, scalar);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Applies the high-bit-depth no-round convolution equations independently of the production operators.
+    /// </summary>
+    private static void ValidateHighBitDepthIntermediateAverage()
+    {
+        ReadOnlySpan<int> widths = [9, 17, 33, 65];
+        ReadOnlySpan<(int Horizontal, int Vertical)> phases =
+            [(0, 0), (5, 0), (0, 9), (5, 9)];
+
+        foreach (int bitDepth in new[] { 10, 12 })
+        {
+            int maximum = (1 << bitDepth) - 1;
+            int intermediateRange = bitDepth + 7 - 3 + 2;
+            int round0 = 3 + Math.Max(intermediateRange - 16, 0);
+            int roundBits = 14 - round0 - 7;
+            int offsetBits = bitDepth + 14 - round0;
+            int roundOffset = (1 << (offsetBits - 7)) + (1 << (offsetBits - 8));
+
+            foreach (int width in widths)
+            {
+                const int height = 3;
+                int sourceStride = width + 5;
+                int intermediateStride = width + 3;
+                int destinationStride = width + 7;
+                ushort[] firstSource = new ushort[sourceStride * (height + 1)];
+                ushort[] secondSource = new ushort[sourceStride * (height + 1)];
+
+                for (int row = 0; row <= height; row++)
+                {
+                    for (int column = 0; column < sourceStride; column++)
+                    {
+                        firstSource[(row * sourceStride) + column] =
+                            (ushort)(((row * 613) + (column * 349) + 17) & maximum);
+
+                        secondSource[(row * sourceStride) + column] =
+                            (ushort)(((row * 947) + (column * 181) + 71) & maximum);
+                    }
+                }
+
+                foreach ((int horizontalPhase, int verticalPhase) in phases)
+                {
+                    int horizontal0 = 128 - (horizontalPhase * 8);
+                    int horizontal1 = horizontalPhase * 8;
+                    int vertical0 = 128 - (verticalPhase * 8);
+                    int vertical1 = verticalPhase * 8;
+                    ushort[] expectedFirst = new ushort[intermediateStride * height];
+                    ushort[] expectedSecond = new ushort[intermediateStride * height];
+                    ushort[] actualFirst = new ushort[intermediateStride * height];
+                    ushort[] actualSecond = new ushort[intermediateStride * height];
+                    ushort[] scalarFirst = new ushort[intermediateStride * height];
+                    ushort[] scalarSecond = new ushort[intermediateStride * height];
+                    expectedFirst.AsSpan().Fill(0xA5A5);
+                    expectedSecond.AsSpan().Fill(0xA5A5);
+                    actualFirst.AsSpan().Fill(0xA5A5);
+                    actualSecond.AsSpan().Fill(0xA5A5);
+                    scalarFirst.AsSpan().Fill(0xA5A5);
+                    scalarSecond.AsSpan().Fill(0xA5A5);
+
+                    for (int predictorIndex = 0; predictorIndex < 2; predictorIndex++)
+                    {
+                        ReadOnlySpan<ushort> source = predictorIndex == 0 ? firstSource : secondSource;
+                        Span<ushort> expected = predictorIndex == 0 ? expectedFirst : expectedSecond;
+
+                        for (int row = 0; row < height; row++)
+                        {
+                            for (int column = 0; column < width; column++)
+                            {
+                                int sourceIndex = (row * sourceStride) + column;
+                                int result;
+                                if (horizontalPhase == 0 && verticalPhase == 0)
+                                {
+                                    result = (source[sourceIndex] << roundBits) + roundOffset;
+                                }
+                                else if (verticalPhase == 0)
+                                {
+                                    int sum = (horizontal0 * source[sourceIndex]) +
+                                        (horizontal1 * source[sourceIndex + 1]);
+
+                                    result = ((sum + (1 << (round0 - 1))) >> round0) + roundOffset;
+                                }
+                                else if (horizontalPhase == 0)
+                                {
+                                    int sum = (vertical0 * source[sourceIndex]) +
+                                        (vertical1 * source[sourceIndex + sourceStride]);
+
+                                    int shifted = sum << (7 - round0);
+                                    result = ((shifted + 64) >> 7) + roundOffset;
+                                }
+                                else
+                                {
+                                    int horizontalBias = 1 << (bitDepth + 6);
+                                    int firstHorizontal = horizontalBias +
+                                        (horizontal0 * source[sourceIndex]) +
+                                        (horizontal1 * source[sourceIndex + 1]);
+
+                                    int secondHorizontal = horizontalBias +
+                                        (horizontal0 * source[sourceIndex + sourceStride]) +
+                                        (horizontal1 * source[sourceIndex + sourceStride + 1]);
+
+                                    firstHorizontal = (firstHorizontal + (1 << (round0 - 1))) >> round0;
+                                    secondHorizontal = (secondHorizontal + (1 << (round0 - 1))) >> round0;
+                                    int verticalBias = 1 << (bitDepth + 14 - round0);
+                                    int vertical = verticalBias +
+                                        (vertical0 * firstHorizontal) +
+                                        (vertical1 * secondHorizontal);
+
+                                    result = (vertical + 64) >> 7;
+                                }
+
+                                expected[(row * intermediateStride) + column] = (ushort)result;
+                            }
+                        }
+                    }
+
+                    int scratchStride = Math.Max(width, 128);
+                    short[] scratch = new short[scratchStride * (height + 8)];
+                    Av1CompoundInterPredictor.PredictCompound(
+                        firstSource,
+                        sourceStride,
+                        sourceOrigin: 0,
+                        actualFirst,
+                        intermediateStride,
+                        width,
+                        height,
+                        Av1InterpolationFilter.Bilinear,
+                        Av1InterpolationFilter.Bilinear,
+                        horizontalPhase,
+                        verticalPhase,
+                        bitDepth,
+                        scratch);
+
+                    Av1CompoundInterPredictor.PredictCompound(
+                        secondSource,
+                        sourceStride,
+                        sourceOrigin: 0,
+                        actualSecond,
+                        intermediateStride,
+                        width,
+                        height,
+                        Av1InterpolationFilter.Bilinear,
+                        Av1InterpolationFilter.Bilinear,
+                        horizontalPhase,
+                        verticalPhase,
+                        bitDepth,
+                        scratch);
+
+                    Av1CompoundInterPredictor.PredictCompoundScalar(
+                        firstSource,
+                        sourceStride,
+                        sourceOrigin: 0,
+                        scalarFirst,
+                        intermediateStride,
+                        width,
+                        height,
+                        Av1InterpolationFilter.Bilinear,
+                        Av1InterpolationFilter.Bilinear,
+                        horizontalPhase,
+                        verticalPhase,
+                        bitDepth,
+                        scratch);
+
+                    Av1CompoundInterPredictor.PredictCompoundScalar(
+                        secondSource,
+                        sourceStride,
+                        sourceOrigin: 0,
+                        scalarSecond,
+                        intermediateStride,
+                        width,
+                        height,
+                        Av1InterpolationFilter.Bilinear,
+                        Av1InterpolationFilter.Bilinear,
+                        horizontalPhase,
+                        verticalPhase,
+                        bitDepth,
+                        scratch);
+
+                    Assert.Equal(expectedFirst, actualFirst);
+                    Assert.Equal(expectedSecond, actualSecond);
+                    Assert.Equal(expectedFirst, scalarFirst);
+                    Assert.Equal(expectedSecond, scalarSecond);
+
+                    ushort[] expectedDestination = new ushort[destinationStride * height];
+                    ushort[] actualDestination = new ushort[destinationStride * height];
+                    expectedDestination.AsSpan().Fill(0xA5A5);
+                    actualDestination.AsSpan().Fill(0xA5A5);
+
+                    for (int row = 0; row < height; row++)
+                    {
+                        for (int column = 0; column < width; column++)
+                        {
+                            int intermediateIndex = (row * intermediateStride) + column;
+                            int result = ((expectedFirst[intermediateIndex] + expectedSecond[intermediateIndex]) >> 1) -
+                                roundOffset;
+
+                            result = (result + (1 << (roundBits - 1))) >> roundBits;
+                            expectedDestination[(row * destinationStride) + column] =
+                                (ushort)Math.Clamp(result, 0, maximum);
+                        }
+                    }
+
+                    Av1CompoundIntermediateAveragePredictor.AverageIntermediate(
+                        actualDestination,
+                        destinationStride,
+                        actualFirst,
+                        intermediateStride,
+                        actualSecond,
+                        intermediateStride,
+                        width,
+                        height,
+                        bitDepth);
+
+                    Assert.Equal(expectedDestination, actualDestination);
+                }
             }
         }
     }

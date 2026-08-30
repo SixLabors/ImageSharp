@@ -69,6 +69,63 @@ internal static partial class Av1CompoundInterPredictor
     }
 
     /// <summary>
+    /// Removes compound bias and fractional precision from 128-bit high-bit-depth lanes.
+    /// </summary>
+    public static Vector128<ushort> FinalizeHighBitDepthIntermediate(
+        Vector128<ushort> value,
+        int roundBits,
+        int roundOffset,
+        int maximum)
+    {
+        Vector128<short> result = (value - Vector128.Create((ushort)roundOffset)).AsInt16();
+        if (roundBits != 0)
+        {
+            result = (result + Vector128.Create((short)(1 << (roundBits - 1)))) >> roundBits;
+        }
+
+        result = Vector128.Max(Vector128<short>.Zero, Vector128.Min(Vector128.Create((short)maximum), result));
+        return result.AsUInt16();
+    }
+
+    /// <summary>
+    /// Removes compound bias and fractional precision from 256-bit high-bit-depth lanes.
+    /// </summary>
+    public static Vector256<ushort> FinalizeHighBitDepthIntermediate(
+        Vector256<ushort> value,
+        int roundBits,
+        int roundOffset,
+        int maximum)
+    {
+        Vector256<short> result = (value - Vector256.Create((ushort)roundOffset)).AsInt16();
+        if (roundBits != 0)
+        {
+            result = (result + Vector256.Create((short)(1 << (roundBits - 1)))) >> roundBits;
+        }
+
+        result = Vector256.Max(Vector256<short>.Zero, Vector256.Min(Vector256.Create((short)maximum), result));
+        return result.AsUInt16();
+    }
+
+    /// <summary>
+    /// Removes compound bias and fractional precision from 512-bit high-bit-depth lanes.
+    /// </summary>
+    public static Vector512<ushort> FinalizeHighBitDepthIntermediate(
+        Vector512<ushort> value,
+        int roundBits,
+        int roundOffset,
+        int maximum)
+    {
+        Vector512<short> result = (value - Vector512.Create((ushort)roundOffset)).AsInt16();
+        if (roundBits != 0)
+        {
+            result = (result + Vector512.Create((short)(1 << (roundBits - 1)))) >> roundBits;
+        }
+
+        result = Vector512.Max(Vector512<short>.Zero, Vector512.Min(Vector512.Create((short)maximum), result));
+        return result.AsUInt16();
+    }
+
+    /// <summary>
     /// Removes the compound bias and final fractional precision from 128-bit widened lanes.
     /// </summary>
     public static Vector128<int> FinalizeIntermediate(Vector128<int> value, int roundBits, int roundOffset)

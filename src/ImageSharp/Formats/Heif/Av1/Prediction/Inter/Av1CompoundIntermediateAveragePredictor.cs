@@ -121,4 +121,105 @@ internal static partial class Av1CompoundIntermediateAveragePredictor
             }
         }
     }
+
+    /// <summary>
+    /// Combines two high-bit-depth compound intermediates by equal averaging.
+    /// </summary>
+    public static void AverageIntermediate(
+        Span<ushort> destination,
+        int destinationStride,
+        ReadOnlySpan<ushort> first,
+        int firstStride,
+        ReadOnlySpan<ushort> second,
+        int secondStride,
+        int width,
+        int height,
+        int bitDepth)
+        => AverageIntermediate<CompoundIntermediateAverageOperator>(
+            destination,
+            destinationStride,
+            first,
+            firstStride,
+            second,
+            secondStride,
+            width,
+            height,
+            bitDepth);
+
+    /// <summary>
+    /// Executes one closed high-bit-depth equal-average compound-intermediate operator.
+    /// </summary>
+    /// <typeparam name="TOperator">The compound-intermediate operator.</typeparam>
+    private static void AverageIntermediate<TOperator>(
+        Span<ushort> destination,
+        int destinationStride,
+        ReadOnlySpan<ushort> first,
+        int firstStride,
+        ReadOnlySpan<ushort> second,
+        int secondStride,
+        int width,
+        int height,
+        int bitDepth)
+        where TOperator : struct, IAv1CompoundIntermediateAverageOperator
+    {
+        GetIntermediateRounding(bitDepth, out int roundBits, out int roundOffset);
+        int maximum = (1 << bitDepth) - 1;
+
+        for (int row = 0; row < height; row++)
+        {
+            Span<ushort> destinationRow = destination.Slice(row * destinationStride, width);
+            ReadOnlySpan<ushort> firstRow = first.Slice(row * firstStride, width);
+            ReadOnlySpan<ushort> secondRow = second.Slice(row * secondStride, width);
+            ref ushort destinationReference = ref MemoryMarshal.GetReference(destinationRow);
+            ref ushort firstReference = ref MemoryMarshal.GetReference(firstRow);
+            ref ushort secondReference = ref MemoryMarshal.GetReference(secondRow);
+            int column = 0;
+
+            if (Vector512.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector512<ushort>.Count;
+                for (; column <= vectorEnd; column += Vector512<ushort>.Count)
+                {
+                    Vector512<ushort> firstVector = Vector512.LoadUnsafe(ref firstReference, (nuint)column);
+                    Vector512<ushort> secondVector = Vector512.LoadUnsafe(ref secondReference, (nuint)column);
+                    TOperator.AverageHighBitDepth(firstVector, secondVector, roundBits, roundOffset, maximum)
+                        .StoreUnsafe(ref destinationReference, (nuint)column);
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector256<ushort>.Count;
+                for (; column <= vectorEnd; column += Vector256<ushort>.Count)
+                {
+                    Vector256<ushort> firstVector = Vector256.LoadUnsafe(ref firstReference, (nuint)column);
+                    Vector256<ushort> secondVector = Vector256.LoadUnsafe(ref secondReference, (nuint)column);
+                    TOperator.AverageHighBitDepth(firstVector, secondVector, roundBits, roundOffset, maximum)
+                        .StoreUnsafe(ref destinationReference, (nuint)column);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                int vectorEnd = width - Vector128<ushort>.Count;
+                for (; column <= vectorEnd; column += Vector128<ushort>.Count)
+                {
+                    Vector128<ushort> firstVector = Vector128.LoadUnsafe(ref firstReference, (nuint)column);
+                    Vector128<ushort> secondVector = Vector128.LoadUnsafe(ref secondReference, (nuint)column);
+                    TOperator.AverageHighBitDepth(firstVector, secondVector, roundBits, roundOffset, maximum)
+                        .StoreUnsafe(ref destinationReference, (nuint)column);
+                }
+            }
+
+            for (; column < width; column++)
+            {
+                destinationRow[column] = TOperator.AverageHighBitDepth(
+                    firstRow[column],
+                    secondRow[column],
+                    roundBits,
+                    roundOffset,
+                    maximum);
+            }
+        }
+    }
 }

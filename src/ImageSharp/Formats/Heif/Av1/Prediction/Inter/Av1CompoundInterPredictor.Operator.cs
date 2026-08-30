@@ -28,6 +28,51 @@ internal static partial class Av1CompoundInterPredictor
         public static abstract ushort Copy(byte sample, int roundBits, int roundOffset);
 
         /// <summary>
+        /// Converts one high-bit-depth integer-position sample to the compound intermediate representation.
+        /// </summary>
+        /// <param name="sample">The source sample.</param>
+        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundOffset">The compound intermediate bias.</param>
+        /// <returns>The biased compound intermediate.</returns>
+        public static abstract ushort CopyHighBitDepth(ushort sample, int roundBits, int roundOffset);
+
+        /// <summary>
+        /// Converts 128 bits of high-bit-depth integer-position samples to compound intermediates.
+        /// </summary>
+        /// <param name="samples">The source samples.</param>
+        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundOffset">The compound intermediate bias.</param>
+        /// <returns>The biased compound intermediates.</returns>
+        public static abstract Vector128<ushort> CopyHighBitDepth(
+            Vector128<ushort> samples,
+            int roundBits,
+            int roundOffset);
+
+        /// <summary>
+        /// Converts 256 bits of high-bit-depth integer-position samples to compound intermediates.
+        /// </summary>
+        /// <param name="samples">The source samples.</param>
+        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundOffset">The compound intermediate bias.</param>
+        /// <returns>The biased compound intermediates.</returns>
+        public static abstract Vector256<ushort> CopyHighBitDepth(
+            Vector256<ushort> samples,
+            int roundBits,
+            int roundOffset);
+
+        /// <summary>
+        /// Converts 512 bits of high-bit-depth integer-position samples to compound intermediates.
+        /// </summary>
+        /// <param name="samples">The source samples.</param>
+        /// <param name="roundBits">The final reconstruction shift.</param>
+        /// <param name="roundOffset">The compound intermediate bias.</param>
+        /// <returns>The biased compound intermediates.</returns>
+        public static abstract Vector512<ushort> CopyHighBitDepth(
+            Vector512<ushort> samples,
+            int roundBits,
+            int roundOffset);
+
+        /// <summary>
         /// Converts 128 bits of integer-position samples to compound intermediates.
         /// </summary>
         /// <param name="samples">The source samples.</param>
@@ -162,6 +207,57 @@ internal static partial class Av1CompoundInterPredictor
         public static abstract Vector512<short> PrepareHorizontal(Vector512<int> lower, Vector512<int> upper);
 
         /// <summary>
+        /// Applies first-pass compound rounding to one biased high-bit-depth horizontal convolution result.
+        /// </summary>
+        /// <param name="result">The horizontal convolution result.</param>
+        /// <param name="bias">The bit-depth-dependent horizontal bias.</param>
+        /// <param name="round">The bit-depth-dependent first-pass shift.</param>
+        /// <returns>The rounded intermediate.</returns>
+        public static abstract short PrepareHighBitDepthHorizontal(int result, int bias, int round);
+
+        /// <summary>
+        /// Applies first-pass compound rounding to 128-bit widened high-bit-depth horizontal results.
+        /// </summary>
+        /// <param name="lower">The lower convolution results.</param>
+        /// <param name="upper">The upper convolution results.</param>
+        /// <param name="bias">The bit-depth-dependent horizontal bias.</param>
+        /// <param name="round">The bit-depth-dependent first-pass shift.</param>
+        /// <returns>The rounded intermediates.</returns>
+        public static abstract Vector128<short> PrepareHighBitDepthHorizontal(
+            Vector128<int> lower,
+            Vector128<int> upper,
+            int bias,
+            int round);
+
+        /// <summary>
+        /// Applies first-pass compound rounding to 256-bit widened high-bit-depth horizontal results.
+        /// </summary>
+        /// <param name="lower">The lower convolution results.</param>
+        /// <param name="upper">The upper convolution results.</param>
+        /// <param name="bias">The bit-depth-dependent horizontal bias.</param>
+        /// <param name="round">The bit-depth-dependent first-pass shift.</param>
+        /// <returns>The rounded intermediates.</returns>
+        public static abstract Vector256<short> PrepareHighBitDepthHorizontal(
+            Vector256<int> lower,
+            Vector256<int> upper,
+            int bias,
+            int round);
+
+        /// <summary>
+        /// Applies first-pass compound rounding to 512-bit widened high-bit-depth horizontal results.
+        /// </summary>
+        /// <param name="lower">The lower convolution results.</param>
+        /// <param name="upper">The upper convolution results.</param>
+        /// <param name="bias">The bit-depth-dependent horizontal bias.</param>
+        /// <param name="round">The bit-depth-dependent first-pass shift.</param>
+        /// <returns>The rounded intermediates.</returns>
+        public static abstract Vector512<short> PrepareHighBitDepthHorizontal(
+            Vector512<int> lower,
+            Vector512<int> upper,
+            int bias,
+            int round);
+
+        /// <summary>
         /// Applies second-pass compound rounding to one biased vertical convolution result.
         /// </summary>
         /// <param name="result">The biased vertical convolution result.</param>
@@ -191,6 +287,50 @@ internal static partial class Av1CompoundInterPredictor
         /// <param name="upper">The upper convolution results.</param>
         /// <returns>The compound intermediates.</returns>
         public static abstract Vector512<ushort> PrepareVertical(Vector512<int> lower, Vector512<int> upper);
+
+        /// <summary>
+        /// Applies second-pass compound rounding to one biased high-bit-depth vertical convolution result.
+        /// </summary>
+        /// <param name="result">The vertical convolution result.</param>
+        /// <param name="bias">The bit-depth-dependent vertical bias.</param>
+        /// <returns>The compound intermediate.</returns>
+        public static abstract ushort PrepareHighBitDepthVertical(int result, int bias);
+
+        /// <summary>
+        /// Applies second-pass compound rounding to 128-bit widened high-bit-depth vertical results.
+        /// </summary>
+        /// <param name="lower">The lower convolution results.</param>
+        /// <param name="upper">The upper convolution results.</param>
+        /// <param name="bias">The bit-depth-dependent vertical bias.</param>
+        /// <returns>The compound intermediates.</returns>
+        public static abstract Vector128<ushort> PrepareHighBitDepthVertical(
+            Vector128<int> lower,
+            Vector128<int> upper,
+            int bias);
+
+        /// <summary>
+        /// Applies second-pass compound rounding to 256-bit widened high-bit-depth vertical results.
+        /// </summary>
+        /// <param name="lower">The lower convolution results.</param>
+        /// <param name="upper">The upper convolution results.</param>
+        /// <param name="bias">The bit-depth-dependent vertical bias.</param>
+        /// <returns>The compound intermediates.</returns>
+        public static abstract Vector256<ushort> PrepareHighBitDepthVertical(
+            Vector256<int> lower,
+            Vector256<int> upper,
+            int bias);
+
+        /// <summary>
+        /// Applies second-pass compound rounding to 512-bit widened high-bit-depth vertical results.
+        /// </summary>
+        /// <param name="lower">The lower convolution results.</param>
+        /// <param name="upper">The upper convolution results.</param>
+        /// <param name="bias">The bit-depth-dependent vertical bias.</param>
+        /// <returns>The compound intermediates.</returns>
+        public static abstract Vector512<ushort> PrepareHighBitDepthVertical(
+            Vector512<int> lower,
+            Vector512<int> upper,
+            int bias);
     }
 
     /// <summary>
@@ -205,6 +345,35 @@ internal static partial class Av1CompoundInterPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ushort Copy(byte sample, int roundBits, int roundOffset)
             => (ushort)((sample << roundBits) + roundOffset);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ushort CopyHighBitDepth(ushort sample, int roundBits, int roundOffset)
+            => (ushort)((sample << roundBits) + roundOffset);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<ushort> CopyHighBitDepth(
+            Vector128<ushort> samples,
+            int roundBits,
+            int roundOffset)
+            => (samples << roundBits) + Vector128.Create((ushort)roundOffset);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<ushort> CopyHighBitDepth(
+            Vector256<ushort> samples,
+            int roundBits,
+            int roundOffset)
+            => (samples << roundBits) + Vector256.Create((ushort)roundOffset);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<ushort> CopyHighBitDepth(
+            Vector512<ushort> samples,
+            int roundBits,
+            int roundOffset)
+            => (samples << roundBits) + Vector512.Create((ushort)roundOffset);
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -317,6 +486,44 @@ internal static partial class Av1CompoundInterPredictor
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static short PrepareHighBitDepthHorizontal(int result, int bias, int round)
+            => (short)RoundPowerOfTwo(bias + result, round);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<short> PrepareHighBitDepthHorizontal(
+            Vector128<int> lower,
+            Vector128<int> upper,
+            int bias,
+            int round)
+            => Av1IntraPredictorBase.Narrow(
+                RoundPowerOfTwo(lower + Vector128.Create(bias), round),
+                RoundPowerOfTwo(upper + Vector128.Create(bias), round));
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<short> PrepareHighBitDepthHorizontal(
+            Vector256<int> lower,
+            Vector256<int> upper,
+            int bias,
+            int round)
+            => Av1IntraPredictorBase.Narrow(
+                RoundPowerOfTwo(lower + Vector256.Create(bias), round),
+                RoundPowerOfTwo(upper + Vector256.Create(bias), round));
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<short> PrepareHighBitDepthHorizontal(
+            Vector512<int> lower,
+            Vector512<int> upper,
+            int bias,
+            int round)
+            => Av1IntraPredictorBase.Narrow(
+                RoundPowerOfTwo(lower + Vector512.Create(bias), round),
+                RoundPowerOfTwo(upper + Vector512.Create(bias), round));
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static ushort PrepareVertical(int result)
             => (ushort)RoundPowerOfTwo(VerticalBias + result, CompoundRound1Bits);
 
@@ -340,5 +547,40 @@ internal static partial class Av1CompoundInterPredictor
             => Av1IntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower + Vector512.Create(VerticalBias), CompoundRound1Bits),
                 RoundPowerOfTwo(upper + Vector512.Create(VerticalBias), CompoundRound1Bits)).AsUInt16();
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static ushort PrepareHighBitDepthVertical(int result, int bias)
+            => (ushort)RoundPowerOfTwo(bias + result, CompoundRound1Bits);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector128<ushort> PrepareHighBitDepthVertical(
+            Vector128<int> lower,
+            Vector128<int> upper,
+            int bias)
+            => Av1IntraPredictorBase.Narrow(
+                RoundPowerOfTwo(lower + Vector128.Create(bias), CompoundRound1Bits),
+                RoundPowerOfTwo(upper + Vector128.Create(bias), CompoundRound1Bits)).AsUInt16();
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector256<ushort> PrepareHighBitDepthVertical(
+            Vector256<int> lower,
+            Vector256<int> upper,
+            int bias)
+            => Av1IntraPredictorBase.Narrow(
+                RoundPowerOfTwo(lower + Vector256.Create(bias), CompoundRound1Bits),
+                RoundPowerOfTwo(upper + Vector256.Create(bias), CompoundRound1Bits)).AsUInt16();
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector512<ushort> PrepareHighBitDepthVertical(
+            Vector512<int> lower,
+            Vector512<int> upper,
+            int bias)
+            => Av1IntraPredictorBase.Narrow(
+                RoundPowerOfTwo(lower + Vector512.Create(bias), CompoundRound1Bits),
+                RoundPowerOfTwo(upper + Vector512.Create(bias), CompoundRound1Bits)).AsUInt16();
     }
 }

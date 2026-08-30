@@ -90,20 +90,31 @@ Exact pinned libaom decodes the corrected logical payload into two 33x11 YUV444 
 
 ## Equal-average compound fixture
 
-The `libavif-webp-logo-average-compound.avif` fixture was encoded from the pinned libavif tree's `tests/data/webp_logo_animated.y4m` source. The source SHA-256 is `0872208D9C19B68B10A1647FA6849CFC4E2B21A19561ACD672E0629C70EFACA2`. It was generated with:
+The `libavif-webp-logo-average-compound.avif` file is retained solely as interoperability input. It was
+created from `tests/data/webp_logo_animated.y4m` with the following command; libavif is not used as an
+AV1 implementation or reconstruction reference:
 
 ```text
 ./avifenc -j 1 -c aom -s 4 -q 80 -a enable-dist-wtd-comp=0 -a enable-masked-comp=0 -a enable-interintra-comp=0 -a enable-obmc=0 -a enable-warped-motion=0 -a enable-global-motion=0 tests/data/webp_logo_animated.y4m libavif-webp-logo-average-compound.avif
 ```
 
-Pinned scalar libavif generated the retained references with:
+On 2026-08-31 the clean official libaom `main` checkout was refreshed from its upstream remote. At the
+observed revision `441c439b9916474cac15d2822af47a9ad70674a8`, current `aomdec` decoded the 5,465-byte
+`mdat` payload at file offset 1,065 as 19 shown 80x80 YUV444 frames:
 
 ```text
-./avifdec -j 1 -c aom --index 18 libavif-webp-logo-average-compound.avif libavif-webp-logo-average-compound-libaom.y4m
-./avifdec -j 1 -c aom --index 18 libavif-webp-logo-average-compound.avif libavif-webp-logo-average-compound-libavif.png
+aomdec --codec=av1 --threads=1 --row-mt=0 --output-bit-depth=8 -o compound-current-main.y4m compound-current-main.obu
 ```
 
-The AVIF SHA-256 is `7919049D367EEDB7C965E170309D6759660DDBFD4BB1AEF9496F9D66E314846A`. The retained frame-18 Y4M SHA-256 is `41FF2408DEB473D5483F3398882DF7F7AB6C7D376561C19798881595EB0C5C0C`, and the frame-18 PNG SHA-256 is `BCFABC1E1C7E17D8ECB40569849A04FFAC6CA1FCDF613F217B33816CA47337AC`. The test decodes every preceding hidden and shown sample to establish the same retained-reference state before comparing all native Y, U, and V samples and the final RGBA presentation.
+All 19 frames decoded successfully. The final frame's 19,200 native samples have SHA-256
+`E79D2F49C260B1AC9B1B9BBBB2D611126AFD3B241DA389EB9E7BD4EA0ED42080` and match the stored Y4M's
+Y, U, and V samples exactly with zero differences. The observed revision records the source used for
+this verification; it does not pin the libaom checkout.
+
+The production test decodes every preceding sample to establish the retained-reference state, requires
+actual equal-average compound blocks, and compares the final native planes exactly. It then compares the
+final RGBA output through ImageSharp's established reference-output API. The PNG is presentation evidence
+only and is not used to establish AV1 reconstruction arithmetic.
 
 ## Selectable compound and inter-intra fixtures
 

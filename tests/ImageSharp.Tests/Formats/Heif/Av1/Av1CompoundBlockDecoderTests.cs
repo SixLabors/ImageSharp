@@ -27,6 +27,12 @@ public class Av1CompoundBlockDecoderTests
     private const HwIntrinsics GlobalWarpConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
+    /// The hardware configurations covering every compound-prediction vector width and the scalar fallback.
+    /// </summary>
+    private const HwIntrinsics CompoundPredictionConfigurations =
+        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+
+    /// <summary>
     /// Verifies that two retained reference planes are predicted and averaged before residual reconstruction.
     /// </summary>
     /// <param name="bitDepthValue">The native sample depth.</param>
@@ -75,7 +81,7 @@ public class Av1CompoundBlockDecoderTests
 
         modeInfo.ReferenceFrames[0] = Av1ReferenceFrameType.Last;
         modeInfo.ReferenceFrames[1] = Av1ReferenceFrameType.Last2;
-        modeInfo.InterpolationFilters.Fill(Av1InterpolationFilter.Regular);
+        modeInfo.InterpolationFilters.Clear();
         modeInfo.SetTransformUnitCount(Av1PlaneType.Y, 1);
 
         Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
@@ -116,6 +122,15 @@ public class Av1CompoundBlockDecoderTests
             }
         }
     }
+
+    /// <summary>
+    /// Verifies that high-bit-depth subpixel predictors retain their no-round precision until the compound average.
+    /// </summary>
+    [Fact]
+    public void DecodeBlockReconstructsSubpixelHighBitDepthEqualAverageCompoundPrediction()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateSubpixelHighBitDepthEqualAverageCompoundPrediction,
+            CompoundPredictionConfigurations);
 
     /// <summary>
     /// Verifies that both references of a GLOBAL_GLOBALMV block use their complete matrix before compound averaging.
@@ -624,6 +639,148 @@ public class Av1CompoundBlockDecoderTests
         foreach (Av1BitDepth bitDepth in new[] { Av1BitDepth.EightBit, Av1BitDepth.TenBit, Av1BitDepth.TwelveBit })
         {
             ValidateCompoundGlobalWarpPredictionAtBitDepth(bitDepth);
+        }
+    }
+
+    /// <summary>
+    /// Reconstructs the high-bit-depth subpixel compound regression at every supported source precision.
+    /// </summary>
+    private static void ValidateSubpixelHighBitDepthEqualAverageCompoundPrediction()
+    {
+        foreach (Av1BitDepth bitDepth in new[] { Av1BitDepth.TenBit, Av1BitDepth.TwelveBit })
+        {
+            ValidateSubpixelHighBitDepthEqualAverageCompoundPredictionAtBitDepth(bitDepth);
+        }
+    }
+
+    /// <summary>
+    /// Reconstructs one high-bit-depth half-sample compound block and compares it with the scalar no-round pipeline.
+    /// </summary>
+    /// <param name="bitDepth">The native sample depth.</param>
+    private static void ValidateSubpixelHighBitDepthEqualAverageCompoundPredictionAtBitDepth(Av1BitDepth bitDepth)
+    {
+        const int frameSize = 32;
+        const int blockOrigin = 8;
+        const int blockSize = 8;
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(bitDepth, frameSize);
+        ObuFrameHeader frameHeader = CreateFrameHeader(frameSize);
+        frameHeader.GetReferenceFrameIndices()[0] = 0;
+        frameHeader.GetReferenceFrameIndices()[1] = 1;
+
+        using Av1ReferenceFrameStore referenceFrames = new();
+        Assert.True(referenceFrames.Commit(
+            1,
+            CreatePatternReferenceFrame(sequenceHeader, CreateFrameHeader(frameSize)),
+            showFrame: false));
+
+        Assert.True(referenceFrames.Commit(
+            2,
+            CreatePatternReferenceFrame(sequenceHeader, CreateFrameHeader(frameSize), sampleOffset: 40),
+            showFrame: false));
+
+        Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, new Point(2, 2))
+        {
+            Skip = true,
+            YMode = Av1PredictionMode.NearestNearestMotionVector,
+            CompoundIndex = true,
+            CompoundType = Av1CompoundType.Average,
+        };
+
+        modeInfo.ReferenceFrames[0] = Av1ReferenceFrameType.Last;
+        modeInfo.ReferenceFrames[1] = Av1ReferenceFrameType.Last2;
+        modeInfo.MotionVectors[0] = new Av1MotionVector(0, 0);
+
+        // The second predictor lands exactly halfway between horizontal samples. Rounding it before combining the
+        // references changes every result by one, so this vector distinguishes the required no-round production path.
+        modeInfo.MotionVectors[1] = new Av1MotionVector(0, 4);
+        modeInfo.InterpolationFilters.Fill(Av1InterpolationFilter.Bilinear);
+        modeInfo.SetTransformUnitCount(Av1PlaneType.Y, 1);
+
+        ushort[] expectedFirst = new ushort[blockSize * blockSize];
+        ushort[] expectedSecond = new ushort[blockSize * blockSize];
+        Span<ushort> expectedPredictions = expectedFirst;
+        short[] predictionScratch = new short[128 * (blockSize + 8)];
+        for (int referenceIndex = 0; referenceIndex < 2; referenceIndex++)
+        {
+            Av1FrameBuffer<byte> reference = referenceFrames.Resolve(referenceIndex)!.FrameBuffer;
+            Span<ushort> source = reference.GetPaddedPlaneSpan16(
+                Av1Plane.Y,
+                0,
+                0,
+                out int sourceStride,
+                out Point sourceOrigin);
+
+            Av1MotionVector motionVector = modeInfo.MotionVectors[referenceIndex];
+            int sourceColumnQ4 = (blockOrigin << 4) + (motionVector.Column << 1);
+            int sourceRowQ4 = (blockOrigin << 4) + (motionVector.Row << 1);
+            int sourceIndex =
+                ((sourceOrigin.Y + (sourceRowQ4 >> 4)) * sourceStride) + sourceOrigin.X + (sourceColumnQ4 >> 4);
+
+            Av1CompoundInterPredictor.PredictCompoundScalar(
+                source,
+                sourceStride,
+                sourceIndex,
+                expectedPredictions,
+                blockSize,
+                blockSize,
+                blockSize,
+                Av1InterpolationFilter.Bilinear,
+                Av1InterpolationFilter.Bilinear,
+                sourceColumnQ4 & 15,
+                sourceRowQ4 & 15,
+                bitDepth.GetBitCount(),
+                predictionScratch);
+
+            expectedPredictions = expectedSecond;
+        }
+
+        ushort[] expected = new ushort[blockSize * blockSize];
+        Av1CompoundIntermediateAveragePredictor.AverageIntermediate(
+            expected,
+            blockSize,
+            expectedFirst,
+            blockSize,
+            expectedSecond,
+            blockSize,
+            blockSize,
+            blockSize,
+            bitDepth.GetBitCount());
+
+        Assert.Equal((ushort)60, expected[0]);
+
+        using Av1FrameBuffer<byte> frameBuffer = new(
+            Configuration.Default,
+            sequenceHeader,
+            Av1ColorFormat.Yuv400,
+            false);
+
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
+        Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(Point.Empty);
+        superblockInfo.GetTransformInfoY()[0] = new Av1TransformInfo(Av1TransformSize.Size8x8, 0, 0);
+        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
+        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
+        using Av1BlockDecoder decoder = new(
+            sequenceHeader,
+            frameHeader,
+            frameBuffer,
+            loopFilterContext,
+            inverseQuantizer,
+            referenceFrames);
+
+        decoder.UpdateSuperblock(superblockInfo);
+        decoder.DecodeBlock(
+            modeInfo,
+            new Point(2, 2),
+            Av1BlockSize.Block8x8,
+            superblockInfo,
+            new Av1TileInfo(0, 0, frameHeader));
+
+        for (int row = 0; row < blockSize; row++)
+        {
+            Span<ushort> actual = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, blockOrigin + row, 0, 0);
+            Assert.Equal(
+                expected.AsSpan(row * blockSize, blockSize),
+                actual.Slice(blockOrigin, blockSize));
         }
     }
 

@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 /// <summary>
-/// Verifies AV1 compound-reference selection and compound inter-mode entropy against pinned libaom.
+/// Verifies AV1 compound-reference selection and compound inter-mode entropy against current official libaom main.
 /// </summary>
 [Trait("Format", "Avif")]
 public class Av1CompoundReferenceEntropyTests

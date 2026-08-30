@@ -1962,16 +1962,17 @@ internal sealed class Av1BlockDecoder : IDisposable
         int framePlaneWidth = (this.frameHeader.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) >> subX;
         int framePlaneHeight = (this.frameHeader.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2) >> subY;
 
-        // OBMC changes the prediction rectangle but not AV1's unrestricted-motion-vector boundary extension.
-        // Clamping the absolute source coordinate expresses the same edge calculation libaom rebuilds per neighbor.
+        // libaom clamps the motion vector relative to each neighbor rectangle. Once the neighbor origin is added, the
+        // prediction extent remains in the left/top limit but cancels from the right/bottom limit. Keeping this
+        // asymmetry avoids counting the OBMC rectangle twice when the source lies beyond the far frame edge.
         sourceColumnQ4 = Av1Math.Clip3(
             -horizontalExtensionQ4,
-            (framePlaneWidth << 4) + horizontalExtensionQ4 - 16,
+            ((framePlaneWidth + 4) << 4) - 16,
             sourceColumnQ4);
 
         sourceRowQ4 = Av1Math.Clip3(
             -verticalExtensionQ4,
-            (framePlaneHeight << 4) + verticalExtensionQ4 - 16,
+            ((framePlaneHeight + 4) << 4) - 16,
             sourceRowQ4);
 
         int horizontalPhase = sourceColumnQ4 & 15;

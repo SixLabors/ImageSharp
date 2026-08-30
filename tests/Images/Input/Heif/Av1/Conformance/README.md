@@ -45,7 +45,7 @@ The reference builds use `AOM_TARGET_CPU=generic` and disable libyuv. Native rec
 | `libavif-webp-logo-wedge-compound` | Wedge compound prediction with both signaled mask orientations |
 | `libavif-webp-logo-difference-weighted-compound` | Difference-weighted compound prediction with both mask orientations |
 | `libavif-webp-logo-inter-intra` | Smooth and wedge inter-intra prediction |
-| `libavif-webp-logo-obmc` | Above and left overlapping motion compensation through a 19-frame dependent sequence |
+| `libavif-webp-logo-obmc` | Overlapping motion compensation through a 19-frame dependent sequence |
 | `libavif-rotating-grid-local-warp` | Multi-sample local affine projection and warped prediction through a two-frame dependent sequence |
 | `libavif-rotating-grid-global-warp` | Non-translational rotation/zoom GLOBALMV prediction through a two-frame dependent sequence |
 
@@ -169,20 +169,30 @@ and are not AV1 reconstruction references.
 
 ## Overlapping motion-compensation fixture
 
-The `libavif-webp-logo-obmc.avif` fixture uses the same pinned `tests/data/webp_logo_animated.y4m` source and source SHA-256 as the compound fixtures. It was encoded with the pinned scalar toolchain after disabling competing compound, inter-intra, warped, and global prediction modes:
+The `libavif-webp-logo-obmc.avif` fixture is retained interoperability input. It was originally
+packaged by libavif from the same `tests/data/webp_logo_animated.y4m` source as the compound fixtures,
+with libaom's encoder selected and competing compound, inter-intra, warped, and global prediction modes
+disabled:
 
 ```text
 ./avifenc -j 1 -c aom -s 0 -q 80 -a max-reference-frames=3 -a enable-dist-wtd-comp=0 -a enable-masked-comp=0 -a enable-interintra-comp=0 -a enable-warped-motion=0 -a enable-global-motion=0 tests/data/webp_logo_animated.y4m libavif-webp-logo-obmc.avif
 ```
 
-Pinned scalar libavif generated the final native and presentation references with:
+On 2026-08-31 the fixture's 5,387-byte AV1 `mdat` payload at AVIF offset 1,065 was decoded with
+`aomdec` from a freshly updated clean checkout of current official libaom `main`. One decode thread
+was used and row threading remained disabled. All 19 frames decoded. The final frame's 19,200 native
+YUV444 samples have SHA-256
+`E8CAA650F1571C5B9CACAF8C06E1DDF5F5D2ED35F65F1C34377076C573425899` and match
+`libavif-webp-logo-obmc-libaom.y4m` with zero differing samples.
 
-```text
-./avifdec -j 1 -c aom --index 18 libavif-webp-logo-obmc.avif libavif-webp-logo-obmc-libaom.y4m
-./avifdec -j 1 -c aom --index 18 libavif-webp-logo-obmc.avif libavif-webp-logo-obmc-libavif.png
-```
-
-The AVIF SHA-256 is `765245F71BD398F7AD87BD83FD5C5C11172981B37A4FABF4F10F65D4E8AEA537`. The retained frame-18 Y4M SHA-256 is `904D1B5B3E7F334CE8D44040F9A7BDCAC1F7773122FF1C5F06A5B4DD31A62A97`, and the frame-18 PNG SHA-256 is `D2CB388C9092EF17C4F0382C0150DD30D6F9D0EE247FF45AB5D7D4D312CEB23C`. Pinned libaom block tracing records more than one hundred actual OBMC blocks across the decoded sequence, including blocks with nonzero horizontal and vertical motion vectors. The production test requires decoded OBMC mode state, decodes every retained-reference dependency, compares the final native Y, U, and V planes exactly, compares the final RGBA presentation exactly through `FeatureTestRunner`, and repeats reconstruction with constrained tracked allocation. Direct production-branch tests separately cover 8/10/12-bit storage and 4:2:0 and 4:2:2 overlap geometry.
+The production test requires decoded OBMC mode state, decodes every retained-reference dependency,
+compares final Y, Cb, and Cr planes exactly, compares final RGBA presentation through ImageSharp's
+established reference-output API under normal and scalar FeatureTestRunner dispatch, and repeats the
+decode with constrained tracked allocation. Direct production-branch tests separately cover
+above-then-left blending at 8/10/12-bit and 4:2:0 and 4:2:2 overlap geometry. The retained presentation
+PNG's SHA-256 is
+`D2CB388C9092EF17C4F0382C0150DD30D6F9D0EE247FF45AB5D7D4D312CEB23C`; its pixels were not changed
+when its contract-derived filename was updated with the test name.
 
 ## Local warped-motion fixture
 

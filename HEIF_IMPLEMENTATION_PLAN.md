@@ -30,7 +30,9 @@ Reference checkout evidence on 2026-08-31:
 Reconciled with the worktree on 2026-08-31.
 
 - [~] The bounded container reader, still-image path, sequence parser, AV1 decoder, color pipeline, presentation pipeline, and broad AV1 test suite exist locally.
-- [~] The inter-frame decoder has verified checkpoints through difference-weighted compound prediction. OBMC, scaled references, local warped motion, and global motion exist locally but remain open until their ordered checkpoints below are completed.
+- [~] The inter-frame decoder has verified checkpoints through OBMC. Scaled references, local warped
+  motion, and global motion exist locally but remain open until their ordered checkpoints below are
+  completed.
 - [~] Loop filtering, CDEF, super-resolution, restoration, film grain, layered presentation, alpha composition, and color conversion exist locally. Shared-source cleanup changed the current tree, so final production-path verification is open.
 - [~] AV1 writer primitives, forward transforms, symbol encoding, and tile-writing source exist locally, but they are not connected to the public encoder.
 - [ ] The public AV1 encoder is not implemented. HeifEncoderCore.Encode throws NotSupportedException when AV1 is selected.
@@ -181,8 +183,8 @@ The single-reference syntax, buffer, reconstruction, and ownership foundation is
 - [x] Distance-weighted compound prediction.
 - [x] Wedge compound prediction.
 - [x] Difference-weighted compound prediction.
-- [~] OBMC. Current item.
-- [~] Scaled-reference prediction.
+- [x] OBMC.
+- [~] Scaled-reference prediction. Next item.
 - [~] Local warped prediction.
 - [~] Non-translational global prediction.
 - [~] Inter deblocking decisions and reference/mode deltas.
@@ -356,6 +358,40 @@ Verified difference-weighted compound checkpoint evidence on 2026-08-31:
   reference-output API, and repeats the complete decode with a 1,024-byte constrained tracked allocator
   and exactly-once return checks.
 - [x] The focused Release checkpoint set passes 37/37 on net10.0 and 37/37 on net11.0, with zero
+  failures or skips. Scoped analyzer and whitespace verification pass for every changed C# file.
+  Roslynk reports zero compiler errors, `git diff --check` passes, and `.gitattributes` is unchanged.
+- [x] The completed checkpoint was committed as `fb4c64474e1ced4067a42731384f3b5ad4212a2f`
+  with author and committer `James Jackson-South <james_south@hotmail.com>`.
+
+Verified OBMC checkpoint evidence on 2026-08-31:
+
+- [x] Audited motion-mode syntax against current libaom `av1/decoder/decodemv.c`,
+  `av1/common/blockd.h`, `av1/common/reconinter.c`, `av1/common/obmc.h`, and
+  `av1/common/reconinter_template.inc`. ImageSharp applies the same switchable-mode, skip,
+  single-reference, inter-intra, minimum-size, overlappable-neighbor, fixed-global-motion, scaled
+  reference, and projection-sample gates and reads the matching binary or three-way CDF.
+- [x] Audited above and left neighbor traversal, 4x4 pairing, neighbor caps, chroma suppression,
+  prediction rectangles, interpolation filters, first-reference selection, mask tables, and blend
+  order against current libaom. The existing semantic mask-blend predictor remains the correct
+  SIMD-first traversal; no OBMC-specific operator family, allocation, or copy was introduced.
+- [x] Corrected the unscaled neighbor far-edge UMV clamp. After converting libaom's neighbor-relative
+  motion-vector limits to an absolute source coordinate, the prediction extent cancels from the
+  right and bottom limits; the previous code counted it twice.
+- [x] Extracted the fixture's 5,387-byte AV1 `mdat` payload at AVIF offset 1,065 and decoded it with
+  refreshed current libaom `aomdec`, using one thread with row threading disabled. All 19 frames
+  decoded. The final 19,200 YUV444 samples have SHA-256
+  `E8CAA650F1571C5B9CACAF8C06E1DDF5F5D2ED35F65F1C34377076C573425899` and match the retained native
+  reference with zero differing samples.
+- [x] The production sequence asserts decoded OBMC mode state, compares final native Y, Cb, and Cr
+  planes exactly, compares final RGBA presentation through ImageSharp's established reference-output
+  API under normal and scalar FeatureTestRunner dispatch, and repeats reconstruction with a 1,024-byte
+  constrained tracked allocator. Direct `DecodeBlock` tests cover above-then-left blending at
+  8/10/12-bit and 4:2:0 and 4:2:2 chroma geometry.
+- [x] Renamed the stale pinned-reference test and its established reference-output PNG together. The
+  PNG SHA-256 remains
+  `D2CB388C9092EF17C4F0382C0150DD30D6F9D0EE247FF45AB5D7D4D312CEB23C`; only its contract-derived
+  filename changed.
+- [x] The focused Release checkpoint set passes 18/18 on net10.0 and 18/18 on net11.0, with zero
   failures or skips. Scoped analyzer and whitespace verification pass for every changed C# file.
   Roslynk reports zero compiler errors, `git diff --check` passes, and `.gitattributes` is unchanged.
 

@@ -1054,11 +1054,12 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies production OBMC reconstruction against pinned native and presentation references.
+    /// Verifies production OBMC reconstruction against exact native and presentation references. The native reference
+    /// has been reverified against current official libaom main.
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.Av1ObmcSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeRealLibavifObmcSequenceMatchesPinnedReferences(TestImageProvider<Rgba32> provider)
+    public void DecodeRealLibavifObmcSequenceMatchesVerifiedReferences(TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateObmcSequenceWithDefaultConfiguration,
             ReconstructionConfigurations,

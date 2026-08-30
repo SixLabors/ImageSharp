@@ -127,7 +127,7 @@ Verified single-reference checkpoint evidence on 2026-08-31:
 
 - The current-main `aomdec` was rebuilt directly from `D:\GitHub\AOMediaCodec\aom` and identified itself as `3.15.0-13-g441c439b99`.
 - Decoding the 72-byte progressive payload with `--all-layers`, one thread, and row multithreading disabled produced 2,178 YUV444 color samples. All samples in both layers match the first three planes of the stored YUV444-alpha reference exactly.
-- `DecodeProgressiveSingleReferenceMatchesPinnedReferences` executes the production decoder through FeatureTestRunner and compares the complete presented `Rgba32` image with `CompareToReferenceOutput(ImageComparer.Exact, provider)`. The redundant manual alpha loop was removed.
+- `DecodeProgressiveSingleReferenceMatchesCurrentLibaomReferences` executes the production decoder through FeatureTestRunner and compares the complete presented `Rgba32` image with `CompareToReferenceOutput(ImageComparer.Exact, provider)`. The redundant manual alpha loop was removed.
 - `DecodeProgressiveSingleReferenceWithConstrainedAllocator` executes the same production reconstruction with a 1,024-byte allocator group capacity and verifies that every allocation is returned exactly once.
 - `MotionFieldsFollowReferenceAliasesAndPresentationOwnership`, `MotionFieldAllocationFailureUnwindsTileReaderOwnership`, `DecodeProgressiveSingleReferenceTracksMotionFieldResultOwnership`, and the reference-store replacement, reset, and transfer tests cover initialization, aliases, presentation ownership, decoder-result ownership, failure unwinding, repeated disposal, and exactly-once final returns.
 - The focused Release set passed 17 of 17 tests on net10.0 and 17 of 17 tests on net11.0, with zero failures and zero skips. This includes both GLOBALMV syntax cases, spatial extension, plane invariants, production reconstruction, FeatureTestRunner dispatch, and ownership.
@@ -148,7 +148,7 @@ $env:COMPlus_DbgEnableMiniDump = '0'
 $env:DOTNET_EnableCrashReport = '0'
 $env:COMPlus_EnableCrashReport = '0'
 
-$heifCheckpointFilter = 'FullyQualifiedName~Av1InterFrameModeInfoTests.ReadInterFrameModeInfoReadsInterpolationFilters|FullyQualifiedName~Av1InterFrameModeInfoTests.ReadInterFrameModeInfoOmitsInterpolationFiltersForIdentityGlobalMotion|FullyQualifiedName~Av1ReferenceMotionVectorsTests.BuildReversesOppositeDirectionExtensionCandidate|FullyQualifiedName~Av1FrameBufferTests|FullyQualifiedName~Av1ReferenceFrameStoreTests.MotionFieldsFollowReferenceAliasesAndPresentationOwnership|FullyQualifiedName~Av1ReferenceFrameStoreTests.MotionFieldAllocationFailureUnwindsTileReaderOwnership|FullyQualifiedName~Av1ReferenceFrameStoreTests.PartialReplacementPreservesSharedOwner|FullyQualifiedName~Av1ReferenceFrameStoreTests.FinalReplacementReleasesDisplacedOwner|FullyQualifiedName~Av1ReferenceFrameStoreTests.ResetReleasesUniqueOwnersAndClearsSlots|FullyQualifiedName~Av1ReferenceFrameStoreTests.TakeOutputTransfersPlanesAndReleasesOtherReferences|FullyQualifiedName~Av1ReconstructionConformanceTests.DecodeProgressiveSingleReferenceMatchesPinnedReferences|FullyQualifiedName~Av1ReconstructionConformanceTests.DecodeProgressiveSingleReferenceWithConstrainedAllocator|FullyQualifiedName~Av1ReconstructionConformanceTests.DecodeProgressiveSingleReferenceTracksMotionFieldResultOwnership'
+$heifCheckpointFilter = 'FullyQualifiedName~Av1InterFrameModeInfoTests.ReadInterFrameModeInfoReadsInterpolationFilters|FullyQualifiedName~Av1InterFrameModeInfoTests.ReadInterFrameModeInfoOmitsInterpolationFiltersForIdentityGlobalMotion|FullyQualifiedName~Av1ReferenceMotionVectorsTests.BuildReversesOppositeDirectionExtensionCandidate|FullyQualifiedName~Av1FrameBufferTests|FullyQualifiedName~Av1ReferenceFrameStoreTests.MotionFieldsFollowReferenceAliasesAndPresentationOwnership|FullyQualifiedName~Av1ReferenceFrameStoreTests.MotionFieldAllocationFailureUnwindsTileReaderOwnership|FullyQualifiedName~Av1ReferenceFrameStoreTests.PartialReplacementPreservesSharedOwner|FullyQualifiedName~Av1ReferenceFrameStoreTests.FinalReplacementReleasesDisplacedOwner|FullyQualifiedName~Av1ReferenceFrameStoreTests.ResetReleasesUniqueOwnersAndClearsSlots|FullyQualifiedName~Av1ReferenceFrameStoreTests.TakeOutputTransfersPlanesAndReleasesOtherReferences|FullyQualifiedName~Av1ReconstructionConformanceTests.DecodeProgressiveSingleReferenceMatchesCurrentLibaomReferences|FullyQualifiedName~Av1ReconstructionConformanceTests.DecodeProgressiveSingleReferenceWithConstrainedAllocator|FullyQualifiedName~Av1ReconstructionConformanceTests.DecodeProgressiveSingleReferenceTracksMotionFieldResultOwnership'
 
 dotnet build src\ImageSharp\ImageSharp.csproj -c Release -f net10.0 --no-restore --disable-build-servers -m:1 --no-incremental --nologo --verbosity:minimal
 dotnet build src\ImageSharp\ImageSharp.csproj -c Release -f net11.0 --no-restore --disable-build-servers -m:1 --no-incremental --nologo --verbosity:minimal
@@ -541,6 +541,8 @@ Verified inter-deblocking checkpoint evidence on 2026-08-31:
   or skips.
 - [x] Scoped analyzer verification passes for all four changed C# files. Roslynk reports zero compiler
   errors, `git diff --check` passes, and `.gitattributes` is unchanged.
+- [x] The completed checkpoint was committed as `fcb502e4960cc7b8efb06b6f060e2c73a913a2bf`
+  with author and committer `James Jackson-South <james_south@hotmail.com>`.
 
 For every item:
 
@@ -556,7 +558,7 @@ For every item:
 
 Previously verified algorithm checkpoints remain valuable evidence, but the final decoder gate requires a fresh current-tree run after the inter and cleanup corrections.
 
-- [~] Bounded OBU framing, sequence headers, frame headers, tile groups, alignment, and trailing-bit parsing have historical checkpoint evidence against an obsolete pinned tree. Re-audit the current libaom `main` implementation before restoring verified status. Current item.
+- [x] Bounded OBU framing, sequence headers, frame headers, tile groups, alignment, and trailing-bit parsing have been re-audited and verified against current libaom `main`.
 - [~] Partition traversal, mode information, segmentation, delta quantization, transform-size selection, coefficient decoding, inverse quantization, and inverse transforms have historical checkpoint evidence against an obsolete pinned tree. Re-audit the current libaom `main` implementation before restoring verified status.
 - [x] Intra prediction covers directional, DC, smooth, Paeth, chroma-from-luma, filter-intra, and palette families with the established operator architecture.
 - [x] Intra-block copy has exact native reconstruction and feature-isolated SIMD evidence.
@@ -570,6 +572,38 @@ Previously verified algorithm checkpoints remain valuable evidence, but the fina
 - [ ] Verify ICC, CICP, alpha, grids, pixel aspect ratio, clean aperture, rotation, mirroring, metadata, and every presented sequence frame.
 - [ ] Complete the public AVIF format/API review so registered capabilities match implemented behavior.
 - [ ] Remove or reject every valid in-scope AV1 syntax branch that remains silently ignored or unsupported.
+
+Verified bounded-OBU checkpoint evidence on 2026-08-31:
+
+- [x] Audited `av1/decoder/obu.c`, `av1/decoder/decodeframe.c`, `av1/common/obu_util.c`,
+  `av1/common/tile_common.c`, `aom/src/aom_integer.c`, and `aom_dsp/bitreader_buffer.c` in the
+  clean official libaom `main` checkout. Both `HEAD` and `origin/main` resolved to the observed
+  revision `441c439b9916474cac15d2822af47a9ad70674a8`; this is verification evidence, not a pin.
+- [x] The bounded container scanner and production OBU reader now agree with current libaom on ignored
+  reserved header fields and the shared unsigned 32-bit LEB128 limit.
+- [x] Sequence-header validation now rejects undefined level indices, initial display delays above ten,
+  frame identifiers above sixteen bits, zero timing units, the UVLC overflow sentinel, and invalid
+  identity-matrix profile or subsampling combinations at the owning syntax boundary.
+- [x] Frame and tile parsing now rejects `show_existing_frame` in a combined `OBU_FRAME`, the all-slots
+  intra-only refresh mask, inner tile columns below current libaom's super-resolution-aware minimum,
+  overflowing or out-of-bounds tile sizes, and empty final tile payloads.
+- [x] The still-image writer now emits the required zero tile-bound-presence bit for a multi-tile combined
+  `OBU_FRAME`, matching current libaom's single-tile-group encoder path.
+- [x] `ObuFrameHeaderTests` and `ObuFrameLifecycleTests` cover the corrected syntax through the real
+  bounded parser. The focused parser set passes 50 of 50 cases on net10.0.
+- [x] The final focused production set passes 55 of 55 cases on net10.0 and 55 of 55 on net11.0, with zero
+  failures or skips. It includes exact final-layer and selected-layer native planes, exact established
+  reference-image presentation, constrained allocator ownership, malformed-following-OBU recovery, and
+  FeatureTestRunner normal, AVX-512-disabled, AVX-disabled, and scalar execution.
+- [x] A fresh direct foreground current-main `aomdec` run decoded both progressive layers with one thread
+  and row multithreading disabled. All 2,178 Y, U, and V samples match the retained YUV444-alpha reference;
+  the alpha plane is excluded from the AV1 native-plane comparison.
+- [x] The current-libaom production reference test and its established PNG were renamed together. The PNG
+  bytes remain unchanged at SHA-256
+  `0758C17DC36E38AEE9F4389A335C2BF332AB91E4C79D7B0B22994FDDD0FD1605`, both paths resolve to
+  `diff=lfs`, and `.gitattributes` was not edited.
+- [x] Release source builds pass for net10.0 and net11.0 with zero warnings and zero errors. Roslynk reports
+  zero compiler errors, and scoped production and test analyzer verification reports no changes.
 
 Decoder exit gate:
 

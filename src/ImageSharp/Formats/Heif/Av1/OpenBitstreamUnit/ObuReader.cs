@@ -322,11 +322,10 @@ internal class ObuReader
 
                         if (combinedFrameHeader.ShowExistingFrame)
                         {
-                            // A combined OBU carries no tile-group syntax when it only presents a retained frame.
-                            this.decoder ??= creator();
-                            frameDecodingFinished = true;
-                            decodedPayloadSize = Av1Math.DivideBy8Floor(payloadReader.BitPosition);
-                            break;
+                            // Current libaom permits show_existing_frame only in a standalone frame-header OBU. A
+                            // combined frame OBU is required to continue with a tile group and therefore cannot use
+                            // the header-only retained-frame presentation form.
+                            throw new InvalidImageContentException("A combined AV1 frame OBU cannot display an existing frame.");
                         }
 
                         goto TILE_GROUP;
@@ -476,20 +475,20 @@ internal class ObuReader
         header.Type = (ObuType)reader.ReadLiteral(4);
         header.HasExtension = reader.ReadBoolean();
         header.HasSize = reader.ReadBoolean();
-        if (reader.ReadBoolean())
-        {
-            throw new ImageFormatException("Reserved bit in header should be unset.");
-        }
+
+        // Current libaom consumes obu_reserved_1bit without rejecting its value. Reserved fields do not change the
+        // decoded syntax, so accepting either value preserves forward-compatible framing while the forbidden bit
+        // remains a hard error above.
+        _ = reader.ReadBoolean();
 
         if (header.HasExtension)
         {
             header.Size++;
             header.TemporalId = (int)reader.ReadLiteral(3);
             header.SpatialId = (int)reader.ReadLiteral(2);
-            if (reader.ReadLiteral(3) != 0u)
-            {
-                throw new ImageFormatException("Reserved bits in header extension should be unset.");
-            }
+
+            // Current libaom likewise consumes extension_header_reserved_3bits without interpreting their value.
+            _ = reader.ReadLiteral(3);
         }
         else
         {
@@ -575,7 +574,6 @@ internal class ObuReader
     /// Computes the mode-information dimensions and stride for the current frame.
     /// </summary>
     /// <param name="sequenceHeader">The sequence header defining the maximum frame geometry and superblock size.</param>
-    /// <remarks>SVT: compute_image_size</remarks>
     private void ComputeImageSize(ObuSequenceHeader sequenceHeader)
     {
         ObuFrameHeader frameHeader = this.FrameHeader!;
@@ -652,6 +650,11 @@ internal class ObuReader
                     Idc = reader.ReadLiteral(12),
                     SequenceLevelIndex = (int)reader.ReadLiteral(5)
                 };
+                if (!IsValidSequenceLevel(sequenceHeader.OperatingPoint[i].SequenceLevelIndex))
+                {
+                    throw new InvalidImageContentException("The AV1 sequence header contains an undefined sequence-level index.");
+                }
+
                 if (sequenceHeader.OperatingPoint[i].SequenceLevelIndex > 7)
                 {
                     sequenceHeader.OperatingPoint[i].SequenceTier = (int)reader.ReadLiteral(1);
@@ -682,15 +685,17 @@ internal class ObuReader
                     if (sequenceHeader.OperatingPoint[i].IsInitialDisplayDelayPresent)
                     {
                         sequenceHeader.OperatingPoint[i].InitialDisplayDelay = reader.ReadLiteral(4) + 1;
+                        if (sequenceHeader.OperatingPoint[i].InitialDisplayDelay > 10)
+                        {
+                            throw new InvalidImageContentException("The AV1 initial display delay exceeds ten decoded frames.");
+                        }
                     }
                 }
             }
         }
 
-        // Video related flags removed
-
-        // SVT-TODO: int operatingPoint = this.ChooseOperatingPoint();
-        // sequenceHeader.OperatingPointIndex = (int)operatingPointIndices[operatingPoint];
+        // The operating-point selector is supplied by the bounded item or sequence decoder. Every operating point is
+        // still parsed above because its timing syntax precedes the shared coded-image dimensions.
         sequenceHeader.FrameWidthBits = (int)reader.ReadLiteral(4) + 1;
         sequenceHeader.FrameHeightBits = (int)reader.ReadLiteral(4) + 1;
         sequenceHeader.MaxFrameWidth = (int)reader.ReadLiteral(sequenceHeader.FrameWidthBits) + 1;
@@ -709,9 +714,12 @@ internal class ObuReader
             sequenceHeader.DeltaFrameIdLength = (int)reader.ReadLiteral(4) + 2;
             sequenceHeader.AdditionalFrameIdLength = reader.ReadLiteral(3) + 1;
             sequenceHeader.FrameIdLength = sequenceHeader.DeltaFrameIdLength + (int)sequenceHeader.AdditionalFrameIdLength;
+            if (sequenceHeader.FrameIdLength > 16)
+            {
+                throw new InvalidImageContentException("The AV1 frame identifier length exceeds sixteen bits.");
+            }
         }
 
-        // Video related flags removed
         sequenceHeader.Use128x128Superblock = reader.ReadBoolean();
         sequenceHeader.EnableFilterIntra = reader.ReadBoolean();
         sequenceHeader.EnableIntraEdgeFilter = reader.ReadBoolean();
@@ -783,7 +791,6 @@ internal class ObuReader
             }
         }
 
-        // Video related flags removed
         sequenceHeader.EnableSuperResolution = reader.ReadBoolean();
         sequenceHeader.EnableCdef = reader.ReadBoolean();
         sequenceHeader.EnableRestoration = reader.ReadBoolean();
@@ -836,6 +843,13 @@ internal class ObuReader
             colorConfig.TransferCharacteristics == ObuTransferCharacteristics.Srgb &&
             colorConfig.MatrixCoefficients == ObuMatrixCoefficients.Identity)
         {
+            if (sequenceHeader.SequenceProfile != ObuSequenceProfile.High
+                && !(sequenceHeader.SequenceProfile == ObuSequenceProfile.Professional
+                    && colorConfig.BitDepth == Av1BitDepth.TwelveBit))
+            {
+                throw new InvalidImageContentException("The AV1 sRGB identity-matrix color configuration is incompatible with its sequence profile.");
+            }
+
             // AV1 defines this RGB identity-matrix combination as full-range 4:4:4 and omits
             // the range and subsampling syntax that other color combinations carry.
             colorConfig.ColorRange = true;
@@ -872,6 +886,12 @@ internal class ObuReader
                     }
 
                     break;
+            }
+
+            if (colorConfig.MatrixCoefficients == ObuMatrixCoefficients.Identity
+                && (colorConfig.SubSamplingX || colorConfig.SubSamplingY))
+            {
+                throw new InvalidImageContentException("The AV1 identity matrix requires 4:4:4 color sampling.");
             }
 
             if (colorConfig.SubSamplingX && colorConfig.SubSamplingY)
@@ -916,16 +936,29 @@ internal class ObuReader
     /// <param name="sequenceHeader">The sequence header that receives the timing information.</param>
     private static void ReadTimingInfo(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader)
     {
+        uint numUnitsInDisplayTick = reader.ReadLiteral(32);
+        uint timeScale = reader.ReadLiteral(32);
+        if (numUnitsInDisplayTick == 0 || timeScale == 0)
+        {
+            throw new InvalidImageContentException("The AV1 timing tick and time scale must both be nonzero.");
+        }
+
         sequenceHeader.TimingInfo = new ObuTimingInfo
         {
-            NumUnitsInDisplayTick = reader.ReadLiteral(32),
-            TimeScale = reader.ReadLiteral(32),
+            NumUnitsInDisplayTick = numUnitsInDisplayTick,
+            TimeScale = timeScale,
             EqualPictureInterval = reader.ReadBoolean()
         };
 
         if (sequenceHeader.TimingInfo.EqualPictureInterval)
         {
-            sequenceHeader.TimingInfo.NumTicksPerPicture = reader.ReadUnsignedVariableLength() + 1;
+            uint numTicksPerPictureMinusOne = reader.ReadUnsignedVariableLength();
+            if (numTicksPerPictureMinusOne == uint.MaxValue)
+            {
+                throw new InvalidImageContentException("The AV1 ticks-per-picture value exceeds its permitted range.");
+            }
+
+            sequenceHeader.TimingInfo.NumTicksPerPicture = numTicksPerPictureMinusOne + 1;
         }
     }
 
@@ -1290,6 +1323,24 @@ internal class ObuReader
             throw new ImageFormatException("Tile width or height too big.");
         }
 
+        if (tileInfo.TileColumnCount > 1)
+        {
+            int minimumInnerTileWidth = 64 << (frameHeader.FrameSize.FrameWidth != frameHeader.FrameSize.SuperResolutionUpscaledWidth ? 1 : 0);
+            for (int column = 0; column < tileInfo.TileColumnCount - 1; column++)
+            {
+                int tileWidth = (tileInfo.TileColumnStartModeInfo[column + 1] - tileInfo.TileColumnStartModeInfo[column])
+                    << Av1Constants.ModeInfoSizeLog2;
+
+                // Current libaom excludes the rightmost column from this conformance check because it receives the
+                // remainder of the coded width. Every inner column must be at least 64 pixels, doubled when the frame
+                // is super-resolution scaled.
+                if (tileWidth < minimumInnerTileWidth)
+                {
+                    throw new InvalidImageContentException("The AV1 frame contains an inner tile column narrower than the permitted minimum.");
+                }
+            }
+        }
+
         if (tileInfo.TileColumnCountLog2 > 0 || tileInfo.TileRowCountLog2 > 0)
         {
             tileInfo.ContextUpdateTileId = reader.ReadLiteral(tileInfo.TileRowCountLog2 + tileInfo.TileColumnCountLog2);
@@ -1318,12 +1369,8 @@ internal class ObuReader
         ObuSequenceHeader sequenceHeader = this.SequenceHeader!;
         ObuFrameHeader frameHeader = this.FrameHeader!;
         Av1ReferenceFrame? primaryReference = null;
-        int idLength = sequenceHeader.FrameIdLength;
         bool frameSizeOverrideFlag = false;
-        if (sequenceHeader.IsFrameIdNumbersPresent)
-        {
-            DebugGuard.MustBeLessThanOrEqualTo(idLength, 16, nameof(idLength));
-        }
+        int idLength = sequenceHeader.FrameIdLength;
 
         if (sequenceHeader.IsReducedStillPictureHeader)
         {
@@ -1563,7 +1610,10 @@ internal class ObuReader
 
         if (frameHeader.FrameType == ObuFrameType.IntraOnlyFrame)
         {
-            DebugGuard.IsTrue(frameHeader.RefreshFrameFlags != 0xFFU, nameof(frameHeader.RefreshFrameFlags));
+            if (frameHeader.RefreshFrameFlags == byte.MaxValue)
+            {
+                throw new InvalidImageContentException("An AV1 intra-only frame cannot refresh every reference-map slot.");
+            }
         }
 
         if (!frameHeader.IsIntra || (frameHeader.RefreshFrameFlags != 0xFFU))
@@ -1890,11 +1940,35 @@ internal class ObuReader
         for (int tileNum = tileGroupStart; tileNum <= tileGroupEnd; tileNum++)
         {
             bool isLastTile = tileNum == tileGroupEnd;
-            int tileDataSize = header.PayloadSize;
+            int tileDataSize;
             if (!isLastTile)
             {
-                tileDataSize = (int)reader.ReadLittleEndian(tileInfo.TileSizeBytes) + 1;
-                header.PayloadSize -= tileDataSize + tileInfo.TileSizeBytes;
+                if (header.PayloadSize <= tileInfo.TileSizeBytes)
+                {
+                    throw new InvalidImageContentException("The AV1 tile group ends before its declared tile-size field and payload.");
+                }
+
+                uint tileDataSizeMinusOne = reader.ReadLittleEndian(tileInfo.TileSizeBytes);
+                header.PayloadSize -= tileInfo.TileSizeBytes;
+
+                // Compare in the encoded unsigned domain before adding one. A four-byte 0xFFFFFFFF field would
+                // otherwise wrap to a zero-length signed tile and shift the following tile boundary.
+                if (tileDataSizeMinusOne >= (uint)header.PayloadSize)
+                {
+                    throw new InvalidImageContentException("The AV1 tile size exceeds the remaining tile-group payload.");
+                }
+
+                tileDataSize = (int)tileDataSizeMinusOne + 1;
+                header.PayloadSize -= tileDataSize;
+            }
+            else
+            {
+                tileDataSize = header.PayloadSize;
+                header.PayloadSize = 0;
+                if (tileDataSize <= 0)
+                {
+                    throw new InvalidImageContentException("The AV1 tile group contains an empty tile payload.");
+                }
             }
 
             Span<byte> tileData = reader.GetSymbolReader(tileDataSize);

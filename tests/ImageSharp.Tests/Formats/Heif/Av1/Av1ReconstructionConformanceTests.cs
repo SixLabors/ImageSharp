@@ -686,7 +686,7 @@ public class Av1ReconstructionConformanceTests
     /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
     [Theory]
     [WithFile(TestImages.Heif.Av1Progressive8BitAvif, PixelTypes.Rgba32)]
-    public void DecodeProgressiveSingleReferenceMatchesPinnedReferences(
+    public void DecodeProgressiveSingleReferenceMatchesCurrentLibaomReferences(
         TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateProgressiveSingleReferenceFixtureWithDefaultConfiguration,

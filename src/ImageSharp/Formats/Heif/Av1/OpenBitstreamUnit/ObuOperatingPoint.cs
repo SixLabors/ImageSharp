@@ -34,7 +34,7 @@ internal class ObuOperatingPoint
     public bool IsInitialDisplayDelayPresent { get; set; }
 
     /// <summary>
-    /// Gets or sets the initial display delay minus one, in decoded frames.
+    /// Gets or sets the initial display delay, in decoded frames.
     /// </summary>
     public uint InitialDisplayDelay { get; set; }
 

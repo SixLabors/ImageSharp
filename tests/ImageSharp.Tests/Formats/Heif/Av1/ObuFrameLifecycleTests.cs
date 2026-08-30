@@ -167,6 +167,30 @@ public class ObuFrameLifecycleTests
     }
 
     /// <summary>
+    /// Verifies that a combined frame OBU cannot use the header-only retained-frame presentation form.
+    /// </summary>
+    [Fact]
+    public void ReadAllRejectsShowExistingFrameInCombinedFrameObu()
+    {
+        byte[] bitStream =
+        [
+            .. ProgressiveTwoFrameObuStream[..FirstProgressiveLayerLength],
+
+            // A one-byte combined-frame payload selecting retained slot zero. Current libaom rejects this form
+            // because show_existing_frame is permitted only in a standalone frame-header OBU.
+            0x32, 0x01, 0x80
+        ];
+
+        using Av1ReferenceFrameStore referenceFrames = new();
+        ObuReader obuReader = new(ProgressiveOperatingPointIndex, referenceFrames);
+        LifecycleTileReaderFactory factory = new(obuReader, referenceFrames, NoFailingReaderIndex);
+
+        Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream, obuReader, factory.Create));
+        AssertParserSessionReset(obuReader, referenceFrames);
+        Assert.Equal(1, Assert.Single(factory.Readers).CompletionCount);
+    }
+
+    /// <summary>
     /// Extends the sequence-header OBU by one nonzero byte while retaining all following encoded frame bytes.
     /// </summary>
     /// <param name="stream">A temporal-delimiter and sequence-header OBU prefix.</param>

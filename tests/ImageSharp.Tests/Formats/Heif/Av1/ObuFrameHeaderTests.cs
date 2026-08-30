@@ -1,14 +1,67 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 [Trait("Format", "Avif")]
 public class ObuFrameHeaderTests
 {
+    /// <summary>
+    /// Identifies one current-libaom sequence-header conformance condition used by the malformed-input theory.
+    /// </summary>
+    public enum InvalidSequenceHeaderCase
+    {
+        /// <summary>
+        /// Encodes the otherwise valid baseline.
+        /// </summary>
+        None,
+
+        /// <summary>
+        /// Encodes an unassigned sequence-level index.
+        /// </summary>
+        UndefinedSequenceLevel,
+
+        /// <summary>
+        /// Encodes an initial display delay greater than ten frames.
+        /// </summary>
+        InitialDisplayDelayAboveTen,
+
+        /// <summary>
+        /// Encodes a frame identifier wider than sixteen bits.
+        /// </summary>
+        FrameIdentifierLengthAboveSixteen,
+
+        /// <summary>
+        /// Encodes a zero display-tick unit.
+        /// </summary>
+        ZeroDisplayTick,
+
+        /// <summary>
+        /// Encodes a zero time scale.
+        /// </summary>
+        ZeroTimeScale,
+
+        /// <summary>
+        /// Encodes the unsigned-variable-length overflow sentinel.
+        /// </summary>
+        OverflowingTicksPerPicture,
+
+        /// <summary>
+        /// Encodes the sRGB identity-matrix tuple with the main profile.
+        /// </summary>
+        MainProfileSrgbIdentity,
+
+        /// <summary>
+        /// Encodes an identity matrix with subsampled components.
+        /// </summary>
+        SubsampledIdentityMatrix
+    }
+
     private static readonly byte[] DefaultSequenceHeaderBitStream =
         [0x0a, 0x06, 0b001_1_1_000, 0b00_1000_01, 0b11_110101, 0b001_11101, 0b111_1_1_1_0_1, 0b1_0_0_1_1_1_10];
 
@@ -205,6 +258,88 @@ public class ObuFrameHeaderTests
     }
 
     /// <summary>
+    /// Verifies current-libaom sequence-header conformance failures through the complete bounded OBU parser.
+    /// </summary>
+    /// <param name="invalidCase">The single invalid syntax condition encoded into an otherwise valid sequence header.</param>
+    [Theory]
+    [InlineData(InvalidSequenceHeaderCase.UndefinedSequenceLevel)]
+    [InlineData(InvalidSequenceHeaderCase.InitialDisplayDelayAboveTen)]
+    [InlineData(InvalidSequenceHeaderCase.FrameIdentifierLengthAboveSixteen)]
+    [InlineData(InvalidSequenceHeaderCase.ZeroDisplayTick)]
+    [InlineData(InvalidSequenceHeaderCase.ZeroTimeScale)]
+    [InlineData(InvalidSequenceHeaderCase.OverflowingTicksPerPicture)]
+    [InlineData(InvalidSequenceHeaderCase.MainProfileSrgbIdentity)]
+    [InlineData(InvalidSequenceHeaderCase.SubsampledIdentityMatrix)]
+    public void ReadSequenceHeaderRejectsCurrentLibaomConformanceFailure(InvalidSequenceHeaderCase invalidCase)
+    {
+        byte[] bitStream = CreateNonReducedSequenceHeaderObu(invalidCase);
+
+        Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream));
+    }
+
+    /// <summary>
+    /// Verifies that reserved OBU header fields are ignored consistently by container validation and syntax parsing.
+    /// </summary>
+    /// <param name="hasExtension">Whether the sequence header also carries nonzero reserved extension bits.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ReadSequenceHeaderIgnoresReservedObuHeaderBits(bool hasExtension)
+    {
+        byte[] bitStream;
+        if (hasExtension)
+        {
+            bitStream = new byte[DefaultSequenceHeaderBitStream.Length + 1];
+            bitStream[0] = (byte)(DefaultSequenceHeaderBitStream[0] | 0x05);
+            bitStream[1] = 0x07;
+            DefaultSequenceHeaderBitStream.AsSpan(1).CopyTo(bitStream.AsSpan(2));
+        }
+        else
+        {
+            bitStream = [.. DefaultSequenceHeaderBitStream];
+            bitStream[0] |= 0x01;
+        }
+
+        Av1CodecConfiguration configuration = new([0x81, 0x00, 0x00, 0x00], new DecoderOptions());
+        configuration.ValidateItemData(
+            bitStream,
+            null,
+            null,
+            new DecoderOptions(),
+            out _,
+            out _);
+
+        ReadObuStream(bitStream);
+    }
+
+    /// <summary>
+    /// Verifies that metadata-type LEB128 values obey current libaom's shared unsigned 32-bit limit.
+    /// </summary>
+    [Fact]
+    public void ValidateItemDataRejectsMetadataTypeAboveCurrentLibaomLimit()
+    {
+        byte[] bitStream =
+        [
+            .. DefaultSequenceHeaderBitStream,
+
+            // Metadata type 2^32 followed by valid byte-aligned trailing bits.
+            0x2A, 0x06, 0x80, 0x80, 0x80, 0x80, 0x10, 0x80
+        ];
+
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        Av1CodecConfiguration configuration = new([0x81, 0x00, 0x00, 0x00], options);
+
+        Assert.Throws<InvalidImageContentException>(
+            () => configuration.ValidateItemData(
+                bitStream,
+                null,
+                null,
+                options,
+                out _,
+                out _));
+    }
+
+    /// <summary>
     /// Verifies that an item cannot select an operating-point index absent from its sequence header.
     /// </summary>
     [Fact]
@@ -365,6 +500,74 @@ public class ObuFrameHeaderTests
     }
 
     /// <summary>
+    /// Verifies that a four-byte tile size cannot wrap into an empty first tile.
+    /// </summary>
+    [Fact]
+    public void ReadTileGroupRejectsFourByteTileSizeOverflow()
+    {
+        byte[] bitStream = CreateTwoTileFrame(GetDefaultSequenceHeader(), GetKeyFrameHeader(), 4);
+        Span<byte> encodedTileSize = bitStream.AsSpan(bitStream.Length - 6, 4);
+        encodedTileSize.Fill(byte.MaxValue);
+
+        Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream));
+    }
+
+    /// <summary>
+    /// Verifies current libaom's doubled minimum inner-tile width for a super-resolution-scaled frame.
+    /// </summary>
+    [Fact]
+    public void ReadTileInfoRejectsNarrowSuperResolutionInnerTile()
+    {
+        ObuSequenceHeader sequenceHeader = GetDefaultSequenceHeader();
+        sequenceHeader.Use128x128Superblock = false;
+        sequenceHeader.EnableSuperResolution = true;
+        sequenceHeader.FrameWidthBits = 8;
+        sequenceHeader.MaxFrameWidth = 192;
+
+        ObuFrameHeader frameHeader = GetKeyFrameHeader();
+        frameHeader.FrameSize.FrameWidth = 96;
+        frameHeader.FrameSize.SuperResolutionUpscaledWidth = 192;
+        frameHeader.FrameSize.RenderWidth = 192;
+        frameHeader.FrameSize.SuperResolutionDenominator = 16;
+        frameHeader.ModeInfoColumnCount = 24;
+
+        byte[] bitStream = CreateTwoTileFrame(sequenceHeader, frameHeader, 1);
+
+        Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream));
+    }
+
+    /// <summary>
+    /// Verifies that an intra-only frame cannot signal the all-slots refresh mask reserved for key and switch frames.
+    /// </summary>
+    [Fact]
+    public void ReadFrameHeaderRejectsIntraOnlyAllSlotsRefresh()
+    {
+        byte[] sequenceHeader = CreateNonReducedSequenceHeaderObu(default);
+        using AutoExpandingMemory<byte> frameMemory = new(Configuration.Default, 8);
+        Av1BitStreamWriter frameWriter = new(frameMemory);
+
+        frameWriter.WriteBoolean(false);
+        frameWriter.WriteLiteral((uint)ObuFrameType.IntraOnlyFrame, 2);
+        frameWriter.WriteBoolean(true);
+        frameWriter.WriteBoolean(true);
+        frameWriter.WriteBoolean(false);
+        frameWriter.WriteBoolean(false);
+        frameWriter.WriteLiteral(byte.MaxValue, 8);
+
+        int framePayloadLength = (frameWriter.BitPosition + 7) >> 3;
+        frameWriter.Flush();
+
+        byte[] bitStream = new byte[sequenceHeader.Length + 2 + framePayloadLength];
+        sequenceHeader.CopyTo(bitStream, 0);
+        int frameObuOffset = sequenceHeader.Length;
+        bitStream[frameObuOffset] = (byte)(((byte)ObuType.FrameHeader << 3) | 0x02);
+        bitStream[frameObuOffset + 1] = (byte)framePayloadLength;
+        frameMemory.GetSpan(framePayloadLength).CopyTo(bitStream.AsSpan(frameObuOffset + 2));
+
+        Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream));
+    }
+
+    /// <summary>
     /// Verifies that invalid OBU boundaries, size fields, and trailing bytes are rejected.
     /// </summary>
     /// <param name="bitStream">The malformed OBU stream.</param>
@@ -430,8 +633,8 @@ public class ObuFrameHeaderTests
         ObuSequenceHeader sequenceInput = GetDefaultSequenceHeader();
         ObuFrameHeader frameInput = GetKeyFrameHeader();
         Av1TileDecoderStub tileStub = new();
-        byte[] empty = [];
-        tileStub.ReadTile(empty, 0);
+        byte[] tileData = [0x80];
+        tileStub.ReadTile(tileData, 0);
         ObuWriter obuWriter = new();
 
         // Act
@@ -455,6 +658,156 @@ public class ObuFrameHeaderTests
         Assert.NotNull(obuReader.SequenceHeader);
         Assert.NotNull(obuReader.FrameHeader);
         Assert.Equal(bitStream.Length * 8, reader.BitPosition);
+    }
+
+    /// <summary>
+    /// Encodes one non-reduced sequence header with a single selected conformance failure.
+    /// </summary>
+    /// <param name="invalidCase">The syntax condition to make invalid, or <see cref="InvalidSequenceHeaderCase.None"/>.</param>
+    /// <returns>The complete explicitly sized sequence-header OBU.</returns>
+    private static byte[] CreateNonReducedSequenceHeaderObu(InvalidSequenceHeaderCase invalidCase)
+    {
+        bool hasTimingInfo = invalidCase is
+            InvalidSequenceHeaderCase.ZeroDisplayTick or
+            InvalidSequenceHeaderCase.ZeroTimeScale or
+            InvalidSequenceHeaderCase.OverflowingTicksPerPicture;
+
+        bool hasInitialDisplayDelay = invalidCase == InvalidSequenceHeaderCase.InitialDisplayDelayAboveTen;
+        bool hasFrameIdentifiers = invalidCase == InvalidSequenceHeaderCase.FrameIdentifierLengthAboveSixteen;
+        bool hasColorDescription = invalidCase is
+            InvalidSequenceHeaderCase.MainProfileSrgbIdentity or
+            InvalidSequenceHeaderCase.SubsampledIdentityMatrix;
+
+        using AutoExpandingMemory<byte> payloadMemory = new(Configuration.Default, 32);
+        Av1BitStreamWriter writer = new(payloadMemory);
+        writer.WriteLiteral((uint)ObuSequenceProfile.Main, 3);
+        writer.WriteBoolean(false);
+        writer.WriteBoolean(false);
+        writer.WriteBoolean(hasTimingInfo);
+        if (hasTimingInfo)
+        {
+            writer.WriteLiteral(invalidCase == InvalidSequenceHeaderCase.ZeroDisplayTick ? 0U : 1U, 32);
+            writer.WriteLiteral(invalidCase == InvalidSequenceHeaderCase.ZeroTimeScale ? 0U : 1U, 32);
+
+            bool overflowingTicksPerPicture = invalidCase == InvalidSequenceHeaderCase.OverflowingTicksPerPicture;
+            writer.WriteBoolean(overflowingTicksPerPicture);
+            if (overflowingTicksPerPicture)
+            {
+                // Thirty-two leading zeros are the UVLC sentinel which current libaom rejects as UINT32_MAX.
+                writer.WriteLiteral(0U, 32);
+            }
+
+            writer.WriteBoolean(false);
+        }
+
+        writer.WriteBoolean(hasInitialDisplayDelay);
+        writer.WriteLiteral(0U, 5);
+        writer.WriteLiteral(0U, 12);
+
+        uint sequenceLevel = invalidCase == InvalidSequenceHeaderCase.UndefinedSequenceLevel ? 24U : 0U;
+        writer.WriteLiteral(sequenceLevel, 5);
+        if (sequenceLevel > 7)
+        {
+            writer.WriteBoolean(false);
+        }
+
+        if (hasInitialDisplayDelay)
+        {
+            writer.WriteBoolean(true);
+            writer.WriteLiteral(10U, 4);
+        }
+
+        writer.WriteLiteral(7U, 4);
+        writer.WriteLiteral(7U, 4);
+        writer.WriteLiteral(63U, 8);
+        writer.WriteLiteral(63U, 8);
+        writer.WriteBoolean(hasFrameIdentifiers);
+        if (hasFrameIdentifiers)
+        {
+            writer.WriteLiteral(15U, 4);
+            writer.WriteLiteral(0U, 3);
+        }
+
+        // Disable superblock and intra-edge tools.
+        writer.WriteBoolean(false);
+        writer.WriteBoolean(false);
+        writer.WriteBoolean(false);
+
+        // Disable the inter compound, warped, dual-filter, and order-hint tools.
+        writer.WriteBoolean(false);
+        writer.WriteBoolean(false);
+        writer.WriteBoolean(false);
+        writer.WriteBoolean(false);
+        writer.WriteBoolean(false);
+
+        // Select fixed disabled screen-content and integer-motion-vector behavior.
+        writer.WriteBoolean(false);
+        writer.WriteBoolean(false);
+
+        // Disable super resolution, CDEF, and restoration in the otherwise valid baseline.
+        writer.WriteBoolean(false);
+        writer.WriteBoolean(false);
+        writer.WriteBoolean(false);
+
+        // Encode an 8-bit, non-monochrome color configuration.
+        writer.WriteBoolean(false);
+        writer.WriteBoolean(false);
+        writer.WriteBoolean(hasColorDescription);
+        if (hasColorDescription)
+        {
+            bool isSrgbIdentity = invalidCase == InvalidSequenceHeaderCase.MainProfileSrgbIdentity;
+            writer.WriteLiteral((uint)(isSrgbIdentity ? ObuColorPrimaries.Bt709 : ObuColorPrimaries.Unspecified), 8);
+            writer.WriteLiteral((uint)(isSrgbIdentity ? ObuTransferCharacteristics.Srgb : ObuTransferCharacteristics.Unspecified), 8);
+            writer.WriteLiteral((uint)ObuMatrixCoefficients.Identity, 8);
+        }
+
+        if (invalidCase != InvalidSequenceHeaderCase.MainProfileSrgbIdentity)
+        {
+            writer.WriteBoolean(false);
+            writer.WriteLiteral((uint)ObuChromoSamplePosition.Unknown, 2);
+        }
+
+        writer.WriteBoolean(false);
+        writer.WriteBoolean(false);
+
+        int trailingBitCount = 8 - (writer.BitPosition & 0x07);
+        writer.WriteLiteral(1U << (trailingBitCount - 1), trailingBitCount);
+
+        int payloadLength = (writer.BitPosition + 7) >> 3;
+        writer.Flush();
+
+        byte[] obu = new byte[payloadLength + 2];
+        obu[0] = (byte)(((byte)ObuType.SequenceHeader << 3) | 0x02);
+        obu[1] = (byte)payloadLength;
+        payloadMemory.GetSpan(payloadLength).CopyTo(obu.AsSpan(2));
+        return obu;
+    }
+
+    /// <summary>
+    /// Encodes one valid reduced frame with two one-byte tile payloads.
+    /// </summary>
+    /// <param name="sequenceHeader">The sequence syntax to encode.</param>
+    /// <param name="frameHeader">The frame syntax to encode.</param>
+    /// <param name="tileSizeBytes">The number of bytes used for the first tile's size field.</param>
+    /// <returns>The complete temporal delimiter, sequence header, and combined frame OBU stream.</returns>
+    private static byte[] CreateTwoTileFrame(
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        int tileSizeBytes)
+    {
+        frameHeader.TilesInfo.HasUniformTileSpacing = true;
+        frameHeader.TilesInfo.TileColumnCount = 2;
+        frameHeader.TilesInfo.TileRowCount = 1;
+        frameHeader.TilesInfo.TileSizeBytes = tileSizeBytes;
+
+        Av1TileDecoderStub tileStub = new();
+        tileStub.ReadTile([0x80], 0);
+        tileStub.ReadTile([0x80], 1);
+
+        using MemoryStream stream = new();
+        ObuWriter writer = new();
+        writer.WriteAll(Configuration.Default, stream, sequenceHeader, frameHeader, tileStub);
+        return stream.ToArray();
     }
 
     private static ObuSequenceHeader GetDefaultSequenceHeader()

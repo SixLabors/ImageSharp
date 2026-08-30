@@ -422,11 +422,13 @@ internal sealed class Av1CodecConfiguration
         while (offset < data.Length)
         {
             byte header = data[offset++];
-            if ((header & 0x81) != 0)
+            if ((header & 0x80) != 0)
             {
-                throw new InvalidImageContentException($"The {sourceName} contains an OBU with a set forbidden or reserved header bit.");
+                throw new InvalidImageContentException($"The {sourceName} contains an OBU with a set forbidden header bit.");
             }
 
+            // Current libaom deliberately ignores obu_reserved_1bit. The bit does not alter the OBU boundary or
+            // decoded syntax, so the bounded container scan must not reject data that the production parser accepts.
             ObuType type = (ObuType)((header >> 3) & 0x0F);
             bool hasExtension = (header & 0x04) != 0;
             bool hasSizeField = (header & 0x02) != 0;
@@ -438,11 +440,8 @@ internal sealed class Av1CodecConfiguration
                     throw new InvalidImageContentException($"The {sourceName} contains a truncated OBU extension header.");
                 }
 
+                // extension_header_reserved_3bits is also consumed but ignored by current libaom.
                 extension = data[offset++];
-                if ((extension & 0x07) != 0)
-                {
-                    throw new InvalidImageContentException($"The {sourceName} contains an OBU extension with nonzero reserved bits.");
-                }
             }
 
             if (requireSizeFields && !hasSizeField)
@@ -664,6 +663,11 @@ internal sealed class Av1CodecConfiguration
             value |= (ulong)(current & 0x7F) << (byteIndex * 7);
             if ((current & 0x80) == 0)
             {
+                if (value > uint.MaxValue)
+                {
+                    throw new InvalidImageContentException($"The {sourceName} contains a {valueName} larger than the AV1 32-bit limit.");
+                }
+
                 return value;
             }
         }

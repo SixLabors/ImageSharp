@@ -523,14 +523,9 @@ internal class ObuWriter
         int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
         if (tileCount > 1)
         {
-            // This writer places every tile in one group, so the optional range spans the
-            // complete frame whenever the range syntax is present.
-            writer.WriteBoolean(true);
-            uint tileGroupStart = 0U;
-            uint tileGroupEnd = (uint)tileCount - 1U;
-            int tileBits = tileInfo.TileColumnCountLog2 + tileInfo.TileRowCountLog2;
-            writer.WriteLiteral(tileGroupStart, tileBits);
-            writer.WriteLiteral(tileGroupEnd, tileBits);
+            // A combined OBU_FRAME has implicit complete-frame tile bounds. Current libaom still
+            // writes the presence bit for a multi-tile frame, but requires that bit to remain zero.
+            writer.WriteBoolean(false);
         }
 
         AlignToByteBoundary(ref writer);

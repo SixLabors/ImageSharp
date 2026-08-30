@@ -47,7 +47,7 @@ internal static partial class Av1ScaledInterPredictor
         int verticalPhase,
         int verticalStep,
         Span<short> scratch)
-        => DispatchScaled<byte, ScaledOperator>(
+        => DispatchScaled<byte, byte, NativeOperator>(
             source,
             sourceStride,
             sourceOrigin,
@@ -83,7 +83,78 @@ internal static partial class Av1ScaledInterPredictor
         int verticalStep,
         int bitDepth,
         Span<short> scratch)
-        => DispatchScaled<ushort, ScaledOperator>(
+        => DispatchScaled<ushort, ushort, NativeOperator>(
+            source,
+            sourceStride,
+            sourceOrigin,
+            destination,
+            destinationStride,
+            width,
+            height,
+            horizontalFilter,
+            verticalFilter,
+            horizontalPhase,
+            horizontalStep,
+            verticalPhase,
+            verticalStep,
+            bitDepth,
+            scratch);
+
+    /// <summary>
+    /// Reconstructs an 8-bit scaled predictor into the no-round compound intermediate domain.
+    /// </summary>
+    public static void PredictScaledCompound(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        int sourceOrigin,
+        Span<ushort> destination,
+        int destinationStride,
+        int width,
+        int height,
+        Av1InterpolationFilter horizontalFilter,
+        Av1InterpolationFilter verticalFilter,
+        int horizontalPhase,
+        int horizontalStep,
+        int verticalPhase,
+        int verticalStep,
+        Span<short> scratch)
+        => DispatchScaled<byte, ushort, CompoundOperator>(
+            source,
+            sourceStride,
+            sourceOrigin,
+            destination,
+            destinationStride,
+            width,
+            height,
+            horizontalFilter,
+            verticalFilter,
+            horizontalPhase,
+            horizontalStep,
+            verticalPhase,
+            verticalStep,
+            8,
+            scratch);
+
+    /// <summary>
+    /// Reconstructs an 8-, 10-, or 12-bit scaled predictor into the no-round compound intermediate domain.
+    /// </summary>
+    public static void PredictScaledCompound(
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
+        int sourceOrigin,
+        Span<ushort> destination,
+        int destinationStride,
+        int width,
+        int height,
+        Av1InterpolationFilter horizontalFilter,
+        Av1InterpolationFilter verticalFilter,
+        int horizontalPhase,
+        int horizontalStep,
+        int verticalPhase,
+        int verticalStep,
+        int bitDepth,
+        Span<short> scratch)
+        => DispatchScaled<ushort, ushort, CompoundOperator>(
             source,
             sourceStride,
             sourceOrigin,
@@ -103,11 +174,11 @@ internal static partial class Av1ScaledInterPredictor
     /// <summary>
     /// Selects the horizontal filter family for scaled prediction.
     /// </summary>
-    private static void DispatchScaled<T, TSample>(
-        ReadOnlySpan<T> source,
+    private static void DispatchScaled<TSource, TDestination, TOperator>(
+        ReadOnlySpan<TSource> source,
         int sourceStride,
         int sourceOrigin,
-        Span<T> destination,
+        Span<TDestination> destination,
         int destinationStride,
         int width,
         int height,
@@ -119,13 +190,14 @@ internal static partial class Av1ScaledInterPredictor
         int verticalStep,
         int bitDepth,
         Span<short> scratch)
-        where T : unmanaged
-        where TSample : struct, IAv1ScaledPredictionOperator
+        where TSource : unmanaged
+        where TDestination : unmanaged
+        where TOperator : struct, IAv1ScaledPredictionOperator
     {
         switch (horizontalFilter)
         {
             case Av1InterpolationFilter.Regular:
-                DispatchScaledVertical<T, TSample, RegularOperator>(
+                DispatchScaledVertical<TSource, TDestination, TOperator, RegularOperator>(
                     source,
                     sourceStride,
                     sourceOrigin,
@@ -143,7 +215,7 @@ internal static partial class Av1ScaledInterPredictor
 
                 break;
             case Av1InterpolationFilter.Smooth:
-                DispatchScaledVertical<T, TSample, SmoothOperator>(
+                DispatchScaledVertical<TSource, TDestination, TOperator, SmoothOperator>(
                     source,
                     sourceStride,
                     sourceOrigin,
@@ -161,7 +233,7 @@ internal static partial class Av1ScaledInterPredictor
 
                 break;
             case Av1InterpolationFilter.Sharp:
-                DispatchScaledVertical<T, TSample, SharpOperator>(
+                DispatchScaledVertical<TSource, TDestination, TOperator, SharpOperator>(
                     source,
                     sourceStride,
                     sourceOrigin,
@@ -179,7 +251,7 @@ internal static partial class Av1ScaledInterPredictor
 
                 break;
             default:
-                DispatchScaledVertical<T, TSample, BilinearOperator>(
+                DispatchScaledVertical<TSource, TDestination, TOperator, BilinearOperator>(
                     source,
                     sourceStride,
                     sourceOrigin,
@@ -202,11 +274,11 @@ internal static partial class Av1ScaledInterPredictor
     /// <summary>
     /// Selects the vertical filter family for a closed horizontal scaled-prediction operator.
     /// </summary>
-    private static void DispatchScaledVertical<T, TSample, THorizontal>(
-        ReadOnlySpan<T> source,
+    private static void DispatchScaledVertical<TSource, TDestination, TOperator, THorizontal>(
+        ReadOnlySpan<TSource> source,
         int sourceStride,
         int sourceOrigin,
-        Span<T> destination,
+        Span<TDestination> destination,
         int destinationStride,
         int width,
         int height,
@@ -217,14 +289,15 @@ internal static partial class Av1ScaledInterPredictor
         int verticalStep,
         int bitDepth,
         Span<short> scratch)
-        where T : unmanaged
-        where TSample : struct, IAv1ScaledPredictionOperator
+        where TSource : unmanaged
+        where TDestination : unmanaged
+        where TOperator : struct, IAv1ScaledPredictionOperator
         where THorizontal : struct, IAv1InterPredictorOperator
     {
         switch (verticalFilter)
         {
             case Av1InterpolationFilter.Regular:
-                PredictScaled<T, TSample, THorizontal, RegularOperator>(
+                PredictScaled<TSource, TDestination, TOperator, THorizontal, RegularOperator>(
                     source,
                     sourceStride,
                     sourceOrigin,
@@ -241,7 +314,7 @@ internal static partial class Av1ScaledInterPredictor
 
                 break;
             case Av1InterpolationFilter.Smooth:
-                PredictScaled<T, TSample, THorizontal, SmoothOperator>(
+                PredictScaled<TSource, TDestination, TOperator, THorizontal, SmoothOperator>(
                     source,
                     sourceStride,
                     sourceOrigin,
@@ -258,7 +331,7 @@ internal static partial class Av1ScaledInterPredictor
 
                 break;
             case Av1InterpolationFilter.Sharp:
-                PredictScaled<T, TSample, THorizontal, SharpOperator>(
+                PredictScaled<TSource, TDestination, TOperator, THorizontal, SharpOperator>(
                     source,
                     sourceStride,
                     sourceOrigin,
@@ -275,7 +348,7 @@ internal static partial class Av1ScaledInterPredictor
 
                 break;
             default:
-                PredictScaled<T, TSample, THorizontal, BilinearOperator>(
+                PredictScaled<TSource, TDestination, TOperator, THorizontal, BilinearOperator>(
                     source,
                     sourceStride,
                     sourceOrigin,
@@ -297,11 +370,11 @@ internal static partial class Av1ScaledInterPredictor
     /// <summary>
     /// Applies variable-phase horizontal filtering followed by variable-phase vertical filtering.
     /// </summary>
-    private static void PredictScaled<T, TSample, THorizontal, TVertical>(
-        ReadOnlySpan<T> source,
+    private static void PredictScaled<TSource, TDestination, TOperator, THorizontal, TVertical>(
+        ReadOnlySpan<TSource> source,
         int sourceStride,
         int sourceOrigin,
-        Span<T> destination,
+        Span<TDestination> destination,
         int destinationStride,
         int width,
         int height,
@@ -311,13 +384,14 @@ internal static partial class Av1ScaledInterPredictor
         int verticalStep,
         int bitDepth,
         Span<short> scratch)
-        where T : unmanaged
-        where TSample : struct, IAv1ScaledPredictionOperator
+        where TSource : unmanaged
+        where TDestination : unmanaged
+        where TOperator : struct, IAv1ScaledPredictionOperator
         where THorizontal : struct, IAv1InterPredictorOperator
         where TVertical : struct, IAv1InterPredictorOperator
     {
-        ref T sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
-        ref T destinationBase = ref MemoryMarshal.GetReference(destination);
+        ref TSource sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
+        ref TDestination destinationBase = ref MemoryMarshal.GetReference(destination);
         ref short scratchBase = ref MemoryMarshal.GetReference(scratch);
         int scratchStride = Math.Max(width, Vector128<short>.Count);
         int intermediateHeight = ((((height - 1) * verticalStep) + verticalPhase) >> Av1ReferenceScale.SubpixelBits) + FilterCoefficientCount;
@@ -331,7 +405,7 @@ internal static partial class Av1ScaledInterPredictor
         // vectors gather those independent positions into one multiply-accumulate chain without allocating an index map.
         for (int row = 0; row < intermediateHeight; row++)
         {
-            ref T sourceRow = ref Unsafe.Add(ref sourceBase, (row - 3) * sourceStride);
+            ref TSource sourceRow = ref Unsafe.Add(ref sourceBase, (row - 3) * sourceStride);
             ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
             int column = 0;
 
@@ -340,7 +414,7 @@ internal static partial class Av1ScaledInterPredictor
                 int oneVectorFromEnd = width - Vector512<int>.Count;
                 for (; column <= oneVectorFromEnd; column += Vector512<int>.Count)
                 {
-                    Vector512<int> result = FilterScaledHorizontalVector512<T, TSample, THorizontal>(
+                    Vector512<int> result = FilterScaledHorizontalVector512<TSource, THorizontal>(
                         ref sourceRow,
                         horizontalPhase,
                         horizontalStep,
@@ -360,7 +434,7 @@ internal static partial class Av1ScaledInterPredictor
                 int oneVectorFromEnd = width - Vector256<int>.Count;
                 for (; column <= oneVectorFromEnd; column += Vector256<int>.Count)
                 {
-                    Vector256<int> result = FilterScaledHorizontalVector256<T, TSample, THorizontal>(
+                    Vector256<int> result = FilterScaledHorizontalVector256<TSource, THorizontal>(
                         ref sourceRow,
                         horizontalPhase,
                         horizontalStep,
@@ -379,7 +453,7 @@ internal static partial class Av1ScaledInterPredictor
             {
                 for (; column <= width - Vector128<int>.Count; column += Vector128<int>.Count)
                 {
-                    Vector128<int> result = FilterScaledHorizontalVector128<T, TSample, THorizontal>(
+                    Vector128<int> result = FilterScaledHorizontalVector128<TSource, THorizontal>(
                         ref sourceRow,
                         horizontalPhase,
                         horizontalStep,
@@ -405,17 +479,17 @@ internal static partial class Av1ScaledInterPredictor
                 int sum = horizontalBias;
                 for (int tap = 0; tap < FilterCoefficientCount; tap++)
                 {
-                    sum = TSample.MultiplyAdd(sum, TSample.Load(ref sourceRow, sourceColumn + tap), coefficients[tap]);
+                    sum = NativeOperator.MultiplyAdd(sum, NativeOperator.Load(ref sourceRow, sourceColumn + tap), coefficients[tap]);
                 }
 
                 Unsafe.Add(ref scratchRow, column) = (short)RoundPowerOfTwo(sum, round0);
             }
         }
 
-        int round1 = (2 * FilterBits) - round0;
+        int round1 = TOperator.GetVerticalRound(round0);
         int offsetBits = bitDepth + (2 * FilterBits) - round0;
         int verticalBias = 1 << offsetBits;
-        int roundOffset = (1 << (offsetBits - round1)) + (1 << (offsetBits - round1 - 1));
+        int roundOffset = TOperator.GetRoundOffset(offsetBits, round1);
         for (int row = 0; row < height; row++)
         {
             int position = verticalPhase + (row * verticalStep);
@@ -426,7 +500,7 @@ internal static partial class Av1ScaledInterPredictor
 
             ref short scratchRow = ref Unsafe.Add(ref scratchBase, sourceRowIndex * scratchStride);
             ref short coefficientBase = ref MemoryMarshal.GetReference(coefficients);
-            ref T destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
+            ref TDestination destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
             int column = 0;
 
             if (Vector512.IsHardwareAccelerated)
@@ -436,7 +510,7 @@ internal static partial class Av1ScaledInterPredictor
                 int oneVectorFromEnd = width - (Vector512<int>.Count * 2);
                 for (; column <= oneVectorFromEnd; column += Vector512<int>.Count * 2)
                 {
-                    TSample.Convolve(
+                    NativeOperator.Convolve(
                         ref scratchRow,
                         scratchStride,
                         (nuint)column,
@@ -448,7 +522,7 @@ internal static partial class Av1ScaledInterPredictor
 
                     result0 = RoundPowerOfTwo(result0, round1) - offset;
                     result1 = RoundPowerOfTwo(result1, round1) - offset;
-                    TSample.Store(ref destinationRow, column, result0, result1, bitDepth);
+                    TOperator.Store(ref destinationRow, column, result0, result1, bitDepth);
                 }
             }
 
@@ -459,7 +533,7 @@ internal static partial class Av1ScaledInterPredictor
                 int oneVectorFromEnd = width - (Vector256<int>.Count * 2);
                 for (; column <= oneVectorFromEnd; column += Vector256<int>.Count * 2)
                 {
-                    TSample.Convolve(
+                    NativeOperator.Convolve(
                         ref scratchRow,
                         scratchStride,
                         (nuint)column,
@@ -471,7 +545,7 @@ internal static partial class Av1ScaledInterPredictor
 
                     result0 = RoundPowerOfTwo(result0, round1) - offset;
                     result1 = RoundPowerOfTwo(result1, round1) - offset;
-                    TSample.Store(ref destinationRow, column, result0, result1, bitDepth);
+                    TOperator.Store(ref destinationRow, column, result0, result1, bitDepth);
                 }
             }
 
@@ -482,7 +556,7 @@ internal static partial class Av1ScaledInterPredictor
                 int oneVectorFromEnd = width - (Vector128<int>.Count * 2);
                 for (; column <= oneVectorFromEnd; column += Vector128<int>.Count * 2)
                 {
-                    TSample.Convolve(
+                    NativeOperator.Convolve(
                         ref scratchRow,
                         scratchStride,
                         (nuint)column,
@@ -494,19 +568,19 @@ internal static partial class Av1ScaledInterPredictor
 
                     result0 = RoundPowerOfTwo(result0, round1) - offset;
                     result1 = RoundPowerOfTwo(result1, round1) - offset;
-                    TSample.Store(ref destinationRow, column, result0, result1, bitDepth);
+                    TOperator.Store(ref destinationRow, column, result0, result1, bitDepth);
                 }
             }
 
             for (; column < width; column++)
             {
-                int sum = verticalBias + TSample.Convolve(
+                int sum = verticalBias + NativeOperator.Convolve(
                     ref Unsafe.Add(ref scratchRow, column),
                     scratchStride,
                     ref coefficientBase,
                     FilterCoefficientCount);
 
-                TSample.Store(
+                TOperator.Store(
                     ref destinationRow,
                     column,
                     RoundPowerOfTwo(sum, round1) - roundOffset,
@@ -518,7 +592,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <summary>
     /// Filters four independently positioned horizontal samples through a closed scaled-prediction operator.
     /// </summary>
-    private static Vector128<int> FilterScaledHorizontalVector128<T, TOperator, TFilter>(
+    private static Vector128<int> FilterScaledHorizontalVector128<T, TFilter>(
         ref T source,
         int phase,
         int step,
@@ -527,15 +601,14 @@ internal static partial class Av1ScaledInterPredictor
         int bias,
         int round)
         where T : unmanaged
-        where TOperator : struct, IAv1ScaledPredictionOperator
         where TFilter : struct, IAv1InterPredictorOperator
     {
         Vector128<int> result = Vector128.Create(bias);
         for (int tap = 0; tap < FilterCoefficientCount; tap++)
         {
-            result = TOperator.MultiplyAdd(
+            result = NativeOperator.MultiplyAdd(
                 result,
-                LoadScaledSamplesVector128<T, TOperator>(ref source, phase, step, column, tap),
+                LoadScaledSamplesVector128<T>(ref source, phase, step, column, tap),
                 LoadScaledCoefficientsVector128<TFilter>(phase, step, column, tap, useReducedFilter));
         }
 
@@ -545,7 +618,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <summary>
     /// Filters eight independently positioned horizontal samples through a closed scaled-prediction operator.
     /// </summary>
-    private static Vector256<int> FilterScaledHorizontalVector256<T, TOperator, TFilter>(
+    private static Vector256<int> FilterScaledHorizontalVector256<T, TFilter>(
         ref T source,
         int phase,
         int step,
@@ -554,21 +627,20 @@ internal static partial class Av1ScaledInterPredictor
         int bias,
         int round)
         where T : unmanaged
-        where TOperator : struct, IAv1ScaledPredictionOperator
         where TFilter : struct, IAv1InterPredictorOperator
     {
         Vector256<int> result = Vector256.Create(bias);
         for (int tap = 0; tap < FilterCoefficientCount; tap++)
         {
             Vector256<int> samples = Vector256.Create(
-                LoadScaledSamplesVector128<T, TOperator>(ref source, phase, step, column, tap),
-                LoadScaledSamplesVector128<T, TOperator>(ref source, phase, step, column + Vector128<int>.Count, tap));
+                LoadScaledSamplesVector128<T>(ref source, phase, step, column, tap),
+                LoadScaledSamplesVector128<T>(ref source, phase, step, column + Vector128<int>.Count, tap));
 
             Vector256<int> coefficients = Vector256.Create(
                 LoadScaledCoefficientsVector128<TFilter>(phase, step, column, tap, useReducedFilter),
                 LoadScaledCoefficientsVector128<TFilter>(phase, step, column + Vector128<int>.Count, tap, useReducedFilter));
 
-            result = TOperator.MultiplyAdd(result, samples, coefficients);
+            result = NativeOperator.MultiplyAdd(result, samples, coefficients);
         }
 
         return RoundPowerOfTwo(result, round);
@@ -577,7 +649,7 @@ internal static partial class Av1ScaledInterPredictor
     /// <summary>
     /// Filters sixteen independently positioned horizontal samples through a closed scaled-prediction operator.
     /// </summary>
-    private static Vector512<int> FilterScaledHorizontalVector512<T, TOperator, TFilter>(
+    private static Vector512<int> FilterScaledHorizontalVector512<T, TFilter>(
         ref T source,
         int phase,
         int step,
@@ -586,19 +658,18 @@ internal static partial class Av1ScaledInterPredictor
         int bias,
         int round)
         where T : unmanaged
-        where TOperator : struct, IAv1ScaledPredictionOperator
         where TFilter : struct, IAv1InterPredictorOperator
     {
         Vector512<int> result = Vector512.Create(bias);
         for (int tap = 0; tap < FilterCoefficientCount; tap++)
         {
             Vector256<int> sampleLower = Vector256.Create(
-                LoadScaledSamplesVector128<T, TOperator>(ref source, phase, step, column, tap),
-                LoadScaledSamplesVector128<T, TOperator>(ref source, phase, step, column + Vector128<int>.Count, tap));
+                LoadScaledSamplesVector128<T>(ref source, phase, step, column, tap),
+                LoadScaledSamplesVector128<T>(ref source, phase, step, column + Vector128<int>.Count, tap));
 
             Vector256<int> sampleUpper = Vector256.Create(
-                LoadScaledSamplesVector128<T, TOperator>(ref source, phase, step, column + Vector256<int>.Count, tap),
-                LoadScaledSamplesVector128<T, TOperator>(ref source, phase, step, column + Vector256<int>.Count + Vector128<int>.Count, tap));
+                LoadScaledSamplesVector128<T>(ref source, phase, step, column + Vector256<int>.Count, tap),
+                LoadScaledSamplesVector128<T>(ref source, phase, step, column + Vector256<int>.Count + Vector128<int>.Count, tap));
 
             Vector256<int> coefficientLower = Vector256.Create(
                 LoadScaledCoefficientsVector128<TFilter>(phase, step, column, tap, useReducedFilter),
@@ -608,7 +679,7 @@ internal static partial class Av1ScaledInterPredictor
                 LoadScaledCoefficientsVector128<TFilter>(phase, step, column + Vector256<int>.Count, tap, useReducedFilter),
                 LoadScaledCoefficientsVector128<TFilter>(phase, step, column + Vector256<int>.Count + Vector128<int>.Count, tap, useReducedFilter));
 
-            result = TOperator.MultiplyAdd(
+            result = NativeOperator.MultiplyAdd(
                 result,
                 Vector512.Create(sampleLower, sampleUpper),
                 Vector512.Create(coefficientLower, coefficientUpper));
@@ -620,19 +691,18 @@ internal static partial class Av1ScaledInterPredictor
     /// <summary>
     /// Gathers four variable-position source samples for one horizontal filter tap.
     /// </summary>
-    private static Vector128<int> LoadScaledSamplesVector128<T, TOperator>(
+    private static Vector128<int> LoadScaledSamplesVector128<T>(
         ref T source,
         int phase,
         int step,
         int column,
         int tap)
         where T : unmanaged
-        where TOperator : struct, IAv1ScaledPredictionOperator
         => Vector128.Create(
-            LoadScaledSample<T, TOperator>(ref source, phase, step, column, tap),
-            LoadScaledSample<T, TOperator>(ref source, phase, step, column + 1, tap),
-            LoadScaledSample<T, TOperator>(ref source, phase, step, column + 2, tap),
-            LoadScaledSample<T, TOperator>(ref source, phase, step, column + 3, tap));
+            LoadScaledSample(ref source, phase, step, column, tap),
+            LoadScaledSample(ref source, phase, step, column + 1, tap),
+            LoadScaledSample(ref source, phase, step, column + 2, tap),
+            LoadScaledSample(ref source, phase, step, column + 3, tap));
 
     /// <summary>
     /// Gathers four variable-phase coefficients for one horizontal filter tap.
@@ -653,13 +723,12 @@ internal static partial class Av1ScaledInterPredictor
     /// <summary>
     /// Loads one variable-position source sample for a horizontal filter tap.
     /// </summary>
-    private static int LoadScaledSample<T, TOperator>(ref T source, int phase, int step, int column, int tap)
+    private static int LoadScaledSample<T>(ref T source, int phase, int step, int column, int tap)
         where T : unmanaged
-        where TOperator : struct, IAv1ScaledPredictionOperator
     {
         int position = phase + (column * step);
         int sourceColumn = (position >> Av1ReferenceScale.SubpixelBits) - 3;
-        return TOperator.Load(ref source, sourceColumn + tap);
+        return NativeOperator.Load(ref source, sourceColumn + tap);
     }
 
     /// <summary>

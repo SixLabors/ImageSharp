@@ -30,9 +30,8 @@ Reference checkout evidence on 2026-08-31:
 Reconciled with the worktree on 2026-08-31.
 
 - [~] The bounded container reader, still-image path, sequence parser, AV1 decoder, color pipeline, presentation pipeline, and broad AV1 test suite exist locally.
-- [~] The inter-frame decoder has verified checkpoints through OBMC. Scaled references, local warped
-  motion, and global motion exist locally but remain open until their ordered checkpoints below are
-  completed.
+- [~] The inter-frame decoder has verified checkpoints through scaled-reference prediction. Local warped
+  motion and global motion exist locally but remain open until their ordered checkpoints below are completed.
 - [~] Loop filtering, CDEF, super-resolution, restoration, film grain, layered presentation, alpha composition, and color conversion exist locally. Shared-source cleanup changed the current tree, so final production-path verification is open.
 - [~] AV1 writer primitives, forward transforms, symbol encoding, and tile-writing source exist locally, but they are not connected to the public encoder.
 - [ ] The public AV1 encoder is not implemented. HeifEncoderCore.Encode throws NotSupportedException when AV1 is selected.
@@ -184,8 +183,8 @@ The single-reference syntax, buffer, reconstruction, and ownership foundation is
 - [x] Wedge compound prediction.
 - [x] Difference-weighted compound prediction.
 - [x] OBMC.
-- [~] Scaled-reference prediction. Next item.
-- [~] Local warped prediction.
+- [x] Scaled-reference prediction.
+- [~] Local warped prediction. Next item.
 - [~] Non-translational global prediction.
 - [~] Inter deblocking decisions and reference/mode deltas.
 
@@ -394,6 +393,42 @@ Verified OBMC checkpoint evidence on 2026-08-31:
 - [x] The focused Release checkpoint set passes 18/18 on net10.0 and 18/18 on net11.0, with zero
   failures or skips. Scoped analyzer and whitespace verification pass for every changed C# file.
   Roslynk reports zero compiler errors, `git diff --check` passes, and `.gitattributes` is unchanged.
+- [x] The completed checkpoint was committed as `7e7e3cbe6438d63926b31d966795d2652e221939`
+  with author and committer `James Jackson-South <james_south@hotmail.com>`.
+
+Verified scaled-reference checkpoint evidence on 2026-08-31:
+
+- [x] Audited reference-size validation and variable-scale coordinates, filters, edge extension, convolution
+  rounding, and compound intermediates against current libaom `av1/common/scale.c`,
+  `av1/decoder/decodeframe.c`, and `av1/common/convolve.c`. The frame boundary accepts the same
+  half-to-sixteen-times dimension range and requires at least one compatible selected reference.
+- [x] Corrected the production scaled-compound branch. It previously rounded each scaled reference into
+  native pixels before blending; current libaom retains both `CONV_BUF_TYPE` values with
+  `COMPOUND_ROUND1_BITS` equal to seven and performs one final rounding after the selected compound blend.
+- [x] Kept native-pixel and compound output in the existing `Av1ScaledInterPredictor` traversal with
+  semantic `NativeOperator` and `CompoundOperator` output contracts. The closed generic traversal shares
+  variable-phase arithmetic across byte and ushort sources, dispatches Vector512, Vector256, Vector128,
+  then scalar, and adds no per-block allocation or copy.
+- [x] Added independent FeatureTestRunner oracles for native and no-round compound output across 8, 10,
+  and 12 bits, variable phases, all interpolation families, reduced kernels, vector tails, and destination
+  padding. A complete `Av1BlockDecoder.DecodeBlock()` regression covers scaled compound prediction across
+  all, AVX-512-disabled, AVX-disabled, and scalar configurations and proves the vector differs from an
+  incorrectly early-rounded blend.
+- [x] Decoded the 2,195-byte layered payload with refreshed current libaom `aomdec`, using one thread,
+  row threading disabled, all layers selected, and raw 8-bit output. The 40x40 YUV444 base and 80x80
+  YUV444 dependent frames total 24,000 samples with SHA-256
+  `DD219E41B52C6C9343A92CD0A2D451DF57B73B25F10124811675B4CB2F8D666F`; both match their retained
+  native references with zero differing samples.
+- [x] The production tests compare both native frames exactly, compare selected-layer and final RGBA
+  presentation through ImageSharp's established reference-output API, and repeat both paths with a
+  1,024-byte constrained tracked allocator whose allocations have balanced exactly-once returns.
+- [x] Renamed the two stale pinned-reference tests and their contract-derived PNGs together. Their Git blob
+  identifiers remain unchanged, and their SHA-256 values remain
+  `DC4C6DBE6BD92C5FCE1E3E23700AFA603EF04ED02EDD336213EBBA1E3BD84BA0` and
+  `678C5E5D4650EA6F0C590302E7DB9E3C6608851BC577453DA4A6837BDB4D3AF3`.
+- [x] The focused Release checkpoint set passes 10/10 on net10.0 and 10/10 on net11.0, with zero failures
+  or skips. Scoped analyzer and whitespace verification pass for every changed C# file. Roslynk reports
+  zero compiler errors, `git diff --check` passes, and `.gitattributes` is unchanged.
 
 For every item:
 

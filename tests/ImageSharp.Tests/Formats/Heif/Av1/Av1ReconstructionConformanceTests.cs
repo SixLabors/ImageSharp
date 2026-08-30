@@ -717,12 +717,12 @@ public class Av1ReconstructionConformanceTests
 
     /// <summary>
     /// Verifies that an essential lsel property returns the selected base spatial layer rather than the final
-    /// progressive layer, with exact pinned-libaom native planes and pinned-libavif presentation.
+    /// progressive layer, with exact current-libaom native planes and the retained exact presentation reference.
     /// </summary>
     /// <param name="provider">The selected-layer AVIF input and matching reference-output naming context.</param>
     [Theory]
     [WithFile(TestImages.Heif.Av1ScaledReferenceSelectedLayerAvif, PixelTypes.Rgba32)]
-    public void DecodeSelectedProgressiveSpatialLayerMatchesPinnedReferences(
+    public void DecodeSelectedProgressiveSpatialLayerMatchesCurrentLibaomReferences(
         TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateSelectedProgressiveSpatialLayerWithDefaultConfiguration,
@@ -753,12 +753,12 @@ public class Av1ReconstructionConformanceTests
 
     /// <summary>
     /// Verifies an independently encoded 40x40 retained layer scaled into an 80x80 dependent layer against exact
-    /// pinned-libaom native planes and pinned-libavif presentation.
+    /// current-libaom native planes and the retained exact presentation reference.
     /// </summary>
     /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
     [Theory]
     [WithFile(TestImages.Heif.Av1ScaledReferenceAvif, PixelTypes.Rgba32)]
-    public void DecodeScaledReferenceMatchesPinnedReferences(TestImageProvider<Rgba32> provider)
+    public void DecodeScaledReferenceMatchesCurrentLibaomReferences(TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateScaledReferenceFixtureWithDefaultConfiguration,
             ReconstructionConfigurations,

@@ -14,9 +14,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 internal static partial class Av1ScaledInterPredictor
 {
     /// <summary>
-    /// Defines variable-phase scaled prediction for one native sample storage type.
+    /// Defines source and convolution arithmetic shared by variable-phase scaled prediction.
     /// </summary>
-    private interface IAv1ScaledPredictionOperator
+    private interface IAv1ScaledArithmeticOperator
     {
         /// <summary>
         /// Loads one native source sample as a signed accumulator value.
@@ -136,9 +136,30 @@ internal static partial class Av1ScaledInterPredictor
             Vector512<int> initial,
             out Vector512<int> result0,
             out Vector512<int> result1);
+    }
+
+    /// <summary>
+    /// Defines the output domain produced by variable-phase scaled prediction.
+    /// </summary>
+    private interface IAv1ScaledPredictionOperator
+    {
+        /// <summary>
+        /// Gets the vertical convolution shift for the selected output domain.
+        /// </summary>
+        /// <param name="horizontalRound">The horizontal convolution shift.</param>
+        /// <returns>The vertical convolution shift.</returns>
+        public static abstract int GetVerticalRound(int horizontalRound);
 
         /// <summary>
-        /// Clips and stores one completed prediction.
+        /// Gets the bias removed after vertical convolution for the selected output domain.
+        /// </summary>
+        /// <param name="offsetBits">The biased intermediate precision.</param>
+        /// <param name="verticalRound">The vertical convolution shift.</param>
+        /// <returns>The bias removed before storing the result.</returns>
+        public static abstract int GetRoundOffset(int offsetBits, int verticalRound);
+
+        /// <summary>
+        /// Stores one completed prediction in the selected output domain.
         /// </summary>
         /// <typeparam name="T">The native sample storage type.</typeparam>
         /// <param name="destination">The first destination sample.</param>
@@ -149,7 +170,7 @@ internal static partial class Av1ScaledInterPredictor
             where T : unmanaged;
 
         /// <summary>
-        /// Clips and stores eight completed predictions.
+        /// Stores eight completed predictions in the selected output domain.
         /// </summary>
         /// <typeparam name="T">The native sample storage type.</typeparam>
         /// <param name="destination">The first destination sample.</param>
@@ -161,7 +182,7 @@ internal static partial class Av1ScaledInterPredictor
             where T : unmanaged;
 
         /// <summary>
-        /// Clips and stores sixteen completed predictions.
+        /// Stores sixteen completed predictions in the selected output domain.
         /// </summary>
         /// <typeparam name="T">The native sample storage type.</typeparam>
         /// <param name="destination">The first destination sample.</param>
@@ -173,7 +194,7 @@ internal static partial class Av1ScaledInterPredictor
             where T : unmanaged;
 
         /// <summary>
-        /// Clips and stores thirty-two completed predictions.
+        /// Stores thirty-two completed predictions in the selected output domain.
         /// </summary>
         /// <typeparam name="T">The native sample storage type.</typeparam>
         /// <param name="destination">The first destination sample.</param>
@@ -186,10 +207,20 @@ internal static partial class Av1ScaledInterPredictor
     }
 
     /// <summary>
-    /// Implements variable-phase scaled prediction for scalar and SIMD lane groups.
+    /// Produces native-pixel scaled prediction for scalar and SIMD lane groups.
     /// </summary>
-    private readonly struct ScaledOperator : IAv1ScaledPredictionOperator
+    private readonly struct NativeOperator : IAv1ScaledArithmeticOperator, IAv1ScaledPredictionOperator
     {
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetVerticalRound(int horizontalRound)
+            => (2 * FilterBits) - horizontalRound;
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetRoundOffset(int offsetBits, int verticalRound)
+            => (1 << (offsetBits - verticalRound)) + (1 << (offsetBits - verticalRound - 1));
+
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Load<T>(ref T source, int index)
@@ -360,5 +391,69 @@ internal static partial class Av1ScaledInterPredictor
             PackHighBitDepth(result0, result1, (1 << bitDepth) - 1)
                 .StoreUnsafe(ref Unsafe.As<T, ushort>(ref destination), (nuint)index);
         }
+    }
+
+    /// <summary>
+    /// Produces no-round compound intermediates for scalar and SIMD lane groups.
+    /// </summary>
+    private readonly struct CompoundOperator : IAv1ScaledPredictionOperator
+    {
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetVerticalRound(int horizontalRound)
+            => Av1CompoundInterPredictor.CompoundRound1Bits;
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int GetRoundOffset(int offsetBits, int verticalRound) => 0;
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Store<T>(ref T destination, int index, int value, int bitDepth)
+            where T : unmanaged
+        {
+            // Compound entry points close T as ushort. Their no-round values retain the positive convolution bias,
+            // so storing the normative unsigned intermediate needs neither pixel clipping nor a storage-type branch.
+            Unsafe.Add(ref Unsafe.As<T, ushort>(ref destination), index) = (ushort)value;
+        }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Store<T>(
+            ref T destination,
+            int index,
+            Vector128<int> result0,
+            Vector128<int> result1,
+            int bitDepth)
+            where T : unmanaged
+            => Av1IntraPredictorBase.Narrow(result0, result1)
+                .AsUInt16()
+                .StoreUnsafe(ref Unsafe.As<T, ushort>(ref destination), (nuint)index);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Store<T>(
+            ref T destination,
+            int index,
+            Vector256<int> result0,
+            Vector256<int> result1,
+            int bitDepth)
+            where T : unmanaged
+            => Av1IntraPredictorBase.Narrow(result0, result1)
+                .AsUInt16()
+                .StoreUnsafe(ref Unsafe.As<T, ushort>(ref destination), (nuint)index);
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Store<T>(
+            ref T destination,
+            int index,
+            Vector512<int> result0,
+            Vector512<int> result1,
+            int bitDepth)
+            where T : unmanaged
+            => Av1IntraPredictorBase.Narrow(result0, result1)
+                .AsUInt16()
+                .StoreUnsafe(ref Unsafe.As<T, ushort>(ref destination), (nuint)index);
     }
 }

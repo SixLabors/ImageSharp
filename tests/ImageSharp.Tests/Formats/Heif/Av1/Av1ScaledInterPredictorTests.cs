@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 /// <summary>
-/// Verifies AV1 reference scaling and variable-phase inter convolution against an independent libaom-shaped oracle.
+/// Verifies AV1 reference scaling and variable-phase inter convolution against current libaom arithmetic.
 /// </summary>
 [Trait("Format", "Avif")]
 public class Av1ScaledInterPredictorTests
@@ -21,6 +21,11 @@ public class Av1ScaledInterPredictorTests
     /// The ordinary first-pass rounding distance.
     /// </summary>
     private const int Round0Bits = 3;
+
+    /// <summary>
+    /// The vertical shift that preserves AV1's compound intermediate precision.
+    /// </summary>
+    private const int CompoundRound1Bits = 7;
 
     /// <summary>
     /// The number of samples in every stored interpolation row.
@@ -63,10 +68,10 @@ public class Av1ScaledInterPredictorTests
     private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies the pinned Q14 scale factors, Q10 steps, and signed coordinate rounding.
+    /// Verifies current libaom's Q14 scale factors, Q10 steps, and signed coordinate rounding.
     /// </summary>
     [Fact]
-    public void ReferenceScaleMatchesPinnedLibaomFixedPointRules()
+    public void ReferenceScaleMatchesCurrentLibaomFixedPointRules()
     {
         Av1ReferenceScale downscaledReference = new(40, 24, 64, 48);
 
@@ -96,15 +101,29 @@ public class Av1ScaledInterPredictorTests
     /// Verifies exact scaled 8-bit output, variable filter phases, vector tails, and untouched destination padding.
     /// </summary>
     [Fact]
-    public void BytePredictionMatchesLibaomOracleAcrossIntrinsicConfigurations()
+    public void BytePredictionMatchesCurrentLibaomOracleAcrossIntrinsicConfigurations()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateBytePredictions, PredictorConfigurations);
 
     /// <summary>
     /// Verifies exact scaled 8-, 10-, and 12-bit output under the native vector and scalar configurations.
     /// </summary>
     [Fact]
-    public void HighBitDepthPredictionMatchesLibaomOracleAcrossIntrinsicConfigurations()
+    public void HighBitDepthPredictionMatchesCurrentLibaomOracleAcrossIntrinsicConfigurations()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthPredictions, PredictorConfigurations);
+
+    /// <summary>
+    /// Verifies exact scaled 8-bit no-round compound intermediates under native vector and scalar configurations.
+    /// </summary>
+    [Fact]
+    public void ByteCompoundPredictionMatchesCurrentLibaomOracleAcrossIntrinsicConfigurations()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateByteCompoundPredictions, PredictorConfigurations);
+
+    /// <summary>
+    /// Verifies exact scaled 8-, 10-, and 12-bit no-round compound intermediates under native vector and scalar configurations.
+    /// </summary>
+    [Fact]
+    public void HighBitDepthCompoundPredictionMatchesCurrentLibaomOracleAcrossIntrinsicConfigurations()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthCompoundPredictions, PredictorConfigurations);
 
     /// <summary>
     /// Applies each scaled-prediction scenario to byte storage.
@@ -170,6 +189,91 @@ public class Av1ScaledInterPredictorTests
                 ApplyReference(source, sourceStride, sourceOrigin, expected, destinationStride, testCase, bitDepth);
 
                 Av1ScaledInterPredictor.PredictScaled(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    actual.AsSpan(DestinationPrefix),
+                    destinationStride,
+                    testCase.Width,
+                    testCase.Height,
+                    testCase.HorizontalFilter,
+                    testCase.VerticalFilter,
+                    testCase.HorizontalPhase,
+                    testCase.HorizontalStep,
+                    testCase.VerticalPhase,
+                    testCase.VerticalStep,
+                    bitDepth,
+                    scratch);
+
+                Assert.Equal(expected, actual);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Applies each scaled compound-prediction scenario to byte source storage.
+    /// </summary>
+    private static void ValidateByteCompoundPredictions()
+    {
+        foreach (ScaledPredictionCase testCase in CreatePredictionCases())
+        {
+            byte[] source = CreateByteSource(testCase, out int sourceStride, out int sourceOrigin);
+            int destinationStride = testCase.Width + DestinationRowPadding;
+            ushort[] expected = CreateUInt16Destination(testCase, destinationStride);
+            ushort[] actual = (ushort[])expected.Clone();
+            short[] scratch = new short[
+                Av1ScaledInterPredictor.GetScaledScratchLength(
+                    testCase.Width,
+                    testCase.Height,
+                    testCase.VerticalPhase,
+                    testCase.VerticalStep)];
+
+            ApplyCompoundReference(source, sourceStride, sourceOrigin, expected, destinationStride, testCase, 8);
+
+            Av1ScaledInterPredictor.PredictScaledCompound(
+                source,
+                sourceStride,
+                sourceOrigin,
+                actual.AsSpan(DestinationPrefix),
+                destinationStride,
+                testCase.Width,
+                testCase.Height,
+                testCase.HorizontalFilter,
+                testCase.VerticalFilter,
+                testCase.HorizontalPhase,
+                testCase.HorizontalStep,
+                testCase.VerticalPhase,
+                testCase.VerticalStep,
+                scratch);
+
+            Assert.Equal(expected, actual);
+        }
+    }
+
+    /// <summary>
+    /// Applies each scaled compound-prediction scenario to every supported high-bit-depth precision.
+    /// </summary>
+    private static void ValidateHighBitDepthCompoundPredictions()
+    {
+        int[] bitDepths = [8, 10, 12];
+        foreach (int bitDepth in bitDepths)
+        {
+            foreach (ScaledPredictionCase testCase in CreatePredictionCases())
+            {
+                ushort[] source = CreateUInt16Source(testCase, bitDepth, out int sourceStride, out int sourceOrigin);
+                int destinationStride = testCase.Width + DestinationRowPadding;
+                ushort[] expected = CreateUInt16Destination(testCase, destinationStride);
+                ushort[] actual = (ushort[])expected.Clone();
+                short[] scratch = new short[
+                    Av1ScaledInterPredictor.GetScaledScratchLength(
+                        testCase.Width,
+                        testCase.Height,
+                        testCase.VerticalPhase,
+                        testCase.VerticalStep)];
+
+                ApplyCompoundReference(source, sourceStride, sourceOrigin, expected, destinationStride, testCase, bitDepth);
+
+                Av1ScaledInterPredictor.PredictScaledCompound(
                     source,
                     sourceStride,
                     sourceOrigin,
@@ -349,6 +453,74 @@ public class Av1ScaledInterPredictorTests
     }
 
     /// <summary>
+    /// Applies independent scaled compound convolution to byte source storage.
+    /// </summary>
+    private static void ApplyCompoundReference(
+        byte[] source,
+        int sourceStride,
+        int sourceOrigin,
+        ushort[] destination,
+        int destinationStride,
+        ScaledPredictionCase testCase,
+        int bitDepth)
+    {
+        short[] intermediate = CreateIntermediate(testCase);
+        int intermediateStride = testCase.Width;
+        int round0 = GetRound0Bits(bitDepth);
+        int horizontalBias = 1 << (bitDepth + FilterBits - 1);
+        Span<short> coefficients = stackalloc short[FilterTapCount];
+
+        for (int row = 0; row < intermediate.Length / intermediateStride; row++)
+        {
+            for (int column = 0; column < testCase.Width; column++)
+            {
+                int position = testCase.HorizontalPhase + (column * testCase.HorizontalStep);
+                int sourceColumn = (position >> Av1ReferenceScale.SubpixelBits) - 3;
+                FillCoefficients(testCase.HorizontalFilter, (position & Av1ReferenceScale.SubpixelMask) >> 6, testCase.Width <= 4, coefficients);
+                int sourceIndex = sourceOrigin + ((row - 3) * sourceStride) + sourceColumn;
+                int sum = horizontalBias + Convolve(source, sourceIndex, coefficients);
+                intermediate[(row * intermediateStride) + column] = (short)RoundPowerOfTwo(sum, round0);
+            }
+        }
+
+        WriteCompoundReference(intermediate, intermediateStride, destination, destinationStride, testCase, bitDepth);
+    }
+
+    /// <summary>
+    /// Applies independent scaled compound convolution to ushort source storage.
+    /// </summary>
+    private static void ApplyCompoundReference(
+        ushort[] source,
+        int sourceStride,
+        int sourceOrigin,
+        ushort[] destination,
+        int destinationStride,
+        ScaledPredictionCase testCase,
+        int bitDepth)
+    {
+        short[] intermediate = CreateIntermediate(testCase);
+        int intermediateStride = testCase.Width;
+        int round0 = GetRound0Bits(bitDepth);
+        int horizontalBias = 1 << (bitDepth + FilterBits - 1);
+        Span<short> coefficients = stackalloc short[FilterTapCount];
+
+        for (int row = 0; row < intermediate.Length / intermediateStride; row++)
+        {
+            for (int column = 0; column < testCase.Width; column++)
+            {
+                int position = testCase.HorizontalPhase + (column * testCase.HorizontalStep);
+                int sourceColumn = (position >> Av1ReferenceScale.SubpixelBits) - 3;
+                FillCoefficients(testCase.HorizontalFilter, (position & Av1ReferenceScale.SubpixelMask) >> 6, testCase.Width <= 4, coefficients);
+                int sourceIndex = sourceOrigin + ((row - 3) * sourceStride) + sourceColumn;
+                int sum = horizontalBias + Convolve(source, sourceIndex, coefficients);
+                intermediate[(row * intermediateStride) + column] = (short)RoundPowerOfTwo(sum, round0);
+            }
+        }
+
+        WriteCompoundReference(intermediate, intermediateStride, destination, destinationStride, testCase, bitDepth);
+    }
+
+    /// <summary>
     /// Allocates the oracle's independently shaped intermediate block.
     /// </summary>
     private static short[] CreateIntermediate(ScaledPredictionCase testCase)
@@ -405,6 +577,40 @@ public class Av1ScaledInterPredictorTests
             {
                 int value = FinishConvolution(intermediate, (sourceRow * intermediateStride) + column, intermediateStride, coefficients, bitDepth);
                 destination[DestinationPrefix + (row * destinationStride) + column] = (ushort)Math.Clamp(value, 0, maximum);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Writes the biased no-round compound output from the horizontally filtered intermediate block.
+    /// </summary>
+    private static void WriteCompoundReference(
+        short[] intermediate,
+        int intermediateStride,
+        ushort[] destination,
+        int destinationStride,
+        ScaledPredictionCase testCase,
+        int bitDepth)
+    {
+        int round0 = GetRound0Bits(bitDepth);
+        int offsetBits = bitDepth + (2 * FilterBits) - round0;
+        int verticalBias = 1 << offsetBits;
+        Span<short> coefficients = stackalloc short[FilterTapCount];
+        for (int row = 0; row < testCase.Height; row++)
+        {
+            int position = testCase.VerticalPhase + (row * testCase.VerticalStep);
+            int sourceRow = position >> Av1ReferenceScale.SubpixelBits;
+            FillCoefficients(testCase.VerticalFilter, (position & Av1ReferenceScale.SubpixelMask) >> 6, testCase.Height <= 4, coefficients);
+            for (int column = 0; column < testCase.Width; column++)
+            {
+                int sum = verticalBias + Convolve(
+                    intermediate,
+                    (sourceRow * intermediateStride) + column,
+                    intermediateStride,
+                    coefficients);
+
+                destination[DestinationPrefix + (row * destinationStride) + column] =
+                    (ushort)RoundPowerOfTwo(sum, CompoundRound1Bits);
             }
         }
     }
@@ -471,7 +677,7 @@ public class Av1ScaledInterPredictorTests
     }
 
     /// <summary>
-    /// Selects one pinned coefficient row without reading production filter storage.
+    /// Selects one current-libaom coefficient row without reading production filter storage.
     /// </summary>
     private static void FillCoefficients(Av1InterpolationFilter filter, int phase, bool reduced, Span<short> destination)
     {

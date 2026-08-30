@@ -46,6 +46,7 @@ The reference builds use `AOM_TARGET_CPU=generic` and disable libyuv. Native rec
 | `libavif-webp-logo-difference-weighted-compound` | Difference-weighted compound prediction with both mask orientations |
 | `libavif-webp-logo-inter-intra` | Smooth and wedge inter-intra prediction |
 | `libavif-webp-logo-obmc` | Overlapping motion compensation through a 19-frame dependent sequence |
+| `libavif-webp-logo-scaled-reference` | A 40x40 retained reference scaled into an 80x80 dependent frame |
 | `libavif-rotating-grid-local-warp` | Multi-sample local affine projection and warped prediction through a two-frame dependent sequence |
 | `libavif-rotating-grid-global-warp` | Non-translational rotation/zoom GLOBALMV prediction through a two-frame dependent sequence |
 
@@ -193,6 +194,38 @@ above-then-left blending at 8/10/12-bit and 4:2:0 and 4:2:2 overlap geometry. Th
 PNG's SHA-256 is
 `D2CB388C9092EF17C4F0382C0150DD30D6F9D0EE247FF45AB5D7D4D312CEB23C`; its pixels were not changed
 when its contract-derived filename was updated with the test name.
+
+## Scaled-reference fixture
+
+The `libavif-webp-logo-scaled-reference.avif` and
+`libavif-webp-logo-scaled-reference-lsel0.avif` files are retained solely as interoperability inputs.
+Their shared 2,195-byte `.bit` payload contains a 701-byte independent base layer followed by the
+dependent layer; no container implementation is used as an AV1 arithmetic reference.
+
+On 2026-08-31 the payload was decoded with `aomdec` from the freshly updated clean checkout of current
+official libaom `main`, observed at `441c439b9916474cac15d2822af47a9ad70674a8`:
+
+```text
+aomdec --codec=av1 --threads=1 --row-mt=0 --all-layers --rawvideo --output-bit-depth=8 -o current-libaom-scaled-reference-all.yuv libavif-webp-logo-scaled-reference.bit
+```
+
+Current libaom produced a 40x40 YUV444 base frame and an 80x80 YUV444 dependent frame. The combined
+24,000 native samples have SHA-256
+`DD219E41B52C6C9343A92CD0A2D451DF57B73B25F10124811675B4CB2F8D666F`. The base frame matches
+`libavif-webp-logo-scaled-reference-base-libaom.yuv` exactly, and the dependent frame matches the native
+planes in `libavif-webp-logo-scaled-reference-libaom.y4m` exactly, with zero differing samples.
+
+The production tests require the retained 40x40 base and the 80x80 dependent reconstruction, compare both
+native frames exactly, compare the selected base layer and final RGBA presentation through ImageSharp's
+established reference-output API, and repeat both layer selections with constrained tracked allocation.
+The scaled-prediction FeatureTestRunner tests cover native and no-round compound output at 8, 10, and
+12 bits, and a complete `Av1BlockDecoder.DecodeBlock()` test proves that scaled compound references remain
+in the no-round intermediate domain until the final blend.
+
+The two presentation PNGs were renamed with their current-libaom test contracts without changing their
+bytes. Their SHA-256 values remain
+`DC4C6DBE6BD92C5FCE1E3E23700AFA603EF04ED02EDD336213EBBA1E3BD84BA0` and
+`678C5E5D4650EA6F0C590302E7DB9E3C6608851BC577453DA4A6837BDB4D3AF3`.
 
 ## Local warped-motion fixture
 

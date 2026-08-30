@@ -362,14 +362,9 @@ internal sealed class Av1BlockDecoder : IDisposable
                         predictionScratch);
 
                 int referenceCount = usesSub8x8ChromaPrediction ? 0 : isCompound ? 2 : 1;
-                bool hasScaledCompoundReference = isCompound &&
-                    (referenceFrameBuffer!.Width != this.frameHeader.FrameSize.FrameWidth ||
-                     referenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight ||
-                     secondaryReferenceFrameBuffer!.Width != this.frameHeader.FrameSize.FrameWidth ||
-                     secondaryReferenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight);
 
-                // Compound convolution is combined before its final rounding step. Scaled references and high-bit-depth
-                // warped/global models have separate kernels and remain with their owning later prediction checkpoints.
+                // Compound convolution is combined before its final rounding step. Scaled and ordinary translational
+                // predictors share that no-round domain; high-bit-depth warped/global models retain their own kernels.
                 bool useHighBitDepthCompoundIntermediates =
                     highBitDepth &&
                     modeInfo.CompoundType is
@@ -382,7 +377,6 @@ internal sealed class Av1BlockDecoder : IDisposable
 
                 bool useCompoundIntermediates =
                     isCompound &&
-                    !hasScaledCompoundReference &&
                     (!highBitDepth || useHighBitDepthCompoundIntermediates);
 
                 for (int referenceIndex = 0; referenceIndex < referenceCount; referenceIndex++)
@@ -535,7 +529,14 @@ internal sealed class Av1BlockDecoder : IDisposable
                     {
                         Span<byte> scaledDestination = default;
                         Span<ushort> scaledHighBitDepthDestination = default;
-                        if (highBitDepth)
+                        Span<ushort> scaledCompoundDestination = default;
+                        if (useCompoundIntermediates)
+                        {
+                            scaledCompoundDestination = referenceIndex == 0
+                                ? firstCompoundPrediction
+                                : highBitDepthSecondPrediction;
+                        }
+                        else if (highBitDepth)
                         {
                             scaledHighBitDepthDestination = referenceIndex == 0
                                 ? MemoryMarshal.Cast<short, ushort>(highBitDepthBlockReconstructionBuffer[reconstructionStride..])
@@ -561,6 +562,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                             modeInfo.InterpolationFilters[0],
                             scaledDestination,
                             scaledHighBitDepthDestination,
+                            scaledCompoundDestination,
                             destinationStride,
                             predictionScratch);
 
@@ -1493,6 +1495,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                         candidate.InterpolationFilters[0],
                         scaledDestination,
                         scaledHighBitDepthDestination,
+                        default,
                         reconstructionStride,
                         predictionScratch);
                 }
@@ -1623,6 +1626,7 @@ internal sealed class Av1BlockDecoder : IDisposable
         Av1InterpolationFilter verticalFilter,
         Span<byte> destination,
         Span<ushort> highBitDepthDestination,
+        Span<ushort> compoundDestination,
         int destinationStride,
         Span<short> predictionScratch)
     {
@@ -1669,22 +1673,44 @@ internal sealed class Av1BlockDecoder : IDisposable
                 sourceOrigin.X +
                 (sourceColumnQ10 >> Av1ReferenceScale.SubpixelBits);
 
-            Av1ScaledInterPredictor.PredictScaled(
-                source,
-                sourceStride,
-                sourceIndex,
-                highBitDepthDestination,
-                destinationStride,
-                predictionWidth,
-                predictionHeight,
-                horizontalFilter,
-                verticalFilter,
-                horizontalPhase,
-                scale.HorizontalStep,
-                verticalPhase,
-                scale.VerticalStep,
-                this.frameBuffer.BitDepth.GetBitCount(),
-                predictionScratch);
+            if (compoundDestination.IsEmpty)
+            {
+                Av1ScaledInterPredictor.PredictScaled(
+                    source,
+                    sourceStride,
+                    sourceIndex,
+                    highBitDepthDestination,
+                    destinationStride,
+                    predictionWidth,
+                    predictionHeight,
+                    horizontalFilter,
+                    verticalFilter,
+                    horizontalPhase,
+                    scale.HorizontalStep,
+                    verticalPhase,
+                    scale.VerticalStep,
+                    this.frameBuffer.BitDepth.GetBitCount(),
+                    predictionScratch);
+            }
+            else
+            {
+                Av1ScaledInterPredictor.PredictScaledCompound(
+                    source,
+                    sourceStride,
+                    sourceIndex,
+                    compoundDestination,
+                    destinationStride,
+                    predictionWidth,
+                    predictionHeight,
+                    horizontalFilter,
+                    verticalFilter,
+                    horizontalPhase,
+                    scale.HorizontalStep,
+                    verticalPhase,
+                    scale.VerticalStep,
+                    this.frameBuffer.BitDepth.GetBitCount(),
+                    predictionScratch);
+            }
         }
         else
         {
@@ -1700,21 +1726,42 @@ internal sealed class Av1BlockDecoder : IDisposable
                 sourceOrigin.X +
                 (sourceColumnQ10 >> Av1ReferenceScale.SubpixelBits);
 
-            Av1ScaledInterPredictor.PredictScaled(
-                source,
-                sourceStride,
-                sourceIndex,
-                destination,
-                destinationStride,
-                predictionWidth,
-                predictionHeight,
-                horizontalFilter,
-                verticalFilter,
-                horizontalPhase,
-                scale.HorizontalStep,
-                verticalPhase,
-                scale.VerticalStep,
-                predictionScratch);
+            if (compoundDestination.IsEmpty)
+            {
+                Av1ScaledInterPredictor.PredictScaled(
+                    source,
+                    sourceStride,
+                    sourceIndex,
+                    destination,
+                    destinationStride,
+                    predictionWidth,
+                    predictionHeight,
+                    horizontalFilter,
+                    verticalFilter,
+                    horizontalPhase,
+                    scale.HorizontalStep,
+                    verticalPhase,
+                    scale.VerticalStep,
+                    predictionScratch);
+            }
+            else
+            {
+                Av1ScaledInterPredictor.PredictScaledCompound(
+                    source,
+                    sourceStride,
+                    sourceIndex,
+                    compoundDestination,
+                    destinationStride,
+                    predictionWidth,
+                    predictionHeight,
+                    horizontalFilter,
+                    verticalFilter,
+                    horizontalPhase,
+                    scale.HorizontalStep,
+                    verticalPhase,
+                    scale.VerticalStep,
+                    predictionScratch);
+            }
         }
     }
 
@@ -1949,6 +1996,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                 neighbor.InterpolationFilters[0],
                 destination,
                 highBitDepthDestination,
+                default,
                 predictionWidth,
                 predictionScratch);
 

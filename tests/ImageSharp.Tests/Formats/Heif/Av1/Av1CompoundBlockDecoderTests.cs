@@ -240,6 +240,15 @@ public class Av1CompoundBlockDecoderTests
     }
 
     /// <summary>
+    /// Verifies that scaled predictors retain their no-round precision until compound averaging.
+    /// </summary>
+    [Fact]
+    public void DecodeBlockReconstructsScaledCompoundPrediction()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateScaledCompoundPrediction,
+            CompoundPredictionConfigurations);
+
+    /// <summary>
     /// Verifies selectable compound reconstruction through the production block branch at every supported bit depth.
     /// </summary>
     /// <param name="bitDepthValue">The native sample depth.</param>
@@ -656,6 +665,262 @@ public class Av1CompoundBlockDecoderTests
         modeInfo.ReferenceFrames[1] = Av1ReferenceFrameType.None;
         modeInfo.InterpolationFilters.Clear();
         return modeInfo;
+    }
+
+    /// <summary>
+    /// Reconstructs the scaled compound regression at every supported source precision.
+    /// </summary>
+    private static void ValidateScaledCompoundPrediction()
+    {
+        foreach (Av1BitDepth bitDepth in new[] { Av1BitDepth.EightBit, Av1BitDepth.TenBit, Av1BitDepth.TwelveBit })
+        {
+            ValidateScaledCompoundPredictionAtBitDepth(bitDepth);
+        }
+    }
+
+    /// <summary>
+    /// Reconstructs one scaled compound block and compares the production branch with the no-round pipeline.
+    /// </summary>
+    /// <param name="bitDepth">The native sample depth.</param>
+    private static void ValidateScaledCompoundPredictionAtBitDepth(Av1BitDepth bitDepth)
+    {
+        const int currentSize = 8;
+        const int referenceSize = 16;
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(bitDepth, referenceSize);
+        ObuFrameHeader frameHeader = CreateFrameHeader(currentSize);
+        frameHeader.GetReferenceFrameIndices()[0] = 0;
+        frameHeader.GetReferenceFrameIndices()[1] = 1;
+
+        using Av1ReferenceFrameStore referenceFrames = new();
+        Assert.True(referenceFrames.Commit(
+            1,
+            CreateScaledPatternReferenceFrame(sequenceHeader),
+            showFrame: false));
+
+        Assert.True(referenceFrames.Commit(
+            2,
+            CreateScaledPatternReferenceFrame(
+                sequenceHeader,
+                horizontalScale: 3,
+                verticalScale: 7,
+                nonlinearScale: 3),
+            showFrame: false));
+
+        Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, Point.Empty)
+        {
+            Skip = true,
+            YMode = Av1PredictionMode.NearestNearestMotionVector,
+            CompoundIndex = true,
+            CompoundType = Av1CompoundType.Average,
+        };
+
+        modeInfo.ReferenceFrames[0] = Av1ReferenceFrameType.Last;
+        modeInfo.ReferenceFrames[1] = Av1ReferenceFrameType.Last2;
+        modeInfo.InterpolationFilters.Fill(Av1InterpolationFilter.Bilinear);
+        modeInfo.SetTransformUnitCount(Av1PlaneType.Y, 1);
+
+        Av1ReferenceScale scale = new(referenceSize, referenceSize, currentSize, currentSize);
+        int sourceColumnQ10 = scale.ScaleHorizontal(0) + Av1ReferenceScale.ExtraOffset;
+        int sourceRowQ10 = scale.ScaleVertical(0) + Av1ReferenceScale.ExtraOffset;
+        int horizontalPhase = sourceColumnQ10 & Av1ReferenceScale.SubpixelMask;
+        int verticalPhase = sourceRowQ10 & Av1ReferenceScale.SubpixelMask;
+        ushort[] firstIntermediate = new ushort[currentSize * currentSize];
+        ushort[] secondIntermediate = new ushort[currentSize * currentSize];
+        byte[] firstRounded8 = new byte[currentSize * currentSize];
+        byte[] secondRounded8 = new byte[currentSize * currentSize];
+        ushort[] firstRoundedHigh = new ushort[currentSize * currentSize];
+        ushort[] secondRoundedHigh = new ushort[currentSize * currentSize];
+        short[] predictionScratch = new short[
+            Av1ScaledInterPredictor.GetScaledScratchLength(
+                currentSize,
+                currentSize,
+                verticalPhase,
+                scale.VerticalStep)];
+
+        for (int referenceIndex = 0; referenceIndex < 2; referenceIndex++)
+        {
+            Av1FrameBuffer<byte> reference = referenceFrames.Resolve(referenceIndex)!.FrameBuffer;
+            Span<ushort> intermediate = referenceIndex == 0 ? firstIntermediate : secondIntermediate;
+            int sourceIndex;
+            if (bitDepth == Av1BitDepth.EightBit)
+            {
+                Span<byte> source = reference.GetPaddedPlaneSpan(
+                    Av1Plane.Y,
+                    0,
+                    0,
+                    out int sourceStride,
+                    out Point sourceOrigin);
+
+                sourceIndex =
+                    ((sourceOrigin.Y + (sourceRowQ10 >> Av1ReferenceScale.SubpixelBits)) * sourceStride) +
+                    sourceOrigin.X +
+                    (sourceColumnQ10 >> Av1ReferenceScale.SubpixelBits);
+
+                Av1ScaledInterPredictor.PredictScaledCompound(
+                    source,
+                    sourceStride,
+                    sourceIndex,
+                    intermediate,
+                    currentSize,
+                    currentSize,
+                    currentSize,
+                    Av1InterpolationFilter.Bilinear,
+                    Av1InterpolationFilter.Bilinear,
+                    horizontalPhase,
+                    scale.HorizontalStep,
+                    verticalPhase,
+                    scale.VerticalStep,
+                    predictionScratch);
+
+                Av1ScaledInterPredictor.PredictScaled(
+                    source,
+                    sourceStride,
+                    sourceIndex,
+                    referenceIndex == 0 ? firstRounded8 : secondRounded8,
+                    currentSize,
+                    currentSize,
+                    currentSize,
+                    Av1InterpolationFilter.Bilinear,
+                    Av1InterpolationFilter.Bilinear,
+                    horizontalPhase,
+                    scale.HorizontalStep,
+                    verticalPhase,
+                    scale.VerticalStep,
+                    predictionScratch);
+            }
+            else
+            {
+                Span<ushort> source = reference.GetPaddedPlaneSpan16(
+                    Av1Plane.Y,
+                    0,
+                    0,
+                    out int sourceStride,
+                    out Point sourceOrigin);
+
+                sourceIndex =
+                    ((sourceOrigin.Y + (sourceRowQ10 >> Av1ReferenceScale.SubpixelBits)) * sourceStride) +
+                    sourceOrigin.X +
+                    (sourceColumnQ10 >> Av1ReferenceScale.SubpixelBits);
+
+                Av1ScaledInterPredictor.PredictScaledCompound(
+                    source,
+                    sourceStride,
+                    sourceIndex,
+                    intermediate,
+                    currentSize,
+                    currentSize,
+                    currentSize,
+                    Av1InterpolationFilter.Bilinear,
+                    Av1InterpolationFilter.Bilinear,
+                    horizontalPhase,
+                    scale.HorizontalStep,
+                    verticalPhase,
+                    scale.VerticalStep,
+                    bitDepth.GetBitCount(),
+                    predictionScratch);
+
+                Av1ScaledInterPredictor.PredictScaled(
+                    source,
+                    sourceStride,
+                    sourceIndex,
+                    referenceIndex == 0 ? firstRoundedHigh : secondRoundedHigh,
+                    currentSize,
+                    currentSize,
+                    currentSize,
+                    Av1InterpolationFilter.Bilinear,
+                    Av1InterpolationFilter.Bilinear,
+                    horizontalPhase,
+                    scale.HorizontalStep,
+                    verticalPhase,
+                    scale.VerticalStep,
+                    bitDepth.GetBitCount(),
+                    predictionScratch);
+            }
+        }
+
+        using Av1FrameBuffer<byte> frameBuffer = new(
+            Configuration.Default,
+            sequenceHeader,
+            Av1ColorFormat.Yuv400,
+            false);
+
+        frameBuffer.Width = currentSize;
+        frameBuffer.Height = currentSize;
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
+        Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(Point.Empty);
+        superblockInfo.GetTransformInfoY()[0] = new Av1TransformInfo(Av1TransformSize.Size8x8, 0, 0);
+        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
+        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
+        using Av1BlockDecoder decoder = new(
+            sequenceHeader,
+            frameHeader,
+            frameBuffer,
+            loopFilterContext,
+            inverseQuantizer,
+            referenceFrames);
+
+        decoder.UpdateSuperblock(superblockInfo);
+        decoder.DecodeBlock(
+            modeInfo,
+            Point.Empty,
+            Av1BlockSize.Block8x8,
+            superblockInfo,
+            new Av1TileInfo(0, 0, frameHeader));
+
+        if (bitDepth == Av1BitDepth.EightBit)
+        {
+            byte[] expected = new byte[currentSize * currentSize];
+            Av1CompoundIntermediateAveragePredictor.AverageIntermediate(
+                expected,
+                currentSize,
+                firstIntermediate,
+                currentSize,
+                secondIntermediate,
+                currentSize,
+                currentSize,
+                currentSize,
+                bitDepth.GetBitCount());
+
+            byte[] prematurelyRounded = new byte[currentSize * currentSize];
+            for (int index = 0; index < prematurelyRounded.Length; index++)
+            {
+                prematurelyRounded[index] = (byte)((firstRounded8[index] + secondRounded8[index] + 1) >> 1);
+            }
+
+            Assert.False(expected.AsSpan().SequenceEqual(prematurelyRounded));
+            for (int row = 0; row < currentSize; row++)
+            {
+                Span<byte> actual = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(row);
+                Assert.Equal(expected.AsSpan(row * currentSize, currentSize), actual[..currentSize]);
+            }
+        }
+        else
+        {
+            ushort[] expected = new ushort[currentSize * currentSize];
+            Av1CompoundIntermediateAveragePredictor.AverageIntermediate(
+                expected,
+                currentSize,
+                firstIntermediate,
+                currentSize,
+                secondIntermediate,
+                currentSize,
+                currentSize,
+                currentSize,
+                bitDepth.GetBitCount());
+
+            ushort[] prematurelyRounded = new ushort[currentSize * currentSize];
+            for (int index = 0; index < prematurelyRounded.Length; index++)
+            {
+                prematurelyRounded[index] = (ushort)((firstRoundedHigh[index] + secondRoundedHigh[index] + 1) >> 1);
+            }
+
+            Assert.False(expected.AsSpan().SequenceEqual(prematurelyRounded));
+            for (int row = 0; row < currentSize; row++)
+            {
+                Span<ushort> actual = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, row, 0, 0);
+                Assert.Equal(expected.AsSpan(row * currentSize, currentSize), actual[..currentSize]);
+            }
+        }
     }
 
     /// <summary>
@@ -1273,9 +1538,17 @@ public class Av1CompoundBlockDecoderTests
     }
 
     /// <summary>
-    /// Creates a 16x16 retained frame whose linear pattern has an exact half-sample bilinear result.
+    /// Creates a 16x16 retained frame whose deterministic pattern exposes scaled bilinear precision.
     /// </summary>
-    private static Av1ReferenceFrame CreateScaledPatternReferenceFrame(ObuSequenceHeader sequenceHeader)
+    /// <param name="sequenceHeader">The sequence dimensions and sample precision.</param>
+    /// <param name="horizontalScale">The horizontal linear contribution.</param>
+    /// <param name="verticalScale">The vertical linear contribution.</param>
+    /// <param name="nonlinearScale">The contribution that makes neighboring interpolation errors differ.</param>
+    private static Av1ReferenceFrame CreateScaledPatternReferenceFrame(
+        ObuSequenceHeader sequenceHeader,
+        int horizontalScale = 2,
+        int verticalScale = 8,
+        int nonlinearScale = 0)
     {
         Av1FrameBuffer<byte> frameBuffer = new(
             Configuration.Default,
@@ -1292,7 +1565,10 @@ public class Av1CompoundBlockDecoderTests
                 Span<byte> samples = frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(row);
                 for (int column = 0; column < 16; column++)
                 {
-                    samples[column] = (byte)((column * 2) + (row * 8));
+                    samples[column] = (byte)(
+                        (column * horizontalScale) +
+                        (row * verticalScale) +
+                        (((column * row) & 7) * nonlinearScale));
                 }
             }
             else
@@ -1300,7 +1576,10 @@ public class Av1CompoundBlockDecoderTests
                 Span<ushort> samples = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, row, 0, 0);
                 for (int column = 0; column < 16; column++)
                 {
-                    samples[column] = (ushort)((column * 2) + (row * 8));
+                    samples[column] = (ushort)(
+                        (column * horizontalScale) +
+                        (row * verticalScale) +
+                        (((column * row) & 7) * nonlinearScale));
                 }
             }
         }

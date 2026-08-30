@@ -126,7 +126,7 @@ internal ref struct Av1BitStreamWriter
     /// Writes one Boolean bit.
     /// </summary>
     /// <param name="value">The Boolean value.</param>
-    internal void WriteBoolean(bool value)
+    public void WriteBoolean(bool value)
     {
         byte boolByte = value ? (byte)1 : (byte)0;
         this.WriteBit(boolByte);
@@ -172,7 +172,7 @@ internal ref struct Av1BitStreamWriter
     /// </summary>
     /// <param name="value">The symbol value.</param>
     /// <param name="numberOfSymbols">The number of symbols in the alphabet.</param>
-    internal void WriteNonSymmetric(uint value, uint numberOfSymbols)
+    public void WriteNonSymmetric(uint value, uint numberOfSymbols)
     {
         if (numberOfSymbols <= 1)
         {
@@ -231,7 +231,7 @@ internal ref struct Av1BitStreamWriter
     /// Writes a byte-aligned entropy-coded tile payload.
     /// </summary>
     /// <param name="tileData">The tile payload.</param>
-    internal void WriteBlob(ReadOnlySpan<byte> tileData)
+    public void WriteBlob(ReadOnlySpan<byte> tileData)
     {
         DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Writing of Tile Data only allowed on byte alignment");
 

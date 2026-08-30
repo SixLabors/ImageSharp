@@ -55,7 +55,7 @@ internal static class Av1Math
     /// </summary>
     /// <param name="x">The value.</param>
     /// <returns>The zero-based position of the most significant set bit.</returns>
-    internal static uint Log2_32(uint x)
+    public static uint Log2_32(uint x)
     {
         uint log = 0;
         int i;
@@ -178,7 +178,7 @@ internal static class Av1Math
     /// <param name="value">The value to align.</param>
     /// <param name="n">The base-two alignment exponent.</param>
     /// <returns>The aligned value.</returns>
-    internal static int AlignPowerOf2(int value, int n)
+    public static int AlignPowerOf2(int value, int n)
     {
         int mask = (1 << n) - 1;
         return (value + mask) & ~mask;
@@ -190,7 +190,7 @@ internal static class Av1Math
     /// <param name="value">The value.</param>
     /// <param name="n">The base-two divisor exponent.</param>
     /// <returns>The rounded quotient.</returns>
-    internal static int RoundPowerOf2(int value, int n) => (value + ((1 << n) >> 1)) >> n;
+    public static int RoundPowerOf2(int value, int n) => (value + ((1 << n) >> 1)) >> n;
 
     /// <summary>
     /// Clamps a signed integer to an inclusive range.
@@ -199,7 +199,7 @@ internal static class Av1Math
     /// <param name="low">The inclusive lower bound.</param>
     /// <param name="high">The inclusive upper bound.</param>
     /// <returns>The clamped value.</returns>
-    internal static int Clamp(int value, int low, int high)
+    public static int Clamp(int value, int low, int high)
         => Math.Max(low, Math.Min(high, value));
 
     /// <summary>
@@ -209,7 +209,7 @@ internal static class Av1Math
     /// <param name="low">The inclusive lower bound.</param>
     /// <param name="high">The inclusive upper bound.</param>
     /// <returns>The clamped value.</returns>
-    internal static long Clamp(long value, long low, long high)
+    public static long Clamp(long value, long low, long high)
         => Math.Max(low, Math.Min(high, value));
 
     /// <summary>
@@ -218,7 +218,7 @@ internal static class Av1Math
     /// <param name="value">The value.</param>
     /// <param name="n">The base-two divisor exponent.</param>
     /// <returns>The floor-rounded quotient.</returns>
-    internal static int DivideLog2Floor(int value, int n)
+    public static int DivideLog2Floor(int value, int n)
         => value >> n;
 
     /// <summary>
@@ -227,7 +227,7 @@ internal static class Av1Math
     /// <param name="value">The value.</param>
     /// <param name="n">The base-two divisor exponent.</param>
     /// <returns>The ceiling-rounded quotient.</returns>
-    internal static int DivideLog2Ceiling(int value, int n)
+    public static int DivideLog2Ceiling(int value, int n)
         => (value + (1 << n) - 1) >> n;
 
     /// <summary>
@@ -236,7 +236,7 @@ internal static class Av1Math
     /// <param name="value">The value.</param>
     /// <param name="bitCount">The base-two divisor exponent.</param>
     /// <returns>The rounded quotient.</returns>
-    internal static int DivideRound(int value, int bitCount)
+    public static int DivideRound(int value, int bitCount)
         => (value + (1 << (bitCount - 1))) >> bitCount;
 
     /// <summary>
@@ -244,14 +244,14 @@ internal static class Av1Math
     /// </summary>
     /// <param name="value">The value.</param>
     /// <returns>The low three bits of the value.</returns>
-    internal static int Modulus8(int value) => value & 0x07;
+    public static int Modulus8(int value) => value & 0x07;
 
     /// <summary>
     /// Divides a value by eight with floor rounding.
     /// </summary>
     /// <param name="value">The value.</param>
     /// <returns>The floor-rounded quotient.</returns>
-    internal static int DivideBy8Floor(int value) => value >> 3;
+    public static int DivideBy8Floor(int value) => value >> 3;
 
     /// <summary>
     /// Divides a signed value by a power of two with symmetric nearest-integer rounding.
@@ -259,7 +259,7 @@ internal static class Av1Math
     /// <param name="value">The signed value.</param>
     /// <param name="n">The base-two divisor exponent.</param>
     /// <returns>The signed rounded quotient.</returns>
-    internal static int RoundPowerOf2Signed(int value, int n)
+    public static int RoundPowerOf2Signed(int value, int n)
         => (value < 0) ? -RoundPowerOf2(-value, n) : RoundPowerOf2(value, n);
 
     /// <summary>
@@ -268,7 +268,7 @@ internal static class Av1Math
     /// <param name="value">The value.</param>
     /// <param name="bit">The positive shift count.</param>
     /// <returns>The rounded signed result.</returns>
-    internal static int RoundShift(long value, int bit)
+    public static int RoundShift(long value, int bit)
     {
         DebugGuard.MustBeGreaterThanOrEqualTo(bit, 1, nameof(bit));
         return (int)((value + (1L << (bit - 1))) >> bit);
@@ -280,7 +280,7 @@ internal static class Av1Math
     /// <param name="a">The antecedent.</param>
     /// <param name="b">The consequent.</param>
     /// <returns><see langword="false"/> only when <paramref name="a"/> is true and <paramref name="b"/> is false.</returns>
-    internal static bool Implies(bool a, bool b) => !a || b;
+    public static bool Implies(bool a, bool b) => !a || b;
 
     /// <summary>
     /// Gets one bit from an integer value.
@@ -288,7 +288,7 @@ internal static class Av1Math
     /// <param name="value">The value.</param>
     /// <param name="n">The zero-based bit position.</param>
     /// <returns>Zero or one.</returns>
-    internal static int GetBit(int value, int n)
+    public static int GetBit(int value, int n)
         => (value & (1 << n)) >> n;
 
     /// <summary>
@@ -296,7 +296,7 @@ internal static class Av1Math
     /// </summary>
     /// <param name="endOfBlockExtra">The value to update.</param>
     /// <param name="n">The zero-based bit position.</param>
-    internal static void SetBit(ref int endOfBlockExtra, int n)
+    public static void SetBit(ref int endOfBlockExtra, int n)
         => endOfBlockExtra |= 1 << n;
 
     /// <summary>
@@ -305,5 +305,5 @@ internal static class Av1Math
     /// <param name="a">The first value.</param>
     /// <param name="b">The second value.</param>
     /// <returns>The nonnegative absolute difference.</returns>
-    internal static int AbsoluteDifference(int a, int b) => (a > b) ? a - b : b - a;
+    public static int AbsoluteDifference(int a, int b) => (a > b) ? a - b : b - a;
 }

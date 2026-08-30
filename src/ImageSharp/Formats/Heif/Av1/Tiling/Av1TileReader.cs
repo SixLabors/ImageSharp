@@ -1812,7 +1812,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="partitionInfo">The current coding block and its neighbors.</param>
     /// <param name="tileInfo">The active tile boundaries used by reference-motion-vector searches.</param>
     /// <remarks>Implements the prefix, intra, and translational inter branches of AV1 section 5.11.7.</remarks>
-    internal void ReadInterFrameModeInfo(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
+    public void ReadInterFrameModeInfo(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
     {
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
         modeInfo.MotionVectors.Clear();
@@ -2929,7 +2929,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <remarks>
     /// Implements <c>read_inter_segment_id</c> from AV1 section 5.11.8.
     /// </remarks>
-    internal void ReadInterSegmentId(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo, bool beforeSkip)
+    public void ReadInterSegmentId(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo, bool beforeSkip)
     {
         ObuSegmentationParameters segmentationParameters = this.FrameHeader.SegmentationParameters;
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;

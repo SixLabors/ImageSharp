@@ -11,15 +11,15 @@ internal class Av1MacroBlockModeInfo
     /// <summary>
     /// Gets or sets the prediction, transform, and segmentation decisions for the block.
     /// </summary>
-    public required Av1EncoderBlockModeInfo Block { get; internal set; }
+    public required Av1EncoderBlockModeInfo Block { get; set; }
 
     /// <summary>
     /// Gets or sets the luma palette decisions for the block.
     /// </summary>
-    public required Av1PaletteLumaModeInfo Palette { get; internal set; }
+    public required Av1PaletteLumaModeInfo Palette { get; set; }
 
     /// <summary>
     /// Gets or sets the constrained directional enhancement filter strength for the block.
     /// </summary>
-    public int CdefStrength { get; internal set; }
+    public int CdefStrength { get; set; }
 }

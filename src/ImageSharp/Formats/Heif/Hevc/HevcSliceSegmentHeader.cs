@@ -450,7 +450,7 @@ internal sealed class HevcSliceSegmentHeader
     /// <param name="rbspOffset">The decoded raw-byte-sequence payload offset.</param>
     /// <param name="emulationPreventionBytePositions">The removed encoded-payload byte positions.</param>
     /// <returns>The encoded byte-sequence payload offset at the same syntax boundary.</returns>
-    internal static int GetEncodedPayloadOffset(
+    public static int GetEncodedPayloadOffset(
         int rbspOffset,
         ReadOnlySpan<int> emulationPreventionBytePositions)
     {
@@ -474,7 +474,7 @@ internal sealed class HevcSliceSegmentHeader
     /// <param name="encodedOffset">The encoded byte-sequence payload offset.</param>
     /// <param name="emulationPreventionBytePositions">The removed encoded-payload byte positions.</param>
     /// <returns>The decoded raw-byte-sequence payload offset at the same syntax boundary.</returns>
-    internal static int GetDecodedPayloadOffset(
+    public static int GetDecodedPayloadOffset(
         int encodedOffset,
         ReadOnlySpan<int> emulationPreventionBytePositions)
     {

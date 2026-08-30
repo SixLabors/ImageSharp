@@ -55,12 +55,12 @@ internal struct Av1PartitionContext : IMinMaxValue<Av1PartitionContext>
     /// <summary>
     /// Gets or sets the five-bit context derived from the left neighbor.
     /// </summary>
-    public byte Left { get; internal set; }
+    public byte Left { get; set; }
 
     /// <summary>
     /// Gets or sets the five-bit context derived from the above neighbor.
     /// </summary>
-    public byte Above { get; internal set; }
+    public byte Above { get; set; }
 
     /// <summary>
     /// Gets the above-neighbor partition context for the specified block size.

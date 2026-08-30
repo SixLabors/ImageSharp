@@ -284,7 +284,7 @@ internal static class Av1InverseTransformMath
     /// </summary>
     /// <param name="transformSize">The signaled transform size.</param>
     /// <returns>The maximum coefficient end position represented by AV1 syntax.</returns>
-    internal static int GetMaxEndOfBuffer(Av1TransformSize transformSize)
+    public static int GetMaxEndOfBuffer(Av1TransformSize transformSize)
     {
         if (transformSize is Av1TransformSize.Size64x64 or Av1TransformSize.Size64x32 or Av1TransformSize.Size32x64)
         {

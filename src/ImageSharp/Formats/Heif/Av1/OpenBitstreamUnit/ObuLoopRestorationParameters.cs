@@ -11,7 +11,7 @@ internal class ObuLoopRestorationParameters
     /// <summary>
     /// Initializes a new instance of the <see cref="ObuLoopRestorationParameters"/> class.
     /// </summary>
-    internal ObuLoopRestorationParameters()
+    public ObuLoopRestorationParameters()
     {
         // AV1 addresses restoration state by plane, so all three plane entries must exist even
         // when the active color configuration uses fewer planes.
@@ -24,25 +24,25 @@ internal class ObuLoopRestorationParameters
     /// <summary>
     /// Gets or sets a value indicating whether any plane uses loop restoration.
     /// </summary>
-    internal bool UsesLoopRestoration { get; set; }
+    public bool UsesLoopRestoration { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether either chroma plane uses loop restoration.
     /// </summary>
-    internal bool UsesChromaLoopRestoration { get; set; }
+    public bool UsesChromaLoopRestoration { get; set; }
 
     /// <summary>
     /// Gets the loop-restoration configuration for each plane.
     /// </summary>
-    internal ObuLoopRestorationItem[] Items { get; }
+    public ObuLoopRestorationItem[] Items { get; }
 
     /// <summary>
     /// Gets or sets the luma restoration-unit size shift.
     /// </summary>
-    internal int UnitShift { get; set; }
+    public int UnitShift { get; set; }
 
     /// <summary>
     /// Gets or sets the chroma restoration-unit size shift relative to luma.
     /// </summary>
-    internal int UVShift { get; set; }
+    public int UVShift { get; set; }
 }

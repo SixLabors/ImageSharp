@@ -41,10 +41,10 @@ internal class Av1EncoderBlockStruct
     /// <summary>
     /// Gets or sets the palette size for luma and for the shared chroma mode.
     /// </summary>
-    public required int[] PaletteSize { get; internal set; }
+    public required int[] PaletteSize { get; set; }
 
     /// <summary>
     /// Gets or sets the encoder prediction-unit state for the block.
     /// </summary>
-    public required Av1EncoderPredictionUnit[] PredictionUnits { get; internal set; }
+    public required Av1EncoderPredictionUnit[] PredictionUnits { get; set; }
 }

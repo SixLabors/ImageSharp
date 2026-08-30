@@ -124,7 +124,7 @@ internal sealed class Av1LevelBuffer : IDisposable
     /// <summary>
     /// Clears all coefficient levels and context padding.
     /// </summary>
-    internal void Clear()
+    public void Clear()
     {
         ObjectDisposedException.ThrowIf(this.memory == null, this);
         this.memory.Memory.Span.Clear();

@@ -62,7 +62,7 @@ internal ref struct Av1BitStreamReader
     /// Reads the next encoded bit.
     /// </summary>
     /// <returns>Zero or one.</returns>
-    internal uint ReadBit()
+    public uint ReadBit()
     {
         int byteOffset = Av1Math.DivideBy8Floor(this.BitPosition);
         byte shift = (byte)(7 - Av1Math.Modulus8(this.BitPosition));

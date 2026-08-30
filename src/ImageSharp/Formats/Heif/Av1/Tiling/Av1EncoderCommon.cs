@@ -13,25 +13,25 @@ internal class Av1EncoderCommon
     /// <summary>
     /// Gets or sets the frame height in 4x4 mode-information units.
     /// </summary>
-    public int ModeInfoRowCount { get; internal set; }
+    public int ModeInfoRowCount { get; set; }
 
     /// <summary>
     /// Gets or sets the frame width in 4x4 mode-information units.
     /// </summary>
-    public int ModeInfoColumnCount { get; internal set; }
+    public int ModeInfoColumnCount { get; set; }
 
     /// <summary>
     /// Gets or sets the row stride of frame mode information in 4x4 units.
     /// </summary>
-    public int ModeInfoStride { get; internal set; }
+    public int ModeInfoStride { get; set; }
 
     /// <summary>
     /// Gets or sets the coded frame dimensions.
     /// </summary>
-    public required ObuFrameSize FrameSize { get; internal set; }
+    public required ObuFrameSize FrameSize { get; set; }
 
     /// <summary>
     /// Gets or sets the tile layout for the current frame.
     /// </summary>
-    public required ObuTileGroupHeader TilesInfo { get; internal set; }
+    public required ObuTileGroupHeader TilesInfo { get; set; }
 }

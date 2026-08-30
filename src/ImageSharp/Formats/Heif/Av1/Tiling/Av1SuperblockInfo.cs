@@ -72,17 +72,17 @@ internal class Av1SuperblockInfo
     /// <summary>
     /// Gets or sets the next luma transform-information index while parsing this superblock.
     /// </summary>
-    public int TransformInfoIndexY { get; internal set; }
+    public int TransformInfoIndexY { get; set; }
 
     /// <summary>
     /// Gets or sets the next shared chroma transform-information index while parsing this superblock.
     /// </summary>
-    public int TransformInfoIndexUv { get; internal set; }
+    public int TransformInfoIndexUv { get; set; }
 
     /// <summary>
     /// Gets or sets the number of mode-information records parsed for this superblock.
     /// </summary>
-    public int BlockCount { get; internal set; }
+    public int BlockCount { get; set; }
 
     /// <summary>
     /// Gets the luma transform-information storage reserved for this superblock.

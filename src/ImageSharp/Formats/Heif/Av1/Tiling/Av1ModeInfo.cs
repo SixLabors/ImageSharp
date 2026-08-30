@@ -11,5 +11,5 @@ internal class Av1ModeInfo
     /// <summary>
     /// Gets or sets the macroblock mode information associated with this map entry.
     /// </summary>
-    public required Av1MacroBlockModeInfo MacroBlockModeInfo { get; internal set; }
+    public required Av1MacroBlockModeInfo MacroBlockModeInfo { get; set; }
 }

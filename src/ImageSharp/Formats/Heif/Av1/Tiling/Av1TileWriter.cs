@@ -1587,7 +1587,7 @@ internal partial class Av1TileWriter
     /// <param name="writer">The tile symbol encoder.</param>
     /// <param name="block">The encoder block state.</param>
     /// <param name="skip">The skip value to write.</param>
-    internal static void EncodeSkipCoefficients(ref Av1SymbolEncoder writer, Av1EncoderBlockStruct block, bool skip)
+    public static void EncodeSkipCoefficients(ref Av1SymbolEncoder writer, Av1EncoderBlockStruct block, bool skip)
     {
         Av1MacroBlockModeInfo? above_mi = block.MacroBlock.AboveMacroBlock;
         Av1MacroBlockModeInfo? left_mi = block.MacroBlock.LeftMacroBlock;

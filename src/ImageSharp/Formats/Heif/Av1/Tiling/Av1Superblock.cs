@@ -23,10 +23,10 @@ internal class Av1Superblock
     /// <summary>
     /// Gets or sets the selected partition type for each partition-tree node.
     /// </summary>
-    public required Av1PartitionType[] CodingUnitPartitionTypes { get; internal set; }
+    public required Av1PartitionType[] CodingUnitPartitionTypes { get; set; }
 
     /// <summary>
     /// Gets or sets the superblock index within the picture.
     /// </summary>
-    public int Index { get; internal set; }
+    public int Index { get; set; }
 }

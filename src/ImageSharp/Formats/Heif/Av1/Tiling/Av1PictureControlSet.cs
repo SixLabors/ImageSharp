@@ -13,42 +13,42 @@ internal class Av1PictureControlSet
     /// <summary>
     /// Gets or sets the partition neighbor contexts for each tile.
     /// </summary>
-    public required Av1NeighborArrayUnit<Av1PartitionContext>[] PartitionContexts { get; internal set; }
+    public required Av1NeighborArrayUnit<Av1PartitionContext>[] PartitionContexts { get; set; }
 
     /// <summary>
     /// Gets or sets the luma DC-sign and coefficient-level neighbor contexts for each tile.
     /// </summary>
-    public required Av1NeighborArrayUnit<byte>[] LuminanceDcSignLevelCoefficientNeighbors { get; internal set; }
+    public required Av1NeighborArrayUnit<byte>[] LuminanceDcSignLevelCoefficientNeighbors { get; set; }
 
     /// <summary>
     /// Gets or sets the red-difference chroma DC-sign and coefficient-level neighbor contexts for each tile.
     /// </summary>
-    public required Av1NeighborArrayUnit<byte>[] CrDcSignLevelCoefficientNeighbors { get; internal set; }
+    public required Av1NeighborArrayUnit<byte>[] CrDcSignLevelCoefficientNeighbors { get; set; }
 
     /// <summary>
     /// Gets or sets the blue-difference chroma DC-sign and coefficient-level neighbor contexts for each tile.
     /// </summary>
-    public required Av1NeighborArrayUnit<byte>[] CbDcSignLevelCoefficientNeighbors { get; internal set; }
+    public required Av1NeighborArrayUnit<byte>[] CbDcSignLevelCoefficientNeighbors { get; set; }
 
     /// <summary>
     /// Gets or sets the transform-function neighbor contexts for each tile.
     /// </summary>
-    public required Av1NeighborArrayUnit<byte>[] TransformFunctionContexts { get; internal set; }
+    public required Av1NeighborArrayUnit<byte>[] TransformFunctionContexts { get; set; }
 
     /// <summary>
     /// Gets or sets the sequence-wide encoder state.
     /// </summary>
-    public required Av1SequenceControlSet Sequence { get; internal set; }
+    public required Av1SequenceControlSet Sequence { get; set; }
 
     /// <summary>
     /// Gets or sets the parent picture state shared across coding passes.
     /// </summary>
-    public required Av1PictureParentControlSet Parent { get; internal set; }
+    public required Av1PictureParentControlSet Parent { get; set; }
 
     /// <summary>
     /// Gets or sets the frame segmentation identifiers used for spatial prediction.
     /// </summary>
-    public required byte[] SegmentationNeighborMap { get; internal set; }
+    public required byte[] SegmentationNeighborMap { get; set; }
 
     /// <summary>
     /// Gets the frame grid that maps each 4x4 position to its mode-information span.
@@ -58,22 +58,22 @@ internal class Av1PictureControlSet
     /// <summary>
     /// Gets or sets the contiguous mode-information storage addressed by <see cref="ModeInfoGrid"/>.
     /// </summary>
-    public required Av1ModeInfo[] Mip { get; internal set; }
+    public required Av1ModeInfo[] Mip { get; set; }
 
     /// <summary>
     /// Gets or sets the row stride of <see cref="ModeInfoGrid"/> in 4x4 mode-information units.
     /// </summary>
-    public int ModeInfoStride { get; internal set; }
+    public int ModeInfoStride { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the mode-information backing store uses 8x8 rather than 4x4 granularity.
     /// </summary>
-    public bool Disallow4x4AllFrames { get; internal set; }
+    public bool Disallow4x4AllFrames { get; set; }
 
     /// <summary>
     /// Gets or sets the constrained directional enhancement filter presets for each filter block.
     /// </summary>
-    public required int[][] CdefPreset { get; internal set; }
+    public required int[][] CdefPreset { get; set; }
 
     /// <summary>
     /// Gets the mode-information span mapped to a frame position.
@@ -108,7 +108,7 @@ internal class Av1PictureControlSet
     /// </summary>
     /// <param name="blockOrigin">The block origin in 4x4 mode-information units.</param>
     /// <returns>The macroblock mode information at the origin.</returns>
-    internal Av1MacroBlockModeInfo GetMacroBlockModeInfo(Point blockOrigin)
+    public Av1MacroBlockModeInfo GetMacroBlockModeInfo(Point blockOrigin)
     {
         int modeInfoStride = this.ModeInfoStride;
         int offset = (blockOrigin.Y * modeInfoStride) + blockOrigin.X;
@@ -130,7 +130,7 @@ internal class Av1PictureControlSet
     /// <param name="blockSize">The block size.</param>
     /// <param name="origin">The block origin in samples.</param>
     /// <param name="segmentId">The segment identifier.</param>
-    internal void UpdateSegmentation(Av1BlockSize blockSize, Point origin, int segmentId)
+    public void UpdateSegmentation(Av1BlockSize blockSize, Point origin, int segmentId)
     {
         Av1EncoderCommon cm = this.Parent.Common;
         Span<byte> segment_ids = this.SegmentationNeighborMap;

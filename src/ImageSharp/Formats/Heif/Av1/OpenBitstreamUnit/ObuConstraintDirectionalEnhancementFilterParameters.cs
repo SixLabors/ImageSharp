@@ -11,12 +11,12 @@ internal class ObuConstraintDirectionalEnhancementFilterParameters
     /// <summary>
     /// Gets or sets the number of bits used to select a filter-strength entry.
     /// </summary>
-    public int BitCount { get; internal set; }
+    public int BitCount { get; set; }
 
     /// <summary>
     /// Gets or sets the filter damping value.
     /// </summary>
-    public int Damping { get; internal set; } = 3;
+    public int Damping { get; set; } = 3;
 
     /// <summary>
     /// Gets or sets the primary and secondary luma strengths for each filter entry.

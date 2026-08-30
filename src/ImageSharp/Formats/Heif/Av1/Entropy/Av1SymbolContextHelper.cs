@@ -265,7 +265,7 @@ internal static class Av1SymbolContextHelper
     /// </summary>
     /// <param name="originalSize">The coded transform size.</param>
     /// <returns>The square transform-size context.</returns>
-    internal static Av1TransformSize GetTransformSizeContext(Av1TransformSize originalSize)
+    public static Av1TransformSize GetTransformSizeContext(Av1TransformSize originalSize)
         => (Av1TransformSize)(((int)originalSize.GetSquareSize() + (int)originalSize.GetSquareUpSize() + 1) >> 1);
 
     /// <summary>
@@ -290,7 +290,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="endOfBlockPoint">The decoded end-of-block token.</param>
     /// <param name="endOfBlockExtra">The decoded offset within the token group.</param>
     /// <returns>The one-based end-of-block coefficient position.</returns>
-    internal static int RecordEndOfBlockPosition(int endOfBlockPoint, int endOfBlockExtra)
+    public static int RecordEndOfBlockPosition(int endOfBlockPoint, int endOfBlockExtra)
     {
         int endOfBlock = EndOfBlockGroupStart[endOfBlockPoint];
         if (endOfBlock > 2)
@@ -307,7 +307,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="levels">The padded coefficient-level buffer.</param>
     /// <param name="position">The coordinate whose row-major index identifies the coefficient's scan position.</param>
     /// <returns>The end-of-block lower-level context.</returns>
-    internal static int GetLowerLevelContextEndOfBlock(Av1LevelBuffer levels, Point position)
+    public static int GetLowerLevelContextEndOfBlock(Av1LevelBuffer levels, Point position)
         => GetLowerLevelContextEndOfBlock(levels, position.X + (position.Y * levels.Size.Width));
 
     /// <summary>
@@ -316,7 +316,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="levels">The padded coefficient-level buffer.</param>
     /// <param name="scanIndex">The zero-based coefficient index in scan order.</param>
     /// <returns>The end-of-block lower-level context.</returns>
-    internal static int GetLowerLevelContextEndOfBlock(Av1LevelBuffer levels, int scanIndex)
+    public static int GetLowerLevelContextEndOfBlock(Av1LevelBuffer levels, int scanIndex)
     {
         if (scanIndex == 0)
         {
@@ -344,7 +344,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="position">The coefficient position in raster order.</param>
     /// <param name="transformSize">The transform size selecting the positional context offset.</param>
     /// <returns>The lower-level context.</returns>
-    internal static int GetLowerLevelsContext2d(Av1LevelBuffer levelBuffer, Point position, Av1TransformSize transformSize)
+    public static int GetLowerLevelsContext2d(Av1LevelBuffer levelBuffer, Point position, Av1TransformSize transformSize)
     {
         DebugGuard.MustBeGreaterThan(position.X + position.Y, 0, nameof(position));
         int mag;
@@ -369,7 +369,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="pos">The final nonzero coefficient position.</param>
     /// <param name="transformClass">The transform direction class.</param>
     /// <returns>The base-range context.</returns>
-    internal static int GetBaseRangeContextEndOfBlock(Point pos, Av1TransformClass transformClass)
+    public static int GetBaseRangeContextEndOfBlock(Point pos, Av1TransformClass transformClass)
     {
         if (pos.X == 0 && pos.Y == 0)
         {
@@ -394,7 +394,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="position">The coefficient position in raster order.</param>
     /// <param name="transformClass">The transform direction class.</param>
     /// <returns>The base-range context.</returns>
-    internal static int GetBaseRangeContext(Av1LevelBuffer levels, Point position, Av1TransformClass transformClass)
+    public static int GetBaseRangeContext(Av1LevelBuffer levels, Point position, Av1TransformClass transformClass)
     {
         Span<byte> row0 = levels.GetRow(position.Y);
         Span<byte> row1 = levels.GetRow(position.Y + 1);
@@ -457,7 +457,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="levels">The padded coefficient-level buffer.</param>
     /// <param name="position">The coefficient position in raster order.</param>
     /// <returns>The two-dimensional base-range context.</returns>
-    internal static int GetBaseRangeContext2d(Av1LevelBuffer levels, Point position)
+    public static int GetBaseRangeContext2d(Av1LevelBuffer levels, Point position)
     {
         DebugGuard.MustBeGreaterThan(position.X + position.Y, 0, nameof(position));
         Span<byte> row0 = levels.GetRow(position.Y);
@@ -486,7 +486,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="transformSize">The coded transform size.</param>
     /// <param name="transformClass">The transform direction class.</param>
     /// <returns>The lower-level coefficient context.</returns>
-    internal static int GetLowerLevelsContext(Av1LevelBuffer levels, Point position, Av1TransformSize transformSize, Av1TransformClass transformClass)
+    public static int GetLowerLevelsContext(Av1LevelBuffer levels, Point position, Av1TransformSize transformSize, Av1TransformClass transformClass)
     {
         int stats = Av1NzMap.GetNzMagnitude(levels, position, transformClass);
         return Av1NzMap.GetNzMapContextFromStats(stats, position, transformSize, transformClass);
@@ -498,7 +498,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="transformSize">The coded transform size.</param>
     /// <param name="useReducedSet">Indicates whether the frame restricts transform choices.</param>
     /// <returns>The permitted transform set.</returns>
-    internal static Av1TransformSetType GetExtendedTransformSetType(Av1TransformSize transformSize, bool useReducedSet)
+    public static Av1TransformSetType GetExtendedTransformSetType(Av1TransformSize transformSize, bool useReducedSet)
         => GetExtendedTransformSetType(transformSize, false, useReducedSet);
 
     /// <summary>
@@ -508,7 +508,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="isInter">Indicates whether the block uses inter prediction.</param>
     /// <param name="useReducedSet">Indicates whether the frame restricts transform choices.</param>
     /// <returns>The permitted transform set.</returns>
-    internal static Av1TransformSetType GetExtendedTransformSetType(Av1TransformSize transformSize, bool isInter, bool useReducedSet)
+    public static Av1TransformSetType GetExtendedTransformSetType(Av1TransformSize transformSize, bool isInter, bool useReducedSet)
     {
         Av1TransformSize squareUpSize = transformSize.GetSquareUpSize();
 
@@ -544,7 +544,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="modeInfo">The block prediction modes.</param>
     /// <param name="planeType">The luma or chroma plane category.</param>
     /// <returns>The transform type associated with the selected prediction mode.</returns>
-    internal static Av1TransformType ConvertIntraModeToTransformType(Av1BlockModeInfo modeInfo, Av1PlaneType planeType)
+    public static Av1TransformType ConvertIntraModeToTransformType(Av1BlockModeInfo modeInfo, Av1PlaneType planeType)
     {
         // libaom's get_uv_mode() is the explicit boundary between the distinct UV and luma prediction domains. CfL maps
         // to DC because the chroma AC contribution is applied to a DC predictor before coefficient reconstruction.
@@ -561,7 +561,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="transformSize">The coded transform size.</param>
     /// <param name="transformClass">The transform direction class.</param>
     /// <returns>The nonzero-map context.</returns>
-    internal static sbyte GetNzMapContext(
+    public static sbyte GetNzMapContext(
         Av1LevelBuffer levels,
         Point position,
         Av1TransformSize transformSize,
@@ -580,7 +580,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="transformSize">The coded transform size.</param>
     /// <param name="transformClass">The transform direction class.</param>
     /// <param name="coefficientContexts">The raster-indexed destination contexts.</param>
-    internal static void GetNzMapContexts(
+    public static void GetNzMapContexts(
         Av1LevelBuffer levels,
         ReadOnlySpan<short> scan,
         ushort eob,
@@ -624,14 +624,14 @@ internal static class Av1SymbolContextHelper
     /// </summary>
     /// <param name="setType">The transform set.</param>
     /// <returns>The number of permitted transform types.</returns>
-    internal static int GetExtendedTransformTypeCount(Av1TransformSetType setType) => ExtendedTransformTypeCounts[(int)setType];
+    public static int GetExtendedTransformTypeCount(Av1TransformSetType setType) => ExtendedTransformTypeCounts[(int)setType];
 
     /// <summary>
     /// Gets the entropy-distribution index for an intra transform set.
     /// </summary>
     /// <param name="setType">The transform set.</param>
     /// <returns>The distribution index, or <c>-1</c> for an inter-only set.</returns>
-    internal static int GetExtendedTransformSet(Av1TransformSetType setType)
+    public static int GetExtendedTransformSet(Av1TransformSetType setType)
         => GetExtendedTransformSet(setType, false);
 
     /// <summary>
@@ -640,7 +640,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="setType">The transform set.</param>
     /// <param name="isInter">Indicates whether the block uses inter prediction.</param>
     /// <returns>The distribution index, or <c>-1</c> when the set is unavailable for the prediction class.</returns>
-    internal static int GetExtendedTransformSet(Av1TransformSetType setType, bool isInter)
+    public static int GetExtendedTransformSet(Av1TransformSetType setType, bool isInter)
         => ExtendedTransformSetToIndex[((isInter ? 1 : 0) * TransformSetCount) + (int)setType];
 
     /// <summary>
@@ -648,7 +648,7 @@ internal static class Av1SymbolContextHelper
     /// </summary>
     /// <param name="culLevel">The cumulative-level context to update.</param>
     /// <param name="dcValue">The signed DC coefficient.</param>
-    internal static void SetDcSign(ref int culLevel, int dcValue)
+    public static void SetDcSign(ref int culLevel, int dcValue)
     {
         if (dcValue < 0)
         {
@@ -666,7 +666,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="endOfBlock">The one-based end-of-block position.</param>
     /// <param name="extra">Receives the offset within the selected token group.</param>
     /// <returns>The end-of-block token.</returns>
-    internal static short GetEndOfBlockPosition(ushort endOfBlock, out int extra)
+    public static short GetEndOfBlockPosition(ushort endOfBlock, out int extra)
     {
         short t;
         if (endOfBlock < 33)

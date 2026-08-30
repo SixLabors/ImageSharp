@@ -19,7 +19,7 @@ internal class Av1MacroBlockD
     public required ReadOnlySpan<Av1ModeInfo> ModeInfo
     {
         get => this.modeInfo;
-        internal set
+        set
         {
             // A span cannot be retained by the class, so preserve the selected map entries in owned storage.
             this.modeInfo = new Av1ModeInfo[value.Length];
@@ -30,60 +30,60 @@ internal class Av1MacroBlockD
     /// <summary>
     /// Gets or sets the tile containing the current block.
     /// </summary>
-    public required Av1TileInfo Tile { get; internal set; }
+    public required Av1TileInfo Tile { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether an above block is available within the tile.
     /// </summary>
-    public bool IsUpAvailable { get; internal set; }
+    public bool IsUpAvailable { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether a left block is available within the tile.
     /// </summary>
-    public bool IsLeftAvailable { get; internal set; }
+    public bool IsLeftAvailable { get; set; }
 
     /// <summary>
     /// Gets or sets the above macroblock mode information, when available.
     /// </summary>
-    public Av1MacroBlockModeInfo? AboveMacroBlock { get; internal set; }
+    public Av1MacroBlockModeInfo? AboveMacroBlock { get; set; }
 
     /// <summary>
     /// Gets or sets the left macroblock mode information, when available.
     /// </summary>
-    public Av1MacroBlockModeInfo? LeftMacroBlock { get; internal set; }
+    public Av1MacroBlockModeInfo? LeftMacroBlock { get; set; }
 
     /// <summary>
     /// Gets or sets the row stride of the frame mode-information map.
     /// </summary>
-    public int ModeInfoStride { get; internal set; }
+    public int ModeInfoStride { get; set; }
 
     /// <summary>
     /// Gets or sets the signed distance from the block to the top frame edge in one-eighth-sample units.
     /// </summary>
-    public int ToTopEdge { get; internal set; }
+    public int ToTopEdge { get; set; }
 
     /// <summary>
     /// Gets or sets the signed distance from the block to the bottom frame edge in one-eighth-sample units.
     /// </summary>
-    public int ToBottomEdge { get; internal set; }
+    public int ToBottomEdge { get; set; }
 
     /// <summary>
     /// Gets or sets the signed distance from the block to the left frame edge in one-eighth-sample units.
     /// </summary>
-    public int ToLeftEdge { get; internal set; }
+    public int ToLeftEdge { get; set; }
 
     /// <summary>
     /// Gets or sets the signed distance from the block to the right frame edge in one-eighth-sample units.
     /// </summary>
-    public int ToRightEdge { get; internal set; }
+    public int ToRightEdge { get; set; }
 
     /// <summary>
     /// Gets or sets the block dimensions in samples for rectangular-partition context selection.
     /// </summary>
-    public Size N8Size { get; internal set; }
+    public Size N8Size { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether this block is the second half of a rectangular partition.
     /// </summary>
-    public bool IsSecondRectangle { get; internal set; }
+    public bool IsSecondRectangle { get; set; }
 }

@@ -53,15 +53,15 @@ internal class Av1EncoderBlockModeInfo
     /// <summary>
     /// Gets or sets the transform-tree depth selected for the block.
     /// </summary>
-    public int TransformDepth { get; internal set; }
+    public int TransformDepth { get; set; }
 
     /// <summary>
     /// Gets or sets the luma prediction mode written for the block.
     /// </summary>
-    public Av1PredictionMode Mode { get; internal set; }
+    public Av1PredictionMode Mode { get; set; }
 
     /// <summary>
     /// Gets or sets the chroma prediction mode written for the block.
     /// </summary>
-    public Av1ChromaPredictionMode UvMode { get; internal set; }
+    public Av1ChromaPredictionMode UvMode { get; set; }
 }

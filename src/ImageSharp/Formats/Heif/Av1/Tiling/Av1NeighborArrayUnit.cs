@@ -295,5 +295,5 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
     /// <param name="blockSize">The block dimensions in samples.</param>
     /// <param name="unitMask">The neighbor arrays to update.</param>
     /// <exception cref="NotImplementedException">The byte-specific write path is not implemented.</exception>
-    internal void UnitModeWrite(Span<byte> dcSignSpan, Point blockOrigin, Size blockSize, Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask unitMask) => throw new NotImplementedException();
+    public void UnitModeWrite(Span<byte> dcSignSpan, Point blockOrigin, Size blockSize, Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask unitMask) => throw new NotImplementedException();
 }

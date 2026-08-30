@@ -16,10 +16,10 @@ internal class Av1EncoderPredictionUnit
     /// <summary>
     /// Gets or sets the chroma-from-luma alpha magnitude index.
     /// </summary>
-    public int ChromaFromLumaIndex { get; internal set; }
+    public int ChromaFromLumaIndex { get; set; }
 
     /// <summary>
     /// Gets or sets the packed chroma-from-luma alpha signs for the U and V planes.
     /// </summary>
-    public int ChromaFromLumaSigns { get; internal set; }
+    public int ChromaFromLumaSigns { get; set; }
 }

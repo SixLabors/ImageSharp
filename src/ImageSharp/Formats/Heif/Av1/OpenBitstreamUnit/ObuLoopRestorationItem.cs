@@ -11,10 +11,10 @@ internal class ObuLoopRestorationItem
     /// <summary>
     /// Gets or sets the restoration-unit size, in samples.
     /// </summary>
-    internal int Size { get; set; }
+    public int Size { get; set; }
 
     /// <summary>
     /// Gets or sets the restoration filter type.
     /// </summary>
-    internal ObuRestorationType Type { get; set; } = ObuRestorationType.None;
+    public ObuRestorationType Type { get; set; } = ObuRestorationType.None;
 }

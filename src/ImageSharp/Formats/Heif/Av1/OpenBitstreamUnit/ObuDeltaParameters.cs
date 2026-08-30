@@ -11,15 +11,15 @@ internal class ObuDeltaParameters
     /// <summary>
     /// Gets or sets a value indicating whether per-block delta values are present.
     /// </summary>
-    public bool IsPresent { get; internal set; }
+    public bool IsPresent { get; set; }
 
     /// <summary>
     /// Gets or sets the delta-value multiplier, which is one, two, four, or eight.
     /// </summary>
-    public int Resolution { get; internal set; }
+    public int Resolution { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether separate loop-filter deltas are signaled for multiple filter targets.
     /// </summary>
-    public bool IsMulti { get; internal set; }
+    public bool IsMulti { get; set; }
 }

@@ -39,7 +39,7 @@ internal class Av1BlockGeometry
     public Av1BlockSize BlockSize
     {
         get => this.blockSize;
-        internal set
+        set
         {
             this.blockSize = value;
             this.BlockWidth = value.GetWidth();
@@ -53,7 +53,7 @@ internal class Av1BlockGeometry
     public Av1BlockSize BlockSizeUv
     {
         get => this.blockSizeUv;
-        internal set
+        set
         {
             this.blockSizeUv = value;
             this.BlockWidthUv = value.GetWidth();
@@ -64,12 +64,12 @@ internal class Av1BlockGeometry
     /// <summary>
     /// Gets or sets the block origin in pixels relative to the top-left corner of its superblock.
     /// </summary>
-    public Point Origin { get; internal set; }
+    public Point Origin { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether this luma block owns chroma samples in the mode-decision layout.
     /// </summary>
-    public bool HasUv { get; internal set; }
+    public bool HasUv { get; set; }
 
     /// <summary>
     /// Gets the luma block width in pixels.
@@ -124,17 +124,17 @@ internal class Av1BlockGeometry
     /// <summary>
     /// Gets or sets the mode-decision indices of blocks with the same size and origin as this block.
     /// </summary>
-    public List<int> RedunancyList { get; internal set; }
+    public List<int> RedunancyList { get; set; }
 
     /// <summary>
     /// Gets or sets the zero-based component index of this block within a non-square partition.
     /// </summary>
-    public int NonSquareIndex { get; internal set; }
+    public int NonSquareIndex { get; set; }
 
     /// <summary>
     /// Gets or sets the number of component blocks produced by this partition shape.
     /// </summary>
-    public int TotalNonSuareCount { get; internal set; }
+    public int TotalNonSuareCount { get; set; }
 
     /// <summary>
     /// Gets the chroma block width in pixels.
@@ -149,15 +149,15 @@ internal class Av1BlockGeometry
     /// <summary>
     /// Gets or sets the quadtree depth of this block within its superblock.
     /// </summary>
-    public int Depth { get; internal set; }
+    public int Depth { get; set; }
 
     /// <summary>
     /// Gets or sets the width and height, in pixels, of the square sequence region that produced this block.
     /// </summary>
-    public int SequenceSize { get; internal set; }
+    public int SequenceSize { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether this block belongs to the last quadrant of its parent.
     /// </summary>
-    public bool IsLastQuadrant { get; internal set; }
+    public bool IsLastQuadrant { get; set; }
 }

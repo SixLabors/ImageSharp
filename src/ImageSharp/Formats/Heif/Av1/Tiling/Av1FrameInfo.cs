@@ -503,7 +503,7 @@ internal partial class Av1FrameInfo : IDisposable
     /// Resets every constrained directional enhancement filter strength for a superblock to its unassigned value.
     /// </summary>
     /// <param name="index">The position in the frame superblock grid.</param>
-    internal void ClearCdef(Point index)
+    public void ClearCdef(Point index)
     {
         Span<int> cdefs = this.GetCdefStrength(index);
         for (int i = 0; i < cdefs.Length; i++)

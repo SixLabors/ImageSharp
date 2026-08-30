@@ -45,22 +45,22 @@ internal struct Av1TransformInfo
     /// <summary>
     /// Gets or sets the transform size used for this transform block.
     /// </summary>
-    public Av1TransformSize Size { get; internal set; }
+    public Av1TransformSize Size { get; set; }
 
     /// <summary>
     /// Gets or sets the transform type used for this transform block.
     /// </summary>
-    public Av1TransformType Type { get; internal set; }
+    public Av1TransformType Type { get; set; }
 
     /// <summary>
     /// Gets or sets the horizontal offset of this block in mode-information units.
     /// </summary>
-    public int OffsetX { get; internal set; }
+    public int OffsetX { get; set; }
 
     /// <summary>
     /// Gets or sets the vertical offset of this block in mode-information units.
     /// </summary>
-    public int OffsetY { get; internal set; }
+    public int OffsetY { get; set; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the transform block contains a coded residual.
@@ -75,5 +75,5 @@ internal struct Av1TransformInfo
     /// </item>
     /// </list>
     /// </summary>
-    public bool CodeBlockFlag { get; internal set; }
+    public bool CodeBlockFlag { get; set; }
 }

@@ -589,7 +589,7 @@ internal class ObuReader
     /// </summary>
     /// <param name="reader">The reader positioned at the sequence-header payload.</param>
     /// <param name="sequenceHeader">The sequence header to populate.</param>
-    internal static void ReadSequenceHeader(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader)
+    public static void ReadSequenceHeader(ref Av1BitStreamReader reader, ObuSequenceHeader sequenceHeader)
     {
         sequenceHeader.SequenceProfile = (ObuSequenceProfile)reader.ReadLiteral(3);
         if (sequenceHeader.SequenceProfile > Av1Constants.MaxSequenceProfile)
@@ -1808,7 +1808,7 @@ internal class ObuReader
     /// <param name="reader">The reader positioned at the frame-header payload.</param>
     /// <param name="header">The OBU header whose remaining payload size is updated.</param>
     /// <param name="trailingBit">A value indicating whether trailing-bit syntax follows the frame header.</param>
-    internal void ReadFrameHeader(ref Av1BitStreamReader reader, ObuHeader header, bool trailingBit)
+    public void ReadFrameHeader(ref Av1BitStreamReader reader, ObuHeader header, bool trailingBit)
     {
         int startBitPosition = reader.BitPosition;
         this.ReadUncompressedFrameHeader(ref reader, header);

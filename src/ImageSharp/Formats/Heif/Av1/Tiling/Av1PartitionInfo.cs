@@ -145,7 +145,7 @@ internal ref struct Av1PartitionInfo
     /// <summary>
     /// Gets or sets the neighboring luma samples used by chroma-from-luma prediction.
     /// </summary>
-    public Av1ChromaFromLumaContext? ChromaFromLumaContext { get; internal set; }
+    public Av1ChromaFromLumaContext? ChromaFromLumaContext { get; set; }
 
     /// <summary>
     /// Gets the block width in samples for a color plane.

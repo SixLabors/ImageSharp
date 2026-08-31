@@ -481,7 +481,7 @@ internal static partial class Av1DeblockingFilter
         Vector128<int> signedQ0 = q0 - offset;
         Vector128<int> signedQ1 = q1 - offset;
 
-        // libaom performs every delta operation in the signed sample domain. Saturating only the final samples is
+        // the reference decoder performs every delta operation in the signed sample domain. Saturating only the final samples is
         // not equivalent because the intermediate delta can clip before the asymmetric +4/+3 rounding is applied.
         Vector128<int> filter = Vector128.ConditionalSelect(highEdgeVariance, Vector128.Clamp(signedP1 - signedQ1, minimum, maximum), Vector128<int>.Zero);
         filter = Vector128.Clamp(filter + (3 * (signedQ0 - signedP0)), minimum, maximum) & filterEnabled;
@@ -614,7 +614,7 @@ internal static partial class Av1DeblockingFilter
         Vector128<int> wideFilter = filterEnabled & flat & outerFlat;
 
         // The eight-tap routine first produces the normative fallback. Lanes satisfying the outer flatness mask are
-        // then replaced with the wider results, matching libaom's mask blend without evaluating lanes independently.
+        // then replaced with the wider results, matching the reference decoder's mask blend without evaluating lanes independently.
         Filter8(ref samples, filterEnabled, flat, highEdgeVarianceThreshold, bitDepth);
         if (Vector128.EqualsAll(wideFilter, Vector128<int>.Zero))
         {

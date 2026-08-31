@@ -80,7 +80,6 @@ internal class Av1InverseQuantizer
     /// <param name="transformSize">The transform dimensions and scale.</param>
     /// <param name="plane">The color plane whose quantizer and matrix are used.</param>
     /// <returns>The number of coefficient levels consumed.</returns>
-    /// <remarks>Matches the coefficient dequantization arithmetic in libaom's <c>read_coeffs_txb</c>.</remarks>
     public int InverseQuantize(Av1BlockModeInfo mode, Span<int> level, Span<int> qCoefficients, Av1TransformType transformType, Av1TransformSize transformSize, Av1Plane plane)
     {
         Guard.NotNull(this.deQuantsDeltaQ);
@@ -159,7 +158,6 @@ internal class Av1InverseQuantizer
     /// <param name="coefficientIndex">The raster coefficient index into the inverse matrix.</param>
     /// <param name="iqMatrix">The inverse quantization matrix for the current level, plane, and transform size.</param>
     /// <returns>The matrix-weighted dequantization value.</returns>
-    /// <remarks>Corresponds to <c>get_dqv</c> in libaom.</remarks>
     private static int GetDeQuantizedValue(short dequant, int coefficientIndex, ReadOnlySpan<int> iqMatrix)
     {
         // Matrix elements use fixed-point precision; adding half a unit produces nearest-integer rounding on shift.

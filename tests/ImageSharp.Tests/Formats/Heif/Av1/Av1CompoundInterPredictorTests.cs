@@ -24,27 +24,27 @@ public class Av1CompoundInterPredictorTests
     /// Verifies rounded 8-bit averaging, scalar tails, and untouched row padding under every SIMD configuration.
     /// </summary>
     [Fact]
-    public void ByteAverageMatchesIndependentOracleAcrossIntrinsicWidths()
+    public void ByteAverageMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateByteAverage, PredictorConfigurations);
 
     /// <summary>
     /// Verifies rounded 10/12-bit averaging, scalar tails, and untouched row padding under every SIMD configuration.
     /// </summary>
     [Fact]
-    public void HighBitDepthAverageMatchesIndependentOracleAcrossIntrinsicWidths()
+    public void HighBitDepthAverageMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthAverage, PredictorConfigurations);
 
     /// <summary>
     /// Verifies 10/12-bit no-round prediction and compound finalization across every intrinsic width.
     /// </summary>
     [Fact]
-    public void HighBitDepthCompoundIntermediatesMatchIndependentOracleAcrossIntrinsicWidths()
+    public void HighBitDepthIntermediatesMatchReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateHighBitDepthCompoundIntermediates,
             PredictorConfigurations);
 
     /// <summary>
-    /// Verifies every current libaom display-distance quantization class in both temporal directions.
+    /// Verifies every display-distance quantization class in both temporal directions.
     /// </summary>
     /// <param name="firstOrderHint">The first reference order hint.</param>
     /// <param name="secondOrderHint">The second reference order hint.</param>
@@ -61,7 +61,7 @@ public class Av1CompoundInterPredictorTests
     [InlineData(12, 17, 3, 13)]
     [InlineData(12, 16, 3, 13)]
     [InlineData(16, 20, 13, 3)]
-    public void DistanceWeightsMatchCurrentLibaomQuantization(
+    public void DistanceWeightsMatchReference(
         int firstOrderHint,
         int secondOrderHint,
         int expectedFirstWeight,
@@ -95,21 +95,21 @@ public class Av1CompoundInterPredictorTests
     /// Verifies 8-bit distance and per-sample mask blending across every intrinsic width and scalar tail.
     /// </summary>
     [Fact]
-    public void ByteSelectableBlendsMatchIndependentOracleAcrossIntrinsicWidths()
+    public void ByteSelectableBlendsMatchReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateByteSelectableBlends, PredictorConfigurations);
 
     /// <summary>
     /// Verifies 10/12-bit distance and per-sample mask blending across every intrinsic width and scalar tail.
     /// </summary>
     [Fact]
-    public void HighBitDepthSelectableBlendsMatchIndependentOracleAcrossIntrinsicWidths()
+    public void HighBitDepthSelectableBlendsMatchReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthSelectableBlends, PredictorConfigurations);
 
     /// <summary>
     /// Verifies the four smooth inter-intra modes and their complemented destination orientation.
     /// </summary>
     [Fact]
-    public void SmoothInterIntraMasksMatchCurrentLibaomWeights()
+    public void SmoothInterIntraMasksMatchReference()
     {
         ReadOnlySpan<byte> weights = [60, 34, 19, 11, 6, 4, 2, 1];
 
@@ -152,10 +152,10 @@ public class Av1CompoundInterPredictorTests
     }
 
     /// <summary>
-    /// Verifies the current libaom horizontal curve at the index exercised by a 32-by-16 inter-intra block.
+    /// Verifies the reference horizontal curve at the index exercised by a 32-by-16 inter-intra block.
     /// </summary>
     [Fact]
-    public void HorizontalInterIntraMaskMatchesCurrentLibaomThirtyTwoWideCurve()
+    public void HorizontalInterIntraMaskMatchesReference()
     {
         const int width = 32;
         const int height = 16;
@@ -170,14 +170,14 @@ public class Av1CompoundInterPredictorTests
     }
 
     /// <summary>
-    /// Verifies the current libaom difference-mask formula in both orientations at each supported bit depth.
+    /// Verifies the reference difference-mask formula in both orientations at each supported bit depth.
     /// </summary>
     [Fact]
-    public void DifferenceWeightedMasksMatchCurrentLibaomFormula()
+    public void DifferenceWeightedMasksMatchReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateDifferenceWeightedMasks, PredictorConfigurations);
 
     /// <summary>
-    /// Applies the current libaom difference-mask formula at every bit depth and intrinsic width.
+    /// Applies the independent difference-mask formula at every bit depth and intrinsic width.
     /// </summary>
     private static void ValidateDifferenceWeightedMasks()
     {

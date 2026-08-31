@@ -90,7 +90,7 @@ public class Av1MotionVectorTests
     /// Verifies the complete-block and sixteen-sample borders used to clamp spatial reference candidates.
     /// </summary>
     [Fact]
-    public void ClampReferenceMatchesLibaomSpatialLimits()
+    public void ClampReferenceMatchesSpatialLimits()
     {
         const int blockWidth = 16;
         const int blockHeight = 8;
@@ -143,7 +143,7 @@ public class Av1MotionVectorTests
     [InlineData(2, -2, 1, 3, 1, -1)]
     [InlineData(31, -31, 40, 40, 31, -31)]
     [InlineData(4095, -4095, 31, 1, 16383, -16383)]
-    public void ProjectTemporalMatchesLibaom(
+    public void ProjectTemporalMatchesReference(
         int row,
         int column,
         int numerator,

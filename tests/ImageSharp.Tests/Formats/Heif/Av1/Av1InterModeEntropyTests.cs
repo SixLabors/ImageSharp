@@ -14,10 +14,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1InterModeEntropyTests
 {
     /// <summary>
-    /// Verifies the normative single-reference inter-mode distributions against libaom's forward Q15 defaults.
+    /// Verifies the normative single-reference inter-mode distributions against the reference decoder's forward Q15 defaults.
     /// </summary>
     [Fact]
-    public void InterModeDefaultsMatchLibaom()
+    public void InterModeDefaultsMatchReference()
     {
         AssertBinaryDefaults(Av1DefaultDistributions.NewMv, [24035, 16630, 15339, 8386, 12222, 4676]);
         AssertBinaryDefaults(Av1DefaultDistributions.ZeroMv, [2175, 1054]);
@@ -36,7 +36,7 @@ public class Av1InterModeEntropyTests
     [InlineData(0, 0, 0, 0)]
     [InlineData(77, 5, 1, 4)]
     [InlineData(93, 5, 1, 5)]
-    public void PackedInterModeContextMatchesLibaom(int modeContext, int expectedNewMv, int expectedZeroMv, int expectedRefMv)
+    public void PackedInterModeContextMatchesReference(int modeContext, int expectedNewMv, int expectedZeroMv, int expectedRefMv)
     {
         Assert.Equal(expectedNewMv, Av1SymbolContextHelper.GetNewMvContext(modeContext));
         Assert.Equal(expectedZeroMv, Av1SymbolContextHelper.GetZeroMvContext(modeContext));
@@ -55,7 +55,7 @@ public class Av1InterModeEntropyTests
     [InlineData((int)Av1PredictionMode.GlobalMotionVector, 1, 0, -1)]
     [InlineData((int)Av1PredictionMode.NearestMotionVector, 1, 1, 0)]
     [InlineData((int)Av1PredictionMode.NearMotionVector, 1, 1, 1)]
-    public void ReadInterModeMatchesLibaomTree(int expectedMode, int newMvSymbol, int zeroMvSymbol, int refMvSymbol)
+    public void ReadInterModeMatchesReference(int expectedMode, int newMvSymbol, int zeroMvSymbol, int refMvSymbol)
     {
         const int modeContext = 77;
         Av1Distribution newMv = Av1DefaultDistributions.NewMv[5];

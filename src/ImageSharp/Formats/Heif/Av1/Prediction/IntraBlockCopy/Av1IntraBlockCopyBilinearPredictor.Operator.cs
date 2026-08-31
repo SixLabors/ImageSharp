@@ -124,7 +124,7 @@ internal static partial class Av1IntraBlockCopyBilinearPredictor
     /// Applies the separable two-dimensional interpolation required when both source axes have a half-sample phase.
     /// </summary>
     /// <remarks>
-    /// The offsets in libaom's separable two-pass implementation cancel algebraically to
+    /// The offsets in the reference decoder's separable two-pass implementation cancel algebraically to
     /// <c>(topLeft + topRight + bottomLeft + bottomRight + 2) &gt;&gt; 2</c>, so the closed operator produces the exact
     /// result directly without an intermediate image buffer.
     ///

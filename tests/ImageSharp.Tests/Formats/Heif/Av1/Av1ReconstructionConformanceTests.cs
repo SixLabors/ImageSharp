@@ -158,137 +158,137 @@ public class Av1ReconstructionConformanceTests
     private const int AverageCompoundFixtureFrameCount = 19;
 
     /// <summary>
-    /// The number of shown frames in the official libaom all-intra sequence.
+    /// The number of shown frames in the official AV1 all-intra sequence.
     /// </summary>
     private const int OfficialAllIntraFixtureFrameCount = 39;
 
     /// <summary>
-    /// The number of shown frames in the official libaom CDF-update sequence.
+    /// The number of shown frames in the official AV1 CDF-update sequence.
     /// </summary>
     private const int OfficialCdfUpdateFixtureFrameCount = 2;
 
     /// <summary>
-    /// The number of shown frames in the official libaom temporal motion-field sequence.
+    /// The number of shown frames in the official AV1 temporal motion-field sequence.
     /// </summary>
     private const int OfficialMotionFieldFixtureFrameCount = 4;
 
     /// <summary>
-    /// The displayed width of the official libaom extreme-displacement intra-block-copy sequence.
+    /// The displayed width of the official AV1 extreme-displacement intra-block-copy sequence.
     /// </summary>
     private const int OfficialIntraBlockCopyFixtureWidth = 1920;
 
     /// <summary>
-    /// The displayed height of the official libaom extreme-displacement intra-block-copy sequence.
+    /// The displayed height of the official AV1 extreme-displacement intra-block-copy sequence.
     /// </summary>
     private const int OfficialIntraBlockCopyFixtureHeight = 1080;
 
     /// <summary>
-    /// The number of shown frames in the official libaom extreme-displacement intra-block-copy sequence.
+    /// The number of shown frames in the official AV1 extreme-displacement intra-block-copy sequence.
     /// </summary>
     private const int OfficialIntraBlockCopyFixtureFrameCount = 2;
 
     /// <summary>
-    /// The displayed width of the official libaom two-spatial-layer sequence.
+    /// The displayed width of the official AV1 two-spatial-layer sequence.
     /// </summary>
     private const int OfficialTwoSpatialLayerFixtureWidth = 1280;
 
     /// <summary>
-    /// The displayed height of the official libaom two-spatial-layer sequence.
+    /// The displayed height of the official AV1 two-spatial-layer sequence.
     /// </summary>
     private const int OfficialTwoSpatialLayerFixtureHeight = 720;
 
     /// <summary>
-    /// The number of default-operating-point frames in the official libaom two-spatial-layer sequence.
+    /// The number of default-operating-point frames in the official AV1 two-spatial-layer sequence.
     /// </summary>
     private const int OfficialTwoSpatialLayerFixtureFrameCount = 8;
 
     /// <summary>
-    /// The displayed width of the official libaom two-temporal-layer sequence.
+    /// The displayed width of the official AV1 two-temporal-layer sequence.
     /// </summary>
     private const int OfficialTwoTemporalLayerFixtureWidth = 640;
 
     /// <summary>
-    /// The displayed height of the official libaom two-temporal-layer sequence.
+    /// The displayed height of the official AV1 two-temporal-layer sequence.
     /// </summary>
     private const int OfficialTwoTemporalLayerFixtureHeight = 360;
 
     /// <summary>
-    /// The number of default-operating-point frames in the official libaom two-temporal-layer sequence.
+    /// The number of default-operating-point frames in the official AV1 two-temporal-layer sequence.
     /// </summary>
     private const int OfficialTwoTemporalLayerFixtureFrameCount = 8;
 
     /// <summary>
-    /// The displayed width of the official libaom spatial-and-temporal-layer sequence.
+    /// The displayed width of the official AV1 spatial-and-temporal-layer sequence.
     /// </summary>
     private const int OfficialSpatialTemporalLayerFixtureWidth = 1280;
 
     /// <summary>
-    /// The displayed height of the official libaom spatial-and-temporal-layer sequence.
+    /// The displayed height of the official AV1 spatial-and-temporal-layer sequence.
     /// </summary>
     private const int OfficialSpatialTemporalLayerFixtureHeight = 720;
 
     /// <summary>
-    /// The number of default-operating-point frames in the official libaom spatial-and-temporal-layer sequence.
+    /// The number of default-operating-point frames in the official AV1 spatial-and-temporal-layer sequence.
     /// </summary>
     private const int OfficialSpatialTemporalLayerFixtureFrameCount = 8;
 
     /// <summary>
-    /// The number of frames in the official libaom active-film-grain sequence.
+    /// The number of frames in the official AV1 active-film-grain sequence.
     /// </summary>
     private const int OfficialFilmGrainFixtureFrameCount = 10;
 
     /// <summary>
-    /// The width of the official libaom eight-bit monochrome sequence.
+    /// The width of the official AV1 eight-bit monochrome sequence.
     /// </summary>
     private const int OfficialMonochromeFixtureWidth = 320;
 
     /// <summary>
-    /// The height of the official libaom eight-bit monochrome sequence.
+    /// The height of the official AV1 eight-bit monochrome sequence.
     /// </summary>
     private const int OfficialMonochromeFixtureHeight = 180;
 
     /// <summary>
-    /// The number of frames in the official libaom eight-bit monochrome sequence.
+    /// The number of frames in the official AV1 eight-bit monochrome sequence.
     /// </summary>
     private const int OfficialMonochromeFixtureFrameCount = 10;
 
     /// <summary>
-    /// The width of the official libaom eight-bit quantizer-boundary sequences.
+    /// The width of the official AV1 eight-bit quantizer-boundary sequences.
     /// </summary>
     private const int OfficialEightBitQuantizerFixtureWidth = 352;
 
     /// <summary>
-    /// The height of the official libaom eight-bit quantizer-boundary sequences.
+    /// The height of the official AV1 eight-bit quantizer-boundary sequences.
     /// </summary>
     private const int OfficialEightBitQuantizerFixtureHeight = 288;
 
     /// <summary>
-    /// The width of the official libaom ten-bit quantizer-boundary sequences.
+    /// The width of the official AV1 ten-bit quantizer-boundary sequences.
     /// </summary>
     private const int OfficialTenBitQuantizerFixtureWidth = 640;
 
     /// <summary>
-    /// The height of the official libaom ten-bit quantizer-boundary sequences.
+    /// The height of the official AV1 ten-bit quantizer-boundary sequences.
     /// </summary>
     private const int OfficialTenBitQuantizerFixtureHeight = 360;
 
     /// <summary>
-    /// The number of frames in each official libaom quantizer-boundary sequence.
+    /// The number of frames in each official AV1 quantizer-boundary sequence.
     /// </summary>
     private const int OfficialQuantizerFixtureFrameCount = 2;
 
     /// <summary>
-    /// The minimum dimension retained from the official libaom frame-size matrix.
+    /// The minimum dimension retained from the official AV1 frame-size matrix.
     /// </summary>
     private const int OfficialFrameSizeFixtureMinimumDimension = 196;
 
     /// <summary>
-    /// The maximum dimension retained from the official libaom frame-size matrix.
+    /// The maximum dimension retained from the official AV1 frame-size matrix.
     /// </summary>
     private const int OfficialFrameSizeFixtureMaximumDimension = 226;
 
     /// <summary>
-    /// The number of frames in each official libaom frame-size sequence.
+    /// The number of frames in each official AV1 frame-size sequence.
     /// </summary>
     private const int OfficialFrameSizeFixtureFrameCount = 2;
 
@@ -330,17 +330,17 @@ public class Av1ReconstructionConformanceTests
         (1 << (int)Av1TransformType.HorizontalDct);
 
     /// <summary>
-    /// The displayed width of the official libaom motion-vector sequence.
+    /// The displayed width of the official AV1 motion-vector sequence.
     /// </summary>
     private const int OfficialMotionVectorFixtureWidth = 352;
 
     /// <summary>
-    /// The displayed height of the official libaom motion-vector sequence.
+    /// The displayed height of the official AV1 motion-vector sequence.
     /// </summary>
     private const int OfficialMotionVectorFixtureHeight = 288;
 
     /// <summary>
-    /// The number of shown frames in the official libaom motion-vector sequence.
+    /// The number of shown frames in the official AV1 motion-vector sequence.
     /// </summary>
     private const int OfficialMotionVectorFixtureFrameCount = 4;
 
@@ -421,7 +421,7 @@ public class Av1ReconstructionConformanceTests
     /// and twelve-bit AV1 and AVIF content.
     /// </summary>
     [Fact]
-    public void DecodeDeblockingFixturesMatchCurrentLibaomReference()
+    public void DecodeDeblockingMatchesReference()
     {
         ValidateFixture(
             TestImages.Heif.Av1Deblocking8BitAvif,
@@ -457,11 +457,11 @@ public class Av1ReconstructionConformanceTests
 
     /// <summary>
     /// Verifies active CDEF syntax, strength selection, unit traversal, subsampling, frame edges, and final native
-    /// samples against scalar libaom for independently encoded eight-, ten-, and twelve-bit still-picture streams
+    /// samples against the independent scalar reference for independently encoded eight-, ten-, and twelve-bit still-picture streams
     /// under normal SIMD dispatch and with hardware intrinsics disabled.
     /// </summary>
     [Fact]
-    public void DecodeWithActiveCdefMatchesCurrentLibaomReference()
+    public void DecodeCdefNativeMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateActiveCdefFixtures, ReconstructionConfigurations);
 
     /// <summary>
@@ -476,7 +476,7 @@ public class Av1ReconstructionConformanceTests
     [WithFile(TestImages.Heif.Av1Cdef8BitAvif, PixelTypes.Rgba32, 768, 512, HeifBitDepth.Bit8)]
     [WithFile(TestImages.Heif.Av1Cdef10BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit10)]
     [WithFile(TestImages.Heif.Av1Cdef12BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit12)]
-    public void DecodeWithActiveCdefMatchesPinnedLibavifPresentation(
+    public void DecodeCdefMatchesReference(
         TestImageProvider<Rgba32> provider,
         int width,
         int height,
@@ -495,7 +495,7 @@ public class Av1ReconstructionConformanceTests
     /// supported by AVIF across every available vector width and the scalar fallback.
     /// </summary>
     [Fact]
-    public void DecodeProfileMatrixMatchesPinnedLibaomReference()
+    public void DecodeProfileMatrixNativeMatchesReference()
         => ValidateProfileNativeFixtures();
 
     /// <summary>
@@ -503,7 +503,7 @@ public class Av1ReconstructionConformanceTests
     /// under each narrower vector width and the scalar fallback.
     /// </summary>
     [Fact]
-    public void DecodeProfileMatrixFallbacksMatchPinnedLibaomReference()
+    public void DecodeProfileMatrixFallbacksMatchReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateProfileNativeFixtures, ProfileFallbackConfigurations);
 
     /// <summary>
@@ -525,7 +525,7 @@ public class Av1ReconstructionConformanceTests
     [WithFile(TestImages.Heif.Av1Profile12Bit420Avif, PixelTypes.Rgba32, HeifBitDepth.Bit12)]
     [WithFile(TestImages.Heif.Av1Profile12Bit422Avif, PixelTypes.Rgba32, HeifBitDepth.Bit12)]
     [WithFile(TestImages.Heif.Av1Profile12Bit444Avif, PixelTypes.Rgba32, HeifBitDepth.Bit12)]
-    public void DecodeProfileMatrixMatchesPinnedLibavifPresentation(
+    public void DecodeProfileMatrixMatchesReference(
         TestImageProvider<Rgba32> provider,
         HeifBitDepth bitDepth)
     {
@@ -547,15 +547,15 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies decoded luma and chroma palette syntax and exact native samples against current official libaom for an
-    /// independently encoded AV1 still-picture stream.
+    /// Verifies decoded luma and chroma palette syntax and exact native samples for an independently encoded AV1
+    /// still-picture stream.
     /// </summary>
     [Fact]
-    public void DecodeWithPaletteMatchesCurrentLibaomReference()
+    public void DecodePaletteMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePaletteNativeFixture, PaletteConfigurations);
 
     /// <summary>
-    /// Verifies exact palette reconstruction through segmented frame-owned map storage and tracked disposal.
+    /// Verifies exact palette reconstruction through bounded reusable superblock maps and tracked disposal.
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
@@ -567,40 +567,19 @@ public class Av1ReconstructionConformanceTests
         configuration.MemoryAllocator = allocator;
         byte[] payload = TestFile.Create(TestImages.Heif.Av1Palette8BitPayload).Bytes;
         byte[] reference = TestFile.Create(TestImages.Heif.Av1Palette8BitReference).Bytes;
-        bool foundSegmentedLumaMap = false;
-        bool foundSegmentedChromaMap = false;
 
         using (Av1Decoder decoder = new(configuration))
         {
+            int paletteMapLength = 1 << Av1Constants.MaxSuperBlockSizeLog2;
+            int expectedPaletteAllocationCount = (2 * paletteMapLength * paletteMapLength) / allocator.BufferCapacityInBytes;
+            Assert.Equal(expectedPaletteAllocationCount, allocator.AllocationLog.Count);
+            int finalPaletteAllocationId = allocator.AllocationLog[^1].AllocationId;
+
             using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
 
             Assert.Equal(RequiredPaletteCoverage, GetPaletteCoverage(decoder));
             AssertNativePlanesEqual(decoder, frameBuffer, reference);
-            Assert.NotNull(decoder.FrameHeader);
-            Assert.NotNull(decoder.FrameInfo);
-            int modeInfoWidth = Av1Math.DivideLog2Ceiling(decoder.FrameHeader.FrameSize.FrameWidth, Av1Constants.ModeInfoSizeLog2);
-            int modeInfoHeight = Av1Math.DivideLog2Ceiling(decoder.FrameHeader.FrameSize.FrameHeight, Av1Constants.ModeInfoSizeLog2);
-            for (int y = 0; y < modeInfoHeight && (!foundSegmentedLumaMap || !foundSegmentedChromaMap); y++)
-            {
-                for (int x = 0; x < modeInfoWidth && (!foundSegmentedLumaMap || !foundSegmentedChromaMap); x++)
-                {
-                    Av1BlockModeInfo modeInfo = decoder.FrameInfo.GetModeInfoAt(new Point(x, y));
-                    if (!foundSegmentedLumaMap && modeInfo.GetPaletteSize(Av1PlaneType.Y) != 0)
-                    {
-                        Buffer2DRegion<byte> map = modeInfo.GetPaletteColorIndexMap(Av1Plane.Y);
-                        foundSegmentedLumaMap = map.Buffer.MemoryGroup.Count > 1;
-                    }
-
-                    if (!foundSegmentedChromaMap && modeInfo.GetPaletteSize(Av1PlaneType.Uv) != 0)
-                    {
-                        Buffer2DRegion<byte> map = modeInfo.GetPaletteColorIndexMap(Av1Plane.U);
-                        foundSegmentedChromaMap = map.Buffer.MemoryGroup.Count > 1;
-                    }
-                }
-            }
-
-            Assert.True(foundSegmentedLumaMap);
-            Assert.True(foundSegmentedChromaMap);
+            Assert.DoesNotContain(allocator.ReturnLog, returned => returned.AllocationId <= finalPaletteAllocationId);
         }
 
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
@@ -670,7 +649,7 @@ public class Av1ReconstructionConformanceTests
     /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
     [Theory]
     [WithFile(TestImages.Heif.Av1Palette8BitAvif, PixelTypes.Rgba32)]
-    public void DecodeWithPaletteMatchesRetainedPresentationReference(TestImageProvider<Rgba32> provider)
+    public void DecodePalettePresentationMatchesReference(TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidatePresentedFixture,
             PresentationConfigurations,
@@ -713,11 +692,11 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies selected intra-block-copy prediction and exact native samples against scalar libaom for an
+    /// Verifies selected intra-block-copy prediction and exact native samples against the independent scalar reference for an
     /// independently encoded AV1 still pictures across every available vector width and the scalar fallback.
     /// </summary>
     [Fact]
-    public void DecodeWithIntraBlockCopyMatchesPinnedLibaomReference()
+    public void DecodeIntraBlockCopyNativeMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateIntraBlockCopyNativeFixtures, IntraBlockCopyConfigurations);
 
     /// <summary>
@@ -729,7 +708,7 @@ public class Av1ReconstructionConformanceTests
     [WithFile(TestImages.Heif.Av1IntraBlockCopy8BitAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1IntraBlockCopy10BitAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1IntraBlockCopy12BitAvif, PixelTypes.Rgba32)]
-    public void DecodeWithIntraBlockCopyMatchesPinnedLibavifPresentation(
+    public void DecodeIntraBlockCopyMatchesReference(
         TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidatePresentedFixture,
@@ -743,7 +722,7 @@ public class Av1ReconstructionConformanceTests
     /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
     [Theory]
     [WithFile(TestImages.Heif.Av1Progressive8BitAvif, PixelTypes.Rgba32)]
-    public void DecodeProgressiveSingleReferenceMatchesCurrentLibaomReferences(
+    public void DecodeProgressiveSingleMatchesReference(
         TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateProgressiveSingleReferenceFixtureWithDefaultConfiguration,
@@ -755,7 +734,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeProgressiveSingleReferenceWithConstrainedAllocator()
+    public void DecodeProgressiveSingleWithConstrainedAllocator()
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
         allocator.EnableNonThreadSafeLogging();
@@ -774,12 +753,12 @@ public class Av1ReconstructionConformanceTests
 
     /// <summary>
     /// Verifies that an essential lsel property returns the selected base spatial layer rather than the final
-    /// progressive layer, with exact current-libaom native planes and the retained exact presentation reference.
+    /// progressive layer, with exact reference native planes and the retained exact presentation reference.
     /// </summary>
     /// <param name="provider">The selected-layer AVIF input and matching reference-output naming context.</param>
     [Theory]
     [WithFile(TestImages.Heif.Av1ScaledReferenceSelectedLayerAvif, PixelTypes.Rgba32)]
-    public void DecodeSelectedProgressiveSpatialLayerMatchesCurrentLibaomReferences(
+    public void DecodeSelectedProgressiveLayerMatchesReference(
         TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateSelectedProgressiveSpatialLayerWithDefaultConfiguration,
@@ -791,7 +770,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeSelectedProgressiveSpatialLayerWithConstrainedAllocator()
+    public void DecodeSelectedProgressiveLayerWithConstrainedAllocator()
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
         allocator.EnableNonThreadSafeLogging();
@@ -810,12 +789,12 @@ public class Av1ReconstructionConformanceTests
 
     /// <summary>
     /// Verifies an independently encoded 40x40 retained layer scaled into an 80x80 dependent layer against exact
-    /// current-libaom native planes and the retained exact presentation reference.
+    /// reference native planes and the retained exact presentation reference.
     /// </summary>
     /// <param name="provider">The AVIF input and matching reference-output naming context.</param>
     [Theory]
     [WithFile(TestImages.Heif.Av1ScaledReferenceAvif, PixelTypes.Rgba32)]
-    public void DecodeScaledReferenceMatchesCurrentLibaomReferences(TestImageProvider<Rgba32> provider)
+    public void DecodeScaledReferenceMatchesReference(TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateScaledReferenceFixtureWithDefaultConfiguration,
             ReconstructionConfigurations,
@@ -849,7 +828,7 @@ public class Av1ReconstructionConformanceTests
     /// Verifies that the production dependent-frame result owns its motion-field storage until decoder disposal.
     /// </summary>
     [Fact]
-    public void DecodeProgressiveSingleReferenceTracksMotionFieldResultOwnership()
+    public void DecodeProgressiveSingleTracksMotionFieldOwnership()
     {
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
@@ -905,11 +884,11 @@ public class Av1ReconstructionConformanceTests
 
     /// <summary>
     /// Verifies exact native reconstruction and presentation for an image sequence that exercises equal-weight
-    /// compound prediction. The native reference has been reverified against current official libaom main.
+    /// compound prediction. The native reference has been reverified against the current AV1 reference.
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.Av1AverageCompoundSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeRealLibavifSequenceWithEqualAverageCompoundMatchesVerifiedReferences(
+    public void DecodeEqualAverageCompoundMatchesReference(
         TestImageProvider<Rgba32> provider)
 
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -922,7 +901,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeRealLibavifSequenceWithEqualAverageCompoundUsesContiguousPlanes()
+    public void DecodeEqualAverageCompoundWithConstrainedAllocator()
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
         allocator.EnableNonThreadSafeLogging();
@@ -1066,7 +1045,7 @@ public class Av1ReconstructionConformanceTests
     [WithFile(TestImages.Heif.Av1WedgeCompoundSequenceAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1DifferenceWeightedCompoundSequenceAvif, PixelTypes.Rgba32)]
     [WithFile(TestImages.Heif.Av1InterIntraSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeRealLibavifSequencesWithSelectableCompoundAndInterIntraMatchesRetainedReferences(
+    public void DecodeSelectableCompoundMatchesReference(
         TestImageProvider<Rgba32> provider)
 
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
@@ -1079,7 +1058,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeRealLibavifSequencesWithSelectableCompoundAndInterIntraUseContiguousPlanes()
+    public void DecodeSelectableCompoundWithConstrainedAllocator()
     {
         ValidateInterPredictionSequenceWithConstrainedAllocator(
             TestImages.Heif.Av1DistanceWeightedCompoundSequenceAvif,
@@ -1112,11 +1091,11 @@ public class Av1ReconstructionConformanceTests
 
     /// <summary>
     /// Verifies production OBMC reconstruction against exact native and presentation references. The native reference
-    /// has been reverified against current official libaom main.
+    /// has been reverified against the current AV1 reference.
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.Av1ObmcSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeRealLibavifObmcSequenceMatchesVerifiedReferences(TestImageProvider<Rgba32> provider)
+    public void DecodeObmcMatchesReference(TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateObmcSequenceWithDefaultConfiguration,
             ReconstructionConfigurations,
@@ -1127,7 +1106,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeRealLibavifObmcSequenceUsesContiguousPlanes()
+    public void DecodeObmcWithConstrainedAllocator()
         => ValidateInterPredictionSequenceWithConstrainedAllocator(
             TestImages.Heif.Av1ObmcSequenceAvif,
             TestImages.Heif.Av1ObmcSequenceNativeReference,
@@ -1136,11 +1115,11 @@ public class Av1ReconstructionConformanceTests
             AverageCompoundFixtureFrameCount);
 
     /// <summary>
-    /// Verifies production local warped-motion reconstruction against current-libaom native and retained presentation references.
+    /// Verifies production local warped-motion reconstruction against reference native and retained presentation references.
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.Av1LocalWarpSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeRealLibavifLocalWarpSequenceMatchesCurrentLibaomReferences(TestImageProvider<Rgba32> provider)
+    public void DecodeLocalWarpMatchesReference(TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateLocalWarpSequenceWithDefaultConfiguration,
             ReconstructionConfigurations,
@@ -1151,7 +1130,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeRealLibavifLocalWarpSequenceUsesContiguousPlanes()
+    public void DecodeLocalWarpWithConstrainedAllocator()
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
         allocator.EnableNonThreadSafeLogging();
@@ -1177,11 +1156,11 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies production non-translational global motion against current-libaom native and retained presentation references.
+    /// Verifies production non-translational global motion against reference native and retained presentation references.
     /// </summary>
     [Theory]
     [WithFile(TestImages.Heif.Av1GlobalWarpSequenceAvif, PixelTypes.Rgba32)]
-    public void DecodeRealLibavifGlobalWarpSequenceMatchesCurrentLibaomReferences(TestImageProvider<Rgba32> provider)
+    public void DecodeGlobalWarpMatchesReference(TestImageProvider<Rgba32> provider)
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateGlobalWarpSequenceWithDefaultConfiguration,
             ReconstructionConfigurations,
@@ -1192,7 +1171,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeRealLibavifGlobalWarpSequenceUsesContiguousPlanes()
+    public void DecodeGlobalWarpWithConstrainedAllocator()
         => ValidateInterPredictionSequenceWithConstrainedAllocator(
             TestImages.Heif.Av1GlobalWarpSequenceAvif,
             TestImages.Heif.Av1GlobalWarpSequenceNativeReference,
@@ -1202,10 +1181,10 @@ public class Av1ReconstructionConformanceTests
 
     /// <summary>
     /// Verifies every intra prediction mode and the fixture's seven transform types against the official
-    /// current-libaom all-intra conformance sequence and its exact native output.
+    /// reference all-intra conformance sequence and its exact native output.
     /// </summary>
     [Fact]
-    public void DecodeOfficialAllIntraSequenceMatchesCurrentLibaomReference() => ValidateOfficialAllIntraFixture();
+    public void DecodeAllIntraMatchesReference() => ValidateOfficialAllIntraFixture();
 
     /// <summary>
     /// Decodes every all-intra IVF sample in one session, compares each frame exactly, and records the syntax
@@ -1304,31 +1283,31 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies adaptive tile and frame-end CDF updates against the official pinned-libaom sequence and exact native
+    /// Verifies adaptive tile and frame-end CDF updates against the official reference sequence and exact native
     /// output under normal and scalar dispatch.
     /// </summary>
     [Fact]
-    public void DecodeOfficialCdfUpdateSequenceMatchesPinnedLibaomReference()
+    public void DecodeCdfUpdateMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialCdfUpdateFixture,
             ReconstructionConfigurations);
 
     /// <summary>
-    /// Verifies temporal reference-motion-vector projection against the official pinned-libaom sequence and exact
+    /// Verifies temporal reference-motion-vector projection against the official reference sequence and exact
     /// native output under normal and scalar dispatch.
     /// </summary>
     [Fact]
-    public void DecodeOfficialMotionFieldSequenceMatchesPinnedLibaomReference()
+    public void DecodeMotionFieldMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialMotionFieldFixture,
             ReconstructionConfigurations);
 
     /// <summary>
-    /// Verifies extreme intra-block-copy displacement vectors against the official pinned-libaom sequence and exact
+    /// Verifies extreme intra-block-copy displacement vectors against the official reference sequence and exact
     /// native output under normal and scalar dispatch.
     /// </summary>
     [Fact]
-    public void DecodeOfficialIntraBlockCopySequenceMatchesPinnedLibaomReference()
+    public void DecodeIntraBlockCopySequenceMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialIntraBlockCopyFixture,
             ReconstructionConfigurations);
@@ -1406,7 +1385,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeOfficialMotionFieldSequenceWithConstrainedAllocator()
+    public void DecodeMotionFieldWithConstrainedAllocator()
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
         allocator.EnableNonThreadSafeLogging();
@@ -1459,11 +1438,11 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies the default operating point of an official two-spatial-layer sequence against exact pinned-libaom
+    /// Verifies the default operating point of an official two-spatial-layer sequence against exact reference
     /// native output under normal and scalar dispatch.
     /// </summary>
     [Fact]
-    public void DecodeOfficialTwoSpatialLayerSequenceMatchesPinnedLibaomReference()
+    public void DecodeTwoSpatialLayersMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialTwoSpatialLayerFixture,
             ReconstructionConfigurations);
@@ -1473,7 +1452,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeOfficialTwoSpatialLayerSequenceWithConstrainedAllocator()
+    public void DecodeTwoSpatialLayersWithConstrainedAllocator()
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 8_192 };
         allocator.EnableNonThreadSafeLogging();
@@ -1509,11 +1488,11 @@ public class Av1ReconstructionConformanceTests
             OfficialTwoSpatialLayerFixtureHeight);
 
     /// <summary>
-    /// Verifies the default operating point of an official two-temporal-layer sequence against exact pinned-libaom
+    /// Verifies the default operating point of an official two-temporal-layer sequence against exact reference
     /// native output under normal and scalar dispatch.
     /// </summary>
     [Fact]
-    public void DecodeOfficialTwoTemporalLayerSequenceMatchesPinnedLibaomReference()
+    public void DecodeTwoTemporalLayersMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialTwoTemporalLayerFixture,
             ReconstructionConfigurations);
@@ -1523,7 +1502,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeOfficialTwoTemporalLayerSequenceWithConstrainedAllocator()
+    public void DecodeTwoTemporalLayersWithConstrainedAllocator()
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 8_192 };
         allocator.EnableNonThreadSafeLogging();
@@ -1560,10 +1539,10 @@ public class Av1ReconstructionConformanceTests
 
     /// <summary>
     /// Verifies the default operating point of an official spatial-and-temporal-layer sequence against exact
-    /// pinned-libaom native output under normal and scalar dispatch.
+    /// reference native output under normal and scalar dispatch.
     /// </summary>
     [Fact]
-    public void DecodeOfficialSpatialTemporalLayerSequenceMatchesPinnedLibaomReference()
+    public void DecodeSpatialTemporalLayersMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialSpatialTemporalLayerFixture,
             ReconstructionConfigurations);
@@ -1573,7 +1552,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeOfficialSpatialTemporalLayerSequenceWithConstrainedAllocator()
+    public void DecodeSpatialTemporalLayersWithConstrainedAllocator()
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 8_192 };
         allocator.EnableNonThreadSafeLogging();
@@ -1609,11 +1588,11 @@ public class Av1ReconstructionConformanceTests
             OfficialSpatialTemporalLayerFixtureHeight);
 
     /// <summary>
-    /// Verifies active film-grain presentation and dependent-frame reconstruction against exact pinned-libaom native
+    /// Verifies active film-grain presentation and dependent-frame reconstruction against exact reference native
     /// output under normal and scalar dispatch.
     /// </summary>
     [Fact]
-    public void DecodeOfficialFilmGrainSequenceMatchesPinnedLibaomReference()
+    public void DecodeFilmGrainSequenceMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialFilmGrainFixture,
             ReconstructionConfigurations);
@@ -1623,7 +1602,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeOfficialFilmGrainSequenceWithConstrainedAllocator()
+    public void DecodeFilmGrainWithConstrainedAllocator()
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
         allocator.EnableNonThreadSafeLogging();
@@ -1660,10 +1639,10 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies the official ten-bit film-grain sequence against exact pinned-libaom native output.
+    /// Verifies the official ten-bit film-grain sequence against exact reference native output.
     /// </summary>
     [Fact]
-    public void DecodeOfficialTenBitFilmGrainSequenceMatchesPinnedLibaomReference()
+    public void DecodeTenBitFilmGrainSequenceMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialTenBitFilmGrainFixture,
             ReconstructionConfigurations);
@@ -1687,11 +1666,11 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies the official eight-bit monochrome sequence against exact pinned-libaom native output under normal and
+    /// Verifies the official eight-bit monochrome sequence against exact reference native output under normal and
     /// scalar dispatch.
     /// </summary>
     [Fact]
-    public void DecodeOfficialMonochromeSequenceMatchesPinnedLibaomReference()
+    public void DecodeMonochromeSequenceMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialMonochromeFixture,
             ReconstructionConfigurations);
@@ -1701,7 +1680,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeOfficialMonochromeSequenceWithConstrainedAllocator()
+    public void DecodeMonochromeWithConstrainedAllocator()
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
         allocator.EnableNonThreadSafeLogging();
@@ -1739,10 +1718,10 @@ public class Av1ReconstructionConformanceTests
             Av1ColorFormat.Yuv400);
 
     /// <summary>
-    /// Verifies the official ten-bit monochrome sequence against exact pinned-libaom native output.
+    /// Verifies the official ten-bit monochrome sequence against exact reference native output.
     /// </summary>
     [Fact]
-    public void DecodeOfficialTenBitMonochromeSequenceMatchesPinnedLibaomReference()
+    public void DecodeTenBitMonochromeSequenceMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialTenBitMonochromeFixture,
             ReconstructionConfigurations);
@@ -1766,7 +1745,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeOfficialTenBitSequencesWithConstrainedAllocator()
+    public void DecodeTenBitWithConstrainedAllocator()
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
         allocator.EnableNonThreadSafeLogging();
@@ -1803,10 +1782,10 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies the official eight-bit quantizer boundaries against exact current-libaom native output.
+    /// Verifies the official eight-bit quantizer boundaries against exact reference native output.
     /// </summary>
     [Fact]
-    public void DecodeOfficialEightBitQuantizerBoundarySequencesMatchCurrentLibaomReferences()
+    public void DecodeEightBitQuantizerBoundariesMatchReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialEightBitQuantizerBoundaryFixtures,
             ReconstructionConfigurations);
@@ -1818,10 +1797,10 @@ public class Av1ReconstructionConformanceTests
         => ValidateOfficialEightBitQuantizerBoundaryFixturesWithConfiguration(Configuration.Default);
 
     /// <summary>
-    /// Verifies the official ten-bit quantizer boundaries against exact current-libaom native output.
+    /// Verifies the official ten-bit quantizer boundaries against exact reference native output.
     /// </summary>
     [Fact]
-    public void DecodeOfficialTenBitQuantizerBoundarySequencesMatchCurrentLibaomReferences()
+    public void DecodeTenBitQuantizerBoundariesMatchReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialTenBitQuantizerBoundaryFixtures,
             ReconstructionConfigurations);
@@ -1837,7 +1816,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeOfficialQuantizerBoundarySequencesWithConstrainedAllocator()
+    public void DecodeQuantizerBoundariesWithConstrainedAllocator()
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_560 };
         allocator.EnableNonThreadSafeLogging();
@@ -1916,10 +1895,10 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies all four corners of the official frame-size matrix against exact pinned-libaom native output.
+    /// Verifies all four corners of the official frame-size matrix against exact reference native output.
     /// </summary>
     [Fact]
-    public void DecodeOfficialFrameSizeCornerSequencesMatchPinnedLibaomReferences()
+    public void DecodeFrameSizeCornersMatchReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialFrameSizeCornerFixtures,
             ReconstructionConfigurations);
@@ -1935,7 +1914,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeOfficialFrameSizeCornerSequencesWithConstrainedAllocator()
+    public void DecodeFrameSizeCornersWithConstrainedAllocator()
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 1_024 };
         allocator.EnableNonThreadSafeLogging();
@@ -2100,10 +2079,10 @@ public class Av1ReconstructionConformanceTests
 
     /// <summary>
     /// Verifies every ordinary inter mode, motion mode, and switchable dual-filter pair against the official
-    /// pinned-libaom motion-vector conformance sequence and its exact native output.
+    /// reference motion-vector conformance sequence and its exact native output.
     /// </summary>
     [Fact]
-    public void DecodeOfficialMotionVectorSequenceMatchesPinnedLibaomReference()
+    public void DecodeMotionVectorSequenceMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateOfficialMotionVectorFixtureWithDefaultConfiguration,
             ReconstructionConfigurations);
@@ -2113,7 +2092,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     [Fact]
     [ValidateDisposedMemoryAllocations]
-    public void DecodeOfficialMotionVectorSequenceUsesContiguousPlanes()
+    public void DecodeMotionVectorsWithConstrainedAllocator()
     {
         TestMemoryAllocator allocator = new() { BufferCapacityInBytes = 2_048 };
         allocator.EnableNonThreadSafeLogging();
@@ -2509,11 +2488,11 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies lossless syntax, residual reconstruction, and exact native samples against scalar libaom for
+    /// Verifies lossless syntax, residual reconstruction, and exact native samples against the independent scalar reference for
     /// independently encoded eight-, ten-, and twelve-bit AVIF images.
     /// </summary>
     [Fact]
-    public void DecodeLosslessMatchesPinnedLibaomReference()
+    public void DecodeLosslessNativeMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateLosslessFixtures, LosslessConfigurations);
 
     /// <summary>
@@ -2526,7 +2505,7 @@ public class Av1ReconstructionConformanceTests
     [WithFile(TestImages.Heif.Av1Lossless8BitAvif, PixelTypes.Rgba32, HeifBitDepth.Bit8)]
     [WithFile(TestImages.Heif.Av1Lossless10BitAvif, PixelTypes.Rgba32, HeifBitDepth.Bit10)]
     [WithFile(TestImages.Heif.Av1Lossless12BitAvif, PixelTypes.Rgba32, HeifBitDepth.Bit12)]
-    public void DecodeLosslessMatchesPinnedLibavifPresentation(
+    public void DecodeLosslessMatchesReference(
         TestImageProvider<Rgba32> provider,
         HeifBitDepth bitDepth)
     {
@@ -2540,10 +2519,10 @@ public class Av1ReconstructionConformanceTests
 
     /// <summary>
     /// Verifies active normative super-resolution, chroma-width rounding, replicated edges, and exact native samples
-    /// against scalar libaom for independently encoded eight-, ten-, and twelve-bit still-picture streams.
+    /// against the independent scalar reference for independently encoded eight-, ten-, and twelve-bit still-picture streams.
     /// </summary>
     [Fact]
-    public void DecodeWithSuperResolutionMatchesPinnedLibaomReference()
+    public void DecodeSuperResolutionNativeMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSuperResolutionFixtures, ReconstructionConfigurations);
 
     /// <summary>
@@ -2558,7 +2537,7 @@ public class Av1ReconstructionConformanceTests
     [WithFile(TestImages.Heif.Av1SuperResolution8BitAvif, PixelTypes.Rgba32, 768, 512, HeifBitDepth.Bit8)]
     [WithFile(TestImages.Heif.Av1SuperResolution10BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit10)]
     [WithFile(TestImages.Heif.Av1SuperResolution12BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit12)]
-    public void DecodeWithSuperResolutionMatchesPinnedLibavifPresentation(
+    public void DecodeSuperResolutionMatchesReference(
         TestImageProvider<Rgba32> provider,
         int width,
         int height,
@@ -2573,18 +2552,18 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Verifies active normative loop restoration and exact native samples against scalar libaom for independently
+    /// Verifies active normative loop restoration and exact native samples against the independent scalar reference for independently
     /// encoded eight-, ten-, and twelve-bit still-picture streams.
     /// </summary>
     [Fact]
-    public void DecodeWithLoopRestorationMatchesPinnedLibaomReference()
+    public void DecodeLoopRestorationNativeMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateLoopRestorationFixtures, LoopRestorationConfigurations);
 
     /// <summary>
     /// Verifies combined super-resolution and loop-restoration geometry for independently encoded 8-bit 4:2:0 content.
     /// </summary>
     [Fact]
-    public void DecodeWithLoopRestorationAndSuperResolutionMatchesPinnedLibaomReference8Bit420()
+    public void DecodeRestorationSuperResolution8Bit420MatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateLoopRestorationAndSuperResolution8Bit420,
             LoopRestorationConfigurations);
@@ -2593,7 +2572,7 @@ public class Av1ReconstructionConformanceTests
     /// Verifies combined super-resolution and loop-restoration geometry for independently encoded 10-bit 4:2:2 content.
     /// </summary>
     [Fact]
-    public void DecodeWithLoopRestorationAndSuperResolutionMatchesPinnedLibaomReference10Bit422()
+    public void DecodeRestorationSuperRes10Bit422MatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateLoopRestorationAndSuperResolution10Bit422,
             LoopRestorationConfigurations);
@@ -2602,7 +2581,7 @@ public class Av1ReconstructionConformanceTests
     /// Verifies combined super-resolution and loop-restoration geometry for independently encoded 12-bit 4:4:4 content.
     /// </summary>
     [Fact]
-    public void DecodeWithLoopRestorationAndSuperResolutionMatchesPinnedLibaomReference12Bit444()
+    public void DecodeRestorationSuperRes12Bit444MatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateLoopRestorationAndSuperResolution12Bit444,
             LoopRestorationConfigurations);
@@ -2619,7 +2598,7 @@ public class Av1ReconstructionConformanceTests
     [WithFile(TestImages.Heif.Av1Restoration8BitAvif, PixelTypes.Rgba32, 768, 512, HeifBitDepth.Bit8)]
     [WithFile(TestImages.Heif.Av1Restoration10BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit10)]
     [WithFile(TestImages.Heif.Av1Restoration12BitAvif, PixelTypes.Rgba32, 1024, 428, HeifBitDepth.Bit12)]
-    public void DecodeWithLoopRestorationMatchesPinnedLibavifPresentation(
+    public void DecodeLoopRestorationMatchesReference(
         TestImageProvider<Rgba32> provider,
         int width,
         int height,
@@ -2649,10 +2628,10 @@ public class Av1ReconstructionConformanceTests
 
     /// <summary>
     /// Verifies film-grain template generation, block selection, overlap, chroma scaling, subsampling, high-bit-depth
-    /// arithmetic, and exact native presentation samples against scalar libaom.
+    /// arithmetic, and exact native presentation samples against the independent scalar reference.
     /// </summary>
     [Fact]
-    public void DecodeWithFilmGrainMatchesPinnedLibaomReference()
+    public void DecodeFilmGrainMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilmGrainFixtures, LoopRestorationConfigurations);
 
     /// <summary>
@@ -2763,7 +2742,7 @@ public class Av1ReconstructionConformanceTests
     /// Validates one independently encoded AVIF against its native Y4M reference and signaled sequence profile.
     /// </summary>
     /// <param name="imagePath">The complete AVIF container.</param>
-    /// <param name="referencePath">The native Y4M output produced by the pinned scalar libaom-backed decoder.</param>
+    /// <param name="referencePath">The independently decoded native Y4M output.</param>
     /// <param name="bitDepth">The expected AV1 sample precision.</param>
     /// <param name="colorFormat">The expected native chroma-sampling layout.</param>
     /// <param name="sequenceProfile">The AV1 profile required by the bit-depth and chroma-format combination.</param>
@@ -2912,7 +2891,7 @@ public class Av1ReconstructionConformanceTests
     /// Validates one independently encoded intra-block-copy AVIF against its native Y4M reference.
     /// </summary>
     /// <param name="imagePath">The complete AVIF container.</param>
-    /// <param name="referencePath">The native Y4M output produced by the pinned scalar libaom-backed decoder.</param>
+    /// <param name="referencePath">The independently decoded native Y4M output.</param>
     /// <param name="bitDepth">The expected AV1 sample precision.</param>
     private static void ValidateIntraBlockCopyNativeFixture(string imagePath, string referencePath, Av1BitDepth bitDepth)
     {
@@ -3616,7 +3595,7 @@ public class Av1ReconstructionConformanceTests
     /// Validates lossless frame syntax and complete native reconstruction for one AVIF image.
     /// </summary>
     /// <param name="imagePath">The independently encoded AVIF container.</param>
-    /// <param name="referencePath">The raw planar output produced by the pinned scalar libaom decoder.</param>
+    /// <param name="referencePath">The independently decoded raw planar output.</param>
     /// <param name="bitDepth">The expected AV1 sample precision.</param>
     private static void ValidateLosslessFixture(string imagePath, string referencePath, Av1BitDepth bitDepth)
     {
@@ -3688,7 +3667,7 @@ public class Av1ReconstructionConformanceTests
     /// Validates one independently encoded stream that activates constrained directional enhancement filtering.
     /// </summary>
     /// <param name="payloadPath">The AV1 elementary-stream sample.</param>
-    /// <param name="referencePath">The native planar output produced by the pinned scalar libaom decoder.</param>
+    /// <param name="referencePath">The independently decoded native planar output.</param>
     /// <param name="width">The expected reconstructed width.</param>
     /// <param name="height">The expected reconstructed height.</param>
     /// <param name="bitDepth">The expected AV1 sample precision.</param>
@@ -3706,7 +3685,7 @@ public class Av1ReconstructionConformanceTests
     /// Validates one independently encoded stream that activates normative super-resolution.
     /// </summary>
     /// <param name="payloadPath">The AV1 elementary-stream sample.</param>
-    /// <param name="referencePath">The native planar output produced by the pinned scalar libaom decoder.</param>
+    /// <param name="referencePath">The independently decoded native planar output.</param>
     /// <param name="width">The expected upscaled width.</param>
     /// <param name="height">The expected reconstructed height.</param>
     /// <param name="bitDepth">The expected AV1 sample precision.</param>
@@ -3732,7 +3711,7 @@ public class Av1ReconstructionConformanceTests
     /// Validates one independently encoded stream that activates normative loop restoration.
     /// </summary>
     /// <param name="payloadPath">The AV1 elementary-stream sample.</param>
-    /// <param name="referencePath">The native planar output produced by the pinned scalar libaom decoder.</param>
+    /// <param name="referencePath">The independently decoded native planar output.</param>
     /// <param name="width">The expected reconstructed width.</param>
     /// <param name="height">The expected reconstructed height.</param>
     /// <param name="bitDepth">The expected AV1 sample precision.</param>
@@ -3762,7 +3741,7 @@ public class Av1ReconstructionConformanceTests
     /// Validates one independently encoded stream that applies film grain to the displayed samples.
     /// </summary>
     /// <param name="payloadPath">The AV1 elementary-stream sample.</param>
-    /// <param name="referencePath">The native planar output produced by the pinned scalar libaom decoder.</param>
+    /// <param name="referencePath">The independently decoded native planar output.</param>
     /// <param name="width">The expected displayed width.</param>
     /// <param name="height">The expected displayed height.</param>
     /// <param name="bitDepth">The expected AV1 sample precision.</param>
@@ -4104,7 +4083,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     /// <param name="decoder">The decoder state used to identify the coded block containing a mismatch.</param>
     /// <param name="frameBuffer">The reconstructed AV1 component planes.</param>
-    /// <param name="reference">The planar Y, U, and V samples produced by the current-main libaom decoder.</param>
+    /// <param name="reference">The independently decoded planar Y, U, and V samples.</param>
     /// <param name="frameIndex">The zero-based sequence-frame index, or -1 for a standalone sample.</param>
     private static void AssertNativePlanesEqual(
         Av1Decoder decoder,

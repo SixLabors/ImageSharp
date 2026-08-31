@@ -427,7 +427,7 @@ internal sealed class Av1CodecConfiguration
                 throw new InvalidImageContentException($"The {sourceName} contains an OBU with a set forbidden header bit.");
             }
 
-            // Current libaom deliberately ignores obu_reserved_1bit. The bit does not alter the OBU boundary or
+            // The reference decoder deliberately ignores obu_reserved_1bit. The bit does not alter the OBU boundary or
             // decoded syntax, so the bounded container scan must not reject data that the production parser accepts.
             ObuType type = (ObuType)((header >> 3) & 0x0F);
             bool hasExtension = (header & 0x04) != 0;
@@ -440,7 +440,7 @@ internal sealed class Av1CodecConfiguration
                     throw new InvalidImageContentException($"The {sourceName} contains a truncated OBU extension header.");
                 }
 
-                // extension_header_reserved_3bits is also consumed but ignored by current libaom.
+                // extension_header_reserved_3bits is also consumed but ignored by the reference decoder.
                 extension = data[offset++];
             }
 
@@ -629,7 +629,7 @@ internal sealed class Av1CodecConfiguration
             }
         }
 
-        // Both fixed HDR structures end on a byte boundary. libaom accepts zero padding after the required 0x80 byte,
+        // Both fixed HDR structures end on a byte boundary. Zero padding after the required 0x80 byte is accepted,
         // so locate the last nonzero byte rather than assuming the OBU payload ends immediately after trailing_bits().
         if (lastNonzeroByte != 0x80)
         {

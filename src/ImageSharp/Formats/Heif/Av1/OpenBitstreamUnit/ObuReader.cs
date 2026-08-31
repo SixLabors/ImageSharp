@@ -204,7 +204,7 @@ internal class ObuReader
                 // advances once here, so ignored metadata, padding, and reserved OBUs are skipped without copying.
                 Span<byte> obuPayload = reader.ReadBytes(payloadSize);
 
-                // AV1 operating_point_idc uses bits 0-7 for temporal IDs and bits 8-11 for spatial IDs. libaom
+                // AV1 operating_point_idc uses bits 0-7 for temporal IDs and bits 8-11 for spatial IDs. the reference decoder
                 // requires both selected bits for an extended OBU, while an all-zero mask and unextended OBUs apply
                 // universally. Sequence headers establish the mask and temporal delimiters define framing, so neither
                 // can be filtered even when their extension identifies a layer outside the selected operating point.
@@ -294,7 +294,7 @@ internal class ObuReader
                         }
 
                         // The primary header already owns the decoded frame state. Matching its encoded bytes avoids
-                        // parsing the same adaptive frame-header syntax twice, as in libaom's decoder.
+                        // parsing the same adaptive frame-header syntax twice.
                         decodedPayloadSize = primaryFrameHeaderPayload.Length;
                         break;
                     case ObuType.Frame:
@@ -322,7 +322,7 @@ internal class ObuReader
 
                         if (combinedFrameHeader.ShowExistingFrame)
                         {
-                            // Current libaom permits show_existing_frame only in a standalone frame-header OBU. A
+                            // The reference decoder permits show_existing_frame only in a standalone frame-header OBU. A
                             // combined frame OBU is required to continue with a tile group and therefore cannot use
                             // the header-only retained-frame presentation form.
                             throw new InvalidImageContentException("A combined AV1 frame OBU cannot display an existing frame.");
@@ -350,7 +350,7 @@ internal class ObuReader
                         }
 
                         // AV1 section 5.6 defines no delimiter syntax. The common post-switch validation still permits
-                        // zero bytes between the empty syntax and the declared payload boundary, matching libaom.
+                        // zero bytes between the empty syntax and the declared payload boundary, matching the reference decoder.
                         decodedPayloadSize = 0;
                         break;
                     case ObuType.Padding:
@@ -376,7 +376,7 @@ internal class ObuReader
                         break;
                     default:
                         // Metadata, tile-list, and reserved OBUs do not contribute to this still-image reconstruction
-                        // pass. Their declared payload has already been skipped by the parent reader. libaom rejects a
+                        // pass. Their declared payload has already been skipped by the parent reader. the reference decoder rejects a
                         // nonempty unrecognized payload that contains only zeros because it has no trailing one bit.
                         if (payloadSize > 0)
                         {
@@ -476,7 +476,7 @@ internal class ObuReader
         header.HasExtension = reader.ReadBoolean();
         header.HasSize = reader.ReadBoolean();
 
-        // Current libaom consumes obu_reserved_1bit without rejecting its value. Reserved fields do not change the
+        // The reference decoder consumes obu_reserved_1bit without rejecting its value. Reserved fields do not change the
         // decoded syntax, so accepting either value preserves forward-compatible framing while the forbidden bit
         // remains a hard error above.
         _ = reader.ReadBoolean();
@@ -487,7 +487,7 @@ internal class ObuReader
             header.TemporalId = (int)reader.ReadLiteral(3);
             header.SpatialId = (int)reader.ReadLiteral(2);
 
-            // Current libaom likewise consumes extension_header_reserved_3bits without interpreting their value.
+            // The reference decoder likewise consumes extension_header_reserved_3bits without interpreting their value.
             _ = reader.ReadLiteral(3);
         }
         else
@@ -1111,7 +1111,7 @@ internal class ObuReader
             ObuFrameSize referenceSize = referenceFrame.FrameHeader.FrameSize;
 
             // AV1 5.9.7 inherits the reference buffer's visible post-super-resolution dimensions, corresponding to
-            // libaom's y_crop_width and y_crop_height, plus its render rectangle. The current frame then signals its own
+            // the reference decoder's y_crop_width and y_crop_height, plus its render rectangle. The current frame then signals its own
             // super-resolution denominator, so the reference's coded width and denominator are not copied.
             frameSize.FrameWidth = referenceFrame.FrameBuffer.Width;
             frameSize.FrameHeight = referenceFrame.FrameBuffer.Height;
@@ -1331,7 +1331,7 @@ internal class ObuReader
                 int tileWidth = (tileInfo.TileColumnStartModeInfo[column + 1] - tileInfo.TileColumnStartModeInfo[column])
                     << Av1Constants.ModeInfoSizeLog2;
 
-                // Current libaom excludes the rightmost column from this conformance check because it receives the
+                // The reference decoder excludes the rightmost column from this conformance check because it receives the
                 // remainder of the coded width. Every inner column must be at least 64 pixels, doubled when the frame
                 // is super-resolution scaled.
                 if (tileWidth < minimumInnerTileWidth)
@@ -1811,7 +1811,7 @@ internal class ObuReader
 
             // Slot occupancy and frame-ID validity are independent normative states. Short signaling derives roles
             // from every occupied slot before this per-role validity check, matching av1_set_frame_refs followed by
-            // libaom's valid_for_referencing check.
+            // the reference decoder's valid_for_referencing check.
             if (referenceFrames.Resolve((int)slot) is null)
             {
                 throw new InvalidImageContentException("An AV1 inter frame selects an unoccupied reference-map slot.");

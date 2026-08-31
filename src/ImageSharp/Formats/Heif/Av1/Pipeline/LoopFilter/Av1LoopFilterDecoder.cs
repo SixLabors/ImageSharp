@@ -75,7 +75,7 @@ internal class Av1LoopFilterDecoder
         ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
         int modeInfoRowsPerBand = 1 << (Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2);
 
-        // libaom's loop_filter_rows processes one MAX_MIB_SIZE band at a time so that a completed band can be
+        // the reference decoder's loop_filter_rows processes one MAX_MIB_SIZE band at a time so that a completed band can be
         // presented before the remainder of the frame. The ordering is observable because the vertical and
         // horizontal passes modify intersecting sample neighborhoods in place.
         for (int rowStart = 0; rowStart < this.frameHeader.ModeInfoRowCount; rowStart += modeInfoRowsPerBand)
@@ -162,7 +162,7 @@ internal class Av1LoopFilterDecoder
         }
 
         // Horizontal edges are visited down each column. This ordering is observable because adjacent horizontal
-        // filters can modify samples that a later edge reads, so it must match libaom's av1_filter_block_plane_horz.
+        // filters can modify samples that a later edge reads, so it must match the reference decoder's av1_filter_block_plane_horz.
         for (int column = 0; column < this.frameHeader.ModeInfoColumnCount; column += columnStep)
         {
             for (int row = rowStart; row < rowEnd; row += rowStep)
@@ -233,12 +233,12 @@ internal class Av1LoopFilterDecoder
             : planeY % transformSize.GetHeight() == 0;
 
         // A skipped intra block still has reconstructed prediction samples and is not a skipped inter transform.
-        // libaom therefore applies the skip predicate only when the corresponding primary reference is inter.
+        // The skip predicate therefore applies only when the corresponding primary reference is inter.
         bool currentSkippedTransform = modeInfo.Skip && modeInfo.ReferenceFrames[0] > Av1ReferenceFrameType.Intra;
         bool previousSkippedTransform = previousModeInfo.Skip && previousModeInfo.ReferenceFrames[0] > Av1ReferenceFrameType.Intra;
 
         // Every covered 4x4 position carries the owning block's storage index. Comparing those indices is the value-type
-        // equivalent of libaom's current-versus-previous MB_MODE_INFO pointer comparison at a prediction-unit boundary.
+        // equivalent of the reference decoder's current-versus-previous MB_MODE_INFO pointer comparison at a prediction-unit boundary.
         bool isBlockEdge = modeInfo.ModeInfoIndex != previousModeInfo.ModeInfoIndex;
         bool applyFilter = isTransformEdge && (isBlockEdge || !currentSkippedTransform || !previousSkippedTransform);
         if (!applyFilter)
@@ -380,7 +380,7 @@ internal class Av1LoopFilterDecoder
             if (referenceFrame > Av1ReferenceFrameType.Intra)
             {
                 // AV1's second mode-delta class contains every inter mode except the two global-motion modes.
-                // Keeping this classification next to the level arithmetic mirrors libaom's mode_lf_lut lookup.
+                // Keeping this classification next to the level arithmetic mirrors the reference decoder's mode_lf_lut lookup.
                 int modeDeltaIndex = modeInfo.YMode is Av1PredictionMode.GlobalMotionVector or
                     Av1PredictionMode.GlobalGlobalMotionVector ? 0 : 1;
 

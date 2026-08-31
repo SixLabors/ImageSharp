@@ -7,7 +7,7 @@ using SixLabors.ImageSharp.Tests.TestUtilities;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 /// <summary>
-/// Verifies AV1 reference scaling and variable-phase inter convolution against current libaom arithmetic.
+/// Verifies AV1 reference scaling and variable-phase inter convolution against the reference decoder arithmetic.
 /// </summary>
 [Trait("Format", "Avif")]
 public class Av1ScaledInterPredictorTests
@@ -68,10 +68,10 @@ public class Av1ScaledInterPredictorTests
     private const HwIntrinsics PredictorConfigurations = HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies current libaom's Q14 scale factors, Q10 steps, and signed coordinate rounding.
+    /// Verifies the reference decoder's Q14 scale factors, Q10 steps, and signed coordinate rounding.
     /// </summary>
     [Fact]
-    public void ReferenceScaleMatchesCurrentLibaomFixedPointRules()
+    public void ReferenceScaleMatchesFixedPointRules()
     {
         Av1ReferenceScale downscaledReference = new(40, 24, 64, 48);
 
@@ -101,28 +101,28 @@ public class Av1ScaledInterPredictorTests
     /// Verifies exact scaled 8-bit output, variable filter phases, vector tails, and untouched destination padding.
     /// </summary>
     [Fact]
-    public void BytePredictionMatchesCurrentLibaomOracleAcrossIntrinsicConfigurations()
+    public void BytePredictionMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateBytePredictions, PredictorConfigurations);
 
     /// <summary>
     /// Verifies exact scaled 8-, 10-, and 12-bit output under the native vector and scalar configurations.
     /// </summary>
     [Fact]
-    public void HighBitDepthPredictionMatchesCurrentLibaomOracleAcrossIntrinsicConfigurations()
+    public void HighBitDepthPredictionMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthPredictions, PredictorConfigurations);
 
     /// <summary>
     /// Verifies exact scaled 8-bit no-round compound intermediates under native vector and scalar configurations.
     /// </summary>
     [Fact]
-    public void ByteCompoundPredictionMatchesCurrentLibaomOracleAcrossIntrinsicConfigurations()
+    public void ByteCompoundPredictionMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateByteCompoundPredictions, PredictorConfigurations);
 
     /// <summary>
     /// Verifies exact scaled 8-, 10-, and 12-bit no-round compound intermediates under native vector and scalar configurations.
     /// </summary>
     [Fact]
-    public void HighBitDepthCompoundPredictionMatchesCurrentLibaomOracleAcrossIntrinsicConfigurations()
+    public void HighBitDepthCompoundPredictionMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthCompoundPredictions, PredictorConfigurations);
 
     /// <summary>
@@ -677,7 +677,7 @@ public class Av1ScaledInterPredictorTests
     }
 
     /// <summary>
-    /// Selects one current-libaom coefficient row without reading production filter storage.
+    /// Selects one reference coefficient row without reading production filter storage.
     /// </summary>
     private static void FillCoefficients(Av1InterpolationFilter filter, int phase, bool reduced, Span<short> destination)
     {
@@ -712,7 +712,7 @@ public class Av1ScaledInterPredictorTests
     }
 
     /// <summary>
-    /// Computes libaom's bit-depth-dependent first-pass shift.
+    /// Computes the reference decoder's bit-depth-dependent first-pass shift.
     /// </summary>
     private static int GetRound0Bits(int bitDepth)
     {
@@ -726,7 +726,7 @@ public class Av1ScaledInterPredictorTests
     private static int RoundPowerOfTwo(int value, int bits) => (value + (1 << (bits - 1))) >> bits;
 
     /// <summary>
-    /// Independently applies libaom's signed Q14-to-Q10 scale conversion.
+    /// Independently applies the reference decoder's signed Q14-to-Q10 scale conversion.
     /// </summary>
     private static int ScaleCoordinate(int value, int scale)
     {

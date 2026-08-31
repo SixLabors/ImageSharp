@@ -52,7 +52,7 @@ internal static partial class Av1CdefFilter
         if (Avx2.IsSupported)
         {
             // AV1 plane dimensions are multiples of four, so the CDEF copy has an even row count. Processing two rows
-            // together follows libaom's AVX2 scheduling while each conversion widens sixteen unsigned samples exactly.
+            // together follows the reference decoder's AVX2 scheduling while each conversion widens sixteen unsigned samples exactly.
             for (int row = 0; row < height; row += 2)
             {
                 int firstSourceRow = sourceOffset + (row * sourceStride);
@@ -363,7 +363,7 @@ internal static partial class Av1CdefFilter
         ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
         ref TSample destinationBase = ref MemoryMarshal.GetReference(destination);
 
-        // libaom selects one of four closed kernels from the two strength flags. The semantic operator makes the same
+        // the reference decoder selects one of four closed kernels from the two strength flags. The semantic operator makes the same
         // choice once per block so the JIT removes primary/secondary mode branches from every row and tap.
         if (primaryStrength != 0)
         {
@@ -602,7 +602,7 @@ internal static partial class Av1CdefFilter
         Vector256<short> one = Vector256.Create((short)1);
         int rowsPerBatch = blockWidth == 8 ? 2 : 4;
 
-        // The 256-bit lane layout follows libaom: two complete 8-wide rows, or four complete 4-wide rows. Directional
+        // The 256-bit lane layout follows the reference decoder: two complete 8-wide rows, or four complete 4-wide rows. Directional
         // offsets therefore remain ordinary source offsets, while all constrain, weight, clip, and round operations
         // advance several output rows together without crossing a row boundary inside any 128-bit lane.
         for (int row = 0; row < blockHeight; row += rowsPerBatch)
@@ -702,7 +702,7 @@ internal static partial class Av1CdefFilter
             lines[row] = (samples >> coefficientShift).AsInt16() - analysisBias;
         }
 
-        // Vector lanes are written in memory order. These are the low-to-high forms of libaom's set-style constants.
+        // Vector lanes are written in memory order. These are the low-to-high forms of the reference decoder's set-style constants.
         Vector128<int> foldWeights0 = Vector128.Create(840, 420, 280, 210);
         Vector128<int> foldWeights1 = Vector128.Create(168, 140, 120, 105);
         Vector128<int> diagonalWeights0 = Vector128.Create(0, 0, 420, 210);
@@ -711,7 +711,7 @@ internal static partial class Av1CdefFilter
         ref int costBase = ref costs[0];
 
         // The first pass evaluates directions 4..7. Rotating the block counter-clockwise lets the identical arithmetic
-        // evaluate directions 0..3, exactly matching libaom's portable vector implementation.
+        // evaluate directions 0..3, exactly matching the reference decoder's portable vector implementation.
         ComputeDirectionCosts(ref lines, foldWeights0, foldWeights1, diagonalWeights0, diagonalWeights1).StoreUnsafe(ref costBase, 4);
         ReverseTranspose(ref lines);
         ComputeDirectionCosts(ref lines, foldWeights0, foldWeights1, diagonalWeights0, diagonalWeights1).StoreUnsafe(ref costBase);
@@ -751,7 +751,7 @@ internal static partial class Av1CdefFilter
             Vector128<ushort> first = Vector128.LoadUnsafe(ref sourceBase, (nuint)(firstSourceOffset + (row * sourceStride)));
             Vector128<ushort> second = Vector128.LoadUnsafe(ref sourceBase, (nuint)(secondSourceOffset + (row * sourceStride)));
 
-            // Keeping one block in each 128-bit lane is the critical libaom layout: every byte shift, unpack, multiply,
+            // Keeping one block in each 128-bit lane is critical: every byte shift, unpack, multiply,
             // and transpose remains lane-local while one AVX2 instruction advances both direction searches.
             lines[row] = (Vector256.Create(first, second) >> coefficientShift).AsInt16() - analysisBias;
         }
@@ -1548,7 +1548,7 @@ internal static partial class Av1CdefFilter
         }
 
         // Four-row batches use one 64-bit load per row. Pairing two rows in each 128-bit lane preserves the exact row
-        // boundaries required by libaom's lane-local shifts while avoiding reads beyond the frame sentinel border.
+        // boundaries required by the reference decoder's lane-local shifts while avoiding reads beyond the frame sentinel border.
         Vector64<short> row0 = LoadSamples(ref source, offset, 4).GetLower();
         Vector64<short> row1 = LoadSamples(ref source, offset + stride, 4).GetLower();
         Vector64<short> row2 = LoadSamples(ref source, offset + (2 * stride), 4).GetLower();

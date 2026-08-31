@@ -24,7 +24,7 @@ public class Av1PalettePredictorTests
     /// Verifies exact indexed reconstruction and destination-padding preservation for every palette size.
     /// </summary>
     [Fact]
-    public void PredictMatchesIndependentDefinitionAcrossIntrinsicWidths()
+    public void PredictMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePredictors, Configurations);
 
     /// <summary>

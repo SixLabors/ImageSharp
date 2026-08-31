@@ -270,7 +270,7 @@ internal struct Av1GlobalMotionParameters
             }
 
             // These biased products are the normative reduced-precision P'P, P'q, and P'r matrices. Computing them
-            // directly preserves libaom's integer least-squares rounding instead of introducing floating-point drift.
+            // directly preserves the reference decoder's integer least-squares rounding instead of introducing floating-point drift.
             a00 += LeastSquaresSquare(sourceX);
             a01 += LeastSquaresProduct1(sourceX, sourceY);
             a11 += LeastSquaresSquare(sourceY);

@@ -21,7 +21,7 @@ internal static class Av1TransformWorkspace
     public const int Vector512StorageLength = 3 * Av1Constants.MaxTransformSize * 16;
 
     /// <summary>
-    /// The number of integer elements occupied by the libaom-shaped AVX-512 transpose scratch.
+    /// The number of integer elements occupied by the AVX-512 transpose scratch.
     /// </summary>
     public const int Vector512TransposeStorageLength = 16 * 8 * 2;
 

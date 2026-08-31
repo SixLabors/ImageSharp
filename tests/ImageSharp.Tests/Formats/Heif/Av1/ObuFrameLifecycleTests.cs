@@ -96,7 +96,7 @@ public class ObuFrameLifecycleTests
     /// Verifies that invalid trailing data in a subsequent sequence header is rejected before that sequence can create frame state.
     /// </summary>
     [Fact]
-    public void ReadAllRejectsMalformedSubsequentSequenceBeforeCreatingItsFrameReader()
+    public void RejectsMalformedFollowingSequenceBeforeFrameReader()
     {
         byte[] firstLayer = ProgressiveTwoFrameObuStream[..FirstProgressiveLayerLength].ToArray();
         byte[] malformedSequence = AddInvalidSequenceHeaderTrailingByte(ProgressiveTwoFrameObuStream[..ProgressiveSequencePrefixLength].ToArray());
@@ -148,7 +148,7 @@ public class ObuFrameLifecycleTests
     /// Verifies that malformed data after a completed real frame invalidates retained state without preventing reuse of the parser.
     /// </summary>
     [Fact]
-    public void ReadAllClearsCompletedFrameStateWhenFollowingObuHeaderIsInvalid()
+    public void ClearsCompletedFrameStateAfterInvalidObuHeader()
     {
         byte[] bitStream = [.. ProgressiveTwoFrameObuStream[..FirstProgressiveLayerLength], ForbiddenObuHeader];
         using Av1ReferenceFrameStore referenceFrames = new();
@@ -176,7 +176,7 @@ public class ObuFrameLifecycleTests
         [
             .. ProgressiveTwoFrameObuStream[..FirstProgressiveLayerLength],
 
-            // A one-byte combined-frame payload selecting retained slot zero. Current libaom rejects this form
+            // A one-byte combined-frame payload selecting retained slot zero. The reference decoder rejects this form
             // because show_existing_frame is permitted only in a standalone frame-header OBU.
             0x32, 0x01, 0x80
         ];

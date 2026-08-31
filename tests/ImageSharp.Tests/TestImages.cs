@@ -1292,13 +1292,13 @@ public static class TestImages
         public const string ParisIccExifXmpAvif = "Heif/paris_icc_exif_xmp.avif";
         public const string ParisIccExifXmpPng = "Heif/paris_icc_exif_xmp.png";
 
-        // Independently encoded from Png.Icc.Perceptual with libavif 1.4.2 and libaom 3.14.1. Unlike the
+        // Independently encoded from Png.Icc.Perceptual. Unlike the
         // canonical-sRGB Paris profile, this perceptual profile requires an observable color conversion.
         public const string PerceptualIccAvif = "Heif/perceptual_icc.avif";
         public const string PerceptualIccGridAvif = "Heif/perceptual_icc_grid.avif";
         public const string PerceptualIccSequenceAvif = "Heif/perceptual_icc_sequence.avif";
 
-        // Independently encoded from Png.Ducky with libavif 1.4.2 and libaom 3.14.1. The ROMM RGB profile is
+        // Independently encoded from Png.Ducky. The ROMM RGB profile is
         // deliberately non-sRGB so that color conversion is observable while the auxiliary alpha item is composed.
         public const string DuckyRommIccAlphaAvif = "Heif/ducky_romm_icc_alpha.avif";
 

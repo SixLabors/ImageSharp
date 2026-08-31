@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1InverseQuantizationTests
 {
     [Fact]
-    public void QuantizationMatricesCoverAllLevelsPlanesAndTransformSizes()
+    public void MatricesCoverAllLevelsPlanesAndTransformSizes()
     {
         for (int level = 0; level < Av1Constants.QuantificationMatrixLevelCount; level++)
         {

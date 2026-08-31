@@ -1086,7 +1086,7 @@ internal ref struct Av1SymbolDecoder
         int endOfBlockShift = Av1SymbolContextHelper.EndOfBlockOffsetBits[endOfBlockPoint];
         if (endOfBlockShift > 0)
         {
-            // The local table retains placeholders for the first three tokens, unlike libaom's compact table,
+            // The local table retains placeholders for the first three tokens, unlike the reference decoder's compact table,
             // so the decoded token is also the distribution index.
             int endOfBlockContext = endOfBlockPoint;
             bool bit = this.ReadEndOfBlockExtra(transformSizeContext, planeType, endOfBlockContext);

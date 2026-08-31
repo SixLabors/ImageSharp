@@ -6,12 +6,8 @@ These fixtures provide independent reference output for AV1 reconstruction and A
 
 The source images and original AVIF files come from `libavif/tests/data` at commit `062e582e8afda88e6baf988fdcf046a801efa0f5`. Their licenses are recorded in libavif's `tests/data/README.md` and continue to apply to the derived fixtures. This includes the unrestricted Kodak image, the CC BY 3.0 Cosmos Laundromat frame, and files distributed under libavif's BSD-2-Clause license.
 
-Original fixture-generation records name scalar builds of:
-
-- libaom commit `03087864cf4bea6abb0d28f95cf7843511413d8f`;
-- libavif 1.4.2 from commit `062e582e8afda88e6baf988fdcf046a801efa0f5`, linked to that libaom build.
-
-Those revisions describe how the retained assets were originally produced; they do not pin the current
+Original fixture-generation records identify libavif 1.4.2 from commit
+`062e582e8afda88e6baf988fdcf046a801efa0f5` as the container tool. This does not pin the current
 verification checkout. Current AV1 algorithm, arithmetic, syntax, and native-output verification uses only
 the clean official libaom `main` checkout. Libavif commands record container and presentation provenance
 only and are not used as an AV1 implementation reference.
@@ -87,7 +83,7 @@ edges, and skipped prediction-unit boundaries.
 
 ## Official ten-bit sequence fixtures
 
-The `libaom-av1-1-b10-23-film-grain-50.ivf` and `libaom-av1-1-b10-24-monochrome.ivf` streams are the official files from libaom's test-data bucket. Their SHA-1 values are `2F883C7E11C21A31F79BD9C809541BE90B0C7C4A` and `03A8D002594CCC51932332002BB6F9837EF46D0F`, exactly matching `test/test-data.sha1` at pinned libaom commit `03087864cf4bea6abb0d28f95cf7843511413d8f`. Their SHA-256 values are `C36CF5AB6A2E9E27C212C06863759B60791E3FA681A0800B5D57FD4192EF29CB` and `6A1B0729305A167F10737A5375F0570139F055BCD7916DF260B653AB2210ADC1`.
+The `libaom-av1-1-b10-23-film-grain-50.ivf` and `libaom-av1-1-b10-24-monochrome.ivf` streams are the official files from libaom's test-data bucket. Their SHA-1 values are `2F883C7E11C21A31F79BD9C809541BE90B0C7C4A` and `03A8D002594CCC51932332002BB6F9837EF46D0F`, exactly matching the current official libaom `main` manifest. Their SHA-256 values are `C36CF5AB6A2E9E27C212C06863759B60791E3FA681A0800B5D57FD4192EF29CB` and `6A1B0729305A167F10737A5375F0570139F055BCD7916DF260B653AB2210ADC1`.
 
 The retained native references were generated from the pinned generic libaom build with:
 
@@ -100,7 +96,7 @@ The film-grain Y4M SHA-256 is `A1B553BE140F48ABDDB2A6D39917AB714BA03AC7FFD6359EA
 
 ## Official quantizer-boundary fixtures
 
-The retained `quantizer-00` and `quantizer-63` streams are the minimum- and maximum-quantizer boundaries from libaom's official eight- and ten-bit test matrices. Their SHA-1 values are `C2E1EC9936B95254187A359E94AA32A9F3DAD1B7`, `2A8AA33513D8E01AE9410C4BF5FE1E471B775482`, `9BBE8499796AA588FF02E313FB0D4349940D2FEA`, and `8B6EB3FFF2E0DB7EAC775B08C745250CA591E2D9`, exactly matching `test/test-data.sha1` at pinned libaom commit `03087864cf4bea6abb0d28f95cf7843511413d8f`. Their SHA-256 values, in the same order, are `6382DBD2BEFBBC93D4EA283586F4FB43FEA5F1C52400E3D2C5281A46B1104C00`, `0E4EC80680F7AF8DE9621B016E0F2D7C0858B2951DEBC173DDA50C6A051547D3`, `FE6053CE4EE20A1C0EC6F7FE35DB097E92AD25D8A3505598BD89162C74D7944F`, and `39759AB77483E1D11049DC38B5F5262158FD9C3CBC9D1F82A02462FC5DF30E0C`.
+The retained `quantizer-00` and `quantizer-63` streams are the minimum- and maximum-quantizer boundaries from libaom's official eight- and ten-bit test matrices. Their SHA-1 values are `C2E1EC9936B95254187A359E94AA32A9F3DAD1B7`, `2A8AA33513D8E01AE9410C4BF5FE1E471B775482`, `9BBE8499796AA588FF02E313FB0D4349940D2FEA`, and `8B6EB3FFF2E0DB7EAC775B08C745250CA591E2D9`, exactly matching the current official libaom `main` manifest. Their SHA-256 values, in the same order, are `6382DBD2BEFBBC93D4EA283586F4FB43FEA5F1C52400E3D2C5281A46B1104C00`, `0E4EC80680F7AF8DE9621B016E0F2D7C0858B2951DEBC173DDA50C6A051547D3`, `FE6053CE4EE20A1C0EC6F7FE35DB097E92AD25D8A3505598BD89162C74D7944F`, and `39759AB77483E1D11049DC38B5F5262158FD9C3CBC9D1F82A02462FC5DF30E0C`.
 
 The native references were originally generated with the historical generic `aomdec --threads=1` build. On 2026-08-31 current official libaom `main` at observed revision `441c439b9916474cac15d2822af47a9ad70674a8` reproduced all four references byte for byte. Their SHA-256 values are `D499028E0606DB70CD56A72F151E04F36C09F300A448CCCD8430DD920D3589C5`, `4CC9892B3EE3399B293E31014B9F566C21E0C7A4765FC5F444528769C33E6D67`, `78373C28F401EB95D3E563D146622ED6C714ED96661E5E57C539CE71D7BED599`, and `A9DF86F671B8CF01EFC130660556412D4EBAF31A81D6F26FBDAEB0A7E839D8EA`. Each reference's two raw-frame MD5 values also match the corresponding official `.ivf.md5` file exactly. The tests compare every native sample under normal and scalar `FeatureTestRunner` dispatch and run all four sequences through a 2,560-byte row-aligned constrained tracked allocator.
 
@@ -130,9 +126,29 @@ the native reference SHA-256 is
 decodes all 39 frames in one decoder session, compares every native sample exactly, and requires coverage
 of every intra prediction mode and all seven transform types selected by the fixture.
 
+## Adaptive reference-state fixtures
+
+On 2026-08-31 current official libaom `main` at observed revision
+`441c439b9916474cac15d2822af47a9ad70674a8` decoded the `cdfupdate`, `mfmv`, `svc-L2T1`,
+`svc-L1T2`, and `svc-L2T2` IVF streams with one thread, row threading disabled, and eight-bit output
+depth. Every generated Y4M matches its retained native reference byte for byte. Their output SHA-256
+values, in that order, are:
+
+- `4FBFF73FF0DE2D9084DAE557D1D4BD677B0486516525BF4D327D2D795D5A7779`;
+- `F7DB607694818C19E62FD9A27F53E1A3E2D00B72C39C0430C1B26399CC76777D`;
+- `7A427631ECBF144F435AA4612F1201415FB1A9BCF9A67BA010AEF830B0C3AB81`;
+- `4012DE2D4AFD095E7BB68EAE18B50B0674781BB4971CECABC0E5471E63373ED3`;
+- `1ABB981CFF76BA9557DA437B258D8A95FCA755DED8E3949D857E8388AB1D6AE3`.
+
+The production tests compare every native sample under `FeatureTestRunner`. They require both adaptive
+tile and frame-end CDF updates, active projected reference motion vectors, and the default operating point
+of each spatial or temporal layer fixture. The motion-field and layer sequences also run through constrained
+tracked allocators. Direct ownership tests cover initialization, retained-slot aliases, allocation-failure
+unwinding, presentation ownership, decoder-result ownership, and exactly-once final disposal.
+
 ## Official frame-size corner fixtures
 
-The retained 196x196, 196x226, 226x196, and 226x226 streams are the four corners of libaom's official eight-bit frame-size matrix. Their SHA-1 values are `9F386D19C87DBFD6AC84A06D2393DD88863AC003`, `5525F7E312EC073F480ED5A2BE5BDC4F0CE51A09`, `1A57B913443B267F4A31A6925C39F5B58022F550`, and `40DD208EB525CD90D7C0674CF787097FB909AFAE`, exactly matching `test/test-data.sha1` at pinned libaom commit `03087864cf4bea6abb0d28f95cf7843511413d8f`. Their SHA-256 values, in the same order, are `ECACF9C2065EEC1A02248395412BE5E03ED7E3FEDFD6653622E09E73D1CAC747`, `2A2ECDDE60546FA8280039228B4BE541825EFAEE30F53EE50B91B11F2952BDA7`, `999522FBF3FCD9F8CC8DAC865BEF874B7BF655A4DAD93C397F50A7A1EC2C9027`, and `B5D9A30F24E33F8FA6A655961645650542DC2545FB7D557E2D55A043DAC69F50`.
+The retained 196x196, 196x226, 226x196, and 226x226 streams are the four corners of libaom's official eight-bit frame-size matrix. Their SHA-1 values are `9F386D19C87DBFD6AC84A06D2393DD88863AC003`, `5525F7E312EC073F480ED5A2BE5BDC4F0CE51A09`, `1A57B913443B267F4A31A6925C39F5B58022F550`, and `40DD208EB525CD90D7C0674CF787097FB909AFAE`, exactly matching the current official libaom `main` manifest. Their SHA-256 values, in the same order, are `ECACF9C2065EEC1A02248395412BE5E03ED7E3FEDFD6653622E09E73D1CAC747`, `2A2ECDDE60546FA8280039228B4BE541825EFAEE30F53EE50B91B11F2952BDA7`, `999522FBF3FCD9F8CC8DAC865BEF874B7BF655A4DAD93C397F50A7A1EC2C9027`, and `B5D9A30F24E33F8FA6A655961645650542DC2545FB7D557E2D55A043DAC69F50`.
 
 The native references were generated with the pinned generic `aomdec --threads=1` build. Their SHA-256 values are `4479030861DD9D6AB9B00FA8CF77A34712BCECA06C31131927D3E7E9BF5DDA70`, `817FF76E70946763C000E19FCCD9F0258CF9358201B6771AA68FB8C84490D26F`, `F4A70BA358E8B4ED558B589BFE56354C9552469FDABD01B3F4D5754334B0CBD9`, and `44FC32FB1D24CE4A33830B67D927F038E0E1379C6B480C598F018382EC78E9CE`. Each reference's two raw-frame MD5 values also match the corresponding official `.ivf.md5` file exactly. The tests compare every native sample under normal and scalar `FeatureTestRunner` dispatch and run all four sequences through a 1 KiB constrained tracked allocator.
 
@@ -146,7 +162,12 @@ The `libavif-progressive-draw-points-8b.avif` fixture is the unmodified `tests/d
 
 The primary color item's `a1lx` property divides its logical 72-byte AV1 payload into a 55-byte base layer and a 17-byte dependent layer. The container stores those layers in separate `iloc` extents at AVIF offsets 511 and 583. The `.bit` fixture concatenates those two logical color extents; it does not copy the physically adjacent auxiliary-alpha extent between them.
 
-Exact pinned libaom decodes the corrected logical payload into two 33x11 YUV444 frames. Both frames' 1,089 color samples match the corresponding first three planes of the pinned libavif YUV444-alpha outputs exactly. The retained Y4M contains both progressive YUV444-alpha frames, and the PNG contains pinned libavif's final RGBA presentation. The production-path test selects the second native frame, requires inter-coded blocks in the final ImageSharp frame, and compares both native color and final presentation without a tolerance.
+Current official libaom `main` decodes the corrected logical payload into two 33x11 YUV444 frames. Both
+frames' 1,089 color samples match the corresponding first three planes of the retained YUV444-alpha
+outputs exactly. The alpha and PNG record the original fixture's presentation provenance; they are not AV1
+implementation references. The production-path test selects the second native frame, requires inter-coded
+blocks in the final ImageSharp frame, and compares both native color and final presentation without a
+tolerance.
 
 ## Equal-average compound fixture
 

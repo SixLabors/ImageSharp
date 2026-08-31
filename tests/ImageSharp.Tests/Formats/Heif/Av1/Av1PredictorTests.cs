@@ -47,77 +47,77 @@ public class Av1PredictorTests
     /// Verifies DC prediction with each register-width tier and the scalar fallback.
     /// </summary>
     [Fact]
-    public void DcPredictorsMatchScalarDefinitionsAcrossIntrinsicWidths()
+    public void DcPredictorsMatchReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateDcPredictors, PredictorConfigurations);
 
     /// <summary>
     /// Verifies horizontal prediction with each register-width tier and the scalar fallback.
     /// </summary>
     [Fact]
-    public void HorizontalPredictorMatchesScalarDefinitionAcrossIntrinsicWidths()
+    public void HorizontalPredictorMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHorizontalPredictor, PredictorConfigurations);
 
     /// <summary>
     /// Verifies vertical prediction with each register-width tier and the scalar fallback.
     /// </summary>
     [Fact]
-    public void VerticalPredictorMatchesScalarDefinitionAcrossIntrinsicWidths()
+    public void VerticalPredictorMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateVerticalPredictor, PredictorConfigurations);
 
     /// <summary>
     /// Verifies Paeth prediction with each register-width tier and the scalar fallback.
     /// </summary>
     [Fact]
-    public void PaethPredictorMatchesScalarDefinitionAcrossIntrinsicWidths()
+    public void PaethPredictorMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePaethPredictor, PredictorConfigurations);
 
     /// <summary>
     /// Verifies smooth prediction with each register-width tier and the scalar fallback.
     /// </summary>
     [Fact]
-    public void SmoothPredictorMatchesScalarDefinitionAcrossIntrinsicWidths()
+    public void SmoothPredictorMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSmoothPredictor, PredictorConfigurations);
 
     /// <summary>
     /// Verifies horizontal smooth prediction with each register-width tier and the scalar fallback.
     /// </summary>
     [Fact]
-    public void SmoothHorizontalPredictorMatchesScalarDefinitionAcrossIntrinsicWidths()
+    public void SmoothHorizontalPredictorMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSmoothHorizontalPredictor, PredictorConfigurations);
 
     /// <summary>
     /// Verifies vertical smooth prediction with each register-width tier and the scalar fallback.
     /// </summary>
     [Fact]
-    public void SmoothVerticalPredictorMatchesScalarDefinitionAcrossIntrinsicWidths()
+    public void SmoothVerticalPredictorMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSmoothVerticalPredictor, PredictorConfigurations);
 
     /// <summary>
     /// Verifies directional prediction with each register-width tier and the scalar fallback.
     /// </summary>
     [Fact]
-    public void DirectionalPredictorsMatchScalarDefinitionsAcrossIntrinsicWidths()
+    public void DirectionalPredictorsMatchReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateDirectionalPredictors, PredictorConfigurations);
 
     /// <summary>
     /// Verifies filter-intra prediction with each register-width tier and the scalar fallback.
     /// </summary>
     [Fact]
-    public void FilterIntraPredictorsMatchScalarDefinitionsAcrossIntrinsicWidths()
+    public void FilterIntraPredictorsMatchReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilterIntraPredictors, PredictorConfigurations);
 
     /// <summary>
     /// Verifies intra-edge upsampling with Vector128 and the scalar fallback.
     /// </summary>
     [Fact]
-    public void EdgeUpsamplingMatchesScalarDefinitionsAcrossIntrinsicWidths()
+    public void EdgeUpsamplingMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateEdgeUpsampling, HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
     /// Verifies intra-edge filtering with Vector128 and the scalar fallback.
     /// </summary>
     [Fact]
-    public void EdgeFilteringMatchesScalarDefinitionsAcrossIntrinsicWidths()
+    public void EdgeFilteringMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateEdgeFiltering, HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
@@ -523,7 +523,7 @@ public class Av1PredictorTests
     }
 
     /// <summary>
-    /// Retains byte-exact libaom vectors so scalar and SIMD code cannot share the same mistranslation unnoticed.
+    /// Retains byte-exact reference vectors so scalar and SIMD code cannot share the same mistranslation unnoticed.
     /// </summary>
     private static void ValidateKnownFilterIntraVectors()
     {

@@ -14,10 +14,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1MotionVectorEntropyTests
 {
     /// <summary>
-    /// Verifies both motion-vector contexts against every normative forward Q15 default from libaom.
+    /// Verifies both motion-vector contexts against every normative forward Q15 default from the reference decoder.
     /// </summary>
     [Fact]
-    public void MotionVectorDefaultsMatchLibaom()
+    public void MotionVectorDefaultsMatchReference()
     {
         Av1FrameEntropyContext context = new(0);
 

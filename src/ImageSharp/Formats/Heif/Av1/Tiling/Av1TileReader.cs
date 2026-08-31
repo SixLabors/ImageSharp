@@ -102,6 +102,21 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     private readonly Av1LevelBuffer coefficientLevels;
 
     /// <summary>
+    /// Reusable luma palette indices for the coding blocks in one superblock.
+    /// </summary>
+    private readonly Buffer2D<byte> lumaPaletteColorIndexMap;
+
+    /// <summary>
+    /// Reusable chroma palette indices for the coding blocks in one superblock.
+    /// </summary>
+    private readonly Buffer2D<byte> chromaPaletteColorIndexMap;
+
+    /// <summary>
+    /// Indicates whether this reader owns and disposes the palette maps.
+    /// </summary>
+    private readonly bool ownsPaletteColorIndexMaps;
+
+    /// <summary>
     /// Reusable storage for the eight spatial displacement-vector candidates permitted by AV1.
     /// </summary>
     private InlineArray8<Av1MotionVector> displacementVectorCandidates;
@@ -130,11 +145,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// Provides allocator and decoder configuration to tile entropy decoding.
     /// </summary>
     private readonly Configuration configuration;
-
-    /// <summary>
-    /// Reconstructs each parsed superblock when pixel decoding is requested; otherwise, tile parsing is metadata-only.
-    /// </summary>
-    private readonly IAv1FrameDecoder? frameDecoder;
 
     /// <summary>
     /// The decoder-session entropy contexts reused by every tile in the current frame.
@@ -182,12 +192,74 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Av1FrameEntropyContexts entropyContexts,
         Av1FrameEntropyContext? primaryReferenceContext,
         Av1ReferenceFrameStore? referenceFrames)
+        : this(configuration, sequenceHeader, frameHeader, entropyContexts, primaryReferenceContext, referenceFrames, null, null, true)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1TileReader"/> class with decoder-session entropy and palette state.
+    /// </summary>
+    /// <param name="configuration">The decoder configuration.</param>
+    /// <param name="sequenceHeader">The active AV1 sequence header.</param>
+    /// <param name="frameHeader">The frame header whose tiles will be parsed.</param>
+    /// <param name="entropyContexts">The entropy contexts reused by the owning decoder session.</param>
+    /// <param name="primaryReferenceContext">
+    /// The retained primary-reference entropy context, or <see langword="null"/> when the frame selects defaults.
+    /// </param>
+    /// <param name="referenceFrames">The retained reconstructed frames.</param>
+    /// <param name="lumaPaletteColorIndexMap">The decoder-session luma palette scratch map.</param>
+    /// <param name="chromaPaletteColorIndexMap">The decoder-session chroma palette scratch map.</param>
+    public Av1TileReader(
+        Configuration configuration,
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        Av1FrameEntropyContexts entropyContexts,
+        Av1FrameEntropyContext? primaryReferenceContext,
+        Av1ReferenceFrameStore referenceFrames,
+        Buffer2D<byte> lumaPaletteColorIndexMap,
+        Buffer2D<byte> chromaPaletteColorIndexMap)
+        : this(
+            configuration,
+            sequenceHeader,
+            frameHeader,
+            entropyContexts,
+            primaryReferenceContext,
+            referenceFrames,
+            lumaPaletteColorIndexMap,
+            chromaPaletteColorIndexMap,
+            false)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1TileReader"/> class with explicit palette-map ownership.
+    /// </summary>
+    /// <param name="configuration">The decoder configuration.</param>
+    /// <param name="sequenceHeader">The active AV1 sequence header.</param>
+    /// <param name="frameHeader">The frame header whose tiles will be parsed.</param>
+    /// <param name="entropyContexts">The entropy contexts reused by the owning decoder session.</param>
+    /// <param name="primaryReferenceContext">The retained primary-reference entropy context.</param>
+    /// <param name="referenceFrames">The retained reconstructed frames.</param>
+    /// <param name="lumaPaletteColorIndexMap">A shared luma palette map, or <see langword="null"/> when the reader owns one.</param>
+    /// <param name="chromaPaletteColorIndexMap">A shared chroma palette map, or <see langword="null"/> when the reader owns one.</param>
+    /// <param name="ownsPaletteColorIndexMaps">Whether the reader owns and disposes the palette maps.</param>
+    private Av1TileReader(
+        Configuration configuration,
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        Av1FrameEntropyContexts entropyContexts,
+        Av1FrameEntropyContext? primaryReferenceContext,
+        Av1ReferenceFrameStore? referenceFrames,
+        Buffer2D<byte>? lumaPaletteColorIndexMap,
+        Buffer2D<byte>? chromaPaletteColorIndexMap,
+        bool ownsPaletteColorIndexMaps)
     {
         this.FrameHeader = frameHeader;
         this.configuration = configuration;
         this.SequenceHeader = sequenceHeader;
         this.entropyContexts = entropyContexts;
         this.referenceFrames = referenceFrames;
+        this.ownsPaletteColorIndexMaps = ownsPaletteColorIndexMaps;
         this.entropyContexts.BeginFrame(frameHeader.QuantizationParameters.BaseQIndex, primaryReferenceContext);
 
         // FrameInfo owns all traversal-order records and coefficient storage produced by the tile readers.
@@ -245,6 +317,38 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             throw;
         }
 
+        if (ownsPaletteColorIndexMaps)
+        {
+            Buffer2D<byte>? ownedLumaPaletteColorIndexMap = null;
+            Buffer2D<byte>? ownedChromaPaletteColorIndexMap = null;
+
+            try
+            {
+                // Standalone syntax readers have no decoder-session owner. They still use the same fixed
+                // maximum-superblock bound and return both maps when the reader is disposed.
+                int paletteMapLength = 1 << Av1Constants.MaxSuperBlockSizeLog2;
+                ownedLumaPaletteColorIndexMap = configuration.MemoryAllocator.Allocate2D<byte>(paletteMapLength, paletteMapLength);
+                ownedChromaPaletteColorIndexMap = configuration.MemoryAllocator.Allocate2D<byte>(paletteMapLength, paletteMapLength);
+                this.lumaPaletteColorIndexMap = ownedLumaPaletteColorIndexMap;
+                this.chromaPaletteColorIndexMap = ownedChromaPaletteColorIndexMap;
+            }
+            catch
+            {
+                ownedChromaPaletteColorIndexMap?.Dispose();
+                ownedLumaPaletteColorIndexMap?.Dispose();
+                this.coefficientLevels.Dispose();
+                this.leftNeighborContext.Dispose();
+                this.aboveNeighborContext.Dispose();
+                this.FrameInfo.Dispose();
+                throw;
+            }
+        }
+        else
+        {
+            this.lumaPaletteColorIndexMap = lumaPaletteColorIndexMap!;
+            this.chromaPaletteColorIndexMap = chromaPaletteColorIndexMap!;
+        }
+
         if (referenceFrames is not null)
         {
             try
@@ -255,9 +359,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             }
             catch
             {
-                this.aboveNeighborContext.Dispose();
-                this.leftNeighborContext.Dispose();
+                if (this.ownsPaletteColorIndexMaps)
+                {
+                    this.chromaPaletteColorIndexMap.Dispose();
+                    this.lumaPaletteColorIndexMap.Dispose();
+                }
+
                 this.coefficientLevels.Dispose();
+                this.leftNeighborContext.Dispose();
+                this.aboveNeighborContext.Dispose();
                 this.FrameInfo.Dispose();
                 throw;
             }
@@ -273,7 +383,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="frameDecoder">The frame decoder that reconstructs each parsed superblock.</param>
     public Av1TileReader(Configuration configuration, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, IAv1FrameDecoder frameDecoder)
         : this(configuration, sequenceHeader, frameHeader)
-        => this.frameDecoder = frameDecoder;
+        => this.FrameDecoder = frameDecoder;
 
     /// <summary>
     /// Gets the default self-guided restoration projection coefficients for each color plane.
@@ -333,6 +443,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     public Av1FrameInfo FrameInfo { get; }
 
     /// <summary>
+    /// Gets or sets the optional decoder that reconstructs each superblock immediately after its syntax is parsed.
+    /// </summary>
+    public IAv1FrameDecoder? FrameDecoder { get; set; }
+
+    /// <summary>
     /// Gets the completed frame entropy context selected by the context-update tile.
     /// </summary>
     /// <remarks>
@@ -350,6 +465,12 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         this.aboveNeighborContext.Dispose();
         this.leftNeighborContext.Dispose();
         this.coefficientLevels.Dispose();
+        if (this.ownsPaletteColorIndexMaps)
+        {
+            this.lumaPaletteColorIndexMap.Dispose();
+            this.chromaPaletteColorIndexMap.Dispose();
+        }
+
         this.FrameInfo.Dispose();
     }
 
@@ -358,7 +479,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="tileData">The entropy-coded tile payload.</param>
     /// <param name="tileNum">The zero-based tile index in row-major order.</param>
-    /// <remarks>Corresponds to <c>decode_tile</c> in libaom.</remarks>
     public void ReadTile(Span<byte> tileData, int tileNum)
     {
         // AV1 tiles never inherit adaptation from another tile in the same frame. Reusing one graph is safe because
@@ -366,7 +486,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         // constructed.
         this.entropyContexts.Working.CopyFrom(this.entropyContexts.Base);
 
-        // The frame syntax exposes a disable flag, while the range reader follows libaom's positive
+        // The frame syntax exposes a disable flag, while the range reader follows the reference decoder's positive
         // allow_update_cdf convention.
         Av1SymbolDecoder reader = new(
             this.configuration,
@@ -424,7 +544,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 this.ParsePartition(ref reader, modeInfoPosition, superBlockSize, superblockInfo, tileInfo);
 
                 // Identify-only parsing omits a frame decoder but still populates the complete syntax model.
-                this.frameDecoder?.DecodeSuperblock(modeInfoPosition, superblockInfo, tileInfo);
+                this.FrameDecoder?.DecodeSuperblock(modeInfoPosition, superblockInfo, tileInfo);
             }
         }
 
@@ -434,7 +554,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         if (!this.FrameHeader.DisableFrameEndUpdateCdf && tileNum == this.FrameHeader.TilesInfo.ContextUpdateTileId)
         {
-            // libaom publishes only context_update_tile_id after every tile has independently started from the frame
+            // the reference decoder publishes only context_update_tile_id after every tile has independently started from the frame
             // base, then clears its CDF counters. Snapshotting into a third reusable graph preserves the unchanged base
             // for tiles that follow the selected tile in bitstream order.
             this.entropyContexts.Working.SnapshotTo(this.entropyContexts.Published);
@@ -692,7 +812,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         if (subSize.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY) == Av1BlockSize.Invalid)
         {
             // Luma partition syntax can describe a sub-8x8 shape that has no legal representation after chroma
-            // subsampling. Reject it before any block state is published, matching libaom's decode_partition boundary.
+            // subsampling. Reject it before any block state is published, matching the reference decoder's decode_partition boundary.
             throw new InvalidImageContentException($"The decoded AV1 block size {subSize} is invalid for the sequence chroma subsampling.");
         }
 
@@ -1113,7 +1233,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int leftContextOffset = startY - superblockRow;
 
         // Above contexts are tile-column relative, while left contexts are reused from the start of each
-        // superblock row. Slicing both arrays here gives the entropy derivation the same pointer bases as libaom.
+        // superblock row. Slicing both arrays here gives the entropy derivation the same pointer bases as the reference decoder.
         Av1TransformBlockContext transformBlockContext = this.GetTransformBlockContext(
             transformSize,
             plane,
@@ -1313,7 +1433,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int transformBlockUnitWideCount = transformSize.Get4x4WideCount();
         int transformBlockUnitHighCount = transformSize.Get4x4HighCount();
 
-        // libaom tests the context bytes through packed native loads. Enumerating the same transform-width and
+        // the reference decoder tests the context bytes through packed native loads. Enumerating the same transform-width and
         // transform-height entries avoids unaligned reads while preserving the required any-nonzero result.
         for (int i = 0; i < transformBlockUnitWideCount; i++)
         {
@@ -1442,7 +1562,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="partitionInfo">The current coding block.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
-    /// <remarks>Implements AV1 section 5.11.16 and corresponds to <c>read_tx_size</c> in libaom.</remarks>
     private void ReadBlockTransformSize(
         ref Av1SymbolDecoder reader,
         Point modeInfoLocation,
@@ -1722,7 +1841,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 int planeColumn = idx >> (subX ? 1 : 0);
 
                 // The 64x64 region cursor is expressed on the luma grid. Chroma transform offsets use the
-                // target plane's 4x4 grid, matching libaom's row/column subsampling before transform traversal.
+                // target plane's 4x4 grid, matching the reference decoder's row/column subsampling before transform traversal.
                 for (int blockRow = planeRow; blockRow < unitHeight; blockRow += stepRow)
                 {
                     for (int blockColumn = planeColumn; blockColumn < unitWidth; blockColumn += stepColumn)
@@ -1786,14 +1905,9 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 out int rows,
                 out int columns);
 
-            Buffer2DRegion<byte> colorIndexMap = this.FrameInfo.GetPaletteColorIndexMap(
-                this.configuration,
-                Av1PlaneType.Y,
-                new Rectangle(
-                    partitionInfo.ColumnIndex << Av1Constants.ModeInfoSizeLog2,
-                    partitionInfo.RowIndex << Av1Constants.ModeInfoSizeLog2,
-                    planeWidth,
-                    planeHeight));
+            Point position = modeInfo.PositionInSuperblock;
+            Rectangle bounds = new(position.X << Av1Constants.ModeInfoSizeLog2, position.Y << Av1Constants.ModeInfoSizeLog2, planeWidth, planeHeight);
+            Buffer2DRegion<byte> colorIndexMap = new(this.lumaPaletteColorIndexMap, bounds);
 
             DecodePaletteColorMap(
                 ref reader,
@@ -1805,7 +1919,10 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 columns,
                 colorIndexMap);
 
-            modeInfo.SetPaletteColorIndexMap(Av1PlaneType.Y, colorIndexMap);
+            if (this.FrameDecoder is not null)
+            {
+                modeInfo.SetPaletteColorIndexMap(Av1PlaneType.Y, colorIndexMap);
+            }
         }
 
         if (modeInfo.GetPaletteSize(Av1PlaneType.Uv) != 0)
@@ -1821,14 +1938,9 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
             int subX = this.SequenceHeader.ColorConfig.SubSamplingX ? 1 : 0;
             int subY = this.SequenceHeader.ColorConfig.SubSamplingY ? 1 : 0;
-            Buffer2DRegion<byte> colorIndexMap = this.FrameInfo.GetPaletteColorIndexMap(
-                this.configuration,
-                Av1PlaneType.Uv,
-                new Rectangle(
-                    (partitionInfo.ColumnIndex << Av1Constants.ModeInfoSizeLog2) >> subX,
-                    (partitionInfo.RowIndex << Av1Constants.ModeInfoSizeLog2) >> subY,
-                    planeWidth,
-                    planeHeight));
+            Point position = modeInfo.PositionInSuperblock;
+            Rectangle bounds = new((position.X << Av1Constants.ModeInfoSizeLog2) >> subX, (position.Y << Av1Constants.ModeInfoSizeLog2) >> subY, planeWidth, planeHeight);
+            Buffer2DRegion<byte> colorIndexMap = new(this.chromaPaletteColorIndexMap, bounds);
 
             DecodePaletteColorMap(
                 ref reader,
@@ -1840,7 +1952,10 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 columns,
                 colorIndexMap);
 
-            modeInfo.SetPaletteColorIndexMap(Av1PlaneType.Uv, colorIndexMap);
+            if (this.FrameDecoder is not null)
+            {
+                modeInfo.SetPaletteColorIndexMap(Av1PlaneType.Uv, colorIndexMap);
+            }
         }
     }
 
@@ -3011,7 +3126,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         if (segmentationParameters.SegmentationUpdateMap == 0)
         {
             // The frame map was inherited as one contiguous copy during reader construction. Resolve the same clipped
-            // minimum that libaom obtains from last_frame_seg_map so block state and the already copied map agree.
+            // minimum that the reference decoder obtains from last_frame_seg_map so block state and the already copied map agree.
             modeInfo.SegmentId = this.FrameInfo.GetPredictedSegmentId(this.primaryReferenceFrameInfo, modeInfo.BlockSize, modeInfoPosition);
             return;
         }
@@ -3118,7 +3233,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             if (segmentId is < 0 || segmentId > lastActiveSegmentId)
             {
                 // The coded alphabet always contains eight symbols, even when the frame activates fewer segments.
-                // Validate the reconstructed ID at the same corruption boundary as libaom's read_segment_id.
+                // Validate the reconstructed ID at the same corruption boundary as the reference decoder's read_segment_id.
                 throw new InvalidImageContentException("The decoded AV1 segment identifier exceeds the active segment range.");
             }
 
@@ -3131,7 +3246,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block.</param>
-    /// <remarks>Implements AV1 section 5.11.56 and corresponds to <c>read_cdef</c> in libaom.</remarks>
     private void ReadCdef(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
     {
         if (partitionInfo.ModeInfo.Skip || this.FrameHeader.CodedLossless || !this.SequenceHeader.EnableCdef || this.FrameHeader.AllowIntraBlockCopy)
@@ -3155,7 +3269,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             int lastUnitRow = (rowInSuperblock + blockHeight4 - 1) / cdefSize4;
             int lastUnitColumn = (columnInSuperblock + blockWidth4 - 1) / cdefSize4;
 
-            // A coding block can cover the top-left cell of more than one 64x64 CDEF unit. libaom
+            // A coding block can cover the top-left cell of more than one 64x64 CDEF unit. the reference decoder
             // stores the index on shared mode information, so the frame-owned unit map must mirror it.
             for (int coveredUnitRow = unitRow; coveredUnitRow <= lastUnitRow; coveredUnitRow++)
             {
@@ -3442,7 +3556,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// </summary>
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="partitionInfo">The current coding block and superblock quantizer storage.</param>
-    /// <remarks>Corresponds to <c>read_delta_qindex</c> in libaom.</remarks>
     private void ReadDeltaQuantizerIndex(ref Av1SymbolDecoder reader, ref Av1PartitionInfo partitionInfo)
     {
         if (!this.FrameHeader.DeltaQParameters.IsPresent || partitionInfo.ModeInfo.PositionInSuperblock != Point.Empty)
@@ -3484,7 +3597,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
     /// <returns>The partition entropy context.</returns>
-    /// <remarks>Corresponds to <c>partition_plane_context</c> in libaom.</remarks>
     private int GetPartitionPlaneContext(Point location, Av1BlockSize blockSize, Av1TileInfo tileInfo, Av1SuperblockInfo superblockInfo)
     {
         // The five stored split bits begin at the 8x8 partition point, so normalize the block-size log to that bit index.

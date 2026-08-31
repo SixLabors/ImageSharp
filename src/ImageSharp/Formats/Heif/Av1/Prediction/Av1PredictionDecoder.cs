@@ -85,7 +85,6 @@ internal class Av1PredictionDecoder
     /// <param name="bitDepth">The bit depth of the reconstructed samples.</param>
     /// <param name="blockModeInfoColumnOffset">The transform block's horizontal offset within the mode-information block.</param>
     /// <param name="blockModeInfoRowOffset">The transform block's vertical offset within the mode-information block.</param>
-    /// <remarks>Corresponds to <c>svt_av1_predict_intra</c> in SVT-AV1.</remarks>
     public void Decode(
         ref Av1PartitionInfo partitionInfo,
         Av1Plane plane,
@@ -181,7 +180,7 @@ internal class Av1PredictionDecoder
         Span<T> topNeighbor = referenceBuffer;
         ReadOnlySpan<T> leftNeighbor = referenceBuffer[(referenceStride - 1)..];
 
-        // Libaom predicts one maximum-transform-sized plane block for inter-intra. Destination storage is separate
+        // The reference decoder predicts one maximum-transform-sized plane block for inter-intra. Destination storage is separate
         // because the inter predictor must remain intact until the final mask blend consumes both complete blocks.
         this.PredictIntraBlock(
             ref partitionInfo,
@@ -260,7 +259,7 @@ internal class Av1PredictionDecoder
     {
         int stride = pixelStride;
 
-        // Unlike SVT's separate destination and reference pointers, this span begins at the
+        // Unlike the encoder's separate destination and reference pointers, this span begins at the
         // previous row. That layout exposes the top, top-left, and strided left samples without copying.
         Span<T> topNeighbor = pixelBuffer;
         Span<T> leftNeighbor = pixelBuffer[(stride - 1)..];
@@ -298,7 +297,7 @@ internal class Av1PredictionDecoder
         if (plane != Av1Plane.Y)
         {
             // Chroma and luma modes are separate bitstream domains. Shared spatial predictors consume the explicit
-            // libaom get_uv_mode() equivalent rather than relying on their matching ordinal values.
+            // the reference decoder get_uv_mode() equivalent rather than relying on their matching ordinal values.
             mode = partitionInfo.ModeInfo.UvMode.ToLumaMode();
         }
 
@@ -1539,7 +1538,6 @@ internal class Av1PredictionDecoder
     /// <param name="delta">The prediction angle relative to the edge's cardinal direction.</param>
     /// <param name="filterType">A value indicating whether a neighboring smooth mode selects the alternate thresholds.</param>
     /// <returns><see langword="true"/> when the edge must be upsampled; otherwise, <see langword="false"/>.</returns>
-    /// <remarks>Corresponds to <c>svt_aom_use_intra_edge_upsample</c> in SVT-AV1.</remarks>
     private static bool UseIntraEdgeUpsample(int width, int height, int delta, bool filterType)
     {
         int d = Math.Abs(delta);
@@ -1560,7 +1558,6 @@ internal class Av1PredictionDecoder
     /// <param name="count">The number of edge samples.</param>
     /// <param name="strength">The AV1 filter-strength index from zero through three.</param>
     /// <param name="scratch">The reusable padded source workspace.</param>
-    /// <remarks>Corresponds to <c>svt_av1_filter_intra_edge_c</c> in SVT-AV1.</remarks>
     private static void FilterIntraEdge<T>(ref T buffer, int count, int strength, Span<T> scratch)
         where T : unmanaged, IBinaryInteger<T>
     {
@@ -1825,7 +1822,6 @@ internal class Av1PredictionDecoder
     /// <param name="delta">The prediction angle relative to the edge's cardinal direction.</param>
     /// <param name="filterType">A value indicating whether a neighboring smooth mode selects the alternate thresholds.</param>
     /// <returns>The filter strength from zero for no filtering through three for the strongest kernel.</returns>
-    /// <remarks>Corresponds to <c>svt_aom_intra_edge_filter_strength</c> in SVT-AV1.</remarks>
     private static int IntraEdgeFilterStrength(int width, int height, int delta, bool filterType)
     {
         int d = Math.Abs(delta);

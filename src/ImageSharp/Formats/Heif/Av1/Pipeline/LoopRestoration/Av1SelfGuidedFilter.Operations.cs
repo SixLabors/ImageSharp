@@ -256,7 +256,7 @@ internal static partial class Av1SelfGuidedFilter
             for (; column <= vectorEnd; column += Vector256<int>.Count)
             {
                 // Eight packed 16-bit samples become eight 32-bit lanes. The prefix scans mirror
-                // libaom's scan_32, and the replicated carry joins consecutive vector batches.
+                // the reference decoder's scan_32, and the replicated carry joins consecutive vector batches.
                 Vector128<ushort> packed = Vector128.LoadUnsafe(ref sourceBase, (nuint)(sourceRowOffset + column));
                 Vector256<int> samples = Vector256.WidenLower(Vector256.Create(packed, Vector128<ushort>.Zero)).AsInt32();
                 Vector256<int> squares = samples * samples;

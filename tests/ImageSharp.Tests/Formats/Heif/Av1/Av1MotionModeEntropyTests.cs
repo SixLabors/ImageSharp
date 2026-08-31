@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1MotionModeEntropyTests
 {
     /// <summary>
-    /// Gets libaom's forward Q15 Simple Translation, OBMC, and Warped thresholds in block-size order.
+    /// Gets the reference decoder's forward Q15 Simple Translation, OBMC, and Warped thresholds in block-size order.
     /// </summary>
     private static ReadOnlySpan<ushort> MotionModeForwardThresholds =>
     [
@@ -45,7 +45,7 @@ public class Av1MotionModeEntropyTests
     ];
 
     /// <summary>
-    /// Gets libaom's forward Q15 Simple Translation and OBMC thresholds in block-size order.
+    /// Gets the reference decoder's forward Q15 Simple Translation and OBMC thresholds in block-size order.
     /// </summary>
     private static ReadOnlySpan<ushort> ObmcForwardThresholds =>
     [
@@ -54,10 +54,10 @@ public class Av1MotionModeEntropyTests
     ];
 
     /// <summary>
-    /// Verifies all twenty-two ternary and binary motion-mode distributions against libaom's forward Q15 defaults.
+    /// Verifies all twenty-two ternary and binary motion-mode distributions against the reference decoder's forward Q15 defaults.
     /// </summary>
     [Fact]
-    public void DefaultsMatchLibaomForEveryBlockSize()
+    public void DefaultsMatchReference()
     {
         const int blockSizeCount = (int)Av1BlockSize.AllSizes;
         const int ternaryThresholdCount = 2;
@@ -78,7 +78,7 @@ public class Av1MotionModeEntropyTests
 
             for (int threshold = 0; threshold < ternaryThresholdCount; threshold++)
             {
-                // Av1Distribution stores inverse cumulative thresholds, so complement libaom's published forward
+                // Av1Distribution stores inverse cumulative thresholds, so complement the reference decoder's published forward
                 // Q15 values before comparing the exact state consumed by the range decoder.
                 uint expected = (uint)Av1Distribution.ProbabilityTop -
                     motionModeForwardThresholds[(blockSize * ternaryThresholdCount) + threshold];
@@ -200,7 +200,7 @@ public class Av1MotionModeEntropyTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void ReadMotionModePreservesFollowingInterpolationSymbolAlignment(bool allowWarpedMotion)
+    public void PreservesFollowingInterpolationSymbol(bool allowWarpedMotion)
     {
         Av1BlockSize blockSize = Av1BlockSize.Block16x16;
         const int interpolationContext = 3;

@@ -26,7 +26,6 @@ internal class Av1DeQuantizationContext
     /// </summary>
     /// <param name="sequenceHeader">The sequence header that supplies the coded bit depth.</param>
     /// <param name="frameHeader">The frame header that supplies segmentation and quantization parameters.</param>
-    /// <remarks>Corresponds to <c>setup_segmentation_dequant</c> in libaom.</remarks>
     public Av1DeQuantizationContext(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         Av1BitDepth bitDepth = sequenceHeader.ColorConfig.BitDepth;

@@ -28,7 +28,7 @@ internal static partial class Av1Inverse2dTransformer
         {
             ReadOnlySpan<int> sinpi = Av1SinusConstants.SinusPi(cosBit);
 
-            // libaom widens the complete four-point factorization because the products retain their fixed-point scale
+            // the reference decoder widens the complete four-point factorization because the products retain their fixed-point scale
             // until the final shift. The stage buffer is therefore unnecessary for this transform size.
             long x0 = input[0];
             long x1 = input[1];
@@ -38,7 +38,7 @@ internal static partial class Av1Inverse2dTransformer
             _ = step;
             _ = stageRange;
 
-            // Avoid the multiplications for the all-zero coefficient vector, matching libaom's scalar kernel.
+            // Avoid the multiplications for the all-zero coefficient vector, matching the reference decoder's scalar kernel.
             if ((x0 | x1 | x2 | x3) == 0)
             {
                 output[..4].Clear();
@@ -89,7 +89,7 @@ internal static partial class Av1Inverse2dTransformer
             Vector128<int> x2 = input.V2;
             Vector128<int> x3 = input.V3;
 
-            // Pinned libaom retains the sine-table scale in Int32 products and sums, but performs the twelve-bit row
+            // The reference decoder retains the sine-table scale in Int32 products and sums, but performs the twelve-bit row
             // kernel's terminal scaling and rounding in Int64. This is the only stage whose rounding bias can overflow
             // a valid Int32 fixed-point sum.
             if (widenedRound)

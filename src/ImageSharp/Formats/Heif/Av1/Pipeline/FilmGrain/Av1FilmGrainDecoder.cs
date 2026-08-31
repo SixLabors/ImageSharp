@@ -359,7 +359,7 @@ internal sealed class Av1FilmGrainDecoder
             ? scratch.Slice(scratchOffset, chromaColumnLength)
             : Span<int>.Empty;
 
-        // libaom zero-initializes the lookup structure before expanding control points. This matters
+        // the reference decoder zero-initializes the lookup structure before expanding control points. This matters
         // when chroma scaling is inherited from an empty luma scaling function.
         scalingY.Clear();
         scalingCb.Clear();

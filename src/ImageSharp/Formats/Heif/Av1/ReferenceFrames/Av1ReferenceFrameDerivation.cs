@@ -74,7 +74,7 @@ internal static class Av1ReferenceFrameDerivation
         if (!slotOccupancy[lastMapIndex])
         {
             // Unlike an unused empty slot, the explicitly signaled LAST slot must own a decoded frame before any
-            // derived mapping can be consumed. libaom rejects the missing reference at this frame-header boundary.
+            // derived mapping can be consumed. the reference decoder rejects the missing reference at this frame-header boundary.
             throw new InvalidImageContentException("An AV1 inter frame requests an unavailable LAST reference.");
         }
 
@@ -98,7 +98,7 @@ internal static class Av1ReferenceFrameDerivation
 
             if (!slotOccupancy[mapIndex])
             {
-                // libaom gives absent reference buffers sort index -1. Keeping empty managed slots in the same
+                // the reference decoder gives absent reference buffers sort index -1. Keeping empty managed slots in the same
                 // leading partition prevents their stale order hints from participating in temporal selection.
                 continue;
             }
@@ -132,7 +132,7 @@ internal static class Av1ReferenceFrameDerivation
             throw new InvalidImageContentException("An AV1 inter frame requests a current or future frame as GOLDEN.");
         }
 
-        // libaom sorts first by shifted output order and then by reference-map index. The explicit tie break is
+        // the reference decoder sorts first by shifted output order and then by reference-map index. The explicit tie break is
         // normative: equal order hints select the highest map index for latest references and the lowest for earliest
         // references. Insertion sort is bounded to eight inline entries and does not allocate or require general sort
         // infrastructure at the frame-header boundary.
@@ -194,7 +194,7 @@ internal static class Av1ReferenceFrameDerivation
         if (backwardStartIndex <= backwardEndIndex)
         {
             // ALTREF receives the frame farthest into the future. The sorted-map-index tie break selects the highest
-            // slot when multiple frames share that order hint, matching both the specification and libaom.
+            // slot when multiple frames share that order hint, matching both the specification and the reference decoder.
             referenceFrameIndices[alternateReferenceIndex] = (uint)referenceInfo[backwardEndIndex].MapIndex;
             assignedReferences[alternateReferenceIndex] = true;
             backwardEndIndex--;

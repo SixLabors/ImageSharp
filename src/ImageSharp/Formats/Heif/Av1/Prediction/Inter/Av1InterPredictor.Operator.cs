@@ -474,7 +474,7 @@ internal static partial class Av1InterPredictor
             return;
         }
 
-        // Twelve-bit samples require two additional first-pass rounding bits to keep libaom's signed intermediate
+        // Twelve-bit samples require two additional first-pass rounding bits to keep the reference decoder's signed intermediate
         // within sixteen bits. The second pass gives those bits back, preserving a total Q14 shift.
         int intermediateRange = bitDepth + FilterBits - Round0Bits + 2;
         int round0 = Round0Bits + Math.Max(intermediateRange - 16, 0);
@@ -757,7 +757,7 @@ internal static partial class Av1InterPredictor
     /// <param name="tapCount">Receives the effective two-, four-, six-, or eight-tap length.</param>
     public static void GetEffectiveKernel(ReadOnlySpan<short> coefficients, out int firstCoefficient, out int tapCount)
     {
-        // This matches libaom's get_filter_tap decision. Reducing symmetric zero endpoints avoids source loads and
+        // This matches the reference decoder's get_filter_tap decision. Reducing symmetric zero endpoints avoids source loads and
         // multiply-adds while retaining the original tap-to-source alignment through firstCoefficient.
         if (coefficients[0] != 0 || coefficients[7] != 0)
         {

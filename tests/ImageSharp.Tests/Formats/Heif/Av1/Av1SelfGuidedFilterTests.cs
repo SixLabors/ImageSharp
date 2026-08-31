@@ -71,7 +71,7 @@ public class Av1SelfGuidedFilterTests
     /// Verifies every normative parameter set, sample precision, and processing-unit tail against the direct-window definition.
     /// </summary>
     [Fact]
-    public void FilterMatchesDirectWindowDefinitionAcrossIntrinsicWidths()
+    public void FilterMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilters, Configurations);
 
     /// <summary>

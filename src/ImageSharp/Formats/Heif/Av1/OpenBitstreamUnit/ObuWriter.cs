@@ -523,7 +523,7 @@ internal class ObuWriter
         int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
         if (tileCount > 1)
         {
-            // A combined OBU_FRAME has implicit complete-frame tile bounds. Current libaom still
+            // A combined OBU_FRAME has implicit complete-frame tile bounds. The reference decoder still
             // writes the presence bit for a multi-tile frame, but requires that bit to remain zero.
             writer.WriteBoolean(false);
         }

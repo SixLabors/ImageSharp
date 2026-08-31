@@ -16,7 +16,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 internal static partial class Av1InterIntraMaskBuilder
 {
     /// <summary>
-    /// Gets libaom's one-dimensional inter-intra alpha curve.
+    /// Gets the reference decoder's one-dimensional inter-intra alpha curve.
     /// </summary>
     private static ReadOnlySpan<byte> InterIntraWeights =>
     [

@@ -43,10 +43,10 @@ public class Av1InverseTransformTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertIdentityOperatorParity, TransformConfigurations);
 
     /// <summary>
-    /// Verifies the current-libaom widened operations at the twelve-bit inverse row-stage bounds.
+    /// Verifies the reference widened operations at the twelve-bit inverse row-stage bounds.
     /// </summary>
     [Fact]
-    public void TwelveBitWideIntermediatesMatchCurrentLibaom()
+    public void TwelveBitWideIntermediatesMatchReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertTwelveBitWideIntermediateParity, TransformConfigurations);
 
     /// <summary>
@@ -123,7 +123,7 @@ public class Av1InverseTransformTests
             cosBit,
             stageRange);
 
-        // These are the exact outputs of current libaom's signed Int64 terminal round. The first positive lane has an
+        // These are the exact outputs of the reference decoder's signed Int64 terminal round. The first positive lane has an
         // Int32 fixed-point sum of 2,147,482,471, so adding the 2,048 rounding bias in Int32 would wrap.
         Vector128<int> adstExpected0 = Vector128.Create(524_288, -524_288, 524_287, -524_287);
         Vector128<int> adstExpected1 = Vector128.Create(33_612, -33_612, 33_612, -33_612);
@@ -167,7 +167,7 @@ public class Av1InverseTransformTests
     }
 
     /// <summary>
-    /// Verifies one identity operator against exact current-libaom widened fixed-point results.
+    /// Verifies one identity operator against exact reference widened fixed-point results.
     /// </summary>
     /// <typeparam name="TOperator">The inverse identity operator.</typeparam>
     /// <param name="length">The identity-transform length.</param>
@@ -291,7 +291,7 @@ public class Av1InverseTransformTests
     /// <param name="bitDepth">The coded sample bit depth.</param>
     [Theory]
     [MemberData(nameof(Av1ForwardTransformTests.ValidTransformCases), MemberType = typeof(Av1ForwardTransformTests))]
-    public void TwoDimensionalSimdKernelsMatchScalarForEveryValidConfiguration(
+    public void TwoDimensionalKernelsMatchReference(
         int transformTypeValue,
         int transformSizeValue,
         int bitDepth)
@@ -306,7 +306,7 @@ public class Av1InverseTransformTests
     /// Verifies lossless inverse Walsh-Hadamard reconstruction against an independent definition.
     /// </summary>
     [Fact]
-    public void LosslessWalshHadamardMatchesReferenceAcrossIntrinsicTiers()
+    public void LosslessWalshHadamardMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertLosslessWalshHadamardParity, TransformConfigurations);
 
     /// <summary>

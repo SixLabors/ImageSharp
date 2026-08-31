@@ -89,7 +89,7 @@ internal static class Av1IntraBlockCopy
         }
 
         // The top-left sample begins the outer search region. Sorting the adjacent and outer regions independently
-        // preserves libaom's nearest/near ordering while still accumulating repeated vectors across both regions.
+        // preserves the reference decoder's nearest/near ordering while still accumulating repeated vectors across both regions.
         AddBlock(ref partitionInfo, -1, -1, tileInfo, candidates, weights, ref candidateCount);
         for (int index = 2; index <= ReferenceSearchDistance; index++)
         {
@@ -109,7 +109,7 @@ internal static class Av1IntraBlockCopy
         SortByWeight(candidates, weights, 0, nearestCandidateCount);
         SortByWeight(candidates, weights, nearestCandidateCount, candidateCount);
 
-        // Libaom clamps the ranked stack before selecting nearest and near. The displacement entropy syntax is
+        // The reference decoder clamps the ranked stack before selecting nearest and near. The displacement entropy syntax is
         // differential, so using an unclamped spatial candidate changes every following component even though the
         // final decoded displacement is validated separately against the stricter intra-block-copy source limits.
         for (int index = 0; index < candidateCount; index++)
@@ -241,7 +241,7 @@ internal static class Av1IntraBlockCopy
             }
         }
 
-        // Libaom uses the four-mode-info-unit step only once the active block reaches 64 samples.
+        // Blocks below 64 samples use the finer two-mode-info-unit scan step.
         bool useFourUnitStep = width >= 16;
         for (int index = 0; index < end;)
         {
@@ -296,7 +296,7 @@ internal static class Av1IntraBlockCopy
             }
         }
 
-        // Libaom uses the four-mode-info-unit step only once the active block reaches 64 samples.
+        // Blocks below 64 samples use the finer two-mode-info-unit scan step.
         bool useFourUnitStep = height >= 16;
         for (int index = 0; index < end;)
         {

@@ -28,7 +28,7 @@ internal static partial class Av1InterPredictor
     internal const int FilterBits = 7;
 
     /// <summary>
-    /// The normal first-round shift used by libaom single-reference convolution.
+    /// The normal first-round shift used by the reference decoder single-reference convolution.
     /// </summary>
     internal const int Round0Bits = 3;
 

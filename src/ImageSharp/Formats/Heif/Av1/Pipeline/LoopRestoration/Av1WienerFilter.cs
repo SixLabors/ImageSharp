@@ -151,7 +151,7 @@ internal static class Av1WienerFilter
         filter[5] = (short)middle;
         filter[6] = (short)outer;
 
-        // libaom stores a seven-tap Wiener kernel in the shared eight-tap interpolation shape.
+        // the reference decoder stores a seven-tap Wiener kernel in the shared eight-tap interpolation shape.
         filter[7] = 0;
     }
 

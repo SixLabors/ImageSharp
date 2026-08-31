@@ -15,10 +15,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1SingleReferenceEntropyTests
 {
     /// <summary>
-    /// Verifies all eighteen normative single-reference distributions against libaom's forward Q15 defaults.
+    /// Verifies all eighteen normative single-reference distributions against the reference decoder's forward Q15 defaults.
     /// </summary>
     [Fact]
-    public void SingleReferenceDefaultsMatchLibaom()
+    public void SingleReferenceDefaultsMatchReference()
     {
         uint[][] forwardThresholds =
         [
@@ -46,10 +46,10 @@ public class Av1SingleReferenceEntropyTests
     }
 
     /// <summary>
-    /// Verifies the five normative block reference-mode distributions against libaom's forward Q15 defaults.
+    /// Verifies the five normative block reference-mode distributions against the reference decoder's forward Q15 defaults.
     /// </summary>
     [Fact]
-    public void CompInterDefaultsMatchLibaom()
+    public void CompInterDefaultsMatchReference()
     {
         uint[] forwardThresholds = [26828, 24035, 12031, 10640, 2901];
         Av1Distribution[] distributions = Av1DefaultDistributions.CompInter;
@@ -125,7 +125,7 @@ public class Av1SingleReferenceEntropyTests
     /// Verifies one-pass neighbor collection, compound-neighbor votes, clearing, and intra-neighbor exclusion.
     /// </summary>
     [Fact]
-    public void CollectNeighborReferenceCountsMatchesLibaom()
+    public void CollectNeighborReferenceCountsMatchesReference()
     {
         Av1BlockModeInfo above = CreateModeInfo(Av1ReferenceFrameType.Last, Av1ReferenceFrameType.None);
         Av1BlockModeInfo left = CreateModeInfo(Av1ReferenceFrameType.Backward, Av1ReferenceFrameType.Alternate);
@@ -152,10 +152,10 @@ public class Av1SingleReferenceEntropyTests
     }
 
     /// <summary>
-    /// Verifies that the six context functions aggregate the exact reference groups used by libaom.
+    /// Verifies that the six context functions aggregate the exact reference groups used by the reference decoder.
     /// </summary>
     [Fact]
-    public void SingleReferenceContextsAggregateNormativeReferenceGroups()
+    public void ContextsAggregateReferenceGroups()
     {
         InlineArray8<byte> referenceCountStorage = default;
         Span<byte> referenceCounts = referenceCountStorage;
@@ -176,10 +176,10 @@ public class Av1SingleReferenceEntropyTests
     }
 
     /// <summary>
-    /// Verifies every branch of libaom's five-state single-versus-compound reference-mode context.
+    /// Verifies every branch of the reference decoder's five-state single-versus-compound reference-mode context.
     /// </summary>
     [Fact]
-    public void ReferenceModeContextMatchesLibaom()
+    public void ReferenceModeContextMatchesReference()
     {
         Av1BlockModeInfo singleForward = CreateModeInfo(Av1ReferenceFrameType.Last, Av1ReferenceFrameType.None);
         Av1BlockModeInfo singleBackward = CreateModeInfo(Av1ReferenceFrameType.Backward, Av1ReferenceFrameType.None);
@@ -226,7 +226,7 @@ public class Av1SingleReferenceEntropyTests
     /// Verifies that frame-context copies retain reference-selection adaptation without sharing mutable distributions.
     /// </summary>
     [Fact]
-    public void FrameEntropyCopyRetainsIndependentReferenceSelectionState()
+    public void EntropyCopyRetainsReferenceSelectionState()
     {
         Av1FrameEntropyContext source = new(0);
         Av1FrameEntropyContext destination = new(0);
@@ -249,7 +249,7 @@ public class Av1SingleReferenceEntropyTests
     /// Verifies that publishing frame state resets the reference-selection distributions' update-rate history.
     /// </summary>
     [Fact]
-    public void FrameEntropySnapshotResetsReferenceSelectionUpdateCounts()
+    public void EntropySnapshotResetsReferenceSelectionCounts()
     {
         const int updateCount = 20;
         Av1FrameEntropyContext source = new(0);

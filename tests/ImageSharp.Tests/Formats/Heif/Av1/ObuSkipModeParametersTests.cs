@@ -116,7 +116,7 @@ public class ObuSkipModeParametersTests
     /// Verifies that a forward-only frame selects the two closest distinct past reference orders.
     /// </summary>
     [Fact]
-    public void DeriveSelectsTwoNearestForwardReferencesWhenNoBackwardReferenceExists()
+    public void SelectsTwoForwardReferencesWithoutBackwardReference()
     {
         ObuOrderHintInfo orderHintInfo = CreateOrderHintInfo();
         ObuFrameHeader frameHeader = CreateInterFrame(8, [7, 3, 6, 2, 1, 5, 4]);

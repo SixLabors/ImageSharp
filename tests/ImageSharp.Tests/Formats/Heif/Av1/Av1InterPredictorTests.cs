@@ -91,14 +91,14 @@ public class Av1InterPredictorTests
     /// Verifies exact 8-bit copy and convolution output, scalar tails, and untouched destination padding under every SIMD configuration.
     /// </summary>
     [Fact]
-    public void BytePredictionMatchesLibaomOracleAcrossIntrinsicWidths()
+    public void BytePredictionMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateBytePredictions, PredictorConfigurations);
 
     /// <summary>
     /// Verifies exact 8-, 10-, and 12-bit ushort output, scalar tails, and untouched destination padding under every SIMD configuration.
     /// </summary>
     [Fact]
-    public void HighBitDepthPredictionMatchesLibaomOracleAcrossIntrinsicWidths()
+    public void HighBitDepthPredictionMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthPredictions, PredictorConfigurations);
 
     /// <summary>
@@ -334,7 +334,7 @@ public class Av1InterPredictorTests
             : new short[Math.Max(testCase.Width, 16) * (testCase.Height + FilterTapCount - 1)];
 
     /// <summary>
-    /// Applies libaom's single-reference copy or convolution equations to an 8-bit prediction block.
+    /// Applies the reference decoder's single-reference copy or convolution equations to an 8-bit prediction block.
     /// </summary>
     /// <param name="source">The complete padded reference plane.</param>
     /// <param name="sourceStride">The source-row stride.</param>
@@ -411,7 +411,7 @@ public class Av1InterPredictorTests
     }
 
     /// <summary>
-    /// Applies libaom's single-reference copy or convolution equations to a high-bit-depth prediction block.
+    /// Applies the reference decoder's single-reference copy or convolution equations to a high-bit-depth prediction block.
     /// </summary>
     /// <param name="source">The complete padded reference plane.</param>
     /// <param name="sourceStride">The source-row stride.</param>
@@ -489,7 +489,7 @@ public class Av1InterPredictorTests
     }
 
     /// <summary>
-    /// Applies libaom's biased two-pass 8-bit convolution and removes both intermediate bias terms after vertical filtering.
+    /// Applies the reference decoder's biased two-pass 8-bit convolution and removes both intermediate bias terms after vertical filtering.
     /// </summary>
     /// <param name="source">The complete padded reference plane.</param>
     /// <param name="sourceStride">The source-row stride.</param>
@@ -531,7 +531,7 @@ public class Av1InterPredictorTests
     }
 
     /// <summary>
-    /// Applies libaom's biased two-pass high-bit-depth convolution and removes both intermediate bias terms after vertical filtering.
+    /// Applies the reference decoder's biased two-pass high-bit-depth convolution and removes both intermediate bias terms after vertical filtering.
     /// </summary>
     /// <param name="source">The complete padded reference plane.</param>
     /// <param name="sourceStride">The source-row stride.</param>

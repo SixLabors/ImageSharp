@@ -144,7 +144,7 @@ internal static class Av1Transform2dOperations
         if (bit > 0)
         {
             // Conformant low-bit-depth stage ranges leave room for the rounding bias, so this intentionally uses the
-            // wrapping add used by libaom rather than changing the normative result with a saturating instruction.
+            // wrapping add used by the reference decoder rather than changing the normative result with a saturating instruction.
             return (value + Vector256.Create((short)(1 << (bit - 1)))) >> bit;
         }
 
@@ -382,7 +382,7 @@ internal static class Av1Transform2dOperations
         }
 
         // Once promoted, the same bounded transpose used by the high-bit-depth AVX-512 path supplies the exact
-        // libaom staging order and performs the axis-boundary shift in signed thirty-two-bit lanes.
+        // the reference decoder staging order and performs the axis-boundary shift in signed thirty-two-bit lanes.
         Transpose16x16Avx512(
             ref promotionBase,
             16,
@@ -415,7 +415,7 @@ internal static class Av1Transform2dOperations
         ref int promotionBase = ref MemoryMarshal.GetReference(promotionBuffer);
 
         // AVX2 processes eight Int32 transform axes at a time. Widening each packed row before the axis shift follows
-        // libaom's Repartition<int32_t> boundary and prevents valid Int32 intermediates from wrapping in Int16.
+        // the reference decoder's Repartition<int32_t> boundary and prevents valid Int32 intermediates from wrapping in Int16.
         for (int row = 0; row < 8; row++)
         {
             Vector128<short> packed = Vector128.LoadUnsafe(ref source, (nuint)(row * sourceStride));
@@ -663,7 +663,7 @@ internal static class Av1Transform2dOperations
     }
 
     /// <summary>
-    /// Transposes a sixteen-by-sixteen matrix of signed thirty-two-bit values with the libaom AVX-512 staging layout.
+    /// Transposes a sixteen-by-sixteen matrix of signed thirty-two-bit values with the AVX-512 staging layout.
     /// </summary>
     /// <param name="source">The first value in the source matrix.</param>
     /// <param name="sourceStride">The number of values between source rows.</param>
@@ -683,7 +683,7 @@ internal static class Av1Transform2dOperations
     {
         ref long scratchBase = ref MemoryMarshal.GetReference(scratch);
 
-        // libaom widens the lane grouping after each local interleave rather than retaining all sixteen rows in
+        // the reference decoder widens the lane grouping after each local interleave rather than retaining all sixteen rows in
         // registers. The bounded scratch keeps the live register set small and prevents the JIT from spilling a
         // four-stage, sixteen-register cross-vector permutation network into its own stack frame.
         for (int row = 0; row < 16; row += 2)
@@ -733,7 +733,7 @@ internal static class Av1Transform2dOperations
         }
 
         // The final 128-bit-block concatenations complete the transpose. The store order is the fixed permutation
-        // produced by libaom's three preceding local-interleave stages.
+        // produced by the reference decoder's three preceding local-interleave stages.
         for (int row = 0; row < 8; row++)
         {
             Vector512<long> lower = Vector512.LoadUnsafe(ref scratchBase, (nuint)(row * 8));
@@ -996,7 +996,7 @@ internal static class Av1Transform2dOperations
     }
 
     /// <summary>
-    /// Applies the terminal operations which libaom performs before transposing a signed sixteen-bit tile.
+    /// Applies the terminal operations which the reference decoder performs before transposing a signed sixteen-bit tile.
     /// </summary>
     /// <param name="value">The packed transform values.</param>
     /// <param name="roundShift">The signed AV1 pipeline shift.</param>
@@ -1015,7 +1015,7 @@ internal static class Av1Transform2dOperations
     }
 
     /// <summary>
-    /// Applies the terminal operations which libaom performs before transposing four signed thirty-two-bit lanes.
+    /// Applies the terminal operations which the reference decoder performs before transposing four signed thirty-two-bit lanes.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector128<int> Finish(Vector128<int> value, int roundShift, bool normalizeRectangle)
@@ -1027,7 +1027,7 @@ internal static class Av1Transform2dOperations
     }
 
     /// <summary>
-    /// Applies the terminal operations which libaom performs before transposing eight signed thirty-two-bit lanes.
+    /// Applies the terminal operations which the reference decoder performs before transposing eight signed thirty-two-bit lanes.
     /// </summary>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static Vector256<int> Finish(Vector256<int> value, int roundShift, bool normalizeRectangle)

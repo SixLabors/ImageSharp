@@ -206,7 +206,7 @@ internal static class Av1InverseWalshHadamardTransformer
         ref int intermediateBase = ref MemoryMarshal.GetReference(workspace);
 
         // Entropy decoding stores the transposed scan in row-major order, so each contiguous local row is one
-        // normative transform column. Writing those results down the intermediate columns preserves libaom's
+        // normative transform column. Writing those results down the intermediate columns preserves the reference decoder's
         // dimension order without a separate transpose or per-block allocation.
         for (int row = 0; row < 4; row++)
         {

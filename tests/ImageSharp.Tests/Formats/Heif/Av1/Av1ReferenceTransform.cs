@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 internal class Av1ReferenceTransform
 {
     /// <summary>
-    /// Gets the analytical amplification used by current libaom's forward-transform tests.
+    /// Gets the analytical amplification used by the reference decoder's forward-transform tests.
     /// </summary>
     /// <param name="config">The transform configuration.</param>
     /// <returns>The two-dimensional transform amplification.</returns>
@@ -32,7 +32,7 @@ internal class Av1ReferenceTransform
     }
 
     /// <summary>
-    /// Applies the analytical two-dimensional transform used by current libaom's
+    /// Applies the analytical two-dimensional transform used by the reference decoder's
     /// <c>test/av1_txfm_test.cc</c>.
     /// </summary>
     /// <param name="input">The raster input samples.</param>

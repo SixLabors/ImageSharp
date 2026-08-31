@@ -103,16 +103,10 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     public void Dispose() => this.blockDecoder.Dispose();
 
     /// <summary>
-    /// Reconstructs every coded tile and applies the implemented in-loop frame stages in normative order.
+    /// Applies the in-loop frame stages after every superblock has been reconstructed.
     /// </summary>
-    public void DecodeFrame()
+    public void CompleteFrame()
     {
-        // Tile columns are the outer traversal because each call walks that column's tile rows and their superblocks.
-        for (int column = 0; column < this.frameHeader.TilesInfo.TileColumnCount; column++)
-        {
-            this.DecodeFrameTiles(column);
-        }
-
         bool doLoopRestoration = this.frameHeader.LoopRestorationParameters.UsesLoopRestoration;
 
         Av1LoopFilterDecoder loopFilterDecoder = new(
@@ -157,60 +151,11 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     }
 
     /// <summary>
-    /// Reconstructs every tile row in one tile column.
-    /// </summary>
-    /// <param name="tileColumn">The zero-based tile-column index.</param>
-    /// <remarks>Follows libaom's single-threaded <c>decode_tiles</c> ordering.</remarks>
-    private void DecodeFrameTiles(int tileColumn)
-    {
-        ObuTileGroupHeader tileInfo = this.frameHeader.TilesInfo;
-        for (int tileRow = 0; tileRow < tileInfo.TileRowCount; tileRow++)
-        {
-            // Tile boundaries are expressed in 4x4 mode-info units. Walk every superblock row between consecutive
-            // boundaries; using only the tile-row index would reconstruct one row and leave taller tiles incomplete.
-            int modeInfoRowStart = tileInfo.TileRowStartModeInfo[tileRow];
-            int modeInfoRowEnd = tileInfo.TileRowStartModeInfo[tileRow + 1];
-            for (int modeInfoRow = modeInfoRowStart;
-                modeInfoRow < modeInfoRowEnd;
-                modeInfoRow += this.sequenceHeader.SuperblockModeInfoSize)
-            {
-                int superblockRow = modeInfoRow / this.sequenceHeader.SuperblockModeInfoSize;
-                this.DecodeTileSuperblockRow(tileRow, tileColumn, modeInfoRow, superblockRow);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Reconstructs one superblock row within a tile from left to right.
-    /// </summary>
-    /// <param name="tileRow">The zero-based tile-row index.</param>
-    /// <param name="tileColumn">The zero-based tile-column index.</param>
-    /// <param name="modeInfoRow">The frame-relative row in 4x4 mode-info units.</param>
-    /// <param name="superblockRow">The frame-relative superblock row.</param>
-    /// <remarks>Corresponds to the superblock-row traversal in libaom's <c>decode_tile</c>.</remarks>
-    private void DecodeTileSuperblockRow(int tileRow, int tileColumn, int modeInfoRow, int superblockRow)
-    {
-        ObuTileGroupHeader tileInfo = this.frameHeader.TilesInfo;
-        for (int modeInfoColumn = tileInfo.TileColumnStartModeInfo[tileColumn]; modeInfoColumn < tileInfo.TileColumnStartModeInfo[tileColumn + 1];
-             modeInfoColumn += this.sequenceHeader.SuperblockModeInfoSize)
-        {
-            // Convert the signaled 4x4 mode-info column to the frame-level superblock index used by Av1FrameInfo.
-            int superblockColumn = modeInfoColumn << Av1Constants.ModeInfoSizeLog2 >> this.sequenceHeader.SuperblockSizeLog2;
-
-            Av1SuperblockInfo superblockInfo = this.frameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
-
-            Point modeInfoPosition = new(modeInfoColumn, modeInfoRow);
-            this.DecodeSuperblock(modeInfoPosition, superblockInfo, new Av1TileInfo(tileRow, tileColumn, this.frameHeader));
-        }
-    }
-
-    /// <summary>
     /// Reconstructs one superblock after applying its block state and delta-Q context.
     /// </summary>
     /// <param name="modeInfoPosition">The superblock's top-left position in 4x4 mode-info units.</param>
     /// <param name="superblockInfo">The decoded syntax and block modes for the superblock.</param>
     /// <param name="tileInfo">The tile that contains the superblock.</param>
-    /// <remarks>Corresponds to libaom's superblock decode boundary.</remarks>
     public void DecodeSuperblock(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         this.blockDecoder.UpdateSuperblock(superblockInfo);
@@ -224,10 +169,10 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     /// <param name="modeInfoPosition">The superblock's frame-relative origin in 4x4 mode-info units.</param>
     /// <param name="superblockInfo">The superblock whose block modes are traversed.</param>
     /// <param name="tileInfo">The tile boundary information used by intra prediction.</param>
-    /// <remarks>Replays the depth-first block order produced by libaom's <c>decode_partition</c>.</remarks>
+    /// <remarks>Traverses the depth-first block order produced by tile parsing.</remarks>
     private void DecodePartition(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
-        foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
+        foreach (ref Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
         {
             Point subPosition = modeInfo.PositionInSuperblock;
             Av1BlockSize subSize = modeInfo.BlockSize;
@@ -236,6 +181,11 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
             // Block positions are stored relative to the superblock; prediction and reconstruction require frame-relative mode-info coordinates.
             globalPosition.Offset(subPosition);
             this.blockDecoder.DecodeBlock(modeInfo, globalPosition, subSize, superblockInfo, tileInfo);
+
+            // Palette maps are decoder-session scratch. Retained mode information must not keep views after the block
+            // has consumed them because the next superblock reuses the same storage.
+            modeInfo.SetPaletteColorIndexMap(Av1PlaneType.Y, default);
+            modeInfo.SetPaletteColorIndexMap(Av1PlaneType.Uv, default);
         }
     }
 }

@@ -18,7 +18,7 @@ public class Av1IntraBlockCopyTests
     /// Verifies the horizontal fallback used in the tile's first superblock row.
     /// </summary>
     [Fact]
-    public void FindReferenceUsesDelayedHorizontalFallbackInFirstSuperblockRow()
+    public void FindReferenceUsesFirstRowFallback()
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
         Av1FrameInfo frameInfo = new(sequenceHeader);

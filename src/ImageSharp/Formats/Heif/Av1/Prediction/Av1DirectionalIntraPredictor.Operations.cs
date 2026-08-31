@@ -566,7 +566,7 @@ internal static partial class Av1DirectionalIntraPredictor
             }
             else if (angle is > 180 and < 270)
             {
-                // libaom computes zone 3 as a zone 1 block with swapped dimensions, then transposes it. This preserves
+                // the reference decoder computes zone 3 as a zone 1 block with swapped dimensions, then transposes it. This preserves
                 // contiguous reference reads and destination stores in both hot stages instead of scattering columns.
                 Span<byte> transposed = scratch[..(width * height)];
                 PredictZone1(transposed, height, left, upsampleLeft, GetDeltaY(angle), height, width);

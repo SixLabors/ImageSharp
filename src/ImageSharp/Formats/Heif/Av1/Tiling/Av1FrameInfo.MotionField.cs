@@ -129,7 +129,7 @@ internal partial class Av1FrameInfo
 
         if (frameHeader.IsIntra)
         {
-            // Intra frames retain an empty source field. They can occupy reference slots, but libaom rejects them as
+            // Intra frames retain an empty source field. They can occupy reference slots, but the reference decoder rejects them as
             // projection sources before consulting their reference-order-hint metadata.
             return;
         }
@@ -138,7 +138,7 @@ internal partial class Av1FrameInfo
         ReadOnlySpan<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
         ObuOrderHintInfo orderHintInfo = sequenceHeader.OrderHintInfo;
 
-        // Capture the seven logical-role order hints before this frame refreshes any physical map slots. Libaom keeps
+        // Capture the seven logical-role order hints before this frame refreshes any physical map slots. The reference decoder keeps
         // the same snapshot on RefCntBuffer so a later frame can project this frame's stored motion vectors.
         for (int referenceIndex = 0; referenceIndex < Av1Constants.ReferencesPerFrame; referenceIndex++)
         {
@@ -174,7 +174,7 @@ internal partial class Av1FrameInfo
             return;
         }
 
-        // libaom aligns the projected field stride to the largest superblock even for a 64x64 sequence. This keeps
+        // the reference decoder aligns the projected field stride to the largest superblock even for a 64x64 sequence. This keeps
         // later temporal-candidate addressing independent of the current sequence's selected superblock size.
         int alignedModeInfoColumnCount = Av1Math.AlignPowerOf2(
             this.activeModeInfoColumnCount,
@@ -195,7 +195,7 @@ internal partial class Av1FrameInfo
         uint alternateOfLastOrderHint = lastFrame.FrameInfo.motionFieldReferenceOrderHints[(int)Av1ReferenceFrameType.Alternate];
 
         // A LAST frame whose ALTREF order matches GOLDEN is an overlay. Projecting it would duplicate the overlay's
-        // temporal source, but libaom still consumes one position from the three-source projection budget.
+        // temporal source, but the reference decoder still consumes one position from the three-source projection budget.
         if (alternateOfLastOrderHint != goldenFrame.FrameHeader.OrderHint)
         {
             _ = this.ProjectMotionField(sequenceHeader, frameHeader, lastFrame, reverseDirection: true);
@@ -327,7 +327,7 @@ internal partial class Av1FrameInfo
         Span<Av1ReferenceFrameType> referenceFrames = modeInfo.ReferenceFrames;
         Span<Av1MotionVector> motionVectors = modeInfo.MotionVectors;
 
-        // Compound blocks may offer two vectors. libaom retains the last eligible forward-or-past reference after
+        // Compound blocks may offer two vectors. the reference decoder retains the last eligible forward-or-past reference after
         // excluding same-order, future, and out-of-range vectors, so preserve that overwrite order exactly.
         for (int referenceIndex = 0; referenceIndex < 2; referenceIndex++)
         {
@@ -493,16 +493,12 @@ internal partial class Av1FrameInfo
         this.ownerCount--;
         if (this.ownerCount == 0)
         {
-            // Frame-sized motion and palette storage remains addressable through retained mode information. Return
-            // all of it together only after tile, reference, presentation, and decoder-result owners are gone.
+            // Frame-sized motion storage remains addressable through retained references. Return it only after tile,
+            // reference, presentation, and decoder-result owners are gone.
             this.retainedMotionField?.Dispose();
             this.retainedMotionField = null;
             this.temporalMotionField?.Dispose();
             this.temporalMotionField = null;
-            this.lumaPaletteColorIndexMap?.Dispose();
-            this.lumaPaletteColorIndexMap = null;
-            this.chromaPaletteColorIndexMap?.Dispose();
-            this.chromaPaletteColorIndexMap = null;
         }
     }
 
@@ -532,7 +528,7 @@ internal partial class Av1FrameInfo
         int baseBlockColumn = (blockColumn >> 3) << 3;
 
         // One field cell spans 8 samples, while vectors use one-eighth-sample units; dividing by 64 converts between
-        // them. C# integer division truncates toward zero, matching libaom's explicit signed-shift construction.
+        // them. C# integer division truncates toward zero, matching the reference decoder's explicit signed-shift construction.
         int rowOffset = motionVector.Row / (1 << MotionVectorToFieldOffsetShift);
         int columnOffset = motionVector.Column / (1 << MotionVectorToFieldOffsetShift);
         projectedRow = reverseDirection ? blockRow - rowOffset : blockRow + rowOffset;

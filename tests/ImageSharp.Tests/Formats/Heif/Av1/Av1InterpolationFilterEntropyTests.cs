@@ -31,7 +31,7 @@ public class Av1InterpolationFilterEntropyTests
     private const int HorizontalDirection = 1;
 
     /// <summary>
-    /// Gets libaom's forward Q15 switchable interpolation-filter thresholds in context order.
+    /// Gets the reference decoder's forward Q15 switchable interpolation-filter thresholds in context order.
     /// </summary>
     private static ReadOnlySpan<ushort> ForwardThresholds =>
     [
@@ -54,10 +54,10 @@ public class Av1InterpolationFilterEntropyTests
     ];
 
     /// <summary>
-    /// Verifies every normative switchable interpolation-filter distribution against libaom's forward Q15 defaults.
+    /// Verifies every normative switchable interpolation-filter distribution against the reference decoder's forward Q15 defaults.
     /// </summary>
     [Fact]
-    public void DefaultsMatchLibaom()
+    public void DefaultsMatchReference()
     {
         const int thresholdCount = 2;
         ReadOnlySpan<ushort> forwardThresholds = ForwardThresholds;
@@ -118,7 +118,7 @@ public class Av1InterpolationFilterEntropyTests
     /// Verifies all sixteen combinations of reference type, direction, and contributing neighbor filter state.
     /// </summary>
     [Fact]
-    public void ContextLayoutMatchesLibaom()
+    public void ContextLayoutMatchesReference()
     {
         Av1BlockModeInfo single = CreateModeInfo(
             Av1ReferenceFrameType.Last,

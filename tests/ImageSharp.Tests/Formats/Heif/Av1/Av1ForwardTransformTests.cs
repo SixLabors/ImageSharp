@@ -58,7 +58,7 @@ public class Av1ForwardTransformTests
     /// Verifies every permitted size, type, and bit-depth combination against the direct scalar two-axis definition.
     /// </summary>
     [Fact]
-    public void TwoDimensionalPipelineMatchesScalarReferenceAcrossHardwareConfigurations()
+    public void TwoDimensionalPipelineMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertTwoDimensionalPipeline, TransformConfigurations);
 
     /// <summary>
@@ -138,7 +138,7 @@ public class Av1ForwardTransformTests
     }
 
     /// <summary>
-    /// Compares one integer stage network with the analytical transform used by the libaom forward-transform tests.
+    /// Compares one integer stage network with the analytical reference transform.
     /// </summary>
     /// <typeparam name="TOperator">The transform operator.</typeparam>
     /// <param name="transformType">The analytical transform definition.</param>
@@ -170,7 +170,7 @@ public class Av1ForwardTransformTests
             TOperator.Transform(ref valuesBase, sizeof(int), sizeof(int), ref buffer0, ref buffer1, cosBit);
             Av1ReferenceTransform.ReferenceTransform1d(transformType, referenceInput, referenceOutput, length);
 
-            // libaom permits seven integer coefficient units because each fixed-point butterfly rounds independently.
+            // the reference decoder permits seven integer coefficient units because each fixed-point butterfly rounds independently.
             for (int index = 0; index < length; index++)
             {
                 int expected = (int)Math.Round(referenceOutput[index], MidpointRounding.AwayFromZero);

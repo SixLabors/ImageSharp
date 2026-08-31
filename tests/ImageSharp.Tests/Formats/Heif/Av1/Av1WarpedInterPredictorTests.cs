@@ -21,21 +21,21 @@ public class Av1WarpedInterPredictorTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Verifies exact 8-bit native and compound prediction against the current libaom scalar equations.
+    /// Verifies exact 8-bit native and compound prediction against independent scalar equations.
     /// </summary>
     [Fact]
-    public void ByteNativeAndCompoundPredictionMatchesCurrentLibaomOracleAcrossIntrinsicConfigurations()
+    public void BytePredictionMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateBytePrediction, PredictorConfigurations);
 
     /// <summary>
-    /// Verifies exact 8-, 10-, and 12-bit native and compound prediction against the current libaom scalar equations.
+    /// Verifies exact 8-, 10-, and 12-bit native and compound prediction against independent scalar equations.
     /// </summary>
     [Fact]
-    public void HighBitDepthNativeAndCompoundPredictionMatchesCurrentLibaomOracleAcrossIntrinsicConfigurations()
+    public void HighBitDepthPredictionMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthPrediction, PredictorConfigurations);
 
     /// <summary>
-    /// Applies the current-libaom multi-sample affine model to deterministic byte storage.
+    /// Applies the reference multi-sample affine model to deterministic byte storage.
     /// </summary>
     private static void ValidateBytePrediction()
     {
@@ -54,7 +54,7 @@ public class Av1WarpedInterPredictorTests
             }
         }
 
-        Av1GlobalMotionParameters parameters = CreateCurrentLibaomParameters();
+        Av1GlobalMotionParameters parameters = CreateReferenceParameters();
         for (int subsampling = 0; subsampling <= 1; subsampling++)
         {
             byte[] expected = new byte[destinationStride * height];
@@ -64,7 +64,7 @@ public class Av1WarpedInterPredictorTests
             short[] actualScratch = new short[Av1WarpedInterPredictor.WarpedScratchLength];
             Point destinationPosition = subsampling == 0 ? new Point(32, 24) : new Point(16, 12);
 
-            PredictCurrentLibaomReference(
+            PredictReference(
                 source,
                 sourceStride,
                 new Point(padding, padding),
@@ -104,7 +104,7 @@ public class Av1WarpedInterPredictorTests
             Array.Fill(expectedCompound, (ushort)0xDEAD);
             Array.Fill(actualCompound, (ushort)0xDEAD);
 
-            PredictCurrentLibaomReference(
+            PredictReference(
                 source,
                 sourceStride,
                 new Point(padding, padding),
@@ -142,7 +142,7 @@ public class Av1WarpedInterPredictorTests
     }
 
     /// <summary>
-    /// Applies the current-libaom multi-sample affine model to every supported high-bit-depth precision.
+    /// Applies the multi-sample affine model to every supported high-bit-depth precision.
     /// </summary>
     private static void ValidateHighBitDepthPrediction()
     {
@@ -152,7 +152,7 @@ public class Av1WarpedInterPredictorTests
         const int width = 13;
         const int height = 11;
         const int destinationStride = width + 7;
-        Av1GlobalMotionParameters parameters = CreateCurrentLibaomParameters();
+        Av1GlobalMotionParameters parameters = CreateReferenceParameters();
         foreach (int bitDepth in new[] { 8, 10, 12 })
         {
             int maximum = (1 << bitDepth) - 1;
@@ -175,7 +175,7 @@ public class Av1WarpedInterPredictorTests
                 short[] actualScratch = new short[Av1WarpedInterPredictor.WarpedScratchLength];
                 Point destinationPosition = subsampling == 0 ? new Point(32, 24) : new Point(16, 12);
 
-                PredictCurrentLibaomReference(
+                PredictReference(
                     source,
                     sourceStride,
                     new Point(padding, padding),
@@ -216,7 +216,7 @@ public class Av1WarpedInterPredictorTests
                 Array.Fill(expectedCompound, (ushort)0xDEAD);
                 Array.Fill(actualCompound, (ushort)0xDEAD);
 
-                PredictCurrentLibaomReference(
+                PredictReference(
                     source,
                     sourceStride,
                     new Point(padding, padding),
@@ -256,9 +256,9 @@ public class Av1WarpedInterPredictorTests
     }
 
     /// <summary>
-    /// Reconstructs one warped block by directly transcribing current libaom's scalar affine loops.
+    /// Reconstructs one warped block with scalar affine loops.
     /// </summary>
-    private static void PredictCurrentLibaomReference<TSource, TDestination>(
+    private static void PredictReference<TSource, TDestination>(
         ReadOnlySpan<TSource> source,
         int sourceStride,
         Point sourceOrigin,
@@ -285,7 +285,7 @@ public class Av1WarpedInterPredictorTests
         const int pixelPrecisionShifts = 64;
         Span<int> intermediate = stackalloc int[15 * tileSize];
 
-        // Current libaom raises round0 by two for 12-bit sources so the biased horizontal intermediate
+        // The reference decoder raises round0 by two for 12-bit sources so the biased horizontal intermediate
         // remains representable in 16 bits, then removes those two bits from the vertical rounding.
         int intermediateRange = bitDepth + filterBits - 3 + 2;
         int round0 = 3 + Math.Max(intermediateRange - 16, 0);
@@ -334,7 +334,7 @@ public class Av1WarpedInterPredictorTests
                                 ((sourceOrigin.Y + sourceY) * sourceStride) + sourceOrigin.X + sampleX;
 
                             int sample = int.CreateChecked(source[sourceIndex]);
-                            sum += sample * CurrentLibaomWarpedFilter[coefficientOffset + tap];
+                            sum += sample * ReferenceWarpedFilter[coefficientOffset + tap];
                         }
 
                         intermediate[((row + 7) * tileSize) + column + 4] = RoundPowerOfTwo(sum, round0);
@@ -355,7 +355,7 @@ public class Av1WarpedInterPredictorTests
                         for (int tap = 0; tap < filterTaps; tap++)
                         {
                             int intermediateIndex = ((row + tap + 4) * tileSize) + column + 4;
-                            sum += intermediate[intermediateIndex] * CurrentLibaomWarpedFilter[coefficientOffset + tap];
+                            sum += intermediate[intermediateIndex] * ReferenceWarpedFilter[coefficientOffset + tap];
                         }
 
                         int value = RoundPowerOfTwo(sum, verticalRound);
@@ -381,9 +381,9 @@ public class Av1WarpedInterPredictorTests
     }
 
     /// <summary>
-    /// Gets the 193 current-libaom eight-tap warped-filter phases used by the independent scalar oracle.
+    /// Gets the 193 reference eight-tap warped-filter phases used by the independent scalar oracle.
     /// </summary>
-    private static ReadOnlySpan<short> CurrentLibaomWarpedFilter =>
+    private static ReadOnlySpan<short> ReferenceWarpedFilter =>
     [
         0, 0, 127, 1, 0, 0, 0, 0,
         0, -1, 127, 2, 0, 0, 0, 0,
@@ -581,15 +581,15 @@ public class Av1WarpedInterPredictorTests
     ];
 
     /// <summary>
-    /// Divides a signed fixed-point value by a power of two with current libaom's rounding.
+    /// Divides a signed fixed-point value by a power of two with the reference decoder's rounding.
     /// </summary>
     private static int RoundPowerOfTwo(int value, int bitCount)
         => (value + (1 << (bitCount - 1))) >> bitCount;
 
     /// <summary>
-    /// Creates one nontrivial affine model traced from the current-libaom-verified two-frame local-warp fixture.
+    /// Creates one nontrivial affine model traced from the independently verified two-frame local-warp fixture.
     /// </summary>
-    private static Av1GlobalMotionParameters CreateCurrentLibaomParameters()
+    private static Av1GlobalMotionParameters CreateReferenceParameters()
     {
         Av1GlobalMotionParameters parameters = Av1GlobalMotionParameters.Identity;
         parameters.Type = Av1GlobalMotionType.Affine;

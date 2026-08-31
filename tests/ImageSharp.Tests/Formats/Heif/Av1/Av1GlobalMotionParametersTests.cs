@@ -84,10 +84,10 @@ public class Av1GlobalMotionParametersTests
     }
 
     /// <summary>
-    /// Verifies local least-squares projection against a multi-sample model traced from current libaom.
+    /// Verifies local least-squares projection against a multi-sample model traced from the reference decoder.
     /// </summary>
     [Fact]
-    public void LocalProjectionMatchesCurrentLibaomMultiSampleModel()
+    public void LocalProjectionMatchesReference()
     {
         Point[] sourcePoints = [new(24, -40), new(-40, 24), new(-24, -24), new(72, -24)];
         Point[] referencePoints = [new(-16, -8), new(-72, 64), new(-64, 16), new(32, 8)];

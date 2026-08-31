@@ -87,7 +87,7 @@ internal struct ObuFrameReferenceState
 
         if (frameIdNumbersPresent)
         {
-            // libaom keeps one current_frame_id in decoder-session state. The following header snapshots this value as
+            // the reference decoder keeps one current_frame_id in decoder-session state. The following header snapshots this value as
             // its previous identifier before consuming its own current_frame_id syntax.
             this.CurrentFrameId = frameHeader.CurrentFrameId;
             this.HasCurrentFrameId = true;

@@ -189,7 +189,7 @@ internal static partial class Av1ForwardTransformer
         where TRowOperator : struct, IAv1ForwardTransform1dOperator
     {
         // Highway keeps eight-bit transform stages in Int16 lanes and promotes only the large rectangular layouts.
-        // Scalar libaom uses Int32, so hardware without packed Int16 support follows that exact fallback instead.
+        // The independent scalar reference uses Int32, so hardware without packed Int16 support follows that exact fallback instead.
         if (bitDepth == 8 && Vector128.IsHardwareAccelerated)
         {
             TransformPacked<TColumnOperator, TRowOperator>(input, coefficients, stride, ref config, workspace);
@@ -200,7 +200,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Applies the libaom Int16 stage pipeline used for eight-bit residuals.
+    /// Applies the signed Int16 stage pipeline used for eight-bit residuals.
     /// </summary>
     /// <typeparam name="TColumnOperator">The column transform operator.</typeparam>
     /// <typeparam name="TRowOperator">The row transform operator.</typeparam>
@@ -298,7 +298,7 @@ internal static partial class Av1ForwardTransformer
         TransformPackedAxis<TRowOperator>(buffer1Packed, height, blockHeight, blockHeight, config.CosBitRow, workspace);
 
         // The second transform produces horizontal frequency in rows and vertical frequency in lanes. Transposing
-        // once more adapts libaom's native layout to the row-major coefficient contract used by ImageSharp.
+        // once more adapts the reference decoder's native layout to the row-major coefficient contract used by ImageSharp.
         TransposePacked(
             ref buffer1PackedBase,
             blockHeight,
@@ -314,7 +314,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Applies the libaom Int32 stage pipeline used for high-bit-depth residuals and scalar fallback.
+    /// Applies the signed Int32 stage pipeline used for high-bit-depth residuals and scalar fallback.
     /// </summary>
     /// <typeparam name="TColumnOperator">The column transform operator.</typeparam>
     /// <typeparam name="TRowOperator">The row transform operator.</typeparam>
@@ -881,7 +881,7 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
-    /// Promotes and transposes the large packed layouts at the same axis boundary as libaom.
+    /// Promotes and transposes the large packed layouts at the same axis boundary as the reference decoder.
     /// </summary>
     /// <param name="source">The first packed value in the source block.</param>
     /// <param name="sourceStride">The number of packed values between source rows.</param>

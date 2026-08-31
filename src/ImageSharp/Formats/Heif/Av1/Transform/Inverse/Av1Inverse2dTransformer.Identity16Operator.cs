@@ -46,7 +46,7 @@ internal static partial class Av1Inverse2dTransformer
             Av1TransformStageRange stageRange)
         {
             // The doubled scale exceeds Int32 only for the 20-bit twelve-bit row range. Widen that exact product and
-            // rounding sequence, matching libaom without changing the established lower-range SIMD path.
+            // rounding sequence, matching the reference decoder without changing the established lower-range SIMD path.
             if (stageRange[0] >= Av1Transform1dMath.WidenedIntermediateBitCount)
             {
                 Av1IdentityTransform1d.TransformWidened(ref input, ref output, 16, 2 * Av1Transform1dMath.NewSqrt2, Av1Transform1dMath.NewSqrt2Bits);

@@ -257,7 +257,7 @@ internal class Av1CdefDecoder
                 {
                     int blockIndex = 0;
 
-                    // libaom analyzes two listed 8x8 blocks together. The per-unit fixed list preserves that traversal
+                    // the reference decoder analyzes two listed 8x8 blocks together. The per-unit fixed list preserves that traversal
                     // without allocating a managed block list or repeating four skip-map lookups during filtering.
                     for (; blockIndex < blockCount - 1; blockIndex += 2)
                     {

@@ -132,7 +132,7 @@ internal static class Av1Transform1dMath
         out Vector512<short> sum,
         out Vector512<short> difference)
     {
-        // Read both operands before either destination is written because libaom deliberately permits an input
+        // Read both operands before either destination is written because the reference decoder deliberately permits an input
         // buffer to alias one or both outputs while alternating between its two fixed transform-stage buffers.
         Vector512<short> left = input0;
         Vector512<short> right = input1;
@@ -164,7 +164,7 @@ internal static class Av1Transform1dMath
         in Vector512<int> rounding)
     {
         // VPMADDWD evaluates adjacent Int16 products into Int32 lanes. Both outputs reuse the same interleaved
-        // inputs, matching libaom's whole butterfly instead of loading and unpacking each input pair twice.
+        // inputs, matching the reference decoder's whole butterfly instead of loading and unpacking each input pair twice.
         Vector512<short> left = input0;
         Vector512<short> right = input1;
         Vector512<short> interleavedLower = Avx512BW.UnpackLow(left, right);
@@ -414,7 +414,7 @@ internal static class Av1Transform1dMath
         (Vector128<long> lower, Vector128<long> upper) = Vector128.Widen(value);
         Vector128<long> rounding = Vector128.Create(1L << (fractionalBits - 1));
 
-        // Pinned libaom's high-bit-depth identity kernels multiply in signed 64-bit lanes. Widen before both the
+        // The reference decoder's high-bit-depth identity kernels multiply in signed 64-bit lanes. Widen before both the
         // product and rounding addition so a valid 20-bit twelve-bit row value cannot wrap through Int32.
         lower = ((lower * multiplier) + rounding) >> fractionalBits;
         upper = ((upper * multiplier) + rounding) >> fractionalBits;
@@ -573,7 +573,7 @@ internal static class Av1Transform1dMath
         Vector128<int> input3,
         int fractionalBits)
     {
-        // libaom keeps conformant ADST4 sine products and their factorized sums in Int32, then widens the terminal
+        // the reference decoder keeps conformant ADST4 sine products and their factorized sums in Int32, then widens the terminal
         // scaling and rounding. Preserve that exact boundary instead of widening every transform multiplication.
         Vector128<int> weightedSum = (input0 * weight0) + (input1 * weight1) + (input2 * weight2) + (input3 * weight3);
         return MultiplyRoundWidened(weightedSum, 1, fractionalBits);

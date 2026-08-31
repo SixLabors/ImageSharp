@@ -327,7 +327,7 @@ internal static class Av1SuperResolutionFilter
         Vector128<int> products2 = Vector128_.MultiplyAddAdjacent(samples2, filter2);
         Vector128<int> products3 = Vector128_.MultiplyAddAdjacent(samples3, filter3);
 
-        // libaom reduces four independent filters in two horizontal-add stages so the four complete sums occupy
+        // the reference decoder reduces four independent filters in two horizontal-add stages so the four complete sums occupy
         // consecutive lanes. Keeping that arrangement also allows both destination forms to use one packed store.
         Vector128<int> pairs01 = HorizontalAdd(products0, products1);
         Vector128<int> pairs23 = HorizontalAdd(products2, products3);

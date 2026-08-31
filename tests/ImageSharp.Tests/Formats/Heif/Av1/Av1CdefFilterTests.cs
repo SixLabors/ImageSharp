@@ -32,21 +32,21 @@ public class Av1CdefFilterTests
     /// Verifies direction selection and variance against an independent scalar definition.
     /// </summary>
     [Fact]
-    public void FindDirectionMatchesIndependentDefinitionAcrossIntrinsicTiers()
+    public void FindDirectionMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateDirections, Configurations);
 
     /// <summary>
     /// Verifies every CDEF block geometry and strength mode against an independent scalar definition.
     /// </summary>
     [Fact]
-    public void FilterBlockMatchesIndependentDefinitionAcrossIntrinsicTiers()
+    public void FilterBlockMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilters, Configurations);
 
     /// <summary>
     /// Verifies eight-bit widening and 16-bit copying across packed and scalar execution tiers.
     /// </summary>
     [Fact]
-    public void CopyPlaneMatchesIndependentDefinitionAcrossIntrinsicTiers()
+    public void CopyPlaneMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePlaneCopies, Configurations);
 
     /// <summary>

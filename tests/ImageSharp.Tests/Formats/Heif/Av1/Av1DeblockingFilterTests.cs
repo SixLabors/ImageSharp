@@ -54,7 +54,7 @@ public class Av1DeblockingFilterTests
     /// Verifies skipped inter-edge decisions and reference and mode level deltas through the production frame filter.
     /// </summary>
     [Fact]
-    public void DecodeFrameMatchesCurrentLibaomInterEdgeAndDeltaDecisions()
+    public void DecodeFrameMatchesReference()
     {
         ValidateInterEdgeAndDeltaDecisions(
             Av1PredictionMode.GlobalMotionVector,

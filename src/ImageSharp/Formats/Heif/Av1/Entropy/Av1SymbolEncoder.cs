@@ -387,7 +387,7 @@ internal class Av1SymbolEncoder : IDisposable
             int eobShift = eobOffsetBitCount - 1;
             int bit = Av1Math.GetBit(eobExtra, eobShift);
 
-            // The local table retains placeholders for the first three tokens, unlike libaom's compact table,
+            // The local table retains placeholders for the first three tokens, unlike the reference decoder's compact table,
             // so the encoded token is also the distribution index.
             int endOfBlockContext = endOfBlockPosition;
             w.WriteSymbol(bit, this.endOfBlockExtra[(int)transformSizeContext][(int)componentType][endOfBlockContext]);

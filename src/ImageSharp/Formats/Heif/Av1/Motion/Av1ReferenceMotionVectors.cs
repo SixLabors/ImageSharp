@@ -337,8 +337,8 @@ internal sealed class Av1ReferenceMotionVectors
         }
         else
         {
-            // When the direct single-reference stack has fewer than two entries, AV1 extends it from every inter
-            // reference in the immediate above and left spatial blocks. Differing reference sign biases are reversed.
+            // This fallback supplies only the nearest and near pair when direct and projected scans leave gaps.
+            // Differing reference sign biases are reversed before either candidate enters that pair.
             for (int index = 0; Math.Abs(maximumRowOffset) >= 1 && index < extensionLength && this.Count < 2;)
             {
                 Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(column + index, row - 1));
@@ -377,7 +377,7 @@ internal sealed class Av1ReferenceMotionVectors
         }
 
         // The two-element reference list is separate from the full DRL stack. Missing entries use global motion,
-        // and both entries undergo the same precision reduction as libaom's av1_find_best_ref_mvs output.
+        // and both entries undergo the same precision reduction as the reference decoder's av1_find_best_ref_mvs output.
         this.references[0] = (this.Count > 0 ? this.candidates[0] : globalMotionVector).LowerPrecision(
             frameHeader.AllowHighPrecisionMotionVector,
             frameHeader.ForceIntegerMotionVector);
@@ -1154,7 +1154,7 @@ internal sealed class Av1ReferenceMotionVectors
         }
 
         // The fallback list is positional rather than a weighted candidate scan. Preserve both entries even when
-        // they are equal so DRL indices have the same meaning as the current libaom main implementation.
+        // they are equal so the derived DRL indices retain the same meaning.
         for (int index = 0; index < 2; index++)
         {
             this.candidates[index] = primaryList[index];

@@ -147,7 +147,7 @@ internal struct Av1BlockModeInfo
     /// Gets the interpolation filters used for vertical and horizontal subpixel prediction.
     /// </summary>
     /// <remarks>
-    /// Index zero is the vertical filter and index one is the horizontal filter, matching libaom's
+    /// Index zero is the vertical filter and index one is the horizontal filter, matching the reference decoder's
     /// <c>InterpFilters.y_filter</c> and <c>InterpFilters.x_filter</c> layout.
     /// </remarks>
     [UnscopedRef]

@@ -57,7 +57,7 @@ public class Av1InterFrameModeInfoTests
     /// Verifies that skip mode omits the residual-skip and intra-inter symbols and marks the block as inter coded.
     /// </summary>
     [Fact]
-    public void ReadInterFrameModeInfoSkipModeForcesInterBlockAndResidualSkip()
+    public void SkipModeForcesInterAndSkipsResidual()
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
         sequenceHeader.OrderHintInfo.EnableOrderHint = true;
@@ -150,7 +150,7 @@ public class Av1InterFrameModeInfoTests
     /// Verifies that an identity global-motion block omits switchable interpolation-filter symbols.
     /// </summary>
     [Fact]
-    public void ReadInterFrameModeInfoOmitsInterpolationFiltersForIdentityGlobalMotion()
+    public void IdentityGlobalMotionOmitsInterpolationFilters()
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
         sequenceHeader.EnableDualFilter = true;
@@ -167,8 +167,8 @@ public class Av1InterFrameModeInfoTests
         using Av1SymbolWriter writer = new(Configuration.Default, 3, updateCdf: true);
         writer.WriteSymbol(false, Av1DefaultDistributions.Skip[0]);
 
-        // Current libaom's is_nontrans_global_motion rejects only TRANSLATION, so the default identity model omits
-        // these sentinel symbols even though is_global_mv_block uses the separate greater-than-translation classification.
+        // Identity is distinct from Translation for this syntax gate. These sentinel symbols must remain unread even
+        // though the separate global-motion-block classification requires a model greater than Translation.
         writer.WriteSymbol((int)Av1InterpolationFilter.Smooth, Av1DefaultDistributions.SwitchableInterpolation[3]);
         writer.WriteSymbol((int)Av1InterpolationFilter.Sharp, Av1DefaultDistributions.SwitchableInterpolation[11]);
         using IMemoryOwner<byte> encoded = writer.Exit();
@@ -234,7 +234,7 @@ public class Av1InterFrameModeInfoTests
     [InlineData((int)Av1CompoundType.DistanceWeighted)]
     [InlineData((int)Av1CompoundType.Wedge)]
     [InlineData((int)Av1CompoundType.DifferenceWeighted)]
-    public void ReadInterFrameModeInfoReadsSelectableCompoundBeforeInterpolation(int compoundTypeValue)
+    public void ReadsSelectableCompoundBeforeInterpolation(int compoundTypeValue)
     {
         Av1CompoundType compoundType = (Av1CompoundType)compoundTypeValue;
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();

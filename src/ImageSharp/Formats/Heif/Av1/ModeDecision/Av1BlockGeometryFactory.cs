@@ -125,7 +125,6 @@ internal class Av1BlockGeometryFactory
     /// Initializes a new instance of the <see cref="Av1BlockGeometryFactory"/> class.
     /// </summary>
     /// <param name="geom">The predefined geometry used to size and populate the mode-decision scan.</param>
-    /// <remarks>SVT-AV1: <c>md_scan_all_blks</c>.</remarks>
     public Av1BlockGeometryFactory(Av1GeometryIndex geom)
     {
         this.blockGeometryModeDecisionScan = new Av1BlockGeometry[MaxBlocksAllocated];
@@ -211,8 +210,6 @@ internal class Av1BlockGeometryFactory
         // (0)compute total number of blocks using the information provided
         // maxActiveBlockCount = CountTotalNumberOfActiveBlocks(min_nsq_bsize);
 
-        // if (maxActiveBlockCount != max_block_count)
-        //    SVT_LOG(" \n\n Error %i blocks\n\n ", maxActiveBlockCount);
         // (2) Construct md scan blk_geom_mds:  use info from dps
         int idx_mds = 0;
         this.ScanAllBlocks(ref idx_mds, maxSuperblock, 0, 0, false, 0, min_nsq_bsize);
@@ -224,7 +221,6 @@ internal class Av1BlockGeometryFactory
     /// </summary>
     /// <param name="min_nsq_bsize">The smallest square size, in pixels, at which non-square partitions remain enabled.</param>
     /// <returns>The number of active mode-decision scan entries.</returns>
-    /// <remarks>SVT-AV1: <c>count_total_num_of_active_blks</c>.</remarks>
     private static int CountTotalNumberOfActiveBlocks(int min_nsq_bsize)
     {
         int depth_scan_idx = 0;
@@ -273,7 +269,6 @@ internal class Av1BlockGeometryFactory
     /// <param name="partitionIterator">The zero-based partition-shape index in scan order.</param>
     /// <param name="sequenceSize">The width and height, in pixels, of the square being partitioned.</param>
     /// <returns>The number of component blocks in the partition.</returns>
-    /// <remarks>SVT-AV1: <c>get_num_ns_per_part</c>.</remarks>
     private static int GetNonSquareCountPerPart(int partitionIterator, int sequenceSize)
     {
         int tot_num_ns_per_part = partitionIterator < 1 ? 1 : partitionIterator < 3 ? 2 : partitionIterator < 5 && sequenceSize < 128 ? 4 : 3;
@@ -284,7 +279,6 @@ internal class Av1BlockGeometryFactory
     /// Records scan entries that represent the same block size at the same pixel origin.
     /// </summary>
     /// <param name="max_block_count">The number of populated scan entries to compare.</param>
-    /// <remarks>SVT-AV1: <c>log_redundancy_similarity</c>.</remarks>
     private static void LogRedundancySimilarity(int max_block_count)
     {
         for (int blockIterator = 0; blockIterator < max_block_count; blockIterator++)
@@ -315,7 +309,6 @@ internal class Av1BlockGeometryFactory
     /// <param name="modeDecisionScanIndex">The zero-based mode-decision scan index.</param>
     /// <returns>The geometry stored at <paramref name="modeDecisionScanIndex"/>.</returns>
     /// <exception cref="NotImplementedException">Always thrown because the geometry lookup has not been implemented.</exception>
-    /// <remarks>SVT-AV1: <c>get_blk_geom_mds</c>.</remarks>
     public static Av1BlockGeometry GetBlockGeometryByModeDecisionScanIndex(int modeDecisionScanIndex) => throw new NotImplementedException();
 
     /// <summary>
@@ -377,12 +370,6 @@ internal class Av1BlockGeometryFactory
                 // this.blockGeometryModeDecisionScan[index].QuadIndex = quadIterator;
                 // this.blockGeometryModeDecisionScan[index].d1i = depth1Iterator++;
                 // this.blockGeometryModeDecisionScan[index].sqi_mds = sqi_mds;
-                // this.blockGeometryModeDecisionScan[index].svt_aom_geom_idx = svt_aom_geom_idx;
-                /*
-                this.blockGeometryModeDecisionScan[index].parent_depth_idx_mds = sqi_mds == 0
-                    ? 0
-                    : (sqi_mds + (3 - quad_it) * ns_depth_offset[svt_aom_geom_idx][this.blockGeometryModeDecisionScan[index].Depth]) -
-                        parent_depth_offset[svt_aom_geom_idx][this.blockGeometryModeDecisionScan[index].Depth];*/
                 this.blockGeometryModeDecisionScan[index].Depth1Offset =
                     Depth1DepthOffset[(int)geometryIndex][this.blockGeometryModeDecisionScan[index].Depth];
                 this.blockGeometryModeDecisionScan[index].NextDepthOffset =
@@ -473,17 +460,6 @@ internal class Av1BlockGeometryFactory
                         this.blockGeometryModeDecisionScan[index].TransformOrigin[tx_depth][transformBlockIterator] =
                             this.blockGeometryModeDecisionScan[index].Origin;
                     }
-
-                    /*if (this.blockGeometryModeDecisionScan[index].bsize == BLOCK_16X8)
-                        SVT_LOG("");
-                    this.blockGeometryModeDecisionScan[index].tx_width[tx_depth] =
-                        tx_size_wide[this.blockGeometryModeDecisionScan[index].TransformSize[tx_depth]];
-                    this.blockGeometryModeDecisionScan[index].tx_height[tx_depth] =
-                        tx_size_high[this.blockGeometryModeDecisionScan[index].TransformSize[tx_depth]];
-                    this.blockGeometryModeDecisionScan[index].tx_width_uv[tx_depth] =
-                        tx_size_wide[this.blockGeometryModeDecisionScan[index].TransformSizeUv[tx_depth]];
-                    this.blockGeometryModeDecisionScan[index].tx_height_uv[tx_depth] =
-                        tx_size_high[this.blockGeometryModeDecisionScan[index].TransformSizeUv[tx_depth]];*/
                 }
 
                 // Transform depth one subdivides eligible luma blocks once while chroma retains its depth-zero size.
@@ -1058,7 +1034,6 @@ internal class Av1BlockGeometryFactory
     /// <param name="blockSize">The coded block size whose transform limit is requested.</param>
     /// <param name="plane">The plane index, where zero selects luma and a positive value selects chroma.</param>
     /// <returns>The maximum transform size for the selected plane.</returns>
-    /// <remarks>SVT-AV1: <c>av1_get_tx_size</c>.</remarks>
     private static Av1TransformSize GetTransformSize(Av1BlockSize blockSize, int plane)
     {
         // Luma uses the coded block's normative transform ceiling directly.

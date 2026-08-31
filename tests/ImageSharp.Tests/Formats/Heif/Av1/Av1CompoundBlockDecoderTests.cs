@@ -40,7 +40,7 @@ public class Av1CompoundBlockDecoderTests
     [InlineData((int)Av1BitDepth.EightBit)]
     [InlineData((int)Av1BitDepth.TenBit)]
     [InlineData((int)Av1BitDepth.TwelveBit)]
-    public void DecodeBlockReconstructsEqualAverageCompoundPrediction(int bitDepthValue)
+    public void DecodeBlockWithAverageCompound(int bitDepthValue)
     {
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         ushort firstValue = bitDepth == Av1BitDepth.EightBit ? (ushort)20 : (ushort)100;
@@ -127,7 +127,7 @@ public class Av1CompoundBlockDecoderTests
     /// Verifies that high-bit-depth subpixel predictors retain their no-round precision until the compound average.
     /// </summary>
     [Fact]
-    public void DecodeBlockReconstructsSubpixelHighBitDepthEqualAverageCompoundPrediction()
+    public void DecodeBlockWithHighBitDepthAverageCompound()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateSubpixelHighBitDepthEqualAverageCompoundPrediction,
             CompoundPredictionConfigurations);
@@ -136,7 +136,7 @@ public class Av1CompoundBlockDecoderTests
     /// Verifies that high-bit-depth subpixel predictors retain no-round precision until distance weighting.
     /// </summary>
     [Fact]
-    public void DecodeBlockReconstructsSubpixelHighBitDepthDistanceWeightedCompoundPrediction()
+    public void DecodeBlockWithHighBitDepthDistanceWeightedCompound()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateSubpixelHighBitDepthDistanceWeightedCompoundPrediction,
             CompoundPredictionConfigurations);
@@ -145,7 +145,7 @@ public class Av1CompoundBlockDecoderTests
     /// Verifies that high-bit-depth subpixel predictors retain no-round precision until wedge blending.
     /// </summary>
     [Fact]
-    public void DecodeBlockReconstructsSubpixelHighBitDepthWedgeCompoundPrediction()
+    public void DecodeBlockWithHighBitDepthWedgeCompound()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateSubpixelHighBitDepthWedgeCompoundPrediction,
             CompoundPredictionConfigurations);
@@ -154,7 +154,7 @@ public class Av1CompoundBlockDecoderTests
     /// Verifies that high-bit-depth subpixel predictors retain no-round precision through difference masking and blending.
     /// </summary>
     [Fact]
-    public void DecodeBlockReconstructsSubpixelHighBitDepthDifferenceWeightedCompoundPrediction()
+    public void DecodeBlockWithHighBitDepthDifferenceWeightedCompound()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateSubpixelHighBitDepthDifferenceWeightedCompoundPrediction,
             CompoundPredictionConfigurations);
@@ -163,7 +163,7 @@ public class Av1CompoundBlockDecoderTests
     /// Verifies that both references of a GLOBAL_GLOBALMV block use their complete matrix before compound averaging.
     /// </summary>
     [Fact]
-    public void DecodeBlockReconstructsCompoundGlobalWarpPrediction()
+    public void DecodeBlockWithCompoundGlobalWarp()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateCompoundGlobalWarpPrediction,
             GlobalWarpConfigurations);
@@ -176,7 +176,7 @@ public class Av1CompoundBlockDecoderTests
     [InlineData((int)Av1BitDepth.EightBit)]
     [InlineData((int)Av1BitDepth.TenBit)]
     [InlineData((int)Av1BitDepth.TwelveBit)]
-    public void DecodeBlockReconstructsScaledSingleReferencePrediction(int bitDepthValue)
+    public void DecodeBlockWithScaledReference(int bitDepthValue)
     {
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader(bitDepth, 16);
@@ -243,7 +243,7 @@ public class Av1CompoundBlockDecoderTests
     /// Verifies that scaled predictors retain their no-round precision until compound averaging.
     /// </summary>
     [Fact]
-    public void DecodeBlockReconstructsScaledCompoundPrediction()
+    public void DecodeBlockWithScaledCompound()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateScaledCompoundPrediction,
             CompoundPredictionConfigurations);
@@ -263,7 +263,7 @@ public class Av1CompoundBlockDecoderTests
     [InlineData((int)Av1BitDepth.EightBit, (int)Av1CompoundType.DifferenceWeighted)]
     [InlineData((int)Av1BitDepth.TenBit, (int)Av1CompoundType.DifferenceWeighted)]
     [InlineData((int)Av1BitDepth.TwelveBit, (int)Av1CompoundType.DifferenceWeighted)]
-    public void DecodeBlockReconstructsSelectableCompoundPrediction(int bitDepthValue, int compoundTypeValue)
+    public void DecodeBlockWithSelectableCompound(int bitDepthValue, int compoundTypeValue)
     {
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         Av1CompoundType compoundType = (Av1CompoundType)compoundTypeValue;
@@ -381,7 +381,7 @@ public class Av1CompoundBlockDecoderTests
     [InlineData((int)Av1BitDepth.EightBit)]
     [InlineData((int)Av1BitDepth.TenBit)]
     [InlineData((int)Av1BitDepth.TwelveBit)]
-    public void DecodeBlockReconstructsSmoothInterIntraPrediction(int bitDepthValue)
+    public void DecodeBlockWithSmoothInterIntra(int bitDepthValue)
     {
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         ushort interValue = bitDepth == Av1BitDepth.EightBit ? (ushort)20 : (ushort)100;
@@ -464,7 +464,7 @@ public class Av1CompoundBlockDecoderTests
     [InlineData((int)Av1BitDepth.EightBit)]
     [InlineData((int)Av1BitDepth.TenBit)]
     [InlineData((int)Av1BitDepth.TwelveBit)]
-    public void DecodeBlockReconstructsOverlappedMotionCompensation(int bitDepthValue)
+    public void DecodeBlockWithObmc(int bitDepthValue)
     {
         const int frameSize = 24;
         const int blockOrigin = 8;
@@ -556,7 +556,7 @@ public class Av1CompoundBlockDecoderTests
     [Theory]
     [InlineData((int)Av1ColorFormat.Yuv420)]
     [InlineData((int)Av1ColorFormat.Yuv422)]
-    public void DecodeBlockReconstructsSubsampledOverlappedMotionCompensation(int colorFormatValue)
+    public void DecodeBlockWithSubsampledObmc(int colorFormatValue)
     {
         const int frameSize = 48;
         const int blockOrigin = 16;
@@ -1475,7 +1475,7 @@ public class Av1CompoundBlockDecoderTests
             {
                 int predictionIndex = (row * blockSize) + column;
 
-                // Libaom truncates the equal average before removing the compound bias, then performs the sole final
+                // The reference decoder truncates the equal average before removing the compound bias, then performs the sole final
                 // rounding step. Reconstructing each reference to native pixels first can differ from this result.
                 int intermediate = ((firstHighBitDepthPrediction[predictionIndex] +
                     secondHighBitDepthPrediction[predictionIndex]) >> 1) - compoundRoundOffset;

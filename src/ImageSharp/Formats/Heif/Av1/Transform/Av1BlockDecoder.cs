@@ -364,7 +364,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                 int referenceCount = usesSub8x8ChromaPrediction ? 0 : isCompound ? 2 : 1;
 
                 // Every compound predictor is combined before its final rounding step. Warped prediction has its own
-                // convolution kernels, but current libaom writes their output into the same unsigned no-round domain.
+                // convolution kernels, but the reference decoder writes their output into the same unsigned no-round domain.
                 bool useHighBitDepthCompoundIntermediates =
                     highBitDepth &&
                     modeInfo.CompoundType is (
@@ -391,7 +391,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                         activeReferenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight;
 
                     // Warped prediction is selected per plane. In subsampled frames an otherwise qualifying 8x8 luma
-                    // block has a 4x4 chroma prediction, which libaom deliberately reconstructs with the translational
+                    // block has a 4x4 chroma prediction, which the reference decoder deliberately reconstructs with the translational
                     // center motion vector. Scaled references and integer-only frames exclude both local and global warp.
                     bool canUseWarpedPrediction =
                         !isScaledReference &&
@@ -594,7 +594,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                     }
 
                     // AV1 predicts the complete declared plane block even when its luma extent crosses the frame boundary.
-                    // Subsampled dimensions retain the mandatory four-sample minimum used by set_plane_n4 in libaom.
+                    // Subsampled dimensions retain the mandatory four-sample minimum used by set_plane_n4 in the reference decoder.
                     int horizontalMotionQ4 = motionVector.Column << (1 - subX);
                     int verticalMotionQ4 = motionVector.Row << (1 - subY);
                     int horizontalExtensionQ4 = (4 + predictionWidth) << 4;
@@ -773,7 +773,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                     subY,
                                     invert: false);
 
-                                // Masked compound prediction must blend the same no-round intermediates as libaom's
+                                // Masked compound prediction must blend the same no-round intermediates as the reference decoder's
                                 // high-bit-depth d16 path so the mask is applied before the sole final rounding step.
                                 Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
                                     highBitDepthDestination,
@@ -1240,7 +1240,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                 // rules. Its validated displacement always references an earlier reconstructed region of this frame.
                 if (modeInfo.UseIntraBlockCopy)
                 {
-                    // libaom predicts the complete coding block before traversing its residual transforms. The mandatory
+                    // the reference decoder predicts the complete coding block before traversing its residual transforms. The mandatory
                     // 256-pixel source delay prevents overlap, and the two-tap interpolation is translation-invariant,
                     // so predicting the matching source rectangle for each transform unit produces the same samples.
                     Point transformPixelPosition = new(
@@ -1452,7 +1452,7 @@ internal sealed class Av1BlockDecoder : IDisposable
         int rowStart = isSub4Y ? -1 : 0;
         int columnStart = isSub4X ? -1 : 0;
 
-        // One chroma block can cover two or four independently decoded luma blocks. libaom enters this path only
+        // One chroma block can cover two or four independently decoded luma blocks. the reference decoder enters this path only
         // when every contributing owner is a conventional inter block; otherwise the current block supplies the
         // complete chroma prediction through the ordinary path.
         for (int row = rowStart; row <= 0; row++)
@@ -1534,7 +1534,7 @@ internal sealed class Av1BlockDecoder : IDisposable
 
                     // The block-relative UMV edges belong to the current coding block, while each contributing luma
                     // owner supplies only its motion vector and interpolation filters. This is the same split used by
-                    // libaom's sub-8x8 chroma builder.
+                    // the reference decoder's sub-8x8 chroma builder.
                     horizontalMotionQ4 = Av1Math.Clip3(
                         (partitionInfo.ModeBlockToLeftEdge * horizontalEdgeScale) - horizontalExtensionQ4,
                         (partitionInfo.ModeBlockToRightEdge * horizontalEdgeScale) + horizontalExtensionQ4 - 16,
@@ -1830,7 +1830,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                 int step = Math.Min(candidate.BlockSize.Get4x4WideCount(), Av1BlockSize.Block64x64.Get4x4WideCount());
                 if (step == 1)
                 {
-                    // A four-sample neighbor is one half of the chroma-bearing eight-sample pair. libaom aligns
+                    // A four-sample neighbor is one half of the chroma-bearing eight-sample pair. the reference decoder aligns
                     // the traversal to the pair start and reads prediction state from its second mode record.
                     aboveColumn &= ~1;
                     candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(aboveColumn + 1, blockRow - 1));
@@ -2034,7 +2034,7 @@ internal sealed class Av1BlockDecoder : IDisposable
         int framePlaneWidth = (this.frameHeader.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) >> subX;
         int framePlaneHeight = (this.frameHeader.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2) >> subY;
 
-        // libaom clamps the motion vector relative to each neighbor rectangle. Once the neighbor origin is added, the
+        // the reference decoder clamps the motion vector relative to each neighbor rectangle. Once the neighbor origin is added, the
         // prediction extent remains in the left/top limit but cancels from the right/bottom limit. Keeping this
         // asymmetry avoids counting the OBMC rectangle twice when the source lies beyond the far frame edge.
         sourceColumnQ4 = Av1Math.Clip3(

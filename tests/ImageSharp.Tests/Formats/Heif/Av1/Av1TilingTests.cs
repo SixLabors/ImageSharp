@@ -35,10 +35,10 @@ public class Av1TilingTests
     }
 
     /// <summary>
-    /// Verifies the decoded block geometry and prediction modes against libaom inspection output for a real AVIF image item.
+    /// Verifies the decoded block geometry and prediction modes against the reference decoder inspection output for a real AVIF image item.
     /// </summary>
     [Fact]
-    public void ParsedRealAvifModeMapMatchesLibaom()
+    public void ParsedAvifModeMapMatchesReference()
     {
         string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Heif.ParisIccExifXmpAvif);
         byte[] content = File.ReadAllBytes(filePath);
@@ -63,7 +63,7 @@ public class Av1TilingTests
             }
         }
 
-        // These counts come from the 102 by 76 mode-info maps emitted by libaom 3.14.1's inspect tool.
+        // These counts come from independently inspected 102 by 76 mode-info maps.
         int[] expectedBlockSizeCounts = new int[(int)Av1BlockSize.AllSizes];
         expectedBlockSizeCounts[(int)Av1BlockSize.Block8x8] = 3176;
         expectedBlockSizeCounts[(int)Av1BlockSize.Block8x16] = 48;

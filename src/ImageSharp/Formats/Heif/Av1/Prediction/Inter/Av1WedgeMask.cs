@@ -14,7 +14,7 @@ internal static class Av1WedgeMask
     private const int MasterSize = 64;
 
     /// <summary>
-    /// Gets the odd-row oblique prototype defined by libaom.
+    /// Gets the odd-row oblique prototype defined by the reference decoder.
     /// </summary>
     private static ReadOnlySpan<byte> MasterObliqueOdd =>
     [
@@ -25,7 +25,7 @@ internal static class Av1WedgeMask
     ];
 
     /// <summary>
-    /// Gets the even-row oblique prototype defined by libaom.
+    /// Gets the even-row oblique prototype defined by the reference decoder.
     /// </summary>
     private static ReadOnlySpan<byte> MasterObliqueEven =>
     [
@@ -36,7 +36,7 @@ internal static class Av1WedgeMask
     ];
 
     /// <summary>
-    /// Gets the vertical prototype defined by libaom.
+    /// Gets the vertical prototype defined by the reference decoder.
     /// </summary>
     private static ReadOnlySpan<byte> MasterVertical =>
     [
@@ -183,7 +183,7 @@ internal static class Av1WedgeMask
     }
 
     /// <summary>
-    /// Gets libaom's canonical sign flip for a block and wedge index.
+    /// Gets the reference decoder's canonical sign flip for a block and wedge index.
     /// </summary>
     private static bool GetSignFlip(Av1BlockSize blockSize, int wedgeIndex)
     {

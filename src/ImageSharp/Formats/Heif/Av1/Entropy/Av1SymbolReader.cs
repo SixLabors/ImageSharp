@@ -87,7 +87,7 @@ internal ref struct Av1SymbolReader
         }
 
         // The final consumed byte must contain one trailing-one bit at the range decoder's exact stopping position,
-        // followed only by zero bits. This is the same bounded-stream check performed after libaom decodes a tile.
+        // followed only by zero bits. This is the same bounded-stream check performed after the reference decoder decodes a tile.
         int trailingOneBit = 128 >> ((consumedBitCount - 1) & 7);
         int trailingBitMask = (trailingOneBit << 1) - 1;
         if ((this.buffer[consumedByteCount - 1] & trailingBitMask) != trailingOneBit)

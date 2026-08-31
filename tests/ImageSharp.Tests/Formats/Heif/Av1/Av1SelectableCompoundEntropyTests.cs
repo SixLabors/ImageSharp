@@ -16,10 +16,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1SelectableCompoundEntropyTests
 {
     /// <summary>
-    /// Verifies representative and complete multi-symbol defaults against pinned libaom's forward Q15 tables.
+    /// Verifies representative and complete multi-symbol defaults against the reference decoder's forward Q15 tables.
     /// </summary>
     [Fact]
-    public void DefaultsMatchPinnedLibaom()
+    public void DefaultsMatchReference()
     {
         AssertForwardThresholds(Av1DefaultDistributions.InterIntraMode[1], [1875, 11082, 27332]);
         AssertForwardThresholds(Av1DefaultDistributions.WedgeInterIntra[(int)Av1BlockSize.Block8x8], [20036]);

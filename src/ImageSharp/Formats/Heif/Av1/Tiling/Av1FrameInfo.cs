@@ -57,36 +57,6 @@ internal partial class Av1FrameInfo : IDisposable
     private readonly int subsamplingFactor;
 
     /// <summary>
-    /// The aligned luma palette-map width in samples.
-    /// </summary>
-    private readonly int lumaPaletteColorIndexMapWidth;
-
-    /// <summary>
-    /// The aligned luma palette-map height in samples.
-    /// </summary>
-    private readonly int lumaPaletteColorIndexMapHeight;
-
-    /// <summary>
-    /// The aligned chroma palette-map width in samples.
-    /// </summary>
-    private readonly int chromaPaletteColorIndexMapWidth;
-
-    /// <summary>
-    /// The aligned chroma palette-map height in samples.
-    /// </summary>
-    private readonly int chromaPaletteColorIndexMapHeight;
-
-    /// <summary>
-    /// Owns row-addressable luma palette indices for the frame.
-    /// </summary>
-    private Buffer2D<byte>? lumaPaletteColorIndexMap;
-
-    /// <summary>
-    /// Owns row-addressable chroma palette indices for the frame.
-    /// </summary>
-    private Buffer2D<byte>? chromaPaletteColorIndexMap;
-
-    /// <summary>
     /// Stores one addressing view for each frame superblock.
     /// </summary>
     private readonly Av1SuperblockInfo[] superblockInfos;
@@ -210,10 +180,6 @@ internal partial class Av1FrameInfo : IDisposable
         // Chroma capacity scales by two for each sampled axis: 4:4:4 => 0, 4:2:2 => 1, 4:2:0 => 2.
         this.subsamplingFactor = (subX && subY) ? 2 : (subX && !subY) ? 1 : (!subX && !subY) ? 0 : -1;
         Guard.IsFalse(this.subsamplingFactor == -1, nameof(this.subsamplingFactor), "Invalid combination of subsampling.");
-        this.lumaPaletteColorIndexMapWidth = superblockAlignedWidth;
-        this.lumaPaletteColorIndexMapHeight = superblockAlignedHeight;
-        this.chromaPaletteColorIndexMapWidth = superblockAlignedWidth >> (subX ? 1 : 0);
-        this.chromaPaletteColorIndexMapHeight = superblockAlignedHeight >> (subY ? 1 : 0);
         int lumaCoefficientCountPerSuperblock = this.modeInfoCountPerSuperblock * CoefficientCountPerModeInfo;
         int chromaCoefficientCountPerSuperblock = lumaCoefficientCountPerSuperblock >> this.subsamplingFactor;
         this.coefficientsY = new int[superblockCount * lumaCoefficientCountPerSuperblock];
@@ -237,51 +203,6 @@ internal partial class Av1FrameInfo : IDisposable
     /// Gets the width or height of one square superblock in 4x4 mode-information units.
     /// </summary>
     public int SuperblockModeInfoSize => this.modeInfoSizePerSuperblock;
-
-    /// <summary>
-    /// Gets frame-owned row-addressable palette-map storage for one coding block.
-    /// </summary>
-    /// <param name="configuration">The decoder configuration providing frame storage.</param>
-    /// <param name="planeType">The luma or shared chroma plane class.</param>
-    /// <param name="bounds">The block bounds in plane samples.</param>
-    /// <returns>The palette-map region assigned to the coding block.</returns>
-    public Buffer2DRegion<byte> GetPaletteColorIndexMap(
-        Configuration configuration,
-        Av1PlaneType planeType,
-        Rectangle bounds)
-    {
-        Buffer2D<byte>? buffer;
-        if (planeType == Av1PlaneType.Y)
-        {
-            buffer = this.lumaPaletteColorIndexMap;
-            if (buffer is null)
-            {
-                // A 2D allocation may contain multiple memory groups, but row alignment guarantees that every
-                // palette row remains contiguous for entropy decoding and SIMD reconstruction.
-                buffer = configuration.MemoryAllocator.Allocate2D<byte>(
-                    this.lumaPaletteColorIndexMapWidth,
-                    this.lumaPaletteColorIndexMapHeight);
-
-                this.lumaPaletteColorIndexMap = buffer;
-            }
-        }
-        else
-        {
-            buffer = this.chromaPaletteColorIndexMap;
-            if (buffer is null)
-            {
-                buffer = configuration.MemoryAllocator.Allocate2D<byte>(
-                    this.chromaPaletteColorIndexMapWidth,
-                    this.chromaPaletteColorIndexMapHeight);
-
-                this.chromaPaletteColorIndexMap = buffer;
-            }
-        }
-
-        // Partition traversal assigns non-overlapping frame regions, so retaining a view records the complete
-        // identify-time syntax without copying block maps or allocating storage for each coding block.
-        return new Buffer2DRegion<byte>(buffer, bounds);
-    }
 
     /// <summary>
     /// Initializes the active frame's contiguous segment map and applies whole-map inheritance when requested.
@@ -341,7 +262,7 @@ internal partial class Av1FrameInfo : IDisposable
             primaryReferenceFrameInfo.segmentIdColumnCount != this.segmentIdColumnCount ||
             primaryReferenceFrameInfo.segmentIdRowCount != this.segmentIdRowCount)
         {
-            // libaom exposes the prior map only when both mode-info dimensions match the active frame. Treating a
+            // the reference decoder exposes the prior map only when both mode-info dimensions match the active frame. Treating a
             // differently sized retained map as absent prevents coordinates from being reinterpreted with a new stride.
             return 0;
         }

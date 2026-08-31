@@ -232,7 +232,7 @@ internal static partial class Av1CompoundInterPredictor
         ReadOnlySpan<short> horizontalCoefficients = GetCompoundCoefficients(horizontalFilter, horizontalPhase, width <= 4);
         ReadOnlySpan<short> verticalCoefficients = GetCompoundCoefficients(verticalFilter, verticalPhase, height <= 4);
 
-        // Libaom increases the first-round shift only for 12-bit input. This keeps the signed horizontal
+        // The reference decoder increases the first-round shift only for 12-bit input. This keeps the signed horizontal
         // intermediate within sixteen bits while preserving the same total Q14 convolution precision.
         int intermediateRange = bitDepth + FilterBits - Round0Bits + 2;
         int round0 = Round0Bits + Math.Max(intermediateRange - 16, 0);

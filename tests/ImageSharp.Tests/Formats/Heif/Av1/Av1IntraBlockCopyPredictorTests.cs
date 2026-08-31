@@ -23,14 +23,14 @@ public class Av1IntraBlockCopyPredictorTests
     /// Verifies all four source phases for 8-bit samples at every AV1 transform size.
     /// </summary>
     [Fact]
-    public void EightBitPredictionMatchesScalarAcrossIntrinsicWidths()
+    public void EightBitPredictionMatchesScalar()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateEightBitPrediction, PredictorConfigurations);
 
     /// <summary>
     /// Verifies all four source phases for high-bit-depth samples at every AV1 transform size.
     /// </summary>
     [Fact]
-    public void HighBitDepthPredictionMatchesScalarAcrossIntrinsicWidths()
+    public void HighBitDepthPredictionMatchesScalar()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateHighBitDepthPrediction, PredictorConfigurations);
 
     /// <summary>

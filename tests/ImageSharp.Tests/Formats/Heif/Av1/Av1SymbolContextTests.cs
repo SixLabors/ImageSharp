@@ -79,7 +79,7 @@ public class Av1SymbolContextTests
     }
 
     /// <summary>
-    /// SVT: get_lower_levels_ctx_eob
+    /// Computes the expected lower-level coefficient context at the end of a transform block.
     /// </summary>
     internal static int GetExpectedLowerLevelContextEndOfBlock(int blockWidthLog2, int height, int scanIndex)
     {

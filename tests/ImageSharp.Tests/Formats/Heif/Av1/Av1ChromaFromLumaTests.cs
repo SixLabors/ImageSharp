@@ -31,7 +31,7 @@ public class Av1ChromaFromLumaTests
     [InlineData(false, false, new short[] { 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88, 96, 104, 112, 120, 128 })]
     [InlineData(true, false, new short[] { 12, 28, 44, 60, 76, 92, 108, 124 })]
     [InlineData(true, true, new short[] { 28, 44, 92, 108 })]
-    public void Store8BitMatchesLibaomSubsampling(bool subX, bool subY, short[] expected)
+    public void Store8BitMatchesReference(bool subX, bool subY, short[] expected)
     {
         ObuColorConfig colorConfig = new() { SubSamplingX = subX, SubSamplingY = subY };
         Av1ChromaFromLumaContext context = new(colorConfig);
@@ -144,14 +144,14 @@ public class Av1ChromaFromLumaTests
     /// Verifies exact 8-, 10-, and 12-bit CfL output and padding preservation across all intrinsic tiers.
     /// </summary>
     [Fact]
-    public void PredictMatchesIndependentDefinitionAcrossIntrinsicWidths()
+    public void PredictMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidatePredictors, PredictorConfigurations);
 
     /// <summary>
     /// Verifies exact luma subsampling and average subtraction across all intrinsic tiers.
     /// </summary>
     [Fact]
-    public void ContextOperationsMatchIndependentDefinitionAcrossIntrinsicWidths()
+    public void ContextOperationsMatchReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateContextOperations, PredictorConfigurations);
 
     /// <summary>

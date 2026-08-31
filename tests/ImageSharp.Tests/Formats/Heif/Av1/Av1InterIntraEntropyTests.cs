@@ -15,10 +15,10 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1InterIntraEntropyTests
 {
     /// <summary>
-    /// Verifies the four block-size-group distributions against libaom's forward Q15 defaults.
+    /// Verifies the four block-size-group distributions against the reference decoder's forward Q15 defaults.
     /// </summary>
     [Fact]
-    public void DefaultsMatchLibaom()
+    public void DefaultsMatchReference()
     {
         ReadOnlySpan<uint> forwardThresholds = [16384, 26887, 27597, 30237];
         Av1Distribution[] distributions = Av1DefaultDistributions.InterIntra;
@@ -26,7 +26,7 @@ public class Av1InterIntraEntropyTests
         Assert.Equal(forwardThresholds.Length, distributions.Length);
         for (int group = 0; group < distributions.Length; group++)
         {
-            // Av1Distribution stores inverse cumulative thresholds, so convert libaom's forward threshold before
+            // Av1Distribution stores inverse cumulative thresholds, so convert the reference decoder's forward threshold before
             // comparing the exact Q15 state consumed by the range decoder.
             uint expected = (uint)Av1Distribution.ProbabilityTop - forwardThresholds[group];
 
@@ -155,7 +155,7 @@ public class Av1InterIntraEntropyTests
     /// <returns>Every decoded block size paired with its size group.</returns>
     public static TheoryData<int, int> GetBlockSizeGroups()
     {
-        // These are the explicit Size_Group values from AV1 section 9.3 and libaom common_data.h. The test keeps the
+        // These are the explicit Size_Group values from AV1 section 9.3 and the normative lookup table. The test keeps the
         // expected table independent from the production geometry formula so a shared calculation cannot mask errors.
         int[] sizeGroups = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 0, 0, 1, 1, 2, 2];
         TheoryData<int, int> result = [];

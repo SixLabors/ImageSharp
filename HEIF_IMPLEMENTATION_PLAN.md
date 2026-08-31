@@ -82,12 +82,12 @@ Recovered task-history evidence from 2026-08-31:
 
 ### 2. Correct the single-reference inter-frame checkpoint
 
-The checkpoint implementation is complete. The first two inherited audit findings were rechecked against current libaom `main` and did not require production changes; the remaining production boundary, reconstruction, and ownership work is now implemented and verified.
+The committed checkpoint remains valid through `57a3f6668e39d0934e7b6b8d37a3dc2a5adc88f0`. The current checkpoint replaces frame-sized palette maps with fixed decoder-session scratch, reconstructs each superblock before reusing that scratch, and passes the ownership, documentation, full AV1 test, and Release source-build gates on both target frameworks.
 
 - [x] Reconcile interpolation-filter syntax in `Av1TileReader` with current libaom `main`.
   - Current libaom `av1_is_interp_needed` calls `is_nontrans_global_motion`, whose loop rejects only `TRANSLATION`. Identity GLOBALMV therefore omits switchable-filter symbols.
   - Current `Av1TileReader` uses the same non-Translation classification. The existing Identity test leaves sentinel filter symbols unread, while the Translation test consumes them.
-  - No production change is required. The stale test comment was changed from “pinned” to “current” libaom.
+  - No production change is required. The focused test describes only the syntax behavior it proves.
 - [x] Reconcile both spatial single-reference extension loops in `Av1ReferenceMotionVectors` with current libaom `main`.
   - Current libaom `setup_ref_mv_list` stops both loops at `MAX_MV_REF_CANDIDATES`, which is two. `MAX_REF_MV_STACK_SIZE`, which is eight, is the stack capacity used by the earlier direct and temporal candidate collection; it is not the stop condition for these two extension loops.
   - Current `Av1ReferenceMotionVectors` uses the same two-entry stop condition and retains an eight-entry stack for earlier candidates and DRL selection.
@@ -102,10 +102,10 @@ The checkpoint implementation is complete. The first two inherited audit finding
   - Compare the final frame's native Y, Cb, and Cr planes exactly with current-main libaom output.
   - Compare the final presented image through the established ImageSharp reference-image comparison API.
   - Do not substitute an internal helper test, fake tile reader, non-zero assertion, custom pixel loop, or tolerant comparison.
-- [x] Prove motion-field ownership and lifetime.
+- [x] Prove motion-field ownership and lifetime after the current reconstruction-timing change.
   - Track initialization, retained-slot aliases, failure unwinding, presentation ownership, decoder-result ownership, and final disposal.
   - Every allocator-owned object must be returned exactly once.
-- [x] Correct stale documentation.
+- [x] Correct stale documentation for the current worktree.
   - Av1InterFrameModeInfoTests must describe the behavior it actually proves.
   - Do not claim production reconstruction, constrained allocation, ownership, or reference-stack coverage unless the test executes that contract.
 
@@ -117,20 +117,20 @@ Checkpoint gate:
 - [x] The established exact presentation comparison passes.
 - [x] Normal, AVX-512-disabled, AVX-disabled, and scalar FeatureTestRunner configurations pass where supported.
 - [x] Constrained allocation preserves the enforced single-group plane invariant without copying or per-block allocation.
-- [x] Motion-field allocation tracking is balanced across success and failure.
-- [x] Release builds for net10.0 and net11.0 pass with zero errors.
-- [x] Focused Release tests pass with zero failures or skips.
-- [x] Scoped semantic, StyleCop, whitespace, and git diff checks pass.
+- [x] Motion-field allocation tracking is balanced across success and failure on net10.0 and net11.0.
+- [x] Release source builds pass for net10.0 and net11.0 with zero warnings and zero errors.
+- [x] The complete AV1 namespace passes 8,732 of 8,732 tests on net10.0 and net11.0 with zero failures or skips.
+- [x] Roslynk reports zero compiler errors; scoped analyzer inspection reports no diagnostics introduced by the current changes; `git diff --check` passes.
 - [x] The completed checkpoint was committed as `54bb6cbe59bd113058854a3ee31448cf61f462ca` with author and committer `James Jackson-South <james_south@hotmail.com>`.
 
 Verified single-reference checkpoint evidence on 2026-08-31:
 
 - The current-main `aomdec` was rebuilt directly from `D:\GitHub\AOMediaCodec\aom` and identified itself as `3.15.0-13-g441c439b99`.
 - Decoding the 72-byte progressive payload with `--all-layers`, one thread, and row multithreading disabled produced 2,178 YUV444 color samples. All samples in both layers match the first three planes of the stored YUV444-alpha reference exactly.
-- `DecodeProgressiveSingleReferenceMatchesCurrentLibaomReferences` executes the production decoder through FeatureTestRunner and compares the complete presented `Rgba32` image with `CompareToReferenceOutput(ImageComparer.Exact, provider)`. The redundant manual alpha loop was removed.
-- `DecodeProgressiveSingleReferenceWithConstrainedAllocator` executes the same production reconstruction with a 1,024-byte allocator group capacity and verifies that every allocation is returned exactly once.
-- `MotionFieldsFollowReferenceAliasesAndPresentationOwnership`, `MotionFieldAllocationFailureUnwindsTileReaderOwnership`, `DecodeProgressiveSingleReferenceTracksMotionFieldResultOwnership`, and the reference-store replacement, reset, and transfer tests cover initialization, aliases, presentation ownership, decoder-result ownership, failure unwinding, repeated disposal, and exactly-once final returns.
-- The focused Release set passed 17 of 17 tests on net10.0 and 17 of 17 tests on net11.0, with zero failures and zero skips. This includes both GLOBALMV syntax cases, spatial extension, plane invariants, production reconstruction, FeatureTestRunner dispatch, and ownership.
+- `DecodeProgressiveSingleMatchesReference` executes the production decoder through FeatureTestRunner and compares the complete presented `Rgba32` image with `CompareToReferenceOutput(ImageComparer.Exact, provider)`. The redundant manual alpha loop was removed.
+- `DecodeProgressiveSingleWithConstrainedAllocator` executes the same production reconstruction with a 1,024-byte allocator group capacity and verifies that every allocation is returned exactly once.
+- `MotionFieldsFollowAliasesAndPresentationOwnership`, `MotionFieldAllocationFailureUnwindsTileReaderOwnership`, `DecodeProgressiveSingleTracksMotionFieldOwnership`, and the reference-store replacement, reset, and transfer tests cover initialization, aliases, presentation ownership, decoder-result ownership, failure unwinding, repeated disposal, and exactly-once final returns in the current worktree.
+- The current worktree passes the four-case palette set, seven-case ownership set, and 29-case syntax, plane, and production reconstruction set on both target frameworks. The complete AV1 namespace passes 8,732 of 8,732 tests on net10.0 and net11.0 with zero failures or skips.
 - Release source builds passed for net10.0 and net11.0 with zero warnings and zero errors.
 - Roslynk reported zero compiler errors. The scoped changed-file analyzer inspection reported no StyleCop diagnostics attributable to this checkpoint; its only remaining match is the pre-existing xUnit cancellation warning in an unrelated `HeifDecoderTests` method.
 - `git diff --check` passed, and neither `.gitattributes` file changed.
@@ -148,7 +148,7 @@ $env:COMPlus_DbgEnableMiniDump = '0'
 $env:DOTNET_EnableCrashReport = '0'
 $env:COMPlus_EnableCrashReport = '0'
 
-$heifCheckpointFilter = 'FullyQualifiedName~Av1InterFrameModeInfoTests.ReadInterFrameModeInfoReadsInterpolationFilters|FullyQualifiedName~Av1InterFrameModeInfoTests.ReadInterFrameModeInfoOmitsInterpolationFiltersForIdentityGlobalMotion|FullyQualifiedName~Av1ReferenceMotionVectorsTests.BuildReversesOppositeDirectionExtensionCandidate|FullyQualifiedName~Av1FrameBufferTests|FullyQualifiedName~Av1ReferenceFrameStoreTests.MotionFieldsFollowReferenceAliasesAndPresentationOwnership|FullyQualifiedName~Av1ReferenceFrameStoreTests.MotionFieldAllocationFailureUnwindsTileReaderOwnership|FullyQualifiedName~Av1ReferenceFrameStoreTests.PartialReplacementPreservesSharedOwner|FullyQualifiedName~Av1ReferenceFrameStoreTests.FinalReplacementReleasesDisplacedOwner|FullyQualifiedName~Av1ReferenceFrameStoreTests.ResetReleasesUniqueOwnersAndClearsSlots|FullyQualifiedName~Av1ReferenceFrameStoreTests.TakeOutputTransfersPlanesAndReleasesOtherReferences|FullyQualifiedName~Av1ReconstructionConformanceTests.DecodeProgressiveSingleReferenceMatchesCurrentLibaomReferences|FullyQualifiedName~Av1ReconstructionConformanceTests.DecodeProgressiveSingleReferenceWithConstrainedAllocator|FullyQualifiedName~Av1ReconstructionConformanceTests.DecodeProgressiveSingleReferenceTracksMotionFieldResultOwnership'
+$heifCheckpointFilter = 'FullyQualifiedName~Av1InterFrameModeInfoTests.ReadInterFrameModeInfoReadsInterpolationFilters|FullyQualifiedName~Av1InterFrameModeInfoTests.IdentityGlobalMotionOmitsInterpolationFilters|FullyQualifiedName~Av1ReferenceMotionVectorsTests.BuildReversesOppositeDirectionExtensionCandidate|FullyQualifiedName~Av1FrameBufferTests|FullyQualifiedName~Av1ReferenceFrameStoreTests.MotionFieldsFollowAliasesAndPresentationOwnership|FullyQualifiedName~Av1ReferenceFrameStoreTests.MotionFieldAllocationFailureUnwindsTileReaderOwnership|FullyQualifiedName~Av1ReferenceFrameStoreTests.PartialReplacementPreservesSharedOwner|FullyQualifiedName~Av1ReferenceFrameStoreTests.FinalReplacementReleasesDisplacedOwner|FullyQualifiedName~Av1ReferenceFrameStoreTests.ResetReleasesUniqueOwnersAndClearsSlots|FullyQualifiedName~Av1ReferenceFrameStoreTests.TakeOutputTransfersPlanesAndReleasesOtherReferences|FullyQualifiedName~Av1ReconstructionConformanceTests.DecodeProgressiveSingleMatchesReference|FullyQualifiedName~Av1ReconstructionConformanceTests.DecodeProgressiveSingleWithConstrainedAllocator|FullyQualifiedName~Av1ReconstructionConformanceTests.DecodeProgressiveSingleTracksMotionFieldOwnership'
 
 dotnet build src\ImageSharp\ImageSharp.csproj -c Release -f net10.0 --no-restore --disable-build-servers -m:1 --no-incremental --nologo --verbosity:minimal
 dotnet build src\ImageSharp\ImageSharp.csproj -c Release -f net11.0 --no-restore --disable-build-servers -m:1 --no-incremental --nologo --verbosity:minimal
@@ -563,8 +563,8 @@ Previously verified algorithm checkpoints remain valuable evidence, but the fina
 - [x] Intra prediction covers directional, DC, smooth, Paeth, chroma-from-luma, filter-intra, and palette families with the established operator architecture.
 - [x] Intra-block copy has exact native reconstruction and feature-isolated SIMD evidence.
 - [x] Lossless inverse transform, loop filtering, CDEF, super-resolution, restoration, and film grain have focused checkpoint evidence.
-- [~] Retained references, CDF snapshots, segmentation maps, global motion, temporal motion fields, and dependent-frame lifecycle exist locally and require current-tree re-verification.
-- [~] All-intra and dependent-frame profile fixtures exist for 8, 10, and 12-bit monochrome, 4:2:0, 4:2:2, and 4:4:4 paths.
+- [x] Retained references, CDF snapshots, segmentation maps, global motion, temporal motion fields, and dependent-frame lifecycle have been re-audited and verified against current libaom `main`.
+- [~] All-intra and dependent-frame profile fixtures exist for 8, 10, and 12-bit monochrome, 4:2:0, 4:2:2, and 4:4:4 paths. Current item.
 - [ ] Re-run the exact current-tree native-plane matrix through the production decoder.
 - [ ] Re-run the exact current-tree presentation matrix through ImageSharp's established comparison API.
 - [ ] Verify malformed/truncated data, frame IDs, reference slots, tile bounds, allocation limits, cancellation, and failure unwinding.
@@ -626,12 +626,12 @@ Verified partition, mode, segmentation, quantization, and transform checkpoint e
   Each transform resets and clears only its active padded geometry, so no transform creates an allocation.
   Allocation tracking over all eight minimum- and maximum-quantizer frames proves exactly one coefficient
   scratch allocation per frame and exactly-once return after decoder disposal.
-- [x] Palette index maps are allocator-backed frame surfaces addressed row by row through `Buffer2DRegion`.
-  The wavefront context, stable neighbor ordering, right/bottom padding, transform offsets, and prediction
-  were audited against current libaom `av1/decoder/detokenize.c`, `av1/common/entropymode.c`,
-  `av1/decoder/decodeframe.c`, and `av1/common/reconintra.c`. A 1 KiB constrained allocator forces both
-  luma and chroma maps across multiple memory groups without copies or per-block allocations and proves
-  exactly-once disposal.
+- [x] Palette index maps use two allocator-backed 128x128 decoder-session scratch buffers, one for luma and
+  one for chroma. Each parsed superblock is reconstructed before either buffer is reused, and each block
+  clears only its transient `Buffer2DRegion` view after prediction. The fixed 32 KiB session cost replaces
+  the former two full-frame maps without copies or per-block allocations. A 1 KiB constrained allocator
+  splits both buffers across memory groups. The four-case palette set passes on net10.0 and net11.0 with
+  exact native and presentation output, truncated-entropy rejection, and balanced exactly-once disposal.
 - [x] `Av1BlockModeInfo` is value storage, removing the managed object allocation formerly created for every
   decoded coding block. Explicit `ModeInfoIndex` values preserve libaom's mode-info identity semantics at
   prediction-unit loop-filter edges, and the frame map now uses integer offsets so more than 65,535 decoded
@@ -649,6 +649,39 @@ Verified partition, mode, segmentation, quantization, and transform checkpoint e
 - [x] The exact final AV1 namespace passes 8,732 of 8,732 cases on net10.0 and 8,732 of 8,732 cases on
   net11.0, with zero failures or skips. Release source builds pass for net10.0 and net11.0 with zero warnings
   and zero errors. Roslynk reports zero compiler errors, and scoped analyzer verification reports no changes.
+- [x] The completed checkpoint was committed as `57a3f6668e39d0934e7b6b8d37a3dc2a5adc88f0` with author
+  and committer `James Jackson-South <james_south@hotmail.com>`.
+
+Verified retained-frame lifecycle checkpoint evidence on 2026-08-31:
+
+- [x] Audited primary-reference entropy selection, independent per-tile CDF starts, context-update-tile
+  publication, segmentation-map inheritance, reference-map refresh, and show-existing key-frame reset
+  against current libaom `av1/decoder/decodeframe.c`, `av1/decoder/decodemv.c`,
+  `av1/decoder/decoder.c`, and `av1/common/entropymode.c`.
+- [x] Audited retained motion-vector cells, reference-side classification, projection source ordering,
+  projection limits, and reference-frame publication against `av1_copy_frame_mvs`,
+  `av1_calculate_ref_frame_side`, `motion_field_projection`, and `av1_setup_motion_field` in current
+  libaom. Same-role primary-reference global-motion inheritance remains covered by the exact current-main
+  global-warp fixture. The observed clean `HEAD` and `origin/main` revision was
+  `441c439b9916474cac15d2822af47a9ad70674a8`; this is verification evidence, not a pin.
+- [x] Current official libaom decoded the retained `cdfupdate`, `mfmv`, `svc-L2T1`, `svc-L1T2`, and
+  `svc-L2T2` streams with one thread, row threading disabled, and eight-bit output depth. Their generated
+  Y4M files match the retained references byte for byte at SHA-256
+  `4FBFF73FF0DE2D9084DAE557D1D4BD677B0486516525BF4D327D2D795D5A7779`,
+  `F7DB607694818C19E62FD9A27F53E1A3E2D00B72C39C0430C1B26399CC76777D`,
+  `7A427631ECBF144F435AA4612F1201415FB1A9BCF9A67BA010AEF830B0C3AB81`,
+  `4012DE2D4AFD095E7BB68EAE18B50B0674781BB4971CECABC0E5471E63373ED3`, and
+  `1ABB981CFF76BA9557DA437B258D8A95FCA755DED8E3949D857E8388AB1D6AE3`.
+- [x] Existing allocation-tracking tests exercise initialization, retained-slot aliases, allocation-failure
+  unwinding, presentation ownership, decoder-result ownership, repeated disposal, and final exactly-once
+  return of reference frames, frame-owned motion fields, entropy snapshots, and segmentation maps.
+- [x] The focused Release checkpoint set passes 54 of 54 cases on net10.0 and 54 of 54 cases on net11.0,
+  with zero failures or skips. It includes exact native CDF-update, motion-field, spatial-layer,
+  temporal-layer, spatial-temporal-layer, progressive dependent-frame, and global-warp production paths,
+  plus constrained allocator coverage.
+- [x] Release source builds pass for net10.0 and net11.0 with zero warnings and zero errors. Roslynk
+  reports zero compiler errors, scoped analyzer verification reports no changes, `git diff --check`
+  passes, and `.gitattributes` is unchanged.
 
 Decoder exit gate:
 

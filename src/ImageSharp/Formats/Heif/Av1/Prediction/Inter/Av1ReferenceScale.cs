@@ -79,7 +79,7 @@ internal readonly struct Av1ReferenceScale
     public int ScaleVertical(int value) => Scale(value, this.VerticalScale);
 
     /// <summary>
-    /// Applies libaom's signed fixed-point rounding without relying on implementation-defined negative shifts.
+    /// Applies the reference decoder's signed fixed-point rounding without relying on implementation-defined negative shifts.
     /// </summary>
     private static int Scale(int value, int scale)
     {

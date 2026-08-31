@@ -283,7 +283,7 @@ internal static class Av1SymbolContextHelper
         int topClass = Math.Min(top, 4);
         int leftClass = Math.Min(left, 4);
 
-        // AV1 groups each edge into zero, low, or high coefficient-level classes. Retaining libaom's complete table
+        // AV1 groups each edge into zero, low, or high coefficient-level classes. Retaining the reference decoder's complete table
         // lets the reader and writer share one compile-time mapping without an encoder-side jagged-array allocation.
         return TransformBlockSkipContexts[(topClass * 5) + leftClass];
     }
@@ -550,7 +550,7 @@ internal static class Av1SymbolContextHelper
     /// <returns>The transform type associated with the selected prediction mode.</returns>
     public static Av1TransformType ConvertIntraModeToTransformType(Av1BlockModeInfo modeInfo, Av1PlaneType planeType)
     {
-        // libaom's get_uv_mode() is the explicit boundary between the distinct UV and luma prediction domains. CfL maps
+        // the reference decoder's get_uv_mode() is the explicit boundary between the distinct UV and luma prediction domains. CfL maps
         // to DC because the chroma AC contribution is applied to a DC predictor before coefficient reconstruction.
         Av1PredictionMode mode = planeType == Av1PlaneType.Y ? modeInfo.YMode : modeInfo.UvMode.ToLumaMode();
 
@@ -723,7 +723,7 @@ internal static class Av1SymbolContextHelper
         }
 
         // A single intra neighbor uses context two. A single inter neighbor and a block with no neighbors both use
-        // context zero, matching the unavailable-neighbor behavior in libaom's av1_get_intra_inter_context.
+        // context zero, matching the unavailable-neighbor behavior in the reference decoder's av1_get_intra_inter_context.
         if (above is not null)
         {
             return above.Value.ReferenceFrames[0] <= Av1ReferenceFrameType.Intra ? 2 : 0;
@@ -745,7 +745,7 @@ internal static class Av1SymbolContextHelper
     /// <returns>The context in the inclusive range zero through four.</returns>
     public static int GetReferenceModeContext(Av1BlockModeInfo? above, Av1BlockModeInfo? left)
     {
-        // Libaom first classifies whether each neighbor uses a second inter reference. Single neighbors then contribute
+        // The reference decoder first classifies whether each neighbor uses a second inter reference. Single neighbors then contribute
         // their forward/backward direction, while intra neighbors take the same branch as a non-forward reference.
         if (above is not null && left is not null)
         {
@@ -906,7 +906,7 @@ internal static class Av1SymbolContextHelper
             return context + leftFilter;
         }
 
-        // The fourth neighbor state is not a selectable Bilinear filter. It is the value libaom uses when a neighbor
+        // The fourth neighbor state is not a selectable Bilinear filter. It is the value the reference decoder uses when a neighbor
         // does not share the current primary reference, and when two contributing neighbors selected different filters.
         if (leftFilter == SwitchableInterpolationFilterCount)
         {
@@ -995,7 +995,7 @@ internal static class Av1SymbolContextHelper
     /// <param name="referenceCounts">The eight-entry reference-count destination indexed by <see cref="Av1ReferenceFrameType"/>.</param>
     public static void CollectNeighborReferenceCounts(Av1BlockModeInfo? above, Av1BlockModeInfo? left, Span<byte> referenceCounts)
     {
-        // The caller reuses fixed inline storage across blocks. Clearing all eight entries matches libaom's
+        // The caller reuses fixed inline storage across blocks. Clearing all eight entries matches the reference decoder's
         // av1_collect_neighbors_ref_counts and prevents an unavailable neighbor from retaining an earlier block's vote.
         referenceCounts.Clear();
 
@@ -1265,7 +1265,7 @@ internal static class Av1SymbolContextHelper
 
         referenceCounts[(int)referenceFrames[0]]++;
 
-        // A current block may use one reference, but the conditioning neighbors may be compound blocks. Libaom counts
+        // A current block may use one reference, but the conditioning neighbors may be compound blocks. The reference decoder counts
         // both labels so later single-reference decisions remain bit-exact when compound support is enabled.
         if (referenceFrames[1] > Av1ReferenceFrameType.Intra)
         {

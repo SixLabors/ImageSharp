@@ -24,7 +24,7 @@ public class Av1MotionModeInfoTests
     /// Verifies that an extended 8x32 rectangle omits inter-intra syntax and reads the following interpolation filter.
     /// </summary>
     [Fact]
-    public void ReadInterFrameModeInfoOmitsInterIntraFlagForExtendedRectangle()
+    public void OmitsInterIntraForExtendedRectangle()
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
         sequenceHeader.EnableInterIntraCompound = true;
@@ -66,7 +66,7 @@ public class Av1MotionModeInfoTests
     [InlineData(true, true, (int)Av1MotionMode.SimpleTranslation)]
     [InlineData(true, false, (int)Av1MotionMode.Obmc)]
     [InlineData(true, true, (int)Av1MotionMode.Obmc)]
-    public void ReadInterFrameModeInfoContinuesFromFalseInterIntraThroughMotionModeIntoInterpolation(
+    public void ContinuesFromInterIntraToInterpolation(
         bool isMotionModeSwitchable,
         bool allowWarpedMotion,
         int selectedMotionModeValue)
@@ -158,7 +158,7 @@ public class Av1MotionModeInfoTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    public void ReadInterFrameModeInfoReadsSelectedInterIntraBeforeInterpolation(bool useWedge)
+    public void ReadsInterIntraBeforeInterpolation(bool useWedge)
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
         sequenceHeader.EnableInterIntraCompound = true;

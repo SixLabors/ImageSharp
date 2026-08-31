@@ -54,7 +54,7 @@ internal class ObuSkipModeParameters
         int nearestBackwardReferenceIndex = -1;
 
         // The seven entries are canonical roles, while each value selects one physical reference-map slot. Compare
-        // the selected slot's order hint so duplicate roles retain the same deterministic ordering as libaom.
+        // the selected slot's order hint so duplicate roles retain the same deterministic ordering as the reference decoder.
         for (int referenceIndex = 0; referenceIndex < Av1Constants.ReferencesPerFrame; referenceIndex++)
         {
             uint referenceOrderHint = referenceOrderHints[(int)referenceFrameIndices[referenceIndex]];

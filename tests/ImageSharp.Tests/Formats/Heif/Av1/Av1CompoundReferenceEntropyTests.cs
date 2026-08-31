@@ -10,16 +10,16 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 /// <summary>
-/// Verifies AV1 compound-reference selection and compound inter-mode entropy against current official libaom main.
+/// Verifies AV1 compound-reference selection and compound inter-mode entropy against the current AV1 reference.
 /// </summary>
 [Trait("Format", "Avif")]
 public class Av1CompoundReferenceEntropyTests
 {
     /// <summary>
-    /// Verifies every binary compound-reference default against libaom's forward Q15 tables.
+    /// Verifies every binary compound-reference default against the reference decoder's forward Q15 tables.
     /// </summary>
     [Fact]
-    public void CompoundReferenceDefaultsMatchLibaom()
+    public void CompoundReferenceDefaultsMatchReference()
     {
         AssertBinaryDefaults(
             [1198, 2070, 9166, 7499, 22475],
@@ -51,10 +51,10 @@ public class Av1CompoundReferenceEntropyTests
     }
 
     /// <summary>
-    /// Verifies all eight compound inter-mode defaults against libaom's forward Q15 tables.
+    /// Verifies all eight compound inter-mode defaults against the reference decoder's forward Q15 tables.
     /// </summary>
     [Fact]
-    public void InterCompoundModeDefaultsMatchLibaom()
+    public void InterCompoundModeDefaultsMatchReference()
     {
         uint[][] expected =
         [
@@ -151,7 +151,7 @@ public class Av1CompoundReferenceEntropyTests
     /// Verifies the compound-reference type context across intra, single, bidirectional, and unidirectional neighbors.
     /// </summary>
     [Fact]
-    public void CompoundReferenceTypeContextMatchesLibaom()
+    public void CompoundReferenceTypeContextMatchesReference()
     {
         Av1BlockModeInfo intra = CreateModeInfo(Av1ReferenceFrameType.Intra, Av1ReferenceFrameType.None);
         Av1BlockModeInfo singleForward = CreateModeInfo(Av1ReferenceFrameType.Last, Av1ReferenceFrameType.None);

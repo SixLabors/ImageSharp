@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1InterFrameIntraEntropyTests
 {
     /// <summary>
-    /// Gets libaom's four forward Q15 luma-mode CDF rows in block-size-group order.
+    /// Gets the reference decoder's four forward Q15 luma-mode CDF rows in block-size-group order.
     /// </summary>
     private static ReadOnlySpan<ushort> FrameYModeForwardThresholds =>
     [
@@ -28,10 +28,10 @@ public class Av1InterFrameIntraEntropyTests
     ];
 
     /// <summary>
-    /// Verifies the four normative intra/inter distributions against libaom's forward Q15 defaults.
+    /// Verifies the four normative intra/inter distributions against the reference decoder's forward Q15 defaults.
     /// </summary>
     [Fact]
-    public void IntraInterDefaultsMatchLibaom()
+    public void IntraInterDefaultsMatchReference()
     {
         uint[] forwardThresholds = [806, 16662, 20186, 26538];
         Av1Distribution[] distributions = Av1DefaultDistributions.IntraInter;
@@ -39,7 +39,7 @@ public class Av1InterFrameIntraEntropyTests
         Assert.Equal(forwardThresholds.Length, distributions.Length);
         for (int context = 0; context < distributions.Length; context++)
         {
-            // Av1Distribution stores inverse cumulative thresholds, so compare each libaom default after the same
+            // Av1Distribution stores inverse cumulative thresholds, so compare each forward default after the same
             // forward-to-inverse conversion performed by its constructor.
             Assert.Equal((uint)Av1Distribution.ProbabilityTop - forwardThresholds[context], distributions[context][0]);
             Assert.Equal(2, distributions[context].NumberOfSymbols);
@@ -47,10 +47,10 @@ public class Av1InterFrameIntraEntropyTests
     }
 
     /// <summary>
-    /// Verifies every inter-frame intra luma-mode threshold against libaom's forward Q15 defaults.
+    /// Verifies every inter-frame intra luma-mode threshold against the reference decoder's forward Q15 defaults.
     /// </summary>
     [Fact]
-    public void FrameYModeDefaultsMatchLibaom()
+    public void FrameYModeDefaultsMatchReference()
     {
         const int thresholdsPerGroup = 12;
         ReadOnlySpan<ushort> forwardThresholds = FrameYModeForwardThresholds;
@@ -229,7 +229,7 @@ public class Av1InterFrameIntraEntropyTests
     /// <returns>Every decoded block size paired with its luma-mode size group.</returns>
     public static TheoryData<int, int> GetBlockSizeGroups()
     {
-        // This is size_group_lookup from AV1 section 9.3 and libaom common_data.h. Keeping expected values explicit
+        // This is size_group_lookup from AV1 section 9.3 and the normative lookup table. Keeping expected values explicit
         // ensures that the test does not reproduce the production formula it is intended to verify.
         int[] sizeGroups = [0, 0, 0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 0, 0, 1, 1, 2, 2];
         TheoryData<int, int> result = [];

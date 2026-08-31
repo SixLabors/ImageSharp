@@ -148,7 +148,7 @@ internal static class Av1BlockSizeExtensions
     public static int GetSizeGroup(this Av1BlockSize blockSize)
     {
         // AV1 section 9.3 groups a block by its smaller dimension in 4x4 units and caps that logarithm at three.
-        // Deriving the value from the existing geometry tables exactly matches libaom's size_group_lookup table.
+        // Deriving the value from the existing geometry tables exactly matches the reference decoder's size_group_lookup table.
         return Math.Min(3, Math.Min(blockSize.Get4x4WidthLog2(), blockSize.Get4x4HeightLog2()));
     }
 

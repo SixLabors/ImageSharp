@@ -207,7 +207,7 @@ public class Av1ReferenceFrameStoreTests
     /// Verifies motion-field ownership across frame initialization, reference aliases, shown output, and final disposal.
     /// </summary>
     [Fact]
-    public void MotionFieldsFollowReferenceAliasesAndPresentationOwnership()
+    public void MotionFieldsFollowAliasesAndPresentationOwnership()
     {
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();

@@ -12,7 +12,7 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 /// <summary>
-/// Verifies AV1 temporal segment-map prediction against libaom's decoder rules.
+/// Verifies AV1 temporal segment-map prediction against independent decoder results.
 /// </summary>
 [Trait("Format", "Avif")]
 public class Av1TemporalSegmentationTests
@@ -189,7 +189,7 @@ public class Av1TemporalSegmentationTests
     /// Verifies that a skipped inter block uses the spatial predictor without reading a temporal-prediction symbol.
     /// </summary>
     [Fact]
-    public void SkippedInterBlockClearsTemporalPredictionAndUsesSpatialSegment()
+    public void SkippedInterUsesSpatialSegment()
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader(64, 64);
         ObuFrameHeader frameHeader = CreateFrameHeader(16, 16, segmentationUpdateMap: 1, segmentationTemporalUpdate: 1);

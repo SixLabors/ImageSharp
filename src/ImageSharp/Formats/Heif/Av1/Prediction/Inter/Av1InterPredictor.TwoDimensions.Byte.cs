@@ -473,7 +473,7 @@ internal static partial class Av1InterPredictor
         int roundOffset = (1 << (offsetBits - round1)) + (1 << (offsetBits - round1 - 1));
 
         // The biased first pass keeps every intermediate nonnegative and representable by a signed 16-bit lane.
-        // Removing both bias terms after the vertical Q7 filter reproduces libaom's single-reference rounding exactly.
+        // Removing both bias terms after the vertical Q7 filter reproduces the reference decoder's single-reference rounding exactly.
         for (int row = 0; row < height; row++)
         {
             ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);

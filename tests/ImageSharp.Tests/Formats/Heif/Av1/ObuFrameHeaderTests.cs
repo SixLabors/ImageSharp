@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class ObuFrameHeaderTests
 {
     /// <summary>
-    /// Identifies one current-libaom sequence-header conformance condition used by the malformed-input theory.
+    /// Identifies one reference sequence-header conformance condition used by the malformed-input theory.
     /// </summary>
     public enum InvalidSequenceHeaderCase
     {
@@ -258,7 +258,7 @@ public class ObuFrameHeaderTests
     }
 
     /// <summary>
-    /// Verifies current-libaom sequence-header conformance failures through the complete bounded OBU parser.
+    /// Verifies reference sequence-header conformance failures through the complete bounded OBU parser.
     /// </summary>
     /// <param name="invalidCase">The single invalid syntax condition encoded into an otherwise valid sequence header.</param>
     [Theory]
@@ -270,7 +270,7 @@ public class ObuFrameHeaderTests
     [InlineData(InvalidSequenceHeaderCase.OverflowingTicksPerPicture)]
     [InlineData(InvalidSequenceHeaderCase.MainProfileSrgbIdentity)]
     [InlineData(InvalidSequenceHeaderCase.SubsampledIdentityMatrix)]
-    public void ReadSequenceHeaderRejectsCurrentLibaomConformanceFailure(InvalidSequenceHeaderCase invalidCase)
+    public void ReadSequenceHeaderRejectsConformanceFailure(InvalidSequenceHeaderCase invalidCase)
     {
         byte[] bitStream = CreateNonReducedSequenceHeaderObu(invalidCase);
 
@@ -313,10 +313,10 @@ public class ObuFrameHeaderTests
     }
 
     /// <summary>
-    /// Verifies that metadata-type LEB128 values obey current libaom's shared unsigned 32-bit limit.
+    /// Verifies that metadata-type LEB128 values obey the reference decoder's shared unsigned 32-bit limit.
     /// </summary>
     [Fact]
-    public void ValidateItemDataRejectsMetadataTypeAboveCurrentLibaomLimit()
+    public void ValidateItemDataRejectsMetadataTypeAboveLimit()
     {
         byte[] bitStream =
         [
@@ -425,7 +425,7 @@ public class ObuFrameHeaderTests
     /// Verifies that the reduced sequence syntax cannot be used without declaring a still picture.
     /// </summary>
     [Fact]
-    public void ReadReducedHeaderWithoutStillPictureThrowsInvalidImageContent()
+    public void ReducedHeaderWithoutStillPictureThrows()
     {
         const int sequenceHeaderPayloadOffset = 2;
         byte[] bitStream = [.. DefaultSequenceHeaderBitStream];
@@ -445,7 +445,7 @@ public class ObuFrameHeaderTests
     [InlineData(0b1000_0000)] // show_existing_frame = 1
     [InlineData(0b0101_0000)] // frame_type = INTRA_ONLY_FRAME, show_frame = 1
     [InlineData(0b0000_0000)] // frame_type = KEY_FRAME, show_frame = 0
-    public void ReadInvalidStillPictureFramePrefixThrowsInvalidImageContent(int invalidFramePrefix)
+    public void InvalidStillPicturePrefixThrows(int invalidFramePrefix)
     {
         ObuSequenceHeader sequenceHeader = GetDefaultSequenceHeader();
         sequenceHeader.IsReducedStillPictureHeader = false;
@@ -513,7 +513,7 @@ public class ObuFrameHeaderTests
     }
 
     /// <summary>
-    /// Verifies current libaom's doubled minimum inner-tile width for a super-resolution-scaled frame.
+    /// Verifies the reference decoder's doubled minimum inner-tile width for a super-resolution-scaled frame.
     /// </summary>
     [Fact]
     public void ReadTileInfoRejectsNarrowSuperResolutionInnerTile()
@@ -693,7 +693,7 @@ public class ObuFrameHeaderTests
             writer.WriteBoolean(overflowingTicksPerPicture);
             if (overflowingTicksPerPicture)
             {
-                // Thirty-two leading zeros are the UVLC sentinel which current libaom rejects as UINT32_MAX.
+                // Thirty-two leading zeros are the UVLC sentinel which the reference decoder rejects as UINT32_MAX.
                 writer.WriteLiteral(0U, 32);
             }
 

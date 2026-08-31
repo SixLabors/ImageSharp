@@ -264,7 +264,7 @@ public class Av1YuvConverterTests
     /// available intrinsic width and the scalar fallback.
     /// </summary>
     [Fact]
-    public void ScaleSelectedSpatialLayerMatchesPinnedLibyuvAcrossIntrinsicWidths()
+    public void ScaleSelectedSpatialLayerMatchesReference()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateSelectedSpatialLayerScaling,
             AlphaConfigurations);
@@ -749,7 +749,7 @@ public class Av1YuvConverterTests
     [InlineData(Av1BitDepth.EightBit, ObuMatrixCoefficients.YCgCoRo, 31, 65, 255)]
     [InlineData(Av1BitDepth.TenBit, ObuMatrixCoefficients.YCgCoRo, 127, 257, 1023)]
     [InlineData(Av1BitDepth.TwelveBit, ObuMatrixCoefficients.YCgCoRo, 511, 1025, 4095)]
-    public void ReversibleYCgCoMatchesKnownPureRedValuesInBothDirections(
+    public void ReversibleYCgCoMatchesPureRed(
         int bitDepth,
         int matrixCoefficients,
         int expectedY,
@@ -1028,7 +1028,7 @@ public class Av1YuvConverterTests
     /// without hardware intrinsics.
     /// </summary>
     [Fact]
-    public void ComposeAlphaMapsEightBitLumaExactlyAcrossIntrinsicWidths()
+    public void ComposeAlphaMapsEightBitLumaExactly()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateEightBitAlphaComposition,
             AlphaConfigurations);
@@ -1038,7 +1038,7 @@ public class Av1YuvConverterTests
     /// with and without hardware intrinsics.
     /// </summary>
     [Fact]
-    public void ComposeAlphaScalesHighBitDepthLumaAcrossIntrinsicWidths()
+    public void ComposeAlphaScalesHighBitDepthLuma()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateHighBitDepthAlphaScaling,
             AlphaConfigurations);
@@ -1057,7 +1057,7 @@ public class Av1YuvConverterTests
     /// Verifies exact limited-range endpoints and out-of-range clamping for every supported AV1 alpha bit depth.
     /// </summary>
     [Fact]
-    public void ComposeAlphaExpandsLimitedRangeAcrossIntrinsicWidths()
+    public void ComposeAlphaExpandsLimitedRange()
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(
             ValidateLimitedRangeAlphaComposition,
             AlphaConfigurations);

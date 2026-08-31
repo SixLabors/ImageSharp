@@ -30,7 +30,7 @@ internal static class Av1ChromaPredictionModeExtensions
             Av1ChromaPredictionMode.SmoothHorizontal => Av1PredictionMode.SmoothHorizontal,
             Av1ChromaPredictionMode.Paeth => Av1PredictionMode.Paeth,
 
-            // Chroma-from-luma adds its AC contribution to a DC prediction. libaom's get_uv_mode() therefore maps it
+            // Chroma-from-luma adds its AC contribution to a DC prediction. the reference decoder's get_uv_mode() therefore maps it
             // to DC when shared transform and neighbor metadata require the corresponding luma predictor.
             Av1ChromaPredictionMode.ChromaFromLuma => Av1PredictionMode.DC,
             _ => Av1PredictionMode.IntraInvalid,

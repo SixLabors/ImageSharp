@@ -313,6 +313,11 @@ public class Av1ReconstructionConformanceTests
     private const int FilmGrainCoverage = 1 << 3;
 
     /// <summary>
+    /// The coverage bit representing a validated inter-frame identifier transition.
+    /// </summary>
+    private const int FrameIdentifierCoverage = 1 << 4;
+
+    /// <summary>
     /// The bit mask containing every intra prediction mode.
     /// </summary>
     private const int RequiredIntraModeCoverage = (1 << (int)Av1PredictionMode.IntraModes) - 1;
@@ -1392,7 +1397,7 @@ public class Av1ReconstructionConformanceTests
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
 
-        int coverage = ValidateOfficialCompactSequence(
+        int coverage = ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialMotionFieldSequence,
             TestImages.Heif.Av1OfficialMotionFieldSequenceNativeReference,
@@ -1414,7 +1419,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     private static void ValidateOfficialCdfUpdateFixture()
     {
-        int coverage = ValidateOfficialCompactSequence(
+        int coverage = ValidateCompactSequence(
             Configuration.Default,
             TestImages.Heif.Av1OfficialCdfUpdateSequence,
             TestImages.Heif.Av1OfficialCdfUpdateSequenceNativeReference,
@@ -1428,7 +1433,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     private static void ValidateOfficialMotionFieldFixture()
     {
-        int coverage = ValidateOfficialCompactSequence(
+        int coverage = ValidateCompactSequence(
             Configuration.Default,
             TestImages.Heif.Av1OfficialMotionFieldSequence,
             TestImages.Heif.Av1OfficialMotionFieldSequenceNativeReference,
@@ -1459,7 +1464,7 @@ public class Av1ReconstructionConformanceTests
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
 
-        ValidateOfficialCompactSequence(
+        ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialTwoSpatialLayerSequence,
             TestImages.Heif.Av1OfficialTwoSpatialLayerSequenceNativeReference,
@@ -1479,7 +1484,7 @@ public class Av1ReconstructionConformanceTests
     /// Decodes the default operating point of the official two-spatial-layer sequence.
     /// </summary>
     private static void ValidateOfficialTwoSpatialLayerFixture()
-        => ValidateOfficialCompactSequence(
+        => ValidateCompactSequence(
             Configuration.Default,
             TestImages.Heif.Av1OfficialTwoSpatialLayerSequence,
             TestImages.Heif.Av1OfficialTwoSpatialLayerSequenceNativeReference,
@@ -1509,7 +1514,7 @@ public class Av1ReconstructionConformanceTests
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
 
-        ValidateOfficialCompactSequence(
+        ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialTwoTemporalLayerSequence,
             TestImages.Heif.Av1OfficialTwoTemporalLayerSequenceNativeReference,
@@ -1529,7 +1534,7 @@ public class Av1ReconstructionConformanceTests
     /// Decodes the default operating point of the official two-temporal-layer sequence.
     /// </summary>
     private static void ValidateOfficialTwoTemporalLayerFixture()
-        => ValidateOfficialCompactSequence(
+        => ValidateCompactSequence(
             Configuration.Default,
             TestImages.Heif.Av1OfficialTwoTemporalLayerSequence,
             TestImages.Heif.Av1OfficialTwoTemporalLayerSequenceNativeReference,
@@ -1559,7 +1564,7 @@ public class Av1ReconstructionConformanceTests
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
 
-        ValidateOfficialCompactSequence(
+        ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialSpatialTemporalLayerSequence,
             TestImages.Heif.Av1OfficialSpatialTemporalLayerSequenceNativeReference,
@@ -1579,7 +1584,7 @@ public class Av1ReconstructionConformanceTests
     /// Decodes the default operating point of the official spatial-and-temporal-layer sequence.
     /// </summary>
     private static void ValidateOfficialSpatialTemporalLayerFixture()
-        => ValidateOfficialCompactSequence(
+        => ValidateCompactSequence(
             Configuration.Default,
             TestImages.Heif.Av1OfficialSpatialTemporalLayerSequence,
             TestImages.Heif.Av1OfficialSpatialTemporalLayerSequenceNativeReference,
@@ -1609,7 +1614,7 @@ public class Av1ReconstructionConformanceTests
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
 
-        int coverage = ValidateOfficialCompactSequence(
+        int coverage = ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialFilmGrainSequence,
             TestImages.Heif.Av1OfficialFilmGrainSequenceNativeReference,
@@ -1629,7 +1634,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     private static void ValidateOfficialFilmGrainFixture()
     {
-        int coverage = ValidateOfficialCompactSequence(
+        int coverage = ValidateCompactSequence(
             Configuration.Default,
             TestImages.Heif.Av1OfficialFilmGrainSequence,
             TestImages.Heif.Av1OfficialFilmGrainSequenceNativeReference,
@@ -1652,7 +1657,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     private static void ValidateOfficialTenBitFilmGrainFixture()
     {
-        int coverage = ValidateOfficialCompactSequence(
+        int coverage = ValidateCompactSequence(
             Configuration.Default,
             TestImages.Heif.Av1OfficialTenBitFilmGrainSequence,
             TestImages.Heif.Av1OfficialTenBitFilmGrainSequenceNativeReference,
@@ -1687,7 +1692,7 @@ public class Av1ReconstructionConformanceTests
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
 
-        ValidateOfficialCompactSequence(
+        ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialMonochromeSequence,
             TestImages.Heif.Av1OfficialMonochromeSequenceNativeReference,
@@ -1708,7 +1713,7 @@ public class Av1ReconstructionConformanceTests
     /// Decodes the official eight-bit monochrome sequence.
     /// </summary>
     private static void ValidateOfficialMonochromeFixture()
-        => ValidateOfficialCompactSequence(
+        => ValidateCompactSequence(
             Configuration.Default,
             TestImages.Heif.Av1OfficialMonochromeSequence,
             TestImages.Heif.Av1OfficialMonochromeSequenceNativeReference,
@@ -1730,7 +1735,7 @@ public class Av1ReconstructionConformanceTests
     /// Decodes the official ten-bit monochrome sequence.
     /// </summary>
     private static void ValidateOfficialTenBitMonochromeFixture()
-        => ValidateOfficialCompactSequence(
+        => ValidateCompactSequence(
             Configuration.Default,
             TestImages.Heif.Av1OfficialTenBitMonochromeSequence,
             TestImages.Heif.Av1OfficialTenBitMonochromeSequenceNativeReference,
@@ -1752,7 +1757,7 @@ public class Av1ReconstructionConformanceTests
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
 
-        int filmGrainCoverage = ValidateOfficialCompactSequence(
+        int filmGrainCoverage = ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialTenBitFilmGrainSequence,
             TestImages.Heif.Av1OfficialTenBitFilmGrainSequenceNativeReference,
@@ -1762,7 +1767,7 @@ public class Av1ReconstructionConformanceTests
             Av1ColorFormat.Yuv420,
             Av1BitDepth.TenBit);
 
-        ValidateOfficialCompactSequence(
+        ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialTenBitMonochromeSequence,
             TestImages.Heif.Av1OfficialTenBitMonochromeSequenceNativeReference,
@@ -1849,7 +1854,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     private static void ValidateOfficialEightBitQuantizerBoundaryFixturesWithConfiguration(Configuration configuration)
     {
-        ValidateOfficialCompactSequence(
+        ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialEightBitMinimumQuantizerSequence,
             TestImages.Heif.Av1OfficialEightBitMinimumQuantizerSequenceNativeReference,
@@ -1857,7 +1862,7 @@ public class Av1ReconstructionConformanceTests
             OfficialEightBitQuantizerFixtureWidth,
             OfficialEightBitQuantizerFixtureHeight);
 
-        ValidateOfficialCompactSequence(
+        ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialEightBitMaximumQuantizerSequence,
             TestImages.Heif.Av1OfficialEightBitMaximumQuantizerSequenceNativeReference,
@@ -1871,7 +1876,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     private static void ValidateOfficialTenBitQuantizerBoundaryFixturesWithConfiguration(Configuration configuration)
     {
-        ValidateOfficialCompactSequence(
+        ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialTenBitMinimumQuantizerSequence,
             TestImages.Heif.Av1OfficialTenBitMinimumQuantizerSequenceNativeReference,
@@ -1882,7 +1887,7 @@ public class Av1ReconstructionConformanceTests
             Av1BitDepth.TenBit,
             "60:1");
 
-        ValidateOfficialCompactSequence(
+        ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialTenBitMaximumQuantizerSequence,
             TestImages.Heif.Av1OfficialTenBitMaximumQuantizerSequenceNativeReference,
@@ -1936,7 +1941,7 @@ public class Av1ReconstructionConformanceTests
     /// </summary>
     private static void ValidateOfficialFrameSizeCornerFixturesWithConfiguration(Configuration configuration)
     {
-        ValidateOfficialCompactSequence(
+        ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialMinimumFrameSizeSequence,
             TestImages.Heif.Av1OfficialMinimumFrameSizeSequenceNativeReference,
@@ -1944,7 +1949,7 @@ public class Av1ReconstructionConformanceTests
             OfficialFrameSizeFixtureMinimumDimension,
             OfficialFrameSizeFixtureMinimumDimension);
 
-        ValidateOfficialCompactSequence(
+        ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialMinimumWidthMaximumHeightSequence,
             TestImages.Heif.Av1OfficialMinimumWidthMaximumHeightSequenceNativeReference,
@@ -1952,7 +1957,7 @@ public class Av1ReconstructionConformanceTests
             OfficialFrameSizeFixtureMinimumDimension,
             OfficialFrameSizeFixtureMaximumDimension);
 
-        ValidateOfficialCompactSequence(
+        ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialMaximumWidthMinimumHeightSequence,
             TestImages.Heif.Av1OfficialMaximumWidthMinimumHeightSequenceNativeReference,
@@ -1960,7 +1965,7 @@ public class Av1ReconstructionConformanceTests
             OfficialFrameSizeFixtureMaximumDimension,
             OfficialFrameSizeFixtureMinimumDimension);
 
-        ValidateOfficialCompactSequence(
+        ValidateCompactSequence(
             configuration,
             TestImages.Heif.Av1OfficialMaximumFrameSizeSequence,
             TestImages.Heif.Av1OfficialMaximumFrameSizeSequenceNativeReference,
@@ -1970,10 +1975,35 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Decodes one compact official IVF sequence, compares every native sample, and returns its active frame-state
+    /// Verifies modulo frame identifiers across a key/inter sequence with exact native output under every dispatch.
+    /// </summary>
+    [Fact]
+    public void DecodeFrameIdentifiersMatchReference()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(
+            ValidateFrameIdentifierFixture,
+            ReconstructionConfigurations);
+
+    /// <summary>
+    /// Decodes the frame-identifier fixture and requires a validated identifier transition on its inter frame.
+    /// </summary>
+    private static void ValidateFrameIdentifierFixture()
+    {
+        int coverage = ValidateCompactSequence(
+            Configuration.Default,
+            TestImages.Heif.Av1FrameIdentifierSequence,
+            TestImages.Heif.Av1FrameIdentifierSequenceNativeReference,
+            OfficialFrameSizeFixtureFrameCount,
+            OfficialFrameSizeFixtureMinimumDimension,
+            OfficialFrameSizeFixtureMinimumDimension);
+
+        Assert.Equal(FrameIdentifierCoverage, coverage & FrameIdentifierCoverage);
+    }
+
+    /// <summary>
+    /// Decodes one compact IVF sequence, compares every native sample, and returns its active frame-state
     /// coverage mask.
     /// </summary>
-    private static int ValidateOfficialCompactSequence(
+    private static int ValidateCompactSequence(
         Configuration configuration,
         string fixturePath,
         string nativeReferencePath,
@@ -2035,6 +2065,8 @@ public class Av1ReconstructionConformanceTests
         int nativeFrameLength = nativeSampleCount * (expectedBitDepth == Av1BitDepth.EightBit ? 1 : sizeof(ushort));
 
         int coverage = 0;
+        uint previousFrameIdentifier = 0;
+        bool hasPreviousFrameIdentifier = false;
         using Av1Decoder decoder = new(configuration);
         for (int frameIndex = 0; frameIndex < expectedFrameCount; frameIndex++)
         {
@@ -2070,6 +2102,19 @@ public class Av1ReconstructionConformanceTests
             coverage |= frameHeader.DisableFrameEndUpdateCdf ? 0 : FrameEndCdfUpdateCoverage;
             coverage |= frameHeader.UseReferenceFrameMotionVectors ? ReferenceFrameMotionVectorCoverage : 0;
             coverage |= frameHeader.FilmGrainParameters.ApplyGrain ? FilmGrainCoverage : 0;
+
+            ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
+            if (sequenceHeader.IsFrameIdNumbersPresent)
+            {
+                if (hasPreviousFrameIdentifier && !frameHeader.IsIntra &&
+                    previousFrameIdentifier != frameHeader.CurrentFrameId)
+                {
+                    coverage |= FrameIdentifierCoverage;
+                }
+
+                previousFrameIdentifier = frameHeader.CurrentFrameId;
+                hasPreviousFrameIdentifier = true;
+            }
         }
 
         Assert.Equal(ivf.Length, ivfOffset);

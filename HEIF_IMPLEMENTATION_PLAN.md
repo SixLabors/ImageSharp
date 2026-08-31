@@ -82,7 +82,7 @@ Recovered task-history evidence from 2026-08-31:
 
 ### 2. Correct the single-reference inter-frame checkpoint
 
-The committed checkpoint remains valid through `57a3f6668e39d0934e7b6b8d37a3dc2a5adc88f0`. The current checkpoint replaces frame-sized palette maps with fixed decoder-session scratch, reconstructs each superblock before reusing that scratch, and passes the ownership, documentation, full AV1 test, and Release source-build gates on both target frameworks.
+The checkpoint is complete through `c4b4e4e0386328dea574a884b6fa36c360ad5a9b`. It replaces frame-sized palette maps with fixed decoder-session scratch, reconstructs each superblock before reusing that scratch, and passes the ownership, documentation, full AV1 test, and Release source-build gates on both target frameworks.
 
 - [x] Reconcile interpolation-filter syntax in `Av1TileReader` with current libaom `main`.
   - Current libaom `av1_is_interp_needed` calls `is_nontrans_global_motion`, whose loop rejects only `TRANSLATION`. Identity GLOBALMV therefore omits switchable-filter symbols.
@@ -122,6 +122,7 @@ Checkpoint gate:
 - [x] The complete AV1 namespace passes 8,732 of 8,732 tests on net10.0 and net11.0 with zero failures or skips.
 - [x] Roslynk reports zero compiler errors; scoped analyzer inspection reports no diagnostics introduced by the current changes; `git diff --check` passes.
 - [x] The completed checkpoint was committed as `54bb6cbe59bd113058854a3ee31448cf61f462ca` with author and committer `James Jackson-South <james_south@hotmail.com>`.
+- [x] The palette-memory follow-up was committed as `c4b4e4e0386328dea574a884b6fa36c360ad5a9b` with author and committer `James Jackson-South <james_south@hotmail.com>`.
 
 Verified single-reference checkpoint evidence on 2026-08-31:
 
@@ -564,14 +565,30 @@ Previously verified algorithm checkpoints remain valuable evidence, but the fina
 - [x] Intra-block copy has exact native reconstruction and feature-isolated SIMD evidence.
 - [x] Lossless inverse transform, loop filtering, CDEF, super-resolution, restoration, and film grain have focused checkpoint evidence.
 - [x] Retained references, CDF snapshots, segmentation maps, global motion, temporal motion fields, and dependent-frame lifecycle have been re-audited and verified against current libaom `main`.
-- [~] All-intra and dependent-frame profile fixtures exist for 8, 10, and 12-bit monochrome, 4:2:0, 4:2:2, and 4:4:4 paths. Current item.
-- [ ] Re-run the exact current-tree native-plane matrix through the production decoder.
-- [ ] Re-run the exact current-tree presentation matrix through ImageSharp's established comparison API.
-- [ ] Verify malformed/truncated data, frame IDs, reference slots, tile bounds, allocation limits, cancellation, and failure unwinding.
+- [x] The 12-case all-intra profile matrix covers every valid 8, 10, and 12-bit monochrome, 4:2:0, 4:2:2, and 4:4:4 combination. Dependent-frame coverage is recorded separately above.
+- [x] The exact current-tree native-plane matrix passes through the production decoder on net10.0 and net11.0. The normal-dispatch and FeatureTestRunner fallback methods pass 2 of 2 focused tests on each target.
+- [x] The exact current-tree presentation matrix passes 12 of 12 cases through ImageSharp's established reference-image API on net10.0 and net11.0.
+- [x] Verify malformed/truncated data, frame IDs, reference slots, tile bounds, allocation limits, cancellation, and failure unwinding.
 - [ ] Verify still items and bounded sequences from file, memory, non-seekable, and short-read streams.
 - [ ] Verify ICC, CICP, alpha, grids, pixel aspect ratio, clean aperture, rotation, mirroring, metadata, and every presented sequence frame.
 - [ ] Complete the public AVIF format/API review so registered capabilities match implemented behavior.
 - [ ] Remove or reject every valid in-scope AV1 syntax branch that remains silently ignored or unsupported.
+
+Verified negative-path and frame-identifier gate evidence on 2026-08-31:
+
+- [x] A two-frame lossless frame-identifier sequence was generated and decoded with the clean official
+  libaom `main` checkout at observed revision `441c439b9916474cac15d2822af47a9ad70674a8`.
+  Both decoded frames match the source Y, Cb, and Cr samples exactly.
+- [x] `DecodeFrameIdentifiersMatchReference` executes the production decoder through FeatureTestRunner,
+  compares both native frames exactly, and proves the second frame is dependent with a changed current
+  frame identifier. The current-frame, reference-delta, stale-slot, and refreshed-slot identifier logic
+  was audited against the same current `main` source.
+- [x] The focused negative-path set passes 46 of 46 cases on net10.0 and 46 of 46 on net11.0, with zero
+  failures or skips. It covers truncated palette entropy, malformed-following-OBU recovery, parser
+  lifecycle failure, overflowing and invalid tile bounds, reference-slot ownership and transfer,
+  constrained multi-group allocation, motion-field allocation failure unwinding, and frame identifiers.
+- [x] The established paused-stream cancellation suite now includes AVIF. It verifies cancellation at
+  0%, 30%, and 70% of both file and memory streams, plus pre-cancelled identification, on both targets.
 
 Verified bounded-OBU checkpoint evidence on 2026-08-31:
 

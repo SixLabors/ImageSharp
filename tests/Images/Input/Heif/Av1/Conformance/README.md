@@ -37,6 +37,7 @@ only and are not used as an AV1 implementation reference.
 | `*-film-grain-*` | Full and restricted range, monochrome, identity matrix, 8/10/12-bit synthesis, overlap, and odd frame dimensions |
 | `libaom-av1-1-b8-00-quantizer-*`, `libaom-av1-1-b10-00-quantizer-*` | Official minimum- and maximum-quantizer dependent-frame reconstruction |
 | `libaom-av1-1-b8-01-size-*` | Official frame-size matrix corner reconstruction |
+| `libaom-frame-id-196x196-8b` | Key/inter frame-identifier signaling and retained-reference validation |
 | `libaom-av1-1-b10-23`, `libaom-av1-1-b10-24` | Official ten-bit dependent-frame film grain and monochrome sequence reconstruction |
 | `libavif-progressive-draw-points-8b` | A real two-layer color item whose final frame uses single-reference inter reconstruction, plus its progressive auxiliary alpha item |
 | `libavif-webp-logo-average-compound` | A 19-frame YUV444 image sequence whose retained references reach equal-weight compound inter reconstruction |
@@ -50,6 +51,21 @@ only and are not used as an AV1 implementation reference.
 | `libavif-rotating-grid-global-warp` | Non-translational rotation/zoom GLOBALMV prediction through a two-frame dependent sequence |
 
 The corresponding tests also assert the syntax required by each family before comparing output. This prevents an inactive tool or an incorrectly substituted stream from passing solely because its final pixels happen to match.
+
+## Frame identifier fixture
+
+On 2026-08-31 current official libaom `main` at observed revision
+`441c439b9916474cac15d2822af47a9ad70674a8` encoded the two 196x196 YUV420 frames from the retained
+minimum-frame-size native reference with error resilience and frame identifiers enabled:
+
+```text
+aomenc --ivf --passes=1 --limit=2 --threads=1 --row-mt=0 --lag-in-frames=0 --auto-alt-ref=0 --error-resilient=1 --kf-min-dist=9999 --kf-max-dist=9999 --lossless=1 --cpu-used=6 -o libaom-frame-id-196x196-8b.ivf libaom-av1-1-b8-01-size-196x196-libaom.y4m
+aomdec --threads=1 --row-mt=0 --output-bit-depth=8 --all-layers --output=libaom-frame-id-196x196-8b-libaom.y4m libaom-frame-id-196x196-8b.ivf
+```
+
+The generated native reference contains both decoded frames. Every Y, Cb, and Cr sample matches the source
+frames exactly. The production test additionally requires an enabled frame-identifier sequence header and a
+validated identifier change on the dependent inter frame.
 
 ## Baseline deblocking fixtures
 
@@ -85,7 +101,7 @@ edges, and skipped prediction-unit boundaries.
 
 The `libaom-av1-1-b10-23-film-grain-50.ivf` and `libaom-av1-1-b10-24-monochrome.ivf` streams are the official files from libaom's test-data bucket. Their SHA-1 values are `2F883C7E11C21A31F79BD9C809541BE90B0C7C4A` and `03A8D002594CCC51932332002BB6F9837EF46D0F`, exactly matching the current official libaom `main` manifest. Their SHA-256 values are `C36CF5AB6A2E9E27C212C06863759B60791E3FA681A0800B5D57FD4192EF29CB` and `6A1B0729305A167F10737A5375F0570139F055BCD7916DF260B653AB2210ADC1`.
 
-The retained native references were generated from the pinned generic libaom build with:
+The retained native references were generated from the generic libaom build with:
 
 ```text
 aomdec --threads=1 --output=libaom-av1-1-b10-23-film-grain-50-libaom.y4m libaom-av1-1-b10-23-film-grain-50.ivf

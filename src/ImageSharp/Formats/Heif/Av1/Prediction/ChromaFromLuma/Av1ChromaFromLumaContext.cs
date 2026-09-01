@@ -11,12 +11,22 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 /// <summary>
 /// Accumulates subsampled luma samples and derives the zero-mean Q3 predictor surface used by AV1 chroma-from-luma prediction.
 /// </summary>
-internal partial class Av1ChromaFromLumaContext
+internal sealed partial class Av1ChromaFromLumaContext
 {
     /// <summary>
     /// The fixed row stride and maximum dimension, in chroma samples, of the luma predictor buffer.
     /// </summary>
     private const int BufferLine = 32;
+
+    /// <summary>
+    /// The number of samples in the fixed-stride chroma-from-luma workspace.
+    /// </summary>
+    public const int BufferLength = BufferLine * BufferLine;
+
+    /// <summary>
+    /// The caller-owned fixed-stride luma predictor workspace.
+    /// </summary>
+    private readonly Memory<short> q3Buffer;
 
     /// <summary>
     /// The number of initialized predictor rows currently stored in <see cref="Q3Buffer"/>.
@@ -43,16 +53,26 @@ internal partial class Av1ChromaFromLumaContext
     /// </summary>
     /// <param name="colorConfig">The AV1 color configuration that supplies chroma subsampling.</param>
     public Av1ChromaFromLumaContext(ObuColorConfig colorConfig)
+        : this(colorConfig, new short[BufferLength])
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1ChromaFromLumaContext"/> class over caller-owned workspace.
+    /// </summary>
+    /// <param name="colorConfig">The AV1 color configuration that supplies chroma subsampling.</param>
+    /// <param name="q3Buffer">The fixed-stride signed Q3 workspace retained for the context lifetime.</param>
+    public Av1ChromaFromLumaContext(ObuColorConfig colorConfig, Memory<short> q3Buffer)
     {
         this.subX = colorConfig.SubSamplingX;
         this.subY = colorConfig.SubSamplingY;
-        this.Q3Buffer = new short[BufferLine * BufferLine];
+        this.q3Buffer = q3Buffer;
     }
 
     /// <summary>
     /// Gets the fixed-stride luma predictor samples in signed Q3 fixed-point representation.
     /// </summary>
-    public short[] Q3Buffer { get; }
+    public Span<short> Q3Buffer => this.q3Buffer.Span;
 
     /// <summary>
     /// Gets a value indicating whether edge padding and mean subtraction have been applied to the current samples.
@@ -154,6 +174,7 @@ internal partial class Av1ChromaFromLumaContext
     {
         int differenceWidth = width - this.bufferWidth;
         int differenceHeight = height - this.bufferHeight;
+        Span<short> q3Buffer = this.Q3Buffer;
 
         if (differenceWidth > 0)
         {
@@ -163,8 +184,8 @@ internal partial class Av1ChromaFromLumaContext
             for (int y = 0; y < minimumHeight; y++)
             {
                 int rowOffset = y * BufferLine;
-                short lastPixel = this.Q3Buffer[rowOffset + this.bufferWidth - 1];
-                this.Q3Buffer.AsSpan(rowOffset + this.bufferWidth, differenceWidth).Fill(lastPixel);
+                short lastPixel = q3Buffer[rowOffset + this.bufferWidth - 1];
+                q3Buffer.Slice(rowOffset + this.bufferWidth, differenceWidth).Fill(lastPixel);
             }
 
             this.bufferWidth = width;
@@ -176,7 +197,7 @@ internal partial class Av1ChromaFromLumaContext
             for (int y = this.bufferHeight; y < height; y++)
             {
                 int rowOffset = y * BufferLine;
-                this.Q3Buffer.AsSpan(rowOffset - BufferLine, width).CopyTo(this.Q3Buffer.AsSpan(rowOffset, width));
+                q3Buffer.Slice(rowOffset - BufferLine, width).CopyTo(q3Buffer.Slice(rowOffset, width));
             }
 
             this.bufferHeight = height;

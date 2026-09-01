@@ -87,7 +87,7 @@ public class Av1ReferenceMotionVectorsTests
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader(enableTemporalMotionVectors: false);
         ObuFrameHeader frameHeader = CreateFrameHeader(orderHint: 0, useReferenceFrameMotionVectors: false);
-        Av1FrameInfo frameInfo = new(sequenceHeader);
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
         FillFrameWithIntraBlocks(frameInfo, sequenceHeader);
 
         Av1MotionVector nearest = new(8, 16);
@@ -176,7 +176,7 @@ public class Av1ReferenceMotionVectorsTests
         globalMotion[5] = Av1GlobalMotionParameters.ModelScale;
         frameHeader.GetGlobalMotionParameters()[0] = globalMotion;
 
-        Av1FrameInfo frameInfo = new(sequenceHeader);
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
         FillFrameWithIntraBlocks(frameInfo, sequenceHeader);
         Av1MotionVector decoded = new(40, -24);
         AddModeInfo(
@@ -510,7 +510,17 @@ public class Av1ReferenceMotionVectorsTests
     /// <param name="useReferenceFrameMotionVectors">Whether this frame consumes its projected temporal motion field.</param>
     /// <returns>The configured frame header.</returns>
     private static ObuFrameHeader CreateFrameHeader(uint orderHint, bool useReferenceFrameMotionVectors)
-        => new()
+    {
+        ObuTileGroupHeader tilesInfo = new()
+        {
+            TileColumnCount = 1,
+            TileRowCount = 1,
+        };
+
+        tilesInfo.TileColumnStartModeInfo[1] = 32;
+        tilesInfo.TileRowStartModeInfo[1] = 32;
+
+        return new()
         {
             FrameType = ObuFrameType.InterFrame,
             OrderHint = orderHint,
@@ -518,14 +528,9 @@ public class Av1ReferenceMotionVectorsTests
             ModeInfoRowCount = 32,
             AllowHighPrecisionMotionVector = true,
             UseReferenceFrameMotionVectors = useReferenceFrameMotionVectors,
-            TilesInfo = new ObuTileGroupHeader
-            {
-                TileColumnCount = 1,
-                TileRowCount = 1,
-                TileColumnStartModeInfo = [0, 32],
-                TileRowStartModeInfo = [0, 32],
-            },
+            TilesInfo = tilesInfo,
         };
+    }
 
     /// <summary>
     /// Maps one intra block over each 64-by-64 superblock so every spatial search position has initialized mode information.
@@ -617,7 +622,6 @@ public class Av1ReferenceMotionVectorsTests
         modeInfo.MotionVectors[0] = motionVector;
         modeInfo.MotionVectors[1] = secondaryMotionVector;
         frameInfo.UpdateModeInfo(modeInfo, superblockInfo);
-        superblockInfo.BlockCount++;
         return modeInfo;
     }
 

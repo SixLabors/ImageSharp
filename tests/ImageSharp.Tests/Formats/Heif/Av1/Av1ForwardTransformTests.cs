@@ -567,7 +567,7 @@ public class Av1ForwardTransformTests
     /// <param name="stride">The number of input samples between rows.</param>
     /// <param name="output">The destination reference coefficients.</param>
     /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
-    private static void DispatchReferenceColumn(Span<short> input, int stride, Span<int> output, ref Av1Transform2dFlipConfiguration config)
+    private static void DispatchReferenceColumn(ReadOnlySpan<short> input, int stride, Span<int> output, ref Av1Transform2dFlipConfiguration config)
     {
         switch (config.TransformFunctionTypeColumn)
         {
@@ -618,7 +618,7 @@ public class Av1ForwardTransformTests
     /// <param name="stride">The number of input samples between rows.</param>
     /// <param name="output">The destination reference coefficients.</param>
     /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
-    private static void DispatchReferenceRow<TColumnOperator>(Span<short> input, int stride, Span<int> output, ref Av1Transform2dFlipConfiguration config)
+    private static void DispatchReferenceRow<TColumnOperator>(ReadOnlySpan<short> input, int stride, Span<int> output, ref Av1Transform2dFlipConfiguration config)
         where TColumnOperator : struct, Av1ForwardTransformer.IAv1ForwardTransform1dOperator
     {
         switch (config.TransformFunctionTypeRow)
@@ -672,7 +672,7 @@ public class Av1ForwardTransformTests
     /// <param name="output">The destination reference coefficients.</param>
     /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
     private static void TransformReference<TColumnOperator, TRowOperator>(
-        Span<short> input,
+        ReadOnlySpan<short> input,
         int stride,
         Span<int> output,
         ref Av1Transform2dFlipConfiguration config)
@@ -752,7 +752,7 @@ public class Av1ForwardTransformTests
             1 => short.MinValue,
             2 => 255,
             3 => -255,
-            _ => ((index * 73) + (lane * 151)) % 511 - 255,
+            _ => (((index * 73) + (lane * 151)) % 511) - 255,
         });
 
     /// <summary>

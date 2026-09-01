@@ -6,27 +6,32 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// <summary>
 /// Contains the AV1 segmentation state and per-segment feature values for a frame.
 /// </summary>
-internal class ObuSegmentationParameters
+internal sealed class ObuSegmentationParameters
 {
     /// <summary>
-    /// Gets or sets the effective quantization-matrix level for each plane and segment.
+    /// Stores the feature-enable flags for each segment and feature without per-frame array allocations.
     /// </summary>
-    public int[][] QMLevel { get; set; } = new int[3][];
+    private InlineArray8<InlineArray8<bool>> featureEnabled;
 
     /// <summary>
-    /// Gets or sets the enabled state of every feature for every segment.
+    /// Stores the feature values for each segment and feature without per-frame array allocations.
     /// </summary>
-    public bool[,] FeatureEnabled { get; set; } = new bool[Av1Constants.MaxSegmentCount, Av1Constants.SegmentationLevelMax];
+    private InlineArray8<InlineArray8<int>> featureData;
+
+    /// <summary>
+    /// Stores the effective quantization-matrix level for each plane and segment without jagged arrays.
+    /// </summary>
+    private InlineArray4<InlineArray8<int>> qmLevel;
+
+    /// <summary>
+    /// Gets the mutable effective quantization-matrix levels for the Y, U, and V planes.
+    /// </summary>
+    public Span<InlineArray8<int>> QMLevel => this.qmLevel[..Av1Constants.MaxPlanes];
 
     /// <summary>
     /// Gets or sets a value indicating whether segmentation is enabled for the frame.
     /// </summary>
     public bool Enabled { get; set; }
-
-    /// <summary>
-    /// Gets or sets the value of every feature for every segment.
-    /// </summary>
-    public int[,] FeatureData { get; set; } = new int[Av1Constants.MaxSegmentCount, Av1Constants.SegmentationLevelMax];
 
     /// <summary>
     /// Gets or sets a value indicating whether segment identifiers are decoded before skip-mode decisions.
@@ -60,7 +65,33 @@ internal class ObuSegmentationParameters
     /// <param name="feature">The feature to inspect.</param>
     /// <returns><see langword="true"/> when the feature is active; otherwise, <see langword="false"/>.</returns>
     public bool IsFeatureActive(int segmentId, ObuSegmentationLevelFeature feature)
-        => this.FeatureEnabled[segmentId, (int)feature];
+        => this.featureEnabled[segmentId][(int)feature];
+
+    /// <summary>
+    /// Gets a feature value for a segment.
+    /// </summary>
+    /// <param name="segmentId">The segment identifier.</param>
+    /// <param name="featureId">The feature identifier.</param>
+    /// <returns>The stored feature value.</returns>
+    public int GetFeatureData(int segmentId, int featureId) => this.featureData[segmentId][featureId];
+
+    /// <summary>
+    /// Sets whether a feature is active for a segment.
+    /// </summary>
+    /// <param name="segmentId">The segment identifier.</param>
+    /// <param name="featureId">The feature identifier.</param>
+    /// <param name="enabled">Whether the feature is active.</param>
+    public void SetFeatureEnabled(int segmentId, int featureId, bool enabled)
+        => this.featureEnabled[segmentId][featureId] = enabled;
+
+    /// <summary>
+    /// Sets a feature value for a segment.
+    /// </summary>
+    /// <param name="segmentId">The segment identifier.</param>
+    /// <param name="featureId">The feature identifier.</param>
+    /// <param name="value">The feature value.</param>
+    public void SetFeatureData(int segmentId, int featureId, int value)
+        => this.featureData[segmentId][featureId] = value;
 
     /// <summary>
     /// Replaces every feature enable flag and value with state from a primary reference frame.
@@ -74,8 +105,8 @@ internal class ObuSegmentationParameters
         {
             for (int feature = 0; feature < Av1Constants.SegmentationLevelMax; feature++)
             {
-                this.FeatureEnabled[segment, feature] = source.FeatureEnabled[segment, feature];
-                this.FeatureData[segment, feature] = source.FeatureData[segment, feature];
+                this.featureEnabled[segment][feature] = source.featureEnabled[segment][feature];
+                this.featureData[segment][feature] = source.featureData[segment][feature];
             }
         }
     }

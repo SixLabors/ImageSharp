@@ -22,11 +22,6 @@ internal sealed class Av1FrameEntropyContexts
     private InlineArray10<Av1FrameEntropyContext?> returnedSnapshots;
 
     /// <summary>
-    /// The number of returned snapshot graphs currently available for reuse.
-    /// </summary>
-    private int returnedSnapshotCount;
-
-    /// <summary>
     /// The base quantizer index used to initialize a newly required snapshot graph.
     /// </summary>
     private int currentQIndex;
@@ -105,19 +100,23 @@ internal sealed class Av1FrameEntropyContexts
     /// <returns>The snapshot that must later be returned through <see cref="ReturnSnapshot"/>.</returns>
     public Av1FrameEntropyContext RentPublishedSnapshot()
     {
-        Av1FrameEntropyContext snapshot;
-        if (this.returnedSnapshotCount == 0)
+        Av1FrameEntropyContext? snapshot = null;
+        for (int snapshotIndex = 0; snapshotIndex < MaximumSnapshotCount; snapshotIndex++)
         {
-            // Eight slots can own distinct frames while the selected output owns a ninth frame no longer present in
-            // the map. Rent one further graph before commit releases the owner displaced by the completed frame.
-            snapshot = new(this.currentQIndex);
-        }
-        else
-        {
-            int snapshotIndex = --this.returnedSnapshotCount;
-            snapshot = this.returnedSnapshots[snapshotIndex]!;
+            Av1FrameEntropyContext? returnedSnapshot = this.returnedSnapshots[snapshotIndex];
+            if (returnedSnapshot is null)
+            {
+                continue;
+            }
+
             this.returnedSnapshots[snapshotIndex] = null;
+            snapshot = returnedSnapshot;
+            break;
         }
+
+        // Eight slots can own distinct frames while the selected output owns a ninth frame no longer present in
+        // the map. Rent one further graph before commit releases the owner displaced by the completed frame.
+        snapshot ??= new(this.currentQIndex);
 
         this.Published.SnapshotTo(snapshot);
         return snapshot;
@@ -130,9 +129,15 @@ internal sealed class Av1FrameEntropyContexts
     public void ReturnSnapshot(Av1FrameEntropyContext snapshot)
     {
         // The fixed capacity covers eight distinct slot owners, one detached presentation owner, and the replacement
-        // frame rented before commit. Av1ReferenceFrame returns each graph exactly once, so the session cannot exceed
-        // this bound.
-        this.returnedSnapshots[this.returnedSnapshotCount++] = snapshot;
+        // frame rented before commit. Av1ReferenceFrame returns each graph exactly once, so one slot is always free.
+        for (int snapshotIndex = 0; snapshotIndex < MaximumSnapshotCount; snapshotIndex++)
+        {
+            if (this.returnedSnapshots[snapshotIndex] is null)
+            {
+                this.returnedSnapshots[snapshotIndex] = snapshot;
+                return;
+            }
+        }
     }
 
     /// <summary>

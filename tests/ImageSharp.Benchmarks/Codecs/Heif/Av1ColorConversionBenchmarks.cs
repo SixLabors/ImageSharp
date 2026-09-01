@@ -28,17 +28,17 @@ public class Av1ColorConversionBenchmarks
     /// <summary>
     /// The source RGB image.
     /// </summary>
-    private Image<Rgb48> source = null!;
+    private Image<Rgb48> source;
 
     /// <summary>
     /// The destination RGB image.
     /// </summary>
-    private Image<Rgb48> destination = null!;
+    private Image<Rgb48> destination;
 
     /// <summary>
     /// The reusable AV1 frame planes.
     /// </summary>
-    private Av1FrameBuffer<byte> frameBuffer = null!;
+    private Av1FrameBuffer<byte> frameBuffer;
 
     /// <summary>
     /// Gets or sets the encoded AV1 bit depth.
@@ -99,9 +99,9 @@ public class Av1ColorConversionBenchmarks
     [GlobalCleanup]
     public void Cleanup()
     {
-        this.frameBuffer.Dispose();
-        this.destination.Dispose();
-        this.source.Dispose();
+        this.frameBuffer?.Dispose();
+        this.destination?.Dispose();
+        this.source?.Dispose();
     }
 
     /// <summary>
@@ -111,8 +111,10 @@ public class Av1ColorConversionBenchmarks
     [Benchmark]
     public Rgb48 ConvertToRgb()
     {
-        Av1YuvConverter.ConvertToRgb(Configuration.Default, this.frameBuffer, this.destination.Frames.RootFrame);
-        return this.destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(Height - 1)[Width - 1];
+        Av1FrameBuffer<byte> frameBuffer = this.frameBuffer;
+        Image<Rgb48> destination = this.destination;
+        Av1YuvConverter.ConvertToRgb(Configuration.Default, frameBuffer, destination.Frames.RootFrame);
+        return destination.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(Height - 1)[Width - 1];
     }
 
     /// <summary>
@@ -122,9 +124,11 @@ public class Av1ColorConversionBenchmarks
     [Benchmark]
     public int ConvertFromRgb()
     {
-        Av1YuvConverter.ConvertFromRgb(Configuration.Default, this.source.Frames.RootFrame, this.frameBuffer);
+        Image<Rgb48> source = this.source;
+        Av1FrameBuffer<byte> frameBuffer = this.frameBuffer;
+        Av1YuvConverter.ConvertFromRgb(Configuration.Default, source.Frames.RootFrame, frameBuffer);
         return this.BitDepth == 8
-            ? this.frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(Height - 1)[Width - 1]
-            : this.frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, Height - 1, 0, 0)[Width - 1];
+            ? frameBuffer.DeriveBlockPointer(Av1Plane.Y, 0, 0).DangerousGetRowSpan(Height - 1)[Width - 1]
+            : frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, Height - 1, 0, 0)[Width - 1];
     }
 }

@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 /// <content>
 /// Defines interpolation operators and the generic traversal used by translational inter prediction.
 /// </content>
-internal static partial class Av1InterPredictor
+internal static partial class Av1TranslationalInterPredictor
 {
     /// <summary>
     /// Supplies the normative Q7 coefficient kernel for one AV1 interpolation-filter family.

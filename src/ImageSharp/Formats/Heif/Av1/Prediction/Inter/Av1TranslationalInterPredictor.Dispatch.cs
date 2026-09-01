@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 /// <content>
 /// Selects interpolation filters and the widest supported traversal for a translational prediction block.
 /// </content>
-internal static partial class Av1InterPredictor
+internal static partial class Av1TranslationalInterPredictor
 {
     /// <summary>
     /// Selects an 8-bit horizontal interpolation operator.

@@ -6,15 +6,15 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// <summary>
 /// Stores the partition tree and decoded mode information for one AV1 superblock.
 /// </summary>
-internal class Av1SuperblockInfo
+internal readonly struct Av1SuperblockInfo
 {
     /// <summary>
-    /// Provides the frame-owned arrays addressed by this superblock view.
+    /// Provides the frame-owned state and current-superblock scratch used by this view.
     /// </summary>
     private readonly Av1FrameInfo frameInfo;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1SuperblockInfo"/> class.
+    /// Initializes a new instance of the <see cref="Av1SuperblockInfo"/> struct.
     /// </summary>
     /// <param name="frameInfo">The owning frame information.</param>
     /// <param name="position">The superblock position in the frame superblock grid.</param>
@@ -45,19 +45,19 @@ internal class Av1SuperblockInfo
     public Av1BlockModeInfo SuperblockModeInfo => this.GetModeInfo(new Point(0, 0));
 
     /// <summary>
-    /// Gets the luma coefficient storage reserved for this superblock.
+    /// Gets the luma coefficient scratch for the current superblock.
     /// </summary>
-    public Span<int> CoefficientsY => this.frameInfo.GetCoefficientsY(this.Position);
+    public Span<int> CoefficientsY => this.frameInfo.GetCoefficientsY();
 
     /// <summary>
-    /// Gets the blue-difference chroma coefficient storage reserved for this superblock.
+    /// Gets the blue-difference chroma coefficient scratch for the current superblock.
     /// </summary>
-    public Span<int> CoefficientsU => this.frameInfo.GetCoefficientsU(this.Position);
+    public Span<int> CoefficientsU => this.frameInfo.GetCoefficientsU();
 
     /// <summary>
-    /// Gets the red-difference chroma coefficient storage reserved for this superblock.
+    /// Gets the red-difference chroma coefficient scratch for the current superblock.
     /// </summary>
-    public Span<int> CoefficientsV => this.frameInfo.GetCoefficientsV(this.Position);
+    public Span<int> CoefficientsV => this.frameInfo.GetCoefficientsV();
 
     /// <summary>
     /// Gets the constrained directional enhancement filter strengths for this superblock.
@@ -70,44 +70,35 @@ internal class Av1SuperblockInfo
     public Span<int> SuperblockDeltaLoopFilter => this.frameInfo.GetDeltaLoopFilter(this.Position);
 
     /// <summary>
-    /// Gets or sets the next luma transform-information index while parsing this superblock.
+    /// Gets the number of mode-information records parsed for this superblock.
     /// </summary>
-    public int TransformInfoIndexY { get; set; }
+    public int BlockCount => this.frameInfo.GetModeInfoCount(this.Position);
 
     /// <summary>
-    /// Gets or sets the next shared chroma transform-information index while parsing this superblock.
+    /// Gets the luma transform-information scratch for the current superblock.
     /// </summary>
-    public int TransformInfoIndexUv { get; set; }
+    /// <returns>The current-superblock luma transform-information span.</returns>
+    public Span<Av1TransformInfo> GetTransformInfoY() => this.frameInfo.GetSuperblockTransformY();
 
     /// <summary>
-    /// Gets or sets the number of mode-information records parsed for this superblock.
+    /// Gets the shared chroma transform-information scratch for the current superblock.
     /// </summary>
-    public int BlockCount { get; set; }
-
-    /// <summary>
-    /// Gets the luma transform-information storage reserved for this superblock.
-    /// </summary>
-    /// <returns>The superblock luma transform-information span.</returns>
-    public Span<Av1TransformInfo> GetTransformInfoY() => this.frameInfo.GetSuperblockTransformY(this.Position);
-
-    /// <summary>
-    /// Gets the shared chroma transform-information storage reserved for this superblock.
-    /// </summary>
-    /// <returns>The superblock chroma transform-information span.</returns>
-    public Span<Av1TransformInfo> GetTransformInfoUv() => this.frameInfo.GetSuperblockTransformUv(this.Position);
+    /// <returns>The current-superblock chroma transform-information span.</returns>
+    public Span<Av1TransformInfo> GetTransformInfoUv() => this.frameInfo.GetSuperblockTransformUv();
 
     /// <summary>
     /// Gets the transform-information storage for the specified color plane.
     /// </summary>
     /// <param name="plane">The zero-based color-plane index.</param>
     /// <returns>The transform-information span for the plane.</returns>
-    public Span<Av1TransformInfo> GetTransformInfo(int plane) => this.frameInfo.GetSuperblockTransform(plane, this.Position);
+    public Span<Av1TransformInfo> GetTransformInfo(int plane) => this.frameInfo.GetSuperblockTransform(plane);
 
     /// <summary>
     /// Gets the mode information records parsed for this superblock in bitstream order.
     /// </summary>
     /// <returns>The mode information records for the superblock.</returns>
-    public Span<Av1BlockModeInfo> GetModeInfos() => this.frameInfo.GetModeInfos(this.Position, this.BlockCount);
+    public Av1FrameInfo.ModeInfoCollection GetModeInfos() =>
+        this.frameInfo.GetModeInfos(this.Position, this.BlockCount);
 
     /// <summary>
     /// Gets the mode information covering a position relative to this superblock.

@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// <summary>
 /// Contains the parameters used to synthesize AV1 film grain for a decoded frame.
 /// </summary>
-internal class ObuFilmGrainParameters
+internal sealed class ObuFilmGrainParameters
 {
     /// <summary>
     /// Stores the luma scaling-point coordinates without a per-frame array allocation.

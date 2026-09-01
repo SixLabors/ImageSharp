@@ -6,20 +6,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// <summary>
 /// Contains the AV1 loop-restoration configuration for a frame.
 /// </summary>
-internal class ObuLoopRestorationParameters
+internal sealed class ObuLoopRestorationParameters
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="ObuLoopRestorationParameters"/> class.
+    /// Stores the fixed three plane configurations without an outer array or per-plane object allocation.
     /// </summary>
-    public ObuLoopRestorationParameters()
-    {
-        // AV1 addresses restoration state by plane, so all three plane entries must exist even
-        // when the active color configuration uses fewer planes.
-        this.Items = new ObuLoopRestorationItem[3];
-        this.Items[0] = new();
-        this.Items[1] = new();
-        this.Items[2] = new();
-    }
+    private InlineArray4<ObuLoopRestorationItem> items;
 
     /// <summary>
     /// Gets or sets a value indicating whether any plane uses loop restoration.
@@ -34,7 +26,7 @@ internal class ObuLoopRestorationParameters
     /// <summary>
     /// Gets the loop-restoration configuration for each plane.
     /// </summary>
-    public ObuLoopRestorationItem[] Items { get; }
+    public Span<ObuLoopRestorationItem> Items => this.items[..3];
 
     /// <summary>
     /// Gets or sets the luma restoration-unit size shift.

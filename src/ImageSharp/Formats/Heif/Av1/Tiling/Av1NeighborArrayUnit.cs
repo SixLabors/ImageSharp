@@ -286,14 +286,4 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
             }
         }
     }
-
-    /// <summary>
-    /// Writes a DC-sign context across selected block edges.
-    /// </summary>
-    /// <param name="dcSignSpan">The encoded DC-sign context.</param>
-    /// <param name="blockOrigin">The block origin in samples.</param>
-    /// <param name="blockSize">The block dimensions in samples.</param>
-    /// <param name="unitMask">The neighbor arrays to update.</param>
-    /// <exception cref="NotImplementedException">The byte-specific write path is not implemented.</exception>
-    public void UnitModeWrite(Span<byte> dcSignSpan, Point blockOrigin, Size blockSize, Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask unitMask) => throw new NotImplementedException();
 }

@@ -746,7 +746,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                     foreach (uint tileId in link.DestinationIds)
                     {
-                        HeifItem tile = this.FindItemById(tileId)!;
+                        HeifItem tile = this.FindRequiredItemById(tileId);
                         if (tile.Type != gridTile.Type)
                         {
                             throw new InvalidImageContentException("All HEIF image grid tiles must use the same coding format.");
@@ -987,22 +987,22 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 item.ContentEncoding = ReadNullTerminatedString(entryBuffer[bytesRead..], out int contentEncodingLength);
                 bytesRead += contentEncodingLength;
             }
-        }
 
-        if (version == 1)
-        {
-            if (bytesRead < totalLength)
+            if (version == 1)
             {
-                EnsureBufferRemaining(entryBuffer, bytesRead, 4, "item info entry");
-                item!.ExtensionType = BinaryPrimitives.ReadUInt32BigEndian(entryBuffer[bytesRead..]);
-                bytesRead += 4;
-            }
+                if (bytesRead < totalLength)
+                {
+                    EnsureBufferRemaining(entryBuffer, bytesRead, 4, "item info entry");
+                    item.ExtensionType = BinaryPrimitives.ReadUInt32BigEndian(entryBuffer[bytesRead..]);
+                    bytesRead += 4;
+                }
 
-            if (bytesRead < totalLength)
-            {
-                // Version-one extension payloads are outside the image item types currently
-                // consumed by this decoder, but remain bounded within this entry.
-                bytesRead = totalLength;
+                if (bytesRead < totalLength)
+                {
+                    // Version-one extension payloads are outside the image item types currently
+                    // consumed by this decoder, but remain bounded within this entry.
+                    bytesRead = totalLength;
+                }
             }
         }
 
@@ -2136,6 +2136,93 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     }
 
     /// <summary>
+    /// Assembles one logical item from its declared extents.
+    /// </summary>
+    /// <param name="stream">The complete seekable HEIF container stream.</param>
+    /// <param name="item">The item whose extents are requested.</param>
+    /// <returns>An owner containing the contiguous item payload.</returns>
+    private IMemoryOwner<byte> ReadItemData(BufferedReadStream stream, HeifItem item)
+    {
+        long itemLength = 0;
+        foreach (HeifLocation location in item.DataLocations)
+        {
+            if (location.Length < 0 || itemLength > int.MaxValue - location.Length)
+            {
+                throw new InvalidImageContentException($"Item {item.Id} data is too large to buffer.");
+            }
+
+            itemLength += location.Length;
+        }
+
+        if (itemLength == 0)
+        {
+            throw new InvalidImageContentException($"Item {item.Id} has no data extents.");
+        }
+
+        int bufferLength = (int)itemLength;
+        IMemoryOwner<byte> itemMemory = this.configuration.MemoryAllocator.Allocate<byte>(bufferLength);
+        try
+        {
+            // One logical item is the concatenation of its extents in declared order. Only the selected item is
+            // materialized, and its owner is released as soon as the codec or metadata consumer has finished.
+            Span<byte> itemBuffer = itemMemory.GetSpan()[..bufferLength];
+            int writeOffset = 0;
+            foreach (HeifLocation location in item.DataLocations)
+            {
+                if (location.BaseOffset < 0
+                    || location.Offset < 0
+                    || location.BaseOffset > long.MaxValue - location.Offset)
+                {
+                    throw new InvalidImageContentException($"Item {item.Id} has an invalid extent offset.");
+                }
+
+                long relativeOffset = location.BaseOffset + location.Offset;
+                long sourceOffset;
+                long sourceBytesRemaining;
+                if (location.Origin == HeifLocationOffsetOrigin.FileOffset)
+                {
+                    // Construction method zero resolves base_offset + extent_offset from the start of the file.
+                    sourceOffset = relativeOffset;
+                    sourceBytesRemaining = stream.Length - sourceOffset;
+                }
+                else if (location.Origin == HeifLocationOffsetOrigin.ItemDataOffset)
+                {
+                    if (this.itemDataOffset < 0 || relativeOffset > this.itemDataLength)
+                    {
+                        throw new InvalidImageContentException($"Item {item.Id} has an extent outside its item data box.");
+                    }
+
+                    // Construction method one resolves the same relative value from the idat payload start.
+                    sourceOffset = this.itemDataOffset + relativeOffset;
+                    sourceBytesRemaining = this.itemDataLength - relativeOffset;
+                }
+                else
+                {
+                    throw new InvalidImageContentException($"Item {item.Id} uses an unsupported location origin.");
+                }
+
+                HeifBoxReader.EnsureInsideParent(location.Length, sourceBytesRemaining);
+                stream.Position = sourceOffset;
+                int extentLength = (int)location.Length;
+                int bytesRead = stream.Read(itemBuffer.Slice(writeOffset, extentLength));
+                if (bytesRead != extentLength)
+                {
+                    throw new InvalidImageContentException($"Item {item.Id} extent is truncated.");
+                }
+
+                writeOffset += extentLength;
+            }
+
+            return itemMemory;
+        }
+        catch
+        {
+            itemMemory.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Resolves item extents, selects the primary or supported thumbnail decoder, and reconstructs the image.
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel format.</typeparam>
@@ -2145,107 +2232,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     private Image<TPixel> DecodePrimaryItem<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        using DisposableDictionary<uint, IMemoryOwner<byte>> buffers = new(this.items.Count);
-        foreach (HeifItem item in this.items)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-            bool isMetadataItem = item.Type is Heif4CharCode.Exif or Heif4CharCode.Mime;
-            if (this.Options.SkipMetadata && isMetadataItem)
-            {
-                // Metadata items are not codec inputs. Leave their extents on the stream when metadata loading is disabled.
-                continue;
-            }
-
-            IMemoryOwner<byte>? extentMemory = null;
-            try
-            {
-                long itemLength = 0;
-                foreach (HeifLocation loc in item.DataLocations)
-                {
-                    if (loc.Length < 0 || itemLength > int.MaxValue - loc.Length)
-                    {
-                        throw new InvalidImageContentException($"Item {item.Id} data is too large to buffer.");
-                    }
-
-                    itemLength += loc.Length;
-                }
-
-                if (itemLength == 0)
-                {
-                    continue;
-                }
-
-                // One logical item is the concatenation of its extents in declared order. Materialize only that item data,
-                // never the enclosing file or mdat box, so codec readers receive the contiguous payload they expect.
-                int bufferLength = (int)itemLength;
-                extentMemory = this.configuration.MemoryAllocator.Allocate<byte>(bufferLength);
-                Span<byte> itemBuffer = extentMemory.GetSpan()[..bufferLength];
-                int writeOffset = 0;
-                foreach (HeifLocation loc in item.DataLocations)
-                {
-                    if (loc.BaseOffset < 0 || loc.Offset < 0 || loc.BaseOffset > long.MaxValue - loc.Offset)
-                    {
-                        throw new InvalidImageContentException($"Item {item.Id} has an invalid extent offset.");
-                    }
-
-                    long relativeOffset = loc.BaseOffset + loc.Offset;
-                    long sourceOffset;
-                    long sourceBytesRemaining;
-                    if (loc.Origin == HeifLocationOffsetOrigin.FileOffset)
-                    {
-                        // Construction method zero resolves base_offset + extent_offset from the start of the file.
-                        sourceOffset = relativeOffset;
-                        sourceBytesRemaining = stream.Length - sourceOffset;
-                    }
-                    else if (loc.Origin == HeifLocationOffsetOrigin.ItemDataOffset)
-                    {
-                        if (this.itemDataOffset < 0 || relativeOffset > this.itemDataLength)
-                        {
-                            throw new InvalidImageContentException($"Item {item.Id} has an extent outside its item data box.");
-                        }
-
-                        // Construction method one resolves the same relative value from the idat payload start.
-                        sourceOffset = this.itemDataOffset + relativeOffset;
-                        sourceBytesRemaining = this.itemDataLength - relativeOffset;
-                    }
-                    else
-                    {
-                        throw new InvalidImageContentException($"Item {item.Id} uses an unsupported location origin.");
-                    }
-
-                    HeifBoxReader.EnsureInsideParent(loc.Length, sourceBytesRemaining);
-                    stream.Position = sourceOffset;
-                    int extentLength = (int)loc.Length;
-                    int bytesRead = stream.Read(itemBuffer.Slice(writeOffset, extentLength));
-                    if (bytesRead != extentLength)
-                    {
-                        throw new InvalidImageContentException($"Item {item.Id} extent is truncated.");
-                    }
-
-                    writeOffset += extentLength;
-                }
-
-                buffers.Add(item.Id, extentMemory);
-                extentMemory = null;
-            }
-            catch (Exception ex) when (isMetadataItem && ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
-            {
-                // A failed optional metadata extent is discarded without weakening image-item extent validation.
-                extentMemory?.Dispose();
-            }
-            catch (Exception ex) when (!isMetadataItem && ImageDecoderCore.ShouldIgnoreImageDataSegmentError(this.Options, ex))
-            {
-                // Keep the item declaration but omit its unreadable payload. The presentation can still use a valid
-                // thumbnail, omit an auxiliary plane, or reject the file later when no decodable color item remains.
-                extentMemory?.Dispose();
-            }
-            catch
-            {
-                // The dictionary takes ownership only after every declared extent has been assembled successfully.
-                extentMemory?.Dispose();
-                throw;
-            }
-        }
+        Func<HeifItem, IMemoryOwner<byte>> itemDataReader = item => this.ReadItemData(stream, item);
 
         HeifItem? rootItem = this.FindItemById(this.primaryItem);
         if (rootItem is null)
@@ -2255,12 +2242,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         Image<TPixel>? image = null;
         HeifItem itemToDecode = rootItem;
-        IHeifItemDecoder<TPixel>? itemDecoder = this.GetItemDecoder<TPixel>(rootItem, buffers);
+        IHeifItemDecoder<TPixel>? itemDecoder = this.GetItemDecoder<TPixel>(rootItem, itemDataReader);
         bool supportedItemFound = itemDecoder is not null;
         if (itemDecoder is not null)
         {
             this.ExecuteImageDataSegmentAction(
-                () => image = this.DecodeImageItem(rootItem, itemDecoder, buffers, cancellationToken));
+                () => image = this.DecodeImageItem(rootItem, itemDecoder, itemDataReader, cancellationToken));
         }
 
         if (image is null)
@@ -2276,7 +2263,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 {
                     itemToDecode = thumbnailItem;
                     this.ExecuteImageDataSegmentAction(
-                        () => image = this.DecodeImageItem(thumbnailItem, itemDecoder, buffers, cancellationToken));
+                        () => image = this.DecodeImageItem(thumbnailItem, itemDecoder, itemDataReader, cancellationToken));
                 }
             }
         }
@@ -2295,13 +2282,13 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         {
             bool hasAlpha = false;
             this.ExecuteImageDataSegmentAction(
-                () => hasAlpha = this.DecodeAlphaPlane(itemToDecode, buffers, image.Frames.RootFrame, cancellationToken));
+                () => hasAlpha = this.DecodeAlphaPlane(itemToDecode, itemDataReader, image.Frames.RootFrame, cancellationToken));
 
             if (!this.Options.SkipMetadata)
             {
                 this.ApplyItemColorMetadata(image.Metadata, itemToDecode);
                 this.ApplyItemHdrMetadata(image.Metadata, itemToDecode);
-                this.ApplyAssociatedMetadata(image.Metadata, rootItem, buffers);
+                this.ApplyAssociatedMetadata(image.Metadata, rootItem, itemDataReader);
             }
 
             // MIAF defines crop, rotation, and mirror as presentation operations in that order. Applying the
@@ -2483,11 +2470,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// </summary>
     /// <param name="metadata">The decoded image metadata receiving the profiles.</param>
     /// <param name="colorItem">The color image item described by the metadata links.</param>
-    /// <param name="buffers">The assembled payloads for the container's declared items.</param>
+    /// <param name="itemDataReader">Reads one associated item payload on demand.</param>
     private void ApplyAssociatedMetadata(
         ImageMetadata metadata,
         HeifItem colorItem,
-        DisposableDictionary<uint, IMemoryOwner<byte>> buffers)
+        Func<HeifItem, IMemoryOwner<byte>> itemDataReader)
     {
         foreach (HeifItemLink link in this.itemLinks)
         {
@@ -2497,20 +2484,25 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             }
 
             HeifItem? metadataItem = this.FindItemById(link.SourceId);
-            if (metadataItem is null || !buffers.TryGetValue(metadataItem.Id, out IMemoryOwner<byte>? itemMemory))
+            if (metadataItem is null)
             {
                 continue;
             }
 
             if (metadataItem.Type == Heif4CharCode.Exif)
             {
-                this.ExecuteAncillarySegmentAction(() => ApplyExifProfile(metadata, itemMemory.GetSpan()));
+                this.ExecuteAncillarySegmentAction(() =>
+                {
+                    using IMemoryOwner<byte> itemMemory = itemDataReader(metadataItem);
+                    ApplyExifProfile(metadata, itemMemory.GetSpan());
+                });
             }
             else if (metadataItem.Type == Heif4CharCode.Mime &&
                 string.Equals(metadataItem.ContentType, "application/rdf+xml", StringComparison.Ordinal))
             {
                 this.ExecuteAncillarySegmentAction(() =>
                 {
+                    using IMemoryOwner<byte> itemMemory = itemDataReader(metadataItem);
                     Span<byte> itemData = itemMemory.GetSpan();
 
                     // XmpProfile retains its input array after the assembled item buffer is returned to its pool.
@@ -2577,12 +2569,14 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel format.</typeparam>
     /// <param name="item">The coded or derived image item.</param>
-    /// <param name="buffers">The assembled payloads available to a grid decoder and its tiles.</param>
+    /// <param name="itemDataReader">Reads one selected item payload on demand.</param>
     /// <returns>The selected decoder, or <see langword="null"/> when the item cannot be reconstructed.</returns>
-    private IHeifItemDecoder<TPixel>? GetItemDecoder<TPixel>(HeifItem item, DisposableDictionary<uint, IMemoryOwner<byte>> buffers)
+    private IHeifItemDecoder<TPixel>? GetItemDecoder<TPixel>(
+        HeifItem item,
+        Func<HeifItem, IMemoryOwner<byte>> itemDataReader)
         where TPixel : unmanaged, IPixel<TPixel>
         => item.Type == Heif4CharCode.Grid && this.FindDecodableGridTile<TPixel>(item) is not null
-            ? new GridHeifItemDecoder<TPixel>(this.items, this.itemLinks, buffers)
+            ? new GridHeifItemDecoder<TPixel>(this.items, this.itemLinks, itemDataReader)
             : HeifCompressionFactory.GetDecoder<TPixel>(item.Type);
 
     /// <summary>
@@ -2591,21 +2585,17 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <typeparam name="TPixel">The destination pixel format.</typeparam>
     /// <param name="item">The image item to decode.</param>
     /// <param name="decoder">The decoder selected for the item.</param>
-    /// <param name="buffers">The assembled item payloads.</param>
+    /// <param name="itemDataReader">Reads the selected item payload.</param>
     /// <param name="cancellationToken">The token used to cancel the payload decode.</param>
     /// <returns>The decoded image.</returns>
     private Image<TPixel> DecodeImageItem<TPixel>(
         HeifItem item,
         IHeifItemDecoder<TPixel> decoder,
-        DisposableDictionary<uint, IMemoryOwner<byte>> buffers,
+        Func<HeifItem, IMemoryOwner<byte>> itemDataReader,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (!buffers.TryGetValue(item.Id, out IMemoryOwner<byte>? itemMemory))
-        {
-            throw new InvalidImageContentException($"Item {item.Id} has no data extents.");
-        }
-
+        using IMemoryOwner<byte> itemMemory = itemDataReader(item);
         Image<TPixel> image = decoder.DecodeItemData(
             this.payloadOptions,
             item,
@@ -2716,13 +2706,13 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// </summary>
     /// <typeparam name="TPixel">The destination color pixel type.</typeparam>
     /// <param name="colorItem">The color image item whose alpha plane is requested.</param>
-    /// <param name="buffers">The assembled item payloads.</param>
+    /// <param name="itemDataReader">Reads one selected item payload on demand.</param>
     /// <param name="destination">The decoded color frame receiving alpha values.</param>
     /// <param name="cancellationToken">The token used to cancel the auxiliary payload decode.</param>
     /// <returns><see langword="true"/> when an auxiliary alpha plane was decoded and composed.</returns>
     private bool DecodeAlphaPlane<TPixel>(
         HeifItem colorItem,
-        DisposableDictionary<uint, IMemoryOwner<byte>> buffers,
+        Func<HeifItem, IMemoryOwner<byte>> itemDataReader,
         ImageFrame<TPixel> destination,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -2746,7 +2736,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 throw new ImageFormatException("The alpha auxiliary image and color image use different presentation transforms.");
             }
 
-            IHeifItemDecoder<TPixel>? itemDecoder = this.GetItemDecoder<TPixel>(alphaItem, buffers);
+            IHeifItemDecoder<TPixel>? itemDecoder = this.GetItemDecoder<TPixel>(alphaItem, itemDataReader);
             if (itemDecoder is not IHeifAlphaItemDecoder<TPixel> decoder)
             {
                 throw new ImageFormatException($"The alpha auxiliary item uses unsupported item type '{alphaItem.Type}'.");
@@ -2757,11 +2747,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     && link.SourceId == colorItem.Id
                     && link.DestinationIds.Contains(alphaItem.Id));
 
-            if (!buffers.TryGetValue(alphaItem.Id, out IMemoryOwner<byte>? itemMemory))
-            {
-                throw new InvalidImageContentException($"Item {alphaItem.Id} has no data extents.");
-            }
-
+            using IMemoryOwner<byte> itemMemory = itemDataReader(alphaItem);
             decoder.DecodeAlphaItemData(
                 this.payloadOptions,
                 alphaItem,
@@ -2786,19 +2772,15 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             return false;
         }
 
-        if (!buffers.TryGetValue(colorItem.Id, out IMemoryOwner<byte>? gridMemory))
-        {
-            throw new InvalidImageContentException($"Item {colorItem.Id} has no data extents.");
-        }
-
         // The color grid descriptor defines the same row/column layout and output canvas for per-tile alpha
         // auxiliaries. Supplying their IDs lets the existing grid compositor preserve that normative ordering.
         GridHeifItemDecoder<TPixel> gridDecoder = new(
             this.items,
             this.itemLinks,
-            buffers,
+            itemDataReader,
             alphaTileIds);
 
+        using IMemoryOwner<byte> gridMemory = itemDataReader(colorItem);
         gridDecoder.DecodeAlphaItemData(
             this.payloadOptions,
             colorItem,
@@ -2836,6 +2818,16 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         => this.items.FirstOrDefault(item => item.Id == itemId);
 
     /// <summary>
+    /// Resolves an item identifier referenced by another parsed HEIF structure.
+    /// </summary>
+    /// <param name="itemId">The required item identifier.</param>
+    /// <returns>The declared item.</returns>
+    /// <exception cref="InvalidImageContentException">No item with the referenced identifier was declared.</exception>
+    private HeifItem FindRequiredItemById(uint itemId)
+        => this.FindItemById(itemId)
+            ?? throw new InvalidImageContentException($"HEIF item reference targets undeclared item {itemId}.");
+
+    /// <summary>
     /// Finds the alpha auxiliary image linked to a color image item.
     /// </summary>
     /// <param name="colorItem">The color image item.</param>
@@ -2850,7 +2842,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 continue;
             }
 
-            HeifItem candidate = this.FindItemById(link.SourceId)!;
+            HeifItem candidate = this.FindRequiredItemById(link.SourceId);
             if (!HeifConstants.IsAlphaAuxiliaryType(candidate.AuxiliaryType))
             {
                 continue;
@@ -2893,7 +2885,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         List<uint> alphaTileIds = new(colorTileIds.Count);
         foreach (uint colorTileId in colorTileIds)
         {
-            HeifItem colorTile = this.FindItemById(colorTileId)!;
+            HeifItem colorTile = this.FindRequiredItemById(colorTileId);
             HeifItem? alphaTile = this.FindAlphaItem(colorTile);
             if (alphaTile is null)
             {
@@ -2935,7 +2927,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
             foreach (uint itemId in link.DestinationIds)
             {
-                HeifItem tile = this.FindItemById(itemId)!;
+                HeifItem tile = this.FindRequiredItemById(itemId);
                 if (HeifCompressionFactory.GetDecoder<TPixel>(tile.Type) is null)
                 {
                     // A partially decodable grid cannot yield the requested canvas. Returning no tile lets the
@@ -2969,7 +2961,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             return null;
         }
 
-        HeifItem thumbnailItem = this.FindItemById(thumbnailReference.SourceId)!;
+        HeifItem thumbnailItem = this.FindRequiredItemById(thumbnailReference.SourceId);
         if (HeifCompressionFactory.GetDecoder<TPixel>(thumbnailItem.Type) is null)
         {
             return null;

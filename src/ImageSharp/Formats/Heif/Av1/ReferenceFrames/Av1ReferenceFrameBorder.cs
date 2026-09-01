@@ -24,7 +24,7 @@ internal static class Av1ReferenceFrameBorder
 
         ExtendPlane(
             frameBuffer,
-            frameBuffer.BufferY!,
+            frameBuffer.GetPlaneBuffer(Av1Plane.Y),
             frameBuffer.OriginX,
             frameBuffer.OriginY,
             frameBuffer.Width,
@@ -37,8 +37,8 @@ internal static class Av1ReferenceFrameBorder
             int chromaOriginX = frameBuffer.OriginX >> subsamplingX;
             int chromaOriginY = frameBuffer.OriginY >> subsamplingY;
 
-            ExtendPlane(frameBuffer, frameBuffer.BufferCb!, chromaOriginX, chromaOriginY, chromaWidth, chromaHeight);
-            ExtendPlane(frameBuffer, frameBuffer.BufferCr!, chromaOriginX, chromaOriginY, chromaWidth, chromaHeight);
+            ExtendPlane(frameBuffer, frameBuffer.GetPlaneBuffer(Av1Plane.U), chromaOriginX, chromaOriginY, chromaWidth, chromaHeight);
+            ExtendPlane(frameBuffer, frameBuffer.GetPlaneBuffer(Av1Plane.V), chromaOriginX, chromaOriginY, chromaWidth, chromaHeight);
         }
     }
 

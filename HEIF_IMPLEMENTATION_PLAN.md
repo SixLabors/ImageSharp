@@ -572,7 +572,7 @@ Previously verified algorithm checkpoints remain valuable evidence, but the fina
 - [ ] Verify still items and bounded sequences from file, memory, non-seekable, and short-read streams.
 - [ ] Verify ICC, CICP, alpha, grids, pixel aspect ratio, clean aperture, rotation, mirroring, metadata, and every presented sequence frame.
 - [ ] Complete the public AVIF format/API review so registered capabilities match implemented behavior.
-- [ ] Remove or reject every valid in-scope AV1 syntax branch that remains silently ignored or unsupported.
+- [x] Remove or reject every valid in-scope AV1 syntax branch that remains silently ignored or unsupported.
 
 Verified negative-path and frame-identifier gate evidence on 2026-08-31:
 
@@ -589,6 +589,9 @@ Verified negative-path and frame-identifier gate evidence on 2026-08-31:
   constrained multi-group allocation, motion-field allocation failure unwinding, and frame identifiers.
 - [x] The established paused-stream cancellation suite now includes AVIF. It verifies cancellation at
   0%, 30%, and 70% of both file and memory streams, plus pre-cancelled identification, on both targets.
+- [x] The completed checkpoint was committed as
+  `7f0e08126b3354e8f1eb45886f0d572006ae27de` with author and committer
+  `James Jackson-South <james_south@hotmail.com>`.
 
 Verified bounded-OBU checkpoint evidence on 2026-08-31:
 
@@ -699,6 +702,38 @@ Verified retained-frame lifecycle checkpoint evidence on 2026-08-31:
 - [x] Release source builds pass for net10.0 and net11.0 with zero warnings and zero errors. Roslynk
   reports zero compiler errors, scoped analyzer verification reports no changes, `git diff --check`
   passes, and `.gitattributes` is unchanged.
+
+Final decoder allocation, lifetime, precision, architecture, and test-validity audit evidence on 2026-09-01:
+
+- [x] Refreshed the official libaom remote and audited against observed `origin/main`
+  `976867526367f571a1c09b994066af8364aed781`. The intervening external-rate-controller commit does
+  not change `av1/decoder`, `av1/common`, `aom_dsp`, or the AV1 decoder build definition.
+- [x] CDEF now uses one bounded 64x64-unit bordered source workspace, two preserved top-row slots per
+  plane, preserved left columns, and unit-local direction and variance storage. This replaces the
+  frame-wide source copy and frame-wide direction maps while retaining libaom's unit traversal and
+  cross-plane luma-direction lifetime.
+- [x] Loop restoration now retains the required immutable source and separate destination, but stores the
+  full destination in native sample width. Eight-bit filtering narrows only bounded unit output after
+  clipping, while high-bit-depth filtering writes directly to the native `ushort` destination.
+- [x] Reference-to-presentation copying now copies visible native rows only. Padding remains destination
+  owned, and the ownership tests mutate a copied visible sample rather than unrelated padding.
+- [x] The remaining decoder allocations and copies are either bounded scratch or required ownership
+  boundaries. Frame planes enforce their contiguous single-span invariant before allocation; palette,
+  transform, film-grain, super-resolution, color-conversion, and alpha workspaces remain bounded and
+  allocator owned. No per-block managed allocation remains in reconstruction.
+- [x] Valid unsupported tile-list syntax is rejected explicitly. Reserved and metadata OBUs are consumed
+  only after bounded framing and trailing-bit validation. Eight-, ten-, and twelve-bit reconstruction,
+  presentation, alpha, restoration, and film-grain paths retain native precision.
+- [x] Predictor traversal remains split into semantic readonly operator families. The planar sample
+  adapter and transform-block context are value types, and Release construction sites use `default`
+  without null-forgiving suppression.
+- [x] The net11.0 Release test project builds with zero errors. Roslynk reports zero compiler errors,
+  `git diff --check` passes, and `.gitattributes` is unchanged.
+- [x] Visual Studio 18.9 VSTest ran the complete `Formats.Heif.Av1` namespace with collection
+  parallelism disabled and stop-on-failure enabled: 8,746 of 8,746 cases passed. The touched
+  `HeifDecoderTests` and `HeifSequenceParserTests` add 104 of 104 passing integration cases.
+  Focused CDEF, restoration, film-grain, copy-ownership, and reference-isolation runs also pass 15 of
+  15 cases. No test-host crash or Windows application-error dialog occurred.
 
 Decoder exit gate:
 

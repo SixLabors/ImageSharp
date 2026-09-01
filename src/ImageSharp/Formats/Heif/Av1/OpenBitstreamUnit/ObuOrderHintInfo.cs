@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// <summary>
 /// Contains the sequence-level order-hint and dependent prediction-tool settings.
 /// </summary>
-internal class ObuOrderHintInfo
+internal sealed class ObuOrderHintInfo
 {
     /// <summary>
     /// Gets or sets a value indicating whether order hints are enabled.

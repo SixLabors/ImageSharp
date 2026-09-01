@@ -8,17 +8,17 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 /// <summary>
 /// Stores the AV1 DC and AC dequantization values for every segment and color plane in a frame.
 /// </summary>
-internal class Av1DeQuantizationContext
+internal sealed class Av1DeQuantizationContext
 {
     /// <summary>
     /// The DC dequantization values indexed by segment and then plane.
     /// </summary>
-    private readonly short[][] dcContent;
+    private InlineArray8<InlineArray4<short>> dcContent;
 
     /// <summary>
     /// The AC dequantization values indexed by segment and then plane.
     /// </summary>
-    private readonly short[][] acContent;
+    private InlineArray8<InlineArray4<short>> acContent;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1DeQuantizationContext"/> class from the frame's base quantizer,
@@ -29,12 +29,8 @@ internal class Av1DeQuantizationContext
     public Av1DeQuantizationContext(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
         Av1BitDepth bitDepth = sequenceHeader.ColorConfig.BitDepth;
-        this.dcContent = new short[Av1Constants.MaxSegmentCount][];
-        this.acContent = new short[Av1Constants.MaxSegmentCount][];
         for (int segmentId = 0; segmentId < Av1Constants.MaxSegmentCount; segmentId++)
         {
-            this.dcContent[segmentId] = new short[Av1Constants.MaxPlanes];
-            this.acContent[segmentId] = new short[Av1Constants.MaxPlanes];
             int qindex = Av1QuantizationLookup.GetQIndex(frameHeader.SegmentationParameters, segmentId, frameHeader.QuantizationParameters.BaseQIndex);
 
             for (int plane = 0; plane < Av1Constants.MaxPlanes; plane++)

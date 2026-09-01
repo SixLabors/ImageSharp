@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -27,12 +28,12 @@ public class Av1PredictorTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
-    /// Cardinal, base, and adjusted angles covering every directional projection zone.
+    /// Gets the cardinal, base, and adjusted angles covering every directional projection zone.
     /// </summary>
     private static ReadOnlySpan<int> DirectionalAngles => [36, 45, 54, 67, 90, 104, 113, 126, 135, 148, 157, 166, 180, 194, 203, 212];
 
     /// <summary>
-    /// The complete set of AV1 filter-intra coefficient modes.
+    /// Gets the complete set of AV1 filter-intra coefficient modes.
     /// </summary>
     private static ReadOnlySpan<Av1FilterIntraMode> FilterIntraModes =>
     [
@@ -121,6 +122,42 @@ public class Av1PredictorTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateEdgeFiltering, HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic);
 
     /// <summary>
+    /// Verifies the traversal-order bits that distinguish current libaom's mixed-vertical square tables.
+    /// </summary>
+    [Fact]
+    public void MixedVerticalAvailabilityUsesDedicatedSquareTables()
+    {
+        Assert.True(Av1BottomRightTopLeftConstants.HasTopRight(Av1PartitionType.Split, Av1BlockSize.Block8x8, 16));
+        Assert.False(Av1BottomRightTopLeftConstants.HasTopRight(Av1PartitionType.VerticalA, Av1BlockSize.Block8x8, 16));
+        Assert.False(Av1BottomRightTopLeftConstants.HasTopRight(Av1PartitionType.VerticalB, Av1BlockSize.Block8x8, 16));
+
+        Assert.False(Av1BottomRightTopLeftConstants.HasBottomLeft(Av1PartitionType.Split, Av1BlockSize.Block8x8, 1));
+        Assert.True(Av1BottomRightTopLeftConstants.HasBottomLeft(Av1PartitionType.VerticalA, Av1BlockSize.Block8x8, 1));
+        Assert.True(Av1BottomRightTopLeftConstants.HasBottomLeft(Av1PartitionType.VerticalB, Av1BlockSize.Block8x8, 1));
+    }
+
+    /// <summary>
+    /// Verifies that mixed-vertical rectangles use current libaom's ordinary rectangle tables.
+    /// </summary>
+    [Theory]
+    [InlineData((int)Av1BlockSize.Block4x8)]
+    [InlineData((int)Av1BlockSize.Block8x16)]
+    [InlineData((int)Av1BlockSize.Block16x32)]
+    [InlineData((int)Av1BlockSize.Block32x64)]
+    [InlineData((int)Av1BlockSize.Block64x128)]
+    public void MixedVerticalAvailabilityReusesVerticalRectangleTables(int blockSizeValue)
+    {
+        Av1BlockSize blockSize = (Av1BlockSize)blockSizeValue;
+        bool expectedTopRight = Av1BottomRightTopLeftConstants.HasTopRight(Av1PartitionType.Split, blockSize, 0);
+        bool expectedBottomLeft = Av1BottomRightTopLeftConstants.HasBottomLeft(Av1PartitionType.Split, blockSize, 0);
+
+        Assert.Equal(expectedTopRight, Av1BottomRightTopLeftConstants.HasTopRight(Av1PartitionType.VerticalA, blockSize, 0));
+        Assert.Equal(expectedTopRight, Av1BottomRightTopLeftConstants.HasTopRight(Av1PartitionType.VerticalB, blockSize, 0));
+        Assert.Equal(expectedBottomLeft, Av1BottomRightTopLeftConstants.HasBottomLeft(Av1PartitionType.VerticalA, blockSize, 0));
+        Assert.Equal(expectedBottomLeft, Av1BottomRightTopLeftConstants.HasBottomLeft(Av1PartitionType.VerticalB, blockSize, 0));
+    }
+
+    /// <summary>
     /// Verifies all four DC neighbor-availability combinations at every AV1 transform size.
     /// </summary>
     private static void ValidateDcPredictors()
@@ -192,7 +229,7 @@ public class Av1PredictorTests
     /// <param name="mode">The prediction mode to verify.</param>
     private static void ValidateNonDirectionalPredictor(Av1PredictionMode mode)
     {
-        Av1IntraPredictorBase predictor = Av1IntraPredictorBase.GetPredictor(mode);
+        Av1NonDirectionalIntraPredictorBase predictor = Av1NonDirectionalIntraPredictorBase.GetPredictor(mode);
         for (int sizeIndex = 0; sizeIndex < (int)Av1TransformSize.AllSizes; sizeIndex++)
         {
             Av1TransformSize transformSize = (Av1TransformSize)sizeIndex;
@@ -225,7 +262,7 @@ public class Av1PredictorTests
     /// </summary>
     /// <param name="mode">The prediction mode being verified.</param>
     /// <param name="predictor">The closed operator-driven predictor.</param>
-    private static void ValidateKnownNonDirectionalVector(Av1PredictionMode mode, Av1IntraPredictorBase predictor)
+    private static void ValidateKnownNonDirectionalVector(Av1PredictionMode mode, Av1NonDirectionalIntraPredictorBase predictor)
     {
         byte[] aboveStorage;
         byte[] left;

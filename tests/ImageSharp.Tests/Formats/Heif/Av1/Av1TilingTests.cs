@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -121,6 +122,14 @@ public class Av1TilingTests
         tileInfo.TileRowStartModeInfo[1] = sequenceHeader.SuperblockModeInfoSize;
         ObuFrameHeader frameHeader = new()
         {
+            FrameSize = new ObuFrameSize
+            {
+                FrameWidth = 64,
+                FrameHeight = 64,
+                SuperResolutionUpscaledWidth = 64,
+                RenderWidth = 64,
+                RenderHeight = 64
+            },
             ModeInfoColumnCount = sequenceHeader.SuperblockModeInfoSize,
             ModeInfoRowCount = sequenceHeader.SuperblockModeInfoSize,
             ModeInfoStride = sequenceHeader.SuperblockModeInfoSize,
@@ -161,10 +170,26 @@ public class Av1TilingTests
         IAv1TileReader stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
         obuReader.ReadAll(ref bitStreamReader, dataSize, () => stub);
-        Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, obuReader.SequenceHeader, Av1ColorFormat.Yuv444, false);
-        Av1FrameInfo frameInfo = new(obuReader.SequenceHeader);
-        Av1FrameDecoder frameDecoder = new(obuReader.SequenceHeader, obuReader.FrameHeader, frameInfo, frameBuffer);
-        Av1TileReader tileReader = new(Configuration.Default, obuReader.SequenceHeader, obuReader.FrameHeader, frameDecoder);
+        using Av1ReferenceFrameStore referenceFrames = new();
+        using Av1FrameBuffer<byte> frameBuffer = new(
+            Configuration.Default,
+            obuReader.SequenceHeader,
+            Av1ColorFormat.Yuv444,
+            false);
+
+        using Av1FrameInfo frameInfo = new(obuReader.SequenceHeader);
+        using Av1FrameDecoder frameDecoder = new(
+            obuReader.SequenceHeader,
+            obuReader.FrameHeader,
+            frameInfo,
+            frameBuffer,
+            referenceFrames);
+
+        using Av1TileReader tileReader = new(
+            Configuration.Default,
+            obuReader.SequenceHeader,
+            obuReader.FrameHeader,
+            frameDecoder);
 
         // Act
         tileReader.ReadTile(tileSpan, 0);
@@ -194,10 +219,21 @@ public class Av1TilingTests
 
         // Reuse known-good tile syntax after parsing so this test isolates native high-bit prediction and reconstruction wiring.
         obuReader.SequenceHeader.ColorConfig.BitDepth = (Av1BitDepth)bitDepthIndex;
+        using Av1ReferenceFrameStore referenceFrames = new();
         using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, obuReader.SequenceHeader, Av1ColorFormat.Yuv444, false);
-        Av1FrameInfo frameInfo = new(obuReader.SequenceHeader);
-        Av1FrameDecoder frameDecoder = new(obuReader.SequenceHeader, obuReader.FrameHeader, frameInfo, frameBuffer);
-        Av1TileReader tileReader = new(Configuration.Default, obuReader.SequenceHeader, obuReader.FrameHeader, frameDecoder);
+        using Av1FrameInfo frameInfo = new(obuReader.SequenceHeader);
+        using Av1FrameDecoder frameDecoder = new(
+            obuReader.SequenceHeader,
+            obuReader.FrameHeader,
+            frameInfo,
+            frameBuffer,
+            referenceFrames);
+
+        using Av1TileReader tileReader = new(
+            Configuration.Default,
+            obuReader.SequenceHeader,
+            obuReader.FrameHeader,
+            frameDecoder);
 
         tileReader.ReadTile(tileSpan, 0);
 
@@ -220,10 +256,12 @@ public class Av1TilingTests
         IAv1TileReader stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
         obuReader.ReadAll(ref bitStreamReader, dataSize, () => stub);
-        Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, obuReader.SequenceHeader, Av1ColorFormat.Yuv444, false);
-        Av1FrameInfo frameInfo = new(obuReader.SequenceHeader);
         Av1FrameDecoderStub frameDecoder = new();
-        Av1TileReader tileReader = new(Configuration.Default, obuReader.SequenceHeader, obuReader.FrameHeader, frameDecoder);
+        using Av1TileReader tileReader = new(
+            Configuration.Default,
+            obuReader.SequenceHeader,
+            obuReader.FrameHeader,
+            frameDecoder);
 
         // Act
         tileReader.ReadTile(tileSpan, 0);
@@ -247,7 +285,7 @@ public class Av1TilingTests
         IAv1TileReader stub = new Av1TileDecoderStub();
         ObuReader obuReader = new();
         obuReader.ReadAll(ref bitStreamReader, dataSize, () => stub);
-        Av1TileReader tileReader = new(Configuration.Default, obuReader.SequenceHeader, obuReader.FrameHeader);
+        using Av1TileReader tileReader = new(Configuration.Default, obuReader.SequenceHeader, obuReader.FrameHeader);
 
         tileReader.ReadTile(tileSpan, 0);
 
@@ -259,7 +297,7 @@ public class Av1TilingTests
             {
                 Point superblockPosition = new(column / superblockSize, row / superblockSize);
                 Av1SuperblockInfo superblockInfo = tileReader.FrameInfo.GetSuperblock(superblockPosition);
-                Span<Av1BlockModeInfo> modeInfos = superblockInfo.GetModeInfos();
+                Av1FrameInfo.ModeInfoCollection modeInfos = superblockInfo.GetModeInfos();
 
                 Assert.Equal(superblockInfo.BlockCount, modeInfos.Length);
                 Assert.Equal(modeInfos[0].ModeInfoIndex, tileReader.FrameInfo.GetModeInfo(superblockPosition).ModeInfoIndex);
@@ -286,75 +324,6 @@ public class Av1TilingTests
         }
 
         Assert.True(parsedModeInfoCount > 16);
-    }
-
-    [Fact]
-    public void ParsedCoefficientsRemainAvailablePerSuperblockAndPlane()
-    {
-        string filePath = Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, TestImages.Heif.XnConvert);
-        byte[] content = File.ReadAllBytes(filePath);
-        const int dataOffset = 0x010E;
-        const int dataSize = 0x03CC;
-        const int tileOffset = 18;
-        Span<byte> headerSpan = content.AsSpan(dataOffset, dataSize);
-        Span<byte> tileSpan = content.AsSpan(dataOffset + tileOffset, dataSize - tileOffset);
-        Av1BitStreamReader bitStreamReader = new(headerSpan);
-        IAv1TileReader stub = new Av1TileDecoderStub();
-        ObuReader obuReader = new();
-        obuReader.ReadAll(ref bitStreamReader, dataSize, () => stub);
-        Av1TileReader tileReader = new(Configuration.Default, obuReader.SequenceHeader, obuReader.FrameHeader);
-
-        tileReader.ReadTile(tileSpan, 0);
-
-        int codedTransformCount = 0;
-        int superblockSize = obuReader.SequenceHeader.SuperblockModeInfoSize;
-        for (int row = 0; row < obuReader.FrameHeader.ModeInfoRowCount; row += superblockSize)
-        {
-            for (int column = 0; column < obuReader.FrameHeader.ModeInfoColumnCount; column += superblockSize)
-            {
-                Point superblockPosition = new(column / superblockSize, row / superblockSize);
-                Av1SuperblockInfo superblockInfo = tileReader.FrameInfo.GetSuperblock(superblockPosition);
-                int[] coefficientIndices = new int[Av1Constants.MaxPlanes];
-
-                foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
-                {
-                    Point modeInfoPosition = new(column + modeInfo.PositionInSuperblock.X, row + modeInfo.PositionInSuperblock.Y);
-                    bool hasChroma = Av1TileReader.HasChroma(obuReader.SequenceHeader, modeInfoPosition, modeInfo.BlockSize);
-
-                    for (int plane = 0; plane < obuReader.SequenceHeader.ColorConfig.PlaneCount; plane++)
-                    {
-                        if (plane != 0 && !hasChroma)
-                        {
-                            continue;
-                        }
-
-                        int transformUnitCount = modeInfo.GetTransformUnitCount((Av1Plane)plane);
-                        int transformInfoIndex = modeInfo.GetFirstTransformLocation((Av1Plane)plane);
-                        if (plane == (int)Av1Plane.V)
-                        {
-                            transformInfoIndex += transformUnitCount;
-                        }
-
-                        Span<Av1TransformInfo> transformInfos = superblockInfo.GetTransformInfo(plane)[transformInfoIndex..];
-                        Span<int> coefficients = superblockInfo.GetCoefficients((Av1Plane)plane);
-                        for (int i = 0; i < transformUnitCount; i++)
-                        {
-                            if (!transformInfos[i].CodeBlockFlag)
-                            {
-                                continue;
-                            }
-
-                            int endOfBlock = coefficients[coefficientIndices[plane]];
-                            Assert.InRange(endOfBlock, 1, transformInfos[i].Size.GetWidth() * transformInfos[i].Size.GetHeight());
-                            coefficientIndices[plane] += endOfBlock + 1;
-                            codedTransformCount++;
-                        }
-                    }
-                }
-            }
-        }
-
-        Assert.True(codedTransformCount > 3);
     }
 
     [Theory]

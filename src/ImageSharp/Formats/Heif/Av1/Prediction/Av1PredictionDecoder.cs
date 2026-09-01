@@ -23,7 +23,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// to adjacent SIMD lanes, exact-width stores interleave filtered half samples with the original edge, and scalar
 /// continuations handle only incomplete vectors. The completed edges then feed the closed prediction operators.
 /// </remarks>
-internal class Av1PredictionDecoder
+internal sealed class Av1PredictionDecoder
 {
     /// <summary>
     /// The largest edge length for which AV1 permits intra-edge upsampling.
@@ -61,16 +61,27 @@ internal class Av1PredictionDecoder
     private readonly Memory<short> predictorScratch;
 
     /// <summary>
+    /// The complete decoder-session palette color-index map state, when supplied by a decoder session.
+    /// </summary>
+    private readonly Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1PredictionDecoder"/> class.
     /// </summary>
     /// <param name="sequenceHeader">The decoded sequence header for the current image.</param>
     /// <param name="frameHeader">The decoded frame header for the current image.</param>
     /// <param name="predictorScratch">The reusable predictor workspace owned by the containing block decoder.</param>
-    public Av1PredictionDecoder(ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, Memory<short> predictorScratch)
+    /// <param name="paletteColorIndexMaps">The complete decoder-session palette map state.</param>
+    public Av1PredictionDecoder(
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        Memory<short> predictorScratch,
+        Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps = null)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
         this.predictorScratch = predictorScratch;
+        this.paletteColorIndexMaps = paletteColorIndexMaps;
     }
 
     /// <summary>
@@ -462,7 +473,18 @@ internal class Av1PredictionDecoder
         if (usePalette)
         {
             ReadOnlySpan<ushort> paletteColors = modeInfo.GetPaletteColors(plane);
-            Buffer2DRegion<byte> colorIndexMap = modeInfo.GetPaletteColorIndexMap(plane);
+            Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMapState = this.paletteColorIndexMaps;
+            if (paletteColorIndexMapState is null)
+            {
+                throw new InvalidOperationException("Palette prediction requires decoder-session color-index maps.");
+            }
+
+            Av1TileReader.PaletteColorIndexMaps paletteColorIndexMaps = paletteColorIndexMapState.Value;
+            Buffer2D<byte> colorIndexBuffer = plane == Av1Plane.Y
+                ? paletteColorIndexMaps.Luma
+                : paletteColorIndexMaps.Chroma;
+
+            Buffer2DRegion<byte> colorIndexMap = modeInfo.GetPaletteColorIndexMap(plane, colorIndexBuffer);
             Buffer2DRegion<byte> transformColorIndexMap = colorIndexMap.GetSubRegion(
                 blockModeInfoColumnOffset << Av1Constants.ModeInfoSizeLog2,
                 blockModeInfoRowOffset << Av1Constants.ModeInfoSizeLog2,
@@ -1215,7 +1237,7 @@ internal class Av1PredictionDecoder
     {
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
-        Av1IntraPredictorBase predictor = Av1IntraPredictorBase.GetPredictor(mode);
+        Av1NonDirectionalIntraPredictorBase predictor = Av1NonDirectionalIntraPredictorBase.GetPredictor(mode);
 
         if (typeof(T) == typeof(byte))
         {
@@ -2004,7 +2026,7 @@ internal class Av1PredictionDecoder
         }
         else
         {
-            // Inter mode not supported here.
+            // Chroma modes use their own enum and carry only the intra predictors relevant to this neighbor check.
             Av1ChromaPredictionMode uvMode = modeInfo.UvMode;
             return uvMode is Av1ChromaPredictionMode.Smooth or
                 Av1ChromaPredictionMode.SmoothVertical or

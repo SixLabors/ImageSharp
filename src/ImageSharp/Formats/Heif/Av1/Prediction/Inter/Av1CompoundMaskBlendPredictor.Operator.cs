@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
 using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1CompoundInterPredictor;
-using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1InterPredictor;
+using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1TranslationalInterPredictor;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 
@@ -111,10 +111,10 @@ internal static partial class Av1CompoundMaskBlendPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<byte> Blend(Vector128<byte> first, Vector128<byte> second, Vector128<byte> alpha)
         {
-            Av1IntraPredictorBase.Widen(first, out Vector128<int> first0, out Vector128<int> first1, out Vector128<int> first2, out Vector128<int> first3);
-            Av1IntraPredictorBase.Widen(second, out Vector128<int> second0, out Vector128<int> second1, out Vector128<int> second2, out Vector128<int> second3);
-            Av1IntraPredictorBase.Widen(alpha, out Vector128<int> alpha0, out Vector128<int> alpha1, out Vector128<int> alpha2, out Vector128<int> alpha3);
-            return Av1IntraPredictorBase.Narrow(
+            Av1NonDirectionalIntraPredictorBase.Widen(first, out Vector128<int> first0, out Vector128<int> first1, out Vector128<int> first2, out Vector128<int> first3);
+            Av1NonDirectionalIntraPredictorBase.Widen(second, out Vector128<int> second0, out Vector128<int> second1, out Vector128<int> second2, out Vector128<int> second3);
+            Av1NonDirectionalIntraPredictorBase.Widen(alpha, out Vector128<int> alpha0, out Vector128<int> alpha1, out Vector128<int> alpha2, out Vector128<int> alpha3);
+            return Av1NonDirectionalIntraPredictorBase.Narrow(
                 Blend(first0, second0, alpha0),
                 Blend(first1, second1, alpha1),
                 Blend(first2, second2, alpha2),
@@ -125,10 +125,10 @@ internal static partial class Av1CompoundMaskBlendPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<byte> Blend(Vector256<byte> first, Vector256<byte> second, Vector256<byte> alpha)
         {
-            Av1IntraPredictorBase.Widen(first, out Vector256<int> first0, out Vector256<int> first1, out Vector256<int> first2, out Vector256<int> first3);
-            Av1IntraPredictorBase.Widen(second, out Vector256<int> second0, out Vector256<int> second1, out Vector256<int> second2, out Vector256<int> second3);
-            Av1IntraPredictorBase.Widen(alpha, out Vector256<int> alpha0, out Vector256<int> alpha1, out Vector256<int> alpha2, out Vector256<int> alpha3);
-            return Av1IntraPredictorBase.Narrow(
+            Av1NonDirectionalIntraPredictorBase.Widen(first, out Vector256<int> first0, out Vector256<int> first1, out Vector256<int> first2, out Vector256<int> first3);
+            Av1NonDirectionalIntraPredictorBase.Widen(second, out Vector256<int> second0, out Vector256<int> second1, out Vector256<int> second2, out Vector256<int> second3);
+            Av1NonDirectionalIntraPredictorBase.Widen(alpha, out Vector256<int> alpha0, out Vector256<int> alpha1, out Vector256<int> alpha2, out Vector256<int> alpha3);
+            return Av1NonDirectionalIntraPredictorBase.Narrow(
                 Blend(first0, second0, alpha0),
                 Blend(first1, second1, alpha1),
                 Blend(first2, second2, alpha2),
@@ -139,10 +139,10 @@ internal static partial class Av1CompoundMaskBlendPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<byte> Blend(Vector512<byte> first, Vector512<byte> second, Vector512<byte> alpha)
         {
-            Av1IntraPredictorBase.Widen(first, out Vector512<int> first0, out Vector512<int> first1, out Vector512<int> first2, out Vector512<int> first3);
-            Av1IntraPredictorBase.Widen(second, out Vector512<int> second0, out Vector512<int> second1, out Vector512<int> second2, out Vector512<int> second3);
-            Av1IntraPredictorBase.Widen(alpha, out Vector512<int> alpha0, out Vector512<int> alpha1, out Vector512<int> alpha2, out Vector512<int> alpha3);
-            return Av1IntraPredictorBase.Narrow(
+            Av1NonDirectionalIntraPredictorBase.Widen(first, out Vector512<int> first0, out Vector512<int> first1, out Vector512<int> first2, out Vector512<int> first3);
+            Av1NonDirectionalIntraPredictorBase.Widen(second, out Vector512<int> second0, out Vector512<int> second1, out Vector512<int> second2, out Vector512<int> second3);
+            Av1NonDirectionalIntraPredictorBase.Widen(alpha, out Vector512<int> alpha0, out Vector512<int> alpha1, out Vector512<int> alpha2, out Vector512<int> alpha3);
+            return Av1NonDirectionalIntraPredictorBase.Narrow(
                 Blend(first0, second0, alpha0),
                 Blend(first1, second1, alpha1),
                 Blend(first2, second2, alpha2),
@@ -153,30 +153,30 @@ internal static partial class Av1CompoundMaskBlendPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<ushort> Blend(Vector128<ushort> first, Vector128<ushort> second, Vector128<ushort> alpha)
         {
-            Av1IntraPredictorBase.Widen(first.AsInt16(), out Vector128<int> first0, out Vector128<int> first1);
-            Av1IntraPredictorBase.Widen(second.AsInt16(), out Vector128<int> second0, out Vector128<int> second1);
-            Av1IntraPredictorBase.Widen(alpha.AsInt16(), out Vector128<int> alpha0, out Vector128<int> alpha1);
-            return Av1IntraPredictorBase.Narrow(Blend(first0, second0, alpha0), Blend(first1, second1, alpha1)).AsUInt16();
+            Av1NonDirectionalIntraPredictorBase.Widen(first.AsInt16(), out Vector128<int> first0, out Vector128<int> first1);
+            Av1NonDirectionalIntraPredictorBase.Widen(second.AsInt16(), out Vector128<int> second0, out Vector128<int> second1);
+            Av1NonDirectionalIntraPredictorBase.Widen(alpha.AsInt16(), out Vector128<int> alpha0, out Vector128<int> alpha1);
+            return Av1NonDirectionalIntraPredictorBase.Narrow(Blend(first0, second0, alpha0), Blend(first1, second1, alpha1)).AsUInt16();
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<ushort> Blend(Vector256<ushort> first, Vector256<ushort> second, Vector256<ushort> alpha)
         {
-            Av1IntraPredictorBase.Widen(first.AsInt16(), out Vector256<int> first0, out Vector256<int> first1);
-            Av1IntraPredictorBase.Widen(second.AsInt16(), out Vector256<int> second0, out Vector256<int> second1);
-            Av1IntraPredictorBase.Widen(alpha.AsInt16(), out Vector256<int> alpha0, out Vector256<int> alpha1);
-            return Av1IntraPredictorBase.Narrow(Blend(first0, second0, alpha0), Blend(first1, second1, alpha1)).AsUInt16();
+            Av1NonDirectionalIntraPredictorBase.Widen(first.AsInt16(), out Vector256<int> first0, out Vector256<int> first1);
+            Av1NonDirectionalIntraPredictorBase.Widen(second.AsInt16(), out Vector256<int> second0, out Vector256<int> second1);
+            Av1NonDirectionalIntraPredictorBase.Widen(alpha.AsInt16(), out Vector256<int> alpha0, out Vector256<int> alpha1);
+            return Av1NonDirectionalIntraPredictorBase.Narrow(Blend(first0, second0, alpha0), Blend(first1, second1, alpha1)).AsUInt16();
         }
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<ushort> Blend(Vector512<ushort> first, Vector512<ushort> second, Vector512<ushort> alpha)
         {
-            Av1IntraPredictorBase.Widen(first.AsInt16(), out Vector512<int> first0, out Vector512<int> first1);
-            Av1IntraPredictorBase.Widen(second.AsInt16(), out Vector512<int> second0, out Vector512<int> second1);
-            Av1IntraPredictorBase.Widen(alpha.AsInt16(), out Vector512<int> alpha0, out Vector512<int> alpha1);
-            return Av1IntraPredictorBase.Narrow(Blend(first0, second0, alpha0), Blend(first1, second1, alpha1)).AsUInt16();
+            Av1NonDirectionalIntraPredictorBase.Widen(first.AsInt16(), out Vector512<int> first0, out Vector512<int> first1);
+            Av1NonDirectionalIntraPredictorBase.Widen(second.AsInt16(), out Vector512<int> second0, out Vector512<int> second1);
+            Av1NonDirectionalIntraPredictorBase.Widen(alpha.AsInt16(), out Vector512<int> alpha0, out Vector512<int> alpha1);
+            return Av1NonDirectionalIntraPredictorBase.Narrow(Blend(first0, second0, alpha0), Blend(first1, second1, alpha1)).AsUInt16();
         }
 
         /// <summary>

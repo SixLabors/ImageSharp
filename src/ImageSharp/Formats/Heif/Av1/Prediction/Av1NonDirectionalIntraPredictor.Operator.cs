@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// Defines the neighbor-usage flags and scalar/SIMD contract for closed intra-prediction operators, and provides
 /// their shared width-progressive SIMD traversal.
 /// </content>
-internal abstract partial class Av1IntraPredictorBase
+internal abstract partial class Av1NonDirectionalIntraPredictorBase
 {
     /// <summary>
     /// Identifies the neighboring inputs consumed by an AV1 intra-prediction operator.
@@ -194,7 +194,7 @@ internal abstract partial class Av1IntraPredictorBase
     /// left sample and row weight are broadcast. <typeparamref name="TOperator"/> declares which references it uses;
     /// because the operator type is closed, the JIT can remove unused loads and broadcasts from each prediction mode.
     /// </remarks>
-    internal sealed class Av1IntraPredictor<TOperator> : Av1IntraPredictorBase
+    internal sealed class Av1NonDirectionalIntraPredictor<TOperator> : Av1NonDirectionalIntraPredictorBase
         where TOperator : struct, IAv1IntraPredictionOperator
     {
         /// <inheritdoc/>

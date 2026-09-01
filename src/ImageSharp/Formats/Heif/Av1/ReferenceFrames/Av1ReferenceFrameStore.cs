@@ -43,6 +43,27 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
     public Av1ReferenceFrame? Resolve(int slot) => this.frames[slot];
 
     /// <summary>
+    /// Resolves a reference-map slot that an earlier syntax boundary has established as occupied.
+    /// </summary>
+    /// <param name="slot">The zero-based reference-map slot.</param>
+    /// <returns>The retained frame in the selected slot.</returns>
+    public Av1ReferenceFrame ResolveRequired(int slot)
+    {
+        return this.Resolve(slot)
+            ?? throw new InvalidImageContentException($"The AV1 reference-map slot {slot} has not been populated.");
+    }
+
+    /// <summary>
+    /// Resolves the presentation output established by the completed bounded payload.
+    /// </summary>
+    /// <returns>The retained frame selected for presentation.</returns>
+    public Av1ReferenceFrame ResolveOutput()
+    {
+        return this.outputFrame
+            ?? throw new InvalidImageContentException("The AV1 payload did not produce a shown frame.");
+    }
+
+    /// <summary>
     /// Writes whether each reference-map slot currently owns a reconstructed frame.
     /// </summary>
     /// <param name="destination">The eight-entry destination receiving the current slot occupancy.</param>
@@ -164,7 +185,7 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
     /// <returns>The retained frame selected for presentation.</returns>
     public Av1ReferenceFrame ShowExisting(int slot)
     {
-        Av1ReferenceFrame selectedFrame = this.frames[slot]!;
+        Av1ReferenceFrame selectedFrame = this.ResolveRequired(slot);
         Av1ReferenceFrame? replacedOutputFrame = this.outputFrame;
         this.outputFrame = selectedFrame;
 
@@ -217,7 +238,7 @@ internal sealed class Av1ReferenceFrameStore : IDisposable
     /// <returns>The selected presentation frame now owned by the caller.</returns>
     public Av1ReferenceFrame TakeOutput()
     {
-        Av1ReferenceFrame result = this.outputFrame!;
+        Av1ReferenceFrame result = this.ResolveOutput();
         this.outputFrame = null;
 
         // The caller becomes the sole owner of the selected output. Remove all slot aliases before Reset releases the

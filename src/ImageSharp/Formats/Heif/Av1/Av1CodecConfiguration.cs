@@ -551,7 +551,7 @@ internal sealed class Av1CodecConfiguration
     /// <param name="sourceName">The source description used by invalid-content errors.</param>
     /// <param name="contentLightLevel">Receives decoded content light-level metadata when present.</param>
     /// <param name="masteringDisplayColorVolume">Receives decoded mastering-display metadata when present.</param>
-    private static void ReadHdrMetadata(
+    public static void ReadHdrMetadata(
         ReadOnlySpan<byte> payload,
         string sourceName,
         out HeifContentLightLevel? contentLightLevel,

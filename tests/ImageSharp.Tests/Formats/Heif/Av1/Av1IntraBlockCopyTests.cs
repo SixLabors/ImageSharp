@@ -21,7 +21,7 @@ public class Av1IntraBlockCopyTests
     public void FindReferenceUsesFirstRowFallback()
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
-        Av1FrameInfo frameInfo = new(sequenceHeader);
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
         Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(new Point(5, 0));
         Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block16x16, Point.Empty);
         Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, true, Av1PartitionType.None)
@@ -51,11 +51,10 @@ public class Av1IntraBlockCopyTests
     public void FindReferenceUsesPreviousSuperblockRowFallback()
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
-        Av1FrameInfo frameInfo = new(sequenceHeader);
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
         Av1SuperblockInfo aboveSuperblock = frameInfo.GetSuperblock(new Point(5, 0));
         Av1BlockModeInfo aboveModeInfo = new(Av1BlockSize.Block64x64, Point.Empty);
         frameInfo.UpdateModeInfo(aboveModeInfo, aboveSuperblock);
-        aboveSuperblock.BlockCount++;
 
         Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(new Point(5, 1));
         Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block16x16, Point.Empty);
@@ -87,7 +86,7 @@ public class Av1IntraBlockCopyTests
     public void IsValidEnforcesIntraBlockCopySourceRestrictions()
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
-        Av1FrameInfo frameInfo = new(sequenceHeader);
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
         Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(new Point(8, 2));
         Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block16x16, Point.Empty);
         Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, true, Av1PartitionType.None)
@@ -131,17 +130,20 @@ public class Av1IntraBlockCopyTests
     /// </summary>
     private static Av1TileInfo CreateTileInfo()
     {
+        ObuTileGroupHeader tilesInfo = new()
+        {
+            TileColumnCount = 1,
+            TileRowCount = 1,
+        };
+
+        tilesInfo.TileColumnStartModeInfo[1] = 160;
+        tilesInfo.TileRowStartModeInfo[1] = 64;
+
         ObuFrameHeader frameHeader = new()
         {
             ModeInfoColumnCount = 160,
             ModeInfoRowCount = 64,
-            TilesInfo = new ObuTileGroupHeader
-            {
-                TileColumnCount = 1,
-                TileRowCount = 1,
-                TileColumnStartModeInfo = [0, 160],
-                TileRowStartModeInfo = [0, 64],
-            },
+            TilesInfo = tilesInfo,
         };
 
         return new Av1TileInfo(0, 0, frameHeader);

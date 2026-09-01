@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 /// <summary>
 /// Contains the field widths and decoding-clock units used by the AV1 decoder model.
 /// </summary>
-internal class ObuDecoderModelInfo
+internal sealed class ObuDecoderModelInfo
 {
     /// <summary>
     /// Gets or sets BufferDelayLength. Specifies the length of the decoder_buffer_delay and the encoder_buffer_delay

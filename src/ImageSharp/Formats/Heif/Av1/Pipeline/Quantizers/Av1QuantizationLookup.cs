@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 /// <summary>
 /// Provides the normative AV1 DC and AC dequantization values for each quantizer index and supported bit depth.
 /// </summary>
-internal class Av1QuantizationLookup
+internal static class Av1QuantizationLookup
 {
     // Coefficient scaling and quantization with AV1 TX are tailored to
     // the AV1 TX transforms.  Regardless of the bit-depth of the input,
@@ -223,7 +223,7 @@ internal class Av1QuantizationLookup
     {
         if (segmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.AlternativeQuantizer))
         {
-            int data = segmentationParameters.FeatureData[segmentId, (int)ObuSegmentationLevelFeature.AlternativeQuantizer];
+            int data = segmentationParameters.GetFeatureData(segmentId, (int)ObuSegmentationLevelFeature.AlternativeQuantizer);
             int qIndex = baseQIndex + data;
             return Av1Math.Clamp(qIndex, 0, Av1Constants.MaxQ);
         }
@@ -242,9 +242,6 @@ internal class Av1QuantizationLookup
         ObuQuantizationParameters quantization = frameHeader.QuantizationParameters;
         ObuSegmentationParameters segmentation = frameHeader.SegmentationParameters;
         frameHeader.CodedLossless = true;
-        segmentation.QMLevel[0] = new int[Av1Constants.MaxSegmentCount];
-        segmentation.QMLevel[1] = new int[Av1Constants.MaxSegmentCount];
-        segmentation.QMLevel[2] = new int[Av1Constants.MaxSegmentCount];
         for (int segmentId = 0; segmentId < Av1Constants.MaxSegmentCount; segmentId++)
         {
             int qIndex = GetQIndex(segmentation, segmentId, quantization.BaseQIndex);

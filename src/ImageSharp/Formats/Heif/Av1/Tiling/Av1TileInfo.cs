@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// <summary>
 /// Describes one AV1 tile's superblock and mode-information boundaries.
 /// </summary>
-internal class Av1TileInfo
+internal sealed class Av1TileInfo
 {
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1TileInfo"/> class for the specified tile coordinates.

@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
 
-using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1InterPredictor;
+using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1TranslationalInterPredictor;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 
@@ -423,7 +423,7 @@ internal static partial class Av1ScaledInterPredictor
                         horizontalBias,
                         round0);
 
-                    Av1IntraPredictorBase.Narrow(result, Vector512<int>.Zero)
+                    Av1NonDirectionalIntraPredictorBase.Narrow(result, Vector512<int>.Zero)
                         .GetLower()
                         .StoreUnsafe(ref scratchRow, (nuint)column);
                 }
@@ -443,7 +443,7 @@ internal static partial class Av1ScaledInterPredictor
                         horizontalBias,
                         round0);
 
-                    Av1IntraPredictorBase.Narrow(result, Vector256<int>.Zero)
+                    Av1NonDirectionalIntraPredictorBase.Narrow(result, Vector256<int>.Zero)
                         .GetLower()
                         .StoreUnsafe(ref scratchRow, (nuint)column);
                 }
@@ -462,7 +462,7 @@ internal static partial class Av1ScaledInterPredictor
                         horizontalBias,
                         round0);
 
-                    Av1IntraPredictorBase.Narrow(result, Vector128<int>.Zero)
+                    Av1NonDirectionalIntraPredictorBase.Narrow(result, Vector128<int>.Zero)
                         .GetLower()
                         .StoreUnsafe(ref scratchRow, (nuint)column);
                 }

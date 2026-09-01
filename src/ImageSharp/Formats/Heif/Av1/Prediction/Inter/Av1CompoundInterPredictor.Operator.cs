@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
-using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1InterPredictor;
+using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1TranslationalInterPredictor;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 
@@ -430,7 +430,7 @@ internal static partial class Av1CompoundInterPredictor
             int preShift,
             int round,
             int roundOffset)
-            => Av1IntraPredictorBase.Narrow(
+            => Av1NonDirectionalIntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower << preShift, round) + Vector128.Create(roundOffset),
                 RoundPowerOfTwo(upper << preShift, round) + Vector128.Create(roundOffset)).AsUInt16();
 
@@ -442,7 +442,7 @@ internal static partial class Av1CompoundInterPredictor
             int preShift,
             int round,
             int roundOffset)
-            => Av1IntraPredictorBase.Narrow(
+            => Av1NonDirectionalIntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower << preShift, round) + Vector256.Create(roundOffset),
                 RoundPowerOfTwo(upper << preShift, round) + Vector256.Create(roundOffset)).AsUInt16();
 
@@ -454,7 +454,7 @@ internal static partial class Av1CompoundInterPredictor
             int preShift,
             int round,
             int roundOffset)
-            => Av1IntraPredictorBase.Narrow(
+            => Av1NonDirectionalIntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower << preShift, round) + Vector512.Create(roundOffset),
                 RoundPowerOfTwo(upper << preShift, round) + Vector512.Create(roundOffset)).AsUInt16();
 
@@ -466,21 +466,21 @@ internal static partial class Av1CompoundInterPredictor
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<short> PrepareHorizontal(Vector128<int> lower, Vector128<int> upper)
-            => Av1IntraPredictorBase.Narrow(
+            => Av1NonDirectionalIntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower + Vector128.Create(HorizontalBias), Round0Bits),
                 RoundPowerOfTwo(upper + Vector128.Create(HorizontalBias), Round0Bits));
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<short> PrepareHorizontal(Vector256<int> lower, Vector256<int> upper)
-            => Av1IntraPredictorBase.Narrow(
+            => Av1NonDirectionalIntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower + Vector256.Create(HorizontalBias), Round0Bits),
                 RoundPowerOfTwo(upper + Vector256.Create(HorizontalBias), Round0Bits));
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<short> PrepareHorizontal(Vector512<int> lower, Vector512<int> upper)
-            => Av1IntraPredictorBase.Narrow(
+            => Av1NonDirectionalIntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower + Vector512.Create(HorizontalBias), Round0Bits),
                 RoundPowerOfTwo(upper + Vector512.Create(HorizontalBias), Round0Bits));
 
@@ -496,7 +496,7 @@ internal static partial class Av1CompoundInterPredictor
             Vector128<int> upper,
             int bias,
             int round)
-            => Av1IntraPredictorBase.Narrow(
+            => Av1NonDirectionalIntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower + Vector128.Create(bias), round),
                 RoundPowerOfTwo(upper + Vector128.Create(bias), round));
 
@@ -507,7 +507,7 @@ internal static partial class Av1CompoundInterPredictor
             Vector256<int> upper,
             int bias,
             int round)
-            => Av1IntraPredictorBase.Narrow(
+            => Av1NonDirectionalIntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower + Vector256.Create(bias), round),
                 RoundPowerOfTwo(upper + Vector256.Create(bias), round));
 
@@ -518,7 +518,7 @@ internal static partial class Av1CompoundInterPredictor
             Vector512<int> upper,
             int bias,
             int round)
-            => Av1IntraPredictorBase.Narrow(
+            => Av1NonDirectionalIntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower + Vector512.Create(bias), round),
                 RoundPowerOfTwo(upper + Vector512.Create(bias), round));
 
@@ -530,21 +530,21 @@ internal static partial class Av1CompoundInterPredictor
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<ushort> PrepareVertical(Vector128<int> lower, Vector128<int> upper)
-            => Av1IntraPredictorBase.Narrow(
+            => Av1NonDirectionalIntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower + Vector128.Create(VerticalBias), CompoundRound1Bits),
                 RoundPowerOfTwo(upper + Vector128.Create(VerticalBias), CompoundRound1Bits)).AsUInt16();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<ushort> PrepareVertical(Vector256<int> lower, Vector256<int> upper)
-            => Av1IntraPredictorBase.Narrow(
+            => Av1NonDirectionalIntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower + Vector256.Create(VerticalBias), CompoundRound1Bits),
                 RoundPowerOfTwo(upper + Vector256.Create(VerticalBias), CompoundRound1Bits)).AsUInt16();
 
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<ushort> PrepareVertical(Vector512<int> lower, Vector512<int> upper)
-            => Av1IntraPredictorBase.Narrow(
+            => Av1NonDirectionalIntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower + Vector512.Create(VerticalBias), CompoundRound1Bits),
                 RoundPowerOfTwo(upper + Vector512.Create(VerticalBias), CompoundRound1Bits)).AsUInt16();
 
@@ -559,7 +559,7 @@ internal static partial class Av1CompoundInterPredictor
             Vector128<int> lower,
             Vector128<int> upper,
             int bias)
-            => Av1IntraPredictorBase.Narrow(
+            => Av1NonDirectionalIntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower + Vector128.Create(bias), CompoundRound1Bits),
                 RoundPowerOfTwo(upper + Vector128.Create(bias), CompoundRound1Bits)).AsUInt16();
 
@@ -569,7 +569,7 @@ internal static partial class Av1CompoundInterPredictor
             Vector256<int> lower,
             Vector256<int> upper,
             int bias)
-            => Av1IntraPredictorBase.Narrow(
+            => Av1NonDirectionalIntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower + Vector256.Create(bias), CompoundRound1Bits),
                 RoundPowerOfTwo(upper + Vector256.Create(bias), CompoundRound1Bits)).AsUInt16();
 
@@ -579,7 +579,7 @@ internal static partial class Av1CompoundInterPredictor
             Vector512<int> lower,
             Vector512<int> upper,
             int bias)
-            => Av1IntraPredictorBase.Narrow(
+            => Av1NonDirectionalIntraPredictorBase.Narrow(
                 RoundPowerOfTwo(lower + Vector512.Create(bias), CompoundRound1Bits),
                 RoundPowerOfTwo(upper + Vector512.Create(bias), CompoundRound1Bits)).AsUInt16();
     }

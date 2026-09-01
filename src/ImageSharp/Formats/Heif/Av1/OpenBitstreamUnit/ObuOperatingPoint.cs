@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// <summary>
 /// Contains the sequence-level constraints for an AV1 operating point.
 /// </summary>
-internal class ObuOperatingPoint
+internal sealed class ObuOperatingPoint
 {
     /// <summary>
     /// Gets or sets the operating-point index.

@@ -14,6 +14,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.IntraBlockCopy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -48,9 +49,9 @@ internal sealed class Av1BlockDecoder : IDisposable
     private readonly Av1InverseQuantizer inverseQuantizer;
 
     /// <summary>
-    /// The retained reconstructed frames addressable by inter prediction, when reconstruction belongs to a decoder session.
+    /// The retained reconstructed frames addressable by inter prediction.
     /// </summary>
-    private readonly Av1ReferenceFrameStore? referenceFrames;
+    private readonly Av1ReferenceFrameStore referenceFrames;
 
     /// <summary>
     /// Owns the reusable raster-order inverse-quantization buffer.
@@ -68,6 +69,11 @@ internal sealed class Av1BlockDecoder : IDisposable
     private readonly IMemoryOwner<short> predictionScratchOwner;
 
     /// <summary>
+    /// The reusable predictor portion of <see cref="predictionScratchOwner"/>, excluding compound and chroma-from-luma storage.
+    /// </summary>
+    private readonly int predictorWorkingLength;
+
+    /// <summary>
     /// Reconstructs intra-predicted blocks using the frame-owned prediction workspace.
     /// </summary>
     private readonly Av1PredictionDecoder predictionDecoder;
@@ -80,7 +86,7 @@ internal sealed class Av1BlockDecoder : IDisposable
     /// <summary>
     /// The next packed coefficient position for each plane in the current superblock.
     /// </summary>
-    private readonly int[] currentCoefficientIndex;
+    private InlineArray4<int> currentCoefficientIndex;
 
     /// <summary>
     /// Accumulates reconstructed luma samples until a chroma-from-luma prediction block can consume them.
@@ -95,14 +101,16 @@ internal sealed class Av1BlockDecoder : IDisposable
     /// <param name="frameBuffer">The frame buffer receiving reconstructed samples.</param>
     /// <param name="loopFilterContext">The transform-size map populated while reconstructing blocks.</param>
     /// <param name="inverseQuantizer">The inverse quantizer carrying the active superblock delta-Q state.</param>
-    /// <param name="referenceFrames">The retained reconstructed frames selected by inter blocks, or <see langword="null"/> for intra-only use.</param>
+    /// <param name="referenceFrames">The retained reconstructed frames selected by inter blocks.</param>
+    /// <param name="paletteColorIndexMaps">The complete decoder-session palette map state.</param>
     public Av1BlockDecoder(
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1FrameBuffer<byte> frameBuffer,
         Av1LoopFilterContext loopFilterContext,
         Av1InverseQuantizer inverseQuantizer,
-        Av1ReferenceFrameStore? referenceFrames = null)
+        Av1ReferenceFrameStore referenceFrames,
+        Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps = null)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
@@ -130,28 +138,34 @@ internal sealed class Av1BlockDecoder : IDisposable
             int predictorWorkingLength = Math.Max(
                 Av1PredictionDecoder.ScratchLength,
                 Math.Max(
-                    Av1InterPredictor.GetScratchLength(maximumBlockLength, maximumBlockLength),
+                    Av1TranslationalInterPredictor.GetScratchLength(maximumBlockLength, maximumBlockLength),
                     Av1ScaledInterPredictor.GetMaximumScaledScratchLength(maximumBlockLength, maximumBlockLength)));
 
             int compoundMaskLength = (maximumBlockArea + 1) >> 1;
+            int predictorWorkingOffset = (2 * maximumBlockArea) + compoundMaskLength;
+            int chromaFromLumaOffset = predictorWorkingOffset + predictorWorkingLength;
 
             // Compound prediction retains both high-precision reference planes plus the full-resolution luma mask.
-            // Keeping all three beside the convolution workspace lets chroma reuse the luma mask without a copy or rent.
-            int predictionScratchLength = (2 * maximumBlockArea) + compoundMaskLength + predictorWorkingLength;
+            // Keeping those planes, convolution workspace, and CfL surface in one owner avoids independent managed
+            // buffers while ensuring the two scratch consumers never overlap.
+            int predictionScratchLength = chromaFromLumaOffset + Av1ChromaFromLumaContext.BufferLength;
             predictionScratchOwner = this.frameBuffer.MemoryAllocator.Allocate<short>(predictionScratchLength);
 
             this.inverseQuantizationOwner = inverseQuantizationOwner;
             this.transformWorkspaceOwner = transformWorkspaceOwner;
             this.predictionScratchOwner = predictionScratchOwner;
+            this.predictorWorkingLength = predictorWorkingLength;
             this.predictionDecoder = new(
                 sequenceHeader,
                 frameHeader,
-                predictionScratchOwner.Memory[((2 * maximumBlockArea) + compoundMaskLength)..]);
+                predictionScratchOwner.Memory.Slice(predictorWorkingOffset, predictorWorkingLength),
+                paletteColorIndexMaps);
             this.isLoopFilterEnabled = frameHeader.LoopFilterParameters.FilterLevel[0] != 0 ||
                 frameHeader.LoopFilterParameters.FilterLevel[1] != 0;
 
-            this.currentCoefficientIndex = new int[3];
-            this.chromaFromLumaContext = new(sequenceHeader.ColorConfig);
+            this.chromaFromLumaContext = new(
+                sequenceHeader.ColorConfig,
+                predictionScratchOwner.Memory.Slice(chromaFromLumaOffset, Av1ChromaFromLumaContext.BufferLength));
         }
         catch
         {
@@ -245,15 +259,15 @@ internal sealed class Av1BlockDecoder : IDisposable
             : modeInfo.GetTransformUnitCount(Av1Plane.U);
 
         bool isInterBlock = modeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last;
-        Av1FrameBuffer<byte>? referenceFrameBuffer = null;
-        Av1FrameBuffer<byte>? secondaryReferenceFrameBuffer = null;
+        InterReferenceBuffers? interReferenceBuffers = null;
         bool isCompound = modeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra;
         bool isInterIntra = modeInfo.ReferenceFrames[1] == Av1ReferenceFrameType.Intra;
         int firstCompoundWeight = 8;
         int secondCompoundWeight = 8;
         if (isInterBlock)
         {
-            referenceFrameBuffer = this.ResolveReferenceFrame(modeInfo.ReferenceFrames[0]);
+            Av1FrameBuffer<byte> primaryReferenceFrameBuffer = this.ResolveReferenceFrame(modeInfo.ReferenceFrames[0]);
+            Av1FrameBuffer<byte> secondaryReferenceFrameBuffer = primaryReferenceFrameBuffer;
             if (isCompound)
             {
                 secondaryReferenceFrameBuffer = this.ResolveReferenceFrame(modeInfo.ReferenceFrames[1]);
@@ -268,6 +282,10 @@ internal sealed class Av1BlockDecoder : IDisposable
                         out secondCompoundWeight);
                 }
             }
+
+            // A non-compound block aliases the unused secondary slot to its required primary frame. This keeps the
+            // published inter state complete without manufacturing a nullable second half.
+            interReferenceBuffers = new(primaryReferenceFrameBuffer, secondaryReferenceFrameBuffer);
         }
 
         bool highBitDepth = this.frameBuffer.BytesPerSample == 2;
@@ -285,9 +303,9 @@ internal sealed class Av1BlockDecoder : IDisposable
             // following the U descriptors for this block, so the V base includes the complete U transform-unit count.
             int transformInfoIndex = plane switch
             {
-                2 => superblockInfo.TransformInfoIndexUv + modeInfo.GetFirstTransformLocation(Av1Plane.V) + chromaTransformUnitCount,
-                1 => superblockInfo.TransformInfoIndexUv + modeInfo.GetFirstTransformLocation(Av1Plane.U),
-                0 => superblockInfo.TransformInfoIndexY + modeInfo.GetFirstTransformLocation(Av1Plane.Y),
+                2 => modeInfo.GetFirstTransformLocation(Av1Plane.V) + chromaTransformUnitCount,
+                1 => modeInfo.GetFirstTransformLocation(Av1Plane.U),
+                0 => modeInfo.GetFirstTransformLocation(Av1Plane.Y),
                 _ => throw new InvalidImageContentException("Maximum of 3 color planes")
             };
             Span<Av1TransformInfo> transformInfo = superblockInfo.GetTransformInfo(plane)[transformInfoIndex..];
@@ -323,8 +341,11 @@ internal sealed class Av1BlockDecoder : IDisposable
                 blockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer((Av1Plane)plane, pixelPosition, subX, subY, out reconstructionStride);
             }
 
-            if (isInterBlock)
+            if (interReferenceBuffers is not null)
             {
+                InterReferenceBuffers referenceBuffers = interReferenceBuffers.Value;
+                Av1FrameBuffer<byte> primaryReferenceFrameBuffer = referenceBuffers.Primary;
+
                 int predictionWidth = Math.Max(4, blockSize.GetWidth() >> subX);
                 int predictionHeight = Math.Max(4, blockSize.GetHeight() >> subY);
                 int maximumBlockLength = 1 << this.sequenceHeader.SuperblockSizeLog2;
@@ -339,7 +360,9 @@ internal sealed class Av1BlockDecoder : IDisposable
                     predictionStorage.Slice(2 * maximumBlockArea, compoundMaskStorageLength))[..(blockSize.GetWidth() * blockSize.GetHeight())];
 
                 Span<short> predictionScratch =
-                    predictionStorage[((2 * maximumBlockArea) + compoundMaskStorageLength)..];
+                    predictionStorage.Slice(
+                        (2 * maximumBlockArea) + compoundMaskStorageLength,
+                        this.predictorWorkingLength);
 
                 Span<byte> secondPrediction = MemoryMarshal.AsBytes(secondPredictionStorage)[..(predictionWidth * predictionHeight)];
                 Span<ushort> highBitDepthSecondPrediction = MemoryMarshal.Cast<short, ushort>(secondPredictionStorage)[..(predictionWidth * predictionHeight)];
@@ -380,8 +403,8 @@ internal sealed class Av1BlockDecoder : IDisposable
                 for (int referenceIndex = 0; referenceIndex < referenceCount; referenceIndex++)
                 {
                     Av1FrameBuffer<byte> activeReferenceFrameBuffer = referenceIndex == 0
-                        ? referenceFrameBuffer!
-                        : secondaryReferenceFrameBuffer!;
+                        ? referenceBuffers.Primary
+                        : referenceBuffers.Secondary;
 
                     Av1MotionVector motionVector = modeInfo.MotionVectors[referenceIndex];
                     int destinationStride = useCompoundIntermediates
@@ -663,7 +686,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                 ? MemoryMarshal.Cast<short, ushort>(highBitDepthBlockReconstructionBuffer[reconstructionStride..])
                                 : highBitDepthSecondPrediction;
 
-                            Av1InterPredictor.Predict(
+                            Av1TranslationalInterPredictor.Predict(
                                 source,
                                 sourceStride,
                                 sourceIndex,
@@ -717,7 +740,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                                 ? blockReconstructionBuffer[reconstructionStride..]
                                 : secondPrediction;
 
-                            Av1InterPredictor.Predict(
+                            Av1TranslationalInterPredictor.Predict(
                                 source,
                                 sourceStride,
                                 sourceIndex,
@@ -1567,7 +1590,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                         Span<ushort> destination = MemoryMarshal.Cast<short, ushort>(
                             highBitDepthBlockReconstructionBuffer[destinationOffset..]);
 
-                        Av1InterPredictor.Predict(
+                        Av1TranslationalInterPredictor.Predict(
                             source,
                             sourceStride,
                             sourceIndex,
@@ -1596,7 +1619,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                             sourceOrigin.X +
                             (sourceColumnQ4 >> 4);
 
-                        Av1InterPredictor.Predict(
+                        Av1TranslationalInterPredictor.Predict(
                             source,
                             sourceStride,
                             sourceIndex,
@@ -1631,7 +1654,7 @@ internal sealed class Av1BlockDecoder : IDisposable
 
         // The uncompressed-header parser validates each selected slot and the reference store remains unchanged
         // until frame reconstruction completes, so every parsed inter block resolves the same retained owner.
-        return this.referenceFrames!.Resolve((int)referenceSlot)!.FrameBuffer;
+        return this.referenceFrames.ResolveRequired((int)referenceSlot).FrameBuffer;
     }
 
     /// <summary>
@@ -2061,7 +2084,7 @@ internal sealed class Av1BlockDecoder : IDisposable
             int sourceIndex =
                 ((sourceOrigin.Y + (sourceRowQ4 >> 4)) * sourceStride) + sourceOrigin.X + (sourceColumnQ4 >> 4);
 
-            Av1InterPredictor.Predict(
+            Av1TranslationalInterPredictor.Predict(
                 source,
                 sourceStride,
                 sourceIndex,
@@ -2088,7 +2111,7 @@ internal sealed class Av1BlockDecoder : IDisposable
             int sourceIndex =
                 ((sourceOrigin.Y + (sourceRowQ4 >> 4)) * sourceStride) + sourceOrigin.X + (sourceColumnQ4 >> 4);
 
-            Av1InterPredictor.Predict(
+            Av1TranslationalInterPredictor.Predict(
                 source,
                 sourceStride,
                 sourceIndex,
@@ -2111,86 +2134,6 @@ internal sealed class Av1BlockDecoder : IDisposable
         => candidate.UseIntraBlockCopy || candidate.ReferenceFrames[0] > Av1ReferenceFrameType.Intra;
 
     /// <summary>
-    /// Derives a byte-addressed reconstruction span beginning one row before a block.
-    /// </summary>
-    /// <param name="frameBuffer">The frame buffer containing the destination planes.</param>
-    /// <param name="plane">The zero-based Y, U, or V plane index.</param>
-    /// <param name="blockColumnInPixels">The horizontal block origin in plane samples.</param>
-    /// <param name="blockRowInPixels">The vertical block origin in plane samples.</param>
-    /// <param name="blockReconstructionBuffer">The resulting span beginning one row before the block.</param>
-    /// <param name="reconstructionStride">The number of logical samples between rows.</param>
-    /// <param name="subX">The chroma horizontal subsampling shift.</param>
-    /// <param name="subY">The chroma vertical subsampling shift.</param>
-    private static void DeriveBlockPointers(
-        Av1FrameBuffer<byte> frameBuffer,
-        int plane,
-        int blockColumnInPixels,
-        int blockRowInPixels,
-        out Span<byte> blockReconstructionBuffer,
-        out int reconstructionStride,
-        int subX,
-        int subY)
-    {
-        int blockOffset;
-
-        switch (plane)
-        {
-            case 0:
-                reconstructionStride = frameBuffer.BufferY!.Width;
-                blockOffset = ((frameBuffer.OriginY + blockRowInPixels) * reconstructionStride) +
-                    (frameBuffer.OriginX + blockColumnInPixels);
-                break;
-            case 1:
-                reconstructionStride = frameBuffer.BufferCb!.Width;
-                blockOffset = (((frameBuffer.OriginY >> subY) + blockRowInPixels) * reconstructionStride) +
-                    ((frameBuffer.OriginX >> subX) + blockColumnInPixels);
-                break;
-            default:
-                reconstructionStride = frameBuffer.BufferCr!.Width;
-                blockOffset = (((frameBuffer.OriginY >> subY) + blockRowInPixels) * reconstructionStride) +
-                    ((frameBuffer.OriginX >> subX) + blockColumnInPixels);
-                break;
-        }
-
-        // Prediction addresses above samples relative to the returned span, so expose the previous row as index zero.
-        blockOffset -= reconstructionStride;
-        Guard.MustBeGreaterThanOrEqualTo(blockOffset, 0, nameof(blockOffset));
-
-        if (frameBuffer.BitDepth != Av1BitDepth.EightBit || frameBuffer.Is16BitPipeline)
-        {
-            // The legacy byte view represents each high-bit-depth sample with two adjacent storage elements.
-            blockOffset *= 2;
-            if (plane == 0)
-            {
-                blockReconstructionBuffer = frameBuffer.BufferY!.DangerousGetSingleSpan()[blockOffset..];
-            }
-            else if (plane == 1)
-            {
-                blockReconstructionBuffer = frameBuffer.BufferCb!.DangerousGetSingleSpan()[blockOffset..];
-            }
-            else
-            {
-                blockReconstructionBuffer = frameBuffer.BufferCr!.DangerousGetSingleSpan()[blockOffset..];
-            }
-        }
-        else
-        {
-            if (plane == 0)
-            {
-                blockReconstructionBuffer = frameBuffer.BufferY!.DangerousGetSingleSpan()[blockOffset..];
-            }
-            else if (plane == 1)
-            {
-                blockReconstructionBuffer = frameBuffer.BufferCb!.DangerousGetSingleSpan()[blockOffset..];
-            }
-            else
-            {
-                blockReconstructionBuffer = frameBuffer.BufferCr!.DangerousGetSingleSpan()[blockOffset..];
-            }
-        }
-    }
-
-    /// <summary>
     /// Determines whether reconstructed luma samples must be retained for a later chroma-from-luma prediction.
     /// </summary>
     /// <param name="colorConfig">The sequence color-plane configuration.</param>
@@ -2201,4 +2144,29 @@ internal sealed class Av1BlockDecoder : IDisposable
     private static bool StoreChromaFromLumaRequired(ObuColorConfig colorConfig, ref Av1PartitionInfo partitionInfo)
         => !colorConfig.IsMonochrome &&
             (!partitionInfo.IsChroma || partitionInfo.ModeInfo.UvMode == Av1ChromaPredictionMode.ChromaFromLuma);
+
+    /// <summary>
+    /// Carries a complete pair of retained buffers through the inter-only reconstruction branch.
+    /// </summary>
+    private readonly struct InterReferenceBuffers
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="InterReferenceBuffers"/> struct.
+        /// </summary>
+        public InterReferenceBuffers(Av1FrameBuffer<byte> primary, Av1FrameBuffer<byte> secondary)
+        {
+            this.Primary = primary;
+            this.Secondary = secondary;
+        }
+
+        /// <summary>
+        /// Gets the primary retained frame.
+        /// </summary>
+        public Av1FrameBuffer<byte> Primary { get; }
+
+        /// <summary>
+        /// Gets the secondary retained frame.
+        /// </summary>
+        public Av1FrameBuffer<byte> Secondary { get; }
+    }
 }

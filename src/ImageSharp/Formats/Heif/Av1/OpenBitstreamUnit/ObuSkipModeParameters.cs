@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// <summary>
 /// Contains the availability and enabled state of AV1 skip mode for a frame.
 /// </summary>
-internal class ObuSkipModeParameters
+internal sealed class ObuSkipModeParameters
 {
     /// <summary>
     /// Gets a value indicating whether the frame is permitted to use skip mode.

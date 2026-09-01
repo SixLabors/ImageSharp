@@ -254,7 +254,7 @@ public class Av1YuvConverterTests
         // Assert
         Assert.Equal(2, frameBuffer.BytesPerSample);
         Assert.Equal(3 + (frameBuffer.OriginX * 2), stride);
-        Assert.Equal(stride * 2, frameBuffer.BufferY!.Width);
+        Assert.Equal(stride * 2, frameBuffer.GetPlaneBuffer(Av1Plane.Y).Width);
         Assert.Equal(321, frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, 0, 0, 0)[0]);
         Assert.Equal(2, chromaRow.Length);
     }
@@ -509,7 +509,7 @@ public class Av1YuvConverterTests
         Span<byte> vRow = frameBuffer.DeriveBlockPointer(Av1Plane.V, 0, 0).DangerousGetRowSpan(0);
         for (int i = 0; i < frameBuffer.Width; i++)
         {
-            Rgb24 pixel = new();
+            Rgb24 pixel = default;
             pixel.R = yRow[i];
             pixel.G = uRow[i];
             pixel.B = vRow[i];
@@ -553,7 +553,7 @@ public class Av1YuvConverterTests
     /// <param name="referenceOutput">The independently converted reference pixels.</param>
     /// <param name="actual">The pixels produced by the implementation under test.</param>
     /// <param name="allowedDifference">The permitted absolute component difference.</param>
-    private static void Compare(Span<Rgb24> referenceOutput, Span<Rgb24> actual, int allowedDifference)
+    private static void Compare(ReadOnlySpan<Rgb24> referenceOutput, ReadOnlySpan<Rgb24> actual, int allowedDifference)
     {
         for (int i = 0; i < actual.Length; i++)
         {
@@ -1006,7 +1006,7 @@ public class Av1YuvConverterTests
     /// <param name="provider">The source test-image provider.</param>
     // [Theory]
     // [WithFile(TestImages.Jpeg.Baseline.Winter444_Interleaved, PixelTypes.Rgb24)]
-    public void RoundTrip(TestImageProvider<Rgb24> provider)
+    public static void RoundTrip(TestImageProvider<Rgb24> provider)
     {
         // Assign
         using Image<Rgb24> image = provider.GetImage();

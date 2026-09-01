@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.SuperResolution;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -41,7 +42,7 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     /// <summary>
     /// The retained reconstructed frames addressable by inter prediction.
     /// </summary>
-    private readonly Av1ReferenceFrameStore? referenceFrames;
+    private readonly Av1ReferenceFrameStore referenceFrames;
 
     /// <summary>
     /// The coefficient inverse-quantization stage shared across superblocks.
@@ -70,15 +71,15 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     /// <param name="frameHeader">The parsed AV1 frame header.</param>
     /// <param name="frameInfo">The parsed superblock and block-mode information.</param>
     /// <param name="frameBuffer">The destination planar sample buffers.</param>
-    /// <param name="referenceFrames">
-    /// The retained reconstructed frames selected by inter blocks, or <see langword="null"/> for intra-only reconstruction.
-    /// </param>
+    /// <param name="referenceFrames">The retained reconstructed frames selected by inter blocks.</param>
+    /// <param name="paletteColorIndexMaps">The complete decoder-session palette map state.</param>
     public Av1FrameDecoder(
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1FrameInfo frameInfo,
         Av1FrameBuffer<byte> frameBuffer,
-        Av1ReferenceFrameStore? referenceFrames = null)
+        Av1ReferenceFrameStore referenceFrames,
+        Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps = null)
     {
         this.sequenceHeader = sequenceHeader;
         this.frameHeader = frameHeader;
@@ -87,20 +88,33 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
         this.referenceFrames = referenceFrames;
         this.inverseQuantizer = new(sequenceHeader, frameHeader);
         this.deQuants = new(sequenceHeader, frameHeader);
-        this.loopFilterContext = new(sequenceHeader);
-        this.blockDecoder = new(
-            this.sequenceHeader,
-            this.frameHeader,
-            this.frameBuffer,
-            this.loopFilterContext,
-            this.inverseQuantizer,
-            this.referenceFrames);
+        this.loopFilterContext = new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
+        try
+        {
+            this.blockDecoder = new(
+                this.sequenceHeader,
+                this.frameHeader,
+                this.frameBuffer,
+                this.loopFilterContext,
+                this.inverseQuantizer,
+                this.referenceFrames,
+                paletteColorIndexMaps);
+        }
+        catch
+        {
+            this.loopFilterContext.Dispose();
+            throw;
+        }
     }
 
     /// <summary>
     /// Releases the pooled block-reconstruction workspaces owned by this decoder.
     /// </summary>
-    public void Dispose() => this.blockDecoder.Dispose();
+    public void Dispose()
+    {
+        this.blockDecoder.Dispose();
+        this.loopFilterContext.Dispose();
+    }
 
     /// <summary>
     /// Applies the in-loop frame stages after every superblock has been reconstructed.

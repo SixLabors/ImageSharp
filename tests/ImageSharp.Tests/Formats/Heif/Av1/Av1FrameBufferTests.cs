@@ -5,6 +5,8 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
+using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.Memory;
@@ -43,7 +45,7 @@ public class Av1FrameBufferTests
             Av1ColorFormat.Yuv400,
             false);
 
-        MemoryGroup<byte> memoryGroup = frameBuffer.BufferY!.FastMemoryGroup;
+        MemoryGroup<byte> memoryGroup = frameBuffer.GetPlaneBuffer(Av1Plane.Y).FastMemoryGroup;
         Assert.Equal(1, memoryGroup.Count);
         Assert.True(memoryGroup.TotalLength > allocator.BufferCapacityInBytes);
     }
@@ -105,17 +107,24 @@ public class Av1FrameBufferTests
         Assert.Equal(3, allocator.AllocationAttemptCount);
         Assert.Equal(2, allocator.AllocationLog.Count);
         Assert.Equal(2, allocator.ReturnLog.Count);
-        Assert.Equal(allocator.AllocationLog[0].HashCodeOfBuffer, allocator.ReturnLog[0].HashCodeOfBuffer);
-        Assert.Equal(allocator.AllocationLog[1].HashCodeOfBuffer, allocator.ReturnLog[1].HashCodeOfBuffer);
+        Assert.All(
+            allocator.AllocationLog,
+            allocation => Assert.Single(
+                allocator.ReturnLog,
+                returned => returned.AllocationId == allocation.AllocationId));
     }
 
     /// <summary>
-    /// Verifies that a block-decoder workspace failure releases every workspace rented earlier in construction.
+    /// Verifies that each later block-decoder workspace failure releases every workspace rented earlier.
     /// </summary>
-    [Fact]
-    public void BlockDecoderConstructorFailureReleasesEarlierWorkspaces()
+    [Theory]
+    [InlineData(3, 1)]
+    [InlineData(4, 2)]
+    public void BlockDecoderConstructorFailureReleasesEarlierWorkspaces(
+        int failureAllocationNumber,
+        int successfulWorkspaceCount)
     {
-        FailingTestMemoryAllocator allocator = new(failureAllocationNumber: 3);
+        FailingTestMemoryAllocator allocator = new(failureAllocationNumber);
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
         ObuSequenceHeader sequenceHeader = new()
@@ -131,22 +140,170 @@ public class Av1FrameBufferTests
         };
 
         using Av1FrameBuffer<byte> frameBuffer = new(configuration, sequenceHeader, Av1ColorFormat.Yuv400, false);
-        ObuFrameHeader frameHeader = new();
-        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
-        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
+        ObuFrameHeader frameHeader = new()
+        {
+            ModeInfoColumnCount = 16,
+            ModeInfoRowCount = 16
+        };
 
-        // The frame's luma plane is allocation attempt one. Resetting only the logs preserves that counter, so the
-        // inverse-quantization workspace succeeds on attempt two and the transform workspace fails on attempt three.
+        using Av1LoopFilterContext loopFilterContext =
+            new(Configuration.Default.MemoryAllocator, sequenceHeader, frameHeader);
+
+        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
+        using Av1ReferenceFrameStore referenceFrames = new();
+
+        // The frame's luma plane is allocation attempt one. Resetting only the logs preserves that counter while
+        // isolating the block-decoder owners that must be returned when a later workspace rent fails.
         allocator.EnableNonThreadSafeLogging();
 
         Assert.Throws<InvalidMemoryOperationException>(
-            () => new Av1BlockDecoder(sequenceHeader, frameHeader, frameBuffer, loopFilterContext, inverseQuantizer));
+            () => new Av1BlockDecoder(
+                sequenceHeader,
+                frameHeader,
+                frameBuffer,
+                loopFilterContext,
+                inverseQuantizer,
+                referenceFrames));
+
+        Assert.Equal(failureAllocationNumber, allocator.AllocationAttemptCount);
+        Assert.Equal(successfulWorkspaceCount, allocator.AllocationLog.Count);
+        Assert.Equal(successfulWorkspaceCount, allocator.ReturnLog.Count);
+        foreach (TestMemoryAllocator.AllocationRequest allocation in allocator.AllocationLog)
+        {
+            Assert.Contains(
+                allocator.ReturnLog,
+                returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer);
+        }
+    }
+
+    /// <summary>
+    /// Verifies that failure to allocate the active chroma transform map releases the preceding luma map.
+    /// </summary>
+    [Fact]
+    public void LoopFilterContextAllocationFailureReleasesLumaMap()
+    {
+        FailingTestMemoryAllocator allocator = new(failureAllocationNumber: 2);
+        ObuSequenceHeader sequenceHeader = new()
+        {
+            MaxFrameWidth = 64,
+            MaxFrameHeight = 64,
+            Use128x128Superblock = false,
+            ColorConfig = new ObuColorConfig
+            {
+                IsMonochrome = false,
+                SubSamplingX = true,
+                SubSamplingY = true,
+                BitDepth = Av1BitDepth.EightBit
+            }
+        };
+
+        ObuFrameHeader frameHeader = new()
+        {
+            ModeInfoColumnCount = 16,
+            ModeInfoRowCount = 16
+        };
+
+        Assert.Throws<InvalidMemoryOperationException>(
+            () => new Av1LoopFilterContext(allocator, sequenceHeader, frameHeader));
 
         TestMemoryAllocator.AllocationRequest allocation = Assert.Single(allocator.AllocationLog);
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
 
-        Assert.Equal(3, allocator.AllocationAttemptCount);
+        Assert.Equal(2, allocator.AllocationAttemptCount);
         Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
+    }
+
+    /// <summary>
+    /// Verifies that active-superblock coefficient scratch uses one configured allocator lease and omits unused
+    /// chroma storage for a monochrome frame.
+    /// </summary>
+    [Fact]
+    [ValidateDisposedMemoryAllocations]
+    public void FrameInfoCoefficientScratchUsesConfiguredAllocator()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        ObuSequenceHeader sequenceHeader = new()
+        {
+            MaxFrameWidth = 64,
+            MaxFrameHeight = 64,
+            Use128x128Superblock = false,
+            ColorConfig = new ObuColorConfig
+            {
+                IsMonochrome = true,
+                SubSamplingX = true,
+                SubSamplingY = true,
+                BitDepth = Av1BitDepth.EightBit
+            }
+        };
+
+        ObuFrameHeader frameHeader = new()
+        {
+            FrameSize = new ObuFrameSize
+            {
+                FrameWidth = 64,
+                FrameHeight = 64
+            }
+        };
+
+        Av1FrameInfo frameInfo = new(configuration, sequenceHeader, frameHeader);
+        int expectedCoefficientCount = 16 * 16 * Av1FrameInfo.CoefficientCountPerModeInfo;
+        TestMemoryAllocator.AllocationRequest coefficientScratch = Assert.Single(
+            allocator.AllocationLog,
+            request => request.ElementType == typeof(int) && request.Length == expectedCoefficientCount);
+
+        Assert.Equal(expectedCoefficientCount, frameInfo.GetCoefficientsY().Length);
+        Assert.Equal(0, frameInfo.GetCoefficientsU().Length);
+        Assert.Equal(0, frameInfo.GetCoefficientsV().Length);
+
+        frameInfo.Dispose();
+
+        Assert.Single(
+            allocator.ReturnLog,
+            returned => returned.HashCodeOfBuffer == coefficientScratch.HashCodeOfBuffer);
+    }
+
+    /// <summary>
+    /// Verifies that a later frame-state allocation failure returns the coefficient scratch rented first.
+    /// </summary>
+    [Fact]
+    public void FrameInfoConstructorFailureReleasesCoefficientScratch()
+    {
+        FailingTestMemoryAllocator allocator = new(failureAllocationNumber: 2);
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        ObuSequenceHeader sequenceHeader = new()
+        {
+            MaxFrameWidth = 64,
+            MaxFrameHeight = 64,
+            Use128x128Superblock = false,
+            ColorConfig = new ObuColorConfig
+            {
+                IsMonochrome = true,
+                SubSamplingX = true,
+                SubSamplingY = true,
+                BitDepth = Av1BitDepth.EightBit
+            }
+        };
+
+        ObuFrameHeader frameHeader = new()
+        {
+            FrameSize = new ObuFrameSize
+            {
+                FrameWidth = 64,
+                FrameHeight = 64
+            }
+        };
+
+        Assert.Throws<InvalidMemoryOperationException>(() => new Av1FrameInfo(configuration, sequenceHeader, frameHeader));
+
+        TestMemoryAllocator.AllocationRequest coefficientScratch = Assert.Single(allocator.AllocationLog);
+        TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
+        Assert.Equal(typeof(int), coefficientScratch.ElementType);
+        Assert.Equal(2, allocator.AllocationAttemptCount);
+        Assert.Equal(coefficientScratch.HashCodeOfBuffer, returned.HashCodeOfBuffer);
     }
 
     /// <summary>

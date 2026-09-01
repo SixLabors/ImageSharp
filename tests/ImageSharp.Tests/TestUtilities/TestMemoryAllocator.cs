@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 
@@ -91,7 +92,7 @@ internal class TestMemoryAllocator : MemoryAllocator
         public static AllocationRequest Create<T>(AllocationOptions allocationOptions, int length, T[] buffer, int allocationId)
         {
             Type type = typeof(T);
-            int elementSize = Marshal.SizeOf(type);
+            int elementSize = Unsafe.SizeOf<T>();
             return new AllocationRequest(type, allocationOptions, length, length * elementSize, allocationId, buffer.GetHashCode());
         }
 

@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 /// <content>
 /// Provides lane-wise convolution, rounding, clipping, and packing shared by every interpolation filter.
 /// </content>
-internal static partial class Av1InterPredictor
+internal static partial class Av1TranslationalInterPredictor
 {
     /// <summary>
     /// Convolves sixteen adjacent 8-bit samples into four signed 32-bit accumulator vectors.
@@ -35,7 +35,7 @@ internal static partial class Av1InterPredictor
         for (int tap = 0; tap < tapCount; tap++)
         {
             Vector128<byte> samples = Vector128.LoadUnsafe(ref Unsafe.Add(ref source, tap * tapStride), column);
-            Av1IntraPredictorBase.Widen(samples, out Vector128<int> samples0, out Vector128<int> samples1, out Vector128<int> samples2, out Vector128<int> samples3);
+            Av1NonDirectionalIntraPredictorBase.Widen(samples, out Vector128<int> samples0, out Vector128<int> samples1, out Vector128<int> samples2, out Vector128<int> samples3);
             Vector128<int> coefficient = Vector128.Create((int)Unsafe.Add(ref coefficients, tap));
 
             // Each widened vector retains four consecutive source columns. Applying the same tap coefficient to all
@@ -71,7 +71,7 @@ internal static partial class Av1InterPredictor
         for (int tap = 0; tap < tapCount; tap++)
         {
             Vector256<byte> samples = Vector256.LoadUnsafe(ref Unsafe.Add(ref source, tap * tapStride), column);
-            Av1IntraPredictorBase.Widen(samples, out Vector256<int> samples0, out Vector256<int> samples1, out Vector256<int> samples2, out Vector256<int> samples3);
+            Av1NonDirectionalIntraPredictorBase.Widen(samples, out Vector256<int> samples0, out Vector256<int> samples1, out Vector256<int> samples2, out Vector256<int> samples3);
             Vector256<int> coefficient = Vector256.Create((int)Unsafe.Add(ref coefficients, tap));
 
             result0 += samples0 * coefficient;
@@ -105,7 +105,7 @@ internal static partial class Av1InterPredictor
         for (int tap = 0; tap < tapCount; tap++)
         {
             Vector512<byte> samples = Vector512.LoadUnsafe(ref Unsafe.Add(ref source, tap * tapStride), column);
-            Av1IntraPredictorBase.Widen(samples, out Vector512<int> samples0, out Vector512<int> samples1, out Vector512<int> samples2, out Vector512<int> samples3);
+            Av1NonDirectionalIntraPredictorBase.Widen(samples, out Vector512<int> samples0, out Vector512<int> samples1, out Vector512<int> samples2, out Vector512<int> samples3);
             Vector512<int> coefficient = Vector512.Create((int)Unsafe.Add(ref coefficients, tap));
 
             result0 += samples0 * coefficient;
@@ -135,7 +135,7 @@ internal static partial class Av1InterPredictor
         for (int tap = 0; tap < tapCount; tap++)
         {
             Vector128<short> samples = Vector128.LoadUnsafe(ref Unsafe.Add(ref source, tap * tapStride), column);
-            Av1IntraPredictorBase.Widen(samples, out Vector128<int> samples0, out Vector128<int> samples1);
+            Av1NonDirectionalIntraPredictorBase.Widen(samples, out Vector128<int> samples0, out Vector128<int> samples1);
             Vector128<int> coefficient = Vector128.Create((int)Unsafe.Add(ref coefficients, tap));
 
             // Reconstructed 10- and 12-bit samples and biased 2D intermediates are below short.MaxValue, so signed
@@ -165,7 +165,7 @@ internal static partial class Av1InterPredictor
         for (int tap = 0; tap < tapCount; tap++)
         {
             Vector256<short> samples = Vector256.LoadUnsafe(ref Unsafe.Add(ref source, tap * tapStride), column);
-            Av1IntraPredictorBase.Widen(samples, out Vector256<int> samples0, out Vector256<int> samples1);
+            Av1NonDirectionalIntraPredictorBase.Widen(samples, out Vector256<int> samples0, out Vector256<int> samples1);
             Vector256<int> coefficient = Vector256.Create((int)Unsafe.Add(ref coefficients, tap));
             result0 += samples0 * coefficient;
             result1 += samples1 * coefficient;
@@ -192,7 +192,7 @@ internal static partial class Av1InterPredictor
         for (int tap = 0; tap < tapCount; tap++)
         {
             Vector512<short> samples = Vector512.LoadUnsafe(ref Unsafe.Add(ref source, tap * tapStride), column);
-            Av1IntraPredictorBase.Widen(samples, out Vector512<int> samples0, out Vector512<int> samples1);
+            Av1NonDirectionalIntraPredictorBase.Widen(samples, out Vector512<int> samples0, out Vector512<int> samples1);
             Vector512<int> coefficient = Vector512.Create((int)Unsafe.Add(ref coefficients, tap));
             result0 += samples0 * coefficient;
             result1 += samples1 * coefficient;
@@ -231,7 +231,7 @@ internal static partial class Av1InterPredictor
         result1 = Vector128.Clamp(result1, Vector128<int>.Zero, maximum);
         result2 = Vector128.Clamp(result2, Vector128<int>.Zero, maximum);
         result3 = Vector128.Clamp(result3, Vector128<int>.Zero, maximum);
-        return Av1IntraPredictorBase.Narrow(result0, result1, result2, result3);
+        return Av1NonDirectionalIntraPredictorBase.Narrow(result0, result1, result2, result3);
     }
 
     /// <summary>
@@ -245,7 +245,7 @@ internal static partial class Av1InterPredictor
         result1 = Vector256.Clamp(result1, Vector256<int>.Zero, maximum);
         result2 = Vector256.Clamp(result2, Vector256<int>.Zero, maximum);
         result3 = Vector256.Clamp(result3, Vector256<int>.Zero, maximum);
-        return Av1IntraPredictorBase.Narrow(result0, result1, result2, result3);
+        return Av1NonDirectionalIntraPredictorBase.Narrow(result0, result1, result2, result3);
     }
 
     /// <summary>
@@ -259,7 +259,7 @@ internal static partial class Av1InterPredictor
         result1 = Vector512.Clamp(result1, Vector512<int>.Zero, maximum);
         result2 = Vector512.Clamp(result2, Vector512<int>.Zero, maximum);
         result3 = Vector512.Clamp(result3, Vector512<int>.Zero, maximum);
-        return Av1IntraPredictorBase.Narrow(result0, result1, result2, result3);
+        return Av1NonDirectionalIntraPredictorBase.Narrow(result0, result1, result2, result3);
     }
 
     /// <summary>
@@ -271,7 +271,7 @@ internal static partial class Av1InterPredictor
         Vector128<int> maximum = Vector128.Create(maximumValue);
         result0 = Vector128.Clamp(result0, Vector128<int>.Zero, maximum);
         result1 = Vector128.Clamp(result1, Vector128<int>.Zero, maximum);
-        return Av1IntraPredictorBase.Narrow(result0, result1).AsUInt16();
+        return Av1NonDirectionalIntraPredictorBase.Narrow(result0, result1).AsUInt16();
     }
 
     /// <summary>
@@ -283,7 +283,7 @@ internal static partial class Av1InterPredictor
         Vector256<int> maximum = Vector256.Create(maximumValue);
         result0 = Vector256.Clamp(result0, Vector256<int>.Zero, maximum);
         result1 = Vector256.Clamp(result1, Vector256<int>.Zero, maximum);
-        return Av1IntraPredictorBase.Narrow(result0, result1).AsUInt16();
+        return Av1NonDirectionalIntraPredictorBase.Narrow(result0, result1).AsUInt16();
     }
 
     /// <summary>
@@ -295,7 +295,7 @@ internal static partial class Av1InterPredictor
         Vector512<int> maximum = Vector512.Create(maximumValue);
         result0 = Vector512.Clamp(result0, Vector512<int>.Zero, maximum);
         result1 = Vector512.Clamp(result1, Vector512<int>.Zero, maximum);
-        return Av1IntraPredictorBase.Narrow(result0, result1).AsUInt16();
+        return Av1NonDirectionalIntraPredictorBase.Narrow(result0, result1).AsUInt16();
     }
 
     /// <summary>

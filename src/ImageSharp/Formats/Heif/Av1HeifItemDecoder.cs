@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// Decodes a single AV1-coded HEIF image item.
 /// </summary>
 /// <typeparam name="TPixel">The destination pixel type.</typeparam>
-internal class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlphaItemDecoder<TPixel>
+internal sealed class Av1HeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlphaItemDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     /// <summary>

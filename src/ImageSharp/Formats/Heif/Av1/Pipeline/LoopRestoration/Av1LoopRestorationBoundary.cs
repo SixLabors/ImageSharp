@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 /// <summary>
 /// Preserves the deblocked and frame-edge rows required by AV1 striped loop restoration.
 /// </summary>
-internal class Av1LoopRestorationBoundary : IDisposable
+internal sealed class Av1LoopRestorationBoundary : IDisposable
 {
     /// <summary>
     /// The height of a complete restoration processing stripe in luma samples.
@@ -46,22 +46,22 @@ internal class Av1LoopRestorationBoundary : IDisposable
     /// <summary>
     /// The two preserved rows above every processing stripe, stored by plane.
     /// </summary>
-    private readonly IMemoryOwner<ushort>?[] rowsAbove = new IMemoryOwner<ushort>?[Av1Constants.MaxPlanes];
+    private InlineArray4<IMemoryOwner<ushort>?> rowsAbove;
 
     /// <summary>
     /// The two preserved rows below every processing stripe, stored by plane.
     /// </summary>
-    private readonly IMemoryOwner<ushort>?[] rowsBelow = new IMemoryOwner<ushort>?[Av1Constants.MaxPlanes];
+    private InlineArray4<IMemoryOwner<ushort>?> rowsBelow;
 
     /// <summary>
     /// The upscaled sample width stored for each plane boundary row.
     /// </summary>
-    private readonly int[] planeWidths = new int[Av1Constants.MaxPlanes];
+    private InlineArray4<int> planeWidths;
 
     /// <summary>
     /// The number of processing stripes represented for each plane.
     /// </summary>
-    private readonly int[] stripeCounts = new int[Av1Constants.MaxPlanes];
+    private InlineArray4<int> stripeCounts;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1LoopRestorationBoundary"/> class.
@@ -430,13 +430,16 @@ internal class Av1LoopRestorationBoundary : IDisposable
     /// <param name="contextRow">The first or second preserved context row.</param>
     /// <returns>The selected boundary-row span.</returns>
     private Span<ushort> GetBoundaryRow(
-        IMemoryOwner<ushort>?[] storage,
+        ReadOnlySpan<IMemoryOwner<ushort>?> storage,
         int plane,
         int stripe,
         int contextRow)
     {
         int width = this.planeWidths[plane];
         int offset = ((stripe * ContextRowCount) + contextRow) * width;
-        return storage[plane]!.Memory.Span.Slice(offset, width);
+        IMemoryOwner<ushort> owner = storage[plane]
+            ?? throw new InvalidOperationException("The selected AV1 plane has no loop-restoration boundary storage.");
+
+        return owner.Memory.Span.Slice(offset, width);
     }
 }

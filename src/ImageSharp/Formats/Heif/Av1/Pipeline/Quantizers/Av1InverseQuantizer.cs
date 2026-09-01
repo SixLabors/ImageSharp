@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 /// <summary>
 /// Reconstructs AV1 transform coefficients from quantized coefficient levels.
 /// </summary>
-internal class Av1InverseQuantizer
+internal sealed class Av1InverseQuantizer
 {
     /// <summary>
     /// The sequence-level color configuration that determines coefficient precision.
@@ -47,7 +47,6 @@ internal class Av1InverseQuantizer
     public void UpdateDequant(Av1DeQuantizationContext deQuants, Av1SuperblockInfo superblockInfo)
     {
         Av1BitDepth bitDepth = this.sequenceHeader.ColorConfig.BitDepth;
-        Guard.NotNull(deQuants, nameof(deQuants));
         this.deQuantsDeltaQ = deQuants;
         if (this.frameHeader.DeltaQParameters.IsPresent)
         {
@@ -82,7 +81,6 @@ internal class Av1InverseQuantizer
     /// <returns>The number of coefficient levels consumed.</returns>
     public int InverseQuantize(Av1BlockModeInfo mode, Span<int> level, Span<int> qCoefficients, Av1TransformType transformType, Av1TransformSize transformSize, Av1Plane plane)
     {
-        Guard.NotNull(this.deQuantsDeltaQ);
         Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType);
         ReadOnlySpan<short> scanIndices = scanOrder.Scan;
 

@@ -170,9 +170,10 @@ public class Av1DeblockingFilterTests
         rightModeInfo.ReferenceFrames[0] = referenceFrame;
         frameInfo.UpdateModeInfo(leftModeInfo, superblock);
         frameInfo.UpdateModeInfo(rightModeInfo, superblock);
-        superblock.BlockCount = 2;
 
-        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
+        using Av1LoopFilterContext loopFilterContext =
+            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
+
         loopFilterContext.SetTransformSize(Av1Plane.Y, Point.Empty, Av1TransformSize.Size8x8);
         loopFilterContext.SetTransformSize(Av1Plane.Y, new Point(2, 0), Av1TransformSize.Size8x8);
         loopFilterContext.SetTransformSize(Av1Plane.Y, new Point(4, 0), Av1TransformSize.Size8x8);

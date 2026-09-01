@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// <summary>
 /// Contains the coded, upscaled, and rendered dimensions of an AV1 frame.
 /// </summary>
-internal class ObuFrameSize
+internal sealed class ObuFrameSize
 {
     /// <summary>
     /// Gets or sets the coded frame width.

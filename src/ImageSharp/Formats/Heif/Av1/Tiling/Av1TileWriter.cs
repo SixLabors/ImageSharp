@@ -764,7 +764,7 @@ internal partial class Av1TileWriter
                 dcSignSpan,
                 blockOrigin,
                 size,
-                Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Left | Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Top);
+                Av1NeighborArrayUnit<byte>.UnitMask.Left | Av1NeighborArrayUnit<byte>.UnitMask.Top);
 
             if (blk_geom.HasUv)
             {
@@ -772,12 +772,12 @@ internal partial class Av1TileWriter
                     dcSignSpan,
                     ((blockOrigin >> 3) << 3) >> 1,
                     size,
-                    Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Left | Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Top);
+                    Av1NeighborArrayUnit<byte>.UnitMask.Left | Av1NeighborArrayUnit<byte>.UnitMask.Top);
                 cr_dc_sign_level_coeff_na.UnitModeWrite(
                     dcSignSpan,
                     ((blockOrigin >> 3) << 3) >> 1,
                     size,
-                    Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Left | Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Top);
+                    Av1NeighborArrayUnit<byte>.UnitMask.Left | Av1NeighborArrayUnit<byte>.UnitMask.Top);
                 entropyCodingContext.CodedAreaSuperblockUv += blk_geom.BlockWidthUv * blk_geom.BlockHeightUv;
             }
 
@@ -1041,9 +1041,9 @@ internal partial class Av1TileWriter
             Av1TransformSize tx_size = blockGeometry.TransformSize[tx_depth];
 
             int coeff1d_offset = entropyCodingContext.CodedAreaSuperblock;
-            Span<int> coeff_buffer = coeff_ptr.BufferY!.DangerousGetSingleSpan()[coeff1d_offset..];
+            Span<int> coeff_buffer = coeff_ptr.GetPlaneBuffer(Av1Plane.Y).DangerousGetSingleSpan()[coeff1d_offset..];
 
-            Av1TransformBlockContext blockContext = new();
+            Av1TransformBlockContext blockContext = default;
             Point transformOrigin = blockGeometry.TransformOrigin[tx_depth][txb_itr];
             GetTransformBlockContexts(
                 pcs,
@@ -1138,8 +1138,8 @@ internal partial class Av1TileWriter
             if (blockGeometry.HasUv)
             {
                 // Both chroma planes share transform geometry but retain independent coefficient contexts.
-                Span<int> coeff_buffer = coeff_ptr.BufferCb!.DangerousGetSingleSpan().Slice(entropyCodingContext.CodedAreaSuperblockUv);
-                Av1TransformBlockContext blockContext = new();
+                Span<int> coeff_buffer = coeff_ptr.GetPlaneBuffer(Av1Plane.U).DangerousGetSingleSpan().Slice(entropyCodingContext.CodedAreaSuperblockUv);
+                Av1TransformBlockContext blockContext = default;
                 Point transformOrigin = blockGeometry.TransformOrigin[tx_depth][tx_index];
                 GetTransformBlockContexts(
                     pcs,
@@ -1162,8 +1162,8 @@ internal partial class Av1TileWriter
                     frameHeader.UseReducedTransformSet,
                     blk_ptr.FilterIntraMode);
 
-                coeff_buffer = coeff_ptr.BufferCr!.DangerousGetSingleSpan().Slice(entropyCodingContext.CodedAreaSuperblockUv);
-                blockContext = new();
+                coeff_buffer = coeff_ptr.GetPlaneBuffer(Av1Plane.V).DangerousGetSingleSpan().Slice(entropyCodingContext.CodedAreaSuperblockUv);
+                blockContext = default;
                 int endOfBlockCr = blk_ptr.TransformBlocks[tx_index].NzCoefficientCount[2];
 
                 GetTransformBlockContexts(

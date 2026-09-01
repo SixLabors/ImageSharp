@@ -1272,19 +1272,6 @@ internal ref struct Av1SymbolDecoder
     }
 
     /// <summary>
-    /// Reads one coefficient base-range symbol.
-    /// </summary>
-    /// <param name="transformSizeContext">The square transform-size probability context.</param>
-    /// <param name="planeType">The luma or chroma plane category.</param>
-    /// <param name="baseRangeContext">The coefficient base-range context.</param>
-    /// <returns>The decoded base-range symbol.</returns>
-    private int ReadCoefficientsBaseRange(Av1TransformSize transformSizeContext, Av1PlaneType planeType, int baseRangeContext)
-    {
-        ref Av1SymbolReader r = ref this.reader;
-        return r.ReadSymbol(this.context.CoefficientsBaseRange[(int)transformSizeContext][(int)planeType][baseRangeContext]);
-    }
-
-    /// <summary>
     /// Reads the sign of a nonzero DC coefficient.
     /// </summary>
     /// <param name="planeType">The luma or chroma plane category.</param>

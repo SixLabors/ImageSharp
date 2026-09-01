@@ -4,7 +4,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
-using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1InterPredictor;
+using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1TranslationalInterPredictor;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 
@@ -272,7 +272,7 @@ internal static partial class Av1ScaledInterPredictor
             Vector128<int> initial,
             out Vector128<int> result0,
             out Vector128<int> result1)
-            => Av1InterPredictor.Convolve(
+            => Av1TranslationalInterPredictor.Convolve(
                 ref source,
                 sourceStride,
                 sourceOffset,
@@ -293,7 +293,7 @@ internal static partial class Av1ScaledInterPredictor
             Vector256<int> initial,
             out Vector256<int> result0,
             out Vector256<int> result1)
-            => Av1InterPredictor.Convolve(
+            => Av1TranslationalInterPredictor.Convolve(
                 ref source,
                 sourceStride,
                 sourceOffset,
@@ -314,7 +314,7 @@ internal static partial class Av1ScaledInterPredictor
             Vector512<int> initial,
             out Vector512<int> result0,
             out Vector512<int> result1)
-            => Av1InterPredictor.Convolve(
+            => Av1TranslationalInterPredictor.Convolve(
                 ref source,
                 sourceStride,
                 sourceOffset,
@@ -426,7 +426,7 @@ internal static partial class Av1ScaledInterPredictor
             Vector128<int> result1,
             int bitDepth)
             where T : unmanaged
-            => Av1IntraPredictorBase.Narrow(result0, result1)
+            => Av1NonDirectionalIntraPredictorBase.Narrow(result0, result1)
                 .AsUInt16()
                 .StoreUnsafe(ref Unsafe.As<T, ushort>(ref destination), (nuint)index);
 
@@ -439,7 +439,7 @@ internal static partial class Av1ScaledInterPredictor
             Vector256<int> result1,
             int bitDepth)
             where T : unmanaged
-            => Av1IntraPredictorBase.Narrow(result0, result1)
+            => Av1NonDirectionalIntraPredictorBase.Narrow(result0, result1)
                 .AsUInt16()
                 .StoreUnsafe(ref Unsafe.As<T, ushort>(ref destination), (nuint)index);
 
@@ -452,7 +452,7 @@ internal static partial class Av1ScaledInterPredictor
             Vector512<int> result1,
             int bitDepth)
             where T : unmanaged
-            => Av1IntraPredictorBase.Narrow(result0, result1)
+            => Av1NonDirectionalIntraPredictorBase.Narrow(result0, result1)
                 .AsUInt16()
                 .StoreUnsafe(ref Unsafe.As<T, ushort>(ref destination), (nuint)index);
     }

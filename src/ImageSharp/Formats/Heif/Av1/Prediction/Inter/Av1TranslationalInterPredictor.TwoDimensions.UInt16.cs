@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 /// <content>
 /// Provides separable SIMD convolution for unsigned 16-bit single-reference prediction.
 /// </content>
-internal static partial class Av1InterPredictor
+internal static partial class Av1TranslationalInterPredictor
 {
     /// <summary>
     /// Filters a high-bit-depth block in eight-sample vectors through caller-owned signed scratch.
@@ -67,7 +67,7 @@ internal static partial class Av1InterPredictor
                     out Vector128<int> result0,
                     out Vector128<int> result1);
 
-                Av1IntraPredictorBase.Narrow(
+                Av1NonDirectionalIntraPredictorBase.Narrow(
                     RoundPowerOfTwo(result0, round0),
                     RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow);
 
@@ -87,7 +87,7 @@ internal static partial class Av1InterPredictor
                     out Vector128<int> result0,
                     out Vector128<int> result1);
 
-                Av1IntraPredictorBase.Narrow(
+                Av1NonDirectionalIntraPredictorBase.Narrow(
                     RoundPowerOfTwo(result0, round0),
                     RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow, (nuint)processedColumns);
             }
@@ -223,7 +223,7 @@ internal static partial class Av1InterPredictor
                     out Vector256<int> result0,
                     out Vector256<int> result1);
 
-                Av1IntraPredictorBase.Narrow(
+                Av1NonDirectionalIntraPredictorBase.Narrow(
                     RoundPowerOfTwo(result0, round0),
                     RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow, (nuint)processedColumns);
             }
@@ -337,7 +337,7 @@ internal static partial class Av1InterPredictor
                     out Vector512<int> result0,
                     out Vector512<int> result1);
 
-                Av1IntraPredictorBase.Narrow(
+                Av1NonDirectionalIntraPredictorBase.Narrow(
                     RoundPowerOfTwo(result0, round0),
                     RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow, (nuint)processedColumns);
             }

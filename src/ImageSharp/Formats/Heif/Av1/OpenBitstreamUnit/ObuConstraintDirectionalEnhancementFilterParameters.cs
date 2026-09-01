@@ -6,8 +6,18 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// <summary>
 /// Contains the constrained directional enhancement filter parameters for an AV1 frame.
 /// </summary>
-internal class ObuConstraintDirectionalEnhancementFilterParameters
+internal sealed class ObuConstraintDirectionalEnhancementFilterParameters
 {
+    /// <summary>
+    /// Stores the fixed sixteen luma filter strengths without a per-frame array allocation.
+    /// </summary>
+    private InlineArray16<int> yStrength;
+
+    /// <summary>
+    /// Stores the fixed sixteen chroma filter strengths without a per-frame array allocation.
+    /// </summary>
+    private InlineArray16<int> uvStrength;
+
     /// <summary>
     /// Gets or sets the number of bits used to select a filter-strength entry.
     /// </summary>
@@ -19,12 +29,12 @@ internal class ObuConstraintDirectionalEnhancementFilterParameters
     public int Damping { get; set; } = 3;
 
     /// <summary>
-    /// Gets or sets the primary and secondary luma strengths for each filter entry.
+    /// Gets the primary and secondary luma strengths for each filter entry.
     /// </summary>
-    public int[] YStrength { get; set; } = new int[16];
+    public Span<int> YStrength => this.yStrength;
 
     /// <summary>
-    /// Gets or sets the primary and secondary chroma strengths for each filter entry.
+    /// Gets the primary and secondary chroma strengths for each filter entry.
     /// </summary>
-    public int[] UvStrength { get; set; } = new int[16];
+    public Span<int> UvStrength => this.uvStrength;
 }

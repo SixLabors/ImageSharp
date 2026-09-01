@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// <summary>
 /// Contains the parsed header and payload size of an AV1 open bitstream unit.
 /// </summary>
-internal class ObuHeader
+internal sealed class ObuHeader
 {
     /// <summary>
     /// Gets or sets the number of bytes occupied by the fixed OBU header and optional extension.

@@ -500,6 +500,48 @@ public class ObuFrameHeaderTests
     }
 
     /// <summary>
+    /// Verifies that content-light metadata is parsed from the OBU and retained for image metadata transfer.
+    /// </summary>
+    [Fact]
+    public void ReadMetadataRetainsContentLightLevel()
+    {
+        // Metadata type 1 is followed by big-endian MaxCLL and MaxFALL values and byte-aligned trailing bits.
+        byte[] bitStream = [0x2A, 0x06, 0x01, 0x03, 0xE8, 0x01, 0x90, 0x80];
+        Av1BitStreamReader reader = new(bitStream);
+        ObuReader obuReader = new();
+        IAv1TileReader tileDecoder = new Av1TileDecoderStub();
+
+        obuReader.ReadAll(ref reader, bitStream.Length, tileDecoder);
+
+        Assert.True(obuReader.ContentLightLevel.HasValue);
+        Assert.Equal((ushort)1_000, obuReader.ContentLightLevel.Value.MaximumContentLightLevel);
+        Assert.Equal((ushort)400, obuReader.ContentLightLevel.Value.MaximumPictureAverageLightLevel);
+        Assert.Equal(bitStream.Length * 8, reader.BitPosition);
+    }
+
+    /// <summary>
+    /// Verifies that fixed-length metadata without its required trailing one bit is rejected.
+    /// </summary>
+    [Fact]
+    public void ReadMetadataRejectsMissingTrailingBits()
+    {
+        byte[] bitStream = [0x2A, 0x05, 0x01, 0x03, 0xE8, 0x01, 0x90];
+
+        Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream));
+    }
+
+    /// <summary>
+    /// Verifies that the unsupported tile-list OBU is rejected instead of being treated as ignorable data.
+    /// </summary>
+    [Fact]
+    public void ReadTileListRejectsUnsupportedSyntax()
+    {
+        byte[] bitStream = [0x42, 0x01, 0x80];
+
+        Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream));
+    }
+
+    /// <summary>
     /// Verifies that a four-byte tile size cannot wrap into an empty first tile.
     /// </summary>
     [Fact]
@@ -586,7 +628,9 @@ public class ObuFrameHeaderTests
     public void ReadTemporalDelimiterAllowsZeroPayloadPadding()
     {
         byte[] bitStream = [0x12, 0x02, 0x00, 0x00];
-        ReadObuStream(bitStream);
+        Exception exception = Record.Exception(() => ReadObuStream(bitStream));
+
+        Assert.Null(exception);
     }
 
     [Fact]

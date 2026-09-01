@@ -23,7 +23,7 @@ public class Av1MotionVariationCandidatesTests
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
         ObuFrameHeader frameHeader = CreateFrameHeader();
-        Av1FrameInfo frameInfo = new(sequenceHeader);
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
 
         for (int offset = 0; offset < 8; offset += 2)
         {
@@ -79,7 +79,7 @@ public class Av1MotionVariationCandidatesTests
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
         ObuFrameHeader frameHeader = CreateFrameHeader();
-        Av1FrameInfo horizontalFrameInfo = new(sequenceHeader);
+        using Av1FrameInfo horizontalFrameInfo = new(sequenceHeader);
         AddModeInfo(
             horizontalFrameInfo,
             sequenceHeader,
@@ -114,7 +114,7 @@ public class Av1MotionVariationCandidatesTests
             frameHeader,
             Av1ReferenceFrameType.Last);
 
-        Av1FrameInfo verticalFrameInfo = new(sequenceHeader);
+        using Av1FrameInfo verticalFrameInfo = new(sequenceHeader);
         AddModeInfo(
             verticalFrameInfo,
             sequenceHeader,
@@ -161,7 +161,7 @@ public class Av1MotionVariationCandidatesTests
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
         ObuFrameHeader frameHeader = CreateFrameHeader();
-        Av1FrameInfo frameInfo = new(sequenceHeader);
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
 
         // The first candidate has the wrong primary reference and the second is compound. Ten following candidates
         // are eligible, so the retained range must begin at offset two and stop after eight samples at offset nine.
@@ -220,7 +220,7 @@ public class Av1MotionVariationCandidatesTests
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
         ObuFrameHeader frameHeader = CreateFrameHeader();
-        Av1FrameInfo frameInfo = new(sequenceHeader);
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
         AddModeInfo(frameInfo, sequenceHeader, new Point(4, 2), Av1BlockSize.Block8x8, Av1ReferenceFrameType.Last, Av1ReferenceFrameType.None, default);
         AddModeInfo(frameInfo, sequenceHeader, new Point(2, 4), Av1BlockSize.Block8x8, Av1ReferenceFrameType.Last, Av1ReferenceFrameType.None, default);
         AddModeInfo(frameInfo, sequenceHeader, new Point(2, 2), Av1BlockSize.Block8x8, Av1ReferenceFrameType.Last, Av1ReferenceFrameType.None, default);
@@ -258,7 +258,7 @@ public class Av1MotionVariationCandidatesTests
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
         ObuFrameHeader frameHeader = CreateFrameHeader();
-        Av1FrameInfo frameInfo = new(sequenceHeader);
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
 
         // The aligned 16x8 above block covers the top-right position. The 8x16 left block begins two mode-info rows
         // above the current block and therefore covers its top-left position.
@@ -307,19 +307,24 @@ public class Av1MotionVariationCandidatesTests
     /// </summary>
     /// <returns>The initialized frame header.</returns>
     private static ObuFrameHeader CreateFrameHeader()
-        => new()
+    {
+        ObuTileGroupHeader tilesInfo = new()
+        {
+            TileColumnCount = 1,
+            TileRowCount = 1,
+        };
+
+        tilesInfo.TileColumnStartModeInfo[1] = 32;
+        tilesInfo.TileRowStartModeInfo[1] = 32;
+
+        return new()
         {
             FrameType = ObuFrameType.InterFrame,
             ModeInfoColumnCount = 32,
             ModeInfoRowCount = 32,
-            TilesInfo = new ObuTileGroupHeader
-            {
-                TileColumnCount = 1,
-                TileRowCount = 1,
-                TileColumnStartModeInfo = [0, 32],
-                TileRowStartModeInfo = [0, 32],
-            },
+            TilesInfo = tilesInfo,
         };
+    }
 
     /// <summary>
     /// Creates one current partition at a frame-relative mode-information position.
@@ -387,6 +392,5 @@ public class Av1MotionVariationCandidatesTests
         modeInfo.ReferenceFrames[1] = secondaryReference;
         modeInfo.MotionVectors[0] = motionVector;
         frameInfo.UpdateModeInfo(modeInfo, superblockInfo);
-        superblockInfo.BlockCount++;
     }
 }

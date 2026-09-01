@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// <summary>
 /// Contains the color configuration signaled by an AV1 sequence header.
 /// </summary>
-internal class ObuColorConfig
+internal sealed class ObuColorConfig
 {
     /// <summary>
     /// Stores whether the sequence uses a single monochrome plane.

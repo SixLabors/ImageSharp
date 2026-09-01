@@ -20,7 +20,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 /// copy or one-dimensional filtering.
 /// </para>
 /// </remarks>
-internal static partial class Av1InterPredictor
+internal static partial class Av1TranslationalInterPredictor
 {
     /// <summary>
     /// The number of fractional bits in each interpolation coefficient.

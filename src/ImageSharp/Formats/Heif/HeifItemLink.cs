@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// </summary>
 /// <param name="type">The four-character reference type.</param>
 /// <param name="sourceId">The identifier of the item that owns the references.</param>
-internal class HeifItemLink(Heif4CharCode type, uint sourceId)
+internal sealed class HeifItemLink(Heif4CharCode type, uint sourceId)
 {
     /// <summary>
     /// Gets the type of link.

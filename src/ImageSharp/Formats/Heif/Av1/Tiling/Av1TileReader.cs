@@ -79,22 +79,22 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <summary>
     /// Stores the loop-filter delta values carried between superblocks in the current tile.
     /// </summary>
-    private readonly int[] currentDeltaLoopFilter = new int[Av1Constants.FrameLoopFilterCount];
+    private InlineArray4<int> currentDeltaLoopFilter;
 
     /// <summary>
     /// Stores per-plane transform counts for each forced 64x64 residual region.
     /// </summary>
-    private readonly int[][] transformUnitCount;
+    private InlineArray4<InlineArray4<int>> transformUnitCount;
 
     /// <summary>
     /// Tracks the first unassigned transform-information index for luma and shared chroma storage.
     /// </summary>
-    private readonly int[] firstTransformOffset = new int[2];
+    private InlineArray4<int> firstTransformOffset;
 
     /// <summary>
     /// Tracks the next coefficient slot for each color plane within the current superblock.
     /// </summary>
-    private readonly int[] coefficientIndex = [];
+    private InlineArray4<int> coefficientIndex;
 
     /// <summary>
     /// Reusable padded coefficient-context storage for the sequential transform traversal.
@@ -154,7 +154,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <summary>
     /// The retained primary frame whose segment map supplies temporal segment-ID predictions.
     /// </summary>
-    private readonly Av1FrameInfo? primaryReferenceFrameInfo;
+    private readonly Av1FrameInfo.ReferenceState? primaryReferenceState;
 
     /// <summary>
     /// The retained reconstructed frames used to determine reference scaling during inter mode parsing.
@@ -192,7 +192,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Av1FrameEntropyContexts entropyContexts,
         Av1FrameEntropyContext? primaryReferenceContext,
         Av1ReferenceFrameStore? referenceFrames)
-        : this(configuration, sequenceHeader, frameHeader, entropyContexts, primaryReferenceContext, referenceFrames, null, null, true)
+        : this(configuration, sequenceHeader, frameHeader, entropyContexts, primaryReferenceContext, referenceFrames, null)
     {
     }
 
@@ -225,9 +225,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             entropyContexts,
             primaryReferenceContext,
             referenceFrames,
-            lumaPaletteColorIndexMap,
-            chromaPaletteColorIndexMap,
-            false)
+            new PaletteColorIndexMaps(lumaPaletteColorIndexMap, chromaPaletteColorIndexMap))
     {
     }
 
@@ -240,9 +238,9 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="entropyContexts">The entropy contexts reused by the owning decoder session.</param>
     /// <param name="primaryReferenceContext">The retained primary-reference entropy context.</param>
     /// <param name="referenceFrames">The retained reconstructed frames.</param>
-    /// <param name="lumaPaletteColorIndexMap">A shared luma palette map, or <see langword="null"/> when the reader owns one.</param>
-    /// <param name="chromaPaletteColorIndexMap">A shared chroma palette map, or <see langword="null"/> when the reader owns one.</param>
-    /// <param name="ownsPaletteColorIndexMaps">Whether the reader owns and disposes the palette maps.</param>
+    /// <param name="sharedPaletteColorIndexMaps">
+    /// Shared palette maps, or <see langword="null"/> when the reader allocates and owns both maps.
+    /// </param>
     private Av1TileReader(
         Configuration configuration,
         ObuSequenceHeader sequenceHeader,
@@ -250,45 +248,47 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Av1FrameEntropyContexts entropyContexts,
         Av1FrameEntropyContext? primaryReferenceContext,
         Av1ReferenceFrameStore? referenceFrames,
-        Buffer2D<byte>? lumaPaletteColorIndexMap,
-        Buffer2D<byte>? chromaPaletteColorIndexMap,
-        bool ownsPaletteColorIndexMaps)
+        PaletteColorIndexMaps? sharedPaletteColorIndexMaps)
     {
         this.FrameHeader = frameHeader;
         this.configuration = configuration;
         this.SequenceHeader = sequenceHeader;
         this.entropyContexts = entropyContexts;
         this.referenceFrames = referenceFrames;
-        this.ownsPaletteColorIndexMaps = ownsPaletteColorIndexMaps;
+        this.ownsPaletteColorIndexMaps = sharedPaletteColorIndexMaps is null;
         this.entropyContexts.BeginFrame(frameHeader.QuantizationParameters.BaseQIndex, primaryReferenceContext);
 
-        // FrameInfo owns all traversal-order records and coefficient storage produced by the tile readers.
-        this.FrameInfo = new(this.SequenceHeader);
+        // FrameInfo owns traversal records for this coded frame and one superblock of coefficient scratch.
+        this.FrameInfo = new(this.configuration, this.SequenceHeader, this.FrameHeader);
         if (referenceFrames is not null)
         {
             byte? primaryReferenceSlot = this.FrameHeader.PrimaryReferenceSlot;
             if (primaryReferenceSlot is not null)
             {
-                // The uncompressed-header parser has already validated this slot. Keep only its frame-state owner;
-                // segment samples remain in the retained frame and are copied only for whole-map inheritance.
-                this.primaryReferenceFrameInfo = referenceFrames.Resolve(primaryReferenceSlot.Value)!.FrameInfo;
+                // The uncompressed-header parser has already validated this slot. Segment samples remain in the
+                // retained reference state and are copied only for whole-map inheritance.
+                this.primaryReferenceState = referenceFrames.ResolveRequired(primaryReferenceSlot.Value).ReferenceState;
             }
         }
 
-        this.FrameInfo.InitializeSegmentIds(this.FrameHeader, this.primaryReferenceFrameInfo);
-        this.FrameInfo.InitializeLoopRestoration(this.SequenceHeader, this.FrameHeader);
+        try
+        {
+            this.FrameInfo.InitializeSegmentIds(this.FrameHeader, this.primaryReferenceState);
+            this.FrameInfo.InitializeLoopRestoration(this.SequenceHeader, this.FrameHeader);
+        }
+        catch
+        {
+            // FrameInfo has already rented the active frame's syntax storage. Return every successful rent if
+            // a later segmentation or restoration allocation prevents this reader from being constructed.
+            this.FrameInfo.Dispose();
+            throw;
+        }
 
         // Above contexts span the aligned frame width, while left contexts are reused for each superblock row.
         int planesCount = sequenceHeader.ColorConfig.PlaneCount;
-        int superblockColumnCount =
-            Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, sequenceHeader.SuperblockSizeLog2) >> sequenceHeader.SuperblockSizeLog2;
-        int modeInfoWideColumnCount = superblockColumnCount * sequenceHeader.SuperblockModeInfoSize;
-        modeInfoWideColumnCount = Av1Math.AlignPowerOf2(modeInfoWideColumnCount, sequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2);
-        this.transformUnitCount = new int[Av1Constants.MaxPlanes][];
-        this.transformUnitCount[0] = new int[this.FrameInfo.ModeInfoCount];
-        this.transformUnitCount[1] = new int[this.FrameInfo.ModeInfoCount];
-        this.transformUnitCount[2] = new int[this.FrameInfo.ModeInfoCount];
-        this.coefficientIndex = new int[Av1Constants.MaxPlanes];
+        int modeInfoWideColumnCount = Av1Math.AlignPowerOf2(
+            frameHeader.ModeInfoColumnCount,
+            sequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2);
 
         this.aboveNeighborContext = new Av1ParseAboveNeighbor4x4Context(configuration, planesCount, modeInfoWideColumnCount);
         try
@@ -317,7 +317,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             throw;
         }
 
-        if (ownsPaletteColorIndexMaps)
+        if (sharedPaletteColorIndexMaps is null)
         {
             Buffer2D<byte>? ownedLumaPaletteColorIndexMap = null;
             Buffer2D<byte>? ownedChromaPaletteColorIndexMap = null;
@@ -345,8 +345,9 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         }
         else
         {
-            this.lumaPaletteColorIndexMap = lumaPaletteColorIndexMap!;
-            this.chromaPaletteColorIndexMap = chromaPaletteColorIndexMap!;
+            PaletteColorIndexMaps paletteColorIndexMaps = sharedPaletteColorIndexMaps.Value;
+            this.lumaPaletteColorIndexMap = paletteColorIndexMaps.Luma;
+            this.chromaPaletteColorIndexMap = paletteColorIndexMaps.Chroma;
         }
 
         if (referenceFrames is not null)
@@ -458,6 +459,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     public Av1FrameEntropyContext FrameEntropyContext => this.entropyContexts.Published;
 
     /// <summary>
+    /// Gets the decoder-session entropy owner that publishes the completed frame context.
+    /// </summary>
+    public Av1FrameEntropyContexts EntropyContexts => this.entropyContexts;
+
+    /// <summary>
     /// Returns tile-neighbor storage and the reader's frame-state lease to the configured memory allocator.
     /// </summary>
     public void Dispose()
@@ -536,10 +542,13 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 Av1SuperblockInfo superblockInfo = this.FrameInfo.GetSuperblock(superblockPosition);
 
                 Point modeInfoPosition = new(column, row);
+                superblockInfo.CoefficientsY.Clear();
+                superblockInfo.CoefficientsU.Clear();
+                superblockInfo.CoefficientsV.Clear();
                 this.FrameInfo.ClearCdef(superblockPosition);
                 this.firstTransformOffset[0] = 0;
                 this.firstTransformOffset[1] = 0;
-                this.coefficientIndex.AsSpan().Clear();
+                this.coefficientIndex[..Av1Constants.MaxPlanes].Clear();
                 this.ReadLoopRestoration(ref reader, modeInfoPosition, superBlockSize);
                 this.ParsePartition(ref reader, modeInfoPosition, superBlockSize, superblockInfo, tileInfo);
 
@@ -576,7 +585,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// Resets the loop-filter delta predictors before parsing a tile.
     /// </summary>
     private void ClearLoopFilterDelta()
-        => this.currentDeltaLoopFilter.AsSpan().Clear();
+        => this.currentDeltaLoopFilter[..Av1Constants.FrameLoopFilterCount].Clear();
 
     /// <summary>
     /// Reads loop-restoration unit syntax that begins at a superblock location.
@@ -629,8 +638,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             {
                 for (int unitColumn = unitColumnStart; unitColumn < unitColumnEnd; unitColumn++)
                 {
-                    Av1LoopRestorationUnit unit = this.FrameInfo.GetLoopRestorationUnit(plane, unitRow, unitColumn);
-                    this.ReadLoopRestorationUnit(ref reader, item.Type, plane, unit);
+                    ref Av1LoopRestorationUnit unit = ref this.FrameInfo.GetLoopRestorationUnit(plane, unitRow, unitColumn);
+                    this.ReadLoopRestorationUnit(ref reader, item.Type, plane, ref unit);
                 }
             }
         }
@@ -647,7 +656,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         ref Av1SymbolDecoder reader,
         ObuRestorationType frameType,
         int plane,
-        Av1LoopRestorationUnit unit)
+        ref Av1LoopRestorationUnit unit)
     {
         unit.FilterType = frameType switch
         {
@@ -663,11 +672,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         if (unit.FilterType == Av1RestorationFilterType.Wiener)
         {
-            this.ReadWienerFilter(ref reader, plane, unit);
+            this.ReadWienerFilter(ref reader, plane, ref unit);
         }
         else if (unit.FilterType == Av1RestorationFilterType.SgrProjection)
         {
-            this.ReadSgrProjectionFilter(ref reader, plane, unit);
+            this.ReadSgrProjectionFilter(ref reader, plane, ref unit);
         }
     }
 
@@ -677,13 +686,20 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="plane">The zero-based color-plane index.</param>
     /// <param name="unit">The destination restoration-unit information.</param>
-    private void ReadWienerFilter(ref Av1SymbolDecoder reader, int plane, Av1LoopRestorationUnit unit)
+    private void ReadWienerFilter(ref Av1SymbolDecoder reader, int plane, ref Av1LoopRestorationUnit unit)
     {
         for (int pass = 0; pass < 2; pass++)
         {
-            int[] destination = pass == 0 ? unit.WienerVertical : unit.WienerHorizontal;
             int firstCoefficient = plane == 0 ? 0 : 1;
-            destination[0] = 0;
+            if (pass == 0)
+            {
+                unit.WienerVertical[0] = 0;
+            }
+            else
+            {
+                unit.WienerHorizontal[0] = 0;
+            }
+
             for (int coefficient = firstCoefficient; coefficient < Av1Constants.WienerCoefficientCount; coefficient++)
             {
                 int referenceIndex = (((plane * 2) + pass) * Av1Constants.WienerCoefficientCount) + coefficient;
@@ -694,7 +710,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     this.referenceLrWiener[referenceIndex] - minimum);
 
                 value += minimum;
-                destination[coefficient] = value;
+                if (pass == 0)
+                {
+                    unit.WienerVertical[coefficient] = value;
+                }
+                else
+                {
+                    unit.WienerHorizontal[coefficient] = value;
+                }
+
                 this.referenceLrWiener[referenceIndex] = value;
             }
         }
@@ -706,11 +730,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="reader">The tile symbol decoder.</param>
     /// <param name="plane">The zero-based color-plane index.</param>
     /// <param name="unit">The destination restoration-unit information.</param>
-    private void ReadSgrProjectionFilter(ref Av1SymbolDecoder reader, int plane, Av1LoopRestorationUnit unit)
+    private void ReadSgrProjectionFilter(ref Av1SymbolDecoder reader, int plane, ref Av1LoopRestorationUnit unit)
     {
         unit.SgrParameterSet = reader.ReadLiteral(4);
         int[] radii = SgrProjectionRadii[unit.SgrParameterSet];
-        int[] coefficients = unit.SgrProjectionCoefficients;
+        Span<int> coefficients = unit.SgrProjectionCoefficients;
         Span<int> allReferences = this.referenceSgrXqd;
         Span<int> references = allReferences.Slice(plane * 2, 2);
         if (radii[0] == 0)
@@ -940,7 +964,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Av1PartitionInfo partitionInfo = new(blockModeInfo, superblockInfo, hasChroma, partitionType);
         partitionInfo.ColumnIndex = columnIndex;
         partitionInfo.RowIndex = rowIndex;
-        superblockInfo.BlockCount++;
         partitionInfo.ComputeBoundaryOffsets(this.SequenceHeader, this.FrameHeader, tileInfo);
         if (hasChroma)
         {
@@ -968,6 +991,9 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         }
 
         this.Residual(ref reader, ref partitionInfo, superblockInfo, tileInfo, blockSize);
+
+        // Record compact frame evidence before later frames release this frame's full mode-information graph.
+        this.FrameInfo.RecordInterPredictionFeatures(partitionInfo.ModeInfo, this.FrameHeader);
 
         // Store the record only after all syntax has populated it, then map every covered 4x4 position.
         this.FrameInfo.UpdateModeInfo(partitionInfo.ModeInfo, superblockInfo);
@@ -1030,8 +1056,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             ? (maxBlocksWide * maxBlocksHigh) >> subSampling
             : partitionInfo.ModeInfo.GetTransformUnitCount(Av1PlaneType.Uv);
 
-        int lumaTransformInfoIndex = superblockInfo.TransformInfoIndexY + partitionInfo.ModeInfo.GetFirstTransformLocation(Av1PlaneType.Y);
-        int chromaBlueTransformInfoIndex = superblockInfo.TransformInfoIndexUv + partitionInfo.ModeInfo.GetFirstTransformLocation(Av1PlaneType.Uv);
+        int lumaTransformInfoIndex = partitionInfo.ModeInfo.GetFirstTransformLocation(Av1PlaneType.Y);
+        int chromaBlueTransformInfoIndex = partitionInfo.ModeInfo.GetFirstTransformLocation(Av1PlaneType.Uv);
         int chromaRedTransformInfoIndex = chromaBlueTransformInfoIndex + chromaTransformUnitCount;
         int forceSplitCount = 0;
 
@@ -1256,6 +1282,11 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             ref transformInfo,
             coefficientBuffer);
 
+        if (plane == 0)
+        {
+            this.FrameInfo.RecordLumaTransformType(transformInfo.Type);
+        }
+
         return endOfBlock;
     }
 
@@ -1348,7 +1379,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int aboveOffset,
         int leftOffset)
     {
-        Av1TransformBlockContext transformBlockContext = new();
+        Av1TransformBlockContext transformBlockContext = default;
         ReadOnlySpan<int> aboveContext = this.aboveNeighborContext.GetContext(plane)[aboveOffset..];
         ReadOnlySpan<int> leftContext = this.leftNeighborContext.GetContext(plane)[leftOffset..];
         int dcSign = 0;
@@ -1576,9 +1607,9 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         ref Av1BlockModeInfo modeInfo = ref partitionInfo.ModeInfo;
         bool usesInterTransformSyntax = modeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last || modeInfo.UseIntraBlockCopy;
 
-        this.transformUnitCount[(int)Av1Plane.Y].AsSpan(0, 4).Clear();
-        this.transformUnitCount[(int)Av1Plane.U].AsSpan(0, 4).Clear();
-        this.transformUnitCount[(int)Av1Plane.V].AsSpan(0, 4).Clear();
+        this.transformUnitCount[(int)Av1Plane.Y][..4].Clear();
+        this.transformUnitCount[(int)Av1Plane.U][..4].Clear();
+        this.transformUnitCount[(int)Av1Plane.V][..4].Clear();
 
         if (usesInterTransformSyntax &&
             !modeInfo.Skip &&
@@ -1921,7 +1952,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
             if (this.FrameDecoder is not null)
             {
-                modeInfo.SetPaletteColorIndexMap(Av1PlaneType.Y, colorIndexMap);
+                modeInfo.SetPaletteColorIndexMap(Av1PlaneType.Y, colorIndexMap.Bounds);
             }
         }
 
@@ -1954,7 +1985,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
             if (this.FrameDecoder is not null)
             {
-                modeInfo.SetPaletteColorIndexMap(Av1PlaneType.Uv, colorIndexMap);
+                modeInfo.SetPaletteColorIndexMap(Av1PlaneType.Uv, colorIndexMap.Bounds);
             }
         }
     }
@@ -2239,7 +2270,10 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     {
                         int canonicalReferenceIndex = (int)referenceFrame - (int)Av1ReferenceFrameType.Last;
                         uint referenceSlot = this.FrameHeader.GetReferenceFrameIndices()[canonicalReferenceIndex];
-                        Av1FrameBuffer<byte> referenceFrameBuffer = this.referenceFrames!.Resolve((int)referenceSlot)!.FrameBuffer;
+                        Av1ReferenceFrameStore referenceFrames = this.referenceFrames
+                            ?? throw new InvalidImageContentException("AV1 warped-motion syntax requires a reconstructed reference map.");
+
+                        Av1FrameBuffer<byte> referenceFrameBuffer = referenceFrames.ResolveRequired((int)referenceSlot).FrameBuffer;
 
                         // Local warped motion is excluded for a scaled reference. Width and height equality are the
                         // identity-scale test because both dimensions form the decoder's reference scale factors.
@@ -3127,7 +3161,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         {
             // The frame map was inherited as one contiguous copy during reader construction. Resolve the same clipped
             // minimum that the reference decoder obtains from last_frame_seg_map so block state and the already copied map agree.
-            modeInfo.SegmentId = this.FrameInfo.GetPredictedSegmentId(this.primaryReferenceFrameInfo, modeInfo.BlockSize, modeInfoPosition);
+            modeInfo.SegmentId = this.FrameInfo.GetPredictedSegmentId(this.primaryReferenceState, modeInfo.BlockSize, modeInfoPosition);
             return;
         }
 
@@ -3160,7 +3194,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             modeInfo.SegmentIdPredicted = reader.ReadSegmentIdPredicted(context);
             if (modeInfo.SegmentIdPredicted)
             {
-                modeInfo.SegmentId = this.FrameInfo.GetPredictedSegmentId(this.primaryReferenceFrameInfo, modeInfo.BlockSize, modeInfoPosition);
+                modeInfo.SegmentId = this.FrameInfo.GetPredictedSegmentId(this.primaryReferenceState, modeInfo.BlockSize, modeInfoPosition);
             }
             else
             {
@@ -3319,7 +3353,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
         // Delta-LF values are predicted across superblocks within a tile, but every block in one superblock observes
         // the same resulting values. Snapshot the predictors so later filtering does not depend on parse order.
-        this.currentDeltaLoopFilter.AsSpan().CopyTo(partitionInfo.SuperblockInfo.SuperblockDeltaLoopFilter);
+        this.currentDeltaLoopFilter[..Av1Constants.FrameLoopFilterCount].CopyTo(partitionInfo.SuperblockInfo.SuperblockDeltaLoopFilter);
     }
 
     /// <summary>
@@ -3387,7 +3421,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         {
             // Reference feature values use the same numeric labels as Av1ReferenceFrameType. INTRA_FRAME is zero;
             // every canonical inter reference begins at LAST_FRAME and therefore has a positive value.
-            int referenceFrame = segmentationParameters.FeatureData[segmentId, (int)ObuSegmentationLevelFeature.ReferenceFrame];
+            int referenceFrame = segmentationParameters.GetFeatureData(segmentId, (int)ObuSegmentationLevelFeature.ReferenceFrame);
             return referenceFrame >= (int)Av1ReferenceFrameType.Last;
         }
 
@@ -3421,9 +3455,9 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int segmentId = modeInfo.SegmentId;
         if (segmentationParameters.IsFeatureActive(segmentId, ObuSegmentationLevelFeature.ReferenceFrame))
         {
-            references[0] = (Av1ReferenceFrameType)segmentationParameters.FeatureData[
+            references[0] = (Av1ReferenceFrameType)segmentationParameters.GetFeatureData(
                 segmentId,
-                (int)ObuSegmentationLevelFeature.ReferenceFrame];
+                (int)ObuSegmentationLevelFeature.ReferenceFrame);
 
             references[1] = Av1ReferenceFrameType.None;
             return;
@@ -3675,6 +3709,22 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                     throw new InvalidImageContentException($"Unknown partition type: {partition}");
             }
         }
+    }
+
+    /// <summary>
+    /// Carries the two shared palette maps as one valid constructor state.
+    /// </summary>
+    internal readonly struct PaletteColorIndexMaps(Buffer2D<byte> luma, Buffer2D<byte> chroma)
+    {
+        /// <summary>
+        /// Gets the shared luma palette map.
+        /// </summary>
+        public Buffer2D<byte> Luma { get; } = luma;
+
+        /// <summary>
+        /// Gets the shared chroma palette map.
+        /// </summary>
+        public Buffer2D<byte> Chroma { get; } = chroma;
     }
 
     /// <summary>

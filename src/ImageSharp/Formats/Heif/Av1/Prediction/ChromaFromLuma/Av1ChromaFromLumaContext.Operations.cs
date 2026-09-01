@@ -29,7 +29,7 @@ internal partial class Av1ChromaFromLumaContext
     private void StoreSamples(ReadOnlySpan<byte> input, int inputStride, int outputOffset, int width, int height)
     {
         ref byte inputBase = ref MemoryMarshal.GetReference(input);
-        ref short outputBase = ref MemoryMarshal.GetArrayDataReference(this.Q3Buffer);
+        ref short outputBase = ref MemoryMarshal.GetReference(this.Q3Buffer);
 
         if (!this.subX)
         {
@@ -181,7 +181,7 @@ internal partial class Av1ChromaFromLumaContext
     private void StoreSamples(ReadOnlySpan<short> input, int inputStride, int outputOffset, int width, int height)
     {
         ref short inputBase = ref MemoryMarshal.GetReference(input);
-        ref short outputBase = ref MemoryMarshal.GetArrayDataReference(this.Q3Buffer);
+        ref short outputBase = ref MemoryMarshal.GetReference(this.Q3Buffer);
 
         if (!this.subX)
         {
@@ -305,7 +305,7 @@ internal partial class Av1ChromaFromLumaContext
         // Transform dimensions are powers of two, so division by the sample count is an exact right shift. Half
         // the sample count is accumulated first to implement the normative nearest-integer rounding.
         int sumQ3 = (width * height) >> 1;
-        ref short bufferBase = ref MemoryMarshal.GetArrayDataReference(this.Q3Buffer);
+        ref short bufferBase = ref MemoryMarshal.GetReference(this.Q3Buffer);
 
         if (Vector256.IsHardwareAccelerated && width >= Vector256<short>.Count)
         {

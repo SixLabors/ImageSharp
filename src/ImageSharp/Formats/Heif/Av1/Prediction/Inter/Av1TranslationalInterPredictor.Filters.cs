@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 /// <content>
 /// Provides the normative Q7 interpolation coefficients used by AV1 inter prediction.
 /// </content>
-internal static partial class Av1InterPredictor
+internal static partial class Av1TranslationalInterPredictor
 {
     /// <summary>
     /// The number of stored coefficient positions in every decoder interpolation kernel.

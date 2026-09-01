@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// </summary>
 /// <param name="type">The four-character item type.</param>
 /// <param name="id">The item identifier used by locations, properties, and references.</param>
-internal class HeifItem(Heif4CharCode type, uint id)
+internal sealed class HeifItem(Heif4CharCode type, uint id)
 {
     /// <summary>
     /// Gets the ID of this Item.

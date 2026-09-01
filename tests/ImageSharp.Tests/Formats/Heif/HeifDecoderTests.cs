@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
@@ -115,9 +116,10 @@ public class HeifDecoderTests
         using Image<TPixel> expectedPreserved = Image.Load<TPixel>(preserveOptions, TestFile.Create(TestImages.Png.Icc.Perceptual).Bytes);
         using Image<TPixel> expected = Image.Load<TPixel>(convertOptions, TestFile.Create(TestImages.Png.Icc.Perceptual).Bytes);
 
-        Assert.NotNull(preserved.Metadata.IccProfile);
+        IccProfile preservedIccProfile = Assert.IsType<IccProfile>(preserved.Metadata.IccProfile);
+        IccProfile expectedIccProfile = Assert.IsType<IccProfile>(expectedPreserved.Metadata.IccProfile);
         Assert.Null(converted.Metadata.IccProfile);
-        Assert.Equal(expectedPreserved.Metadata.IccProfile!.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+        Assert.Equal(expectedIccProfile.ToByteArray(), preservedIccProfile.ToByteArray());
         Assert.NotEmpty(ImageComparer.Exact.CompareImages(preserved, converted));
         ImageComparer.TolerantPercentage(1F, 20).VerifySimilarity(expected, converted);
     }
@@ -140,9 +142,10 @@ public class HeifDecoderTests
 
         Assert.Equal(2, preserved.Frames.Count);
         Assert.Equal(preserved.Frames.Count, converted.Frames.Count);
-        Assert.NotNull(preserved.Metadata.IccProfile);
+        IccProfile preservedIccProfile = Assert.IsType<IccProfile>(preserved.Metadata.IccProfile);
+        IccProfile expectedIccProfile = Assert.IsType<IccProfile>(expectedPreserved.Metadata.IccProfile);
         Assert.Null(converted.Metadata.IccProfile);
-        Assert.Equal(expectedPreserved.Metadata.IccProfile!.ToByteArray(), preserved.Metadata.IccProfile.ToByteArray());
+        Assert.Equal(expectedIccProfile.ToByteArray(), preservedIccProfile.ToByteArray());
 
         for (int i = 0; i < converted.Frames.Count; i++)
         {

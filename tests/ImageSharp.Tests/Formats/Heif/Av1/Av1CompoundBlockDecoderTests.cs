@@ -84,7 +84,8 @@ public class Av1CompoundBlockDecoderTests
         modeInfo.InterpolationFilters.Clear();
         modeInfo.SetTransformUnitCount(Av1PlaneType.Y, 1);
 
-        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
+        using Av1LoopFilterContext loopFilterContext =
+            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
         Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
@@ -202,7 +203,8 @@ public class Av1CompoundBlockDecoderTests
         modeInfo.InterpolationFilters.Fill(Av1InterpolationFilter.Bilinear);
         modeInfo.SetTransformUnitCount(Av1PlaneType.Y, 1);
 
-        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
+        using Av1LoopFilterContext loopFilterContext =
+            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
         Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
@@ -327,7 +329,8 @@ public class Av1CompoundBlockDecoderTests
         modeInfo.InterpolationFilters.Clear();
         modeInfo.SetTransformUnitCount(Av1PlaneType.Y, 1);
 
-        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
+        using Av1LoopFilterContext loopFilterContext =
+            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
         Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
@@ -417,7 +420,8 @@ public class Av1CompoundBlockDecoderTests
         modeInfo.InterpolationFilters.Clear();
         modeInfo.SetTransformUnitCount(Av1PlaneType.Y, 1);
 
-        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
+        using Av1LoopFilterContext loopFilterContext =
+            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
         Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
@@ -499,7 +503,8 @@ public class Av1CompoundBlockDecoderTests
         current.SetTransformUnitCount(Av1PlaneType.Y, 1);
         frameInfo.UpdateModeInfo(current, superblockInfo);
 
-        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
+        using Av1LoopFilterContext loopFilterContext =
+            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
         Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
@@ -594,7 +599,8 @@ public class Av1CompoundBlockDecoderTests
         current.SetTransformUnitCount(Av1PlaneType.Uv, 1);
         frameInfo.UpdateModeInfo(current, superblockInfo);
 
-        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
+        using Av1LoopFilterContext loopFilterContext =
+            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
         Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
@@ -739,7 +745,7 @@ public class Av1CompoundBlockDecoderTests
 
         for (int referenceIndex = 0; referenceIndex < 2; referenceIndex++)
         {
-            Av1FrameBuffer<byte> reference = referenceFrames.Resolve(referenceIndex)!.FrameBuffer;
+            Av1FrameBuffer<byte> reference = referenceFrames.ResolveRequired(referenceIndex).FrameBuffer;
             Span<ushort> intermediate = referenceIndex == 0 ? firstIntermediate : secondIntermediate;
             int sourceIndex;
             if (bitDepth == Av1BitDepth.EightBit)
@@ -849,7 +855,8 @@ public class Av1CompoundBlockDecoderTests
         using Av1FrameInfo frameInfo = new(sequenceHeader);
         Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(Point.Empty);
         superblockInfo.GetTransformInfoY()[0] = new Av1TransformInfo(Av1TransformSize.Size8x8, 0, 0);
-        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
+        using Av1LoopFilterContext loopFilterContext =
+            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
         Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
@@ -1049,7 +1056,7 @@ public class Av1CompoundBlockDecoderTests
         short[] predictionScratch = new short[128 * (blockSize + 8)];
         for (int referenceIndex = 0; referenceIndex < 2; referenceIndex++)
         {
-            Av1FrameBuffer<byte> reference = referenceFrames.Resolve(referenceIndex)!.FrameBuffer;
+            Av1FrameBuffer<byte> reference = referenceFrames.ResolveRequired(referenceIndex).FrameBuffer;
             Span<ushort> source = reference.GetPaddedPlaneSpan16(
                 Av1Plane.Y,
                 0,
@@ -1243,7 +1250,8 @@ public class Av1CompoundBlockDecoderTests
         using Av1FrameInfo frameInfo = new(sequenceHeader);
         Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(Point.Empty);
         superblockInfo.GetTransformInfoY()[0] = new Av1TransformInfo(Av1TransformSize.Size8x8, 0, 0);
-        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
+        using Av1LoopFilterContext loopFilterContext =
+            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
         Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
@@ -1280,14 +1288,14 @@ public class Av1CompoundBlockDecoderTests
         const int blockOrigin = 8;
         const int blockSize = 8;
         int bitDepthValue = bitDepth.GetBitCount();
-        int intermediateRange = bitDepthValue + Av1InterPredictor.FilterBits - Av1InterPredictor.Round0Bits + 2;
-        int round0 = Av1InterPredictor.Round0Bits + Math.Max(intermediateRange - 16, 0);
+        int intermediateRange = bitDepthValue + Av1TranslationalInterPredictor.FilterBits - Av1TranslationalInterPredictor.Round0Bits + 2;
+        int round0 = Av1TranslationalInterPredictor.Round0Bits + Math.Max(intermediateRange - 16, 0);
         int compoundRoundBits =
-            (2 * Av1InterPredictor.FilterBits) - round0 - Av1CompoundInterPredictor.CompoundRound1Bits;
+            (2 * Av1TranslationalInterPredictor.FilterBits) - round0 - Av1CompoundInterPredictor.CompoundRound1Bits;
 
         int compoundOffsetBits =
             bitDepthValue +
-            (2 * Av1InterPredictor.FilterBits) -
+            (2 * Av1TranslationalInterPredictor.FilterBits) -
             round0 -
             Av1CompoundInterPredictor.CompoundRound1Bits;
 
@@ -1322,8 +1330,8 @@ public class Av1CompoundBlockDecoderTests
             CreatePatternReferenceFrame(sequenceHeader, CreateFrameHeader(frameSize), sampleOffset: 40),
             showFrame: false));
 
-        Av1FrameBuffer<byte> firstReference = referenceFrames.Resolve(0)!.FrameBuffer;
-        Av1FrameBuffer<byte> secondReference = referenceFrames.Resolve(1)!.FrameBuffer;
+        Av1FrameBuffer<byte> firstReference = referenceFrames.ResolveRequired(0).FrameBuffer;
+        Av1FrameBuffer<byte> secondReference = referenceFrames.ResolveRequired(1).FrameBuffer;
         ushort[] firstHighBitDepthPrediction = new ushort[blockSize * blockSize];
         ushort[] secondHighBitDepthPrediction = new ushort[blockSize * blockSize];
         short[] firstScratch = new short[Av1WarpedInterPredictor.WarpedScratchLength];
@@ -1451,7 +1459,8 @@ public class Av1CompoundBlockDecoderTests
         modeInfo.InterpolationFilters.Clear();
         modeInfo.SetTransformUnitCount(Av1PlaneType.Y, 1);
 
-        Av1LoopFilterContext loopFilterContext = new(sequenceHeader);
+        using Av1LoopFilterContext loopFilterContext =
+            new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
         Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
         using Av1BlockDecoder decoder = new(
             sequenceHeader,

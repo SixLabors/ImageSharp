@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// <summary>
 /// Orders item extents by their resolved absolute stream position.
 /// </summary>
-internal class HeifLocationComparer : IComparer<HeifLocation>
+internal sealed class HeifLocationComparer : IComparer<HeifLocation>
 {
     /// <summary>
     /// The absolute origin of item-data-relative extents.

@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// <summary>
 /// Contains the delta-quantizer or delta-loop-filter signaling parameters for an AV1 frame.
 /// </summary>
-internal class ObuDeltaParameters
+internal sealed class ObuDeltaParameters
 {
     /// <summary>
     /// Gets or sets a value indicating whether per-block delta values are present.

@@ -73,19 +73,9 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     private ObuSequenceHeader? validatedSequenceHeader;
 
     /// <summary>
-    /// The tile parser shared by all tile groups in the current frame.
+    /// The complete parser, sample buffer, and reconstruction state for the frame currently being decoded.
     /// </summary>
-    private Av1TileReader? tileReader;
-
-    /// <summary>
-    /// The destination sample buffer for the frame currently being parsed and reconstructed.
-    /// </summary>
-    private Av1FrameBuffer<byte>? frameBuffer;
-
-    /// <summary>
-    /// The reconstruction pipeline for the frame currently being parsed.
-    /// </summary>
-    private Av1FrameDecoder? frameDecoder;
+    private FrameDecodeState? frameDecodeState;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1Decoder"/> class.
@@ -139,9 +129,15 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     public ObuSequenceHeader? SequenceHeader { get; private set; }
 
     /// <summary>
-    /// Gets the tile and superblock state for the final retained shown frame, or <see langword="null"/> before one completes.
+    /// Gets tile and superblock state for the most recently reconstructed frame, or <see langword="null"/> when no
+    /// frame was reconstructed or the output selected an existing reference without new tile syntax.
     /// </summary>
     public Av1FrameInfo? FrameInfo { get; private set; }
+
+    /// <summary>
+    /// Gets the inter-prediction features selected by every coded frame completed in the most recently decoded payload.
+    /// </summary>
+    public Av1InterPredictionFeatures DecodedInterPredictionFeatures { get; private set; }
 
     /// <summary>
     /// Gets the native planes of the current retained shown frame, or <see langword="null"/> before one completes.
@@ -182,6 +178,15 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         {
             CicpProfile = effectiveColorProfile
         };
+
+        HeifContentLightLevel? contentLightLevel = this.obuReader.ContentLightLevel;
+        HeifMasteringDisplayColorVolume? masteringDisplayColorVolume = this.obuReader.MasteringDisplayColorVolume;
+        if (contentLightLevel is not null || masteringDisplayColorVolume is not null)
+        {
+            HeifMetadata heifMetadata = metadata.GetHeifMetadata();
+            heifMetadata.ContentLightLevel = contentLightLevel;
+            heifMetadata.MasteringDisplayColorVolume = masteringDisplayColorVolume;
+        }
 
         try
         {
@@ -224,9 +229,10 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             containerColorProfile,
             codecConfiguration,
             out effectiveColorProfile,
+            out ObuFrameHeader frameHeader,
             layeredImageIndex);
 
-        return this.ConvertToFrame<TPixel>(frameBuffer, effectiveColorProfile, presentationSize);
+        return this.ConvertToFrame<TPixel>(frameBuffer, frameHeader, effectiveColorProfile, presentationSize);
     }
 
     /// <summary>
@@ -250,7 +256,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             null,
             requireShownFrame: true);
 
-        return this.ConvertToFrame<TPixel>(this.referenceFrames.OutputFrame!.FrameBuffer, effectiveColorProfile);
+        Av1ReferenceFrame outputFrame = this.referenceFrames.ResolveOutput();
+        return this.ConvertToFrame<TPixel>(outputFrame.FrameBuffer, outputFrame.FrameHeader, effectiveColorProfile);
     }
 
     /// <summary>
@@ -300,8 +307,9 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             null,
             requireShownFrame: true);
 
+        Av1ReferenceFrame outputFrame = this.referenceFrames.ResolveOutput();
         this.ComposeAlpha(
-            this.referenceFrames.OutputFrame!.FrameBuffer,
+            outputFrame.FrameBuffer,
             expectedCodedSize,
             destination,
             outputSize,
@@ -314,11 +322,13 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel type.</typeparam>
     /// <param name="frameBuffer">The decoded native planes.</param>
+    /// <param name="frameHeader">The completed header describing the decoded native planes.</param>
     /// <param name="effectiveColorProfile">The effective CICP description.</param>
     /// <param name="presentationSize">The requested item presentation size, or an empty size for the coded dimensions.</param>
     /// <returns>The independently owned packed-pixel frame.</returns>
     private ImageFrame<TPixel> ConvertToFrame<TPixel>(
         Av1FrameBuffer<byte> frameBuffer,
+        ObuFrameHeader frameHeader,
         CicpProfile effectiveColorProfile,
         Size presentationSize = default)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -327,8 +337,8 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         try
         {
             Size codedSize = new(
-                this.FrameHeader!.FrameSize.SuperResolutionUpscaledWidth,
-                this.FrameHeader.FrameSize.FrameHeight);
+                frameHeader.FrameSize.SuperResolutionUpscaledWidth,
+                frameHeader.FrameSize.FrameHeight);
 
             // A selected lower spatial layer can only be scaled upward to the image item's ispe extent here.
             // Other item-size corrections keep using the shared packed-pixel presentation path after decoding.
@@ -452,6 +462,24 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         Av1CodecConfiguration? codecConfiguration,
         out CicpProfile effectiveColorProfile,
         Av1LayeredImageIndex? layeredImageIndex = null)
+        => this.DecodeFrameBuffer(
+            buffer,
+            containerColorProfile,
+            codecConfiguration,
+            out effectiveColorProfile,
+            out _,
+            layeredImageIndex);
+
+    /// <summary>
+    /// Parses every coded frame in an AV1 payload and returns the final shown frame's native planes and header.
+    /// </summary>
+    private Av1FrameBuffer<byte> DecodeFrameBuffer(
+        Span<byte> buffer,
+        CicpProfile? containerColorProfile,
+        Av1CodecConfiguration? codecConfiguration,
+        out CicpProfile effectiveColorProfile,
+        out ObuFrameHeader frameHeader,
+        Av1LayeredImageIndex? layeredImageIndex)
     {
         effectiveColorProfile = this.DecodePayload(
             buffer,
@@ -461,6 +489,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             requireShownFrame: true);
 
         using Av1ReferenceFrame outputFrame = this.referenceFrames.TakeOutput();
+        frameHeader = outputFrame.FrameHeader;
         return outputFrame.TakeFrameBuffer();
     }
 
@@ -483,8 +512,13 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         this.codecConfiguration = codecConfiguration;
         this.containerColorProfile = containerColorProfile;
         this.validatedSequenceHeader = null;
+        this.obuReader.ResetMetadata();
         this.SequenceHeader = null;
         this.FrameHeader = null;
+        this.DecodedInterPredictionFeatures = Av1InterPredictionFeatures.None;
+
+        // Full tile syntax describes only frames reconstructed by this payload. Reference slots already own the compact
+        // state needed by later frames, so release the previous payload's reconstruction graph before parsing the next.
         this.FrameInfo?.ReleaseOwner();
         this.FrameInfo = null;
 
@@ -493,7 +527,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             if (layeredImageIndex is null)
             {
                 Av1BitStreamReader reader = new(buffer);
-                this.obuReader.ReadAll(ref reader, buffer.Length, () => this, false);
+                this.obuReader.ReadAll(ref reader, buffer.Length, this, false);
             }
             else
             {
@@ -514,7 +548,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
 
                     int layerSize = (int)declaredLayerSize;
                     Av1BitStreamReader layerReader = new(buffer.Slice(layerOffset, layerSize));
-                    this.obuReader.ReadAll(ref layerReader, layerSize, () => this, false);
+                    this.obuReader.ReadAll(ref layerReader, layerSize, this, false);
                     layerOffset += layerSize;
                 }
 
@@ -522,17 +556,16 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                 {
                     Span<byte> finalLayer = buffer[layerOffset..];
                     Av1BitStreamReader finalLayerReader = new(finalLayer);
-                    this.obuReader.ReadAll(ref finalLayerReader, finalLayer.Length, () => this, false);
+                    this.obuReader.ReadAll(ref finalLayerReader, finalLayer.Length, this, false);
                 }
             }
 
-            ObuSequenceHeader sequenceHeader = this.obuReader.SequenceHeader!;
-            Guard.NotNull(sequenceHeader, nameof(sequenceHeader));
+            ObuSequenceHeader sequenceHeader = this.obuReader.SequenceHeader
+                ?? throw new InvalidImageContentException("The AV1 payload contains no sequence header.");
+
             if (requireShownFrame)
             {
-                Guard.NotNull(this.referenceFrames.OutputFrame, nameof(this.referenceFrames.OutputFrame));
-                Guard.NotNull(this.SequenceHeader, nameof(this.SequenceHeader));
-                Guard.NotNull(this.FrameHeader, nameof(this.FrameHeader));
+                _ = this.referenceFrames.ResolveOutput();
             }
 
             // Preserve the effective CICP description used for conversion, including container values that legally
@@ -548,17 +581,14 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         {
             // A failed frame may own pooled neighbor contexts while earlier layers own reconstructed references and
             // published CDF snapshots. None can be reused after a non-transactional frame transition has failed.
-            this.frameDecoder?.Dispose();
-            this.frameDecoder = null;
-            this.frameBuffer?.Dispose();
-            this.frameBuffer = null;
-            this.tileReader?.Dispose();
-            this.tileReader = null;
+            this.frameDecodeState?.Dispose();
+            this.frameDecodeState = null;
             this.obuReader.Reset();
             this.entropyContexts?.Reset();
             this.entropySequenceHeader = null;
             this.SequenceHeader = null;
             this.FrameHeader = null;
+            this.DecodedInterPredictionFeatures = Av1InterPredictionFeatures.None;
             this.FrameInfo?.ReleaseOwner();
             this.FrameInfo = null;
             throw;
@@ -583,6 +613,11 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         {
             return;
         }
+
+        Av1FrameBuffer<byte>.ValidateDimensions(
+            sequenceHeader,
+            sequenceHeader.ColorConfig.GetColorFormat(),
+            false);
 
         this.codecConfiguration?.Validate(sequenceHeader);
         CicpProfile? colorProfile = this.containerColorProfile;
@@ -640,12 +675,11 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <param name="tileNum">The raster-order tile index.</param>
     public void ReadTile(Span<byte> tileData, int tileNum)
     {
-        if (this.tileReader is null)
+        FrameDecodeState frameDecodeState;
+        if (this.frameDecodeState is null)
         {
-            ObuSequenceHeader? sequenceHeader = this.obuReader.SequenceHeader;
-            ObuFrameHeader? frameHeader = this.obuReader.FrameHeader;
-            Guard.NotNull(sequenceHeader, nameof(sequenceHeader));
-            Guard.NotNull(frameHeader, nameof(frameHeader));
+            ObuSequenceHeader sequenceHeader = this.obuReader.CurrentSequenceHeader;
+            ObuFrameHeader frameHeader = this.obuReader.CurrentFrameHeader;
             this.ValidateSequence(sequenceHeader);
 
             if (!ReferenceEquals(this.entropySequenceHeader, sequenceHeader))
@@ -680,27 +714,65 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             Av1FrameEntropyContexts entropyContexts =
                 this.entropyContexts ??= new(frameHeader.QuantizationParameters.BaseQIndex);
 
-            this.tileReader = new Av1TileReader(
-                this.configuration,
-                sequenceHeader,
-                frameHeader,
-                entropyContexts,
-                primaryReferenceContext,
-                this.referenceFrames,
-                this.lumaPaletteColorIndexMap,
-                this.chromaPaletteColorIndexMap);
+            Av1TileReader? tileReader = null;
+            Av1FrameBuffer<byte>? frameBuffer = null;
 
-            this.frameBuffer = new Av1FrameBuffer<byte>(this.configuration, sequenceHeader, sequenceHeader.ColorConfig.GetColorFormat(), false)
+            // Presentation-only samples contain no new tile syntax, so they keep the most recently reconstructed
+            // frame state. Release that state only when a new reconstruction begins to avoid overlapping two graphs.
+            this.FrameInfo?.ReleaseOwner();
+            this.FrameInfo = null;
+
+            try
             {
-                Width = frameHeader.FrameSize.FrameWidth,
-                Height = frameHeader.FrameSize.FrameHeight
-            };
+                tileReader = new Av1TileReader(
+                    this.configuration,
+                    sequenceHeader,
+                    frameHeader,
+                    entropyContexts,
+                    primaryReferenceContext,
+                    this.referenceFrames,
+                    this.lumaPaletteColorIndexMap,
+                    this.chromaPaletteColorIndexMap);
 
-            this.frameDecoder = new Av1FrameDecoder(sequenceHeader, frameHeader, this.tileReader.FrameInfo, this.frameBuffer, this.referenceFrames);
-            this.tileReader.FrameDecoder = this.frameDecoder;
+                frameBuffer = new Av1FrameBuffer<byte>(
+                    this.configuration,
+                    sequenceHeader,
+                    sequenceHeader.ColorConfig.GetColorFormat(),
+                    false,
+                    frameHeader.FrameSize.SuperResolutionUpscaledWidth,
+                    frameHeader.FrameSize.FrameHeight)
+                {
+                    Width = frameHeader.FrameSize.FrameWidth,
+                    Height = frameHeader.FrameSize.FrameHeight
+                };
+
+                Av1FrameDecoder frameDecoder = new(
+                    sequenceHeader,
+                    frameHeader,
+                    tileReader.FrameInfo,
+                    frameBuffer,
+                    this.referenceFrames,
+                    new Av1TileReader.PaletteColorIndexMaps(
+                        this.lumaPaletteColorIndexMap,
+                        this.chromaPaletteColorIndexMap));
+
+                tileReader.FrameDecoder = frameDecoder;
+                frameDecodeState = new(tileReader, frameBuffer, frameDecoder);
+                this.frameDecodeState = frameDecodeState;
+            }
+            catch
+            {
+                frameBuffer?.Dispose();
+                tileReader?.Dispose();
+                throw;
+            }
+        }
+        else
+        {
+            frameDecodeState = this.frameDecodeState.Value;
         }
 
-        this.tileReader.ReadTile(tileData, tileNum);
+        frameDecodeState.TileReader.ReadTile(tileData, tileNum);
     }
 
     /// <summary>
@@ -708,12 +780,15 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// </summary>
     public void CompleteFrame()
     {
-        ObuSequenceHeader sequenceHeader = this.obuReader.SequenceHeader!;
-        ObuFrameHeader frameHeader = this.obuReader.FrameHeader!;
-        Av1FrameBuffer<byte>? frameBuffer = this.frameBuffer;
-        this.frameBuffer = null;
-        Av1FrameDecoder? frameDecoder = this.frameDecoder;
-        this.frameDecoder = null;
+        ObuSequenceHeader sequenceHeader = this.obuReader.SequenceHeader
+            ?? throw new InvalidImageContentException("An AV1 frame cannot complete before its sequence header.");
+
+        ObuFrameHeader frameHeader = this.obuReader.FrameHeader
+            ?? throw new InvalidImageContentException("An AV1 frame cannot complete before its frame header.");
+
+        Av1FrameBuffer<byte>? frameBuffer = null;
+        Av1FrameDecoder? frameDecoder = null;
+        Av1TileReader? tileReader = null;
         Av1FrameBuffer<byte>? presentationBuffer = null;
 
         try
@@ -724,7 +799,6 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             {
                 Av1ReferenceFrame existingFrame = this.referenceFrames.ShowExisting((int)frameHeader.FrameToShowMapIdx);
                 ObuFrameHeader existingFrameHeader = existingFrame.FrameHeader;
-                Av1FrameInfo existingFrameInfo = existingFrame.FrameInfo;
 
                 if (existingFrameHeader.FrameType == ObuFrameType.KeyFrame)
                 {
@@ -739,33 +813,42 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                     presentationBuffer = new Av1FrameBuffer<byte>(
                         this.configuration,
                         sequenceHeader,
-                        sequenceHeader.ColorConfig.GetColorFormat(),
-                        false);
+                        existingFrame.FrameBuffer.ColorFormat,
+                        false,
+                        existingFrame.FrameBuffer.MaxWidth,
+                        existingFrame.FrameBuffer.MaxHeight);
 
                     // Retained reference samples remain ungrained. Existing-frame presentation receives its own
                     // allocator-owned copy only when the inherited film-grain parameters actually modify the output.
-                    existingFrame.FrameBuffer.CopyTo(presentationBuffer);
+                    existingFrame.FrameBuffer.CopyVisibleTo(presentationBuffer);
                     Av1FilmGrainDecoder filmGrainDecoder = new(sequenceHeader, existingFrameHeader, presentationBuffer);
                     filmGrainDecoder.DecodeFrame();
 
-                    Av1ReferenceFrame presentationFrame = new(presentationBuffer, existingFrameHeader, existingFrameInfo);
+                    Av1ReferenceFrame presentationFrame = new(presentationBuffer, existingFrameHeader);
                     presentationBuffer = null;
                     this.referenceFrames.CommitOutput(presentationFrame);
                 }
 
                 this.SequenceHeader = sequenceHeader;
                 this.FrameHeader = existingFrameHeader;
-
-                existingFrameInfo.AddOwner();
-                this.FrameInfo?.ReleaseOwner();
-                this.FrameInfo = existingFrameInfo;
                 return;
             }
 
-            Av1TileReader tileReader = this.tileReader!;
+            FrameDecodeState? activeFrameDecodeState = this.frameDecodeState;
+            if (activeFrameDecodeState is null)
+            {
+                throw new InvalidImageContentException("The AV1 frame completed without tile syntax.");
+            }
+
+            this.frameDecodeState = null;
+            FrameDecodeState activeFrame = activeFrameDecodeState.Value;
+            frameBuffer = activeFrame.FrameBuffer;
+            frameDecoder = activeFrame.FrameDecoder;
+            tileReader = activeFrame.TileReader;
+
             Av1FrameInfo frameInfo = tileReader.FrameInfo;
-            Av1FrameBuffer<byte> reconstructedFrameBuffer = frameBuffer!;
-            frameDecoder!.CompleteFrame();
+            Av1FrameBuffer<byte> reconstructedFrameBuffer = frameBuffer;
+            frameDecoder.CompleteFrame();
 
             bool retainsReference = (frameHeader.RefreshFrameFlags & byte.MaxValue) != 0;
             if (retainsReference)
@@ -773,6 +856,10 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                 // Motion compensation may address any clamped position inside the decoder border. Extending once after
                 // all in-loop filters lets every later block use the full padded span without per-prediction edge copies.
                 Av1ReferenceFrameBorder.Extend(reconstructedFrameBuffer);
+
+                // Detach only the state libaom retains on RefCntBuffer before any later ownership transfer can fail.
+                // The full reconstruction graph remains local to the current result and expires independently.
+                frameInfo.PrepareReferenceState();
             }
 
             bool needsSeparatePresentation = frameHeader.ShowFrame && frameHeader.FilmGrainParameters.ApplyGrain && retainsReference;
@@ -781,12 +868,14 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                 presentationBuffer = new Av1FrameBuffer<byte>(
                     this.configuration,
                     sequenceHeader,
-                    sequenceHeader.ColorConfig.GetColorFormat(),
-                    false);
+                    reconstructedFrameBuffer.ColorFormat,
+                    false,
+                    reconstructedFrameBuffer.MaxWidth,
+                    reconstructedFrameBuffer.MaxHeight);
 
                 // Film grain must never contaminate a decoded reference. A shown frame that is also refreshed therefore
                 // receives one allocator-owned presentation copy; frames with no reference role are grained in place.
-                reconstructedFrameBuffer.CopyTo(presentationBuffer);
+                reconstructedFrameBuffer.CopyVisibleTo(presentationBuffer);
             }
 
             Av1FrameBuffer<byte> grainTarget = presentationBuffer ?? reconstructedFrameBuffer;
@@ -799,14 +888,24 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             Av1ReferenceFrame referenceFrame;
             if (retainsReference)
             {
-                Av1FrameEntropyContexts entropyContexts = this.entropyContexts!;
+                Av1FrameEntropyContexts entropyContexts = tileReader.EntropyContexts;
+
                 Av1FrameEntropyContext entropySnapshot = entropyContexts.RentPublishedSnapshot();
-                referenceFrame = new(reconstructedFrameBuffer, frameHeader, frameInfo, entropySnapshot, entropyContexts);
+                try
+                {
+                    referenceFrame = new(reconstructedFrameBuffer, frameHeader, frameInfo, entropySnapshot, entropyContexts);
+                }
+                catch
+                {
+                    // The snapshot rent precedes the reference owner. Return it if object construction cannot accept it.
+                    entropyContexts.ReturnSnapshot(entropySnapshot);
+                    throw;
+                }
             }
             else
             {
                 // Presentation-only frames can never become primary references, so they own no unused CDF graph.
-                referenceFrame = new(reconstructedFrameBuffer, frameHeader, frameInfo);
+                referenceFrame = new(reconstructedFrameBuffer, frameHeader);
             }
 
             frameBuffer = null;
@@ -818,34 +917,32 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
 
             if (presentationBuffer is not null)
             {
-                Av1ReferenceFrame presentationFrame = new(presentationBuffer, frameHeader, frameInfo);
+                Av1ReferenceFrame presentationFrame = new(presentationBuffer, frameHeader);
                 presentationBuffer = null;
                 this.referenceFrames.CommitOutput(presentationFrame);
             }
 
-            if (frameHeader.ShowFrame)
-            {
-                this.SequenceHeader = sequenceHeader;
-                this.FrameHeader = frameHeader;
+            this.SequenceHeader = sequenceHeader;
+            this.FrameHeader = frameHeader;
+            this.DecodedInterPredictionFeatures |= frameInfo.InterPredictionFeatures;
 
-                // The output frame owner is released after its sample buffer transfers to the caller. Retain the
-                // parsed state independently so diagnostics and conformance inspection remain valid until the next
-                // bounded decode or decoder disposal.
-                frameInfo.AddOwner();
-                this.FrameInfo?.ReleaseOwner();
-                this.FrameInfo = frameInfo;
-            }
+            // Hidden frames can contain the inter syntax needed to validate a sequence. Retain only the latest full
+            // reconstruction state until the next bounded decode; reference-map entries keep their compact state.
+            frameInfo.AddOwner();
+            this.FrameInfo?.ReleaseOwner();
+            this.FrameInfo = frameInfo;
         }
         finally
         {
-            // A non-shown frame or failed reconstruction never escapes this callback. The tile reader releases only
-            // its initial frame-state lease; retained frames and the decoder result keep allocator-owned motion fields
-            // alive independently after the entropy-neighbor contexts are returned.
+            // A non-shown frame or failed reconstruction never escapes this callback. The tile reader releases the
+            // reconstruction lease; a retained frame keeps only its compact reference state after neighbor contexts
+            // and the remaining frame-sized syntax are returned.
             frameDecoder?.Dispose();
             presentationBuffer?.Dispose();
             frameBuffer?.Dispose();
-            this.tileReader?.Dispose();
-            this.tileReader = null;
+            tileReader?.Dispose();
+            this.frameDecodeState?.Dispose();
+            this.frameDecodeState = null;
         }
     }
 
@@ -854,16 +951,46 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// </summary>
     public void Dispose()
     {
-        this.frameDecoder?.Dispose();
-        this.frameDecoder = null;
-        this.frameBuffer?.Dispose();
-        this.frameBuffer = null;
-        this.tileReader?.Dispose();
-        this.tileReader = null;
+        this.frameDecodeState?.Dispose();
+        this.frameDecodeState = null;
         this.referenceFrames.Dispose();
         this.FrameInfo?.ReleaseOwner();
         this.FrameInfo = null;
         this.lumaPaletteColorIndexMap.Dispose();
         this.chromaPaletteColorIndexMap.Dispose();
+    }
+
+    /// <summary>
+    /// Carries the active frame resources as one valid state so no partially initialized combination can be observed.
+    /// </summary>
+    private readonly struct FrameDecodeState(
+        Av1TileReader tileReader,
+        Av1FrameBuffer<byte> frameBuffer,
+        Av1FrameDecoder frameDecoder) : IDisposable
+    {
+        /// <summary>
+        /// Gets the tile parser shared by all tile groups in the frame.
+        /// </summary>
+        public Av1TileReader TileReader { get; } = tileReader;
+
+        /// <summary>
+        /// Gets the destination sample buffer reconstructed by the frame pipeline.
+        /// </summary>
+        public Av1FrameBuffer<byte> FrameBuffer { get; } = frameBuffer;
+
+        /// <summary>
+        /// Gets the reconstruction pipeline for the frame.
+        /// </summary>
+        public Av1FrameDecoder FrameDecoder { get; } = frameDecoder;
+
+        /// <summary>
+        /// Releases every resource when ownership has not transferred to a completed frame.
+        /// </summary>
+        public void Dispose()
+        {
+            this.FrameDecoder.Dispose();
+            this.FrameBuffer.Dispose();
+            this.TileReader.Dispose();
+        }
     }
 }

@@ -128,7 +128,7 @@ public class Av1TemporalSegmentationTests
         const int modeInfoSize = 16;
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader(64, 64);
         ObuFrameHeader primaryHeader = CreateFrameHeader(modeInfoSize, modeInfoSize, segmentationUpdateMap: 1, segmentationTemporalUpdate: 0);
-        Av1FrameInfo primaryFrameInfo = new(sequenceHeader);
+        using Av1FrameInfo primaryFrameInfo = new(sequenceHeader);
         primaryFrameInfo.InitializeSegmentIds(primaryHeader, null);
         primaryFrameInfo.SetSegmentId(Av1BlockSize.Block64x64, Point.Empty, 6);
 
@@ -237,13 +237,20 @@ public class Av1TemporalSegmentationTests
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader(64, 64);
         ObuFrameHeader currentHeader = CreateFrameHeader(16, 16, segmentationUpdateMap: 1, segmentationTemporalUpdate: 1);
         ObuFrameHeader primaryHeader = CreateFrameHeader(8, 16, segmentationUpdateMap: 1, segmentationTemporalUpdate: 0);
-        Av1FrameInfo currentFrameInfo = new(sequenceHeader);
-        Av1FrameInfo primaryFrameInfo = new(sequenceHeader);
+        using Av1FrameInfo currentFrameInfo = new(sequenceHeader);
+        using Av1FrameInfo primaryFrameInfo = new(sequenceHeader);
         currentFrameInfo.InitializeSegmentIds(currentHeader, null);
         primaryFrameInfo.InitializeSegmentIds(primaryHeader, null);
         primaryFrameInfo.SetSegmentId(Av1BlockSize.Block32x64, Point.Empty, 5);
 
-        int actual = currentFrameInfo.GetPredictedSegmentId(primaryFrameInfo, Av1BlockSize.Block16x16, Point.Empty);
+        Av1FrameBuffer<byte> primaryBuffer =
+            new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv400, false);
+
+        using Av1ReferenceFrame primaryFrame = new(primaryBuffer, primaryHeader, primaryFrameInfo);
+        int actual = currentFrameInfo.GetPredictedSegmentId(
+            primaryFrame.ReferenceState,
+            Av1BlockSize.Block16x16,
+            Point.Empty);
 
         Assert.Equal(0, actual);
     }
@@ -292,6 +299,14 @@ public class Av1TemporalSegmentationTests
         {
             ModeInfoColumnCount = modeInfoColumnCount,
             ModeInfoRowCount = modeInfoRowCount,
+            FrameSize = new ObuFrameSize
+            {
+                FrameWidth = modeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
+                FrameHeight = modeInfoRowCount << Av1Constants.ModeInfoSizeLog2,
+                SuperResolutionUpscaledWidth = modeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
+                RenderWidth = modeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
+                RenderHeight = modeInfoRowCount << Av1Constants.ModeInfoSizeLog2
+            },
             SegmentationParameters = new ObuSegmentationParameters
             {
                 Enabled = true,

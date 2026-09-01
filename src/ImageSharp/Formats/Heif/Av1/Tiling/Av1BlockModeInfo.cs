@@ -58,12 +58,12 @@ internal struct Av1BlockModeInfo
     /// <summary>
     /// Stores the luma palette color-index map.
     /// </summary>
-    private Buffer2DRegion<byte> lumaPaletteColorIndexMap;
+    private Rectangle lumaPaletteColorIndexBounds;
 
     /// <summary>
     /// Stores the shared chroma palette color-index map.
     /// </summary>
-    private Buffer2DRegion<byte> chromaPaletteColorIndexMap;
+    private Rectangle chromaPaletteColorIndexBounds;
 
     /// <summary>
     /// The directional prediction angle adjustment for luma.
@@ -440,24 +440,27 @@ internal struct Av1BlockModeInfo
     /// Gets the palette color-index map for a color plane.
     /// </summary>
     /// <param name="plane">The color plane.</param>
+    /// <param name="colorIndexMap">The decoder-session palette map for the selected plane class.</param>
     /// <returns>The luma map for <see cref="Av1Plane.Y"/> or the shared chroma map for either chroma plane.</returns>
-    public Buffer2DRegion<byte> GetPaletteColorIndexMap(Av1Plane plane)
-        => plane == Av1Plane.Y ? this.lumaPaletteColorIndexMap : this.chromaPaletteColorIndexMap;
+    public Buffer2DRegion<byte> GetPaletteColorIndexMap(Av1Plane plane, Buffer2D<byte> colorIndexMap)
+        => new(
+            colorIndexMap,
+            plane == Av1Plane.Y ? this.lumaPaletteColorIndexBounds : this.chromaPaletteColorIndexBounds);
 
     /// <summary>
     /// Stores the palette color-index map for a plane class.
     /// </summary>
     /// <param name="planeType">The luma or shared chroma plane class.</param>
-    /// <param name="colorIndexMap">The row-major color-index map including coded-block edge padding.</param>
-    public void SetPaletteColorIndexMap(Av1PlaneType planeType, Buffer2DRegion<byte> colorIndexMap)
+    /// <param name="bounds">The row-major color-index bounds including coded-block edge padding.</param>
+    public void SetPaletteColorIndexMap(Av1PlaneType planeType, Rectangle bounds)
     {
         if (planeType == Av1PlaneType.Y)
         {
-            this.lumaPaletteColorIndexMap = colorIndexMap;
+            this.lumaPaletteColorIndexBounds = bounds;
         }
         else
         {
-            this.chromaPaletteColorIndexMap = colorIndexMap;
+            this.chromaPaletteColorIndexBounds = bounds;
         }
     }
 

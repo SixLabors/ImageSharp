@@ -94,14 +94,14 @@ internal sealed class Av1FilmGrainDecoder
         int alignedWidth = Av1Math.AlignPowerOf2(visibleWidth, 1);
         int alignedHeight = Av1Math.AlignPowerOf2(visibleHeight, 1);
 
-        Buffer2D<byte> lumaBuffer = this.frameBuffer.BufferY!;
+        Buffer2D<byte> lumaBuffer = this.frameBuffer.GetPlaneBuffer(Av1Plane.Y);
 
         // Frame planes are allocated as bytes even for high-bit-depth pictures. Convert their byte strides to
         // native sample strides once so every later offset is expressed consistently in samples.
         int lumaStride = lumaBuffer.Width / this.frameBuffer.BytesPerSample;
         int chromaStride = isMonochrome
             ? 0
-            : this.frameBuffer.BufferCb!.Width / this.frameBuffer.BytesPerSample;
+            : this.frameBuffer.GetPlaneBuffer(Av1Plane.U).Width / this.frameBuffer.BytesPerSample;
 
         // Closing ApplyGrain over byte or ushort keeps synthesis in the frame buffer's native representation.
         // This avoids an intermediate converted image while allowing the JIT to remove the sample-type branches.
@@ -115,14 +115,14 @@ internal sealed class Av1FilmGrainDecoder
             Span<ushort> cb = isMonochrome
                 ? Span<ushort>.Empty
                 : GetPlaneSamples<ushort>(
-                    this.frameBuffer.BufferCb!,
+                    this.frameBuffer.GetPlaneBuffer(Av1Plane.U),
                     this.frameBuffer.OriginX >> subsamplingX,
                     this.frameBuffer.OriginY >> subsamplingY);
 
             Span<ushort> cr = isMonochrome
                 ? Span<ushort>.Empty
                 : GetPlaneSamples<ushort>(
-                    this.frameBuffer.BufferCr!,
+                    this.frameBuffer.GetPlaneBuffer(Av1Plane.V),
                     this.frameBuffer.OriginX >> subsamplingX,
                     this.frameBuffer.OriginY >> subsamplingY);
 
@@ -160,14 +160,14 @@ internal sealed class Av1FilmGrainDecoder
             Span<byte> cb = isMonochrome
                 ? Span<byte>.Empty
                 : GetPlaneSamples<byte>(
-                    this.frameBuffer.BufferCb!,
+                    this.frameBuffer.GetPlaneBuffer(Av1Plane.U),
                     this.frameBuffer.OriginX >> subsamplingX,
                     this.frameBuffer.OriginY >> subsamplingY);
 
             Span<byte> cr = isMonochrome
                 ? Span<byte>.Empty
                 : GetPlaneSamples<byte>(
-                    this.frameBuffer.BufferCr!,
+                    this.frameBuffer.GetPlaneBuffer(Av1Plane.V),
                     this.frameBuffer.OriginX >> subsamplingX,
                     this.frameBuffer.OriginY >> subsamplingY);
 

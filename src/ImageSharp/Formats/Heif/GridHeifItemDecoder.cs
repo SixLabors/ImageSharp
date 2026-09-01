@@ -16,13 +16,13 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// Decodes the image items referenced by a HEIF grid derived-image item.
 /// </summary>
 /// <typeparam name="TPixel">The destination pixel type.</typeparam>
-internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlphaItemDecoder<TPixel>
+internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlphaItemDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
     /// <summary>
-    /// The item definitions available to the grid.
+    /// The item definitions available to the grid, indexed by item identifier.
     /// </summary>
-    private readonly IList<HeifItem> items;
+    private readonly Dictionary<uint, HeifItem> items;
 
     /// <summary>
     /// The item-reference relationships used to locate the grid's tiles.
@@ -30,9 +30,9 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlph
     private readonly IList<HeifItemLink> itemLinks;
 
     /// <summary>
-    /// The assembled encoded payload for each referenced image item.
+    /// Reads one selected encoded item payload on demand.
     /// </summary>
-    private readonly IDictionary<uint, IMemoryOwner<byte>> buffers;
+    private readonly Func<HeifItem, IMemoryOwner<byte>> itemDataReader;
 
     /// <summary>
     /// The optional row-major tile identifiers supplied for an auxiliary grid plane.
@@ -44,19 +44,25 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlph
     /// </summary>
     /// <param name="items">The item definitions in the containing HEIF file.</param>
     /// <param name="itemLinks">The item-reference relationships in the containing HEIF file.</param>
-    /// <param name="buffers">The assembled encoded payload for each image item.</param>
+    /// <param name="itemDataReader">Reads one selected encoded image payload on demand.</param>
     /// <param name="tileItemIds">
     /// Optional row-major tile identifiers that replace the grid item's own derived-image references.
     /// </param>
     public GridHeifItemDecoder(
         IList<HeifItem> items,
         IList<HeifItemLink> itemLinks,
-        IDictionary<uint, IMemoryOwner<byte>> buffers,
+        Func<HeifItem, IMemoryOwner<byte>> itemDataReader,
         IReadOnlyList<uint>? tileItemIds = null)
     {
-        this.items = items;
+        Dictionary<uint, HeifItem> itemLookup = new(items.Count);
+        foreach (HeifItem item in items)
+        {
+            itemLookup.Add(item.Id, item);
+        }
+
+        this.items = itemLookup;
         this.itemLinks = itemLinks;
-        this.buffers = buffers;
+        this.itemDataReader = itemDataReader;
         this.tileItemIds = tileItemIds;
     }
 
@@ -87,93 +93,175 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlph
         CancellationToken cancellationToken)
     {
         GridDescriptor descriptor = ParseGridDescriptor(data);
-        int rows = descriptor.Rows;
-        int columns = descriptor.Columns;
-        int outputWidth = descriptor.OutputSize.Width;
-        int outputHeight = descriptor.OutputSize.Height;
-        List<uint> linked = this.GetLinkedTileIds(gridItem, descriptor);
+        IReadOnlyList<uint> linked = this.GetLinkedTileIds(gridItem, descriptor);
 
-        // Each compressed tile decoder returns an owned Image. Keep every tile alive until
-        // the final grid has copied its pixels, then dispose all intermediates together.
-        using DisposableList<Image<TPixel>> gridTiles = new(linked.Count);
         Heif4CharCode tileType = default;
         Av1CodecConfiguration? av1GridConfiguration = null;
-        foreach (uint id in linked)
+        Image<TPixel> result = this.CreateGridResult(
+            options,
+            descriptor,
+            linked[0],
+            colorProfile,
+            ref tileType,
+            ref av1GridConfiguration,
+            cancellationToken,
+            out int tileWidth,
+            out int tileHeight);
+
+        try
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            HeifItem item = this.items.First(item => item.Id == id);
-            ValidateTileConfiguration(item, ref tileType, ref av1GridConfiguration);
-
-            IHeifItemDecoder<TPixel>? decoder = HeifCompressionFactory.GetDecoder<TPixel>(item.Type)
-                ?? throw new ImageFormatException($"The HEIF image grid uses unsupported tile type '{item.Type}'.");
-
-            if (!this.buffers.TryGetValue(item.Id, out IMemoryOwner<byte>? itemMemory))
+            for (int tileIndex = 1; tileIndex < linked.Count; tileIndex++)
             {
-                throw new InvalidImageContentException($"HEIF image grid tile {item.Id} has no data extents.");
+                cancellationToken.ThrowIfCancellationRequested();
+                HeifItem item = this.items[linked[tileIndex]];
+                using Image<TPixel> tile = this.DecodeGridTile(
+                    options,
+                    item,
+                    colorProfile,
+                    ref tileType,
+                    ref av1GridConfiguration,
+                    cancellationToken);
+
+                if (tile.Width != tileWidth || tile.Height != tileHeight)
+                {
+                    throw new InvalidImageContentException("The HEIF image grid contains tiles with mismatched dimensions.");
+                }
+
+                CopyGridTile(tile, result, descriptor, tileIndex, tileWidth, tileHeight);
             }
 
-            this.CompressionMethod = decoder.CompressionMethod;
-            Image<TPixel> tile = decoder.DecodeItemData(
-                options,
-                item,
-                itemMemory.GetSpan(),
-                item.CicpProfile ?? colorProfile,
-                cancellationToken);
-
-            try
-            {
-                HeifItemDecoderUtilities.ScaleToItemExtent(tile, item);
-                gridTiles.Add(tile);
-            }
-            catch
-            {
-                tile.Dispose();
-                throw;
-            }
+            return result;
         }
+        catch
+        {
+            result.Dispose();
+            throw;
+        }
+    }
 
-        Image<TPixel> firstTile = gridTiles[0];
-        int tileWidth = firstTile.Width;
-        int tileHeight = firstTile.Height;
-        if (((long)tileWidth * columns) < outputWidth || ((long)tileHeight * rows) < outputHeight)
+    /// <summary>
+    /// Decodes the first validated grid tile, establishes the common tile geometry, and creates the output canvas.
+    /// </summary>
+    private Image<TPixel> CreateGridResult(
+        DecoderOptions options,
+        in GridDescriptor descriptor,
+        uint firstTileId,
+        CicpProfile? colorProfile,
+        ref Heif4CharCode tileType,
+        ref Av1CodecConfiguration? av1GridConfiguration,
+        CancellationToken cancellationToken,
+        out int tileWidth,
+        out int tileHeight)
+    {
+        cancellationToken.ThrowIfCancellationRequested();
+        HeifItem item = this.items[firstTileId];
+        using Image<TPixel> tile = this.DecodeGridTile(
+            options,
+            item,
+            colorProfile,
+            ref tileType,
+            ref av1GridConfiguration,
+            cancellationToken);
+
+        tileWidth = tile.Width;
+        tileHeight = tile.Height;
+        if (((long)tileWidth * descriptor.Columns) < descriptor.OutputSize.Width ||
+            ((long)tileHeight * descriptor.Rows) < descriptor.OutputSize.Height)
         {
             throw new InvalidImageContentException("The HEIF image grid tiles do not cover the output canvas.");
         }
 
-        if (((long)tileWidth * (columns - 1)) >= outputWidth || ((long)tileHeight * (rows - 1)) >= outputHeight)
+        if (((long)tileWidth * (descriptor.Columns - 1)) >= descriptor.OutputSize.Width ||
+            ((long)tileHeight * (descriptor.Rows - 1)) >= descriptor.OutputSize.Height)
         {
             throw new InvalidImageContentException("The HEIF image grid edge tiles do not overlap the output canvas.");
         }
 
-        Image<TPixel> result = new(options.Configuration, outputWidth, outputHeight, firstTile.Metadata.DeepClone());
-        ImageFrame<TPixel> destination = result.Frames.RootFrame;
-        for (int tileIndex = 0; tileIndex < gridTiles.Count; tileIndex++)
+        Image<TPixel> result = new(
+            options.Configuration,
+            descriptor.OutputSize.Width,
+            descriptor.OutputSize.Height,
+            tile.Metadata.DeepClone());
+
+        try
         {
-            Image<TPixel> tile = gridTiles[tileIndex];
-            if (tile.Width != tileWidth || tile.Height != tileHeight)
-            {
-                result.Dispose();
-                throw new InvalidImageContentException("The HEIF image grid contains tiles with mismatched dimensions.");
-            }
-
-            int column = tileIndex % columns;
-            int row = tileIndex / columns;
-            int destinationX = column * tileWidth;
-            int destinationY = row * tileHeight;
-            int copyWidth = Math.Min(tileWidth, outputWidth - destinationX);
-            int copyHeight = Math.Min(tileHeight, outputHeight - destinationY);
-            ImageFrame<TPixel> source = tile.Frames.RootFrame;
-
-            // The descriptor may crop only the rightmost column and bottom row. Copying bounded row spans
-            // applies that crop without allocating derived-image views or invoking the processing pipeline.
-            for (int y = 0; y < copyHeight; y++)
-            {
-                Span<TPixel> destinationRow = destination.PixelBuffer.DangerousGetRowSpan(destinationY + y).Slice(destinationX, copyWidth);
-                source.PixelBuffer.DangerousGetRowSpan(y)[..copyWidth].CopyTo(destinationRow);
-            }
+            CopyGridTile(tile, result, descriptor, 0, tileWidth, tileHeight);
+            return result;
         }
+        catch
+        {
+            result.Dispose();
+            throw;
+        }
+    }
 
-        return result;
+    /// <summary>
+    /// Decodes and scales one grid tile while its encoded payload owner is active.
+    /// </summary>
+    private Image<TPixel> DecodeGridTile(
+        DecoderOptions options,
+        HeifItem item,
+        CicpProfile? colorProfile,
+        ref Heif4CharCode tileType,
+        ref Av1CodecConfiguration? av1GridConfiguration,
+        CancellationToken cancellationToken)
+    {
+        ValidateTileConfiguration(item, ref tileType, ref av1GridConfiguration);
+        IHeifItemDecoder<TPixel>? decoder = HeifCompressionFactory.GetDecoder<TPixel>(item.Type)
+            ?? throw new ImageFormatException($"The HEIF image grid uses unsupported tile type '{item.Type}'.");
+
+        using IMemoryOwner<byte> itemMemory = this.itemDataReader(item);
+        this.CompressionMethod = decoder.CompressionMethod;
+        Image<TPixel> tile = decoder.DecodeItemData(
+            options,
+            item,
+            itemMemory.GetSpan(),
+            item.CicpProfile ?? colorProfile,
+            cancellationToken);
+
+        try
+        {
+            HeifItemDecoderUtilities.ScaleToItemExtent(tile, item);
+            return tile;
+        }
+        catch
+        {
+            // Ownership transfers to the caller only after extent normalization succeeds.
+            tile.Dispose();
+            throw;
+        }
+    }
+
+    /// <summary>
+    /// Copies one decoded tile into its cropped row-major grid position.
+    /// </summary>
+    private static void CopyGridTile(
+        Image<TPixel> tile,
+        Image<TPixel> result,
+        in GridDescriptor descriptor,
+        int tileIndex,
+        int tileWidth,
+        int tileHeight)
+    {
+        int column = tileIndex % descriptor.Columns;
+        int row = tileIndex / descriptor.Columns;
+        int destinationX = column * tileWidth;
+        int destinationY = row * tileHeight;
+        int copyWidth = Math.Min(tileWidth, descriptor.OutputSize.Width - destinationX);
+        int copyHeight = Math.Min(tileHeight, descriptor.OutputSize.Height - destinationY);
+        ImageFrame<TPixel> source = tile.Frames.RootFrame;
+        ImageFrame<TPixel> destination = result.Frames.RootFrame;
+
+        // Copy before disposing this decoded tile, keeping peak tile storage independent of grid cell count.
+        // The descriptor may crop only the rightmost column and bottom row.
+        for (int y = 0; y < copyHeight; y++)
+        {
+            Span<TPixel> destinationRow = destination.PixelBuffer
+                .DangerousGetRowSpan(destinationY + y)
+                .Slice(destinationX, copyWidth);
+
+            source.PixelBuffer.DangerousGetRowSpan(y)[..copyWidth].CopyTo(destinationRow);
+        }
     }
 
     /// <inheritdoc/>
@@ -188,7 +276,7 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlph
         CancellationToken cancellationToken)
     {
         GridDescriptor descriptor = ParseGridDescriptor(data);
-        List<uint> linked = this.GetLinkedTileIds(gridItem, descriptor);
+        IReadOnlyList<uint> linked = this.GetLinkedTileIds(gridItem, descriptor);
         Heif4CharCode tileType = default;
         Av1CodecConfiguration? av1GridConfiguration = null;
         Size tileSize = default;
@@ -197,16 +285,11 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlph
         // grid without leaving a partially composed prefix in the returned image.
         foreach (uint id in linked)
         {
-            HeifItem item = this.items.First(item => item.Id == id);
+            HeifItem item = this.items[id];
             ValidateTileConfiguration(item, ref tileType, ref av1GridConfiguration);
             if (HeifCompressionFactory.GetDecoder<TPixel>(item.Type) is not IHeifAlphaItemDecoder<TPixel>)
             {
                 throw new ImageFormatException($"The HEIF alpha grid uses unsupported tile type '{item.Type}'.");
-            }
-
-            if (!this.buffers.ContainsKey(item.Id))
-            {
-                throw new InvalidImageContentException($"HEIF alpha grid tile {item.Id} has no data extents.");
             }
 
             if (item.Extent == default)
@@ -245,9 +328,14 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlph
         for (int tileIndex = 0; tileIndex < linked.Count; tileIndex++)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            HeifItem item = this.items.First(item => item.Id == linked[tileIndex]);
-            IHeifAlphaItemDecoder<TPixel> decoder = (IHeifAlphaItemDecoder<TPixel>)HeifCompressionFactory.GetDecoder<TPixel>(item.Type)!;
-            IMemoryOwner<byte> itemMemory = this.buffers[item.Id];
+            HeifItem item = this.items[linked[tileIndex]];
+            IHeifItemDecoder<TPixel>? itemDecoder = HeifCompressionFactory.GetDecoder<TPixel>(item.Type);
+            if (itemDecoder is not IHeifAlphaItemDecoder<TPixel> decoder)
+            {
+                throw new InvalidImageContentException($"HEIF alpha grid tile {item.Id} uses unsupported coding format '{item.Type}'.");
+            }
+
+            using IMemoryOwner<byte> itemMemory = this.itemDataReader(item);
             int column = tileIndex % descriptor.Columns;
             int row = tileIndex / descriptor.Columns;
             int destinationX = destinationRectangle.X + (column * tileSize.Width);
@@ -315,19 +403,27 @@ internal class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlph
     /// <param name="gridItem">The grid item whose derived-image references are being resolved.</param>
     /// <param name="descriptor">The validated grid dimensions.</param>
     /// <returns>The exact row-major tile identifiers required by the descriptor.</returns>
-    private List<uint> GetLinkedTileIds(HeifItem gridItem, in GridDescriptor descriptor)
+    private IReadOnlyList<uint> GetLinkedTileIds(HeifItem gridItem, in GridDescriptor descriptor)
     {
-        List<uint> linked = this.tileItemIds is null ? [] : new(this.tileItemIds);
-        if (this.tileItemIds is null)
+        IReadOnlyList<uint> linked;
+        if (this.tileItemIds is not null)
         {
+            // Auxiliary grids already own an immutable row-major identifier list; no defensive list copy is needed.
+            linked = this.tileItemIds;
+        }
+        else
+        {
+            List<uint> resolved = [];
             foreach (HeifItemLink link in this.itemLinks)
             {
                 if (link.Type == Heif4CharCode.Dimg && link.SourceId == gridItem.Id)
                 {
                     // The order of dimg destinations is the normative row-major order of the grid cells.
-                    linked.AddRange(link.DestinationIds);
+                    resolved.AddRange(link.DestinationIds);
                 }
             }
+
+            linked = resolved;
         }
 
         int tileCount = descriptor.Rows * descriptor.Columns;

@@ -236,7 +236,7 @@ public class Av1ChromaFromLumaTests
                 Av1ChromaFromLumaContext context = new(colorConfig);
                 context.Store(input, stride, 0, 0, sourceTransform, sourceTransform.ToBlockSize(), 0, 0);
                 context.ComputeParameters(targetTransform);
-                Assert.Equal(expected, context.Q3Buffer);
+                Assert.Equal(expected, context.Q3Buffer.ToArray());
 
                 short[] highInput = CreateHighBitDepthInput(stride, sourceSize);
                 expected = CreateStoredReference(highInput, stride, sourceSize, subX, subY);
@@ -244,7 +244,7 @@ public class Av1ChromaFromLumaTests
                 context = new Av1ChromaFromLumaContext(colorConfig);
                 context.Store(highInput, stride, 0, 0, sourceTransform, sourceTransform.ToBlockSize(), 0, 0);
                 context.ComputeParameters(targetTransform);
-                Assert.Equal(expected, context.Q3Buffer);
+                Assert.Equal(expected, context.Q3Buffer.ToArray());
             }
         }
     }
@@ -408,7 +408,7 @@ public class Av1ChromaFromLumaTests
         {
             for (int column = 0; column < 32; column++)
             {
-                result[(row * 32) + column] = (short)(((row * 7919) + (column * 4051)) % 65521 - 32760);
+                result[(row * 32) + column] = (short)((((row * 7919) + (column * 4051)) % 65521) - 32760);
             }
         }
 
@@ -481,12 +481,12 @@ public class Av1ChromaFromLumaTests
     /// <summary>
     /// Extracts the active rows from the fixed-stride CfL buffer.
     /// </summary>
-    private static short[] GetBlock(short[] buffer, int width, int height)
+    private static short[] GetBlock(ReadOnlySpan<short> buffer, int width, int height)
     {
         short[] result = new short[width * height];
         for (int y = 0; y < height; y++)
         {
-            buffer.AsSpan(y * 32, width).CopyTo(result.AsSpan(y * width, width));
+            buffer.Slice(y * 32, width).CopyTo(result.AsSpan(y * width, width));
         }
 
         return result;

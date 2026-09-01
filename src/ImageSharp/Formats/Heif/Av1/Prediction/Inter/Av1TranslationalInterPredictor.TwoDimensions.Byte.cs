@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 /// <content>
 /// Provides separable SIMD convolution for 8-bit single-reference prediction.
 /// </content>
-internal static partial class Av1InterPredictor
+internal static partial class Av1TranslationalInterPredictor
 {
     /// <summary>
     /// Filters an 8-bit block in sixteen-sample vectors through caller-owned signed scratch.
@@ -63,8 +63,8 @@ internal static partial class Av1InterPredictor
                     out Vector128<int> result2,
                     out Vector128<int> result3);
 
-                Av1IntraPredictorBase.Narrow(RoundPowerOfTwo(result0, round0), RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow);
-                Av1IntraPredictorBase.Narrow(RoundPowerOfTwo(result2, round0), RoundPowerOfTwo(result3, round0)).StoreUnsafe(ref scratchRow, (nuint)Vector128<short>.Count);
+                Av1NonDirectionalIntraPredictorBase.Narrow(RoundPowerOfTwo(result0, round0), RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow);
+                Av1NonDirectionalIntraPredictorBase.Narrow(RoundPowerOfTwo(result2, round0), RoundPowerOfTwo(result3, round0)).StoreUnsafe(ref scratchRow, (nuint)Vector128<short>.Count);
                 continue;
             }
 
@@ -83,8 +83,8 @@ internal static partial class Av1InterPredictor
                     out Vector128<int> result2,
                     out Vector128<int> result3);
 
-                Av1IntraPredictorBase.Narrow(RoundPowerOfTwo(result0, round0), RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow, (nuint)processedColumns);
-                Av1IntraPredictorBase.Narrow(
+                Av1NonDirectionalIntraPredictorBase.Narrow(RoundPowerOfTwo(result0, round0), RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow, (nuint)processedColumns);
+                Av1NonDirectionalIntraPredictorBase.Narrow(
                     RoundPowerOfTwo(result2, round0),
                     RoundPowerOfTwo(result3, round0)).StoreUnsafe(
                         ref scratchRow,
@@ -221,8 +221,8 @@ internal static partial class Av1InterPredictor
                     out Vector256<int> result2,
                     out Vector256<int> result3);
 
-                Av1IntraPredictorBase.Narrow(RoundPowerOfTwo(result0, round0), RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow, (nuint)processedColumns);
-                Av1IntraPredictorBase.Narrow(
+                Av1NonDirectionalIntraPredictorBase.Narrow(RoundPowerOfTwo(result0, round0), RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow, (nuint)processedColumns);
+                Av1NonDirectionalIntraPredictorBase.Narrow(
                     RoundPowerOfTwo(result2, round0),
                     RoundPowerOfTwo(result3, round0)).StoreUnsafe(
                         ref scratchRow,
@@ -328,8 +328,8 @@ internal static partial class Av1InterPredictor
                     out Vector512<int> result2,
                     out Vector512<int> result3);
 
-                Av1IntraPredictorBase.Narrow(RoundPowerOfTwo(result0, round0), RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow, (nuint)processedColumns);
-                Av1IntraPredictorBase.Narrow(
+                Av1NonDirectionalIntraPredictorBase.Narrow(RoundPowerOfTwo(result0, round0), RoundPowerOfTwo(result1, round0)).StoreUnsafe(ref scratchRow, (nuint)processedColumns);
+                Av1NonDirectionalIntraPredictorBase.Narrow(
                     RoundPowerOfTwo(result2, round0),
                     RoundPowerOfTwo(result3, round0)).StoreUnsafe(
                         ref scratchRow,

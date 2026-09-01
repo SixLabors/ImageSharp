@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 /// <summary>
 /// Applies the AV1 in-loop deblocking stage to a reconstructed still-image frame.
 /// </summary>
-internal class Av1LoopFilterDecoder
+internal sealed class Av1LoopFilterDecoder
 {
     /// <summary>
     /// The sequence-level superblock and color configuration.
@@ -365,7 +365,7 @@ internal class Av1LoopFilterDecoder
             level = Av1Math.Clip3(
                 0,
                 Av1Constants.MaxLoopFilter,
-                level + segmentation.FeatureData[modeInfo.SegmentId, (int)feature]);
+                level + segmentation.GetFeatureData(modeInfo.SegmentId, (int)feature));
         }
 
         if (parameters.ReferenceDeltaModeEnabled)

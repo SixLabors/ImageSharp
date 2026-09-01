@@ -43,14 +43,14 @@ internal struct Av1PartitionContext : IMinMaxValue<Av1PartitionContext>
     }
 
     /// <summary>
-    /// Gets the maximum representable partition context.
+    /// Gets the sentinel partition context used for an unpopulated neighbor.
     /// </summary>
-    public static Av1PartitionContext MaxValue => throw new NotImplementedException();
+    public static Av1PartitionContext MaxValue => new(byte.MaxValue, byte.MaxValue);
 
     /// <summary>
-    /// Gets the minimum representable partition context.
+    /// Gets the partition context with no split levels recorded.
     /// </summary>
-    public static Av1PartitionContext MinValue => throw new NotImplementedException();
+    public static Av1PartitionContext MinValue => default;
 
     /// <summary>
     /// Gets or sets the five-bit context derived from the left neighbor.

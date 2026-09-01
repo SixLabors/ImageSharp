@@ -575,7 +575,7 @@ internal static partial class Av1DirectionalIntraPredictor
             else
             {
                 Av1PredictionMode mode = angle == 90 ? Av1PredictionMode.Vertical : Av1PredictionMode.Horizontal;
-                Av1IntraPredictorBase.GetPredictor(mode).Predict(destination, destinationStride, above, left, width, height);
+                Av1NonDirectionalIntraPredictorBase.GetPredictor(mode).Predict(destination, destinationStride, above, left, width, height);
             }
         }
 
@@ -613,7 +613,7 @@ internal static partial class Av1DirectionalIntraPredictor
             else
             {
                 Av1PredictionMode mode = angle == 90 ? Av1PredictionMode.Vertical : Av1PredictionMode.Horizontal;
-                Av1IntraPredictorBase.GetPredictor(mode).Predict(destination, destinationStride, above, left, width, height);
+                Av1NonDirectionalIntraPredictorBase.GetPredictor(mode).Predict(destination, destinationStride, above, left, width, height);
             }
         }
 
@@ -648,7 +648,7 @@ internal static partial class Av1DirectionalIntraPredictor
             else
             {
                 Av1PredictionMode mode = angle == 90 ? Av1PredictionMode.Vertical : Av1PredictionMode.Horizontal;
-                Av1IntraPredictorBase.GetPredictor(mode).PredictScalar(destination, destinationStride, above, left, width, height);
+                Av1NonDirectionalIntraPredictorBase.GetPredictor(mode).PredictScalar(destination, destinationStride, above, left, width, height);
             }
         }
 
@@ -683,7 +683,7 @@ internal static partial class Av1DirectionalIntraPredictor
             else
             {
                 Av1PredictionMode mode = angle == 90 ? Av1PredictionMode.Vertical : Av1PredictionMode.Horizontal;
-                Av1IntraPredictorBase.GetPredictor(mode).PredictScalar(destination, destinationStride, above, left, width, height);
+                Av1NonDirectionalIntraPredictorBase.GetPredictor(mode).PredictScalar(destination, destinationStride, above, left, width, height);
             }
         }
 

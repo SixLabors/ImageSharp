@@ -248,8 +248,11 @@ public class Av1ReferenceFrameStoreTests
         frameInfo.InitializeMotionField(configuration, sequenceHeader, frameHeader, sourceReferences);
 
         Assert.Equal(2, allocator.AllocationLog.Count);
-        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
-        Assert.Contains(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
+        TestMemoryAllocator.AllocationRequest retainedMotionField =
+            Assert.Single(allocator.AllocationLog, request => request.ElementType.Name == "RetainedMotionFieldEntry");
+
+        TestMemoryAllocator.AllocationRequest temporalMotionField =
+            Assert.Single(allocator.AllocationLog, request => request.ElementType.Name == "TemporalMotionFieldEntry");
 
         using Av1ReferenceFrameStore store = new();
         Av1ReferenceFrame frame = new(
@@ -259,13 +262,13 @@ public class Av1ReferenceFrameStoreTests
 
         Assert.True(store.Commit(byte.MaxValue, frame, showFrame: true));
 
-        // The reference frame owns the shared FrameInfo after the tile-reader lease ends. Physical reference slots
-        // and the shown-output pointer are aliases of that owner and must not release either motion field early.
+        // Full current-frame state owns the projected temporal field. The retained frame owns only the source field
+        // needed by later projections, irrespective of how many map and output aliases identify the same frame.
         frameInfo.Dispose();
-        Assert.Empty(allocator.ReturnLog);
+        Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == temporalMotionField.AllocationId);
 
         Av1ReferenceFrame output = store.TakeOutput();
-        Assert.Empty(allocator.ReturnLog);
+        Assert.DoesNotContain(allocator.ReturnLog, returned => returned.AllocationId == retainedMotionField.AllocationId);
 
         output.Dispose();
         output.Dispose();
@@ -314,6 +317,11 @@ public class Av1ReferenceFrameStoreTests
         {
             FrameType = ObuFrameType.InterFrame,
             OrderHint = 1,
+            FrameSize = new ObuFrameSize
+            {
+                FrameWidth = 64,
+                FrameHeight = 64
+            },
             ModeInfoColumnCount = 16,
             ModeInfoRowCount = 16,
             UseReferenceFrameMotionVectors = true
@@ -341,18 +349,18 @@ public class Av1ReferenceFrameStoreTests
     }
 
     /// <summary>
-    /// Verifies that an eight-bit presentation copy contains every byte of each padded plane and the complete active geometry.
+    /// Verifies that an eight-bit presentation copy contains each visible plane without copying decoder padding.
     /// </summary>
     [Fact]
-    public void CopyToCopiesCompletePaddedEightBitFrame()
-        => ValidateCompleteFrameCopy(Av1BitDepth.EightBit);
+    public void CopyVisibleToCopiesEightBitPictureWithoutPadding()
+        => ValidateVisibleFrameCopy(Av1BitDepth.EightBit);
 
     /// <summary>
-    /// Verifies that a high-bit-depth presentation copy contains every native sample of each padded plane and the complete active geometry.
+    /// Verifies that a high-bit-depth presentation copy contains each visible plane without copying decoder padding.
     /// </summary>
     [Fact]
-    public void CopyToCopiesCompletePaddedHighBitDepthFrame()
-        => ValidateCompleteFrameCopy(Av1BitDepth.TwelveBit);
+    public void CopyVisibleToCopiesHighBitDepthPictureWithoutPadding()
+        => ValidateVisibleFrameCopy(Av1BitDepth.TwelveBit);
 
     /// <summary>
     /// Verifies that luma and subsampled chroma allocations cover the greatest legal unscaled UMV prediction extent.
@@ -420,7 +428,7 @@ public class Av1ReferenceFrameStoreTests
 
         InitializeVisiblePlane(
             frameBuffer,
-            frameBuffer.BufferY!,
+            frameBuffer.GetPlaneBuffer(Av1Plane.Y),
             frameBuffer.OriginX,
             frameBuffer.OriginY,
             frameBuffer.Width,
@@ -436,15 +444,15 @@ public class Av1ReferenceFrameStoreTests
             int chromaWidth = Av1Math.DivideLog2Ceiling(frameBuffer.Width, subX);
             int chromaHeight = Av1Math.DivideLog2Ceiling(frameBuffer.Height, subY);
 
-            InitializeVisiblePlane(frameBuffer, frameBuffer.BufferCb!, chromaOriginX, chromaOriginY, chromaWidth, chromaHeight, 1);
-            InitializeVisiblePlane(frameBuffer, frameBuffer.BufferCr!, chromaOriginX, chromaOriginY, chromaWidth, chromaHeight, 2);
+            InitializeVisiblePlane(frameBuffer, frameBuffer.GetPlaneBuffer(Av1Plane.U), chromaOriginX, chromaOriginY, chromaWidth, chromaHeight, 1);
+            InitializeVisiblePlane(frameBuffer, frameBuffer.GetPlaneBuffer(Av1Plane.V), chromaOriginX, chromaOriginY, chromaWidth, chromaHeight, 2);
         }
 
         Av1ReferenceFrameBorder.Extend(frameBuffer);
 
         AssertExtendedPlane(
             frameBuffer,
-            frameBuffer.BufferY!,
+            frameBuffer.GetPlaneBuffer(Av1Plane.Y),
             frameBuffer.OriginX,
             frameBuffer.OriginY,
             frameBuffer.Width,
@@ -460,8 +468,8 @@ public class Av1ReferenceFrameStoreTests
             int chromaWidth = Av1Math.DivideLog2Ceiling(frameBuffer.Width, subX);
             int chromaHeight = Av1Math.DivideLog2Ceiling(frameBuffer.Height, subY);
 
-            AssertExtendedPlane(frameBuffer, frameBuffer.BufferCb!, chromaOriginX, chromaOriginY, chromaWidth, chromaHeight, 1);
-            AssertExtendedPlane(frameBuffer, frameBuffer.BufferCr!, chromaOriginX, chromaOriginY, chromaWidth, chromaHeight, 2);
+            AssertExtendedPlane(frameBuffer, frameBuffer.GetPlaneBuffer(Av1Plane.U), chromaOriginX, chromaOriginY, chromaWidth, chromaHeight, 1);
+            AssertExtendedPlane(frameBuffer, frameBuffer.GetPlaneBuffer(Av1Plane.V), chromaOriginX, chromaOriginY, chromaWidth, chromaHeight, 2);
         }
     }
 
@@ -496,7 +504,7 @@ public class Av1ReferenceFrameStoreTests
         Av1FrameBuffer<byte> reconstructed = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv400, false);
         InitializeVisiblePlane(
             reconstructed,
-            reconstructed.BufferY!,
+            reconstructed.GetPlaneBuffer(Av1Plane.Y),
             reconstructed.OriginX,
             reconstructed.OriginY,
             reconstructed.Width,
@@ -504,18 +512,18 @@ public class Av1ReferenceFrameStoreTests
             0);
 
         Av1ReferenceFrameBorder.Extend(reconstructed);
-        Span<byte> reconstructedSamples = reconstructed.BufferY!.DangerousGetSingleSpan();
+        Span<byte> reconstructedSamples = reconstructed.GetPlaneBuffer(Av1Plane.Y).DangerousGetSingleSpan();
         byte[] ungrainedSamples = new byte[reconstructedSamples.Length];
         reconstructedSamples.CopyTo(ungrainedSamples);
         Av1FrameBuffer<byte> presentation = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv400, false);
-        reconstructed.CopyTo(presentation);
+        reconstructed.CopyVisibleTo(presentation);
 
         Av1FilmGrainDecoder filmGrainDecoder = new(sequenceHeader, frameHeader, presentation);
         filmGrainDecoder.DecodeFrame();
 
-        Av1FrameInfo frameInfo = new(sequenceHeader);
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
         Av1ReferenceFrame retainedReference = new(reconstructed, frameHeader, frameInfo);
-        Av1ReferenceFrame grainedOutput = new(presentation, frameHeader, frameInfo);
+        Av1ReferenceFrame grainedOutput = new(presentation, frameHeader);
         Av1FrameBuffer<byte> retainedReferenceBuffer = retainedReference.FrameBuffer;
         using Av1ReferenceFrameStore store = new();
         store.Commit(frameHeader.RefreshFrameFlags, retainedReference, showFrame: false);
@@ -524,8 +532,8 @@ public class Av1ReferenceFrameStoreTests
         Assert.Same(retainedReference, store.Resolve(0));
         Assert.Same(grainedOutput, store.OutputFrame);
         Assert.NotSame(retainedReference.FrameBuffer, grainedOutput.FrameBuffer);
-        Assert.True(ungrainedSamples.AsSpan().SequenceEqual(retainedReference.FrameBuffer.BufferY!.DangerousGetSingleSpan()));
-        Assert.False(ungrainedSamples.AsSpan().SequenceEqual(grainedOutput.FrameBuffer.BufferY!.DangerousGetSingleSpan()));
+        Assert.True(ungrainedSamples.AsSpan().SequenceEqual(retainedReference.FrameBuffer.GetPlaneBuffer(Av1Plane.Y).DangerousGetSingleSpan()));
+        Assert.False(ungrainedSamples.AsSpan().SequenceEqual(grainedOutput.FrameBuffer.GetPlaneBuffer(Av1Plane.Y).DangerousGetSingleSpan()));
 
         using Av1ReferenceFrame selectedOutput = store.TakeOutput();
 
@@ -537,10 +545,10 @@ public class Av1ReferenceFrameStoreTests
     }
 
     /// <summary>
-    /// Verifies a complete padded-plane copy for one native AV1 sample precision.
+    /// Verifies a visible-plane copy for one native AV1 sample precision.
     /// </summary>
     /// <param name="bitDepth">The coded sample precision.</param>
-    private static void ValidateCompleteFrameCopy(Av1BitDepth bitDepth)
+    private static void ValidateVisibleFrameCopy(Av1BitDepth bitDepth)
     {
         ObuSequenceHeader sequenceHeader = CreateSequenceHeader(5, 3, bitDepth, false, true, true);
         using Av1FrameBuffer<byte> source = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv420, false);
@@ -552,18 +560,24 @@ public class Av1ReferenceFrameStoreTests
         source.Height = 2;
         source.MaxWidth = 4;
         source.MaxHeight = 2;
-        FillCompletePlane(source, source.BufferY!, 17);
-        FillCompletePlane(source, source.BufferCb!, 53);
-        FillCompletePlane(source, source.BufferCr!, 89);
-        destination.BufferY!.DangerousGetSingleSpan().Fill(0xA5);
-        destination.BufferCb!.DangerousGetSingleSpan().Fill(0xA5);
-        destination.BufferCr!.DangerousGetSingleSpan().Fill(0xA5);
+        Buffer2D<byte> sourceY = source.GetPlaneBuffer(Av1Plane.Y);
+        Buffer2D<byte> sourceCb = source.GetPlaneBuffer(Av1Plane.U);
+        Buffer2D<byte> sourceCr = source.GetPlaneBuffer(Av1Plane.V);
+        Buffer2D<byte> destinationY = destination.GetPlaneBuffer(Av1Plane.Y);
+        Buffer2D<byte> destinationCb = destination.GetPlaneBuffer(Av1Plane.U);
+        Buffer2D<byte> destinationCr = destination.GetPlaneBuffer(Av1Plane.V);
+        FillCompletePlane(source, sourceY, 17);
+        FillCompletePlane(source, sourceCb, 53);
+        FillCompletePlane(source, sourceCr, 89);
+        destinationY.DangerousGetSingleSpan().Fill(0xA5);
+        destinationCb.DangerousGetSingleSpan().Fill(0xA5);
+        destinationCr.DangerousGetSingleSpan().Fill(0xA5);
 
-        source.CopyTo(destination);
+        source.CopyVisibleTo(destination);
 
-        Assert.True(source.BufferY!.DangerousGetSingleSpan().SequenceEqual(destination.BufferY!.DangerousGetSingleSpan()));
-        Assert.True(source.BufferCb!.DangerousGetSingleSpan().SequenceEqual(destination.BufferCb!.DangerousGetSingleSpan()));
-        Assert.True(source.BufferCr!.DangerousGetSingleSpan().SequenceEqual(destination.BufferCr!.DangerousGetSingleSpan()));
+        AssertVisiblePlaneCopy(source, destination, Av1Plane.Y, 0, 0);
+        AssertVisiblePlaneCopy(source, destination, Av1Plane.U, 1, 1);
+        AssertVisiblePlaneCopy(source, destination, Av1Plane.V, 1, 1);
         Assert.Equal(source.StartPosition, destination.StartPosition);
         Assert.Equal(source.OriginX, destination.OriginX);
         Assert.Equal(source.OriginY, destination.OriginY);
@@ -574,10 +588,49 @@ public class Av1ReferenceFrameStoreTests
         Assert.Equal(source.BitDepth, destination.BitDepth);
         Assert.Equal(source.ColorFormat, destination.ColorFormat);
 
-        byte sourceFirstSample = source.BufferY!.DangerousGetSingleSpan()[0];
+        int visibleStorageOffset = (source.OriginY * sourceY.Width) + (source.OriginX * source.BytesPerSample);
+        byte sourceFirstVisibleByte = sourceY.DangerousGetSingleSpan()[visibleStorageOffset];
 
-        destination.BufferY!.DangerousGetSingleSpan()[0] ^= byte.MaxValue;
-        Assert.Equal(sourceFirstSample, source.BufferY!.DangerousGetSingleSpan()[0]);
+        // Mutating a copied visible sample proves presentation ownership, not merely the already-untouched padding.
+        destinationY.DangerousGetSingleSpan()[visibleStorageOffset] ^= byte.MaxValue;
+        Assert.Equal(sourceFirstVisibleByte, sourceY.DangerousGetSingleSpan()[visibleStorageOffset]);
+    }
+
+    /// <summary>
+    /// Verifies the copied visible rectangle and the untouched destination padding for one plane.
+    /// </summary>
+    /// <param name="source">The source frame.</param>
+    /// <param name="destination">The copied frame.</param>
+    /// <param name="plane">The plane to inspect.</param>
+    /// <param name="subX">The horizontal chroma subsampling shift.</param>
+    /// <param name="subY">The vertical chroma subsampling shift.</param>
+    private static void AssertVisiblePlaneCopy(
+        Av1FrameBuffer<byte> source,
+        Av1FrameBuffer<byte> destination,
+        Av1Plane plane,
+        int subX,
+        int subY)
+    {
+        Buffer2D<byte> sourceBuffer = source.GetPlaneBuffer(plane);
+        Buffer2D<byte> destinationBuffer = destination.GetPlaneBuffer(plane);
+        int originX = (source.OriginX >> subX) * source.BytesPerSample;
+        int originY = source.OriginY >> subY;
+        int width = Av1Math.DivideLog2Ceiling(source.Width, subX) * source.BytesPerSample;
+        int height = Av1Math.DivideLog2Ceiling(source.Height, subY);
+
+        for (int row = 0; row < destinationBuffer.Height; row++)
+        {
+            ReadOnlySpan<byte> sourceRow = sourceBuffer.DangerousGetRowSpan(row);
+            ReadOnlySpan<byte> destinationRow = destinationBuffer.DangerousGetRowSpan(row);
+
+            for (int column = 0; column < destinationRow.Length; column++)
+            {
+                bool isVisible = row >= originY && row < originY + height &&
+                    column >= originX && column < originX + width;
+
+                Assert.Equal(isVisible ? sourceRow[column] : (byte)0xA5, destinationRow[column]);
+            }
+        }
     }
 
     /// <summary>

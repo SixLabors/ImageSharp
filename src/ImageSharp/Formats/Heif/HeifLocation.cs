@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// <param name="baseOffset">The item-location base offset.</param>
 /// <param name="offset">The extent offset relative to the base offset.</param>
 /// <param name="length">The length of the extent in bytes.</param>
-internal class HeifLocation(HeifLocationOffsetOrigin origin, long baseOffset, long offset, long length)
+internal sealed class HeifLocation(HeifLocationOffsetOrigin origin, long baseOffset, long offset, long length)
 {
     /// <summary>
     /// Gets the origin of the offsets in this location.

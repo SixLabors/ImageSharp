@@ -5,7 +5,7 @@ using System.Runtime.CompilerServices;
 using System.Runtime.Intrinsics;
 
 using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1CompoundInterPredictor;
-using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1InterPredictor;
+using static SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter.Av1TranslationalInterPredictor;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 
@@ -119,9 +119,9 @@ internal static partial class Av1CompoundDistanceWeightedPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<byte> Blend(Vector128<byte> first, Vector128<byte> second, int firstWeight, int secondWeight)
         {
-            Av1IntraPredictorBase.Widen(first, out Vector128<int> first0, out Vector128<int> first1, out Vector128<int> first2, out Vector128<int> first3);
-            Av1IntraPredictorBase.Widen(second, out Vector128<int> second0, out Vector128<int> second1, out Vector128<int> second2, out Vector128<int> second3);
-            return Av1IntraPredictorBase.Narrow(
+            Av1NonDirectionalIntraPredictorBase.Widen(first, out Vector128<int> first0, out Vector128<int> first1, out Vector128<int> first2, out Vector128<int> first3);
+            Av1NonDirectionalIntraPredictorBase.Widen(second, out Vector128<int> second0, out Vector128<int> second1, out Vector128<int> second2, out Vector128<int> second3);
+            return Av1NonDirectionalIntraPredictorBase.Narrow(
                 Blend(first0, second0, firstWeight, secondWeight),
                 Blend(first1, second1, firstWeight, secondWeight),
                 Blend(first2, second2, firstWeight, secondWeight),
@@ -132,9 +132,9 @@ internal static partial class Av1CompoundDistanceWeightedPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<byte> Blend(Vector256<byte> first, Vector256<byte> second, int firstWeight, int secondWeight)
         {
-            Av1IntraPredictorBase.Widen(first, out Vector256<int> first0, out Vector256<int> first1, out Vector256<int> first2, out Vector256<int> first3);
-            Av1IntraPredictorBase.Widen(second, out Vector256<int> second0, out Vector256<int> second1, out Vector256<int> second2, out Vector256<int> second3);
-            return Av1IntraPredictorBase.Narrow(
+            Av1NonDirectionalIntraPredictorBase.Widen(first, out Vector256<int> first0, out Vector256<int> first1, out Vector256<int> first2, out Vector256<int> first3);
+            Av1NonDirectionalIntraPredictorBase.Widen(second, out Vector256<int> second0, out Vector256<int> second1, out Vector256<int> second2, out Vector256<int> second3);
+            return Av1NonDirectionalIntraPredictorBase.Narrow(
                 Blend(first0, second0, firstWeight, secondWeight),
                 Blend(first1, second1, firstWeight, secondWeight),
                 Blend(first2, second2, firstWeight, secondWeight),
@@ -145,9 +145,9 @@ internal static partial class Av1CompoundDistanceWeightedPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<byte> Blend(Vector512<byte> first, Vector512<byte> second, int firstWeight, int secondWeight)
         {
-            Av1IntraPredictorBase.Widen(first, out Vector512<int> first0, out Vector512<int> first1, out Vector512<int> first2, out Vector512<int> first3);
-            Av1IntraPredictorBase.Widen(second, out Vector512<int> second0, out Vector512<int> second1, out Vector512<int> second2, out Vector512<int> second3);
-            return Av1IntraPredictorBase.Narrow(
+            Av1NonDirectionalIntraPredictorBase.Widen(first, out Vector512<int> first0, out Vector512<int> first1, out Vector512<int> first2, out Vector512<int> first3);
+            Av1NonDirectionalIntraPredictorBase.Widen(second, out Vector512<int> second0, out Vector512<int> second1, out Vector512<int> second2, out Vector512<int> second3);
+            return Av1NonDirectionalIntraPredictorBase.Narrow(
                 Blend(first0, second0, firstWeight, secondWeight),
                 Blend(first1, second1, firstWeight, secondWeight),
                 Blend(first2, second2, firstWeight, secondWeight),
@@ -158,9 +158,9 @@ internal static partial class Av1CompoundDistanceWeightedPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector128<ushort> Blend(Vector128<ushort> first, Vector128<ushort> second, int firstWeight, int secondWeight)
         {
-            Av1IntraPredictorBase.Widen(first.AsInt16(), out Vector128<int> first0, out Vector128<int> first1);
-            Av1IntraPredictorBase.Widen(second.AsInt16(), out Vector128<int> second0, out Vector128<int> second1);
-            return Av1IntraPredictorBase.Narrow(
+            Av1NonDirectionalIntraPredictorBase.Widen(first.AsInt16(), out Vector128<int> first0, out Vector128<int> first1);
+            Av1NonDirectionalIntraPredictorBase.Widen(second.AsInt16(), out Vector128<int> second0, out Vector128<int> second1);
+            return Av1NonDirectionalIntraPredictorBase.Narrow(
                 Blend(first0, second0, firstWeight, secondWeight),
                 Blend(first1, second1, firstWeight, secondWeight)).AsUInt16();
         }
@@ -169,9 +169,9 @@ internal static partial class Av1CompoundDistanceWeightedPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector256<ushort> Blend(Vector256<ushort> first, Vector256<ushort> second, int firstWeight, int secondWeight)
         {
-            Av1IntraPredictorBase.Widen(first.AsInt16(), out Vector256<int> first0, out Vector256<int> first1);
-            Av1IntraPredictorBase.Widen(second.AsInt16(), out Vector256<int> second0, out Vector256<int> second1);
-            return Av1IntraPredictorBase.Narrow(
+            Av1NonDirectionalIntraPredictorBase.Widen(first.AsInt16(), out Vector256<int> first0, out Vector256<int> first1);
+            Av1NonDirectionalIntraPredictorBase.Widen(second.AsInt16(), out Vector256<int> second0, out Vector256<int> second1);
+            return Av1NonDirectionalIntraPredictorBase.Narrow(
                 Blend(first0, second0, firstWeight, secondWeight),
                 Blend(first1, second1, firstWeight, secondWeight)).AsUInt16();
         }
@@ -180,9 +180,9 @@ internal static partial class Av1CompoundDistanceWeightedPredictor
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector512<ushort> Blend(Vector512<ushort> first, Vector512<ushort> second, int firstWeight, int secondWeight)
         {
-            Av1IntraPredictorBase.Widen(first.AsInt16(), out Vector512<int> first0, out Vector512<int> first1);
-            Av1IntraPredictorBase.Widen(second.AsInt16(), out Vector512<int> second0, out Vector512<int> second1);
-            return Av1IntraPredictorBase.Narrow(
+            Av1NonDirectionalIntraPredictorBase.Widen(first.AsInt16(), out Vector512<int> first0, out Vector512<int> first1);
+            Av1NonDirectionalIntraPredictorBase.Widen(second.AsInt16(), out Vector512<int> second0, out Vector512<int> second1);
+            return Av1NonDirectionalIntraPredictorBase.Narrow(
                 Blend(first0, second0, firstWeight, secondWeight),
                 Blend(first1, second1, firstWeight, secondWeight)).AsUInt16();
         }

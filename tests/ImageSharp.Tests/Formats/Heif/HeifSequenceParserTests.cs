@@ -606,14 +606,19 @@ public class HeifSequenceParserTests
         HeifSequenceTrack track = parser.Parse(stream, GetMoviePayloadLength(data)).ColorTrack;
 
         Assert.NotNull(track.CicpProfile);
-        Assert.Equal(SyntheticHorizontalPixelSpacing, track.PixelAspectRatio!.HorizontalSpacing);
-        Assert.Equal(SyntheticVerticalPixelSpacing, track.PixelAspectRatio.VerticalSpacing);
+        HeifPixelAspectRatio pixelAspectRatio = Assert.IsType<HeifPixelAspectRatio>(track.PixelAspectRatio);
+        Assert.Equal(SyntheticHorizontalPixelSpacing, pixelAspectRatio.HorizontalSpacing);
+        Assert.Equal(SyntheticVerticalPixelSpacing, pixelAspectRatio.VerticalSpacing);
         Size codedSize = new(SyntheticWidth, SyntheticHeight);
 
-        Assert.Equal(new Rectangle(Point.Empty, codedSize), track.CleanAperture!.Value.ToRectangle(codedSize));
+        Assert.True(track.CleanAperture.HasValue);
+        HeifCleanAperture cleanAperture = track.CleanAperture.GetValueOrDefault();
+        Assert.Equal(new Rectangle(Point.Empty, codedSize), cleanAperture.ToRectangle(codedSize));
         Assert.Equal((byte)1, track.RotationAngle);
         Assert.Equal((byte)1, track.MirrorAxis);
-        Assert.Equal(SyntheticMaximumContentLightLevel, track.ContentLightLevel!.Value.MaximumContentLightLevel);
+        Assert.True(track.ContentLightLevel.HasValue);
+        HeifContentLightLevel contentLightLevel = track.ContentLightLevel.GetValueOrDefault();
+        Assert.Equal(SyntheticMaximumContentLightLevel, contentLightLevel.MaximumContentLightLevel);
         Assert.NotNull(track.MasteringDisplayColorVolume);
         Assert.NotNull(track.ContentColorVolume);
         Assert.NotNull(track.AmbientViewingEnvironment);

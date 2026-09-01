@@ -629,7 +629,7 @@ internal class ObuWriter
         {
             for (int featureId = 0; featureId < Av1Constants.SegmentationLevelMax; featureId++)
             {
-                bool enabled = segmentation.FeatureEnabled[segmentId, featureId];
+                bool enabled = segmentation.IsFeatureActive(segmentId, (ObuSegmentationLevelFeature)featureId);
                 writer.WriteBoolean(enabled);
                 if (!enabled)
                 {
@@ -637,7 +637,7 @@ internal class ObuWriter
                 }
 
                 int bitCount = Av1Constants.SegmentationFeatureBits[featureId];
-                int value = segmentation.FeatureData[segmentId, featureId];
+                int value = segmentation.GetFeatureData(segmentId, featureId);
                 if (Av1Constants.SegmentationFeatureSigned[featureId] == 1)
                 {
                     writer.WriteSignedFromUnsigned(value, bitCount + 1);

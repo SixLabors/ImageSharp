@@ -197,8 +197,6 @@ public class Av1BitStreamTests
         {
             ulong actual = reader.ReadNonSymmetric(numberOfSymbols);
             actuals[i] = (uint)actual;
-
-            // Assert.NotEqual(0UL, actual);
         }
 
         Assert.Equal(values, actuals);
@@ -311,8 +309,6 @@ public class Av1BitStreamTests
         {
             int actual = reader.ReadSignedFromUnsigned(bitCount);
             actuals[i] = actual;
-
-            // Assert.NotEqual(0, actual);
         }
 
         Assert.Equal(values, actuals);

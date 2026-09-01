@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// <summary>
 /// Carries the neighboring coefficient contexts used to entropy-code an AV1 transform block.
 /// </summary>
-internal class Av1TransformBlockContext
+internal struct Av1TransformBlockContext
 {
     /// <summary>
     /// Gets or sets the context used to decode the sign of the DC coefficient.

@@ -12,7 +12,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 /// Adapts reconstructed AV1 planes to the shared HEIF planar color pipeline.
 /// </summary>
 /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
-internal struct Av1PlanarSampleBuffer<TSample> : IHeifPlanarSampleBuffer<TSample>
+internal readonly struct Av1PlanarSampleBuffer<TSample> : IHeifPlanarSampleBuffer<TSample>
     where TSample : unmanaged
 {
     /// <summary>

@@ -6,12 +6,17 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// <summary>
 /// Stores AV1 sequence capabilities, dimensions, timing, and color configuration.
 /// </summary>
-internal class ObuSequenceHeader
+internal sealed class ObuSequenceHeader
 {
     /// <summary>
     /// Backs <see cref="Use128x128Superblock"/> while its dependent geometry is updated.
     /// </summary>
     private bool use128x128Superblock;
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ObuSequenceHeader"/> class with the normative 64x64 superblock geometry.
+    /// </summary>
+    public ObuSequenceHeader() => this.Use128x128Superblock = false;
 
     /// <summary>
     /// Gets or sets a value indicating whether filter-intra prediction is enabled.
@@ -213,4 +218,12 @@ internal class ObuSequenceHeader
     /// Gets or sets the additional frame-identifier bit count signaled by the sequence header.
     /// </summary>
     public uint AdditionalFrameIdLength { get; set; }
+
+    /// <summary>
+    /// Gets the decoder-buffer model information required by syntax whose presence flag is set.
+    /// </summary>
+    /// <returns>The decoder-buffer model information.</returns>
+    public ObuDecoderModelInfo GetDecoderModelInfo() =>
+        this.DecoderModelInfo
+        ?? throw new InvalidOperationException("The AV1 sequence has no decoder-model information.");
 }

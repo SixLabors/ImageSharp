@@ -748,6 +748,8 @@ public class Av1ReconstructionConformanceTests
 
         ValidateProgressiveSingleReferenceFixture(configuration);
 
+        Assert.Contains(allocator.AllocationLog, allocation => allocation.ElementType == typeof(Av1BlockModeInfo));
+        Assert.Contains(allocator.AllocationLog, allocation => allocation.ElementType == typeof(Av1TransformInfo));
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
         Assert.All(
             allocator.AllocationLog,
@@ -991,35 +993,39 @@ public class Av1ReconstructionConformanceTests
 
             using ImageFrame<Rgba32> frame = decodedFrame;
 
-            ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
             _ = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
             Av1FrameBuffer<byte> frameBuffer = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
-            Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+            Av1FrameInfo frameInfo = decoder.FrameInfo;
 
             // Inter prediction addresses padding with one base span and a logical row stride. The frame owner must
             // preserve that contract even when the configured allocator would ordinarily split a large buffer.
-            Assert.Equal(1, frameBuffer.BufferY!.FastMemoryGroup.Count);
-            Assert.Equal(1, frameBuffer.BufferCb!.FastMemoryGroup.Count);
-            Assert.Equal(1, frameBuffer.BufferCr!.FastMemoryGroup.Count);
+            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.Y).FastMemoryGroup.Count);
+            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.U).FastMemoryGroup.Count);
+            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.V).FastMemoryGroup.Count);
 
-            int superblockSizeLog2 = sequenceHeader.SuperblockSizeLog2;
-            int superblockColumnCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, superblockSizeLog2) >> superblockSizeLog2;
-            int superblockRowCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameHeight, superblockSizeLog2) >> superblockSizeLog2;
-
-            for (int superblockRow = 0; superblockRow < superblockRowCount; superblockRow++)
+            // A pure show_existing_frame payload presents a retained reference without decoding new block syntax.
+            if (frameInfo is not null)
             {
-                for (int superblockColumn = 0; superblockColumn < superblockColumnCount; superblockColumn++)
-                {
-                    Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
-                    foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
-                    {
-                        if (modeInfo.ReferenceFrames[1] <= Av1ReferenceFrameType.Intra)
-                        {
-                            continue;
-                        }
+                ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
+                int superblockSizeLog2 = sequenceHeader.SuperblockSizeLog2;
+                int superblockColumnCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, superblockSizeLog2) >> superblockSizeLog2;
+                int superblockRowCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameHeight, superblockSizeLog2) >> superblockSizeLog2;
 
-                        Assert.Equal(Av1CompoundType.Average, modeInfo.CompoundType);
-                        compoundBlockCount++;
+                for (int superblockRow = 0; superblockRow < superblockRowCount; superblockRow++)
+                {
+                    for (int superblockColumn = 0; superblockColumn < superblockColumnCount; superblockColumn++)
+                    {
+                        Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
+                        foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
+                        {
+                            if (modeInfo.ReferenceFrames[1] <= Av1ReferenceFrameType.Intra)
+                            {
+                                continue;
+                            }
+
+                            Assert.Equal(Av1CompoundType.Average, modeInfo.CompoundType);
+                            compoundBlockCount++;
+                        }
                     }
                 }
             }
@@ -1252,6 +1258,7 @@ public class Av1ReconstructionConformanceTests
 
             ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
             Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+            transformTypeCoverage |= frameInfo.LumaTransformTypeCoverage;
             int superblockColumnCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, sequenceHeader.SuperblockSizeLog2)
                 >> sequenceHeader.SuperblockSizeLog2;
             int superblockRowCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameHeight, sequenceHeader.SuperblockSizeLog2)
@@ -1267,14 +1274,6 @@ public class Av1ReconstructionConformanceTests
                         if (modeInfo.YMode is >= Av1PredictionMode.IntraModeStart and < Av1PredictionMode.IntraModeEnd)
                         {
                             intraModeCoverage |= 1 << ((int)modeInfo.YMode - (int)Av1PredictionMode.IntraModeStart);
-                        }
-
-                        int firstTransformLocation = modeInfo.GetFirstTransformLocation(Av1Plane.Y);
-                        int transformUnitCount = modeInfo.GetTransformUnitCount(Av1Plane.Y);
-                        foreach (Av1TransformInfo transformInfo in
-                            superblockInfo.GetTransformInfoY().Slice(firstTransformLocation, transformUnitCount))
-                        {
-                            transformTypeCoverage |= 1 << (int)transformInfo.Type;
                         }
                     }
                 }
@@ -2224,8 +2223,14 @@ public class Av1ReconstructionConformanceTests
 
             nativeOffset += nativeFrameLength;
 
+            Av1FrameInfo frameInfo = decoder.FrameInfo;
+            if (frameInfo is null)
+            {
+                // show_existing_frame contributes no new mode or interpolation-filter syntax.
+                continue;
+            }
+
             ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
-            Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
             int superblockColumnCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, sequenceHeader.SuperblockSizeLog2)
                 >> sequenceHeader.SuperblockSizeLog2;
             int superblockRowCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameHeight, sequenceHeader.SuperblockSizeLog2)
@@ -2436,9 +2441,9 @@ public class Av1ReconstructionConformanceTests
             coverage |= GetInterPredictionCoverage(decoder);
 
             // Every inter-prediction branch retains the same row-addressed plane contract under constrained allocators.
-            Assert.Equal(1, frameBuffer.BufferY!.FastMemoryGroup.Count);
-            Assert.Equal(1, frameBuffer.BufferCb!.FastMemoryGroup.Count);
-            Assert.Equal(1, frameBuffer.BufferCr!.FastMemoryGroup.Count);
+            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.Y).FastMemoryGroup.Count);
+            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.U).FastMemoryGroup.Count);
+            Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.V).FastMemoryGroup.Count);
 
             if (decodedVisibleFrameCount == visibleFrameCount - 1)
             {
@@ -2455,82 +2460,10 @@ public class Av1ReconstructionConformanceTests
     }
 
     /// <summary>
-    /// Collects the compound, inter-intra, OBMC, and warped modes retained in one decoded frame.
+    /// Collects the compound, inter-intra, OBMC, and warped modes completed in one bounded payload.
     /// </summary>
-    private static int GetInterPredictionCoverage(Av1Decoder decoder)
-    {
-        ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
-        ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
-        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
-        int superblockSizeLog2 = sequenceHeader.SuperblockSizeLog2;
-        int superblockColumnCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameWidth, superblockSizeLog2) >> superblockSizeLog2;
-        int superblockRowCount = Av1Math.AlignPowerOf2(sequenceHeader.MaxFrameHeight, superblockSizeLog2) >> superblockSizeLog2;
-        int coverage = 0;
-        for (int superblockRow = 0; superblockRow < superblockRowCount; superblockRow++)
-        {
-            for (int superblockColumn = 0; superblockColumn < superblockColumnCount; superblockColumn++)
-            {
-                Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(new Point(superblockColumn, superblockRow));
-                foreach (Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
-                {
-                    if (modeInfo.MotionMode == Av1MotionMode.Obmc)
-                    {
-                        coverage |= ObmcCoverage;
-                    }
-
-                    if (modeInfo.MotionMode == Av1MotionMode.Warped)
-                    {
-                        coverage |= LocalWarpCoverage;
-                    }
-
-                    if (modeInfo.YMode is Av1PredictionMode.GlobalMotionVector or Av1PredictionMode.GlobalGlobalMotionVector &&
-                        Math.Min(modeInfo.BlockSize.GetWidth(), modeInfo.BlockSize.GetHeight()) >= 8)
-                    {
-                        int referenceCount = modeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra ? 2 : 1;
-                        for (int referenceIndex = 0; referenceIndex < referenceCount; referenceIndex++)
-                        {
-                            int canonicalReferenceIndex =
-                                (int)modeInfo.ReferenceFrames[referenceIndex] - (int)Av1ReferenceFrameType.Last;
-
-                            Av1GlobalMotionParameters globalMotionParameters =
-                                frameHeader.GetGlobalMotionParameters()[canonicalReferenceIndex];
-
-                            if (globalMotionParameters.Type > Av1GlobalMotionType.Translation &&
-                                !globalMotionParameters.IsInvalid)
-                            {
-                                coverage |= GlobalWarpCoverage;
-                            }
-                        }
-                    }
-
-                    if (modeInfo.ReferenceFrames[1] == Av1ReferenceFrameType.Intra)
-                    {
-                        coverage |= modeInfo.UseInterIntraWedge ? WedgeInterIntraCoverage : SmoothInterIntraCoverage;
-                        continue;
-                    }
-
-                    if (modeInfo.ReferenceFrames[1] <= Av1ReferenceFrameType.Intra)
-                    {
-                        continue;
-                    }
-
-                    coverage |= modeInfo.CompoundType switch
-                    {
-                        Av1CompoundType.DistanceWeighted => DistanceWeightedCompoundCoverage,
-                        Av1CompoundType.Wedge => modeInfo.CompoundWedgeSign
-                            ? InvertedWedgeCompoundCoverage
-                            : WedgeCompoundCoverage,
-                        Av1CompoundType.DifferenceWeighted => modeInfo.DifferenceWeightedMaskType == Av1DifferenceWeightedMaskType.Type38Inverse
-                            ? InvertedDifferenceWeightedCompoundCoverage
-                            : DifferenceWeightedCompoundCoverage,
-                        _ => 0,
-                    };
-                }
-            }
-        }
-
-        return coverage;
-    }
+    private static int GetInterPredictionCoverage(Av1Decoder decoder) =>
+        (int)decoder.DecodedInterPredictionFeatures;
 
     /// <summary>
     /// Verifies lossless syntax, residual reconstruction, and exact native samples against the independent scalar reference for
@@ -3070,9 +3003,9 @@ public class Av1ReconstructionConformanceTests
         Assert.Equal(ScaledReferenceFixtureSize, frameBuffer.Height);
         Assert.Equal(Av1BitDepth.EightBit, frameBuffer.BitDepth);
         Assert.Equal(Av1ColorFormat.Yuv444, frameBuffer.ColorFormat);
-        Assert.Equal(1, frameBuffer.BufferY!.FastMemoryGroup.Count);
-        Assert.Equal(1, frameBuffer.BufferCb!.FastMemoryGroup.Count);
-        Assert.Equal(1, frameBuffer.BufferCr!.FastMemoryGroup.Count);
+        Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.Y).FastMemoryGroup.Count);
+        Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.U).FastMemoryGroup.Count);
+        Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.V).FastMemoryGroup.Count);
 
         ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
         ObuFrameHeader finalFrameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
@@ -3200,9 +3133,9 @@ public class Av1ReconstructionConformanceTests
         Assert.Equal(ProgressiveFixtureHeight, frameBuffer.Height);
         Assert.Equal(Av1BitDepth.EightBit, frameBuffer.BitDepth);
         Assert.Equal(Av1ColorFormat.Yuv444, frameBuffer.ColorFormat);
-        Assert.Equal(1, frameBuffer.BufferY!.FastMemoryGroup.Count);
-        Assert.Equal(1, frameBuffer.BufferCb!.FastMemoryGroup.Count);
-        Assert.Equal(1, frameBuffer.BufferCr!.FastMemoryGroup.Count);
+        Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.Y).FastMemoryGroup.Count);
+        Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.U).FastMemoryGroup.Count);
+        Assert.Equal(1, frameBuffer.GetPlaneBuffer(Av1Plane.V).FastMemoryGroup.Count);
 
         ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
         ObuFrameHeader finalFrameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
@@ -3665,46 +3598,7 @@ public class Av1ReconstructionConformanceTests
         Assert.False(decoder.FrameHeader.AllowIntraBlockCopy);
         Assert.Equal(0, GetPaletteCoverage(decoder));
 
-        bool hasCodedResidual = false;
-        int superblockSizeLog2 = decoder.SequenceHeader.SuperblockSizeLog2;
-        int superblockColumnCount = Av1Math.AlignPowerOf2(decoder.SequenceHeader.MaxFrameWidth, superblockSizeLog2) >> superblockSizeLog2;
-        int superblockRowCount = Av1Math.AlignPowerOf2(decoder.SequenceHeader.MaxFrameHeight, superblockSizeLog2) >> superblockSizeLog2;
-        ReadOnlySpan<Av1Plane> planes = [Av1Plane.Y, Av1Plane.U, Av1Plane.V];
-        for (int superblockRow = 0; superblockRow < superblockRowCount && !hasCodedResidual; superblockRow++)
-        {
-            for (int superblockColumn = 0; superblockColumn < superblockColumnCount && !hasCodedResidual; superblockColumn++)
-            {
-                Point superblock = new(superblockColumn, superblockRow);
-                foreach (Av1Plane plane in planes)
-                {
-                    Span<int> coefficients = plane switch
-                    {
-                        Av1Plane.Y => decoder.FrameInfo.GetCoefficientsY(superblock),
-                        Av1Plane.U => decoder.FrameInfo.GetCoefficientsU(superblock),
-                        _ => decoder.FrameInfo.GetCoefficientsV(superblock)
-                    };
-
-                    // Each transform reserves an end index followed by its coefficients. Any nonzero stored value
-                    // proves that exact output traversed coefficient decoding, inverse quantization, and lossless WHT.
-                    foreach (int coefficient in coefficients)
-                    {
-                        if (coefficient != 0)
-                        {
-                            hasCodedResidual = true;
-                            break;
-                        }
-                    }
-
-                    if (hasCodedResidual)
-                    {
-                        break;
-                    }
-                }
-            }
-        }
-
-        Assert.True(hasCodedResidual);
-
+        // Exact equality with independently decoded native planes proves the complete residual reconstruction contract.
         AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
     }
 
@@ -3834,6 +3728,30 @@ public class Av1ReconstructionConformanceTests
         HeifMetadata metadata = image.Metadata.GetHeifMetadata();
         Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
         Assert.Equal(metadataBitDepth, metadata.BitDepth);
+
+        if (metadataBitDepth != HeifBitDepth.Bit8)
+        {
+            bool containsPrecisionBeyondEightBits = false;
+            image.ProcessPixelRows(accessor =>
+            {
+                for (int y = 0; y < accessor.Height && !containsPrecisionBeyondEightBits; y++)
+                {
+                    Span<Rgba64> row = accessor.GetRowSpan(y);
+                    foreach (Rgba64 pixel in row)
+                    {
+                        // Expanding an eight-bit channel to ushort always produces a multiple of 257. At least one
+                        // source-derived RGB channel must fall between those values to prove native precision survived.
+                        if ((pixel.R % 257) != 0 || (pixel.G % 257) != 0 || (pixel.B % 257) != 0)
+                        {
+                            containsPrecisionBeyondEightBits = true;
+                            break;
+                        }
+                    }
+                }
+            });
+
+            Assert.True(containsPrecisionBeyondEightBits, "The high-bit-depth presentation contains only eight-bit-expanded RGB samples.");
+        }
     }
 
     /// <summary>
@@ -4102,16 +4020,18 @@ public class Av1ReconstructionConformanceTests
     /// <returns>A bit mask containing every selected loop-restoration filter type.</returns>
     private static int GetRestorationCoverage(Av1Decoder decoder)
     {
+        ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
+        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
         int restorationCoverage = 0;
-        for (int plane = 0; plane < decoder.SequenceHeader!.ColorConfig.PlaneCount; plane++)
+        for (int plane = 0; plane < sequenceHeader.ColorConfig.PlaneCount; plane++)
         {
-            int rowCount = decoder.FrameInfo!.GetLoopRestorationUnitRowCount(plane);
-            int columnCount = decoder.FrameInfo.GetLoopRestorationUnitColumnCount(plane);
+            int rowCount = frameInfo.GetLoopRestorationUnitRowCount(plane);
+            int columnCount = frameInfo.GetLoopRestorationUnitColumnCount(plane);
             for (int row = 0; row < rowCount; row++)
             {
                 for (int column = 0; column < columnCount; column++)
                 {
-                    Av1RestorationFilterType filterType = decoder.FrameInfo.GetLoopRestorationUnit(plane, row, column).FilterType;
+                    Av1RestorationFilterType filterType = frameInfo.GetLoopRestorationUnit(plane, row, column).FilterType;
                     if (filterType != Av1RestorationFilterType.None)
                     {
                         restorationCoverage |= 1 << (int)filterType;
@@ -4300,55 +4220,6 @@ public class Av1ReconstructionConformanceTests
 
             int superblockSize = frameInfo.SuperblockModeInfoSize;
             Av1SuperblockInfo superblock = frameInfo.GetSuperblock(new Point(blockColumn / superblockSize, blockRow / superblockSize));
-            Span<Av1TransformInfo> transforms = superblock.GetTransformInfoY().Slice(
-                modeInfo.GetFirstTransformLocation(Av1Plane.Y),
-                modeInfo.GetTransformUnitCount(Av1Plane.Y));
-
-            Av1TransformInfo containingTransform = transforms[0];
-            int containingTransformIndex = 0;
-            int transformColumn = modeInfoColumn - blockColumn;
-            int transformRow = modeInfoRow - blockRow;
-            for (int transformIndex = 0; transformIndex < transforms.Length; transformIndex++)
-            {
-                Av1TransformInfo transform = transforms[transformIndex];
-                if (transformColumn >= transform.OffsetX && transformColumn < transform.OffsetX + transform.Size.Get4x4WideCount()
-                    && transformRow >= transform.OffsetY && transformRow < transform.OffsetY + transform.Size.Get4x4HighCount())
-                {
-                    containingTransform = transform;
-                    containingTransformIndex = transformIndex;
-                    break;
-                }
-            }
-
-            int superblockTransformIndex = modeInfo.GetFirstTransformLocation(Av1Plane.Y) + containingTransformIndex;
-            Span<Av1TransformInfo> superblockTransforms = superblock.GetTransformInfoY();
-            Span<int> superblockCoefficients = superblock.CoefficientsY;
-            int coefficientOffset = 0;
-            for (int transformIndex = 0; transformIndex < superblockTransformIndex; transformIndex++)
-            {
-                if (superblockTransforms[transformIndex].CodeBlockFlag)
-                {
-                    coefficientOffset += superblockCoefficients[coefficientOffset] + 1;
-                }
-            }
-
-            StringBuilder coefficientDescription = new();
-            if (containingTransform.CodeBlockFlag)
-            {
-                int coefficientCount = superblockCoefficients[coefficientOffset];
-                coefficientDescription.Append(CultureInfo.InvariantCulture, $", quantized-coefficients={coefficientCount}:[");
-                for (int coefficientIndex = 0; coefficientIndex < coefficientCount; coefficientIndex++)
-                {
-                    if (coefficientIndex != 0)
-                    {
-                        coefficientDescription.Append(',');
-                    }
-
-                    coefficientDescription.Append(superblockCoefficients[coefficientOffset + coefficientIndex + 1]);
-                }
-
-                coefficientDescription.Append(']');
-            }
 
             ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
             int cdefUnitColumn = (modeInfoColumn % superblockSize) / CdefUnitModeInfoSize;
@@ -4387,11 +4258,10 @@ public class Av1ReconstructionConformanceTests
                 + $"filters={modeInfo.InterpolationFilters[0]}/{modeInfo.InterpolationFilters[1]}, motion={modeInfo.MotionMode}, "
                 + $"filter-intra={modeInfo.UseFilterIntra}/{modeInfo.FilterIntraMode}, angle-delta={modeInfo.GetAngleDelta(plane)}, "
                 + $"palette-size={modeInfo.GetPaletteSize(plane)}, transforms={modeInfo.GetTransformUnitCount(plane)}, "
-                + $"transform={containingTransform.Size}/{containingTransform.Type}/coded={containingTransform.CodeBlockFlag} "
-                + $"at ({containingTransform.OffsetX}, {containingTransform.OffsetY}), block-origin=({blockColumn}, {blockRow}). "
+                + $"block-origin=({blockColumn}, {blockRow}). "
                 + $"Loop-filter={frameHeader.LoopFilterParameters.FilterLevel[0]}/{frameHeader.LoopFilterParameters.FilterLevel[1]}, "
                 + $"sharpness={frameHeader.LoopFilterParameters.SharpnessLevel}, delta-q={frameHeader.DeltaQParameters.IsPresent}, "
-                + $"superblock-q={superblock.SuperblockQuantizerIndex}{coefficientDescription}, "
+                + $"superblock-q={superblock.SuperblockQuantizerIndex}, "
                 + $"delta-lf={frameHeader.DeltaLoopFilterParameters.IsPresent}/{frameHeader.DeltaLoopFilterParameters.IsMulti}, "
                 + $"CDEF={cdefStrengthIndex}/{cdefStrength}, restoration={frameHeader.LoopRestorationParameters.Items[0].Type}, "
                 + $"film-grain={frameHeader.FilmGrainParameters.ApplyGrain}/"

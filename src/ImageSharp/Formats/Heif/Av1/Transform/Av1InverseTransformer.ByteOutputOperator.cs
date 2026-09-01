@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <content>
 /// Defines eight-bit inverse-transform reconstruction arithmetic.
 /// </content>
-internal partial class Av1InverseTransformer
+internal static partial class Av1InverseTransformer
 {
     /// <summary>
     /// Reconstructs eight-bit samples from predicted values and inverse-transform residuals.

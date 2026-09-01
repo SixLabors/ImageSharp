@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <summary>
 /// Reconstructs decoded AV1 transform coefficients into prediction sample buffers.
 /// </summary>
-internal partial class Av1InverseTransformer
+internal static partial class Av1InverseTransformer
 {
     /// <summary>
     /// Reconstructs an eight-bit transform block in place by adding its inverse-transform residual.

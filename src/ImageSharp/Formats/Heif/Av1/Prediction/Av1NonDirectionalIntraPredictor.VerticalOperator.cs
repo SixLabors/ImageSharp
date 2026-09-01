@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// <content>
 /// Provides vertical intra prediction for scalar and SIMD sample representations.
 /// </content>
-internal abstract partial class Av1IntraPredictorBase
+internal abstract partial class Av1NonDirectionalIntraPredictorBase
 {
     /// <summary>
     /// Implements AV1 vertical intra prediction for scalar and SIMD lanes.

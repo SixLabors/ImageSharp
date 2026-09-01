@@ -25,19 +25,9 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     private readonly MemoryAllocator memoryAllocator;
 
     /// <summary>
-    /// The scaled luma plane.
+    /// The complete set of owned presentation planes, or <see langword="null"/> after disposal.
     /// </summary>
-    private Buffer2D<TSample>? luma;
-
-    /// <summary>
-    /// The scaled blue-difference plane.
-    /// </summary>
-    private Buffer2D<TSample>? chromaBlue;
-
-    /// <summary>
-    /// The scaled red-difference plane.
-    /// </summary>
-    private Buffer2D<TSample>? chromaRed;
+    private PresentationPlanes? planes;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1PresentationSampleBuffer{TSample, TBuffer}"/> class.
@@ -64,23 +54,34 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
         int destinationChromaWidth = DivideCeiling(width, 1 << source.ChromaSubsamplingX);
         int destinationChromaHeight = DivideCeiling(height, 1 << source.ChromaSubsamplingY);
 
+        Buffer2D<TSample>? luma = null;
+        Buffer2D<TSample>? chromaBlue = null;
+        Buffer2D<TSample>? chromaRed = null;
         try
         {
-            this.luma = this.memoryAllocator.Allocate2D<TSample>(width, height);
-            this.ScalePlane(source, Av1Plane.Y, source.Width, source.Height, this.luma);
+            luma = this.memoryAllocator.Allocate2D<TSample>(width, height);
+            this.ScalePlane(source, Av1Plane.Y, source.Width, source.Height, luma);
+
+            ChromaPlanes? chroma = null;
 
             if (!source.IsMonochrome)
             {
-                this.chromaBlue = this.memoryAllocator.Allocate2D<TSample>(destinationChromaWidth, destinationChromaHeight);
-                this.ScalePlane(source, Av1Plane.U, sourceChromaWidth, sourceChromaHeight, this.chromaBlue);
+                chromaBlue = this.memoryAllocator.Allocate2D<TSample>(destinationChromaWidth, destinationChromaHeight);
+                this.ScalePlane(source, Av1Plane.U, sourceChromaWidth, sourceChromaHeight, chromaBlue);
 
-                this.chromaRed = this.memoryAllocator.Allocate2D<TSample>(destinationChromaWidth, destinationChromaHeight);
-                this.ScalePlane(source, Av1Plane.V, sourceChromaWidth, sourceChromaHeight, this.chromaRed);
+                chromaRed = this.memoryAllocator.Allocate2D<TSample>(destinationChromaWidth, destinationChromaHeight);
+                this.ScalePlane(source, Av1Plane.V, sourceChromaWidth, sourceChromaHeight, chromaRed);
+                chroma = new ChromaPlanes(chromaBlue, chromaRed);
             }
+
+            // Publish ownership only after every required plane has been allocated and initialized.
+            this.planes = new PresentationPlanes(luma, chroma);
         }
         catch
         {
-            this.Dispose();
+            luma?.Dispose();
+            chromaBlue?.Dispose();
+            chromaRed?.Dispose();
             throw;
         }
     }
@@ -140,12 +141,21 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     /// </summary>
     public void Dispose()
     {
-        this.luma?.Dispose();
-        this.chromaBlue?.Dispose();
-        this.chromaRed?.Dispose();
-        this.luma = null;
-        this.chromaBlue = null;
-        this.chromaRed = null;
+        PresentationPlanes? planes = this.planes;
+        this.planes = null;
+
+        if (planes is null)
+        {
+            return;
+        }
+
+        planes.Value.Luma.Dispose();
+        ChromaPlanes? chroma = planes.Value.Chroma;
+        if (chroma is not null)
+        {
+            chroma.Value.Blue.Dispose();
+            chroma.Value.Red.Dispose();
+        }
     }
 
     /// <summary>
@@ -155,12 +165,21 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     /// <param name="row">The zero-based plane row.</param>
     /// <returns>The visible samples in the requested row.</returns>
     public Span<TSample> GetRowSpan(Av1Plane plane, int row)
-        => plane switch
+    {
+        PresentationPlanes planes = this.planes
+            ?? throw new ObjectDisposedException(nameof(Av1PresentationSampleBuffer<TSample, TBuffer>));
+
+        Buffer2D<TSample> buffer = plane switch
         {
-            Av1Plane.Y => this.luma!.DangerousGetRowSpan(row),
-            Av1Plane.U => this.chromaBlue!.DangerousGetRowSpan(row),
-            _ => this.chromaRed!.DangerousGetRowSpan(row)
+            Av1Plane.Y => planes.Luma,
+            Av1Plane.U => planes.Chroma?.Blue
+                ?? throw new InvalidOperationException("The AV1 presentation buffer has no blue-difference plane."),
+            _ => planes.Chroma?.Red
+                ?? throw new InvalidOperationException("The AV1 presentation buffer has no red-difference plane.")
         };
+
+        return buffer.DangerousGetRowSpan(row);
+    }
 
     /// <summary>
     /// Scales one component plane with the native integer filter used by pinned libavif's libyuv backend.
@@ -742,4 +761,18 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
     /// <param name="divisor">The positive divisor.</param>
     /// <returns>The ceiling-rounded quotient.</returns>
     private static int DivideCeiling(int value, int divisor) => (value + divisor - 1) / divisor;
+
+    private readonly struct ChromaPlanes(Buffer2D<TSample> blue, Buffer2D<TSample> red)
+    {
+        public Buffer2D<TSample> Blue { get; } = blue;
+
+        public Buffer2D<TSample> Red { get; } = red;
+    }
+
+    private readonly struct PresentationPlanes(Buffer2D<TSample> luma, ChromaPlanes? chroma)
+    {
+        public Buffer2D<TSample> Luma { get; } = luma;
+
+        public ChromaPlanes? Chroma { get; } = chroma;
+    }
 }

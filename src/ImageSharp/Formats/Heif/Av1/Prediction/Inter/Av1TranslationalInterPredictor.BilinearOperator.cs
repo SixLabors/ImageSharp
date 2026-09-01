@@ -4,17 +4,17 @@
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 
 /// <content>
-/// Defines regular interpolation for translational inter prediction.
+/// Defines bilinear interpolation for translational inter prediction.
 /// </content>
-internal static partial class Av1InterPredictor
+internal static partial class Av1TranslationalInterPredictor
 {
     /// <summary>
-    /// Selects regular interpolation coefficients.
+    /// Selects bilinear interpolation coefficients.
     /// </summary>
-    internal readonly struct RegularOperator : IAv1InterPredictorOperator
+    internal readonly struct BilinearOperator : IAv1InterPredictorOperator
     {
         /// <inheritdoc/>
         public static ReadOnlySpan<short> GetCoefficients(int phase, bool useReducedFilter)
-            => GetPhase(useReducedFilter ? RegularFourTap : RegularEightTap, phase);
+            => GetPhase(Bilinear, phase);
     }
 }

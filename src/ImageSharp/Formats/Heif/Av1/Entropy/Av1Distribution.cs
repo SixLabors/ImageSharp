@@ -6,7 +6,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 /// <summary>
 /// Stores and adapts an AV1 inverse cumulative distribution used by the range coder.
 /// </summary>
-internal class Av1Distribution
+internal sealed class Av1Distribution
 {
     /// <summary>
     /// The exclusive upper bound of the Q15 probability domain.
@@ -271,7 +271,7 @@ internal class Av1Distribution
     /// </summary>
     /// <param name="props">The forward Q15 thresholds followed by a zero sentinel slot.</param>
     /// <param name="speed">The symbol-count contribution to the update rate.</param>
-    private Av1Distribution(uint[] props, int speed)
+    private Av1Distribution(ReadOnlySpan<uint> props, int speed)
     {
         this.probabilities = new uint[props.Length];
 

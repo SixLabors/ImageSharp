@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -90,6 +91,32 @@ public class ObuFrameLifecycleTests
         Assert.Equal(ProgressiveImageHeight, secondFrameHeader.FrameSize.FrameHeight);
         Assert.Equal(ProgressiveImageWidth, secondFrameHeader.FrameSize.RenderWidth);
         Assert.Equal(ProgressiveImageHeight, secondFrameHeader.FrameSize.RenderHeight);
+    }
+
+    /// <summary>
+    /// Verifies that production existing-frame presentation needs no tile reader, frame buffer, or reconstruction graph.
+    /// </summary>
+    [Fact]
+    public void SequenceDecoderPresentsExistingFrameWithoutTileState()
+    {
+        byte[] bitStream = [.. ProgressiveTwoFrameObuStream];
+
+        // A standalone frame-header OBU selects retained slot zero. The payload contains show_existing_frame, the
+        // three-bit slot index, and the required trailing-one bit; no tile-group OBU follows it.
+        byte[] showExistingFrame = [0x1A, 0x01, 0x88];
+        using Av1Decoder decoder = new(Configuration.Default, ProgressiveOperatingPointIndex);
+        using ImageFrame<Rgba32> reconstructed = decoder.DecodeSequenceFrame<Rgba32>(bitStream, null, null);
+        using ImageFrame<Rgba32> existing = decoder.DecodeSequenceFrame<Rgba32>(showExistingFrame, null, null);
+
+        Assert.Equal(reconstructed.Size, existing.Size);
+        for (int row = 0; row < reconstructed.Height; row++)
+        {
+            Assert.True(
+                reconstructed.PixelBuffer.DangerousGetRowSpan(row)
+                    .SequenceEqual(existing.PixelBuffer.DangerousGetRowSpan(row)));
+        }
+
+        Assert.Null(decoder.FrameInfo);
     }
 
     /// <summary>
@@ -396,7 +423,7 @@ public class ObuFrameLifecycleTests
                 }
             }
 
-            Av1FrameInfo frameInfo = new(sequenceHeader);
+            using Av1FrameInfo frameInfo = new(sequenceHeader);
             Av1FrameBuffer<byte> frameBuffer = new(
                 Configuration.Default,
                 sequenceHeader,

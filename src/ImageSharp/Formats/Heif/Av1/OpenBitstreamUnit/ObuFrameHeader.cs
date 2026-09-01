@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// <summary>
 /// Stores the decoded syntax and derived state for one AV1 frame header.
 /// </summary>
-internal class ObuFrameHeader
+internal sealed class ObuFrameHeader
 {
     /// <summary>
     /// Stores the validity state of the eight reference-frame slots without a per-header array allocation.
@@ -37,6 +37,11 @@ internal class ObuFrameHeader
     /// Stores the global-motion model associated with each of the seven inter reference types.
     /// </summary>
     private InlineArray7<Av1GlobalMotionParameters> globalMotionParameters;
+
+    /// <summary>
+    /// Stores the lossless-coding flag for each of the eight segments without a per-header array allocation.
+    /// </summary>
+    private InlineArray8<bool> losslessArray;
 
     /// <summary>
     /// Gets or sets the temporal-layer identifier carried by the primary frame-header OBU.
@@ -89,9 +94,9 @@ internal class ObuFrameHeader
     public bool CodedLossless { get; set; }
 
     /// <summary>
-    /// Gets or sets the lossless-coding flag for each segment.
+    /// Gets the mutable lossless-coding flags for each segment.
     /// </summary>
-    public bool[] LosslessArray { get; set; } = new bool[Av1Constants.MaxSegmentCount];
+    public Span<bool> LosslessArray => this.losslessArray;
 
     /// <summary>
     /// Gets or sets the frame quantization parameters.

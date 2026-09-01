@@ -52,15 +52,20 @@ internal partial class Av1FrameInfo
     /// <summary>
     /// Owns the selected motion vector and logical reference for every retained 8x8 frame position.
     /// </summary>
-    private IMemoryOwner<RetainedMotionFieldEntry>? retainedMotionField;
+    private MotionFieldStorage<RetainedMotionFieldEntry>? retainedMotionField;
 
     /// <summary>
     /// Owns motion vectors projected from retained frames into the current frame's 8x8 grid.
     /// </summary>
-    private IMemoryOwner<TemporalMotionFieldEntry>? temporalMotionField;
+    private MotionFieldStorage<TemporalMotionFieldEntry>? temporalMotionField;
 
     /// <summary>
-    /// The number of tile-reader, reference-frame, and decoder-result owners retaining this frame state.
+    /// The compact reference state detached from reconstruction storage after this frame refreshes the reference map.
+    /// </summary>
+    private ReferenceState? referenceState;
+
+    /// <summary>
+    /// The number of tile-reader and decoder-result owners retaining this reconstruction state.
     /// </summary>
     private int ownerCount = 1;
 
@@ -83,16 +88,6 @@ internal partial class Av1FrameInfo
     /// The order hint of the current frame represented by this mode-information owner.
     /// </summary>
     private uint motionFieldOrderHint;
-
-    /// <summary>
-    /// The number of retained motion-field entries in one active 8x8 row.
-    /// </summary>
-    private int retainedMotionFieldStride;
-
-    /// <summary>
-    /// The number of projected temporal-motion entries in one aligned 8x8 row.
-    /// </summary>
-    private int temporalMotionFieldStride;
 
     /// <summary>
     /// The active frame width in 4x4 mode-information units.
@@ -125,7 +120,7 @@ internal partial class Av1FrameInfo
         this.motionFieldOrderHint = frameHeader.OrderHint;
         this.activeModeInfoColumnCount = frameHeader.ModeInfoColumnCount;
         this.activeModeInfoRowCount = frameHeader.ModeInfoRowCount;
-        this.retainedMotionFieldStride = (this.activeModeInfoColumnCount + 1) >> MotionFieldModeInfoShift;
+        int retainedMotionFieldStride = (this.activeModeInfoColumnCount + 1) >> MotionFieldModeInfoShift;
 
         if (frameHeader.IsIntra)
         {
@@ -134,8 +129,8 @@ internal partial class Av1FrameInfo
             return;
         }
 
-        InlineArray8<Av1ReferenceFrame?> selectedReferences = default;
         ReadOnlySpan<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+        SelectedReferenceFrames selectedReferences = new(referenceFrames, referenceFrameIndices);
         ObuOrderHintInfo orderHintInfo = sequenceHeader.OrderHintInfo;
 
         // Capture the seven logical-role order hints before this frame refreshes any physical map slots. The reference decoder keeps
@@ -143,9 +138,8 @@ internal partial class Av1FrameInfo
         for (int referenceIndex = 0; referenceIndex < Av1Constants.ReferencesPerFrame; referenceIndex++)
         {
             Av1ReferenceFrameType referenceFrameType = (Av1ReferenceFrameType)(referenceIndex + 1);
-            Av1ReferenceFrame referenceFrame = referenceFrames.Resolve((int)referenceFrameIndices[referenceIndex])!;
+            Av1ReferenceFrame referenceFrame = selectedReferences[referenceFrameType];
             uint referenceOrderHint = referenceFrame.FrameHeader.OrderHint;
-            selectedReferences[(int)referenceFrameType] = referenceFrame;
             this.motionFieldReferenceOrderHints[(int)referenceFrameType] = referenceOrderHint;
 
             int relativeDistance = orderHintInfo.GetRelativeDistance(referenceOrderHint, frameHeader.OrderHint);
@@ -161,13 +155,16 @@ internal partial class Av1FrameInfo
             return;
         }
 
-        // FrameInfo is shared directly by the tile reader, reference frames, and the final decoder result. The
-        // allocator-owned motion fields therefore follow that shared lifetime without placing frame-sized arrays on
-        // the managed heap. Clean storage is required because an all-zero entry denotes the normative empty field.
+        // The retained field transfers to compact reference state after reconstruction. Keeping it allocator-backed
+        // avoids placing a frame-sized array on the managed heap. Clean storage is required because an all-zero entry
+        // denotes the normative empty field.
         int retainedRowCount = (this.activeModeInfoRowCount + 1) >> MotionFieldModeInfoShift;
-        this.retainedMotionField = configuration.MemoryAllocator.Allocate<RetainedMotionFieldEntry>(
-            this.retainedMotionFieldStride * retainedRowCount,
-            AllocationOptions.Clean);
+        IMemoryOwner<RetainedMotionFieldEntry> retainedMotionFieldOwner =
+            configuration.MemoryAllocator.Allocate<RetainedMotionFieldEntry>(
+                retainedMotionFieldStride * retainedRowCount,
+                AllocationOptions.Clean);
+
+        this.retainedMotionField = new(retainedMotionFieldOwner, retainedMotionFieldStride);
 
         if (!frameHeader.UseReferenceFrameMotionVectors)
         {
@@ -180,57 +177,64 @@ internal partial class Av1FrameInfo
             this.activeModeInfoColumnCount,
             MaximumSuperblockModeInfoSizeLog2);
 
-        this.temporalMotionFieldStride = alignedModeInfoColumnCount >> MotionFieldModeInfoShift;
+        int temporalMotionFieldStride = alignedModeInfoColumnCount >> MotionFieldModeInfoShift;
         int temporalRowCount = (this.activeModeInfoRowCount + MaximumSuperblockModeInfoSize) >> MotionFieldModeInfoShift;
-        this.temporalMotionField = configuration.MemoryAllocator.Allocate<TemporalMotionFieldEntry>(
-            this.temporalMotionFieldStride * temporalRowCount,
-            AllocationOptions.Clean);
+        IMemoryOwner<TemporalMotionFieldEntry> temporalMotionFieldOwner =
+            configuration.MemoryAllocator.Allocate<TemporalMotionFieldEntry>(
+                temporalMotionFieldStride * temporalRowCount,
+                AllocationOptions.Clean);
+
+        MotionFieldStorage<TemporalMotionFieldEntry> temporalMotionField =
+            new(temporalMotionFieldOwner, temporalMotionFieldStride);
+
+        this.temporalMotionField = temporalMotionField;
 
         // AV1 examines LAST, BWDREF, ALTREF2, ALTREF, and LAST2 in this normative order and admits at most three
         // projection sources. LAST always consumes the first budget position, forward references consume one only
         // when eligible projection succeeds, and LAST2 fills the final unused position in the reverse direction.
         int remainingProjectionCount = MotionFieldProjectionCount;
-        Av1ReferenceFrame lastFrame = selectedReferences[(int)Av1ReferenceFrameType.Last]!;
-        Av1ReferenceFrame goldenFrame = selectedReferences[(int)Av1ReferenceFrameType.Golden]!;
-        uint alternateOfLastOrderHint = lastFrame.FrameInfo.motionFieldReferenceOrderHints[(int)Av1ReferenceFrameType.Alternate];
+        Av1ReferenceFrame lastFrame = selectedReferences[Av1ReferenceFrameType.Last];
+        Av1ReferenceFrame goldenFrame = selectedReferences[Av1ReferenceFrameType.Golden];
+        uint alternateOfLastOrderHint =
+            lastFrame.ReferenceState.MotionFieldReferenceOrderHints[(int)Av1ReferenceFrameType.Alternate];
 
         // A LAST frame whose ALTREF order matches GOLDEN is an overlay. Projecting it would duplicate the overlay's
         // temporal source, but the reference decoder still consumes one position from the three-source projection budget.
         if (alternateOfLastOrderHint != goldenFrame.FrameHeader.OrderHint)
         {
-            _ = this.ProjectMotionField(sequenceHeader, frameHeader, lastFrame, reverseDirection: true);
+            _ = this.ProjectMotionField(sequenceHeader, frameHeader, lastFrame, temporalMotionField, reverseDirection: true);
         }
 
         remainingProjectionCount--;
-        Av1ReferenceFrame backwardFrame = selectedReferences[(int)Av1ReferenceFrameType.Backward]!;
+        Av1ReferenceFrame backwardFrame = selectedReferences[Av1ReferenceFrameType.Backward];
 
         if (orderHintInfo.GetRelativeDistance(backwardFrame.FrameHeader.OrderHint, frameHeader.OrderHint) > 0 &&
-            this.ProjectMotionField(sequenceHeader, frameHeader, backwardFrame, reverseDirection: false))
+            this.ProjectMotionField(sequenceHeader, frameHeader, backwardFrame, temporalMotionField, reverseDirection: false))
         {
             remainingProjectionCount--;
         }
 
-        Av1ReferenceFrame alternate2Frame = selectedReferences[(int)Av1ReferenceFrameType.Alternate2]!;
+        Av1ReferenceFrame alternate2Frame = selectedReferences[Av1ReferenceFrameType.Alternate2];
 
         if (orderHintInfo.GetRelativeDistance(alternate2Frame.FrameHeader.OrderHint, frameHeader.OrderHint) > 0 &&
-            this.ProjectMotionField(sequenceHeader, frameHeader, alternate2Frame, reverseDirection: false))
+            this.ProjectMotionField(sequenceHeader, frameHeader, alternate2Frame, temporalMotionField, reverseDirection: false))
         {
             remainingProjectionCount--;
         }
 
-        Av1ReferenceFrame alternateFrame = selectedReferences[(int)Av1ReferenceFrameType.Alternate]!;
+        Av1ReferenceFrame alternateFrame = selectedReferences[Av1ReferenceFrameType.Alternate];
 
         if (remainingProjectionCount > 0 &&
             orderHintInfo.GetRelativeDistance(alternateFrame.FrameHeader.OrderHint, frameHeader.OrderHint) > 0 &&
-            this.ProjectMotionField(sequenceHeader, frameHeader, alternateFrame, reverseDirection: false))
+            this.ProjectMotionField(sequenceHeader, frameHeader, alternateFrame, temporalMotionField, reverseDirection: false))
         {
             remainingProjectionCount--;
         }
 
         if (remainingProjectionCount > 0)
         {
-            Av1ReferenceFrame last2Frame = selectedReferences[(int)Av1ReferenceFrameType.Last2]!;
-            _ = this.ProjectMotionField(sequenceHeader, frameHeader, last2Frame, reverseDirection: true);
+            Av1ReferenceFrame last2Frame = selectedReferences[Av1ReferenceFrameType.Last2];
+            _ = this.ProjectMotionField(sequenceHeader, frameHeader, last2Frame, temporalMotionField, reverseDirection: true);
         }
     }
 
@@ -248,10 +252,19 @@ internal partial class Av1FrameInfo
         out Av1MotionVector motionVector,
         out int referenceFrameOffset)
     {
-        int index = ((modeInfoRow >> MotionFieldModeInfoShift) * this.temporalMotionFieldStride) +
+        MotionFieldStorage<TemporalMotionFieldEntry>? temporalMotionFieldState = this.temporalMotionField;
+        if (temporalMotionFieldState is null)
+        {
+            motionVector = default;
+            referenceFrameOffset = 0;
+            return false;
+        }
+
+        MotionFieldStorage<TemporalMotionFieldEntry> temporalMotionField = temporalMotionFieldState.Value;
+        int index = ((modeInfoRow >> MotionFieldModeInfoShift) * temporalMotionField.Stride) +
             (modeInfoColumn >> MotionFieldModeInfoShift);
 
-        TemporalMotionFieldEntry entry = this.temporalMotionField!.Memory.Span[index];
+        TemporalMotionFieldEntry entry = temporalMotionField.Owner.Memory.Span[index];
         motionVector = entry.MotionVector;
         referenceFrameOffset = entry.ReferenceFrameOffset;
         return referenceFrameOffset > 0;
@@ -314,13 +327,14 @@ internal partial class Av1FrameInfo
     /// <param name="modeInfoPosition">The block origin in frame-relative 4x4 units.</param>
     private void UpdateRetainedMotionField(Av1BlockModeInfo modeInfo, Point modeInfoPosition)
     {
-        IMemoryOwner<RetainedMotionFieldEntry>? retainedMotionField = this.retainedMotionField;
-        if (retainedMotionField is null)
+        MotionFieldStorage<RetainedMotionFieldEntry>? retainedMotionFieldState = this.retainedMotionField;
+        if (retainedMotionFieldState is null)
         {
             return;
         }
 
-        Span<RetainedMotionFieldEntry> retainedEntries = retainedMotionField.Memory.Span;
+        MotionFieldStorage<RetainedMotionFieldEntry> retainedMotionField = retainedMotionFieldState.Value;
+        Span<RetainedMotionFieldEntry> retainedEntries = retainedMotionField.Owner.Memory.Span;
 
         Av1ReferenceFrameType selectedReference = Av1ReferenceFrameType.None;
         Av1MotionVector selectedMotionVector = default;
@@ -363,7 +377,7 @@ internal partial class Av1FrameInfo
         // normative ability to overwrite the shared cell in traversal order.
         for (int row = 0; row < fieldHeight; row++)
         {
-            int rowOffset = ((firstFieldRow + row) * this.retainedMotionFieldStride) + firstFieldColumn;
+            int rowOffset = ((firstFieldRow + row) * retainedMotionField.Stride) + firstFieldColumn;
             retainedEntries.Slice(rowOffset, fieldWidth).Fill(entry);
         }
     }
@@ -374,6 +388,7 @@ internal partial class Av1FrameInfo
     /// <param name="sequenceHeader">The sequence header defining the modulo order-hint domain.</param>
     /// <param name="frameHeader">The current frame header.</param>
     /// <param name="startFrame">The retained frame whose stored motion vectors are projected.</param>
+    /// <param name="temporalMotionField">The complete destination field storage for the current frame.</param>
     /// <param name="reverseDirection">
     /// A value indicating whether the start-to-current distance and spatial displacement are reversed for a past frame.
     /// </param>
@@ -382,6 +397,7 @@ internal partial class Av1FrameInfo
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1ReferenceFrame startFrame,
+        MotionFieldStorage<TemporalMotionFieldEntry> temporalMotionField,
         bool reverseDirection)
     {
         ObuFrameHeader startFrameHeader = startFrame.FrameHeader;
@@ -394,7 +410,7 @@ internal partial class Av1FrameInfo
             return false;
         }
 
-        Av1FrameInfo startFrameInfo = startFrame.FrameInfo;
+        ReferenceState startFrameState = startFrame.ReferenceState;
         ObuOrderHintInfo orderHintInfo = sequenceHeader.OrderHintInfo;
         int startToCurrentFrameOffset = orderHintInfo.GetRelativeDistance(
             startFrameHeader.OrderHint,
@@ -409,12 +425,20 @@ internal partial class Av1FrameInfo
         int sourceColumnCount = (this.activeModeInfoColumnCount + 1) >> MotionFieldModeInfoShift;
         int destinationRowCount = this.activeModeInfoRowCount >> MotionFieldModeInfoShift;
         int destinationColumnCount = this.activeModeInfoColumnCount >> MotionFieldModeInfoShift;
-        ReadOnlySpan<RetainedMotionFieldEntry> sourceEntries = startFrameInfo.retainedMotionField!.Memory.Span;
-        Span<TemporalMotionFieldEntry> destinationEntries = this.temporalMotionField!.Memory.Span;
+        MotionFieldStorage<RetainedMotionFieldEntry>? retainedMotionFieldState = startFrameState.RetainedMotionField;
+        if (retainedMotionFieldState is null)
+        {
+            return false;
+        }
+
+        MotionFieldStorage<RetainedMotionFieldEntry> retainedMotionField = retainedMotionFieldState.Value;
+
+        ReadOnlySpan<RetainedMotionFieldEntry> sourceEntries = retainedMotionField.Owner.Memory.Span;
+        Span<TemporalMotionFieldEntry> destinationEntries = temporalMotionField.Owner.Memory.Span;
 
         for (int blockRow = 0; blockRow < sourceRowCount; blockRow++)
         {
-            int sourceRowOffset = blockRow * startFrameInfo.retainedMotionFieldStride;
+            int sourceRowOffset = blockRow * retainedMotionField.Stride;
             for (int blockColumn = 0; blockColumn < sourceColumnCount; blockColumn++)
             {
                 RetainedMotionFieldEntry source = sourceEntries[sourceRowOffset + blockColumn];
@@ -425,7 +449,7 @@ internal partial class Av1FrameInfo
 
                 int referenceFrameOffset = orderHintInfo.GetRelativeDistance(
                     startFrameHeader.OrderHint,
-                    startFrameInfo.motionFieldReferenceOrderHints[(int)source.ReferenceFrame]);
+                    startFrameState.MotionFieldReferenceOrderHints[(int)source.ReferenceFrame]);
 
                 bool positionIsValid = Math.Abs(referenceFrameOffset) <= Av1MotionVector.MaximumTemporalDistance &&
                     referenceFrameOffset > 0 &&
@@ -453,12 +477,49 @@ internal partial class Av1FrameInfo
 
                 // The projected vector selects the destination cell, but AV1 stores the original forward vector and
                 // its source-to-reference distance there. Candidate scaling later uses both values for its own target.
-                int destinationOffset = (projectedRow * this.temporalMotionFieldStride) + projectedColumn;
+                int destinationOffset = (projectedRow * temporalMotionField.Stride) + projectedColumn;
                 destinationEntries[destinationOffset] = new(source.MotionVector, referenceFrameOffset);
             }
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Detaches the compact state required while this decoded frame occupies the reference map.
+    /// </summary>
+    public ReferenceState PrepareReferenceState()
+    {
+        ReferenceState? state = this.referenceState;
+        if (state is null)
+        {
+            // libaom's RefCntBuffer retains only the segment map, 8x8 motion field, and reference-order hints from
+            // block reconstruction. Transfer those owners without copying and leave all other frame syntax local.
+            state = new ReferenceState(
+                this.segmentIds,
+                this.segmentIdColumnCount,
+                this.segmentIdRowCount,
+                this.retainedMotionField,
+                this.motionFieldReferenceOrderHints);
+
+            this.segmentIds = null;
+            this.retainedMotionField = null;
+            this.referenceState = state;
+        }
+
+        return state;
+    }
+
+    /// <summary>
+    /// Acquires the prepared compact state for one reference-frame owner.
+    /// </summary>
+    /// <returns>The retained reference state with one ownership lease for the caller.</returns>
+    public ReferenceState AcquireReferenceState()
+    {
+        ReferenceState state = this.PrepareReferenceState();
+
+        state.AddOwner();
+        return state;
     }
 
     /// <summary>
@@ -493,12 +554,29 @@ internal partial class Av1FrameInfo
         this.ownerCount--;
         if (this.ownerCount == 0)
         {
-            // Frame-sized motion storage remains addressable through retained references. Return it only after tile,
-            // reference, presentation, and decoder-result owners are gone.
+            // Reconstruction-only syntax expires with the tile reader and optional decoder-result owner. A detached
+            // reference state has its own lease and can outlive this full frame state.
+            this.referenceState?.ReleaseOwner();
+            this.referenceState = null;
             this.retainedMotionField?.Dispose();
             this.retainedMotionField = null;
             this.temporalMotionField?.Dispose();
             this.temporalMotionField = null;
+
+            for (int plane = 0; plane < Av1Constants.MaxPlanes; plane++)
+            {
+                this.loopRestorationUnits[plane]?.Dispose();
+            }
+
+            this.segmentIds?.Dispose();
+            this.coefficientScratch.Dispose();
+            this.deltaLoopFilter.Dispose();
+            this.cdefStrength.Dispose();
+            this.quantizerIndices.Dispose();
+            this.transformInfoScratch.Dispose();
+            this.modeInfoMap.Dispose();
+            this.modeInfoCounts.Dispose();
+            this.modeInfos.Dispose();
         }
     }
 
@@ -548,9 +626,110 @@ internal partial class Av1FrameInfo
     }
 
     /// <summary>
+    /// Couples one allocator-owned motion-field buffer with the stride required to address it.
+    /// </summary>
+    internal readonly struct MotionFieldStorage<T>
+        where T : struct
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="MotionFieldStorage{T}"/> struct.
+        /// </summary>
+        public MotionFieldStorage(IMemoryOwner<T> owner, int stride)
+        {
+            this.Owner = owner;
+            this.Stride = stride;
+        }
+
+        /// <summary>
+        /// Gets the allocator-owned field entries.
+        /// </summary>
+        public IMemoryOwner<T> Owner { get; }
+
+        /// <summary>
+        /// Gets the number of entries in one field row.
+        /// </summary>
+        public int Stride { get; }
+
+        /// <summary>
+        /// Returns the field entries to their allocator.
+        /// </summary>
+        public void Dispose() => this.Owner.Dispose();
+    }
+
+    /// <summary>
+    /// Carries the complete seven-role reference mapping captured before the current frame refreshes map slots.
+    /// </summary>
+    private readonly struct SelectedReferenceFrames
+    {
+        /// <summary>
+        /// Initializes a new instance of the <see cref="SelectedReferenceFrames"/> struct.
+        /// </summary>
+        public SelectedReferenceFrames(Av1ReferenceFrameStore referenceFrames, ReadOnlySpan<uint> referenceFrameIndices)
+        {
+            this.Last = referenceFrames.ResolveRequired((int)referenceFrameIndices[0]);
+            this.Last2 = referenceFrames.ResolveRequired((int)referenceFrameIndices[1]);
+            this.Last3 = referenceFrames.ResolveRequired((int)referenceFrameIndices[2]);
+            this.Golden = referenceFrames.ResolveRequired((int)referenceFrameIndices[3]);
+            this.Backward = referenceFrames.ResolveRequired((int)referenceFrameIndices[4]);
+            this.Alternate2 = referenceFrames.ResolveRequired((int)referenceFrameIndices[5]);
+            this.Alternate = referenceFrames.ResolveRequired((int)referenceFrameIndices[6]);
+        }
+
+        /// <summary>
+        /// Gets the retained LAST frame.
+        /// </summary>
+        public Av1ReferenceFrame Last { get; }
+
+        /// <summary>
+        /// Gets the retained LAST2 frame.
+        /// </summary>
+        public Av1ReferenceFrame Last2 { get; }
+
+        /// <summary>
+        /// Gets the retained LAST3 frame.
+        /// </summary>
+        public Av1ReferenceFrame Last3 { get; }
+
+        /// <summary>
+        /// Gets the retained GOLDEN frame.
+        /// </summary>
+        public Av1ReferenceFrame Golden { get; }
+
+        /// <summary>
+        /// Gets the retained BWDREF frame.
+        /// </summary>
+        public Av1ReferenceFrame Backward { get; }
+
+        /// <summary>
+        /// Gets the retained ALTREF2 frame.
+        /// </summary>
+        public Av1ReferenceFrame Alternate2 { get; }
+
+        /// <summary>
+        /// Gets the retained ALTREF frame.
+        /// </summary>
+        public Av1ReferenceFrame Alternate { get; }
+
+        /// <summary>
+        /// Gets the retained frame for one canonical inter-reference role.
+        /// </summary>
+        public Av1ReferenceFrame this[Av1ReferenceFrameType referenceFrame] => referenceFrame switch
+        {
+            Av1ReferenceFrameType.Last => this.Last,
+            Av1ReferenceFrameType.Last2 => this.Last2,
+            Av1ReferenceFrameType.Last3 => this.Last3,
+            Av1ReferenceFrameType.Golden => this.Golden,
+            Av1ReferenceFrameType.Backward => this.Backward,
+            Av1ReferenceFrameType.Alternate2 => this.Alternate2,
+            Av1ReferenceFrameType.Alternate => this.Alternate,
+            _ => throw new InvalidOperationException("Motion fields only use canonical inter-reference roles.")
+        };
+    }
+
+    /// <summary>
     /// Stores one motion vector and logical reference retained for projection by a later frame.
     /// </summary>
-    private readonly struct RetainedMotionFieldEntry
+    internal readonly struct RetainedMotionFieldEntry
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="RetainedMotionFieldEntry"/> struct.
@@ -599,5 +778,78 @@ internal partial class Av1FrameInfo
         /// Gets the positive temporal distance from the source frame to its reference.
         /// </summary>
         public int ReferenceFrameOffset { get; }
+    }
+
+    /// <summary>
+    /// Owns only the per-frame syntax retained by libaom's reference buffer after reconstruction completes.
+    /// </summary>
+    internal sealed class ReferenceState
+    {
+        /// <summary>
+        /// The number of frame-info and reference-frame owners retaining this state.
+        /// </summary>
+        private int ownerCount = 1;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ReferenceState"/> class by taking ownership of retained buffers.
+        /// </summary>
+        public ReferenceState(
+            Buffer2D<byte>? segmentIds,
+            int segmentIdColumnCount,
+            int segmentIdRowCount,
+            MotionFieldStorage<RetainedMotionFieldEntry>? retainedMotionField,
+            InlineArray8<uint> motionFieldReferenceOrderHints)
+        {
+            this.SegmentIds = segmentIds;
+            this.SegmentIdColumnCount = segmentIdColumnCount;
+            this.SegmentIdRowCount = segmentIdRowCount;
+            this.RetainedMotionField = retainedMotionField;
+            this.MotionFieldReferenceOrderHints = motionFieldReferenceOrderHints;
+        }
+
+        /// <summary>
+        /// Gets the retained 4x4 segmentation map, or <see langword="null"/> when segmentation is disabled.
+        /// </summary>
+        public Buffer2D<byte>? SegmentIds { get; private set; }
+
+        /// <summary>
+        /// Gets the number of active 4x4 columns in <see cref="SegmentIds"/>.
+        /// </summary>
+        public int SegmentIdColumnCount { get; }
+
+        /// <summary>
+        /// Gets the number of active 4x4 rows in <see cref="SegmentIds"/>.
+        /// </summary>
+        public int SegmentIdRowCount { get; }
+
+        /// <summary>
+        /// Gets the retained per-8x8 motion field, or <see langword="null"/> when the temporal tool is disabled.
+        /// </summary>
+        public MotionFieldStorage<RetainedMotionFieldEntry>? RetainedMotionField { get; private set; }
+
+        /// <summary>
+        /// Gets the order hints selected by this frame's seven logical inter-reference roles.
+        /// </summary>
+        public InlineArray8<uint> MotionFieldReferenceOrderHints { get; }
+
+        /// <summary>
+        /// Adds one owner for this retained state.
+        /// </summary>
+        public void AddOwner() => this.ownerCount++;
+
+        /// <summary>
+        /// Releases one owner and returns retained buffers after the final lease.
+        /// </summary>
+        public void ReleaseOwner()
+        {
+            this.ownerCount--;
+            if (this.ownerCount == 0)
+            {
+                this.RetainedMotionField?.Dispose();
+                this.RetainedMotionField = null;
+                this.SegmentIds?.Dispose();
+                this.SegmentIds = null;
+            }
+        }
     }
 }

@@ -1,27 +1,26 @@
 # Open Bitstream Unit
 
-An OBU unit is a unit of parameters encoded in a bitstream format. In AVIF, it contains a single frame.
-This frame is coded using no other frame as reference, it is a so called INTRA frame. AV1 movie encoding also defines INTER frames,
-which are predictions of one or more other frames. INTER frames are not used in AVIF and therefore this coded ignores INTER frames.
+An OBU is a unit of syntax encoded in an AV1 bitstream. HEIF image items can contain still-picture,
+progressive, or dependent-frame AV1 payloads, so the decoder handles both intra and inter frames.
 
 An OBU section for AVIF consists of the following headers:
 
 ## Temporal delimiter
 
-In AV1 movies this is a time point. Although irrelevant for AVIF, most implementtions write one such delimiter at the start of the section.
+In AV1 sequences this marks a temporal-unit boundary. Many encoders write one at the start of the payload.
 
 ## Sequence header
 
-Common herader for a list (or sequence) of frames. For AVIF, this is exaclty 1 frame. For AVIF, this header can be reduced in size when its `ReducedStillPictureHerader` parameter is true. 
-This setting is recommended, as all the extra parameters are not applicable for AVIF.
+This is the common header for a sequence of frames. A still picture can use the reduced syntax selected by
+`ReducedStillPictureHeader`; progressive and dependent-frame payloads use the complete sequence syntax.
 
 ## Frame header
 
-Can be 3 different OBU types, which define a single INTRA frame in AVIF files.
+Frame-header, redundant-frame-header, and combined-frame OBUs define the syntax of a coded frame.
 
 ## Tile group
 
-Defines the tiling parameters and contains the parameters its tile using a different coding.
+Defines the tile range and contains the entropy-coded payload for each tile in that range.
 
 # Tiling
 
@@ -32,20 +31,18 @@ These parameters are contained in an OBU tile group header.
 
 A tile consists of one or more superblocks. Superblocks can be either 64x64 or 128x128 pixels in size.
 This choice is made per frame, and is specified in the `ObuFrameHeader`.
-A superblock contains one or more partitions, to further devide the area.
+A superblock contains one or more partitions that subdivide the area.
 
 ## Partition
 
-A superblock contains one or more Partitions. The partition Type determines the number of partitions it is further split in. 
-Paritions can contain other partitions and blocks.
+A superblock contains one or more partitions. The partition type determines how the area is split.
+Partitions can contain other partitions and blocks.
 
 ## Block
 
-
 ## Transform Block
 
-A Transform Block is the smallest area of the image, which has the same transformation parameters. A block contains ore or more ModeInfos.
-
+A transform block is the smallest image area that shares transform parameters. A block contains one or more mode-information units.
 
 ## ModeInfo
 
@@ -59,9 +56,11 @@ The smallest unit in the frame. It determines the parameters for an area of 4 by
 
 [AVIF specification](https://aomediacodec.github.io/av1-avif)
 
-[AV1/AVIF reference implementation](http://gitlab.com/AOMediaCodec/SVT-AV1)
+[Official AV1 reference implementation](https://aomedia.googlesource.com/aom/)
 
-[AOM's original development implementation](https://github.com/AOMediaCodec/libavif)
+[SVT-AV1 encoder](https://gitlab.com/AOMediaCodec/SVT-AV1)
+
+[libavif AVIF container implementation](https://github.com/AOMediaCodec/libavif)
 
 [Paper describing the techniques used in AV1](https://arxiv.org/pdf/2008.06091)
 
@@ -70,4 +69,3 @@ The smallest unit in the frame. It determines the parameters for an area of 4 by
 [Netflix image repository](http://download.opencontent.netflix.com/?prefix=AV1/)
 
 [AVIF sample images](https://github.com/link-u/avif-sample-images)
-

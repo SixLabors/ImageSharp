@@ -39,10 +39,9 @@ internal class Av1ReferenceYuvConverter
     // Constants used in BT.601
     // private const double Wr = 0.299;
     // private const double Wb = 0.114;
-
     private const double Wg = 1 - Wr - Wb;
 
-    public static Span<Rgb24> RgbToYuv(Span<Rgb24> row, bool normalized)
+    public static Span<Rgb24> RgbToYuv(ReadOnlySpan<Rgb24> row, bool normalized)
     {
         Rgb24[] result = new Rgb24[row.Length];
         for (int i = 0; i < row.Length; i++)
@@ -117,10 +116,6 @@ internal class Av1ReferenceYuvConverter
             byte redByte = (byte)Math.Max(0, Math.Min(255, Math.Round(r)));
             byte greenByte = (byte)Math.Max(0, Math.Min(255, Math.Round(g)));
             byte blueByte = (byte)Math.Max(0, Math.Min(255, Math.Round(b)));
-
-            // Assert.True(Math.Abs(redByte - r) < 3, $"Red pixel out of byte range: {redByte} iso {r} from input Y={yuv[0]}, U={yuv[1]} and V={yuv[2]}.");
-            // Assert.True(Math.Abs(greenByte - g) < 3, $"Green pixel out of byte range: {greenByte} iso {g} from input Y={yuv[0]}, U={yuv[1]} and V={yuv[2]}.");
-            // Assert.True(Math.Abs(blueByte - b) < 3, $"Blue pixel out of byte range: {blueByte} iso {b} from input Y={yuv[0]}, U={yuv[1]} and V={yuv[2]}.");
 
             result[i] = new Rgb24(redByte, greenByte, blueByte);
         }

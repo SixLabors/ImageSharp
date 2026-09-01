@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 /// Verifies AV1 translational inter prediction against an independent implementation of the normative fixed-point convolution rules.
 /// </summary>
 [Trait("Format", "Avif")]
-public class Av1InterPredictorTests
+public class Av1TranslationalInterPredictorTests
 {
     /// <summary>
     /// The number of fractional coefficient bits in AV1 interpolation kernels.
@@ -125,13 +125,33 @@ public class Av1InterPredictorTests
 
             ApplyReference(source, sourceStride, sourceOrigin, expected, DestinationPrefix, destinationStride, testCase, 8);
 
-            Av1InterPredictor.Predict(
-                source, sourceStride, sourceOrigin, actual.AsSpan(DestinationPrefix), destinationStride, testCase.Width, testCase.Height,
-                testCase.HorizontalFilter, testCase.VerticalFilter, testCase.HorizontalPhase, testCase.VerticalPhase, simdScratch);
+            Av1TranslationalInterPredictor.Predict(
+                source,
+                sourceStride,
+                sourceOrigin,
+                actual.AsSpan(DestinationPrefix),
+                destinationStride,
+                testCase.Width,
+                testCase.Height,
+                testCase.HorizontalFilter,
+                testCase.VerticalFilter,
+                testCase.HorizontalPhase,
+                testCase.VerticalPhase,
+                simdScratch);
 
-            Av1InterPredictor.PredictScalar(
-                source, sourceStride, sourceOrigin, scalar.AsSpan(DestinationPrefix), destinationStride, testCase.Width, testCase.Height,
-                testCase.HorizontalFilter, testCase.VerticalFilter, testCase.HorizontalPhase, testCase.VerticalPhase, scalarScratch);
+            Av1TranslationalInterPredictor.PredictScalar(
+                source,
+                sourceStride,
+                sourceOrigin,
+                scalar.AsSpan(DestinationPrefix),
+                destinationStride,
+                testCase.Width,
+                testCase.Height,
+                testCase.HorizontalFilter,
+                testCase.VerticalFilter,
+                testCase.HorizontalPhase,
+                testCase.VerticalPhase,
+                scalarScratch);
 
             AssertEqual(expected, actual, testCase, "SIMD-first byte");
             AssertEqual(expected, scalar, testCase, "scalar byte");
@@ -158,13 +178,35 @@ public class Av1InterPredictorTests
 
                 ApplyReference(source, sourceStride, sourceOrigin, expected, DestinationPrefix, destinationStride, testCase, bitDepth);
 
-                Av1InterPredictor.Predict(
-                    source, sourceStride, sourceOrigin, actual.AsSpan(DestinationPrefix), destinationStride, testCase.Width, testCase.Height,
-                    testCase.HorizontalFilter, testCase.VerticalFilter, testCase.HorizontalPhase, testCase.VerticalPhase, bitDepth, simdScratch);
+                Av1TranslationalInterPredictor.Predict(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    actual.AsSpan(DestinationPrefix),
+                    destinationStride,
+                    testCase.Width,
+                    testCase.Height,
+                    testCase.HorizontalFilter,
+                    testCase.VerticalFilter,
+                    testCase.HorizontalPhase,
+                    testCase.VerticalPhase,
+                    bitDepth,
+                    simdScratch);
 
-                Av1InterPredictor.PredictScalar(
-                    source, sourceStride, sourceOrigin, scalar.AsSpan(DestinationPrefix), destinationStride, testCase.Width, testCase.Height,
-                    testCase.HorizontalFilter, testCase.VerticalFilter, testCase.HorizontalPhase, testCase.VerticalPhase, bitDepth, scalarScratch);
+                Av1TranslationalInterPredictor.PredictScalar(
+                    source,
+                    sourceStride,
+                    sourceOrigin,
+                    scalar.AsSpan(DestinationPrefix),
+                    destinationStride,
+                    testCase.Width,
+                    testCase.Height,
+                    testCase.HorizontalFilter,
+                    testCase.VerticalFilter,
+                    testCase.HorizontalPhase,
+                    testCase.VerticalPhase,
+                    bitDepth,
+                    scalarScratch);
 
                 AssertEqual(expected, actual, testCase, $"SIMD-first {bitDepth}-bit ushort");
                 AssertEqual(expected, scalar, testCase, $"scalar {bitDepth}-bit ushort");
@@ -406,8 +448,16 @@ public class Av1InterPredictorTests
         ReadOnlySpan<short> verticalCoefficients = GetCoefficients(testCase.VerticalFilter, testCase.VerticalPhase, testCase.Height <= 4);
 
         ApplyTwoDimensionalReference(
-            source, sourceStride, sourceOrigin, destination, destinationOrigin, destinationStride, testCase,
-            horizontalCoefficients, verticalCoefficients, bitDepth);
+            source,
+            sourceStride,
+            sourceOrigin,
+            destination,
+            destinationOrigin,
+            destinationStride,
+            testCase,
+            horizontalCoefficients,
+            verticalCoefficients,
+            bitDepth);
     }
 
     /// <summary>
@@ -484,8 +534,16 @@ public class Av1InterPredictorTests
         ReadOnlySpan<short> verticalCoefficients = GetCoefficients(testCase.VerticalFilter, testCase.VerticalPhase, testCase.Height <= 4);
 
         ApplyTwoDimensionalReference(
-            source, sourceStride, sourceOrigin, destination, destinationOrigin, destinationStride, testCase,
-            horizontalCoefficients, verticalCoefficients, bitDepth);
+            source,
+            sourceStride,
+            sourceOrigin,
+            destination,
+            destinationOrigin,
+            destinationStride,
+            testCase,
+            horizontalCoefficients,
+            verticalCoefficients,
+            bitDepth);
     }
 
     /// <summary>

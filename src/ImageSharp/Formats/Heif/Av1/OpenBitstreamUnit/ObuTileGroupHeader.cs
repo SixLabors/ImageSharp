@@ -1,13 +1,18 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 /// <summary>
 /// Contains the tile layout derived from an AV1 frame header.
 /// </summary>
-internal class ObuTileGroupHeader
+internal sealed class ObuTileGroupHeader
 {
+    private InlineTileColumnBoundaryArray tileColumnStartModeInfo;
+    private InlineTileRowBoundaryArray tileRowStartModeInfo;
+
     /// <summary>
     /// Gets or sets the maximum tile width, in superblocks.
     /// </summary>
@@ -54,9 +59,9 @@ internal class ObuTileGroupHeader
     public int TileColumnCount { get; set; }
 
     /// <summary>
-    /// Gets or sets the starting superblock column for each tile column.
+    /// Gets the fixed-capacity starting superblock column storage for each tile column.
     /// </summary>
-    public int[] TileColumnStartModeInfo { get; set; } = new int[Av1Constants.MaxTileRowCount + 1];
+    public Span<int> TileColumnStartModeInfo => this.tileColumnStartModeInfo;
 
     /// <summary>
     /// Gets or sets the minimum base-2 logarithm of the tile-row count.
@@ -69,9 +74,9 @@ internal class ObuTileGroupHeader
     public int TileRowCountLog2 { get; set; }
 
     /// <summary>
-    /// Gets or sets the starting superblock row for each tile row.
+    /// Gets the fixed-capacity starting superblock row storage for each tile row.
     /// </summary>
-    public int[] TileRowStartModeInfo { get; set; } = new int[Av1Constants.MaxTileColumnCount + 1];
+    public Span<int> TileRowStartModeInfo => this.tileRowStartModeInfo;
 
     /// <summary>
     /// Gets or sets the number of tile rows.
@@ -87,4 +92,16 @@ internal class ObuTileGroupHeader
     /// Gets or sets the number of bytes used to signal each tile size.
     /// </summary>
     public int TileSizeBytes { get; set; }
+
+    [InlineArray(Av1Constants.MaxTileColumnCount + 1)]
+    private struct InlineTileColumnBoundaryArray
+    {
+        private int element;
+    }
+
+    [InlineArray(Av1Constants.MaxTileRowCount + 1)]
+    private struct InlineTileRowBoundaryArray
+    {
+        private int element;
+    }
 }

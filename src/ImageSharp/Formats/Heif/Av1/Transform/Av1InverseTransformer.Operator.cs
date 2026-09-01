@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// <content>
 /// Defines the inverse-transform reconstruction operator contract.
 /// </content>
-internal partial class Av1InverseTransformer
+internal static partial class Av1InverseTransformer
 {
     /// <summary>
     /// Defines how inverse-transform residuals are added to decoded samples.

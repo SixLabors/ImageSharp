@@ -11,37 +11,37 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// <remarks>
 /// The implementation covers the non-directional prediction processes in section 7.11.2 of the AV1 specification.
 /// </remarks>
-internal abstract partial class Av1IntraPredictorBase
+internal abstract partial class Av1NonDirectionalIntraPredictorBase
 {
     /// <summary>
     /// The horizontal prediction operator.
     /// </summary>
-    private static readonly Av1IntraPredictor<HorizontalOperator> HorizontalPredictor = new();
+    private static readonly Av1NonDirectionalIntraPredictor<HorizontalOperator> HorizontalPredictor = new();
 
     /// <summary>
     /// The vertical prediction operator.
     /// </summary>
-    private static readonly Av1IntraPredictor<VerticalOperator> VerticalPredictor = new();
+    private static readonly Av1NonDirectionalIntraPredictor<VerticalOperator> VerticalPredictor = new();
 
     /// <summary>
     /// The Paeth prediction operator.
     /// </summary>
-    private static readonly Av1IntraPredictor<PaethOperator> PaethPredictor = new();
+    private static readonly Av1NonDirectionalIntraPredictor<PaethOperator> PaethPredictor = new();
 
     /// <summary>
     /// The two-dimensional smooth prediction operator.
     /// </summary>
-    private static readonly Av1IntraPredictor<SmoothOperator> SmoothPredictor = new();
+    private static readonly Av1NonDirectionalIntraPredictor<SmoothOperator> SmoothPredictor = new();
 
     /// <summary>
     /// The horizontal smooth prediction operator.
     /// </summary>
-    private static readonly Av1IntraPredictor<SmoothHorizontalOperator> SmoothHorizontalPredictor = new();
+    private static readonly Av1NonDirectionalIntraPredictor<SmoothHorizontalOperator> SmoothHorizontalPredictor = new();
 
     /// <summary>
     /// The vertical smooth prediction operator.
     /// </summary>
-    private static readonly Av1IntraPredictor<SmoothVerticalOperator> SmoothVerticalPredictor = new();
+    private static readonly Av1NonDirectionalIntraPredictor<SmoothVerticalOperator> SmoothVerticalPredictor = new();
 
     /// <summary>
     /// Gets the Q8 smooth weights for every supported block dimension.
@@ -73,7 +73,7 @@ internal abstract partial class Av1IntraPredictorBase
     /// </summary>
     /// <param name="mode">The decoded non-directional prediction mode.</param>
     /// <returns>The predictor for <paramref name="mode"/>.</returns>
-    public static Av1IntraPredictorBase GetPredictor(Av1PredictionMode mode)
+    public static Av1NonDirectionalIntraPredictorBase GetPredictor(Av1PredictionMode mode)
         => mode switch
         {
             Av1PredictionMode.Horizontal => HorizontalPredictor,

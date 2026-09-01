@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.SuperResolution;
 /// <summary>
 /// Applies normative AV1 horizontal super-resolution upscaling to a reconstructed still-image frame.
 /// </summary>
-internal class Av1SuperResolutionDecoder
+internal sealed class Av1SuperResolutionDecoder
 {
     /// <summary>
     /// The sequence-level bit-depth and color-plane configuration.

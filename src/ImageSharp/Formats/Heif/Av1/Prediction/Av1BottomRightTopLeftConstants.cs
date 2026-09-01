@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// Each bit describes whether a reference edge has already been reconstructed for one block in the AV1 partition traversal order.
 /// Separate tables preserve the alternate visit order used by mixed vertical partitions.
 /// </remarks>
-internal class Av1BottomRightTopLeftConstants
+internal static class Av1BottomRightTopLeftConstants
 {
     // Tables to store if the top-right reference pixels are available. The flags
     // are represented with bits, packed into 8-bit integers. E.g., for the 32x32
@@ -302,43 +302,6 @@ internal class Av1BottomRightTopLeftConstants
     // There are tables for each of the square sizes. Vertical rectangles (like
     // BLOCK_16X32) use their respective "non-vert" table
 
-    /// <summary>
-    /// Maps supported block-size values to top-right availability tables for mixed vertical partition traversal.
-    /// </summary>
-    /// <remarks>
-    /// Null entries identify block sizes that cannot use this traversal table; vertical rectangles reuse their standard tables.
-    /// </remarks>
-    private static readonly byte[]?[] HasTopRightVerticalTables = [
-
-        // 4X4
-        null,
-
-        // 4X8,      8X4,         8X8
-        HasTopRight4x8,
-        null,
-        HasTopRightVertical8x8,
-
-        // 8X16,     16X8,        16X16
-        HasTopRight8x16,
-        null,
-        HasTopRightVertical16x16,
-
-        // 16X32,    32X16,       32X32
-        HasTopRight16x32,
-        null,
-        HasTopRightVertical32x32,
-
-        // 32X64,    64X32,       64X64
-        HasTopRight32x64,
-        null,
-        HasTopRightVertical64x64,
-
-        // 64x128,   128x64,      128x128
-        HasTopRight64x128,
-        null,
-        HasTopRight128x128
-    ];
-
     // Similar to the has_tr_* tables, but store if the bottom-left reference
     // pixels are available.
 
@@ -621,42 +584,6 @@ internal class Av1BottomRightTopLeftConstants
     // BLOCK_16X32) use their respective "non-vert" table
 
     /// <summary>
-    /// Maps supported block-size values to bottom-left availability tables for mixed vertical partition traversal.
-    /// </summary>
-    /// <remarks>
-    /// Null entries identify block sizes that cannot use this traversal table; vertical rectangles reuse their standard tables.
-    /// </remarks>
-    private static readonly byte[]?[] HasBottomLeftVerticalTables = [
-
-        // 4X4
-        null,
-
-        // 4X8,     8X4,         8X8
-        HasBottomLeft4x8,
-        null,
-        HasBottomLeftVertical8x8,
-
-        // 8X16,    16X8,        16X16
-        HasBottomLeft8x16,
-        null,
-        HasBottomLeftVertical16x16,
-
-        // 16X32,   32X16,       32X32
-        HasBottomLeft16x32,
-        null,
-        HasBottomLeftVertical32x32,
-
-        // 32X64,   64X32,       64X64
-        HasBottomLeft32x64,
-        null,
-        HasBottomLeftVertical64x64,
-
-        // 64x128,  128x64,      128x128
-        HasBottomLeft64x128,
-        null,
-        HasBottomLeft128x128];
-
-    /// <summary>
     /// Determines whether the top-right reference samples are available for a block at the specified traversal index.
     /// </summary>
     /// <param name="partitionType">The partition type that determines the block traversal order.</param>
@@ -669,7 +596,7 @@ internal class Av1BottomRightTopLeftConstants
         // remainder selects the bit within that byte.
         int index1 = blockIndex / 8;
         int index2 = blockIndex % 8;
-        Span<byte> hasTopRightTable = GetHasTopRightTable(partitionType, blockSize);
+        ReadOnlySpan<byte> hasTopRightTable = GetHasTopRightTable(partitionType, blockSize);
         return ((hasTopRightTable[index1] >> index2) & 1) > 0;
     }
 
@@ -686,7 +613,7 @@ internal class Av1BottomRightTopLeftConstants
         // remainder selects the bit within that byte.
         int index1 = blockIndex / 8;
         int index2 = blockIndex % 8;
-        Span<byte> hasBottomLeftTable = GetHasBottomLeftTable(partitionType, blockSize);
+        ReadOnlySpan<byte> hasBottomLeftTable = GetHasBottomLeftTable(partitionType, blockSize);
         return ((hasBottomLeftTable[index1] >> index2) & 1) > 0;
     }
 
@@ -696,23 +623,30 @@ internal class Av1BottomRightTopLeftConstants
     /// <param name="partition">The partition type that determines the block traversal order.</param>
     /// <param name="blockSize">The block size whose availability table is selected.</param>
     /// <returns>The packed top-right availability table.</returns>
-    private static Span<byte> GetHasTopRightTable(Av1PartitionType partition, Av1BlockSize blockSize)
+    private static ReadOnlySpan<byte> GetHasTopRightTable(Av1PartitionType partition, Av1BlockSize blockSize)
     {
-        byte[]? ret;
-
         // If this is a mixed vertical partition, look up block size in vertical order.
         if (partition is Av1PartitionType.VerticalA or Av1PartitionType.VerticalB)
         {
-            DebugGuard.MustBeLessThan((int)blockSize, (int)Av1BlockSize.SizeS, nameof(blockSize));
-            ret = HasTopRightVerticalTables[(int)blockSize];
-        }
-        else
-        {
-            ret = HasTopRightTables[(int)blockSize];
+            // libaom asserts that mixed-vertical traversal can select only vertical rectangles or squares.
+            // Listing those shapes directly keeps the impossible horizontal-rectangle states out of the table type.
+            return blockSize switch
+            {
+                Av1BlockSize.Block4x8 => HasTopRight4x8,
+                Av1BlockSize.Block8x8 => HasTopRightVertical8x8,
+                Av1BlockSize.Block8x16 => HasTopRight8x16,
+                Av1BlockSize.Block16x16 => HasTopRightVertical16x16,
+                Av1BlockSize.Block16x32 => HasTopRight16x32,
+                Av1BlockSize.Block32x32 => HasTopRightVertical32x32,
+                Av1BlockSize.Block32x64 => HasTopRight32x64,
+                Av1BlockSize.Block64x64 => HasTopRightVertical64x64,
+                Av1BlockSize.Block64x128 => HasTopRight64x128,
+                Av1BlockSize.Block128x128 => HasTopRight128x128,
+                _ => throw new InvalidOperationException("The mixed-vertical partition selected an invalid AV1 block size.")
+            };
         }
 
-        DebugGuard.NotNull(ret, nameof(ret));
-        return ret;
+        return HasTopRightTables[(int)blockSize];
     }
 
     /// <summary>
@@ -721,22 +655,28 @@ internal class Av1BottomRightTopLeftConstants
     /// <param name="partition">The partition type that determines the block traversal order.</param>
     /// <param name="blockSize">The block size whose availability table is selected.</param>
     /// <returns>The packed bottom-left availability table.</returns>
-    private static Span<byte> GetHasBottomLeftTable(Av1PartitionType partition, Av1BlockSize blockSize)
+    private static ReadOnlySpan<byte> GetHasBottomLeftTable(Av1PartitionType partition, Av1BlockSize blockSize)
     {
-        byte[]? ret;
-
         // If this is a mixed vertical partition, look up block size in vertical order.
         if (partition is Av1PartitionType.VerticalA or Av1PartitionType.VerticalB)
         {
-            DebugGuard.MustBeLessThan((int)blockSize, (int)Av1BlockSize.SizeS, nameof(blockSize));
-            ret = HasBottomLeftVerticalTables[(int)blockSize];
-        }
-        else
-        {
-            ret = HasBottomLeftTables[(int)blockSize];
+            // The valid block shapes mirror the top-right table and the libaom traversal assertion.
+            return blockSize switch
+            {
+                Av1BlockSize.Block4x8 => HasBottomLeft4x8,
+                Av1BlockSize.Block8x8 => HasBottomLeftVertical8x8,
+                Av1BlockSize.Block8x16 => HasBottomLeft8x16,
+                Av1BlockSize.Block16x16 => HasBottomLeftVertical16x16,
+                Av1BlockSize.Block16x32 => HasBottomLeft16x32,
+                Av1BlockSize.Block32x32 => HasBottomLeftVertical32x32,
+                Av1BlockSize.Block32x64 => HasBottomLeft32x64,
+                Av1BlockSize.Block64x64 => HasBottomLeftVertical64x64,
+                Av1BlockSize.Block64x128 => HasBottomLeft64x128,
+                Av1BlockSize.Block128x128 => HasBottomLeft128x128,
+                _ => throw new InvalidOperationException("The mixed-vertical partition selected an invalid AV1 block size.")
+            };
         }
 
-        DebugGuard.NotNull(ret, nameof(ret));
-        return ret;
+        return HasBottomLeftTables[(int)blockSize];
     }
 }

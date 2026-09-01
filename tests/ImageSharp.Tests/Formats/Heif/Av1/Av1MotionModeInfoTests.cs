@@ -106,7 +106,6 @@ public class Av1MotionModeInfoTests
         aboveModeInfo.ReferenceFrames[1] = Av1ReferenceFrameType.None;
         aboveModeInfo.InterpolationFilters.Clear();
         tileReader.FrameInfo.UpdateModeInfo(aboveModeInfo, superblockInfo);
-        superblockInfo.BlockCount++;
 
         Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, new Point(0, 2));
         Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, false, Av1PartitionType.None)
@@ -226,7 +225,17 @@ public class Av1MotionModeInfoTests
     /// </summary>
     /// <returns>The initialized frame header.</returns>
     private static ObuFrameHeader CreateFrameHeader()
-        => new()
+    {
+        ObuTileGroupHeader tilesInfo = new()
+        {
+            TileColumnCount = 1,
+            TileRowCount = 1,
+        };
+
+        tilesInfo.TileColumnStartModeInfo[1] = 16;
+        tilesInfo.TileRowStartModeInfo[1] = 16;
+
+        return new()
         {
             FrameType = ObuFrameType.InterFrame,
             ModeInfoColumnCount = 16,
@@ -242,14 +251,9 @@ public class Av1MotionModeInfoTests
                 RenderWidth = 64,
                 RenderHeight = 64,
             },
-            TilesInfo = new ObuTileGroupHeader
-            {
-                TileColumnCount = 1,
-                TileRowCount = 1,
-                TileColumnStartModeInfo = [0, 16],
-                TileRowStartModeInfo = [0, 16],
-            },
+            TilesInfo = tilesInfo,
         };
+    }
 
     /// <summary>
     /// Forces segment zero to a translational global-motion mode that omits reference and inter-mode symbols but still carries interpolation.
@@ -259,7 +263,7 @@ public class Av1MotionModeInfoTests
     {
         ObuSegmentationParameters segmentationParameters = frameHeader.SegmentationParameters;
         segmentationParameters.Enabled = true;
-        segmentationParameters.FeatureEnabled[0, (int)ObuSegmentationLevelFeature.GlobalMotionVector] = true;
+        segmentationParameters.SetFeatureEnabled(0, (int)ObuSegmentationLevelFeature.GlobalMotionVector, true);
         frameHeader.GetGlobalMotionParameters()[0].Type = Av1GlobalMotionType.Translation;
         frameHeader.GetReferenceFrameIndices()[0] = 0;
     }

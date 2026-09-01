@@ -9,7 +9,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 /// <summary>
 /// Provides the normative AV1 inverse quantization matrices for each matrix level, plane class, and transform size.
 /// </summary>
-internal class Av1InverseQuantizationLookup
+internal static class Av1InverseQuantizationLookup
 {
     /// <summary>
     /// Maps each AV1 transform size to its stored matrix index; sizes with a 64-pixel dimension reuse the adjusted 32-pixel matrix.

@@ -121,7 +121,7 @@ public class Av1InterFrameModeInfoTests
         // translational global model still requires interpolation, leaving only the filter branch under test.
         ObuSegmentationParameters segmentationParameters = frameHeader.SegmentationParameters;
         segmentationParameters.Enabled = true;
-        segmentationParameters.FeatureEnabled[0, (int)ObuSegmentationLevelFeature.GlobalMotionVector] = true;
+        segmentationParameters.SetFeatureEnabled(0, (int)ObuSegmentationLevelFeature.GlobalMotionVector, true);
         frameHeader.GetGlobalMotionParameters()[0].Type = Av1GlobalMotionType.Translation;
 
         using Av1TileReader tileReader = new(Configuration.Default, sequenceHeader, frameHeader);
@@ -158,7 +158,7 @@ public class Av1InterFrameModeInfoTests
         frameHeader.InterpolationFilter = Av1InterpolationFilter.Switchable;
         ObuSegmentationParameters segmentationParameters = frameHeader.SegmentationParameters;
         segmentationParameters.Enabled = true;
-        segmentationParameters.FeatureEnabled[0, (int)ObuSegmentationLevelFeature.GlobalMotionVector] = true;
+        segmentationParameters.SetFeatureEnabled(0, (int)ObuSegmentationLevelFeature.GlobalMotionVector, true);
 
         using Av1TileReader tileReader = new(Configuration.Default, sequenceHeader, frameHeader);
         Av1BlockModeInfo modeInfo = new(Av1BlockSize.Block8x8, Point.Empty);
@@ -424,6 +424,14 @@ public class Av1InterFrameModeInfoTests
             ModeInfoRowCount = 16,
             CodedLossless = true,
             AllowScreenContentTools = false,
+            FrameSize = new ObuFrameSize
+            {
+                FrameWidth = 64,
+                FrameHeight = 64,
+                SuperResolutionUpscaledWidth = 64,
+                RenderWidth = 64,
+                RenderHeight = 64,
+            },
         };
 
         frameHeader.TilesInfo.TileColumnStartModeInfo[1] = frameHeader.ModeInfoColumnCount;

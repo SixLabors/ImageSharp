@@ -14,7 +14,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 /// perform interpolation in signed 32-bit lanes and clip before narrowing, so the unsigned byte overloads may use
 /// unsigned narrowing and the high-bit-depth overloads may use signed narrowing without additional saturation logic.
 /// </remarks>
-internal abstract partial class Av1IntraPredictorBase
+internal abstract partial class Av1NonDirectionalIntraPredictorBase
 {
     /// <summary>
     /// Widens sixteen 8-bit samples into four 32-bit vectors.

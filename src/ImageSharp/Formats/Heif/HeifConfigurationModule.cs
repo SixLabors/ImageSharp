@@ -4,14 +4,13 @@
 namespace SixLabors.ImageSharp.Formats.Heif;
 
 /// <summary>
-/// Registers the image encoders, decoders and mime type detectors for the HEIF format.
+/// Configures HEIF image-format support.
 /// </summary>
 public sealed class HeifConfigurationModule : IImageFormatConfigurationModule
 {
     /// <inheritdoc/>
     public void Configure(Configuration configuration)
     {
-        configuration.ImageFormatsManager.SetEncoder(HeifFormat.Instance, new HeifEncoder());
         configuration.ImageFormatsManager.SetDecoder(HeifFormat.Instance, HeifDecoder.Instance);
         configuration.ImageFormatsManager.AddImageFormatDetector(new HeifImageFormatDetector());
     }

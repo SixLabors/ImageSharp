@@ -12,7 +12,6 @@ using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Tests.ColorProfiles.Icc;
-using SixLabors.ImageSharp.Tests.TestUtilities;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif;
@@ -49,6 +48,49 @@ public class HeifDecoderTests
         Assert.Equal(bitDepth, heifMetadata.BitDepth);
         Assert.Equal(width, imageInfo.Width);
         Assert.Equal(height, imageInfo.Height);
+    }
+
+    [Theory]
+    [InlineData(TestImages.Heif.Orange4x4, DecoderStreamKind.File, 1, 4, 4)]
+    [InlineData(TestImages.Heif.Orange4x4, DecoderStreamKind.Memory, 1, 4, 4)]
+    [InlineData(TestImages.Heif.Orange4x4, DecoderStreamKind.NonSeekable, 1, 4, 4)]
+    [InlineData(TestImages.Heif.Orange4x4, DecoderStreamKind.ShortRead, 1, 4, 4)]
+    [InlineData(TestImages.Heif.Animated8Bit, DecoderStreamKind.File, 5, 150, 150)]
+    [InlineData(TestImages.Heif.Animated8Bit, DecoderStreamKind.Memory, 5, 150, 150)]
+    [InlineData(TestImages.Heif.Animated8Bit, DecoderStreamKind.NonSeekable, 5, 150, 150)]
+    [InlineData(TestImages.Heif.Animated8Bit, DecoderStreamKind.ShortRead, 5, 150, 150)]
+    public void DecodeStillAndBoundedSequenceFromSupportedStream(
+        string imagePath,
+        DecoderStreamKind streamKind,
+        int expectedFrameCount,
+        int expectedWidth,
+        int expectedHeight)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using Image<Rgba32> expected = Image.Load<Rgba32>(testFile.Bytes);
+        using Stream stream = streamKind switch
+        {
+            DecoderStreamKind.File => File.OpenRead(testFile.FullPath),
+            DecoderStreamKind.Memory => new MemoryStream(testFile.Bytes, false),
+            DecoderStreamKind.NonSeekable => new NonSeekableStream(new MemoryStream(testFile.Bytes, false)),
+            DecoderStreamKind.ShortRead => new ShortReadMemoryStream(testFile.Bytes),
+            _ => throw new InvalidOperationException()
+        };
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(stream);
+
+        Assert.Equal(new Size(expectedWidth, expectedHeight), actual.Size);
+        Assert.Equal(expectedFrameCount, actual.Frames.Count);
+        Assert.Equal(expected.Frames.Count, actual.Frames.Count);
+        for (int frameIndex = 0; frameIndex < actual.Frames.Count; frameIndex++)
+        {
+            for (int y = 0; y < actual.Height; y++)
+            {
+                Assert.True(
+                    expected.Frames[frameIndex].PixelBuffer.DangerousGetRowSpan(y)
+                        .SequenceEqual(actual.Frames[frameIndex].PixelBuffer.DangerousGetRowSpan(y)));
+            }
+        }
     }
 
     /// <summary>
@@ -661,6 +703,22 @@ public class HeifDecoderTests
         Assert.Same(HeifFormat.Instance, format);
     }
 
+    [Fact]
+    public void DetectorRecognizesExtendedSizeFileTypeBox()
+    {
+        byte[] data = new byte[24];
+        BinaryPrimitives.WriteUInt32BigEndian(data, 1);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(4), (uint)Heif4CharCode.Ftyp);
+        BinaryPrimitives.WriteUInt64BigEndian(data.AsSpan(8), (ulong)data.Length);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(16), (uint)Heif4CharCode.Avif);
+        HeifImageFormatDetector detector = new();
+
+        bool detected = detector.TryDetectFormat(data, out IImageFormat format);
+
+        Assert.True(detected);
+        Assert.Same(HeifFormat.Instance, format);
+    }
+
     [Theory]
     [InlineData(Heif4CharCode.Jpgs)]
     public void DetectorRejectsUnsupportedSequenceMajorBrand(Heif4CharCode brand)
@@ -1185,5 +1243,29 @@ public class HeifDecoderTests
     {
         uint size = BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(offset));
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(offset), size + (uint)increment);
+    }
+
+    public enum DecoderStreamKind
+    {
+        File,
+        Memory,
+        NonSeekable,
+        ShortRead
+    }
+
+    private sealed class ShortReadMemoryStream : MemoryStream
+    {
+        private const int MaximumReadLength = 3;
+
+        public ShortReadMemoryStream(byte[] data)
+            : base(data, false)
+        {
+        }
+
+        public override int Read(byte[] buffer, int offset, int count)
+            => base.Read(buffer, offset, Math.Min(count, MaximumReadLength));
+
+        public override int Read(Span<byte> buffer)
+            => base.Read(buffer[..Math.Min(buffer.Length, MaximumReadLength)]);
     }
 }

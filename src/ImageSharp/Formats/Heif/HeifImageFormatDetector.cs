@@ -35,16 +35,36 @@ public sealed class HeifImageFormatDetector : IImageFormatDetector
             return false;
         }
 
-        uint boxSize = BinaryPrimitives.ReadUInt32BigEndian(header);
-        if (boxSize < 16 || ((boxSize - 16) & 3) != 0)
+        uint compactBoxSize = BinaryPrimitives.ReadUInt32BigEndian(header);
+        int boxHeaderSize = 8;
+        ulong boxSize = compactBoxSize;
+        if (compactBoxSize == 1)
+        {
+            // An extended-size box inserts its 64-bit size before the normal ftyp payload.
+            if (header.Length < 24)
+            {
+                return false;
+            }
+
+            boxHeaderSize = 16;
+            boxSize = BinaryPrimitives.ReadUInt64BigEndian(header[8..]);
+        }
+
+        if (boxSize < (uint)(boxHeaderSize + 8))
+        {
+            return false;
+        }
+
+        ulong boxContentLength = boxSize - (uint)boxHeaderSize;
+        if ((boxContentLength & 3) != 0)
         {
             return false;
         }
 
         // HeaderSize may expose only a prefix of a longer ftyp box. Whole compatible-brand codes in that prefix are
         // sufficient for detection; the decoder validates the complete box before reading the rest of the container.
-        int availableContentLength = (int)Math.Min(boxSize - 8, (uint)header.Length - 8);
+        int availableContentLength = (int)Math.Min(boxContentLength, (ulong)(header.Length - boxHeaderSize));
         availableContentLength &= ~3;
-        return HeifConstants.TryGetFileType(header.Slice(8, availableContentLength), out _);
+        return HeifConstants.TryGetFileType(header.Slice(boxHeaderSize, availableContentLength), out _);
     }
 }

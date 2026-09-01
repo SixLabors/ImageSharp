@@ -37,15 +37,15 @@ internal static class HeifPropertyParser
     /// </summary>
     /// <param name="data">The complete ICC profile bytes.</param>
     /// <returns>The validated ICC profile.</returns>
-    public static IccProfile ParseIccProfile(ReadOnlySpan<byte> data)
+    public static IccProfile ParseIccProfile(byte[] data)
     {
         if (data.Length == 0)
         {
             throw new InvalidImageContentException("The HEIF ICC color property contains an empty profile.");
         }
 
-        // The source belongs to a pooled box-reader buffer. The span constructor performs the single ownership transfer
-        // required for the profile to retain its exact bytes after that buffer is returned and reused.
+        // The HEIF parser allocates this exact array as the profile's final storage, so IccProfile can adopt it without
+        // copying the potentially large profile payload.
         IccProfile profile = new(data);
         if (!profile.CheckIsValid())
         {

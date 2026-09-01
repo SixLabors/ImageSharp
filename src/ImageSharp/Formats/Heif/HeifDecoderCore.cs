@@ -661,8 +661,10 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             return;
         }
 
-        metadata.IccProfile = colorTrack.IccProfile?.DeepClone();
-        metadata.CicpProfile = colorTrack.CicpProfile?.DeepClone();
+        // The selected track is decoder-private and no longer mutates after parsing. Reuse its profiles so the
+        // returned metadata does not duplicate their storage.
+        metadata.IccProfile = colorTrack.IccProfile;
+        metadata.CicpProfile = colorTrack.CicpProfile;
         heifMetadata.ContentLightLevel = colorTrack.ContentLightLevel;
         heifMetadata.MasteringDisplayColorVolume = colorTrack.MasteringDisplayColorVolume;
         heifMetadata.ContentColorVolume = colorTrack.ContentColorVolume;
@@ -1271,6 +1273,41 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 stream.Position -= 4;
             }
 
+            if (!this.Options.SkipMetadata && itemType == Heif4CharCode.Colr && itemLength is >= 4 and <= int.MaxValue)
+            {
+                Span<byte> profileTypeBuffer = this.boxHeaderScratch.AsSpan(0, 4);
+                HeifBoxReader.ReadExactly(stream, profileTypeBuffer, "The HEIF color-information property is truncated.");
+                Heif4CharCode profileType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(profileTypeBuffer);
+
+                if (profileType is Heif4CharCode.RICC or Heif4CharCode.Prof)
+                {
+                    // Read directly into the array retained by IccProfile so the generic box buffer cannot create a
+                    // second full-sized copy of the profile at this ownership boundary.
+                    byte[] profileData = new byte[(int)itemLength - 4];
+                    HeifBoxReader.ReadExactly(stream, profileData, "Stream length is not sufficient for box content.");
+                    IccProfile? iccProfile = null;
+
+                    try
+                    {
+                        iccProfile = HeifPropertyParser.ParseIccProfile(profileData);
+                    }
+                    catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                    {
+                        // Keep the understood property index without retaining invalid ancillary metadata.
+                    }
+
+                    // A malformed ancillary profile can be ignored by policy while the physical property still
+                    // occupies its ipco index and remains understood for essential-association handling.
+                    properties.Add(new KeyValuePair<Heif4CharCode, object>(
+                        Heif4CharCode.Colr,
+                        iccProfile ?? IgnoredProperty));
+
+                    continue;
+                }
+
+                stream.Position -= 4;
+            }
+
             using IMemoryOwner<byte> boxMemory = this.boxReader.ReadPayload(stream, itemLength);
             Span<byte> boxBuffer = boxMemory.GetSpan();
             try
@@ -1355,31 +1392,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         EnsureBufferRemaining(boxBuffer, 0, 4, "color information");
                         Heif4CharCode profileType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(boxBuffer);
                         object colorInformation = UnknownProperty;
-                        if (profileType is Heif4CharCode.RICC or Heif4CharCode.Prof)
-                        {
-                            if (!this.Options.SkipMetadata)
-                            {
-                                EnsureBufferRemaining(boxBuffer, 4, 1, "ICC color information");
-                                IccProfile? iccProfile = null;
-                                try
-                                {
-                                    iccProfile = HeifPropertyParser.ParseIccProfile(boxBuffer[4..]);
-                                }
-                                catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
-                                {
-                                    // Keep the understood property index without retaining invalid ancillary metadata.
-                                }
-
-                                // A malformed ancillary profile can be ignored by policy while the physical property still
-                                // occupies its ipco index and remains understood for essential-association handling.
-                                colorInformation = iccProfile ?? IgnoredProperty;
-                            }
-                            else
-                            {
-                                colorInformation = IgnoredProperty;
-                            }
-                        }
-                        else if (profileType == Heif4CharCode.Nclx)
+                        if (profileType == Heif4CharCode.Nclx)
                         {
                             colorInformation = HeifPropertyParser.ParseCicpProfile(boxBuffer[4..]);
                         }
@@ -2346,16 +2359,18 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             ? this.FindDecodableGridTile<Rgba32>(colorItem)
             : null;
 
+        // The associated item model is decoder-private and no longer mutates after property resolution. Reuse its
+        // profiles so the returned metadata does not duplicate their storage.
         IccProfile? iccProfile = colorItem.IccProfile ?? gridTile?.IccProfile;
         if (iccProfile is not null)
         {
-            metadata.IccProfile = iccProfile.DeepClone();
+            metadata.IccProfile = iccProfile;
         }
 
         CicpProfile? cicpProfile = colorItem.CicpProfile ?? gridTile?.CicpProfile;
         if (cicpProfile is not null)
         {
-            metadata.CicpProfile = cicpProfile.DeepClone();
+            metadata.CicpProfile = cicpProfile;
         }
     }
 

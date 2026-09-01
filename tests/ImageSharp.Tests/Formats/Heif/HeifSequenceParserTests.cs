@@ -5,8 +5,10 @@ using System.Buffers.Binary;
 using System.Text;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Processing;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 
@@ -228,6 +230,48 @@ public class HeifSequenceParserTests
         }
     }
 
+    [Fact]
+    public void DecodeAppliesTrackPresentationPropertiesToEveryFrame()
+    {
+        byte[] source = TestFile.Create(TestImages.Heif.Orange4x4).Bytes;
+        byte[] data = CreateDecodableAv1SequenceContainer(
+            source.AsSpan(OrangeAv1SampleOffset, OrangeAv1SampleLength),
+            source.AsSpan(OrangeAv1ConfigurationOffset, OrangeAv1ConfigurationLength),
+            trackProperties: true);
+
+        int cleanApertureTypeOffset = data.AsSpan().IndexOf("clap"u8);
+        Assert.True(cleanApertureTypeOffset >= 0);
+
+        // Narrow the synthetic full-frame aperture to its centered 2x2 region without changing the coded AV1 sample.
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(cleanApertureTypeOffset + 4), 2);
+        BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(cleanApertureTypeOffset + 12), 2);
+
+        using Image<Rgba32> expected = Image.Load<Rgba32>(source);
+        expected.Mutate(context => context
+            .Crop(new Rectangle(1, 1, 2, 2))
+            .Rotate(RotateMode.Rotate270)
+            .Flip(FlipMode.Horizontal));
+
+        using Image<Rgba32> actual = Image.Load<Rgba32>(data);
+
+        Assert.Equal(expected.Size, actual.Size);
+        Assert.Equal(2, actual.Frames.Count);
+        Assert.Equal(4D, actual.Metadata.HorizontalResolution);
+        Assert.Equal(3D, actual.Metadata.VerticalResolution);
+        Assert.Equal(PixelResolutionUnit.AspectRatio, actual.Metadata.ResolutionUnits);
+        Assert.NotNull(actual.Metadata.CicpProfile);
+        for (int frameIndex = 0; frameIndex < actual.Frames.Count; frameIndex++)
+        {
+            Assert.NotNull(actual.Frames[frameIndex].Metadata.CicpProfile);
+            for (int y = 0; y < actual.Height; y++)
+            {
+                Assert.True(
+                    expected.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y)
+                        .SequenceEqual(actual.Frames[frameIndex].PixelBuffer.DangerousGetRowSpan(y)));
+            }
+        }
+    }
+
     /// <summary>
     /// Verifies that strict and ancillary-tolerant decoding both reject corrupt coded image data because neither
     /// integrity mode permits recovery from errors in a retained AV1 sample.
@@ -289,33 +333,39 @@ public class HeifSequenceParserTests
     }
 
     /// <summary>
-    /// Verifies that a genuine libavif alpha sequence composes its first retained frame from the linked monochrome
-    /// auxiliary track instead of returning the color frame as opaque.
+    /// Verifies that a genuine libavif alpha sequence composes every retained frame from the linked monochrome
+    /// auxiliary track instead of returning any color frame as opaque.
     /// </summary>
     [Fact]
-    public void DecodeComposesFirstRealLibavifAlphaSequenceFrame()
+    public void DecodeComposesEveryRealLibavifAlphaSequenceFrame()
     {
-        DecoderOptions options = new() { MaxFrames = 1 };
         TestFile file = TestFile.Create(TestImages.Heif.Animated8BitWithAlphaExifXmp);
 
-        using Image<Rgba32> image = Image.Load<Rgba32>(options, file.Bytes);
+        using Image<Rgba32> image = Image.Load<Rgba32>(file.Bytes);
 
-        Assert.Single(image.Frames);
+        Assert.Equal(LibavifAnimationFrameCount, image.Frames.Count);
         Assert.True(image.Metadata.GetHeifMetadata().HasAlpha);
-        bool hasNonOpaqueSample = false;
-        for (int y = 0; y < image.Height && !hasNonOpaqueSample; y++)
+        Assert.NotNull(image.Metadata.ExifProfile);
+        Assert.NotNull(image.Metadata.XmpProfile);
+        foreach (ImageFrame<Rgba32> frame in image.Frames)
         {
-            foreach (Rgba32 pixel in image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y))
+            bool hasNonOpaqueSample = false;
+            for (int y = 0; y < frame.Height && !hasNonOpaqueSample; y++)
             {
-                if (pixel.A != byte.MaxValue)
+                foreach (Rgba32 pixel in frame.PixelBuffer.DangerousGetRowSpan(y))
                 {
-                    hasNonOpaqueSample = true;
-                    break;
+                    if (pixel.A != byte.MaxValue)
+                    {
+                        hasNonOpaqueSample = true;
+                        break;
+                    }
                 }
             }
-        }
 
-        Assert.True(hasNonOpaqueSample);
+            Assert.True(hasNonOpaqueSample);
+            Assert.True(frame.Metadata.GetHeifMetadata().FrameDelay.Numerator > 0);
+            Assert.True(frame.Metadata.GetHeifMetadata().FrameDelay.Denominator > 0);
+        }
     }
 
     /// <summary>
@@ -963,8 +1013,11 @@ public class HeifSequenceParserTests
     /// <param name="sample">The complete AV1 sample payload.</param>
     /// <param name="configuration">The AV1CodecConfigurationBox payload describing the sample.</param>
     /// <returns>The complete synthetic AVIF byte stream.</returns>
-    private static byte[] CreateDecodableAv1SequenceContainer(ReadOnlySpan<byte> sample, ReadOnlySpan<byte> configuration)
-        => CreateDecodableAv1SequenceContainer(sample, sample, configuration, true);
+    private static byte[] CreateDecodableAv1SequenceContainer(
+        ReadOnlySpan<byte> sample,
+        ReadOnlySpan<byte> configuration,
+        bool trackProperties = false)
+        => CreateDecodableAv1SequenceContainer(sample, sample, configuration, true, trackProperties);
 
     /// <summary>
     /// Builds a two-frame AVIF sequence with caller-provided AV1 samples so integrity tests can corrupt one sample
@@ -979,11 +1032,13 @@ public class HeifSequenceParserTests
         ReadOnlySpan<byte> firstSample,
         ReadOnlySpan<byte> secondSample,
         ReadOnlySpan<byte> configuration,
-        bool allSamplesSync)
+        bool allSamplesSync,
+        bool trackProperties = false)
     {
         uint chunkOffset = FileTypeBoxLength + SyntheticFileLength;
         byte[] movie = CreateSequenceFile(
             chunkOffset,
+            trackProperties: trackProperties,
             width: 4,
             height: 4,
             av1Configuration: configuration.ToArray(),

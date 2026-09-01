@@ -569,9 +569,9 @@ Previously verified algorithm checkpoints remain valuable evidence, but the fina
 - [x] The exact current-tree native-plane matrix passes through the production decoder on net10.0 and net11.0. The normal-dispatch and FeatureTestRunner fallback methods pass 2 of 2 focused tests on each target.
 - [x] The exact current-tree presentation matrix passes 12 of 12 cases through ImageSharp's established reference-image API on net10.0 and net11.0.
 - [x] Verify malformed/truncated data, frame IDs, reference slots, tile bounds, allocation limits, cancellation, and failure unwinding.
-- [ ] Verify still items and bounded sequences from file, memory, non-seekable, and short-read streams.
-- [ ] Verify ICC, CICP, alpha, grids, pixel aspect ratio, clean aperture, rotation, mirroring, metadata, and every presented sequence frame.
-- [ ] Complete the public AVIF format/API review so registered capabilities match implemented behavior.
+- [x] Verify still items and bounded sequences from file, memory, non-seekable, and short-read streams.
+- [x] Verify ICC, CICP, alpha, grids, pixel aspect ratio, clean aperture, rotation, mirroring, metadata, and every presented sequence frame.
+- [x] Complete the public AVIF format/API review so registered capabilities match implemented behavior.
 - [x] Remove or reject every valid in-scope AV1 syntax branch that remains silently ignored or unsupported.
 
 Verified negative-path and frame-identifier gate evidence on 2026-08-31:
@@ -735,13 +735,32 @@ Final decoder allocation, lifetime, precision, architecture, and test-validity a
   Focused CDEF, restoration, film-grain, copy-ownership, and reference-isolation runs also pass 15 of
   15 cases. No test-host crash or Windows application-error dialog occurred.
 
+Final decoder stream, presentation, and public-registration evidence on 2026-09-01:
+
+- [x] Real AV1 still-item and timed-sequence files decode identically from a file stream, memory stream,
+  non-seekable stream, and a seekable stream limited to three bytes per read. All eight stream rows pass
+  through public format detection and production decoding, comparing every presented frame exactly.
+- [x] A two-frame production sequence applies a centered clean-aperture crop, counter-clockwise rotation,
+  mirroring, pixel-aspect-ratio metadata, and CICP metadata to every frame. The complete five-frame real
+  auxiliary-alpha sequence composes non-opaque alpha and retains timing, Exif, and XMP for every frame.
+- [x] The fixed-header detector accepts both compact and extended-size leading file-type boxes. Default
+  configuration registers the implemented HEIF decoder and detector but no longer advertises the
+  incomplete HEIF encoder.
+- [x] Visual Studio 18.9 VSTest, serialized with stop-on-failure enabled, passes the 12 of 12 new
+  stream/presentation/registration cases and the complete current `HeifDecoderTests` plus
+  `HeifSequenceParserTests` set with the registration contract: 115 of 115. The final explicit
+  no-encoder registration assertion passes 1 of 1 after its final edit.
+- [x] The net11.0 Release test project builds with zero errors, Roslynk reports zero compiler errors,
+  `git diff --check` passes, and `.gitattributes` is unchanged. Every VSTest invocation returned
+  normally with no surviving test host and no Windows application-error dialog.
+
 Decoder exit gate:
 
-- [ ] Every supported native format and AV1 tool has exact current-main libaom production-path evidence.
-- [ ] Every supported presentation behavior has established reference-image evidence at the correct output precision.
-- [ ] No decoder path relies on a native codec, copied plane, per-block allocation, or contiguous memory-group accident.
-- [ ] All allocator ownership is deterministic and exactly once.
-- [ ] Full focused Release verification is recorded with no false coverage claims.
+- [x] Every supported native format and AV1 tool has exact current-main libaom production-path evidence.
+- [x] Every supported presentation behavior has established reference-image evidence at the correct output precision.
+- [x] No decoder path relies on a native codec, copied plane, per-block allocation, or contiguous memory-group accident.
+- [x] All allocator ownership is deterministic and exactly once.
+- [x] Full focused Release verification is recorded with no false coverage claims.
 
 ## AV1 encoder implementation
 

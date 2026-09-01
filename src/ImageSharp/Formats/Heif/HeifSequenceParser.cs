@@ -1137,9 +1137,11 @@ internal sealed class HeifSequenceParser
                     throw new InvalidImageContentException("The ICC color-information property is empty or too large.");
                 }
 
-                stream.Position -= 4;
-                using IMemoryOwner<byte> payload = this.boxReader.ReadPayload(stream, boxLength);
-                track.IccProfile = HeifPropertyParser.ParseIccProfile(payload.GetSpan()[4..]);
+                // Read directly into the array retained by IccProfile so the generic box buffer cannot create a
+                // second full-sized copy of the profile at this ownership boundary.
+                byte[] profileData = new byte[(int)boxLength - 4];
+                HeifBoxReader.ReadExactly(stream, profileData, "Stream length is not sufficient for box content.");
+                track.IccProfile = HeifPropertyParser.ParseIccProfile(profileData);
             }
             catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.options, ex))
             {

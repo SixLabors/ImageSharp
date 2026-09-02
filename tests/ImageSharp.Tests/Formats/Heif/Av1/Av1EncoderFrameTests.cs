@@ -12,6 +12,85 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 public class Av1EncoderFrameTests
 {
+    [Theory]
+    [InlineData(8, 8, false, 0)]
+    [InlineData(8, 8, true, 0)]
+    [InlineData(16, 16, false, 0)]
+    [InlineData(16, 16, true, 0)]
+    [InlineData(8, 8, false, 1)]
+    [InlineData(8, 8, true, 1)]
+    [InlineData(8, 8, false, 2)]
+    [InlineData(8, 8, true, 2)]
+    public void EncodeWritesReducedStillPictureConsumedByProductionDecoder(int width, int height, bool hasGradient, int bitDepthValue)
+    {
+        Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
+        using Image<Rgba32> source = new(width, height);
+        for (int y = 0; y < height; y++)
+        {
+            Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < width; x++)
+            {
+                byte value = hasGradient ? (byte)((x * 13) + (y * 17)) : (byte)128;
+                row[x] = new Rgba32(value, value, value);
+            }
+        }
+
+        ObuColorConfig colorConfig = CreateMonochromeColorConfig(bitDepth);
+        using MemoryStream stream = new();
+        ObuSequenceHeader encodedHeader = Av1FrameEncoder.Encode(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            stream,
+            colorConfig,
+            qIndex: 37);
+
+        byte[] payload = stream.ToArray();
+        string outputDirectory = Path.Combine(
+            TestEnvironment.ActualOutputDirectoryFullPath,
+            "Formats",
+            "Heif",
+            "Av1");
+
+        Directory.CreateDirectory(outputDirectory);
+        string contentName = hasGradient ? "gradient" : "constant";
+        int bitCount = bitDepth.GetBitCount();
+        string fileName = $"encoder-frame-{width}x{height}-{bitCount}b-400-{contentName}.obu";
+        File.WriteAllBytes(Path.Combine(outputDirectory, fileName), payload);
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+
+        Assert.Equal(width, decoded.Width);
+        Assert.Equal(height, decoded.Height);
+        ObuSequenceProfile expectedProfile = bitDepth == Av1BitDepth.TwelveBit
+            ? ObuSequenceProfile.Professional
+            : ObuSequenceProfile.Main;
+
+        Assert.Equal(expectedProfile, encodedHeader.SequenceProfile);
+        Assert.True(encodedHeader.IsReducedStillPictureHeader);
+
+        Rgba32 first = decoded[0, 0];
+        Assert.Equal(first.R, first.G);
+        Assert.Equal(first.R, first.B);
+        Assert.Equal(byte.MaxValue, first.A);
+        if (hasGradient)
+        {
+            Assert.True(first.R < decoded[width - 1, height - 1].R);
+        }
+        else
+        {
+            Assert.InRange(first.R, 120, 136);
+
+            for (int y = 0; y < height; y++)
+            {
+                foreach (Rgba32 pixel in decoded.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y))
+                {
+                    Assert.Equal(first, pixel);
+                }
+            }
+        }
+    }
+
     [Fact]
     public void PrepareSourceConvertsRgba32DirectlyIntoBorderedEightBitPlane()
     {

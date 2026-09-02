@@ -60,6 +60,21 @@ public class Av1LevelBufferTests
         }
     }
 
+    [Fact]
+    public void InitializeStoresAbsoluteSaturatedLevels()
+    {
+        // Arrange
+        using Av1LevelBuffer levels = new(Configuration.Default, new Size(2, 2));
+        Span<int> coefficients = [-300, -1, 1, 300];
+
+        // Act
+        levels.Initialize(coefficients);
+
+        // Assert
+        Assert.Equal([127, 1], levels.GetRow(0)[..2].ToArray());
+        Assert.Equal([1, 127], levels.GetRow(1)[..2].ToArray());
+    }
+
     [Theory]
     [InlineData(4, 4)]
     [InlineData(8, 4)]

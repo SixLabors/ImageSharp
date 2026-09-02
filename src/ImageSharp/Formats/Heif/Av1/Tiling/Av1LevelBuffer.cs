@@ -76,8 +76,9 @@ internal sealed class Av1LevelBuffer : IDisposable
             ref int sourceRef = ref coefficientBuffer[y * this.Size.Width];
             for (int x = 0; x < this.Size.Width; x++)
             {
-                // Entropy contexts use a saturated byte-level summary rather than the full coefficient magnitude.
-                destRef = (byte)Av1Math.Clamp(sourceRef, 0, byte.MaxValue);
+                // Entropy contexts use the absolute level, saturated to the signed-byte range used by the
+                // normative nonzero-map context calculation.
+                destRef = (byte)Math.Min(Math.Abs(sourceRef), sbyte.MaxValue);
                 destRef = ref Unsafe.Add(ref destRef, 1);
                 sourceRef = ref Unsafe.Add(ref sourceRef, 1);
             }

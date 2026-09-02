@@ -992,6 +992,12 @@ public class Av1CoefficientsEntropyTests
         Configuration configuration = Configuration.Default;
         using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         Span<int> coefficientsBuffer = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+        for (int scanIndex = endOfBlock; scanIndex < scan.Length; scanIndex++)
+        {
+            coefficientsBuffer[scan[scanIndex]] = 0;
+        }
+
         Span<int> actuals = new int[16 + 1];
 
         // Act
@@ -1022,6 +1028,8 @@ public class Av1CoefficientsEntropyTests
             0,
             levels,
             actuals);
+
+        decoder.ValidateTrailingBits();
 
         // Assert
         Assert.Equal(endOfBlock, actuals[0]);
@@ -1039,7 +1047,7 @@ public class Av1CoefficientsEntropyTests
         Av1TransformType transformType = (Av1TransformType)txType;
         Av1PredictionMode intraDirection = Av1PredictionMode.DC;
         Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
-        RoundTripCoefficientsCore(endOfBlock, componentType, blockSize, transformSize, transformType, intraDirection, filterIntraMode);
+        RoundTripCoefficientsCore(endOfBlock, componentType, blockSize, transformSize, transformType, intraDirection, filterIntraMode, true, false);
     }
 
     [Theory]
@@ -1054,10 +1062,38 @@ public class Av1CoefficientsEntropyTests
         Av1TransformType transformType = (Av1TransformType)txType;
         Av1PredictionMode intraDirection = Av1PredictionMode.DC;
         Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
-        RoundTripCoefficientsCore(endOfBlock, componentType, blockSize, transformSize, transformType, intraDirection, filterIntraMode);
+        RoundTripCoefficientsCore(endOfBlock, componentType, blockSize, transformSize, transformType, intraDirection, filterIntraMode, true, false);
     }
 
-    private static void RoundTripCoefficientsCore(ushort endOfBlock, Av1ComponentType componentType, Av1BlockSize blockSize, Av1TransformSize transformSize, Av1TransformType transformType, Av1PredictionMode intraDirection, Av1FilterIntraMode filterIntraMode)
+    [Theory]
+    [InlineData(1)]
+    [InlineData(2)]
+    [InlineData(3)]
+    [InlineData(17)]
+    [InlineData(33)]
+    [InlineData(63)]
+    [InlineData(64)]
+    public void RoundTripCoefficientsYSize8x8(ushort endOfBlock)
+    {
+        const Av1ComponentType componentType = Av1ComponentType.Luminance;
+        const Av1BlockSize blockSize = Av1BlockSize.Block8x8;
+        const Av1TransformSize transformSize = Av1TransformSize.Size8x8;
+        const Av1TransformType transformType = Av1TransformType.DctDct;
+        const Av1PredictionMode intraDirection = Av1PredictionMode.DC;
+        const Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
+        RoundTripCoefficientsCore(endOfBlock, componentType, blockSize, transformSize, transformType, intraDirection, filterIntraMode, false, true);
+    }
+
+    private static void RoundTripCoefficientsCore(
+        ushort endOfBlock,
+        Av1ComponentType componentType,
+        Av1BlockSize blockSize,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        Av1PredictionMode intraDirection,
+        Av1FilterIntraMode filterIntraMode,
+        bool useReducedTransformSet,
+        bool useSparseCoefficients)
     {
         Av1BlockModeInfo modeInfo = new(blockSize, new Point(0, 0));
         Av1TransformInfo transformInfo = new(transformSize, 0, 0);
@@ -1066,11 +1102,35 @@ public class Av1CoefficientsEntropyTests
         Av1TransformBlockContext transformBlockContext = default;
         Configuration configuration = Configuration.Default;
         using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
-        Span<int> coefficientsBuffer = Enumerable.Range(0, blockSize.GetHeight() * blockSize.GetWidth()).ToArray();
-        Span<int> actuals = new int[16 + 1];
+        int coefficientCount = blockSize.GetHeight() * blockSize.GetWidth();
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+        Span<int> coefficientsBuffer = new int[coefficientCount];
+
+        for (int scanIndex = 0; scanIndex < endOfBlock; scanIndex++)
+        {
+            if (!useSparseCoefficients || scanIndex == endOfBlock - 1 || scanIndex % 4 == 0)
+            {
+                int level = scanIndex + 1;
+
+                // Signed levels prove encoder context derivation uses magnitude; sparse cases also cover zero-map runs.
+                coefficientsBuffer[scan[scanIndex]] = (scanIndex & 1) == 0 ? -level : level;
+            }
+        }
+
+        Span<int> actuals = new int[coefficientCount + 1];
 
         // Act
-        encoder.WriteCoefficients(transformSize, transformType, intraDirection, coefficientsBuffer, componentType, transformBlockContext, endOfBlock, true, filterIntraMode);
+        encoder.WriteCoefficients(
+            transformSize,
+            transformType,
+            intraDirection,
+            coefficientsBuffer,
+            componentType,
+            transformBlockContext,
+            endOfBlock,
+            useReducedTransformSet,
+            filterIntraMode);
+
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
         Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
@@ -1089,7 +1149,7 @@ public class Av1CoefficientsEntropyTests
             transformBlockContext,
             transformSize,
             false,
-            true,
+            useReducedTransformSet,
             transformType,
             ref transformInfo,
             0,
@@ -1097,9 +1157,10 @@ public class Av1CoefficientsEntropyTests
             levels,
             actuals);
 
+        decoder.ValidateTrailingBits();
+
         // Assert
         Assert.Equal(endOfBlock, actuals[0]);
-        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
 
         // The parser retains quantized levels in entropy scan order; inverse quantization maps them back to raster positions.
         for (int coefficientIndex = 0; coefficientIndex < endOfBlock; coefficientIndex++)

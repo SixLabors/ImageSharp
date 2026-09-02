@@ -244,6 +244,12 @@ public class Av1CoefficientsEntropyTests
     {
         Av1EncoderBlockStruct[] blocks = new Av1EncoderBlockStruct[2];
 
+        // Exercise the inline-array accessors before measuring so one-time runtime generic initialization is
+        // excluded from the steady-state allocation contract used for every encoded block.
+        ref Av1EncoderBlockStruct warmupBlock = ref blocks[0];
+        warmupBlock.PaletteSize[0] = 1;
+        warmupBlock.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] = 1;
+
         long before = GC.GetAllocatedBytesForCurrentThread();
         ref Av1EncoderBlockStruct block = ref blocks[1];
         block.PaletteSize[0] = 3;

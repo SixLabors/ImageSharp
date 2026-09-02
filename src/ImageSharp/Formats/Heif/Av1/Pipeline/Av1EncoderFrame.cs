@@ -173,6 +173,17 @@ internal readonly struct Av1EncoderFrame<TSample>
     public int ChromaPositionY { get; }
 
     /// <summary>
+    /// Calculates the coded luma dimensions used by the fixed all-intra frame layout.
+    /// </summary>
+    /// <param name="width">The visible luma width.</param>
+    /// <param name="height">The visible luma height.</param>
+    /// <returns>The visible dimensions rounded up to the coding alignment.</returns>
+    public static Size GetCodedSize(int width, int height)
+        => new(
+            Av1Math.AlignPowerOf2(width, CodedDimensionAlignmentLog2),
+            Av1Math.AlignPowerOf2(height, CodedDimensionAlignmentLog2));
+
+    /// <summary>
     /// Calculates the physical dimensions required for an all-intra component plane.
     /// </summary>
     /// <param name="width">The visible luma width.</param>
@@ -182,15 +193,14 @@ internal readonly struct Av1EncoderFrame<TSample>
     /// <returns>The physical plane dimensions, including its complete border and row padding.</returns>
     public static Size GetPlaneBufferSize(int width, int height, int subsamplingX, int subsamplingY)
     {
-        int codedWidth = Av1Math.AlignPowerOf2(width, CodedDimensionAlignmentLog2);
-        int codedHeight = Av1Math.AlignPowerOf2(height, CodedDimensionAlignmentLog2);
+        Size codedSize = GetCodedSize(width, height);
 
         // libaom aligns the complete luma row before deriving a subsampled plane's stride.
         // Aligning chroma independently would produce a different physical layout for narrow or odd-sized frames.
-        int lumaStride = Av1Math.AlignPowerOf2(codedWidth + (2 * LumaBorder), LumaStrideAlignmentLog2);
+        int lumaStride = Av1Math.AlignPowerOf2(codedSize.Width + (2 * LumaBorder), LumaStrideAlignmentLog2);
         int planeStride = lumaStride >> subsamplingX;
         int planeBorderHeight = LumaBorder >> subsamplingY;
-        return new Size(planeStride, (codedHeight >> subsamplingY) + (2 * planeBorderHeight));
+        return new Size(planeStride, (codedSize.Height >> subsamplingY) + (2 * planeBorderHeight));
     }
 
     /// <summary>

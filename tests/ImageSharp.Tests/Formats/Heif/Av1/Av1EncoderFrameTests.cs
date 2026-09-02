@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -16,10 +17,7 @@ public class Av1EncoderFrameTests
     {
         const int width = 4;
         const int height = 1;
-        const int codedWidth = 8;
-        const int codedHeight = 8;
         const int border = Av1EncoderFrame<byte>.LumaBorder;
-        MemoryAllocator allocator = Configuration.Default.MemoryAllocator;
 
         using Image<Rgba32> image = new(width, height);
         image[0, 0] = new Rgba32(byte.MaxValue, 0, 0, 0);
@@ -27,16 +25,21 @@ public class Av1EncoderFrameTests
         image[2, 0] = new Rgba32(0, 0, byte.MaxValue);
         image[3, 0] = new Rgba32(byte.MaxValue, byte.MaxValue, byte.MaxValue);
 
-        Size bufferSize = Av1EncoderFrame<byte>.GetPlaneBufferSize(width, height, 0, 0);
-        using Buffer2D<byte> luma = allocator.Allocate2D<byte>(bufferSize.Width, bufferSize.Height);
-        Buffer2DRegion<byte> lumaRegion = luma.GetRegion(border, border, codedWidth, codedHeight);
-        Av1EncoderFrame<byte> frame = new(lumaRegion, width, height, 8);
+        using Av1EncoderFrameBuffer<byte> frameBuffer = new(
+            Configuration.Default,
+            width,
+            height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
         ObuColorConfig colorConfig = CreateMonochromeColorConfig(Av1BitDepth.EightBit);
 
-        Av1FrameEncoder.PrepareSource(Configuration.Default, image.Frames.RootFrame, frame, colorConfig);
+        Av1FrameEncoder.PrepareSource(Configuration.Default, image.Frames.RootFrame, frameBuffer.Frame, colorConfig);
 
         byte[] expected = [76, 150, 29, 255];
-        AssertReplicatedSingleRow(luma, border, expected);
+        AssertReplicatedSingleRow(frameBuffer.Luma, border, expected);
     }
 
     [Fact]
@@ -44,10 +47,7 @@ public class Av1EncoderFrameTests
     {
         const int width = 4;
         const int height = 1;
-        const int codedWidth = 8;
-        const int codedHeight = 8;
         const int border = Av1EncoderFrame<ushort>.LumaBorder;
-        MemoryAllocator allocator = Configuration.Default.MemoryAllocator;
 
         using Image<Rgba64> image = new(width, height);
         image[0, 0] = new Rgba64(ushort.MaxValue, 0, 0, 0);
@@ -55,16 +55,21 @@ public class Av1EncoderFrameTests
         image[2, 0] = new Rgba64(0, 0, ushort.MaxValue, ushort.MaxValue);
         image[3, 0] = new Rgba64(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
 
-        Size bufferSize = Av1EncoderFrame<ushort>.GetPlaneBufferSize(width, height, 0, 0);
-        using Buffer2D<ushort> luma = allocator.Allocate2D<ushort>(bufferSize.Width, bufferSize.Height);
-        Buffer2DRegion<ushort> lumaRegion = luma.GetRegion(border, border, codedWidth, codedHeight);
-        Av1EncoderFrame<ushort> frame = new(lumaRegion, width, height, 10);
+        using Av1EncoderFrameBuffer<ushort> frameBuffer = new(
+            Configuration.Default,
+            width,
+            height,
+            10,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
         ObuColorConfig colorConfig = CreateMonochromeColorConfig(Av1BitDepth.TenBit);
 
-        Av1FrameEncoder.PrepareSource(Configuration.Default, image.Frames.RootFrame, frame, colorConfig);
+        Av1FrameEncoder.PrepareSource(Configuration.Default, image.Frames.RootFrame, frameBuffer.Frame, colorConfig);
 
         ushort[] expected = [306, 601, 117, 1023];
-        AssertReplicatedSingleRow(luma, border, expected);
+        AssertReplicatedSingleRow(frameBuffer.Luma, border, expected);
     }
 
     [Fact]
@@ -72,29 +77,11 @@ public class Av1EncoderFrameTests
     {
         const int visibleWidth = 5;
         const int visibleHeight = 3;
-        const int codedWidth = 8;
-        const int codedHeight = 8;
         const int lumaBorder = Av1EncoderFrame<byte>.LumaBorder;
         const int chromaBorder = lumaBorder / 2;
-        MemoryAllocator allocator = Configuration.Default.MemoryAllocator;
 
-        Size lumaBufferSize = Av1EncoderFrame<byte>.GetPlaneBufferSize(visibleWidth, visibleHeight, 0, 0);
-        Size chromaBufferSize = Av1EncoderFrame<byte>.GetPlaneBufferSize(visibleWidth, visibleHeight, 1, 1);
-        using Buffer2D<byte> luma = allocator.Allocate2D<byte>(lumaBufferSize.Width, lumaBufferSize.Height);
-        using Buffer2D<byte> chromaBlue = allocator.Allocate2D<byte>(chromaBufferSize.Width, chromaBufferSize.Height);
-        using Buffer2D<byte> chromaRed = allocator.Allocate2D<byte>(chromaBufferSize.Width, chromaBufferSize.Height);
-        Buffer2DRegion<byte> lumaRegion = luma.GetRegion(lumaBorder, lumaBorder, codedWidth, codedHeight);
-        Buffer2DRegion<byte> chromaBlueRegion = chromaBlue.GetRegion(chromaBorder, chromaBorder, codedWidth / 2, codedHeight / 2);
-        Buffer2DRegion<byte> chromaRedRegion = chromaRed.GetRegion(chromaBorder, chromaBorder, codedWidth / 2, codedHeight / 2);
-
-        FillVisible(luma, lumaBorder, lumaBorder, visibleWidth, visibleHeight, 10);
-        FillVisible(chromaBlue, chromaBorder, chromaBorder, (visibleWidth + 1) / 2, (visibleHeight + 1) / 2, 80);
-        FillVisible(chromaRed, chromaBorder, chromaBorder, (visibleWidth + 1) / 2, (visibleHeight + 1) / 2, 120);
-
-        Av1EncoderFrame<byte> frame = new(
-            lumaRegion,
-            chromaBlueRegion,
-            chromaRedRegion,
+        using Av1EncoderFrameBuffer<byte> frameBuffer = new(
+            Configuration.Default,
             visibleWidth,
             visibleHeight,
             8,
@@ -102,7 +89,15 @@ public class Av1EncoderFrameTests
             1,
             1);
 
-        frame.ExtendBorders();
+        Buffer2D<byte> luma = frameBuffer.Luma;
+        Buffer2D<byte> chromaBlue = Assert.IsType<Buffer2D<byte>>(frameBuffer.ChromaBlue);
+        Buffer2D<byte> chromaRed = Assert.IsType<Buffer2D<byte>>(frameBuffer.ChromaRed);
+
+        FillVisible(luma, lumaBorder, lumaBorder, visibleWidth, visibleHeight, 10);
+        FillVisible(chromaBlue, chromaBorder, chromaBorder, (visibleWidth + 1) / 2, (visibleHeight + 1) / 2, 80);
+        FillVisible(chromaRed, chromaBorder, chromaBorder, (visibleWidth + 1) / 2, (visibleHeight + 1) / 2, 120);
+
+        frameBuffer.Frame.ExtendBorders();
 
         AssertReplicatedPlane(luma, lumaBorder, lumaBorder, visibleWidth, visibleHeight, 10);
         AssertReplicatedPlane(chromaBlue, chromaBorder, chromaBorder, (visibleWidth + 1) / 2, (visibleHeight + 1) / 2, 80);
@@ -126,6 +121,37 @@ public class Av1EncoderFrameTests
         Size actual = Av1EncoderFrame<byte>.GetPlaneBufferSize(width, height, subsamplingX, subsamplingY);
 
         Assert.Equal(new Size(expectedWidth, expectedHeight), actual);
+    }
+
+    [Fact]
+    public void FrameBufferUsesOneExactSizeOwnerForAllPlanes()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        TestMemoryAllocator.AllocationRequest allocation;
+        using (Av1EncoderFrameBuffer<byte> frameBuffer = new(
+            configuration,
+            64,
+            64,
+            8,
+            Av1ColorFormat.Yuv420,
+            1,
+            1))
+        {
+            allocation = Assert.Single(allocator.AllocationLog);
+            Assert.Empty(allocator.ReturnLog);
+            Assert.Equal(typeof(byte), allocation.ElementType);
+            Assert.Equal(55_296, allocation.Length);
+            Assert.Single(frameBuffer.Luma.MemoryGroup);
+            Assert.Single(Assert.IsType<Buffer2D<byte>>(frameBuffer.ChromaBlue).MemoryGroup);
+            Assert.Single(Assert.IsType<Buffer2D<byte>>(frameBuffer.ChromaRed).MemoryGroup);
+        }
+
+        TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
+        Assert.Equal(allocation.AllocationId, returned.AllocationId);
     }
 
     private static ObuColorConfig CreateMonochromeColorConfig(Av1BitDepth bitDepth)

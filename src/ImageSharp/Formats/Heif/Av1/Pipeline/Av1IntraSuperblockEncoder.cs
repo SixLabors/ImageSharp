@@ -192,8 +192,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref lumaState);
 
             this.codedAreaLuma += LumaTransformSize.GetSize2d();
+            bool skipTransform = lumaState.EndOfBlock == 0;
             if (this.source.IsMonochrome)
             {
+                modeInfo.Block.Skip = skipTransform;
                 return;
             }
 
@@ -224,6 +226,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.redCoefficients[this.codedAreaChroma..],
                 ref redState);
 
+            // A block-level skip is valid only when every coded plane reconstructs directly from its prediction.
+            modeInfo.Block.Skip = skipTransform && blueState.EndOfBlock == 0 && redState.EndOfBlock == 0;
             this.codedAreaChroma += chromaTransformSize.GetSize2d();
         }
 

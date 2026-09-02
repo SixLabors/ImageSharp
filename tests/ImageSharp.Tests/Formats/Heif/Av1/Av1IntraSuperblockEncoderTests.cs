@@ -258,6 +258,85 @@ public class Av1IntraSuperblockEncoderTests
         Assert.True(encoded.GetSpan().SequenceEqual(tileWriter.GetTileData(0)));
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void MarksAllZeroTransformBlockAsSkipped(bool isMonochrome)
+    {
+        const int Width = 8;
+        const int Height = 8;
+        Av1ColorFormat colorFormat = isMonochrome ? Av1ColorFormat.Yuv400 : Av1ColorFormat.Yuv420;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = isMonochrome,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        using Av1EncoderFrameBuffer<byte> source = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            colorFormat,
+            1,
+            1);
+
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            colorFormat,
+            1,
+            1);
+
+        FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.Y), 128);
+        ClearPlane(reconstruction.Luma);
+        if (!isMonochrome)
+        {
+            FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.U), 128);
+            FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.V), 128);
+            ClearPlane(Assert.IsType<Buffer2D<byte>>(reconstruction.ChromaBlue));
+            ClearPlane(Assert.IsType<Buffer2D<byte>>(reconstruction.ChromaRed));
+        }
+
+        using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, Width, Height, disallow4x4AllFrames: true);
+        Av1PictureControlSet picture = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, qIndex: 37);
+        using Av1EncoderCoefficientBuffer coefficients = new(
+            Configuration.Default,
+            picture.Sequence.SequenceHeader,
+            Width,
+            Height);
+
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        Av1Superblock superblock = new()
+        {
+            Workspace = superblockWorkspace,
+            TileInfo = new Av1TileInfo(0, 0, picture.Parent.FrameHeader),
+            Index = 0
+        };
+
+        Av1IntraSuperblockEncoder.Encode(
+            source.Frame,
+            reconstruction.Frame,
+            picture,
+            superblock,
+            coefficients,
+            blockWorkspace);
+
+        ref Av1MacroBlockModeInfo block = ref picture.GetMacroBlockModeInfo(default);
+        Assert.True(block.Block.Skip);
+        Assert.Equal((ushort)0, coefficients.GetTransformBlockSpan(0, Av1Plane.Y)[0].EndOfBlock);
+        if (!isMonochrome)
+        {
+            Assert.Equal((ushort)0, coefficients.GetTransformBlockSpan(0, Av1Plane.U)[0].EndOfBlock);
+            Assert.Equal((ushort)0, coefficients.GetTransformBlockSpan(0, Av1Plane.V)[0].EndOfBlock);
+        }
+    }
+
     [Fact]
     public void PreservesTwelveBitMonochromeReconstructionPrecision()
     {
@@ -555,6 +634,14 @@ public class Av1IntraSuperblockEncoderTests
             {
                 row[x] = (byte)(1 + ((seed + (x * 43) + (y * 79)) % modulus));
             }
+        }
+    }
+
+    private static void FillPlane(Buffer2DRegion<byte> plane, byte value)
+    {
+        for (int y = 0; y < plane.Height; y++)
+        {
+            plane.DangerousGetRowSpan(y).Fill(value);
         }
     }
 

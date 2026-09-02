@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -249,6 +250,38 @@ public class Av1EncoderFrameTests
         Assert.Equal(Width * 3, allocation.Length);
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
         Assert.Equal(allocation.AllocationId, returned.AllocationId);
+    }
+
+    [Theory]
+    [InlineData(EightBit, Yuv400, 0x1F, 0x1C)]
+    [InlineData(TenBit, Yuv420, 0x1F, 0x4C)]
+    [InlineData(TenBit, Yuv444, 0x3F, 0x40)]
+    [InlineData(TwelveBit, Yuv422, 0x5F, 0x68)]
+    public void CodecConfigurationWritesFixedHeaderFromEncodedSequenceHeader(
+        int bitDepthValue,
+        int colorFormatValue,
+        byte expectedProfileAndLevel,
+        byte expectedColorFlags)
+    {
+        Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
+        Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
+        using Image<Rgba32> source = new(8, 8);
+        using MemoryStream stream = new();
+        ObuSequenceHeader sequenceHeader = Av1FrameEncoder.Encode(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            stream,
+            CreateColorConfig(bitDepth, colorFormat),
+            qIndex: 37);
+
+        Av1CodecConfiguration configuration = new(sequenceHeader);
+        byte[] fixedHeader = new byte[Av1CodecConfiguration.FixedHeaderSize];
+        configuration.WriteFixedHeader(fixedHeader);
+
+        Assert.Equal([0x81, expectedProfileAndLevel, expectedColorFlags, 0x00], fixedHeader);
+        Av1CodecConfiguration parsed = new(fixedHeader, new DecoderOptions());
+        Assert.True(configuration.HasMatchingImageConfiguration(parsed));
+        parsed.Validate(sequenceHeader);
     }
 
     [Fact]

@@ -869,6 +869,7 @@ Encoder verification contract:
 
 ### 7. Write complete AVIF output
 
+- [~] The encoder-side AV1 codec configuration is now derived directly from the encoded sequence header and writes the fixed four-byte `av1C` record with empty `configOBUs`. The image payload retains the required sequence header, so the property introduces no sequence-header allocation, retention, or copy. Four production-header cases cover main, high, and professional profiles; 8-, 10-, and 12-bit precision; monochrome, 4:2:0, 4:2:2, and 4:4:4 sampling; exact fixed bytes; decoder reparsing; and header/property equivalence through direct net11 Release VSTest. Property-container emission and public AVIF activation remain open.
 - [ ] Write the correct AVIF file type, item information, locations, references, properties, AV1 configuration, dimensions, color, alpha, metadata, and media data.
 - [ ] Support single images, alpha auxiliary images, grids, multiple extents, and bounded image sequences in the final public scope.
 - [ ] Preserve ICC, Exif, and XMP according to encoder options.

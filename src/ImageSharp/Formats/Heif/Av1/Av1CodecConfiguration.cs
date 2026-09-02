@@ -13,6 +13,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 internal sealed class Av1CodecConfiguration
 {
     /// <summary>
+    /// The number of bytes in the fixed AV1 codec-configuration record.
+    /// </summary>
+    public const int FixedHeaderSize = 4;
+
+    /// <summary>
     /// The optional sequence-header payload retained from the configuration open bitstream units.
     /// </summary>
     private readonly byte[] configSequenceHeader;
@@ -40,7 +45,7 @@ internal sealed class Av1CodecConfiguration
     /// <param name="options">The general options governing metadata validation.</param>
     public Av1CodecConfiguration(Span<byte> boxBuffer, DecoderOptions options)
     {
-        if (boxBuffer.Length < 4)
+        if (boxBuffer.Length < FixedHeaderSize)
         {
             throw new InvalidImageContentException("The AV1 codec configuration is truncated.");
         }
@@ -83,7 +88,7 @@ internal sealed class Av1CodecConfiguration
 
         // The delay syntax is consumed to validate the fixed record, but it describes sample presentation and has
         // no meaning for the independently presented image item supported by this bounded container implementation.
-        ReadOnlySpan<byte> configObus = boxBuffer[4..];
+        ReadOnlySpan<byte> configObus = boxBuffer[FixedHeaderSize..];
         int sequenceHeaderCount = ScanObus(
             configObus,
             true,
@@ -112,6 +117,30 @@ internal sealed class Av1CodecConfiguration
             this.configSequenceHeader = new byte[configSequenceHeaderLength];
             configObus.Slice(configSequenceHeaderOffset, configSequenceHeaderLength).CopyTo(this.configSequenceHeader);
         }
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1CodecConfiguration"/> class from an encoded sequence header.
+    /// </summary>
+    /// <param name="sequenceHeader">The sequence header describing the encoded image item.</param>
+    public Av1CodecConfiguration(ObuSequenceHeader sequenceHeader)
+    {
+        ObuOperatingPoint operatingPoint = sequenceHeader.OperatingPoint[0];
+        ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
+
+        this.SequenceProfile = (byte)sequenceHeader.SequenceProfile;
+        this.SequenceLevelIndex = (byte)operatingPoint.SequenceLevelIndex;
+        this.SequenceTier = operatingPoint.SequenceTier != 0;
+        this.HighBitDepth = colorConfig.BitDepth is Av1BitDepth.TenBit or Av1BitDepth.TwelveBit;
+        this.TwelveBit = colorConfig.BitDepth == Av1BitDepth.TwelveBit;
+        this.IsMonochrome = colorConfig.IsMonochrome;
+        this.ChromaSubsamplingX = colorConfig.SubSamplingX;
+        this.ChromaSubsamplingY = colorConfig.SubSamplingY;
+        this.ChromaSamplePosition = (byte)colorConfig.ChromaSamplePosition;
+        this.configSequenceHeader = [];
+        this.configSequenceHeaderExtension = -1;
+        this.configContentLightLevel = null;
+        this.configMasteringDisplayColorVolume = null;
     }
 
     /// <summary>
@@ -163,6 +192,27 @@ internal sealed class Av1CodecConfiguration
     /// Gets the position of vertically subsampled chroma samples relative to luma samples.
     /// </summary>
     public byte ChromaSamplePosition { get; }
+
+    /// <summary>
+    /// Writes the fixed AV1 codec-configuration record without optional configuration OBUs.
+    /// </summary>
+    /// <param name="destination">The destination receiving the four-byte record.</param>
+    public void WriteFixedHeader(Span<byte> destination)
+    {
+        // The image item payload already begins with its required sequence header. Keeping configOBUs empty avoids
+        // retaining or copying the same OBU into the configuration property.
+        destination[0] = 0x81;
+        destination[1] = (byte)((this.SequenceProfile << 5) | this.SequenceLevelIndex);
+        destination[2] = (byte)(
+            (this.SequenceTier ? 1 << 7 : 0)
+            | (this.HighBitDepth ? 1 << 6 : 0)
+            | (this.TwelveBit ? 1 << 5 : 0)
+            | (this.IsMonochrome ? 1 << 4 : 0)
+            | (this.ChromaSubsamplingX ? 1 << 3 : 0)
+            | (this.ChromaSubsamplingY ? 1 << 2 : 0)
+            | this.ChromaSamplePosition);
+        destination[3] = 0;
+    }
 
     /// <summary>
     /// Validates the AV1 image item OBU layout and metadata against its item properties and configuration record.

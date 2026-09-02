@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
@@ -9,9 +11,24 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 internal class Av1EncoderBlockStruct
 {
     /// <summary>
+    /// Stores transform-unit state inline with the block.
+    /// </summary>
+    private InlineArray16<Av1TransformUnit> transformBlocks;
+
+    /// <summary>
+    /// Stores the luma and shared chroma palette sizes inline with the block.
+    /// </summary>
+    private InlineArray2<byte> paletteSize;
+
+    /// <summary>
+    /// Stores the block's prediction-unit syntax inline.
+    /// </summary>
+    private Av1EncoderPredictionUnit predictionUnit;
+
+    /// <summary>
     /// Gets the transform-unit state in transform traversal order.
     /// </summary>
-    public Av1TransformUnit[] TransformBlocks { get; } = new Av1TransformUnit[Av1Constants.MaxTransformUnitCount];
+    public Span<Av1TransformUnit> TransformBlocks => this.transformBlocks;
 
     /// <summary>
     /// Gets or sets the macroblock edge and neighbor state used while writing the block.
@@ -39,12 +56,21 @@ internal class Av1EncoderBlockStruct
     public Av1FilterIntraMode FilterIntraMode { get; set; }
 
     /// <summary>
-    /// Gets or sets the palette size for luma and for the shared chroma mode.
+    /// Gets the writable palette sizes for luma and for the shared chroma mode.
     /// </summary>
-    public required int[] PaletteSize { get; set; }
+    public Span<byte> PaletteSize => this.paletteSize;
 
     /// <summary>
-    /// Gets or sets the encoder prediction-unit state for the block.
+    /// Gets the encoder prediction-unit state for the block.
     /// </summary>
-    public required Av1EncoderPredictionUnit[] PredictionUnits { get; set; }
+    public ref Av1EncoderPredictionUnit PredictionUnit => ref this.predictionUnit;
+
+    /// <summary>
+    /// Stores the two palette-size values embedded by libaom in block mode information.
+    /// </summary>
+    [InlineArray(2)]
+    private struct InlineArray2<T>
+    {
+        private T element;
+    }
 }

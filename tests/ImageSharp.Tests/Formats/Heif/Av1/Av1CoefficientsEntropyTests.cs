@@ -129,22 +129,7 @@ public class Av1CoefficientsEntropyTests
         grid[1] = above;
         grid[3] = left;
         grid[4] = current;
-        ObuTileGroupHeader tiles = new()
-        {
-            TileColumnCount = 1,
-            TileRowCount = 1
-        };
-
-        tiles.TileColumnStartModeInfo[1] = 3;
-        tiles.TileRowStartModeInfo[1] = 3;
-        ObuFrameHeader frameHeader = new()
-        {
-            ModeInfoColumnCount = 3,
-            ModeInfoRowCount = 3,
-            TilesInfo = tiles
-        };
-
-        Av1MacroBlockD macroBlock = new() { Tile = new Av1TileInfo(0, 0, frameHeader) };
+        Av1MacroBlockD macroBlock = CreateMacroBlock();
         macroBlock.SetModeInfoGrid(grid, 4);
 
         Assert.Same(left, macroBlock.GetRelativeModeInfo(-1));
@@ -178,6 +163,31 @@ public class Av1CoefficientsEntropyTests
         Assert.Equal(3, modeInfo.SegmentId);
         Assert.Equal(Av1PredictionMode.Smooth, modeInfo.Mode);
         Assert.Equal(Av1ChromaPredictionMode.Smooth, modeInfo.UvMode);
+    }
+
+    [Fact]
+    public void EncoderBlockInlineStateSupportsEveryTransformWithoutTraversalAllocations()
+    {
+        Av1EncoderBlockStruct block = new() { MacroBlock = CreateMacroBlock() };
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        Span<Av1TransformUnit> transforms = block.TransformBlocks;
+        transforms[^1].NzCoefficientCount[2] = 17;
+        transforms[^1].TransformType[(int)Av1PlaneType.Uv] = Av1TransformType.VerticalAdst;
+        block.PaletteSize[0] = 3;
+        block.PaletteSize[1] = 5;
+        block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] = -2;
+        block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv] = 3;
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+
+        Assert.Equal(Av1Constants.MaxTransformUnitCount, transforms.Length);
+        Assert.Equal(17, block.TransformBlocks[^1].NzCoefficientCount[2]);
+        Assert.Equal(Av1TransformType.VerticalAdst, block.TransformBlocks[^1].TransformType[(int)Av1PlaneType.Uv]);
+        Assert.Equal(3, block.PaletteSize[0]);
+        Assert.Equal(5, block.PaletteSize[1]);
+        Assert.Equal(-2, block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y]);
+        Assert.Equal(3, block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv]);
+        Assert.Equal(0, allocated);
     }
 
     [Fact]
@@ -393,6 +403,26 @@ public class Av1CoefficientsEntropyTests
                 Block = new Av1EncoderBlockModeInfo { Mode = mode }
             }
         };
+
+    private static Av1MacroBlockD CreateMacroBlock()
+    {
+        ObuTileGroupHeader tiles = new()
+        {
+            TileColumnCount = 1,
+            TileRowCount = 1
+        };
+
+        tiles.TileColumnStartModeInfo[1] = 3;
+        tiles.TileRowStartModeInfo[1] = 3;
+        ObuFrameHeader frameHeader = new()
+        {
+            ModeInfoColumnCount = 3,
+            ModeInfoRowCount = 3,
+            TilesInfo = tiles
+        };
+
+        return new Av1MacroBlockD { Tile = new Av1TileInfo(0, 0, frameHeader) };
+    }
 
     public static TheoryData<int> GetTransformTypes()
     {

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -8,15 +10,45 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// <summary>
 /// Stores the transform syntax and coefficient range for one AV1 transform unit.
 /// </summary>
-internal class Av1TransformUnit
+internal struct Av1TransformUnit
 {
+    /// <summary>
+    /// Stores the luma, blue-difference, and red-difference end-of-block positions.
+    /// </summary>
+    private InlineArray3<ushort> nzCoefficientCount;
+
+    /// <summary>
+    /// Stores the luma and shared chroma transform types.
+    /// </summary>
+    private InlineArray2<Av1TransformType> transformType;
+
     /// <summary>
     /// Gets the nonzero-coefficient count for each color plane.
     /// </summary>
-    public ushort[] NzCoefficientCount { get; } = new ushort[3];
+    [UnscopedRef]
+    public Span<ushort> NzCoefficientCount => this.nzCoefficientCount;
 
     /// <summary>
     /// Gets the transform type selected for each color plane.
     /// </summary>
-    public Av1TransformType[] TransformType { get; } = new Av1TransformType[Av1Constants.PlaneTypeCount];
+    [UnscopedRef]
+    public Span<Av1TransformType> TransformType => this.transformType;
+
+    /// <summary>
+    /// Stores the three per-plane coefficient counts inline.
+    /// </summary>
+    [InlineArray(3)]
+    private struct InlineArray3<T>
+    {
+        private T element;
+    }
+
+    /// <summary>
+    /// Stores the luma and shared chroma transform types inline.
+    /// </summary>
+    [InlineArray(Av1Constants.PlaneTypeCount)]
+    private struct InlineArray2<T>
+    {
+        private T element;
+    }
 }

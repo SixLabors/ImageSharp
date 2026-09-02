@@ -575,14 +575,14 @@ internal partial class Av1TileWriter
         if (chromaMode == Av1ChromaPredictionMode.ChromaFromLuma)
         {
             writer.WriteChromaFromLumaAlphas(
-                blk_ptr.PredictionUnits[0].ChromaFromLumaIndex,
-                blk_ptr.PredictionUnits[0].ChromaFromLumaSigns);
+                blk_ptr.PredictionUnit.ChromaFromLumaIndex,
+                blk_ptr.PredictionUnit.ChromaFromLumaSigns);
         }
 
         if (blockSize >= Av1BlockSize.Block8x8 && macroBlockModeInfo.Block.UvMode.IsDirectional())
         {
             writer.WriteAngleDelta(
-                blk_ptr.PredictionUnits[0].AngleDelta[(int)Av1PlaneType.Uv] + Av1Constants.MaxAngleDelta,
+                blk_ptr.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv] + Av1Constants.MaxAngleDelta,
                 chromaMode.ToLumaMode());
         }
     }
@@ -632,7 +632,7 @@ internal partial class Av1TileWriter
 
         if (blockSize >= Av1BlockSize.Block8x8 && macroBlockModeInfo.Block.Mode.IsDirectional())
         {
-            writer.WriteAngleDelta(blk_ptr.PredictionUnits[0].AngleDelta[(int)Av1PlaneType.Y] + Av1Constants.MaxAngleDelta, lumaMode);
+            writer.WriteAngleDelta(blk_ptr.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] + Av1Constants.MaxAngleDelta, lumaMode);
         }
     }
 
@@ -1120,15 +1120,15 @@ internal partial class Av1TileWriter
         }
 
         int tx_depth = mbmi.Block.TransformDepth;
-        uint txb_count = 1;
+        int transformBlockCount = 1;
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
 
-        for (uint tx_index = 0; tx_index < txb_count; ++tx_index)
+        for (int transformBlockIndex = 0; transformBlockIndex < transformBlockCount; ++transformBlockIndex)
         {
             Av1TransformSize chromaTransformSize = blockGeometry.TransformSizeUv[tx_depth];
             int transformWidth = chromaTransformSize.GetWidth();
             int transformHeight = chromaTransformSize.GetHeight();
-            Point transformOrigin = blockGeometry.TransformOrigin[tx_depth][tx_index];
+            Point transformOrigin = blockGeometry.TransformOrigin[tx_depth][transformBlockIndex];
             Point chromaOrigin = RoundUv(blockOrigin + (Size)transformOrigin - (Size)blockGeometry.Origin) >> 1;
 
             // Both chroma planes share transform geometry but retain independent coefficient contexts.
@@ -1139,8 +1139,8 @@ internal partial class Av1TileWriter
                 chromaOrigin,
                 blockGeometry.BlockSizeUv,
                 chromaTransformSize);
-            Av1TransformType chromaTransformType = blk_ptr.TransformBlocks[tx_index].TransformType[(int)Av1ComponentType.Chroma];
-            int endOfBlockCb = blk_ptr.TransformBlocks[tx_index].NzCoefficientCount[1];
+            Av1TransformType chromaTransformType = blk_ptr.TransformBlocks[transformBlockIndex].TransformType[(int)Av1ComponentType.Chroma];
+            int endOfBlockCb = blk_ptr.TransformBlocks[transformBlockIndex].NzCoefficientCount[1];
             int culLevelCb = writer.WriteCoefficients(
                 chromaTransformSize,
                 chromaTransformType,
@@ -1153,7 +1153,7 @@ internal partial class Av1TileWriter
                 blk_ptr.FilterIntraMode);
 
             coefficientBuffer = coeff_ptr.GetPlaneBuffer(Av1Plane.V).DangerousGetSingleSpan().Slice(entropyCodingContext.CodedAreaSuperblockUv);
-            int endOfBlockCr = blk_ptr.TransformBlocks[tx_index].NzCoefficientCount[2];
+            int endOfBlockCr = blk_ptr.TransformBlocks[transformBlockIndex].NzCoefficientCount[2];
 
             blockContext = GetTransformBlockContexts(
                 Av1ComponentType.Chroma,

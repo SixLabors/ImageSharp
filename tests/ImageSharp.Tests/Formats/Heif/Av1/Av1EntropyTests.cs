@@ -522,9 +522,9 @@ public class Av1EntropyTests
     [Theory]
     [InlineData(1, 255, 0L, 0L)]
     [InlineData(1, 256, 0L, 1L)]
-    [InlineData(128, 512, 1000L, 1128L)]
-    [InlineData(512, 512, 1000L, 1512L)]
-    [InlineData(64, 1024, 4_000_000_000L, 4_000_000_128L)]
+    [InlineData(128, 512, 1000L, 128_128L)]
+    [InlineData(512, 512, 1000L, 128_512L)]
+    [InlineData(64, 1024, 4_000_000_000L, 512_000_000_128L)]
     public void RateDistortionCostMatchesCurrentLibaom(
         int rateMultiplier,
         int rate,

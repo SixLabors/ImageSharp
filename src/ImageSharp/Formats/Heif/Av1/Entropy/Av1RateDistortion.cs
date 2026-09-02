@@ -19,6 +19,6 @@ internal static class Av1RateDistortion
     {
         long weightedRate = (long)rate * rateMultiplier;
         long roundedRate = (weightedRate + (1 << (Av1ProbabilityCost.CostShift - 1))) >> Av1ProbabilityCost.CostShift;
-        return roundedRate + distortion;
+        return roundedRate + (distortion << 7);
     }
 }

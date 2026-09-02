@@ -237,9 +237,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 redCoefficients[this.codedAreaChroma..],
                 ref blueState,
                 ref redState,
-                out int chromaAngleDelta);
+                out int chromaAngleDelta,
+                out byte chromaFromLumaIndex,
+                out sbyte chromaFromLumaSigns);
 
             block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv] = (sbyte)chromaAngleDelta;
+            block.PredictionUnit.ChromaFromLumaIndex = chromaFromLumaIndex;
+            block.PredictionUnit.ChromaFromLumaSigns = chromaFromLumaSigns;
 
             // A block-level skip suppresses every coefficient symbol, so all coded planes must be empty.
             modeInfo.Block.Skip = skipTransform && blueState.EndOfBlock == 0 && redState.EndOfBlock == 0;

@@ -3,6 +3,7 @@
 
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -35,6 +36,42 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="value">The sample value.</param>
         /// <returns>The converted sample.</returns>
         public static abstract TSample CreateSample(int value);
+
+        /// <summary>
+        /// Builds the zero-mean Q3 luma surface shared by chroma-from-luma candidates.
+        /// </summary>
+        /// <param name="reconstruction">The coded reconstructed luma plane.</param>
+        /// <param name="blockOrigin">The luma block origin in plane samples.</param>
+        /// <param name="lumaQ3">The fixed-stride Q3 predictor workspace.</param>
+        /// <param name="transformSize">The chroma transform dimensions.</param>
+        /// <param name="subsamplingX">Whether luma is subsampled horizontally for chroma.</param>
+        /// <param name="subsamplingY">Whether luma is subsampled vertically for chroma.</param>
+        public static abstract void PrepareChromaFromLuma(
+            Buffer2DRegion<TSample> reconstruction,
+            Point blockOrigin,
+            Span<short> lumaQ3,
+            Av1TransformSize transformSize,
+            bool subsamplingX,
+            bool subsamplingY);
+
+        /// <summary>
+        /// Computes the DC predictor shared by every chroma-from-luma alpha candidate.
+        /// </summary>
+        /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
+        /// <param name="above">The top reference samples.</param>
+        /// <param name="left">The left reference samples.</param>
+        /// <param name="hasLeft">Whether the left reference is available.</param>
+        /// <param name="hasAbove">Whether the top reference is available.</param>
+        /// <param name="transformSize">The chroma transform dimensions.</param>
+        /// <param name="bitDepth">The coded sample bit depth.</param>
+        public static abstract void PrepareChromaFromLumaDc(
+            Span<TSample> reconstruction,
+            ReadOnlySpan<TSample> above,
+            ReadOnlySpan<TSample> left,
+            bool hasLeft,
+            bool hasAbove,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth);
 
         /// <summary>
         /// Encodes and reconstructs one DC intra transform block.
@@ -116,6 +153,42 @@ internal static partial class Av1IntraSuperblockEncoder
             int acDeltaQ,
             Av1BitDepth bitDepth,
             ref Av1EncoderTransformBlockState state);
+
+        /// <summary>
+        /// Encodes one chroma-from-luma candidate into contiguous decision scratch.
+        /// </summary>
+        /// <param name="workspace">The reusable block workspace.</param>
+        /// <param name="source">The coded source plane.</param>
+        /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
+        /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
+        /// <param name="dc">The cached DC predictor sample shared by every alpha.</param>
+        /// <param name="lumaQ3">The zero-mean reconstructed-luma predictor surface.</param>
+        /// <param name="alphaQ3">The signed chroma-from-luma multiplier.</param>
+        /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
+        /// <param name="transformSize">The transform dimensions.</param>
+        /// <param name="plane">The component plane containing the block.</param>
+        /// <param name="qIndex">The effective segment quantizer index.</param>
+        /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
+        /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
+        /// <param name="bitDepth">The coded sample bit depth.</param>
+        /// <param name="state">The candidate transform state.</param>
+        /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
+        public static abstract long EncodeChromaFromLumaCandidate(
+            Av1EncoderBlockWorkspace workspace,
+            Buffer2DRegion<TSample> source,
+            Point blockOrigin,
+            Span<TSample> reconstruction,
+            TSample dc,
+            ReadOnlySpan<short> lumaQ3,
+            int alphaQ3,
+            Span<int> quantizedCoefficients,
+            Av1TransformSize transformSize,
+            Av1Plane plane,
+            int qIndex,
+            int dcDeltaQ,
+            int acDeltaQ,
+            Av1BitDepth bitDepth,
+            ref Av1EncoderTransformBlockState state);
     }
 
     /// <summary>
@@ -129,6 +202,44 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static byte CreateSample(int value) => (byte)value;
+
+        /// <inheritdoc/>
+        public static void PrepareChromaFromLuma(
+            Buffer2DRegion<byte> reconstruction,
+            Point blockOrigin,
+            Span<short> lumaQ3,
+            Av1TransformSize transformSize,
+            bool subsamplingX,
+            bool subsamplingY)
+            => Av1ChromaFromLumaContext.PrepareBlock(
+                Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, blockOrigin),
+                reconstruction.Stride,
+                lumaQ3,
+                transformSize,
+                subsamplingX,
+                subsamplingY);
+
+        /// <inheritdoc/>
+        public static void PrepareChromaFromLumaDc(
+            Span<byte> reconstruction,
+            ReadOnlySpan<byte> above,
+            ReadOnlySpan<byte> left,
+            bool hasLeft,
+            bool hasAbove,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth)
+        {
+            int width = transformSize.GetWidth();
+            Av1DcIntraPredictor.Predict(
+                hasLeft,
+                hasAbove,
+                reconstruction,
+                width,
+                above,
+                left,
+                width,
+                transformSize.GetHeight());
+        }
 
         /// <inheritdoc/>
         public static void Encode(
@@ -206,6 +317,39 @@ internal static partial class Av1IntraSuperblockEncoder
                 acDeltaQ,
                 plane,
                 ref state);
+
+        /// <inheritdoc/>
+        public static long EncodeChromaFromLumaCandidate(
+            Av1EncoderBlockWorkspace workspace,
+            Buffer2DRegion<byte> source,
+            Point blockOrigin,
+            Span<byte> reconstruction,
+            byte dc,
+            ReadOnlySpan<short> lumaQ3,
+            int alphaQ3,
+            Span<int> quantizedCoefficients,
+            Av1TransformSize transformSize,
+            Av1Plane plane,
+            int qIndex,
+            int dcDeltaQ,
+            int acDeltaQ,
+            Av1BitDepth bitDepth,
+            ref Av1EncoderTransformBlockState state)
+            => Av1TransformBlockEncoder.EncodeChromaFromLumaLossyCandidate(
+                workspace,
+                source,
+                blockOrigin,
+                reconstruction,
+                dc,
+                lumaQ3,
+                alphaQ3,
+                quantizedCoefficients,
+                transformSize,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                plane,
+                ref state);
     }
 
     /// <summary>
@@ -219,6 +363,45 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static ushort CreateSample(int value) => (ushort)value;
+
+        /// <inheritdoc/>
+        public static void PrepareChromaFromLuma(
+            Buffer2DRegion<ushort> reconstruction,
+            Point blockOrigin,
+            Span<short> lumaQ3,
+            Av1TransformSize transformSize,
+            bool subsamplingX,
+            bool subsamplingY)
+            => Av1ChromaFromLumaContext.PrepareBlock(
+                MemoryMarshal.Cast<ushort, short>(Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, blockOrigin)),
+                reconstruction.Stride,
+                lumaQ3,
+                transformSize,
+                subsamplingX,
+                subsamplingY);
+
+        /// <inheritdoc/>
+        public static void PrepareChromaFromLumaDc(
+            Span<ushort> reconstruction,
+            ReadOnlySpan<ushort> above,
+            ReadOnlySpan<ushort> left,
+            bool hasLeft,
+            bool hasAbove,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth)
+        {
+            int width = transformSize.GetWidth();
+            Av1DcIntraPredictor.Predict(
+                hasLeft,
+                hasAbove,
+                MemoryMarshal.Cast<ushort, short>(reconstruction),
+                width,
+                MemoryMarshal.Cast<ushort, short>(above),
+                MemoryMarshal.Cast<ushort, short>(left),
+                width,
+                transformSize.GetHeight(),
+                bitDepth.GetBitCount());
+        }
 
         /// <inheritdoc/>
         public static void Encode(
@@ -292,6 +475,40 @@ internal static partial class Av1IntraSuperblockEncoder
                 quantizedCoefficients,
                 transformSize,
                 transformType,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                plane,
+                bitDepth,
+                ref state);
+
+        /// <inheritdoc/>
+        public static long EncodeChromaFromLumaCandidate(
+            Av1EncoderBlockWorkspace workspace,
+            Buffer2DRegion<ushort> source,
+            Point blockOrigin,
+            Span<ushort> reconstruction,
+            ushort dc,
+            ReadOnlySpan<short> lumaQ3,
+            int alphaQ3,
+            Span<int> quantizedCoefficients,
+            Av1TransformSize transformSize,
+            Av1Plane plane,
+            int qIndex,
+            int dcDeltaQ,
+            int acDeltaQ,
+            Av1BitDepth bitDepth,
+            ref Av1EncoderTransformBlockState state)
+            => Av1TransformBlockEncoder.EncodeChromaFromLumaLossyCandidate(
+                workspace,
+                source,
+                blockOrigin,
+                reconstruction,
+                dc,
+                lumaQ3,
+                alphaQ3,
+                quantizedCoefficients,
+                transformSize,
                 qIndex,
                 dcDeltaQ,
                 acDeltaQ,

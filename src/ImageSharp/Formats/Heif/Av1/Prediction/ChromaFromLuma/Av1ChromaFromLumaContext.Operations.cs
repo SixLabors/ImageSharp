@@ -19,6 +19,52 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 internal partial class Av1ChromaFromLumaContext
 {
     /// <summary>
+    /// Subsamples one reconstructed eight-bit luma block and removes its rounded Q3 mean.
+    /// </summary>
+    /// <param name="input">The reconstructed luma samples.</param>
+    /// <param name="inputStride">The distance, in samples, between input rows.</param>
+    /// <param name="output">The fixed-stride Q3 predictor workspace.</param>
+    /// <param name="transformSize">The chroma transform dimensions.</param>
+    /// <param name="subsamplingX">Whether two horizontal luma samples map to each chroma sample.</param>
+    /// <param name="subsamplingY">Whether two vertical luma samples map to each chroma sample.</param>
+    public static void PrepareBlock(
+        ReadOnlySpan<byte> input,
+        int inputStride,
+        Span<short> output,
+        Av1TransformSize transformSize,
+        bool subsamplingX,
+        bool subsamplingY)
+    {
+        int lumaWidth = transformSize.GetWidth() << (subsamplingX ? 1 : 0);
+        int lumaHeight = transformSize.GetHeight() << (subsamplingY ? 1 : 0);
+        StoreSamples(input, inputStride, 0, lumaWidth, lumaHeight, output, subsamplingX, subsamplingY);
+        SubtractAverage(output, transformSize);
+    }
+
+    /// <summary>
+    /// Subsamples one reconstructed high-bit-depth luma block and removes its rounded Q3 mean.
+    /// </summary>
+    /// <param name="input">The reconstructed luma samples.</param>
+    /// <param name="inputStride">The distance, in samples, between input rows.</param>
+    /// <param name="output">The fixed-stride Q3 predictor workspace.</param>
+    /// <param name="transformSize">The chroma transform dimensions.</param>
+    /// <param name="subsamplingX">Whether two horizontal luma samples map to each chroma sample.</param>
+    /// <param name="subsamplingY">Whether two vertical luma samples map to each chroma sample.</param>
+    public static void PrepareBlock(
+        ReadOnlySpan<short> input,
+        int inputStride,
+        Span<short> output,
+        Av1TransformSize transformSize,
+        bool subsamplingX,
+        bool subsamplingY)
+    {
+        int lumaWidth = transformSize.GetWidth() << (subsamplingX ? 1 : 0);
+        int lumaHeight = transformSize.GetHeight() << (subsamplingY ? 1 : 0);
+        StoreSamples(input, inputStride, 0, lumaWidth, lumaHeight, output, subsamplingX, subsamplingY);
+        SubtractAverage(output, transformSize);
+    }
+
+    /// <summary>
     /// Stores 8-bit reconstructed luma samples in the Q3 predictor surface.
     /// </summary>
     /// <param name="input">The reconstructed luma samples.</param>
@@ -26,12 +72,23 @@ internal partial class Av1ChromaFromLumaContext
     /// <param name="outputOffset">The first destination sample in the fixed-stride predictor buffer.</param>
     /// <param name="width">The luma width in samples.</param>
     /// <param name="height">The luma height in samples.</param>
-    private void StoreSamples(ReadOnlySpan<byte> input, int inputStride, int outputOffset, int width, int height)
+    /// <param name="output">The fixed-stride Q3 predictor workspace.</param>
+    /// <param name="subsamplingX">Whether horizontal luma pairs are subsampled.</param>
+    /// <param name="subsamplingY">Whether vertical luma pairs are subsampled.</param>
+    private static void StoreSamples(
+        ReadOnlySpan<byte> input,
+        int inputStride,
+        int outputOffset,
+        int width,
+        int height,
+        Span<short> output,
+        bool subsamplingX,
+        bool subsamplingY)
     {
         ref byte inputBase = ref MemoryMarshal.GetReference(input);
-        ref short outputBase = ref MemoryMarshal.GetReference(this.Q3Buffer);
+        ref short outputBase = ref MemoryMarshal.GetReference(output);
 
-        if (!this.subX)
+        if (!subsamplingX)
         {
             // One luma sample maps directly to one chroma sample, so multiplying by eight converts it to Q3.
             for (int row = 0; row < height; row++)
@@ -94,13 +151,13 @@ internal partial class Av1ChromaFromLumaContext
 
         Vector256<sbyte> ones256 = Vector256.Create((sbyte)1);
         Vector128<sbyte> ones128 = Vector128.Create((sbyte)1);
-        int rowStep = this.subY ? 2 : 1;
-        int outputShift = this.subY ? 1 : 2;
+        int rowStep = subsamplingY ? 2 : 1;
+        int outputShift = subsamplingY ? 1 : 2;
         for (int row = 0; row < height; row += rowStep)
         {
             ref byte inputRow = ref Unsafe.Add(ref inputBase, row * inputStride);
-            ref byte nextInputRow = ref Unsafe.Add(ref inputRow, this.subY ? inputStride : 0);
-            ref short outputRow = ref Unsafe.Add(ref outputBase, outputOffset + ((row >> (this.subY ? 1 : 0)) * BufferLine));
+            ref byte nextInputRow = ref Unsafe.Add(ref inputRow, subsamplingY ? inputStride : 0);
+            ref short outputRow = ref Unsafe.Add(ref outputBase, outputOffset + ((row >> (subsamplingY ? 1 : 0)) * BufferLine));
             int column = 0;
 
             if (Avx2.IsSupported)
@@ -109,7 +166,7 @@ internal partial class Av1ChromaFromLumaContext
                 for (; vectorCount > 0; vectorCount--, column += Vector256<byte>.Count)
                 {
                     Vector256<short> sum = Avx2.MultiplyAddAdjacent(Vector256.LoadUnsafe(ref inputRow, (nuint)column), ones256);
-                    if (this.subY)
+                    if (subsamplingY)
                     {
                         sum += Avx2.MultiplyAddAdjacent(Vector256.LoadUnsafe(ref nextInputRow, (nuint)column), ones256);
                     }
@@ -124,7 +181,7 @@ internal partial class Av1ChromaFromLumaContext
                 for (; vectorCount > 0; vectorCount--, column += Vector128<byte>.Count)
                 {
                     Vector128<short> sum = PairSum(Vector128.LoadUnsafe(ref inputRow, (nuint)column), ones128);
-                    if (this.subY)
+                    if (subsamplingY)
                     {
                         sum += PairSum(Vector128.LoadUnsafe(ref nextInputRow, (nuint)column), ones128);
                     }
@@ -139,7 +196,7 @@ internal partial class Av1ChromaFromLumaContext
                         ? Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref inputRow, column))
                         : Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref inputRow, column));
                     Vector128<short> sum = PairSum(Vector128.CreateScalarUnsafe(packed).AsByte(), ones128);
-                    if (this.subY)
+                    if (subsamplingY)
                     {
                         packed = remaining == 4
                             ? Unsafe.ReadUnaligned<uint>(ref Unsafe.Add(ref nextInputRow, column))
@@ -164,7 +221,7 @@ internal partial class Av1ChromaFromLumaContext
             for (; column < width; column += 2)
             {
                 int sum = Unsafe.Add(ref inputRow, column) + Unsafe.Add(ref inputRow, column + 1);
-                if (this.subY)
+                if (subsamplingY)
                 {
                     sum += Unsafe.Add(ref nextInputRow, column) + Unsafe.Add(ref nextInputRow, column + 1);
                 }
@@ -182,12 +239,23 @@ internal partial class Av1ChromaFromLumaContext
     /// <param name="outputOffset">The first destination sample in the fixed-stride predictor buffer.</param>
     /// <param name="width">The luma width in samples.</param>
     /// <param name="height">The luma height in samples.</param>
-    private void StoreSamples(ReadOnlySpan<short> input, int inputStride, int outputOffset, int width, int height)
+    /// <param name="output">The fixed-stride Q3 predictor workspace.</param>
+    /// <param name="subsamplingX">Whether horizontal luma pairs are subsampled.</param>
+    /// <param name="subsamplingY">Whether vertical luma pairs are subsampled.</param>
+    private static void StoreSamples(
+        ReadOnlySpan<short> input,
+        int inputStride,
+        int outputOffset,
+        int width,
+        int height,
+        Span<short> output,
+        bool subsamplingX,
+        bool subsamplingY)
     {
         ref short inputBase = ref MemoryMarshal.GetReference(input);
-        ref short outputBase = ref MemoryMarshal.GetReference(this.Q3Buffer);
+        ref short outputBase = ref MemoryMarshal.GetReference(output);
 
-        if (!this.subX)
+        if (!subsamplingX)
         {
             for (int row = 0; row < height; row++)
             {
@@ -232,13 +300,13 @@ internal partial class Av1ChromaFromLumaContext
 
         Vector256<short> ones256 = Vector256.Create((short)1);
         Vector128<short> ones128 = Vector128.Create((short)1);
-        int rowStep = this.subY ? 2 : 1;
-        int outputShift = this.subY ? 1 : 2;
+        int rowStep = subsamplingY ? 2 : 1;
+        int outputShift = subsamplingY ? 1 : 2;
         for (int row = 0; row < height; row += rowStep)
         {
             ref short inputRow = ref Unsafe.Add(ref inputBase, row * inputStride);
-            ref short nextInputRow = ref Unsafe.Add(ref inputRow, this.subY ? inputStride : 0);
-            ref short outputRow = ref Unsafe.Add(ref outputBase, outputOffset + ((row >> (this.subY ? 1 : 0)) * BufferLine));
+            ref short nextInputRow = ref Unsafe.Add(ref inputRow, subsamplingY ? inputStride : 0);
+            ref short outputRow = ref Unsafe.Add(ref outputBase, outputOffset + ((row >> (subsamplingY ? 1 : 0)) * BufferLine));
             int column = 0;
 
             if (Vector256.IsHardwareAccelerated)
@@ -247,7 +315,7 @@ internal partial class Av1ChromaFromLumaContext
                 for (; vectorCount > 0; vectorCount--, column += Vector256<short>.Count)
                 {
                     Vector256<int> sum = Vector256_.MultiplyAddAdjacent(Vector256.LoadUnsafe(ref inputRow, (nuint)column), ones256);
-                    if (this.subY)
+                    if (subsamplingY)
                     {
                         sum += Vector256_.MultiplyAddAdjacent(Vector256.LoadUnsafe(ref nextInputRow, (nuint)column), ones256);
                     }
@@ -262,7 +330,7 @@ internal partial class Av1ChromaFromLumaContext
                 for (; vectorCount > 0; vectorCount--, column += Vector128<short>.Count)
                 {
                     Vector128<int> sum = Vector128_.MultiplyAddAdjacent(Vector128.LoadUnsafe(ref inputRow, (nuint)column), ones128);
-                    if (this.subY)
+                    if (subsamplingY)
                     {
                         sum += Vector128_.MultiplyAddAdjacent(Vector128.LoadUnsafe(ref nextInputRow, (nuint)column), ones128);
                     }
@@ -275,7 +343,7 @@ internal partial class Av1ChromaFromLumaContext
                     Vector128<short> samples = Vector128.CreateScalarUnsafe(
                         Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<short, byte>(ref Unsafe.Add(ref inputRow, column)))).AsInt16();
                     Vector128<int> sum = Vector128_.MultiplyAddAdjacent(samples, ones128);
-                    if (this.subY)
+                    if (subsamplingY)
                     {
                         samples = Vector128.CreateScalarUnsafe(
                             Unsafe.ReadUnaligned<ulong>(ref Unsafe.As<short, byte>(ref Unsafe.Add(ref nextInputRow, column)))).AsInt16();
@@ -291,7 +359,7 @@ internal partial class Av1ChromaFromLumaContext
             for (; column < width; column += 2)
             {
                 int sum = Unsafe.Add(ref inputRow, column) + Unsafe.Add(ref inputRow, column + 1);
-                if (this.subY)
+                if (subsamplingY)
                 {
                     sum += Unsafe.Add(ref nextInputRow, column) + Unsafe.Add(ref nextInputRow, column + 1);
                 }
@@ -304,8 +372,9 @@ internal partial class Av1ChromaFromLumaContext
     /// <summary>
     /// Subtracts the rounded Q3 average from each predictor sample, leaving the AC contribution used by CfL.
     /// </summary>
+    /// <param name="buffer">The fixed-stride Q3 predictor workspace.</param>
     /// <param name="transformSize">The populated predictor dimensions.</param>
-    private void SubtractAverage(Av1TransformSize transformSize)
+    private static void SubtractAverage(Span<short> buffer, Av1TransformSize transformSize)
     {
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
@@ -313,7 +382,7 @@ internal partial class Av1ChromaFromLumaContext
         // Transform dimensions are powers of two, so division by the sample count is an exact right shift. Half
         // the sample count is accumulated first to implement the normative nearest-integer rounding.
         int sumQ3 = (width * height) >> 1;
-        ref short bufferBase = ref MemoryMarshal.GetReference(this.Q3Buffer);
+        ref short bufferBase = ref MemoryMarshal.GetReference(buffer);
 
         if (Vector256.IsHardwareAccelerated && width >= Vector256<short>.Count)
         {

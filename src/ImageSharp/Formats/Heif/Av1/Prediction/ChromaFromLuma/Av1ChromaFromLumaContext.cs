@@ -16,7 +16,7 @@ internal sealed partial class Av1ChromaFromLumaContext
     /// <summary>
     /// The fixed row stride and maximum dimension, in chroma samples, of the luma predictor buffer.
     /// </summary>
-    private const int BufferLine = 32;
+    public const int BufferLine = 32;
 
     /// <summary>
     /// The number of samples in the fixed-stride chroma-from-luma workspace.
@@ -145,11 +145,27 @@ internal sealed partial class Av1ChromaFromLumaContext
         // here keeps sample conversion out of the row kernels and lets the JIT specialize both storage layouts.
         if (typeof(T) == typeof(byte))
         {
-            this.StoreSamples(MemoryMarshal.Cast<T, byte>(input), inputStride, outputOffset, width, height);
+            StoreSamples(
+                MemoryMarshal.Cast<T, byte>(input),
+                inputStride,
+                outputOffset,
+                width,
+                height,
+                this.Q3Buffer,
+                this.subX,
+                this.subY);
         }
         else
         {
-            this.StoreSamples(MemoryMarshal.Cast<T, short>(input), inputStride, outputOffset, width, height);
+            StoreSamples(
+                MemoryMarshal.Cast<T, short>(input),
+                inputStride,
+                outputOffset,
+                width,
+                height,
+                this.Q3Buffer,
+                this.subX,
+                this.subY);
         }
     }
 
@@ -161,7 +177,7 @@ internal sealed partial class Av1ChromaFromLumaContext
     {
         Guard.IsFalse(this.AreParametersComputed, nameof(this.AreParametersComputed), "Do not call cfl_compute_parameters multiple time on the same values.");
         this.Pad(transformSize.GetWidth(), transformSize.GetHeight());
-        this.SubtractAverage(transformSize);
+        SubtractAverage(this.Q3Buffer, transformSize);
         this.AreParametersComputed = true;
     }
 

@@ -4,6 +4,7 @@
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -158,6 +159,96 @@ internal static class Av1TransformBlockEncoder
     }
 
     /// <summary>
+    /// Encodes one eight-bit chroma-from-luma candidate into contiguous decision scratch.
+    /// </summary>
+    /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
+    /// <param name="source">The coded source plane.</param>
+    /// <param name="blockOrigin">The block origin in plane samples.</param>
+    /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
+    /// <param name="dc">The cached DC predictor sample shared by every alpha.</param>
+    /// <param name="lumaQ3">The zero-mean reconstructed-luma predictor surface.</param>
+    /// <param name="alphaQ3">The signed chroma-from-luma multiplier.</param>
+    /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
+    /// <param name="transformSize">The selected chroma transform dimensions.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
+    /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
+    /// <param name="plane">The component plane containing the block.</param>
+    /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
+    public static long EncodeChromaFromLumaLossyCandidate(
+        Av1EncoderBlockWorkspace workspace,
+        Buffer2DRegion<byte> source,
+        Point blockOrigin,
+        Span<byte> reconstruction,
+        byte dc,
+        ReadOnlySpan<short> lumaQ3,
+        int alphaQ3,
+        Span<int> quantizedCoefficients,
+        Av1TransformSize transformSize,
+        int qIndex,
+        int dcDeltaQ,
+        int acDeltaQ,
+        Av1Plane plane,
+        ref Av1EncoderTransformBlockState state)
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        ReadOnlySpan<byte> sourceSamples = GetPlaneSpan(source, blockOrigin);
+        reconstruction[..transformSize.GetSize2d()].Fill(dc);
+
+        // CfL adds its scaled reconstructed-luma AC contribution to the cached DC predictor before residual coding.
+        Av1ChromaFromLumaPredictor.Predict(lumaQ3, reconstruction, width, alphaQ3, width, height);
+        Av1ResidualBuilder.Subtract(
+            sourceSamples,
+            source.Stride,
+            reconstruction,
+            width,
+            workspace.Residual,
+            width,
+            width,
+            height);
+
+        EncodeLossy(
+            workspace,
+            quantizedCoefficients,
+            transformSize,
+            Av1TransformType.DctDct,
+            qIndex,
+            dcDeltaQ,
+            acDeltaQ,
+            Av1BitDepth.EightBit,
+            ref state);
+
+        if (state.EndOfBlock > 0)
+        {
+            Av1InverseTransformer.Reconstruct8Bit(
+                workspace.DequantizedCoefficients,
+                reconstruction,
+                width,
+                transformSize,
+                Av1TransformType.DctDct,
+                (int)plane,
+                state.EndOfBlock,
+                false,
+                workspace.TransformWorkspace);
+        }
+
+        // Final distortion is measured against the samples a decoder reconstructs, not the unquantized predictor.
+        Av1ResidualBuilder.Subtract(
+            sourceSamples,
+            source.Stride,
+            reconstruction,
+            width,
+            workspace.Residual,
+            width,
+            width,
+            height);
+
+        return Av1ResidualBuilder.SumSquares(workspace.Residual[..transformSize.GetSize2d()]) << 4;
+    }
+
+    /// <summary>
     /// Encodes and reconstructs one high-bit-depth lossy DC intra block in contiguous encoder planes.
     /// </summary>
     /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
@@ -291,6 +382,112 @@ internal static class Av1TransformBlockEncoder
             plane,
             bitDepth,
             ref state);
+
+        Av1ResidualBuilder.Subtract(
+            sourceSamples,
+            source.Stride,
+            reconstruction,
+            width,
+            workspace.Residual,
+            width,
+            width,
+            height);
+
+        long distortion = Av1ResidualBuilder.SumSquares(workspace.Residual[..transformSize.GetSize2d()]);
+        int shift = (bitDepth.GetBitCount() - 8) * 2;
+        long normalizedDistortion = shift == 0
+            ? distortion
+            : (distortion + (1L << (shift - 1))) >> shift;
+
+        return normalizedDistortion << 4;
+    }
+
+    /// <summary>
+    /// Encodes one high-bit-depth chroma-from-luma candidate into contiguous decision scratch.
+    /// </summary>
+    /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
+    /// <param name="source">The coded source plane.</param>
+    /// <param name="blockOrigin">The block origin in plane samples.</param>
+    /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
+    /// <param name="dc">The cached DC predictor sample shared by every alpha.</param>
+    /// <param name="lumaQ3">The zero-mean reconstructed-luma predictor surface.</param>
+    /// <param name="alphaQ3">The signed chroma-from-luma multiplier.</param>
+    /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
+    /// <param name="transformSize">The selected chroma transform dimensions.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
+    /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
+    /// <param name="plane">The component plane containing the block.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
+    public static long EncodeChromaFromLumaLossyCandidate(
+        Av1EncoderBlockWorkspace workspace,
+        Buffer2DRegion<ushort> source,
+        Point blockOrigin,
+        Span<ushort> reconstruction,
+        ushort dc,
+        ReadOnlySpan<short> lumaQ3,
+        int alphaQ3,
+        Span<int> quantizedCoefficients,
+        Av1TransformSize transformSize,
+        int qIndex,
+        int dcDeltaQ,
+        int acDeltaQ,
+        Av1Plane plane,
+        Av1BitDepth bitDepth,
+        ref Av1EncoderTransformBlockState state)
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        ReadOnlySpan<ushort> sourceSamples = GetPlaneSpan(source, blockOrigin);
+        Span<short> signedReconstruction = MemoryMarshal.Cast<ushort, short>(reconstruction);
+        reconstruction[..transformSize.GetSize2d()].Fill(dc);
+
+        Av1ChromaFromLumaPredictor.Predict(
+            lumaQ3,
+            signedReconstruction,
+            width,
+            alphaQ3,
+            bitDepth.GetBitCount(),
+            width,
+            height);
+
+        Av1ResidualBuilder.Subtract(
+            sourceSamples,
+            source.Stride,
+            reconstruction,
+            width,
+            workspace.Residual,
+            width,
+            width,
+            height);
+
+        EncodeLossy(
+            workspace,
+            quantizedCoefficients,
+            transformSize,
+            Av1TransformType.DctDct,
+            qIndex,
+            dcDeltaQ,
+            acDeltaQ,
+            bitDepth,
+            ref state);
+
+        if (state.EndOfBlock > 0)
+        {
+            Av1InverseTransformer.ReconstructHighBitDepth(
+                workspace.DequantizedCoefficients,
+                signedReconstruction,
+                width,
+                transformSize,
+                Av1TransformType.DctDct,
+                (int)plane,
+                state.EndOfBlock,
+                false,
+                bitDepth,
+                workspace.TransformWorkspace);
+        }
 
         Av1ResidualBuilder.Subtract(
             sourceSamples,
@@ -591,7 +788,7 @@ internal static class Av1TransformBlockEncoder
         state.TransformType = transformType;
     }
 
-    private static Span<TSample> GetPlaneSpan<TSample>(Buffer2DRegion<TSample> plane, Point blockOrigin)
+    public static Span<TSample> GetPlaneSpan<TSample>(Buffer2DRegion<TSample> plane, Point blockOrigin)
         where TSample : unmanaged
     {
         int offset =

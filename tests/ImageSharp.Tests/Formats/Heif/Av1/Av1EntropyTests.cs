@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -139,6 +140,37 @@ public class Av1EntropyTests
         Assert.Equal(
             Av1ProbabilityCost.GetSymbolCost(transformSkip, 1),
             encoder.GetTransformBlockSkipCost(true, TransformSize, SkipContext));
+    }
+
+    [Theory]
+    [InlineData(-16, 16)]
+    [InlineData(0, 8)]
+    [InlineData(-4, 0)]
+    public void ChromaFromLumaCostMatchesCurrentDistributions(int alphaU, int alphaV)
+    {
+        int signU = Av1ChromaFromLumaMath.AlphaToSign(alphaU);
+        int signV = Av1ChromaFromLumaMath.AlphaToSign(alphaV);
+        int jointSign = Av1ChromaFromLumaMath.JointSign(signU, signV);
+        int indexU = Av1ChromaFromLumaMath.AlphaToMagnitudeIndex(alphaU);
+        int indexV = Av1ChromaFromLumaMath.AlphaToMagnitudeIndex(alphaV);
+        int packedIndex = Av1ChromaFromLumaMath.PackIndices(indexU, indexV);
+        int expected = Av1ProbabilityCost.GetSymbolCost(Av1DefaultDistributions.ChromaFromLumaSign, jointSign);
+        if (signU != Av1ChromaFromLumaMath.SignZero)
+        {
+            expected += Av1ProbabilityCost.GetSymbolCost(
+                Av1DefaultDistributions.ChromaFromLumaAlpha[Av1ChromaFromLumaMath.ContextU(jointSign)],
+                indexU);
+        }
+
+        if (signV != Av1ChromaFromLumaMath.SignZero)
+        {
+            expected += Av1ProbabilityCost.GetSymbolCost(
+                Av1DefaultDistributions.ChromaFromLumaAlpha[Av1ChromaFromLumaMath.ContextV(jointSign)],
+                indexV);
+        }
+
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
+        Assert.Equal(expected, encoder.GetChromaFromLumaCost(packedIndex, jointSign));
     }
 
     /// <summary>

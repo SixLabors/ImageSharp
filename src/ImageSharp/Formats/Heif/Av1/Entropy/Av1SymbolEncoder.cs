@@ -1115,6 +1115,34 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Gets the current fixed-point cost of joint chroma-from-luma alpha syntax.
+    /// </summary>
+    /// <param name="chromaFromLumaIndex">The packed U/V alpha-magnitude indices.</param>
+    /// <param name="joinedSign">The joint U/V sign symbol.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetChromaFromLumaCost(int chromaFromLumaIndex, int joinedSign)
+    {
+        int cost = Av1ProbabilityCost.GetSymbolCost(this.chromaFromLumaSign, joinedSign);
+        int signU = Av1ChromaFromLumaMath.SignU(joinedSign);
+        if (signU != Av1ChromaFromLumaMath.SignZero)
+        {
+            int contextU = Av1ChromaFromLumaMath.ContextU(joinedSign);
+            int indexU = Av1ChromaFromLumaMath.IndexU(chromaFromLumaIndex);
+            cost += Av1ProbabilityCost.GetSymbolCost(this.chromaFromLumaAlpha[contextU], indexU);
+        }
+
+        int signV = Av1ChromaFromLumaMath.SignV(joinedSign);
+        if (signV != Av1ChromaFromLumaMath.SignZero)
+        {
+            int contextV = Av1ChromaFromLumaMath.ContextV(joinedSign);
+            int indexV = Av1ChromaFromLumaMath.IndexV(chromaFromLumaIndex);
+            cost += Av1ProbabilityCost.GetSymbolCost(this.chromaFromLumaAlpha[contextV], indexV);
+        }
+
+        return cost;
+    }
+
+    /// <summary>
     /// Writes a chroma intra prediction mode conditioned on the luma mode and chroma-from-luma availability.
     /// </summary>
     /// <param name="chromaMode">The chroma prediction mode.</param>

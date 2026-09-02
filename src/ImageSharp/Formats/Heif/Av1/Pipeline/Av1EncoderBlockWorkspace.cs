@@ -26,12 +26,40 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// <summary>
     /// The complete workspace length in signed-integer storage elements.
     /// </summary>
-    public const int StorageLength = ResidualStorageLength + MaximumCoefficientCount + MaximumCoefficientCount + Av1TransformWorkspace.MaximumLength;
+    public const int StorageLength =
+        ResidualStorageLength +
+        MaximumCoefficientCount +
+        MaximumCoefficientCount +
+        Av1TransformWorkspace.MaximumLength +
+        IntraBlockCopySampleStorageLength +
+        IntraBlockCopyResidualStorageLength +
+        IntraBlockCopyCoefficientStorageLength;
 
     private const int ResidualStorageLength = MaximumResidualCount / 2;
     private const int TransformCoefficientOffset = ResidualStorageLength;
     private const int DequantizedCoefficientOffset = TransformCoefficientOffset + MaximumCoefficientCount;
     private const int TransformWorkspaceOffset = DequantizedCoefficientOffset + MaximumCoefficientCount;
+    private const int IntraBlockCopySampleStorageOffset = TransformWorkspaceOffset + Av1TransformWorkspace.MaximumLength;
+    private const int IntraBlockCopySampleStorageLength =
+        Av1EncoderIntraBlockCopyWorkspace<ushort>.SampleBufferCount *
+        Av1EncoderIntraBlockCopyWorkspace<ushort>.MaximumSampleCount *
+        sizeof(ushort) /
+        sizeof(int);
+
+    private const int IntraBlockCopyResidualStorageOffset =
+        IntraBlockCopySampleStorageOffset + IntraBlockCopySampleStorageLength;
+
+    private const int IntraBlockCopyResidualStorageLength =
+        Av1EncoderIntraBlockCopyWorkspace<ushort>.MaximumSampleCount *
+        sizeof(short) /
+        sizeof(int);
+
+    private const int IntraBlockCopyCoefficientStorageOffset =
+        IntraBlockCopyResidualStorageOffset + IntraBlockCopyResidualStorageLength;
+
+    private const int IntraBlockCopyCoefficientStorageLength =
+        Av1EncoderIntraBlockCopyWorkspace<ushort>.CoefficientBufferCount *
+        Av1EncoderIntraBlockCopyWorkspace<ushort>.MaximumSampleCount;
 
     /// <summary>
     /// Owns the complete reusable block workspace in 32-bit elements so every transform region is naturally aligned.
@@ -68,6 +96,37 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// </summary>
     public Span<int> TransformWorkspace
         => this.owner.Memory.Span.Slice(TransformWorkspaceOffset, Av1TransformWorkspace.MaximumLength);
+
+    /// <summary>
+    /// Gets the reusable storage used while comparing intra-block-copy candidates.
+    /// </summary>
+    /// <typeparam name="TSample">The native sample type selected by the encoder pipeline.</typeparam>
+    /// <returns>The typed intra-block-copy workspace.</returns>
+    public Av1EncoderIntraBlockCopyWorkspace<TSample> GetIntraBlockCopyWorkspace<TSample>()
+        where TSample : unmanaged
+    {
+        Span<int> storage = this.owner.Memory.Span;
+        Span<TSample> sampleStorage = MemoryMarshal
+            .Cast<int, TSample>(storage.Slice(IntraBlockCopySampleStorageOffset, IntraBlockCopySampleStorageLength));
+
+        sampleStorage = sampleStorage[
+            ..(Av1EncoderIntraBlockCopyWorkspace<TSample>.SampleBufferCount *
+                Av1EncoderIntraBlockCopyWorkspace<TSample>.MaximumSampleCount)];
+
+        Span<short> residualStorage = MemoryMarshal
+            .Cast<int, short>(storage.Slice(IntraBlockCopyResidualStorageOffset, IntraBlockCopyResidualStorageLength));
+
+        residualStorage = residualStorage[..Av1EncoderIntraBlockCopyWorkspace<TSample>.MaximumSampleCount];
+
+        Span<int> coefficientStorage = storage.Slice(
+            IntraBlockCopyCoefficientStorageOffset,
+            IntraBlockCopyCoefficientStorageLength);
+
+        return new Av1EncoderIntraBlockCopyWorkspace<TSample>(
+            sampleStorage,
+            residualStorage,
+            coefficientStorage);
+    }
 
     /// <summary>
     /// Releases the reusable block workspace.

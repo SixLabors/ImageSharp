@@ -33,7 +33,6 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             const Av1TransformSize LumaTransformSize = Av1TransformSize.Size8x8;
-            const int MaximumSampleCount = 8 * 8;
             Buffer2DRegion<TSample> lumaSource = this.source.GetPlane(Av1Plane.Y);
             Buffer2DRegion<TSample> lumaReconstruction = this.reconstruction.GetPlane(Av1Plane.Y);
             Point modeInfoPosition = new(
@@ -119,27 +118,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderTransformBlockState selectedLumaState = default;
             Av1EncoderTransformBlockState selectedBlueState = default;
             Av1EncoderTransformBlockState selectedRedState = default;
-            Span<TSample> selectedLumaReconstruction = stackalloc TSample[MaximumSampleCount];
-            Span<TSample> selectedBlueReconstruction = stackalloc TSample[MaximumSampleCount];
-            Span<TSample> selectedRedReconstruction = stackalloc TSample[MaximumSampleCount];
-            Span<int> selectedLumaCoefficients = stackalloc int[MaximumSampleCount];
-            Span<int> selectedBlueCoefficients = stackalloc int[MaximumSampleCount];
-            Span<int> selectedRedCoefficients = stackalloc int[MaximumSampleCount];
-
-            Span<TSample> lumaPrediction = stackalloc TSample[MaximumSampleCount];
-            Span<short> lumaResidual = stackalloc short[MaximumSampleCount];
-            Span<TSample> lumaCandidateReconstruction = stackalloc TSample[MaximumSampleCount];
-            Span<int> lumaCandidateCoefficients = stackalloc int[MaximumSampleCount];
-            Span<TSample> bluePrediction = stackalloc TSample[MaximumSampleCount];
-            Span<short> blueResidual = stackalloc short[MaximumSampleCount];
-            Span<TSample> blueCandidateReconstruction = stackalloc TSample[MaximumSampleCount];
-            Span<int> blueCandidateCoefficients = stackalloc int[MaximumSampleCount];
-            Span<TSample> redPrediction = stackalloc TSample[MaximumSampleCount];
-            Span<short> redResidual = stackalloc short[MaximumSampleCount];
-            Span<TSample> redCandidateReconstruction = stackalloc TSample[MaximumSampleCount];
-            Span<int> redCandidateCoefficients = stackalloc int[MaximumSampleCount];
-            Span<TSample> transformReconstruction = stackalloc TSample[MaximumSampleCount];
-            Span<int> transformCoefficients = stackalloc int[MaximumSampleCount];
+            Av1EncoderIntraBlockCopyWorkspace<TSample> workspace =
+                this.blockWorkspace.GetIntraBlockCopyWorkspace<TSample>();
 
             Av1TransformBlockContext lumaContext = Av1TileWriter.GetTransformBlockContexts(
                 Av1ComponentType.Luminance,
@@ -192,12 +172,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     0,
                     LumaTransformSize,
                     lumaContext,
-                    lumaPrediction,
-                    lumaResidual,
-                    transformReconstruction,
-                    transformCoefficients,
-                    lumaCandidateReconstruction,
-                    lumaCandidateCoefficients,
+                    workspace.LumaPrediction,
+                    workspace.Residual,
+                    workspace.TransformReconstruction,
+                    workspace.TransformCoefficients,
+                    workspace.LumaCandidateReconstruction,
+                    workspace.LumaCandidateCoefficients,
                     out Av1EncoderTransformBlockState lumaCandidateState,
                     out int lumaRate,
                     out long lumaDistortion,
@@ -229,12 +209,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         subsamplingY,
                         chromaTransformSize,
                         blueContext,
-                        bluePrediction,
-                        blueResidual,
-                        transformReconstruction,
-                        transformCoefficients,
-                        blueCandidateReconstruction,
-                        blueCandidateCoefficients,
+                        workspace.BluePrediction,
+                        workspace.Residual,
+                        workspace.TransformReconstruction,
+                        workspace.TransformCoefficients,
+                        workspace.BlueCandidateReconstruction,
+                        workspace.BlueCandidateCoefficients,
                         out blueCandidateState,
                         out blueRate,
                         out blueDistortion,
@@ -252,12 +232,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         subsamplingY,
                         chromaTransformSize,
                         redContext,
-                        redPrediction,
-                        redResidual,
-                        transformReconstruction,
-                        transformCoefficients,
-                        redCandidateReconstruction,
-                        redCandidateCoefficients,
+                        workspace.RedPrediction,
+                        workspace.Residual,
+                        workspace.TransformReconstruction,
+                        workspace.TransformCoefficients,
+                        workspace.RedCandidateReconstruction,
+                        workspace.RedCandidateCoefficients,
                         out redCandidateState,
                         out redRate,
                         out redDistortion,
@@ -304,32 +284,40 @@ internal static partial class Av1IntraSuperblockEncoder
                 selectedVector = candidate;
                 if (candidateSkip)
                 {
-                    lumaPrediction.CopyTo(selectedLumaReconstruction);
-                    selectedLumaCoefficients.Clear();
+                    workspace.LumaPrediction.CopyTo(workspace.SelectedLumaReconstruction);
+                    workspace.SelectedLumaCoefficients.Clear();
                     selectedLumaState = emptyLumaState;
                     if (!this.source.IsMonochrome)
                     {
                         int chromaSampleCount = chromaTransformSize.GetSize2d();
-                        bluePrediction[..chromaSampleCount].CopyTo(selectedBlueReconstruction);
-                        redPrediction[..chromaSampleCount].CopyTo(selectedRedReconstruction);
-                        selectedBlueCoefficients[..chromaSampleCount].Clear();
-                        selectedRedCoefficients[..chromaSampleCount].Clear();
+                        workspace.BluePrediction[..chromaSampleCount].CopyTo(workspace.SelectedBlueReconstruction);
+                        workspace.RedPrediction[..chromaSampleCount].CopyTo(workspace.SelectedRedReconstruction);
+                        workspace.SelectedBlueCoefficients[..chromaSampleCount].Clear();
+                        workspace.SelectedRedCoefficients[..chromaSampleCount].Clear();
                         selectedBlueState = emptyBlueState;
                         selectedRedState = emptyRedState;
                     }
                 }
                 else
                 {
-                    lumaCandidateReconstruction.CopyTo(selectedLumaReconstruction);
-                    lumaCandidateCoefficients.CopyTo(selectedLumaCoefficients);
+                    workspace.LumaCandidateReconstruction.CopyTo(workspace.SelectedLumaReconstruction);
+                    workspace.LumaCandidateCoefficients.CopyTo(workspace.SelectedLumaCoefficients);
                     selectedLumaState = lumaCandidateState;
                     if (!this.source.IsMonochrome)
                     {
                         int chromaSampleCount = chromaTransformSize.GetSize2d();
-                        blueCandidateReconstruction[..chromaSampleCount].CopyTo(selectedBlueReconstruction);
-                        redCandidateReconstruction[..chromaSampleCount].CopyTo(selectedRedReconstruction);
-                        blueCandidateCoefficients[..chromaSampleCount].CopyTo(selectedBlueCoefficients);
-                        redCandidateCoefficients[..chromaSampleCount].CopyTo(selectedRedCoefficients);
+                        workspace.BlueCandidateReconstruction[..chromaSampleCount]
+                            .CopyTo(workspace.SelectedBlueReconstruction);
+
+                        workspace.RedCandidateReconstruction[..chromaSampleCount]
+                            .CopyTo(workspace.SelectedRedReconstruction);
+
+                        workspace.BlueCandidateCoefficients[..chromaSampleCount]
+                            .CopyTo(workspace.SelectedBlueCoefficients);
+
+                        workspace.RedCandidateCoefficients[..chromaSampleCount]
+                            .CopyTo(workspace.SelectedRedCoefficients);
+
                         selectedBlueState = blueCandidateState;
                         selectedRedState = redCandidateState;
                     }
@@ -350,8 +338,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             ref Av1EncoderTransformBlockState retainedLumaState = ref retainedLumaTransformBlocks[lumaTransformIndex];
             CopyCandidate(
-                selectedLumaReconstruction,
-                selectedLumaCoefficients,
+                workspace.SelectedLumaReconstruction,
+                workspace.SelectedLumaCoefficients,
                 lumaReconstruction,
                 blockOrigin,
                 retainedLumaCoefficients[this.codedAreaLuma..],
@@ -375,8 +363,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref Av1EncoderTransformBlockState retainedBlueState = ref retainedBlueTransformBlocks[chromaTransformIndex];
                 ref Av1EncoderTransformBlockState retainedRedState = ref retainedRedTransformBlocks[chromaTransformIndex];
                 CopyCandidate(
-                    selectedBlueReconstruction,
-                    selectedBlueCoefficients,
+                    workspace.SelectedBlueReconstruction,
+                    workspace.SelectedBlueCoefficients,
                     this.reconstruction.GetPlane(Av1Plane.U),
                     chromaOrigin,
                     retainedBlueCoefficients[this.codedAreaChroma..],
@@ -385,8 +373,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     ref retainedBlueState);
 
                 CopyCandidate(
-                    selectedRedReconstruction,
-                    selectedRedCoefficients,
+                    workspace.SelectedRedReconstruction,
+                    workspace.SelectedRedCoefficients,
                     this.reconstruction.GetPlane(Av1Plane.V),
                     chromaOrigin,
                     retainedRedCoefficients[this.codedAreaChroma..],

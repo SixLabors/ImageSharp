@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Memory;
@@ -147,7 +148,7 @@ public class Av1EncoderFrameTests
     }
 
     [Fact]
-    public void ScreenContentDetectorMatchesLibaomPaletteThreshold()
+    public void ScreenContentDetectorMatchesLibaomFeatureThresholds()
     {
         const int width = 160;
         const int height = 16;
@@ -172,6 +173,13 @@ public class Av1EncoderFrameTests
 
         // One qualifying block is exactly ten percent of this frame, and the reference threshold is strict.
         Assert.False(Av1ScreenContentDetector.IsPaletteLikely(byteFrame.Frame));
+        Av1ScreenContentDetector.Detect(
+            byteFrame.Frame,
+            out bool allowScreenContentTools,
+            out bool allowIntraBlockCopy);
+
+        Assert.False(allowScreenContentTools);
+        Assert.False(allowIntraBlockCopy);
         for (int row = 0; row < height; row++)
         {
             Span<byte> samples = byteFrame.Frame.View.GetLumaRowSpan(row);
@@ -182,6 +190,13 @@ public class Av1EncoderFrameTests
         }
 
         Assert.True(Av1ScreenContentDetector.IsPaletteLikely(byteFrame.Frame));
+        Av1ScreenContentDetector.Detect(
+            byteFrame.Frame,
+            out allowScreenContentTools,
+            out allowIntraBlockCopy);
+
+        Assert.True(allowScreenContentTools);
+        Assert.True(allowIntraBlockCopy);
         using Av1EncoderFrameBuffer<ushort> highBitDepthFrame = new(
             Configuration.Default,
             16,
@@ -201,6 +216,13 @@ public class Av1EncoderFrameTests
         }
 
         Assert.False(Av1ScreenContentDetector.IsPaletteLikely(highBitDepthFrame.Frame));
+        Av1ScreenContentDetector.Detect(
+            highBitDepthFrame.Frame,
+            out allowScreenContentTools,
+            out allowIntraBlockCopy);
+
+        Assert.False(allowScreenContentTools);
+        Assert.False(allowIntraBlockCopy);
         for (int row = 0; row < 16; row++)
         {
             Span<ushort> samples = highBitDepthFrame.Frame.View.GetLumaRowSpan(row);
@@ -208,6 +230,13 @@ public class Av1EncoderFrameTests
         }
 
         Assert.True(Av1ScreenContentDetector.IsPaletteLikely(highBitDepthFrame.Frame));
+        Av1ScreenContentDetector.Detect(
+            highBitDepthFrame.Frame,
+            out allowScreenContentTools,
+            out allowIntraBlockCopy);
+
+        Assert.True(allowScreenContentTools);
+        Assert.True(allowIntraBlockCopy);
         for (int row = 0; row < 16; row++)
         {
             Span<ushort> samples = highBitDepthFrame.Frame.View.GetLumaRowSpan(row);
@@ -218,10 +247,58 @@ public class Av1EncoderFrameTests
         }
 
         Assert.False(Av1ScreenContentDetector.IsPaletteLikely(highBitDepthFrame.Frame));
+        Av1ScreenContentDetector.Detect(
+            highBitDepthFrame.Frame,
+            out allowScreenContentTools,
+            out allowIntraBlockCopy);
+
+        Assert.False(allowScreenContentTools);
+        Assert.False(allowIntraBlockCopy);
     }
 
     [Fact]
-    public void EncodeActivatesPaletteToolsForScreenContent()
+    public void ScreenContentDetectorMatchesLibaomIntraBlockCopyVarianceThreshold()
+    {
+        const int Width = 16;
+        const int Height = 16;
+        using Av1EncoderFrameBuffer<byte> frame = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        Buffer2DRegion<byte> luma = frame.Frame.View.GetPlane(Av1Plane.Y);
+        for (int row = 0; row < Height; row++)
+        {
+            luma.DangerousGetRowSpan(row).Fill(96);
+        }
+
+        // A single delta of eleven leaves total variance below half a sample after per-pixel rounding.
+        luma.DangerousGetRowSpan(0)[0] = 107;
+        Av1ScreenContentDetector.Detect(
+            frame.Frame,
+            out bool allowScreenContentTools,
+            out bool allowIntraBlockCopy);
+
+        Assert.True(allowScreenContentTools);
+        Assert.False(allowIntraBlockCopy);
+
+        // Raising that delta to twelve crosses the exact integer rounding boundary used by libaom.
+        luma.DangerousGetRowSpan(0)[0] = 108;
+        Av1ScreenContentDetector.Detect(
+            frame.Frame,
+            out allowScreenContentTools,
+            out allowIntraBlockCopy);
+
+        Assert.True(allowScreenContentTools);
+        Assert.True(allowIntraBlockCopy);
+    }
+
+    [Fact]
+    public void EncodeActivatesScreenContentTools()
     {
         const int width = 16;
         const int height = 16;
@@ -253,7 +330,7 @@ public class Av1EncoderFrameTests
         obuReader.ReadAll(ref reader, payload.Length, () => tileReader);
         ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(obuReader.FrameHeader);
         Assert.True(frameHeader.AllowScreenContentTools);
-        Assert.False(frameHeader.AllowIntraBlockCopy);
+        Assert.True(frameHeader.AllowIntraBlockCopy);
         using Av1Decoder decoder = new(Configuration.Default);
         using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
         Assert.Equal(new Size(width, height), decoded.Size);
@@ -266,6 +343,61 @@ public class Av1EncoderFrameTests
 
         Directory.CreateDirectory(outputDirectory);
         File.WriteAllBytes(Path.Combine(outputDirectory, "encoder-frame-16x16-8b-444-palette.obu"), payload);
+    }
+
+    [Fact]
+    public void EncodeSelectsIntraBlockCopyForRepeatedScreenContent()
+    {
+        const int Width = 328;
+        const int Height = 16;
+        const ulong Pattern = 0xD6A5_3C97_E18B_4F20UL;
+        using Image<Rgba32> source = new(Width, Height);
+        for (int row = 0; row < Height; row++)
+        {
+            Span<Rgba32> pixels = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
+            for (int column = 0; column < Width; column++)
+            {
+                int patternIndex = ((row & 7) * 8) + (column & 7);
+                pixels[column] = ((Pattern >> patternIndex) & 1) == 0
+                    ? new Rgba32(224, 32, 32)
+                    : new Rgba32(32, 32, 224);
+            }
+        }
+
+        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv444);
+        using MemoryStream stream = new();
+        _ = Av1FrameEncoder.Encode(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            stream,
+            colorConfig,
+            qIndex: 37);
+
+        byte[] payload = stream.ToArray();
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        Assert.NotNull(decoder.FrameHeader);
+        Assert.True(decoder.FrameHeader.AllowScreenContentTools);
+        Assert.True(decoder.FrameHeader.AllowIntraBlockCopy);
+        Assert.NotNull(decoder.FrameInfo);
+        Av1SuperblockInfo targetSuperblock = decoder.FrameInfo.GetSuperblock(new Point(5, 0));
+        bool usesIntraBlockCopy = false;
+        foreach (Av1BlockModeInfo modeInfo in targetSuperblock.GetModeInfos())
+        {
+            usesIntraBlockCopy |= modeInfo.UseIntraBlockCopy;
+        }
+
+        Assert.True(usesIntraBlockCopy);
+        Assert.Equal(new Size(Width, Height), decoded.Size);
+
+        string outputDirectory = Path.Combine(
+            TestEnvironment.ActualOutputDirectoryFullPath,
+            "Formats",
+            "Heif",
+            "Av1");
+
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllBytes(Path.Combine(outputDirectory, "encoder-frame-328x16-8b-444-intrabc.obu"), payload);
     }
 
     [Fact]

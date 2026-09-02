@@ -108,6 +108,11 @@ internal class Av1SymbolEncoder : IDisposable
     private readonly Av1Distribution[][][] intraExtendedTransform;
 
     /// <summary>
+    /// The tile-adaptive inter transform-type distributions used by intra-block copy.
+    /// </summary>
+    private readonly Av1Distribution[][] interExtendedTransform;
+
+    /// <summary>
     /// The tile-adaptive fixed transform-size distributions.
     /// </summary>
     private readonly Av1Distribution[][] transformSize;
@@ -193,6 +198,7 @@ internal class Av1SymbolEncoder : IDisposable
         this.filterIntraMode = Av1DefaultDistributions.FilterIntraMode;
         this.deltaQuantizerAbsolute = Av1DefaultDistributions.DeltaQuantizerAbsolute;
         this.intraExtendedTransform = Av1DefaultDistributions.IntraExtendedTransform;
+        this.interExtendedTransform = Av1DefaultDistributions.InterExtendedTransform;
         this.transformSize = Av1DefaultDistributions.TransformSize;
         this.segmentId = Av1DefaultDistributions.SegmentId;
         this.angleDelta = Av1DefaultDistributions.AngleDelta;
@@ -752,6 +758,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="endOfBlock">The one-based final nonzero scan position, or zero for an empty block.</param>
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
     /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
     /// <returns>The packed coefficient context used by adjacent transform blocks.</returns>
     public int WriteCoefficients(
         Av1TransformSize transformSize,
@@ -762,7 +769,8 @@ internal class Av1SymbolEncoder : IDisposable
         Av1TransformBlockContext transformBlockContext,
         ushort endOfBlock,
         bool useReducedTransformSet,
-        Av1FilterIntraMode filterIntraMode)
+        Av1FilterIntraMode filterIntraMode,
+        bool usesInterTransformSet = false)
     {
         Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
 
@@ -795,6 +803,7 @@ internal class Av1SymbolEncoder : IDisposable
             _ = this.ProcessTransformType<CoefficientWriteOperation>(
                 transformType,
                 transformSize,
+                usesInterTransformSet,
                 useReducedTransformSet,
                 this.baseQIndex,
                 filterIntraMode,
@@ -902,6 +911,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="endOfBlock">The one-based final nonzero scan position, or zero for an empty block.</param>
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
     /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetCoefficientCost(
         Av1TransformSize transformSize,
@@ -912,7 +922,8 @@ internal class Av1SymbolEncoder : IDisposable
         Av1TransformBlockContext transformBlockContext,
         ushort endOfBlock,
         bool useReducedTransformSet,
-        Av1FilterIntraMode filterIntraMode)
+        Av1FilterIntraMode filterIntraMode,
+        bool usesInterTransformSet = false)
     {
         Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
 
@@ -949,13 +960,14 @@ internal class Av1SymbolEncoder : IDisposable
 
         if (componentType == Av1ComponentType.Luminance)
         {
-            rate += this.ProcessTransformType<CoefficientCostOperation>(
+            rate += this.GetTransformTypeCost(
                 transformType,
                 transformSize,
                 useReducedTransformSet,
                 this.baseQIndex,
                 filterIntraMode,
-                intraDirection);
+                intraDirection,
+                usesInterTransformSet);
         }
 
         rate += this.ProcessEndOfBlockPosition<CoefficientCostOperation>(
@@ -1320,7 +1332,35 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Writes an intra transform type when the permitted transform set contains multiple choices.
+    /// Gets the current fixed-point rate cost of a transform type when the permitted transform set contains multiple choices.
+    /// </summary>
+    /// <param name="transformType">The transform type to cost.</param>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="baseQIndex">The active base quantizer index.</param>
+    /// <param name="filterIntraMode">The filter-intra mode when enabled.</param>
+    /// <param name="intraDirection">The ordinary intra prediction mode.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetTransformTypeCost(
+        Av1TransformType transformType,
+        Av1TransformSize transformSize,
+        bool useReducedTransformSet,
+        int baseQIndex,
+        Av1FilterIntraMode filterIntraMode,
+        Av1PredictionMode intraDirection,
+        bool usesInterTransformSet = false)
+        => this.ProcessTransformType<CoefficientCostOperation>(
+            transformType,
+            transformSize,
+            usesInterTransformSet,
+            useReducedTransformSet,
+            baseQIndex,
+            filterIntraMode,
+            intraDirection);
+
+    /// <summary>
+    /// Writes a transform type when the permitted transform set contains multiple choices.
     /// </summary>
     /// <param name="transformType">The transform type to encode.</param>
     /// <param name="transformSize">The signaled transform size.</param>
@@ -1328,17 +1368,20 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="baseQIndex">The active base quantizer index.</param>
     /// <param name="filterIntraMode">The filter-intra mode when enabled.</param>
     /// <param name="intraDirection">The ordinary intra prediction mode.</param>
+    /// <param name="usesInterTransformSet">Indicates whether inter rather than intra transform probabilities apply.</param>
     public void WriteTransformType(
         Av1TransformType transformType,
         Av1TransformSize transformSize,
         bool useReducedTransformSet,
         int baseQIndex,
         Av1FilterIntraMode filterIntraMode,
-        Av1PredictionMode intraDirection)
+        Av1PredictionMode intraDirection,
+        bool usesInterTransformSet = false)
     {
         _ = this.ProcessTransformType<CoefficientWriteOperation>(
             transformType,
             transformSize,
+            usesInterTransformSet,
             useReducedTransformSet,
             baseQIndex,
             filterIntraMode,
@@ -1348,23 +1391,38 @@ internal class Av1SymbolEncoder : IDisposable
     private int ProcessTransformType<TOperation>(
         Av1TransformType transformType,
         Av1TransformSize transformSize,
+        bool usesInterTransformSet,
         bool useReducedTransformSet,
         int baseQIndex,
         Av1FilterIntraMode filterIntraMode,
         Av1PredictionMode intraDirection)
         where TOperation : struct, ICoefficientSymbolOperation
     {
-        // Still-image encoding reaches this path only for intra blocks, so the intra transform set is authoritative.
-        Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(transformSize, useReducedTransformSet);
+        Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
+            transformSize,
+            usesInterTransformSet,
+            useReducedTransformSet);
+
         if (Av1SymbolContextHelper.GetExtendedTransformTypeCount(transformSetType) > 1 && baseQIndex > 0)
         {
             Av1TransformSize squareTransformSize = transformSize.GetSquareSize();
             DebugGuard.MustBeLessThanOrEqualTo((int)squareTransformSize, Av1Constants.ExtendedTransformCount, nameof(squareTransformSize));
 
-            int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSetType);
+            int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSetType, usesInterTransformSet);
 
             // Set zero contains only DCT-DCT, which was excluded by the multiple-choice condition above.
             DebugGuard.MustBeGreaterThan(extendedSet, 0, nameof(extendedSet));
+
+            int transformIndex = Av1SymbolContextHelper.GetExtendedTransformIndex(transformSetType, transformType);
+            ref Av1SymbolWriter w = ref this.writer;
+            if (usesInterTransformSet)
+            {
+                // Inter transforms are conditioned only by the transform set and square size.
+                return TOperation.ProcessSymbol(
+                    ref w,
+                    transformIndex,
+                    this.interExtendedTransform[extendedSet][(int)squareTransformSize]);
+            }
 
             Av1PredictionMode intraDirectionContext;
             if (filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes)
@@ -1378,10 +1436,9 @@ internal class Av1SymbolEncoder : IDisposable
 
             DebugGuard.MustBeLessThan((int)intraDirectionContext, 13, nameof(intraDirectionContext));
             DebugGuard.MustBeLessThan((int)squareTransformSize, 4, nameof(squareTransformSize));
-            ref Av1SymbolWriter w = ref this.writer;
             return TOperation.ProcessSymbol(
                 ref w,
-                Av1SymbolContextHelper.GetExtendedTransformIndex(transformSetType, transformType),
+                transformIndex,
                 this.intraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraDirectionContext]);
         }
 

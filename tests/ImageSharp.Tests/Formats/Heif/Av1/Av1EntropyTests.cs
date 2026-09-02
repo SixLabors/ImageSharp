@@ -1608,6 +1608,68 @@ public class Av1EntropyTests
     }
 
     [Theory]
+    [MemberData(nameof(GetInterTransformTypeData))]
+    public void InterTransformTypeUsesExpectedCostAndRoundTrips(int txSize, bool useReducedTransformSet)
+    {
+        Av1TransformSize transformSize = (Av1TransformSize)txSize;
+        Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
+            transformSize,
+            isInter: true,
+            useReducedTransformSet);
+
+        int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSetType, isInter: true);
+        Av1TransformSize squareTransformSize = transformSize.GetSquareSize();
+        Av1Distribution expectedDistribution =
+            Av1DefaultDistributions.InterExtendedTransform[extendedSet][(int)squareTransformSize];
+
+        Configuration configuration = Configuration.Default;
+        using Av1SymbolEncoder costEncoder = new(configuration, 100 / 8, BaseQIndex, updateCdf: false);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        int transformTypeCount = Av1SymbolContextHelper.GetExtendedTransformTypeCount(transformSetType);
+
+        for (int symbol = 0; symbol < transformTypeCount; symbol++)
+        {
+            Av1TransformType transformType = Av1SymbolContextHelper.GetExtendedTransformType(transformSetType, symbol);
+            int expectedCost = Av1ProbabilityCost.GetSymbolCost(expectedDistribution, symbol);
+            int actualCost = costEncoder.GetTransformTypeCost(
+                transformType,
+                transformSize,
+                useReducedTransformSet,
+                BaseQIndex,
+                Av1FilterIntraMode.AllFilterIntraModes,
+                Av1PredictionMode.DC,
+                usesInterTransformSet: true);
+
+            Assert.Equal(expectedCost, actualCost);
+            encoder.WriteTransformType(
+                transformType,
+                transformSize,
+                useReducedTransformSet,
+                BaseQIndex,
+                Av1FilterIntraMode.AllFilterIntraModes,
+                Av1PredictionMode.DC,
+                usesInterTransformSet: true);
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+        Av1SymbolDecoder decoder = new(configuration, encoded.GetSpan(), BaseQIndex);
+        for (int symbol = 0; symbol < transformTypeCount; symbol++)
+        {
+            Av1TransformType expected = Av1SymbolContextHelper.GetExtendedTransformType(transformSetType, symbol);
+            Av1TransformType actual = decoder.ReadTransformType(
+                transformSize,
+                useReducedTransformSet,
+                isInter: true,
+                useFilterIntra: false,
+                isLossless: false,
+                Av1FilterIntraMode.AllFilterIntraModes,
+                Av1PredictionMode.DC);
+
+            Assert.Equal(expected, actual);
+        }
+    }
+
+    [Theory]
     [MemberData(nameof(GetEndOfBlockPositionData))]
     public void RoundTripEndOfBlockPosition(int txSize, int txSizeContext, int plane, int txClass)
     {
@@ -1916,6 +1978,20 @@ public class Av1EntropyTests
                     result.Add((int)transformSize, (int)filterIntraMode, (int)intraDirection);
                 }
             }
+        }
+
+        return result;
+    }
+
+    public static TheoryData<int, bool> GetInterTransformTypeData()
+    {
+        TheoryData<int, bool> result = [];
+        for (Av1TransformSize transformSize = Av1TransformSize.Size4x4;
+            transformSize <= Av1TransformSize.Size32x32;
+            transformSize++)
+        {
+            result.Add((int)transformSize, false);
+            result.Add((int)transformSize, true);
         }
 
         return result;

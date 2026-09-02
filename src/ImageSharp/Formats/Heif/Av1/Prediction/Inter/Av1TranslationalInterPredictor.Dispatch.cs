@@ -371,14 +371,14 @@ internal static partial class Av1TranslationalInterPredictor
 
         if (Vector512.IsHardwareAccelerated && Vector<int>.Count == Vector512<int>.Count && width >= Vector512<byte>.Count)
         {
-            int vectorEnd = width - Vector512<byte>.Count;
+            int vectorEnd = (int)(Numerics.Vector512Count<byte>(width) * (nuint)Vector512<byte>.Count);
             for (int row = 0; row < height; row++)
             {
                 ref byte sourceRow = ref Unsafe.Add(ref sourceBase, row * sourceStride);
                 ref byte destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
                 int column = 0;
 
-                for (; column <= vectorEnd; column += Vector512<byte>.Count)
+                for (; column < vectorEnd; column += Vector512<byte>.Count)
                 {
                     Vector512.LoadUnsafe(ref sourceRow, (nuint)column).StoreUnsafe(ref destinationRow, (nuint)column);
                 }
@@ -394,14 +394,14 @@ internal static partial class Av1TranslationalInterPredictor
 
         if (Vector256.IsHardwareAccelerated && width >= Vector256<byte>.Count)
         {
-            int vectorEnd = width - Vector256<byte>.Count;
+            int vectorEnd = (int)(Numerics.Vector256Count<byte>(width) * (nuint)Vector256<byte>.Count);
             for (int row = 0; row < height; row++)
             {
                 ref byte sourceRow = ref Unsafe.Add(ref sourceBase, row * sourceStride);
                 ref byte destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
                 int column = 0;
 
-                for (; column <= vectorEnd; column += Vector256<byte>.Count)
+                for (; column < vectorEnd; column += Vector256<byte>.Count)
                 {
                     Vector256.LoadUnsafe(ref sourceRow, (nuint)column).StoreUnsafe(ref destinationRow, (nuint)column);
                 }
@@ -428,9 +428,9 @@ internal static partial class Av1TranslationalInterPredictor
                     continue;
                 }
 
-                int vectorEnd = width - Vector128<byte>.Count;
+                int vectorEnd = (int)(Numerics.Vector128Count<byte>(width) * (nuint)Vector128<byte>.Count);
                 int column = 0;
-                for (; column <= vectorEnd; column += Vector128<byte>.Count)
+                for (; column < vectorEnd; column += Vector128<byte>.Count)
                 {
                     Vector128.LoadUnsafe(ref sourceRow, (nuint)column).StoreUnsafe(ref destinationRow, (nuint)column);
                 }
@@ -464,14 +464,14 @@ internal static partial class Av1TranslationalInterPredictor
 
         if (Vector512.IsHardwareAccelerated && Vector<int>.Count == Vector512<int>.Count && width >= Vector512<ushort>.Count)
         {
-            int vectorEnd = width - Vector512<ushort>.Count;
+            int vectorEnd = (int)(Numerics.Vector512Count<ushort>(width) * (nuint)Vector512<ushort>.Count);
             for (int row = 0; row < height; row++)
             {
                 ref ushort sourceRow = ref Unsafe.Add(ref sourceBase, row * sourceStride);
                 ref ushort destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
                 int column = 0;
 
-                for (; column <= vectorEnd; column += Vector512<ushort>.Count)
+                for (; column < vectorEnd; column += Vector512<ushort>.Count)
                 {
                     Vector512.LoadUnsafe(ref sourceRow, (nuint)column).StoreUnsafe(ref destinationRow, (nuint)column);
                 }
@@ -487,14 +487,14 @@ internal static partial class Av1TranslationalInterPredictor
 
         if (Vector256.IsHardwareAccelerated && width >= Vector256<ushort>.Count)
         {
-            int vectorEnd = width - Vector256<ushort>.Count;
+            int vectorEnd = (int)(Numerics.Vector256Count<ushort>(width) * (nuint)Vector256<ushort>.Count);
             for (int row = 0; row < height; row++)
             {
                 ref ushort sourceRow = ref Unsafe.Add(ref sourceBase, row * sourceStride);
                 ref ushort destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
                 int column = 0;
 
-                for (; column <= vectorEnd; column += Vector256<ushort>.Count)
+                for (; column < vectorEnd; column += Vector256<ushort>.Count)
                 {
                     Vector256.LoadUnsafe(ref sourceRow, (nuint)column).StoreUnsafe(ref destinationRow, (nuint)column);
                 }
@@ -523,9 +523,9 @@ internal static partial class Av1TranslationalInterPredictor
                     continue;
                 }
 
-                int vectorEnd = width - Vector128<ushort>.Count;
+                int vectorEnd = (int)(Numerics.Vector128Count<ushort>(width) * (nuint)Vector128<ushort>.Count);
                 int column = 0;
-                for (; column <= vectorEnd; column += Vector128<ushort>.Count)
+                for (; column < vectorEnd; column += Vector128<ushort>.Count)
                 {
                     Vector128.LoadUnsafe(ref sourceRow, (nuint)column).StoreUnsafe(ref destinationRow, (nuint)column);
                 }

@@ -1689,11 +1689,11 @@ internal sealed class Av1PredictionDecoder
         // Unsigned 16-bit lanes therefore preserve every normative strength without widening to 32-bit vectors.
         if (Vector128.IsHardwareAccelerated)
         {
-            int eightSamplesFromEnd = outputCount - Vector128<short>.Count;
+            int vectorEnd = (int)(Numerics.Vector128Count<short>(outputCount) * (nuint)Vector128<short>.Count);
             switch (strength)
             {
                 case 1:
-                    for (; processed <= eightSamplesFromEnd; processed += Vector128<short>.Count)
+                    for (; processed < vectorEnd; processed += Vector128<short>.Count)
                     {
                         Vector128<ushort> source0 = Vector128.LoadUnsafe(ref edge, (nuint)(processed + 1)).AsUInt16();
                         Vector128<ushort> source1 = Vector128.LoadUnsafe(ref edge, (nuint)(processed + 2)).AsUInt16();
@@ -1703,7 +1703,7 @@ internal sealed class Av1PredictionDecoder
 
                     break;
                 case 2:
-                    for (; processed <= eightSamplesFromEnd; processed += Vector128<short>.Count)
+                    for (; processed < vectorEnd; processed += Vector128<short>.Count)
                     {
                         Vector128<ushort> source0 = Vector128.LoadUnsafe(ref edge, (nuint)(processed + 1)).AsUInt16();
                         Vector128<ushort> source1 = Vector128.LoadUnsafe(ref edge, (nuint)(processed + 2)).AsUInt16();
@@ -1713,7 +1713,7 @@ internal sealed class Av1PredictionDecoder
 
                     break;
                 default:
-                    for (; processed <= eightSamplesFromEnd; processed += Vector128<short>.Count)
+                    for (; processed < vectorEnd; processed += Vector128<short>.Count)
                     {
                         Vector128<ushort> source0 = Vector128.LoadUnsafe(ref edge, (nuint)processed).AsUInt16();
                         Vector128<ushort> source1 = Vector128.LoadUnsafe(ref edge, (nuint)(processed + 1)).AsUInt16();

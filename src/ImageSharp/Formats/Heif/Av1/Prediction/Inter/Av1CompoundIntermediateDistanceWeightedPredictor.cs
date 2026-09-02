@@ -74,8 +74,8 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
 
             if (Vector512.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector512<byte>.Count;
-                for (; column <= vectorEnd; column += Vector512<byte>.Count)
+                nuint vectorCount = Numerics.Vector512Count<byte>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector512<byte>.Count)
                 {
                     Vector512<ushort> first0 = Vector512.LoadUnsafe(ref firstReference, (nuint)column);
                     Vector512<ushort> first1 = Vector512.LoadUnsafe(ref firstReference, (nuint)(column + Vector512<ushort>.Count));
@@ -95,8 +95,8 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
 
             if (Vector256.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector256<byte>.Count;
-                for (; column <= vectorEnd; column += Vector256<byte>.Count)
+                nuint vectorCount = Numerics.Vector256Count<byte>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector256<byte>.Count)
                 {
                     Vector256<ushort> first0 = Vector256.LoadUnsafe(ref firstReference, (nuint)column);
                     Vector256<ushort> first1 = Vector256.LoadUnsafe(ref firstReference, (nuint)(column + Vector256<ushort>.Count));
@@ -116,8 +116,8 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
 
             if (Vector128.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector128<byte>.Count;
-                for (; column <= vectorEnd; column += Vector128<byte>.Count)
+                nuint vectorCount = Numerics.Vector128Count<byte>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<byte>.Count)
                 {
                     Vector128<ushort> first0 = Vector128.LoadUnsafe(ref firstReference, (nuint)column);
                     Vector128<ushort> first1 = Vector128.LoadUnsafe(
@@ -215,8 +215,8 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
 
             if (Vector512.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector512<ushort>.Count;
-                for (; column <= vectorEnd; column += Vector512<ushort>.Count)
+                nuint vectorCount = Numerics.Vector512Count<ushort>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector512<ushort>.Count)
                 {
                     Vector512<ushort> firstVector = Vector512.LoadUnsafe(ref firstReference, (nuint)column);
                     Vector512<ushort> secondVector = Vector512.LoadUnsafe(ref secondReference, (nuint)column);
@@ -233,8 +233,8 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
 
             if (Vector256.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector256<ushort>.Count;
-                for (; column <= vectorEnd; column += Vector256<ushort>.Count)
+                nuint vectorCount = Numerics.Vector256Count<ushort>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector256<ushort>.Count)
                 {
                     Vector256<ushort> firstVector = Vector256.LoadUnsafe(ref firstReference, (nuint)column);
                     Vector256<ushort> secondVector = Vector256.LoadUnsafe(ref secondReference, (nuint)column);
@@ -251,8 +251,8 @@ internal static partial class Av1CompoundIntermediateDistanceWeightedPredictor
 
             if (Vector128.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector128<ushort>.Count;
-                for (; column <= vectorEnd; column += Vector128<ushort>.Count)
+                nuint vectorCount = Numerics.Vector128Count<ushort>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<ushort>.Count)
                 {
                     Vector128<ushort> firstVector = Vector128.LoadUnsafe(ref firstReference, (nuint)column);
                     Vector128<ushort> secondVector = Vector128.LoadUnsafe(ref secondReference, (nuint)column);

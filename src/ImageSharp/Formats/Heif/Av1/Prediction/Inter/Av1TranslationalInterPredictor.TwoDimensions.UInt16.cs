@@ -74,8 +74,8 @@ internal static partial class Av1TranslationalInterPredictor
                 continue;
             }
 
-            int vectorEnd = width - Vector128<ushort>.Count;
-            for (; processedColumns <= vectorEnd; processedColumns += Vector128<ushort>.Count)
+            nuint vectorCount = Numerics.Vector128Count<ushort>(width - processedColumns);
+            for (; vectorCount > 0; vectorCount--, processedColumns += Vector128<ushort>.Count)
             {
                 Convolve(
                     ref sourceRow,
@@ -138,8 +138,8 @@ internal static partial class Av1TranslationalInterPredictor
                 continue;
             }
 
-            int vectorEnd = width - Vector128<ushort>.Count;
-            for (; processedColumns <= vectorEnd; processedColumns += Vector128<ushort>.Count)
+            nuint vectorCount = Numerics.Vector128Count<ushort>(width - processedColumns);
+            for (; vectorCount > 0; vectorCount--, processedColumns += Vector128<ushort>.Count)
             {
                 Convolve(
                     ref scratchRow,
@@ -199,7 +199,7 @@ internal static partial class Av1TranslationalInterPredictor
         int scratchStride = Math.Max(width, MinimumScratchStride);
         int intermediateHeight = height + verticalTapCount - 1;
         Vector256<int> horizontalInitial = initial + Vector256.Create(1 << (bitDepth + FilterBits - 1));
-        int vectorEnd = width - Vector256<ushort>.Count;
+        int vectorEnd = (int)(Numerics.Vector256Count<ushort>(width) * (nuint)Vector256<ushort>.Count);
 
         for (int row = 0; row < intermediateHeight; row++)
         {
@@ -211,7 +211,7 @@ internal static partial class Av1TranslationalInterPredictor
             ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
             int processedColumns = 0;
 
-            for (; processedColumns <= vectorEnd; processedColumns += Vector256<ushort>.Count)
+            for (; processedColumns < vectorEnd; processedColumns += Vector256<ushort>.Count)
             {
                 Convolve(
                     ref sourceRow,
@@ -253,7 +253,7 @@ internal static partial class Av1TranslationalInterPredictor
             ref ushort destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
             int processedColumns = 0;
 
-            for (; processedColumns <= vectorEnd; processedColumns += Vector256<ushort>.Count)
+            for (; processedColumns < vectorEnd; processedColumns += Vector256<ushort>.Count)
             {
                 Convolve(
                     ref scratchRow,
@@ -313,7 +313,7 @@ internal static partial class Av1TranslationalInterPredictor
         int scratchStride = Math.Max(width, MinimumScratchStride);
         int intermediateHeight = height + verticalTapCount - 1;
         Vector512<int> horizontalInitial = initial + Vector512.Create(1 << (bitDepth + FilterBits - 1));
-        int vectorEnd = width - Vector512<ushort>.Count;
+        int vectorEnd = (int)(Numerics.Vector512Count<ushort>(width) * (nuint)Vector512<ushort>.Count);
 
         for (int row = 0; row < intermediateHeight; row++)
         {
@@ -325,7 +325,7 @@ internal static partial class Av1TranslationalInterPredictor
             ref short scratchRow = ref Unsafe.Add(ref scratchBase, row * scratchStride);
             int processedColumns = 0;
 
-            for (; processedColumns <= vectorEnd; processedColumns += Vector512<ushort>.Count)
+            for (; processedColumns < vectorEnd; processedColumns += Vector512<ushort>.Count)
             {
                 Convolve(
                     ref sourceRow,
@@ -367,7 +367,7 @@ internal static partial class Av1TranslationalInterPredictor
             ref ushort destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
             int processedColumns = 0;
 
-            for (; processedColumns <= vectorEnd; processedColumns += Vector512<ushort>.Count)
+            for (; processedColumns < vectorEnd; processedColumns += Vector512<ushort>.Count)
             {
                 Convolve(
                     ref scratchRow,

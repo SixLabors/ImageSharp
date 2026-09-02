@@ -17,6 +17,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 internal class Av1SymbolEncoder : IDisposable
 {
     /// <summary>
+    /// The largest coefficient-context plane required after AV1 removes the uncoded half of 64-point transforms.
+    /// </summary>
+    private const int MaximumCoefficientContextCount = (Av1Constants.MaxTransformSize / 2) * (Av1Constants.MaxTransformSize / 2);
+
+    /// <summary>
     /// The tile-adaptive intra-block-copy distribution.
     /// </summary>
     private readonly Av1Distribution tileIntraBlockCopy;
@@ -132,9 +137,14 @@ internal class Av1SymbolEncoder : IDisposable
     private bool isDisposed;
 
     /// <summary>
-    /// The configuration providing output and coefficient-context memory.
+    /// The reusable padded coefficient levels used to derive entropy contexts.
     /// </summary>
-    private readonly Configuration configuration;
+    private readonly Av1LevelBuffer levels;
+
+    /// <summary>
+    /// The reusable raster-order coefficient contexts for one transform.
+    /// </summary>
+    private readonly IMemoryOwner<sbyte> coefficientContexts;
 
     /// <summary>
     /// The range writer producing the current tile payload.
@@ -178,7 +188,8 @@ internal class Av1SymbolEncoder : IDisposable
         this.coefficientsBaseEndOfBlock = Av1DefaultDistributions.GetBaseEndOfBlock(qIndex);
         this.dcSign = Av1DefaultDistributions.GetDcSign(qIndex);
         this.endOfBlockExtra = Av1DefaultDistributions.GetEndOfBlockExtra(qIndex);
-        this.configuration = configuration;
+        this.levels = new(configuration);
+        this.coefficientContexts = configuration.MemoryAllocator.Allocate<sbyte>(MaximumCoefficientContextCount);
         this.writer = new(configuration, initialSize, updateCdf);
         this.baseQIndex = qIndex;
     }
@@ -275,9 +286,11 @@ internal class Av1SymbolEncoder : IDisposable
 
         ref Av1SymbolWriter w = ref this.writer;
 
-        // AV1 omits high-frequency coefficients beyond 32 samples on every 64-point transform dimension.
-        using Av1LevelBuffer levels = new(this.configuration, new Size(width, height));
-        Span<sbyte> coefficientContexts = new sbyte[width * height];
+        // AV1 omits high-frequency coefficients beyond 32 samples on every 64-point transform dimension. The tile
+        // owns maximum-sized workspaces so repeated transform coding changes only their active views.
+        this.levels.Reset(new Size(width, height));
+        Span<sbyte> coefficientContexts = this.coefficientContexts.Memory.Span[..(width * height)];
+        coefficientContexts.Clear();
 
         Guard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));
 
@@ -288,7 +301,7 @@ internal class Av1SymbolEncoder : IDisposable
             return 0;
         }
 
-        levels.Initialize(coefficientBuffer);
+        this.levels.Initialize(coefficientBuffer);
         if (componentType == Av1ComponentType.Luminance)
         {
             this.WriteTransformType(transformType, transformSize, useReducedTransformSet, this.baseQIndex, filterIntraMode, intraDirection);
@@ -296,14 +309,14 @@ internal class Av1SymbolEncoder : IDisposable
 
         this.WriteEndOfBlockPosition(endOfBlock, componentType, transformClass, transformSize, transformSizeContext);
 
-        Av1SymbolContextHelper.GetNzMapContexts(levels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
+        Av1SymbolContextHelper.GetNzMapContexts(this.levels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
         int limitedTransformSizeContext = Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
         for (c = endOfBlock - 1; c >= 0; --c)
         {
             short pos = scan[c];
             int v = coefficientBuffer[pos];
             short coeffContext = coefficientContexts[pos];
-            Point position = levels.GetPosition(pos);
+            Point position = this.levels.GetPosition(pos);
             int level = Math.Abs(v);
 
             if (c == endOfBlock - 1)
@@ -319,7 +332,7 @@ internal class Av1SymbolEncoder : IDisposable
             {
                 // Base-range symbols extend levels above the two base levels in fixed-size chunks.
                 int baseRange = level - 1 - Av1Constants.BaseLevelsCount;
-                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(levels, position, transformClass);
+                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(this.levels, position, transformClass);
                 for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
                 {
                     int k = Math.Min(baseRange - idx, Av1Constants.BaseRangeSizeMinus1);
@@ -429,6 +442,8 @@ internal class Av1SymbolEncoder : IDisposable
     {
         if (!this.isDisposed)
         {
+            this.coefficientContexts.Dispose();
+            this.levels.Dispose();
             this.writer.Dispose();
             this.isDisposed = true;
         }

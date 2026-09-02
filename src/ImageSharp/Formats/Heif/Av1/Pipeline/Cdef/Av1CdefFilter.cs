@@ -60,7 +60,8 @@ internal static partial class Av1CdefFilter
                 int firstDestinationRow = destinationOffset + (row * destinationStride);
                 int secondDestinationRow = firstDestinationRow + destinationStride;
                 int column = 0;
-                for (; column <= width - Vector128<byte>.Count; column += Vector128<byte>.Count)
+                nuint vectorCount = Numerics.Vector128Count<byte>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<byte>.Count)
                 {
                     Vector128<byte> first = Vector128.LoadUnsafe(ref sourceBase, (nuint)(firstSourceRow + column));
                     Vector128<byte> second = Vector128.LoadUnsafe(ref sourceBase, (nuint)(secondSourceRow + column));

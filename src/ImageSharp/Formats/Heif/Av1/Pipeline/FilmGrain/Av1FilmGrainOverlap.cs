@@ -210,8 +210,8 @@ internal static class Av1FilmGrainOverlap
         Vector512<int> rounding = Vector512.Create(16);
         Vector512<int> minima = Vector512.Create(minimum);
         Vector512<int> maxima = Vector512.Create(maximum);
-        int vectorEnd = width - Vector512<int>.Count;
-        for (; column <= vectorEnd; column += Vector512<int>.Count)
+        nuint vectorCount = Numerics.Vector512Count<int>(width - column);
+        for (; vectorCount > 0; vectorCount--, column += Vector512<int>.Count)
         {
             Vector512<int> leftValues = Vector512.LoadUnsafe(ref leftBase, (nuint)column);
             Vector512<int> rightValues = Vector512.LoadUnsafe(ref rightBase, (nuint)column);
@@ -257,8 +257,8 @@ internal static class Av1FilmGrainOverlap
         Vector256<int> rounding = Vector256.Create(16);
         Vector256<int> minima = Vector256.Create(minimum);
         Vector256<int> maxima = Vector256.Create(maximum);
-        int vectorEnd = width - Vector256<int>.Count;
-        for (; column <= vectorEnd; column += Vector256<int>.Count)
+        nuint vectorCount = Numerics.Vector256Count<int>(width - column);
+        for (; vectorCount > 0; vectorCount--, column += Vector256<int>.Count)
         {
             Vector256<int> leftValues = Vector256.LoadUnsafe(ref leftBase, (nuint)column);
             Vector256<int> rightValues = Vector256.LoadUnsafe(ref rightBase, (nuint)column);
@@ -304,8 +304,8 @@ internal static class Av1FilmGrainOverlap
         Vector128<int> rounding = Vector128.Create(16);
         Vector128<int> minima = Vector128.Create(minimum);
         Vector128<int> maxima = Vector128.Create(maximum);
-        int vectorEnd = width - Vector128<int>.Count;
-        for (; column <= vectorEnd; column += Vector128<int>.Count)
+        nuint vectorCount = Numerics.Vector128Count<int>(width - column);
+        for (; vectorCount > 0; vectorCount--, column += Vector128<int>.Count)
         {
             Vector128<int> leftValues = Vector128.LoadUnsafe(ref leftBase, (nuint)column);
             Vector128<int> rightValues = Vector128.LoadUnsafe(ref rightBase, (nuint)column);

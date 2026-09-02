@@ -64,9 +64,6 @@ internal sealed class HeifEncoderCore
         this.WriteMetadataBox(items, links, stream);
         this.WriteMediaDataBox(compressedPixels, stream);
         stream.Flush();
-
-        HeifMetadata meta = image.Metadata.GetHeifMetadata();
-        meta.CompressionMethod = this.encoder.CompressionMethod;
     }
 
     /// <summary>
@@ -448,13 +445,6 @@ internal sealed class HeifEncoderCore
             throw new NotSupportedException("Legacy JPEG image items support only 8-bit component encoding.");
         }
 
-        if (this.encoder.Quality == 0)
-        {
-            // Zero is meaningful to the AV1 quality scale, but ImageSharp's JPEG encoder deliberately
-            // exposes the JPEG quality scale as 1 through 100. Reject the codec-specific mismatch at this boundary.
-            throw new NotSupportedException("Legacy JPEG image items support quality values in the range [1..100].");
-        }
-
         JpegColorType colorType = this.encoder.ChromaSubsampling switch
         {
             null or HeifChromaSubsampling.Yuv420 => JpegColorType.YCbCrRatio420,
@@ -467,7 +457,9 @@ internal sealed class HeifEncoderCore
         ChunkedMemoryStream stream = new(this.configuration.MemoryAllocator);
         JpegEncoder encoder = new()
         {
-            Quality = this.encoder.Quality,
+            // The HEIF quality scale includes zero while the JPEG payload encoder starts at one.
+            // Map the lowest HEIF setting to the lowest representable JPEG setting.
+            Quality = this.encoder.Quality == 0 ? 1 : this.encoder.Quality,
             ColorType = colorType
         };
 

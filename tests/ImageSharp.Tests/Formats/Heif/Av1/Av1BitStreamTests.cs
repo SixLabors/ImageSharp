@@ -175,6 +175,7 @@ public class Av1BitStreamTests
 
     [InlineData(4, 0, 1, 2, 3)]
     [InlineData(5, 0, 1, 2, 3)]
+    [InlineData(5, 1, 2, 3, 4)]
     [InlineData(8, 0, 1, 2, 3)]
     [InlineData(8, 4, 5, 6, 7)]
     [InlineData(16, 15, 0, 5, 8)]

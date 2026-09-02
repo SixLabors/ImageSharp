@@ -204,8 +204,8 @@ internal static partial class Av1DirectionalIntraPredictor
                 // left by the wider path, so the row is written once without requiring padded destination storage.
                 if (Vector512.IsHardwareAccelerated)
                 {
-                    int oneVectorFromEnd = validCount - Vector512<byte>.Count;
-                    for (; index <= oneVectorFromEnd; index += Vector512<byte>.Count)
+                    nuint vectorCount = Numerics.Vector512Count<byte>(validCount - index);
+                    for (; vectorCount > 0; vectorCount--, index += Vector512<byte>.Count)
                     {
                         Vector512<byte> left = Vector512.LoadUnsafe(ref referenceBase, (nuint)(basis + index));
                         Vector512<byte> right = Vector512.LoadUnsafe(ref referenceBase, (nuint)(basis + index + 1));
@@ -215,8 +215,8 @@ internal static partial class Av1DirectionalIntraPredictor
 
                 if (Vector256.IsHardwareAccelerated)
                 {
-                    int oneVectorFromEnd = validCount - Vector256<byte>.Count;
-                    for (; index <= oneVectorFromEnd; index += Vector256<byte>.Count)
+                    nuint vectorCount = Numerics.Vector256Count<byte>(validCount - index);
+                    for (; vectorCount > 0; vectorCount--, index += Vector256<byte>.Count)
                     {
                         Vector256<byte> left = Vector256.LoadUnsafe(ref referenceBase, (nuint)(basis + index));
                         Vector256<byte> right = Vector256.LoadUnsafe(ref referenceBase, (nuint)(basis + index + 1));
@@ -226,8 +226,8 @@ internal static partial class Av1DirectionalIntraPredictor
 
                 if (Vector128.IsHardwareAccelerated)
                 {
-                    int oneVectorFromEnd = validCount - Vector128<byte>.Count;
-                    for (; index <= oneVectorFromEnd; index += Vector128<byte>.Count)
+                    nuint vectorCount = Numerics.Vector128Count<byte>(validCount - index);
+                    for (; vectorCount > 0; vectorCount--, index += Vector128<byte>.Count)
                     {
                         Vector128<byte> left = Vector128.LoadUnsafe(ref referenceBase, (nuint)(basis + index));
                         Vector128<byte> right = Vector128.LoadUnsafe(ref referenceBase, (nuint)(basis + index + 1));
@@ -312,8 +312,8 @@ internal static partial class Av1DirectionalIntraPredictor
                 // weighted sum. The largest supported 12-bit sample therefore cannot overflow an intermediate lane.
                 if (Vector512.IsHardwareAccelerated)
                 {
-                    int oneVectorFromEnd = validCount - Vector512<short>.Count;
-                    for (; index <= oneVectorFromEnd; index += Vector512<short>.Count)
+                    nuint vectorCount = Numerics.Vector512Count<short>(validCount - index);
+                    for (; vectorCount > 0; vectorCount--, index += Vector512<short>.Count)
                     {
                         Vector512<short> left = Vector512.LoadUnsafe(ref referenceBase, (nuint)(basis + index));
                         Vector512<short> right = Vector512.LoadUnsafe(ref referenceBase, (nuint)(basis + index + 1));
@@ -323,8 +323,8 @@ internal static partial class Av1DirectionalIntraPredictor
 
                 if (Vector256.IsHardwareAccelerated)
                 {
-                    int oneVectorFromEnd = validCount - Vector256<short>.Count;
-                    for (; index <= oneVectorFromEnd; index += Vector256<short>.Count)
+                    nuint vectorCount = Numerics.Vector256Count<short>(validCount - index);
+                    for (; vectorCount > 0; vectorCount--, index += Vector256<short>.Count)
                     {
                         Vector256<short> left = Vector256.LoadUnsafe(ref referenceBase, (nuint)(basis + index));
                         Vector256<short> right = Vector256.LoadUnsafe(ref referenceBase, (nuint)(basis + index + 1));
@@ -334,8 +334,8 @@ internal static partial class Av1DirectionalIntraPredictor
 
                 if (Vector128.IsHardwareAccelerated)
                 {
-                    int oneVectorFromEnd = validCount - Vector128<short>.Count;
-                    for (; index <= oneVectorFromEnd; index += Vector128<short>.Count)
+                    nuint vectorCount = Numerics.Vector128Count<short>(validCount - index);
+                    for (; vectorCount > 0; vectorCount--, index += Vector128<short>.Count)
                     {
                         Vector128<short> left = Vector128.LoadUnsafe(ref referenceBase, (nuint)(basis + index));
                         Vector128<short> right = Vector128.LoadUnsafe(ref referenceBase, (nuint)(basis + index + 1));

@@ -316,8 +316,8 @@ internal static class Av1DcIntraPredictor
             // length without a separate dispatch tree and leaves only an incomplete final vector to scalar code.
             if (Vector512.IsHardwareAccelerated)
             {
-                int oneVectorFromEnd = samples.Length - Vector512<byte>.Count;
-                for (; index <= oneVectorFromEnd; index += Vector512<byte>.Count)
+                nuint vectorCount = Numerics.Vector512Count<byte>(samples.Length - index);
+                for (; vectorCount > 0; vectorCount--, index += Vector512<byte>.Count)
                 {
                     sum += TOperator.Sum(Vector512.LoadUnsafe(ref samplesBase, (nuint)index));
                 }
@@ -325,8 +325,8 @@ internal static class Av1DcIntraPredictor
 
             if (Vector256.IsHardwareAccelerated)
             {
-                int oneVectorFromEnd = samples.Length - Vector256<byte>.Count;
-                for (; index <= oneVectorFromEnd; index += Vector256<byte>.Count)
+                nuint vectorCount = Numerics.Vector256Count<byte>(samples.Length - index);
+                for (; vectorCount > 0; vectorCount--, index += Vector256<byte>.Count)
                 {
                     sum += TOperator.Sum(Vector256.LoadUnsafe(ref samplesBase, (nuint)index));
                 }
@@ -334,8 +334,8 @@ internal static class Av1DcIntraPredictor
 
             if (Vector128.IsHardwareAccelerated)
             {
-                int oneVectorFromEnd = samples.Length - Vector128<byte>.Count;
-                for (; index <= oneVectorFromEnd; index += Vector128<byte>.Count)
+                nuint vectorCount = Numerics.Vector128Count<byte>(samples.Length - index);
+                for (; vectorCount > 0; vectorCount--, index += Vector128<byte>.Count)
                 {
                     sum += TOperator.Sum(Vector128.LoadUnsafe(ref samplesBase, (nuint)index));
                 }
@@ -362,8 +362,8 @@ internal static class Av1DcIntraPredictor
 
             if (Vector512.IsHardwareAccelerated)
             {
-                int oneVectorFromEnd = samples.Length - Vector512<short>.Count;
-                for (; index <= oneVectorFromEnd; index += Vector512<short>.Count)
+                nuint vectorCount = Numerics.Vector512Count<short>(samples.Length - index);
+                for (; vectorCount > 0; vectorCount--, index += Vector512<short>.Count)
                 {
                     sum += TOperator.Sum(Vector512.LoadUnsafe(ref samplesBase, (nuint)index));
                 }
@@ -371,8 +371,8 @@ internal static class Av1DcIntraPredictor
 
             if (Vector256.IsHardwareAccelerated)
             {
-                int oneVectorFromEnd = samples.Length - Vector256<short>.Count;
-                for (; index <= oneVectorFromEnd; index += Vector256<short>.Count)
+                nuint vectorCount = Numerics.Vector256Count<short>(samples.Length - index);
+                for (; vectorCount > 0; vectorCount--, index += Vector256<short>.Count)
                 {
                     sum += TOperator.Sum(Vector256.LoadUnsafe(ref samplesBase, (nuint)index));
                 }
@@ -380,8 +380,8 @@ internal static class Av1DcIntraPredictor
 
             if (Vector128.IsHardwareAccelerated)
             {
-                int oneVectorFromEnd = samples.Length - Vector128<short>.Count;
-                for (; index <= oneVectorFromEnd; index += Vector128<short>.Count)
+                nuint vectorCount = Numerics.Vector128Count<short>(samples.Length - index);
+                for (; vectorCount > 0; vectorCount--, index += Vector128<short>.Count)
                 {
                     sum += TOperator.Sum(Vector128.LoadUnsafe(ref samplesBase, (nuint)index));
                 }

@@ -62,8 +62,8 @@ internal static partial class Av1TranslationalInterPredictor
                 continue;
             }
 
-            int vectorEnd = width - Vector128<byte>.Count;
-            for (; processedColumns <= vectorEnd; processedColumns += Vector128<byte>.Count)
+            nuint vectorCount = Numerics.Vector128Count<byte>(width - processedColumns);
+            for (; vectorCount > 0; vectorCount--, processedColumns += Vector128<byte>.Count)
             {
                 Convolve(
                     ref sourceRow,
@@ -107,7 +107,7 @@ internal static partial class Av1TranslationalInterPredictor
         ref byte sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
         ref byte destinationBase = ref MemoryMarshal.GetReference(destination);
         ref short coefficientBase = ref MemoryMarshal.GetReference(coefficients);
-        int vectorEnd = width - Vector256<byte>.Count;
+        int vectorEnd = (int)(Numerics.Vector256Count<byte>(width) * (nuint)Vector256<byte>.Count);
 
         for (int row = 0; row < height; row++)
         {
@@ -115,7 +115,7 @@ internal static partial class Av1TranslationalInterPredictor
             ref byte destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
             int processedColumns = 0;
 
-            for (; processedColumns <= vectorEnd; processedColumns += Vector256<byte>.Count)
+            for (; processedColumns < vectorEnd; processedColumns += Vector256<byte>.Count)
             {
                 Convolve(
                     ref sourceRow,
@@ -159,7 +159,7 @@ internal static partial class Av1TranslationalInterPredictor
         ref byte sourceBase = ref Unsafe.Add(ref MemoryMarshal.GetReference(source), sourceOrigin);
         ref byte destinationBase = ref MemoryMarshal.GetReference(destination);
         ref short coefficientBase = ref MemoryMarshal.GetReference(coefficients);
-        int vectorEnd = width - Vector512<byte>.Count;
+        int vectorEnd = (int)(Numerics.Vector512Count<byte>(width) * (nuint)Vector512<byte>.Count);
 
         for (int row = 0; row < height; row++)
         {
@@ -167,7 +167,7 @@ internal static partial class Av1TranslationalInterPredictor
             ref byte destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
             int processedColumns = 0;
 
-            for (; processedColumns <= vectorEnd; processedColumns += Vector512<byte>.Count)
+            for (; processedColumns < vectorEnd; processedColumns += Vector512<byte>.Count)
             {
                 Convolve(
                     ref sourceRow,
@@ -232,8 +232,8 @@ internal static partial class Av1TranslationalInterPredictor
                 continue;
             }
 
-            int vectorEnd = width - Vector128<ushort>.Count;
-            for (; processedColumns <= vectorEnd; processedColumns += Vector128<ushort>.Count)
+            nuint vectorCount = Numerics.Vector128Count<ushort>(width - processedColumns);
+            for (; vectorCount > 0; vectorCount--, processedColumns += Vector128<ushort>.Count)
             {
                 Convolve(ref sourceRow, tapStride, (nuint)processedColumns, ref coefficientBase, tapCount, initial, out Vector128<int> result0, out Vector128<int> result1);
                 Round(ref result0, ref result1, firstRound, secondRound);
@@ -268,7 +268,7 @@ internal static partial class Av1TranslationalInterPredictor
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
         ref short coefficientBase = ref MemoryMarshal.GetReference(coefficients);
         int maximum = (1 << bitDepth) - 1;
-        int vectorEnd = width - Vector256<ushort>.Count;
+        int vectorEnd = (int)(Numerics.Vector256Count<ushort>(width) * (nuint)Vector256<ushort>.Count);
 
         for (int row = 0; row < height; row++)
         {
@@ -277,7 +277,7 @@ internal static partial class Av1TranslationalInterPredictor
             ref ushort destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
             int processedColumns = 0;
 
-            for (; processedColumns <= vectorEnd; processedColumns += Vector256<ushort>.Count)
+            for (; processedColumns < vectorEnd; processedColumns += Vector256<ushort>.Count)
             {
                 Convolve(ref sourceRow, tapStride, (nuint)processedColumns, ref coefficientBase, tapCount, initial, out Vector256<int> result0, out Vector256<int> result1);
                 Round(ref result0, ref result1, firstRound, secondRound);
@@ -312,7 +312,7 @@ internal static partial class Av1TranslationalInterPredictor
         ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
         ref short coefficientBase = ref MemoryMarshal.GetReference(coefficients);
         int maximum = (1 << bitDepth) - 1;
-        int vectorEnd = width - Vector512<ushort>.Count;
+        int vectorEnd = (int)(Numerics.Vector512Count<ushort>(width) * (nuint)Vector512<ushort>.Count);
 
         for (int row = 0; row < height; row++)
         {
@@ -321,7 +321,7 @@ internal static partial class Av1TranslationalInterPredictor
             ref ushort destinationRow = ref Unsafe.Add(ref destinationBase, row * destinationStride);
             int processedColumns = 0;
 
-            for (; processedColumns <= vectorEnd; processedColumns += Vector512<ushort>.Count)
+            for (; processedColumns < vectorEnd; processedColumns += Vector512<ushort>.Count)
             {
                 Convolve(ref sourceRow, tapStride, (nuint)processedColumns, ref coefficientBase, tapCount, initial, out Vector512<int> result0, out Vector512<int> result1);
                 Round(ref result0, ref result1, firstRound, secondRound);

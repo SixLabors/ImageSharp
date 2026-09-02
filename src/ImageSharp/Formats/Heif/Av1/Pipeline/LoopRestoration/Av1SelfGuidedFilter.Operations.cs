@@ -252,8 +252,8 @@ internal static partial class Av1SelfGuidedFilter
             Vector256<int> squareCarry = Vector256<int>.Zero;
             Vector256<int> sumCarry = Vector256<int>.Zero;
             int column = 0;
-            int vectorEnd = width - Vector256<int>.Count;
-            for (; column <= vectorEnd; column += Vector256<int>.Count)
+            nuint vectorCount = Numerics.Vector256Count<int>(width - column);
+            for (; vectorCount > 0; vectorCount--, column += Vector256<int>.Count)
             {
                 // Eight packed 16-bit samples become eight 32-bit lanes. The prefix scans mirror
                 // the reference decoder's scan_32, and the replicated carry joins consecutive vector batches.
@@ -323,8 +323,8 @@ internal static partial class Av1SelfGuidedFilter
             Vector128<int> squareCarry = Vector128<int>.Zero;
             Vector128<int> sumCarry = Vector128<int>.Zero;
             int column = 0;
-            int vectorEnd = width - Vector128<int>.Count;
-            for (; column <= vectorEnd; column += Vector128<int>.Count)
+            nuint vectorCount = Numerics.Vector128Count<int>(width - column);
+            for (; vectorCount > 0; vectorCount--, column += Vector128<int>.Count)
             {
                 // Loading through Vector64 avoids reading beyond the four samples owned by this
                 // batch. Widening is normalized by the runtime for both x86 and Arm64 targets.
@@ -827,11 +827,11 @@ internal static partial class Av1SelfGuidedFilter
             int roundingBits = SelfGuidedBits + ((row & 1) == 0 ? 5 : 4) - RestorationBits;
             Vector256<int> rounding = Vector256.Create(1 << (roundingBits - 1));
             int column = 0;
-            int vectorEnd = width - Vector256<int>.Count;
+            int vectorEnd = (int)(Numerics.Vector256Count<int>(width) * (nuint)Vector256<int>.Count);
 
             // Filtered signals use Q4 precision. Projection applies the signaled Q7 weights to their difference from
             // the unfiltered Q4 sample, then performs the combined Q11 rounding shift once before clipping.
-            for (; column <= vectorEnd; column += Vector256<int>.Count)
+            for (; column < vectorEnd; column += Vector256<int>.Count)
             {
                 Vector256<int> factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride, row, vector);
                 Vector256<int> means = CrossSum(localMeans, coefficientRowOffset + column, bufferStride, row, vector);
@@ -886,11 +886,11 @@ internal static partial class Av1SelfGuidedFilter
             int roundingBits = SelfGuidedBits + ((row & 1) == 0 ? 5 : 4) - RestorationBits;
             Vector128<int> rounding = Vector128.Create(1 << (roundingBits - 1));
             int column = 0;
-            int vectorEnd = width - Vector128<int>.Count;
+            int vectorEnd = (int)(Numerics.Vector128Count<int>(width) * (nuint)Vector128<int>.Count);
 
             // The 128-bit path uses the same Q4/Q7 projection equation. The four-sample load and store are deliberately
             // 64 bits wide so a tightly strided destination row never requires writable padding.
-            for (; column <= vectorEnd; column += Vector128<int>.Count)
+            for (; column < vectorEnd; column += Vector128<int>.Count)
             {
                 Vector128<int> factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride, row, vector);
                 Vector128<int> means = CrossSum(localMeans, coefficientRowOffset + column, bufferStride, row, vector);
@@ -946,8 +946,8 @@ internal static partial class Av1SelfGuidedFilter
             int filteredRowOffset = row * width;
             int coefficientRowOffset = bufferOrigin + (row * bufferStride);
             int column = 0;
-            int vectorEnd = width - Vector256<int>.Count;
-            for (; column <= vectorEnd; column += Vector256<int>.Count)
+            nuint vectorCount = Numerics.Vector256Count<int>(width - column);
+            for (; vectorCount > 0; vectorCount--, column += Vector256<int>.Count)
             {
                 Vector256<int> factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride, vector);
                 Vector256<int> means = CrossSum(localMeans, coefficientRowOffset + column, bufferStride, vector);
@@ -1002,8 +1002,8 @@ internal static partial class Av1SelfGuidedFilter
             int filteredRowOffset = row * width;
             int coefficientRowOffset = bufferOrigin + (row * bufferStride);
             int column = 0;
-            int vectorEnd = width - Vector128<int>.Count;
-            for (; column <= vectorEnd; column += Vector128<int>.Count)
+            nuint vectorCount = Numerics.Vector128Count<int>(width - column);
+            for (; vectorCount > 0; vectorCount--, column += Vector128<int>.Count)
             {
                 Vector128<int> factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride, vector);
                 Vector128<int> means = CrossSum(localMeans, coefficientRowOffset + column, bufferStride, vector);
@@ -1255,8 +1255,8 @@ internal static partial class Av1SelfGuidedFilter
             int destinationRowOffset = row * destinationStride;
             int filteredRowOffset = row * width;
             int column = 0;
-            int vectorEnd = width - Vector256<int>.Count;
-            for (; column <= vectorEnd; column += Vector256<int>.Count)
+            nuint vectorCount = Numerics.Vector256Count<int>(width - column);
+            for (; vectorCount > 0; vectorCount--, column += Vector256<int>.Count)
             {
                 Vector128<ushort> packed = Vector128.LoadUnsafe(ref sourceBase, (nuint)(sourceRowOffset + column));
                 Vector256<int> samples = Vector256.WidenLower(Vector256.Create(packed, Vector128<ushort>.Zero)).AsInt32();
@@ -1348,8 +1348,8 @@ internal static partial class Av1SelfGuidedFilter
             int destinationRowOffset = row * destinationStride;
             int filteredRowOffset = row * width;
             int column = 0;
-            int vectorEnd = width - Vector128<int>.Count;
-            for (; column <= vectorEnd; column += Vector128<int>.Count)
+            nuint vectorCount = Numerics.Vector128Count<int>(width - column);
+            for (; vectorCount > 0; vectorCount--, column += Vector128<int>.Count)
             {
                 ref ushort sourceReference = ref Unsafe.Add(ref sourceBase, sourceRowOffset + column);
                 Vector64<ushort> packed = Unsafe.As<ushort, Vector64<ushort>>(ref sourceReference);

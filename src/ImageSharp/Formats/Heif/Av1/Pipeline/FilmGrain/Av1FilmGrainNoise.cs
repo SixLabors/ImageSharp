@@ -264,11 +264,11 @@ internal static class Av1FilmGrainNoise
             int sampleRowOffset = row * sampleStride;
             int grainRowOffset = row * grainStride;
             int column = 0;
-            int vectorEnd = width - Vector256<int>.Count;
+            int vectorEnd = (int)(Numerics.Vector256Count<int>(width) * (nuint)Vector256<int>.Count);
 
             // Samples, grain, and scale indices share the same lane coordinate. No permutation is required between
             // the lookup, fixed-point multiply, clipping, and native-sample store.
-            for (; column <= vectorEnd; column += Vector256<int>.Count)
+            for (; column < vectorEnd; column += Vector256<int>.Count)
             {
                 ref TSample destination = ref Unsafe.Add(ref sampleBase, sampleRowOffset + column);
                 Vector256<int> source = Av1FilmGrainSampleOperations<TSample>.Load8(ref destination);
@@ -319,11 +319,11 @@ internal static class Av1FilmGrainNoise
             int sampleRowOffset = row * sampleStride;
             int grainRowOffset = row * grainStride;
             int column = 0;
-            int vectorEnd = width - Vector128<int>.Count;
+            int vectorEnd = (int)(Numerics.Vector128Count<int>(width) * (nuint)Vector128<int>.Count);
 
             // Four scalar table reads assemble the scale vector; the rest of the normative grain equation remains
             // lane-wise, including interpolation for 10- and 12-bit coordinates.
-            for (; column <= vectorEnd; column += Vector128<int>.Count)
+            for (; column < vectorEnd; column += Vector128<int>.Count)
             {
                 ref TSample destination = ref Unsafe.Add(ref sampleBase, sampleRowOffset + column);
                 Vector128<int> source = Av1FilmGrainSampleOperations<TSample>.Load4(ref destination);
@@ -570,11 +570,11 @@ internal static class Av1FilmGrainNoise
             int chromaRowOffset = row * chromaStride;
             int grainRowOffset = row * grainStride;
             int column = 0;
-            int vectorEnd = width - Vector256<int>.Count;
+            int vectorEnd = (int)(Numerics.Vector256Count<int>(width) * (nuint)Vector256<int>.Count);
 
             // Each lane represents one chroma coordinate and its corresponding reconstructed-luma coordinate. The Q6
             // luma/chroma blend is clamped to a legal sample code before it becomes a scaling-table index.
-            for (; column <= vectorEnd; column += Vector256<int>.Count)
+            for (; column < vectorEnd; column += Vector256<int>.Count)
             {
                 ref TSample lumaSource = ref Unsafe.Add(ref lumaRow, column << subsamplingX);
                 Vector256<int> averageLuma = Av1FilmGrainSampleOperations<TSample>.LoadChromaLuma8(ref lumaSource, subsamplingX);
@@ -701,11 +701,11 @@ internal static class Av1FilmGrainNoise
             int chromaRowOffset = row * chromaStride;
             int grainRowOffset = row * grainStride;
             int column = 0;
-            int vectorEnd = width - Vector128<int>.Count;
+            int vectorEnd = (int)(Numerics.Vector128Count<int>(width) * (nuint)Vector128<int>.Count);
 
             // The four-lane path preserves the same coordinate alignment and Q6 scaling-index arithmetic. Only the
             // table read changes from a hardware gather to four scalar reads assembled into a vector.
-            for (; column <= vectorEnd; column += Vector128<int>.Count)
+            for (; column < vectorEnd; column += Vector128<int>.Count)
             {
                 ref TSample lumaSource = ref Unsafe.Add(ref lumaRow, column << subsamplingX);
                 Vector128<int> averageLuma = Av1FilmGrainSampleOperations<TSample>.LoadChromaLuma4(ref lumaSource, subsamplingX);

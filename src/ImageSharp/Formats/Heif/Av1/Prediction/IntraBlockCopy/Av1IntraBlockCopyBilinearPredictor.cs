@@ -110,7 +110,7 @@ internal static partial class Av1IntraBlockCopyBilinearPredictor
         // cumulative narrower tiers preserve the same contract for future legal widths without over-reading a tail.
         if (Vector512.IsHardwareAccelerated)
         {
-            int vectorizedColumns = width - (width % Vector512<byte>.Count);
+            int vectorizedColumns = (int)(Numerics.Vector512Count<byte>(width) * (nuint)Vector512<byte>.Count);
             if (vectorizedColumns > 0)
             {
                 for (int row = 0; row < height; row++)
@@ -136,7 +136,7 @@ internal static partial class Av1IntraBlockCopyBilinearPredictor
         if (Vector256.IsHardwareAccelerated)
         {
             int remainingColumns = width - processedColumns;
-            int vectorizedColumns = remainingColumns - (remainingColumns % Vector256<byte>.Count);
+            int vectorizedColumns = (int)(Numerics.Vector256Count<byte>(remainingColumns) * (nuint)Vector256<byte>.Count);
             int endColumn = processedColumns + vectorizedColumns;
 
             for (int row = 0; row < height; row++)
@@ -161,7 +161,7 @@ internal static partial class Av1IntraBlockCopyBilinearPredictor
         if (Vector128.IsHardwareAccelerated)
         {
             int remainingColumns = width - processedColumns;
-            int vectorizedColumns = remainingColumns - (remainingColumns % Vector128<byte>.Count);
+            int vectorizedColumns = (int)(Numerics.Vector128Count<byte>(remainingColumns) * (nuint)Vector128<byte>.Count);
             int endColumn = processedColumns + vectorizedColumns;
 
             for (int row = 0; row < height; row++)
@@ -244,7 +244,7 @@ internal static partial class Av1IntraBlockCopyBilinearPredictor
         // continuation as the byte path.
         if (Vector512.IsHardwareAccelerated)
         {
-            int vectorizedColumns = width - (width % Vector512<short>.Count);
+            int vectorizedColumns = (int)(Numerics.Vector512Count<short>(width) * (nuint)Vector512<short>.Count);
             if (vectorizedColumns > 0)
             {
                 for (int row = 0; row < height; row++)
@@ -270,7 +270,7 @@ internal static partial class Av1IntraBlockCopyBilinearPredictor
         if (Vector256.IsHardwareAccelerated)
         {
             int remainingColumns = width - processedColumns;
-            int vectorizedColumns = remainingColumns - (remainingColumns % Vector256<short>.Count);
+            int vectorizedColumns = (int)(Numerics.Vector256Count<short>(remainingColumns) * (nuint)Vector256<short>.Count);
             int endColumn = processedColumns + vectorizedColumns;
 
             for (int row = 0; row < height; row++)
@@ -295,7 +295,7 @@ internal static partial class Av1IntraBlockCopyBilinearPredictor
         if (Vector128.IsHardwareAccelerated)
         {
             int remainingColumns = width - processedColumns;
-            int vectorizedColumns = remainingColumns - (remainingColumns % Vector128<short>.Count);
+            int vectorizedColumns = (int)(Numerics.Vector128Count<short>(remainingColumns) * (nuint)Vector128<short>.Count);
             int endColumn = processedColumns + vectorizedColumns;
 
             for (int row = 0; row < height; row++)

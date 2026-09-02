@@ -411,8 +411,8 @@ internal static partial class Av1ScaledInterPredictor
 
             if (Vector512.IsHardwareAccelerated)
             {
-                int oneVectorFromEnd = width - Vector512<int>.Count;
-                for (; column <= oneVectorFromEnd; column += Vector512<int>.Count)
+                nuint vectorCount = Numerics.Vector512Count<int>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector512<int>.Count)
                 {
                     Vector512<int> result = FilterScaledHorizontalVector512<TSource, THorizontal>(
                         ref sourceRow,
@@ -431,8 +431,8 @@ internal static partial class Av1ScaledInterPredictor
 
             if (Vector256.IsHardwareAccelerated)
             {
-                int oneVectorFromEnd = width - Vector256<int>.Count;
-                for (; column <= oneVectorFromEnd; column += Vector256<int>.Count)
+                nuint vectorCount = Numerics.Vector256Count<int>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector256<int>.Count)
                 {
                     Vector256<int> result = FilterScaledHorizontalVector256<TSource, THorizontal>(
                         ref sourceRow,
@@ -451,7 +451,8 @@ internal static partial class Av1ScaledInterPredictor
 
             if (Vector128.IsHardwareAccelerated)
             {
-                for (; column <= width - Vector128<int>.Count; column += Vector128<int>.Count)
+                nuint vectorCount = Numerics.Vector128Count<int>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<int>.Count)
                 {
                     Vector128<int> result = FilterScaledHorizontalVector128<TSource, THorizontal>(
                         ref sourceRow,
@@ -505,70 +506,89 @@ internal static partial class Av1ScaledInterPredictor
 
             if (Vector512.IsHardwareAccelerated)
             {
-                Vector512<int> initial = Vector512.Create(verticalBias);
-                Vector512<int> offset = Vector512.Create(roundOffset);
-                int oneVectorFromEnd = width - (Vector512<int>.Count * 2);
-                for (; column <= oneVectorFromEnd; column += Vector512<int>.Count * 2)
-                {
-                    NativeOperator.Convolve(
-                        ref scratchRow,
-                        scratchStride,
-                        (nuint)column,
-                        ref coefficientBase,
-                        FilterCoefficientCount,
-                        initial,
-                        out Vector512<int> result0,
-                        out Vector512<int> result1);
+                nuint vectorCount = Numerics.Vector512Count<int>(width - column) / 2;
 
-                    result0 = RoundPowerOfTwo(result0, round1) - offset;
-                    result1 = RoundPowerOfTwo(result1, round1) - offset;
-                    TOperator.Store(ref destinationRow, column, result0, result1, bitDepth);
+                if (vectorCount > 0)
+                {
+                    // The scaled vertical kernel emits two register widths per iteration, so constants are needed only
+                    // when the remaining row contains at least two complete vectors.
+                    Vector512<int> initial = Vector512.Create(verticalBias);
+                    Vector512<int> offset = Vector512.Create(roundOffset);
+
+                    for (; vectorCount > 0; vectorCount--, column += Vector512<int>.Count * 2)
+                    {
+                        NativeOperator.Convolve(
+                            ref scratchRow,
+                            scratchStride,
+                            (nuint)column,
+                            ref coefficientBase,
+                            FilterCoefficientCount,
+                            initial,
+                            out Vector512<int> result0,
+                            out Vector512<int> result1);
+
+                        result0 = RoundPowerOfTwo(result0, round1) - offset;
+                        result1 = RoundPowerOfTwo(result1, round1) - offset;
+                        TOperator.Store(ref destinationRow, column, result0, result1, bitDepth);
+                    }
                 }
             }
 
             if (Vector256.IsHardwareAccelerated)
             {
-                Vector256<int> initial = Vector256.Create(verticalBias);
-                Vector256<int> offset = Vector256.Create(roundOffset);
-                int oneVectorFromEnd = width - (Vector256<int>.Count * 2);
-                for (; column <= oneVectorFromEnd; column += Vector256<int>.Count * 2)
-                {
-                    NativeOperator.Convolve(
-                        ref scratchRow,
-                        scratchStride,
-                        (nuint)column,
-                        ref coefficientBase,
-                        FilterCoefficientCount,
-                        initial,
-                        out Vector256<int> result0,
-                        out Vector256<int> result1);
+                nuint vectorCount = Numerics.Vector256Count<int>(width - column) / 2;
 
-                    result0 = RoundPowerOfTwo(result0, round1) - offset;
-                    result1 = RoundPowerOfTwo(result1, round1) - offset;
-                    TOperator.Store(ref destinationRow, column, result0, result1, bitDepth);
+                if (vectorCount > 0)
+                {
+                    // A single-vector remainder belongs to the next narrower tier and does not materialize YMM constants.
+                    Vector256<int> initial = Vector256.Create(verticalBias);
+                    Vector256<int> offset = Vector256.Create(roundOffset);
+
+                    for (; vectorCount > 0; vectorCount--, column += Vector256<int>.Count * 2)
+                    {
+                        NativeOperator.Convolve(
+                            ref scratchRow,
+                            scratchStride,
+                            (nuint)column,
+                            ref coefficientBase,
+                            FilterCoefficientCount,
+                            initial,
+                            out Vector256<int> result0,
+                            out Vector256<int> result1);
+
+                        result0 = RoundPowerOfTwo(result0, round1) - offset;
+                        result1 = RoundPowerOfTwo(result1, round1) - offset;
+                        TOperator.Store(ref destinationRow, column, result0, result1, bitDepth);
+                    }
                 }
             }
 
             if (Vector128.IsHardwareAccelerated)
             {
-                Vector128<int> initial = Vector128.Create(verticalBias);
-                Vector128<int> offset = Vector128.Create(roundOffset);
-                int oneVectorFromEnd = width - (Vector128<int>.Count * 2);
-                for (; column <= oneVectorFromEnd; column += Vector128<int>.Count * 2)
-                {
-                    NativeOperator.Convolve(
-                        ref scratchRow,
-                        scratchStride,
-                        (nuint)column,
-                        ref coefficientBase,
-                        FilterCoefficientCount,
-                        initial,
-                        out Vector128<int> result0,
-                        out Vector128<int> result1);
+                nuint vectorCount = Numerics.Vector128Count<int>(width - column) / 2;
 
-                    result0 = RoundPowerOfTwo(result0, round1) - offset;
-                    result1 = RoundPowerOfTwo(result1, round1) - offset;
-                    TOperator.Store(ref destinationRow, column, result0, result1, bitDepth);
+                if (vectorCount > 0)
+                {
+                    // XMM constants are likewise skipped when fewer than eight output samples remain.
+                    Vector128<int> initial = Vector128.Create(verticalBias);
+                    Vector128<int> offset = Vector128.Create(roundOffset);
+
+                    for (; vectorCount > 0; vectorCount--, column += Vector128<int>.Count * 2)
+                    {
+                        NativeOperator.Convolve(
+                            ref scratchRow,
+                            scratchStride,
+                            (nuint)column,
+                            ref coefficientBase,
+                            FilterCoefficientCount,
+                            initial,
+                            out Vector128<int> result0,
+                            out Vector128<int> result1);
+
+                        result0 = RoundPowerOfTwo(result0, round1) - offset;
+                        result1 = RoundPowerOfTwo(result1, round1) - offset;
+                        TOperator.Store(ref destinationRow, column, result0, result1, bitDepth);
+                    }
                 }
             }
 

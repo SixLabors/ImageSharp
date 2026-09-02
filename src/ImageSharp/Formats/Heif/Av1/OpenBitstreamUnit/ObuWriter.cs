@@ -29,7 +29,7 @@ internal class ObuWriter
         // The allocation expands when necessary; this initial size avoids repeated growth for
         // the small headers and tiles produced by the current still-image encoder.
         int initialBufferSize = 2000;
-        AutoExpandingMemory<byte> buffer = new(configuration, initialBufferSize);
+        using AutoExpandingMemory<byte> buffer = new(configuration, initialBufferSize);
         Av1BitStreamWriter writer = new(buffer);
         WriteObuHeaderAndSize(stream, ObuType.TemporalDelimiter, []);
 
@@ -173,9 +173,6 @@ internal class ObuWriter
         {
             // AV1 fixes this RGB identity-matrix combination to full-range 4:4:4 and omits
             // the range and subsampling fields used by YUV configurations.
-            colorConfig.ColorRange = true;
-            colorConfig.SubSamplingX = false;
-            colorConfig.SubSamplingY = false;
         }
         else
         {
@@ -335,13 +332,18 @@ internal class ObuWriter
         else
         {
             int startSuperBlock = 0;
-            int i = 0;
-            for (; startSuperBlock < superblockColumnCount; i++)
+            for (int i = 0; i < tileInfo.TileColumnCount; i++)
             {
-                uint widthInSuperBlocks = (uint)((tileInfo.TileColumnStartModeInfo[i] >> superblockShift) - startSuperBlock);
+                int endSuperBlock = i == tileInfo.TileColumnCount - 1
+                    ? superblockColumnCount
+                    : tileInfo.TileColumnStartModeInfo[i + 1] >> superblockShift;
+
+                // The stored terminal boundary is clipped to the visible mode-info width. libaom retains the exact
+                // superblock endpoint, so the final tile uses the derived frame-wide superblock count instead.
+                uint widthInSuperBlocks = (uint)(endSuperBlock - startSuperBlock);
                 uint maxWidth = (uint)Math.Min(superblockColumnCount - startSuperBlock, tileInfo.MaxTileWidthSuperblock);
                 writer.WriteNonSymmetric(widthInSuperBlocks - 1, maxWidth);
-                startSuperBlock += (int)widthInSuperBlocks;
+                startSuperBlock = endSuperBlock;
             }
 
             if (startSuperBlock != superblockColumnCount)
@@ -350,12 +352,17 @@ internal class ObuWriter
             }
 
             startSuperBlock = 0;
-            for (i = 0; startSuperBlock < superblockRowCount; i++)
+            for (int i = 0; i < tileInfo.TileRowCount; i++)
             {
-                uint heightInSuperBlocks = (uint)((tileInfo.TileRowStartModeInfo[i] >> superblockShift) - startSuperBlock);
+                int endSuperBlock = i == tileInfo.TileRowCount - 1
+                    ? superblockRowCount
+                    : tileInfo.TileRowStartModeInfo[i + 1] >> superblockShift;
+
+                // As with columns, the final visible mode-info boundary may end inside its containing superblock.
+                uint heightInSuperBlocks = (uint)(endSuperBlock - startSuperBlock);
                 uint maxHeight = (uint)Math.Min(superblockRowCount - startSuperBlock, tileInfo.MaxTileHeightSuperblock);
                 writer.WriteNonSymmetric(heightInSuperBlocks - 1, maxHeight);
-                startSuperBlock += (int)heightInSuperBlocks;
+                startSuperBlock = endSuperBlock;
             }
 
             if (startSuperBlock != superblockRowCount)
@@ -521,6 +528,11 @@ internal class ObuWriter
     private static void WriteTileGroup(ref Av1BitStreamWriter writer, ObuTileGroupHeader tileInfo, IAv1TileWriter tileWriter)
     {
         int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
+
+        // libaom starts the tile-group header at the next byte after the uncompressed frame header. This
+        // boundary is required before the optional flag because the flag belongs to tile_group_obu syntax.
+        AlignToByteBoundary(ref writer);
+
         if (tileCount > 1)
         {
             // A combined OBU_FRAME has implicit complete-frame tile bounds. The reference decoder still
@@ -544,7 +556,7 @@ internal class ObuWriter
         int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
         for (int tileNum = 0; tileNum < tileCount; tileNum++)
         {
-            Span<byte> tileData = tileWriter.WriteTile(tileNum);
+            ReadOnlySpan<byte> tileData = tileWriter.GetTileData(tileNum);
             if (tileNum != tileCount - 1 && tileCount > 1)
             {
                 writer.WriteLittleEndian((uint)tileData.Length - 1U, tileInfo.TileSizeBytes);

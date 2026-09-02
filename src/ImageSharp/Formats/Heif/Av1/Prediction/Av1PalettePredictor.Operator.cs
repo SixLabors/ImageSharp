@@ -212,33 +212,43 @@ internal static class Av1PalettePredictor
 
                 if (Vector512.IsHardwareAccelerated)
                 {
-                    Vector256<byte> palette256 = Vector256.Create(palette128, palette128);
-                    Vector512<byte> palette512 = Vector512.Create(palette256, palette256);
-                    int oneVectorFromEnd = width - Vector512<byte>.Count;
+                    nuint vectorCount = Numerics.Vector512Count<byte>(width - column);
 
-                    for (; column <= oneVectorFromEnd; column += Vector512<byte>.Count)
+                    if (vectorCount > 0)
                     {
-                        Vector512<byte> indices = Vector512.LoadUnsafe(ref mapRow, (nuint)column);
-                        TOperator.Predict(palette512, indices).StoreUnsafe(ref destinationRow, (nuint)column);
+                        // Replicate the lookup table only when the row has a complete 64-lane batch.
+                        Vector256<byte> palette256 = Vector256.Create(palette128, palette128);
+                        Vector512<byte> palette512 = Vector512.Create(palette256, palette256);
+
+                        for (; vectorCount > 0; vectorCount--, column += Vector512<byte>.Count)
+                        {
+                            Vector512<byte> indices = Vector512.LoadUnsafe(ref mapRow, (nuint)column);
+                            TOperator.Predict(palette512, indices).StoreUnsafe(ref destinationRow, (nuint)column);
+                        }
                     }
                 }
 
                 if (Vector256.IsHardwareAccelerated)
                 {
-                    Vector256<byte> palette256 = Vector256.Create(palette128, palette128);
-                    int oneVectorFromEnd = width - Vector256<byte>.Count;
+                    nuint vectorCount = Numerics.Vector256Count<byte>(width - column);
 
-                    for (; column <= oneVectorFromEnd; column += Vector256<byte>.Count)
+                    if (vectorCount > 0)
                     {
-                        Vector256<byte> indices = Vector256.LoadUnsafe(ref mapRow, (nuint)column);
-                        TOperator.Predict(palette256, indices).StoreUnsafe(ref destinationRow, (nuint)column);
+                        // The narrower table is likewise materialized only for a complete 32-lane remainder.
+                        Vector256<byte> palette256 = Vector256.Create(palette128, palette128);
+
+                        for (; vectorCount > 0; vectorCount--, column += Vector256<byte>.Count)
+                        {
+                            Vector256<byte> indices = Vector256.LoadUnsafe(ref mapRow, (nuint)column);
+                            TOperator.Predict(palette256, indices).StoreUnsafe(ref destinationRow, (nuint)column);
+                        }
                     }
                 }
 
                 if (Vector128.IsHardwareAccelerated)
                 {
-                    int oneVectorFromEnd = width - Vector128<byte>.Count;
-                    for (; column <= oneVectorFromEnd; column += Vector128<byte>.Count)
+                    nuint vectorCount = Numerics.Vector128Count<byte>(width - column);
+                    for (; vectorCount > 0; vectorCount--, column += Vector128<byte>.Count)
                     {
                         Vector128<byte> indices = Vector128.LoadUnsafe(ref mapRow, (nuint)column);
                         TOperator.Predict(palette128, indices).StoreUnsafe(ref destinationRow, (nuint)column);
@@ -296,35 +306,45 @@ internal static class Av1PalettePredictor
 
                 if (Vector512.IsHardwareAccelerated)
                 {
-                    Vector256<byte> palette256 = Vector256.Create(palette128, palette128);
-                    Vector512<byte> palette512 = Vector512.Create(palette256, palette256);
-                    int oneVectorFromEnd = width - Vector512<short>.Count;
+                    nuint vectorCount = Numerics.Vector512Count<short>(width - column);
 
-                    for (; column <= oneVectorFromEnd; column += Vector512<short>.Count)
+                    if (vectorCount > 0)
                     {
-                        (Vector256<ushort> lower, Vector256<ushort> upper) = Vector256.Widen(Vector256.LoadUnsafe(ref mapRow, (nuint)column));
-                        Vector512<ushort> indices = Vector512.Create(lower, upper);
-                        TOperator.Predict(palette512, indices).StoreUnsafe(ref destinationRow, (nuint)column);
+                        // High-bit-depth output has half as many lanes, so gate table replication with that lane count.
+                        Vector256<byte> palette256 = Vector256.Create(palette128, palette128);
+                        Vector512<byte> palette512 = Vector512.Create(palette256, palette256);
+
+                        for (; vectorCount > 0; vectorCount--, column += Vector512<short>.Count)
+                        {
+                            (Vector256<ushort> lower, Vector256<ushort> upper) = Vector256.Widen(Vector256.LoadUnsafe(ref mapRow, (nuint)column));
+                            Vector512<ushort> indices = Vector512.Create(lower, upper);
+                            TOperator.Predict(palette512, indices).StoreUnsafe(ref destinationRow, (nuint)column);
+                        }
                     }
                 }
 
                 if (Vector256.IsHardwareAccelerated)
                 {
-                    Vector256<byte> palette256 = Vector256.Create(palette128, palette128);
-                    int oneVectorFromEnd = width - Vector256<short>.Count;
+                    nuint vectorCount = Numerics.Vector256Count<short>(width - column);
 
-                    for (; column <= oneVectorFromEnd; column += Vector256<short>.Count)
+                    if (vectorCount > 0)
                     {
-                        (Vector128<ushort> lower, Vector128<ushort> upper) = Vector128.Widen(Vector128.LoadUnsafe(ref mapRow, (nuint)column));
-                        Vector256<ushort> indices = Vector256.Create(lower, upper);
-                        TOperator.Predict(palette256, indices).StoreUnsafe(ref destinationRow, (nuint)column);
+                        // Avoid creating the 256-bit table when the remainder belongs entirely to narrower paths.
+                        Vector256<byte> palette256 = Vector256.Create(palette128, palette128);
+
+                        for (; vectorCount > 0; vectorCount--, column += Vector256<short>.Count)
+                        {
+                            (Vector128<ushort> lower, Vector128<ushort> upper) = Vector128.Widen(Vector128.LoadUnsafe(ref mapRow, (nuint)column));
+                            Vector256<ushort> indices = Vector256.Create(lower, upper);
+                            TOperator.Predict(palette256, indices).StoreUnsafe(ref destinationRow, (nuint)column);
+                        }
                     }
                 }
 
                 if (Vector128.IsHardwareAccelerated)
                 {
-                    int oneVectorFromEnd = width - Vector128<short>.Count;
-                    for (; column <= oneVectorFromEnd; column += Vector128<short>.Count)
+                    nuint vectorCount = Numerics.Vector128Count<short>(width - column);
+                    for (; vectorCount > 0; vectorCount--, column += Vector128<short>.Count)
                     {
                         ulong packedIndices = Unsafe.ReadUnaligned<ulong>(ref Unsafe.Add(ref mapRow, column));
                         Vector128<ushort> indices = Vector128.WidenLower(Vector128.CreateScalarUnsafe(packedIndices).AsByte());

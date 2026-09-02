@@ -162,7 +162,7 @@ public class ObuFrameHeaderTests
         // Assign 2
         Span<byte> encodedBuffer = encoded.ToArray();
         IAv1TileReader tileDecoder2 = new Av1TileDecoderStub();
-        Av1BitStreamReader reader2 = new(span);
+        Av1BitStreamReader reader2 = new(encodedBuffer);
         ObuReader obuReader2 = new();
 
         // Act 2
@@ -701,6 +701,59 @@ public class ObuFrameHeaderTests
 
         Assert.NotNull(obuReader.SequenceHeader);
         Assert.NotNull(obuReader.FrameHeader);
+        Assert.Equal(bitStream.Length * 8, reader.BitPosition);
+    }
+
+    /// <summary>
+    /// Verifies non-uniform tile boundaries use the next stored boundary and retain the clipped final mode-info edge.
+    /// </summary>
+    [Fact]
+    public void WriteNonUniformTileBoundariesRoundTrip()
+    {
+        ObuSequenceHeader sequenceHeader = GetDefaultSequenceHeader();
+        ObuFrameHeader frameHeader = GetKeyFrameHeader();
+        ObuTileGroupHeader tileInfo = frameHeader.TilesInfo;
+        tileInfo.HasUniformTileSpacing = false;
+        tileInfo.TileColumnCount = 2;
+        tileInfo.TileRowCount = 1;
+        tileInfo.TileSizeBytes = 1;
+        tileInfo.TileColumnStartModeInfo[0] = 0;
+        tileInfo.TileColumnStartModeInfo[1] = 64;
+        tileInfo.TileColumnStartModeInfo[2] = frameHeader.ModeInfoColumnCount;
+        tileInfo.TileRowStartModeInfo[0] = 0;
+        tileInfo.TileRowStartModeInfo[1] = frameHeader.ModeInfoRowCount;
+
+        Av1TileDecoderStub sourceTiles = new();
+        sourceTiles.ReadTile([0x80], 0);
+        sourceTiles.ReadTile([0x80], 1);
+
+        using MemoryStream stream = new();
+        ObuWriter writer = new();
+        writer.WriteAll(Configuration.Default, stream, sequenceHeader, frameHeader, sourceTiles);
+        byte[] bitStream = stream.ToArray();
+        Assert.Equal([0x00, 0x80, 0x80], bitStream[^3..]);
+
+        Av1BitStreamReader reader = new(bitStream);
+        ObuReader obuReader = new();
+        Av1TileDecoderStub decodedTiles = new();
+
+        obuReader.ReadAll(ref reader, bitStream.Length, () => decodedTiles);
+
+        ObuTileGroupHeader actual = obuReader.FrameHeader.TilesInfo;
+        Assert.False(actual.HasUniformTileSpacing);
+        Assert.Equal(2, actual.TileColumnCount);
+        Assert.Equal(1, actual.TileRowCount);
+        Assert.Equal(1, actual.TileSizeBytes);
+        Assert.Equal(0, actual.TileColumnStartModeInfo[0]);
+        Assert.Equal(64, actual.TileColumnStartModeInfo[1]);
+        Assert.Equal(frameHeader.ModeInfoColumnCount, actual.TileColumnStartModeInfo[2]);
+        Assert.Equal(0, actual.TileRowStartModeInfo[0]);
+        Assert.Equal(frameHeader.ModeInfoRowCount, actual.TileRowStartModeInfo[1]);
+
+        ReadOnlySpan<byte> expectedTileData = [0x80];
+
+        Assert.True(decodedTiles.GetTileData(0).SequenceEqual(expectedTileData));
+        Assert.True(decodedTiles.GetTileData(1).SequenceEqual(expectedTileData));
         Assert.Equal(bitStream.Length * 8, reader.BitPosition);
     }
 

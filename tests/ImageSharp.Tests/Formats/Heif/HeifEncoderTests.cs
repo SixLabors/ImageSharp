@@ -64,13 +64,19 @@ public class HeifEncoderTests
     }
 
     [Fact]
-    public void LegacyJpegRejectsZeroQuality()
+    public void LegacyJpegAcceptsZeroQuality()
     {
         using Image<Rgba32> image = new(1, 1);
+        image[0, 0] = new Rgba32(10, 20, 30);
         using MemoryStream stream = new();
         HeifEncoder encoder = new() { Quality = 0 };
 
-        Assert.Throws<NotSupportedException>(() => image.Save(stream, encoder));
+        image.Save(stream, encoder);
+
+        Assert.NotEqual(0, stream.Length);
+        stream.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+        Assert.Equal(image.Size, decoded.Size);
     }
 
     [Fact]
@@ -81,6 +87,7 @@ public class HeifEncoderTests
         HeifEncoder encoder = new() { Lossless = true };
 
         Assert.Throws<NotSupportedException>(() => image.Save(stream, encoder));
+        Assert.Equal(0, stream.Length);
     }
 
     [Theory]
@@ -93,6 +100,34 @@ public class HeifEncoderTests
         HeifEncoder encoder = new() { BitDepth = bitDepth };
 
         Assert.Throws<NotSupportedException>(() => image.Save(stream, encoder));
+        Assert.Equal(0, stream.Length);
+    }
+
+    [Fact]
+    public void Av1RejectsEncodingBeforeWritingOutput()
+    {
+        using Image<Rgba32> image = new(1, 1);
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new() { CompressionMethod = HeifCompressionMethod.Av1 };
+
+        Assert.Throws<NotSupportedException>(() => image.Save(stream, encoder));
+        Assert.Equal(0, stream.Length);
+    }
+
+    [Fact]
+    public void LegacyJpegEncodingDoesNotMutateSourceHeifMetadata()
+    {
+        using Image<Rgba32> image = new(1, 1);
+        image[0, 0] = new Rgba32(10, 20, 30, 255);
+        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
+        metadata.CompressionMethod = HeifCompressionMethod.Av1;
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new();
+
+        image.Save(stream, encoder);
+
+        Assert.Same(metadata, image.Metadata.GetHeifMetadata());
+        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
     }
 
     [Theory]

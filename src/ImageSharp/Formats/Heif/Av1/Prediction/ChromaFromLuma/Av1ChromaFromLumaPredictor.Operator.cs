@@ -216,8 +216,8 @@ internal static partial class Av1ChromaFromLumaPredictor
 
                 if (Vector512.IsHardwareAccelerated)
                 {
-                    int oneVectorFromEnd = width - Vector512<short>.Count;
-                    for (; column <= oneVectorFromEnd; column += Vector512<short>.Count)
+                    nuint vectorCount = Numerics.Vector512Count<short>(width - column);
+                    for (; vectorCount > 0; vectorCount--, column += Vector512<short>.Count)
                     {
                         Vector512<short> prediction = TOperator.Predict(Vector512.LoadUnsafe(ref lumaRow, (nuint)column), dc, alphaQ3, byte.MaxValue);
                         Vector256<byte> packed = Vector512.Narrow(prediction.AsUInt16(), Vector512<ushort>.Zero).GetLower();
@@ -227,8 +227,8 @@ internal static partial class Av1ChromaFromLumaPredictor
 
                 if (Vector256.IsHardwareAccelerated)
                 {
-                    int oneVectorFromEnd = width - Vector256<short>.Count;
-                    for (; column <= oneVectorFromEnd; column += Vector256<short>.Count)
+                    nuint vectorCount = Numerics.Vector256Count<short>(width - column);
+                    for (; vectorCount > 0; vectorCount--, column += Vector256<short>.Count)
                     {
                         Vector256<short> prediction = TOperator.Predict(Vector256.LoadUnsafe(ref lumaRow, (nuint)column), dc, alphaQ3, byte.MaxValue);
                         Vector128<byte> packed = Vector256.Narrow(prediction.AsUInt16(), Vector256<ushort>.Zero).GetLower();
@@ -238,8 +238,8 @@ internal static partial class Av1ChromaFromLumaPredictor
 
                 if (Vector128.IsHardwareAccelerated)
                 {
-                    int oneVectorFromEnd = width - Vector128<short>.Count;
-                    for (; column <= oneVectorFromEnd; column += Vector128<short>.Count)
+                    nuint vectorCount = Numerics.Vector128Count<short>(width - column);
+                    for (; vectorCount > 0; vectorCount--, column += Vector128<short>.Count)
                     {
                         Vector128<short> prediction = TOperator.Predict(Vector128.LoadUnsafe(ref lumaRow, (nuint)column), dc, alphaQ3, byte.MaxValue);
                         Vector64<byte> packed = Vector128.Narrow(prediction.AsUInt16(), Vector128<ushort>.Zero).GetLower();
@@ -282,8 +282,8 @@ internal static partial class Av1ChromaFromLumaPredictor
 
                 if (Vector512.IsHardwareAccelerated)
                 {
-                    int oneVectorFromEnd = width - Vector512<short>.Count;
-                    for (; column <= oneVectorFromEnd; column += Vector512<short>.Count)
+                    nuint vectorCount = Numerics.Vector512Count<short>(width - column);
+                    for (; vectorCount > 0; vectorCount--, column += Vector512<short>.Count)
                     {
                         TOperator.Predict(Vector512.LoadUnsafe(ref lumaRow, (nuint)column), dc, alphaQ3, maximum).StoreUnsafe(ref destinationRow, (nuint)column);
                     }
@@ -291,8 +291,8 @@ internal static partial class Av1ChromaFromLumaPredictor
 
                 if (Vector256.IsHardwareAccelerated)
                 {
-                    int oneVectorFromEnd = width - Vector256<short>.Count;
-                    for (; column <= oneVectorFromEnd; column += Vector256<short>.Count)
+                    nuint vectorCount = Numerics.Vector256Count<short>(width - column);
+                    for (; vectorCount > 0; vectorCount--, column += Vector256<short>.Count)
                     {
                         TOperator.Predict(Vector256.LoadUnsafe(ref lumaRow, (nuint)column), dc, alphaQ3, maximum).StoreUnsafe(ref destinationRow, (nuint)column);
                     }
@@ -300,8 +300,8 @@ internal static partial class Av1ChromaFromLumaPredictor
 
                 if (Vector128.IsHardwareAccelerated)
                 {
-                    int oneVectorFromEnd = width - Vector128<short>.Count;
-                    for (; column <= oneVectorFromEnd; column += Vector128<short>.Count)
+                    nuint vectorCount = Numerics.Vector128Count<short>(width - column);
+                    for (; vectorCount > 0; vectorCount--, column += Vector128<short>.Count)
                     {
                         TOperator.Predict(Vector128.LoadUnsafe(ref lumaRow, (nuint)column), dc, alphaQ3, maximum).StoreUnsafe(ref destinationRow, (nuint)column);
                     }

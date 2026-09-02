@@ -418,8 +418,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector512.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector512<byte>.Count;
-                for (; column <= vectorEnd; column += Vector512<byte>.Count)
+                nuint vectorCount = Numerics.Vector512Count<byte>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector512<byte>.Count)
                 {
                     Vector512<byte> samples = Vector512.LoadUnsafe(ref sourceRow, (nuint)column);
                     TOperator.Copy(samples, roundBits, roundOffset, out Vector512<ushort> lower, out Vector512<ushort> upper);
@@ -430,8 +430,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector256.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector256<byte>.Count;
-                for (; column <= vectorEnd; column += Vector256<byte>.Count)
+                nuint vectorCount = Numerics.Vector256Count<byte>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector256<byte>.Count)
                 {
                     Vector256<byte> samples = Vector256.LoadUnsafe(ref sourceRow, (nuint)column);
                     TOperator.Copy(samples, roundBits, roundOffset, out Vector256<ushort> lower, out Vector256<ushort> upper);
@@ -442,8 +442,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector128.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector128<byte>.Count;
-                for (; column <= vectorEnd; column += Vector128<byte>.Count)
+                nuint vectorCount = Numerics.Vector128Count<byte>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<byte>.Count)
                 {
                     Vector128<byte> samples = Vector128.LoadUnsafe(ref sourceRow, (nuint)column);
                     TOperator.Copy(samples, roundBits, roundOffset, out Vector128<ushort> lower, out Vector128<ushort> upper);
@@ -487,8 +487,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector512.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector512<ushort>.Count;
-                for (; column <= vectorEnd; column += Vector512<ushort>.Count)
+                nuint vectorCount = Numerics.Vector512Count<ushort>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector512<ushort>.Count)
                 {
                     Vector512<ushort> samples = Vector512.LoadUnsafe(ref sourceRow, (nuint)column);
                     TOperator.CopyHighBitDepth(samples, roundBits, roundOffset)
@@ -498,8 +498,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector256.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector256<ushort>.Count;
-                for (; column <= vectorEnd; column += Vector256<ushort>.Count)
+                nuint vectorCount = Numerics.Vector256Count<ushort>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector256<ushort>.Count)
                 {
                     Vector256<ushort> samples = Vector256.LoadUnsafe(ref sourceRow, (nuint)column);
                     TOperator.CopyHighBitDepth(samples, roundBits, roundOffset)
@@ -509,8 +509,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector128.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector128<ushort>.Count;
-                for (; column <= vectorEnd; column += Vector128<ushort>.Count)
+                nuint vectorCount = Numerics.Vector128Count<ushort>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<ushort>.Count)
                 {
                     Vector128<ushort> samples = Vector128.LoadUnsafe(ref sourceRow, (nuint)column);
                     TOperator.CopyHighBitDepth(samples, roundBits, roundOffset)
@@ -562,8 +562,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector512.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector512<byte>.Count;
-                for (; column <= vectorEnd; column += Vector512<byte>.Count)
+                nuint vectorCount = Numerics.Vector512Count<byte>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector512<byte>.Count)
                 {
                     Convolve(
                         ref sourceRow,
@@ -587,8 +587,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector256.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector256<byte>.Count;
-                for (; column <= vectorEnd; column += Vector256<byte>.Count)
+                nuint vectorCount = Numerics.Vector256Count<byte>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector256<byte>.Count)
                 {
                     Convolve(
                         ref sourceRow,
@@ -612,8 +612,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector128.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector128<byte>.Count;
-                for (; column <= vectorEnd; column += Vector128<byte>.Count)
+                nuint vectorCount = Numerics.Vector128Count<byte>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<byte>.Count)
                 {
                     Convolve(
                         ref sourceRow,
@@ -683,8 +683,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector512.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector512<ushort>.Count;
-                for (; column <= vectorEnd; column += Vector512<ushort>.Count)
+                nuint vectorCount = Numerics.Vector512Count<ushort>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector512<ushort>.Count)
                 {
                     Convolve(
                         ref sourceRow,
@@ -703,8 +703,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector256.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector256<ushort>.Count;
-                for (; column <= vectorEnd; column += Vector256<ushort>.Count)
+                nuint vectorCount = Numerics.Vector256Count<ushort>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector256<ushort>.Count)
                 {
                     Convolve(
                         ref sourceRow,
@@ -723,8 +723,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector128.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector128<ushort>.Count;
-                for (; column <= vectorEnd; column += Vector128<ushort>.Count)
+                nuint vectorCount = Numerics.Vector128Count<ushort>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<ushort>.Count)
                 {
                     Convolve(
                         ref sourceRow,
@@ -797,8 +797,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector512.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector512<byte>.Count;
-                for (; column <= vectorEnd; column += Vector512<byte>.Count)
+                nuint vectorCount = Numerics.Vector512Count<byte>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector512<byte>.Count)
                 {
                     Convolve(
                         ref sourceRow,
@@ -820,8 +820,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector256.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector256<byte>.Count;
-                for (; column <= vectorEnd; column += Vector256<byte>.Count)
+                nuint vectorCount = Numerics.Vector256Count<byte>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector256<byte>.Count)
                 {
                     Convolve(
                         ref sourceRow,
@@ -843,8 +843,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector128.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector128<byte>.Count;
-                for (; column <= vectorEnd; column += Vector128<byte>.Count)
+                nuint vectorCount = Numerics.Vector128Count<byte>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<byte>.Count)
                 {
                     Convolve(
                         ref sourceRow,
@@ -884,8 +884,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector512.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector512<short>.Count;
-                for (; column <= vectorEnd; column += Vector512<short>.Count)
+                nuint vectorCount = Numerics.Vector512Count<short>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector512<short>.Count)
                 {
                     Convolve(
                         ref scratchRow,
@@ -903,8 +903,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector256.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector256<short>.Count;
-                for (; column <= vectorEnd; column += Vector256<short>.Count)
+                nuint vectorCount = Numerics.Vector256Count<short>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector256<short>.Count)
                 {
                     Convolve(
                         ref scratchRow,
@@ -922,8 +922,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector128.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector128<short>.Count;
-                for (; column <= vectorEnd; column += Vector128<short>.Count)
+                nuint vectorCount = Numerics.Vector128Count<short>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<short>.Count)
                 {
                     Convolve(
                         ref scratchRow,
@@ -1000,8 +1000,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector512.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector512<ushort>.Count;
-                for (; column <= vectorEnd; column += Vector512<ushort>.Count)
+                nuint vectorCount = Numerics.Vector512Count<ushort>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector512<ushort>.Count)
                 {
                     Convolve(
                         ref sourceRow,
@@ -1020,8 +1020,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector256.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector256<ushort>.Count;
-                for (; column <= vectorEnd; column += Vector256<ushort>.Count)
+                nuint vectorCount = Numerics.Vector256Count<ushort>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector256<ushort>.Count)
                 {
                     Convolve(
                         ref sourceRow,
@@ -1040,8 +1040,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector128.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector128<ushort>.Count;
-                for (; column <= vectorEnd; column += Vector128<ushort>.Count)
+                nuint vectorCount = Numerics.Vector128Count<ushort>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<ushort>.Count)
                 {
                     Convolve(
                         ref sourceRow,
@@ -1079,8 +1079,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector512.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector512<short>.Count;
-                for (; column <= vectorEnd; column += Vector512<short>.Count)
+                nuint vectorCount = Numerics.Vector512Count<short>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector512<short>.Count)
                 {
                     Convolve(
                         ref scratchRow,
@@ -1099,8 +1099,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector256.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector256<short>.Count;
-                for (; column <= vectorEnd; column += Vector256<short>.Count)
+                nuint vectorCount = Numerics.Vector256Count<short>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector256<short>.Count)
                 {
                     Convolve(
                         ref scratchRow,
@@ -1119,8 +1119,8 @@ internal static partial class Av1CompoundInterPredictor
 
             if (useSimd && Vector128.IsHardwareAccelerated)
             {
-                int vectorEnd = width - Vector128<short>.Count;
-                for (; column <= vectorEnd; column += Vector128<short>.Count)
+                nuint vectorCount = Numerics.Vector128Count<short>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<short>.Count)
                 {
                     Convolve(
                         ref scratchRow,

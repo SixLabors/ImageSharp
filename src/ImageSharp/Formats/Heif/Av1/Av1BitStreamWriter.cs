@@ -187,10 +187,11 @@ internal ref struct Av1BitStreamWriter
         }
         else
         {
-            uint extraBit = ((value + m) >> 1) - value;
-            uint k = (value + m - extraBit) >> 1;
+            // libaom partitions the upper values into a shorter prefix followed by the low bit of the offset from m.
+            uint offset = value - m;
+            uint k = m + (offset >> 1);
             this.WriteLiteral(k, w - 1);
-            this.WriteLiteral(extraBit, 1);
+            this.WriteLiteral(offset & 1, 1);
         }
     }
 
@@ -236,7 +237,7 @@ internal ref struct Av1BitStreamWriter
         DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Writing of Tile Data only allowed on byte alignment");
 
         int wordPosition = this.BitPosition >> 3;
-        if (this.span.Length <= wordPosition + tileData.Length)
+        if (this.span.Length < wordPosition + tileData.Length)
         {
             this.memory.GetSpan(wordPosition + tileData.Length);
             this.span = this.memory.GetEntireSpan();

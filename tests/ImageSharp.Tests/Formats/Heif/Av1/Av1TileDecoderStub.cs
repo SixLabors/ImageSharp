@@ -17,6 +17,6 @@ internal class Av1TileDecoderStub : IAv1TileReader, IAv1TileWriter
     {
     }
 
-    public Span<byte> WriteTile(int tileNum)
+    public ReadOnlySpan<byte> GetTileData(int tileNum)
         => this.tileDatas[tileNum];
 }

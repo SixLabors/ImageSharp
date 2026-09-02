@@ -475,7 +475,9 @@ internal sealed class Av1PresentationSampleBuffer<TSample, TBuffer> : IDisposabl
             ref ushort bottomSourceBase = ref MemoryMarshal.GetReference(bottomSource);
             ref ushort topDestinationBase = ref MemoryMarshal.GetReference(topDestination);
             ref ushort bottomDestinationBase = ref MemoryMarshal.GetReference(bottomDestination);
-            for (; x + Vector128<ushort>.Count <= lastSource; x += Vector128<ushort>.Count)
+            nuint vectorCount = topSource[..lastSource].Vector128Count<ushort>();
+
+            for (; vectorCount > 0; vectorCount--, x += Vector128<ushort>.Count)
             {
                 Vector128<ushort> top0 = Vector128.LoadUnsafe(ref topSourceBase, (nuint)x);
                 Vector128<ushort> top1 = Vector128.LoadUnsafe(ref topSourceBase, (nuint)(x + 1));

@@ -31,8 +31,8 @@ public sealed class HeifEncoder : AnimatedImageEncoder
 
     /// <summary>
     /// Gets the lossy compression quality, or <see langword="null"/> to use the compression method's default quality.
-    /// Valid values range from 0 for the lowest quality to 100 for the highest quality. Legacy JPEG image items
-    /// support values from 1 through 100. A value of 100 does not enable <see cref="Lossless"/> encoding.
+    /// Valid values range from 0 for the lowest quality to 100 for the highest quality. A value of 100 does not
+    /// enable <see cref="Lossless"/> encoding.
     /// </summary>
     /// <exception cref="ArgumentException">The quality is outside the range 0 to 100.</exception>
     public int? Quality

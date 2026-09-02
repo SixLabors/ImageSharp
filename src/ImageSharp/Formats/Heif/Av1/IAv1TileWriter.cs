@@ -9,11 +9,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 internal interface IAv1TileWriter
 {
     /// <summary>
-    /// Write the information for a single tile.
+    /// Gets the encoded bytes for a single tile.
     /// </summary>
-    /// <param name="tileNum">The index of the tile that is to be read.</param>
+    /// <param name="tileNum">The index of the encoded tile.</param>
     /// <returns>
     /// The bytes of encoded data in the bitstream dedicated to this tile.
     /// </returns>
-    Span<byte> WriteTile(int tileNum);
+    ReadOnlySpan<byte> GetTileData(int tileNum);
 }

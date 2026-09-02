@@ -1046,7 +1046,8 @@ internal static partial class Av1ForwardTransformer
 
             if (Avx512BW.IsSupported)
             {
-                for (; column <= width - Vector512<short>.Count; column += Vector512<short>.Count)
+                nuint vector512Count = Numerics.Vector512Count<short>(width - column);
+                for (; vector512Count > 0; vector512Count--, column += Vector512<short>.Count)
                 {
                     (Vector512<int> lower, Vector512<int> upper) = Vector512.Widen(Vector512.LoadUnsafe(ref sourceRow, (nuint)column));
 
@@ -1057,7 +1058,8 @@ internal static partial class Av1ForwardTransformer
 
             if (Avx2.IsSupported)
             {
-                for (; column <= width - Vector256<short>.Count; column += Vector256<short>.Count)
+                nuint vector256Count = Numerics.Vector256Count<short>(width - column);
+                for (; vector256Count > 0; vector256Count--, column += Vector256<short>.Count)
                 {
                     (Vector256<int> lower, Vector256<int> upper) = Vector256.Widen(Vector256.LoadUnsafe(ref sourceRow, (nuint)column));
 
@@ -1066,7 +1068,8 @@ internal static partial class Av1ForwardTransformer
                 }
             }
 
-            for (; column <= width - Vector128<short>.Count; column += Vector128<short>.Count)
+            nuint vector128Count = Numerics.Vector128Count<short>(width - column);
+            for (; vector128Count > 0; vector128Count--, column += Vector128<short>.Count)
             {
                 (Vector128<int> lower, Vector128<int> upper) = Vector128.Widen(Vector128.LoadUnsafe(ref sourceRow, (nuint)column));
 

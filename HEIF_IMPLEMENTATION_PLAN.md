@@ -754,6 +754,21 @@ Final decoder stream, presentation, and public-registration evidence on 2026-09-
   `git diff --check` passes, and `.gitattributes` is unchanged. Every VSTest invocation returned
   normally with no surviving test host and no Windows application-error dialog.
 
+SIMD traversal consistency evidence on 2026-09-02:
+
+- [x] The shared `Numerics` vector-count helpers now cover same-lane spans and all fixed hardware widths.
+  AV1 decoder and current encoder hot paths use those helpers for complete-vector traversal instead of
+  repeating local modulo or last-vector calculations. Reverse-source indexing and algorithm-specific
+  partial-output groups remain explicit because they are not vector-count calculations.
+- [x] Forward quantization, palette prediction, and scaled inter prediction construct width-specific SIMD
+  constants only when at least one vector batch will execute. Narrower dispatch tiers consume only the
+  remainder left by wider tiers before the scalar tail.
+- [x] The net11.0 Release production assembly builds with zero warnings and zero errors. The test project
+  builds with zero errors while retaining the existing repository warning set. Roslynk reports zero
+  compiler errors, `git diff --check` passes, and `.gitattributes` is unchanged.
+  Foreground VSTest passes 63 of 63 focused quantizer, forward-transform, CDEF, restoration, palette,
+  intra, inter, film-grain, and super-resolution cases.
+
 Decoder exit gate:
 
 - [x] Every supported native format and AV1 tool has exact current-main libaom production-path evidence.
@@ -768,28 +783,49 @@ Writer primitives are not an encoder. The public encoder remains incomplete unti
 
 ### 5. Define and enforce the encoder contract
 
+- [x] Use official libaom `main` at `a40ed1ea9e4ecc3df58a5bccb76623f2c94ae727` as the encoder syntax, probability-model, transform, quantization, filtering, and bitstream reference.
+- [x] Use the existing PNG, TIFF, and JPEG encoders as the ImageSharp architecture reference: generic `Image<TPixel>` input, encoder options taking precedence over converted format metadata and codec defaults, allocator-owned temporary storage, and deterministic disposal.
+- [x] Treat source pixel type, source alpha representation, and decoded source bit depth as conversion inputs, never as output-eligibility checks. Do not pre-scan pixels before encoding.
+- [x] Resolve output configuration once from explicit encoder options, converted `HeifMetadata`, and AV1 defaults in that order. Sanitize only combinations that cannot describe a legal requested output, and never write resolved values back to source metadata.
 - [ ] Finalize observable options for quality, effort, lossless mode, bit depth, chroma subsampling, alpha quality, metadata, and bounded sequences.
 - [ ] Preserve high-bit-depth source precision through 16-bit RGB and native 10/12-bit component planes.
-- [ ] Reject unsupported combinations at the public boundary before writing output.
+- [ ] Reject only genuinely unsupported output combinations at the public boundary before writing output.
 - [ ] Register only capabilities that the completed encoder proves.
+
+Encoder data-flow contract:
+
+1. Resolve immutable frame and sequence output settings before allocating codec state.
+2. Convert each generic `ImageFrame<TPixel>` once through `PixelOperations<TPixel>` and the SIMD-first HEIF planar converter into native 8, 10, or 12-bit planes. Alpha is encoded as an auxiliary image when requested by the resolved output contract; it is not discarded through a source scan.
+3. Reuse allocator-owned plane, row, block, transform, quantization, entropy, and reconstruction workspaces for the complete frame. No active path may allocate per row, block, transform, scanline, or SIMD tail.
+4. Analyze and encode tiles directly from those planes, retaining reconstructed reference frames only for the bounded sequence lifetime.
+5. Stream OBUs and container extents through allocator-backed chunked storage. Every ownership transfer is explicit, every owner is disposed exactly once, and no `ToArray` or file-sized copy crosses a layer boundary.
+6. Iterate image frames using ImageSharp frame metadata and format-connecting metadata. Root-frame-only behavior is permitted only for an explicitly static output contract.
+
+Encoder verification contract:
+
+- Exercise source pixel formats independently from requested AV1 bit depth, chroma subsampling, alpha, and lossless/lossy mode.
+- Run every SIMD operator through FeatureTestRunner at Vector512, Vector256, Vector128, and scalar tiers against an independent scalar oracle shaped from the same libaom revision.
+- Cover discontiguous allocator buffers, constrained memory groups, cancellation, non-seekable output, multiple extents, auxiliary alpha, and bounded sequences.
+- Validate produced AV1 payloads with current-main libaom and compare native planes before using ImageSharp self-decode as supplemental container coverage.
 
 ### 6. Build the complete AV1 frame encoder
 
 - [~] SIMD-first RGB-to-native-plane conversion exists locally.
 - [~] Forward transform families and transform workspace exist locally.
 - [~] Symbol writer, coefficient writer, and tile writer fragments exist locally.
-- [ ] Connect a frame-owned encoder lifecycle using ImageSharp allocators and pools.
-- [ ] Write compliant temporal delimiter, sequence header, frame header, tile group, metadata, and padding OBUs as required.
+- [~] A non-owning encoder-frame view now separates visible conversion regions from coded regions and performs complete left, top, right, bottom, and corner extension across each bordered plane. Current libaom uses 8-sample-aligned coded dimensions, a 32-sample-aligned luma stride with chroma stride derived from it, and a 64-pixel luma border for non-resized all-intra encoding. Allocator-backed luma and 4:2:0 chroma extension passed direct net11 VSTest; the containing encode operation still needs to connect matching plane rents with ordinary `using` lifetimes.
+- [~] Temporal delimiter, sequence header, frame header, and combined-frame tile-group writing exist locally. The remaining required metadata, padding, and encoder-wide syntax paths are not complete.
 - [ ] Implement superblock and partition analysis for every permitted block size and partition.
 - [ ] Implement intra mode search, chroma mode search, palette, filter intra, chroma-from-luma, and intra-block copy decisions.
 - [ ] Implement inter mode search for bounded sequences, including reference selection and the decoder-supported inter tools.
-- [ ] Implement transform-size/type search, forward transform, quantization, coefficient optimization, and lossless behavior.
+- [~] Current-libaom `av1_quantize_fp_no_qmatrix` arithmetic is implemented as a closed generic forward-quantizer family with Vector512, Vector256, Vector128, and scalar paths, raster-order output, coded 64-point coefficient limits, and scan-order EOB selection. Transform search, coefficient optimization, and lossless behavior remain.
 - [ ] Implement real rate-distortion selection and make quality and effort change work, size, and output quality.
 - [ ] Implement tile-local entropy coding and CDF update behavior.
 - [ ] Implement legal deblocking, CDEF, restoration, super-resolution, and film-grain signaling decisions.
-- [ ] Remove per-transform and per-block managed allocations from active encoder paths.
-- [ ] Use descending SIMD dispatch: Vector512, Vector256, Vector128, then scalar.
-- [ ] Verify every SIMD operator with FeatureTestRunner and an independent scalar oracle shaped from the same current-main libaom behavior.
+- [~] The coefficient symbol encoder now reuses tile-lifetime level and context workspaces instead of allocating per transform. Every remaining encoder fragment must be audited before it becomes active.
+- [~] The planar conversion, forward transform, and forward quantizer use descending SIMD dispatch: Vector512, Vector256, Vector128, then scalar. Apply the same rule to every later hot-path family.
+- [~] Forward-quantizer FeatureTestRunner and zero-allocation tests compare every hardware tier with an independent scan-order scalar oracle shaped from current-main libaom. Both passed direct net11 VSTest in Release.
+- [~] The combined-frame writer now completes the byte-counted uncompressed frame header before starting the optional multi-tile tile-group flag, matching current libaom's separate frame-header and tile-group writers. A non-uniform two-tile round trip verifies the explicit boundaries, both tile payloads, and complete stream consumption through direct net11 VSTest in Release.
 
 ### 7. Write complete AVIF output
 

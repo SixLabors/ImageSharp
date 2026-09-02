@@ -42,7 +42,8 @@ internal partial class Av1ChromaFromLumaContext
 
                 if (Vector256.IsHardwareAccelerated)
                 {
-                    for (; column <= width - Vector256<byte>.Count; column += Vector256<byte>.Count)
+                    nuint vectorCount = Numerics.Vector256Count<byte>(width - column);
+                    for (; vectorCount > 0; vectorCount--, column += Vector256<byte>.Count)
                     {
                         (Vector256<ushort> lower, Vector256<ushort> upper) = Vector256.Widen(Vector256.LoadUnsafe(ref inputRow, (nuint)column));
 
@@ -53,7 +54,8 @@ internal partial class Av1ChromaFromLumaContext
 
                 if (Vector128.IsHardwareAccelerated)
                 {
-                    for (; column <= width - Vector128<byte>.Count; column += Vector128<byte>.Count)
+                    nuint vectorCount = Numerics.Vector128Count<byte>(width - column);
+                    for (; vectorCount > 0; vectorCount--, column += Vector128<byte>.Count)
                     {
                         (Vector128<ushort> lower, Vector128<ushort> upper) = Vector128.Widen(Vector128.LoadUnsafe(ref inputRow, (nuint)column));
 
@@ -103,7 +105,8 @@ internal partial class Av1ChromaFromLumaContext
 
             if (Avx2.IsSupported)
             {
-                for (; column <= width - Vector256<byte>.Count; column += Vector256<byte>.Count)
+                nuint vectorCount = Numerics.Vector256Count<byte>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector256<byte>.Count)
                 {
                     Vector256<short> sum = Avx2.MultiplyAddAdjacent(Vector256.LoadUnsafe(ref inputRow, (nuint)column), ones256);
                     if (this.subY)
@@ -117,7 +120,8 @@ internal partial class Av1ChromaFromLumaContext
 
             if (Vector128.IsHardwareAccelerated)
             {
-                for (; column <= width - Vector128<byte>.Count; column += Vector128<byte>.Count)
+                nuint vectorCount = Numerics.Vector128Count<byte>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<byte>.Count)
                 {
                     Vector128<short> sum = PairSum(Vector128.LoadUnsafe(ref inputRow, (nuint)column), ones128);
                     if (this.subY)
@@ -193,7 +197,8 @@ internal partial class Av1ChromaFromLumaContext
 
                 if (Vector256.IsHardwareAccelerated)
                 {
-                    for (; column <= width - Vector256<short>.Count; column += Vector256<short>.Count)
+                    nuint vectorCount = Numerics.Vector256Count<short>(width - column);
+                    for (; vectorCount > 0; vectorCount--, column += Vector256<short>.Count)
                     {
                         (Vector256.LoadUnsafe(ref inputRow, (nuint)column) << 3).StoreUnsafe(ref outputRow, (nuint)column);
                     }
@@ -201,7 +206,8 @@ internal partial class Av1ChromaFromLumaContext
 
                 if (Vector128.IsHardwareAccelerated)
                 {
-                    for (; column <= width - Vector128<short>.Count; column += Vector128<short>.Count)
+                    nuint vectorCount = Numerics.Vector128Count<short>(width - column);
+                    for (; vectorCount > 0; vectorCount--, column += Vector128<short>.Count)
                     {
                         (Vector128.LoadUnsafe(ref inputRow, (nuint)column) << 3).StoreUnsafe(ref outputRow, (nuint)column);
                     }
@@ -237,7 +243,8 @@ internal partial class Av1ChromaFromLumaContext
 
             if (Vector256.IsHardwareAccelerated)
             {
-                for (; column <= width - Vector256<short>.Count; column += Vector256<short>.Count)
+                nuint vectorCount = Numerics.Vector256Count<short>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector256<short>.Count)
                 {
                     Vector256<int> sum = Vector256_.MultiplyAddAdjacent(Vector256.LoadUnsafe(ref inputRow, (nuint)column), ones256);
                     if (this.subY)
@@ -251,7 +258,8 @@ internal partial class Av1ChromaFromLumaContext
 
             if (Vector128.IsHardwareAccelerated)
             {
-                for (; column <= width - Vector128<short>.Count; column += Vector128<short>.Count)
+                nuint vectorCount = Numerics.Vector128Count<short>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<short>.Count)
                 {
                     Vector128<int> sum = Vector128_.MultiplyAddAdjacent(Vector128.LoadUnsafe(ref inputRow, (nuint)column), ones128);
                     if (this.subY)
@@ -326,7 +334,8 @@ internal partial class Av1ChromaFromLumaContext
             {
                 int rowOffset = row * BufferLine;
                 int column = 0;
-                for (; column <= width - Vector128<short>.Count; column += Vector128<short>.Count)
+                nuint vectorCount = Numerics.Vector128Count<short>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<short>.Count)
                 {
                     (Vector128<int> lower, Vector128<int> upper) = Vector128.Widen(Vector128.LoadUnsafe(ref bufferBase, (nuint)(rowOffset + column)));
 
@@ -377,7 +386,8 @@ internal partial class Av1ChromaFromLumaContext
             {
                 int rowOffset = row * BufferLine;
                 int column = 0;
-                for (; column <= width - Vector128<short>.Count; column += Vector128<short>.Count)
+                nuint vectorCount = Numerics.Vector128Count<short>(width - column);
+                for (; vectorCount > 0; vectorCount--, column += Vector128<short>.Count)
                 {
                     (Vector128.LoadUnsafe(ref bufferBase, (nuint)(rowOffset + column)) - average).StoreUnsafe(ref bufferBase, (nuint)(rowOffset + column));
                 }

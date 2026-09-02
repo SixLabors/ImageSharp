@@ -226,7 +226,7 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
             // narrower paths consume any complete vectors left before the scalar tail handles the final columns.
             if (Vector512.IsHardwareAccelerated)
             {
-                int vectorizedColumns = width - (width % Vector512<byte>.Count);
+                int vectorizedColumns = (int)(Numerics.Vector512Count<byte>(width) * (nuint)Vector512<byte>.Count);
                 if (vectorizedColumns > 0)
                 {
                     Vector512<byte> topLeftVector = usesTopLeft ? Vector512.Create(topLeft) : default;
@@ -255,7 +255,7 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
             if (Vector256.IsHardwareAccelerated)
             {
                 int remainingColumns = width - processedColumns;
-                int vectorizedColumns = remainingColumns - (remainingColumns % Vector256<byte>.Count);
+                int vectorizedColumns = (int)(Numerics.Vector256Count<byte>(remainingColumns) * (nuint)Vector256<byte>.Count);
                 if (vectorizedColumns > 0)
                 {
                     Vector256<byte> topLeftVector = usesTopLeft ? Vector256.Create(topLeft) : default;
@@ -285,7 +285,7 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
             if (Vector128.IsHardwareAccelerated)
             {
                 int remainingColumns = width - processedColumns;
-                int vectorizedColumns = remainingColumns - (remainingColumns % Vector128<byte>.Count);
+                int vectorizedColumns = (int)(Numerics.Vector128Count<byte>(remainingColumns) * (nuint)Vector128<byte>.Count);
                 if (vectorizedColumns > 0)
                 {
                     Vector128<byte> topLeftVector = usesTopLeft ? Vector128.Create(topLeft) : default;
@@ -355,7 +355,7 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
             // column, so the same width-progressive traversal is valid without inter-lane packing or saturation.
             if (Vector512.IsHardwareAccelerated)
             {
-                int vectorizedColumns = width - (width % Vector512<short>.Count);
+                int vectorizedColumns = (int)(Numerics.Vector512Count<short>(width) * (nuint)Vector512<short>.Count);
                 if (vectorizedColumns > 0)
                 {
                     Vector512<short> topLeftVector = usesTopLeft ? Vector512.Create(topLeft) : default;
@@ -384,7 +384,7 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
             if (Vector256.IsHardwareAccelerated)
             {
                 int remainingColumns = width - processedColumns;
-                int vectorizedColumns = remainingColumns - (remainingColumns % Vector256<short>.Count);
+                int vectorizedColumns = (int)(Numerics.Vector256Count<short>(remainingColumns) * (nuint)Vector256<short>.Count);
                 if (vectorizedColumns > 0)
                 {
                     Vector256<short> topLeftVector = usesTopLeft ? Vector256.Create(topLeft) : default;
@@ -414,7 +414,7 @@ internal abstract partial class Av1NonDirectionalIntraPredictorBase
             if (Vector128.IsHardwareAccelerated)
             {
                 int remainingColumns = width - processedColumns;
-                int vectorizedColumns = remainingColumns - (remainingColumns % Vector128<short>.Count);
+                int vectorizedColumns = (int)(Numerics.Vector128Count<short>(remainingColumns) * (nuint)Vector128<short>.Count);
                 if (vectorizedColumns > 0)
                 {
                     Vector128<short> topLeftVector = usesTopLeft ? Vector128.Create(topLeft) : default;

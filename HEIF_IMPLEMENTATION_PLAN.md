@@ -721,6 +721,13 @@ Final decoder allocation, lifetime, precision, architecture, and test-validity a
   boundaries. Frame planes enforce their contiguous single-span invariant before allocation; palette,
   transform, film-grain, super-resolution, color-conversion, and alpha workspaces remain bounded and
   allocator owned. No per-block managed allocation remains in reconstruction.
+- [x] Block reconstruction now uses one exact-size signed-short owner for inverse quantization, inverse
+  transform, compound prediction, convolution, and chroma-from-luma scratch. Even-length slices provide
+  the integer workspaces without another rent. Monochrome reserves no chroma coefficients, and 4:2:0,
+  4:2:2, and 4:4:4 reserve two symmetric chroma planes at their coded subsampling. This replaces three
+  constructor rents and their catch-all rollback path; exact allocation length, coefficient span length,
+  and exactly-once return pass for all four layouts, with 549 adjacent reconstruction tests passing direct
+  net11 VSTest in Release.
 - [x] Valid unsupported tile-list syntax is rejected explicitly. Reserved and metadata OBUs are consumed
   only after bounded framing and trailing-bit validation. Eight-, ten-, and twelve-bit reconstruction,
   presentation, alpha, restoration, and film-grain paths retain native precision.

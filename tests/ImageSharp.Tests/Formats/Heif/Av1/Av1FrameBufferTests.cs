@@ -5,6 +5,9 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -115,16 +118,20 @@ public class Av1FrameBufferTests
     }
 
     /// <summary>
-    /// Verifies that each later block-decoder workspace failure releases every workspace rented earlier.
+    /// Verifies that block reconstruction uses one exact-size owner across monochrome and chroma plane layouts.
     /// </summary>
     [Theory]
-    [InlineData(3, 1)]
-    [InlineData(4, 2)]
-    public void BlockDecoderConstructorFailureReleasesEarlierWorkspaces(
-        int failureAllocationNumber,
-        int successfulWorkspaceCount)
+    [InlineData(true, false, false, 4096)]
+    [InlineData(false, true, true, 6144)]
+    [InlineData(false, true, false, 8192)]
+    [InlineData(false, false, false, 12288)]
+    public void BlockDecoderUsesOneContiguousWorkspaceOwner(
+        bool isMonochrome,
+        bool subsamplingX,
+        bool subsamplingY,
+        int expectedInverseQuantizationSize)
     {
-        FailingTestMemoryAllocator allocator = new(failureAllocationNumber);
+        TestMemoryAllocator allocator = new();
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
         ObuSequenceHeader sequenceHeader = new()
@@ -134,12 +141,20 @@ public class Av1FrameBufferTests
             Use128x128Superblock = false,
             ColorConfig = new ObuColorConfig
             {
-                IsMonochrome = true,
+                IsMonochrome = isMonochrome,
+                SubSamplingX = subsamplingX,
+                SubSamplingY = subsamplingY,
                 BitDepth = Av1BitDepth.EightBit
             }
         };
 
-        using Av1FrameBuffer<byte> frameBuffer = new(configuration, sequenceHeader, Av1ColorFormat.Yuv400, false);
+        Av1ColorFormat colorFormat = isMonochrome
+            ? Av1ColorFormat.Yuv400
+            : subsamplingX
+                ? subsamplingY ? Av1ColorFormat.Yuv420 : Av1ColorFormat.Yuv422
+                : Av1ColorFormat.Yuv444;
+
+        using Av1FrameBuffer<byte> frameBuffer = new(configuration, sequenceHeader, colorFormat, false);
         ObuFrameHeader frameHeader = new()
         {
             ModeInfoColumnCount = 16,
@@ -152,28 +167,46 @@ public class Av1FrameBufferTests
         Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
         using Av1ReferenceFrameStore referenceFrames = new();
 
-        // The frame's luma plane is allocation attempt one. Resetting only the logs preserves that counter while
-        // isolating the block-decoder owners that must be returned when a later workspace rent fails.
+        // Reset the frame-plane logs so the following assertions describe only the block decoder's scratch owner.
         allocator.EnableNonThreadSafeLogging();
 
-        Assert.Throws<InvalidMemoryOperationException>(
-            () => new Av1BlockDecoder(
+        int maximumBlockLength = 1 << sequenceHeader.SuperblockSizeLog2;
+        int maximumBlockArea = maximumBlockLength * maximumBlockLength;
+        int predictorWorkingLength = Math.Max(
+            Av1PredictionDecoder.ScratchLength,
+            Math.Max(
+                Av1TranslationalInterPredictor.GetScratchLength(maximumBlockLength, maximumBlockLength),
+                Av1ScaledInterPredictor.GetMaximumScaledScratchLength(maximumBlockLength, maximumBlockLength)));
+
+        int predictionScratchLength =
+            (2 * maximumBlockArea) +
+            ((maximumBlockArea + 1) >> 1) +
+            predictorWorkingLength +
+            Av1ChromaFromLumaContext.BufferLength;
+
+        int expectedWorkspaceLength =
+            (expectedInverseQuantizationSize * 2) +
+            (Av1TransformWorkspace.MaximumLength * 2) +
+            predictionScratchLength;
+
+        TestMemoryAllocator.AllocationRequest workspaceAllocation;
+        using (Av1BlockDecoder blockDecoder = new(
                 sequenceHeader,
                 frameHeader,
                 frameBuffer,
                 loopFilterContext,
                 inverseQuantizer,
-                referenceFrames));
-
-        Assert.Equal(failureAllocationNumber, allocator.AllocationAttemptCount);
-        Assert.Equal(successfulWorkspaceCount, allocator.AllocationLog.Count);
-        Assert.Equal(successfulWorkspaceCount, allocator.ReturnLog.Count);
-        foreach (TestMemoryAllocator.AllocationRequest allocation in allocator.AllocationLog)
+                referenceFrames))
         {
-            Assert.Contains(
-                allocator.ReturnLog,
-                returned => returned.HashCodeOfBuffer == allocation.HashCodeOfBuffer);
+            workspaceAllocation = Assert.Single(allocator.AllocationLog);
+            Assert.Empty(allocator.ReturnLog);
+            Assert.Equal(typeof(short), workspaceAllocation.ElementType);
+            Assert.Equal(expectedWorkspaceLength, workspaceAllocation.Length);
+            Assert.Equal(expectedInverseQuantizationSize, blockDecoder.CurrentInverseQuantizationCoefficients.Length);
         }
+
+        TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
+        Assert.Equal(workspaceAllocation.AllocationId, returned.AllocationId);
     }
 
     /// <summary>

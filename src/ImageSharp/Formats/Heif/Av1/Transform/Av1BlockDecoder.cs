@@ -54,22 +54,27 @@ internal sealed class Av1BlockDecoder : IDisposable
     private readonly Av1ReferenceFrameStore referenceFrames;
 
     /// <summary>
-    /// Owns the reusable raster-order inverse-quantization buffer.
+    /// Owns all reusable inverse-quantization, transform, and prediction storage.
     /// </summary>
-    private readonly IMemoryOwner<int> inverseQuantizationOwner;
+    private readonly IMemoryOwner<short> workspaceOwner;
 
     /// <summary>
-    /// Owns the reusable two-dimensional inverse-transform workspace.
+    /// The inverse-quantization prefix length in signed-short storage elements.
     /// </summary>
-    private readonly IMemoryOwner<int> transformWorkspaceOwner;
+    private readonly int inverseQuantizationStorageLength;
 
     /// <summary>
-    /// Owns the reusable directional and filter-intra prediction workspace.
+    /// The inverse-transform workspace offset in signed-short storage elements.
     /// </summary>
-    private readonly IMemoryOwner<short> predictionScratchOwner;
+    private readonly int transformWorkspaceOffset;
 
     /// <summary>
-    /// The reusable predictor portion of <see cref="predictionScratchOwner"/>, excluding compound and chroma-from-luma storage.
+    /// The prediction workspace offset in signed-short storage elements.
+    /// </summary>
+    private readonly int predictionScratchOffset;
+
+    /// <summary>
+    /// The reusable predictor portion of <see cref="workspaceOwner"/>, excluding compound and chroma-from-luma storage.
     /// </summary>
     private readonly int predictorWorkingLength;
 
@@ -122,76 +127,56 @@ internal sealed class Av1BlockDecoder : IDisposable
 
         // One scratch plane is reused for every transform unit. Its maximum size must cover a complete superblock
         // across all coded planes, with chroma dimensions reduced independently by their subsampling axes.
-        int inverseQuantizationSize = ySize +
-            (this.sequenceHeader.ColorConfig.SubSamplingX ? ySize >> 2 : ySize) +
-            (this.sequenceHeader.ColorConfig.SubSamplingY ? ySize >> 2 : ySize);
+        ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
+        int chromaSubsampling = (colorConfig.SubSamplingX ? 1 : 0) + (colorConfig.SubSamplingY ? 1 : 0);
+        int chromaSize = ySize >> chromaSubsampling;
+        int inverseQuantizationSize = colorConfig.IsMonochrome ? ySize : ySize + (2 * chromaSize);
+        int maximumBlockLength = 1 << sequenceHeader.SuperblockSizeLog2;
+        int maximumBlockArea = maximumBlockLength * maximumBlockLength;
+        int predictorWorkingLength = Math.Max(
+            Av1PredictionDecoder.ScratchLength,
+            Math.Max(
+                Av1TranslationalInterPredictor.GetScratchLength(maximumBlockLength, maximumBlockLength),
+                Av1ScaledInterPredictor.GetMaximumScaledScratchLength(maximumBlockLength, maximumBlockLength)));
 
-        IMemoryOwner<int>? inverseQuantizationOwner = null;
-        IMemoryOwner<int>? transformWorkspaceOwner = null;
-        IMemoryOwner<short>? predictionScratchOwner = null;
-        try
-        {
-            inverseQuantizationOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(inverseQuantizationSize);
-            transformWorkspaceOwner = this.frameBuffer.MemoryAllocator.Allocate<int>(Av1TransformWorkspace.MaximumLength);
-            int maximumBlockLength = 1 << sequenceHeader.SuperblockSizeLog2;
-            int maximumBlockArea = maximumBlockLength * maximumBlockLength;
-            int predictorWorkingLength = Math.Max(
-                Av1PredictionDecoder.ScratchLength,
-                Math.Max(
-                    Av1TranslationalInterPredictor.GetScratchLength(maximumBlockLength, maximumBlockLength),
-                    Av1ScaledInterPredictor.GetMaximumScaledScratchLength(maximumBlockLength, maximumBlockLength)));
+        int compoundMaskLength = (maximumBlockArea + 1) >> 1;
+        int predictorWorkingOffset = (2 * maximumBlockArea) + compoundMaskLength;
+        int chromaFromLumaOffset = predictorWorkingOffset + predictorWorkingLength;
+        int predictionScratchLength = chromaFromLumaOffset + Av1ChromaFromLumaContext.BufferLength;
+        this.inverseQuantizationStorageLength = inverseQuantizationSize * 2;
+        this.transformWorkspaceOffset = this.inverseQuantizationStorageLength;
+        this.predictionScratchOffset = this.transformWorkspaceOffset + (Av1TransformWorkspace.MaximumLength * 2);
 
-            int compoundMaskLength = (maximumBlockArea + 1) >> 1;
-            int predictorWorkingOffset = (2 * maximumBlockArea) + compoundMaskLength;
-            int chromaFromLumaOffset = predictorWorkingOffset + predictorWorkingLength;
+        // Integer workspaces occupy even signed-short slices so one allocator owner can retain the complete block
+        // lifetime while prediction still receives the Memory<short> contract needed by its reusable context.
+        this.workspaceOwner = this.frameBuffer.MemoryAllocator.Allocate<short>(
+            this.predictionScratchOffset + predictionScratchLength);
 
-            // Compound prediction retains both high-precision reference planes plus the full-resolution luma mask.
-            // Keeping those planes, convolution workspace, and CfL surface in one owner avoids independent managed
-            // buffers while ensuring the two scratch consumers never overlap.
-            int predictionScratchLength = chromaFromLumaOffset + Av1ChromaFromLumaContext.BufferLength;
-            predictionScratchOwner = this.frameBuffer.MemoryAllocator.Allocate<short>(predictionScratchLength);
+        Memory<short> predictionScratch = this.workspaceOwner.Memory[this.predictionScratchOffset..];
+        this.predictorWorkingLength = predictorWorkingLength;
+        this.predictionDecoder = new(
+            sequenceHeader,
+            frameHeader,
+            predictionScratch.Slice(predictorWorkingOffset, predictorWorkingLength),
+            paletteColorIndexMaps);
+        this.isLoopFilterEnabled = frameHeader.LoopFilterParameters.FilterLevel[0] != 0 ||
+            frameHeader.LoopFilterParameters.FilterLevel[1] != 0;
 
-            this.inverseQuantizationOwner = inverseQuantizationOwner;
-            this.transformWorkspaceOwner = transformWorkspaceOwner;
-            this.predictionScratchOwner = predictionScratchOwner;
-            this.predictorWorkingLength = predictorWorkingLength;
-            this.predictionDecoder = new(
-                sequenceHeader,
-                frameHeader,
-                predictionScratchOwner.Memory.Slice(predictorWorkingOffset, predictorWorkingLength),
-                paletteColorIndexMaps);
-            this.isLoopFilterEnabled = frameHeader.LoopFilterParameters.FilterLevel[0] != 0 ||
-                frameHeader.LoopFilterParameters.FilterLevel[1] != 0;
-
-            this.chromaFromLumaContext = new(
-                sequenceHeader.ColorConfig,
-                predictionScratchOwner.Memory.Slice(chromaFromLumaOffset, Av1ChromaFromLumaContext.BufferLength));
-        }
-        catch
-        {
-            // A constructor that does not return transfers no ownership to its caller. Unwind successful rents in
-            // reverse order so allocator diagnostics and pooled buffers remain balanced after any later allocation.
-            predictionScratchOwner?.Dispose();
-            transformWorkspaceOwner?.Dispose();
-            inverseQuantizationOwner?.Dispose();
-            throw;
-        }
+        this.chromaFromLumaContext = new(
+            sequenceHeader.ColorConfig,
+            predictionScratch.Slice(chromaFromLumaOffset, Av1ChromaFromLumaContext.BufferLength));
     }
 
     /// <summary>
     /// Gets the reusable raster-order coefficient buffer populated by inverse quantization.
     /// </summary>
-    public Span<int> CurrentInverseQuantizationCoefficients => this.inverseQuantizationOwner.Memory.Span;
+    public Span<int> CurrentInverseQuantizationCoefficients
+        => MemoryMarshal.Cast<short, int>(this.workspaceOwner.Memory.Span[..this.inverseQuantizationStorageLength]);
 
     /// <summary>
     /// Releases the pooled reconstruction workspaces owned by this decoder.
     /// </summary>
-    public void Dispose()
-    {
-        this.predictionScratchOwner.Dispose();
-        this.transformWorkspaceOwner.Dispose();
-        this.inverseQuantizationOwner.Dispose();
-    }
+    public void Dispose() => this.workspaceOwner.Dispose();
 
     /// <summary>
     /// Resets the per-plane packed coefficient cursors before reconstructing a superblock.
@@ -216,7 +201,10 @@ internal sealed class Av1BlockDecoder : IDisposable
     /// <param name="tileInfo">The tile boundaries used to determine neighbor availability.</param>
     public void DecodeBlock(Av1BlockModeInfo modeInfo, Point modeInfoPosition, Av1BlockSize blockSize, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
-        Span<int> transformWorkspace = this.transformWorkspaceOwner.Memory.Span;
+        Span<int> transformWorkspace = MemoryMarshal.Cast<short, int>(
+            this.workspaceOwner.Memory.Span.Slice(
+                this.transformWorkspaceOffset,
+                Av1TransformWorkspace.MaximumLength * 2));
 
         ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
         Av1TransformType transformType;
@@ -351,7 +339,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                 int maximumBlockLength = 1 << this.sequenceHeader.SuperblockSizeLog2;
                 int maximumBlockArea = maximumBlockLength * maximumBlockLength;
                 int compoundMaskStorageLength = (maximumBlockArea + 1) >> 1;
-                Span<short> predictionStorage = this.predictionScratchOwner.Memory.Span;
+                Span<short> predictionStorage = this.workspaceOwner.Memory.Span[this.predictionScratchOffset..];
                 Span<short> secondPredictionStorage = predictionStorage[..maximumBlockArea];
                 Span<ushort> firstCompoundPrediction = MemoryMarshal.Cast<short, ushort>(
                     predictionStorage.Slice(maximumBlockArea, maximumBlockArea));

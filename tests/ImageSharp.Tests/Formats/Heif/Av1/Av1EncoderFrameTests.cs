@@ -2,13 +2,71 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 public class Av1EncoderFrameTests
 {
+    [Fact]
+    public void PrepareSourceConvertsRgba32DirectlyIntoBorderedEightBitPlane()
+    {
+        const int width = 4;
+        const int height = 1;
+        const int codedWidth = 8;
+        const int codedHeight = 8;
+        const int border = Av1EncoderFrame<byte>.LumaBorder;
+        MemoryAllocator allocator = Configuration.Default.MemoryAllocator;
+
+        using Image<Rgba32> image = new(width, height);
+        image[0, 0] = new Rgba32(byte.MaxValue, 0, 0, 0);
+        image[1, 0] = new Rgba32(0, byte.MaxValue, 0);
+        image[2, 0] = new Rgba32(0, 0, byte.MaxValue);
+        image[3, 0] = new Rgba32(byte.MaxValue, byte.MaxValue, byte.MaxValue);
+
+        Size bufferSize = Av1EncoderFrame<byte>.GetPlaneBufferSize(width, height, 0, 0);
+        using Buffer2D<byte> luma = allocator.Allocate2D<byte>(bufferSize.Width, bufferSize.Height);
+        Buffer2DRegion<byte> lumaRegion = luma.GetRegion(border, border, codedWidth, codedHeight);
+        Av1EncoderFrame<byte> frame = new(lumaRegion, width, height, 8);
+        ObuColorConfig colorConfig = CreateMonochromeColorConfig(Av1BitDepth.EightBit);
+
+        Av1FrameEncoder.PrepareSource(Configuration.Default, image.Frames.RootFrame, frame, colorConfig);
+
+        byte[] expected = [76, 150, 29, 255];
+        AssertReplicatedSingleRow(luma, border, expected);
+    }
+
+    [Fact]
+    public void PrepareSourcePreservesHighBitDepthPrecision()
+    {
+        const int width = 4;
+        const int height = 1;
+        const int codedWidth = 8;
+        const int codedHeight = 8;
+        const int border = Av1EncoderFrame<ushort>.LumaBorder;
+        MemoryAllocator allocator = Configuration.Default.MemoryAllocator;
+
+        using Image<Rgba64> image = new(width, height);
+        image[0, 0] = new Rgba64(ushort.MaxValue, 0, 0, 0);
+        image[1, 0] = new Rgba64(0, ushort.MaxValue, 0, ushort.MaxValue);
+        image[2, 0] = new Rgba64(0, 0, ushort.MaxValue, ushort.MaxValue);
+        image[3, 0] = new Rgba64(ushort.MaxValue, ushort.MaxValue, ushort.MaxValue, ushort.MaxValue);
+
+        Size bufferSize = Av1EncoderFrame<ushort>.GetPlaneBufferSize(width, height, 0, 0);
+        using Buffer2D<ushort> luma = allocator.Allocate2D<ushort>(bufferSize.Width, bufferSize.Height);
+        Buffer2DRegion<ushort> lumaRegion = luma.GetRegion(border, border, codedWidth, codedHeight);
+        Av1EncoderFrame<ushort> frame = new(lumaRegion, width, height, 10);
+        ObuColorConfig colorConfig = CreateMonochromeColorConfig(Av1BitDepth.TenBit);
+
+        Av1FrameEncoder.PrepareSource(Configuration.Default, image.Frames.RootFrame, frame, colorConfig);
+
+        ushort[] expected = [306, 601, 117, 1023];
+        AssertReplicatedSingleRow(luma, border, expected);
+    }
+
     [Fact]
     public void ExtendBordersReplicatesEveryPhysicalPlaneEdge()
     {
@@ -70,6 +128,21 @@ public class Av1EncoderFrameTests
         Assert.Equal(new Size(expectedWidth, expectedHeight), actual);
     }
 
+    private static ObuColorConfig CreateMonochromeColorConfig(Av1BitDepth bitDepth)
+        => new()
+        {
+            IsColorDescriptionPresent = true,
+            IsMonochrome = true,
+            ColorPrimaries = ObuColorPrimaries.Bt601,
+            TransferCharacteristics = ObuTransferCharacteristics.Bt601,
+            MatrixCoefficients = ObuMatrixCoefficients.Bt601,
+            ColorRange = true,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            ChromaSamplePosition = ObuChromoSamplePosition.Unknown,
+            BitDepth = bitDepth
+        };
+
     private static void FillVisible(Buffer2D<byte> plane, int originX, int originY, int width, int height, int seed)
     {
         for (int y = 0; y < height; y++)
@@ -92,6 +165,23 @@ public class Av1EncoderFrameTests
             {
                 int sourceX = Math.Clamp(x - originX, 0, width - 1);
                 Assert.Equal((byte)(seed + (sourceY * width) + sourceX), row[x]);
+            }
+        }
+    }
+
+    private static void AssertReplicatedSingleRow<TSample>(
+        Buffer2D<TSample> plane,
+        int originX,
+        ReadOnlySpan<TSample> expected)
+        where TSample : unmanaged, IEquatable<TSample>
+    {
+        for (int y = 0; y < plane.Height; y++)
+        {
+            ReadOnlySpan<TSample> row = plane.DangerousGetRowSpan(y);
+            for (int x = 0; x < row.Length; x++)
+            {
+                int sourceX = Math.Clamp(x - originX, 0, expected.Length - 1);
+                Assert.Equal(expected[sourceX], row[x]);
             }
         }
     }

@@ -1,35 +1,79 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Components;
+using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Defines the work-in-progress AV1 still-image frame-encoding boundary.
+/// Performs operation-scoped AV1 still-image frame encoding.
 /// </summary>
-internal class Av1FrameEncoder
+internal static class Av1FrameEncoder
 {
     /// <summary>
-    /// The source plane samples supplied for frame encoding.
+    /// Converts packed pixels directly into an eight-bit bordered AV1 source frame.
     /// </summary>
-    private readonly Av1FrameBuffer<byte> frameBuffer;
+    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <param name="configuration">The configuration used for row-buffer allocation and pixel conversion.</param>
+    /// <param name="image">The packed source frame.</param>
+    /// <param name="source">The operation-owned AV1 source planes.</param>
+    /// <param name="colorConfig">The color configuration written to the AV1 sequence header.</param>
+    public static void PrepareSource<TPixel>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Av1EncoderFrame<byte> source,
+        ObuColorConfig colorConfig)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => PrepareSource<TPixel, byte, HeifByteSampleConverter>(configuration, image, source, colorConfig);
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1FrameEncoder"/> class.
+    /// Converts packed pixels directly into a high-bit-depth bordered AV1 source frame.
     /// </summary>
-    /// <param name="frameBuffer">The source frame samples to encode.</param>
-    public Av1FrameEncoder(Av1FrameBuffer<byte> frameBuffer)
-    {
-        this.frameBuffer = frameBuffer;
-    }
+    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <param name="configuration">The configuration used for row-buffer allocation and pixel conversion.</param>
+    /// <param name="image">The packed source frame.</param>
+    /// <param name="source">The operation-owned AV1 source planes.</param>
+    /// <param name="colorConfig">The color configuration written to the AV1 sequence header.</param>
+    public static void PrepareSource<TPixel>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Av1EncoderFrame<ushort> source,
+        ObuColorConfig colorConfig)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(configuration, image, source, colorConfig);
 
     /// <summary>
-    /// Represents the not-yet-implemented entry point for encoding one AV1 still-image frame.
+    /// Converts packed pixels into native component planes and initializes every coded and physical edge sample.
     /// </summary>
-    public static void Encode()
+    private static void PrepareSource<TPixel, TSample, TStorer>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Av1EncoderFrame<TSample> source,
+        ObuColorConfig colorConfig)
+        where TPixel : unmanaged, IPixel<TPixel>
+        where TSample : unmanaged
+        where TStorer : struct, IHeifSampleConverter<TSample>
     {
-        // Still-image encoding needs the normative analysis, transform, quantization, entropy, and packetization stages,
-        // but it does not require the encoder's application-level worker graph or video-sequence process orchestration.
+        HeifColorConversionParameters parameters = Av1YuvConverter.GetConversionParameters(
+            colorConfig,
+            out HeifColorConversionMode mode);
+
+        // Conversion writes into the final bordered analysis planes. The later coding stages therefore consume the
+        // native source directly without a second full-frame copy from an intermediate component buffer.
+        HeifPlanarColorConverter.ConvertFromRgb<
+            TPixel,
+            Av1EncoderFrame<TSample>.PlanarView,
+            TSample,
+            TStorer>(
+            configuration,
+            image,
+            source.View,
+            in parameters,
+            mode);
+
+        source.ExtendBorders();
     }
 }

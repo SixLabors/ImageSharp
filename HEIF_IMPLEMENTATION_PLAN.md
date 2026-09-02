@@ -810,10 +810,10 @@ Encoder verification contract:
 
 ### 6. Build the complete AV1 frame encoder
 
-- [~] SIMD-first RGB-to-native-plane conversion exists locally.
+- [~] SIMD-first RGB-to-native-plane conversion now feeds eight-bit and high-bit-depth bordered AV1 source frames directly, preserving ImageSharp's arbitrary packed-pixel input contract without an intermediate full-frame native-plane copy.
 - [~] Forward transform families and transform workspace exist locally.
 - [~] Symbol writer, coefficient writer, and tile writer fragments exist locally.
-- [~] A non-owning encoder-frame view now separates visible conversion regions from coded regions and performs complete left, top, right, bottom, and corner extension across each bordered plane. Current libaom uses 8-sample-aligned coded dimensions, a 32-sample-aligned luma stride with chroma stride derived from it, and a 64-pixel luma border for non-resized all-intra encoding. Allocator-backed luma and 4:2:0 chroma extension passed direct net11 VSTest; the containing encode operation still needs to connect matching plane rents with ordinary `using` lifetimes.
+- [~] A non-owning encoder-frame view now separates visible conversion regions from coded regions and performs complete left, top, right, bottom, and corner extension across each bordered plane. Current libaom uses 8-sample-aligned coded dimensions, a 32-sample-aligned luma stride with chroma stride derived from it, and a 64-pixel luma border for non-resized all-intra encoding. The frame-encoder boundary now converts packed pixels directly into those final source planes before extension; the containing encode operation still needs to connect matching source and reconstruction plane rents with ordinary `using` lifetimes.
 - [~] Temporal delimiter, sequence header, frame header, and combined-frame tile-group writing exist locally. The remaining required metadata, padding, and encoder-wide syntax paths are not complete.
 - [ ] Implement superblock and partition analysis for every permitted block size and partition.
 - [ ] Implement intra mode search, chroma mode search, palette, filter intra, chroma-from-luma, and intra-block copy decisions.

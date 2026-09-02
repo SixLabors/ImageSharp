@@ -24,7 +24,7 @@ internal static class Av1YuvConverter
     public static void ConvertToRgb<TPixel>(Configuration configuration, Av1FrameBuffer<byte> frameBuffer, ImageFrame<TPixel> image)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        HeifColorConversionParameters parameters = GetConversionParameters(frameBuffer, out HeifColorConversionMode mode);
+        HeifColorConversionParameters parameters = GetConversionParameters(frameBuffer.ColorConfig, out HeifColorConversionMode mode);
         if (frameBuffer.BitDepth == Av1BitDepth.EightBit)
         {
             Av1PlanarSampleBuffer<byte> buffer = new(frameBuffer);
@@ -111,7 +111,7 @@ internal static class Av1YuvConverter
         bool premultiplied)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        HeifColorConversionParameters parameters = GetConversionParameters(frameBuffer, out _);
+        HeifColorConversionParameters parameters = GetConversionParameters(frameBuffer.ColorConfig, out _);
         Rectangle sourceRectangle = new(0, 0, frameBuffer.Width, frameBuffer.Height);
         if (frameBuffer.BitDepth == Av1BitDepth.EightBit)
         {
@@ -151,7 +151,7 @@ internal static class Av1YuvConverter
     public static void ConvertFromRgb<TPixel>(Configuration configuration, ImageFrame<TPixel> image, Av1FrameBuffer<byte> frameBuffer)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        HeifColorConversionParameters parameters = GetConversionParameters(frameBuffer, out HeifColorConversionMode mode);
+        HeifColorConversionParameters parameters = GetConversionParameters(frameBuffer.ColorConfig, out HeifColorConversionMode mode);
         if (frameBuffer.BitDepth == Av1BitDepth.EightBit)
         {
             Av1PlanarSampleBuffer<byte> buffer = new(frameBuffer);
@@ -177,27 +177,29 @@ internal static class Av1YuvConverter
     /// <summary>
     /// Resolves the H.273 conversion mode, matrix coefficients, and sample range for a frame.
     /// </summary>
-    /// <param name="frameBuffer">The AV1 frame containing the signaled color configuration.</param>
+    /// <param name="colorConfig">The signaled AV1 color configuration.</param>
     /// <param name="mode">The resolved conversion mode.</param>
     /// <returns>The resolved conversion parameters.</returns>
-    private static HeifColorConversionParameters GetConversionParameters(Av1FrameBuffer<byte> frameBuffer, out HeifColorConversionMode mode)
+    public static HeifColorConversionParameters GetConversionParameters(
+        ObuColorConfig colorConfig,
+        out HeifColorConversionMode mode)
     {
-        if (frameBuffer.ColorConfig.ChromaSamplePosition == ObuChromoSamplePosition.Reserved)
+        if (colorConfig.ChromaSamplePosition == ObuChromoSamplePosition.Reserved)
         {
             throw new InvalidImageContentException("The reserved AV1 chroma sample position is invalid.");
         }
 
-        bool isMonochrome = frameBuffer.ColorFormat == Av1ColorFormat.Yuv400;
+        bool isMonochrome = colorConfig.IsMonochrome;
 
         return HeifColorConversionParameters.Create(
-            (CicpColorPrimaries)(byte)frameBuffer.ColorConfig.ColorPrimaries,
-            (CicpTransferCharacteristics)(byte)frameBuffer.ColorConfig.TransferCharacteristics,
-            (CicpMatrixCoefficients)(byte)frameBuffer.ColorConfig.MatrixCoefficients,
-            frameBuffer.ColorConfig.ColorRange,
-            frameBuffer.BitDepth.GetBitCount(),
-            frameBuffer.BitDepth.GetBitCount(),
+            (CicpColorPrimaries)(byte)colorConfig.ColorPrimaries,
+            (CicpTransferCharacteristics)(byte)colorConfig.TransferCharacteristics,
+            (CicpMatrixCoefficients)(byte)colorConfig.MatrixCoefficients,
+            colorConfig.ColorRange,
+            colorConfig.BitDepth.GetBitCount(),
+            colorConfig.BitDepth.GetBitCount(),
             isMonochrome,
-            frameBuffer.ColorFormat == Av1ColorFormat.Yuv444,
+            colorConfig.GetColorFormat() == Av1ColorFormat.Yuv444,
             out mode);
     }
 }

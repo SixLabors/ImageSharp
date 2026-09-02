@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -772,7 +773,12 @@ internal partial class Av1TileWriter
             Av1ChromaPredictionMode intra_chroma_mode = macroBlockModeInfo.Block.UvMode;
             if (IsIntraBlockCopyAllowed(pcs.Parent.FrameHeader/*, pcs.Parent.SliceType*/))
             {
-                WriteIntraBlockCopyInfo(writer, macroBlockModeInfo);
+                WriteIntraBlockCopyInfo(
+                    pcs,
+                    writer,
+                    macroBlock,
+                    modeInfoPosition,
+                    macroBlockModeInfo);
             }
 
             if (!macroBlockModeInfo.Block.UseIntraBlockCopy)
@@ -1299,18 +1305,36 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes the intra-block-copy selection and displacement-vector syntax for a block.
     /// </summary>
+    /// <param name="picture">The frame-owned mode and displacement state.</param>
     /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="macroBlock">The current block's frame edges and tile availability.</param>
+    /// <param name="modeInfoPosition">The block origin in 4x4 mode-information units.</param>
     /// <param name="macroBlockModeInfo">The selected block modes.</param>
-    /// <exception cref="NotImplementedException">The displacement-vector syntax is not implemented when intra block copy is selected.</exception>
-    private static void WriteIntraBlockCopyInfo(
+    public static void WriteIntraBlockCopyInfo(
+        Av1PictureControlSet picture,
         Av1SymbolEncoder writer,
+        Av1MacroBlockD macroBlock,
+        Point modeInfoPosition,
         Av1MacroBlockModeInfo macroBlockModeInfo)
     {
-        bool use_intrabc = macroBlockModeInfo.Block.UseIntraBlockCopy;
-        writer.WriteUseIntraBlockCopy(use_intrabc);
-        if (use_intrabc)
+        bool useIntraBlockCopy = macroBlockModeInfo.Block.UseIntraBlockCopy;
+        writer.WriteUseIntraBlockCopy(useIntraBlockCopy);
+        if (useIntraBlockCopy)
         {
-            throw new NotImplementedException("Intra block code encoding not implemented.");
+            Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[8];
+            Span<int> weights = stackalloc int[8];
+            Av1MotionVector reference = Av1IntraBlockCopy.FindReference(
+                picture,
+                macroBlock,
+                modeInfoPosition,
+                macroBlockModeInfo.Block.BlockSize,
+                macroBlockModeInfo.Block.PartitionType,
+                candidates,
+                weights);
+
+            writer.WriteDisplacementVector(
+                picture.GetDisplacementVector(modeInfoPosition),
+                reference);
         }
     }
 

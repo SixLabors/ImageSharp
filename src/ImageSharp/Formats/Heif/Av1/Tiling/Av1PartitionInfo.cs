@@ -309,20 +309,41 @@ internal ref struct Av1PartitionInfo
     /// </summary>
     /// <param name="superblockModeInfoSize">The superblock width in 4x4 mode-information units.</param>
     /// <returns><see langword="true"/> when the top-right block has already been decoded; otherwise, <see langword="false"/>.</returns>
-    public bool HasTopRight(int superblockModeInfoSize)
+    public bool HasTopRight(int superblockModeInfoSize) => HasTopRight(
+        this.ModeInfo.BlockSize,
+        this.Type,
+        this.RowIndex,
+        this.ColumnIndex,
+        superblockModeInfoSize);
+
+    /// <summary>
+    /// Determines whether a block can use its top-right search position from raster and partition geometry.
+    /// </summary>
+    /// <param name="blockSize">The current block size.</param>
+    /// <param name="partitionType">The partition type that produced the block.</param>
+    /// <param name="rowIndex">The block row in 4x4 mode-information units.</param>
+    /// <param name="columnIndex">The block column in 4x4 mode-information units.</param>
+    /// <param name="superblockModeInfoSize">The superblock width in 4x4 mode-information units.</param>
+    /// <returns><see langword="true"/> when the top-right block precedes the current block; otherwise, <see langword="false"/>.</returns>
+    internal static bool HasTopRight(
+        Av1BlockSize blockSize,
+        Av1PartitionType partitionType,
+        int rowIndex,
+        int columnIndex,
+        int superblockModeInfoSize)
     {
-        int width = this.ModeInfo.BlockSize.Get4x4WideCount();
-        int height = this.ModeInfo.BlockSize.Get4x4HighCount();
-        int blockSize = Math.Max(width, height);
-        if (blockSize > 16)
+        int width = blockSize.Get4x4WideCount();
+        int height = blockSize.Get4x4HighCount();
+        int squareSize = Math.Max(width, height);
+        if (squareSize > 16)
         {
             return false;
         }
 
-        int row = this.RowIndex & (superblockModeInfoSize - 1);
-        int column = this.ColumnIndex & (superblockModeInfoSize - 1);
-        bool hasTopRight = !((row & blockSize) != 0 && (column & blockSize) != 0);
-        int traversalSize = blockSize;
+        int row = rowIndex & (superblockModeInfoSize - 1);
+        int column = columnIndex & (superblockModeInfoSize - 1);
+        bool hasTopRight = !((row & squareSize) != 0 && (column & squareSize) != 0);
+        int traversalSize = squareSize;
 
         // Split partitions decode three quadrants before the bottom-right quadrant. Walking the enclosing split levels
         // excludes a right-hand block whenever traversal has not reached that block yet.
@@ -344,18 +365,18 @@ internal ref struct Av1PartitionInfo
 
         // Rectangular partitions override the square traversal rule because their sub-blocks are decoded along the
         // long axis. Earlier vertical rectangles have a completed row above; later horizontal rectangles do not.
-        if (width < height && ((this.ColumnIndex + width) & (height - 1)) != 0)
+        if (width < height && ((columnIndex + width) & (height - 1)) != 0)
         {
             hasTopRight = true;
         }
 
-        if (width > height && (this.RowIndex & (width - 1)) != 0)
+        if (width > height && (rowIndex & (width - 1)) != 0)
         {
             hasTopRight = false;
         }
 
         // The lower-left square of a vertical-A partition precedes its right-hand rectangle in bitstream order.
-        if (this.Type == Av1PartitionType.VerticalA && width == height && (row & traversalSize) != 0)
+        if (partitionType == Av1PartitionType.VerticalA && width == height && (row & traversalSize) != 0)
         {
             hasTopRight = false;
         }

@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
@@ -64,6 +66,11 @@ internal class Av1PictureControlSet
     public required Memory<Av1MacroBlockModeInfo> ModeInfoAllocation { get; set; }
 
     /// <summary>
+    /// Gets or sets the packed displacement vectors present only when the frame permits intra-block copy.
+    /// </summary>
+    public Memory<Av1EncoderDisplacementVector> DisplacementVectors { get; set; }
+
+    /// <summary>
     /// Gets or sets the row stride of <see cref="ModeInfoGrid"/> in 4x4 mode-information units.
     /// </summary>
     public int ModeInfoStride { get; set; }
@@ -88,6 +95,36 @@ internal class Av1PictureControlSet
         int gridOffset = (position.Y * this.ModeInfoStride) + position.X;
         int allocationOffset = this.ModeInfoGrid.Span[gridOffset];
         return ref this.ModeInfoAllocation.Span[allocationOffset];
+    }
+
+    /// <summary>
+    /// Gets the displacement vector mapped to a frame position.
+    /// </summary>
+    /// <param name="position">The frame position in 4x4 mode-information units.</param>
+    /// <returns>The displacement vector retained for the covering block.</returns>
+    public Av1MotionVector GetDisplacementVector(Point position)
+    {
+        int gridOffset = (position.Y * this.ModeInfoStride) + position.X;
+        int allocationOffset = this.ModeInfoGrid.Span[gridOffset];
+        Av1EncoderDisplacementVector vector = this.DisplacementVectors.Span[allocationOffset];
+        return new Av1MotionVector(vector.Row, vector.Column);
+    }
+
+    /// <summary>
+    /// Stores the displacement vector selected at a block origin.
+    /// </summary>
+    /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
+    /// <param name="vector">The selected integer displacement vector.</param>
+    public void SetDisplacementVector(Point modeInfoPosition, Av1MotionVector vector)
+    {
+        int modeInfoStride = this.ModeInfoStride;
+        int disallow4x4 = this.Disallow4x4AllFrames ? 1 : 0;
+        int allocationOffset = ((modeInfoPosition.Y >> disallow4x4) * (modeInfoStride >> disallow4x4)) + (modeInfoPosition.X >> disallow4x4);
+        this.DisplacementVectors.Span[allocationOffset] = new Av1EncoderDisplacementVector
+        {
+            Row = (short)vector.Row,
+            Column = (short)vector.Column
+        };
     }
 
     /// <summary>

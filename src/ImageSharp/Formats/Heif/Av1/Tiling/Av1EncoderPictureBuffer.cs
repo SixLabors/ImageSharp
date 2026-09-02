@@ -84,7 +84,16 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             ? checked(tileCount * paletteContextLength * Unsafe.SizeOf<Av1EncoderPaletteInfo>())
             : 0;
 
-        int stateStorageLength = checked(paletteStorageOffset + paletteStorageLength);
+        int paletteStorageEnd = checked(paletteStorageOffset + paletteStorageLength);
+        int displacementVectorLength = frameHeader.AllowIntraBlockCopy ? this.modeInfo.Allocation.Length : 0;
+        int displacementVectorStorageOffset = frameHeader.AllowIntraBlockCopy
+            ? Av1Math.AlignPowerOf2(paletteStorageEnd, 1)
+            : paletteStorageEnd;
+
+        int displacementVectorStorageLength = checked(
+            displacementVectorLength * Unsafe.SizeOf<Av1EncoderDisplacementVector>());
+
+        int stateStorageLength = checked(displacementVectorStorageOffset + displacementVectorStorageLength);
 
         // Segmentation and every tile edge share one clean picture lifetime. The partition region begins at its
         // native alignment, while typed views keep the entropy writer independent from the packed byte owner.
@@ -116,6 +125,17 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         else
         {
             this.paletteContexts = [];
+        }
+
+        Memory<Av1EncoderDisplacementVector> displacementVectors = Memory<Av1EncoderDisplacementVector>.Empty;
+        if (frameHeader.AllowIntraBlockCopy)
+        {
+            // Each component lies strictly inside plus or minus 16384, so two signed 16-bit fields preserve the
+            // complete syntax domain without expanding every frame's compact mode-information allocation.
+            ByteMemoryManager<Av1EncoderDisplacementVector> displacementVectorMemory = new(
+                stateStorage.Slice(displacementVectorStorageOffset, displacementVectorStorageLength));
+
+            displacementVectors = displacementVectorMemory.Memory;
         }
 
         int[][] cdefPreset = new int[tileCount][];
@@ -206,6 +226,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             SegmentationNeighborMap = stateStorage[..segmentationLength],
             ModeInfoGrid = this.modeInfo.Grid,
             ModeInfoAllocation = this.modeInfo.Allocation,
+            DisplacementVectors = displacementVectors,
             ModeInfoStride = this.modeInfo.ModeInfoStride,
             Disallow4x4AllFrames = this.modeInfo.Disallow4x4AllFrames,
             CdefPreset = cdefPreset

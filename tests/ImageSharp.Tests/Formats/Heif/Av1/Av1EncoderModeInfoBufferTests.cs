@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -47,10 +48,12 @@ public class Av1EncoderModeInfoBufferTests
     }
 
     [Theory]
-    [InlineData(false, 336)]
-    [InlineData(true, 3_536)]
+    [InlineData(false, false, 336)]
+    [InlineData(true, false, 3_536)]
+    [InlineData(true, true, 4_560)]
     public unsafe void PictureBufferPacksAllPictureStateIntoTwoAllocatorOwners(
         bool allowScreenContentTools,
+        bool allowIntraBlockCopy,
         int expectedStateStorageLength)
     {
         const int Width = 16;
@@ -84,6 +87,7 @@ public class Av1EncoderModeInfoBufferTests
         ObuFrameHeader frameHeader = new()
         {
             AllowScreenContentTools = allowScreenContentTools,
+            AllowIntraBlockCopy = allowIntraBlockCopy,
             ModeInfoColumnCount = Width >> Av1Constants.ModeInfoSizeLog2,
             ModeInfoRowCount = Height >> Av1Constants.ModeInfoSizeLog2,
             TilesInfo = tiles
@@ -138,6 +142,28 @@ public class Av1EncoderModeInfoBufferTests
             else
             {
                 Assert.Empty(picture.PaletteContexts);
+            }
+
+            if (allowIntraBlockCopy)
+            {
+                Assert.Equal(256, picture.DisplacementVectors.Length);
+                Assert.Equal(4, sizeof(Av1EncoderDisplacementVector));
+
+                // The packed vector region starts at its natural 16-bit alignment inside the shared byte owner.
+                fixed (Av1EncoderDisplacementVector* pointer = picture.DisplacementVectors.Span)
+                {
+                    Assert.Equal((nuint)0, (nuint)pointer % (nuint)sizeof(short));
+                }
+
+                Point position = new(2, 2);
+                Av1MotionVector displacement = new(-16376, 16376);
+                picture.MapModeInfoBlock(position, Av1BlockSize.Block8x8);
+                picture.SetDisplacementVector(position, displacement);
+                Assert.Equal(displacement, picture.GetDisplacementVector(new Point(3, 3)));
+            }
+            else
+            {
+                Assert.Equal(0, picture.DisplacementVectors.Length);
             }
         }
 

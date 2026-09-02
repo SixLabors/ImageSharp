@@ -42,23 +42,74 @@ internal static class Av1IntraBlockCopy
         Span<Av1MotionVector> candidates,
         Span<int> weights)
     {
-        Av1BlockSize blockSize = partitionInfo.ModeInfo.BlockSize;
+        ReferenceContext context = new(ref partitionInfo, superblockModeInfoSize);
+        return FindReference(ref context, tileInfo, superblockModeInfoSize, candidates, weights);
+    }
+
+    /// <summary>
+    /// Finds the spatial reference used to differentially encode an intra-block-copy displacement vector.
+    /// </summary>
+    /// <param name="picture">The encoded frame's mapped mode and displacement state.</param>
+    /// <param name="macroBlock">The current block's frame edges and tile availability.</param>
+    /// <param name="modeInfoPosition">The current block origin in 4x4 mode-information units.</param>
+    /// <param name="blockSize">The current block size.</param>
+    /// <param name="partitionType">The partition type that produced the block.</param>
+    /// <param name="candidates">Reusable storage for up to eight unique reference vectors.</param>
+    /// <param name="weights">Reusable storage for the corresponding spatial weights.</param>
+    /// <returns>The nearest nonzero spatial candidate, or the normative tile-relative fallback.</returns>
+    public static Av1MotionVector FindReference(
+        Av1PictureControlSet picture,
+        Av1MacroBlockD macroBlock,
+        Point modeInfoPosition,
+        Av1BlockSize blockSize,
+        Av1PartitionType partitionType,
+        Span<Av1MotionVector> candidates,
+        Span<int> weights)
+    {
+        int superblockModeInfoSize = picture.Sequence.SequenceHeader.SuperblockModeInfoSize;
+        ReferenceContext context = new(
+            picture,
+            macroBlock,
+            modeInfoPosition,
+            blockSize,
+            partitionType,
+            superblockModeInfoSize);
+
+        return FindReference(
+            ref context,
+            macroBlock.Tile,
+            superblockModeInfoSize,
+            candidates,
+            weights);
+    }
+
+    /// <summary>
+    /// Ranks the shared decoder or encoder reference context without allocating candidate state.
+    /// </summary>
+    private static Av1MotionVector FindReference(
+        ref ReferenceContext context,
+        Av1TileInfo tileInfo,
+        int superblockModeInfoSize,
+        Span<Av1MotionVector> candidates,
+        Span<int> weights)
+    {
+        Av1BlockSize blockSize = context.BlockSize;
         int width = blockSize.Get4x4WideCount();
         int height = blockSize.Get4x4HighCount();
-        int row = partitionInfo.RowIndex;
-        int column = partitionInfo.ColumnIndex;
+        int row = context.RowIndex;
+        int column = context.ColumnIndex;
         int rowAdjustment = height < 2 && (row & 1) != 0 ? 1 : 0;
         int columnAdjustment = width < 2 && (column & 1) != 0 ? 1 : 0;
         int maximumRowOffset = 0;
         int maximumColumnOffset = 0;
 
-        if (partitionInfo.AvailableAbove)
+        if (context.AvailableAbove)
         {
             maximumRowOffset = height < 2 ? -4 + rowAdjustment : -(ReferenceSearchDistance << 1) + rowAdjustment;
             maximumRowOffset = Math.Clamp(maximumRowOffset, tileInfo.ModeInfoRowStart - row, tileInfo.ModeInfoRowEnd - row - 1);
         }
 
-        if (partitionInfo.AvailableLeft)
+        if (context.AvailableLeft)
         {
             maximumColumnOffset = width < 2 ? -4 + columnAdjustment : -(ReferenceSearchDistance << 1) + columnAdjustment;
             maximumColumnOffset = Math.Clamp(maximumColumnOffset, tileInfo.ModeInfoColumnStart - column, tileInfo.ModeInfoColumnEnd - column - 1);
@@ -69,17 +120,17 @@ internal static class Av1IntraBlockCopy
         int processedColumns = 0;
         if (Math.Abs(maximumRowOffset) >= 1)
         {
-            ScanRow(ref partitionInfo, -1, maximumRowOffset, candidates, weights, ref candidateCount, ref processedRows);
+            ScanRow(ref context, -1, maximumRowOffset, candidates, weights, ref candidateCount, ref processedRows);
         }
 
         if (Math.Abs(maximumColumnOffset) >= 1)
         {
-            ScanColumn(ref partitionInfo, -1, maximumColumnOffset, candidates, weights, ref candidateCount, ref processedColumns);
+            ScanColumn(ref context, -1, maximumColumnOffset, candidates, weights, ref candidateCount, ref processedColumns);
         }
 
-        if (partitionInfo.HasTopRight(superblockModeInfoSize))
+        if (context.HasTopRight)
         {
-            AddBlock(ref partitionInfo, -1, width, tileInfo, candidates, weights, ref candidateCount);
+            AddBlock(ref context, -1, width, tileInfo, candidates, weights, ref candidateCount);
         }
 
         int nearestCandidateCount = candidateCount;
@@ -90,19 +141,19 @@ internal static class Av1IntraBlockCopy
 
         // The top-left sample begins the outer search region. Sorting the adjacent and outer regions independently
         // preserves the reference decoder's nearest/near ordering while still accumulating repeated vectors across both regions.
-        AddBlock(ref partitionInfo, -1, -1, tileInfo, candidates, weights, ref candidateCount);
+        AddBlock(ref context, -1, -1, tileInfo, candidates, weights, ref candidateCount);
         for (int index = 2; index <= ReferenceSearchDistance; index++)
         {
             int rowOffset = -(index << 1) + 1 + rowAdjustment;
             int columnOffset = -(index << 1) + 1 + columnAdjustment;
             if (Math.Abs(rowOffset) <= Math.Abs(maximumRowOffset) && Math.Abs(rowOffset) > processedRows)
             {
-                ScanRow(ref partitionInfo, rowOffset, maximumRowOffset, candidates, weights, ref candidateCount, ref processedRows);
+                ScanRow(ref context, rowOffset, maximumRowOffset, candidates, weights, ref candidateCount, ref processedRows);
             }
 
             if (Math.Abs(columnOffset) <= Math.Abs(maximumColumnOffset) && Math.Abs(columnOffset) > processedColumns)
             {
-                ScanColumn(ref partitionInfo, columnOffset, maximumColumnOffset, candidates, weights, ref candidateCount, ref processedColumns);
+                ScanColumn(ref context, columnOffset, maximumColumnOffset, candidates, weights, ref candidateCount, ref processedColumns);
             }
         }
 
@@ -117,10 +168,10 @@ internal static class Av1IntraBlockCopy
             candidates[index] = candidates[index].ClampReference(
                 blockSize.GetWidth(),
                 blockSize.GetHeight(),
-                partitionInfo.ModeBlockToLeftEdge,
-                partitionInfo.ModeBlockToRightEdge,
-                partitionInfo.ModeBlockToTopEdge,
-                partitionInfo.ModeBlockToBottomEdge);
+                context.ModeBlockToLeftEdge,
+                context.ModeBlockToRightEdge,
+                context.ModeBlockToTopEdge,
+                context.ModeBlockToBottomEdge);
         }
 
         Av1MotionVector reference = candidateCount > 0 ? candidates[0] : default;
@@ -221,7 +272,7 @@ internal static class Av1IntraBlockCopy
     /// Scans a mode-information row using AV1's block-size-dependent steps and weights.
     /// </summary>
     private static void ScanRow(
-        ref Av1PartitionInfo partitionInfo,
+        ref ReferenceContext context,
         int rowOffset,
         int maximumRowOffset,
         Span<Av1MotionVector> candidates,
@@ -229,13 +280,13 @@ internal static class Av1IntraBlockCopy
         ref int candidateCount,
         ref int processedRows)
     {
-        int width = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
-        int end = Math.Min(partitionInfo.GetMaxBlockWide(partitionInfo.ModeInfo.BlockSize, false), 16);
+        int width = context.BlockSize.Get4x4WideCount();
+        int end = Math.Min(context.GetMaxBlockWide(), 16);
         int columnOffset = 0;
         if (Math.Abs(rowOffset) > 1)
         {
             columnOffset = 1;
-            if ((partitionInfo.ColumnIndex & 1) != 0 && width < 2)
+            if ((context.ColumnIndex & 1) != 0 && width < 2)
             {
                 columnOffset--;
             }
@@ -245,8 +296,8 @@ internal static class Av1IntraBlockCopy
         bool useFourUnitStep = width >= 16;
         for (int index = 0; index < end;)
         {
-            Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(
-                new Point(partitionInfo.ColumnIndex + columnOffset + index, partitionInfo.RowIndex + rowOffset));
+            ReferenceBlock candidate = context.GetModeInfoAt(
+                new Point(context.ColumnIndex + columnOffset + index, context.RowIndex + rowOffset));
 
             int candidateWidth = candidate.BlockSize.Get4x4WideCount();
             int length = Math.Min(width, candidateWidth);
@@ -276,7 +327,7 @@ internal static class Av1IntraBlockCopy
     /// Scans a mode-information column using AV1's block-size-dependent steps and weights.
     /// </summary>
     private static void ScanColumn(
-        ref Av1PartitionInfo partitionInfo,
+        ref ReferenceContext context,
         int columnOffset,
         int maximumColumnOffset,
         Span<Av1MotionVector> candidates,
@@ -284,13 +335,13 @@ internal static class Av1IntraBlockCopy
         ref int candidateCount,
         ref int processedColumns)
     {
-        int height = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
-        int end = Math.Min(partitionInfo.GetMaxBlockHigh(partitionInfo.ModeInfo.BlockSize, false), 16);
+        int height = context.BlockSize.Get4x4HighCount();
+        int end = Math.Min(context.GetMaxBlockHigh(), 16);
         int rowOffset = 0;
         if (Math.Abs(columnOffset) > 1)
         {
             rowOffset = 1;
-            if ((partitionInfo.RowIndex & 1) != 0 && height < 2)
+            if ((context.RowIndex & 1) != 0 && height < 2)
             {
                 rowOffset--;
             }
@@ -300,8 +351,8 @@ internal static class Av1IntraBlockCopy
         bool useFourUnitStep = height >= 16;
         for (int index = 0; index < end;)
         {
-            Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(
-                new Point(partitionInfo.ColumnIndex + columnOffset, partitionInfo.RowIndex + rowOffset + index));
+            ReferenceBlock candidate = context.GetModeInfoAt(
+                new Point(context.ColumnIndex + columnOffset, context.RowIndex + rowOffset + index));
 
             int candidateHeight = candidate.BlockSize.Get4x4HighCount();
             int length = Math.Min(height, candidateHeight);
@@ -331,7 +382,7 @@ internal static class Av1IntraBlockCopy
     /// Adds the intra-block-copy vector at one tile-relative search position.
     /// </summary>
     private static void AddBlock(
-        ref Av1PartitionInfo partitionInfo,
+        ref ReferenceContext context,
         int rowOffset,
         int columnOffset,
         Av1TileInfo tileInfo,
@@ -339,15 +390,15 @@ internal static class Av1IntraBlockCopy
         Span<int> weights,
         ref int candidateCount)
     {
-        int row = partitionInfo.RowIndex + rowOffset;
-        int column = partitionInfo.ColumnIndex + columnOffset;
+        int row = context.RowIndex + rowOffset;
+        int column = context.ColumnIndex + columnOffset;
         if (row < tileInfo.ModeInfoRowStart || row >= tileInfo.ModeInfoRowEnd ||
             column < tileInfo.ModeInfoColumnStart || column >= tileInfo.ModeInfoColumnEnd)
         {
             return;
         }
 
-        Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(column, row));
+        ReferenceBlock candidate = context.GetModeInfoAt(new Point(column, row));
         AddCandidate(candidate, 4, candidates, weights, ref candidateCount);
     }
 
@@ -355,7 +406,7 @@ internal static class Av1IntraBlockCopy
     /// Accumulates one unique intra-block-copy candidate and its spatial weight.
     /// </summary>
     private static void AddCandidate(
-        Av1BlockModeInfo candidate,
+        ReferenceBlock candidate,
         int weight,
         Span<Av1MotionVector> candidates,
         Span<int> weights,
@@ -411,5 +462,140 @@ internal static class Av1IntraBlockCopy
 
             length = lastSwap;
         }
+    }
+
+    /// <summary>
+    /// Provides one allocation-free view over decoder or encoder mode-information storage.
+    /// </summary>
+    private readonly struct ReferenceContext
+    {
+        private readonly Av1SuperblockInfo decodedSuperblock;
+        private readonly Av1PictureControlSet? encodedPicture;
+
+        public ReferenceContext(ref Av1PartitionInfo partitionInfo, int superblockModeInfoSize)
+        {
+            this.decodedSuperblock = partitionInfo.SuperblockInfo;
+            this.encodedPicture = null;
+            this.BlockSize = partitionInfo.ModeInfo.BlockSize;
+            this.RowIndex = partitionInfo.RowIndex;
+            this.ColumnIndex = partitionInfo.ColumnIndex;
+            this.AvailableAbove = partitionInfo.AvailableAbove;
+            this.AvailableLeft = partitionInfo.AvailableLeft;
+            this.ModeBlockToLeftEdge = partitionInfo.ModeBlockToLeftEdge;
+            this.ModeBlockToRightEdge = partitionInfo.ModeBlockToRightEdge;
+            this.ModeBlockToTopEdge = partitionInfo.ModeBlockToTopEdge;
+            this.ModeBlockToBottomEdge = partitionInfo.ModeBlockToBottomEdge;
+            this.HasTopRight = partitionInfo.HasTopRight(superblockModeInfoSize);
+        }
+
+        public ReferenceContext(
+            Av1PictureControlSet picture,
+            Av1MacroBlockD macroBlock,
+            Point modeInfoPosition,
+            Av1BlockSize blockSize,
+            Av1PartitionType partitionType,
+            int superblockModeInfoSize)
+        {
+            this.decodedSuperblock = default;
+            this.encodedPicture = picture;
+            this.BlockSize = blockSize;
+            this.RowIndex = modeInfoPosition.Y;
+            this.ColumnIndex = modeInfoPosition.X;
+            this.AvailableAbove = macroBlock.IsUpAvailable;
+            this.AvailableLeft = macroBlock.IsLeftAvailable;
+            this.ModeBlockToLeftEdge = macroBlock.ToLeftEdge;
+            this.ModeBlockToRightEdge = macroBlock.ToRightEdge;
+            this.ModeBlockToTopEdge = macroBlock.ToTopEdge;
+            this.ModeBlockToBottomEdge = macroBlock.ToBottomEdge;
+            this.HasTopRight = Av1PartitionInfo.HasTopRight(
+                blockSize,
+                partitionType,
+                modeInfoPosition.Y,
+                modeInfoPosition.X,
+                superblockModeInfoSize);
+        }
+
+        public Av1BlockSize BlockSize { get; }
+
+        public int RowIndex { get; }
+
+        public int ColumnIndex { get; }
+
+        public bool AvailableAbove { get; }
+
+        public bool AvailableLeft { get; }
+
+        public int ModeBlockToLeftEdge { get; }
+
+        public int ModeBlockToRightEdge { get; }
+
+        public int ModeBlockToTopEdge { get; }
+
+        public int ModeBlockToBottomEdge { get; }
+
+        public bool HasTopRight { get; }
+
+        public int GetMaxBlockWide()
+        {
+            int width = this.BlockSize.GetWidth();
+            if (this.ModeBlockToRightEdge < 0)
+            {
+                width += this.ModeBlockToRightEdge >> 3;
+            }
+
+            return width >> Av1Constants.ModeInfoSizeLog2;
+        }
+
+        public int GetMaxBlockHigh()
+        {
+            int height = this.BlockSize.GetHeight();
+            if (this.ModeBlockToBottomEdge < 0)
+            {
+                height += this.ModeBlockToBottomEdge >> 3;
+            }
+
+            return height >> Av1Constants.ModeInfoSizeLog2;
+        }
+
+        public ReferenceBlock GetModeInfoAt(Point position)
+        {
+            Av1PictureControlSet? picture = this.encodedPicture;
+            if (picture is not null)
+            {
+                Av1MacroBlockModeInfo encodedModeInfo = picture.GetFromModeInfoGrid(position);
+                return new ReferenceBlock(
+                    encodedModeInfo.Block.BlockSize,
+                    encodedModeInfo.Block.UseIntraBlockCopy,
+                    picture.GetDisplacementVector(position));
+            }
+
+            Av1BlockModeInfo decodedModeInfo = this.decodedSuperblock.GetModeInfoAt(position);
+            return new ReferenceBlock(
+                decodedModeInfo.BlockSize,
+                decodedModeInfo.UseIntraBlockCopy,
+                decodedModeInfo.DisplacementVector);
+        }
+    }
+
+    /// <summary>
+    /// Carries the three neighboring mode fields consumed by displacement-reference ranking.
+    /// </summary>
+    private readonly struct ReferenceBlock
+    {
+        public ReferenceBlock(
+            Av1BlockSize blockSize,
+            bool useIntraBlockCopy,
+            Av1MotionVector displacementVector)
+        {
+            this.BlockSize = blockSize;
+            this.UseIntraBlockCopy = useIntraBlockCopy;
+            this.DisplacementVector = displacementVector;
+        }
+
+        public Av1BlockSize BlockSize { get; }
+
+        public bool UseIntraBlockCopy { get; }
+
+        public Av1MotionVector DisplacementVector { get; }
     }
 }

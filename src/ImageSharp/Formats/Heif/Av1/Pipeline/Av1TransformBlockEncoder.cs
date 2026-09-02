@@ -83,7 +83,7 @@ internal static class Av1TransformBlockEncoder
     /// <param name="source">The coded source plane.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
     /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
-    /// <param name="above">The contiguous top reference samples.</param>
+    /// <param name="above">The contiguous top reference samples, with prefix storage for the shared corner.</param>
     /// <param name="left">The contiguous left reference samples.</param>
     /// <param name="hasLeft">Whether the left reference is available.</param>
     /// <param name="hasAbove">Whether the top reference is available.</param>
@@ -224,7 +224,7 @@ internal static class Av1TransformBlockEncoder
     /// <param name="source">The coded source plane.</param>
     /// <param name="blockOrigin">The block origin in plane samples.</param>
     /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
-    /// <param name="above">The contiguous top reference samples.</param>
+    /// <param name="above">The contiguous top reference samples, with prefix storage for the shared corner.</param>
     /// <param name="left">The contiguous left reference samples.</param>
     /// <param name="hasLeft">Whether the left reference is available.</param>
     /// <param name="hasAbove">Whether the top reference is available.</param>
@@ -311,7 +311,7 @@ internal static class Av1TransformBlockEncoder
     /// <param name="sourceStride">The number of source samples between rows.</param>
     /// <param name="reconstruction">The reconstructed frame samples and prediction destination.</param>
     /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
-    /// <param name="above">The contiguous top reference samples.</param>
+    /// <param name="above">The contiguous top reference samples, with prefix storage for the shared corner.</param>
     /// <param name="left">The contiguous left reference samples.</param>
     /// <param name="hasLeft">Whether the left reference is available.</param>
     /// <param name="hasAbove">Whether the top reference is available.</param>
@@ -395,7 +395,7 @@ internal static class Av1TransformBlockEncoder
     /// <param name="sourceStride">The number of source samples between rows.</param>
     /// <param name="reconstruction">The reconstructed frame samples and prediction destination.</param>
     /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
-    /// <param name="above">The contiguous top reference samples.</param>
+    /// <param name="above">The contiguous top reference samples, with prefix storage for the shared corner.</param>
     /// <param name="left">The contiguous left reference samples.</param>
     /// <param name="hasLeft">Whether the left reference is available.</param>
     /// <param name="hasAbove">Whether the top reference is available.</param>

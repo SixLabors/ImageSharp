@@ -14,11 +14,16 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 /// <summary>
-/// Verifies fixed DC intra superblock traversal and reconstruction.
+/// Verifies live intra superblock mode decisions, traversal, and reconstruction.
 /// </summary>
 [Trait("Format", "Avif")]
 public class Av1IntraSuperblockEncoderTests
 {
+    /// <summary>
+    /// Gets the normative eight-sample weights used to build independent smooth-mode fixtures.
+    /// </summary>
+    private static ReadOnlySpan<int> Smooth8Weights => [255, 197, 146, 105, 73, 50, 37, 32];
+
     [Fact]
     public void EncodesClipped128SuperblockInWriterPreorderWithoutAllocation()
     {
@@ -601,11 +606,25 @@ public class Av1IntraSuperblockEncoderTests
         Assert.NotEqual(0, encoded.GetSpan().Length);
     }
 
-    [Fact]
-    public void ProductionTileSelectsVerticalFromCurrentReconstruction()
+    [Theory]
+    [InlineData((int)Av1PredictionMode.Vertical)]
+    [InlineData((int)Av1PredictionMode.Horizontal)]
+    [InlineData((int)Av1PredictionMode.Smooth)]
+    [InlineData((int)Av1PredictionMode.Paeth)]
+    [InlineData((int)Av1PredictionMode.SmoothVertical)]
+    [InlineData((int)Av1PredictionMode.SmoothHorizontal)]
+    public void ProductionTileSelectsModeFromCurrentReconstruction(int expectedModeValue)
     {
-        const int Width = 8;
+        const int Width = 16;
         const int Height = 16;
+        const byte TopReference = 48;
+        const byte LeftReference = 208;
+        const int QIndex = 1;
+        Av1PredictionMode expectedMode = (Av1PredictionMode)expectedModeValue;
+        int cornerReference = expectedMode == Av1PredictionMode.Horizontal
+            ? LeftReference
+            : expectedMode == Av1PredictionMode.Vertical ? TopReference : 128;
+
         ObuColorConfig colorConfig = new()
         {
             IsMonochrome = true,
@@ -633,18 +652,64 @@ public class Av1IntraSuperblockEncoderTests
             0);
 
         Buffer2DRegion<byte> sourcePlane = source.Frame.CodedView.GetPlane(Av1Plane.Y);
+
+        // The first three 8x8 blocks establish the corner, top, and left reconstruction consumed by
+        // the bottom-right target. This makes the assertion exercise production traversal and live state.
         for (int y = 0; y < Height; y++)
         {
             Span<byte> row = sourcePlane.DangerousGetRowSpan(y);
             for (int x = 0; x < Width; x++)
             {
-                row[x] = (byte)(24 + (x * 29));
+                int rowIndex = y - 8;
+                int columnIndex = x - 8;
+                int value;
+                if (y < 8)
+                {
+                    value = x < 8
+                        ? cornerReference
+                        : expectedMode == Av1PredictionMode.Paeth ? 40 + (columnIndex * 20) : TopReference;
+                }
+                else if (x < 8)
+                {
+                    value = expectedMode == Av1PredictionMode.Paeth ? 200 - (rowIndex * 20) : LeftReference;
+                }
+                else if (expectedMode == Av1PredictionMode.Paeth)
+                {
+                    // Build the target from the nearest of left, top, and corner without calling the production predictor.
+                    int top = 40 + (columnIndex * 20);
+                    int left = 200 - (rowIndex * 20);
+                    int predictor = top + left - 128;
+                    int leftDistance = Math.Abs(predictor - left);
+                    int topDistance = Math.Abs(predictor - top);
+                    int cornerDistance = Math.Abs(predictor - 128);
+
+                    value = leftDistance <= topDistance && leftDistance <= cornerDistance
+                        ? left
+                        : topDistance <= cornerDistance ? top : 128;
+                }
+                else
+                {
+                    // Apply the normative interpolation directly so a production predictor cannot generate its own fixture.
+                    int rowWeight = Smooth8Weights[rowIndex];
+                    int columnWeight = Smooth8Weights[columnIndex];
+                    value = expectedMode switch
+                    {
+                        Av1PredictionMode.Horizontal => LeftReference,
+                        Av1PredictionMode.Vertical => TopReference,
+                        Av1PredictionMode.SmoothVertical => ((rowWeight * TopReference) + ((256 - rowWeight) * LeftReference) + 128) >> 8,
+                        Av1PredictionMode.SmoothHorizontal => ((columnWeight * LeftReference) + ((256 - columnWeight) * TopReference) + 128) >> 8,
+                        _ => ((rowWeight * TopReference) + ((256 - rowWeight) * LeftReference) +
+                            (columnWeight * LeftReference) + ((256 - columnWeight) * TopReference) + 256) >> 9
+                    };
+                }
+
+                row[x] = (byte)value;
             }
         }
 
         ClearPlane(reconstruction.Luma);
         using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, Width, Height, disallow4x4AllFrames: true);
-        Av1PictureControlSet pictureTemplate = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, qIndex: 37);
+        Av1PictureControlSet pictureTemplate = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, QIndex);
         using Av1EncoderPictureBuffer picture = new(
             Configuration.Default,
             pictureTemplate.Sequence.SequenceHeader,
@@ -670,10 +735,8 @@ public class Av1IntraSuperblockEncoderTests
             blockWorkspace,
             initialSize: 512);
 
-        ref Av1MacroBlockModeInfo firstBlock = ref picture.Picture.GetMacroBlockModeInfo(default);
-        ref Av1MacroBlockModeInfo secondBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(0, 2));
-        Assert.Equal(Av1PredictionMode.DC, firstBlock.Block.Mode);
-        Assert.Equal(Av1PredictionMode.Vertical, secondBlock.Block.Mode);
+        ref Av1MacroBlockModeInfo targetBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(2, 2));
+        Assert.Equal(expectedMode, targetBlock.Block.Mode);
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
     }
 

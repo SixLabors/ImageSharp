@@ -10,7 +10,7 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Builds fixed DC intra decisions and reconstructed samples for one AV1 superblock.
+/// Builds fixed-partition intra decisions and reconstructed samples for one AV1 superblock.
 /// </summary>
 internal static partial class Av1IntraSuperblockEncoder
 {

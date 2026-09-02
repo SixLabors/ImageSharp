@@ -30,6 +30,13 @@ internal static partial class Av1IntraSuperblockEncoder
         public static abstract Span<TSample> GetLeftReference(Span<short> residual, int length);
 
         /// <summary>
+        /// Converts a valid sample value to the native plane storage type.
+        /// </summary>
+        /// <param name="value">The sample value.</param>
+        /// <returns>The converted sample.</returns>
+        public static abstract TSample CreateSample(int value);
+
+        /// <summary>
         /// Encodes and reconstructs one DC intra transform block.
         /// </summary>
         /// <param name="workspace">The reusable block workspace.</param>
@@ -73,7 +80,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="source">The coded source plane.</param>
         /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
         /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
-        /// <param name="above">The top reference samples.</param>
+        /// <param name="above">The top reference samples, with prefix storage for the shared corner.</param>
         /// <param name="left">The left reference samples.</param>
         /// <param name="hasLeft">Whether the left reference is available.</param>
         /// <param name="hasAbove">Whether the top reference is available.</param>
@@ -113,6 +120,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static Span<byte> GetLeftReference(Span<short> residual, int length)
             => MemoryMarshal.AsBytes(residual)[..length];
+
+        /// <inheritdoc/>
+        public static byte CreateSample(int value) => (byte)value;
 
         /// <inheritdoc/>
         public static void Encode(
@@ -196,6 +206,9 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <inheritdoc/>
         public static Span<ushort> GetLeftReference(Span<short> residual, int length)
             => MemoryMarshal.Cast<short, ushort>(residual)[..length];
+
+        /// <inheritdoc/>
+        public static ushort CreateSample(int value) => (ushort)value;
 
         /// <inheritdoc/>
         public static void Encode(

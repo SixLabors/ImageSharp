@@ -16,6 +16,20 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1IntraSuperblockEncoder
 {
     /// <summary>
+    /// Gets the zero-angle luma modes in the order used by the reference encoder.
+    /// </summary>
+    private static ReadOnlySpan<Av1PredictionMode> LumaModeSearchOrder =>
+    [
+        Av1PredictionMode.DC,
+        Av1PredictionMode.Horizontal,
+        Av1PredictionMode.Vertical,
+        Av1PredictionMode.Smooth,
+        Av1PredictionMode.Paeth,
+        Av1PredictionMode.SmoothVertical,
+        Av1PredictionMode.SmoothHorizontal
+    ];
+
+    /// <summary>
     /// Builds the fixed 8x8 partition skeleton consumed by interleaved mode decision and tile writing.
     /// </summary>
     /// <param name="picture">The frame coding and mode-information state.</param>
@@ -240,11 +254,15 @@ internal static partial class Av1IntraSuperblockEncoder
             Buffer2DRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
             bool hasLeft = macroBlock.IsLeftAvailable;
             bool hasAbove = macroBlock.IsUpAvailable;
-            ReadOnlySpan<TSample> above = hasAbove
-                ? reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1).Slice(blockOrigin.X, 8)
-                : [];
-
+            Span<TSample> aboveStorage = stackalloc TSample[9];
+            Span<TSample> above = aboveStorage[1..];
             Span<TSample> left = stackalloc TSample[8];
+
+            if (hasAbove)
+            {
+                reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1).Slice(blockOrigin.X, 8).CopyTo(above);
+            }
+
             if (hasLeft)
             {
                 for (int row = 0; row < left.Length; row++)
@@ -252,6 +270,30 @@ internal static partial class Av1IntraSuperblockEncoder
                     left[row] = reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
                 }
             }
+
+            int midpoint = 128 << (this.bitDepth.GetBitCount() - 8);
+
+            // A missing edge repeats the closest perpendicular sample. Only a block with neither edge
+            // available uses the asymmetric midpoint offsets that distinguish top from left.
+            if (!hasAbove)
+            {
+                above.Fill(hasLeft ? left[0] : TOperator.CreateSample(midpoint - 1));
+            }
+
+            if (!hasLeft)
+            {
+                left.Fill(hasAbove ? above[0] : TOperator.CreateSample(midpoint + 1));
+            }
+
+            // Paeth addresses the common corner immediately before the prepared top edge. When an edge is
+            // unavailable AV1 derives that corner from the closest coded edge, preserving tile independence.
+            aboveStorage[0] = hasAbove && hasLeft
+                ? reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1)[blockOrigin.X - 1]
+                : hasAbove
+                    ? above[0]
+                    : hasLeft
+                        ? left[0]
+                        : TOperator.CreateSample(midpoint);
 
             Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
                 Av1ComponentType.Luminance,
@@ -262,36 +304,12 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Span<TSample> candidateReconstruction = stackalloc TSample[SampleCount];
             Span<int> candidateCoefficients = stackalloc int[SampleCount];
-            Av1EncoderTransformBlockState candidateState = default;
-            long bestCost = this.GetLumaCandidateCost(
-                writer,
-                macroBlock,
-                sourcePlane,
-                blockOrigin,
-                above,
-                left,
-                hasLeft,
-                hasAbove,
-                Av1PredictionMode.DC,
-                blockContext,
-                candidateReconstruction,
-                candidateCoefficients,
-                ref candidateState);
-
-            CopyCandidate(
-                candidateReconstruction,
-                candidateCoefficients,
-                reconstructionPlane,
-                blockOrigin,
-                retainedCoefficients,
-                candidateState,
-                ref retainedState);
-
+            long bestCost = long.MaxValue;
             Av1PredictionMode bestMode = Av1PredictionMode.DC;
-            if (hasAbove)
+            foreach (Av1PredictionMode mode in LumaModeSearchOrder)
             {
-                candidateState = default;
-                long verticalCost = this.GetLumaCandidateCost(
+                Av1EncoderTransformBlockState candidateState = default;
+                long candidateCost = this.GetLumaCandidateCost(
                     writer,
                     macroBlock,
                     sourcePlane,
@@ -300,13 +318,13 @@ internal static partial class Av1IntraSuperblockEncoder
                     left,
                     hasLeft,
                     hasAbove,
-                    Av1PredictionMode.Vertical,
+                    mode,
                     blockContext,
                     candidateReconstruction,
                     candidateCoefficients,
                     ref candidateState);
 
-                if (verticalCost < bestCost)
+                if (candidateCost < bestCost)
                 {
                     CopyCandidate(
                         candidateReconstruction,
@@ -317,7 +335,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         candidateState,
                         ref retainedState);
 
-                    bestMode = Av1PredictionMode.Vertical;
+                    bestCost = candidateCost;
+                    bestMode = mode;
                 }
             }
 

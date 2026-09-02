@@ -19,6 +19,67 @@ public class Av1EntropyTests
     private const int BaseQIndex = 23;
 
     [Fact]
+    public void ProbabilityCostTableMatchesDefinition()
+    {
+        for (int normalizedProbability = 128; normalizedProbability < 256; normalizedProbability++)
+        {
+            int expected = (int)Math.Round(
+                -Math.Log2(normalizedProbability / 256D) * (1 << Av1ProbabilityCost.CostShift),
+                MidpointRounding.AwayFromZero);
+
+            int actual = Av1ProbabilityCost.GetProbabilityCost(normalizedProbability << 7);
+
+            Assert.Equal(expected, actual);
+        }
+    }
+
+    [Theory]
+    [InlineData(0, 7680)]
+    [InlineData(1, 7680)]
+    [InlineData(4, 6656)]
+    [InlineData(8192, 1024)]
+    [InlineData(10000, 878)]
+    [InlineData(16384, 512)]
+    [InlineData(24576, 212)]
+    [InlineData(32767, 3)]
+    [InlineData(32768, 3)]
+    public void ProbabilityCostMatchesCurrentLibaom(int probability, int expected)
+        => Assert.Equal(expected, Av1ProbabilityCost.GetProbabilityCost(probability));
+
+    [Fact]
+    public void SymbolCostUsesDistributionIntervals()
+    {
+        Av1Distribution distribution = new(8192, 24576);
+
+        Assert.Equal(1024, Av1ProbabilityCost.GetSymbolCost(distribution, 0));
+        Assert.Equal(512, Av1ProbabilityCost.GetSymbolCost(distribution, 1));
+        Assert.Equal(1024, Av1ProbabilityCost.GetSymbolCost(distribution, 2));
+    }
+
+    [Theory]
+    [InlineData(0, 0)]
+    [InlineData(1, 512)]
+    [InlineData(7, 3584)]
+    public void LiteralCostUsesProbabilityCostPrecision(int bitCount, int expected)
+        => Assert.Equal(expected, Av1ProbabilityCost.GetLiteralCost(bitCount));
+
+    [Fact]
+    public void ProbabilityCostDoesNotAllocate()
+    {
+        Av1Distribution distribution = new(8192, 24576);
+        _ = Av1ProbabilityCost.GetSymbolCost(distribution, 0);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+
+        for (int i = 0; i < 1000; i++)
+        {
+            _ = Av1ProbabilityCost.GetSymbolCost(distribution, i % distribution.NumberOfSymbols);
+        }
+
+        long after = GC.GetAllocatedBytesForCurrentThread();
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
     public void SymbolWriterMatchesCurrentLibaomCarryRegression()
     {
         using Av1SymbolWriter writer = new(Configuration.Default, 1, updateCdf: false);

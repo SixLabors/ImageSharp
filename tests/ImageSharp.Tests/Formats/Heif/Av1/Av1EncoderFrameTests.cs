@@ -5,6 +5,8 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Formats.Heif.Components;
+using SixLabors.ImageSharp.Formats.Heif.Components.Alpha;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Memory;
@@ -145,6 +147,108 @@ public class Av1EncoderFrameTests
                 }
             }
         }
+    }
+
+    [Theory]
+    [InlineData(EightBit)]
+    [InlineData(TenBit)]
+    [InlineData(TwelveBit)]
+    public void EncodeAlphaWritesMonochromeReducedStillPicture(int bitDepthValue)
+    {
+        const int Width = 16;
+        const int Height = 16;
+        Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
+        using Image<Rgba64> source = new(Width, Height);
+        for (int y = 0; y < Height; y++)
+        {
+            Span<Rgba64> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < Width; x++)
+            {
+                ushort alpha = (ushort)(((x + y) * ushort.MaxValue) / (Width + Height - 2));
+                row[x] = new Rgba64(ushort.MaxValue, 0, 0, alpha);
+            }
+        }
+
+        using MemoryStream stream = new();
+        ObuSequenceHeader encodedHeader = Av1FrameEncoder.EncodeAlpha(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            stream,
+            CreateColorConfig(bitDepth),
+            qIndex: 37);
+
+        byte[] payload = stream.ToArray();
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Image<Rgba64> decoded = decoder.Decode<Rgba64>(payload);
+
+        Assert.True(encodedHeader.ColorConfig.IsMonochrome);
+        Assert.Equal(
+            bitDepth == Av1BitDepth.TwelveBit ? ObuSequenceProfile.Professional : ObuSequenceProfile.Main,
+            encodedHeader.SequenceProfile);
+
+        Assert.Equal(new Size(Width, Height), decoded.Size);
+        Assert.True(decoded[0, 0].R < decoded[Width - 1, Height - 1].R);
+        Assert.Equal(decoded[0, 0].R, decoded[0, 0].G);
+        Assert.Equal(decoded[0, 0].R, decoded[0, 0].B);
+        Assert.Equal(ushort.MaxValue, decoded[0, 0].A);
+
+        string outputDirectory = Path.Combine(
+            TestEnvironment.ActualOutputDirectoryFullPath,
+            "Formats",
+            "Heif",
+            "Av1");
+
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllBytes(
+            Path.Combine(outputDirectory, $"encoder-alpha-{Width}x{Height}-{bitDepth.GetBitCount()}b.obu"),
+            payload);
+    }
+
+    [Fact]
+    public void AlphaConversionUsesOnePooledRowAndPreservesTwelveBitPrecision()
+    {
+        const int Width = 19;
+        const int Border = Av1EncoderFrame<ushort>.LumaBorder;
+        using Image<Rgba64> image = new(Width, 1);
+        ushort[] expected = new ushort[Width];
+        for (int x = 0; x < Width; x++)
+        {
+            ushort alpha = (ushort)((x * (long)ushort.MaxValue) / (Width - 1));
+            image[x, 0] = new Rgba64(0, 0, 0, alpha);
+            expected[x] = (ushort)(((alpha * 4095L) + (ushort.MaxValue / 2)) / ushort.MaxValue);
+        }
+
+        using Av1EncoderFrameBuffer<ushort> frameBuffer = new(
+            Configuration.Default,
+            Width,
+            1,
+            12,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        HeifPlanarAlphaEncoder.Convert<
+            Rgba64,
+            Av1EncoderFrame<ushort>.PlanarView,
+            ushort,
+            HeifUShortSampleConverter>(
+            configuration,
+            image.Frames.RootFrame,
+            frameBuffer.Frame.View);
+
+        frameBuffer.Frame.ExtendBorders();
+
+        AssertReplicatedSingleRow(frameBuffer.Luma, Border, expected);
+        TestMemoryAllocator.AllocationRequest allocation = Assert.Single(allocator.AllocationLog);
+        Assert.Equal(typeof(float), allocation.ElementType);
+        Assert.Equal(Width * 3, allocation.Length);
+        TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
+        Assert.Equal(allocation.AllocationId, returned.AllocationId);
     }
 
     [Fact]

@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Formats.Heif.Components;
+using SixLabors.ImageSharp.Formats.Heif.Components.Alpha;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -32,6 +33,35 @@ internal static class Av1FrameEncoder
         Stream stream,
         ObuColorConfig colorConfig,
         int qIndex)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => Encode(configuration, image, stream, colorConfig, qIndex, false);
+
+    /// <summary>
+    /// Encodes one packed alpha channel as a reduced-still-picture monochrome AV1 frame.
+    /// </summary>
+    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <param name="configuration">The configuration providing every operation-scoped allocation.</param>
+    /// <param name="image">The packed source frame.</param>
+    /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
+    /// <param name="colorConfig">The resolved monochrome precision configuration.</param>
+    /// <param name="qIndex">The frame quantizer index.</param>
+    /// <returns>The sequence header describing the encoded payload.</returns>
+    public static ObuSequenceHeader EncodeAlpha<TPixel>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Stream stream,
+        ObuColorConfig colorConfig,
+        int qIndex)
+        where TPixel : unmanaged, IPixel<TPixel>
+        => Encode(configuration, image, stream, colorConfig, qIndex, true);
+
+    private static ObuSequenceHeader Encode<TPixel>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Stream stream,
+        ObuColorConfig colorConfig,
+        int qIndex,
+        bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int width = image.Width;
@@ -118,11 +148,11 @@ internal static class Av1FrameEncoder
         int initialTileSize = checked((int)Math.Max(8192L, (sampleCount * sampleSize * 5) / 2));
         if (colorConfig.BitDepth == Av1BitDepth.EightBit)
         {
-            EncodeByte(configuration, image, stream, sequenceHeader, frameHeader, colorFormat, initialTileSize);
+            EncodeByte(configuration, image, stream, sequenceHeader, frameHeader, colorFormat, initialTileSize, encodeAlpha);
         }
         else
         {
-            EncodeHighBitDepth(configuration, image, stream, sequenceHeader, frameHeader, colorFormat, initialTileSize);
+            EncodeHighBitDepth(configuration, image, stream, sequenceHeader, frameHeader, colorFormat, initialTileSize, encodeAlpha);
         }
 
         return sequenceHeader;
@@ -142,7 +172,7 @@ internal static class Av1FrameEncoder
         Av1EncoderFrame<byte> source,
         ObuColorConfig colorConfig)
         where TPixel : unmanaged, IPixel<TPixel>
-        => PrepareSource<TPixel, byte, HeifByteSampleConverter>(configuration, image, source, colorConfig);
+        => PrepareSource<TPixel, byte, HeifByteSampleConverter>(configuration, image, source, colorConfig, false);
 
     /// <summary>
     /// Converts packed pixels directly into a high-bit-depth bordered AV1 source frame.
@@ -158,7 +188,7 @@ internal static class Av1FrameEncoder
         Av1EncoderFrame<ushort> source,
         ObuColorConfig colorConfig)
         where TPixel : unmanaged, IPixel<TPixel>
-        => PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(configuration, image, source, colorConfig);
+        => PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(configuration, image, source, colorConfig, false);
 
     private static void EncodeByte<TPixel>(
         Configuration configuration,
@@ -167,7 +197,8 @@ internal static class Av1FrameEncoder
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1ColorFormat colorFormat,
-        int initialTileSize)
+        int initialTileSize,
+        bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         using Av1EncoderFrameBuffer<byte> source = new(
@@ -188,7 +219,7 @@ internal static class Av1FrameEncoder
             chromaPositionX: 1,
             chromaPositionY: 1);
 
-        Encode(configuration, image, stream, sequenceHeader, frameHeader, source, reconstruction, initialTileSize);
+        Encode(configuration, image, stream, sequenceHeader, frameHeader, source, reconstruction, initialTileSize, encodeAlpha);
     }
 
     private static void EncodeHighBitDepth<TPixel>(
@@ -198,7 +229,8 @@ internal static class Av1FrameEncoder
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1ColorFormat colorFormat,
-        int initialTileSize)
+        int initialTileSize,
+        bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         int bitDepth = sequenceHeader.ColorConfig.BitDepth.GetBitCount();
@@ -220,7 +252,7 @@ internal static class Av1FrameEncoder
             chromaPositionX: 1,
             chromaPositionY: 1);
 
-        Encode(configuration, image, stream, sequenceHeader, frameHeader, source, reconstruction, initialTileSize);
+        Encode(configuration, image, stream, sequenceHeader, frameHeader, source, reconstruction, initialTileSize, encodeAlpha);
     }
 
     private static void Encode<TPixel>(
@@ -231,10 +263,17 @@ internal static class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         Av1EncoderFrameBuffer<byte> source,
         Av1EncoderFrameBuffer<byte> reconstruction,
-        int initialTileSize)
+        int initialTileSize,
+        bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        PrepareSource(configuration, image, source.Frame, sequenceHeader.ColorConfig);
+        PrepareSource<TPixel, byte, HeifByteSampleConverter>(
+            configuration,
+            image,
+            source.Frame,
+            sequenceHeader.ColorConfig,
+            encodeAlpha);
+
         Av1ScreenContentDetector.Detect(
             source.Frame,
             out bool allowScreenContentTools,
@@ -279,10 +318,17 @@ internal static class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         Av1EncoderFrameBuffer<ushort> source,
         Av1EncoderFrameBuffer<ushort> reconstruction,
-        int initialTileSize)
+        int initialTileSize,
+        bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        PrepareSource(configuration, image, source.Frame, sequenceHeader.ColorConfig);
+        PrepareSource<TPixel, ushort, HeifUShortSampleConverter>(
+            configuration,
+            image,
+            source.Frame,
+            sequenceHeader.ColorConfig,
+            encodeAlpha);
+
         Av1ScreenContentDetector.Detect(
             source.Frame,
             out bool allowScreenContentTools,
@@ -326,27 +372,42 @@ internal static class Av1FrameEncoder
         Configuration configuration,
         ImageFrame<TPixel> image,
         Av1EncoderFrame<TSample> source,
-        ObuColorConfig colorConfig)
+        ObuColorConfig colorConfig,
+        bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
         where TSample : unmanaged
         where TStorer : struct, IHeifSampleConverter<TSample>
     {
-        HeifColorConversionParameters parameters = Av1YuvConverter.GetConversionParameters(
-            colorConfig,
-            out HeifColorConversionMode mode);
+        if (encodeAlpha)
+        {
+            HeifPlanarAlphaEncoder.Convert<
+                TPixel,
+                Av1EncoderFrame<TSample>.PlanarView,
+                TSample,
+                TStorer>(
+                configuration,
+                image,
+                source.View);
+        }
+        else
+        {
+            HeifColorConversionParameters parameters = Av1YuvConverter.GetConversionParameters(
+                colorConfig,
+                out HeifColorConversionMode mode);
 
-        // Conversion writes into the final bordered analysis planes. The later coding stages therefore consume the
-        // native source directly without a second full-frame copy from an intermediate component buffer.
-        HeifPlanarColorConverter.ConvertFromRgb<
-            TPixel,
-            Av1EncoderFrame<TSample>.PlanarView,
-            TSample,
-            TStorer>(
-            configuration,
-            image,
-            source.View,
-            in parameters,
-            mode);
+            // Conversion writes into the final bordered analysis planes. Later coding stages consume the native
+            // source without a second full-frame copy from an intermediate component buffer.
+            HeifPlanarColorConverter.ConvertFromRgb<
+                TPixel,
+                Av1EncoderFrame<TSample>.PlanarView,
+                TSample,
+                TStorer>(
+                configuration,
+                image,
+                source.View,
+                in parameters,
+                mode);
+        }
 
         source.ExtendBorders();
     }

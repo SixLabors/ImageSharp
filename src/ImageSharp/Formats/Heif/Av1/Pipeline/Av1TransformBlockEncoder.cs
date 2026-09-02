@@ -159,6 +159,86 @@ internal static class Av1TransformBlockEncoder
     }
 
     /// <summary>
+    /// Encodes one eight-bit candidate from a cached prediction and source residual.
+    /// </summary>
+    /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
+    /// <param name="source">The coded source plane.</param>
+    /// <param name="blockOrigin">The block origin in plane samples.</param>
+    /// <param name="prediction">The contiguous prediction samples.</param>
+    /// <param name="residual">The contiguous source-minus-prediction samples.</param>
+    /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
+    /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
+    /// <param name="transformSize">The selected transform dimensions.</param>
+    /// <param name="transformType">The selected compound transform type.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
+    /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
+    /// <param name="plane">The component plane containing the block.</param>
+    /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
+    public static long EncodePredictionLossyCandidate(
+        Av1EncoderBlockWorkspace workspace,
+        Buffer2DRegion<byte> source,
+        Point blockOrigin,
+        ReadOnlySpan<byte> prediction,
+        ReadOnlySpan<short> residual,
+        Span<byte> reconstruction,
+        Span<int> quantizedCoefficients,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        int qIndex,
+        int dcDeltaQ,
+        int acDeltaQ,
+        Av1Plane plane,
+        ref Av1EncoderTransformBlockState state)
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        int sampleCount = transformSize.GetSize2d();
+        ReadOnlySpan<byte> sourceSamples = GetPlaneSpan(source, blockOrigin);
+
+        // Each transform trial mutates reconstruction and residual scratch, so restore both prepared inputs.
+        prediction[..sampleCount].CopyTo(reconstruction);
+        residual[..sampleCount].CopyTo(workspace.Residual);
+        EncodeLossy(
+            workspace,
+            quantizedCoefficients,
+            transformSize,
+            transformType,
+            qIndex,
+            dcDeltaQ,
+            acDeltaQ,
+            Av1BitDepth.EightBit,
+            ref state);
+
+        if (state.EndOfBlock > 0)
+        {
+            Av1InverseTransformer.Reconstruct8Bit(
+                workspace.DequantizedCoefficients,
+                reconstruction,
+                width,
+                transformSize,
+                transformType,
+                (int)plane,
+                state.EndOfBlock,
+                false,
+                workspace.TransformWorkspace);
+        }
+
+        Av1ResidualBuilder.Subtract(
+            sourceSamples,
+            source.Stride,
+            reconstruction,
+            width,
+            workspace.Residual,
+            width,
+            width,
+            height);
+
+        return Av1ResidualBuilder.SumSquares(workspace.Residual[..sampleCount]) << 4;
+    }
+
+    /// <summary>
     /// Encodes one eight-bit chroma-from-luma candidate into contiguous decision scratch.
     /// </summary>
     /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
@@ -394,6 +474,95 @@ internal static class Av1TransformBlockEncoder
             height);
 
         long distortion = Av1ResidualBuilder.SumSquares(workspace.Residual[..transformSize.GetSize2d()]);
+        int shift = (bitDepth.GetBitCount() - 8) * 2;
+        long normalizedDistortion = shift == 0
+            ? distortion
+            : (distortion + (1L << (shift - 1))) >> shift;
+
+        return normalizedDistortion << 4;
+    }
+
+    /// <summary>
+    /// Encodes one high-bit-depth candidate from a cached prediction and source residual.
+    /// </summary>
+    /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
+    /// <param name="source">The coded source plane.</param>
+    /// <param name="blockOrigin">The block origin in plane samples.</param>
+    /// <param name="prediction">The contiguous prediction samples.</param>
+    /// <param name="residual">The contiguous source-minus-prediction samples.</param>
+    /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
+    /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
+    /// <param name="transformSize">The selected transform dimensions.</param>
+    /// <param name="transformType">The selected compound transform type.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
+    /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
+    /// <param name="plane">The component plane containing the block.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
+    public static long EncodePredictionLossyCandidate(
+        Av1EncoderBlockWorkspace workspace,
+        Buffer2DRegion<ushort> source,
+        Point blockOrigin,
+        ReadOnlySpan<ushort> prediction,
+        ReadOnlySpan<short> residual,
+        Span<ushort> reconstruction,
+        Span<int> quantizedCoefficients,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        int qIndex,
+        int dcDeltaQ,
+        int acDeltaQ,
+        Av1Plane plane,
+        Av1BitDepth bitDepth,
+        ref Av1EncoderTransformBlockState state)
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        int sampleCount = transformSize.GetSize2d();
+        ReadOnlySpan<ushort> sourceSamples = GetPlaneSpan(source, blockOrigin);
+
+        // Each transform trial mutates reconstruction and residual scratch, so restore both prepared inputs.
+        prediction[..sampleCount].CopyTo(reconstruction);
+        residual[..sampleCount].CopyTo(workspace.Residual);
+        EncodeLossy(
+            workspace,
+            quantizedCoefficients,
+            transformSize,
+            transformType,
+            qIndex,
+            dcDeltaQ,
+            acDeltaQ,
+            bitDepth,
+            ref state);
+
+        if (state.EndOfBlock > 0)
+        {
+            Av1InverseTransformer.ReconstructHighBitDepth(
+                workspace.DequantizedCoefficients,
+                MemoryMarshal.Cast<ushort, short>(reconstruction),
+                width,
+                transformSize,
+                transformType,
+                (int)plane,
+                state.EndOfBlock,
+                false,
+                bitDepth,
+                workspace.TransformWorkspace);
+        }
+
+        Av1ResidualBuilder.Subtract(
+            sourceSamples,
+            source.Stride,
+            reconstruction,
+            width,
+            workspace.Residual,
+            width,
+            width,
+            height);
+
+        long distortion = Av1ResidualBuilder.SumSquares(workspace.Residual[..sampleCount]);
         int shift = (bitDepth.GetBitCount() - 8) * 2;
         long normalizedDistortion = shift == 0
             ? distortion

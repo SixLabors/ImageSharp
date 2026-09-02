@@ -192,9 +192,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 tileIndex,
                 lumaCoefficients[this.codedAreaLuma..],
                 ref lumaState,
-                out int lumaAngleDelta);
+                out int lumaAngleDelta,
+                out Av1FilterIntraMode filterIntraMode);
 
             block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] = (sbyte)lumaAngleDelta;
+            block.FilterIntraMode = filterIntraMode;
 
             this.codedAreaLuma += LumaTransformSize.GetSize2d();
             bool skipTransform = lumaState.EndOfBlock == 0;
@@ -257,7 +259,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ushort tileIndex,
             Span<int> retainedCoefficients,
             ref Av1EncoderTransformBlockState retainedState,
-            out int selectedAngleDelta)
+            out int selectedAngleDelta,
+            out Av1FilterIntraMode selectedFilterIntraMode)
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
@@ -376,6 +379,7 @@ internal static partial class Av1IntraSuperblockEncoder
             long bestCost = long.MaxValue;
             Av1PredictionMode bestMode = Av1PredictionMode.DC;
             selectedAngleDelta = 0;
+            selectedFilterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
             int baseModeCount = LumaModeSearchOrder.Length;
             int deltaCount = AngleDeltaSearchOrder.Length;
             int directionalModeCount = (int)Av1PredictionMode.Directional67Degrees - (int)Av1PredictionMode.Vertical + 1;
@@ -490,6 +494,74 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
+            if (this.picture.Sequence.SequenceHeader.EnableFilterIntra)
+            {
+                Span<TSample> filterPrediction = stackalloc TSample[SampleCount];
+                Span<short> filterResidual = stackalloc short[SampleCount];
+
+                // Each recursive filter prediction and its source residual are independent of transform type.
+                // Prepare them once per filter mode so all legal transforms reuse the same samples.
+                for (Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
+                    filterIntraMode < Av1FilterIntraMode.AllFilterIntraModes;
+                    filterIntraMode++)
+                {
+                    TOperator.PrepareFilterIntra(
+                        this.blockWorkspace,
+                        sourcePlane,
+                        blockOrigin,
+                        filterPrediction,
+                        above,
+                        left,
+                        filterResidual,
+                        filterIntraMode,
+                        TransformSize,
+                        this.bitDepth);
+
+                    for (Av1TransformType transformType = Av1TransformType.DctDct;
+                        transformType < Av1TransformType.AllTransformTypes;
+                        transformType++)
+                    {
+                        if (!transformType.IsExtendedSetUsed(transformSetType))
+                        {
+                            continue;
+                        }
+
+                        Av1EncoderTransformBlockState candidateState = default;
+                        long candidateCost = this.GetFilterIntraCandidateCost(
+                            writer,
+                            macroBlock,
+                            sourcePlane,
+                            blockOrigin,
+                            filterPrediction,
+                            filterResidual,
+                            filterIntraMode,
+                            transformType,
+                            blockContext,
+                            candidateReconstruction,
+                            candidateCoefficients,
+                            ref candidateState);
+
+                        if (candidateCost < bestTransformCost)
+                        {
+                            CopyCandidate(
+                                candidateReconstruction,
+                                candidateCoefficients,
+                                reconstructionPlane,
+                                blockOrigin,
+                                retainedCoefficients,
+                                TransformSize,
+                                candidateState,
+                                ref retainedState);
+
+                            bestTransformCost = candidateCost;
+                            bestMode = Av1PredictionMode.DC;
+                            selectedAngleDelta = 0;
+                            selectedFilterIntraMode = filterIntraMode;
+                        }
+                    }
+                }
+            }
+
             return bestMode;
         }
 
@@ -534,6 +606,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref candidateState);
 
             int rate = Av1TileWriter.GetLumaModeCost(writer, macroBlock, BlockSize, mode, angleDelta);
+            if (mode == Av1PredictionMode.DC && this.picture.Sequence.SequenceHeader.EnableFilterIntra)
+            {
+                rate += writer.GetFilterIntraModeCost(Av1FilterIntraMode.AllFilterIntraModes, BlockSize);
+            }
+
             rate += writer.GetCoefficientCost(
                 TransformSize,
                 transformType,
@@ -544,6 +621,61 @@ internal static partial class Av1IntraSuperblockEncoder
                 candidateState.EndOfBlock,
                 this.picture.Parent.FrameHeader.UseReducedTransformSet,
                 Av1FilterIntraMode.AllFilterIntraModes);
+
+            return Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
+        }
+
+        private long GetFilterIntraCandidateCost(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Buffer2DRegion<TSample> sourcePlane,
+            Point blockOrigin,
+            ReadOnlySpan<TSample> prediction,
+            ReadOnlySpan<short> residual,
+            Av1FilterIntraMode filterIntraMode,
+            Av1TransformType transformType,
+            Av1TransformBlockContext blockContext,
+            Span<TSample> candidateReconstruction,
+            Span<int> candidateCoefficients,
+            ref Av1EncoderTransformBlockState candidateState)
+        {
+            const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
+            const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
+            long distortion = TOperator.EncodePredictionCandidate(
+                this.blockWorkspace,
+                sourcePlane,
+                blockOrigin,
+                prediction,
+                residual,
+                candidateReconstruction,
+                candidateCoefficients,
+                TransformSize,
+                transformType,
+                Av1Plane.Y,
+                this.quantization.QIndex[0],
+                this.quantization.DeltaQDc[(int)Av1Plane.Y],
+                this.quantization.DeltaQAc[(int)Av1Plane.Y],
+                this.bitDepth,
+                ref candidateState);
+
+            int rate = Av1TileWriter.GetLumaModeCost(
+                writer,
+                macroBlock,
+                BlockSize,
+                Av1PredictionMode.DC,
+                0);
+
+            rate += writer.GetFilterIntraModeCost(filterIntraMode, BlockSize);
+            rate += writer.GetCoefficientCost(
+                TransformSize,
+                transformType,
+                Av1PredictionMode.DC,
+                candidateCoefficients,
+                Av1ComponentType.Luminance,
+                blockContext,
+                candidateState.EndOfBlock,
+                this.picture.Parent.FrameHeader.UseReducedTransformSet,
+                filterIntraMode);
 
             return Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
         }

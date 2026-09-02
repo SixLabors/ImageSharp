@@ -155,6 +155,67 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState state);
 
         /// <summary>
+        /// Builds one filter-intra prediction for reuse across transform candidates.
+        /// </summary>
+        /// <param name="workspace">The reusable block workspace.</param>
+        /// <param name="source">The coded source plane.</param>
+        /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
+        /// <param name="prediction">The contiguous prediction destination.</param>
+        /// <param name="above">The top reference samples, with prefix storage for the shared corner.</param>
+        /// <param name="left">The left reference samples.</param>
+        /// <param name="residual">The contiguous source-minus-prediction destination.</param>
+        /// <param name="filterIntraMode">The selected filter-intra mode.</param>
+        /// <param name="transformSize">The prediction dimensions.</param>
+        /// <param name="bitDepth">The coded sample bit depth.</param>
+        public static abstract void PrepareFilterIntra(
+            Av1EncoderBlockWorkspace workspace,
+            Buffer2DRegion<TSample> source,
+            Point blockOrigin,
+            Span<TSample> prediction,
+            ReadOnlySpan<TSample> above,
+            ReadOnlySpan<TSample> left,
+            Span<short> residual,
+            Av1FilterIntraMode filterIntraMode,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth);
+
+        /// <summary>
+        /// Encodes one prepared prediction with the selected transform into decision scratch.
+        /// </summary>
+        /// <param name="workspace">The reusable block workspace.</param>
+        /// <param name="source">The coded source plane.</param>
+        /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
+        /// <param name="prediction">The contiguous prediction samples.</param>
+        /// <param name="residual">The contiguous source-minus-prediction samples.</param>
+        /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
+        /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
+        /// <param name="transformSize">The transform dimensions.</param>
+        /// <param name="transformType">The compound transform applied to the residual.</param>
+        /// <param name="plane">The component plane containing the block.</param>
+        /// <param name="qIndex">The effective segment quantizer index.</param>
+        /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
+        /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
+        /// <param name="bitDepth">The coded sample bit depth.</param>
+        /// <param name="state">The candidate transform state.</param>
+        /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
+        public static abstract long EncodePredictionCandidate(
+            Av1EncoderBlockWorkspace workspace,
+            Buffer2DRegion<TSample> source,
+            Point blockOrigin,
+            ReadOnlySpan<TSample> prediction,
+            ReadOnlySpan<short> residual,
+            Span<TSample> reconstruction,
+            Span<int> quantizedCoefficients,
+            Av1TransformSize transformSize,
+            Av1TransformType transformType,
+            Av1Plane plane,
+            int qIndex,
+            int dcDeltaQ,
+            int acDeltaQ,
+            Av1BitDepth bitDepth,
+            ref Av1EncoderTransformBlockState state);
+
+        /// <summary>
         /// Encodes one chroma-from-luma candidate into contiguous decision scratch.
         /// </summary>
         /// <param name="workspace">The reusable block workspace.</param>
@@ -319,6 +380,74 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref state);
 
         /// <inheritdoc/>
+        public static void PrepareFilterIntra(
+            Av1EncoderBlockWorkspace workspace,
+            Buffer2DRegion<byte> source,
+            Point blockOrigin,
+            Span<byte> prediction,
+            ReadOnlySpan<byte> above,
+            ReadOnlySpan<byte> left,
+            Span<short> residual,
+            Av1FilterIntraMode filterIntraMode,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth)
+        {
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+
+            // Prediction finishes before transform search, so its temporary rows can borrow the transform workspace.
+            Span<byte> filterScratch = MemoryMarshal.AsBytes(workspace.TransformWorkspace).Slice(
+                0,
+                Av1FilterIntraPredictorBase.ScratchLength);
+
+            Av1FilterIntraPredictorBase.GetPredictor(filterIntraMode)
+                .Predict(prediction, width, above, left, width, height, filterScratch);
+
+            Av1ResidualBuilder.Subtract(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                source.Stride,
+                prediction,
+                width,
+                residual,
+                width,
+                width,
+                height);
+        }
+
+        /// <inheritdoc/>
+        public static long EncodePredictionCandidate(
+            Av1EncoderBlockWorkspace workspace,
+            Buffer2DRegion<byte> source,
+            Point blockOrigin,
+            ReadOnlySpan<byte> prediction,
+            ReadOnlySpan<short> residual,
+            Span<byte> reconstruction,
+            Span<int> quantizedCoefficients,
+            Av1TransformSize transformSize,
+            Av1TransformType transformType,
+            Av1Plane plane,
+            int qIndex,
+            int dcDeltaQ,
+            int acDeltaQ,
+            Av1BitDepth bitDepth,
+            ref Av1EncoderTransformBlockState state)
+            => Av1TransformBlockEncoder.EncodePredictionLossyCandidate(
+                workspace,
+                source,
+                blockOrigin,
+                prediction,
+                residual,
+                reconstruction,
+                quantizedCoefficients,
+                transformSize,
+                transformType,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                plane,
+                ref state);
+
+        /// <inheritdoc/>
         public static long EncodeChromaFromLumaCandidate(
             Av1EncoderBlockWorkspace workspace,
             Buffer2DRegion<byte> source,
@@ -472,6 +601,83 @@ internal static partial class Av1IntraSuperblockEncoder
                 hasAbove,
                 mode,
                 angleDelta,
+                quantizedCoefficients,
+                transformSize,
+                transformType,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                plane,
+                bitDepth,
+                ref state);
+
+        /// <inheritdoc/>
+        public static void PrepareFilterIntra(
+            Av1EncoderBlockWorkspace workspace,
+            Buffer2DRegion<ushort> source,
+            Point blockOrigin,
+            Span<ushort> prediction,
+            ReadOnlySpan<ushort> above,
+            ReadOnlySpan<ushort> left,
+            Span<short> residual,
+            Av1FilterIntraMode filterIntraMode,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth)
+        {
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+
+            // Prediction finishes before transform search, so its temporary rows can borrow the transform workspace.
+            Span<short> filterScratch = MemoryMarshal.Cast<int, short>(workspace.TransformWorkspace).Slice(
+                0,
+                Av1FilterIntraPredictorBase.ScratchLength);
+
+            Av1FilterIntraPredictorBase.GetPredictor(filterIntraMode)
+                .Predict(
+                    MemoryMarshal.Cast<ushort, short>(prediction),
+                    width,
+                    MemoryMarshal.Cast<ushort, short>(above),
+                    MemoryMarshal.Cast<ushort, short>(left),
+                    width,
+                    height,
+                    bitDepth.GetBitCount(),
+                    filterScratch);
+
+            Av1ResidualBuilder.Subtract(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                source.Stride,
+                prediction,
+                width,
+                residual,
+                width,
+                width,
+                height);
+        }
+
+        /// <inheritdoc/>
+        public static long EncodePredictionCandidate(
+            Av1EncoderBlockWorkspace workspace,
+            Buffer2DRegion<ushort> source,
+            Point blockOrigin,
+            ReadOnlySpan<ushort> prediction,
+            ReadOnlySpan<short> residual,
+            Span<ushort> reconstruction,
+            Span<int> quantizedCoefficients,
+            Av1TransformSize transformSize,
+            Av1TransformType transformType,
+            Av1Plane plane,
+            int qIndex,
+            int dcDeltaQ,
+            int acDeltaQ,
+            Av1BitDepth bitDepth,
+            ref Av1EncoderTransformBlockState state)
+            => Av1TransformBlockEncoder.EncodePredictionLossyCandidate(
+                workspace,
+                source,
+                blockOrigin,
+                prediction,
+                residual,
+                reconstruction,
                 quantizedCoefficients,
                 transformSize,
                 transformType,

@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Numerics;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -66,6 +67,7 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, Width, Height, disallow4x4AllFrames: true);
         Av1PictureControlSet picture = CreatePicture(modeInfo, colorConfig, use128x128Superblock: true, qIndex: 73);
+        picture.Sequence.SequenceHeader.EnableFilterIntra = true;
         using Av1EncoderCoefficientBuffer coefficients = new(
             Configuration.Default,
             picture.Sequence.SequenceHeader,
@@ -1194,6 +1196,246 @@ public class Av1IntraSuperblockEncoderTests
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
     }
 
+    [Theory]
+    [InlineData((int)Av1FilterIntraMode.DC)]
+    [InlineData((int)Av1FilterIntraMode.Vertical)]
+    [InlineData((int)Av1FilterIntraMode.Horizontal)]
+    [InlineData((int)Av1FilterIntraMode.Directional157)]
+    [InlineData((int)Av1FilterIntraMode.Paeth)]
+    public void ProductionTileSelectsFilterIntraMode(int filterIntraModeValue)
+        => VerifyProductionTileSelectsFilterIntraMode<byte>(
+            filterIntraModeValue,
+            8,
+            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new(
+                    Configuration.Default,
+                    source,
+                    reconstruction,
+                    picture,
+                    coefficients,
+                    superblockWorkspace,
+                    blockWorkspace,
+                    initialSize: 512),
+            static (mode, destination, above, left, _, scratch) =>
+                Av1FilterIntraPredictorBase.GetPredictor(mode)
+                    .Predict(destination, 8, above, left, 8, 8, scratch));
+
+    [Theory]
+    [InlineData((int)Av1FilterIntraMode.DC, 10)]
+    [InlineData((int)Av1FilterIntraMode.DC, 12)]
+    [InlineData((int)Av1FilterIntraMode.Vertical, 10)]
+    [InlineData((int)Av1FilterIntraMode.Vertical, 12)]
+    [InlineData((int)Av1FilterIntraMode.Horizontal, 10)]
+    [InlineData((int)Av1FilterIntraMode.Horizontal, 12)]
+    [InlineData((int)Av1FilterIntraMode.Directional157, 10)]
+    [InlineData((int)Av1FilterIntraMode.Directional157, 12)]
+    [InlineData((int)Av1FilterIntraMode.Paeth, 10)]
+    [InlineData((int)Av1FilterIntraMode.Paeth, 12)]
+    public void ProductionTileSelectsFilterIntraModeHighBitDepth(
+        int filterIntraModeValue,
+        int bitDepth)
+        => VerifyProductionTileSelectsFilterIntraMode<ushort>(
+            filterIntraModeValue,
+            bitDepth,
+            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new(
+                    Configuration.Default,
+                    source,
+                    reconstruction,
+                    picture,
+                    coefficients,
+                    superblockWorkspace,
+                    blockWorkspace,
+                    initialSize: 512),
+            static (mode, destination, above, left, sampleBitDepth, scratch) =>
+                Av1FilterIntraPredictorBase.GetPredictor(mode)
+                    .Predict(
+                        MemoryMarshal.Cast<ushort, short>(destination),
+                        8,
+                        MemoryMarshal.Cast<ushort, short>(above),
+                        MemoryMarshal.Cast<ushort, short>(left),
+                        8,
+                        8,
+                        sampleBitDepth,
+                        MemoryMarshal.Cast<ushort, short>(scratch)));
+
+    private static void VerifyProductionTileSelectsFilterIntraMode<TSample>(
+        int filterIntraModeValue,
+        int bitDepth,
+        TileWriterFactory<TSample> createWriter,
+        FilterPrediction<TSample> predictFilter)
+        where TSample : unmanaged, IBinaryInteger<TSample>
+    {
+        const int Width = 16;
+        const int Height = 16;
+        const int QIndex = 1;
+        const int TargetX = 8;
+        const int TargetY = 8;
+        const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
+        Av1FilterIntraMode filterIntraMode = (Av1FilterIntraMode)filterIntraModeValue;
+        int sampleScale = 1 << (bitDepth - 8);
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = true,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = (Av1BitDepth)((bitDepth - 8) / 2)
+        };
+
+        using Av1EncoderFrameBuffer<TSample> pilotSource = new(
+            Configuration.Default,
+            Width,
+            Height,
+            bitDepth,
+            Av1ColorFormat.Yuv400,
+            1,
+            1);
+
+        using Av1EncoderFrameBuffer<TSample> pilotReconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            bitDepth,
+            Av1ColorFormat.Yuv400,
+            1,
+            1);
+
+        Buffer2DRegion<TSample> pilotLuma = pilotSource.Frame.CodedView.GetPlane(Av1Plane.Y);
+        for (int y = 0; y < pilotLuma.Height; y++)
+        {
+            Span<TSample> row = pilotLuma.DangerousGetRowSpan(y);
+            for (int x = 0; x < row.Length; x++)
+            {
+                row[x] = TSample.CreateChecked(
+                    (64 + (((x * 71) + (y * 109) + (((x ^ y) & 3) * 37)) & 127)) * sampleScale);
+            }
+        }
+
+        ClearPlane(pilotReconstruction.Luma);
+        using Av1EncoderModeInfoBuffer pilotModeInfo = new(Configuration.Default, Width, Height, disallow4x4AllFrames: true);
+        Av1PictureControlSet pilotTemplate = CreatePicture(pilotModeInfo, colorConfig, use128x128Superblock: false, QIndex);
+        pilotTemplate.Sequence.SequenceHeader.EnableFilterIntra = true;
+        using Av1EncoderPictureBuffer pilotPicture = new(
+            Configuration.Default,
+            pilotTemplate.Sequence.SequenceHeader,
+            pilotTemplate.Parent.FrameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderCoefficientBuffer pilotCoefficients = new(
+            Configuration.Default,
+            pilotTemplate.Sequence.SequenceHeader,
+            Width,
+            Height);
+
+        using Av1EncoderSuperblockWorkspace pilotSuperblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace pilotBlockWorkspace = new(Configuration.Default);
+        using Av1IntraTileWriter pilotWriter = createWriter(
+            pilotSource.Frame,
+            pilotReconstruction.Frame,
+            pilotPicture.Picture,
+            pilotCoefficients,
+            pilotSuperblockWorkspace,
+            pilotBlockWorkspace);
+
+        Buffer2DRegion<TSample> reconstructedLuma = pilotReconstruction.Frame.CodedView.GetPlane(Av1Plane.Y);
+        Span<TSample> aboveStorage = stackalloc TSample[9];
+        Span<TSample> above = aboveStorage[1..];
+        Span<TSample> left = stackalloc TSample[8];
+        ReadOnlySpan<TSample> reconstructedAbove = reconstructedLuma.DangerousGetRowSpan(TargetY - 1);
+        aboveStorage[0] = reconstructedAbove[TargetX - 1];
+        reconstructedAbove.Slice(TargetX, 8).CopyTo(above);
+        for (int row = 0; row < 8; row++)
+        {
+            left[row] = reconstructedLuma.DangerousGetRowSpan(TargetY + row)[TargetX - 1];
+        }
+
+        Span<TSample> target = stackalloc TSample[TransformSize.GetSize2d()];
+        Span<TSample> filterScratch = stackalloc TSample[Av1FilterIntraPredictorBase.ScratchLength];
+        predictFilter(filterIntraMode, target, above, left, bitDepth, filterScratch);
+
+        using Av1EncoderFrameBuffer<TSample> source = new(
+            Configuration.Default,
+            Width,
+            Height,
+            bitDepth,
+            Av1ColorFormat.Yuv400,
+            1,
+            1);
+
+        using Av1EncoderFrameBuffer<TSample> reconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            bitDepth,
+            Av1ColorFormat.Yuv400,
+            1,
+            1);
+
+        Buffer2DRegion<TSample> sourceLuma = source.Frame.CodedView.GetPlane(Av1Plane.Y);
+        for (int y = 0; y < pilotLuma.Height; y++)
+        {
+            pilotLuma.DangerousGetRowSpan(y).CopyTo(sourceLuma.DangerousGetRowSpan(y));
+        }
+
+        for (int row = 0; row < 8; row++)
+        {
+            target.Slice(row * 8, 8).CopyTo(sourceLuma.DangerousGetRowSpan(TargetY + row).Slice(TargetX, 8));
+        }
+
+        ClearPlane(reconstruction.Luma);
+        using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, Width, Height, disallow4x4AllFrames: true);
+        Av1PictureControlSet pictureTemplate = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, QIndex);
+        pictureTemplate.Sequence.SequenceHeader.EnableFilterIntra = true;
+        using Av1EncoderPictureBuffer picture = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            pictureTemplate.Parent.FrameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderCoefficientBuffer coefficients = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            Width,
+            Height);
+
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        using Av1IntraTileWriter tileWriter = createWriter(
+            source.Frame,
+            reconstruction.Frame,
+            picture.Picture,
+            coefficients,
+            superblockWorkspace,
+            blockWorkspace);
+
+        Buffer2DRegion<TSample> actualLuma = reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y);
+        Assert.Equal(above, actualLuma.DangerousGetRowSpan(TargetY - 1).Slice(TargetX, 8));
+        for (int row = 0; row < 8; row++)
+        {
+            Assert.Equal(left[row], actualLuma.DangerousGetRowSpan(TargetY + row)[TargetX - 1]);
+            Assert.Equal(
+                target.Slice(row * 8, 8),
+                actualLuma.DangerousGetRowSpan(TargetY + row).Slice(TargetX, 8));
+        }
+
+        ref Av1MacroBlockModeInfo targetBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(2, 2));
+        Assert.Equal(Av1PredictionMode.DC, targetBlock.Block.Mode);
+        Assert.Equal(filterIntraMode, superblockWorkspace.FinalBlocks[3].FilterIntraMode);
+
+        int targetTransformIndex = (3 * TransformSize.GetSize2d()) /
+            Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+
+        Av1EncoderTransformBlockState targetState =
+            coefficients.GetTransformBlockSpan(0, Av1Plane.Y)[targetTransformIndex];
+
+        Assert.Equal((ushort)0, targetState.EndOfBlock);
+        Assert.Equal(Av1TransformType.DctDct, targetState.TransformType);
+        Assert.NotEqual(0, pilotWriter.GetTileData(0).Length);
+        Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
+    }
+
     [Fact]
     public void ProductionDirectionalModesConsumeAvailableExtendedEdges()
     {
@@ -1602,6 +1844,15 @@ public class Av1IntraSuperblockEncoderTests
         Av1EncoderCoefficientBuffer coefficients,
         Av1EncoderSuperblockWorkspace superblockWorkspace,
         Av1EncoderBlockWorkspace blockWorkspace)
+        where TSample : unmanaged;
+
+    private delegate void FilterPrediction<TSample>(
+        Av1FilterIntraMode mode,
+        Span<TSample> destination,
+        ReadOnlySpan<TSample> above,
+        ReadOnlySpan<TSample> left,
+        int bitDepth,
+        Span<TSample> scratch)
         where TSample : unmanaged;
 
     private static void ClearPlane<TSample>(Buffer2D<TSample> plane)

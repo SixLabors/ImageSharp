@@ -57,7 +57,7 @@ internal static class Av1FrameEncoder
             Use128x128Superblock = false,
             ForceScreenContentTools = 2,
             ForceIntegerMotionVector = 2,
-            EnableFilterIntra = false,
+            EnableFilterIntra = true,
             EnableIntraEdgeFilter = false,
             EnableSuperResolution = false,
             EnableCdef = false,

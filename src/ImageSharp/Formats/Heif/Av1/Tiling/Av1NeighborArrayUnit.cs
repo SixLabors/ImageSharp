@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using System.Numerics;
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -128,11 +127,6 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
     public required int GranularityTopLeftLog2 { get; set; }
 
     /// <summary>
-    /// Gets the number of consecutive values stored for each neighbor-array unit.
-    /// </summary>
-    public int UnitSize { get; private set; }
-
-    /// <summary>
     /// Gets the left-neighbor unit index for a sample position.
     /// </summary>
     /// <param name="loc">The sample position.</param>
@@ -166,20 +160,12 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
     /// <summary>
     /// Writes one context unit across the selected block edges.
     /// </summary>
-    /// <param name="value">The values that make up one context unit.</param>
+    /// <param name="value">The context value to publish.</param>
     /// <param name="origin">The block origin in samples.</param>
     /// <param name="blockSize">The block dimensions in samples.</param>
     /// <param name="mask">The neighbor arrays to update.</param>
-    public void UnitModeWrite(ReadOnlySpan<T> value, Point origin, Size blockSize, UnitMask mask)
+    public void UnitModeWrite(T value, Point origin, Size blockSize, UnitMask mask)
     {
-        int idx, j;
-
-        int count;
-        int na_offset;
-        int na_unit_size;
-
-        na_unit_size = this.UnitSize;
-
         if ((mask & UnitMask.Top) == UnitMask.Top)
         {
             // Top Neighbor Array
@@ -196,21 +182,12 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
             //    bottom row of the source block
             //
             //  Index = org_x
-            na_offset = this.GetTopIndex(origin);
+            int offset = this.GetTopIndex(origin);
+            int count = blockSize.Width >> this.GranularityNormalLog2;
 
-            ref T dst_ptr = ref this.Top[na_offset * na_unit_size];
-
-            count = blockSize.Width >> this.GranularityNormalLog2;
-
-            for (idx = 0; idx < count; ++idx)
-            {
-                // Unit sizes are deliberately tiny, so direct ref copies avoid slicing for every neighbor position.
-                for (j = 0; j < na_unit_size; ++j)
-                {
-                    dst_ptr = value[j];
-                    dst_ptr = Unsafe.Add(ref dst_ptr, 1);
-                }
-            }
+            // One packed value represents each AV1 edge unit. Filling the covered range mirrors the
+            // contiguous above-context update without retaining a caller-owned span.
+            this.Top.Slice(offset, count).Fill(value);
         }
 
         if ((mask & UnitMask.Left) == UnitMask.Left)
@@ -230,21 +207,9 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
             //    right column of the source block
             //
             //  Index = org_y
-            na_offset = this.GetLeftIndex(origin);
-
-            ref T dst_ptr = ref this.Left[na_offset * na_unit_size];
-
-            count = blockSize.Height >> this.GranularityNormalLog2;
-
-            for (idx = 0; idx < count; ++idx)
-            {
-                // Unit sizes are deliberately tiny, so direct ref copies avoid slicing for every neighbor position.
-                for (j = 0; j < na_unit_size; ++j)
-                {
-                    dst_ptr = value[j];
-                    dst_ptr = Unsafe.Add(ref dst_ptr, 1);
-                }
-            }
+            int offset = this.GetLeftIndex(origin);
+            int count = blockSize.Height >> this.GranularityNormalLog2;
+            this.Left.Slice(offset, count).Fill(value);
         }
 
         if ((mask & UnitMask.TopLeft) == UnitMask.TopLeft)
@@ -267,23 +232,9 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
             // Index = org_x - org_y
             Point topLeft = origin;
             topLeft.Offset(0, blockSize.Height - 1);
-            na_offset = this.GetTopLeftIndex(topLeft);
-
-            // Copy bottom-row + right-column
-            // *Note - start from the bottom-left corner
-            ref T dst_ptr = ref this.TopLeft[na_offset * na_unit_size];
-
-            count = ((blockSize.Width + blockSize.Height) >> this.GranularityTopLeftLog2) - 1;
-
-            for (idx = 0; idx < count; ++idx)
-            {
-                // Unit sizes are deliberately tiny, so direct ref copies avoid slicing for every neighbor position.
-                for (j = 0; j < na_unit_size; ++j)
-                {
-                    dst_ptr = value[j];
-                    dst_ptr = Unsafe.Add(ref dst_ptr, 1);
-                }
-            }
+            int offset = this.GetTopLeftIndex(topLeft);
+            int count = ((blockSize.Width + blockSize.Height) >> this.GranularityTopLeftLog2) - 1;
+            this.TopLeft.Slice(offset, count).Fill(value);
         }
     }
 }

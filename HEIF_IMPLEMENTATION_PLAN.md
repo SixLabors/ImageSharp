@@ -820,7 +820,7 @@ Encoder verification contract:
 - [ ] Implement inter mode search for bounded sequences, including reference selection and the decoder-supported inter tools.
 - [~] Current-libaom `av1_quantize_fp_no_qmatrix` arithmetic is implemented as a closed generic forward-quantizer family with Vector512, Vector256, Vector128, and scalar paths, raster-order output, coded 64-point coefficient limits, and scan-order EOB selection. Transform search, coefficient optimization, and lossless behavior remain.
 - [ ] Implement real rate-distortion selection and make quality and effort change work, size, and output quality.
-- [ ] Implement tile-local entropy coding and CDF update behavior.
+- [~] The tile writer now publishes one packed coefficient context per covered 4x4 edge unit and derives luma/chroma skip plus DC-sign contexts from the complete transform edges using current-libaom units. Complete tile traversal, initialized picture state, and verified CDF update behavior remain.
 - [ ] Implement legal deblocking, CDEF, restoration, super-resolution, and film-grain signaling decisions.
 - [~] The coefficient symbol encoder now reuses tile-lifetime level and context workspaces instead of allocating per transform. Every remaining encoder fragment must be audited before it becomes active.
 - [~] The planar conversion, forward transform, and forward quantizer use descending SIMD dispatch: Vector512, Vector256, Vector128, then scalar. Apply the same rule to every later hot-path family.

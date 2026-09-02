@@ -17,6 +17,62 @@ public class Av1CoefficientsEntropyTests
     private const int BaseQIndex = 23;
 
     [Fact]
+    public void NeighborArrayWritesEveryCoveredFourByFourEdgeUnit()
+    {
+        using Av1NeighborArrayUnit<byte> neighbors = new(
+            Configuration.Default,
+            leftSize: 8,
+            topSize: 8,
+            topLeftSize: 16)
+        {
+            GranularityNormalLog2 = 2,
+            GranularityTopLeftLog2 = 2
+        };
+
+        neighbors.UnitModeWrite(
+            37,
+            new Point(8, 4),
+            new Size(16, 8),
+            Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
+
+        Assert.Equal(new byte[] { 0, 0, 37, 37, 37, 37, 0, 0 }, neighbors.Top.ToArray());
+        Assert.Equal(new byte[] { 0, 37, 37, 0, 0, 0, 0, 0 }, neighbors.Left.ToArray());
+    }
+
+    [Theory]
+    [InlineData((int)Av1ComponentType.Luminance, 5)]
+    [InlineData((int)Av1ComponentType.Chroma, 12)]
+    public void WriterDerivesTransformContextFromCompleteFourByFourEdges(
+        int componentType,
+        int expectedSkipContext)
+    {
+        using Av1NeighborArrayUnit<byte> neighbors = new(
+            Configuration.Default,
+            leftSize: 8,
+            topSize: 8,
+            topLeftSize: 16)
+        {
+            GranularityNormalLog2 = 2,
+            GranularityTopLeftLog2 = 2
+        };
+
+        // The high bits carry positive, positive, and negative DC signs. The low bits select
+        // the high-above and low-left coefficient classes used by the luma skip-context table.
+        neighbors.Top[2] = (2 << Av1Constants.CoefficientContextBitCount) | 4;
+        neighbors.Top[3] = 2 << Av1Constants.CoefficientContextBitCount;
+        neighbors.Left[1] = (1 << Av1Constants.CoefficientContextBitCount) | 1;
+        Av1TransformBlockContext context = Av1TileWriter.GetTransformBlockContexts(
+            (Av1ComponentType)componentType,
+            neighbors,
+            new Point(8, 4),
+            Av1BlockSize.Block16x16,
+            Av1TransformSize.Size8x8);
+
+        Assert.Equal(2, context.DcSignContext);
+        Assert.Equal(expectedSkipContext, context.SkipContext);
+    }
+
+    [Fact]
     public void RoundTripZeroEndOfBlock()
     {
         // Assign

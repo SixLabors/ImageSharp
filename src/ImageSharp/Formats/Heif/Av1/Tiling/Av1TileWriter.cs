@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ModeDecision;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -747,9 +746,8 @@ internal partial class Av1TileWriter
             PartitionContextLookup[(int)blockSize].Above,
             PartitionContextLookup[(int)blockSize].Left);
         Size size = new(blk_geom.BlockWidth, blk_geom.BlockHeight);
-        Span<Av1PartitionContext> partitionSpan = new(ref partition);
         partition_context_na.UnitModeWrite(
-            partitionSpan,
+            partition,
             blockOrigin,
             size,
             Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Left | Av1NeighborArrayUnit<Av1PartitionContext>.UnitMask.Top);
@@ -757,26 +755,26 @@ internal partial class Av1TileWriter
         {
             // A skipped block has an all-zero residual, so publish a zero sign/level context over its edges
             // and advance coefficient positions without reading transform units.
-            byte dcSignLevelCoefficient = 0;
-            Span<byte> dcSignSpan = new(ref dcSignLevelCoefficient);
-
             luma_dc_sign_level_coeff_na.UnitModeWrite(
-                dcSignSpan,
+                0,
                 blockOrigin,
                 size,
                 Av1NeighborArrayUnit<byte>.UnitMask.Left | Av1NeighborArrayUnit<byte>.UnitMask.Top);
 
             if (blk_geom.HasUv)
             {
+                Point chromaOrigin = RoundUv(blockOrigin) >> 1;
+                Size chromaSize = new(blk_geom.BlockWidthUv, blk_geom.BlockHeightUv);
+
                 cb_dc_sign_level_coeff_na.UnitModeWrite(
-                    dcSignSpan,
-                    ((blockOrigin >> 3) << 3) >> 1,
-                    size,
+                    0,
+                    chromaOrigin,
+                    chromaSize,
                     Av1NeighborArrayUnit<byte>.UnitMask.Left | Av1NeighborArrayUnit<byte>.UnitMask.Top);
                 cr_dc_sign_level_coeff_na.UnitModeWrite(
-                    dcSignSpan,
-                    ((blockOrigin >> 3) << 3) >> 1,
-                    size,
+                    0,
+                    chromaOrigin,
+                    chromaSize,
                     Av1NeighborArrayUnit<byte>.UnitMask.Left | Av1NeighborArrayUnit<byte>.UnitMask.Top);
                 entropyCodingContext.CodedAreaSuperblockUv += blk_geom.BlockWidthUv * blk_geom.BlockHeightUv;
             }
@@ -1043,16 +1041,13 @@ internal partial class Av1TileWriter
             int coeff1d_offset = entropyCodingContext.CodedAreaSuperblock;
             Span<int> coeff_buffer = coeff_ptr.GetPlaneBuffer(Av1Plane.Y).DangerousGetSingleSpan()[coeff1d_offset..];
 
-            Av1TransformBlockContext blockContext = default;
             Point transformOrigin = blockGeometry.TransformOrigin[tx_depth][txb_itr];
-            GetTransformBlockContexts(
-                pcs,
+            Av1TransformBlockContext blockContext = GetTransformBlockContexts(
                 Av1ComponentType.Luminance,
                 luma_dc_sign_level_coeff_na,
                 blockOrigin + (Size)transformOrigin - (Size)blockGeometry.Origin,
                 plane_bsize,
-                tx_size,
-                blockContext);
+                tx_size);
 
             Av1TransformType tx_type = blk_ptr.TransformBlocks[txb_itr].TransformType[(int)Av1ComponentType.Luminance];
             int eob = blk_ptr.TransformBlocks[txb_itr].NzCoefficientCount[0];
@@ -1063,7 +1058,7 @@ internal partial class Av1TileWriter
                 Guard.IsTrue(tx_type == Av1TransformType.DctDct, nameof(tx_type), string.Empty);
             }
 
-            int cul_level_y = writer.WriteCoefficients(
+            int culLevelY = writer.WriteCoefficients(
                 tx_size,
                 tx_type,
                 intraLumaDir,
@@ -1074,15 +1069,12 @@ internal partial class Av1TileWriter
                 frameHeader.UseReducedTransformSet,
                 blk_ptr.FilterIntraMode);
 
-            // WriteCoefficients packs the DC sign and cumulative level into one integer; publish its bytes
-            // across the transform edges so the next blocks derive identical entropy contexts.
-            Span<int> culLevelSpan = new(ref cul_level_y);
-            ReadOnlySpan<byte> dc_sign_level_coeff = MemoryMarshal.AsBytes(culLevelSpan);
-
+            // Only the packed low byte is the AV1 entropy context. Converting the value explicitly keeps
+            // the update independent of machine endianness and publishes one value per covered edge unit.
             int transformWidth = blockGeometry.TransformSize[tx_depth].GetWidth();
             int transformHeight = blockGeometry.TransformSize[tx_depth].GetHeight();
             luma_dc_sign_level_coeff_na.UnitModeWrite(
-                dc_sign_level_coeff,
+                (byte)culLevelY,
                 blockOrigin + (Size)transformOrigin - (Size)blockGeometry.Origin,
                 new Size(transformWidth, transformHeight),
                 Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
@@ -1128,81 +1120,69 @@ internal partial class Av1TileWriter
         int tx_depth = mbmi.Block.TransformDepth;
         uint txb_count = 1;
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
-        int transformWidth = blockGeometry.TransformSize[tx_depth].GetWidth();
-        int transformHeight = blockGeometry.TransformSize[tx_depth].GetHeight();
 
         for (uint tx_index = 0; tx_index < txb_count; ++tx_index)
         {
-            Av1TransformSize chroma_tx_size = blockGeometry.TransformSizeUv[tx_depth];
+            Av1TransformSize chromaTransformSize = blockGeometry.TransformSizeUv[tx_depth];
+            int transformWidth = chromaTransformSize.GetWidth();
+            int transformHeight = chromaTransformSize.GetHeight();
+            Point transformOrigin = blockGeometry.TransformOrigin[tx_depth][tx_index];
+            Point chromaOrigin = RoundUv(blockOrigin + (Size)transformOrigin - (Size)blockGeometry.Origin) >> 1;
 
-            if (blockGeometry.HasUv)
-            {
-                // Both chroma planes share transform geometry but retain independent coefficient contexts.
-                Span<int> coeff_buffer = coeff_ptr.GetPlaneBuffer(Av1Plane.U).DangerousGetSingleSpan().Slice(entropyCodingContext.CodedAreaSuperblockUv);
-                Av1TransformBlockContext blockContext = default;
-                Point transformOrigin = blockGeometry.TransformOrigin[tx_depth][tx_index];
-                GetTransformBlockContexts(
-                    pcs,
-                    Av1ComponentType.Chroma,
-                    cb_dc_sign_level_coeff_na,
-                    RoundUv(blockOrigin + (Size)transformOrigin - (Size)blockGeometry.Origin) >> 1,
-                    blockGeometry.BlockSizeUv,
-                    chroma_tx_size,
-                    blockContext);
-                Av1TransformType chroma_tx_type = blk_ptr.TransformBlocks[tx_index].TransformType[(int)Av1ComponentType.Chroma];
-                int endOfBlockCb = blk_ptr.TransformBlocks[tx_index].NzCoefficientCount[1];
-                int cul_level_cb = writer.WriteCoefficients(
-                    chroma_tx_size,
-                    chroma_tx_type,
-                    intraLumaDir,
-                    coeff_buffer,
-                    Av1ComponentType.Chroma,
-                    blockContext,
-                    (ushort)endOfBlockCb,
-                    frameHeader.UseReducedTransformSet,
-                    blk_ptr.FilterIntraMode);
+            // Both chroma planes share transform geometry but retain independent coefficient contexts.
+            Span<int> coefficientBuffer = coeff_ptr.GetPlaneBuffer(Av1Plane.U).DangerousGetSingleSpan().Slice(entropyCodingContext.CodedAreaSuperblockUv);
+            Av1TransformBlockContext blockContext = GetTransformBlockContexts(
+                Av1ComponentType.Chroma,
+                cb_dc_sign_level_coeff_na,
+                chromaOrigin,
+                blockGeometry.BlockSizeUv,
+                chromaTransformSize);
+            Av1TransformType chromaTransformType = blk_ptr.TransformBlocks[tx_index].TransformType[(int)Av1ComponentType.Chroma];
+            int endOfBlockCb = blk_ptr.TransformBlocks[tx_index].NzCoefficientCount[1];
+            int culLevelCb = writer.WriteCoefficients(
+                chromaTransformSize,
+                chromaTransformType,
+                intraLumaDir,
+                coefficientBuffer,
+                Av1ComponentType.Chroma,
+                blockContext,
+                (ushort)endOfBlockCb,
+                frameHeader.UseReducedTransformSet,
+                blk_ptr.FilterIntraMode);
 
-                coeff_buffer = coeff_ptr.GetPlaneBuffer(Av1Plane.V).DangerousGetSingleSpan().Slice(entropyCodingContext.CodedAreaSuperblockUv);
-                blockContext = default;
-                int endOfBlockCr = blk_ptr.TransformBlocks[tx_index].NzCoefficientCount[2];
+            coefficientBuffer = coeff_ptr.GetPlaneBuffer(Av1Plane.V).DangerousGetSingleSpan().Slice(entropyCodingContext.CodedAreaSuperblockUv);
+            int endOfBlockCr = blk_ptr.TransformBlocks[tx_index].NzCoefficientCount[2];
 
-                GetTransformBlockContexts(
-                    pcs,
-                    Av1ComponentType.Chroma,
-                    cr_dc_sign_level_coeff_na,
-                    RoundUv(blockOrigin + (Size)transformOrigin - (Size)blockGeometry.Origin) >> 1,
-                    blockGeometry.BlockSizeUv,
-                    chroma_tx_size,
-                    blockContext);
+            blockContext = GetTransformBlockContexts(
+                Av1ComponentType.Chroma,
+                cr_dc_sign_level_coeff_na,
+                chromaOrigin,
+                blockGeometry.BlockSizeUv,
+                chromaTransformSize);
 
-                int cul_level_cr = writer.WriteCoefficients(
-                    chroma_tx_size,
-                    chroma_tx_type,
-                    intraLumaDir,
-                    coeff_buffer,
-                    Av1ComponentType.Chroma,
-                    blockContext,
-                    (ushort)endOfBlockCr,
-                    frameHeader.UseReducedTransformSet,
-                    blk_ptr.FilterIntraMode);
+            int culLevelCr = writer.WriteCoefficients(
+                chromaTransformSize,
+                chromaTransformType,
+                intraLumaDir,
+                coefficientBuffer,
+                Av1ComponentType.Chroma,
+                blockContext,
+                (ushort)endOfBlockCr,
+                frameHeader.UseReducedTransformSet,
+                blk_ptr.FilterIntraMode);
 
-                // Publish each plane's packed sign/level summary across its transform edges.
-                Span<int> culLevelCbSpan = new(ref cul_level_cb);
-                ReadOnlySpan<byte> dc_sign_level_coeff = MemoryMarshal.AsBytes(culLevelCbSpan);
-                cb_dc_sign_level_coeff_na.UnitModeWrite(
-                    dc_sign_level_coeff,
-                    RoundUv(transformOrigin) >> 1,
-                    new Size(transformWidth, transformHeight),
-                    Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
+            // Each plane publishes its packed context across the complete chroma transform edges.
+            cb_dc_sign_level_coeff_na.UnitModeWrite(
+                (byte)culLevelCb,
+                chromaOrigin,
+                new Size(transformWidth, transformHeight),
+                Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
 
-                Span<int> culLevelCrSpan = new(ref cul_level_cr);
-                dc_sign_level_coeff = MemoryMarshal.AsBytes(culLevelCrSpan);
-                cr_dc_sign_level_coeff_na.UnitModeWrite(
-                    dc_sign_level_coeff,
-                    RoundUv(transformOrigin) >> 1,
-                    new Size(transformWidth, transformHeight),
-                    Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
-            }
+            cr_dc_sign_level_coeff_na.UnitModeWrite(
+                (byte)culLevelCr,
+                chromaOrigin,
+                new Size(transformWidth, transformHeight),
+                Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
 
             entropyCodingContext.CodedAreaSuperblockUv += transformWidth * transformHeight;
         }
@@ -1218,84 +1198,65 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Derives coefficient skip and DC-sign contexts from the transform block's above and left neighbors.
     /// </summary>
-    /// <param name="pcs">The picture coding state.</param>
     /// <param name="plane">The luma or chroma component class.</param>
     /// <param name="dcSignLevelCoefficientNeighborArray">The packed DC-sign and coefficient-level neighbor contexts.</param>
     /// <param name="blockOrigin">The transform-block origin in samples of the target plane.</param>
     /// <param name="planeBlockSize">The containing block size on the target plane.</param>
     /// <param name="transformSize">The transform size.</param>
-    /// <param name="blockContext">The context object to populate.</param>
-    private static void GetTransformBlockContexts(
-        Av1PictureControlSet pcs,
+    /// <returns>The coefficient skip and DC-sign contexts selected by both transform edges.</returns>
+    public static Av1TransformBlockContext GetTransformBlockContexts(
         Av1ComponentType plane,
         Av1NeighborArrayUnit<byte> dcSignLevelCoefficientNeighborArray,
         Point blockOrigin,
         Av1BlockSize planeBlockSize,
-        Av1TransformSize transformSize,
-        Av1TransformBlockContext blockContext)
+        Av1TransformSize transformSize)
     {
-        int dcSignLevelCoefficientLeftNeighborIndex = dcSignLevelCoefficientNeighborArray.GetLeftIndex(blockOrigin);
-        int dcSignLevelCoefficientTopNeighborIndex = dcSignLevelCoefficientNeighborArray.GetTopIndex(blockOrigin);
+        int leftIndex = dcSignLevelCoefficientNeighborArray.GetLeftIndex(blockOrigin);
+        int topIndex = dcSignLevelCoefficientNeighborArray.GetTopIndex(blockOrigin);
+        int transformBlockWidth = transformSize.Get4x4WideCount();
+        int transformBlockHeight = transformSize.Get4x4HighCount();
+        ReadOnlySpan<byte> topContexts = dcSignLevelCoefficientNeighborArray.Top.Slice(topIndex, transformBlockWidth);
+        ReadOnlySpan<byte> leftContexts = dcSignLevelCoefficientNeighborArray.Left.Slice(leftIndex, transformBlockHeight);
+        int dcSign = 0;
+        int top = 0;
+        int left = 0;
 
-        sbyte[] signs = [0, -1, 1];
-        int transformBlockWidth;
-        int transformBlockHeight;
-        if (plane != Av1ComponentType.Luminance)
+        // Each context packs a coefficient-level class in the low bits and the DC sign class above it.
+        // Accumulating both values in one traversal supplies every luma and chroma context without scratch storage.
+        foreach (byte context in topContexts)
         {
-            transformBlockWidth = Math.Min(transformSize.GetWidth(), ((pcs.Parent.AlignedWidth / 2) - blockOrigin.X) >> 2);
-            transformBlockHeight = Math.Min(transformSize.GetHeight(), ((pcs.Parent.AlignedHeight / 2) - blockOrigin.Y) >> 2);
-        }
-        else
-        {
-            transformBlockWidth = Math.Min(transformSize.GetWidth(), (pcs.Parent.AlignedWidth - blockOrigin.X) >> 2);
-            transformBlockHeight = Math.Min(transformSize.GetHeight(), (pcs.Parent.AlignedHeight - blockOrigin.Y) >> 2);
-        }
-
-        short dc_sign = 0;
-        ushort k = 0;
-
-        byte sign;
-
-        // The high bits encode the DC sign class: zero, negative, or positive. Summing classes over
-        // both edges selects whether neighboring DC coefficients bias the current sign context.
-        if (dcSignLevelCoefficientNeighborArray.Top[dcSignLevelCoefficientTopNeighborIndex] != Av1NeighborArrayUnit<byte>.InvalidNeighborData)
-        {
-            do
+            byte sign = (byte)(context >> Av1Constants.CoefficientContextBitCount);
+            DebugGuard.MustBeLessThanOrEqualTo(sign, (byte)2, nameof(sign));
+            if (sign == 1)
             {
-                sign = (byte)(dcSignLevelCoefficientNeighborArray.Top[k + dcSignLevelCoefficientTopNeighborIndex] >>
-                        Av1Constants.CoefficientContextBitCount);
-                Guard.MustBeLessThanOrEqualTo(sign, (byte)2, nameof(sign));
-                dc_sign += signs[sign];
+                dcSign--;
             }
-            while (++k < transformBlockWidth);
-        }
-
-        if (dcSignLevelCoefficientNeighborArray.Left[dcSignLevelCoefficientLeftNeighborIndex] != Av1NeighborArrayUnit<byte>.InvalidNeighborData)
-        {
-            k = 0;
-            do
+            else if (sign == 2)
             {
-                sign = (byte)(dcSignLevelCoefficientNeighborArray.Left[k + dcSignLevelCoefficientLeftNeighborIndex] >>
-                        Av1Constants.CoefficientContextBitCount);
-                Guard.MustBeLessThanOrEqualTo(sign, (byte)2, nameof(sign));
-                dc_sign += signs[sign];
+                dcSign++;
             }
-            while (++k < transformBlockHeight);
+
+            top |= context;
         }
 
-        if (dc_sign > 0)
+        foreach (byte context in leftContexts)
         {
-            blockContext.DcSignContext = 2;
-        }
-        else if (dc_sign < 0)
-        {
-            blockContext.DcSignContext = 1;
-        }
-        else
-        {
-            blockContext.DcSignContext = 0;
+            byte sign = (byte)(context >> Av1Constants.CoefficientContextBitCount);
+            DebugGuard.MustBeLessThanOrEqualTo(sign, (byte)2, nameof(sign));
+            if (sign == 1)
+            {
+                dcSign--;
+            }
+            else if (sign == 2)
+            {
+                dcSign++;
+            }
+
+            left |= context;
         }
 
+        Av1TransformBlockContext blockContext = default;
+        blockContext.DcSignContext = dcSign > 0 ? 2 : dcSign < 0 ? 1 : 0;
         if (plane == Av1ComponentType.Luminance)
         {
             if (planeBlockSize == transformSize.ToBlockSize())
@@ -1304,33 +1265,7 @@ internal partial class Av1TileWriter
             }
             else
             {
-                int top = 0;
-                int left = 0;
-
-                k = 0;
-                if (dcSignLevelCoefficientNeighborArray.Top[dcSignLevelCoefficientTopNeighborIndex] !=
-                    Av1NeighborArrayUnit<byte>.InvalidNeighborData)
-                {
-                    do
-                    {
-                        top |= dcSignLevelCoefficientNeighborArray.Top[k + dcSignLevelCoefficientTopNeighborIndex];
-                    }
-                    while (++k < transformBlockWidth);
-                }
-
                 top &= Av1Constants.CoefficientContextMask;
-
-                if (dcSignLevelCoefficientNeighborArray.Left[dcSignLevelCoefficientLeftNeighborIndex] !=
-                    Av1NeighborArrayUnit<byte>.InvalidNeighborData)
-                {
-                    k = 0;
-                    do
-                    {
-                        left |= dcSignLevelCoefficientNeighborArray.Left[k + dcSignLevelCoefficientLeftNeighborIndex];
-                    }
-                    while (++k < transformBlockHeight);
-                }
-
                 left &= Av1Constants.CoefficientContextMask;
                 blockContext.SkipContext = Av1SymbolContextHelper.GetTransformBlockSkipContext(top, left);
             }
@@ -1339,36 +1274,12 @@ internal partial class Av1TileWriter
         {
             // Chroma contexts use only the presence of nonzero levels on each edge, plus an offset
             // that distinguishes a transform smaller than its containing plane block.
-            short ctx_base_left = 0;
-            short ctx_base_top = 0;
-
-            if (dcSignLevelCoefficientNeighborArray.Top[dcSignLevelCoefficientTopNeighborIndex] !=
-                Av1NeighborArrayUnit<byte>.InvalidNeighborData)
-            {
-                k = 0;
-                do
-                {
-                    ctx_base_top +=
-                        (dcSignLevelCoefficientNeighborArray.Top[k + dcSignLevelCoefficientTopNeighborIndex] != 0) ? (short)1 : (short)0;
-                }
-                while (++k < transformBlockWidth);
-            }
-
-            if (dcSignLevelCoefficientNeighborArray.Left[dcSignLevelCoefficientLeftNeighborIndex] !=
-                Av1NeighborArrayUnit<byte>.InvalidNeighborData)
-            {
-                k = 0;
-                do
-                {
-                    ctx_base_left += dcSignLevelCoefficientNeighborArray.Left[k + dcSignLevelCoefficientLeftNeighborIndex] != 0 ? (short)1 : (short)0;
-                }
-                while (++k < transformBlockHeight);
-            }
-
-            int ctx_base = ((ctx_base_left != 0) ? 1 : 0) + ((ctx_base_top != 0) ? 1 : 0);
-            int ctx_offset = planeBlockSize.GetPelsLog2Count() > transformSize.ToBlockSize().GetPelsLog2Count() ? 10 : 7;
-            blockContext.SkipContext = (short)(ctx_base + ctx_offset);
+            int contextBase = (left != 0 ? 1 : 0) + (top != 0 ? 1 : 0);
+            int contextOffset = planeBlockSize.GetPelsLog2Count() > transformSize.ToBlockSize().GetPelsLog2Count() ? 10 : 7;
+            blockContext.SkipContext = contextBase + contextOffset;
         }
+
+        return blockContext;
     }
 
     /// <summary>

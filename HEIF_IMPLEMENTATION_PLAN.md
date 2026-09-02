@@ -93,10 +93,10 @@ The checkpoint is complete through `c4b4e4e0386328dea574a884b6fa36c360ad5a9b`. I
   - Current `Av1ReferenceMotionVectors` uses the same two-entry stop condition and retains an eight-entry stack for earlier candidates and DRL selection.
   - No production change is required. This remains spatial single-reference extension, not temporal extension.
 - [x] Establish and enforce the contiguous frame-plane invariant used by `Av1FrameBuffer` and inter reconstruction.
-  - Every frame plane is allocated with `preferContiguosImageBuffers: true`, so a constrained allocator cannot split a representable padded plane into normal memory groups.
-  - `Av1FrameBuffer` now rejects an external frame geometry whose padded plane reaches the `int.MaxValue` fallback boundary before any allocation. This makes every direct `DangerousGetSingleSpan` call an enforced owner invariant rather than a memory-group accident.
-  - `ConstructorRequestsContiguousPaddedPlanes` proves that a plane larger than the allocator's group capacity is one group. `ConstructorRejectsPaddedPlaneThatCannotBeContiguous` proves that an unrepresentable plane is rejected before allocation.
-  - The production path performs no plane copy and no per-block, per-row, or per-scanline allocation.
+  - One ImageSharp allocator owner now contains the aligned Y, U, and V storage, matching libaom's frame-buffer ownership while non-owning `Buffer2D` views preserve ImageSharp's row API. Coded dimensions are aligned to eight samples, the luma stride is aligned to 32 samples, and chroma strides and heights are derived from that luma layout exactly once. A 4K eight-bit 4:2:0 frame owner occupies about 17.3 MiB.
+  - The single owner removes the previous three-rent constructor and its allocation-cleanup `try/catch`. `Av1FrameBuffer` rejects external geometry whose complete aligned frame reaches the contiguous `int.MaxValue` boundary before allocation, making every direct `DangerousGetSingleSpan` call an enforced owner invariant.
+  - `ConstructorRequestsContiguousPaddedPlanes` proves that a frame larger than the allocator's group capacity remains one group. `ConstructorUsesOneFrameOwnerForAllPaddedPlanes` proves exact one-rent Y/U/V ownership and exactly-once return. `ConstructorRejectsPaddedPlaneThatCannotBeContiguous` proves that an unrepresentable frame is rejected before allocation, and the high-bit-depth stride regression proves the 608-sample libaom layout for a three-pixel coded row.
+  - The complete HEIF/AV1 namespace passes 8,808 of 8,808 direct net11 VSTest cases in Release after the physical layout change. The production path performs no plane copy and no per-block, per-row, or per-scanline allocation.
 - [x] Prove the real `Av1BlockDecoder.DecodeBlock` inter-reconstruction branch.
   - Decode the progressive dependent-frame fixture through the complete public production path.
   - Compare the final frame's native Y, Cb, and Cr planes exactly with current-main libaom output.

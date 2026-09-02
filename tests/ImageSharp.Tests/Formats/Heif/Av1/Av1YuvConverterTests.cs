@@ -253,7 +253,7 @@ public class Av1YuvConverterTests
 
         // Assert
         Assert.Equal(2, frameBuffer.BytesPerSample);
-        Assert.Equal(3 + (frameBuffer.OriginX * 2), stride);
+        Assert.Equal(608, stride);
         Assert.Equal(stride * 2, frameBuffer.GetPlaneBuffer(Av1Plane.Y).Width);
         Assert.Equal(321, frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, 0, 0, 0)[0]);
         Assert.Equal(2, chromaRow.Length);

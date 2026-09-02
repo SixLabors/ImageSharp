@@ -17,7 +17,7 @@ using SixLabors.ImageSharp.Tests.Memory;
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 /// <summary>
-/// Verifies AV1 frame-plane allocation contracts and constructor rollback ownership.
+/// Verifies AV1 frame-plane allocation contracts.
 /// </summary>
 [Trait("Format", "Avif")]
 public class Av1FrameBufferTests
@@ -81,18 +81,19 @@ public class Av1FrameBufferTests
     }
 
     /// <summary>
-    /// Verifies that a failure while renting the final chroma plane releases every previously rented plane.
+    /// Verifies that all padded component planes share one frame owner.
     /// </summary>
     [Fact]
-    public void ConstructorFailureOnThirdPlaneReleasesEarlierPlanes()
+    public void ConstructorUsesOneFrameOwnerForAllPaddedPlanes()
     {
-        FailingTestMemoryAllocator allocator = new(failureAllocationNumber: 3);
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
         ObuSequenceHeader sequenceHeader = new()
         {
-            MaxFrameWidth = 1,
-            MaxFrameHeight = 1,
+            MaxFrameWidth = 64,
+            MaxFrameHeight = 64,
             ColorConfig = new ObuColorConfig
             {
                 IsMonochrome = false,
@@ -102,19 +103,24 @@ public class Av1FrameBufferTests
             }
         };
 
-        // All three padded planes fit in one backing owner each, making attempt three the Cr plane rent after Y and
-        // Cb have succeeded. The allocator log therefore contains exactly the two owners requiring rollback.
-        Assert.Throws<InvalidMemoryOperationException>(
-            () => new Av1FrameBuffer<byte>(configuration, sequenceHeader, Av1ColorFormat.Yuv420, false));
+        TestMemoryAllocator.AllocationRequest allocation;
+        using (Av1FrameBuffer<byte> frameBuffer = new(
+            configuration,
+            sequenceHeader,
+            Av1ColorFormat.Yuv420,
+            false))
+        {
+            allocation = Assert.Single(allocator.AllocationLog);
+            Assert.Empty(allocator.ReturnLog);
+            Assert.Equal(typeof(byte), allocation.ElementType);
+            Assert.Equal(614_400, allocation.Length);
+            Assert.Single(frameBuffer.GetPlaneBuffer(Av1Plane.Y).MemoryGroup);
+            Assert.Single(frameBuffer.GetPlaneBuffer(Av1Plane.U).MemoryGroup);
+            Assert.Single(frameBuffer.GetPlaneBuffer(Av1Plane.V).MemoryGroup);
+        }
 
-        Assert.Equal(3, allocator.AllocationAttemptCount);
-        Assert.Equal(2, allocator.AllocationLog.Count);
-        Assert.Equal(2, allocator.ReturnLog.Count);
-        Assert.All(
-            allocator.AllocationLog,
-            allocation => Assert.Single(
-                allocator.ReturnLog,
-                returned => returned.AllocationId == allocation.AllocationId));
+        TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
+        Assert.Equal(allocation.AllocationId, returned.AllocationId);
     }
 
     /// <summary>

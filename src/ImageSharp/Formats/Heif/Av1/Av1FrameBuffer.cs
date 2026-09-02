@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -21,31 +22,6 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     // Scaled prediction may start 284 luma samples outside a retained frame and then consume three preceding filter
     // taps. The normative 288-sample border keeps that entire source window directly addressable without block copies.
     public const int DecoderPaddingValue = 288;
-
-    /// <summary>
-    /// The allocation-mask bit for the luma plane.
-    /// </summary>
-    private const int PictureBufferYFlag = 1 << 0;
-
-    /// <summary>
-    /// The allocation-mask bit for the first chroma plane.
-    /// </summary>
-    private const int PictureBufferCbFlag = 1 << 1;
-
-    /// <summary>
-    /// The allocation-mask bit for the second chroma plane.
-    /// </summary>
-    private const int PictureBufferCrFlag = 1 << 2;
-
-    /// <summary>
-    /// The allocation mask for a monochrome frame.
-    /// </summary>
-    private const int PictureBufferLumaMask = PictureBufferYFlag;
-
-    /// <summary>
-    /// The allocation mask for a frame containing all three planes.
-    /// </summary>
-    private const int PictureBufferFullMask = PictureBufferYFlag | PictureBufferCbFlag | PictureBufferCrFlag;
 
     /// <summary>
     /// The number of <typeparamref name="T"/> elements occupied by one logical sample.
@@ -109,90 +85,45 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
 
         this.ColorFormat = colorFormat;
         this.Is16BitPipeline = is16BitPipeline;
-        int bufferEnableMask = sequenceHeader.ColorConfig.IsMonochrome ? PictureBufferLumaMask : PictureBufferFullMask;
-
-        int leftPadding = DecoderPaddingValue;
-        int rightPadding = DecoderPaddingValue;
-        int topPadding = DecoderPaddingValue;
-        int bottomPadding = DecoderPaddingValue;
-
-        this.StartPosition = new Point(leftPadding, topPadding);
+        this.StartPosition = new Point(DecoderPaddingValue, DecoderPaddingValue);
 
         this.Width = this.MaxWidth;
         this.Height = this.MaxHeight;
-        int strideY = this.MaxWidth + leftPadding + rightPadding;
-        int heightY = this.MaxHeight + topPadding + bottomPadding;
-        this.OriginX = leftPadding;
-        this.OriginY = topPadding;
-        int strideChroma = 0;
-        int heightChroma = 0;
-        switch (this.ColorFormat)
+        this.OriginX = DecoderPaddingValue;
+        this.OriginY = DecoderPaddingValue;
+
+        FrameBufferLayout layout = CreateFrameBufferLayout(
+            allocationWidth,
+            allocationHeight,
+            colorFormat,
+            this.storageElementsPerSample);
+
+        // Libaom stores Y, U, and V in one aligned frame allocation. Non-owning Buffer2D views retain ImageSharp's
+        // row API without introducing separate plane rents or constructor rollback paths.
+        IMemoryOwner<T> owner = configuration.MemoryAllocator.Allocate<T>(layout.StorageLength);
+        Memory<T> storage = owner.Memory;
+        Buffer2D<T> luma = Buffer2D<T>.WrapMemory(
+            storage.Slice(0, layout.LumaElementCount),
+            layout.LumaStorageWidth,
+            layout.LumaHeight);
+
+        ChromaPlanes? chroma = null;
+        if (!sequenceHeader.ColorConfig.IsMonochrome)
         {
-            case Av1ColorFormat.Yuv420:
-                strideChroma = (strideY + 1) >> 1;
-                heightChroma = (heightY + 1) >> 1;
-                break;
-            case Av1ColorFormat.Yuv422:
-                strideChroma = (strideY + 1) >> 1;
-                heightChroma = heightY;
-                break;
-            case Av1ColorFormat.Yuv444:
-                strideChroma = strideY;
-                heightChroma = heightY;
-                break;
+            Buffer2D<T> chromaBlue = Buffer2D<T>.WrapMemory(
+                storage.Slice(layout.ChromaBlueOffset, layout.ChromaElementCount),
+                layout.ChromaStorageWidth,
+                layout.ChromaHeight);
+
+            Buffer2D<T> chromaRed = Buffer2D<T>.WrapMemory(
+                storage.Slice(layout.ChromaRedOffset, layout.ChromaElementCount),
+                layout.ChromaStorageWidth,
+                layout.ChromaHeight);
+
+            chroma = new ChromaPlanes(chromaBlue, chromaRed);
         }
 
-        long lumaElementCount = (long)strideY * this.storageElementsPerSample * heightY;
-        long chromaElementCount = (long)strideChroma * this.storageElementsPerSample * heightChroma;
-        bool planesExceedContiguousLimit =
-            lumaElementCount >= int.MaxValue ||
-            (bufferEnableMask == PictureBufferFullMask && chromaElementCount >= int.MaxValue);
-
-        if (planesExceedContiguousLimit)
-        {
-            // The reconstruction operators use one span plus a constant stride to address padded neighbors. Reject an
-            // external geometry that cannot satisfy that ownership contract before Allocate2D falls back to groups.
-            throw new InvalidImageContentException("The AV1 frame dimensions exceed the contiguous decoder plane limit.");
-        }
-
-        // Block reconstruction and the SIMD predictors address decoder padding through one span plus a constant row
-        // stride. Establish that invariant at the plane owner instead of copying fragmented groups in every hot path.
-        Buffer2D<T> luma = configuration.MemoryAllocator.Allocate2D<T>(
-            strideY * this.storageElementsPerSample,
-            heightY,
-            preferContiguosImageBuffers: true);
-
-        Buffer2D<T>? chromaBlue = null;
-        Buffer2D<T>? chromaRed = null;
-        try
-        {
-            ChromaPlanes? chroma = null;
-            if (bufferEnableMask == PictureBufferFullMask)
-            {
-                chromaBlue = configuration.MemoryAllocator.Allocate2D<T>(
-                    strideChroma * this.storageElementsPerSample,
-                    heightChroma,
-                    preferContiguosImageBuffers: true);
-
-                chromaRed = configuration.MemoryAllocator.Allocate2D<T>(
-                    strideChroma * this.storageElementsPerSample,
-                    heightChroma,
-                    preferContiguosImageBuffers: true);
-
-                chroma = new ChromaPlanes(chromaBlue, chromaRed);
-            }
-
-            this.planes = new(luma, chroma);
-        }
-        catch
-        {
-            // Construction publishes the owner only after every required plane has been rented. Release earlier planes
-            // here because a later allocation failure leaves no constructed frame buffer for the caller to dispose.
-            chromaRed?.Dispose();
-            chromaBlue?.Dispose();
-            luma.Dispose();
-            throw;
-        }
+        this.planes = new(owner, luma, chroma);
     }
 
     /// <summary>
@@ -291,37 +222,12 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             (bytesPerSample + Unsafe.SizeOf<T>() - 1) / Unsafe.SizeOf<T>(),
             1);
 
-        long strideY = (long)sequenceHeader.MaxFrameWidth + (DecoderPaddingValue * 2L);
-        long heightY = (long)sequenceHeader.MaxFrameHeight + (DecoderPaddingValue * 2L);
         Av1ColorFormat colorFormat = sequenceHeader.ColorConfig.IsMonochrome ? Av1ColorFormat.Yuv400 : maxColorFormat;
-        long strideChroma = 0;
-        long heightChroma = 0;
-
-        switch (colorFormat)
-        {
-            case Av1ColorFormat.Yuv420:
-                strideChroma = (strideY + 1) >> 1;
-                heightChroma = (heightY + 1) >> 1;
-                break;
-            case Av1ColorFormat.Yuv422:
-                strideChroma = (strideY + 1) >> 1;
-                heightChroma = heightY;
-                break;
-            case Av1ColorFormat.Yuv444:
-                strideChroma = strideY;
-                heightChroma = heightY;
-                break;
-        }
-
-        long lumaElementCount = strideY * storageElementsPerSample * heightY;
-        long chromaElementCount = strideChroma * storageElementsPerSample * heightChroma;
-        if (lumaElementCount >= int.MaxValue ||
-            (!sequenceHeader.ColorConfig.IsMonochrome && chromaElementCount >= int.MaxValue))
-        {
-            // Every decoder operator addresses padding through one contiguous span. Reject external sequence geometry
-            // before frame-wide syntax state is allocated so hostile dimensions cannot bypass allocator limits.
-            throw new InvalidImageContentException("The AV1 frame dimensions exceed the contiguous decoder plane limit.");
-        }
+        _ = CreateFrameBufferLayout(
+            sequenceHeader.MaxFrameWidth,
+            sequenceHeader.MaxFrameHeight,
+            colorFormat,
+            storageElementsPerSample);
     }
 
     /// <summary>
@@ -413,6 +319,8 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
             chroma.Value.Blue.Dispose();
             chroma.Value.Red.Dispose();
         }
+
+        activePlanes.Owner.Dispose();
     }
 
     /// <summary>
@@ -624,10 +532,64 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     }
 
     /// <summary>
-    /// Carries the mandatory luma owner and the optional complete chroma pair as one state.
+    /// Calculates the aligned physical plane layout retained by one frame owner.
     /// </summary>
-    private readonly struct FramePlanes(Buffer2D<T> luma, ChromaPlanes? chroma)
+    private static FrameBufferLayout CreateFrameBufferLayout(
+        int width,
+        int height,
+        Av1ColorFormat colorFormat,
+        int storageElementsPerSample)
     {
+        long alignedWidth = (width + 7L) & ~7L;
+        long alignedHeight = (height + 7L) & ~7L;
+        long lumaStride = (alignedWidth + (2L * DecoderPaddingValue) + 31L) & ~31L;
+        long lumaHeight = alignedHeight + (2L * DecoderPaddingValue);
+        int subsamplingX = colorFormat is Av1ColorFormat.Yuv420 or Av1ColorFormat.Yuv422 ? 1 : 0;
+        int subsamplingY = colorFormat == Av1ColorFormat.Yuv420 ? 1 : 0;
+        long chromaStride = colorFormat == Av1ColorFormat.Yuv400 ? 0 : lumaStride >> subsamplingX;
+        long chromaHeight = colorFormat == Av1ColorFormat.Yuv400
+            ? 0
+            : (alignedHeight >> subsamplingY) + (2L * (DecoderPaddingValue >> subsamplingY));
+
+        long lumaStorageWidth = lumaStride * storageElementsPerSample;
+        long chromaStorageWidth = chromaStride * storageElementsPerSample;
+        long lumaElementCount = lumaStorageWidth * lumaHeight;
+        long chromaElementCount = chromaStorageWidth * chromaHeight;
+        long planeAlignment = Math.Max(32 / Unsafe.SizeOf<T>(), 1);
+        long chromaBlueOffset = ((lumaElementCount + planeAlignment - 1) / planeAlignment) * planeAlignment;
+        long chromaRedOffset = ((chromaBlueOffset + chromaElementCount + planeAlignment - 1) / planeAlignment) * planeAlignment;
+        long storageLength = colorFormat == Av1ColorFormat.Yuv400
+            ? lumaElementCount
+            : chromaRedOffset + chromaElementCount;
+
+        if (storageLength >= int.MaxValue)
+        {
+            // Reconstruction operators require one contiguous owner so every padded row remains directly addressable.
+            throw new InvalidImageContentException("The AV1 frame dimensions exceed the contiguous decoder frame limit.");
+        }
+
+        return new FrameBufferLayout(
+            (int)lumaStorageWidth,
+            (int)lumaHeight,
+            (int)lumaElementCount,
+            (int)chromaStorageWidth,
+            (int)chromaHeight,
+            (int)chromaElementCount,
+            (int)chromaBlueOffset,
+            (int)chromaRedOffset,
+            (int)storageLength);
+    }
+
+    /// <summary>
+    /// Carries the one frame owner, mandatory luma view, and optional complete chroma pair as one state.
+    /// </summary>
+    private readonly struct FramePlanes(IMemoryOwner<T> owner, Buffer2D<T> luma, ChromaPlanes? chroma)
+    {
+        /// <summary>
+        /// Gets the complete frame allocation.
+        /// </summary>
+        public IMemoryOwner<T> Owner { get; } = owner;
+
         /// <summary>
         /// Gets the padded luma plane.
         /// </summary>
@@ -637,6 +599,39 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         /// Gets the padded chroma planes when the frame contains chroma.
         /// </summary>
         public ChromaPlanes? Chroma { get; } = chroma;
+    }
+
+    /// <summary>
+    /// Describes the physical storage slices used by the component-plane views.
+    /// </summary>
+    private readonly struct FrameBufferLayout(
+        int lumaStorageWidth,
+        int lumaHeight,
+        int lumaElementCount,
+        int chromaStorageWidth,
+        int chromaHeight,
+        int chromaElementCount,
+        int chromaBlueOffset,
+        int chromaRedOffset,
+        int storageLength)
+    {
+        public int LumaStorageWidth { get; } = lumaStorageWidth;
+
+        public int LumaHeight { get; } = lumaHeight;
+
+        public int LumaElementCount { get; } = lumaElementCount;
+
+        public int ChromaStorageWidth { get; } = chromaStorageWidth;
+
+        public int ChromaHeight { get; } = chromaHeight;
+
+        public int ChromaElementCount { get; } = chromaElementCount;
+
+        public int ChromaBlueOffset { get; } = chromaBlueOffset;
+
+        public int ChromaRedOffset { get; } = chromaRedOffset;
+
+        public int StorageLength { get; } = storageLength;
     }
 
     private readonly struct ChromaPlanes(Buffer2D<T> blue, Buffer2D<T> red)

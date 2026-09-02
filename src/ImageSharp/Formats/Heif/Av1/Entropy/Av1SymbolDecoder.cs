@@ -111,6 +111,141 @@ internal ref struct Av1SymbolDecoder
     }
 
     /// <summary>
+    /// Reads sorted luma palette colors using selections from the neighboring color cache.
+    /// </summary>
+    /// <param name="colorCache">The sorted unique colors inherited from eligible neighbors.</param>
+    /// <param name="paletteSize">The number of palette colors.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <param name="colors">The destination palette colors in prediction-index order.</param>
+    public void ReadPaletteYColors(
+        scoped ReadOnlySpan<ushort> colorCache,
+        int paletteSize,
+        int bitDepth,
+        scoped Span<ushort> colors)
+    {
+        Span<ushort> cachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+        int colorIndex = 0;
+        for (int i = 0; i < colorCache.Length && colorIndex < paletteSize; i++)
+        {
+            if (this.ReadLiteral(1) != 0)
+            {
+                cachedColors[colorIndex++] = colorCache[i];
+            }
+        }
+
+        if (colorIndex == paletteSize)
+        {
+            cachedColors[..paletteSize].CopyTo(colors);
+            return;
+        }
+
+        int cachedColorCount = colorIndex;
+        colors[colorIndex++] = (ushort)this.ReadLiteral(bitDepth);
+        if (colorIndex < paletteSize)
+        {
+            int bits = bitDepth - 3 + this.ReadLiteral(2);
+            int maximumColor = (1 << bitDepth) - 1;
+            int range = maximumColor - colors[colorIndex - 1];
+            for (; colorIndex < paletteSize; colorIndex++)
+            {
+                int delta = this.ReadLiteral(bits) + 1;
+                colors[colorIndex] = (ushort)Av1Math.Clip3(0, maximumColor, colors[colorIndex - 1] + delta);
+                range -= colors[colorIndex] - colors[colorIndex - 1];
+                bits = Math.Min(bits, (int)Av1Math.CeilLog2((uint)range));
+            }
+        }
+
+        MergePaletteColors(colors, cachedColors, paletteSize, cachedColorCount);
+    }
+
+    /// <summary>
+    /// Reads shared chroma palette colors using cached U values and raw or delta-coded V values.
+    /// </summary>
+    /// <param name="colorCache">The sorted unique U colors inherited from eligible neighbors.</param>
+    /// <param name="paletteSize">The number of palette colors.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <param name="uColors">The destination U palette colors.</param>
+    /// <param name="vColors">The destination V palette colors paired with <paramref name="uColors"/>.</param>
+    public void ReadPaletteUvColors(
+        scoped ReadOnlySpan<ushort> colorCache,
+        int paletteSize,
+        int bitDepth,
+        scoped Span<ushort> uColors,
+        scoped Span<ushort> vColors)
+    {
+        Span<ushort> cachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+        int colorIndex = 0;
+        for (int i = 0; i < colorCache.Length && colorIndex < paletteSize; i++)
+        {
+            if (this.ReadLiteral(1) != 0)
+            {
+                cachedColors[colorIndex++] = colorCache[i];
+            }
+        }
+
+        if (colorIndex < paletteSize)
+        {
+            int cachedColorCount = colorIndex;
+            uColors[colorIndex++] = (ushort)this.ReadLiteral(bitDepth);
+            if (colorIndex < paletteSize)
+            {
+                int bits = bitDepth - 3 + this.ReadLiteral(2);
+                int maximumColor = (1 << bitDepth) - 1;
+                int range = (1 << bitDepth) - uColors[colorIndex - 1];
+                for (; colorIndex < paletteSize; colorIndex++)
+                {
+                    int delta = this.ReadLiteral(bits);
+                    uColors[colorIndex] = (ushort)Av1Math.Clip3(0, maximumColor, uColors[colorIndex - 1] + delta);
+                    range -= uColors[colorIndex] - uColors[colorIndex - 1];
+                    bits = Math.Min(bits, (int)Av1Math.CeilLog2((uint)range));
+                }
+            }
+
+            MergePaletteColors(uColors, cachedColors, paletteSize, cachedColorCount);
+        }
+        else
+        {
+            cachedColors[..paletteSize].CopyTo(uColors);
+        }
+
+        if (this.ReadLiteral(1) != 0)
+        {
+            // V deltas wrap in the unsigned sample domain so complementary chroma colors remain compact.
+            int bits = bitDepth - 4 + this.ReadLiteral(2);
+            int sampleRange = 1 << bitDepth;
+            vColors[0] = (ushort)this.ReadLiteral(bitDepth);
+            for (int i = 1; i < paletteSize; i++)
+            {
+                int delta = this.ReadLiteral(bits);
+                if (delta != 0 && this.ReadLiteral(1) != 0)
+                {
+                    delta = -delta;
+                }
+
+                int value = vColors[i - 1] + delta;
+                if (value < 0)
+                {
+                    value += sampleRange;
+                }
+
+                if (value >= sampleRange)
+                {
+                    value -= sampleRange;
+                }
+
+                vColors[i] = (ushort)value;
+            }
+        }
+        else
+        {
+            for (int i = 0; i < paletteSize; i++)
+            {
+                vColors[i] = (ushort)this.ReadLiteral(bitDepth);
+            }
+        }
+    }
+
+    /// <summary>
     /// Reads a finite subexponential value recentered around a preceding value.
     /// </summary>
     /// <param name="valueCount">The number of values in the coded domain.</param>
@@ -156,6 +291,40 @@ internal ref struct Av1SymbolDecoder
     {
         ref Av1SymbolReader r = ref this.reader;
         return r.ReadSymbol(this.context.SgrProjectionRestoration) != 0;
+    }
+
+    /// <summary>
+    /// Merges selected cached colors with the sorted transmitted colors.
+    /// </summary>
+    /// <param name="colors">The transmitted colors beginning at <paramref name="cachedColorCount"/> and the merged output.</param>
+    /// <param name="cachedColors">The selected cached colors in ascending order.</param>
+    /// <param name="paletteSize">The total palette size.</param>
+    /// <param name="cachedColorCount">The number of selected cached colors.</param>
+    private static void MergePaletteColors(
+        Span<ushort> colors,
+        ReadOnlySpan<ushort> cachedColors,
+        int paletteSize,
+        int cachedColorCount)
+    {
+        if (cachedColorCount == 0)
+        {
+            return;
+        }
+
+        int cacheIndex = 0;
+        int transmittedIndex = cachedColorCount;
+        for (int i = 0; i < paletteSize; i++)
+        {
+            if (cacheIndex < cachedColorCount &&
+                (transmittedIndex >= paletteSize || cachedColors[cacheIndex] <= colors[transmittedIndex]))
+            {
+                colors[i] = cachedColors[cacheIndex++];
+            }
+            else
+            {
+                colors[i] = colors[transmittedIndex++];
+            }
+        }
     }
 
     /// <summary>

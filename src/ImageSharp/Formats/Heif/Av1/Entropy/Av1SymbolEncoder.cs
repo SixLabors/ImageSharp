@@ -419,6 +419,167 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Gets the fixed-point rate of the luma palette colors.
+    /// </summary>
+    /// <param name="colorCache">The sorted unique colors inherited from eligible neighbors.</param>
+    /// <param name="colors">The sorted luma palette colors.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetPaletteYColorCost(
+        ReadOnlySpan<ushort> colorCache,
+        ReadOnlySpan<ushort> colors,
+        int bitDepth)
+    {
+        Span<byte> cacheColorFound = stackalloc byte[Av1Constants.PaletteMaxSize * 2];
+        Span<ushort> uncachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+        int uncachedColorCount = IndexColorCache(
+            colorCache,
+            colors,
+            cacheColorFound,
+            uncachedColors);
+
+        // Palette RD modeling charges every available cache flag even though emission can stop once all colors match.
+        int bitCount = colorCache.Length +
+            GetDeltaEncodedColorBitCount(uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 1);
+
+        return Av1ProbabilityCost.GetLiteralCost(bitCount);
+    }
+
+    /// <summary>
+    /// Writes the luma palette colors using neighboring cache selections followed by sorted deltas.
+    /// </summary>
+    /// <param name="colorCache">The sorted unique colors inherited from eligible neighbors.</param>
+    /// <param name="colors">The sorted luma palette colors.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    public void WritePaletteYColors(
+        ReadOnlySpan<ushort> colorCache,
+        ReadOnlySpan<ushort> colors,
+        int bitDepth)
+    {
+        Span<byte> cacheColorFound = stackalloc byte[Av1Constants.PaletteMaxSize * 2];
+        Span<ushort> uncachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+        int uncachedColorCount = IndexColorCache(
+            colorCache,
+            colors,
+            cacheColorFound,
+            uncachedColors);
+
+        int cachedColorCount = 0;
+        for (int i = 0; i < colorCache.Length && cachedColorCount < colors.Length; i++)
+        {
+            byte found = cacheColorFound[i];
+            this.WriteLiteral(found, 1);
+            cachedColorCount += found;
+        }
+
+        this.WriteDeltaEncodedColors(uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 1);
+    }
+
+    /// <summary>
+    /// Gets the fixed-point rate of the shared chroma palette colors.
+    /// </summary>
+    /// <param name="colorCache">The sorted unique U colors inherited from eligible neighbors.</param>
+    /// <param name="uColors">The sorted U palette colors.</param>
+    /// <param name="vColors">The V palette colors paired with <paramref name="uColors"/>.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetPaletteUvColorCost(
+        ReadOnlySpan<ushort> colorCache,
+        ReadOnlySpan<ushort> uColors,
+        ReadOnlySpan<ushort> vColors,
+        int bitDepth)
+    {
+        Span<byte> cacheColorFound = stackalloc byte[Av1Constants.PaletteMaxSize * 2];
+        Span<ushort> uncachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+        int uncachedColorCount = IndexColorCache(
+            colorCache,
+            uColors,
+            cacheColorFound,
+            uncachedColors);
+
+        // Palette RD modeling charges every available cache flag even though emission can stop once all colors match.
+        int bitCount = colorCache.Length +
+            GetDeltaEncodedColorBitCount(uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 0);
+
+        int deltaBits = GetPaletteVDeltaBitCount(vColors, bitDepth, out int zeroCount, out int minimumBits);
+        int deltaBitCount = 2 + bitDepth + ((deltaBits + 1) * (vColors.Length - 1)) - zeroCount;
+        int rawBitCount = bitDepth * vColors.Length;
+        bitCount += 1 + Math.Min(deltaBitCount, rawBitCount);
+        return Av1ProbabilityCost.GetLiteralCost(bitCount);
+    }
+
+    /// <summary>
+    /// Writes the shared chroma palette colors using cached U values and the cheaper V representation.
+    /// </summary>
+    /// <param name="colorCache">The sorted unique U colors inherited from eligible neighbors.</param>
+    /// <param name="uColors">The sorted U palette colors.</param>
+    /// <param name="vColors">The V palette colors paired with <paramref name="uColors"/>.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    public void WritePaletteUvColors(
+        ReadOnlySpan<ushort> colorCache,
+        ReadOnlySpan<ushort> uColors,
+        ReadOnlySpan<ushort> vColors,
+        int bitDepth)
+    {
+        Span<byte> cacheColorFound = stackalloc byte[Av1Constants.PaletteMaxSize * 2];
+        Span<ushort> uncachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+        int uncachedColorCount = IndexColorCache(
+            colorCache,
+            uColors,
+            cacheColorFound,
+            uncachedColors);
+
+        int cachedColorCount = 0;
+        for (int i = 0; i < colorCache.Length && cachedColorCount < uColors.Length; i++)
+        {
+            byte found = cacheColorFound[i];
+            this.WriteLiteral(found, 1);
+            cachedColorCount += found;
+        }
+
+        this.WriteDeltaEncodedColors(uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 0);
+
+        int deltaBits = GetPaletteVDeltaBitCount(vColors, bitDepth, out int zeroCount, out int minimumBits);
+        int deltaBitCount = 2 + bitDepth + ((deltaBits + 1) * (vColors.Length - 1)) - zeroCount;
+        int rawBitCount = bitDepth * vColors.Length;
+        bool useDelta = deltaBitCount < rawBitCount;
+        this.WriteLiteral(useDelta ? 1u : 0u, 1);
+        if (!useDelta)
+        {
+            for (int i = 0; i < vColors.Length; i++)
+            {
+                this.WriteLiteral(vColors[i], bitDepth);
+            }
+
+            return;
+        }
+
+        this.WriteLiteral((uint)(deltaBits - minimumBits), 2);
+        this.WriteLiteral(vColors[0], bitDepth);
+        int sampleRange = 1 << bitDepth;
+        for (int i = 1; i < vColors.Length; i++)
+        {
+            int signedDelta = vColors[i] - vColors[i - 1];
+            int delta = Math.Abs(signedDelta);
+
+            // Chroma wraps in its unsigned sample domain, so signal whichever circular direction has less magnitude.
+            if (delta <= sampleRange - delta)
+            {
+                this.WriteLiteral((uint)delta, deltaBits);
+                if (delta != 0)
+                {
+                    this.WriteLiteral(signedDelta < 0 ? 1u : 0u, 1);
+                }
+            }
+            else
+            {
+                this.WriteLiteral((uint)(sampleRange - delta), deltaBits);
+                this.WriteLiteral(signedDelta < 0 ? 0u : 1u, 1);
+            }
+        }
+    }
+
+    /// <summary>
     /// Writes the frame-local intra-block-copy flag.
     /// </summary>
     /// <param name="value">Indicates whether intra-block copy is selected.</param>
@@ -1364,6 +1525,175 @@ internal class Av1SymbolEncoder : IDisposable
             int indexV = Av1ChromaFromLumaMath.IndexV(chromaFromLumaIndex);
             w.WriteSymbol(indexV, this.chromaFromLumaAlpha[contextV]);
         }
+    }
+
+    /// <summary>
+    /// Separates palette colors selected from the neighbor cache from colors that require literal coding.
+    /// </summary>
+    /// <param name="colorCache">The sorted unique neighbor colors.</param>
+    /// <param name="colors">The sorted palette colors.</param>
+    /// <param name="cacheColorFound">The cache-selection flags.</param>
+    /// <param name="uncachedColors">The destination for colors absent from the cache.</param>
+    /// <returns>The number of uncached colors.</returns>
+    private static int IndexColorCache(
+        ReadOnlySpan<ushort> colorCache,
+        ReadOnlySpan<ushort> colors,
+        Span<byte> cacheColorFound,
+        Span<ushort> uncachedColors)
+    {
+        cacheColorFound[..colorCache.Length].Clear();
+        Span<byte> inCache = stackalloc byte[Av1Constants.PaletteMaxSize];
+        inCache.Clear();
+
+        // Cache-order flags drive the bitstream while palette-order flags preserve the sorted uncached output.
+        int cachedColorCount = 0;
+        for (int cacheIndex = 0; cacheIndex < colorCache.Length && cachedColorCount < colors.Length; cacheIndex++)
+        {
+            for (int colorIndex = 0; colorIndex < colors.Length; colorIndex++)
+            {
+                if (colors[colorIndex] == colorCache[cacheIndex])
+                {
+                    inCache[colorIndex] = 1;
+                    cacheColorFound[cacheIndex] = 1;
+                    cachedColorCount++;
+                    break;
+                }
+            }
+        }
+
+        int uncachedColorCount = 0;
+        for (int colorIndex = 0; colorIndex < colors.Length; colorIndex++)
+        {
+            if (inCache[colorIndex] == 0)
+            {
+                uncachedColors[uncachedColorCount++] = colors[colorIndex];
+            }
+        }
+
+        return uncachedColorCount;
+    }
+
+    /// <summary>
+    /// Gets the literal length of an ascending palette-color sequence.
+    /// </summary>
+    /// <param name="colors">The sorted colors.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <param name="minimumDelta">The minimum representable difference between adjacent colors.</param>
+    /// <returns>The literal length in bits.</returns>
+    private static int GetDeltaEncodedColorBitCount(
+        ReadOnlySpan<ushort> colors,
+        int bitDepth,
+        int minimumDelta)
+    {
+        if (colors.IsEmpty)
+        {
+            return 0;
+        }
+
+        int bitCount = bitDepth;
+        if (colors.Length == 1)
+        {
+            return bitCount;
+        }
+
+        int maximumDelta = 0;
+        for (int i = 1; i < colors.Length; i++)
+        {
+            maximumDelta = Math.Max(maximumDelta, colors[i] - colors[i - 1]);
+        }
+
+        int minimumBits = bitDepth - 3;
+        int bits = Math.Max(
+            (int)Av1Math.CeilLog2((uint)(maximumDelta + 1 - minimumDelta)),
+            minimumBits);
+
+        int range = (1 << bitDepth) - colors[0] - minimumDelta;
+        bitCount += 2;
+        for (int i = 1; i < colors.Length; i++)
+        {
+            int delta = colors[i] - colors[i - 1];
+            bitCount += bits;
+            range -= delta;
+            bits = Math.Min(bits, (int)Av1Math.CeilLog2((uint)range));
+        }
+
+        return bitCount;
+    }
+
+    /// <summary>
+    /// Writes an ascending palette-color sequence as one literal followed by bounded deltas.
+    /// </summary>
+    /// <param name="colors">The sorted colors.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <param name="minimumDelta">The minimum representable difference between adjacent colors.</param>
+    private void WriteDeltaEncodedColors(
+        ReadOnlySpan<ushort> colors,
+        int bitDepth,
+        int minimumDelta)
+    {
+        if (colors.IsEmpty)
+        {
+            return;
+        }
+
+        this.WriteLiteral(colors[0], bitDepth);
+        if (colors.Length == 1)
+        {
+            return;
+        }
+
+        int maximumDelta = 0;
+        for (int i = 1; i < colors.Length; i++)
+        {
+            maximumDelta = Math.Max(maximumDelta, colors[i] - colors[i - 1]);
+        }
+
+        int minimumBits = bitDepth - 3;
+        int bits = Math.Max(
+            (int)Av1Math.CeilLog2((uint)(maximumDelta + 1 - minimumDelta)),
+            minimumBits);
+
+        this.WriteLiteral((uint)(bits - minimumBits), 2);
+        int range = (1 << bitDepth) - colors[0] - minimumDelta;
+        for (int i = 1; i < colors.Length; i++)
+        {
+            int delta = colors[i] - colors[i - 1];
+            this.WriteLiteral((uint)(delta - minimumDelta), bits);
+            range -= delta;
+            bits = Math.Min(bits, (int)Av1Math.CeilLog2((uint)range));
+        }
+    }
+
+    /// <summary>
+    /// Gets the bit width required by wrapped V-plane palette deltas.
+    /// </summary>
+    /// <param name="colors">The V-plane colors in U-palette order.</param>
+    /// <param name="bitDepth">The number of bits in each color sample.</param>
+    /// <param name="zeroCount">The number of deltas that omit a sign bit.</param>
+    /// <param name="minimumBits">The minimum permitted delta width.</param>
+    /// <returns>The delta width in bits.</returns>
+    private static int GetPaletteVDeltaBitCount(
+        ReadOnlySpan<ushort> colors,
+        int bitDepth,
+        out int zeroCount,
+        out int minimumBits)
+    {
+        int sampleRange = 1 << bitDepth;
+        int maximumDelta = 0;
+        zeroCount = 0;
+        minimumBits = bitDepth - 4;
+        for (int i = 1; i < colors.Length; i++)
+        {
+            int delta = Math.Abs(colors[i] - colors[i - 1]);
+            int wrappedDelta = Math.Min(delta, sampleRange - delta);
+            maximumDelta = Math.Max(maximumDelta, wrappedDelta);
+            if (wrappedDelta == 0)
+            {
+                zeroCount++;
+            }
+        }
+
+        return Math.Max((int)Av1Math.CeilLog2((uint)(maximumDelta + 1)), minimumBits);
     }
 
     /// <summary>

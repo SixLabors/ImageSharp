@@ -2659,40 +2659,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         scoped Span<ushort> colors)
     {
         Span<ushort> colorCache = stackalloc ushort[Av1Constants.PaletteMaxSize * 2];
-        Span<ushort> cachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
         int cacheSize = GetPaletteCache(ref partitionInfo, Av1Plane.Y, colorCache);
-        int colorIndex = 0;
-        for (int i = 0; i < cacheSize && colorIndex < paletteSize; i++)
-        {
-            if (reader.ReadLiteral(1) != 0)
-            {
-                cachedColors[colorIndex++] = colorCache[i];
-            }
-        }
-
-        if (colorIndex == paletteSize)
-        {
-            cachedColors[..paletteSize].CopyTo(colors);
-            return;
-        }
-
-        int cachedColorCount = colorIndex;
-        colors[colorIndex++] = (ushort)reader.ReadLiteral(bitDepth);
-        if (colorIndex < paletteSize)
-        {
-            int bits = bitDepth - 3 + reader.ReadLiteral(2);
-            int maximumColor = (1 << bitDepth) - 1;
-            int range = maximumColor - colors[colorIndex - 1];
-            for (; colorIndex < paletteSize; colorIndex++)
-            {
-                int delta = reader.ReadLiteral(bits) + 1;
-                colors[colorIndex] = (ushort)Av1Math.Clip3(0, maximumColor, colors[colorIndex - 1] + delta);
-                range -= colors[colorIndex] - colors[colorIndex - 1];
-                bits = Math.Min(bits, (int)Av1Math.CeilLog2((uint)range));
-            }
-        }
-
-        MergePaletteColors(colors, cachedColors, paletteSize, cachedColorCount);
+        reader.ReadPaletteYColors(colorCache[..cacheSize], paletteSize, bitDepth, colors);
     }
 
     /// <summary>
@@ -2713,77 +2681,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         scoped Span<ushort> vColors)
     {
         Span<ushort> colorCache = stackalloc ushort[Av1Constants.PaletteMaxSize * 2];
-        Span<ushort> cachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
         int cacheSize = GetPaletteCache(ref partitionInfo, Av1Plane.U, colorCache);
-        int colorIndex = 0;
-        for (int i = 0; i < cacheSize && colorIndex < paletteSize; i++)
-        {
-            if (reader.ReadLiteral(1) != 0)
-            {
-                cachedColors[colorIndex++] = colorCache[i];
-            }
-        }
-
-        if (colorIndex < paletteSize)
-        {
-            int cachedColorCount = colorIndex;
-            uColors[colorIndex++] = (ushort)reader.ReadLiteral(bitDepth);
-            if (colorIndex < paletteSize)
-            {
-                int bits = bitDepth - 3 + reader.ReadLiteral(2);
-                int maximumColor = (1 << bitDepth) - 1;
-                int range = (1 << bitDepth) - uColors[colorIndex - 1];
-                for (; colorIndex < paletteSize; colorIndex++)
-                {
-                    int delta = reader.ReadLiteral(bits);
-                    uColors[colorIndex] = (ushort)Av1Math.Clip3(0, maximumColor, uColors[colorIndex - 1] + delta);
-                    range -= uColors[colorIndex] - uColors[colorIndex - 1];
-                    bits = Math.Min(bits, (int)Av1Math.CeilLog2((uint)range));
-                }
-            }
-
-            MergePaletteColors(uColors, cachedColors, paletteSize, cachedColorCount);
-        }
-        else
-        {
-            cachedColors[..paletteSize].CopyTo(uColors);
-        }
-
-        if (reader.ReadLiteral(1) != 0)
-        {
-            // V deltas wrap in the unsigned sample domain so complementary chroma colors remain compact.
-            int bits = bitDepth - 4 + reader.ReadLiteral(2);
-            int maximumColorPlusOne = 1 << bitDepth;
-            vColors[0] = (ushort)reader.ReadLiteral(bitDepth);
-            for (int i = 1; i < paletteSize; i++)
-            {
-                int delta = reader.ReadLiteral(bits);
-                if (delta != 0 && reader.ReadLiteral(1) != 0)
-                {
-                    delta = -delta;
-                }
-
-                int value = vColors[i - 1] + delta;
-                if (value < 0)
-                {
-                    value += maximumColorPlusOne;
-                }
-
-                if (value >= maximumColorPlusOne)
-                {
-                    value -= maximumColorPlusOne;
-                }
-
-                vColors[i] = (ushort)value;
-            }
-        }
-        else
-        {
-            for (int i = 0; i < paletteSize; i++)
-            {
-                vColors[i] = (ushort)reader.ReadLiteral(bitDepth);
-            }
-        }
+        reader.ReadPaletteUvColors(colorCache[..cacheSize], paletteSize, bitDepth, uColors, vColors);
     }
 
     /// <summary>
@@ -2855,36 +2754,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         if (count == 0 || cache[count - 1] != color)
         {
             cache[count++] = color;
-        }
-    }
-
-    /// <summary>
-    /// Merges selected cached colors with the sorted transmitted colors in one prediction-order palette.
-    /// </summary>
-    /// <param name="colors">The transmitted colors beginning at <paramref name="cachedColorCount"/> and the merged output.</param>
-    /// <param name="cachedColors">The selected cached colors in ascending order.</param>
-    /// <param name="paletteSize">The total palette size.</param>
-    /// <param name="cachedColorCount">The number of selected cached colors.</param>
-    private static void MergePaletteColors(Span<ushort> colors, ReadOnlySpan<ushort> cachedColors, int paletteSize, int cachedColorCount)
-    {
-        if (cachedColorCount == 0)
-        {
-            return;
-        }
-
-        int cacheIndex = 0;
-        int transmittedIndex = cachedColorCount;
-        for (int i = 0; i < paletteSize; i++)
-        {
-            if (cacheIndex < cachedColorCount &&
-                (transmittedIndex >= paletteSize || cachedColors[cacheIndex] <= colors[transmittedIndex]))
-            {
-                colors[i] = cachedColors[cacheIndex++];
-            }
-            else
-            {
-                colors[i] = colors[transmittedIndex++];
-            }
         }
     }
 

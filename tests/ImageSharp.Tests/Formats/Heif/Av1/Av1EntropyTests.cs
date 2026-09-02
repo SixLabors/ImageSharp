@@ -1146,6 +1146,94 @@ public class Av1EntropyTests
     }
 
     [Theory]
+    [InlineData(8)]
+    [InlineData(10)]
+    [InlineData(12)]
+    public void RoundTripPaletteColors(int bitDepth)
+    {
+        ushort[] colorCache = [4, 17, 23, 51];
+        ushort[] yColors = [4, 23, 90];
+        ushort[] uColors = [17, 51, 100];
+        ushort[] deltaVColors = [1, 2, 1];
+        ushort[] rawVColors = [0, (ushort)(1 << (bitDepth - 1)), 0];
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 128, BaseQIndex);
+        encoder.WritePaletteYColors(colorCache, yColors, bitDepth);
+        encoder.WritePaletteUvColors(colorCache, uColors, deltaVColors, bitDepth);
+        encoder.WritePaletteUvColors(colorCache, uColors, rawVColors, bitDepth);
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        ushort[] decodedYColors = new ushort[yColors.Length];
+        ushort[] decodedUColors = new ushort[uColors.Length];
+        ushort[] decodedDeltaVColors = new ushort[deltaVColors.Length];
+        ushort[] decodedRawVColors = new ushort[rawVColors.Length];
+        decoder.ReadPaletteYColors(colorCache, yColors.Length, bitDepth, decodedYColors);
+        decoder.ReadPaletteUvColors(
+            colorCache,
+            uColors.Length,
+            bitDepth,
+            decodedUColors,
+            decodedDeltaVColors);
+
+        Assert.Equal(yColors, decodedYColors);
+        Assert.Equal(uColors, decodedUColors);
+        Assert.Equal(deltaVColors, decodedDeltaVColors);
+
+        decodedUColors.AsSpan().Clear();
+        decoder.ReadPaletteUvColors(
+            colorCache,
+            uColors.Length,
+            bitDepth,
+            decodedUColors,
+            decodedRawVColors);
+
+        Assert.Equal(uColors, decodedUColors);
+        Assert.Equal(rawVColors, decodedRawVColors);
+    }
+
+    [Fact]
+    public void PaletteColorCostsMatchCurrentLibaomBitCounts()
+    {
+        ushort[] colorCache = [5, 10, 20];
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetLiteralCost(20),
+            Av1SymbolEncoder.GetPaletteYColorCost([], [10, 20, 21], 8));
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetLiteralCost(11),
+            Av1SymbolEncoder.GetPaletteYColorCost(colorCache, [5, 20, 30], 8));
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetLiteralCost(32),
+            Av1SymbolEncoder.GetPaletteUvColorCost(colorCache, [5, 20, 30], [20, 21, 20], 8));
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetLiteralCost(36),
+            Av1SymbolEncoder.GetPaletteUvColorCost(colorCache, [5, 20, 30], [0, 128, 0], 8));
+    }
+
+    [Fact]
+    public void PaletteColorCostDoesNotAllocate()
+    {
+        ushort[] colorCache = [5, 10, 20];
+        ushort[] yColors = [5, 20, 30];
+        ushort[] uColors = [5, 20, 30];
+        ushort[] vColors = [20, 21, 20];
+        _ = Av1SymbolEncoder.GetPaletteYColorCost(colorCache, yColors, 8);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+
+        for (int i = 0; i < 1000; i++)
+        {
+            _ = Av1SymbolEncoder.GetPaletteYColorCost(colorCache, yColors, 8);
+            _ = Av1SymbolEncoder.GetPaletteUvColorCost(colorCache, uColors, vColors, 8);
+        }
+
+        long after = GC.GetAllocatedBytesForCurrentThread();
+        Assert.Equal(before, after);
+    }
+
+    [Theory]
     [MemberData(nameof(GetRangeData), 20)]
     public void RoundTripPartitionType(int context)
     {

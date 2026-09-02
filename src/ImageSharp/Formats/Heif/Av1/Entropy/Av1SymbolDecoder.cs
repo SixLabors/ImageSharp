@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
@@ -241,6 +242,45 @@ internal ref struct Av1SymbolDecoder
             for (int i = 0; i < paletteSize; i++)
             {
                 vColors[i] = (ushort)this.ReadLiteral(bitDepth);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Reads a palette color-index map in AV1 diagonal wavefront order.
+    /// </summary>
+    /// <param name="paletteSize">The number of colors in the palette.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <param name="rows">The number of coded map rows.</param>
+    /// <param name="columns">The number of coded map columns.</param>
+    /// <param name="colorIndexMap">The row-addressable destination map.</param>
+    public void ReadPaletteColorMap(
+        int paletteSize,
+        Av1PlaneType planeType,
+        int rows,
+        int columns,
+        Buffer2DRegion<byte> colorIndexMap)
+    {
+        colorIndexMap.DangerousGetRowSpan(0)[0] = (byte)this.ReadUniform(paletteSize);
+        Span<byte> colorOrder = stackalloc byte[Av1Constants.PaletteMaxSize];
+        for (int diagonal = 1; diagonal < rows + columns - 1; diagonal++)
+        {
+            int firstColumn = Math.Min(diagonal, columns - 1);
+            int lastColumn = Math.Max(0, diagonal - rows + 1);
+            for (int column = firstColumn; column >= lastColumn; column--)
+            {
+                int row = diagonal - column;
+                int colorContext = Av1PaletteColorMap.GetContext(
+                    colorIndexMap,
+                    row,
+                    column,
+                    paletteSize,
+                    colorIndex: -1,
+                    colorOrder,
+                    out _);
+
+                int colorOrderIndex = this.ReadPaletteColorIndex(paletteSize, colorContext, planeType);
+                colorIndexMap.DangerousGetRowSpan(row)[column] = colorOrder[colorOrderIndex];
             }
         }
     }

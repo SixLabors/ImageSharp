@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
@@ -238,6 +239,40 @@ internal class Av1SymbolEncoder : IDisposable
             ref Av1SymbolWriter writer,
             uint value,
             int bitCount);
+    }
+
+    /// <summary>
+    /// Defines how the shared palette-map traversal handles its uniform first index and adaptive remaining indices.
+    /// </summary>
+    private interface IPaletteColorMapOperation
+    {
+        /// <summary>
+        /// Handles the first uniformly coded palette index.
+        /// </summary>
+        /// <param name="encoder">The tile symbol encoder.</param>
+        /// <param name="paletteSize">The number of colors in the palette.</param>
+        /// <param name="colorIndex">The first palette index.</param>
+        /// <returns>The index's rate contribution.</returns>
+        public static abstract int ProcessFirstIndex(
+            Av1SymbolEncoder encoder,
+            int paletteSize,
+            int colorIndex);
+
+        /// <summary>
+        /// Handles one context-adaptive palette color-order index.
+        /// </summary>
+        /// <param name="encoder">The tile symbol encoder.</param>
+        /// <param name="paletteSize">The number of colors in the palette.</param>
+        /// <param name="planeType">The luma or chroma plane class.</param>
+        /// <param name="colorContext">The spatial color-index context.</param>
+        /// <param name="colorOrderIndex">The index in the context-specific color order.</param>
+        /// <returns>The index's rate contribution.</returns>
+        public static abstract int ProcessColorIndex(
+            Av1SymbolEncoder encoder,
+            int paletteSize,
+            Av1PlaneType planeType,
+            int colorContext,
+            int colorOrderIndex);
     }
 
     /// <summary>
@@ -577,6 +612,51 @@ internal class Av1SymbolEncoder : IDisposable
                 this.WriteLiteral(signedDelta < 0 ? 0u : 1u, 1);
             }
         }
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point rate of a complete palette color-index map.
+    /// </summary>
+    /// <param name="paletteSize">The number of colors in the palette.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <param name="rows">The number of coded map rows.</param>
+    /// <param name="columns">The number of coded map columns.</param>
+    /// <param name="colorIndexMap">The complete row-addressable color-index map.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetPaletteColorMapCost(
+        int paletteSize,
+        Av1PlaneType planeType,
+        int rows,
+        int columns,
+        Buffer2DRegion<byte> colorIndexMap)
+        => this.ProcessPaletteColorMap<PaletteColorMapCostOperation>(
+            paletteSize,
+            planeType,
+            rows,
+            columns,
+            colorIndexMap);
+
+    /// <summary>
+    /// Writes a complete palette color-index map in AV1 diagonal wavefront order.
+    /// </summary>
+    /// <param name="paletteSize">The number of colors in the palette.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <param name="rows">The number of coded map rows.</param>
+    /// <param name="columns">The number of coded map columns.</param>
+    /// <param name="colorIndexMap">The complete row-addressable color-index map.</param>
+    public void WritePaletteColorMap(
+        int paletteSize,
+        Av1PlaneType planeType,
+        int rows,
+        int columns,
+        Buffer2DRegion<byte> colorIndexMap)
+    {
+        _ = this.ProcessPaletteColorMap<PaletteColorMapWriteOperation>(
+            paletteSize,
+            planeType,
+            rows,
+            columns,
+            colorIndexMap);
     }
 
     /// <summary>
@@ -1528,6 +1608,56 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Traverses a palette color-index map once for either live rate costing or entropy emission.
+    /// </summary>
+    /// <typeparam name="TOperation">The closed map-symbol operation.</typeparam>
+    /// <param name="paletteSize">The number of colors in the palette.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <param name="rows">The number of coded map rows.</param>
+    /// <param name="columns">The number of coded map columns.</param>
+    /// <param name="colorIndexMap">The complete row-addressable color-index map.</param>
+    /// <returns>The rate cost in 1/512-bit units, or zero while writing.</returns>
+    private int ProcessPaletteColorMap<TOperation>(
+        int paletteSize,
+        Av1PlaneType planeType,
+        int rows,
+        int columns,
+        Buffer2DRegion<byte> colorIndexMap)
+        where TOperation : struct, IPaletteColorMapOperation
+    {
+        int colorIndex = colorIndexMap.DangerousGetRowSpan(0)[0];
+        int cost = TOperation.ProcessFirstIndex(this, paletteSize, colorIndex);
+        Span<byte> colorOrder = stackalloc byte[Av1Constants.PaletteMaxSize];
+        for (int diagonal = 1; diagonal < rows + columns - 1; diagonal++)
+        {
+            int firstColumn = Math.Min(diagonal, columns - 1);
+            int lastColumn = Math.Max(0, diagonal - rows + 1);
+            for (int column = firstColumn; column >= lastColumn; column--)
+            {
+                int row = diagonal - column;
+                colorIndex = colorIndexMap.DangerousGetRowSpan(row)[column];
+                int colorContext = Av1PaletteColorMap.GetContext(
+                    colorIndexMap,
+                    row,
+                    column,
+                    paletteSize,
+                    colorIndex,
+                    colorOrder,
+                    out int colorOrderIndex);
+
+                cost += TOperation.ProcessColorIndex(
+                    this,
+                    paletteSize,
+                    planeType,
+                    colorContext,
+                    colorOrderIndex);
+            }
+        }
+
+        return cost;
+    }
+
+    /// <summary>
     /// Separates palette colors selected from the neighbor cache from colors that require literal coding.
     /// </summary>
     /// <param name="colorCache">The sorted unique neighbor colors.</param>
@@ -1736,6 +1866,61 @@ internal class Av1SymbolEncoder : IDisposable
             uint value,
             int bitCount)
             => Av1ProbabilityCost.GetLiteralCost(bitCount);
+    }
+
+    /// <summary>
+    /// Emits palette-map syntax and reports no estimated rate.
+    /// </summary>
+    private readonly struct PaletteColorMapWriteOperation : IPaletteColorMapOperation
+    {
+        public static int ProcessFirstIndex(
+            Av1SymbolEncoder encoder,
+            int paletteSize,
+            int colorIndex)
+        {
+            encoder.WriteUniform(paletteSize, colorIndex);
+            return 0;
+        }
+
+        public static int ProcessColorIndex(
+            Av1SymbolEncoder encoder,
+            int paletteSize,
+            Av1PlaneType planeType,
+            int colorContext,
+            int colorOrderIndex)
+        {
+            encoder.WritePaletteColorIndex(
+                colorOrderIndex,
+                paletteSize,
+                colorContext,
+                planeType);
+
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Measures palette-map syntax against the live tile distributions without changing them.
+    /// </summary>
+    private readonly struct PaletteColorMapCostOperation : IPaletteColorMapOperation
+    {
+        public static int ProcessFirstIndex(
+            Av1SymbolEncoder encoder,
+            int paletteSize,
+            int colorIndex)
+            => GetUniformCost(paletteSize, colorIndex);
+
+        public static int ProcessColorIndex(
+            Av1SymbolEncoder encoder,
+            int paletteSize,
+            Av1PlaneType planeType,
+            int colorContext,
+            int colorOrderIndex)
+            => encoder.GetPaletteColorIndexCost(
+                colorOrderIndex,
+                paletteSize,
+                colorContext,
+                planeType);
     }
 
     /// <summary>

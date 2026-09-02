@@ -1233,6 +1233,173 @@ public class Av1EntropyTests
         Assert.Equal(before, after);
     }
 
+    [Fact]
+    public void PaletteColorMapCostMatchesCurrentDistributions()
+    {
+        using Buffer2D<byte> map = Configuration.Default.MemoryAllocator.Allocate2D<byte>(2, 2, AllocationOptions.Clean);
+        map.DangerousGetRowSpan(0)[0] = 2;
+        map.DangerousGetRowSpan(0)[1] = 0;
+        map.DangerousGetRowSpan(1)[0] = 1;
+        map.DangerousGetRowSpan(1)[1] = 2;
+        Buffer2DRegion<byte> region = new(map);
+        Av1Distribution[][] distributions = Av1DefaultDistributions.PaletteYColorIndex;
+        int expected = Av1SymbolEncoder.GetUniformCost(3, 2);
+        expected += Av1ProbabilityCost.GetSymbolCost(distributions[1][0], 1);
+        expected += Av1ProbabilityCost.GetSymbolCost(distributions[1][0], 2);
+        expected += Av1ProbabilityCost.GetSymbolCost(distributions[1][1], 2);
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
+
+        Assert.Equal(
+            expected,
+            encoder.GetPaletteColorMapCost(3, Av1PlaneType.Y, 2, 2, region));
+    }
+
+    [Theory]
+    [InlineData(1, 1, 0, 0, 0, 1, 4, 1)]
+    [InlineData(1, 1, 0, 1, 0, 1, 3, 1)]
+    [InlineData(1, 1, 0, 0, 1, 1, 2, 1)]
+    [InlineData(1, 1, 0, 2, 1, 2, 1, 2)]
+    [InlineData(0, 1, 0, 2, 0, 0, 0, 1)]
+    public void PaletteColorMapContextMatchesCurrentLibaom(
+        int row,
+        int column,
+        byte left,
+        byte upperLeft,
+        byte above,
+        byte current,
+        int expectedContext,
+        int expectedOrderIndex)
+    {
+        using Buffer2D<byte> map = Configuration.Default.MemoryAllocator.Allocate2D<byte>(2, 2, AllocationOptions.Clean);
+        map.DangerousGetRowSpan(0)[0] = upperLeft;
+        map.DangerousGetRowSpan(0)[1] = above;
+        map.DangerousGetRowSpan(1)[0] = left;
+        map.DangerousGetRowSpan(row)[column] = current;
+        Span<byte> colorOrder = stackalloc byte[Av1Constants.PaletteMaxSize];
+
+        int actualContext = Av1PaletteColorMap.GetContext(
+            new Buffer2DRegion<byte>(map),
+            row,
+            column,
+            paletteSize: 4,
+            current,
+            colorOrder,
+            out int actualOrderIndex);
+
+        Assert.Equal(expectedContext, actualContext);
+        Assert.Equal(expectedOrderIndex, actualOrderIndex);
+    }
+
+    [Fact]
+    public void RoundTripPaletteColorMaps()
+    {
+        const int Rows = 5;
+        const int Columns = 7;
+        const int Width = 9;
+        const int Height = 6;
+        Configuration configuration = Configuration.Default;
+        using Buffer2D<byte> source = configuration.MemoryAllocator.Allocate2D<byte>(Width, Height);
+        using Buffer2D<byte> decoded = configuration.MemoryAllocator.Allocate2D<byte>(Width, Height);
+        Buffer2DRegion<byte> sourceRegion = new(source);
+        Buffer2DRegion<byte> decodedRegion = new(decoded);
+        using Av1SymbolEncoder encoder = new(configuration, 512, BaseQIndex);
+        for (int paletteSize = 2; paletteSize <= Av1Constants.PaletteMaxSize; paletteSize++)
+        {
+            for (int plane = 0; plane < 2; plane++)
+            {
+                for (int row = 0; row < Rows; row++)
+                {
+                    Span<byte> sourceRow = source.DangerousGetRowSpan(row);
+                    for (int column = 0; column < Columns; column++)
+                    {
+                        sourceRow[column] = (byte)(((row * 3) + (column * 5) + plane) % paletteSize);
+                    }
+                }
+
+                encoder.WritePaletteColorMap(
+                    paletteSize,
+                    (Av1PlaneType)plane,
+                    Rows,
+                    Columns,
+                    sourceRegion);
+            }
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+        Av1SymbolDecoder decoder = new(configuration, encoded.GetSpan(), BaseQIndex);
+        for (int paletteSize = 2; paletteSize <= Av1Constants.PaletteMaxSize; paletteSize++)
+        {
+            for (int plane = 0; plane < 2; plane++)
+            {
+                for (int row = 0; row < Height; row++)
+                {
+                    decoded.DangerousGetRowSpan(row).Fill(byte.MaxValue);
+                }
+
+                decoder.ReadPaletteColorMap(
+                    paletteSize,
+                    (Av1PlaneType)plane,
+                    Rows,
+                    Columns,
+                    decodedRegion);
+
+                for (int row = 0; row < Rows; row++)
+                {
+                    ReadOnlySpan<byte> decodedRow = decoded.DangerousGetRowSpan(row);
+                    for (int column = 0; column < Columns; column++)
+                    {
+                        Assert.Equal(
+                            (byte)(((row * 3) + (column * 5) + plane) % paletteSize),
+                            decodedRow[column]);
+                    }
+
+                    for (int column = Columns; column < Width; column++)
+                    {
+                        Assert.Equal(byte.MaxValue, decodedRow[column]);
+                    }
+                }
+
+                for (int row = Rows; row < Height; row++)
+                {
+                    ReadOnlySpan<byte> decodedRow = decoded.DangerousGetRowSpan(row);
+                    for (int column = 0; column < Width; column++)
+                    {
+                        Assert.Equal(byte.MaxValue, decodedRow[column]);
+                    }
+                }
+            }
+        }
+
+        decoder.ValidateTrailingBits();
+    }
+
+    [Fact]
+    public void PaletteColorMapCostDoesNotAllocateAfterEntropyInitialization()
+    {
+        using Buffer2D<byte> map = Configuration.Default.MemoryAllocator.Allocate2D<byte>(7, 5, AllocationOptions.Clean);
+        for (int row = 0; row < map.Height; row++)
+        {
+            Span<byte> mapRow = map.DangerousGetRowSpan(row);
+            for (int column = 0; column < map.Width; column++)
+            {
+                mapRow[column] = (byte)(((row * 3) + (column * 5)) % 4);
+            }
+        }
+
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
+        Buffer2DRegion<byte> region = new(map);
+        _ = encoder.GetPaletteColorMapCost(4, Av1PlaneType.Y, map.Height, map.Width, region);
+        long before = GC.GetAllocatedBytesForCurrentThread();
+
+        for (int i = 0; i < 1000; i++)
+        {
+            _ = encoder.GetPaletteColorMapCost(4, Av1PlaneType.Y, map.Height, map.Width, region);
+        }
+
+        long after = GC.GetAllocatedBytesForCurrentThread();
+        Assert.Equal(before, after);
+    }
+
     [Theory]
     [MemberData(nameof(GetRangeData), 20)]
     public void RoundTripPartitionType(int context)

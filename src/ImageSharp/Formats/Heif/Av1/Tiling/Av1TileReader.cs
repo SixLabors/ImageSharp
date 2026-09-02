@@ -424,11 +424,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2];
 
     /// <summary>
-    /// Gets the color-index entropy context for each weighted palette-neighbor score hash.
-    /// </summary>
-    private static ReadOnlySpan<int> PaletteColorIndexContexts => [-1, -1, 0, -1, -1, 4, 3, 2, 1];
-
-    /// <summary>
     /// Gets the frame header whose tile syntax is being parsed.
     /// </summary>
     public ObuFrameHeader FrameHeader { get; }
@@ -2814,26 +2809,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int columns,
         Buffer2DRegion<byte> colorIndexMap)
     {
-        colorIndexMap.DangerousGetRowSpan(0)[0] = (byte)reader.ReadUniform(paletteSize);
-        Span<byte> colorOrder = stackalloc byte[Av1Constants.PaletteMaxSize];
-        for (int diagonal = 1; diagonal < rows + columns - 1; diagonal++)
-        {
-            int firstColumn = Math.Min(diagonal, columns - 1);
-            int lastColumn = Math.Max(0, diagonal - rows + 1);
-            for (int column = firstColumn; column >= lastColumn; column--)
-            {
-                int row = diagonal - column;
-                int colorContext = GetPaletteColorIndexContext(
-                    colorIndexMap,
-                    row,
-                    column,
-                    paletteSize,
-                    colorOrder);
-
-                int colorOrderIndex = reader.ReadPaletteColorIndex(paletteSize, colorContext, planeType);
-                colorIndexMap.DangerousGetRowSpan(row)[column] = colorOrder[colorOrderIndex];
-            }
-        }
+        reader.ReadPaletteColorMap(paletteSize, planeType, rows, columns, colorIndexMap);
 
         if (columns < planeWidth)
         {
@@ -2852,84 +2828,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         {
             finalRow.CopyTo(colorIndexMap.DangerousGetRowSpan(row));
         }
-    }
-
-    /// <summary>
-    /// Derives the palette color order and entropy context from the left, upper-left, and above indices.
-    /// </summary>
-    /// <param name="colorIndexMap">The partially decoded color-index map.</param>
-    /// <param name="row">The current map row.</param>
-    /// <param name="column">The current map column.</param>
-    /// <param name="paletteSize">The number of palette colors.</param>
-    /// <param name="colorOrder">The destination color order for the current context.</param>
-    /// <returns>The color-index entropy context in the range from zero through four.</returns>
-    private static int GetPaletteColorIndexContext(
-        Buffer2DRegion<byte> colorIndexMap,
-        int row,
-        int column,
-        int paletteSize,
-        Span<byte> colorOrder)
-    {
-        Span<int> neighborColors = stackalloc int[3];
-        ReadOnlySpan<byte> currentRow = colorIndexMap.DangerousGetRowSpan(row);
-        neighborColors[0] = column > 0 ? currentRow[column - 1] : -1;
-        if (row > 0)
-        {
-            ReadOnlySpan<byte> aboveRow = colorIndexMap.DangerousGetRowSpan(row - 1);
-            neighborColors[1] = column > 0 ? aboveRow[column - 1] : -1;
-            neighborColors[2] = aboveRow[column];
-        }
-        else
-        {
-            neighborColors[1] = -1;
-            neighborColors[2] = -1;
-        }
-
-        Span<int> scores = stackalloc int[Av1Constants.PaletteMaxSize];
-        ReadOnlySpan<int> neighborWeights = [2, 1, 2];
-        for (int i = 0; i < neighborColors.Length; i++)
-        {
-            if (neighborColors[i] >= 0)
-            {
-                scores[neighborColors[i]] += neighborWeights[i];
-            }
-        }
-
-        for (int i = 0; i < colorOrder.Length; i++)
-        {
-            colorOrder[i] = (byte)i;
-        }
-
-        // Stable descending score order keeps lower palette indices ahead when neighboring scores tie.
-        for (int i = 0; i < 3; i++)
-        {
-            int maximumScore = scores[i];
-            int maximumIndex = i;
-            for (int j = i + 1; j < paletteSize; j++)
-            {
-                if (scores[j] > maximumScore)
-                {
-                    maximumScore = scores[j];
-                    maximumIndex = j;
-                }
-            }
-
-            if (maximumIndex != i)
-            {
-                byte maximumColor = colorOrder[maximumIndex];
-                for (int j = maximumIndex; j > i; j--)
-                {
-                    scores[j] = scores[j - 1];
-                    colorOrder[j] = colorOrder[j - 1];
-                }
-
-                scores[i] = maximumScore;
-                colorOrder[i] = maximumColor;
-            }
-        }
-
-        int contextHash = scores[0] + (2 * scores[1]) + (2 * scores[2]);
-        return PaletteColorIndexContexts[contextHash];
     }
 
     /// <summary>

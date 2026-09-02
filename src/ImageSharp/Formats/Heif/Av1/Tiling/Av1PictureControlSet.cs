@@ -49,14 +49,14 @@ internal class Av1PictureControlSet
     public required byte[] SegmentationNeighborMap { get; set; }
 
     /// <summary>
-    /// Gets or sets the frame grid that maps each 4x4 position to its mode-information entry.
+    /// Gets or sets the frame grid that maps each 4x4 position to its mode-information allocation index.
     /// </summary>
-    public required Av1ModeInfo[] ModeInfoGrid { get; set; }
+    public required Memory<int> ModeInfoGrid { get; set; }
 
     /// <summary>
     /// Gets or sets the contiguous mode-information storage addressed by <see cref="ModeInfoGrid"/>.
     /// </summary>
-    public required Av1ModeInfo[] ModeInfoAllocation { get; set; }
+    public required Memory<Av1MacroBlockModeInfo> ModeInfoAllocation { get; set; }
 
     /// <summary>
     /// Gets or sets the row stride of <see cref="ModeInfoGrid"/> in 4x4 mode-information units.
@@ -77,27 +77,48 @@ internal class Av1PictureControlSet
     /// Gets the mode-information entry mapped to a frame position.
     /// </summary>
     /// <param name="position">The frame position in 4x4 mode-information units.</param>
-    /// <returns>The mapped mode-information entry.</returns>
-    public Av1ModeInfo GetFromModeInfoGrid(Point position)
-        => this.ModeInfoGrid[(position.Y * this.ModeInfoStride) + position.X];
+    /// <returns>A reference to the mapped mode-information entry.</returns>
+    public ref Av1MacroBlockModeInfo GetFromModeInfoGrid(Point position)
+    {
+        int gridOffset = (position.Y * this.ModeInfoStride) + position.X;
+        int allocationOffset = this.ModeInfoGrid.Span[gridOffset];
+        return ref this.ModeInfoAllocation.Span[allocationOffset];
+    }
 
     /// <summary>
-    /// Gets the macroblock mode information at a block origin and refreshes its grid mapping.
+    /// Gets the macroblock mode information allocated at a block origin.
     /// </summary>
     /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
-    /// <returns>The macroblock mode information at the origin.</returns>
-    public Av1MacroBlockModeInfo GetMacroBlockModeInfo(Point modeInfoPosition)
+    /// <returns>A reference to the macroblock mode information at the origin.</returns>
+    public ref Av1MacroBlockModeInfo GetMacroBlockModeInfo(Point modeInfoPosition)
     {
         int modeInfoStride = this.ModeInfoStride;
-        int offset = (modeInfoPosition.Y * modeInfoStride) + modeInfoPosition.X;
-
-        // The grid stores references into the contiguous mode-info allocation, matching libaom's
-        // mi_grid_base/mi_alloc ownership without copying a tail for every coded block.
         int disallow4x4 = this.Disallow4x4AllFrames ? 1 : 0;
         int allocationOffset = ((modeInfoPosition.Y >> disallow4x4) * (modeInfoStride >> disallow4x4)) + (modeInfoPosition.X >> disallow4x4);
-        Av1ModeInfo modeInfo = this.ModeInfoAllocation[allocationOffset];
-        this.ModeInfoGrid[offset] = modeInfo;
-        return modeInfo.MacroBlockModeInfo;
+        return ref this.ModeInfoAllocation.Span[allocationOffset];
+    }
+
+    /// <summary>
+    /// Maps every coded 4x4 position covered by a block to the block's mode-information allocation entry.
+    /// </summary>
+    /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
+    /// <param name="blockSize">The coded block size.</param>
+    public void MapModeInfoBlock(Point modeInfoPosition, Av1BlockSize blockSize)
+    {
+        int modeInfoStride = this.ModeInfoStride;
+        int disallow4x4 = this.Disallow4x4AllFrames ? 1 : 0;
+        int allocationOffset = ((modeInfoPosition.Y >> disallow4x4) * (modeInfoStride >> disallow4x4)) + (modeInfoPosition.X >> disallow4x4);
+        int mappedWidth = Math.Min(this.Parent.Common.ModeInfoColumnCount - modeInfoPosition.X, blockSize.Get4x4WideCount());
+        int mappedHeight = Math.Min(this.Parent.Common.ModeInfoRowCount - modeInfoPosition.Y, blockSize.Get4x4HighCount());
+        Span<int> grid = this.ModeInfoGrid.Span;
+
+        // Libaom's pointer grid aliases every covered 4x4 entry to one mode-info allocation. Integer indices keep
+        // the same aliasing without one managed object and one managed reference per grid position.
+        for (int row = 0; row < mappedHeight; row++)
+        {
+            int gridOffset = ((modeInfoPosition.Y + row) * modeInfoStride) + modeInfoPosition.X;
+            grid.Slice(gridOffset, mappedWidth).Fill(allocationOffset);
+        }
     }
 
     /// <summary>

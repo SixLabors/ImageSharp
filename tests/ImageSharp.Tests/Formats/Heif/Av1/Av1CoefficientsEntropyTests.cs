@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -76,16 +77,17 @@ public class Av1CoefficientsEntropyTests
     [Theory]
     [InlineData(false, 2, 1, 6, 6)]
     [InlineData(true, 2, 2, 10, 3)]
-    public void PictureControlSetMapsModeInfoAllocationByReference(
+    public void PictureControlSetMapsModeInfoAllocationByIndex(
         bool disallow4x4,
         int column,
         int row,
         int gridOffset,
         int allocationOffset)
     {
-        Av1ModeInfo expected = CreateModeInfo(Av1PredictionMode.Paeth);
-        Av1ModeInfo[] allocation = new Av1ModeInfo[8];
+        Av1MacroBlockModeInfo expected = CreateModeInfo(Av1PredictionMode.Paeth);
+        Av1MacroBlockModeInfo[] allocation = new Av1MacroBlockModeInfo[16];
         allocation[allocationOffset] = expected;
+        int[] grid = new int[16];
         Av1PictureControlSet picture = new()
         {
             PartitionContexts = [],
@@ -98,6 +100,9 @@ public class Av1CoefficientsEntropyTests
             {
                 Common = new Av1EncoderCommon
                 {
+                    ModeInfoColumnCount = 4,
+                    ModeInfoRowCount = 4,
+                    ModeInfoStride = 4,
                     FrameSize = new ObuFrameSize(),
                     TilesInfo = new ObuTileGroupHeader()
                 },
@@ -105,41 +110,51 @@ public class Av1CoefficientsEntropyTests
                 PreviousQIndex = []
             },
             SegmentationNeighborMap = [],
-            ModeInfoGrid = new Av1ModeInfo[16],
+            ModeInfoGrid = grid,
             ModeInfoAllocation = allocation,
             ModeInfoStride = 4,
             Disallow4x4AllFrames = disallow4x4,
             CdefPreset = []
         };
 
-        Av1MacroBlockModeInfo result = picture.GetMacroBlockModeInfo(new Point(column, row));
+        Point position = new(column, row);
+        ref Av1MacroBlockModeInfo result = ref picture.GetMacroBlockModeInfo(position);
+        result.Block.Mode = Av1PredictionMode.Smooth;
+        picture.MapModeInfoBlock(position, Av1BlockSize.Block8x8);
 
-        Assert.Same(expected.MacroBlockModeInfo, result);
-        Assert.Same(expected, picture.ModeInfoGrid[gridOffset]);
+        Assert.Equal(Av1PredictionMode.Smooth, allocation[allocationOffset].Block.Mode);
+        Assert.Equal(allocationOffset, grid[gridOffset]);
+        Assert.Equal(allocationOffset, grid[gridOffset + 1]);
+        Assert.Equal(allocationOffset, grid[gridOffset + 4]);
+        Assert.Equal(allocationOffset, grid[gridOffset + 5]);
     }
 
     [Fact]
     public void MacroBlockReadsNeighborsRelativeToCurrentGridEntry()
     {
-        Av1ModeInfo above = CreateModeInfo(Av1PredictionMode.Vertical);
-        Av1ModeInfo left = CreateModeInfo(Av1PredictionMode.Horizontal);
-        Av1ModeInfo current = CreateModeInfo(Av1PredictionMode.DC);
-        Av1ModeInfo[] grid = new Av1ModeInfo[9];
-        grid[1] = above;
-        grid[3] = left;
-        grid[4] = current;
-        Av1MacroBlockD macroBlock = CreateMacroBlock();
-        macroBlock.SetModeInfoGrid(grid, 4);
+        Av1MacroBlockModeInfo[] allocation =
+        [
+            CreateModeInfo(Av1PredictionMode.Vertical),
+            CreateModeInfo(Av1PredictionMode.Horizontal),
+            CreateModeInfo(Av1PredictionMode.DC)
+        ];
 
-        Assert.Same(left, macroBlock.GetRelativeModeInfo(-1));
-        Assert.Same(above, macroBlock.GetRelativeModeInfo(-3));
-        Assert.Same(current, macroBlock.GetRelativeModeInfo(0));
+        int[] grid = new int[9];
+        grid[1] = 0;
+        grid[3] = 1;
+        grid[4] = 2;
+        Av1MacroBlockD macroBlock = CreateMacroBlock();
+        macroBlock.SetModeInfoGrid(grid, allocation, 4);
+
+        Assert.Equal(Av1PredictionMode.Horizontal, macroBlock.GetRelativeModeInfo(-1).Block.Mode);
+        Assert.Equal(Av1PredictionMode.Vertical, macroBlock.GetRelativeModeInfo(-3).Block.Mode);
+        Assert.Equal(Av1PredictionMode.DC, macroBlock.GetRelativeModeInfo(0).Block.Mode);
     }
 
     [Fact]
     public void EncoderBlockModeInfoStoresSelectedSyntax()
     {
-        Av1EncoderBlockModeInfo modeInfo = new();
+        Av1EncoderBlockModeInfo modeInfo = default;
 
         Assert.False(modeInfo.Skip);
         Assert.False(modeInfo.SkipMode);
@@ -162,6 +177,19 @@ public class Av1CoefficientsEntropyTests
         Assert.Equal(3, modeInfo.SegmentId);
         Assert.Equal(Av1PredictionMode.Smooth, modeInfo.Mode);
         Assert.Equal(Av1ChromaPredictionMode.Smooth, modeInfo.UvMode);
+
+        modeInfo.SkipMode = false;
+
+        Assert.True(modeInfo.Skip);
+        Assert.False(modeInfo.SkipMode);
+        Assert.True(modeInfo.UseIntraBlockCopy);
+    }
+
+    [Fact]
+    public void EncoderModeInfoUsesPackedValueStorage()
+    {
+        Assert.Equal(7, Unsafe.SizeOf<Av1EncoderBlockModeInfo>());
+        Assert.Equal(8, Unsafe.SizeOf<Av1MacroBlockModeInfo>());
     }
 
     [Fact]
@@ -262,7 +290,7 @@ public class Av1CoefficientsEntropyTests
     public void EncoderLumaTraversalRepresentsAllTransformsIn128x128Block()
     {
         Av1PictureControlSet picture = CreateEncoderPicture(32, 32, use128x128Superblock: true);
-        Av1MacroBlockModeInfo modeInfo = picture.ModeInfoAllocation[0].MacroBlockModeInfo;
+        ref Av1MacroBlockModeInfo modeInfo = ref picture.ModeInfoAllocation.Span[0];
         modeInfo.Block.BlockSize = Av1BlockSize.Block128x128;
         modeInfo.Block.TransformSize = Av1TransformSize.Size16x16;
         modeInfo.Block.SegmentId = 0;
@@ -351,7 +379,7 @@ public class Av1CoefficientsEntropyTests
     {
         Av1PictureControlSet picture = CreateEncoderPicture(16, 16);
         picture.Parent.FrameHeader.TransformMode = Av1TransformMode.Select;
-        Av1MacroBlockModeInfo modeInfo = picture.ModeInfoAllocation[0].MacroBlockModeInfo;
+        ref Av1MacroBlockModeInfo modeInfo = ref picture.ModeInfoAllocation.Span[0];
         modeInfo.Block.BlockSize = Av1BlockSize.Block16x32;
         modeInfo.Block.TransformSize = Av1TransformSize.Size8x8;
         modeInfo.Block.SegmentId = 0;
@@ -489,6 +517,8 @@ public class Av1CoefficientsEntropyTests
         Av1TileInfo tile = new(0, 0, picture.Parent.FrameHeader);
         Av1MacroBlockD macroBlock = new() { Tile = tile };
         Point position = new(2, 3);
+        picture.GetMacroBlockModeInfo(position).Block.Mode = Av1PredictionMode.Paeth;
+        picture.MapModeInfoBlock(position, Av1BlockSize.Block16x8);
 
         Av1TileWriter.SetModeInfoRowAndColumn(
             picture,
@@ -504,8 +534,21 @@ public class Av1CoefficientsEntropyTests
         Assert.Equal(0, macroBlock.ToBottomEdge);
         Assert.Equal(-64, macroBlock.ToLeftEdge);
         Assert.Equal(0, macroBlock.ToRightEdge);
-        Assert.Same(picture.ModeInfoGrid[14].MacroBlockModeInfo, macroBlock.AboveMacroBlock);
-        Assert.Same(picture.ModeInfoGrid[19].MacroBlockModeInfo, macroBlock.LeftMacroBlock);
+        Assert.Equal(
+            picture.GetFromModeInfoGrid(new Point(2, 2)).Block.Mode,
+            macroBlock.GetRelativeModeInfo(-picture.ModeInfoStride).Block.Mode);
+        Assert.Equal(
+            picture.GetFromModeInfoGrid(new Point(1, 3)).Block.Mode,
+            macroBlock.GetRelativeModeInfo(-1).Block.Mode);
+
+        for (int row = 0; row < picture.Parent.Common.ModeInfoRowCount; row++)
+        {
+            for (int column = 0; column < picture.Parent.Common.ModeInfoColumnCount; column++)
+            {
+                Av1PredictionMode expected = row >= 3 && column >= 2 ? Av1PredictionMode.Paeth : Av1PredictionMode.DC;
+                Assert.Equal(expected, picture.GetFromModeInfoGrid(new Point(column, row)).Block.Mode);
+            }
+        }
     }
 
     [Fact]
@@ -513,8 +556,8 @@ public class Av1CoefficientsEntropyTests
     {
         Av1PictureControlSet picture = CreateEncoderPicture(32, 32, use128x128Superblock: true);
         picture.Parent.FrameHeader.CdefParameters.BitCount = 2;
-        picture.ModeInfoGrid[16].MacroBlockModeInfo.CdefStrength = 3;
-        picture.ModeInfoGrid[20].MacroBlockModeInfo.CdefStrength = 1;
+        picture.ModeInfoAllocation.Span[16].CdefStrength = 3;
+        picture.ModeInfoAllocation.Span[20].CdefStrength = 1;
         using Av1SymbolEncoder writer = new(Configuration.Default, 16, BaseQIndex);
 
         Av1TileWriter.WriteCdef(
@@ -595,8 +638,8 @@ public class Av1CoefficientsEntropyTests
         for (int index = 0; index < blockPositions.Length; index++)
         {
             Point position = blockPositions[index];
-            Av1EncoderBlockModeInfo blockMode = picture.ModeInfoAllocation[
-                (position.Y * picture.ModeInfoStride) + position.X].MacroBlockModeInfo.Block;
+            ref Av1EncoderBlockModeInfo blockMode = ref picture.ModeInfoAllocation.Span[
+                (position.Y * picture.ModeInfoStride) + position.X].Block;
 
             blockMode.BlockSize = Av1BlockSize.Block32x32;
             blockMode.Skip = true;
@@ -622,7 +665,7 @@ public class Av1CoefficientsEntropyTests
         Av1TileWriter.Av1EntropyCodingContext context = new()
         {
             MacroBlock = new Av1MacroBlockD { Tile = tile },
-            MacroBlockModeInfo = picture.ModeInfoAllocation[16].MacroBlockModeInfo,
+            MacroBlockModeInfo = picture.ModeInfoAllocation.Span[16],
             SuperblockOrigin = new Point(64, 0)
         };
         using Av1EncoderCoefficientBuffer coefficients = new(
@@ -871,14 +914,12 @@ public class Av1CoefficientsEntropyTests
         }
     }
 
-    private static Av1ModeInfo CreateModeInfo(Av1PredictionMode mode)
-        => new()
-        {
-            MacroBlockModeInfo = new Av1MacroBlockModeInfo
-            {
-                Block = new Av1EncoderBlockModeInfo { Mode = mode }
-            }
-        };
+    private static Av1MacroBlockModeInfo CreateModeInfo(Av1PredictionMode mode)
+    {
+        Av1MacroBlockModeInfo result = default;
+        result.Block.Mode = mode;
+        return result;
+    }
 
     private static Av1PictureControlSet CreateEncoderPicture(
         int modeInfoColumnCount,
@@ -901,10 +942,12 @@ public class Av1CoefficientsEntropyTests
             TilesInfo = tiles
         };
 
-        Av1ModeInfo[] modeInfoGrid = new Av1ModeInfo[modeInfoColumnCount * modeInfoRowCount];
-        for (int index = 0; index < modeInfoGrid.Length; index++)
+        Av1MacroBlockModeInfo[] modeInfoAllocation = new Av1MacroBlockModeInfo[modeInfoColumnCount * modeInfoRowCount];
+        int[] modeInfoGrid = new int[modeInfoAllocation.Length];
+        for (int index = 0; index < modeInfoAllocation.Length; index++)
         {
-            modeInfoGrid[index] = CreateModeInfo(Av1PredictionMode.DC);
+            modeInfoAllocation[index] = CreateModeInfo(Av1PredictionMode.DC);
+            modeInfoGrid[index] = index;
         }
 
         return new Av1PictureControlSet
@@ -930,7 +973,7 @@ public class Av1CoefficientsEntropyTests
             },
             SegmentationNeighborMap = [],
             ModeInfoGrid = modeInfoGrid,
-            ModeInfoAllocation = modeInfoGrid,
+            ModeInfoAllocation = modeInfoAllocation,
             ModeInfoStride = modeInfoColumnCount,
             CdefPreset = [[-1, -1, -1, -1]]
         };

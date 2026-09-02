@@ -633,9 +633,10 @@ internal partial class Av1TileWriter
         int mi_col = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
         int mi_stride = pcs.Parent.Common.ModeInfoStride;
         Point modeInfoPosition = new(mi_col, mi_row);
-        Av1MacroBlockModeInfo macroBlockModeInfo = pcs.GetMacroBlockModeInfo(modeInfoPosition);
+        ref Av1MacroBlockModeInfo macroBlockModeInfo = ref pcs.GetMacroBlockModeInfo(modeInfoPosition);
         Av1BlockSize blockSize = macroBlockModeInfo.Block.BlockSize;
         bool skipWritingCoefficients = macroBlockModeInfo.Block.Skip;
+        pcs.MapModeInfoBlock(modeInfoPosition, blockSize);
         entropyCodingContext.MacroBlockModeInfo = macroBlockModeInfo;
         Av1MacroBlockD macroBlock = entropyCodingContext.MacroBlock;
 
@@ -888,12 +889,12 @@ internal partial class Av1TileWriter
         if (xd.IsLeftAvailable)
         {
             // Key-frame neighbors are intra blocks, so their luma modes directly select the context class.
-            intraLumaLeftMode = xd.GetRelativeModeInfo(-1).MacroBlockModeInfo.Block.Mode;
+            intraLumaLeftMode = xd.GetRelativeModeInfo(-1).Block.Mode;
         }
 
         if (xd.IsUpAvailable)
         {
-            intraLumaTopMode = xd.GetRelativeModeInfo(-xd.ModeInfoStride).MacroBlockModeInfo.Block.Mode;
+            intraLumaTopMode = xd.GetRelativeModeInfo(-xd.ModeInfoStride).Block.Mode;
         }
 
         above_ctx = IntraModeContextLookup[(int)intraLumaTopMode];
@@ -1025,7 +1026,7 @@ internal partial class Av1TileWriter
         Av1NeighborArrayUnit<byte> cr_dc_sign_level_coeff_na = pcs.CrDcSignLevelCoefficientNeighbors[tile_idx];
         Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na = pcs.CbDcSignLevelCoefficientNeighbors[tile_idx];
         Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
-        Av1MacroBlockModeInfo mbmi = pcs.GetMacroBlockModeInfo(modeInfoPosition);
+        ref Av1MacroBlockModeInfo mbmi = ref pcs.GetMacroBlockModeInfo(modeInfoPosition);
         bool skip_coeff = mbmi.Block.Skip;
 
         Size size = new(blockSize.GetWidth(), blockSize.GetHeight());
@@ -1138,12 +1139,12 @@ internal partial class Av1TileWriter
             Point firstBlockPosition = new(
                 modeInfoPosition.X & firstBlockMask,
                 modeInfoPosition.Y & firstBlockMask);
-            Av1ModeInfo firstBlock = pcs.GetFromModeInfoGrid(firstBlockPosition);
+            ref Av1MacroBlockModeInfo firstBlock = ref pcs.GetFromModeInfoGrid(firstBlockPosition);
 
             // CDEF strength belongs to the first mode-info block in the 64x64 filter unit even when skipped
             // blocks delay transmission until a later coding block.
-            writer.WriteCdefStrength(firstBlock.MacroBlockModeInfo.CdefStrength, frameHeader.CdefParameters.BitCount);
-            pcs.CdefPreset[tileIndex][index] = firstBlock.MacroBlockModeInfo.CdefStrength;
+            writer.WriteCdefStrength(firstBlock.CdefStrength, frameHeader.CdefParameters.BitCount);
+            pcs.CdefPreset[tileIndex][index] = firstBlock.CdefStrength;
         }
     }
 
@@ -1181,25 +1182,7 @@ internal partial class Av1TileWriter
         macroBlock.IsUpAvailable = modeInfoPosition.Y > tile.ModeInfoRowStart;
         macroBlock.IsLeftAvailable = modeInfoPosition.X > tile.ModeInfoColumnStart;
         int modeInfoIndex = (modeInfoPosition.Y * modeInfoStride) + modeInfoPosition.X;
-        macroBlock.SetModeInfoGrid(pcs.ModeInfoGrid, modeInfoIndex);
-
-        if (macroBlock.IsUpAvailable)
-        {
-            macroBlock.AboveMacroBlock = macroBlock.GetRelativeModeInfo(-modeInfoStride).MacroBlockModeInfo;
-        }
-        else
-        {
-            macroBlock.AboveMacroBlock = null;
-        }
-
-        if (macroBlock.IsLeftAvailable)
-        {
-            macroBlock.LeftMacroBlock = macroBlock.GetRelativeModeInfo(-1).MacroBlockModeInfo;
-        }
-        else
-        {
-            macroBlock.LeftMacroBlock = null;
-        }
+        macroBlock.SetModeInfoGrid(pcs.ModeInfoGrid, pcs.ModeInfoAllocation, modeInfoIndex);
     }
 
     /// <summary>
@@ -1740,10 +1723,8 @@ internal partial class Av1TileWriter
     /// <param name="skip">The skip value to write.</param>
     public static void EncodeSkipCoefficients(Av1SymbolEncoder writer, Av1MacroBlockD macroBlock, bool skip)
     {
-        Av1MacroBlockModeInfo? above_mi = macroBlock.AboveMacroBlock;
-        Av1MacroBlockModeInfo? left_mi = macroBlock.LeftMacroBlock;
-        int above_skip = (above_mi != null && above_mi.Block.Skip) ? 1 : 0;
-        int left_skip = (left_mi != null && left_mi.Block.Skip) ? 1 : 0;
+        int above_skip = macroBlock.IsUpAvailable && macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block.Skip ? 1 : 0;
+        int left_skip = macroBlock.IsLeftAvailable && macroBlock.GetRelativeModeInfo(-1).Block.Skip ? 1 : 0;
         writer.WriteSkip(skip, above_skip + left_skip);
     }
 }

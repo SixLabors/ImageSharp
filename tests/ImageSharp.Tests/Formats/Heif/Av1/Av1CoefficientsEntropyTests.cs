@@ -752,6 +752,67 @@ public class Av1CoefficientsEntropyTests
         }
     }
 
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public void PartitionWriterUsesMatchingFrameEdgeDistribution(bool bottomEdge)
+    {
+        const int partitionContext = 8;
+        Av1BlockSize blockSize = Av1BlockSize.Block32x32;
+        int modeInfoColumnCount = bottomEdge ? 8 : 4;
+        int modeInfoRowCount = bottomEdge ? 4 : 8;
+        Av1PictureControlSet picture = CreateEncoderPicture(modeInfoColumnCount, modeInfoRowCount);
+        using Av1NeighborArrayUnit<Av1PartitionContext> neighbors = new(
+            Configuration.Default,
+            leftSize: 1,
+            topSize: 1,
+            topLeftSize: 2)
+        {
+            GranularityNormalLog2 = 2,
+            GranularityTopLeftLog2 = 2
+        };
+
+        Av1PartitionType nonSplitPartition = bottomEdge ? Av1PartitionType.Horizontal : Av1PartitionType.Vertical;
+        ReadOnlySpan<Av1PartitionType> decisions =
+        [
+            nonSplitPartition,
+            Av1PartitionType.Split,
+            nonSplitPartition,
+            nonSplitPartition,
+            Av1PartitionType.Split,
+            Av1PartitionType.Split,
+            nonSplitPartition,
+            Av1PartitionType.Split
+        ];
+
+        using Av1SymbolEncoder actualWriter = new(Configuration.Default, 16, BaseQIndex);
+        using Av1SymbolEncoder expectedWriter = new(Configuration.Default, 16, BaseQIndex);
+        foreach (Av1PartitionType decision in decisions)
+        {
+            Av1TileWriter.EncodePartition(
+                picture,
+                actualWriter,
+                blockSize,
+                decision,
+                Point.Empty,
+                neighbors);
+
+            if (bottomEdge)
+            {
+                expectedWriter.WriteSplitOrHorizontal(decision, blockSize, partitionContext);
+            }
+            else
+            {
+                expectedWriter.WriteSplitOrVertical(decision, blockSize, partitionContext);
+            }
+        }
+
+        using IMemoryOwner<byte> actual = actualWriter.Exit();
+        using IMemoryOwner<byte> expected = expectedWriter.Exit();
+
+        Assert.True(expected.GetSpan().SequenceEqual(actual.GetSpan()));
+    }
+
     [Fact]
     public void RoundTripZeroEndOfBlock()
     {

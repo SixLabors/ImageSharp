@@ -538,7 +538,7 @@ internal partial class Av1TileWriter
     /// <param name="partitionType">The selected partition type.</param>
     /// <param name="blockOrigin">The block origin in samples.</param>
     /// <param name="partition_context_na">The partition neighbor arrays for the tile.</param>
-    private static void EncodePartition(
+    public static void EncodePartition(
         Av1PictureControlSet pcs,
         Av1SymbolEncoder writer,
         Av1BlockSize blockSize,
@@ -593,11 +593,11 @@ internal partial class Av1TileWriter
         }
         else if (!has_rows && has_cols)
         {
-            writer.WriteSplitOrVertical(partitionType, blockSize, context_index);
+            writer.WriteSplitOrHorizontal(partitionType, blockSize, context_index);
         }
         else
         {
-            writer.WriteSplitOrHorizontal(partitionType, blockSize, context_index);
+            writer.WriteSplitOrVertical(partitionType, blockSize, context_index);
         }
 
         return;

@@ -15,12 +15,8 @@ internal static class Av1TransformBlockEncoder
     /// <summary>
     /// Applies a lossy forward transform and quantization to one residual block.
     /// </summary>
-    /// <param name="residual">The spatial residual samples.</param>
-    /// <param name="residualStride">The number of residual samples between rows.</param>
-    /// <param name="transformCoefficients">The reusable forward-transform coefficient workspace.</param>
+    /// <param name="workspace">The reusable residual, transform, and reconstruction storage.</param>
     /// <param name="quantizedCoefficients">The retained entropy-coding coefficients.</param>
-    /// <param name="dequantizedCoefficients">The reusable reconstruction coefficients.</param>
-    /// <param name="transformWorkspace">The reusable internal transform workspace.</param>
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
     /// <param name="qIndex">The segment quantizer index.</param>
@@ -29,12 +25,8 @@ internal static class Av1TransformBlockEncoder
     /// <param name="bitDepth">The coded sample bit depth.</param>
     /// <param name="state">The retained transform type and end-of-block syntax.</param>
     public static void EncodeLossy(
-        Span<short> residual,
-        uint residualStride,
-        Span<int> transformCoefficients,
+        Av1EncoderBlockWorkspace workspace,
         Span<int> quantizedCoefficients,
-        Span<int> dequantizedCoefficients,
-        Span<int> transformWorkspace,
         Av1TransformSize transformSize,
         Av1TransformType transformType,
         int qIndex,
@@ -44,20 +36,20 @@ internal static class Av1TransformBlockEncoder
         ref Av1EncoderTransformBlockState state)
     {
         int coefficientCount = transformSize.GetAdjusted().GetSize2d();
-        Span<int> transformed = transformCoefficients[..coefficientCount];
+        Span<int> transformed = workspace.TransformCoefficients[..coefficientCount];
         Span<int> quantized = quantizedCoefficients[..coefficientCount];
-        Span<int> dequantized = dequantizedCoefficients[..coefficientCount];
+        Span<int> dequantized = workspace.DequantizedCoefficients[..coefficientCount];
 
         // The encoder keeps transformed, quantized, and reconstructed coefficients separate because mode decision
         // consumes all three while only the quantized values survive in the frame coefficient owner.
         Av1ForwardTransformer.Transform2d(
-            residual,
+            workspace.Residual,
             transformed,
-            residualStride,
+            (uint)transformSize.GetWidth(),
             transformType,
             transformSize,
             bitDepth.GetBitCount(),
-            transformWorkspace);
+            workspace.TransformWorkspace);
 
         state.EndOfBlock = Av1ForwardQuantizer.QuantizeLossy(
             transformed,

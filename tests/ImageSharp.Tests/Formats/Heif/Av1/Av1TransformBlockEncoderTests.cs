@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Tests.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -37,21 +38,14 @@ public class Av1TransformBlockEncoderTests
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
         int coefficientCount = transformSize.GetAdjusted().GetSize2d();
-        short[] residual = new short[width * height];
-        int[] transformed = new int[coefficientCount];
         int[] quantized = new int[coefficientCount];
-        int[] dequantized = new int[coefficientCount];
-        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
-        FillResidual(residual, width, width, height, 4095);
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        FillResidual(workspace.Residual, width, height, 4095);
         Av1EncoderTransformBlockState state = default;
 
         Av1TransformBlockEncoder.EncodeLossy(
-            residual,
-            (uint)width,
-            transformed,
-            quantized,
-            dequantized,
             workspace,
+            quantized,
             transformSize,
             Av1TransformType.DctDct,
             73,
@@ -64,12 +58,8 @@ public class Av1TransformBlockEncoderTests
         for (int iteration = 0; iteration < 16; iteration++)
         {
             Av1TransformBlockEncoder.EncodeLossy(
-                residual,
-                (uint)width,
-                transformed,
-                quantized,
-                dequantized,
                 workspace,
+                quantized,
                 transformSize,
                 Av1TransformType.DctDct,
                 73,
@@ -82,6 +72,34 @@ public class Av1TransformBlockEncoderTests
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
     }
 
+    /// <summary>
+    /// Verifies that the block workspace uses one exact-size allocator owner and returns it exactly once.
+    /// </summary>
+    [Fact]
+    public void BlockWorkspaceUsesOneExactSizeOwner()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        TestMemoryAllocator.AllocationRequest allocation;
+        using (Av1EncoderBlockWorkspace workspace = new(configuration))
+        {
+            allocation = Assert.Single(allocator.AllocationLog);
+            Assert.Empty(allocator.ReturnLog);
+            Assert.Equal(typeof(int), allocation.ElementType);
+            Assert.Equal(Av1EncoderBlockWorkspace.StorageLength, allocation.Length);
+            Assert.Equal(Av1EncoderBlockWorkspace.MaximumResidualCount, workspace.Residual.Length);
+            Assert.Equal(Av1EncoderBlockWorkspace.MaximumCoefficientCount, workspace.TransformCoefficients.Length);
+            Assert.Equal(Av1EncoderBlockWorkspace.MaximumCoefficientCount, workspace.DequantizedCoefficients.Length);
+            Assert.Equal(Av1TransformWorkspace.MaximumLength, workspace.TransformWorkspace.Length);
+        }
+
+        TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
+        Assert.Equal(allocation.AllocationId, returned.AllocationId);
+    }
+
     private static void ValidateBlock(
         Av1TransformSize transformSize,
         Av1TransformType transformType,
@@ -90,30 +108,24 @@ public class Av1TransformBlockEncoderTests
     {
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
-        int residualStride = width + 3;
         int coefficientCount = transformSize.GetAdjusted().GetSize2d();
         int sampleMaximum = (1 << bitDepth.GetBitCount()) - 1;
-        short[] residual = new short[residualStride * height];
         int[] expectedTransformed = new int[coefficientCount + 7];
         int[] expectedQuantized = new int[coefficientCount + 7];
         int[] expectedDequantized = new int[coefficientCount + 7];
-        int[] actualTransformed = new int[coefficientCount + 7];
         int[] actualQuantized = new int[coefficientCount + 7];
-        int[] actualDequantized = new int[coefficientCount + 7];
         int[] expectedWorkspace = new int[Av1TransformWorkspace.MaximumLength];
-        int[] actualWorkspace = new int[Av1TransformWorkspace.MaximumLength];
+        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
         Array.Fill(expectedTransformed, int.MinValue);
         Array.Fill(expectedQuantized, int.MinValue);
         Array.Fill(expectedDequantized, int.MinValue);
-        Array.Fill(actualTransformed, int.MinValue);
         Array.Fill(actualQuantized, int.MinValue);
-        Array.Fill(actualDequantized, int.MinValue);
-        FillResidual(residual, residualStride, width, height, sampleMaximum);
+        FillResidual(blockWorkspace.Residual, width, height, sampleMaximum);
 
         Av1ForwardTransformer.Transform2d(
-            residual,
+            blockWorkspace.Residual,
             expectedTransformed.AsSpan(0, coefficientCount),
-            (uint)residualStride,
+            (uint)width,
             transformType,
             transformSize,
             bitDepth.GetBitCount(),
@@ -132,12 +144,8 @@ public class Av1TransformBlockEncoderTests
 
         Av1EncoderTransformBlockState actualState = default;
         Av1TransformBlockEncoder.EncodeLossy(
-            residual,
-            (uint)residualStride,
-            actualTransformed,
+            blockWorkspace,
             actualQuantized,
-            actualDequantized,
-            actualWorkspace,
             transformSize,
             transformType,
             qIndex,
@@ -146,21 +154,21 @@ public class Av1TransformBlockEncoderTests
             bitDepth,
             ref actualState);
 
-        Assert.Equal(expectedTransformed, actualTransformed);
+        AssertEqual(expectedTransformed, blockWorkspace.TransformCoefficients, coefficientCount);
         Assert.Equal(expectedQuantized, actualQuantized);
-        Assert.Equal(expectedDequantized, actualDequantized);
+        AssertEqual(expectedDequantized, blockWorkspace.DequantizedCoefficients, coefficientCount);
         Assert.Equal(expectedEndOfBlock, actualState.EndOfBlock);
         Assert.Equal(transformType, actualState.TransformType);
     }
 
-    private static void FillResidual(Span<short> residual, int stride, int width, int height, int sampleMaximum)
+    private static void FillResidual(Span<short> residual, int width, int height, int sampleMaximum)
     {
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
             {
                 int index = (y * width) + x;
-                residual[(y * stride) + x] = (short)((index & 3) switch
+                residual[index] = (short)((index & 3) switch
                 {
                     0 => sampleMaximum,
                     1 => -sampleMaximum,
@@ -168,6 +176,14 @@ public class Av1TransformBlockEncoderTests
                     _ => 0,
                 });
             }
+        }
+    }
+
+    private static void AssertEqual(ReadOnlySpan<int> expected, ReadOnlySpan<int> actual, int count)
+    {
+        for (int i = 0; i < count; i++)
+        {
+            Assert.Equal(expected[i], actual[i]);
         }
     }
 }

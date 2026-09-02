@@ -9,9 +9,14 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 internal class Av1Superblock
 {
     /// <summary>
-    /// Gets or sets the final encoder decisions in partition traversal order.
+    /// Gets or sets the reusable final-block and partition-decision workspace.
     /// </summary>
-    public required Av1EncoderBlockStruct[] FinalBlocks { get; set; }
+    public required Av1EncoderSuperblockWorkspace Workspace { get; set; }
+
+    /// <summary>
+    /// Gets the final encoder decisions in partition traversal order.
+    /// </summary>
+    public Span<Av1EncoderBlockStruct> FinalBlocks => this.Workspace.FinalBlocks;
 
     /// <summary>
     /// Gets or sets the tile containing the superblock.
@@ -19,9 +24,9 @@ internal class Av1Superblock
     public required Av1TileInfo TileInfo { get; set; }
 
     /// <summary>
-    /// Gets or sets the selected partition type for each partition-tree node.
+    /// Gets the selected partition type for each partition-tree node.
     /// </summary>
-    public required Av1PartitionType[] CodingUnitPartitionTypes { get; set; }
+    public Span<byte> CodingUnitPartitionTypes => this.Workspace.PartitionTypes;
 
     /// <summary>
     /// Gets or sets the superblock index within the picture.

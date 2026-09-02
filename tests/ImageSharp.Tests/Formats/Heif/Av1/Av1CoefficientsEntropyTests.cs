@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Tests.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -190,6 +191,46 @@ public class Av1CoefficientsEntropyTests
     {
         Assert.Equal(7, Unsafe.SizeOf<Av1EncoderBlockModeInfo>());
         Assert.Equal(8, Unsafe.SizeOf<Av1MacroBlockModeInfo>());
+    }
+
+    [Fact]
+    public void EncoderSuperblockWorkspaceUsesOneExactSizeOwner()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        TestMemoryAllocator.AllocationRequest allocation;
+        using (Av1EncoderSuperblockWorkspace workspace = new(configuration))
+        {
+            allocation = Assert.Single(allocator.AllocationLog);
+            Assert.Empty(allocator.ReturnLog);
+            Assert.Equal(typeof(Av1EncoderBlockStruct), allocation.ElementType);
+            Assert.Equal(AllocationOptions.Clean, allocation.AllocationOptions);
+            Assert.Equal(Av1EncoderSuperblockWorkspace.StorageLength, allocation.Length);
+            Assert.Equal(Av1EncoderSuperblockWorkspace.MaximumFinalBlockCount, workspace.FinalBlocks.Length);
+            Assert.Equal(Av1EncoderSuperblockWorkspace.MaximumPartitionCount, workspace.PartitionTypes.Length);
+            Assert.Equal(Av1EncoderBlockStruct.StorageSize, Unsafe.SizeOf<Av1EncoderBlockStruct>());
+            Assert.Equal(0, workspace.FinalBlocks[0].PaletteSize[0]);
+            Assert.Equal(0, workspace.FinalBlocks[^1].QuantizationIndex);
+            Assert.Equal(0, workspace.PartitionTypes[^1]);
+
+            workspace.FinalBlocks[0].PaletteSize[0] = 7;
+            workspace.FinalBlocks[^1].QuantizationIndex = 255;
+            workspace.PartitionTypes.Fill(byte.MaxValue);
+            workspace.Reset();
+
+            Assert.Equal(0, workspace.FinalBlocks[0].PaletteSize[0]);
+            Assert.Equal(0, workspace.FinalBlocks[^1].QuantizationIndex);
+            for (int index = 0; index < workspace.PartitionTypes.Length; index++)
+            {
+                Assert.Equal(0, workspace.PartitionTypes[index]);
+            }
+        }
+
+        TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
+        Assert.Equal(allocation.AllocationId, returned.AllocationId);
     }
 
     [Fact]
@@ -634,7 +675,7 @@ public class Av1CoefficientsEntropyTests
         picture.TransformFunctionContexts = [transforms];
         Av1TileInfo tile = new(0, 0, picture.Parent.FrameHeader);
         Point[] blockPositions = [new(16, 0), new(24, 0), new(16, 8), new(24, 8)];
-        Av1EncoderBlockStruct[] blocks = new Av1EncoderBlockStruct[blockPositions.Length];
+        using Av1EncoderSuperblockWorkspace workspace = new(Configuration.Default);
         for (int index = 0; index < blockPositions.Length; index++)
         {
             Point position = blockPositions[index];
@@ -645,21 +686,23 @@ public class Av1CoefficientsEntropyTests
             blockMode.Skip = true;
             blockMode.Mode = Av1PredictionMode.DC;
             blockMode.UvMode = Av1ChromaPredictionMode.DC;
-            blocks[index] = new Av1EncoderBlockStruct { HasChroma = false };
+            workspace.FinalBlocks[index].HasChroma = false;
         }
 
+        ReadOnlySpan<byte> partitionTypes =
+        [
+            (byte)Av1PartitionType.Split,
+            (byte)Av1PartitionType.None,
+            (byte)Av1PartitionType.None,
+            (byte)Av1PartitionType.None,
+            (byte)Av1PartitionType.None
+        ];
+
+        partitionTypes.CopyTo(workspace.PartitionTypes);
         Av1Superblock superblock = new()
         {
-            FinalBlocks = blocks,
+            Workspace = workspace,
             TileInfo = tile,
-            CodingUnitPartitionTypes =
-            [
-                Av1PartitionType.Split,
-                Av1PartitionType.None,
-                Av1PartitionType.None,
-                Av1PartitionType.None,
-                Av1PartitionType.None
-            ],
             Index = 1
         };
         Av1TileWriter.Av1EntropyCodingContext context = new()

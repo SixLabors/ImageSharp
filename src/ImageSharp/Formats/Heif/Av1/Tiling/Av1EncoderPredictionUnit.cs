@@ -3,12 +3,14 @@
 
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
 /// Stores encoder-selected intra prediction modes and directional-angle adjustments for one block.
 /// </summary>
+[StructLayout(LayoutKind.Sequential, Pack = 1, Size = 4)]
 internal struct Av1EncoderPredictionUnit
 {
     /// <summary>

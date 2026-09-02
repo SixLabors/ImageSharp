@@ -112,7 +112,7 @@ internal partial class Av1TileWriter
             return;
         }
 
-        Av1PartitionType partition = superblock.CodingUnitPartitionTypes[partitionIndex++];
+        Av1PartitionType partition = (Av1PartitionType)superblock.CodingUnitPartitionTypes[partitionIndex++];
         Av1BlockSize subSize = partition.GetBlockSubSize(blockSize);
         int halfBlockSize = blockSize.GetWidth() >> 1;
         int quarterBlockSize = blockSize.GetWidth() >> 2;

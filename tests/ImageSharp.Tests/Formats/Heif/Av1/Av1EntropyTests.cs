@@ -80,6 +80,76 @@ public class Av1EntropyTests
     }
 
     [Fact]
+    public void SymbolEncoderSyntaxCostsMatchCurrentDistributions()
+    {
+        const byte TopContext = 0;
+        const byte LeftContext = 0;
+        const int SkipContext = 0;
+        const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
+        const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
+        const Av1PredictionMode LumaMode = Av1PredictionMode.DC;
+        const Av1ChromaPredictionMode ChromaMode = Av1ChromaPredictionMode.DC;
+        const Av1FilterIntraMode FilterMode = Av1FilterIntraMode.DC;
+
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
+
+        Av1Distribution luma = Av1DefaultDistributions.KeyFrameYMode[TopContext][LeftContext];
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(luma, (int)LumaMode),
+            encoder.GetLumaModeCost(LumaMode, TopContext, LeftContext));
+
+        Av1Distribution angle = Av1DefaultDistributions.AngleDelta[0];
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(angle, Av1Constants.MaxAngleDelta),
+            encoder.GetAngleDeltaCost(Av1Constants.MaxAngleDelta, Av1PredictionMode.Vertical));
+
+        Av1Distribution chroma = Av1DefaultDistributions.UvMode[0][(int)LumaMode];
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(chroma, (int)ChromaMode),
+            encoder.GetChromaModeCost(ChromaMode, false, LumaMode));
+
+        Av1Distribution filterEnable = Av1DefaultDistributions.FilterIntra[(int)BlockSize];
+        Av1Distribution filterMode = Av1DefaultDistributions.FilterIntraMode;
+        int expectedFilterCost = Av1ProbabilityCost.GetSymbolCost(filterEnable, 1)
+            + Av1ProbabilityCost.GetSymbolCost(filterMode, (int)FilterMode);
+
+        Assert.Equal(expectedFilterCost, encoder.GetFilterIntraModeCost(FilterMode, BlockSize));
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(filterEnable, 0),
+            encoder.GetFilterIntraModeCost(Av1FilterIntraMode.AllFilterIntraModes, BlockSize));
+
+        Av1Distribution skip = Av1DefaultDistributions.Skip[SkipContext];
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(skip, 1),
+            encoder.GetSkipCost(true, SkipContext));
+
+        Av1Distribution transformSkip = Av1DefaultDistributions
+            .GetTransformBlockSkip(BaseQIndex)[(int)TransformSize][SkipContext];
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(transformSkip, 1),
+            encoder.GetTransformBlockSkipCost(true, TransformSize, SkipContext));
+    }
+
+    [Fact]
+    public void SymbolEncoderCostTracksWrittenLumaMode()
+    {
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex);
+        Av1Distribution expected = Av1DefaultDistributions.KeyFrameYMode[0][0];
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(expected, (int)Av1PredictionMode.DC),
+            encoder.GetLumaModeCost(Av1PredictionMode.DC, 0, 0));
+
+        encoder.WriteLumaMode(Av1PredictionMode.DC, 0, 0);
+        expected.Update((int)Av1PredictionMode.DC);
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(expected, (int)Av1PredictionMode.DC),
+            encoder.GetLumaModeCost(Av1PredictionMode.DC, 0, 0));
+    }
+
+    [Fact]
     public void SymbolWriterMatchesCurrentLibaomCarryRegression()
     {
         using Av1SymbolWriter writer = new(Configuration.Default, 1, updateCdf: false);

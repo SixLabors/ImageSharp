@@ -427,6 +427,18 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Gets the current fixed-point cost of the transform-block skip flag.
+    /// </summary>
+    /// <param name="skip">Indicates whether the transform block is empty.</param>
+    /// <param name="transformSizeContext">The square transform-size probability context.</param>
+    /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetTransformBlockSkipCost(bool skip, Av1TransformSize transformSizeContext, int skipContext)
+        => Av1ProbabilityCost.GetSymbolCost(
+            this.transformBlockSkip[(int)transformSizeContext][skipContext],
+            skip ? 1 : 0);
+
+    /// <summary>
     /// Writes whether a transform block has no coded coefficients.
     /// </summary>
     /// <param name="skip">Indicates whether the transform block is empty.</param>
@@ -601,6 +613,15 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Gets the current fixed-point cost of the transform-skip flag.
+    /// </summary>
+    /// <param name="skip">Indicates whether the block contains no coded transform coefficients.</param>
+    /// <param name="context">The neighboring skip context.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetSkipCost(bool skip, int context)
+        => Av1ProbabilityCost.GetSymbolCost(this.skip[context], skip ? 1 : 0);
+
+    /// <summary>
     /// Writes the transform-skip flag from a neighboring skip context.
     /// </summary>
     /// <param name="skip">Indicates whether the block contains no coded transform coefficients.</param>
@@ -620,6 +641,24 @@ internal class Av1SymbolEncoder : IDisposable
     {
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol(skip, this.skipMode[context]);
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point cost of the filter-intra enable flag and selected mode.
+    /// </summary>
+    /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
+    /// <param name="blockSize">The block size selecting the enable distribution.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetFilterIntraModeCost(Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
+    {
+        bool useFilter = filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes;
+        int cost = Av1ProbabilityCost.GetSymbolCost(this.filterIntra[(int)blockSize], useFilter ? 1 : 0);
+        if (useFilter)
+        {
+            cost += Av1ProbabilityCost.GetSymbolCost(this.filterIntraMode, (int)filterIntraMode);
+        }
+
+        return cost;
     }
 
     /// <summary>
@@ -667,6 +706,18 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Gets the current fixed-point cost of a key-frame luma prediction mode.
+    /// </summary>
+    /// <param name="lumaMode">The luma prediction mode.</param>
+    /// <param name="topContext">The reduced above-mode context.</param>
+    /// <param name="leftContext">The reduced left-mode context.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetLumaModeCost(Av1PredictionMode lumaMode, byte topContext, byte leftContext)
+        => Av1ProbabilityCost.GetSymbolCost(
+            this.keyFrameYMode[topContext][leftContext],
+            (int)lumaMode);
+
+    /// <summary>
     /// Writes a key-frame luma prediction mode using the above and left mode contexts.
     /// </summary>
     /// <param name="lumaMode">The luma prediction mode.</param>
@@ -677,6 +728,17 @@ internal class Av1SymbolEncoder : IDisposable
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol((int)lumaMode, this.keyFrameYMode[topContext][leftContext]);
     }
+
+    /// <summary>
+    /// Gets the current fixed-point cost of a directional angle-delta symbol.
+    /// </summary>
+    /// <param name="angleDelta">The signed angle delta offset by <see cref="Av1Constants.MaxAngleDelta"/>.</param>
+    /// <param name="context">The directional prediction mode selecting the distribution.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetAngleDeltaCost(int angleDelta, Av1PredictionMode context)
+        => Av1ProbabilityCost.GetSymbolCost(
+            this.angleDelta[context - Av1PredictionMode.Vertical],
+            angleDelta);
 
     /// <summary>
     /// Writes an unsigned directional angle-delta symbol.
@@ -698,6 +760,19 @@ internal class Av1SymbolEncoder : IDisposable
     {
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteLiteral((uint)cdefStrength, bitCount);
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point cost of a chroma intra prediction mode.
+    /// </summary>
+    /// <param name="chromaMode">The chroma prediction mode.</param>
+    /// <param name="isChromaFromLumaAllowed">Indicates whether chroma-from-luma is valid for the block.</param>
+    /// <param name="lumaMode">The block's luma prediction mode.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetChromaModeCost(Av1ChromaPredictionMode chromaMode, bool isChromaFromLumaAllowed, Av1PredictionMode lumaMode)
+    {
+        int cflAllowed = isChromaFromLumaAllowed ? 1 : 0;
+        return Av1ProbabilityCost.GetSymbolCost(this.uvMode[cflAllowed][(int)lumaMode], (int)chromaMode);
     }
 
     /// <summary>

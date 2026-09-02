@@ -532,6 +532,19 @@ public class Av1EntropyTests
         long expected)
         => Assert.Equal(expected, Av1RateDistortion.GetCost(rateMultiplier, rate, distortion));
 
+    [Theory]
+    [InlineData(0, 0, 52)]
+    [InlineData(0, 1, 3)]
+    [InlineData(0, 2, 1)]
+    [InlineData(255, 0, 9_467_088)]
+    [InlineData(255, 1, 20_228_608)]
+    [InlineData(255, 2, 63_215_524)]
+    public void KeyFrameRateMultiplierMatchesCurrentLibaom(
+        int qIndex,
+        int bitDepth,
+        int expected)
+        => Assert.Equal(expected, Av1RateDistortion.GetKeyFrameRateMultiplier(qIndex, (Av1BitDepth)bitDepth));
+
     [Fact]
     public void SymbolWriterMatchesCurrentLibaomCarryRegression()
     {

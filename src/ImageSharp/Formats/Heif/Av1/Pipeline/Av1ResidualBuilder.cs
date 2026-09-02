@@ -56,6 +56,70 @@ internal static partial class Av1ResidualBuilder
         int height)
         => Subtract<ushort, UInt16Operator>(source, sourceStride, prediction, predictionStride, residual, residualStride, width, height);
 
+    /// <summary>
+    /// Sums the squares of a contiguous signed residual block.
+    /// </summary>
+    /// <param name="residual">The residual samples.</param>
+    /// <returns>The exact sum of squared sample differences.</returns>
+    public static long SumSquares(ReadOnlySpan<short> residual)
+    {
+        ref short residualBase = ref MemoryMarshal.GetReference(residual);
+        long sum = 0;
+        int offset = 0;
+
+        // Each short lane widens before multiplication, preserving the full 12-bit residual square.
+        // The accumulated scalar is 64-bit because a complete encoder block can exceed 32-bit range.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            nuint vectorCount = residual.Vector512Count<short>();
+
+            for (; vectorCount > 0; vectorCount--, offset += Vector512<short>.Count)
+            {
+                Vector512<short> values = Unsafe.As<short, Vector512<short>>(ref Unsafe.Add(ref residualBase, offset));
+                Vector512<int> lower = Vector512.WidenLower(values);
+                Vector512<int> upper = Vector512.WidenUpper(values);
+                sum += Vector512.Sum(lower * lower);
+                sum += Vector512.Sum(upper * upper);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            nuint vectorCount = residual[offset..].Vector256Count<short>();
+
+            for (; vectorCount > 0; vectorCount--, offset += Vector256<short>.Count)
+            {
+                Vector256<short> values = Unsafe.As<short, Vector256<short>>(ref Unsafe.Add(ref residualBase, offset));
+                Vector256<int> lower = Vector256.WidenLower(values);
+                Vector256<int> upper = Vector256.WidenUpper(values);
+                sum += Vector256.Sum(lower * lower);
+                sum += Vector256.Sum(upper * upper);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            nuint vectorCount = residual[offset..].Vector128Count<short>();
+
+            for (; vectorCount > 0; vectorCount--, offset += Vector128<short>.Count)
+            {
+                Vector128<short> values = Unsafe.As<short, Vector128<short>>(ref Unsafe.Add(ref residualBase, offset));
+                Vector128<int> lower = Vector128.WidenLower(values);
+                Vector128<int> upper = Vector128.WidenUpper(values);
+                sum += Vector128.Sum(lower * lower);
+                sum += Vector128.Sum(upper * upper);
+            }
+        }
+
+        for (; offset < residual.Length; offset++)
+        {
+            int value = Unsafe.Add(ref residualBase, offset);
+            sum += value * value;
+        }
+
+        return sum;
+    }
+
     private static void Subtract<TSample, TOperator>(
         ReadOnlySpan<TSample> source,
         int sourceStride,

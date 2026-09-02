@@ -68,6 +68,38 @@ internal partial class Av1TileWriter
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex)
     {
+        PrecomputedBlockEncodingHandler blockEncoder = default;
+        WriteSuperblock(
+            pcs,
+            ec_ctx,
+            writer,
+            superblock,
+            coefficientBuffer,
+            tileIndex,
+            ref blockEncoder);
+    }
+
+    /// <summary>
+    /// Writes a partition tree while producing each final block against the immediately preceding tile state.
+    /// </summary>
+    /// <typeparam name="TBlockEncoder">The value type that produces final-block decisions.</typeparam>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="ec_ctx">The entropy-coding position state for the superblock.</param>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="superblock">The encoder decisions for the superblock.</param>
+    /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
+    /// <param name="tileIndex">The zero-based tile index.</param>
+    /// <param name="blockEncoder">The handler invoked for each final block.</param>
+    public static void WriteSuperblock<TBlockEncoder>(
+        Av1PictureControlSet pcs,
+        Av1EntropyCodingContext ec_ctx,
+        Av1SymbolEncoder writer,
+        Av1Superblock superblock,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        ushort tileIndex,
+        ref TBlockEncoder blockEncoder)
+        where TBlockEncoder : struct, IBlockEncodingHandler
+    {
         ec_ctx.CodedAreaSuperblock = 0;
         ec_ctx.CodedAreaSuperblockUv = 0;
         ec_ctx.MacroBlock.Tile = superblock.TileInfo;
@@ -86,13 +118,14 @@ internal partial class Av1TileWriter
             pcs.Sequence.SequenceHeader.SuperblockSize,
             ec_ctx.SuperblockOrigin,
             ref partitionIndex,
-            ref finalBlockIndex);
+            ref finalBlockIndex,
+            ref blockEncoder);
     }
 
     /// <summary>
     /// Writes one selected partition node and recursively visits its split children.
     /// </summary>
-    private static void WritePartitionTree(
+    private static void WritePartitionTree<TBlockEncoder>(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
@@ -102,7 +135,9 @@ internal partial class Av1TileWriter
         Av1BlockSize blockSize,
         Point blockOrigin,
         ref int partitionIndex,
-        ref int finalBlockIndex)
+        ref int finalBlockIndex,
+        ref TBlockEncoder blockEncoder)
+        where TBlockEncoder : struct, IBlockEncodingHandler
     {
         Av1EncoderCommon common = pcs.Parent.Common;
         int modeInfoRow = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
@@ -136,7 +171,8 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     tileIndex,
                     blockOrigin,
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
 
                 break;
             case Av1PartitionType.Horizontal:
@@ -148,7 +184,8 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     tileIndex,
                     blockOrigin,
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
 
                 if (modeInfoRow + (blockSize.Get4x4HighCount() >> 1) < common.ModeInfoRowCount)
                 {
@@ -160,7 +197,8 @@ internal partial class Av1TileWriter
                         coefficientBuffer,
                         tileIndex,
                         blockOrigin + new Size(0, halfBlockSize),
-                        ref finalBlockIndex);
+                        ref finalBlockIndex,
+                        ref blockEncoder);
                 }
 
                 break;
@@ -173,7 +211,8 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     tileIndex,
                     blockOrigin,
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
 
                 if (modeInfoColumn + (blockSize.Get4x4WideCount() >> 1) < common.ModeInfoColumnCount)
                 {
@@ -185,7 +224,8 @@ internal partial class Av1TileWriter
                         coefficientBuffer,
                         tileIndex,
                         blockOrigin + new Size(halfBlockSize, 0),
-                        ref finalBlockIndex);
+                        ref finalBlockIndex,
+                        ref blockEncoder);
                 }
 
                 break;
@@ -200,7 +240,8 @@ internal partial class Av1TileWriter
                     subSize,
                     blockOrigin,
                     ref partitionIndex,
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
                 WritePartitionTree(
                     pcs,
                     entropyCodingContext,
@@ -211,7 +252,8 @@ internal partial class Av1TileWriter
                     subSize,
                     blockOrigin + new Size(halfBlockSize, 0),
                     ref partitionIndex,
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
                 WritePartitionTree(
                     pcs,
                     entropyCodingContext,
@@ -222,7 +264,8 @@ internal partial class Av1TileWriter
                     subSize,
                     blockOrigin + new Size(0, halfBlockSize),
                     ref partitionIndex,
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
                 WritePartitionTree(
                     pcs,
                     entropyCodingContext,
@@ -233,7 +276,8 @@ internal partial class Av1TileWriter
                     subSize,
                     blockOrigin + new Size(halfBlockSize, halfBlockSize),
                     ref partitionIndex,
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
 
                 break;
             case Av1PartitionType.HorizontalA:
@@ -245,7 +289,8 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     tileIndex,
                     blockOrigin,
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
@@ -254,7 +299,8 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     tileIndex,
                     blockOrigin + new Size(halfBlockSize, 0),
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
@@ -263,7 +309,8 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     tileIndex,
                     blockOrigin + new Size(0, halfBlockSize),
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
 
                 break;
             case Av1PartitionType.HorizontalB:
@@ -275,7 +322,8 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     tileIndex,
                     blockOrigin,
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
@@ -284,7 +332,8 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     tileIndex,
                     blockOrigin + new Size(0, halfBlockSize),
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
@@ -293,7 +342,8 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     tileIndex,
                     blockOrigin + new Size(halfBlockSize, halfBlockSize),
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
 
                 break;
             case Av1PartitionType.VerticalA:
@@ -305,7 +355,8 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     tileIndex,
                     blockOrigin,
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
@@ -314,7 +365,8 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     tileIndex,
                     blockOrigin + new Size(0, halfBlockSize),
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
@@ -323,7 +375,8 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     tileIndex,
                     blockOrigin + new Size(halfBlockSize, 0),
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
 
                 break;
             case Av1PartitionType.VerticalB:
@@ -335,7 +388,8 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     tileIndex,
                     blockOrigin,
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
@@ -344,7 +398,8 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     tileIndex,
                     blockOrigin + new Size(halfBlockSize, 0),
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
@@ -353,7 +408,8 @@ internal partial class Av1TileWriter
                     coefficientBuffer,
                     tileIndex,
                     blockOrigin + new Size(halfBlockSize, halfBlockSize),
-                    ref finalBlockIndex);
+                    ref finalBlockIndex,
+                    ref blockEncoder);
 
                 break;
             case Av1PartitionType.Horizontal4:
@@ -374,7 +430,8 @@ internal partial class Av1TileWriter
                         coefficientBuffer,
                         tileIndex,
                         childOrigin,
-                        ref finalBlockIndex);
+                        ref finalBlockIndex,
+                        ref blockEncoder);
                 }
 
                 break;
@@ -396,7 +453,8 @@ internal partial class Av1TileWriter
                         coefficientBuffer,
                         tileIndex,
                         childOrigin,
-                        ref finalBlockIndex);
+                        ref finalBlockIndex,
+                        ref blockEncoder);
                 }
 
                 break;
@@ -413,7 +471,7 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes the next final block selected by partition traversal.
     /// </summary>
-    private static void WriteFinalBlock(
+    private static void WriteFinalBlock<TBlockEncoder>(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
@@ -421,7 +479,9 @@ internal partial class Av1TileWriter
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
         Point blockOrigin,
-        ref int finalBlockIndex)
+        ref int finalBlockIndex,
+        ref TBlockEncoder blockEncoder)
+        where TBlockEncoder : struct, IBlockEncodingHandler
     {
         ref Av1EncoderBlockStruct block = ref superblock.FinalBlocks[finalBlockIndex++];
         WriteModesBlock(
@@ -432,7 +492,8 @@ internal partial class Av1TileWriter
             ref block,
             tileIndex,
             blockOrigin,
-            coefficientBuffer);
+            coefficientBuffer,
+            ref blockEncoder);
     }
 
     /// <summary>
@@ -614,7 +675,8 @@ internal partial class Av1TileWriter
     /// <param name="tile_idx">The zero-based tile index.</param>
     /// <param name="blockOrigin">The absolute luma-sample origin of the block.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
-    private static void WriteModesBlock(
+    /// <param name="blockEncoder">The final-block decision producer.</param>
+    private static void WriteModesBlock<TBlockEncoder>(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
@@ -622,7 +684,9 @@ internal partial class Av1TileWriter
         ref Av1EncoderBlockStruct blk_ptr,
         ushort tile_idx,
         Point blockOrigin,
-        Av1EncoderCoefficientBuffer coefficientBuffer)
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        ref TBlockEncoder blockEncoder)
+        where TBlockEncoder : struct, IBlockEncodingHandler
     {
         Av1SequenceControlSet scs = pcs.Sequence;
         ObuFrameHeader frm_hdr = pcs.Parent.FrameHeader;
@@ -635,7 +699,6 @@ internal partial class Av1TileWriter
         Point modeInfoPosition = new(mi_col, mi_row);
         ref Av1MacroBlockModeInfo macroBlockModeInfo = ref pcs.GetMacroBlockModeInfo(modeInfoPosition);
         Av1BlockSize blockSize = macroBlockModeInfo.Block.BlockSize;
-        bool skipWritingCoefficients = macroBlockModeInfo.Block.Skip;
         pcs.MapModeInfoBlock(modeInfoPosition, blockSize);
         Av1MacroBlockD macroBlock = entropyCodingContext.MacroBlock;
 
@@ -650,6 +713,17 @@ internal partial class Av1TileWriter
             mi_stride,
             pcs.Parent.Common.ModeInfoRowCount,
             pcs.Parent.Common.ModeInfoColumnCount);
+
+        // Producing the decision here exposes exactly the reconstructed neighbors, coefficient contexts,
+        // and adaptive probabilities that the following syntax writes.
+        blockEncoder.EncodeBlock(
+            writer,
+            macroBlock,
+            blockOrigin,
+            tile_idx,
+            ref macroBlockModeInfo,
+            ref blk_ptr);
+        bool skipWritingCoefficients = macroBlockModeInfo.Block.Skip;
 
         // This encoder path currently writes intra frames only, so every block follows the key-frame mode syntax.
         {
@@ -907,6 +981,30 @@ internal partial class Av1TileWriter
 
         above_ctx = IntraModeContextLookup[(int)intraLumaTopMode];
         left_ctx = IntraModeContextLookup[(int)intraLumaLeftMode];
+    }
+
+    /// <summary>
+    /// Gets the key-frame luma mode rate against the current neighboring modes and tile probabilities.
+    /// </summary>
+    /// <param name="writer">The live tile symbol encoder.</param>
+    /// <param name="macroBlock">The current block's mapped neighbor state.</param>
+    /// <param name="blockSize">The selected block size.</param>
+    /// <param name="mode">The candidate luma mode.</param>
+    /// <returns>The luma mode and zero-angle rate in 1/512-bit units.</returns>
+    public static int GetLumaModeCost(
+        Av1SymbolEncoder writer,
+        Av1MacroBlockD macroBlock,
+        Av1BlockSize blockSize,
+        Av1PredictionMode mode)
+    {
+        GetYModeContext(macroBlock, out byte topContext, out byte leftContext);
+        int cost = writer.GetLumaModeCost(mode, topContext, leftContext);
+        if (blockSize >= Av1BlockSize.Block8x8 && mode.IsDirectional())
+        {
+            cost += writer.GetAngleDeltaCost(Av1Constants.MaxAngleDelta, mode);
+        }
+
+        return cost;
     }
 
     /// <summary>
@@ -1731,8 +1829,8 @@ internal partial class Av1TileWriter
     /// <param name="skip">The skip value to write.</param>
     public static void EncodeSkipCoefficients(Av1SymbolEncoder writer, Av1MacroBlockD macroBlock, bool skip)
     {
-        int above_skip = macroBlock.IsUpAvailable && macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block.Skip ? 1 : 0;
-        int left_skip = macroBlock.IsLeftAvailable && macroBlock.GetRelativeModeInfo(-1).Block.Skip ? 1 : 0;
-        writer.WriteSkip(skip, above_skip + left_skip);
+        int aboveSkip = macroBlock.IsUpAvailable && macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block.Skip ? 1 : 0;
+        int leftSkip = macroBlock.IsLeftAvailable && macroBlock.GetRelativeModeInfo(-1).Block.Skip ? 1 : 0;
+        writer.WriteSkip(skip, aboveSkip + leftSkip);
     }
 }

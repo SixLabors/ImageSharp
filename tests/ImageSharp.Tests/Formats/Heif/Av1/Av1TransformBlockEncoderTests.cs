@@ -294,6 +294,65 @@ public class Av1TransformBlockEncoderTests
     }
 
     /// <summary>
+    /// Verifies that high-bit-depth candidate distortion follows the codec's pixel-domain normalization order.
+    /// </summary>
+    [Fact]
+    public void TwelveBitCandidateNormalizesSseBeforeTransformScaling()
+    {
+        const int Width = 8;
+        const int Height = 8;
+        ushort[] source = new ushort[Width * Height];
+        ushort[] reconstruction = new ushort[Width * Height];
+        ushort[] above = new ushort[Width];
+        ushort[] left = new ushort[Height];
+        int[] quantized = new int[Width * Height];
+        for (int x = 0; x < Width; x++)
+        {
+            above[x] = (ushort)(1000 + (x * 113));
+        }
+
+        for (int y = 0; y < Height; y++)
+        {
+            for (int x = 0; x < Width; x++)
+            {
+                source[(y * Width) + x] = (ushort)(above[x] + 1);
+            }
+        }
+
+        using Buffer2D<ushort> sourceBuffer = Buffer2D<ushort>.WrapMemory(source, Width, Height, Width);
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        Av1EncoderTransformBlockState state = default;
+        long distortion = Av1TransformBlockEncoder.EncodeIntraLossyCandidate(
+            workspace,
+            new Buffer2DRegion<ushort>(sourceBuffer),
+            Point.Empty,
+            reconstruction,
+            above,
+            left,
+            hasLeft: false,
+            hasAbove: true,
+            Av1PredictionMode.Vertical,
+            quantized,
+            Av1TransformSize.Size8x8,
+            Av1TransformType.DctDct,
+            qIndex: 255,
+            dcDeltaQ: 0,
+            acDeltaQ: 0,
+            Av1Plane.Y,
+            Av1BitDepth.TwelveBit,
+            ref state);
+
+        for (int y = 0; y < Height; y++)
+        {
+            Assert.True(above.AsSpan().SequenceEqual(reconstruction.AsSpan(y * Width, Width)));
+        }
+
+        // Rounding the 64-sample SSE before the transform-domain scale is observably different from scaling first.
+        Assert.Equal((ushort)0, state.EndOfBlock);
+        Assert.Equal(0, distortion);
+    }
+
+    /// <summary>
     /// Verifies that complete eight-bit and high-bit-depth DC block encoding uses only caller-owned storage.
     /// </summary>
     [Fact]
@@ -424,16 +483,20 @@ public class Av1TransformBlockEncoderTests
         FillResidual(workspace.Residual, width, height, 4095);
         Av1EncoderTransformBlockState state = default;
 
-        Av1TransformBlockEncoder.EncodeLossy(
-            workspace,
-            quantized,
-            transformSize,
-            Av1TransformType.DctDct,
-            73,
-            -1,
-            3,
-            Av1BitDepth.TwelveBit,
-            ref state);
+        // Cross tiered-compilation call thresholds before measuring the steady-state transform kernel.
+        for (int iteration = 0; iteration < 64; iteration++)
+        {
+            Av1TransformBlockEncoder.EncodeLossy(
+                workspace,
+                quantized,
+                transformSize,
+                Av1TransformType.DctDct,
+                73,
+                -1,
+                3,
+                Av1BitDepth.TwelveBit,
+                ref state);
+        }
 
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int iteration = 0; iteration < 16; iteration++)

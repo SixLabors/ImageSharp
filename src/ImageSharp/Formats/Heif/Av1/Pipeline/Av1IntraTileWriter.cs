@@ -37,7 +37,7 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
         Av1EncoderBlockWorkspace blockWorkspace,
         int initialSize)
     {
-        this.tileData = Encode<byte, ByteOperator>(
+        this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator>(
             configuration,
             source,
             reconstruction,
@@ -70,7 +70,7 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
         Av1EncoderBlockWorkspace blockWorkspace,
         int initialSize)
     {
-        this.tileData = Encode<ushort, UInt16Operator>(
+        this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(
             configuration,
             source,
             reconstruction,
@@ -109,7 +109,7 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
         int initialSize,
         out int tileDataLength)
         where TSample : unmanaged
-        where TOperator : struct, ITileEncodingOperator<TSample>
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
     {
         ObuFrameHeader frameHeader = picture.Parent.FrameHeader;
         ObuSequenceHeader sequenceHeader = picture.Sequence.SequenceHeader;
@@ -151,9 +151,12 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
                     modeInfoColumn << Av1Constants.ModeInfoSizeLog2,
                     modeInfoRow << Av1Constants.ModeInfoSizeLog2);
 
-                // Analyze immediately before entropy coding so the reusable decision workspace and reconstructed
-                // neighbors remain synchronized without a second superblock-sized decision allocation.
-                TOperator.EncodeSuperblock(
+                Av1IntraSuperblockEncoder.Prepare(
+                    picture,
+                    superblock,
+                    entropyContext.SuperblockOrigin);
+
+                Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator> blockEncoder = new(
                     source,
                     reconstruction,
                     picture,
@@ -167,7 +170,8 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
                     writer,
                     superblock,
                     coefficientBuffer,
-                    TileIndex);
+                    TileIndex,
+                    ref blockEncoder);
             }
         }
 

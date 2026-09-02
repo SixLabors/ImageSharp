@@ -1,0 +1,397 @@
+// Copyright (c) Six Labors.
+// Licensed under the Six Labors Split License.
+
+using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Memory;
+
+namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+
+/// <content>
+/// Provides live-probability final-block mode decisions for intra encoding.
+/// </content>
+internal static partial class Av1IntraSuperblockEncoder
+{
+    /// <summary>
+    /// Builds the fixed 8x8 partition skeleton consumed by interleaved mode decision and tile writing.
+    /// </summary>
+    /// <param name="picture">The frame coding and mode-information state.</param>
+    /// <param name="superblock">The reusable partition and final-block decisions.</param>
+    /// <param name="superblockOrigin">The absolute luma-sample origin of the superblock.</param>
+    public static void Prepare(
+        Av1PictureControlSet picture,
+        Av1Superblock superblock,
+        Point superblockOrigin)
+    {
+        superblock.Workspace.Reset();
+        int partitionIndex = 0;
+        PreparePartitionTree(
+            picture,
+            superblock,
+            superblockOrigin,
+            picture.Sequence.SequenceHeader.SuperblockSize,
+            ref partitionIndex);
+    }
+
+    private static void PreparePartitionTree(
+        Av1PictureControlSet picture,
+        Av1Superblock superblock,
+        Point blockOrigin,
+        Av1BlockSize blockSize,
+        ref int partitionIndex)
+    {
+        Av1EncoderCommon common = picture.Parent.Common;
+        Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+        if (modeInfoPosition.Y >= common.ModeInfoRowCount || modeInfoPosition.X >= common.ModeInfoColumnCount)
+        {
+            return;
+        }
+
+        if (blockSize == Av1BlockSize.Block8x8)
+        {
+            superblock.CodingUnitPartitionTypes[partitionIndex++] = (byte)Av1PartitionType.None;
+            ref Av1MacroBlockModeInfo modeInfo = ref picture.GetMacroBlockModeInfo(modeInfoPosition);
+            modeInfo.Block = new Av1EncoderBlockModeInfo
+            {
+                BlockSize = Av1BlockSize.Block8x8,
+                PartitionType = Av1PartitionType.None
+            };
+
+            return;
+        }
+
+        superblock.CodingUnitPartitionTypes[partitionIndex++] = (byte)Av1PartitionType.Split;
+        Av1BlockSize subSize = Av1PartitionType.Split.GetBlockSubSize(blockSize);
+        int halfBlockSize = blockSize.GetWidth() >> 1;
+
+        // The same preorder drives partition symbols, block decisions, and coefficient offsets.
+        PreparePartitionTree(picture, superblock, blockOrigin, subSize, ref partitionIndex);
+        PreparePartitionTree(picture, superblock, blockOrigin + new Size(halfBlockSize, 0), subSize, ref partitionIndex);
+        PreparePartitionTree(picture, superblock, blockOrigin + new Size(0, halfBlockSize), subSize, ref partitionIndex);
+        PreparePartitionTree(picture, superblock, blockOrigin + new Size(halfBlockSize, halfBlockSize), subSize, ref partitionIndex);
+    }
+
+    /// <summary>
+    /// Produces one final block at a time against the tile state immediately preceding its syntax.
+    /// </summary>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TOperator">The type-specific block encoding operations.</typeparam>
+    internal struct ModeDecision<TSample, TOperator> : Av1TileWriter.IBlockEncodingHandler
+        where TSample : unmanaged
+        where TOperator : struct, IBlockEncodingOperator<TSample>
+    {
+        private readonly Av1EncoderFrame<TSample>.PlanarView source;
+        private readonly Av1EncoderFrame<TSample>.PlanarView reconstruction;
+        private readonly Av1PictureControlSet picture;
+        private readonly Av1Superblock superblock;
+        private readonly Av1EncoderCoefficientBuffer coefficientBuffer;
+        private readonly Av1EncoderBlockWorkspace blockWorkspace;
+        private readonly ObuQuantizationParameters quantization;
+        private readonly Av1BitDepth bitDepth;
+        private readonly int rateMultiplier;
+        private int codedAreaLuma;
+        private int codedAreaChroma;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="ModeDecision{TSample, TOperator}"/> struct.
+        /// </summary>
+        /// <param name="source">The coded source frame.</param>
+        /// <param name="reconstruction">The reconstructed frame updated by winning candidates.</param>
+        /// <param name="picture">The frame coding and mode-information state.</param>
+        /// <param name="superblock">The current superblock.</param>
+        /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
+        /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
+        public ModeDecision(
+            Av1EncoderFrame<TSample> source,
+            Av1EncoderFrame<TSample> reconstruction,
+            Av1PictureControlSet picture,
+            Av1Superblock superblock,
+            Av1EncoderCoefficientBuffer coefficientBuffer,
+            Av1EncoderBlockWorkspace blockWorkspace)
+        {
+            this.source = source.CodedView;
+            this.reconstruction = reconstruction.CodedView;
+            this.picture = picture;
+            this.superblock = superblock;
+            this.coefficientBuffer = coefficientBuffer;
+            this.blockWorkspace = blockWorkspace;
+            this.quantization = picture.Parent.FrameHeader.QuantizationParameters;
+            this.bitDepth = picture.Sequence.SequenceHeader.ColorConfig.BitDepth;
+            this.rateMultiplier = Av1RateDistortion.GetKeyFrameRateMultiplier(this.quantization.QIndex[0], this.bitDepth);
+            this.codedAreaLuma = 0;
+            this.codedAreaChroma = 0;
+        }
+
+        /// <inheritdoc/>
+        public void EncodeBlock(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            ref Av1MacroBlockModeInfo modeInfo,
+            ref Av1EncoderBlockStruct block)
+        {
+            const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
+            const Av1TransformSize LumaTransformSize = Av1TransformSize.Size8x8;
+            int qIndex = this.quantization.QIndex[0];
+            modeInfo.Block = new Av1EncoderBlockModeInfo
+            {
+                BlockSize = BlockSize,
+                PartitionType = Av1PartitionType.None,
+                SegmentId = 0,
+                TransformSize = LumaTransformSize,
+                Mode = Av1PredictionMode.DC,
+                UvMode = Av1ChromaPredictionMode.DC
+            };
+
+            modeInfo.CdefStrength = 0;
+            block.HasChroma = !this.source.IsMonochrome;
+            block.QuantizationIndex = qIndex;
+            block.SegmentId = 0;
+
+            Span<int> lumaCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.Y);
+            Span<Av1EncoderTransformBlockState> lumaTransformBlocks =
+                this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.Y);
+
+            int lumaTransformIndex = this.codedAreaLuma /
+                Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+
+            ref Av1EncoderTransformBlockState lumaState = ref lumaTransformBlocks[lumaTransformIndex];
+            modeInfo.Block.Mode = this.SelectLumaMode(
+                writer,
+                macroBlock,
+                blockOrigin,
+                tileIndex,
+                lumaCoefficients[this.codedAreaLuma..],
+                ref lumaState);
+
+            this.codedAreaLuma += LumaTransformSize.GetSize2d();
+            bool skipTransform = lumaState.EndOfBlock == 0;
+            if (this.source.IsMonochrome)
+            {
+                modeInfo.Block.Skip = skipTransform;
+                return;
+            }
+
+            ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
+            int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
+            int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
+            Point chromaOrigin = new(blockOrigin.X >> subsamplingX, blockOrigin.Y >> subsamplingY);
+            Av1TransformSize chromaTransformSize = BlockSize.GetMaxUvTransformSize(
+                colorConfig.SubSamplingX,
+                colorConfig.SubSamplingY);
+
+            Span<int> blueCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.U);
+            Span<int> redCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.V);
+            Span<Av1EncoderTransformBlockState> blueTransformBlocks =
+                this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.U);
+            Span<Av1EncoderTransformBlockState> redTransformBlocks =
+                this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.V);
+
+            int chromaTransformIndex = this.codedAreaChroma /
+                Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+
+            ref Av1EncoderTransformBlockState blueState = ref blueTransformBlocks[chromaTransformIndex];
+            ref Av1EncoderTransformBlockState redState = ref redTransformBlocks[chromaTransformIndex];
+            EncodePlaneBlock<TSample, TOperator>(
+                this.source,
+                this.reconstruction,
+                this.blockWorkspace,
+                this.quantization,
+                this.bitDepth,
+                Av1Plane.U,
+                chromaOrigin,
+                chromaTransformSize,
+                blueCoefficients[this.codedAreaChroma..],
+                ref blueState);
+
+            EncodePlaneBlock<TSample, TOperator>(
+                this.source,
+                this.reconstruction,
+                this.blockWorkspace,
+                this.quantization,
+                this.bitDepth,
+                Av1Plane.V,
+                chromaOrigin,
+                chromaTransformSize,
+                redCoefficients[this.codedAreaChroma..],
+                ref redState);
+
+            // A block-level skip suppresses every coefficient symbol, so all coded planes must be empty.
+            modeInfo.Block.Skip = skipTransform && blueState.EndOfBlock == 0 && redState.EndOfBlock == 0;
+            this.codedAreaChroma += chromaTransformSize.GetSize2d();
+        }
+
+        private Av1PredictionMode SelectLumaMode(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Span<int> retainedCoefficients,
+            ref Av1EncoderTransformBlockState retainedState)
+        {
+            const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
+            const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
+            const int SampleCount = 8 * 8;
+            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Buffer2DRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
+            bool hasLeft = macroBlock.IsLeftAvailable;
+            bool hasAbove = macroBlock.IsUpAvailable;
+            ReadOnlySpan<TSample> above = hasAbove
+                ? reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1).Slice(blockOrigin.X, 8)
+                : [];
+
+            Span<TSample> left = stackalloc TSample[8];
+            if (hasLeft)
+            {
+                for (int row = 0; row < left.Length; row++)
+                {
+                    left[row] = reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
+                }
+            }
+
+            Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
+                Av1ComponentType.Luminance,
+                this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
+                blockOrigin,
+                BlockSize,
+                TransformSize);
+
+            Span<TSample> candidateReconstruction = stackalloc TSample[SampleCount];
+            Span<int> candidateCoefficients = stackalloc int[SampleCount];
+            Av1EncoderTransformBlockState candidateState = default;
+            long bestCost = this.GetLumaCandidateCost(
+                writer,
+                macroBlock,
+                sourcePlane,
+                blockOrigin,
+                above,
+                left,
+                hasLeft,
+                hasAbove,
+                Av1PredictionMode.DC,
+                blockContext,
+                candidateReconstruction,
+                candidateCoefficients,
+                ref candidateState);
+
+            CopyCandidate(
+                candidateReconstruction,
+                candidateCoefficients,
+                reconstructionPlane,
+                blockOrigin,
+                retainedCoefficients,
+                candidateState,
+                ref retainedState);
+
+            Av1PredictionMode bestMode = Av1PredictionMode.DC;
+            if (hasAbove)
+            {
+                candidateState = default;
+                long verticalCost = this.GetLumaCandidateCost(
+                    writer,
+                    macroBlock,
+                    sourcePlane,
+                    blockOrigin,
+                    above,
+                    left,
+                    hasLeft,
+                    hasAbove,
+                    Av1PredictionMode.Vertical,
+                    blockContext,
+                    candidateReconstruction,
+                    candidateCoefficients,
+                    ref candidateState);
+
+                if (verticalCost < bestCost)
+                {
+                    CopyCandidate(
+                        candidateReconstruction,
+                        candidateCoefficients,
+                        reconstructionPlane,
+                        blockOrigin,
+                        retainedCoefficients,
+                        candidateState,
+                        ref retainedState);
+
+                    bestMode = Av1PredictionMode.Vertical;
+                }
+            }
+
+            return bestMode;
+        }
+
+        private long GetLumaCandidateCost(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Buffer2DRegion<TSample> sourcePlane,
+            Point blockOrigin,
+            ReadOnlySpan<TSample> above,
+            ReadOnlySpan<TSample> left,
+            bool hasLeft,
+            bool hasAbove,
+            Av1PredictionMode mode,
+            Av1TransformBlockContext blockContext,
+            Span<TSample> candidateReconstruction,
+            Span<int> candidateCoefficients,
+            ref Av1EncoderTransformBlockState candidateState)
+        {
+            const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
+            const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
+            long distortion = TOperator.EncodeCandidate(
+                this.blockWorkspace,
+                sourcePlane,
+                blockOrigin,
+                candidateReconstruction,
+                above,
+                left,
+                hasLeft,
+                hasAbove,
+                mode,
+                candidateCoefficients,
+                TransformSize,
+                this.quantization.QIndex[0],
+                this.quantization.DeltaQDc[(int)Av1Plane.Y],
+                this.quantization.DeltaQAc[(int)Av1Plane.Y],
+                this.bitDepth,
+                ref candidateState);
+
+            int rate = Av1TileWriter.GetLumaModeCost(writer, macroBlock, BlockSize, mode);
+            rate += writer.GetCoefficientCost(
+                TransformSize,
+                Av1TransformType.DctDct,
+                mode,
+                candidateCoefficients,
+                Av1ComponentType.Luminance,
+                blockContext,
+                candidateState.EndOfBlock,
+                this.picture.Parent.FrameHeader.UseReducedTransformSet,
+                Av1FilterIntraMode.AllFilterIntraModes);
+
+            return Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
+        }
+
+        private static void CopyCandidate(
+            ReadOnlySpan<TSample> candidateReconstruction,
+            ReadOnlySpan<int> candidateCoefficients,
+            Buffer2DRegion<TSample> reconstructionPlane,
+            Point blockOrigin,
+            Span<int> retainedCoefficients,
+            Av1EncoderTransformBlockState candidateState,
+            ref Av1EncoderTransformBlockState retainedState)
+        {
+            const int Width = 8;
+            candidateCoefficients.CopyTo(retainedCoefficients);
+            for (int row = 0; row < Width; row++)
+            {
+                candidateReconstruction.Slice(row * Width, Width)
+                    .CopyTo(reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row).Slice(blockOrigin.X, Width));
+            }
+
+            retainedState = candidateState;
+        }
+    }
+}

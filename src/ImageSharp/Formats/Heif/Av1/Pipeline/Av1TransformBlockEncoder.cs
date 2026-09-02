@@ -55,7 +55,7 @@ internal static class Av1TransformBlockEncoder
         ReadOnlySpan<byte> sourceSamples = GetPlaneSpan(source, blockOrigin);
         Span<byte> reconstructionSamples = GetPlaneSpan(reconstruction, blockOrigin);
 
-        EncodeIntraDcLossyContiguous(
+        EncodeIntraLossyContiguous(
             workspace,
             sourceSamples,
             source.Stride,
@@ -65,6 +65,7 @@ internal static class Av1TransformBlockEncoder
             left,
             hasLeft,
             hasAbove,
+            Av1PredictionMode.DC,
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -73,6 +74,83 @@ internal static class Av1TransformBlockEncoder
             acDeltaQ,
             plane,
             ref state);
+    }
+
+    /// <summary>
+    /// Encodes one eight-bit intra candidate into contiguous decision scratch.
+    /// </summary>
+    /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
+    /// <param name="source">The coded source plane.</param>
+    /// <param name="blockOrigin">The block origin in plane samples.</param>
+    /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
+    /// <param name="above">The contiguous top reference samples.</param>
+    /// <param name="left">The contiguous left reference samples.</param>
+    /// <param name="hasLeft">Whether the left reference is available.</param>
+    /// <param name="hasAbove">Whether the top reference is available.</param>
+    /// <param name="mode">The intra prediction mode.</param>
+    /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
+    /// <param name="transformSize">The selected transform dimensions.</param>
+    /// <param name="transformType">The selected compound transform type.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
+    /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
+    /// <param name="plane">The component plane containing the block.</param>
+    /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
+    public static long EncodeIntraLossyCandidate(
+        Av1EncoderBlockWorkspace workspace,
+        Buffer2DRegion<byte> source,
+        Point blockOrigin,
+        Span<byte> reconstruction,
+        ReadOnlySpan<byte> above,
+        ReadOnlySpan<byte> left,
+        bool hasLeft,
+        bool hasAbove,
+        Av1PredictionMode mode,
+        Span<int> quantizedCoefficients,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        int qIndex,
+        int dcDeltaQ,
+        int acDeltaQ,
+        Av1Plane plane,
+        ref Av1EncoderTransformBlockState state)
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        ReadOnlySpan<byte> sourceSamples = GetPlaneSpan(source, blockOrigin);
+
+        EncodeIntraLossyContiguous(
+            workspace,
+            sourceSamples,
+            source.Stride,
+            reconstruction,
+            width,
+            above,
+            left,
+            hasLeft,
+            hasAbove,
+            mode,
+            quantizedCoefficients,
+            transformSize,
+            transformType,
+            qIndex,
+            dcDeltaQ,
+            acDeltaQ,
+            plane,
+            ref state);
+
+        Av1ResidualBuilder.Subtract(
+            sourceSamples,
+            source.Stride,
+            reconstruction,
+            width,
+            workspace.Residual,
+            width,
+            width,
+            height);
+
+        return Av1ResidualBuilder.SumSquares(workspace.Residual[..transformSize.GetSize2d()]) << 4;
     }
 
     /// <summary>
@@ -117,7 +195,7 @@ internal static class Av1TransformBlockEncoder
         ReadOnlySpan<ushort> sourceSamples = GetPlaneSpan(source, blockOrigin);
         Span<ushort> reconstructionSamples = GetPlaneSpan(reconstruction, blockOrigin);
 
-        EncodeIntraDcLossyContiguous(
+        EncodeIntraLossyContiguous(
             workspace,
             sourceSamples,
             source.Stride,
@@ -127,6 +205,7 @@ internal static class Av1TransformBlockEncoder
             left,
             hasLeft,
             hasAbove,
+            Av1PredictionMode.DC,
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -139,7 +218,93 @@ internal static class Av1TransformBlockEncoder
     }
 
     /// <summary>
-    /// Encodes and reconstructs one eight-bit lossy DC intra block.
+    /// Encodes one high-bit-depth intra candidate into contiguous decision scratch.
+    /// </summary>
+    /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
+    /// <param name="source">The coded source plane.</param>
+    /// <param name="blockOrigin">The block origin in plane samples.</param>
+    /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
+    /// <param name="above">The contiguous top reference samples.</param>
+    /// <param name="left">The contiguous left reference samples.</param>
+    /// <param name="hasLeft">Whether the left reference is available.</param>
+    /// <param name="hasAbove">Whether the top reference is available.</param>
+    /// <param name="mode">The intra prediction mode.</param>
+    /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
+    /// <param name="transformSize">The selected transform dimensions.</param>
+    /// <param name="transformType">The selected compound transform type.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
+    /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
+    /// <param name="plane">The component plane containing the block.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="state">The candidate transform type and end-of-block syntax.</param>
+    /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
+    public static long EncodeIntraLossyCandidate(
+        Av1EncoderBlockWorkspace workspace,
+        Buffer2DRegion<ushort> source,
+        Point blockOrigin,
+        Span<ushort> reconstruction,
+        ReadOnlySpan<ushort> above,
+        ReadOnlySpan<ushort> left,
+        bool hasLeft,
+        bool hasAbove,
+        Av1PredictionMode mode,
+        Span<int> quantizedCoefficients,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        int qIndex,
+        int dcDeltaQ,
+        int acDeltaQ,
+        Av1Plane plane,
+        Av1BitDepth bitDepth,
+        ref Av1EncoderTransformBlockState state)
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        ReadOnlySpan<ushort> sourceSamples = GetPlaneSpan(source, blockOrigin);
+
+        EncodeIntraLossyContiguous(
+            workspace,
+            sourceSamples,
+            source.Stride,
+            reconstruction,
+            width,
+            above,
+            left,
+            hasLeft,
+            hasAbove,
+            mode,
+            quantizedCoefficients,
+            transformSize,
+            transformType,
+            qIndex,
+            dcDeltaQ,
+            acDeltaQ,
+            plane,
+            bitDepth,
+            ref state);
+
+        Av1ResidualBuilder.Subtract(
+            sourceSamples,
+            source.Stride,
+            reconstruction,
+            width,
+            workspace.Residual,
+            width,
+            width,
+            height);
+
+        long distortion = Av1ResidualBuilder.SumSquares(workspace.Residual[..transformSize.GetSize2d()]);
+        int shift = (bitDepth.GetBitCount() - 8) * 2;
+        long normalizedDistortion = shift == 0
+            ? distortion
+            : (distortion + (1L << (shift - 1))) >> shift;
+
+        return normalizedDistortion << 4;
+    }
+
+    /// <summary>
+    /// Encodes and reconstructs one eight-bit lossy intra block.
     /// </summary>
     /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
     /// <param name="source">The source samples.</param>
@@ -150,6 +315,7 @@ internal static class Av1TransformBlockEncoder
     /// <param name="left">The contiguous left reference samples.</param>
     /// <param name="hasLeft">Whether the left reference is available.</param>
     /// <param name="hasAbove">Whether the top reference is available.</param>
+    /// <param name="mode">The intra prediction mode.</param>
     /// <param name="quantizedCoefficients">The retained entropy-coding coefficients.</param>
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
@@ -158,7 +324,7 @@ internal static class Av1TransformBlockEncoder
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="plane">The component plane containing the block.</param>
     /// <param name="state">The retained transform type and end-of-block syntax.</param>
-    private static void EncodeIntraDcLossyContiguous(
+    private static void EncodeIntraLossyContiguous(
         Av1EncoderBlockWorkspace workspace,
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -168,6 +334,7 @@ internal static class Av1TransformBlockEncoder
         ReadOnlySpan<byte> left,
         bool hasLeft,
         bool hasAbove,
+        Av1PredictionMode mode,
         Span<int> quantizedCoefficients,
         Av1TransformSize transformSize,
         Av1TransformType transformType,
@@ -181,7 +348,16 @@ internal static class Av1TransformBlockEncoder
         int height = transformSize.GetHeight();
 
         // Prediction and subtraction stay in their SIMD-first operators while this method owns the required block-stage ordering.
-        Av1DcIntraPredictor.Predict(hasLeft, hasAbove, reconstruction, reconstructionStride, above, left, width, height);
+        if (mode == Av1PredictionMode.DC)
+        {
+            Av1DcIntraPredictor.Predict(hasLeft, hasAbove, reconstruction, reconstructionStride, above, left, width, height);
+        }
+        else
+        {
+            Av1NonDirectionalIntraPredictorBase.GetPredictor(mode)
+                .Predict(reconstruction, reconstructionStride, above, left, width, height);
+        }
+
         Av1ResidualBuilder.Subtract(source, sourceStride, reconstruction, reconstructionStride, workspace.Residual, width, width, height);
 
         EncodeLossy(
@@ -212,7 +388,7 @@ internal static class Av1TransformBlockEncoder
     }
 
     /// <summary>
-    /// Encodes and reconstructs one high-bit-depth lossy DC intra block.
+    /// Encodes and reconstructs one high-bit-depth lossy intra block.
     /// </summary>
     /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
     /// <param name="source">The source samples.</param>
@@ -223,6 +399,7 @@ internal static class Av1TransformBlockEncoder
     /// <param name="left">The contiguous left reference samples.</param>
     /// <param name="hasLeft">Whether the left reference is available.</param>
     /// <param name="hasAbove">Whether the top reference is available.</param>
+    /// <param name="mode">The intra prediction mode.</param>
     /// <param name="quantizedCoefficients">The retained entropy-coding coefficients.</param>
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
@@ -232,7 +409,7 @@ internal static class Av1TransformBlockEncoder
     /// <param name="plane">The component plane containing the block.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
     /// <param name="state">The retained transform type and end-of-block syntax.</param>
-    private static void EncodeIntraDcLossyContiguous(
+    private static void EncodeIntraLossyContiguous(
         Av1EncoderBlockWorkspace workspace,
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -242,6 +419,7 @@ internal static class Av1TransformBlockEncoder
         ReadOnlySpan<ushort> left,
         bool hasLeft,
         bool hasAbove,
+        Av1PredictionMode mode,
         Span<int> quantizedCoefficients,
         Av1TransformSize transformSize,
         Av1TransformType transformType,
@@ -259,16 +437,24 @@ internal static class Av1TransformBlockEncoder
         Span<short> signedReconstruction = MemoryMarshal.Cast<ushort, short>(reconstruction);
         ReadOnlySpan<short> signedAbove = MemoryMarshal.Cast<ushort, short>(above);
         ReadOnlySpan<short> signedLeft = MemoryMarshal.Cast<ushort, short>(left);
-        Av1DcIntraPredictor.Predict(
-            hasLeft,
-            hasAbove,
-            signedReconstruction,
-            reconstructionStride,
-            signedAbove,
-            signedLeft,
-            width,
-            height,
-            bitDepth.GetBitCount());
+        if (mode == Av1PredictionMode.DC)
+        {
+            Av1DcIntraPredictor.Predict(
+                hasLeft,
+                hasAbove,
+                signedReconstruction,
+                reconstructionStride,
+                signedAbove,
+                signedLeft,
+                width,
+                height,
+                bitDepth.GetBitCount());
+        }
+        else
+        {
+            Av1NonDirectionalIntraPredictorBase.GetPredictor(mode)
+                .Predict(signedReconstruction, reconstructionStride, signedAbove, signedLeft, width, height);
+        }
 
         Av1ResidualBuilder.Subtract(
             source,

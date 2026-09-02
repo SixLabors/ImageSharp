@@ -303,10 +303,18 @@ public class Av1IntraSuperblockEncoderTests
         }
 
         using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, Width, Height, disallow4x4AllFrames: true);
-        Av1PictureControlSet picture = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, qIndex: 37);
+        Av1PictureControlSet pictureTemplate = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, qIndex: 37);
+        using Av1EncoderPictureBuffer pictureBuffer = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            pictureTemplate.Parent.FrameHeader,
+            Width,
+            Height);
+
+        Av1PictureControlSet picture = pictureBuffer.Picture;
         using Av1EncoderCoefficientBuffer coefficients = new(
             Configuration.Default,
-            picture.Sequence.SequenceHeader,
+            pictureTemplate.Sequence.SequenceHeader,
             Width,
             Height);
 
@@ -335,6 +343,66 @@ public class Av1IntraSuperblockEncoderTests
             Assert.Equal((ushort)0, coefficients.GetTransformBlockSpan(0, Av1Plane.U)[0].EndOfBlock);
             Assert.Equal((ushort)0, coefficients.GetTransformBlockSpan(0, Av1Plane.V)[0].EndOfBlock);
         }
+
+        Av1TileWriter.Av1EntropyCodingContext entropyContext = new()
+        {
+            MacroBlock = new Av1MacroBlockD { Tile = superblock.TileInfo },
+            MacroBlockModeInfo = picture.GetMacroBlockModeInfo(default),
+            SuperblockOrigin = default
+        };
+
+        using Av1SymbolEncoder writer = new(Configuration.Default, 256, 37);
+        Av1TileWriter.WriteSuperblock(
+            picture,
+            entropyContext,
+            writer,
+            superblock,
+            coefficients,
+            tileIndex: 0);
+
+        using IMemoryOwner<byte> precomputedTile = writer.Exit();
+        using Av1EncoderFrameBuffer<byte> liveReconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            colorFormat,
+            1,
+            1);
+
+        ClearPlane(liveReconstruction.Luma);
+        if (!isMonochrome)
+        {
+            ClearPlane(Assert.IsType<Buffer2D<byte>>(liveReconstruction.ChromaBlue));
+            ClearPlane(Assert.IsType<Buffer2D<byte>>(liveReconstruction.ChromaRed));
+        }
+
+        using Av1EncoderPictureBuffer livePicture = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            pictureTemplate.Parent.FrameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderCoefficientBuffer liveCoefficients = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            Width,
+            Height);
+
+        using Av1EncoderSuperblockWorkspace liveSuperblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace liveBlockWorkspace = new(Configuration.Default);
+        using Av1IntraTileWriter liveTileWriter = new(
+            Configuration.Default,
+            source.Frame,
+            liveReconstruction.Frame,
+            livePicture.Picture,
+            liveCoefficients,
+            liveSuperblockWorkspace,
+            liveBlockWorkspace,
+            initialSize: 256);
+
+        Assert.True(precomputedTile.GetSpan().SequenceEqual(liveTileWriter.GetTileData(0)));
     }
 
     [Fact]
@@ -463,6 +531,150 @@ public class Av1IntraSuperblockEncoderTests
             .DangerousGetRowSpan(0)[0];
 
         Assert.InRange(reconstructedSample, (ushort)(byte.MaxValue + 1), (ushort)4095);
+    }
+
+    [Fact]
+    public void BlockDecisionObservesLiveCdfInWriterOrder()
+    {
+        const int Width = 16;
+        const int Height = 8;
+        const int QIndex = 37;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = true,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = Av1BitDepth.EightBit,
+        };
+
+        using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, Width, Height, disallow4x4AllFrames: true);
+        Av1PictureControlSet pictureTemplate = CreatePicture(
+            modeInfo,
+            colorConfig,
+            use128x128Superblock: false,
+            QIndex);
+
+        using Av1EncoderPictureBuffer picture = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            pictureTemplate.Parent.FrameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderCoefficientBuffer coefficients = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            Width,
+            Height);
+
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+        Av1Superblock superblock = new()
+        {
+            Workspace = superblockWorkspace,
+            TileInfo = new Av1TileInfo(0, 0, picture.Picture.Parent.FrameHeader),
+            Index = 0,
+        };
+
+        Av1IntraSuperblockEncoder.Prepare(picture.Picture, superblock, Point.Empty);
+        Av1TileWriter.Av1EntropyCodingContext entropyContext = new()
+        {
+            MacroBlock = new Av1MacroBlockD { Tile = superblock.TileInfo },
+            MacroBlockModeInfo = picture.Picture.GetMacroBlockModeInfo(default),
+            SuperblockOrigin = default,
+        };
+
+        int[] costs = new int[2];
+        BlockCostRecorder blockEncoder = new(costs, QIndex);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 256, QIndex);
+        Av1TileWriter.WriteSuperblock(
+            picture.Picture,
+            entropyContext,
+            writer,
+            superblock,
+            coefficients,
+            tileIndex: 0,
+            ref blockEncoder);
+
+        using IMemoryOwner<byte> encoded = writer.Exit();
+        Assert.Equal(2, blockEncoder.Count);
+        Assert.True(costs[1] < costs[0]);
+        Assert.NotEqual(0, encoded.GetSpan().Length);
+    }
+
+    [Fact]
+    public void ProductionTileSelectsVerticalFromCurrentReconstruction()
+    {
+        const int Width = 8;
+        const int Height = 16;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = true,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        using Av1EncoderFrameBuffer<byte> source = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        Buffer2DRegion<byte> sourcePlane = source.Frame.CodedView.GetPlane(Av1Plane.Y);
+        for (int y = 0; y < Height; y++)
+        {
+            Span<byte> row = sourcePlane.DangerousGetRowSpan(y);
+            for (int x = 0; x < Width; x++)
+            {
+                row[x] = (byte)(24 + (x * 29));
+            }
+        }
+
+        ClearPlane(reconstruction.Luma);
+        using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, Width, Height, disallow4x4AllFrames: true);
+        Av1PictureControlSet pictureTemplate = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, qIndex: 37);
+        using Av1EncoderPictureBuffer picture = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            pictureTemplate.Parent.FrameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderCoefficientBuffer coefficients = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            Width,
+            Height);
+
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        using Av1IntraTileWriter tileWriter = new(
+            Configuration.Default,
+            source.Frame,
+            reconstruction.Frame,
+            picture.Picture,
+            coefficients,
+            superblockWorkspace,
+            blockWorkspace,
+            initialSize: 512);
+
+        ref Av1MacroBlockModeInfo firstBlock = ref picture.Picture.GetMacroBlockModeInfo(default);
+        ref Av1MacroBlockModeInfo secondBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(0, 2));
+        Assert.Equal(Av1PredictionMode.DC, firstBlock.Block.Mode);
+        Assert.Equal(Av1PredictionMode.Vertical, secondBlock.Block.Mode);
+        Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
     }
 
     [Fact]
@@ -667,5 +879,62 @@ public class Av1IntraSuperblockEncoderTests
         }
 
         Assert.True(containsNonzero);
+    }
+
+    /// <summary>
+    /// Records the live luma-mode cost while supplying an all-skipped final block.
+    /// </summary>
+    private struct BlockCostRecorder : Av1TileWriter.IBlockEncodingHandler
+    {
+        private readonly int[] costs;
+        private readonly int qIndex;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="BlockCostRecorder"/> struct.
+        /// </summary>
+        /// <param name="costs">The destination for costs observed in writer order.</param>
+        /// <param name="qIndex">The block quantizer index.</param>
+        public BlockCostRecorder(int[] costs, int qIndex)
+        {
+            this.costs = costs;
+            this.qIndex = qIndex;
+            this.Count = 0;
+        }
+
+        /// <summary>
+        /// Gets the number of final blocks visited by the writer.
+        /// </summary>
+        public int Count { get; private set; }
+
+        /// <inheritdoc/>
+        public void EncodeBlock(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            ref Av1MacroBlockModeInfo modeInfo,
+            ref Av1EncoderBlockStruct block)
+        {
+            this.costs[this.Count++] = Av1TileWriter.GetLumaModeCost(
+                writer,
+                macroBlock,
+                Av1BlockSize.Block8x8,
+                Av1PredictionMode.DC);
+
+            modeInfo.Block = new Av1EncoderBlockModeInfo
+            {
+                BlockSize = Av1BlockSize.Block8x8,
+                PartitionType = Av1PartitionType.None,
+                SegmentId = 0,
+                Skip = true,
+                TransformSize = Av1TransformSize.Size8x8,
+                Mode = Av1PredictionMode.DC,
+                UvMode = Av1ChromaPredictionMode.DC,
+            };
+
+            block.HasChroma = false;
+            block.QuantizationIndex = this.qIndex;
+            block.SegmentId = 0;
+        }
     }
 }

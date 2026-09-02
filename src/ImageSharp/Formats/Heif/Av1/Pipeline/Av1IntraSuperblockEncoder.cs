@@ -77,6 +77,59 @@ internal static partial class Av1IntraSuperblockEncoder
         traversal.EncodePartitionTree(superblockOrigin, picture.Sequence.SequenceHeader.SuperblockSize);
     }
 
+    private static void EncodePlaneBlock<TSample, TOperator>(
+        Av1EncoderFrame<TSample>.PlanarView source,
+        Av1EncoderFrame<TSample>.PlanarView reconstruction,
+        Av1EncoderBlockWorkspace blockWorkspace,
+        ObuQuantizationParameters quantization,
+        Av1BitDepth bitDepth,
+        Av1Plane plane,
+        Point blockOrigin,
+        Av1TransformSize transformSize,
+        Span<int> coefficients,
+        ref Av1EncoderTransformBlockState state)
+        where TSample : unmanaged
+        where TOperator : struct, IBlockEncodingOperator<TSample>
+    {
+        Buffer2DRegion<TSample> sourcePlane = source.GetPlane(plane);
+        Buffer2DRegion<TSample> reconstructionPlane = reconstruction.GetPlane(plane);
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        bool hasLeft = blockOrigin.X > 0;
+        bool hasAbove = blockOrigin.Y > 0;
+        ReadOnlySpan<TSample> above = hasAbove
+            ? reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1).Slice(blockOrigin.X, width)
+            : [];
+
+        Span<TSample> left = TOperator.GetLeftReference(blockWorkspace.Residual, height);
+        if (hasLeft)
+        {
+            for (int row = 0; row < height; row++)
+            {
+                left[row] = reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
+            }
+        }
+
+        // Prediction consumes every gathered reference before residual construction reuses the same workspace bytes.
+        TOperator.Encode(
+            blockWorkspace,
+            sourcePlane,
+            reconstructionPlane,
+            blockOrigin,
+            above,
+            left,
+            hasLeft,
+            hasAbove,
+            coefficients,
+            transformSize,
+            quantization.QIndex[0],
+            quantization.DeltaQDc[(int)plane],
+            quantization.DeltaQAc[(int)plane],
+            plane,
+            bitDepth,
+            ref state);
+    }
+
     /// <summary>
     /// Retains the stack-only state shared by recursive partition and final-block traversal.
     /// </summary>
@@ -237,44 +290,16 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformSize transformSize,
             Span<int> coefficients,
             ref Av1EncoderTransformBlockState state)
-        {
-            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(plane);
-            Buffer2DRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(plane);
-            int width = transformSize.GetWidth();
-            int height = transformSize.GetHeight();
-            bool hasLeft = blockOrigin.X > 0;
-            bool hasAbove = blockOrigin.Y > 0;
-            ReadOnlySpan<TSample> above = hasAbove
-                ? reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1).Slice(blockOrigin.X, width)
-                : [];
-
-            Span<TSample> left = TOperator.GetLeftReference(this.blockWorkspace.Residual, height);
-            if (hasLeft)
-            {
-                for (int row = 0; row < height; row++)
-                {
-                    left[row] = reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
-                }
-            }
-
-            // Prediction consumes every gathered reference before residual construction reuses the same workspace bytes.
-            TOperator.Encode(
+            => Av1IntraSuperblockEncoder.EncodePlaneBlock<TSample, TOperator>(
+                this.source,
+                this.reconstruction,
                 this.blockWorkspace,
-                sourcePlane,
-                reconstructionPlane,
-                blockOrigin,
-                above,
-                left,
-                hasLeft,
-                hasAbove,
-                coefficients,
-                transformSize,
-                this.quantization.QIndex[0],
-                this.quantization.DeltaQDc[(int)plane],
-                this.quantization.DeltaQAc[(int)plane],
-                plane,
+                this.quantization,
                 this.bitDepth,
+                plane,
+                blockOrigin,
+                transformSize,
+                coefficients,
                 ref state);
-        }
     }
 }

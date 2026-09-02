@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -17,7 +18,7 @@ internal static partial class Av1IntraSuperblockEncoder
     /// Defines type-specific block encoding without coupling traversal to sample storage width.
     /// </summary>
     /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
-    private interface IBlockEncodingOperator<TSample>
+    internal interface IBlockEncodingOperator<TSample>
         where TSample : unmanaged
     {
         /// <summary>
@@ -64,12 +65,50 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1Plane plane,
             Av1BitDepth bitDepth,
             ref Av1EncoderTransformBlockState state);
+
+        /// <summary>
+        /// Encodes one luma candidate into contiguous decision scratch.
+        /// </summary>
+        /// <param name="workspace">The reusable block workspace.</param>
+        /// <param name="source">The coded source plane.</param>
+        /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
+        /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
+        /// <param name="above">The top reference samples.</param>
+        /// <param name="left">The left reference samples.</param>
+        /// <param name="hasLeft">Whether the left reference is available.</param>
+        /// <param name="hasAbove">Whether the top reference is available.</param>
+        /// <param name="mode">The intra prediction mode.</param>
+        /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
+        /// <param name="transformSize">The transform dimensions.</param>
+        /// <param name="qIndex">The effective segment quantizer index.</param>
+        /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
+        /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
+        /// <param name="bitDepth">The coded sample bit depth.</param>
+        /// <param name="state">The candidate transform state.</param>
+        /// <returns>The normalized pixel-domain distortion in AV1 transform units.</returns>
+        public static abstract long EncodeCandidate(
+            Av1EncoderBlockWorkspace workspace,
+            Buffer2DRegion<TSample> source,
+            Point blockOrigin,
+            Span<TSample> reconstruction,
+            ReadOnlySpan<TSample> above,
+            ReadOnlySpan<TSample> left,
+            bool hasLeft,
+            bool hasAbove,
+            Av1PredictionMode mode,
+            Span<int> quantizedCoefficients,
+            Av1TransformSize transformSize,
+            int qIndex,
+            int dcDeltaQ,
+            int acDeltaQ,
+            Av1BitDepth bitDepth,
+            ref Av1EncoderTransformBlockState state);
     }
 
     /// <summary>
     /// Encodes blocks stored as eight-bit samples.
     /// </summary>
-    private readonly struct ByteOperator : IBlockEncodingOperator<byte>
+    internal readonly struct ByteOperator : IBlockEncodingOperator<byte>
     {
         /// <inheritdoc/>
         public static Span<byte> GetLeftReference(Span<short> residual, int length)
@@ -110,12 +149,49 @@ internal static partial class Av1IntraSuperblockEncoder
                 acDeltaQ,
                 plane,
                 ref state);
+
+        /// <inheritdoc/>
+        public static long EncodeCandidate(
+            Av1EncoderBlockWorkspace workspace,
+            Buffer2DRegion<byte> source,
+            Point blockOrigin,
+            Span<byte> reconstruction,
+            ReadOnlySpan<byte> above,
+            ReadOnlySpan<byte> left,
+            bool hasLeft,
+            bool hasAbove,
+            Av1PredictionMode mode,
+            Span<int> quantizedCoefficients,
+            Av1TransformSize transformSize,
+            int qIndex,
+            int dcDeltaQ,
+            int acDeltaQ,
+            Av1BitDepth bitDepth,
+            ref Av1EncoderTransformBlockState state)
+            => Av1TransformBlockEncoder.EncodeIntraLossyCandidate(
+                workspace,
+                source,
+                blockOrigin,
+                reconstruction,
+                above,
+                left,
+                hasLeft,
+                hasAbove,
+                mode,
+                quantizedCoefficients,
+                transformSize,
+                Av1TransformType.DctDct,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                Av1Plane.Y,
+                ref state);
     }
 
     /// <summary>
     /// Encodes blocks stored as high-bit-depth samples.
     /// </summary>
-    private readonly struct UInt16Operator : IBlockEncodingOperator<ushort>
+    internal readonly struct UInt16Operator : IBlockEncodingOperator<ushort>
     {
         /// <inheritdoc/>
         public static Span<ushort> GetLeftReference(Span<short> residual, int length)
@@ -155,6 +231,44 @@ internal static partial class Av1IntraSuperblockEncoder
                 dcDeltaQ,
                 acDeltaQ,
                 plane,
+                bitDepth,
+                ref state);
+
+        /// <inheritdoc/>
+        public static long EncodeCandidate(
+            Av1EncoderBlockWorkspace workspace,
+            Buffer2DRegion<ushort> source,
+            Point blockOrigin,
+            Span<ushort> reconstruction,
+            ReadOnlySpan<ushort> above,
+            ReadOnlySpan<ushort> left,
+            bool hasLeft,
+            bool hasAbove,
+            Av1PredictionMode mode,
+            Span<int> quantizedCoefficients,
+            Av1TransformSize transformSize,
+            int qIndex,
+            int dcDeltaQ,
+            int acDeltaQ,
+            Av1BitDepth bitDepth,
+            ref Av1EncoderTransformBlockState state)
+            => Av1TransformBlockEncoder.EncodeIntraLossyCandidate(
+                workspace,
+                source,
+                blockOrigin,
+                reconstruction,
+                above,
+                left,
+                hasLeft,
+                hasAbove,
+                mode,
+                quantizedCoefficients,
+                transformSize,
+                Av1TransformType.DctDct,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                Av1Plane.Y,
                 bitDepth,
                 ref state);
     }

@@ -99,6 +99,13 @@ public class Av1ResidualBuilderTests
     }
 
     /// <summary>
+    /// Verifies exact 12-bit residual energy through every hardware-selected vector width and the scalar tail.
+    /// </summary>
+    [Fact]
+    public void SumSquaresMatchesScalarAcrossHardwareWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSumSquares, ResidualConfigurations);
+
+    /// <summary>
     /// Verifies that repeated maximum-transform residual construction uses only caller-owned buffers.
     /// </summary>
     [Fact]
@@ -126,6 +133,23 @@ public class Av1ResidualBuilderTests
         }
 
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
+
+    private static void ValidateSumSquares()
+    {
+        short[] residual = new short[127];
+        long expected = 0;
+        for (int index = 0; index < residual.Length; index++)
+        {
+            int magnitude = (index * 193) & 4095;
+            short value = (short)((index & 1) == 0 ? magnitude : -magnitude);
+            residual[index] = value;
+            expected += (long)value * value;
+        }
+
+        residual[0] = -4095;
+        expected += 4095L * 4095;
+        Assert.Equal(expected, Av1ResidualBuilder.SumSquares(residual));
     }
 
     private static void ValidateResiduals()

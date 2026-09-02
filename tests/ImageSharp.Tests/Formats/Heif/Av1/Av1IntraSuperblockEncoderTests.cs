@@ -55,9 +55,9 @@ public class Av1IntraSuperblockEncoderTests
             1,
             1);
 
-        FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.Y), 251, 17);
-        FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.U), 239, 31);
-        FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.V), 233, 47);
+        FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.Y), (byte)128);
+        FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.U), (byte)128);
+        FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.V), (byte)128);
         ClearPlane(reconstruction.Luma);
         ClearPlane(Assert.IsType<Buffer2D<byte>>(reconstruction.ChromaBlue));
         ClearPlane(Assert.IsType<Buffer2D<byte>>(reconstruction.ChromaRed));
@@ -132,7 +132,7 @@ public class Av1IntraSuperblockEncoderTests
             Assert.Equal(Av1TransformSize.Size8x8, block.Block.TransformSize);
             Assert.Equal(Av1PredictionMode.DC, block.Block.Mode);
             Assert.Equal(Av1ChromaPredictionMode.DC, block.Block.UvMode);
-            Assert.False(block.Block.Skip);
+            Assert.True(block.Block.Skip);
         }
 
         Span<Av1EncoderTransformBlockState> lumaStates = coefficients.GetTransformBlockSpan(0, Av1Plane.Y);
@@ -141,10 +141,10 @@ public class Av1IntraSuperblockEncoderTests
         int[] lumaStateIndices = [0, 4, 8, 12];
         for (int index = 0; index < 4; index++)
         {
-            Assert.NotEqual((ushort)0, lumaStates[lumaStateIndices[index]].EndOfBlock);
+            Assert.Equal((ushort)0, lumaStates[lumaStateIndices[index]].EndOfBlock);
             Assert.Equal(Av1TransformType.DctDct, lumaStates[lumaStateIndices[index]].TransformType);
-            Assert.NotEqual((ushort)0, blueStates[index].EndOfBlock);
-            Assert.NotEqual((ushort)0, redStates[index].EndOfBlock);
+            Assert.Equal((ushort)0, blueStates[index].EndOfBlock);
+            Assert.Equal((ushort)0, redStates[index].EndOfBlock);
         }
 
         AssertContainsNonzero(reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y));
@@ -607,19 +607,25 @@ public class Av1IntraSuperblockEncoderTests
     }
 
     [Theory]
-    [InlineData((int)Av1PredictionMode.Vertical)]
-    [InlineData((int)Av1PredictionMode.Horizontal)]
-    [InlineData((int)Av1PredictionMode.Smooth)]
-    [InlineData((int)Av1PredictionMode.Paeth)]
-    [InlineData((int)Av1PredictionMode.SmoothVertical)]
-    [InlineData((int)Av1PredictionMode.SmoothHorizontal)]
-    [InlineData((int)Av1PredictionMode.Directional135Degrees)]
-    [InlineData((int)Av1PredictionMode.Directional203Degrees)]
-    [InlineData((int)Av1PredictionMode.Directional157Degrees)]
-    [InlineData((int)Av1PredictionMode.Directional67Degrees)]
-    [InlineData((int)Av1PredictionMode.Directional113Degrees)]
-    [InlineData((int)Av1PredictionMode.Directional45Degrees)]
-    public void ProductionTileSelectsModeFromCurrentReconstruction(int expectedModeValue)
+    [InlineData((int)Av1PredictionMode.Vertical, 0)]
+    [InlineData((int)Av1PredictionMode.Horizontal, 0)]
+    [InlineData((int)Av1PredictionMode.Smooth, 0)]
+    [InlineData((int)Av1PredictionMode.Paeth, 0)]
+    [InlineData((int)Av1PredictionMode.SmoothVertical, 0)]
+    [InlineData((int)Av1PredictionMode.SmoothHorizontal, 0)]
+    [InlineData((int)Av1PredictionMode.Directional135Degrees, 0)]
+    [InlineData((int)Av1PredictionMode.Directional203Degrees, 0)]
+    [InlineData((int)Av1PredictionMode.Directional157Degrees, 0)]
+    [InlineData((int)Av1PredictionMode.Directional67Degrees, 0)]
+    [InlineData((int)Av1PredictionMode.Directional113Degrees, 0)]
+    [InlineData((int)Av1PredictionMode.Directional45Degrees, 0)]
+    [InlineData((int)Av1PredictionMode.Directional45Degrees, -3)]
+    [InlineData((int)Av1PredictionMode.Directional45Degrees, 3)]
+    [InlineData((int)Av1PredictionMode.Directional135Degrees, -3)]
+    [InlineData((int)Av1PredictionMode.Directional135Degrees, 3)]
+    [InlineData((int)Av1PredictionMode.Directional203Degrees, -3)]
+    [InlineData((int)Av1PredictionMode.Directional203Degrees, 3)]
+    public void ProductionTileSelectsModeFromCurrentReconstruction(int expectedModeValue, int expectedAngleDelta)
     {
         const int Width = 16;
         const int Height = 16;
@@ -660,7 +666,7 @@ public class Av1IntraSuperblockEncoderTests
                 left,
                 false,
                 false,
-                expectedMode.ToAngle());
+                expectedMode.ToAngle() + (expectedAngleDelta * Av1Constants.AngleStep));
         }
 
         ObuColorConfig colorConfig = new()
@@ -783,6 +789,10 @@ public class Av1IntraSuperblockEncoderTests
 
         ref Av1MacroBlockModeInfo targetBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(2, 2));
         Assert.Equal(expectedMode, targetBlock.Block.Mode);
+        Assert.Equal(
+            expectedAngleDelta,
+            superblockWorkspace.FinalBlocks[3].PredictionUnit.AngleDelta[(int)Av1PlaneType.Y]);
+
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
     }
 
@@ -1153,7 +1163,8 @@ public class Av1IntraSuperblockEncoderTests
                 writer,
                 macroBlock,
                 Av1BlockSize.Block8x8,
-                Av1PredictionMode.DC);
+                Av1PredictionMode.DC,
+                0);
 
             modeInfo.Block = new Av1EncoderBlockModeInfo
             {

@@ -990,18 +990,20 @@ internal partial class Av1TileWriter
     /// <param name="macroBlock">The current block's mapped neighbor state.</param>
     /// <param name="blockSize">The selected block size.</param>
     /// <param name="mode">The candidate luma mode.</param>
-    /// <returns>The luma mode and zero-angle rate in 1/512-bit units.</returns>
+    /// <param name="angleDelta">The signed directional-angle adjustment.</param>
+    /// <returns>The luma mode and directional-angle rate in 1/512-bit units.</returns>
     public static int GetLumaModeCost(
         Av1SymbolEncoder writer,
         Av1MacroBlockD macroBlock,
         Av1BlockSize blockSize,
-        Av1PredictionMode mode)
+        Av1PredictionMode mode,
+        int angleDelta)
     {
         GetYModeContext(macroBlock, out byte topContext, out byte leftContext);
         int cost = writer.GetLumaModeCost(mode, topContext, leftContext);
         if (blockSize >= Av1BlockSize.Block8x8 && mode.IsDirectional())
         {
-            cost += writer.GetAngleDeltaCost(Av1Constants.MaxAngleDelta, mode);
+            cost += writer.GetAngleDeltaCost(angleDelta + Av1Constants.MaxAngleDelta, mode);
         }
 
         return cost;

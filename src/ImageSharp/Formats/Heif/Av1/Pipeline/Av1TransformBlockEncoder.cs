@@ -66,6 +66,7 @@ internal static class Av1TransformBlockEncoder
             hasLeft,
             hasAbove,
             Av1PredictionMode.DC,
+            0,
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -88,6 +89,7 @@ internal static class Av1TransformBlockEncoder
     /// <param name="hasLeft">Whether the left reference is available.</param>
     /// <param name="hasAbove">Whether the top reference is available.</param>
     /// <param name="mode">The intra prediction mode.</param>
+    /// <param name="angleDelta">The signed directional-angle adjustment.</param>
     /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
@@ -107,6 +109,7 @@ internal static class Av1TransformBlockEncoder
         bool hasLeft,
         bool hasAbove,
         Av1PredictionMode mode,
+        int angleDelta,
         Span<int> quantizedCoefficients,
         Av1TransformSize transformSize,
         Av1TransformType transformType,
@@ -131,6 +134,7 @@ internal static class Av1TransformBlockEncoder
             hasLeft,
             hasAbove,
             mode,
+            angleDelta,
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -206,6 +210,7 @@ internal static class Av1TransformBlockEncoder
             hasLeft,
             hasAbove,
             Av1PredictionMode.DC,
+            0,
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -229,6 +234,7 @@ internal static class Av1TransformBlockEncoder
     /// <param name="hasLeft">Whether the left reference is available.</param>
     /// <param name="hasAbove">Whether the top reference is available.</param>
     /// <param name="mode">The intra prediction mode.</param>
+    /// <param name="angleDelta">The signed directional-angle adjustment.</param>
     /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
@@ -249,6 +255,7 @@ internal static class Av1TransformBlockEncoder
         bool hasLeft,
         bool hasAbove,
         Av1PredictionMode mode,
+        int angleDelta,
         Span<int> quantizedCoefficients,
         Av1TransformSize transformSize,
         Av1TransformType transformType,
@@ -274,6 +281,7 @@ internal static class Av1TransformBlockEncoder
             hasLeft,
             hasAbove,
             mode,
+            angleDelta,
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -316,6 +324,7 @@ internal static class Av1TransformBlockEncoder
     /// <param name="hasLeft">Whether the left reference is available.</param>
     /// <param name="hasAbove">Whether the top reference is available.</param>
     /// <param name="mode">The intra prediction mode.</param>
+    /// <param name="angleDelta">The signed directional-angle adjustment.</param>
     /// <param name="quantizedCoefficients">The retained entropy-coding coefficients.</param>
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
@@ -335,6 +344,7 @@ internal static class Av1TransformBlockEncoder
         bool hasLeft,
         bool hasAbove,
         Av1PredictionMode mode,
+        int angleDelta,
         Span<int> quantizedCoefficients,
         Av1TransformSize transformSize,
         Av1TransformType transformType,
@@ -366,7 +376,7 @@ internal static class Av1TransformBlockEncoder
                 left,
                 false,
                 false,
-                mode.ToAngle(),
+                mode.ToAngle() + (angleDelta * Av1Constants.AngleStep),
                 directionalScratch);
         }
         else
@@ -417,6 +427,7 @@ internal static class Av1TransformBlockEncoder
     /// <param name="hasLeft">Whether the left reference is available.</param>
     /// <param name="hasAbove">Whether the top reference is available.</param>
     /// <param name="mode">The intra prediction mode.</param>
+    /// <param name="angleDelta">The signed directional-angle adjustment.</param>
     /// <param name="quantizedCoefficients">The retained entropy-coding coefficients.</param>
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
@@ -437,6 +448,7 @@ internal static class Av1TransformBlockEncoder
         bool hasLeft,
         bool hasAbove,
         Av1PredictionMode mode,
+        int angleDelta,
         Span<int> quantizedCoefficients,
         Av1TransformSize transformSize,
         Av1TransformType transformType,
@@ -479,7 +491,7 @@ internal static class Av1TransformBlockEncoder
                 signedLeft,
                 false,
                 false,
-                mode.ToAngle(),
+                mode.ToAngle() + (angleDelta * Av1Constants.AngleStep),
                 directionalScratch);
         }
         else

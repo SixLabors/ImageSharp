@@ -332,6 +332,7 @@ public class Av1TransformBlockEncoderTests
             hasLeft: false,
             hasAbove: true,
             Av1PredictionMode.Vertical,
+            0,
             quantized,
             Av1TransformSize.Size8x8,
             Av1TransformType.DctDct,
@@ -350,6 +351,77 @@ public class Av1TransformBlockEncoderTests
         // Rounding the 64-sample SSE before the transform-domain scale is observably different from scaling first.
         Assert.Equal((ushort)0, state.EndOfBlock);
         Assert.Equal(0, distortion);
+    }
+
+    /// <summary>
+    /// Verifies that high-bit-depth directional candidates apply the selected syntax adjustment.
+    /// </summary>
+    /// <param name="angleDelta">The signed AV1 directional adjustment.</param>
+    [Theory]
+    [InlineData(-3)]
+    [InlineData(3)]
+    public void TwelveBitDirectionalCandidateAppliesAngleDelta(int angleDelta)
+    {
+        const int Width = 8;
+        const int Height = 8;
+        ushort[] source = new ushort[Width * Height];
+        ushort[] reconstruction = new ushort[Width * Height];
+        int[] quantized = new int[Width * Height];
+        Span<ushort> aboveStorage = stackalloc ushort[17];
+        Span<ushort> above = aboveStorage[1..];
+        Span<ushort> leftStorage = stackalloc ushort[17];
+        Span<ushort> left = leftStorage[1..];
+        aboveStorage[0] = 2048;
+        leftStorage[0] = 2048;
+        for (int i = 0; i < 16; i++)
+        {
+            above[i] = (ushort)(512 + (i * 128));
+            left[i] = (ushort)(3584 - (i * 128));
+        }
+
+        Span<short> signedSource = MemoryMarshal.Cast<ushort, short>(source.AsSpan());
+        Span<short> signedAbove = MemoryMarshal.Cast<ushort, short>(above);
+        Span<short> signedLeft = MemoryMarshal.Cast<ushort, short>(left);
+
+        // Directional arithmetic has independent scalar-oracle coverage. This isolates the high-bit-depth
+        // candidate boundary and proves that its signed syntax adjustment reaches prediction unchanged.
+        Av1DirectionalIntraPredictor.PredictScalar(
+            signedSource,
+            Width,
+            Av1TransformSize.Size8x8,
+            signedAbove,
+            signedLeft,
+            false,
+            false,
+            Av1PredictionMode.Directional135Degrees.ToAngle() + (angleDelta * Av1Constants.AngleStep));
+
+        using Buffer2D<ushort> sourceBuffer = Buffer2D<ushort>.WrapMemory(source, Width, Height, Width);
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        Av1EncoderTransformBlockState state = default;
+        long distortion = Av1TransformBlockEncoder.EncodeIntraLossyCandidate(
+            workspace,
+            new Buffer2DRegion<ushort>(sourceBuffer),
+            Point.Empty,
+            reconstruction,
+            above,
+            left,
+            hasLeft: true,
+            hasAbove: true,
+            Av1PredictionMode.Directional135Degrees,
+            angleDelta,
+            quantized,
+            Av1TransformSize.Size8x8,
+            Av1TransformType.DctDct,
+            qIndex: 255,
+            dcDeltaQ: 0,
+            acDeltaQ: 0,
+            Av1Plane.Y,
+            Av1BitDepth.TwelveBit,
+            ref state);
+
+        Assert.Equal(0, distortion);
+        Assert.Equal((ushort)0, state.EndOfBlock);
+        Assert.True(source.AsSpan().SequenceEqual(reconstruction));
     }
 
     /// <summary>

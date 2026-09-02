@@ -5,6 +5,7 @@ using System.Buffers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -138,6 +139,36 @@ public class Av1EntropyTests
         Assert.Equal(
             Av1ProbabilityCost.GetSymbolCost(transformSkip, 1),
             encoder.GetTransformBlockSkipCost(true, TransformSize, SkipContext));
+    }
+
+    /// <summary>
+    /// Verifies that live luma rate accounting includes the selected signed directional adjustment.
+    /// </summary>
+    /// <param name="angleDelta">The signed AV1 directional adjustment.</param>
+    [Theory]
+    [InlineData(-3)]
+    [InlineData(0)]
+    [InlineData(3)]
+    public void LumaModeCostIncludesSelectedAngleDelta(int angleDelta)
+    {
+        const Av1PredictionMode Mode = Av1PredictionMode.Directional135Degrees;
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
+        Av1MacroBlockD macroBlock = new()
+        {
+            Tile = new Av1TileInfo(0, 0, new ObuFrameHeader())
+        };
+
+        int expected = encoder.GetLumaModeCost(Mode, 0, 0)
+            + encoder.GetAngleDeltaCost(angleDelta + Av1Constants.MaxAngleDelta, Mode);
+
+        Assert.Equal(
+            expected,
+            Av1TileWriter.GetLumaModeCost(
+                encoder,
+                macroBlock,
+                Av1BlockSize.Block8x8,
+                Mode,
+                angleDelta));
     }
 
     [Fact]

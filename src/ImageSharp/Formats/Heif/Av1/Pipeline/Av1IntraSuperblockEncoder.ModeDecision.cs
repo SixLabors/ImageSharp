@@ -36,6 +36,11 @@ internal static partial class Av1IntraSuperblockEncoder
     ];
 
     /// <summary>
+    /// Gets the nonzero directional adjustments in the exhaustive order used by the reference encoder.
+    /// </summary>
+    private static ReadOnlySpan<sbyte> LumaAngleDeltaSearchOrder => [-3, -2, -1, 1, 2, 3];
+
+    /// <summary>
     /// Builds the fixed 8x8 partition skeleton consumed by interleaved mode decision and tile writing.
     /// </summary>
     /// <param name="picture">The frame coding and mode-information state.</param>
@@ -186,7 +191,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockOrigin,
                 tileIndex,
                 lumaCoefficients[this.codedAreaLuma..],
-                ref lumaState);
+                ref lumaState,
+                out int lumaAngleDelta);
+
+            block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] = (sbyte)lumaAngleDelta;
 
             this.codedAreaLuma += LumaTransformSize.GetSize2d();
             bool skipTransform = lumaState.EndOfBlock == 0;
@@ -251,7 +259,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             ushort tileIndex,
             Span<int> retainedCoefficients,
-            ref Av1EncoderTransformBlockState retainedState)
+            ref Av1EncoderTransformBlockState retainedState,
+            out int selectedAngleDelta)
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
@@ -369,8 +378,30 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> candidateCoefficients = stackalloc int[SampleCount];
             long bestCost = long.MaxValue;
             Av1PredictionMode bestMode = Av1PredictionMode.DC;
-            foreach (Av1PredictionMode mode in LumaModeSearchOrder)
+            selectedAngleDelta = 0;
+            int baseModeCount = LumaModeSearchOrder.Length;
+            int deltaCount = LumaAngleDeltaSearchOrder.Length;
+            int directionalModeCount = (int)Av1PredictionMode.Directional67Degrees - (int)Av1PredictionMode.Vertical + 1;
+            int candidateCount = baseModeCount + (directionalModeCount * deltaCount);
+
+            // Zero-angle modes precede groups of six nonzero adjustments for each directional mode.
+            // A single index preserves that tie-breaking order without duplicating candidate evaluation.
+            for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
             {
+                Av1PredictionMode mode;
+                int angleDelta;
+                if (candidateIndex < baseModeCount)
+                {
+                    mode = LumaModeSearchOrder[candidateIndex];
+                    angleDelta = 0;
+                }
+                else
+                {
+                    int adjustedIndex = candidateIndex - baseModeCount;
+                    mode = (Av1PredictionMode)((int)Av1PredictionMode.Vertical + (adjustedIndex / deltaCount));
+                    angleDelta = LumaAngleDeltaSearchOrder[adjustedIndex % deltaCount];
+                }
+
                 Av1EncoderTransformBlockState candidateState = default;
                 long candidateCost = this.GetLumaCandidateCost(
                     writer,
@@ -382,6 +413,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     hasLeft,
                     hasAbove,
                     mode,
+                    angleDelta,
                     blockContext,
                     candidateReconstruction,
                     candidateCoefficients,
@@ -400,6 +432,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     bestCost = candidateCost;
                     bestMode = mode;
+                    selectedAngleDelta = angleDelta;
                 }
             }
 
@@ -416,6 +449,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool hasLeft,
             bool hasAbove,
             Av1PredictionMode mode,
+            int angleDelta,
             Av1TransformBlockContext blockContext,
             Span<TSample> candidateReconstruction,
             Span<int> candidateCoefficients,
@@ -433,6 +467,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 hasLeft,
                 hasAbove,
                 mode,
+                angleDelta,
                 candidateCoefficients,
                 TransformSize,
                 this.quantization.QIndex[0],
@@ -441,7 +476,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.bitDepth,
                 ref candidateState);
 
-            int rate = Av1TileWriter.GetLumaModeCost(writer, macroBlock, BlockSize, mode);
+            int rate = Av1TileWriter.GetLumaModeCost(writer, macroBlock, BlockSize, mode, angleDelta);
             rate += writer.GetCoefficientCost(
                 TransformSize,
                 Av1TransformType.DctDct,

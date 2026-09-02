@@ -414,14 +414,98 @@ public class Av1IntraBlockCopyTests
     }
 
     /// <summary>
+    /// Verifies that the exhaustive mesh recovers an exact match outside every centered NSTEP search site.
+    /// </summary>
+    [Fact]
+    public void PixelSearchFallsBackToExhaustiveMesh()
+    {
+        const int Width = 640;
+        const int Height = 256;
+        const int QIndex = 23;
+        Point blockOrigin = new(0, 128);
+        Point predictionOrigin = new(256, 8);
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
+        ObuFrameHeader frameHeader = CreateFrameHeader();
+        frameHeader.AllowScreenContentTools = true;
+        frameHeader.AllowIntraBlockCopy = true;
+
+        using Av1EncoderPictureBuffer pictureBuffer = new(
+            Configuration.Default,
+            sequenceHeader,
+            frameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderFrameBuffer<byte> source = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        Buffer2DRegion<byte> sourceLuma = source.Frame.View.GetPlane(Av1Plane.Y);
+        Buffer2DRegion<byte> reconstructionLuma = reconstruction.Frame.View.GetPlane(Av1Plane.Y);
+        for (int row = 0; row < Height; row++)
+        {
+            sourceLuma.DangerousGetRowSpan(row).Clear();
+            reconstructionLuma.DangerousGetRowSpan(row).Clear();
+        }
+
+        for (int row = 0; row < 8; row++)
+        {
+            Span<byte> sourceRow = sourceLuma.DangerousGetRowSpan(blockOrigin.Y + row).Slice(blockOrigin.X, 8);
+            Span<byte> predictionRow = reconstructionLuma.DangerousGetRowSpan(predictionOrigin.Y + row).Slice(predictionOrigin.X, 8);
+            for (int column = 0; column < 8; column++)
+            {
+                byte value = (byte)((row + column) % 2 == 0 ? 255 : 0);
+                sourceRow[column] = value;
+                predictionRow[column] = value;
+            }
+        }
+
+        Buffer2DRegion<byte> codedSourceLuma = source.Frame.CodedView.GetPlane(Av1Plane.Y);
+        Buffer2DRegion<byte> codedReconstructionLuma = reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex);
+        Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
+        int candidateCount = pictureBuffer.Picture.IntraBlockCopySearch
+            .FindPixelCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(
+                codedSourceLuma,
+                codedReconstructionLuma,
+                blockOrigin,
+                new Av1TileInfo(0, 0, frameHeader),
+                sequenceHeader,
+                writer,
+                new Av1MotionVector(-64, 0),
+                QIndex,
+                Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, Av1BitDepth.EightBit),
+                candidates);
+
+        Assert.Equal(1, candidateCount);
+        Assert.Equal(-960, candidates[0].Row);
+        Assert.Equal(2048, candidates[0].Column);
+    }
+
+    /// <summary>
     /// Verifies high-bit-depth SIMD variance normalization against the eight-bit search domain.
     /// </summary>
     [Fact]
     public void SearchVarianceMatchesTwelveBitReference()
     {
+        const int Width = 11;
         using Av1EncoderFrameBuffer<ushort> source = new(
             Configuration.Default,
-            8,
+            Width,
             8,
             12,
             Av1ColorFormat.Yuv400,
@@ -430,7 +514,7 @@ public class Av1IntraBlockCopyTests
 
         using Av1EncoderFrameBuffer<ushort> reconstruction = new(
             Configuration.Default,
-            8,
+            Width,
             8,
             12,
             Av1ColorFormat.Yuv400,
@@ -462,6 +546,25 @@ public class Av1IntraBlockCopyTests
             reconstructionLuma,
             Point.Empty,
             Av1BitDepth.TwelveBit);
+
+        Span<int> fourSumsOfAbsoluteDifferences = stackalloc int[4];
+        Av1IntraSuperblockEncoder.UInt16Operator.GetFourSumsOfAbsoluteDifferences(
+            sourceLuma,
+            Point.Empty,
+            reconstructionLuma,
+            Point.Empty,
+            fourSumsOfAbsoluteDifferences);
+
+        for (int candidate = 0; candidate < fourSumsOfAbsoluteDifferences.Length; candidate++)
+        {
+            int expected = Av1IntraSuperblockEncoder.UInt16Operator.GetSumOfAbsoluteDifferences(
+                sourceLuma,
+                Point.Empty,
+                reconstructionLuma,
+                new Point(candidate, 0));
+
+            Assert.Equal(expected, fourSumsOfAbsoluteDifferences[candidate]);
+        }
 
         Assert.Equal(1600, sumOfAbsoluteDifferences);
         Assert.Equal(16, variance);

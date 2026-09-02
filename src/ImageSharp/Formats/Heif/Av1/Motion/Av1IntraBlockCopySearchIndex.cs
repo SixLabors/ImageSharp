@@ -20,6 +20,9 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     private const int MaximumFullPixelSearchOffset = (1 << 10) - 1;
     private const int MinimumFullPixelMotionVector = -(1 << 11) + 1;
     private const int MaximumFullPixelMotionVector = (1 << 11) - 1;
+    private const int ExhaustiveSearchRange = 256;
+    private const int ExhaustiveSearchThreshold = 1 << 12;
+    private const int ExhaustiveSearchBatchSize = 4;
     private const uint HorizontalHashMultiplier = 257;
     private const uint VerticalHashMultiplier = 65599;
     private static readonly uint HorizontalLeadingWeight = GetLeadingWeight(HorizontalHashMultiplier);
@@ -88,6 +91,21 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             Point sourceOrigin,
             Buffer2DRegion<TSample> reconstruction,
             Point predictionOrigin);
+
+        /// <summary>
+        /// Gets four sums of absolute differences for horizontally adjacent reconstructed predictors.
+        /// </summary>
+        /// <param name="source">The coded source plane.</param>
+        /// <param name="sourceOrigin">The source block origin.</param>
+        /// <param name="reconstruction">The reconstructed luma plane.</param>
+        /// <param name="firstPredictionOrigin">The first of four horizontally adjacent predictor origins.</param>
+        /// <param name="sums">Storage receiving the four unnormalized absolute differences.</param>
+        public static abstract void GetFourSumsOfAbsoluteDifferences(
+            Buffer2DRegion<TSample> source,
+            Point sourceOrigin,
+            Buffer2DRegion<TSample> reconstruction,
+            Point firstPredictionOrigin,
+            Span<int> sums);
 
         /// <summary>
         /// Gets the normalized 8x8 variance between a source block and reconstructed predictor.
@@ -734,6 +752,39 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             shortenedBy += additionalCenterSteps;
         }
 
+        // Intra-block copy is a screen-content tool. Scaling the encoder's 1 << 20 full-search threshold
+        // by the 8x8 block area yields this normalized variance-domain trigger.
+        if (bestCost > ExhaustiveSearchThreshold)
+        {
+            Point candidate = SearchExhaustiveMesh<TSample, TOperation>(
+                source,
+                reconstruction,
+                blockOrigin,
+                writer,
+                reference,
+                sadPerBit,
+                minimumColumnOffset,
+                minimumRowOffset,
+                maximumColumnOffset,
+                maximumRowOffset,
+                best);
+
+            int candidateCost = GetVarianceCost<TSample, TOperation>(
+                source,
+                reconstruction,
+                blockOrigin,
+                writer,
+                reference,
+                bitDepth,
+                rateMultiplier,
+                candidate);
+
+            if (candidateCost < bestCost)
+            {
+                best = candidate;
+            }
+        }
+
         return best;
     }
 
@@ -831,6 +882,114 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                 stage--;
             }
         }
+    }
+
+    private static Point SearchExhaustiveMesh<TSample, TOperation>(
+        Buffer2DRegion<TSample> source,
+        Buffer2DRegion<TSample> reconstruction,
+        Point blockOrigin,
+        Av1SymbolEncoder writer,
+        Av1MotionVector reference,
+        int sadPerBit,
+        int minimumColumnOffset,
+        int minimumRowOffset,
+        int maximumColumnOffset,
+        int maximumRowOffset,
+        Point start)
+        where TSample : unmanaged
+        where TOperation : struct, ISearchOperation<TSample>
+    {
+        Point best = start;
+        int bestCost = GetSadCost<TSample, TOperation>(
+            source,
+            reconstruction,
+            blockOrigin,
+            writer,
+            reference,
+            sadPerBit,
+            start);
+
+        int startColumn = Math.Max(-ExhaustiveSearchRange, minimumColumnOffset - start.X);
+        int endColumn = Math.Min(ExhaustiveSearchRange, maximumColumnOffset - start.X);
+        int startRow = Math.Max(-ExhaustiveSearchRange, minimumRowOffset - start.Y);
+        int endRow = Math.Min(ExhaustiveSearchRange, maximumRowOffset - start.Y);
+        Span<int> sumsOfAbsoluteDifferences = stackalloc int[ExhaustiveSearchBatchSize];
+        for (int row = startRow; row <= endRow; row++)
+        {
+            int column = startColumn;
+            for (; column <= endColumn - (ExhaustiveSearchBatchSize - 1); column += ExhaustiveSearchBatchSize)
+            {
+                Point firstCandidate = new(start.X + column, start.Y + row);
+                Point firstPredictionOrigin = new(
+                    blockOrigin.X + firstCandidate.X,
+                    blockOrigin.Y + firstCandidate.Y);
+
+                // Four adjacent candidates share the source load and row traversal, matching the batch width
+                // used by the native full-resolution pass without allocating temporary candidate buffers.
+                TOperation.GetFourSumsOfAbsoluteDifferences(
+                    source,
+                    blockOrigin,
+                    reconstruction,
+                    firstPredictionOrigin,
+                    sumsOfAbsoluteDifferences);
+
+                for (int i = 0; i < ExhaustiveSearchBatchSize; i++)
+                {
+                    int sumOfAbsoluteDifferences = sumsOfAbsoluteDifferences[i];
+                    if (sumOfAbsoluteDifferences >= bestCost)
+                    {
+                        continue;
+                    }
+
+                    Point candidate = new(firstCandidate.X + i, firstCandidate.Y);
+                    Av1MotionVector vector = new(candidate.Y * 8, candidate.X * 8);
+                    int rate = writer.GetDisplacementVectorSearchCost(vector, reference);
+                    int candidateCost = Av1RateDistortion.GetMotionSearchSadCost(
+                        sadPerBit,
+                        rate,
+                        sumOfAbsoluteDifferences);
+
+                    // Strict replacement preserves the first row-major candidate when costs tie.
+                    if (candidateCost < bestCost)
+                    {
+                        bestCost = candidateCost;
+                        best = candidate;
+                    }
+                }
+            }
+
+            // The SIMD batch width is only a traversal optimization; every legal tail column remains searchable.
+            for (; column <= endColumn; column++)
+            {
+                Point candidate = new(start.X + column, start.Y + row);
+                Point predictionOrigin = new(blockOrigin.X + candidate.X, blockOrigin.Y + candidate.Y);
+                int sumOfAbsoluteDifferences = TOperation.GetSumOfAbsoluteDifferences(
+                    source,
+                    blockOrigin,
+                    reconstruction,
+                    predictionOrigin);
+
+                if (sumOfAbsoluteDifferences >= bestCost)
+                {
+                    continue;
+                }
+
+                Av1MotionVector vector = new(candidate.Y * 8, candidate.X * 8);
+                int rate = writer.GetDisplacementVectorSearchCost(vector, reference);
+                int candidateCost = Av1RateDistortion.GetMotionSearchSadCost(
+                    sadPerBit,
+                    rate,
+                    sumOfAbsoluteDifferences);
+
+                if (candidateCost < bestCost)
+                {
+                    bestCost = candidateCost;
+                    best = candidate;
+                }
+            }
+        }
+
+        return best;
     }
 
     private static int GetSadCost<TSample, TOperation>(

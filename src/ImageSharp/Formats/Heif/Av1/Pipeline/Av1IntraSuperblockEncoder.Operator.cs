@@ -383,6 +383,74 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <inheritdoc/>
+        public static void GetFourSumsOfAbsoluteDifferences(
+            Buffer2DRegion<byte> source,
+            Point sourceOrigin,
+            Buffer2DRegion<byte> reconstruction,
+            Point firstPredictionOrigin,
+            Span<int> sums)
+        {
+            int sum0 = 0;
+            int sum1 = 0;
+            int sum2 = 0;
+            int sum3 = 0;
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (int row = 0; row < 8; row++)
+                {
+                    ReadOnlySpan<byte> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
+                    ReadOnlySpan<byte> predictionRow =
+                        reconstruction.DangerousGetRowSpan(firstPredictionOrigin.Y + row)[firstPredictionOrigin.X..];
+
+                    // The four candidates reuse one widened source vector; only their overlapping predictor
+                    // windows are loaded separately before the packed absolute-difference reductions.
+                    Vector128<short> sourceSamples =
+                        Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(sourceRow)).AsByte()).AsInt16();
+
+                    Vector128<short> prediction0 =
+                        Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(predictionRow)).AsByte()).AsInt16();
+
+                    Vector128<short> prediction1 =
+                        Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(predictionRow[1..])).AsByte()).AsInt16();
+
+                    Vector128<short> prediction2 =
+                        Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(predictionRow[2..])).AsByte()).AsInt16();
+
+                    Vector128<short> prediction3 =
+                        Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(predictionRow[3..])).AsByte()).AsInt16();
+
+                    sum0 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction0));
+                    sum1 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction1));
+                    sum2 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction2));
+                    sum3 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction3));
+                }
+            }
+            else
+            {
+                for (int row = 0; row < 8; row++)
+                {
+                    ReadOnlySpan<byte> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
+                    ReadOnlySpan<byte> predictionRow =
+                        reconstruction.DangerousGetRowSpan(firstPredictionOrigin.Y + row)[firstPredictionOrigin.X..];
+
+                    for (int column = 0; column < 8; column++)
+                    {
+                        int sourceSample = sourceRow[column];
+                        sum0 += Math.Abs(sourceSample - predictionRow[column]);
+                        sum1 += Math.Abs(sourceSample - predictionRow[column + 1]);
+                        sum2 += Math.Abs(sourceSample - predictionRow[column + 2]);
+                        sum3 += Math.Abs(sourceSample - predictionRow[column + 3]);
+                    }
+                }
+            }
+
+            sums[0] = sum0;
+            sums[1] = sum1;
+            sums[2] = sum2;
+            sums[3] = sum3;
+        }
+
+        /// <inheritdoc/>
         public static int GetVariance(
             Buffer2DRegion<byte> source,
             Point sourceOrigin,
@@ -796,6 +864,74 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             return sum;
+        }
+
+        /// <inheritdoc/>
+        public static void GetFourSumsOfAbsoluteDifferences(
+            Buffer2DRegion<ushort> source,
+            Point sourceOrigin,
+            Buffer2DRegion<ushort> reconstruction,
+            Point firstPredictionOrigin,
+            Span<int> sums)
+        {
+            int sum0 = 0;
+            int sum1 = 0;
+            int sum2 = 0;
+            int sum3 = 0;
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (int row = 0; row < 8; row++)
+                {
+                    ReadOnlySpan<ushort> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
+                    ReadOnlySpan<ushort> predictionRow =
+                        reconstruction.DangerousGetRowSpan(firstPredictionOrigin.Y + row)[firstPredictionOrigin.X..];
+
+                    // Signed 16-bit lanes preserve every AV1 sample difference while four horizontally adjacent
+                    // candidates reuse the same source load and stay packed through horizontal reduction.
+                    Vector128<short> sourceSamples =
+                        Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(sourceRow)).AsInt16();
+
+                    Vector128<short> prediction0 =
+                        Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(predictionRow)).AsInt16();
+
+                    Vector128<short> prediction1 =
+                        Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(predictionRow[1..])).AsInt16();
+
+                    Vector128<short> prediction2 =
+                        Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(predictionRow[2..])).AsInt16();
+
+                    Vector128<short> prediction3 =
+                        Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(predictionRow[3..])).AsInt16();
+
+                    sum0 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction0));
+                    sum1 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction1));
+                    sum2 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction2));
+                    sum3 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction3));
+                }
+            }
+            else
+            {
+                for (int row = 0; row < 8; row++)
+                {
+                    ReadOnlySpan<ushort> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
+                    ReadOnlySpan<ushort> predictionRow =
+                        reconstruction.DangerousGetRowSpan(firstPredictionOrigin.Y + row)[firstPredictionOrigin.X..];
+
+                    for (int column = 0; column < 8; column++)
+                    {
+                        int sourceSample = sourceRow[column];
+                        sum0 += Math.Abs(sourceSample - predictionRow[column]);
+                        sum1 += Math.Abs(sourceSample - predictionRow[column + 1]);
+                        sum2 += Math.Abs(sourceSample - predictionRow[column + 2]);
+                        sum3 += Math.Abs(sourceSample - predictionRow[column + 3]);
+                    }
+                }
+            }
+
+            sums[0] = sum0;
+            sums[1] = sum1;
+            sums[2] = sum2;
+            sums[3] = sum3;
         }
 
         /// <inheritdoc/>

@@ -158,6 +158,367 @@ public class Av1EntropyTests
             encoder.GetLumaModeCost(Av1PredictionMode.DC, 0, 0));
     }
 
+    [Fact]
+    public void CoefficientCostMatchesCurrentLibaomForEmptyAndDcBlocks()
+    {
+        const int qIndex = 0;
+        const Av1TransformSize transformSize = Av1TransformSize.Size4x4;
+        const Av1ComponentType componentType = Av1ComponentType.Luminance;
+        Av1TransformBlockContext transformBlockContext = default;
+        Span<int> coefficients = stackalloc int[16];
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, qIndex, updateCdf: false);
+        Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
+        Av1Distribution transformSkip = Av1DefaultDistributions
+            .GetTransformBlockSkip(qIndex)[(int)transformSizeContext][transformBlockContext.SkipContext];
+
+        int emptyCost = encoder.GetCoefficientCost(
+            transformSize,
+            Av1TransformType.DctDct,
+            Av1PredictionMode.DC,
+            coefficients,
+            componentType,
+            transformBlockContext,
+            0,
+            false,
+            Av1FilterIntraMode.AllFilterIntraModes);
+
+        Assert.Equal(Av1ProbabilityCost.GetSymbolCost(transformSkip, 1), emptyCost);
+
+        // Prime every active level with nonzero data so the one-coefficient path proves its EOB-only
+        // context derivation does not depend on clearing or rebuilding the forward-neighbor map.
+        coefficients.Fill(7);
+        _ = encoder.GetCoefficientCost(
+            transformSize,
+            Av1TransformType.DctDct,
+            Av1PredictionMode.DC,
+            coefficients,
+            componentType,
+            transformBlockContext,
+            16,
+            false,
+            Av1FilterIntraMode.AllFilterIntraModes);
+
+        coefficients.Clear();
+        coefficients[0] = 1;
+        Av1Distribution endOfBlock = Av1DefaultDistributions
+            .GetEndOfBlockFlag(qIndex)[transformSize.GetLog2Minus4()][(int)componentType][0];
+        Av1Distribution coefficientBaseEnd = Av1DefaultDistributions
+            .GetBaseEndOfBlock(qIndex)[(int)transformSizeContext][(int)componentType][0];
+        Av1Distribution dcSign = Av1DefaultDistributions
+            .GetDcSign(qIndex)[(int)componentType][transformBlockContext.DcSignContext];
+        int expectedDcCost =
+            Av1ProbabilityCost.GetSymbolCost(transformSkip, 0) +
+            Av1ProbabilityCost.GetSymbolCost(endOfBlock, 0) +
+            Av1ProbabilityCost.GetSymbolCost(coefficientBaseEnd, 0) +
+            Av1ProbabilityCost.GetSymbolCost(dcSign, 0);
+
+        int dcCost = encoder.GetCoefficientCost(
+            transformSize,
+            Av1TransformType.DctDct,
+            Av1PredictionMode.DC,
+            coefficients,
+            componentType,
+            transformBlockContext,
+            1,
+            false,
+            Av1FilterIntraMode.AllFilterIntraModes);
+
+        Assert.Equal(expectedDcCost, dcCost);
+    }
+
+    [Fact]
+    public void CoefficientCostMatchesCurrentLibaomBaseRangeAndGolomb()
+    {
+        const int qIndex = 0;
+        const int level = 25;
+        const Av1TransformSize transformSize = Av1TransformSize.Size4x4;
+        const Av1ComponentType componentType = Av1ComponentType.Luminance;
+        Av1TransformBlockContext transformBlockContext = default;
+        Span<int> coefficients = stackalloc int[16];
+        coefficients[0] = -level;
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, qIndex, updateCdf: false);
+        Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
+        Av1Distribution transformSkip = Av1DefaultDistributions
+            .GetTransformBlockSkip(qIndex)[(int)transformSizeContext][transformBlockContext.SkipContext];
+        Av1Distribution endOfBlock = Av1DefaultDistributions
+            .GetEndOfBlockFlag(qIndex)[transformSize.GetLog2Minus4()][(int)componentType][0];
+        Av1Distribution coefficientBaseEnd = Av1DefaultDistributions
+            .GetBaseEndOfBlock(qIndex)[(int)transformSizeContext][(int)componentType][0];
+        Av1Distribution coefficientBaseRange = Av1DefaultDistributions
+            .GetCoefficientsBaseRange(qIndex)[(int)transformSizeContext][(int)componentType][0];
+        Av1Distribution dcSign = Av1DefaultDistributions
+            .GetDcSign(qIndex)[(int)componentType][transformBlockContext.DcSignContext];
+
+        // Level 25 consumes all four three-symbol base-range chunks, followed by the seven-bit code for Golomb value 10.
+        int expected =
+            Av1ProbabilityCost.GetSymbolCost(transformSkip, 0) +
+            Av1ProbabilityCost.GetSymbolCost(endOfBlock, 0) +
+            Av1ProbabilityCost.GetSymbolCost(coefficientBaseEnd, 2) +
+            (4 * Av1ProbabilityCost.GetSymbolCost(coefficientBaseRange, 3)) +
+            Av1ProbabilityCost.GetSymbolCost(dcSign, 1) +
+            Av1ProbabilityCost.GetLiteralCost(7);
+
+        int actual = encoder.GetCoefficientCost(
+            transformSize,
+            Av1TransformType.DctDct,
+            Av1PredictionMode.DC,
+            coefficients,
+            componentType,
+            transformBlockContext,
+            1,
+            false,
+            Av1FilterIntraMode.AllFilterIntraModes);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void CoefficientCostMatchesCurrentLibaomCoefficientTraversal()
+    {
+        const ushort endOfBlock = 4;
+        const Av1TransformSize transformSize = Av1TransformSize.Size4x4;
+        const Av1TransformType transformType = Av1TransformType.DctDct;
+        const Av1ComponentType componentType = Av1ComponentType.Luminance;
+        const Av1PredictionMode intraDirection = Av1PredictionMode.DC;
+        const Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
+        Av1TransformBlockContext transformBlockContext = default;
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+        Span<int> coefficients = stackalloc int[16];
+        coefficients[scan[0]] = -25;
+        coefficients[scan[2]] = 3;
+        coefficients[scan[3]] = -4;
+        using Av1LevelBuffer levels = new(Configuration.Default, new Size(4, 4));
+        levels.Initialize(coefficients);
+        Span<sbyte> coefficientContexts = stackalloc sbyte[16];
+        Av1TransformClass transformClass = transformType.ToClass();
+        Av1SymbolContextHelper.GetNzMapContexts(
+            levels,
+            scan,
+            endOfBlock,
+            transformSize,
+            transformClass,
+            coefficientContexts);
+
+        Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
+        Av1Distribution transformSkip = Av1DefaultDistributions
+            .GetTransformBlockSkip(BaseQIndex)[(int)transformSizeContext][transformBlockContext.SkipContext];
+        Av1Distribution endOfBlockFlag = Av1DefaultDistributions
+            .GetEndOfBlockFlag(BaseQIndex)[transformSize.GetLog2Minus4()][(int)componentType][0];
+        Av1Distribution[][][] coefficientBase = Av1DefaultDistributions.GetCoefficientsBase(BaseQIndex);
+        Av1Distribution[][][] coefficientBaseEnd = Av1DefaultDistributions.GetBaseEndOfBlock(BaseQIndex);
+        Av1Distribution[][][] coefficientBaseRange = Av1DefaultDistributions.GetCoefficientsBaseRange(BaseQIndex);
+        Av1Distribution dcSign = Av1DefaultDistributions
+            .GetDcSign(BaseQIndex)[(int)componentType][transformBlockContext.DcSignContext];
+        int expected = Av1ProbabilityCost.GetSymbolCost(transformSkip, 0);
+
+        Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
+            transformSize,
+            false);
+
+        int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSetType);
+        int transformTypeIndex = Av1SymbolContextHelper.GetExtendedTransformIndex(transformSetType, transformType);
+        expected += Av1ProbabilityCost.GetSymbolCost(
+            Av1DefaultDistributions.IntraExtendedTransform[extendedSet][(int)transformSize.GetSquareSize()][(int)intraDirection],
+            transformTypeIndex);
+
+        short endOfBlockPosition = Av1SymbolContextHelper.GetEndOfBlockPosition(endOfBlock, out int endOfBlockExtra);
+        expected += Av1ProbabilityCost.GetSymbolCost(endOfBlockFlag, endOfBlockPosition - 1);
+        int endOfBlockOffsetBitCount = Av1SymbolContextHelper.EndOfBlockOffsetBits[endOfBlockPosition];
+        int endOfBlockBit = Av1Math.GetBit(endOfBlockExtra, endOfBlockOffsetBitCount - 1);
+        expected += Av1ProbabilityCost.GetSymbolCost(
+            Av1DefaultDistributions.GetEndOfBlockExtra(BaseQIndex)[(int)transformSizeContext][(int)componentType][endOfBlockPosition],
+            endOfBlockBit);
+        expected += Av1ProbabilityCost.GetLiteralCost(endOfBlockOffsetBitCount - 1);
+
+        int eobPosition = scan[3];
+        int eobContext = coefficientContexts[eobPosition];
+        int eobBaseRangeContext = Av1SymbolContextHelper.GetBaseRangeContextEndOfBlock(
+            levels.GetPosition(eobPosition),
+            transformClass);
+
+        expected += Av1ProbabilityCost.GetSymbolCost(
+            coefficientBaseEnd[(int)transformSizeContext][(int)componentType][eobContext],
+            2);
+        expected += Av1ProbabilityCost.GetSymbolCost(
+            coefficientBaseRange[(int)transformSizeContext][(int)componentType][eobBaseRangeContext],
+            1);
+        expected += Av1ProbabilityCost.GetLiteralCost(1);
+
+        int acPosition = scan[2];
+        int acContext = coefficientContexts[acPosition];
+        int acBaseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(
+            levels,
+            levels.GetPosition(acPosition),
+            transformClass);
+
+        expected += Av1ProbabilityCost.GetSymbolCost(
+            coefficientBase[(int)transformSizeContext][(int)componentType][acContext],
+            3);
+        expected += Av1ProbabilityCost.GetSymbolCost(
+            coefficientBaseRange[(int)transformSizeContext][(int)componentType][acBaseRangeContext],
+            0);
+        expected += Av1ProbabilityCost.GetLiteralCost(1);
+
+        int zeroPosition = scan[1];
+        expected += Av1ProbabilityCost.GetSymbolCost(
+            coefficientBase[(int)transformSizeContext][(int)componentType][coefficientContexts[zeroPosition]],
+            0);
+
+        int dcPosition = scan[0];
+        int dcContext = coefficientContexts[dcPosition];
+        int dcBaseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(
+            levels,
+            levels.GetPosition(dcPosition),
+            transformClass);
+
+        expected += Av1ProbabilityCost.GetSymbolCost(
+            coefficientBase[(int)transformSizeContext][(int)componentType][dcContext],
+            3);
+        expected += 4 * Av1ProbabilityCost.GetSymbolCost(
+            coefficientBaseRange[(int)transformSizeContext][(int)componentType][dcBaseRangeContext],
+            3);
+        expected += Av1ProbabilityCost.GetLiteralCost(7);
+        expected += Av1ProbabilityCost.GetSymbolCost(dcSign, 1);
+
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
+        int actual = encoder.GetCoefficientCost(
+            transformSize,
+            transformType,
+            intraDirection,
+            coefficients,
+            componentType,
+            transformBlockContext,
+            endOfBlock,
+            false,
+            filterIntraMode);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Fact]
+    public void CoefficientCostDoesNotChangeWriterOrLiveDistributions()
+    {
+        const Av1TransformSize transformSize = Av1TransformSize.Size4x4;
+        const Av1TransformType transformType = Av1TransformType.DctDct;
+        const Av1ComponentType componentType = Av1ComponentType.Luminance;
+        const ushort endOfBlock = 4;
+        Av1TransformBlockContext transformBlockContext = default;
+        Span<int> coefficients = stackalloc int[16];
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+        coefficients[scan[0]] = -25;
+        coefficients[scan[2]] = 3;
+        coefficients[scan[3]] = 1;
+        using Av1SymbolEncoder actualEncoder = new(Configuration.Default, 64, BaseQIndex);
+        using Av1SymbolEncoder expectedEncoder = new(Configuration.Default, 64, BaseQIndex);
+
+        int initialCost = actualEncoder.GetCoefficientCost(
+            transformSize,
+            transformType,
+            Av1PredictionMode.DC,
+            coefficients,
+            componentType,
+            transformBlockContext,
+            endOfBlock,
+            false,
+            Av1FilterIntraMode.AllFilterIntraModes);
+
+        Assert.Equal(
+            initialCost,
+            actualEncoder.GetCoefficientCost(
+                transformSize,
+                transformType,
+                Av1PredictionMode.DC,
+                coefficients,
+                componentType,
+                transformBlockContext,
+                endOfBlock,
+                false,
+                Av1FilterIntraMode.AllFilterIntraModes));
+
+        int actualContext = actualEncoder.WriteCoefficients(
+            transformSize,
+            transformType,
+            Av1PredictionMode.DC,
+            coefficients,
+            componentType,
+            transformBlockContext,
+            endOfBlock,
+            false,
+            Av1FilterIntraMode.AllFilterIntraModes);
+
+        int adaptedCost = actualEncoder.GetCoefficientCost(
+            transformSize,
+            transformType,
+            Av1PredictionMode.DC,
+            coefficients,
+            componentType,
+            transformBlockContext,
+            endOfBlock,
+            false,
+            Av1FilterIntraMode.AllFilterIntraModes);
+
+        int expectedContext = expectedEncoder.WriteCoefficients(
+            transformSize,
+            transformType,
+            Av1PredictionMode.DC,
+            coefficients,
+            componentType,
+            transformBlockContext,
+            endOfBlock,
+            false,
+            Av1FilterIntraMode.AllFilterIntraModes);
+
+        using IMemoryOwner<byte> actual = actualEncoder.Exit();
+        using IMemoryOwner<byte> expected = expectedEncoder.Exit();
+
+        Assert.NotEqual(initialCost, adaptedCost);
+        Assert.Equal(expectedContext, actualContext);
+        Assert.True(expected.GetSpan().SequenceEqual(actual.GetSpan()));
+    }
+
+    [Fact]
+    public void CoefficientCostDoesNotAllocateAfterScratchInitialization()
+    {
+        const Av1TransformSize transformSize = Av1TransformSize.Size4x4;
+        const Av1TransformType transformType = Av1TransformType.DctDct;
+        const ushort endOfBlock = 4;
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+        Span<int> coefficients = stackalloc int[16];
+        coefficients[scan[0]] = -25;
+        coefficients[scan[2]] = 3;
+        coefficients[scan[3]] = 1;
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
+
+        _ = encoder.GetCoefficientCost(
+            transformSize,
+            transformType,
+            Av1PredictionMode.DC,
+            coefficients,
+            Av1ComponentType.Luminance,
+            default,
+            endOfBlock,
+            false,
+            Av1FilterIntraMode.AllFilterIntraModes);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int i = 0; i < 1000; i++)
+        {
+            _ = encoder.GetCoefficientCost(
+                transformSize,
+                transformType,
+                Av1PredictionMode.DC,
+                coefficients,
+                Av1ComponentType.Luminance,
+                default,
+                endOfBlock,
+                false,
+                Av1FilterIntraMode.AllFilterIntraModes);
+        }
+
+        long after = GC.GetAllocatedBytesForCurrentThread();
+        Assert.Equal(before, after);
+    }
+
     [Theory]
     [InlineData(1, 255, 0L, 0L)]
     [InlineData(1, 256, 0L, 1L)]
@@ -274,6 +635,19 @@ public class Av1EntropyTests
             Assert.Single(allocator.AllocationLog);
 
             coefficients[0] = 1;
+            _ = encoder.GetCoefficientCost(
+                Av1TransformSize.Size4x4,
+                Av1TransformType.DctDct,
+                Av1PredictionMode.DC,
+                coefficients,
+                Av1ComponentType.Luminance,
+                default,
+                1,
+                false,
+                Av1FilterIntraMode.DC);
+
+            Assert.Equal(3, allocator.AllocationLog.Count);
+
             encoder.WriteCoefficients(
                 Av1TransformSize.Size4x4,
                 Av1TransformType.DctDct,

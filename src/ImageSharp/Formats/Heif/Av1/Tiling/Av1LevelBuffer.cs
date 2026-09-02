@@ -1,9 +1,9 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -66,14 +66,17 @@ internal sealed class Av1LevelBuffer : IDisposable
     /// Initializes the unpadded level plane from raster-ordered coefficient magnitudes.
     /// </summary>
     /// <param name="coefficientBuffer">The coefficient levels to copy.</param>
-    public void Initialize(Span<int> coefficientBuffer)
+    public void Initialize(ReadOnlySpan<int> coefficientBuffer)
     {
         ObjectDisposedException.ThrowIf(this.memory == null, this);
         ArgumentOutOfRangeException.ThrowIfLessThan(coefficientBuffer.Length, this.Size.Width * this.Size.Height, nameof(coefficientBuffer));
         for (int y = 0; y < this.Size.Height; y++)
         {
             ref byte destRef = ref this.GetRow(y)[0];
-            ref int sourceRef = ref coefficientBuffer[y * this.Size.Width];
+            ref int sourceRef = ref Unsafe.Add(
+                ref MemoryMarshal.GetReference(coefficientBuffer),
+                y * this.Size.Width);
+
             for (int x = 0; x < this.Size.Width; x++)
             {
                 // Entropy contexts use the absolute level, saturated to the signed-byte range used by the
@@ -129,16 +132,26 @@ internal sealed class Av1LevelBuffer : IDisposable
     /// Selects new active coefficient dimensions and clears their padded context storage.
     /// </summary>
     /// <param name="size">The unpadded coefficient dimensions.</param>
-    public void Reset(Size size)
+    public void Reset(Size size) => this.Reset(size, clear: true);
+
+    /// <summary>
+    /// Selects new active coefficient dimensions and optionally clears their padded context storage.
+    /// </summary>
+    /// <param name="size">The unpadded coefficient dimensions.</param>
+    /// <param name="clear">Indicates whether to clear the active level plane and its context padding.</param>
+    public void Reset(Size size, bool clear)
     {
         ObjectDisposedException.ThrowIf(this.memory == null, this);
         this.Size = size;
         this.Stride = Av1Constants.TransformPadHorizontal + size.Width;
 
-        // Tile parsing is sequential, so one maximum-sized rent can serve every transform. Clear only the active
-        // layout because stale neighboring levels would otherwise select the wrong coefficient distributions.
-        int totalHeight = Av1Constants.TransformPadTop + size.Height + Av1Constants.TransformPadBottom;
-        this.memory.Memory.Span[..(this.Stride * totalHeight)].Clear();
+        if (clear)
+        {
+            // Tile parsing is sequential, so one maximum-sized rent can serve every transform. Clear only the active
+            // layout because stale neighboring levels would otherwise select the wrong coefficient distributions.
+            int totalHeight = Av1Constants.TransformPadTop + size.Height + Av1Constants.TransformPadBottom;
+            this.memory.Memory.Span[..(this.Stride * totalHeight)].Clear();
+        }
     }
 
     /// <summary>

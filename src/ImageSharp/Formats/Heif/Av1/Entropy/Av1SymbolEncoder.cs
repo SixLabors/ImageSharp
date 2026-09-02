@@ -206,6 +206,36 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Defines how shared coefficient-syntax helpers handle one adaptive symbol or literal bit field.
+    /// </summary>
+    private interface ICoefficientSymbolOperation
+    {
+        /// <summary>
+        /// Handles one symbol from an adaptive distribution.
+        /// </summary>
+        /// <param name="writer">The tile range writer.</param>
+        /// <param name="symbol">The zero-based symbol.</param>
+        /// <param name="distribution">The symbol distribution.</param>
+        /// <returns>The symbol's rate contribution.</returns>
+        public static abstract int ProcessSymbol(
+            ref Av1SymbolWriter writer,
+            int symbol,
+            Av1Distribution distribution);
+
+        /// <summary>
+        /// Handles one most-significant-bit-first literal field.
+        /// </summary>
+        /// <param name="writer">The tile range writer.</param>
+        /// <param name="value">The low-order literal bits.</param>
+        /// <param name="bitCount">The number of bits.</param>
+        /// <returns>The literal's rate contribution.</returns>
+        public static abstract int ProcessLiteral(
+            ref Av1SymbolWriter writer,
+            uint value,
+            int bitCount);
+    }
+
+    /// <summary>
     /// Writes the frame-local intra-block-copy flag.
     /// </summary>
     /// <param name="value">Indicates whether intra-block copy is selected.</param>
@@ -279,66 +309,79 @@ internal class Av1SymbolEncoder : IDisposable
         Av1TransformSize transformSize,
         Av1TransformType transformType,
         Av1PredictionMode intraDirection,
-        Span<int> coefficientBuffer,
+        ReadOnlySpan<int> coefficientBuffer,
         Av1ComponentType componentType,
         Av1TransformBlockContext transformBlockContext,
         ushort endOfBlock,
         bool useReducedTransformSet,
         Av1FilterIntraMode filterIntraMode)
     {
-        int c;
-        Av1TransformSize adjustedTransformSize = transformSize.GetAdjusted();
-        int width = adjustedTransformSize.GetWidth();
-        int height = adjustedTransformSize.GetHeight();
-        Av1TransformClass transformClass = transformType.ToClass();
-        Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType);
-        ReadOnlySpan<short> scan = scanOrder.Scan;
         Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
 
-        Guard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));
+        DebugGuard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));
 
-        this.WriteTransformBlockSkip(endOfBlock == 0, transformSizeContext, transformBlockContext.SkipContext);
+        _ = this.ProcessTransformBlockSkip<CoefficientWriteOperation>(
+            endOfBlock == 0,
+            transformSizeContext,
+            transformBlockContext.SkipContext);
 
         if (endOfBlock == 0)
         {
             return 0;
         }
 
-        ref Av1SymbolWriter w = ref this.writer;
-        Av1LevelBuffer levels = this.levels ??= new(this.configuration);
-        IMemoryOwner<sbyte> coefficientContextOwner = this.coefficientContexts ??=
-            this.configuration.MemoryAllocator.Allocate<sbyte>(MaximumCoefficientContextCount);
+        Av1TransformSize adjustedTransformSize = transformSize.GetAdjusted();
+        int width = adjustedTransformSize.GetWidth();
+        int height = adjustedTransformSize.GetHeight();
+        Av1TransformClass transformClass = transformType.ToClass();
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+        Av1LevelBuffer levels = this.PrepareCoefficientScratch(
+            width,
+            height,
+            clearLevels: true,
+            out Span<sbyte> coefficientContexts);
 
-        // AV1 omits high-frequency coefficients beyond 32 samples on every 64-point transform dimension. The tile
-        // creates maximum-sized workspaces only when nonzero coefficient syntax needs them, then changes only their active views.
-        levels.Reset(new Size(width, height));
-        Span<sbyte> coefficientContexts = coefficientContextOwner.Memory.Span[..(width * height)];
-        coefficientContexts.Clear();
         levels.Initialize(coefficientBuffer);
         if (componentType == Av1ComponentType.Luminance)
         {
-            this.WriteTransformType(transformType, transformSize, useReducedTransformSet, this.baseQIndex, filterIntraMode, intraDirection);
+            _ = this.ProcessTransformType<CoefficientWriteOperation>(
+                transformType,
+                transformSize,
+                useReducedTransformSet,
+                this.baseQIndex,
+                filterIntraMode,
+                intraDirection);
         }
 
-        this.WriteEndOfBlockPosition(endOfBlock, componentType, transformClass, transformSize, transformSizeContext);
+        _ = this.ProcessEndOfBlockPosition<CoefficientWriteOperation>(
+            endOfBlock,
+            componentType,
+            transformClass,
+            transformSize,
+            transformSizeContext);
 
         Av1SymbolContextHelper.GetNzMapContexts(levels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
         int limitedTransformSizeContext = Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
-        for (c = endOfBlock - 1; c >= 0; --c)
+        ref Av1SymbolWriter w = ref this.writer;
+        for (int c = endOfBlock - 1; c >= 0; --c)
         {
             short pos = scan[c];
-            int v = coefficientBuffer[pos];
-            short coeffContext = coefficientContexts[pos];
+            int value = coefficientBuffer[pos];
+            short coefficientContext = coefficientContexts[pos];
             Point position = levels.GetPosition(pos);
-            int level = Math.Abs(v);
+            int level = Math.Abs(value);
 
             if (c == endOfBlock - 1)
             {
-                w.WriteSymbol(Math.Min(level, 3) - 1, this.coefficientsBaseEndOfBlock[(int)transformSizeContext][(int)componentType][coeffContext]);
+                w.WriteSymbol(
+                    Math.Min(level, 3) - 1,
+                    this.coefficientsBaseEndOfBlock[(int)transformSizeContext][(int)componentType][coefficientContext]);
             }
             else
             {
-                w.WriteSymbol(Math.Min(level, 3), this.coefficientsBase[(int)transformSizeContext][(int)componentType][coeffContext]);
+                w.WriteSymbol(
+                    Math.Min(level, 3),
+                    this.coefficientsBase[(int)transformSizeContext][(int)componentType][coefficientContext]);
             }
 
             if (level > Av1Constants.BaseLevelsCount)
@@ -348,9 +391,12 @@ internal class Av1SymbolEncoder : IDisposable
                 int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(levels, position, transformClass);
                 for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
                 {
-                    int k = Math.Min(baseRange - idx, Av1Constants.BaseRangeSizeMinus1);
-                    w.WriteSymbol(k, this.coefficientsBaseRange[limitedTransformSizeContext][(int)componentType][baseRangeContext]);
-                    if (k < Av1Constants.BaseRangeSizeMinus1)
+                    int symbol = Math.Min(baseRange - idx, Av1Constants.BaseRangeSizeMinus1);
+                    w.WriteSymbol(
+                        symbol,
+                        this.coefficientsBaseRange[limitedTransformSizeContext][(int)componentType][baseRangeContext]);
+
+                    if (symbol < Av1Constants.BaseRangeSizeMinus1)
                     {
                         break;
                     }
@@ -360,19 +406,21 @@ internal class Av1SymbolEncoder : IDisposable
 
         // Signs follow every magnitude so the DC sign can use its neighboring context and AC signs remain literals.
         int culLevel = 0;
-        for (c = 0; c < endOfBlock; ++c)
+        for (int c = 0; c < endOfBlock; ++c)
         {
             short pos = scan[c];
-            int v = coefficientBuffer[pos];
-            int level = Math.Abs(v);
+            int value = coefficientBuffer[pos];
+            int level = Math.Abs(value);
             culLevel += level;
 
-            uint sign = v < 0 ? 1u : 0u;
+            uint sign = value < 0 ? 1u : 0u;
             if (level > 0)
             {
                 if (c == 0)
                 {
-                    w.WriteSymbol((int)sign, this.dcSign[(int)componentType][transformBlockContext.DcSignContext]);
+                    w.WriteSymbol(
+                        (int)sign,
+                        this.dcSign[(int)componentType][transformBlockContext.DcSignContext]);
                 }
                 else
                 {
@@ -381,7 +429,8 @@ internal class Av1SymbolEncoder : IDisposable
 
                 if (level > (Av1Constants.CoefficientBaseRange + Av1Constants.BaseLevelsCount))
                 {
-                    this.WriteGolomb(level - Av1Constants.CoefficientBaseRange - 1 - Av1Constants.BaseLevelsCount);
+                    this.WriteGolomb(
+                        level - Av1Constants.CoefficientBaseRange - 1 - Av1Constants.BaseLevelsCount);
                 }
             }
         }
@@ -394,6 +443,187 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Gets the current fixed-point rate cost of one transform block's complete coefficient syntax.
+    /// </summary>
+    /// <param name="transformSize">The signaled transform size.</param>
+    /// <param name="transformType">The transform type selecting the scan and context class.</param>
+    /// <param name="intraDirection">The block's intra prediction mode.</param>
+    /// <param name="coefficientBuffer">The raster-ordered signed coefficient levels.</param>
+    /// <param name="componentType">The luma or chroma component category.</param>
+    /// <param name="transformBlockContext">The neighboring skip and DC sign contexts.</param>
+    /// <param name="endOfBlock">The one-based final nonzero scan position, or zero for an empty block.</param>
+    /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
+    /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetCoefficientCost(
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        Av1PredictionMode intraDirection,
+        ReadOnlySpan<int> coefficientBuffer,
+        Av1ComponentType componentType,
+        Av1TransformBlockContext transformBlockContext,
+        ushort endOfBlock,
+        bool useReducedTransformSet,
+        Av1FilterIntraMode filterIntraMode)
+    {
+        Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
+
+        DebugGuard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));
+
+        int rate = this.ProcessTransformBlockSkip<CoefficientCostOperation>(
+            endOfBlock == 0,
+            transformSizeContext,
+            transformBlockContext.SkipContext);
+
+        if (endOfBlock == 0)
+        {
+            return rate;
+        }
+
+        Av1TransformSize adjustedTransformSize = transformSize.GetAdjusted();
+        int width = adjustedTransformSize.GetWidth();
+        int height = adjustedTransformSize.GetHeight();
+        Av1TransformClass transformClass = transformType.ToClass();
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+        bool needsLevelMap = endOfBlock > 1;
+        Av1LevelBuffer levels = this.PrepareCoefficientScratch(
+            width,
+            height,
+            needsLevelMap,
+            out Span<sbyte> coefficientContexts);
+
+        // The final coefficient uses scan-position contexts only. Earlier coefficients need the complete
+        // forward-neighbor level map, so a one-coefficient candidate avoids initializing that plane.
+        if (needsLevelMap)
+        {
+            levels.Initialize(coefficientBuffer);
+        }
+
+        if (componentType == Av1ComponentType.Luminance)
+        {
+            rate += this.ProcessTransformType<CoefficientCostOperation>(
+                transformType,
+                transformSize,
+                useReducedTransformSet,
+                this.baseQIndex,
+                filterIntraMode,
+                intraDirection);
+        }
+
+        rate += this.ProcessEndOfBlockPosition<CoefficientCostOperation>(
+            endOfBlock,
+            componentType,
+            transformClass,
+            transformSize,
+            transformSizeContext);
+
+        Av1SymbolContextHelper.GetNzMapContexts(levels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
+        int limitedTransformSizeContext = Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
+        int c = endOfBlock - 1;
+        int pos = scan[c];
+        int value = coefficientBuffer[pos];
+        int level = Math.Abs(value);
+        int coefficientContext = coefficientContexts[pos];
+        rate += Av1ProbabilityCost.GetSymbolCost(
+            this.coefficientsBaseEndOfBlock[(int)transformSizeContext][(int)componentType][coefficientContext],
+            Math.Min(level, 3) - 1);
+
+        if (level > Av1Constants.BaseLevelsCount)
+        {
+            int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContextEndOfBlock(
+                levels.GetPosition(pos),
+                transformClass);
+
+            rate += GetBaseRangeCost(
+                level,
+                this.coefficientsBaseRange[limitedTransformSizeContext][(int)componentType][baseRangeContext]);
+        }
+
+        if (c == 0)
+        {
+            return rate + Av1ProbabilityCost.GetSymbolCost(
+                this.dcSign[(int)componentType][transformBlockContext.DcSignContext],
+                value < 0 ? 1 : 0);
+        }
+
+        rate += Av1ProbabilityCost.GetLiteralCost(1);
+        for (c = endOfBlock - 2; c >= 1; --c)
+        {
+            pos = scan[c];
+            value = coefficientBuffer[pos];
+            level = Math.Abs(value);
+            coefficientContext = coefficientContexts[pos];
+            rate += Av1ProbabilityCost.GetSymbolCost(
+                this.coefficientsBase[(int)transformSizeContext][(int)componentType][coefficientContext],
+                Math.Min(level, 3));
+
+            if (level == 0)
+            {
+                continue;
+            }
+
+            rate += Av1ProbabilityCost.GetLiteralCost(1);
+            if (level > Av1Constants.BaseLevelsCount)
+            {
+                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(
+                    levels,
+                    levels.GetPosition(pos),
+                    transformClass);
+
+                rate += GetBaseRangeCost(
+                    level,
+                    this.coefficientsBaseRange[limitedTransformSizeContext][(int)componentType][baseRangeContext]);
+            }
+        }
+
+        pos = scan[0];
+        value = coefficientBuffer[pos];
+        level = Math.Abs(value);
+        coefficientContext = coefficientContexts[pos];
+        rate += Av1ProbabilityCost.GetSymbolCost(
+            this.coefficientsBase[(int)transformSizeContext][(int)componentType][coefficientContext],
+            Math.Min(level, 3));
+
+        if (level > 0)
+        {
+            rate += Av1ProbabilityCost.GetSymbolCost(
+                this.dcSign[(int)componentType][transformBlockContext.DcSignContext],
+                value < 0 ? 1 : 0);
+
+            if (level > Av1Constants.BaseLevelsCount)
+            {
+                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(
+                    levels,
+                    levels.GetPosition(pos),
+                    transformClass);
+
+                rate += GetBaseRangeCost(
+                    level,
+                    this.coefficientsBaseRange[limitedTransformSizeContext][(int)componentType][baseRangeContext]);
+            }
+        }
+
+        return rate;
+    }
+
+    private Av1LevelBuffer PrepareCoefficientScratch(
+        int width,
+        int height,
+        bool clearLevels,
+        out Span<sbyte> coefficientContexts)
+    {
+        Av1LevelBuffer levels = this.levels ??= new(this.configuration);
+        IMemoryOwner<sbyte> coefficientContextOwner = this.coefficientContexts ??=
+            this.configuration.MemoryAllocator.Allocate<sbyte>(MaximumCoefficientContextCount);
+
+        // AV1 omits high-frequency coefficients beyond 32 samples on every 64-point transform dimension. The tile
+        // creates maximum-sized workspaces once, then changes only the active views for subsequent transform blocks.
+        levels.Reset(new Size(width, height), clearLevels);
+        coefficientContexts = coefficientContextOwner.Memory.Span[..(width * height)];
+        return levels;
+    }
+
+    /// <summary>
     /// Writes an end-of-block token and its context-coded and literal suffix bits.
     /// </summary>
     /// <param name="endOfBlock">The one-based final nonzero scan position.</param>
@@ -403,8 +633,28 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="transformSizeContext">The square transform-size probability context.</param>
     public void WriteEndOfBlockPosition(ushort endOfBlock, Av1ComponentType componentType, Av1TransformClass transformClass, Av1TransformSize transformSize, Av1TransformSize transformSizeContext)
     {
+        _ = this.ProcessEndOfBlockPosition<CoefficientWriteOperation>(
+            endOfBlock,
+            componentType,
+            transformClass,
+            transformSize,
+            transformSizeContext);
+    }
+
+    private int ProcessEndOfBlockPosition<TOperation>(
+        ushort endOfBlock,
+        Av1ComponentType componentType,
+        Av1TransformClass transformClass,
+        Av1TransformSize transformSize,
+        Av1TransformSize transformSizeContext)
+        where TOperation : struct, ICoefficientSymbolOperation
+    {
         short endOfBlockPosition = Av1SymbolContextHelper.GetEndOfBlockPosition(endOfBlock, out int eobExtra);
-        this.WriteEndOfBlockFlag(componentType, transformClass, transformSize, endOfBlockPosition);
+        int rate = this.ProcessEndOfBlockFlag<TOperation>(
+            componentType,
+            transformClass,
+            transformSize,
+            endOfBlockPosition);
 
         int eobOffsetBitCount = Av1SymbolContextHelper.EndOfBlockOffsetBits[endOfBlockPosition];
         if (eobOffsetBitCount > 0)
@@ -416,14 +666,17 @@ internal class Av1SymbolEncoder : IDisposable
             // The local table retains placeholders for the first three tokens, unlike the reference decoder's compact table,
             // so the encoded token is also the distribution index.
             int endOfBlockContext = endOfBlockPosition;
-            w.WriteSymbol(bit, this.endOfBlockExtra[(int)transformSizeContext][(int)componentType][endOfBlockContext]);
-            for (int i = 1; i < eobOffsetBitCount; i++)
-            {
-                eobShift = eobOffsetBitCount - 1 - i;
-                bit = Av1Math.GetBit(eobExtra, eobShift);
-                w.WriteLiteral((uint)bit, 1);
-            }
+            rate += TOperation.ProcessSymbol(
+                ref w,
+                bit,
+                this.endOfBlockExtra[(int)transformSizeContext][(int)componentType][endOfBlockContext]);
+
+            // The context-coded high bit has already been consumed. The literal writer emits the remaining
+            // low-order suffix most-significant-bit first, preserving the AV1 syntax with one traversal call.
+            rate += TOperation.ProcessLiteral(ref w, (uint)eobExtra, eobOffsetBitCount - 1);
         }
+
+        return rate;
     }
 
     /// <summary>
@@ -434,9 +687,7 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetTransformBlockSkipCost(bool skip, Av1TransformSize transformSizeContext, int skipContext)
-        => Av1ProbabilityCost.GetSymbolCost(
-            this.transformBlockSkip[(int)transformSizeContext][skipContext],
-            skip ? 1 : 0);
+        => this.ProcessTransformBlockSkip<CoefficientCostOperation>(skip, transformSizeContext, skipContext);
 
     /// <summary>
     /// Writes whether a transform block has no coded coefficients.
@@ -446,8 +697,20 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
     public void WriteTransformBlockSkip(bool skip, Av1TransformSize transformSizeContext, int skipContext)
     {
+        _ = this.ProcessTransformBlockSkip<CoefficientWriteOperation>(skip, transformSizeContext, skipContext);
+    }
+
+    private int ProcessTransformBlockSkip<TOperation>(
+        bool skip,
+        Av1TransformSize transformSizeContext,
+        int skipContext)
+        where TOperation : struct, ICoefficientSymbolOperation
+    {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(skip, this.transformBlockSkip[(int)transformSizeContext][skipContext]);
+        return TOperation.ProcessSymbol(
+            ref w,
+            skip ? 1 : 0,
+            this.transformBlockSkip[(int)transformSizeContext][skipContext]);
     }
 
     /// <summary>
@@ -544,21 +807,46 @@ internal class Av1SymbolEncoder : IDisposable
     public void WriteGolomb(int level)
     {
         uint x = (uint)level + 1u;
-        int length = (int)Av1Math.Log2_32(x) + 1;
-
-        Guard.MustBeGreaterThan(length, 0, nameof(length));
-
+        int length = GetGolombBitLength(level);
         ref Av1SymbolWriter w = ref this.writer;
-        for (int i = 0; i < length - 1; ++i)
+        w.WriteLiteral(0u, length - 1);
+        w.WriteLiteral(x, length);
+    }
+
+    private static int GetBaseRangeCost(int level, Av1Distribution distribution)
+    {
+        int baseRange = Math.Min(
+            level - 1 - Av1Constants.BaseLevelsCount,
+            Av1Constants.CoefficientBaseRange);
+
+        int fullChunkCount = baseRange / Av1Constants.BaseRangeSizeMinus1;
+        int rate = 0;
+        if (fullChunkCount > 0)
         {
-            w.WriteLiteral(0u, 1);
+            rate = fullChunkCount * Av1ProbabilityCost.GetSymbolCost(
+                distribution,
+                Av1Constants.BaseRangeSizeMinus1);
         }
 
-        for (int j = length - 1; j >= 0; --j)
+        // A partial range ends with its remainder symbol. Reaching the complete base range consumes four
+        // maximum symbols and has no terminating remainder before the Golomb escape.
+        if (baseRange < Av1Constants.CoefficientBaseRange)
         {
-            w.WriteLiteral((x >> j) & 0x01, 1);
+            int remainder = baseRange - (fullChunkCount * Av1Constants.BaseRangeSizeMinus1);
+            rate += Av1ProbabilityCost.GetSymbolCost(distribution, remainder);
         }
+
+        if (level > (Av1Constants.CoefficientBaseRange + Av1Constants.BaseLevelsCount))
+        {
+            int golombValue = level - Av1Constants.CoefficientBaseRange - 1 - Av1Constants.BaseLevelsCount;
+            int length = GetGolombBitLength(golombValue);
+            rate += Av1ProbabilityCost.GetLiteralCost((2 * length) - 1);
+        }
+
+        return rate;
     }
+
+    private static int GetGolombBitLength(int level) => (int)Av1Math.Log2_32((uint)level + 1u) + 1;
 
     /// <summary>
     /// Writes the end-of-block token for a transform coefficient-count category.
@@ -567,12 +855,20 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="transformClass">The transform direction class.</param>
     /// <param name="transformSize">The signaled transform size.</param>
     /// <param name="endOfBlockPosition">The one-based end-of-block token.</param>
-    private void WriteEndOfBlockFlag(Av1ComponentType componentType, Av1TransformClass transformClass, Av1TransformSize transformSize, int endOfBlockPosition)
+    private int ProcessEndOfBlockFlag<TOperation>(
+        Av1ComponentType componentType,
+        Av1TransformClass transformClass,
+        Av1TransformSize transformSize,
+        int endOfBlockPosition)
+        where TOperation : struct, ICoefficientSymbolOperation
     {
         int endOfBlockMultiSize = transformSize.GetLog2Minus4();
         int endOfBlockContext = transformClass == Av1TransformClass.Class2D ? 0 : 1;
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(endOfBlockPosition - 1, this.endOfBlockFlag[endOfBlockMultiSize][(int)componentType][endOfBlockContext]);
+        return TOperation.ProcessSymbol(
+            ref w,
+            endOfBlockPosition - 1,
+            this.endOfBlockFlag[endOfBlockMultiSize][(int)componentType][endOfBlockContext]);
     }
 
     /// <summary>
@@ -592,17 +888,35 @@ internal class Av1SymbolEncoder : IDisposable
         Av1FilterIntraMode filterIntraMode,
         Av1PredictionMode intraDirection)
     {
+        _ = this.ProcessTransformType<CoefficientWriteOperation>(
+            transformType,
+            transformSize,
+            useReducedTransformSet,
+            baseQIndex,
+            filterIntraMode,
+            intraDirection);
+    }
+
+    private int ProcessTransformType<TOperation>(
+        Av1TransformType transformType,
+        Av1TransformSize transformSize,
+        bool useReducedTransformSet,
+        int baseQIndex,
+        Av1FilterIntraMode filterIntraMode,
+        Av1PredictionMode intraDirection)
+        where TOperation : struct, ICoefficientSymbolOperation
+    {
         // Still-image encoding reaches this path only for intra blocks, so the intra transform set is authoritative.
         Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(transformSize, useReducedTransformSet);
         if (Av1SymbolContextHelper.GetExtendedTransformTypeCount(transformSetType) > 1 && baseQIndex > 0)
         {
             Av1TransformSize squareTransformSize = transformSize.GetSquareSize();
-            Guard.MustBeLessThanOrEqualTo((int)squareTransformSize, Av1Constants.ExtendedTransformCount, nameof(squareTransformSize));
+            DebugGuard.MustBeLessThanOrEqualTo((int)squareTransformSize, Av1Constants.ExtendedTransformCount, nameof(squareTransformSize));
 
             int extendedSet = Av1SymbolContextHelper.GetExtendedTransformSet(transformSetType);
 
             // Set zero contains only DCT-DCT, which was excluded by the multiple-choice condition above.
-            Guard.MustBeGreaterThan(extendedSet, 0, nameof(extendedSet));
+            DebugGuard.MustBeGreaterThan(extendedSet, 0, nameof(extendedSet));
 
             Av1PredictionMode intraDirectionContext;
             if (filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes)
@@ -614,13 +928,16 @@ internal class Av1SymbolEncoder : IDisposable
                 intraDirectionContext = intraDirection;
             }
 
-            Guard.MustBeLessThan((int)intraDirectionContext, 13, nameof(intraDirectionContext));
-            Guard.MustBeLessThan((int)squareTransformSize, 4, nameof(squareTransformSize));
+            DebugGuard.MustBeLessThan((int)intraDirectionContext, 13, nameof(intraDirectionContext));
+            DebugGuard.MustBeLessThan((int)squareTransformSize, 4, nameof(squareTransformSize));
             ref Av1SymbolWriter w = ref this.writer;
-            w.WriteSymbol(
+            return TOperation.ProcessSymbol(
+                ref w,
                 Av1SymbolContextHelper.GetExtendedTransformIndex(transformSetType, transformType),
                 this.intraExtendedTransform[extendedSet][(int)squareTransformSize][(int)intraDirectionContext]);
         }
+
+        return 0;
     }
 
     /// <summary>
@@ -836,5 +1153,47 @@ internal class Av1SymbolEncoder : IDisposable
             int indexV = Av1ChromaFromLumaMath.IndexV(chromaFromLumaIndex);
             w.WriteSymbol(indexV, this.chromaFromLumaAlpha[contextV]);
         }
+    }
+
+    /// <summary>
+    /// Emits coefficient syntax and reports no estimated rate.
+    /// </summary>
+    private readonly struct CoefficientWriteOperation : ICoefficientSymbolOperation
+    {
+        public static int ProcessSymbol(
+            ref Av1SymbolWriter writer,
+            int symbol,
+            Av1Distribution distribution)
+        {
+            writer.WriteSymbol(symbol, distribution);
+            return 0;
+        }
+
+        public static int ProcessLiteral(
+            ref Av1SymbolWriter writer,
+            uint value,
+            int bitCount)
+        {
+            writer.WriteLiteral(value, bitCount);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Measures coefficient syntax against the live tile distributions without changing them.
+    /// </summary>
+    private readonly struct CoefficientCostOperation : ICoefficientSymbolOperation
+    {
+        public static int ProcessSymbol(
+            ref Av1SymbolWriter writer,
+            int symbol,
+            Av1Distribution distribution)
+            => Av1ProbabilityCost.GetSymbolCost(distribution, symbol);
+
+        public static int ProcessLiteral(
+            ref Av1SymbolWriter writer,
+            uint value,
+            int bitCount)
+            => Av1ProbabilityCost.GetLiteralCost(bitCount);
     }
 }

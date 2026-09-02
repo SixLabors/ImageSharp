@@ -25,11 +25,9 @@ public class Av1CoefficientsEntropyTests
         using Av1NeighborArrayUnit<byte> neighbors = new(
             Configuration.Default,
             leftSize: 8,
-            topSize: 8,
-            topLeftSize: 16)
+            topSize: 8)
         {
-            GranularityNormalLog2 = 2,
-            GranularityTopLeftLog2 = 2
+            GranularityNormalLog2 = 2
         };
 
         neighbors.UnitModeWrite(
@@ -42,6 +40,32 @@ public class Av1CoefficientsEntropyTests
         Assert.Equal(new byte[] { 0, 37, 37, 0, 0, 0, 0, 0 }, neighbors.Left.ToArray());
     }
 
+    [Fact]
+    public void NeighborArrayOwnsOnlyLeftAndTopContexts()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        TestMemoryAllocator.AllocationRequest allocation;
+        using (Av1NeighborArrayUnit<byte> neighbors = new(configuration, leftSize: 8, topSize: 12)
+        {
+            GranularityNormalLog2 = Av1Constants.ModeInfoSizeLog2
+        })
+        {
+            allocation = Assert.Single(allocator.AllocationLog);
+            Assert.Empty(allocator.ReturnLog);
+            Assert.Equal(20, allocation.Length);
+            Assert.Equal(AllocationOptions.Clean, allocation.AllocationOptions);
+            Assert.Equal(8, neighbors.Left.Length);
+            Assert.Equal(12, neighbors.Top.Length);
+        }
+
+        TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
+        Assert.Equal(allocation.AllocationId, returned.AllocationId);
+    }
+
     [Theory]
     [InlineData((int)Av1ComponentType.Luminance, 5)]
     [InlineData((int)Av1ComponentType.Chroma, 12)]
@@ -52,11 +76,9 @@ public class Av1CoefficientsEntropyTests
         using Av1NeighborArrayUnit<byte> neighbors = new(
             Configuration.Default,
             leftSize: 8,
-            topSize: 8,
-            topLeftSize: 16)
+            topSize: 8)
         {
-            GranularityNormalLog2 = 2,
-            GranularityTopLeftLog2 = 2
+            GranularityNormalLog2 = 2
         };
 
         // The high bits carry positive, positive, and negative DC signs. The low bits select
@@ -358,11 +380,9 @@ public class Av1CoefficientsEntropyTests
         using Av1NeighborArrayUnit<byte> luma = new(
             Configuration.Default,
             leftSize: 128,
-            topSize: 128,
-            topLeftSize: 256)
+            topSize: 128)
         {
-            GranularityNormalLog2 = Av1Constants.ModeInfoSizeLog2,
-            GranularityTopLeftLog2 = Av1Constants.ModeInfoSizeLog2
+            GranularityNormalLog2 = Av1Constants.ModeInfoSizeLog2
         };
 
         using Av1EncoderCoefficientBuffer coefficients = new(
@@ -447,11 +467,9 @@ public class Av1CoefficientsEntropyTests
         using Av1NeighborArrayUnit<byte> transforms = new(
             Configuration.Default,
             leftSize: 64,
-            topSize: 64,
-            topLeftSize: 128)
+            topSize: 64)
         {
-            GranularityNormalLog2 = Av1Constants.ModeInfoSizeLog2,
-            GranularityTopLeftLog2 = Av1Constants.ModeInfoSizeLog2
+            GranularityNormalLog2 = Av1Constants.ModeInfoSizeLog2
         };
 
         int topIndex = transforms.GetTopIndex(blockOrigin);
@@ -510,11 +528,9 @@ public class Av1CoefficientsEntropyTests
         using Av1NeighborArrayUnit<Av1PartitionContext> neighbors = new(
             Configuration.Default,
             leftSize: 16,
-            topSize: 16,
-            topLeftSize: 32)
+            topSize: 16)
         {
-            GranularityNormalLog2 = 2,
-            GranularityTopLeftLog2 = 2
+            GranularityNormalLog2 = 2
         };
 
         Av1PartitionType partition = (Av1PartitionType)partitionValue;
@@ -543,11 +559,9 @@ public class Av1CoefficientsEntropyTests
         using Av1NeighborArrayUnit<Av1PartitionContext> neighbors = new(
             Configuration.Default,
             leftSize: 4,
-            topSize: 4,
-            topLeftSize: 8)
+            topSize: 4)
         {
-            GranularityNormalLog2 = 2,
-            GranularityTopLeftLog2 = 2
+            GranularityNormalLog2 = 2
         };
 
         Av1TileWriter.UpdatePartitionContexts(
@@ -633,51 +647,41 @@ public class Av1CoefficientsEntropyTests
         using Av1NeighborArrayUnit<Av1PartitionContext> partitions = new(
             Configuration.Default,
             leftSize: 16,
-            topSize: 32,
-            topLeftSize: 48)
+            topSize: 32)
         {
-            GranularityNormalLog2 = 2,
-            GranularityTopLeftLog2 = 2
+            GranularityNormalLog2 = 2
         };
 
         using Av1NeighborArrayUnit<byte> luma = new(
             Configuration.Default,
             leftSize: 16,
-            topSize: 32,
-            topLeftSize: 48)
+            topSize: 32)
         {
-            GranularityNormalLog2 = 2,
-            GranularityTopLeftLog2 = 2
+            GranularityNormalLog2 = 2
         };
 
         using Av1NeighborArrayUnit<byte> red = new(
             Configuration.Default,
             leftSize: 16,
-            topSize: 32,
-            topLeftSize: 48)
+            topSize: 32)
         {
-            GranularityNormalLog2 = 2,
-            GranularityTopLeftLog2 = 2
+            GranularityNormalLog2 = 2
         };
 
         using Av1NeighborArrayUnit<byte> blue = new(
             Configuration.Default,
             leftSize: 16,
-            topSize: 32,
-            topLeftSize: 48)
+            topSize: 32)
         {
-            GranularityNormalLog2 = 2,
-            GranularityTopLeftLog2 = 2
+            GranularityNormalLog2 = 2
         };
 
         using Av1NeighborArrayUnit<byte> transforms = new(
             Configuration.Default,
             leftSize: 16,
-            topSize: 32,
-            topLeftSize: 48)
+            topSize: 32)
         {
-            GranularityNormalLog2 = 2,
-            GranularityTopLeftLog2 = 2
+            GranularityNormalLog2 = 2
         };
 
         picture.PartitionContexts = [partitions];
@@ -785,11 +789,9 @@ public class Av1CoefficientsEntropyTests
         using Av1NeighborArrayUnit<Av1PartitionContext> neighbors = new(
             Configuration.Default,
             leftSize: 1,
-            topSize: 1,
-            topLeftSize: 2)
+            topSize: 1)
         {
-            GranularityNormalLog2 = 2,
-            GranularityTopLeftLog2 = 2
+            GranularityNormalLog2 = 2
         };
 
         Av1PartitionType nonSplitPartition = bottomEdge ? Av1PartitionType.Horizontal : Av1PartitionType.Vertical;

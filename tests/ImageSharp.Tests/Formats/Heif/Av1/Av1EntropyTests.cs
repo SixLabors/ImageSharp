@@ -171,6 +171,51 @@ public class Av1EntropyTests
                 angleDelta));
     }
 
+    /// <summary>
+    /// Verifies that live chroma rate accounting includes the selected signed directional adjustment.
+    /// </summary>
+    /// <param name="angleDelta">The signed AV1 directional adjustment.</param>
+    [Theory]
+    [InlineData(-3)]
+    [InlineData(0)]
+    [InlineData(3)]
+    public void ChromaModeCostIncludesSelectedAngleDelta(int angleDelta)
+    {
+        const Av1PredictionMode LumaMode = Av1PredictionMode.DC;
+        const Av1ChromaPredictionMode ChromaMode = Av1ChromaPredictionMode.Directional135Degrees;
+        const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
+        ObuFrameHeader frameHeader = new();
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = false,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        Av1MacroBlockModeInfo modeInfo = default;
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
+        bool isChromaFromLumaAllowed = BlockSize.AllowsChromaFromLuma(
+            frameHeader.LosslessArray[0],
+            colorConfig.SubSamplingX,
+            colorConfig.SubSamplingY);
+
+        int expected = encoder.GetChromaModeCost(ChromaMode, isChromaFromLumaAllowed, LumaMode)
+            + encoder.GetAngleDeltaCost(angleDelta + Av1Constants.MaxAngleDelta, ChromaMode.ToLumaMode());
+
+        Assert.Equal(
+            expected,
+            Av1TileWriter.GetChromaModeCost(
+                encoder,
+                frameHeader,
+                colorConfig,
+                modeInfo,
+                BlockSize,
+                LumaMode,
+                ChromaMode,
+                angleDelta));
+    }
+
     [Fact]
     public void SymbolEncoderCostTracksWrittenLumaMode()
     {

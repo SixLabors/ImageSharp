@@ -74,7 +74,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState state);
 
         /// <summary>
-        /// Encodes one luma candidate into contiguous decision scratch.
+        /// Encodes one intra candidate into contiguous decision scratch.
         /// </summary>
         /// <param name="workspace">The reusable block workspace.</param>
         /// <param name="source">The coded source plane.</param>
@@ -88,6 +88,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="angleDelta">The signed directional-angle adjustment.</param>
         /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
         /// <param name="transformSize">The transform dimensions.</param>
+        /// <param name="plane">The component plane containing the block.</param>
         /// <param name="qIndex">The effective segment quantizer index.</param>
         /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
         /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
@@ -107,6 +108,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int angleDelta,
             Span<int> quantizedCoefficients,
             Av1TransformSize transformSize,
+            Av1Plane plane,
             int qIndex,
             int dcDeltaQ,
             int acDeltaQ,
@@ -176,6 +178,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int angleDelta,
             Span<int> quantizedCoefficients,
             Av1TransformSize transformSize,
+            Av1Plane plane,
             int qIndex,
             int dcDeltaQ,
             int acDeltaQ,
@@ -198,7 +201,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 qIndex,
                 dcDeltaQ,
                 acDeltaQ,
-                Av1Plane.Y,
+                plane,
                 ref state);
     }
 
@@ -265,6 +268,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int angleDelta,
             Span<int> quantizedCoefficients,
             Av1TransformSize transformSize,
+            Av1Plane plane,
             int qIndex,
             int dcDeltaQ,
             int acDeltaQ,
@@ -287,7 +291,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 qIndex,
                 dcDeltaQ,
                 acDeltaQ,
-                Av1Plane.Y,
+                plane,
                 bitDepth,
                 ref state);
     }

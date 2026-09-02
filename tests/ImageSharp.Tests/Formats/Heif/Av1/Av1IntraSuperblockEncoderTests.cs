@@ -796,6 +796,109 @@ public class Av1IntraSuperblockEncoderTests
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
     }
 
+    [Theory]
+    [InlineData((int)Av1ChromaPredictionMode.Vertical, 0, (int)Av1ColorFormat.Yuv444)]
+    [InlineData((int)Av1ChromaPredictionMode.Horizontal, 0, (int)Av1ColorFormat.Yuv420)]
+    [InlineData((int)Av1ChromaPredictionMode.Paeth, 0, (int)Av1ColorFormat.Yuv422)]
+    [InlineData((int)Av1ChromaPredictionMode.Directional45Degrees, -3, (int)Av1ColorFormat.Yuv420)]
+    [InlineData((int)Av1ChromaPredictionMode.Directional135Degrees, 3, (int)Av1ColorFormat.Yuv422)]
+    [InlineData((int)Av1ChromaPredictionMode.Directional203Degrees, -3, (int)Av1ColorFormat.Yuv444)]
+    public void ProductionTileSelectsChromaModeFromCurrentReconstruction(
+        int expectedModeValue,
+        int expectedAngleDelta,
+        int colorFormatValue)
+    {
+        const int Width = 16;
+        const int Height = 16;
+        const int QIndex = 1;
+        Av1ChromaPredictionMode expectedMode = (Av1ChromaPredictionMode)expectedModeValue;
+        Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
+        bool subsamplingX = colorFormat is Av1ColorFormat.Yuv420 or Av1ColorFormat.Yuv422;
+        bool subsamplingY = colorFormat == Av1ColorFormat.Yuv420;
+        int chromaSubsamplingX = subsamplingX ? 1 : 0;
+        int chromaSubsamplingY = subsamplingY ? 1 : 0;
+        Av1TransformSize transformSize = Av1BlockSize.Block8x8.GetMaxUvTransformSize(
+            subsamplingX,
+            subsamplingY);
+
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = false,
+            SubSamplingX = subsamplingX,
+            SubSamplingY = subsamplingY,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        using Av1EncoderFrameBuffer<byte> source = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            colorFormat,
+            chromaSubsamplingX,
+            chromaSubsamplingY);
+
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            colorFormat,
+            chromaSubsamplingX,
+            chromaSubsamplingY);
+
+        FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.Y), (byte)128);
+        FillChromaModeSelectionPlane(
+            source.Frame.CodedView.GetPlane(Av1Plane.U),
+            transformSize,
+            expectedMode,
+            expectedAngleDelta);
+
+        FillChromaModeSelectionPlane(
+            source.Frame.CodedView.GetPlane(Av1Plane.V),
+            transformSize,
+            expectedMode,
+            expectedAngleDelta);
+
+        ClearPlane(reconstruction.Luma);
+        ClearPlane(Assert.IsType<Buffer2D<byte>>(reconstruction.ChromaBlue));
+        ClearPlane(Assert.IsType<Buffer2D<byte>>(reconstruction.ChromaRed));
+        using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, Width, Height, disallow4x4AllFrames: true);
+        Av1PictureControlSet pictureTemplate = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, QIndex);
+        using Av1EncoderPictureBuffer picture = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            pictureTemplate.Parent.FrameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderCoefficientBuffer coefficients = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            Width,
+            Height);
+
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        using Av1IntraTileWriter tileWriter = new(
+            Configuration.Default,
+            source.Frame,
+            reconstruction.Frame,
+            picture.Picture,
+            coefficients,
+            superblockWorkspace,
+            blockWorkspace,
+            initialSize: 512);
+
+        ref Av1MacroBlockModeInfo targetBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(2, 2));
+        Assert.Equal(expectedMode, targetBlock.Block.UvMode);
+        Assert.Equal(
+            expectedAngleDelta,
+            superblockWorkspace.FinalBlocks[3].PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv]);
+
+        Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
+    }
+
     [Fact]
     public void ProductionDirectionalModesConsumeAvailableExtendedEdges()
     {
@@ -1079,6 +1182,89 @@ public class Av1IntraSuperblockEncoderTests
             Disallow4x4AllFrames = modeInfo.Disallow4x4AllFrames,
             CdefPreset = [[-1, -1, -1, -1]]
         };
+    }
+
+    private static void FillChromaModeSelectionPlane(
+        Buffer2DRegion<byte> plane,
+        Av1TransformSize transformSize,
+        Av1ChromaPredictionMode expectedMode,
+        int expectedAngleDelta)
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        Span<byte> aboveStorage = stackalloc byte[17];
+        Span<byte> above = aboveStorage.Slice(1, width * 2);
+        Span<byte> leftStorage = stackalloc byte[17];
+        Span<byte> left = leftStorage.Slice(1, height * 2);
+        aboveStorage[0] = 128;
+        leftStorage[0] = 128;
+        for (int column = 0; column < width; column++)
+        {
+            above[column] = (byte)(32 + ((192 * column) / (width - 1)));
+        }
+
+        for (int row = 0; row < height; row++)
+        {
+            left[row] = (byte)(224 - ((192 * row) / (height - 1)));
+        }
+
+        above[width..].Fill(above[width - 1]);
+        left[height..].Fill(left[height - 1]);
+        Span<byte> target = stackalloc byte[64];
+        int sampleCount = transformSize.GetSize2d();
+        if (expectedMode.IsDirectional())
+        {
+            // Directional arithmetic has separate byte-exact reference coverage. This fixture uses its scalar
+            // path only to isolate chroma traversal, joint U/V rate-distortion selection, and packed mode state.
+            Av1DirectionalIntraPredictor.PredictScalar(
+                target[..sampleCount],
+                width,
+                transformSize,
+                above,
+                left,
+                false,
+                false,
+                expectedMode.ToLumaMode().ToAngle() + (expectedAngleDelta * Av1Constants.AngleStep));
+        }
+        else
+        {
+            // Build the supported non-directional targets directly so production prediction cannot self-validate.
+            for (int row = 0; row < height; row++)
+            {
+                for (int column = 0; column < width; column++)
+                {
+                    int top = above[column];
+                    int leftSample = left[row];
+                    int predictor = top + leftSample - 128;
+                    int leftDistance = Math.Abs(predictor - leftSample);
+                    int topDistance = Math.Abs(predictor - top);
+                    int cornerDistance = Math.Abs(predictor - 128);
+                    target[(row * width) + column] = expectedMode switch
+                    {
+                        Av1ChromaPredictionMode.Vertical => (byte)top,
+                        Av1ChromaPredictionMode.Horizontal => (byte)leftSample,
+                        _ => (byte)(leftDistance <= topDistance && leftDistance <= cornerDistance
+                            ? leftSample
+                            : topDistance <= cornerDistance ? top : 128)
+                    };
+                }
+            }
+        }
+
+        // The first three transform-sized quadrants establish the top, left, and corner reconstruction
+        // consumed by the bottom-right target during the real tile traversal.
+        for (int row = 0; row < plane.Height; row++)
+        {
+            Span<byte> destination = plane.DangerousGetRowSpan(row);
+            for (int column = 0; column < plane.Width; column++)
+            {
+                destination[column] = row < height
+                    ? column < width ? (byte)128 : above[column - width]
+                    : column < width
+                        ? left[row - height]
+                        : target[((row - height) * width) + column - width];
+            }
+        }
     }
 
     private static void FillPlane(Buffer2DRegion<byte> plane, int modulus, int seed)

@@ -916,6 +916,43 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
+    /// Gets the chroma prediction-mode and directional-angle rate from the live tile probabilities.
+    /// </summary>
+    /// <param name="writer">The live tile symbol encoder.</param>
+    /// <param name="frameHeader">The current frame syntax and segment lossless state.</param>
+    /// <param name="colorConfig">The sequence chroma subsampling configuration.</param>
+    /// <param name="macroBlockModeInfo">The selected block modes.</param>
+    /// <param name="blockSize">The luma block size.</param>
+    /// <param name="lumaMode">The selected luma prediction mode.</param>
+    /// <param name="chromaMode">The candidate chroma prediction mode.</param>
+    /// <param name="angleDelta">The signed directional-angle adjustment.</param>
+    /// <returns>The chroma mode and directional-angle rate in 1/512-bit units.</returns>
+    public static int GetChromaModeCost(
+        Av1SymbolEncoder writer,
+        ObuFrameHeader frameHeader,
+        ObuColorConfig colorConfig,
+        Av1MacroBlockModeInfo macroBlockModeInfo,
+        Av1BlockSize blockSize,
+        Av1PredictionMode lumaMode,
+        Av1ChromaPredictionMode chromaMode,
+        int angleDelta)
+    {
+        bool isChromaFromLumaAllowed = IsChromaFromLumaAllowed(
+            frameHeader,
+            colorConfig,
+            macroBlockModeInfo,
+            blockSize);
+
+        int cost = writer.GetChromaModeCost(chromaMode, isChromaFromLumaAllowed, lumaMode);
+        if (blockSize >= Av1BlockSize.Block8x8 && chromaMode.IsDirectional())
+        {
+            cost += writer.GetAngleDeltaCost(angleDelta + Av1Constants.MaxAngleDelta, chromaMode.ToLumaMode());
+        }
+
+        return cost;
+    }
+
+    /// <summary>
     /// Writes the chroma intra mode, chroma-from-luma alpha values, and directional angle adjustment for a block.
     /// </summary>
     /// <param name="writer">The tile symbol encoder.</param>
@@ -936,10 +973,11 @@ internal partial class Av1TileWriter
         Av1PredictionMode lumaMode,
         Av1ChromaPredictionMode chromaMode)
     {
-        bool isChromaFromLumaAllowed = blockSize.AllowsChromaFromLuma(
-            frameHeader.LosslessArray[macroBlockModeInfo.Block.SegmentId],
-            colorConfig.SubSamplingX,
-            colorConfig.SubSamplingY);
+        bool isChromaFromLumaAllowed = IsChromaFromLumaAllowed(
+            frameHeader,
+            colorConfig,
+            macroBlockModeInfo,
+            blockSize);
 
         writer.WriteChromaMode(chromaMode, isChromaFromLumaAllowed, lumaMode);
 
@@ -957,6 +995,16 @@ internal partial class Av1TileWriter
                 chromaMode.ToLumaMode());
         }
     }
+
+    private static bool IsChromaFromLumaAllowed(
+        ObuFrameHeader frameHeader,
+        ObuColorConfig colorConfig,
+        Av1MacroBlockModeInfo macroBlockModeInfo,
+        Av1BlockSize blockSize)
+        => blockSize.AllowsChromaFromLuma(
+            frameHeader.LosslessArray[macroBlockModeInfo.Block.SegmentId],
+            colorConfig.SubSamplingX,
+            colorConfig.SubSamplingY);
 
     /// <summary>
     /// Gets the above and left key-frame contexts used to write an intra luma mode.

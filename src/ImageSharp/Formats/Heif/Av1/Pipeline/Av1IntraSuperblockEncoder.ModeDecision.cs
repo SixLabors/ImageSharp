@@ -38,7 +38,7 @@ internal static partial class Av1IntraSuperblockEncoder
     /// <summary>
     /// Gets the nonzero directional adjustments in the exhaustive order used by the reference encoder.
     /// </summary>
-    private static ReadOnlySpan<sbyte> LumaAngleDeltaSearchOrder => [-3, -2, -1, 1, 2, 3];
+    private static ReadOnlySpan<sbyte> AngleDeltaSearchOrder => [-3, -2, -1, 1, 2, 3];
 
     /// <summary>
     /// Builds the fixed 8x8 partition skeleton consumed by interleaved mode decision and tile writing.
@@ -104,7 +104,7 @@ internal static partial class Av1IntraSuperblockEncoder
     /// </summary>
     /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
     /// <typeparam name="TOperator">The type-specific block encoding operations.</typeparam>
-    internal struct ModeDecision<TSample, TOperator> : Av1TileWriter.IBlockEncodingHandler
+    internal partial struct ModeDecision<TSample, TOperator> : Av1TileWriter.IBlockEncodingHandler
         where TSample : unmanaged
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
@@ -224,29 +224,22 @@ internal static partial class Av1IntraSuperblockEncoder
 
             ref Av1EncoderTransformBlockState blueState = ref blueTransformBlocks[chromaTransformIndex];
             ref Av1EncoderTransformBlockState redState = ref redTransformBlocks[chromaTransformIndex];
-            EncodePlaneBlock<TSample, TOperator>(
-                this.source,
-                this.reconstruction,
-                this.blockWorkspace,
-                this.quantization,
-                this.bitDepth,
-                Av1Plane.U,
+            modeInfo.Block.UvMode = this.SelectChromaMode(
+                writer,
+                macroBlock,
+                modeInfo,
+                blockOrigin,
                 chromaOrigin,
+                tileIndex,
+                modeInfo.Block.Mode,
                 chromaTransformSize,
                 blueCoefficients[this.codedAreaChroma..],
-                ref blueState);
-
-            EncodePlaneBlock<TSample, TOperator>(
-                this.source,
-                this.reconstruction,
-                this.blockWorkspace,
-                this.quantization,
-                this.bitDepth,
-                Av1Plane.V,
-                chromaOrigin,
-                chromaTransformSize,
                 redCoefficients[this.codedAreaChroma..],
-                ref redState);
+                ref blueState,
+                ref redState,
+                out int chromaAngleDelta);
+
+            block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv] = (sbyte)chromaAngleDelta;
 
             // A block-level skip suppresses every coefficient symbol, so all coded planes must be empty.
             modeInfo.Block.Skip = skipTransform && blueState.EndOfBlock == 0 && redState.EndOfBlock == 0;
@@ -380,7 +373,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PredictionMode bestMode = Av1PredictionMode.DC;
             selectedAngleDelta = 0;
             int baseModeCount = LumaModeSearchOrder.Length;
-            int deltaCount = LumaAngleDeltaSearchOrder.Length;
+            int deltaCount = AngleDeltaSearchOrder.Length;
             int directionalModeCount = (int)Av1PredictionMode.Directional67Degrees - (int)Av1PredictionMode.Vertical + 1;
             int candidateCount = baseModeCount + (directionalModeCount * deltaCount);
 
@@ -399,7 +392,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     int adjustedIndex = candidateIndex - baseModeCount;
                     mode = (Av1PredictionMode)((int)Av1PredictionMode.Vertical + (adjustedIndex / deltaCount));
-                    angleDelta = LumaAngleDeltaSearchOrder[adjustedIndex % deltaCount];
+                    angleDelta = AngleDeltaSearchOrder[adjustedIndex % deltaCount];
                 }
 
                 Av1EncoderTransformBlockState candidateState = default;
@@ -427,6 +420,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         reconstructionPlane,
                         blockOrigin,
                         retainedCoefficients,
+                        TransformSize,
                         candidateState,
                         ref retainedState);
 
@@ -470,6 +464,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 angleDelta,
                 candidateCoefficients,
                 TransformSize,
+                Av1Plane.Y,
                 this.quantization.QIndex[0],
                 this.quantization.DeltaQDc[(int)Av1Plane.Y],
                 this.quantization.DeltaQAc[(int)Av1Plane.Y],
@@ -497,15 +492,17 @@ internal static partial class Av1IntraSuperblockEncoder
             Buffer2DRegion<TSample> reconstructionPlane,
             Point blockOrigin,
             Span<int> retainedCoefficients,
+            Av1TransformSize transformSize,
             Av1EncoderTransformBlockState candidateState,
             ref Av1EncoderTransformBlockState retainedState)
         {
-            const int Width = 8;
-            candidateCoefficients.CopyTo(retainedCoefficients);
-            for (int row = 0; row < Width; row++)
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+            candidateCoefficients[..transformSize.GetSize2d()].CopyTo(retainedCoefficients);
+            for (int row = 0; row < height; row++)
             {
-                candidateReconstruction.Slice(row * Width, Width)
-                    .CopyTo(reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row).Slice(blockOrigin.X, Width));
+                candidateReconstruction.Slice(row * width, width)
+                    .CopyTo(reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row).Slice(blockOrigin.X, width));
             }
 
             retainedState = candidateState;

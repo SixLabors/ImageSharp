@@ -147,6 +147,128 @@ public class Av1EncoderFrameTests
     }
 
     [Fact]
+    public void ScreenContentDetectorMatchesLibaomPaletteThreshold()
+    {
+        const int width = 160;
+        const int height = 16;
+        using Av1EncoderFrameBuffer<byte> byteFrame = new(
+            Configuration.Default,
+            width,
+            height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        for (int row = 0; row < height; row++)
+        {
+            Span<byte> samples = byteFrame.Frame.View.GetLumaRowSpan(row)[..width];
+            samples.Fill(96);
+            for (int column = 0; column < 16; column++)
+            {
+                samples[column] = column < 8 ? (byte)32 : (byte)224;
+            }
+        }
+
+        // One qualifying block is exactly ten percent of this frame, and the reference threshold is strict.
+        Assert.False(Av1ScreenContentDetector.IsPaletteLikely(byteFrame.Frame));
+        for (int row = 0; row < height; row++)
+        {
+            Span<byte> samples = byteFrame.Frame.View.GetLumaRowSpan(row);
+            for (int column = 16; column < 32; column++)
+            {
+                samples[column] = column < 24 ? (byte)48 : (byte)208;
+            }
+        }
+
+        Assert.True(Av1ScreenContentDetector.IsPaletteLikely(byteFrame.Frame));
+        using Av1EncoderFrameBuffer<ushort> highBitDepthFrame = new(
+            Configuration.Default,
+            16,
+            16,
+            10,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        for (int row = 0; row < 16; row++)
+        {
+            Span<ushort> samples = highBitDepthFrame.Frame.View.GetLumaRowSpan(row);
+            for (int column = 0; column < 16; column++)
+            {
+                samples[column] = column < 8 ? (ushort)128 : (ushort)131;
+            }
+        }
+
+        Assert.False(Av1ScreenContentDetector.IsPaletteLikely(highBitDepthFrame.Frame));
+        for (int row = 0; row < 16; row++)
+        {
+            Span<ushort> samples = highBitDepthFrame.Frame.View.GetLumaRowSpan(row);
+            samples[8..16].Fill(640);
+        }
+
+        Assert.True(Av1ScreenContentDetector.IsPaletteLikely(highBitDepthFrame.Frame));
+        for (int row = 0; row < 16; row++)
+        {
+            Span<ushort> samples = highBitDepthFrame.Frame.View.GetLumaRowSpan(row);
+            for (int column = 0; column < 16; column++)
+            {
+                samples[column] = (ushort)((column % 5) * 200);
+            }
+        }
+
+        Assert.False(Av1ScreenContentDetector.IsPaletteLikely(highBitDepthFrame.Frame));
+    }
+
+    [Fact]
+    public void EncodeActivatesPaletteToolsForScreenContent()
+    {
+        const int width = 16;
+        const int height = 16;
+        using Image<Rgba32> source = new(width, height);
+        for (int row = 0; row < height; row++)
+        {
+            Span<Rgba32> pixels = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
+            for (int column = 0; column < width; column++)
+            {
+                pixels[column] = (((column >> 2) + (row >> 2)) & 1) == 0
+                    ? new Rgba32(224, 32, 32)
+                    : new Rgba32(32, 32, 224);
+            }
+        }
+
+        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv444);
+        using MemoryStream stream = new();
+        _ = Av1FrameEncoder.Encode(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            stream,
+            colorConfig,
+            qIndex: 37);
+
+        byte[] payload = stream.ToArray();
+        Av1BitStreamReader reader = new(payload);
+        Av1TileDecoderStub tileReader = new();
+        ObuReader obuReader = new();
+        obuReader.ReadAll(ref reader, payload.Length, () => tileReader);
+        ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(obuReader.FrameHeader);
+        Assert.True(frameHeader.AllowScreenContentTools);
+        Assert.False(frameHeader.AllowIntraBlockCopy);
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        Assert.Equal(new Size(width, height), decoded.Size);
+
+        string outputDirectory = Path.Combine(
+            TestEnvironment.ActualOutputDirectoryFullPath,
+            "Formats",
+            "Heif",
+            "Av1");
+
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllBytes(Path.Combine(outputDirectory, "encoder-frame-16x16-8b-444-palette.obu"), payload);
+    }
+
+    [Fact]
     public void PrepareSourceConvertsRgba32DirectlyIntoBorderedEightBitPlane()
     {
         const int width = 4;

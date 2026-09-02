@@ -235,6 +235,8 @@ internal static class Av1FrameEncoder
         where TPixel : unmanaged, IPixel<TPixel>
     {
         PrepareSource(configuration, image, source.Frame, sequenceHeader.ColorConfig);
+        frameHeader.AllowScreenContentTools = Av1ScreenContentDetector.IsPaletteLikely(source.Frame);
+
         using Av1EncoderPictureBuffer picture = new(
             configuration,
             sequenceHeader,
@@ -276,6 +278,8 @@ internal static class Av1FrameEncoder
         where TPixel : unmanaged, IPixel<TPixel>
     {
         PrepareSource(configuration, image, source.Frame, sequenceHeader.ColorConfig);
+        frameHeader.AllowScreenContentTools = Av1ScreenContentDetector.IsPaletteLikely(source.Frame);
+
         using Av1EncoderPictureBuffer picture = new(
             configuration,
             sequenceHeader,

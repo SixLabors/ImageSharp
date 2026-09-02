@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -34,7 +33,10 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
     /// </summary>
     /// <param name="configuration">The configuration providing the encoder allocator.</param>
     public Av1EncoderSuperblockWorkspace(Configuration configuration)
-        => this.owner = configuration.MemoryAllocator.Allocate<Av1EncoderBlockStruct>(StorageLength, AllocationOptions.Clean);
+    {
+        this.owner = configuration.MemoryAllocator.Allocate<Av1EncoderBlockStruct>(StorageLength);
+        this.Reset();
+    }
 
     /// <summary>
     /// Gets the maximum-size final-block decision span in partition traversal order.
@@ -50,7 +52,17 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
     /// <summary>
     /// Clears all decisions before the workspace is reused for another superblock.
     /// </summary>
-    public void Reset() => this.owner.Memory.Span.Clear();
+    public void Reset()
+    {
+        // Zero selects a real filter-intra kernel, so each cleared block must carry the disabled sentinel explicitly.
+        Av1EncoderBlockStruct initialBlock = new()
+        {
+            FilterIntraMode = Av1FilterIntraMode.AllFilterIntraModes
+        };
+
+        this.FinalBlocks.Fill(initialBlock);
+        MemoryMarshal.AsBytes(this.owner.Memory.Span[MaximumFinalBlockCount..]).Clear();
+    }
 
     /// <summary>
     /// Releases the reusable superblock workspace.

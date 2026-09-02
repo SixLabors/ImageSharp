@@ -207,22 +207,28 @@ public class Av1CoefficientsEntropyTests
             allocation = Assert.Single(allocator.AllocationLog);
             Assert.Empty(allocator.ReturnLog);
             Assert.Equal(typeof(Av1EncoderBlockStruct), allocation.ElementType);
-            Assert.Equal(AllocationOptions.Clean, allocation.AllocationOptions);
+            Assert.Equal(AllocationOptions.None, allocation.AllocationOptions);
             Assert.Equal(Av1EncoderSuperblockWorkspace.StorageLength, allocation.Length);
             Assert.Equal(Av1EncoderSuperblockWorkspace.MaximumFinalBlockCount, workspace.FinalBlocks.Length);
             Assert.Equal(Av1EncoderSuperblockWorkspace.MaximumPartitionCount, workspace.PartitionTypes.Length);
             Assert.Equal(Av1EncoderBlockStruct.StorageSize, Unsafe.SizeOf<Av1EncoderBlockStruct>());
             Assert.Equal(0, workspace.FinalBlocks[0].PaletteSize[0]);
             Assert.Equal(0, workspace.FinalBlocks[^1].QuantizationIndex);
+            Assert.Equal(Av1FilterIntraMode.AllFilterIntraModes, workspace.FinalBlocks[0].FilterIntraMode);
+            Assert.Equal(Av1FilterIntraMode.AllFilterIntraModes, workspace.FinalBlocks[^1].FilterIntraMode);
             Assert.Equal(0, workspace.PartitionTypes[^1]);
 
             workspace.FinalBlocks[0].PaletteSize[0] = 7;
+            workspace.FinalBlocks[0].FilterIntraMode = Av1FilterIntraMode.DC;
             workspace.FinalBlocks[^1].QuantizationIndex = 255;
+            workspace.FinalBlocks[^1].FilterIntraMode = Av1FilterIntraMode.Paeth;
             workspace.PartitionTypes.Fill(byte.MaxValue);
             workspace.Reset();
 
             Assert.Equal(0, workspace.FinalBlocks[0].PaletteSize[0]);
             Assert.Equal(0, workspace.FinalBlocks[^1].QuantizationIndex);
+            Assert.Equal(Av1FilterIntraMode.AllFilterIntraModes, workspace.FinalBlocks[0].FilterIntraMode);
+            Assert.Equal(Av1FilterIntraMode.AllFilterIntraModes, workspace.FinalBlocks[^1].FilterIntraMode);
             for (int index = 0; index < workspace.PartitionTypes.Length; index++)
             {
                 Assert.Equal(0, workspace.PartitionTypes[index]);

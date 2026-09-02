@@ -288,6 +288,53 @@ public class Av1EncoderFrameTests
         Assert.Equal(allocation.AllocationId, returned.AllocationId);
     }
 
+    [Fact]
+    public void EncodeReturnsEveryOperationAllocationAndUsesOneLibaomSizedTileReservation()
+    {
+        const int Width = 64;
+        const int Height = 64;
+        const int ExpectedTileOutputLength = 60 * 1024;
+
+        using Image<Rgba32> source = new(Width, Height);
+        for (int y = 0; y < Height; y++)
+        {
+            Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < Width; x++)
+            {
+                row[x] = new Rgba32(
+                    (byte)((x * 3) + y),
+                    (byte)(x + (y * 5)),
+                    (byte)((x * 7) + (y * 11)));
+            }
+        }
+
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        using MemoryStream storage = new();
+        using NonSeekableStream destination = new(storage);
+
+        _ = Av1FrameEncoder.Encode(
+            configuration,
+            source.Frames.RootFrame,
+            destination,
+            CreateColorConfig(Av1BitDepth.TwelveBit, Av1ColorFormat.Yuv444),
+            qIndex: 37);
+
+        Assert.False(destination.CanSeek);
+        Assert.NotEqual(0, storage.Length);
+        TestMemoryAllocator.AllocationRequest tileOutput = Assert.Single(
+            allocator.AllocationLog,
+            allocation => allocation.ElementType == typeof(byte) && allocation.Length == ExpectedTileOutputLength);
+
+        Assert.Equal(ExpectedTileOutputLength, tileOutput.Length);
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.Equal(
+            allocator.AllocationLog.Select(allocation => allocation.AllocationId).Order(),
+            allocator.ReturnLog.Select(returned => returned.AllocationId).Order());
+    }
+
     private static ObuColorConfig CreateColorConfig(
         Av1BitDepth bitDepth,
         Av1ColorFormat colorFormat = Av1ColorFormat.Yuv400)

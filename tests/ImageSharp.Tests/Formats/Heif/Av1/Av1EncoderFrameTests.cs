@@ -12,30 +12,70 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 public class Av1EncoderFrameTests
 {
+    private const int EightBit = (int)Av1BitDepth.EightBit;
+    private const int TenBit = (int)Av1BitDepth.TenBit;
+    private const int TwelveBit = (int)Av1BitDepth.TwelveBit;
+    private const int Yuv400 = (int)Av1ColorFormat.Yuv400;
+    private const int Yuv420 = (int)Av1ColorFormat.Yuv420;
+    private const int Yuv422 = (int)Av1ColorFormat.Yuv422;
+    private const int Yuv444 = (int)Av1ColorFormat.Yuv444;
+
     [Theory]
-    [InlineData(8, 8, false, 0)]
-    [InlineData(8, 8, true, 0)]
-    [InlineData(16, 16, false, 0)]
-    [InlineData(16, 16, true, 0)]
-    [InlineData(8, 8, false, 1)]
-    [InlineData(8, 8, true, 1)]
-    [InlineData(8, 8, false, 2)]
-    [InlineData(8, 8, true, 2)]
-    public void EncodeWritesReducedStillPictureConsumedByProductionDecoder(int width, int height, bool hasGradient, int bitDepthValue)
+    [InlineData(8, 8, false, EightBit, Yuv400)]
+    [InlineData(8, 8, true, EightBit, Yuv400)]
+    [InlineData(16, 16, false, EightBit, Yuv400)]
+    [InlineData(16, 16, true, EightBit, Yuv400)]
+    [InlineData(8, 8, false, TenBit, Yuv400)]
+    [InlineData(8, 8, true, TenBit, Yuv400)]
+    [InlineData(8, 8, false, TwelveBit, Yuv400)]
+    [InlineData(8, 8, true, TwelveBit, Yuv400)]
+    [InlineData(16, 16, false, EightBit, Yuv420)]
+    [InlineData(16, 16, true, EightBit, Yuv420)]
+    [InlineData(13, 11, true, EightBit, Yuv420)]
+    [InlineData(16, 16, false, TenBit, Yuv420)]
+    [InlineData(16, 16, true, TenBit, Yuv420)]
+    [InlineData(16, 16, false, TwelveBit, Yuv420)]
+    [InlineData(16, 16, true, TwelveBit, Yuv420)]
+    [InlineData(16, 16, false, EightBit, Yuv422)]
+    [InlineData(16, 16, true, EightBit, Yuv422)]
+    [InlineData(13, 11, true, EightBit, Yuv422)]
+    [InlineData(16, 16, false, TenBit, Yuv422)]
+    [InlineData(16, 16, true, TenBit, Yuv422)]
+    [InlineData(16, 16, false, TwelveBit, Yuv422)]
+    [InlineData(16, 16, true, TwelveBit, Yuv422)]
+    [InlineData(16, 16, false, EightBit, Yuv444)]
+    [InlineData(16, 16, true, EightBit, Yuv444)]
+    [InlineData(13, 11, true, EightBit, Yuv444)]
+    [InlineData(16, 16, false, TenBit, Yuv444)]
+    [InlineData(16, 16, true, TenBit, Yuv444)]
+    [InlineData(16, 16, false, TwelveBit, Yuv444)]
+    [InlineData(16, 16, true, TwelveBit, Yuv444)]
+    public void EncodeWritesReducedStillPictureConsumedByProductionDecoder(int width, int height, bool hasGradient, int bitDepthValue, int colorFormatValue)
     {
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
+        Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
         using Image<Rgba32> source = new(width, height);
         for (int y = 0; y < height; y++)
         {
             Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
             for (int x = 0; x < width; x++)
             {
-                byte value = hasGradient ? (byte)((x * 13) + (y * 17)) : (byte)128;
-                row[x] = new Rgba32(value, value, value);
+                if (colorFormat == Av1ColorFormat.Yuv400)
+                {
+                    byte value = hasGradient ? (byte)((x * 13) + (y * 17)) : (byte)128;
+                    row[x] = new Rgba32(value, value, value);
+                }
+                else
+                {
+                    byte red = hasGradient ? (byte)((x * 13) + (y * 17)) : (byte)192;
+                    byte green = hasGradient ? (byte)((x * 7) + (y * 5)) : (byte)64;
+                    byte blue = hasGradient ? (byte)((x * 3) + (y * 11)) : (byte)32;
+                    row[x] = new Rgba32(red, green, blue);
+                }
             }
         }
 
-        ObuColorConfig colorConfig = CreateMonochromeColorConfig(bitDepth);
+        ObuColorConfig colorConfig = CreateColorConfig(bitDepth, colorFormat);
         using MemoryStream stream = new();
         ObuSequenceHeader encodedHeader = Av1FrameEncoder.Encode(
             Configuration.Default,
@@ -54,7 +94,8 @@ public class Av1EncoderFrameTests
         Directory.CreateDirectory(outputDirectory);
         string contentName = hasGradient ? "gradient" : "constant";
         int bitCount = bitDepth.GetBitCount();
-        string fileName = $"encoder-frame-{width}x{height}-{bitCount}b-400-{contentName}.obu";
+        string colorName = colorFormat.ToString()[3..];
+        string fileName = $"encoder-frame-{width}x{height}-{bitCount}b-{colorName}-{contentName}.obu";
         File.WriteAllBytes(Path.Combine(outputDirectory, fileName), payload);
 
         using Av1Decoder decoder = new(Configuration.Default);
@@ -62,30 +103,44 @@ public class Av1EncoderFrameTests
 
         Assert.Equal(width, decoded.Width);
         Assert.Equal(height, decoded.Height);
-        ObuSequenceProfile expectedProfile = bitDepth == Av1BitDepth.TwelveBit
+        ObuSequenceProfile expectedProfile = bitDepth == Av1BitDepth.TwelveBit || colorFormat == Av1ColorFormat.Yuv422
             ? ObuSequenceProfile.Professional
-            : ObuSequenceProfile.Main;
+            : colorFormat == Av1ColorFormat.Yuv444
+                ? ObuSequenceProfile.High
+                : ObuSequenceProfile.Main;
 
         Assert.Equal(expectedProfile, encodedHeader.SequenceProfile);
         Assert.True(encodedHeader.IsReducedStillPictureHeader);
 
         Rgba32 first = decoded[0, 0];
-        Assert.Equal(first.R, first.G);
-        Assert.Equal(first.R, first.B);
         Assert.Equal(byte.MaxValue, first.A);
-        if (hasGradient)
+        if (colorFormat == Av1ColorFormat.Yuv400)
         {
-            Assert.True(first.R < decoded[width - 1, height - 1].R);
+            Assert.Equal(first.R, first.G);
+            Assert.Equal(first.R, first.B);
         }
         else
         {
-            Assert.InRange(first.R, 120, 136);
+            Rgba32 center = decoded[width / 2, height / 2];
+            Assert.True(center.R != center.G || center.G != center.B);
+        }
 
-            for (int y = 0; y < height; y++)
+        if (hasGradient)
+        {
+            Assert.NotEqual(first, decoded[width - 1, height - 1]);
+        }
+        else
+        {
+            if (colorFormat == Av1ColorFormat.Yuv400)
             {
-                foreach (Rgba32 pixel in decoded.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y))
+                Assert.InRange(first.R, 120, 136);
+
+                for (int y = 0; y < height; y++)
                 {
-                    Assert.Equal(first, pixel);
+                    foreach (Rgba32 pixel in decoded.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y))
+                    {
+                        Assert.Equal(first, pixel);
+                    }
                 }
             }
         }
@@ -113,7 +168,7 @@ public class Av1EncoderFrameTests
             0,
             0);
 
-        ObuColorConfig colorConfig = CreateMonochromeColorConfig(Av1BitDepth.EightBit);
+        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit);
 
         Av1FrameEncoder.PrepareSource(Configuration.Default, image.Frames.RootFrame, frameBuffer.Frame, colorConfig);
 
@@ -143,7 +198,7 @@ public class Av1EncoderFrameTests
             0,
             0);
 
-        ObuColorConfig colorConfig = CreateMonochromeColorConfig(Av1BitDepth.TenBit);
+        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.TenBit);
 
         Av1FrameEncoder.PrepareSource(Configuration.Default, image.Frames.RootFrame, frameBuffer.Frame, colorConfig);
 
@@ -233,17 +288,19 @@ public class Av1EncoderFrameTests
         Assert.Equal(allocation.AllocationId, returned.AllocationId);
     }
 
-    private static ObuColorConfig CreateMonochromeColorConfig(Av1BitDepth bitDepth)
+    private static ObuColorConfig CreateColorConfig(
+        Av1BitDepth bitDepth,
+        Av1ColorFormat colorFormat = Av1ColorFormat.Yuv400)
         => new()
         {
             IsColorDescriptionPresent = true,
-            IsMonochrome = true,
+            IsMonochrome = colorFormat == Av1ColorFormat.Yuv400,
             ColorPrimaries = ObuColorPrimaries.Bt601,
             TransferCharacteristics = ObuTransferCharacteristics.Bt601,
             MatrixCoefficients = ObuMatrixCoefficients.Bt601,
             ColorRange = true,
-            SubSamplingX = true,
-            SubSamplingY = true,
+            SubSamplingX = colorFormat != Av1ColorFormat.Yuv444,
+            SubSamplingY = colorFormat == Av1ColorFormat.Yuv400 || colorFormat == Av1ColorFormat.Yuv420,
             ChromaSamplePosition = ObuChromoSamplePosition.Unknown,
             BitDepth = bitDepth
         };

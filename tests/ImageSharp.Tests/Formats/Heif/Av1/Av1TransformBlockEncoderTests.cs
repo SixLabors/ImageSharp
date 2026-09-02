@@ -39,6 +39,7 @@ public class Av1TransformBlockEncoderTests
     {
         const int SourceStride = 13;
         const int ReconstructionStride = 15;
+        const byte PaddingSentinel = 176;
         Av1TransformSize transformSize = Av1TransformSize.Size8x8;
         int width = transformSize.GetWidth();
         int height = transformSize.GetHeight();
@@ -68,6 +69,7 @@ public class Av1TransformBlockEncoderTests
             0,
             0);
 
+        reconstructionFrame.Luma.DangerousGetSingleSpan().Fill(PaddingSentinel);
         Buffer2DRegion<byte> sourcePlane = sourceFrame.Frame.CodedView.GetPlane(Av1Plane.Y);
         Buffer2DRegion<byte> reconstructionPlane = reconstructionFrame.Frame.CodedView.GetPlane(Av1Plane.Y);
         using Av1EncoderBlockWorkspace expectedWorkspace = new(Configuration.Default);
@@ -171,8 +173,8 @@ public class Av1TransformBlockEncoderTests
         Assert.Equal(expectedQuantized, actualQuantized);
         Assert.Equal(expectedState.EndOfBlock, actualState.EndOfBlock);
         Assert.Equal(expectedState.TransformType, actualState.TransformType);
-        Assert.Equal(0, completeRow[physicalColumn - 1]);
-        Assert.Equal(0, completeRow[physicalColumn + width]);
+        Assert.Equal(PaddingSentinel, completeRow[physicalColumn - 1]);
+        Assert.Equal(PaddingSentinel, completeRow[physicalColumn + width]);
     }
 
     /// <summary>

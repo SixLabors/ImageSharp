@@ -3,6 +3,7 @@
 
 using System.Runtime.InteropServices;
 using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -287,10 +288,28 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState state);
     }
 
+    private static int GetNormalizedVariance(int sum, int sumOfSquares, Av1BitDepth bitDepth)
+    {
+        int coefficientShift = bitDepth.GetBitCount() - 8;
+        if (coefficientShift > 0)
+        {
+            // Normalize both moments before subtracting them so high-bit-depth motion search uses the
+            // same eight-bit distortion scale as the encoder's other rate-distortion comparisons.
+            int squareShift = coefficientShift * 2;
+            sumOfSquares = (sumOfSquares + (1 << (squareShift - 1))) >> squareShift;
+            sum = (sum + (1 << (coefficientShift - 1))) >> coefficientShift;
+        }
+
+        long variance = sumOfSquares - (((long)sum * sum) / 64);
+        return (int)Math.Max(variance, 0);
+    }
+
     /// <summary>
     /// Encodes blocks stored as eight-bit samples.
     /// </summary>
-    internal readonly struct ByteOperator : IBlockEncodingOperator<byte>
+    internal readonly struct ByteOperator :
+        IBlockEncodingOperator<byte>,
+        Av1IntraBlockCopySearchIndex.ISearchOperation<byte>
     {
         /// <inheritdoc/>
         public static Span<byte> GetLeftReference(Span<short> residual, int length)
@@ -298,6 +317,78 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static byte CreateSample(int value) => (byte)value;
+
+        /// <inheritdoc/>
+        public static uint GetHashSample(byte sample) => sample;
+
+        /// <inheritdoc/>
+        public static bool BlocksEqual(Buffer2DRegion<byte> plane, Point first, Point second)
+        {
+            for (int row = 0; row < 8; row++)
+            {
+                ReadOnlySpan<byte> firstRow = plane.DangerousGetRowSpan(first.Y + row)[first.X..];
+                ReadOnlySpan<byte> secondRow = plane.DangerousGetRowSpan(second.Y + row)[second.X..];
+
+                // An 8x8 search row occupies one machine word, so one unaligned load and comparison replaces
+                // eight dependent scalar branches while retaining exact collision rejection.
+                if (MemoryMarshal.Read<ulong>(firstRow) != MemoryMarshal.Read<ulong>(secondRow))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <inheritdoc/>
+        public static int GetVariance(
+            Buffer2DRegion<byte> source,
+            Point sourceOrigin,
+            Buffer2DRegion<byte> reconstruction,
+            Point predictionOrigin,
+            Av1BitDepth bitDepth)
+        {
+            int sum = 0;
+            int sumOfSquares = 0;
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (int row = 0; row < 8; row++)
+                {
+                    ReadOnlySpan<byte> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
+                    ReadOnlySpan<byte> predictionRow =
+                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
+
+                    Vector128<short> difference =
+                        (Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(sourceRow)).AsByte()) -
+                         Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(predictionRow)).AsByte()))
+                        .AsInt16();
+
+                    // Widen before squaring so signed residuals cannot wrap in 16-bit lanes.
+                    Vector128<int> lower = Vector128.WidenLower(difference);
+                    Vector128<int> upper = Vector128.WidenUpper(difference);
+                    sum += Vector128.Sum(difference);
+                    sumOfSquares += Vector128.Sum(lower * lower) + Vector128.Sum(upper * upper);
+                }
+            }
+            else
+            {
+                for (int row = 0; row < 8; row++)
+                {
+                    ReadOnlySpan<byte> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
+                    ReadOnlySpan<byte> predictionRow =
+                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
+
+                    for (int column = 0; column < 8; column++)
+                    {
+                        int difference = sourceRow[column] - predictionRow[column];
+                        sum += difference;
+                        sumOfSquares += difference * difference;
+                    }
+                }
+            }
+
+            return GetNormalizedVariance(sum, sumOfSquares, bitDepth);
+        }
 
         /// <inheritdoc/>
         public static void CopyPaletteSamples(
@@ -584,7 +675,9 @@ internal static partial class Av1IntraSuperblockEncoder
     /// <summary>
     /// Encodes blocks stored as high-bit-depth samples.
     /// </summary>
-    internal readonly struct UInt16Operator : IBlockEncodingOperator<ushort>
+    internal readonly struct UInt16Operator :
+        IBlockEncodingOperator<ushort>,
+        Av1IntraBlockCopySearchIndex.ISearchOperation<ushort>
     {
         /// <inheritdoc/>
         public static Span<ushort> GetLeftReference(Span<short> residual, int length)
@@ -592,6 +685,85 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static ushort CreateSample(int value) => (ushort)value;
+
+        /// <inheritdoc/>
+        public static uint GetHashSample(ushort sample) => sample;
+
+        /// <inheritdoc/>
+        public static bool BlocksEqual(Buffer2DRegion<ushort> plane, Point first, Point second)
+        {
+            for (int row = 0; row < 8; row++)
+            {
+                ReadOnlySpan<ushort> firstRow = plane.DangerousGetRowSpan(first.Y + row)[first.X..];
+                ReadOnlySpan<ushort> secondRow = plane.DangerousGetRowSpan(second.Y + row)[second.X..];
+                if (Vector128.IsHardwareAccelerated)
+                {
+                    Vector128<ushort> firstSamples = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(firstRow));
+                    Vector128<ushort> secondSamples = Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(secondRow));
+                    if (!Vector128.EqualsAll(firstSamples, secondSamples))
+                    {
+                        return false;
+                    }
+                }
+                else if (!firstRow[..8].SequenceEqual(secondRow[..8]))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        /// <inheritdoc/>
+        public static int GetVariance(
+            Buffer2DRegion<ushort> source,
+            Point sourceOrigin,
+            Buffer2DRegion<ushort> reconstruction,
+            Point predictionOrigin,
+            Av1BitDepth bitDepth)
+        {
+            int sum = 0;
+            int sumOfSquares = 0;
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (int row = 0; row < 8; row++)
+                {
+                    ReadOnlySpan<ushort> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
+                    ReadOnlySpan<ushort> predictionRow =
+                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
+
+                    // AV1's high-bit-depth domain tops out at 4095, so signed 16-bit subtraction preserves
+                    // every possible sample difference before the square is widened to 32-bit lanes.
+                    Vector128<short> difference =
+                        (Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(sourceRow)) -
+                         Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(predictionRow)))
+                        .AsInt16();
+
+                    Vector128<int> lower = Vector128.WidenLower(difference);
+                    Vector128<int> upper = Vector128.WidenUpper(difference);
+                    sum += Vector128.Sum(difference);
+                    sumOfSquares += Vector128.Sum(lower * lower) + Vector128.Sum(upper * upper);
+                }
+            }
+            else
+            {
+                for (int row = 0; row < 8; row++)
+                {
+                    ReadOnlySpan<ushort> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
+                    ReadOnlySpan<ushort> predictionRow =
+                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
+
+                    for (int column = 0; column < 8; column++)
+                    {
+                        int difference = sourceRow[column] - predictionRow[column];
+                        sum += difference;
+                        sumOfSquares += difference * difference;
+                    }
+                }
+            }
+
+            return GetNormalizedVariance(sum, sumOfSquares, bitDepth);
+        }
 
         /// <inheritdoc/>
         public static void CopyPaletteSamples(

@@ -45,4 +45,24 @@ internal static class Av1RateDistortion
         long roundedRate = (weightedRate + (1 << (Av1ProbabilityCost.CostShift - 1))) >> Av1ProbabilityCost.CostShift;
         return roundedRate + (distortion << 7);
     }
+
+    /// <summary>
+    /// Gets the variance-domain cost of a full-pixel motion candidate.
+    /// </summary>
+    /// <param name="rateMultiplier">The rate weight selected by the encoder quality model.</param>
+    /// <param name="motionVectorRate">The motion-vector syntax rate in 1/512-bit units.</param>
+    /// <param name="variance">The normalized sample variance.</param>
+    /// <returns>The variance plus the motion-vector error cost.</returns>
+    public static int GetMotionSearchCost(int rateMultiplier, int motionVectorRate, int variance)
+    {
+        const int RateMultiplierShift = 6;
+        const int MotionErrorShift = 14;
+        int errorPerBit = Math.Max(rateMultiplier >> RateMultiplierShift, 1);
+
+        // Motion search compares pixel variance directly, so the syntax term is reduced to the same
+        // error domain instead of using the final mode-decision distortion scale.
+        long weightedRate = (long)motionVectorRate * errorPerBit;
+        int motionError = (int)((weightedRate + (1 << (MotionErrorShift - 1))) >> MotionErrorShift);
+        return variance + motionError;
+    }
 }

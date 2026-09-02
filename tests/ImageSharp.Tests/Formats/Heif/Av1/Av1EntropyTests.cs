@@ -674,6 +674,18 @@ public class Av1EntropyTests
         => Assert.Equal(expected, Av1RateDistortion.GetCost(rateMultiplier, rate, distortion));
 
     [Theory]
+    [InlineData(1, 8191, 100, 100)]
+    [InlineData(1, 8192, 100, 101)]
+    [InlineData(128, 4096, 100, 101)]
+    [InlineData(512, 3072, 100, 102)]
+    public void MotionSearchCostMatchesCurrentLibaom(
+        int rateMultiplier,
+        int motionVectorRate,
+        int variance,
+        int expected)
+        => Assert.Equal(expected, Av1RateDistortion.GetMotionSearchCost(rateMultiplier, motionVectorRate, variance));
+
+    [Theory]
     [InlineData(0, 0, 52)]
     [InlineData(0, 1, 3)]
     [InlineData(0, 2, 1)]

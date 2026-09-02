@@ -71,6 +71,11 @@ internal class Av1PictureControlSet
     public Memory<Av1EncoderDisplacementVector> DisplacementVectors { get; set; }
 
     /// <summary>
+    /// Gets or sets the non-owning visible-frame hash index used by intra-block-copy motion search.
+    /// </summary>
+    public Av1IntraBlockCopySearchIndex IntraBlockCopySearch { get; set; }
+
+    /// <summary>
     /// Gets or sets the row stride of <see cref="ModeInfoGrid"/> in 4x4 mode-information units.
     /// </summary>
     public int ModeInfoStride { get; set; }

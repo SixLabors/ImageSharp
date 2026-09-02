@@ -50,7 +50,7 @@ public class Av1EncoderModeInfoBufferTests
     [Theory]
     [InlineData(false, false, 336)]
     [InlineData(true, false, 3_536)]
-    [InlineData(true, true, 4_560)]
+    [InlineData(true, true, 6_416)]
     public unsafe void PictureBufferPacksAllPictureStateIntoTwoAllocatorOwners(
         bool allowScreenContentTools,
         bool allowIntraBlockCopy,
@@ -148,6 +148,8 @@ public class Av1EncoderModeInfoBufferTests
             {
                 Assert.Equal(256, picture.DisplacementVectors.Length);
                 Assert.Equal(4, sizeof(Av1EncoderDisplacementVector));
+                Assert.Equal(9, picture.IntraBlockCopySearch.OriginWidth);
+                Assert.Equal(9, picture.IntraBlockCopySearch.OriginHeight);
 
                 // The packed vector region starts at its natural 16-bit alignment inside the shared byte owner.
                 fixed (Av1EncoderDisplacementVector* pointer = picture.DisplacementVectors.Span)

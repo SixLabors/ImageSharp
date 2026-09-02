@@ -708,6 +708,15 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Measures an integer intra-block-copy displacement vector for variance-domain motion search.
+    /// </summary>
+    /// <param name="value">The displacement vector to measure.</param>
+    /// <param name="reference">The spatially derived reference vector.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public int GetDisplacementVectorSearchCost(Av1MotionVector value, Av1MotionVector reference)
+        => this.displacementVector.GetCost(this.writer, value, reference);
+
+    /// <summary>
     /// Writes a complete block partition type using the selected partition context.
     /// </summary>
     /// <param name="partitionType">The partition type to encode.</param>

@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -109,7 +110,9 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
         int initialSize,
         out int tileDataLength)
         where TSample : unmanaged
-        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TOperator : struct,
+            Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>,
+            Av1IntraBlockCopySearchIndex.ISearchOperation<TSample>
     {
         ObuFrameHeader frameHeader = picture.Parent.FrameHeader;
         ObuSequenceHeader sequenceHeader = picture.Sequence.SequenceHeader;
@@ -136,6 +139,14 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
 
         int superblockModeInfoSize = sequenceHeader.SuperblockModeInfoSize;
         int superblockShift = sequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2;
+        if (frameHeader.AllowIntraBlockCopy)
+        {
+            // Hash the visible source once before reconstruction begins so candidate discovery never depends
+            // on coding order and the workspace can be reused as compact bucket links afterward.
+            picture.IntraBlockCopySearch.Initialize<TSample, TOperator>(
+                source.View.GetPlane(Av1Plane.Y));
+        }
+
         for (int modeInfoRow = tile.ModeInfoRowStart;
             modeInfoRow < tile.ModeInfoRowEnd;
             modeInfoRow += superblockModeInfoSize)

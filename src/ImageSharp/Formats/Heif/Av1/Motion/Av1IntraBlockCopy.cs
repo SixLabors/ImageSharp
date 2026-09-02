@@ -204,6 +204,31 @@ internal static class Av1IntraBlockCopy
     /// <param name="sequenceHeader">The sequence-level superblock and chroma configuration.</param>
     /// <returns><see langword="true"/> when the complete source block is a permitted reference; otherwise, <see langword="false"/>.</returns>
     public static bool IsValid(Av1MotionVector vector, ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo, ObuSequenceHeader sequenceHeader)
+        => IsValid(
+            vector,
+            new Point(partitionInfo.ColumnIndex, partitionInfo.RowIndex),
+            partitionInfo.ModeInfo.BlockSize,
+            partitionInfo.IsChroma,
+            tileInfo,
+            sequenceHeader);
+
+    /// <summary>
+    /// Determines whether an encoder displacement vector references an earlier reconstructable block inside the tile.
+    /// </summary>
+    /// <param name="vector">The displacement vector in one-eighth-sample units.</param>
+    /// <param name="modeInfoPosition">The current block origin in 4x4 mode-information units.</param>
+    /// <param name="blockSize">The current block size.</param>
+    /// <param name="isChroma">Indicates whether chroma subsampling constraints apply.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    /// <param name="sequenceHeader">The sequence-level superblock and chroma configuration.</param>
+    /// <returns><see langword="true"/> when the complete source block is a permitted reference; otherwise, <see langword="false"/>.</returns>
+    public static bool IsValid(
+        Av1MotionVector vector,
+        Point modeInfoPosition,
+        Av1BlockSize blockSize,
+        bool isChroma,
+        Av1TileInfo tileInfo,
+        ObuSequenceHeader sequenceHeader)
     {
         const int eighthSampleScale = 8;
         const int modeInfoSampleSize = 1 << Av1Constants.ModeInfoSizeLog2;
@@ -213,10 +238,10 @@ internal static class Av1IntraBlockCopy
             return false;
         }
 
-        int row = partitionInfo.RowIndex;
-        int column = partitionInfo.ColumnIndex;
-        int blockWidth = partitionInfo.ModeInfo.BlockSize.GetWidth();
-        int blockHeight = partitionInfo.ModeInfo.BlockSize.GetHeight();
+        int row = modeInfoPosition.Y;
+        int column = modeInfoPosition.X;
+        int blockWidth = blockSize.GetWidth();
+        int blockHeight = blockSize.GetHeight();
         int sourceTop = (row * modeInfoSampleSize * eighthSampleScale) + vector.Row;
         int sourceLeft = (column * modeInfoSampleSize * eighthSampleScale) + vector.Column;
         int sourceBottom = (((row * modeInfoSampleSize) + blockHeight) * eighthSampleScale) + vector.Row;
@@ -231,7 +256,7 @@ internal static class Av1IntraBlockCopy
         }
 
         ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
-        if (partitionInfo.IsChroma && colorConfig.PlaneCount > 1)
+        if (isChroma && colorConfig.PlaneCount > 1)
         {
             // A sub-8x8 luma block can map to a chroma block whose rounded origin lies one additional luma unit
             // inside the tile. These checks prevent that chroma reference from crossing the tile boundary.

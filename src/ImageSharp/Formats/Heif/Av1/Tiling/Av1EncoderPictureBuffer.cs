@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.CompilerServices;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Memory;
 
@@ -93,7 +94,16 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         int displacementVectorStorageLength = checked(
             displacementVectorLength * Unsafe.SizeOf<Av1EncoderDisplacementVector>());
 
-        int stateStorageLength = checked(displacementVectorStorageOffset + displacementVectorStorageLength);
+        int displacementVectorStorageEnd = checked(displacementVectorStorageOffset + displacementVectorStorageLength);
+        int intraBlockCopySearchStorageOffset = frameHeader.AllowIntraBlockCopy
+            ? Av1Math.AlignPowerOf2(displacementVectorStorageEnd, 2)
+            : displacementVectorStorageEnd;
+
+        int intraBlockCopySearchStorageLength = frameHeader.AllowIntraBlockCopy
+            ? Av1IntraBlockCopySearchIndex.GetStorageLength(width, height)
+            : 0;
+
+        int stateStorageLength = checked(intraBlockCopySearchStorageOffset + intraBlockCopySearchStorageLength);
 
         // Segmentation and every tile edge share one clean picture lifetime. The partition region begins at its
         // native alignment, while typed views keep the entropy writer independent from the packed byte owner.
@@ -136,6 +146,17 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 stateStorage.Slice(displacementVectorStorageOffset, displacementVectorStorageLength));
 
             displacementVectors = displacementVectorMemory.Memory;
+        }
+
+        Av1IntraBlockCopySearchIndex intraBlockCopySearch = default;
+        if (frameHeader.AllowIntraBlockCopy)
+        {
+            // The search index casts its packed workspace to 32-bit links, so its non-owning region begins at
+            // a four-byte boundary inside the existing picture-state rent.
+            intraBlockCopySearch = new Av1IntraBlockCopySearchIndex(
+                stateStorage.Slice(intraBlockCopySearchStorageOffset, intraBlockCopySearchStorageLength),
+                width,
+                height);
         }
 
         int[][] cdefPreset = new int[tileCount][];
@@ -227,6 +248,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             ModeInfoGrid = this.modeInfo.Grid,
             ModeInfoAllocation = this.modeInfo.Allocation,
             DisplacementVectors = displacementVectors,
+            IntraBlockCopySearch = intraBlockCopySearch,
             ModeInfoStride = this.modeInfo.ModeInfoStride,
             Disallow4x4AllFrames = this.modeInfo.Disallow4x4AllFrames,
             CdefPreset = cdefPreset

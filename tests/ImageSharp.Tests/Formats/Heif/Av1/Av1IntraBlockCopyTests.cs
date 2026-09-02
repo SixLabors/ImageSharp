@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Memory;
 
@@ -229,6 +230,139 @@ public class Av1IntraBlockCopyTests
         Assert.False(Av1IntraBlockCopy.IsValid(new Av1MotionVector(0, -2559), ref partitionInfo, tileInfo, sequenceHeader));
         Assert.False(Av1IntraBlockCopy.IsValid(new Av1MotionVector(0, -4608), ref partitionInfo, tileInfo, sequenceHeader));
         Assert.False(Av1IntraBlockCopy.IsValid(new Av1MotionVector(512, -2560), ref partitionInfo, tileInfo, sequenceHeader));
+    }
+
+    /// <summary>
+    /// Verifies exact hash matches at unaligned origins in both normative search regions.
+    /// </summary>
+    [Fact]
+    public void SearchIndexFindsUnalignedAboveAndLeftMatches()
+    {
+        const int Width = 640;
+        const int Height = 256;
+        const int QIndex = 23;
+        Point blockOrigin = new(512, 128);
+        Point aboveOrigin = new(515, 57);
+        Point leftOrigin = new(191, 131);
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
+        ObuFrameHeader frameHeader = CreateFrameHeader();
+        frameHeader.AllowScreenContentTools = true;
+        frameHeader.AllowIntraBlockCopy = true;
+
+        using Av1EncoderPictureBuffer pictureBuffer = new(
+            Configuration.Default,
+            sequenceHeader,
+            frameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderFrameBuffer<byte> source = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        Buffer2DRegion<byte> sourceLuma = source.Frame.View.GetPlane(Av1Plane.Y);
+        Buffer2DRegion<byte> reconstructionLuma = reconstruction.Frame.View.GetPlane(Av1Plane.Y);
+        uint randomState = 0x8F3A21C5;
+        for (int row = 0; row < Height; row++)
+        {
+            Span<byte> sourceRow = sourceLuma.DangerousGetRowSpan(row);
+            reconstructionLuma.DangerousGetRowSpan(row).Clear();
+            for (int column = 0; column < Width; column++)
+            {
+                randomState = unchecked((randomState * 1_664_525) + 1_013_904_223);
+                sourceRow[column] = (byte)(randomState >> 24);
+            }
+        }
+
+        for (int row = 0; row < 8; row++)
+        {
+            ReadOnlySpan<byte> blockRow = sourceLuma.DangerousGetRowSpan(blockOrigin.Y + row).Slice(blockOrigin.X, 8);
+            blockRow.CopyTo(sourceLuma.DangerousGetRowSpan(aboveOrigin.Y + row)[aboveOrigin.X..]);
+            blockRow.CopyTo(sourceLuma.DangerousGetRowSpan(leftOrigin.Y + row)[leftOrigin.X..]);
+            blockRow.CopyTo(reconstructionLuma.DangerousGetRowSpan(aboveOrigin.Y + row)[aboveOrigin.X..]);
+            blockRow.CopyTo(reconstructionLuma.DangerousGetRowSpan(leftOrigin.Y + row)[leftOrigin.X..]);
+        }
+
+        Av1PictureControlSet picture = pictureBuffer.Picture;
+        picture.IntraBlockCopySearch.Initialize<byte, Av1IntraSuperblockEncoder.ByteOperator>(sourceLuma);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex);
+        Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
+        Av1MotionVector reference = new(0, -2560);
+        int candidateCount = picture.IntraBlockCopySearch.FindCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(
+            source.Frame.CodedView.GetPlane(Av1Plane.Y),
+            reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y),
+            blockOrigin,
+            new Av1TileInfo(0, 0, frameHeader),
+            sequenceHeader,
+            writer,
+            reference,
+            Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, Av1BitDepth.EightBit),
+            candidates);
+
+        Assert.Equal(2, candidateCount);
+        Assert.Equal(new Av1MotionVector(-568, 24), candidates[0]);
+        Assert.Equal(new Av1MotionVector(24, -2568), candidates[1]);
+    }
+
+    /// <summary>
+    /// Verifies high-bit-depth SIMD variance normalization against the eight-bit search domain.
+    /// </summary>
+    [Fact]
+    public void SearchVarianceMatchesTwelveBitReference()
+    {
+        using Av1EncoderFrameBuffer<ushort> source = new(
+            Configuration.Default,
+            8,
+            8,
+            12,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        using Av1EncoderFrameBuffer<ushort> reconstruction = new(
+            Configuration.Default,
+            8,
+            8,
+            12,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        Buffer2DRegion<ushort> sourceLuma = source.Frame.View.GetPlane(Av1Plane.Y);
+        Buffer2DRegion<ushort> reconstructionLuma = reconstruction.Frame.View.GetPlane(Av1Plane.Y);
+        for (int row = 0; row < 8; row++)
+        {
+            Span<ushort> sourceRow = sourceLuma.DangerousGetRowSpan(row);
+            Span<ushort> reconstructionRow = reconstructionLuma.DangerousGetRowSpan(row);
+            for (int column = 0; column < 8; column++)
+            {
+                sourceRow[column] = 1000;
+                reconstructionRow[column] = (ushort)(1000 + (((row * 8) + column) % 2 == 0 ? 17 : 33));
+            }
+        }
+
+        int actual = Av1IntraSuperblockEncoder.UInt16Operator.GetVariance(
+            sourceLuma,
+            Point.Empty,
+            reconstructionLuma,
+            Point.Empty,
+            Av1BitDepth.TwelveBit);
+
+        Assert.Equal(16, actual);
     }
 
     /// <summary>

@@ -190,6 +190,63 @@ public class Av1CoefficientsEntropyTests
         Assert.Equal(0, allocated);
     }
 
+    [Theory]
+    [InlineData(false, 6, 4096, 1024, 6144, 36864L)]
+    [InlineData(true, 2, 16384, 4096, 24576, 49152L)]
+    public void EncoderCoefficientBufferMatchesLibaom420SuperblockLayout(
+        bool use128x128Superblock,
+        int expectedSuperblockCount,
+        int expectedLumaCount,
+        int expectedChromaCount,
+        int expectedCoefficientsPerSuperblock,
+        long expectedTotalCoefficientCount)
+    {
+        ObuSequenceHeader sequenceHeader = new() { Use128x128Superblock = use128x128Superblock };
+        sequenceHeader.ColorConfig.IsMonochrome = false;
+        sequenceHeader.ColorConfig.SubSamplingX = true;
+        sequenceHeader.ColorConfig.SubSamplingY = true;
+
+        using Av1EncoderCoefficientBuffer coefficients = new(
+            Configuration.Default,
+            sequenceHeader,
+            width: 129,
+            height: 65);
+
+        Assert.Equal(expectedSuperblockCount, coefficients.SuperblockCount);
+        Assert.Equal(expectedLumaCount, coefficients.LumaCoefficientCount);
+        Assert.Equal(expectedChromaCount, coefficients.ChromaCoefficientCount);
+        Assert.Equal(expectedCoefficientsPerSuperblock, coefficients.CoefficientsPerSuperblock);
+        Assert.Equal(expectedTotalCoefficientCount, coefficients.TotalCoefficientCount);
+        Assert.Equal(expectedLumaCount, coefficients.GetPlaneSpan(0, Av1Plane.Y).Length);
+        Assert.Equal(expectedChromaCount, coefficients.GetPlaneSpan(0, Av1Plane.U).Length);
+        Assert.Equal(expectedChromaCount, coefficients.GetPlaneSpan(0, Av1Plane.V).Length);
+    }
+
+    [Fact]
+    public void EncoderCoefficientBufferKeepsEveryPlaneAndSuperblockDisjoint()
+    {
+        ObuSequenceHeader sequenceHeader = new() { Use128x128Superblock = true };
+        sequenceHeader.ColorConfig.IsMonochrome = false;
+        sequenceHeader.ColorConfig.SubSamplingX = true;
+        sequenceHeader.ColorConfig.SubSamplingY = true;
+
+        using Av1EncoderCoefficientBuffer coefficients = new(
+            Configuration.Default,
+            sequenceHeader,
+            width: 129,
+            height: 65);
+
+        coefficients.GetPlaneSpan(0, Av1Plane.Y)[0] = 11;
+        coefficients.GetPlaneSpan(0, Av1Plane.U)[0] = 22;
+        coefficients.GetPlaneSpan(0, Av1Plane.V)[0] = 33;
+        coefficients.GetPlaneSpan(1, Av1Plane.Y)[0] = 44;
+
+        Assert.Equal(11, coefficients.GetPlaneSpan(0, Av1Plane.Y)[0]);
+        Assert.Equal(22, coefficients.GetPlaneSpan(0, Av1Plane.U)[0]);
+        Assert.Equal(33, coefficients.GetPlaneSpan(0, Av1Plane.V)[0]);
+        Assert.Equal(44, coefficients.GetPlaneSpan(1, Av1Plane.Y)[0]);
+    }
+
     [Fact]
     public void RoundTripZeroEndOfBlock()
     {

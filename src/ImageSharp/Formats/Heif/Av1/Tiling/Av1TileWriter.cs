@@ -59,14 +59,14 @@ internal partial class Av1TileWriter
     /// <param name="ec_ctx">The entropy-coding position state for the superblock.</param>
     /// <param name="writer">The tile symbol encoder.</param>
     /// <param name="superblock">The encoder decisions for the superblock.</param>
-    /// <param name="frameBuffer">The transformed coefficients for the frame.</param>
+    /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="tileIndex">The zero-based tile index.</param>
     public static void WriteSuperblock(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext ec_ctx,
         ref Av1SymbolEncoder writer,
         Av1Superblock superblock,
-        Av1FrameBuffer<int> frameBuffer,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex)
     {
         Av1SequenceControlSet scs = pcs.Sequence;
@@ -124,79 +124,79 @@ internal partial class Av1TileWriter
                 switch (superblock.CodingUnitPartitionTypes[blockIndex])
                 {
                     case Av1PartitionType.None:
-                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
                         break;
 
                     case Av1PartitionType.Horizontal:
-                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
 
                         if (mi_row + hbs < cm.ModeInfoRowCount)
                         {
                             finalBlockIndex++;
                             blk_ptr = superblock.FinalBlocks[finalBlockIndex];
-                            WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                            WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
                         }
 
                         break;
 
                     case Av1PartitionType.Vertical:
-                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
                         if (mi_col + hbs < cm.ModeInfoColumnCount)
                         {
                             finalBlockIndex++;
                             blk_ptr = superblock.FinalBlocks[finalBlockIndex];
-                            WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                            WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
                         }
 
                         break;
                     case Av1PartitionType.Split:
                         break;
                     case Av1PartitionType.HorizontalA:
-                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
 
                         finalBlockIndex++;
                         blk_ptr = superblock.FinalBlocks[finalBlockIndex];
-                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
 
                         finalBlockIndex++;
                         blk_ptr = superblock.FinalBlocks[finalBlockIndex];
-                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
 
                         break;
                     case Av1PartitionType.HorizontalB:
-                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
 
                         finalBlockIndex++;
                         blk_ptr = superblock.FinalBlocks[finalBlockIndex];
-                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
 
                         finalBlockIndex++;
                         blk_ptr = superblock.FinalBlocks[finalBlockIndex];
-                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
 
                         break;
                     case Av1PartitionType.VerticalA:
-                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
 
                         finalBlockIndex++;
                         blk_ptr = superblock.FinalBlocks[finalBlockIndex];
-                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
 
                         finalBlockIndex++;
                         blk_ptr = superblock.FinalBlocks[finalBlockIndex];
-                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
 
                         break;
                     case Av1PartitionType.VerticalB:
-                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
 
                         finalBlockIndex++;
                         blk_ptr = superblock.FinalBlocks[finalBlockIndex];
-                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
 
                         finalBlockIndex++;
                         blk_ptr = superblock.FinalBlocks[finalBlockIndex];
-                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                        WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
 
                         break;
                     case Av1PartitionType.Horizontal4:
@@ -217,7 +217,7 @@ internal partial class Av1TileWriter
                                 blk_ptr = superblock.FinalBlocks[finalBlockIndex];
                             }
 
-                            WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                            WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
                         }
 
                         break;
@@ -239,7 +239,7 @@ internal partial class Av1TileWriter
                                 blk_ptr = superblock.FinalBlocks[finalBlockIndex];
                             }
 
-                            WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, frameBuffer);
+                            WriteModesBlock(pcs, ec_ctx, ref writer, superblock, blk_ptr, tileIndex, coefficientBuffer);
                         }
 
                         break;
@@ -345,7 +345,7 @@ internal partial class Av1TileWriter
     /// <param name="tb_ptr">The containing superblock.</param>
     /// <param name="blk_ptr">The final encoder decisions for the block.</param>
     /// <param name="tile_idx">The zero-based tile index.</param>
-    /// <param name="coeff_ptr">The transformed coefficients for the frame.</param>
+    /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     private static void WriteModesBlock(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
@@ -353,7 +353,7 @@ internal partial class Av1TileWriter
         Av1Superblock tb_ptr,
         Av1EncoderBlockStruct blk_ptr,
         ushort tile_idx,
-        Av1FrameBuffer<int> coeff_ptr)
+        Av1EncoderCoefficientBuffer coefficientBuffer)
     {
         Av1SequenceControlSet scs = pcs.Sequence;
         ObuFrameHeader frm_hdr = pcs.Parent.FrameHeader;
@@ -530,7 +530,8 @@ internal partial class Av1TileWriter
                     blockOrigin,
                     intra_luma_mode,
                     blockSize,
-                    coeff_ptr,
+                    coefficientBuffer,
+                    tb_ptr.Index,
                     luma_dc_sign_level_coeff_na,
                     cr_dc_sign_level_coeff_na,
                     cb_dc_sign_level_coeff_na);
@@ -951,11 +952,11 @@ internal partial class Av1TileWriter
     /// <param name="blockOrigin">The block origin in samples.</param>
     /// <param name="intraLumaDir">The luma prediction direction.</param>
     /// <param name="planeBlockSize">The luma block size.</param>
-    /// <param name="coeff_ptr">The transformed coefficients for the frame.</param>
+    /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
+    /// <param name="superblockIndex">The raster-ordered index of the containing superblock.</param>
     /// <param name="luma_dc_sign_level_coeff_na">The luma coefficient neighbor contexts.</param>
     /// <param name="cr_dc_sign_level_coeff_na">The red-difference chroma coefficient neighbor contexts.</param>
     /// <param name="cb_dc_sign_level_coeff_na">The blue-difference chroma coefficient neighbor contexts.</param>
-    /// <exception cref="NotImplementedException">The transform-depth path required by the block is not implemented.</exception>
     private static void EncodeCoefficients1d(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext ec_ctx,
@@ -965,42 +966,38 @@ internal partial class Av1TileWriter
         Point blockOrigin,
         Av1PredictionMode intraLumaDir,
         Av1BlockSize planeBlockSize,
-        Av1FrameBuffer<int> coeff_ptr,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        int superblockIndex,
         Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na,
         Av1NeighborArrayUnit<byte> cr_dc_sign_level_coeff_na,
         Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na)
     {
-        if (mbmi.Block.TransformDepth != 0)
-        {
-            EncodeTransformCoefficientsY(
-                pcs,
-                ec_ctx,
-                ref writer,
-                mbmi,
-                blk_ptr,
-                blockOrigin,
-                intraLumaDir,
-                planeBlockSize,
-                coeff_ptr,
-                luma_dc_sign_level_coeff_na);
+        EncodeTransformCoefficientsY(
+            pcs,
+            ec_ctx,
+            ref writer,
+            mbmi,
+            blk_ptr,
+            blockOrigin,
+            intraLumaDir,
+            planeBlockSize,
+            coefficientBuffer,
+            superblockIndex,
+            luma_dc_sign_level_coeff_na);
 
-            EncodeTransformCoefficientsUv(
-                pcs,
-                ec_ctx,
-                ref writer,
-                mbmi,
-                blk_ptr,
-                blockOrigin,
-                intraLumaDir,
-                planeBlockSize,
-                coeff_ptr,
-                cr_dc_sign_level_coeff_na,
-                cb_dc_sign_level_coeff_na);
-        }
-        else
-        {
-            throw new NotImplementedException("Only capable to encode Largest transform mode.");
-        }
+        EncodeTransformCoefficientsUv(
+            pcs,
+            ec_ctx,
+            ref writer,
+            mbmi,
+            blk_ptr,
+            blockOrigin,
+            intraLumaDir,
+            planeBlockSize,
+            coefficientBuffer,
+            superblockIndex,
+            cr_dc_sign_level_coeff_na,
+            cb_dc_sign_level_coeff_na);
     }
 
     /// <summary>
@@ -1014,7 +1011,8 @@ internal partial class Av1TileWriter
     /// <param name="blockOrigin">The block origin in samples.</param>
     /// <param name="intraLumaDir">The luma prediction direction.</param>
     /// <param name="plane_bsize">The luma block size.</param>
-    /// <param name="coeff_ptr">The transformed coefficients for the frame.</param>
+    /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
+    /// <param name="superblockIndex">The raster-ordered index of the containing superblock.</param>
     /// <param name="luma_dc_sign_level_coeff_na">The luma coefficient neighbor contexts.</param>
     public static void EncodeTransformCoefficientsY(
         Av1PictureControlSet pcs,
@@ -1025,7 +1023,8 @@ internal partial class Av1TileWriter
         Point blockOrigin,
         Av1PredictionMode intraLumaDir,
         Av1BlockSize plane_bsize,
-        Av1FrameBuffer<int> coeff_ptr,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        int superblockIndex,
         Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na)
     {
         // This writer currently emits intra frames, so coefficient contexts use only intra prediction state.
@@ -1033,6 +1032,7 @@ internal partial class Av1TileWriter
         int tx_depth = mbmi.Block.TransformDepth;
         int txb_count = blockGeometry.TransformBlockCount[mbmi.Block.TransformDepth];
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
+        Span<int> lumaCoefficients = coefficientBuffer.GetPlaneSpan(superblockIndex, Av1Plane.Y);
 
         for (int tx_index = 0; tx_index < txb_count; tx_index++)
         {
@@ -1041,7 +1041,7 @@ internal partial class Av1TileWriter
             Av1TransformSize tx_size = blockGeometry.TransformSize[tx_depth];
 
             int coeff1d_offset = entropyCodingContext.CodedAreaSuperblock;
-            Span<int> coeff_buffer = coeff_ptr.GetPlaneBuffer(Av1Plane.Y).DangerousGetSingleSpan()[coeff1d_offset..];
+            Span<int> coeff_buffer = lumaCoefficients[coeff1d_offset..];
 
             Point transformOrigin = blockGeometry.TransformOrigin[tx_depth][txb_itr];
             Av1TransformBlockContext blockContext = GetTransformBlockContexts(
@@ -1096,7 +1096,8 @@ internal partial class Av1TileWriter
     /// <param name="blockOrigin">The luma block origin in samples.</param>
     /// <param name="intraLumaDir">The luma prediction direction used by coefficient contexts.</param>
     /// <param name="plane_bsize">The luma block size.</param>
-    /// <param name="coeff_ptr">The transformed coefficients for the frame.</param>
+    /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
+    /// <param name="superblockIndex">The raster-ordered index of the containing superblock.</param>
     /// <param name="cr_dc_sign_level_coeff_na">The red-difference chroma coefficient neighbor contexts.</param>
     /// <param name="cb_dc_sign_level_coeff_na">The blue-difference chroma coefficient neighbor contexts.</param>
     private static void EncodeTransformCoefficientsUv(
@@ -1108,7 +1109,8 @@ internal partial class Av1TileWriter
         Point blockOrigin,
         Av1PredictionMode intraLumaDir,
         Av1BlockSize plane_bsize,
-        Av1FrameBuffer<int> coeff_ptr,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        int superblockIndex,
         Av1NeighborArrayUnit<byte> cr_dc_sign_level_coeff_na,
         Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na)
     {
@@ -1120,19 +1122,22 @@ internal partial class Av1TileWriter
         }
 
         int tx_depth = mbmi.Block.TransformDepth;
-        int transformBlockCount = 1;
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
+        Av1TransformSize chromaTransformSize = blockGeometry.TransformSizeUv[tx_depth];
+        int transformWidth = chromaTransformSize.GetWidth();
+        int transformHeight = chromaTransformSize.GetHeight();
+        int transformBlockCount = (blockGeometry.BlockWidthUv * blockGeometry.BlockHeightUv) /
+            (transformWidth * transformHeight);
+        Span<int> blueCoefficients = coefficientBuffer.GetPlaneSpan(superblockIndex, Av1Plane.U);
+        Span<int> redCoefficients = coefficientBuffer.GetPlaneSpan(superblockIndex, Av1Plane.V);
 
         for (int transformBlockIndex = 0; transformBlockIndex < transformBlockCount; ++transformBlockIndex)
         {
-            Av1TransformSize chromaTransformSize = blockGeometry.TransformSizeUv[tx_depth];
-            int transformWidth = chromaTransformSize.GetWidth();
-            int transformHeight = chromaTransformSize.GetHeight();
             Point transformOrigin = blockGeometry.TransformOrigin[tx_depth][transformBlockIndex];
             Point chromaOrigin = RoundUv(blockOrigin + (Size)transformOrigin - (Size)blockGeometry.Origin) >> 1;
 
             // Both chroma planes share transform geometry but retain independent coefficient contexts.
-            Span<int> coefficientBuffer = coeff_ptr.GetPlaneBuffer(Av1Plane.U).DangerousGetSingleSpan().Slice(entropyCodingContext.CodedAreaSuperblockUv);
+            Span<int> coefficients = blueCoefficients[entropyCodingContext.CodedAreaSuperblockUv..];
             Av1TransformBlockContext blockContext = GetTransformBlockContexts(
                 Av1ComponentType.Chroma,
                 cb_dc_sign_level_coeff_na,
@@ -1145,14 +1150,14 @@ internal partial class Av1TileWriter
                 chromaTransformSize,
                 chromaTransformType,
                 intraLumaDir,
-                coefficientBuffer,
+                coefficients,
                 Av1ComponentType.Chroma,
                 blockContext,
                 (ushort)endOfBlockCb,
                 frameHeader.UseReducedTransformSet,
                 blk_ptr.FilterIntraMode);
 
-            coefficientBuffer = coeff_ptr.GetPlaneBuffer(Av1Plane.V).DangerousGetSingleSpan().Slice(entropyCodingContext.CodedAreaSuperblockUv);
+            coefficients = redCoefficients[entropyCodingContext.CodedAreaSuperblockUv..];
             int endOfBlockCr = blk_ptr.TransformBlocks[transformBlockIndex].NzCoefficientCount[2];
 
             blockContext = GetTransformBlockContexts(
@@ -1166,7 +1171,7 @@ internal partial class Av1TileWriter
                 chromaTransformSize,
                 chromaTransformType,
                 intraLumaDir,
-                coefficientBuffer,
+                coefficients,
                 Av1ComponentType.Chroma,
                 blockContext,
                 (ushort)endOfBlockCr,

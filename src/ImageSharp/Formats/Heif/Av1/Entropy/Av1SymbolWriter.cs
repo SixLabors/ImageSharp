@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Buffers.Binary;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
@@ -14,7 +15,7 @@ internal class Av1SymbolWriter : IDisposable
     /// <summary>
     /// The lower endpoint of the current coding interval.
     /// </summary>
-    private uint low;
+    private ulong low;
 
     /// <summary>
     /// The width of the current normalized coding interval.
@@ -35,9 +36,9 @@ internal class Av1SymbolWriter : IDisposable
     private readonly Configuration configuration;
 
     /// <summary>
-    /// The pre-carry output values accumulated during renormalization.
+    /// The output bytes accumulated during renormalization.
     /// </summary>
-    private readonly AutoExpandingMemory<ushort> memory;
+    private readonly AutoExpandingMemory<byte> memory;
 
     /// <summary>
     /// Indicates whether encoded symbols adapt their distributions.
@@ -45,7 +46,7 @@ internal class Av1SymbolWriter : IDisposable
     private readonly bool updateCdf;
 
     /// <summary>
-    /// The next pre-carry output position.
+    /// The next output byte position.
     /// </summary>
     private int position;
 
@@ -58,7 +59,7 @@ internal class Av1SymbolWriter : IDisposable
     public Av1SymbolWriter(Configuration configuration, int initialSize, bool updateCdf = true)
     {
         this.configuration = configuration;
-        this.memory = new AutoExpandingMemory<ushort>(configuration, (initialSize + 1) >> 1);
+        this.memory = new AutoExpandingMemory<byte>(configuration, initialSize);
         this.updateCdf = updateCdf;
     }
 
@@ -129,22 +130,29 @@ internal class Av1SymbolWriter : IDisposable
     /// <returns>An owner containing the shortest byte sequence that preserves every encoded symbol.</returns>
     public IMemoryOwner<byte> Exit()
     {
-        // Round the low endpoint into the current interval so the emitted prefix selects every symbol encoded so far
+        // Round the low endpoint into the current interval so the emitted prefix selects every symbol encoded so far,
         // regardless of the bits that follow it.
-        uint l = this.low;
+        ulong l = this.low;
         int c = this.cnt;
         int pos = this.position;
         int s = 10;
-        uint m = 0x3FFFU;
-        uint e = ((l + m) & ~m) | (m + 1);
+        ulong m = 0x3FFFU;
+        ulong e = ((l + m) & ~m) | (m + 1);
         s += c;
-        Span<ushort> buffer = this.memory.GetSpan(this.position + ((s + 7) >> 3));
+        int pendingByteCount = Math.Max((s + 7) >> 3, 0);
+        Span<byte> buffer = this.memory.GetSpan(pos + pendingByteCount);
         if (s > 0)
         {
-            uint n = (1U << (c + 16)) - 1;
+            ulong n = (1UL << (c + 16)) - 1;
             do
             {
-                buffer[pos] = (ushort)(e >> (c + 16));
+                ushort value = (ushort)(e >> (c + 16));
+                buffer[pos] = (byte)value;
+                if ((value & 0x100) != 0)
+                {
+                    PropagateCarryBackward(buffer, pos - 1);
+                }
+
                 pos++;
                 e &= n;
                 s -= 8;
@@ -154,20 +162,8 @@ internal class Av1SymbolWriter : IDisposable
             while (s > 0);
         }
 
-        c = Math.Max((s + 7) >> 3, 0);
-        IMemoryOwner<byte> output = this.configuration.MemoryAllocator.Allocate<byte>(pos + c);
-
-        // Pre-carry values use 16-bit elements so a byte plus a propagated carry can coexist. Walking backwards folds
-        // each carry into the preceding byte without shifting the buffered sequence.
-        Span<byte> outputSlice = output.GetSpan()[(output.Length() - pos)..];
-        c = 0;
-        while (pos > 0)
-        {
-            pos--;
-            c = buffer[pos] + c;
-            outputSlice[pos] = (byte)c;
-            c >>= 8;
-        }
+        IMemoryOwner<byte> output = this.configuration.MemoryAllocator.Allocate<byte>(pos);
+        buffer[..pos].CopyTo(output.GetSpan()[..pos]);
 
         return output;
     }
@@ -179,7 +175,7 @@ internal class Av1SymbolWriter : IDisposable
     /// <param name="frequency">The probability that the value is true, scaled by 32768.</param>
     private void EncodeBoolQ15(bool val, uint frequency)
     {
-        uint l;
+        ulong l;
         uint r;
         uint v;
         DebugGuard.MustBeGreaterThan(frequency, 0U, nameof(frequency));
@@ -227,7 +223,7 @@ internal class Av1SymbolWriter : IDisposable
     private void EncodeIntegerQ15(uint lowFrequency, uint highFrequency, int symbol, int numberOfSymbols)
     {
         const int totalShift = 7 - Av1Distribution.ProbabilityShift - Av1Distribution.CdfShift;
-        uint l = this.low;
+        ulong l = this.low;
         uint r = this.rng;
         DebugGuard.MustBeLessThanOrEqualTo(32768U, r, nameof(r));
         DebugGuard.MustBeLessThanOrEqualTo(highFrequency, lowFrequency, nameof(highFrequency));
@@ -261,42 +257,61 @@ internal class Av1SymbolWriter : IDisposable
     /// </summary>
     /// <param name="low">The new value of <see cref="low"/>.</param>
     /// <param name="rng">The new value of <see cref="rng"/>.</param>
-    private void Normalize(uint low, uint rng)
+    private void Normalize(ulong low, uint rng)
     {
-        int d;
-        int c;
-        int s;
-        c = this.cnt;
+        int c = this.cnt;
         DebugGuard.MustBeLessThanOrEqualTo(rng, 65535U, nameof(rng));
-        d = 15 - Av1Math.MostSignificantBit(rng);
-        s = c + d;
+        int d = 15 - Av1Math.MostSignificantBit(rng);
+        int s = c + d;
 
-        // The 32-bit low endpoint is flushed whenever a byte becomes available. Retaining pre-carry values as
-        // ushort elements defers carry propagation until Exit without requiring a separate wider coding window.
-        if (s >= 0)
+        // Keeping 16 bits free for the next symbol allows the 64-bit coding window to flush up to eight completed
+        // bytes together while preserving one carry bit.
+        if (s >= 40)
         {
-            uint m;
-            Span<ushort> buffer = this.memory.GetSpan(this.position + 2);
+            Span<byte> buffer = this.memory.GetSpan(this.position + sizeof(ulong));
+            int readyByteCount = (s >> 3) + 1;
+            c += 24 - (readyByteCount << 3);
+            ulong output = low >> c;
+            low &= (1UL << c) - 1;
+            ulong carryMask = 1UL << (readyByteCount << 3);
+            bool hasCarry = (output & carryMask) != 0;
+            output &= carryMask - 1;
 
-            c += 16;
-            m = (1U << c) - 1;
-            if (s >= 8)
+            // Writing one big-endian word avoids a byte-at-a-time hot loop. Only readyByteCount bytes become part
+            // of the logical output; the following bytes are overwritten by the next flush.
+            BinaryPrimitives.WriteUInt64BigEndian(
+                buffer.Slice(this.position, sizeof(ulong)),
+                output << ((sizeof(ulong) - readyByteCount) << 3));
+
+            if (hasCarry)
             {
-                buffer[this.position] = (ushort)(low >> c);
-                this.position++;
-                low &= m;
-                c -= 8;
-                m >>= 8;
+                PropagateCarryBackward(buffer, this.position - 1);
             }
 
-            buffer[this.position] = (ushort)(low >> c);
-            this.position++;
+            this.position += readyByteCount;
             s = c + d - 24;
-            low &= m;
         }
 
         this.low = low << d;
         this.rng = rng << d;
         this.cnt = s;
+    }
+
+    /// <summary>
+    /// Adds a carry to the completed output prefix.
+    /// </summary>
+    /// <param name="buffer">The accumulated output bytes.</param>
+    /// <param name="offset">The final completed byte.</param>
+    private static void PropagateCarryBackward(Span<byte> buffer, int offset)
+    {
+        int carry;
+        do
+        {
+            int sum = buffer[offset] + 1;
+            buffer[offset] = (byte)sum;
+            carry = sum >> 8;
+            offset--;
+        }
+        while (carry != 0);
     }
 }

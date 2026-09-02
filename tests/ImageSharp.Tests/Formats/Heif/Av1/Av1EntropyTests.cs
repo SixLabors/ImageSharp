@@ -9,6 +9,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Tests.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -16,6 +17,43 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1EntropyTests
 {
     private const int BaseQIndex = 23;
+
+    [Fact]
+    public void SymbolWriterMatchesCurrentLibaomCarryRegression()
+    {
+        using Av1SymbolWriter writer = new(Configuration.Default, 1, updateCdf: false);
+        writer.WriteBoolean(false, 16_384);
+        writer.WriteBoolean(false, 16_384);
+        writer.WriteBoolean(true, 512);
+        writer.WriteBoolean(false, 8_192);
+        using IMemoryOwner<byte> encoded = writer.Exit();
+
+        Assert.Equal(2, encoded.Memory.Length);
+        Assert.Equal(63, encoded.Memory.Span[0]);
+    }
+
+    [Fact]
+    public void SymbolWriterUsesOneByteOfScratchPerEstimatedOutputByte()
+    {
+        const int initialSize = 257;
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        TestMemoryAllocator.AllocationRequest allocation;
+
+        using (Av1SymbolWriter writer = new(configuration, initialSize, updateCdf: false))
+        {
+            writer.WriteLiteral(false);
+            allocation = Assert.Single(allocator.AllocationLog);
+
+            Assert.Equal(typeof(byte), allocation.ElementType);
+            Assert.Equal(initialSize, allocation.Length);
+        }
+
+        TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
+        Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
+    }
 
     [Fact]
     public void ReadRandomLiteral()

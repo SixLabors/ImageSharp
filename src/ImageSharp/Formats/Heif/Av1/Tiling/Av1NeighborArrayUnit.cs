@@ -16,7 +16,17 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
     /// <summary>
     /// Owns the contiguous neighbor storage until this instance is disposed.
     /// </summary>
-    private IMemoryOwner<T>? memory;
+    private IMemoryOwner<T>? owner;
+
+    /// <summary>
+    /// The contiguous neighbor storage, whether owned directly or supplied by a picture owner.
+    /// </summary>
+    private Memory<T> memory;
+
+    /// <summary>
+    /// Indicates whether the neighbor view has been disposed.
+    /// </summary>
+    private bool isDisposed;
 
     /// <summary>
     /// The number of context values exposed to blocks on the right.
@@ -42,7 +52,21 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
 
         // Both context edges share the picture lifetime, so one clean allocator-backed buffer
         // preserves their zero-initialized starting state without separate owner lifetimes.
-        this.memory = configuration.MemoryAllocator.Allocate<T>(totalLength, AllocationOptions.Clean);
+        this.owner = configuration.MemoryAllocator.Allocate<T>(totalLength, AllocationOptions.Clean);
+        this.memory = this.owner.Memory[..totalLength];
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1NeighborArrayUnit{T}"/> class over non-owning picture-lifetime storage.
+    /// </summary>
+    /// <param name="memory">The contiguous left and top context storage.</param>
+    /// <param name="leftSize">The number of values in the left-neighbor storage.</param>
+    /// <param name="topSize">The number of values in the top-neighbor storage.</param>
+    public Av1NeighborArrayUnit(Memory<T> memory, int leftSize, int topSize)
+    {
+        this.leftLength = leftSize;
+        this.topLength = topSize;
+        this.memory = memory[..checked(leftSize + topSize)];
     }
 
     /// <summary>
@@ -69,8 +93,8 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
     {
         get
         {
-            ObjectDisposedException.ThrowIf(this.memory is null, this);
-            return this.memory.Memory.Span[..this.leftLength];
+            ObjectDisposedException.ThrowIf(this.isDisposed, this);
+            return this.memory.Span[..this.leftLength];
         }
     }
 
@@ -81,8 +105,8 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
     {
         get
         {
-            ObjectDisposedException.ThrowIf(this.memory is null, this);
-            return this.memory.Memory.Span.Slice(this.leftLength, this.topLength);
+            ObjectDisposedException.ThrowIf(this.isDisposed, this);
+            return this.memory.Span.Slice(this.leftLength, this.topLength);
         }
     }
 
@@ -110,8 +134,10 @@ internal sealed class Av1NeighborArrayUnit<T> : IDisposable
     /// </summary>
     public void Dispose()
     {
-        this.memory?.Dispose();
-        this.memory = null;
+        this.owner?.Dispose();
+        this.owner = null;
+        this.memory = Memory<T>.Empty;
+        this.isDisposed = true;
     }
 
     /// <summary>

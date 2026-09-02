@@ -1673,7 +1673,7 @@ internal partial class Av1TileWriter
         bool left_available = xd.IsLeftAvailable;
         bool up_available = xd.IsUpAvailable;
         Av1EncoderCommon cm = pcs.Parent.Common;
-        Span<byte> segmentation_map = pcs.SegmentationNeighborMap;
+        Span<byte> segmentation_map = pcs.SegmentationNeighborMap.Span;
 
         if (up_available && left_available)
         {

@@ -130,6 +130,30 @@ internal class Av1SymbolWriter : IDisposable
     /// <returns>An owner containing the shortest byte sequence that preserves every encoded symbol.</returns>
     public IMemoryOwner<byte> Exit()
     {
+        int length = this.FinalizeRange();
+        IMemoryOwner<byte> output = this.configuration.MemoryAllocator.Allocate<byte>(length);
+        this.memory.GetSpan(length).CopyTo(output.GetSpan()[..length]);
+
+        return output;
+    }
+
+    /// <summary>
+    /// Finalizes the range-coded sequence and transfers its current allocation without copying.
+    /// </summary>
+    /// <param name="length">The number of encoded bytes at the beginning of the returned allocation.</param>
+    /// <returns>The complete allocation containing the encoded byte prefix.</returns>
+    public IMemoryOwner<byte> Exit(out int length)
+    {
+        length = this.FinalizeRange();
+        return this.memory.Detach();
+    }
+
+    /// <summary>
+    /// Terminates the range-coded sequence in the current output allocation.
+    /// </summary>
+    /// <returns>The number of encoded bytes in the allocation.</returns>
+    private int FinalizeRange()
+    {
         // Round the low endpoint into the current interval so the emitted prefix selects every symbol encoded so far,
         // regardless of the bits that follow it.
         ulong l = this.low;
@@ -162,10 +186,7 @@ internal class Av1SymbolWriter : IDisposable
             while (s > 0);
         }
 
-        IMemoryOwner<byte> output = this.configuration.MemoryAllocator.Allocate<byte>(pos);
-        buffer[..pos].CopyTo(output.GetSpan()[..pos]);
-
-        return output;
+        return pos;
     }
 
     /// <summary>

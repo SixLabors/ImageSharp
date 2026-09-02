@@ -56,6 +56,43 @@ public class Av1EntropyTests
     }
 
     [Fact]
+    public void SymbolWriterTransfersExistingOutputAllocationWithoutCopy()
+    {
+        const int initialSize = 257;
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        TestMemoryAllocator.AllocationRequest allocation;
+        IMemoryOwner<byte> encoded;
+        int length;
+
+        using (Av1SymbolWriter writer = new(configuration, initialSize, updateCdf: false))
+        {
+            writer.WriteBoolean(false, 16_384);
+            writer.WriteBoolean(false, 16_384);
+            writer.WriteBoolean(true, 512);
+            writer.WriteBoolean(false, 8_192);
+            allocation = Assert.Single(allocator.AllocationLog);
+            encoded = writer.Exit(out length);
+
+            Assert.Single(allocator.AllocationLog);
+            Assert.Empty(allocator.ReturnLog);
+        }
+
+        Assert.Empty(allocator.ReturnLog);
+        using (encoded)
+        {
+            Assert.Equal(2, length);
+            Assert.Equal(initialSize, encoded.Memory.Length);
+            Assert.Equal(63, encoded.Memory.Span[0]);
+        }
+
+        TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
+        Assert.Equal(allocation.AllocationId, returned.AllocationId);
+    }
+
+    [Fact]
     public void SymbolEncoderRentsCoefficientScratchOnlyForNonzeroBlocks()
     {
         TestMemoryAllocator allocator = new();

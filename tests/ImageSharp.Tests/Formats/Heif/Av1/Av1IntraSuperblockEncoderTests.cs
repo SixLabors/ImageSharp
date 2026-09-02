@@ -216,6 +216,46 @@ public class Av1IntraSuperblockEncoderTests
         Assert.Equal(256, entropyContext.CodedAreaSuperblock);
         Assert.Equal(64, entropyContext.CodedAreaSuperblockUv);
         Assert.NotEqual(0, encoded.GetSpan().Length);
+
+        using Av1EncoderFrameBuffer<byte> tileReconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv420,
+            1,
+            1);
+
+        ClearPlane(tileReconstruction.Luma);
+        ClearPlane(Assert.IsType<Buffer2D<byte>>(tileReconstruction.ChromaBlue));
+        ClearPlane(Assert.IsType<Buffer2D<byte>>(tileReconstruction.ChromaRed));
+        using Av1EncoderPictureBuffer tilePicture = new(
+            Configuration.Default,
+            picture.Sequence.SequenceHeader,
+            picture.Parent.FrameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderCoefficientBuffer tileCoefficients = new(
+            Configuration.Default,
+            picture.Sequence.SequenceHeader,
+            Width,
+            Height);
+
+        using Av1EncoderSuperblockWorkspace tileSuperblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace tileBlockWorkspace = new(Configuration.Default);
+        using Av1IntraTileWriter tileWriter = new(
+            Configuration.Default,
+            source.Frame,
+            tileReconstruction.Frame,
+            tilePicture.Picture,
+            tileCoefficients,
+            tileSuperblockWorkspace,
+            tileBlockWorkspace,
+            initialSize: 512);
+
+        // The production tile traversal must be byte-identical to the explicit analyze-then-write composition above.
+        Assert.True(encoded.GetSpan().SequenceEqual(tileWriter.GetTileData(0)));
     }
 
     [Fact]
@@ -302,6 +342,149 @@ public class Av1IntraSuperblockEncoderTests
         Assert.NotEqual((ushort)0, coefficients.GetTransformBlockSpan(0, Av1Plane.Y)[0].EndOfBlock);
         Assert.Equal(0, coefficients.GetPlaneSpan(0, Av1Plane.U).Length);
         Assert.Equal(0, coefficients.GetPlaneSpan(0, Av1Plane.V).Length);
+
+        using Av1EncoderFrameBuffer<ushort> tileReconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            12,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        ClearPlane(tileReconstruction.Luma);
+        using Av1EncoderPictureBuffer tilePicture = new(
+            Configuration.Default,
+            picture.Sequence.SequenceHeader,
+            picture.Parent.FrameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderCoefficientBuffer tileCoefficients = new(
+            Configuration.Default,
+            picture.Sequence.SequenceHeader,
+            Width,
+            Height);
+
+        using Av1EncoderSuperblockWorkspace tileSuperblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace tileBlockWorkspace = new(Configuration.Default);
+        using Av1IntraTileWriter tileWriter = new(
+            Configuration.Default,
+            source.Frame,
+            tileReconstruction.Frame,
+            tilePicture.Picture,
+            tileCoefficients,
+            tileSuperblockWorkspace,
+            tileBlockWorkspace,
+            initialSize: 256);
+
+        Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
+        ushort reconstructedSample = tileReconstruction.Frame.CodedView
+            .GetPlane(Av1Plane.Y)
+            .DangerousGetRowSpan(0)[0];
+
+        Assert.InRange(reconstructedSample, (ushort)(byte.MaxValue + 1), (ushort)4095);
+    }
+
+    [Fact]
+    public void TileWriterMapsClippedRasterTraversalToEverySuperblockCoefficientSegment()
+    {
+        const int Width = 72;
+        const int Height = 72;
+        const int QIndex = 53;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = true,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        ObuTileGroupHeader tiles = new()
+        {
+            TileColumnCount = 1,
+            TileRowCount = 1
+        };
+
+        int modeInfoColumnCount = Width >> Av1Constants.ModeInfoSizeLog2;
+        int modeInfoRowCount = Height >> Av1Constants.ModeInfoSizeLog2;
+        tiles.TileColumnStartModeInfo[1] = modeInfoColumnCount;
+        tiles.TileRowStartModeInfo[1] = modeInfoRowCount;
+        ObuSequenceHeader sequenceHeader = new()
+        {
+            Use128x128Superblock = false,
+            ColorConfig = colorConfig
+        };
+
+        ObuFrameHeader frameHeader = new()
+        {
+            ModeInfoColumnCount = modeInfoColumnCount,
+            ModeInfoRowCount = modeInfoRowCount,
+            TilesInfo = tiles
+        };
+
+        frameHeader.QuantizationParameters.BaseQIndex = QIndex;
+        frameHeader.QuantizationParameters.QIndex.Fill(QIndex);
+        using Av1EncoderFrameBuffer<byte> source = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.Y), 251, 29);
+        ClearPlane(reconstruction.Luma);
+        using Av1EncoderPictureBuffer picture = new(
+            Configuration.Default,
+            sequenceHeader,
+            frameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderCoefficientBuffer coefficients = new(
+            Configuration.Default,
+            sequenceHeader,
+            Width,
+            Height);
+
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        using Av1IntraTileWriter tileWriter = new(
+            Configuration.Default,
+            source.Frame,
+            reconstruction.Frame,
+            picture.Picture,
+            coefficients,
+            superblockWorkspace,
+            blockWorkspace,
+            initialSize: 4096);
+
+        Assert.Equal(4, coefficients.SuperblockCount);
+        for (int superblockIndex = 0; superblockIndex < coefficients.SuperblockCount; superblockIndex++)
+        {
+            Assert.NotEqual(
+                (ushort)0,
+                coefficients.GetTransformBlockSpan(superblockIndex, Av1Plane.Y)[0].EndOfBlock);
+        }
+
+        Assert.NotEqual(
+            (byte)0,
+            reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y).DangerousGetRowSpan(Height - 1)[Width - 1]);
+
+        ref Av1MacroBlockModeInfo bottomRight = ref picture.Picture.GetMacroBlockModeInfo(new Point(16, 16));
+        Assert.Equal(Av1BlockSize.Block8x8, bottomRight.Block.BlockSize);
+        Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
     }
 
     private static Av1PictureControlSet CreatePicture(

@@ -14,6 +14,7 @@ internal sealed class AutoExpandingMemory<T> : IDisposable
     private const int IncreaseFactor = 5;
     private readonly Configuration configuration;
     private IMemoryOwner<T> allocation;
+    private bool isDetached;
 
     public AutoExpandingMemory(Configuration configuration, int initialSize)
     {
@@ -45,7 +46,23 @@ internal sealed class AutoExpandingMemory<T> : IDisposable
     public Span<T> GetEntireSpan()
         => this.GetSpan(this.Capacity);
 
-    public void Dispose() => this.allocation.Dispose();
+    /// <summary>
+    /// Transfers the current allocation to the caller without copying its contents.
+    /// </summary>
+    /// <returns>The allocation previously owned by this instance.</returns>
+    public IMemoryOwner<T> Detach()
+    {
+        this.isDetached = true;
+        return this.allocation;
+    }
+
+    public void Dispose()
+    {
+        if (!this.isDetached)
+        {
+            this.allocation.Dispose();
+        }
+    }
 
     private void EnsureCapacity(int requestedSize)
     {

@@ -46,7 +46,7 @@ internal class Av1PictureControlSet
     /// <summary>
     /// Gets or sets the frame segmentation identifiers used for spatial prediction.
     /// </summary>
-    public required byte[] SegmentationNeighborMap { get; set; }
+    public required Memory<byte> SegmentationNeighborMap { get; set; }
 
     /// <summary>
     /// Gets or sets the frame grid that maps each 4x4 position to its mode-information allocation index.
@@ -130,7 +130,7 @@ internal class Av1PictureControlSet
     public void UpdateSegmentation(Av1BlockSize blockSize, Point origin, int segmentId)
     {
         Av1EncoderCommon cm = this.Parent.Common;
-        Span<byte> segment_ids = this.SegmentationNeighborMap;
+        Span<byte> segment_ids = this.SegmentationNeighborMap.Span;
         int mi_col = origin.X >> Av1Constants.ModeInfoSizeLog2;
         int mi_row = origin.Y >> Av1Constants.ModeInfoSizeLog2;
         int mi_offset = (mi_row * cm.ModeInfoColumnCount) + mi_col;

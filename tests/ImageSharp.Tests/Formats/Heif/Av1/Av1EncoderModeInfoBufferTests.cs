@@ -46,6 +46,80 @@ public class Av1EncoderModeInfoBufferTests
         Assert.Equal(allocation.AllocationId, returned.AllocationId);
     }
 
+    [Fact]
+    public void PictureBufferPacksAllPictureStateIntoTwoAllocatorOwners()
+    {
+        const int Width = 16;
+        const int Height = 16;
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = false,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        ObuTileGroupHeader tiles = new()
+        {
+            TileColumnCount = 1,
+            TileRowCount = 1
+        };
+
+        tiles.TileColumnStartModeInfo[1] = Width >> Av1Constants.ModeInfoSizeLog2;
+        tiles.TileRowStartModeInfo[1] = Height >> Av1Constants.ModeInfoSizeLog2;
+        ObuSequenceHeader sequenceHeader = new()
+        {
+            Use128x128Superblock = true,
+            ColorConfig = colorConfig
+        };
+
+        ObuFrameHeader frameHeader = new()
+        {
+            ModeInfoColumnCount = Width >> Av1Constants.ModeInfoSizeLog2,
+            ModeInfoRowCount = Height >> Av1Constants.ModeInfoSizeLog2,
+            TilesInfo = tiles
+        };
+
+        TestMemoryAllocator.AllocationRequest[] allocations;
+        using (Av1EncoderPictureBuffer buffer = new(
+            configuration,
+            sequenceHeader,
+            frameHeader,
+            Width,
+            Height))
+        {
+            allocations = allocator.AllocationLog.ToArray();
+            Assert.Equal(2, allocations.Length);
+            Assert.Equal(typeof(byte), allocations[0].ElementType);
+            Assert.Equal(6_144, allocations[0].Length);
+            Assert.Equal(AllocationOptions.Clean, allocations[0].AllocationOptions);
+            Assert.Equal(typeof(byte), allocations[1].ElementType);
+            Assert.Equal(336, allocations[1].Length);
+            Assert.Equal(AllocationOptions.Clean, allocations[1].AllocationOptions);
+            Assert.Empty(allocator.ReturnLog);
+
+            Av1PictureControlSet picture = buffer.Picture;
+            Assert.Equal(16, picture.SegmentationNeighborMap.Length);
+            Assert.Equal(32, picture.PartitionContexts[0].Left.Length);
+            Assert.Equal(32, picture.PartitionContexts[0].Top.Length);
+            Assert.Equal(32, picture.LuminanceDcSignLevelCoefficientNeighbors[0].Left.Length);
+            Assert.Equal(32, picture.LuminanceDcSignLevelCoefficientNeighbors[0].Top.Length);
+            Assert.Equal(16, picture.CbDcSignLevelCoefficientNeighbors[0].Left.Length);
+            Assert.Equal(16, picture.CbDcSignLevelCoefficientNeighbors[0].Top.Length);
+            Assert.Equal(32, picture.TransformFunctionContexts[0].Left.Length);
+            Assert.Equal(32, picture.TransformFunctionContexts[0].Top.Length);
+        }
+
+        Assert.Equal(2, allocator.ReturnLog.Count);
+        Assert.Equal(
+            allocations.Select(x => x.AllocationId).Order(),
+            allocator.ReturnLog.Select(x => x.AllocationId).Order());
+    }
+
     [Theory]
     [InlineData(false, 2, 3, 98)]
     [InlineData(true, 2, 2, 17)]
@@ -120,7 +194,7 @@ public class Av1EncoderModeInfoBufferTests
                 FrameHeader = frameHeader,
                 PreviousQIndex = []
             },
-            SegmentationNeighborMap = [],
+            SegmentationNeighborMap = Memory<byte>.Empty,
             ModeInfoGrid = buffer.Grid,
             ModeInfoAllocation = buffer.Allocation,
             ModeInfoStride = buffer.ModeInfoStride,

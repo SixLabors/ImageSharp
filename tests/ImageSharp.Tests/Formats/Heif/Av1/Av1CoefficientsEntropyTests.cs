@@ -132,7 +132,7 @@ public class Av1CoefficientsEntropyTests
                 FrameHeader = new ObuFrameHeader(),
                 PreviousQIndex = []
             },
-            SegmentationNeighborMap = [],
+            SegmentationNeighborMap = Memory<byte>.Empty,
             ModeInfoGrid = grid,
             ModeInfoAllocation = allocation,
             ModeInfoStride = 4,
@@ -442,7 +442,7 @@ public class Av1CoefficientsEntropyTests
             for (int column = 0; column < 8; column++)
             {
                 byte expected = row is 3 or 4 && column >= 2 && column < 6 ? (byte)5 : (byte)0;
-                Assert.Equal(expected, picture.SegmentationNeighborMap[(row * 8) + column]);
+                Assert.Equal(expected, picture.SegmentationNeighborMap.Span[(row * 8) + column]);
             }
         }
     }
@@ -1165,7 +1165,7 @@ public class Av1CoefficientsEntropyTests
                 FrameHeader = frameHeader,
                 PreviousQIndex = []
             },
-            SegmentationNeighborMap = [],
+            SegmentationNeighborMap = Memory<byte>.Empty,
             ModeInfoGrid = modeInfoGrid,
             ModeInfoAllocation = modeInfoAllocation,
             ModeInfoStride = modeInfoColumnCount,

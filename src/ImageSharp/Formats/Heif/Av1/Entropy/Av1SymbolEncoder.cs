@@ -479,7 +479,18 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Releases output memory that has not been transferred by <see cref="Exit"/>.
+    /// Finalizes the range-coded tile payload and transfers its current allocation without copying.
+    /// </summary>
+    /// <param name="length">The number of encoded bytes at the beginning of the returned allocation.</param>
+    /// <returns>The complete allocation containing the encoded tile prefix.</returns>
+    public IMemoryOwner<byte> Exit(out int length)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        return w.Exit(out length);
+    }
+
+    /// <summary>
+    /// Releases output memory that has not been transferred by <see cref="Exit()"/>.
     /// </summary>
     public void Dispose()
     {

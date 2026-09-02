@@ -142,6 +142,39 @@ public class Av1EntropyTests
             encoder.GetTransformBlockSkipCost(true, TransformSize, SkipContext));
     }
 
+    [Fact]
+    public void BlockSkipDecisionUsesAdaptedRatesForEmptyTransforms()
+    {
+        const int QIndex = 73;
+        const int BlockSkipContext = 2;
+        const int TransformSkipContext = 0;
+        const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 256, QIndex);
+        int emptyTransformRate = encoder.GetTransformBlockSkipCost(
+            true,
+            TransformSize,
+            TransformSkipContext);
+
+        Assert.True(
+            Av1TileWriter.ShouldSkipCoefficients(
+                encoder,
+                BlockSkipContext,
+                emptyTransformRate));
+
+        // Repeated non-skip symbols make another block skip more expensive while the empty-transform
+        // rate remains unchanged, proving the decision reads the adapted live distribution.
+        for (int index = 0; index < 256; index++)
+        {
+            encoder.WriteSkip(false, BlockSkipContext);
+        }
+
+        Assert.False(
+            Av1TileWriter.ShouldSkipCoefficients(
+                encoder,
+                BlockSkipContext,
+                emptyTransformRate));
+    }
+
     [Theory]
     [InlineData(-16, 16)]
     [InlineData(0, 8)]

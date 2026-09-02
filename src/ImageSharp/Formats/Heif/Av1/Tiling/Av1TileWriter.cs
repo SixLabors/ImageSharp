@@ -1872,15 +1872,47 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
+    /// Gets the block skip context from the available above and left modes.
+    /// </summary>
+    /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
+    /// <returns>The sum of the available above and left skip states.</returns>
+    public static int GetSkipContext(Av1MacroBlockD macroBlock)
+    {
+        bool aboveSkipped = macroBlock.IsUpAvailable &&
+            macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block.Skip;
+
+        bool leftSkipped = macroBlock.IsLeftAvailable && macroBlock.GetRelativeModeInfo(-1).Block.Skip;
+        return (aboveSkipped ? 1 : 0) + (leftSkipped ? 1 : 0);
+    }
+
+    /// <summary>
+    /// Selects block skip when it is cheaper than retaining empty transform syntax.
+    /// </summary>
+    /// <param name="writer">The live tile symbol encoder.</param>
+    /// <param name="skipContext">The neighboring block skip context.</param>
+    /// <param name="emptyTransformRate">The complete coefficient rate for the empty transforms.</param>
+    /// <returns>
+    /// <see langword="true"/> when block skip has a strictly lower rate; otherwise, <see langword="false"/>.
+    /// </returns>
+    public static bool ShouldSkipCoefficients(
+        Av1SymbolEncoder writer,
+        int skipContext,
+        int emptyTransformRate)
+    {
+        int skipRate = writer.GetSkipCost(true, skipContext);
+        int nonSkipRate = writer.GetSkipCost(false, skipContext) + emptyTransformRate;
+
+        // Current libaom keeps intra blocks non-skipped. Empty transforms make both choices
+        // decoder-identical, so select skip only when its complete live rate is strictly lower.
+        return skipRate < nonSkipRate;
+    }
+
+    /// <summary>
     /// Writes the block skip flag using the sum of available above and left skip states as its context.
     /// </summary>
     /// <param name="writer">The tile symbol encoder.</param>
     /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
     /// <param name="skip">The skip value to write.</param>
     public static void EncodeSkipCoefficients(Av1SymbolEncoder writer, Av1MacroBlockD macroBlock, bool skip)
-    {
-        int aboveSkip = macroBlock.IsUpAvailable && macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block.Skip ? 1 : 0;
-        int leftSkip = macroBlock.IsLeftAvailable && macroBlock.GetRelativeModeInfo(-1).Block.Skip ? 1 : 0;
-        writer.WriteSkip(skip, aboveSkip + leftSkip);
-    }
+        => writer.WriteSkip(skip, GetSkipContext(macroBlock));
 }

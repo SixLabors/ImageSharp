@@ -199,10 +199,24 @@ internal static partial class Av1IntraSuperblockEncoder
             block.FilterIntraMode = filterIntraMode;
 
             this.codedAreaLuma += LumaTransformSize.GetSize2d();
-            bool skipTransform = lumaState.EndOfBlock == 0;
+            bool lumaTransformEmpty = lumaState.EndOfBlock == 0;
             if (this.source.IsMonochrome)
             {
-                modeInfo.Block.Skip = skipTransform;
+                modeInfo.Block.Skip = lumaTransformEmpty &&
+                    Av1TileWriter.ShouldSkipCoefficients(
+                        writer,
+                        Av1TileWriter.GetSkipContext(macroBlock),
+                        this.GetEmptyTransformRate(
+                            writer,
+                            this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
+                            Av1ComponentType.Luminance,
+                            blockOrigin,
+                            BlockSize,
+                            LumaTransformSize,
+                            lumaState.TransformType,
+                            modeInfo.Block.Mode,
+                            block.FilterIntraMode));
+
                 return;
             }
 
@@ -247,9 +261,83 @@ internal static partial class Av1IntraSuperblockEncoder
             block.PredictionUnit.ChromaFromLumaIndex = chromaFromLumaIndex;
             block.PredictionUnit.ChromaFromLumaSigns = chromaFromLumaSigns;
 
-            // A block-level skip suppresses every coefficient symbol, so all coded planes must be empty.
-            modeInfo.Block.Skip = skipTransform && blueState.EndOfBlock == 0 && redState.EndOfBlock == 0;
+            bool allTransformsEmpty = lumaTransformEmpty && blueState.EndOfBlock == 0 && redState.EndOfBlock == 0;
+            if (allTransformsEmpty)
+            {
+                Av1BlockSize chromaBlockSize = BlockSize.GetSubsampled(
+                    colorConfig.SubSamplingX,
+                    colorConfig.SubSamplingY);
+
+                int emptyTransformRate = this.GetEmptyTransformRate(
+                    writer,
+                    this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
+                    Av1ComponentType.Luminance,
+                    blockOrigin,
+                    BlockSize,
+                    LumaTransformSize,
+                    lumaState.TransformType,
+                    modeInfo.Block.Mode,
+                    block.FilterIntraMode);
+
+                emptyTransformRate += this.GetEmptyTransformRate(
+                    writer,
+                    this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
+                    Av1ComponentType.Chroma,
+                    chromaOrigin,
+                    chromaBlockSize,
+                    chromaTransformSize,
+                    blueState.TransformType,
+                    modeInfo.Block.Mode,
+                    Av1FilterIntraMode.AllFilterIntraModes);
+
+                emptyTransformRate += this.GetEmptyTransformRate(
+                    writer,
+                    this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
+                    Av1ComponentType.Chroma,
+                    chromaOrigin,
+                    chromaBlockSize,
+                    chromaTransformSize,
+                    redState.TransformType,
+                    modeInfo.Block.Mode,
+                    Av1FilterIntraMode.AllFilterIntraModes);
+
+                modeInfo.Block.Skip = Av1TileWriter.ShouldSkipCoefficients(
+                    writer,
+                    Av1TileWriter.GetSkipContext(macroBlock),
+                    emptyTransformRate);
+            }
+
             this.codedAreaChroma += chromaTransformSize.GetSize2d();
+        }
+
+        private int GetEmptyTransformRate(
+            Av1SymbolEncoder writer,
+            Av1NeighborArrayUnit<byte> coefficientNeighbors,
+            Av1ComponentType componentType,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            Av1TransformSize transformSize,
+            Av1TransformType transformType,
+            Av1PredictionMode lumaMode,
+            Av1FilterIntraMode filterIntraMode)
+        {
+            Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
+                componentType,
+                coefficientNeighbors,
+                blockOrigin,
+                blockSize,
+                transformSize);
+
+            return writer.GetCoefficientCost(
+                transformSize,
+                transformType,
+                lumaMode,
+                ReadOnlySpan<int>.Empty,
+                componentType,
+                blockContext,
+                0,
+                this.picture.Parent.FrameHeader.UseReducedTransformSet,
+                filterIntraMode);
         }
 
         private Av1PredictionMode SelectLumaMode(

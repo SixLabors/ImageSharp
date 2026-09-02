@@ -451,6 +451,19 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Gets the current fixed-point cost of a transform-size subdivision depth.
+    /// </summary>
+    /// <param name="blockSize">The block size defining the maximum transform.</param>
+    /// <param name="transformSize">The selected transform size.</param>
+    /// <param name="context">The neighboring transform-size context.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetTransformSizeCost(Av1BlockSize blockSize, Av1TransformSize transformSize, int context)
+    {
+        int selectedDepth = GetTransformSizeDepth(blockSize, transformSize, out int categoryDepth);
+        return Av1ProbabilityCost.GetSymbolCost(this.transformSize[categoryDepth - 1][context], selectedDepth);
+    }
+
+    /// <summary>
     /// Writes the selected transform size as its subdivision depth from the block maximum.
     /// </summary>
     /// <param name="blockSize">The block size defining the maximum transform.</param>
@@ -458,9 +471,19 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="context">The neighboring transform-size context.</param>
     public void WriteTransformSize(Av1BlockSize blockSize, Av1TransformSize transformSize, int context)
     {
+        int selectedDepth = GetTransformSizeDepth(blockSize, transformSize, out int categoryDepth);
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteSymbol(selectedDepth, this.transformSize[categoryDepth - 1][context]);
+    }
+
+    private static int GetTransformSizeDepth(
+        Av1BlockSize blockSize,
+        Av1TransformSize transformSize,
+        out int categoryDepth)
+    {
         Av1TransformSize maximumTransformSize = blockSize.GetMaximumTransformSize();
         Av1TransformSize currentTransformSize = maximumTransformSize;
-        int categoryDepth = 0;
+        categoryDepth = 0;
         while (currentTransformSize != Av1TransformSize.Size4x4)
         {
             categoryDepth++;
@@ -476,8 +499,7 @@ internal class Av1SymbolEncoder : IDisposable
         }
 
         DebugGuard.IsTrue(currentTransformSize == transformSize, nameof(transformSize));
-        ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(selectedDepth, this.transformSize[categoryDepth - 1][context]);
+        return selectedDepth;
     }
 
     /// <summary>

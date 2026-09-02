@@ -123,6 +123,15 @@ public class Av1EntropyTests
             Av1ProbabilityCost.GetSymbolCost(skip, 1),
             encoder.GetSkipCost(true, SkipContext));
 
+        Av1Distribution transformSize = Av1DefaultDistributions.TransformSize[0][SkipContext];
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(transformSize, 0),
+            encoder.GetTransformSizeCost(BlockSize, TransformSize, SkipContext));
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(transformSize, 1),
+            encoder.GetTransformSizeCost(BlockSize, Av1TransformSize.Size4x4, SkipContext));
+
         Av1Distribution transformSkip = Av1DefaultDistributions
             .GetTransformBlockSkip(BaseQIndex)[(int)TransformSize][SkipContext];
 
@@ -148,6 +157,19 @@ public class Av1EntropyTests
             Av1ProbabilityCost.GetSymbolCost(expected, (int)Av1PredictionMode.DC),
             encoder.GetLumaModeCost(Av1PredictionMode.DC, 0, 0));
     }
+
+    [Theory]
+    [InlineData(1, 255, 0L, 0L)]
+    [InlineData(1, 256, 0L, 1L)]
+    [InlineData(128, 512, 1000L, 1128L)]
+    [InlineData(512, 512, 1000L, 1512L)]
+    [InlineData(64, 1024, 4_000_000_000L, 4_000_000_128L)]
+    public void RateDistortionCostMatchesCurrentLibaom(
+        int rateMultiplier,
+        int rate,
+        long distortion,
+        long expected)
+        => Assert.Equal(expected, Av1RateDistortion.GetCost(rateMultiplier, rate, distortion));
 
     [Fact]
     public void SymbolWriterMatchesCurrentLibaomCarryRegression()

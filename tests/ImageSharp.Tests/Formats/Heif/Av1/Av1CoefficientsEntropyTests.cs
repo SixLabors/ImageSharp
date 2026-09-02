@@ -458,7 +458,7 @@ public class Av1CoefficientsEntropyTests
         Av1TileWriter.WriteTransformSize(
             picture,
             writer,
-            modeInfo,
+            ref modeInfo,
             macroBlock,
             modeInfo.Block.BlockSize,
             blockOrigin,
@@ -680,11 +680,11 @@ public class Av1CoefficientsEntropyTests
         picture.CbDcSignLevelCoefficientNeighbors = [blue];
         picture.TransformFunctionContexts = [transforms];
         Av1TileInfo tile = new(0, 0, picture.Parent.FrameHeader);
-        Point[] blockPositions = [new(16, 0), new(24, 0), new(16, 8), new(24, 8)];
+        Point[] modeInfoPositions = [new(16, 0), new(24, 0), new(16, 8), new(24, 8)];
         using Av1EncoderSuperblockWorkspace workspace = new(Configuration.Default);
-        for (int index = 0; index < blockPositions.Length; index++)
+        for (int index = 0; index < modeInfoPositions.Length; index++)
         {
-            Point position = blockPositions[index];
+            Point position = modeInfoPositions[index];
             ref Av1EncoderBlockModeInfo blockMode = ref picture.ModeInfoAllocation.Span[
                 (position.Y * picture.ModeInfoStride) + position.X].Block;
 
@@ -732,6 +732,14 @@ public class Av1CoefficientsEntropyTests
             superblock,
             coefficients,
             tileIndex: 0);
+
+        Assert.Equal(Av1TransformSize.Size32x32, context.MacroBlockModeInfo.Block.TransformSize);
+        foreach (Point position in modeInfoPositions)
+        {
+            Assert.Equal(
+                Av1TransformSize.Size32x32,
+                picture.GetMacroBlockModeInfo(position).Block.TransformSize);
+        }
 
         writer.Dispose();
 

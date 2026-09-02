@@ -637,7 +637,6 @@ internal partial class Av1TileWriter
         Av1BlockSize blockSize = macroBlockModeInfo.Block.BlockSize;
         bool skipWritingCoefficients = macroBlockModeInfo.Block.Skip;
         pcs.MapModeInfoBlock(modeInfoPosition, blockSize);
-        entropyCodingContext.MacroBlockModeInfo = macroBlockModeInfo;
         Av1MacroBlockD macroBlock = entropyCodingContext.MacroBlock;
 
         Guard.MustBeLessThan((int)blockSize, (int)Av1BlockSize.AllSizes, nameof(blockSize));
@@ -753,12 +752,13 @@ internal partial class Av1TileWriter
             WriteTransformSize(
                 pcs,
                 writer,
-                macroBlockModeInfo,
+                ref macroBlockModeInfo,
                 macroBlock,
                 blockSize,
                 blockOrigin,
                 tile_idx);
 
+            entropyCodingContext.MacroBlockModeInfo = macroBlockModeInfo;
             if (!skipWritingCoefficients)
             {
                 EncodeCoefficients1d(
@@ -794,7 +794,7 @@ internal partial class Av1TileWriter
     internal static void WriteTransformSize(
         Av1PictureControlSet pcs,
         Av1SymbolEncoder writer,
-        Av1MacroBlockModeInfo macroBlockModeInfo,
+        ref Av1MacroBlockModeInfo macroBlockModeInfo,
         Av1MacroBlockD macroBlock,
         Av1BlockSize blockSize,
         Point blockOrigin,

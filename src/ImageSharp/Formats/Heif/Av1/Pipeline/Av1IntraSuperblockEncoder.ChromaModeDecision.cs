@@ -53,6 +53,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> retainedRedCoefficients,
             ref Av1EncoderTransformBlockState retainedBlueState,
             ref Av1EncoderTransformBlockState retainedRedState,
+            ref Av1EncoderPaletteInfo paletteInfo,
             out int selectedAngleDelta,
             out byte selectedChromaFromLumaIndex,
             out sbyte selectedChromaFromLumaSigns)
@@ -163,6 +164,10 @@ internal static partial class Av1IntraSuperblockEncoder
             int deltaCount = AngleDeltaSearchOrder.Length;
             int directionalModeCount = (int)Av1ChromaPredictionMode.Directional67Degrees - (int)Av1ChromaPredictionMode.Vertical + 1;
             int candidateCount = baseModeCount + (directionalModeCount * deltaCount);
+            bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
+            int paletteDisabledCost = this.picture.Parent.FrameHeader.AllowScreenContentTools
+                ? writer.GetPaletteUvModeCost(false, hasLumaPalette)
+                : 0;
 
             // Spatial base modes precede the six nonzero adjustments for each directional mode.
             // Chroma-from-luma remains a separate search because it consumes reconstructed luma AC state.
@@ -202,6 +207,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     hasAbove,
                     blueContext,
                     redContext,
+                    paletteDisabledCost,
                     candidateBlueReconstruction[..sampleCount],
                     candidateRedReconstruction[..sampleCount],
                     candidateBlueCoefficients[..sampleCount],
@@ -434,6 +440,35 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
+            if (this.picture.Parent.FrameHeader.AllowScreenContentTools &&
+                this.SelectChromaPalette(
+                    writer,
+                    macroBlock,
+                    modeInfo,
+                    lumaOrigin,
+                    chromaOrigin,
+                    tileIndex,
+                    lumaMode,
+                    transformSize,
+                    blueContext,
+                    redContext,
+                    candidateBlueReconstruction[..sampleCount],
+                    candidateRedReconstruction[..sampleCount],
+                    candidateBlueCoefficients[..sampleCount],
+                    candidateRedCoefficients[..sampleCount],
+                    retainedBlueCoefficients,
+                    retainedRedCoefficients,
+                    ref retainedBlueState,
+                    ref retainedRedState,
+                    ref bestCost,
+                    ref paletteInfo))
+            {
+                bestMode = Av1ChromaPredictionMode.DC;
+                selectedAngleDelta = 0;
+                selectedChromaFromLumaIndex = 0;
+                selectedChromaFromLumaSigns = 0;
+            }
+
             return bestMode;
         }
 
@@ -502,6 +537,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool hasAbove,
             Av1TransformBlockContext blueContext,
             Av1TransformBlockContext redContext,
+            int paletteDisabledCost,
             Span<TSample> candidateBlueReconstruction,
             Span<TSample> candidateRedReconstruction,
             Span<int> candidateBlueCoefficients,
@@ -567,6 +603,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 lumaMode,
                 chromaMode,
                 angleDelta);
+
+            if (chromaMode == Av1ChromaPredictionMode.DC)
+            {
+                rate += paletteDisabledCost;
+            }
 
             rate += writer.GetCoefficientCost(
                 transformSize,

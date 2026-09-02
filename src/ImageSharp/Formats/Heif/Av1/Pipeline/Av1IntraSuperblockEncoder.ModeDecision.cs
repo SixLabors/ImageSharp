@@ -255,6 +255,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 redCoefficients[this.codedAreaChroma..],
                 ref blueState,
                 ref redState,
+                ref paletteInfo,
                 out int chromaAngleDelta,
                 out byte chromaFromLumaIndex,
                 out sbyte chromaFromLumaSigns);

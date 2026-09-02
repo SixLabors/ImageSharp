@@ -780,6 +780,139 @@ public class Av1IntraSuperblockEncoderTests
                     initialSize: 256));
     }
 
+    [Fact]
+    public void ProductionTileSelectsExactPairedChromaPalette()
+    {
+        AssertProductionTileSelectsExactPairedChromaPalette(useLumaPalette: false);
+        AssertProductionTileSelectsExactPairedChromaPalette(useLumaPalette: true);
+    }
+
+    private static void AssertProductionTileSelectsExactPairedChromaPalette(bool useLumaPalette)
+    {
+        const int Width = 8;
+        const int Height = 8;
+        const int QIndex = 37;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = false,
+            SubSamplingX = false,
+            SubSamplingY = false,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        using Av1EncoderFrameBuffer<byte> source = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv444,
+            0,
+            0);
+
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv444,
+            0,
+            0);
+
+        Buffer2DRegion<byte> lumaSource = source.Frame.CodedView.GetPlane(Av1Plane.Y);
+        Buffer2DRegion<byte> blueSource = source.Frame.CodedView.GetPlane(Av1Plane.U);
+        Buffer2DRegion<byte> redSource = source.Frame.CodedView.GetPlane(Av1Plane.V);
+        for (int row = 0; row < Height; row++)
+        {
+            Span<byte> lumaRow = lumaSource.DangerousGetRowSpan(row);
+            if (useLumaPalette)
+            {
+                for (int column = 0; column < Width; column++)
+                {
+                    lumaRow[column] = column < Width / 2 ? (byte)64 : (byte)192;
+                }
+            }
+            else
+            {
+                lumaRow.Fill(128);
+            }
+
+            blueSource.DangerousGetRowSpan(row).Fill(row < Height / 2 ? (byte)32 : (byte)224);
+            redSource.DangerousGetRowSpan(row).Fill(row < Height / 2 ? (byte)200 : (byte)40);
+        }
+
+        ClearPlane(reconstruction.Luma);
+        ClearPlane(Assert.IsType<Buffer2D<byte>>(reconstruction.ChromaBlue));
+        ClearPlane(Assert.IsType<Buffer2D<byte>>(reconstruction.ChromaRed));
+        using Av1EncoderModeInfoBuffer modeInfo = new(
+            Configuration.Default,
+            Width,
+            Height,
+            disallow4x4AllFrames: true);
+
+        Av1PictureControlSet pictureTemplate = CreatePicture(
+            modeInfo,
+            colorConfig,
+            use128x128Superblock: false,
+            QIndex);
+
+        pictureTemplate.Parent.FrameHeader.AllowScreenContentTools = true;
+        pictureTemplate.Parent.FrameHeader.FrameSize.FrameWidth = Width;
+        pictureTemplate.Parent.FrameHeader.FrameSize.FrameHeight = Height;
+        using Av1EncoderPictureBuffer picture = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            pictureTemplate.Parent.FrameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderCoefficientBuffer coefficients = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            Width,
+            Height);
+
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        using Av1IntraTileWriter tileWriter = new(
+            Configuration.Default,
+            source.Frame,
+            reconstruction.Frame,
+            picture.Picture,
+            coefficients,
+            superblockWorkspace,
+            blockWorkspace,
+            initialSize: 256);
+
+        ref Av1MacroBlockModeInfo mode = ref picture.Picture.GetMacroBlockModeInfo(default);
+        Assert.Equal(Av1ChromaPredictionMode.DC, mode.Block.UvMode);
+        Assert.Equal(useLumaPalette ? 2 : 0, superblockWorkspace.PaletteInfo.PaletteSizes[0]);
+        Assert.Equal(2, superblockWorkspace.PaletteInfo.PaletteSizes[1]);
+        Assert.Equal([32, 224], superblockWorkspace.PaletteInfo.GetColors(Av1Plane.U).ToArray());
+        Assert.Equal([200, 40], superblockWorkspace.PaletteInfo.GetColors(Av1Plane.V).ToArray());
+        Assert.Equal((ushort)0, coefficients.GetTransformBlockSpan(0, Av1Plane.U)[0].EndOfBlock);
+        Assert.Equal((ushort)0, coefficients.GetTransformBlockSpan(0, Av1Plane.V)[0].EndOfBlock);
+
+        Buffer2DRegion<byte> colorIndexMap = superblockWorkspace
+            .GetPaletteMaps()
+            .GetMap(Av1PlaneType.Uv, Width, Height);
+
+        Buffer2DRegion<byte> blueReconstruction = reconstruction.Frame.CodedView.GetPlane(Av1Plane.U);
+        Buffer2DRegion<byte> redReconstruction = reconstruction.Frame.CodedView.GetPlane(Av1Plane.V);
+        for (int row = 0; row < Height; row++)
+        {
+            byte expectedIndex = (byte)(row < Height / 2 ? 0 : 1);
+            foreach (byte index in colorIndexMap.DangerousGetRowSpan(row))
+            {
+                Assert.Equal(expectedIndex, index);
+            }
+
+            Assert.True(blueSource.DangerousGetRowSpan(row).SequenceEqual(blueReconstruction.DangerousGetRowSpan(row)));
+            Assert.True(redSource.DangerousGetRowSpan(row).SequenceEqual(redReconstruction.DangerousGetRowSpan(row)));
+        }
+
+        Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
+    }
+
     [Theory]
     [InlineData((int)Av1PredictionMode.Vertical, 0)]
     [InlineData((int)Av1PredictionMode.Horizontal, 0)]

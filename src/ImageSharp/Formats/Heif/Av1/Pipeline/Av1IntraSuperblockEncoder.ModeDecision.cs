@@ -195,30 +195,49 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref lumaState,
                 ref paletteInfo,
                 out int lumaAngleDelta,
-                out Av1FilterIntraMode filterIntraMode);
+                out Av1FilterIntraMode filterIntraMode,
+                out long lumaCost);
 
             block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] = (sbyte)lumaAngleDelta;
             block.FilterIntraMode = filterIntraMode;
 
-            this.codedAreaLuma += LumaTransformSize.GetSize2d();
             bool lumaTransformEmpty = lumaState.EndOfBlock == 0;
             if (this.source.IsMonochrome)
             {
+                int emptyTransformRate = lumaTransformEmpty
+                    ? this.GetEmptyTransformRate(
+                        writer,
+                        this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
+                        Av1ComponentType.Luminance,
+                        blockOrigin,
+                        BlockSize,
+                        LumaTransformSize,
+                        lumaState.TransformType,
+                        modeInfo.Block.Mode,
+                        block.FilterIntraMode)
+                    : 0;
+
                 modeInfo.Block.Skip = lumaTransformEmpty &&
                     Av1TileWriter.ShouldSkipCoefficients(
                         writer,
                         Av1TileWriter.GetSkipContext(macroBlock),
-                        this.GetEmptyTransformRate(
-                            writer,
-                            this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
-                            Av1ComponentType.Luminance,
-                            blockOrigin,
-                            BlockSize,
-                            LumaTransformSize,
-                            lumaState.TransformType,
-                            modeInfo.Block.Mode,
-                            block.FilterIntraMode));
+                        emptyTransformRate);
 
+                if (this.picture.Parent.FrameHeader.AllowIntraBlockCopy)
+                {
+                    this.SelectIntraBlockCopy(
+                        writer,
+                        macroBlock,
+                        blockOrigin,
+                        tileIndex,
+                        lumaCost,
+                        emptyTransformRate,
+                        ref modeInfo,
+                        ref block,
+                        ref paletteInfo);
+                }
+
+                this.codedAreaLuma += LumaTransformSize.GetSize2d();
                 return;
             }
 
@@ -258,20 +277,22 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref paletteInfo,
                 out int chromaAngleDelta,
                 out byte chromaFromLumaIndex,
-                out sbyte chromaFromLumaSigns);
+                out sbyte chromaFromLumaSigns,
+                out long chromaCost);
 
             block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv] = (sbyte)chromaAngleDelta;
             block.PredictionUnit.ChromaFromLumaIndex = chromaFromLumaIndex;
             block.PredictionUnit.ChromaFromLumaSigns = chromaFromLumaSigns;
 
             bool allTransformsEmpty = lumaTransformEmpty && blueState.EndOfBlock == 0 && redState.EndOfBlock == 0;
+            int regularEmptyTransformRate = 0;
             if (allTransformsEmpty)
             {
                 Av1BlockSize chromaBlockSize = BlockSize.GetSubsampled(
                     colorConfig.SubSamplingX,
                     colorConfig.SubSamplingY);
 
-                int emptyTransformRate = this.GetEmptyTransformRate(
+                regularEmptyTransformRate = this.GetEmptyTransformRate(
                     writer,
                     this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
                     Av1ComponentType.Luminance,
@@ -282,7 +303,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfo.Block.Mode,
                     block.FilterIntraMode);
 
-                emptyTransformRate += this.GetEmptyTransformRate(
+                regularEmptyTransformRate += this.GetEmptyTransformRate(
                     writer,
                     this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
                     Av1ComponentType.Chroma,
@@ -293,7 +314,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfo.Block.Mode,
                     Av1FilterIntraMode.AllFilterIntraModes);
 
-                emptyTransformRate += this.GetEmptyTransformRate(
+                regularEmptyTransformRate += this.GetEmptyTransformRate(
                     writer,
                     this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
                     Av1ComponentType.Chroma,
@@ -307,9 +328,24 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfo.Block.Skip = Av1TileWriter.ShouldSkipCoefficients(
                     writer,
                     Av1TileWriter.GetSkipContext(macroBlock),
-                    emptyTransformRate);
+                    regularEmptyTransformRate);
             }
 
+            if (this.picture.Parent.FrameHeader.AllowIntraBlockCopy)
+            {
+                this.SelectIntraBlockCopy(
+                    writer,
+                    macroBlock,
+                    blockOrigin,
+                    tileIndex,
+                    lumaCost + chromaCost,
+                    regularEmptyTransformRate,
+                    ref modeInfo,
+                    ref block,
+                    ref paletteInfo);
+            }
+
+            this.codedAreaLuma += LumaTransformSize.GetSize2d();
             this.codedAreaChroma += chromaTransformSize.GetSize2d();
         }
 
@@ -352,7 +388,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState retainedState,
             ref Av1EncoderPaletteInfo paletteInfo,
             out int selectedAngleDelta,
-            out Av1FilterIntraMode selectedFilterIntraMode)
+            out Av1FilterIntraMode selectedFilterIntraMode,
+            out long selectedCost)
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
@@ -695,6 +732,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 selectedFilterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
             }
 
+            selectedCost = bestTransformCost;
             return bestMode;
         }
 

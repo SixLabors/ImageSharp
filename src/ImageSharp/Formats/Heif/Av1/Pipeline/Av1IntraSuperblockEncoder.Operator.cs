@@ -6,6 +6,7 @@ using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.IntraBlockCopy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -214,6 +215,29 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1FilterIntraMode filterIntraMode,
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth);
+
+        /// <summary>
+        /// Builds an intra-block-copy prediction and the matching source residual.
+        /// </summary>
+        /// <param name="source">The coded source plane.</param>
+        /// <param name="blockOrigin">The destination block origin in plane samples.</param>
+        /// <param name="reconstruction">The reconstructed plane containing the reference samples.</param>
+        /// <param name="predictionOrigin">The integer reference origin preceding any half-sample phase.</param>
+        /// <param name="halfX">Indicates whether the horizontal source phase is one half-sample.</param>
+        /// <param name="halfY">Indicates whether the vertical source phase is one half-sample.</param>
+        /// <param name="prediction">The contiguous prediction destination.</param>
+        /// <param name="residual">The contiguous source-minus-prediction destination.</param>
+        /// <param name="transformSize">The prediction dimensions.</param>
+        public static abstract void PrepareIntraBlockCopy(
+            Buffer2DRegion<TSample> source,
+            Point blockOrigin,
+            Buffer2DRegion<TSample> reconstruction,
+            Point predictionOrigin,
+            bool halfX,
+            bool halfY,
+            Span<TSample> prediction,
+            Span<short> residual,
+            Av1TransformSize transformSize);
 
         /// <summary>
         /// Encodes one prepared prediction with the selected transform into decision scratch.
@@ -716,6 +740,41 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <inheritdoc/>
+        public static void PrepareIntraBlockCopy(
+            Buffer2DRegion<byte> source,
+            Point blockOrigin,
+            Buffer2DRegion<byte> reconstruction,
+            Point predictionOrigin,
+            bool halfX,
+            bool halfY,
+            Span<byte> prediction,
+            Span<short> residual,
+            Av1TransformSize transformSize)
+        {
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+            Av1IntraBlockCopyPredictor.Predict(
+                Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, predictionOrigin),
+                reconstruction.Stride,
+                prediction,
+                width,
+                width,
+                height,
+                halfX,
+                halfY);
+
+            Av1ResidualBuilder.Subtract(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                source.Stride,
+                prediction,
+                width,
+                residual,
+                width,
+                width,
+                height);
+        }
+
+        /// <inheritdoc/>
         public static long EncodePredictionCandidate(
             Av1EncoderBlockWorkspace workspace,
             Buffer2DRegion<byte> source,
@@ -1185,6 +1244,41 @@ internal static partial class Av1IntraSuperblockEncoder
                     height,
                     bitDepth.GetBitCount(),
                     filterScratch);
+
+            Av1ResidualBuilder.Subtract(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                source.Stride,
+                prediction,
+                width,
+                residual,
+                width,
+                width,
+                height);
+        }
+
+        /// <inheritdoc/>
+        public static void PrepareIntraBlockCopy(
+            Buffer2DRegion<ushort> source,
+            Point blockOrigin,
+            Buffer2DRegion<ushort> reconstruction,
+            Point predictionOrigin,
+            bool halfX,
+            bool halfY,
+            Span<ushort> prediction,
+            Span<short> residual,
+            Av1TransformSize transformSize)
+        {
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+            Av1IntraBlockCopyPredictor.Predict(
+                MemoryMarshal.Cast<ushort, short>(Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, predictionOrigin)),
+                reconstruction.Stride,
+                MemoryMarshal.Cast<ushort, short>(prediction),
+                width,
+                width,
+                height,
+                halfX,
+                halfY);
 
             Av1ResidualBuilder.Subtract(
                 Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),

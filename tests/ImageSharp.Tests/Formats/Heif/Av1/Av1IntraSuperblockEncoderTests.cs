@@ -1865,6 +1865,290 @@ public class Av1IntraSuperblockEncoderTests
     }
 
     [Fact]
+    public void ProductionTileSelectsIntraBlockCopyByFullRateDistortion()
+    {
+        VerifyProductionTileSelectsIntraBlockCopy(
+            Av1BitDepth.EightBit,
+            8,
+            static value => (byte)value,
+            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new Av1IntraTileWriter(
+                    Configuration.Default,
+                    source,
+                    reconstruction,
+                    picture,
+                    coefficients,
+                    superblockWorkspace,
+                    blockWorkspace,
+                    initialSize: 4096));
+
+        VerifyProductionTileSelectsIntraBlockCopy(
+            Av1BitDepth.TwelveBit,
+            12,
+            static value => (ushort)(value << 4),
+            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new Av1IntraTileWriter(
+                    Configuration.Default,
+                    source,
+                    reconstruction,
+                    picture,
+                    coefficients,
+                    superblockWorkspace,
+                    blockWorkspace,
+                    initialSize: 4096));
+    }
+
+    private static void VerifyProductionTileSelectsIntraBlockCopy<TSample>(
+        Av1BitDepth bitDepth,
+        int bitDepthValue,
+        SampleFactory<TSample> createSample,
+        TileWriterFactory<TSample> createTileWriter)
+        where TSample : unmanaged
+    {
+        const int Width = 328;
+        const int Height = 8;
+        const int QIndex = 1;
+        const int ReferenceColumn = 0;
+        const int TargetColumn = 320;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = true,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = bitDepth
+        };
+
+        using Av1EncoderFrameBuffer<TSample> source = new(
+            Configuration.Default,
+            Width,
+            Height,
+            bitDepthValue,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        using Av1EncoderFrameBuffer<TSample> reconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            bitDepthValue,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        Buffer2DRegion<TSample> sourcePlane = source.Frame.CodedView.GetPlane(Av1Plane.Y);
+        for (int row = 0; row < Height; row++)
+        {
+            Span<TSample> sourceRow = sourcePlane.DangerousGetRowSpan(row);
+            for (int column = 0; column < Width; column++)
+            {
+                sourceRow[column] = createSample(17 + (((column * 29) + (row * 43)) % 211));
+            }
+
+            for (int column = 0; column < 8; column++)
+            {
+                // The repeated high-contrast block has one legal hash match five completed 64-pixel regions earlier.
+                TSample sample = createSample(((column * 73) + (row * 109) + (((column + row) & 1) * 127)) & 255);
+                sourceRow[ReferenceColumn + column] = sample;
+                sourceRow[TargetColumn + column] = sample;
+            }
+        }
+
+        ClearPlane(reconstruction.Luma);
+        using Av1EncoderModeInfoBuffer modeInfo = new(
+            Configuration.Default,
+            Width,
+            Height,
+            disallow4x4AllFrames: true);
+
+        Av1PictureControlSet pictureTemplate = CreatePicture(
+            modeInfo,
+            colorConfig,
+            use128x128Superblock: false,
+            QIndex);
+
+        pictureTemplate.Parent.FrameHeader.AllowScreenContentTools = true;
+        pictureTemplate.Parent.FrameHeader.AllowIntraBlockCopy = true;
+        pictureTemplate.Parent.FrameHeader.FrameSize.FrameWidth = Width;
+        pictureTemplate.Parent.FrameHeader.FrameSize.FrameHeight = Height;
+        using Av1EncoderPictureBuffer picture = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            pictureTemplate.Parent.FrameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderCoefficientBuffer coefficients = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            Width,
+            Height);
+
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        using Av1IntraTileWriter tileWriter = createTileWriter(
+            source.Frame,
+            reconstruction.Frame,
+            picture.Picture,
+            coefficients,
+            superblockWorkspace,
+            blockWorkspace);
+
+        Point targetModeInfoPosition = new(TargetColumn >> Av1Constants.ModeInfoSizeLog2, 0);
+        ref Av1MacroBlockModeInfo targetMode = ref picture.Picture.GetMacroBlockModeInfo(targetModeInfoPosition);
+        Assert.True(targetMode.Block.UseIntraBlockCopy);
+        Assert.Equal(Av1PredictionMode.DC, targetMode.Block.Mode);
+        Assert.Equal(Av1ChromaPredictionMode.DC, targetMode.Block.UvMode);
+        var displacementVector = picture.Picture.GetDisplacementVector(targetModeInfoPosition);
+        Assert.Equal(0, displacementVector.Row);
+        Assert.Equal((ReferenceColumn - TargetColumn) * 8, displacementVector.Column);
+        Assert.Equal(Av1FilterIntraMode.AllFilterIntraModes, superblockWorkspace.FinalBlocks[0].FilterIntraMode);
+        Assert.Equal(0, superblockWorkspace.PaletteInfo.PaletteSizes[0]);
+        Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
+    }
+
+    [Fact]
+    public void ProductionTileRetainsHalfSampleChromaIntraBlockCopy()
+    {
+        const int Width = 328;
+        const int Height = 8;
+        const int QIndex = 1;
+        const int ReferenceColumn = 1;
+        const int TargetColumn = 320;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = false,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        using Av1EncoderFrameBuffer<byte> source = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv420,
+            1,
+            1);
+
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv420,
+            1,
+            1);
+
+        Buffer2DRegion<byte> lumaSource = source.Frame.CodedView.GetPlane(Av1Plane.Y);
+        for (int row = 0; row < Height; row++)
+        {
+            Span<byte> lumaRow = lumaSource.DangerousGetRowSpan(row);
+            for (int column = 0; column < Width; column++)
+            {
+                lumaRow[column] = (byte)(23 + (((column * 31) + (row * 47)) % 197));
+            }
+
+            for (int column = 0; column < 8; column++)
+            {
+                byte sample = (byte)(((column * 79) + (row * 113) + (((column + row) & 1) * 127)) & 255);
+                lumaRow[ReferenceColumn + column] = sample;
+                lumaRow[TargetColumn + column] = sample;
+            }
+        }
+
+        int chromaTargetColumn = TargetColumn >> 1;
+        Buffer2DRegion<byte> blueSource = source.Frame.CodedView.GetPlane(Av1Plane.U);
+        Buffer2DRegion<byte> redSource = source.Frame.CodedView.GetPlane(Av1Plane.V);
+        for (int row = 0; row < Height >> 1; row++)
+        {
+            Span<byte> blueRow = blueSource.DangerousGetRowSpan(row);
+            Span<byte> redRow = redSource.DangerousGetRowSpan(row);
+            for (int column = 0; column < Width >> 1; column++)
+            {
+                blueRow[column] = (byte)(32 + (((column * 17) + (row * 29)) % 160));
+                redRow[column] = (byte)(40 + (((column * 23) + (row * 37)) % 152));
+            }
+
+            for (int column = 0; column < 4; column++)
+            {
+                // An odd luma displacement maps 4:2:0 chroma between adjacent reference samples.
+                blueRow[chromaTargetColumn + column] = (byte)((blueRow[column] + blueRow[column + 1] + 1) >> 1);
+                redRow[chromaTargetColumn + column] = (byte)((redRow[column] + redRow[column + 1] + 1) >> 1);
+            }
+        }
+
+        ClearPlane(reconstruction.Luma);
+        ClearPlane(Assert.IsType<Buffer2D<byte>>(reconstruction.ChromaBlue));
+        ClearPlane(Assert.IsType<Buffer2D<byte>>(reconstruction.ChromaRed));
+        using Av1EncoderModeInfoBuffer modeInfo = new(
+            Configuration.Default,
+            Width,
+            Height,
+            disallow4x4AllFrames: true);
+
+        Av1PictureControlSet pictureTemplate = CreatePicture(
+            modeInfo,
+            colorConfig,
+            use128x128Superblock: false,
+            QIndex);
+
+        pictureTemplate.Parent.FrameHeader.AllowScreenContentTools = true;
+        pictureTemplate.Parent.FrameHeader.AllowIntraBlockCopy = true;
+        pictureTemplate.Parent.FrameHeader.FrameSize.FrameWidth = Width;
+        pictureTemplate.Parent.FrameHeader.FrameSize.FrameHeight = Height;
+        using Av1EncoderPictureBuffer picture = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            pictureTemplate.Parent.FrameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderCoefficientBuffer coefficients = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            Width,
+            Height);
+
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        using Av1IntraTileWriter tileWriter = new(
+            Configuration.Default,
+            source.Frame,
+            reconstruction.Frame,
+            picture.Picture,
+            coefficients,
+            superblockWorkspace,
+            blockWorkspace,
+            initialSize: 4096);
+
+        Point targetModeInfoPosition = new(TargetColumn >> Av1Constants.ModeInfoSizeLog2, 0);
+        ref Av1MacroBlockModeInfo targetMode = ref picture.Picture.GetMacroBlockModeInfo(targetModeInfoPosition);
+        Assert.True(targetMode.Block.UseIntraBlockCopy);
+        var displacementVector = picture.Picture.GetDisplacementVector(targetModeInfoPosition);
+        Assert.Equal(0, displacementVector.Row);
+        Assert.Equal((ReferenceColumn - TargetColumn) * 8, displacementVector.Column);
+        Assert.Equal(8, displacementVector.Column & 15);
+        Av1TransformSetType interTransformSet = Av1SymbolContextHelper.GetExtendedTransformSetType(
+            Av1TransformSize.Size4x4,
+            isInter: true,
+            useReducedSet: false);
+
+        Assert.True(coefficients.GetTransformBlockSpan(5, Av1Plane.U)[0].TransformType.IsExtendedSetUsed(interTransformSet));
+        Assert.True(coefficients.GetTransformBlockSpan(5, Av1Plane.V)[0].TransformType.IsExtendedSetUsed(interTransformSet));
+        Assert.NotEqual(
+            (byte)0,
+            reconstruction.Frame.CodedView.GetPlane(Av1Plane.U).DangerousGetRowSpan(0)[chromaTargetColumn]);
+
+        Assert.NotEqual(
+            (byte)0,
+            reconstruction.Frame.CodedView.GetPlane(Av1Plane.V).DangerousGetRowSpan(0)[chromaTargetColumn]);
+
+        Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
+    }
+
+    [Fact]
     public void TileWriterMapsClippedRasterTraversalToEverySuperblockCoefficientSegment()
     {
         const int Width = 72;
@@ -2261,6 +2545,9 @@ public class Av1IntraSuperblockEncoderTests
         Av1EncoderCoefficientBuffer coefficients,
         Av1EncoderSuperblockWorkspace superblockWorkspace,
         Av1EncoderBlockWorkspace blockWorkspace)
+        where TSample : unmanaged;
+
+    private delegate TSample SampleFactory<TSample>(int value)
         where TSample : unmanaged;
 
     private delegate void FilterPrediction<TSample>(

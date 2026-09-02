@@ -56,7 +56,8 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderPaletteInfo paletteInfo,
             out int selectedAngleDelta,
             out byte selectedChromaFromLumaIndex,
-            out sbyte selectedChromaFromLumaSigns)
+            out sbyte selectedChromaFromLumaSigns,
+            out long selectedCost)
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             const int MaximumSampleCount = 8 * 8;
@@ -469,6 +470,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 selectedChromaFromLumaSigns = 0;
             }
 
+            selectedCost = bestCost;
             return bestMode;
         }
 

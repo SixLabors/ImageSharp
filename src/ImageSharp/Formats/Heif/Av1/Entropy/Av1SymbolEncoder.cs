@@ -142,14 +142,19 @@ internal class Av1SymbolEncoder : IDisposable
     private bool isDisposed;
 
     /// <summary>
+    /// The configuration providing lazily allocated coefficient scratch.
+    /// </summary>
+    private readonly Configuration configuration;
+
+    /// <summary>
     /// The reusable padded coefficient levels used to derive entropy contexts.
     /// </summary>
-    private readonly Av1LevelBuffer levels;
+    private Av1LevelBuffer? levels;
 
     /// <summary>
     /// The reusable raster-order coefficient contexts for one transform.
     /// </summary>
-    private readonly IMemoryOwner<sbyte> coefficientContexts;
+    private IMemoryOwner<sbyte>? coefficientContexts;
 
     /// <summary>
     /// The range writer producing the current tile payload.
@@ -170,6 +175,8 @@ internal class Av1SymbolEncoder : IDisposable
     /// <param name="updateCdf">A value indicating whether encoded symbols adapt their tile distributions.</param>
     public Av1SymbolEncoder(Configuration configuration, int initialSize, int qIndex, bool updateCdf = true)
     {
+        this.configuration = configuration;
+
         // Every default accessor creates independently mutable state. Encoding and decoding therefore begin from
         // equivalent tile-local models without constructing and immediately deep-copying a second object graph.
         this.tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy;
@@ -194,8 +201,6 @@ internal class Av1SymbolEncoder : IDisposable
         this.coefficientsBaseEndOfBlock = Av1DefaultDistributions.GetBaseEndOfBlock(qIndex);
         this.dcSign = Av1DefaultDistributions.GetDcSign(qIndex);
         this.endOfBlockExtra = Av1DefaultDistributions.GetEndOfBlockExtra(qIndex);
-        this.levels = new(configuration);
-        this.coefficientContexts = configuration.MemoryAllocator.Allocate<sbyte>(MaximumCoefficientContextCount);
         this.writer = new(configuration, initialSize, updateCdf);
         this.baseQIndex = qIndex;
     }
@@ -290,14 +295,6 @@ internal class Av1SymbolEncoder : IDisposable
         ReadOnlySpan<short> scan = scanOrder.Scan;
         Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
 
-        ref Av1SymbolWriter w = ref this.writer;
-
-        // AV1 omits high-frequency coefficients beyond 32 samples on every 64-point transform dimension. The tile
-        // owns maximum-sized workspaces so repeated transform coding changes only their active views.
-        this.levels.Reset(new Size(width, height));
-        Span<sbyte> coefficientContexts = this.coefficientContexts.Memory.Span[..(width * height)];
-        coefficientContexts.Clear();
-
         Guard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));
 
         this.WriteTransformBlockSkip(endOfBlock == 0, transformSizeContext, transformBlockContext.SkipContext);
@@ -307,7 +304,17 @@ internal class Av1SymbolEncoder : IDisposable
             return 0;
         }
 
-        this.levels.Initialize(coefficientBuffer);
+        ref Av1SymbolWriter w = ref this.writer;
+        Av1LevelBuffer levels = this.levels ??= new(this.configuration);
+        IMemoryOwner<sbyte> coefficientContextOwner = this.coefficientContexts ??=
+            this.configuration.MemoryAllocator.Allocate<sbyte>(MaximumCoefficientContextCount);
+
+        // AV1 omits high-frequency coefficients beyond 32 samples on every 64-point transform dimension. The tile
+        // creates maximum-sized workspaces only when nonzero coefficient syntax needs them, then changes only their active views.
+        levels.Reset(new Size(width, height));
+        Span<sbyte> coefficientContexts = coefficientContextOwner.Memory.Span[..(width * height)];
+        coefficientContexts.Clear();
+        levels.Initialize(coefficientBuffer);
         if (componentType == Av1ComponentType.Luminance)
         {
             this.WriteTransformType(transformType, transformSize, useReducedTransformSet, this.baseQIndex, filterIntraMode, intraDirection);
@@ -315,14 +322,14 @@ internal class Av1SymbolEncoder : IDisposable
 
         this.WriteEndOfBlockPosition(endOfBlock, componentType, transformClass, transformSize, transformSizeContext);
 
-        Av1SymbolContextHelper.GetNzMapContexts(this.levels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
+        Av1SymbolContextHelper.GetNzMapContexts(levels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
         int limitedTransformSizeContext = Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
         for (c = endOfBlock - 1; c >= 0; --c)
         {
             short pos = scan[c];
             int v = coefficientBuffer[pos];
             short coeffContext = coefficientContexts[pos];
-            Point position = this.levels.GetPosition(pos);
+            Point position = levels.GetPosition(pos);
             int level = Math.Abs(v);
 
             if (c == endOfBlock - 1)
@@ -338,7 +345,7 @@ internal class Av1SymbolEncoder : IDisposable
             {
                 // Base-range symbols extend levels above the two base levels in fixed-size chunks.
                 int baseRange = level - 1 - Av1Constants.BaseLevelsCount;
-                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(this.levels, position, transformClass);
+                int baseRangeContext = Av1SymbolContextHelper.GetBaseRangeContext(levels, position, transformClass);
                 for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
                 {
                     int k = Math.Min(baseRange - idx, Av1Constants.BaseRangeSizeMinus1);
@@ -478,8 +485,8 @@ internal class Av1SymbolEncoder : IDisposable
     {
         if (!this.isDisposed)
         {
-            this.coefficientContexts.Dispose();
-            this.levels.Dispose();
+            this.coefficientContexts?.Dispose();
+            this.levels?.Dispose();
             this.writer.Dispose();
             this.isDisposed = true;
         }

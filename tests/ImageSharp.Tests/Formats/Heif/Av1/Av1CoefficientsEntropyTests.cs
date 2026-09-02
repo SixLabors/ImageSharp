@@ -295,7 +295,7 @@ public class Av1CoefficientsEntropyTests
         transformBlocks.Fill(new Av1EncoderTransformBlockState { TransformType = Av1TransformType.Identity });
 
         Av1EncoderBlockStruct block = default;
-        Av1SymbolEncoder writer = new(Configuration.Default, 4096, BaseQIndex);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 4096, BaseQIndex);
         Av1TileWriter.EncodeTransformCoefficientsY(
             picture,
             context,
@@ -379,7 +379,7 @@ public class Av1CoefficientsEntropyTests
         transforms.Left[leftIndex] = 16;
         picture.TransformFunctionContexts = [transforms];
 
-        Av1SymbolEncoder writer = new(Configuration.Default, 64, BaseQIndex);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 64, BaseQIndex);
         Av1TileWriter.WriteTransformSize(
             picture,
             writer,
@@ -631,7 +631,7 @@ public class Av1CoefficientsEntropyTests
             width: 128,
             height: 64);
 
-        Av1SymbolEncoder writer = new(Configuration.Default, 512, BaseQIndex);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 512, BaseQIndex);
 
         Av1TileWriter.WriteSuperblock(
             picture,
@@ -683,7 +683,7 @@ public class Av1CoefficientsEntropyTests
         int[] leftContexts = new int[1];
         Av1TransformBlockContext transformBlockContext = default;
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         Span<int> coefficientsBuffer = [1, 2, 3, 4, 5];
         Span<int> expected = new int[16];
         Span<int> actuals = new int[16];
@@ -753,7 +753,7 @@ public class Av1CoefficientsEntropyTests
         int[] leftContexts = new int[1];
         Av1TransformBlockContext transformBlockContext = default;
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         Span<int> coefficientsBuffer = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
         Span<int> actuals = new int[16 + 1];
 
@@ -828,7 +828,7 @@ public class Av1CoefficientsEntropyTests
         int[] leftContexts = new int[transformSize.Get4x4HighCount()];
         Av1TransformBlockContext transformBlockContext = default;
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         Span<int> coefficientsBuffer = Enumerable.Range(0, blockSize.GetHeight() * blockSize.GetWidth()).ToArray();
         Span<int> actuals = new int[16 + 1];
 

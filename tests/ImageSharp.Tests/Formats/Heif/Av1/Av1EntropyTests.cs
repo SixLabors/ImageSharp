@@ -56,6 +56,67 @@ public class Av1EntropyTests
     }
 
     [Fact]
+    public void SymbolEncoderRentsCoefficientScratchOnlyForNonzeroBlocks()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        Span<int> coefficients = stackalloc int[16];
+
+        using (Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex))
+        {
+            TestMemoryAllocator.AllocationRequest outputScratch = Assert.Single(allocator.AllocationLog);
+            Assert.Equal(typeof(byte), outputScratch.ElementType);
+
+            int emptyContext = encoder.WriteCoefficients(
+                Av1TransformSize.Size4x4,
+                Av1TransformType.DctDct,
+                Av1PredictionMode.DC,
+                coefficients,
+                Av1ComponentType.Luminance,
+                default,
+                0,
+                false,
+                Av1FilterIntraMode.DC);
+
+            Assert.Equal(0, emptyContext);
+            Assert.Single(allocator.AllocationLog);
+
+            coefficients[0] = 1;
+            encoder.WriteCoefficients(
+                Av1TransformSize.Size4x4,
+                Av1TransformType.DctDct,
+                Av1PredictionMode.DC,
+                coefficients,
+                Av1ComponentType.Luminance,
+                default,
+                1,
+                false,
+                Av1FilterIntraMode.DC);
+
+            Assert.Equal(3, allocator.AllocationLog.Count);
+            TestMemoryAllocator.AllocationRequest levelScratch = allocator.AllocationLog[1];
+            TestMemoryAllocator.AllocationRequest contextScratch = allocator.AllocationLog[2];
+            int maximumTransformDimension = Av1Constants.MaxTransformSize / 2;
+            int expectedLevelLength =
+                (Av1Constants.TransformPadHorizontal + maximumTransformDimension) *
+                (Av1Constants.TransformPadTop + maximumTransformDimension + Av1Constants.TransformPadBottom);
+
+            Assert.Equal(typeof(byte), levelScratch.ElementType);
+            Assert.Equal(expectedLevelLength, levelScratch.Length);
+            Assert.Equal(AllocationOptions.Clean, levelScratch.AllocationOptions);
+            Assert.Equal(typeof(sbyte), contextScratch.ElementType);
+            Assert.Equal(maximumTransformDimension * maximumTransformDimension, contextScratch.Length);
+        }
+
+        Assert.Equal(3, allocator.ReturnLog.Count);
+        Assert.Equal(
+            allocator.AllocationLog.Select(x => x.AllocationId).Order(),
+            allocator.ReturnLog.Select(x => x.AllocationId).Order());
+    }
+
+    [Fact]
     public void ReadRandomLiteral()
     {
         // Assign
@@ -236,7 +297,7 @@ public class Av1EntropyTests
     {
         // Assign
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None, Av1PartitionType.None];
@@ -267,7 +328,7 @@ public class Av1EntropyTests
         // Assign
         Av1BlockSize blockSize = (Av1BlockSize)size;
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Horizontal,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Horizontal, Av1PartitionType.Horizontal];
@@ -298,7 +359,7 @@ public class Av1EntropyTests
         // Assign
         Av1BlockSize blockSize = (Av1BlockSize)size;
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Vertical,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Vertical, Av1PartitionType.Vertical];
@@ -330,7 +391,7 @@ public class Av1EntropyTests
     {
         // Assign
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         bool[] values = [true, true, false, false, false, false, false, false, true];
         bool[] actuals = new bool[values.Length];
 
@@ -359,7 +420,7 @@ public class Av1EntropyTests
         // Assign
         Av1TransformSize transformSizeContext = (Av1TransformSize)transformContext;
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         bool[] values = [true, true, false, false, false, false, false, false, true];
         bool[] actuals = new bool[values.Length];
 
@@ -392,7 +453,7 @@ public class Av1EntropyTests
         Av1FilterIntraMode filterIntraMode = (Av1FilterIntraMode)intraMode;
         Av1PredictionMode intraDirection = (Av1PredictionMode)intraDir;
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
 
         // TODO: Include AdstFlipAdst, which is currently mapped to Identity.
         Av1TransformType[] values = [
@@ -430,7 +491,7 @@ public class Av1EntropyTests
         Av1PlaneType planeType = (Av1PlaneType)plane;
         Av1TransformClass transformClass = (Av1TransformClass)txClass;
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
 
         int[] values = [1, 2, 3, 4, 5];
         int[] actuals = new int[values.Length];
@@ -458,7 +519,7 @@ public class Av1EntropyTests
     {
         // Assign
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
 
         int[] values = Enumerable.Range(0, 16384).ToArray();
         int[] actuals = new int[values.Length];
@@ -490,7 +551,7 @@ public class Av1EntropyTests
         // Assign
         int[] values = [3, 6, 7, 0, 2, 0, 2, 1, 1];
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         int[] actuals = new int[values.Length];
 
         // Act
@@ -517,7 +578,7 @@ public class Av1EntropyTests
         // Assign
         int[] values = [3, 6, -7, -8, -2, 0, 2, 1, -1];
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         int[] actuals = new int[values.Length];
 
         // Act
@@ -548,7 +609,7 @@ public class Av1EntropyTests
             Av1FilterIntraMode.DC, Av1FilterIntraMode.Vertical, Av1FilterIntraMode.DC, Av1FilterIntraMode.Paeth,
             Av1FilterIntraMode.AllFilterIntraModes, Av1FilterIntraMode.Directional157, Av1FilterIntraMode.DC, Av1FilterIntraMode.Directional157];
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         Av1FilterIntraMode[] actuals = new Av1FilterIntraMode[values.Length];
 
         // Act
@@ -575,7 +636,7 @@ public class Av1EntropyTests
         // Assign
         bool[] values = [true, true, false, true, false, false, false];
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         bool[] actuals = new bool[values.Length];
 
         // Act
@@ -621,7 +682,7 @@ public class Av1EntropyTests
         ];
 
         Configuration configuration = Configuration.Default;
-        Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex);
 
         for (int i = 0; i < values.Length; i++)
         {

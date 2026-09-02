@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -40,6 +41,11 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// Reusable chroma palette indices for the coding blocks in one superblock.
     /// </summary>
     private readonly Buffer2D<byte> chromaPaletteColorIndexMap;
+
+    /// <summary>
+    /// The shared backing owner for both reusable palette maps.
+    /// </summary>
+    private readonly IMemoryOwner<byte> paletteColorIndexMapOwner;
 
     /// <summary>
     /// The reconstructed references and selected presentation output owned by the current bounded decode session.
@@ -96,26 +102,21 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         this.configuration = configuration;
         this.obuReader = new(operatingPointIndex, this.referenceFrames);
 
-        Buffer2D<byte>? lumaPaletteColorIndexMap = null;
-        Buffer2D<byte>? chromaPaletteColorIndexMap = null;
+        // Sequential tile decoding needs only the palette indices belonging to the current superblock. One fixed
+        // owner keeps both maximum-superblock maps reusable across the bounded session without fragmented group rents.
+        int paletteMapLength = 1 << Av1Constants.MaxSuperBlockSizeLog2;
+        int paletteMapArea = paletteMapLength * paletteMapLength;
+        this.paletteColorIndexMapOwner = configuration.MemoryAllocator.Allocate<byte>(2 * paletteMapArea);
+        Memory<byte> paletteMaps = this.paletteColorIndexMapOwner.Memory;
+        this.lumaPaletteColorIndexMap = Buffer2D<byte>.WrapMemory(
+            paletteMaps[..paletteMapArea],
+            paletteMapLength,
+            paletteMapLength);
 
-        try
-        {
-            // Sequential tile decoding needs only the palette indices belonging to the current superblock. Keeping
-            // two maximum-superblock surfaces at decoder scope makes the memory bound independent of frame size and
-            // reuses the same allocator rents across every frame in the bounded sequence.
-            int paletteMapLength = 1 << Av1Constants.MaxSuperBlockSizeLog2;
-            lumaPaletteColorIndexMap = configuration.MemoryAllocator.Allocate2D<byte>(paletteMapLength, paletteMapLength);
-            chromaPaletteColorIndexMap = configuration.MemoryAllocator.Allocate2D<byte>(paletteMapLength, paletteMapLength);
-            this.lumaPaletteColorIndexMap = lumaPaletteColorIndexMap;
-            this.chromaPaletteColorIndexMap = chromaPaletteColorIndexMap;
-        }
-        catch
-        {
-            chromaPaletteColorIndexMap?.Dispose();
-            lumaPaletteColorIndexMap?.Dispose();
-            throw;
-        }
+        this.chromaPaletteColorIndexMap = Buffer2D<byte>.WrapMemory(
+            paletteMaps[paletteMapArea..],
+            paletteMapLength,
+            paletteMapLength);
     }
 
     /// <summary>
@@ -958,6 +959,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         this.FrameInfo = null;
         this.lumaPaletteColorIndexMap.Dispose();
         this.chromaPaletteColorIndexMap.Dispose();
+        this.paletteColorIndexMapOwner.Dispose();
     }
 
     /// <summary>

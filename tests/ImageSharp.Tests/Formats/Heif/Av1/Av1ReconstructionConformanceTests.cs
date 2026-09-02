@@ -576,15 +576,15 @@ public class Av1ReconstructionConformanceTests
         using (Av1Decoder decoder = new(configuration))
         {
             int paletteMapLength = 1 << Av1Constants.MaxSuperBlockSizeLog2;
-            int expectedPaletteAllocationCount = (2 * paletteMapLength * paletteMapLength) / allocator.BufferCapacityInBytes;
-            Assert.Equal(expectedPaletteAllocationCount, allocator.AllocationLog.Count);
-            int finalPaletteAllocationId = allocator.AllocationLog[^1].AllocationId;
+            TestMemoryAllocator.AllocationRequest paletteMaps = Assert.Single(allocator.AllocationLog);
+            Assert.Equal(2 * paletteMapLength * paletteMapLength, paletteMaps.Length);
+            int paletteAllocationId = paletteMaps.AllocationId;
 
             using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
 
             Assert.Equal(RequiredPaletteCoverage, GetPaletteCoverage(decoder));
             AssertNativePlanesEqual(decoder, frameBuffer, reference);
-            Assert.DoesNotContain(allocator.ReturnLog, returned => returned.AllocationId <= finalPaletteAllocationId);
+            Assert.DoesNotContain(allocator.ReturnLog, returned => returned.AllocationId == paletteAllocationId);
         }
 
         Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);

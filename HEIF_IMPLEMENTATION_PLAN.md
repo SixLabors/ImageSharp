@@ -646,11 +646,12 @@ Verified partition, mode, segmentation, quantization, and transform checkpoint e
   Each transform resets and clears only its active padded geometry, so no transform creates an allocation.
   Allocation tracking over all eight minimum- and maximum-quantizer frames proves exactly one coefficient
   scratch allocation per frame and exactly-once return after decoder disposal.
-- [x] Palette index maps use two allocator-backed 128x128 decoder-session scratch buffers, one for luma and
-  one for chroma. Each parsed superblock is reconstructed before either buffer is reused, and each block
-  clears only its transient `Buffer2DRegion` view after prediction. The fixed 32 KiB session cost replaces
-  the former two full-frame maps without copies or per-block allocations. A 1 KiB constrained allocator
-  splits both buffers across memory groups. The four-case palette set passes on net10.0 and net11.0 with
+- [x] Palette index maps use one allocator-backed 32 KiB decoder-session owner with non-owning 128x128 luma
+  and chroma views. Each parsed superblock is reconstructed before either view is reused, and each block
+  clears only its transient `Buffer2DRegion` after prediction. The fixed session cost replaces the former
+  full-frame maps without copies, fragmented memory groups, constructor rollback, or per-block allocations.
+  The one-rent ownership regression and native palette reconstruction pass on net11.0, the complete HEIF/AV1
+  namespace passes 8,808 of 8,808 direct VSTest cases in Release, and the four-case palette set passes with
   exact native and presentation output, truncated-entropy rejection, and balanced exactly-once disposal.
 - [x] `Av1BlockModeInfo` is value storage, removing the managed object allocation formerly created for every
   decoded coding block. Explicit `ModeInfoIndex` values preserve libaom's mode-info identity semantics at

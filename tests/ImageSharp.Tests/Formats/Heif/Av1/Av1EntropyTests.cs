@@ -686,6 +686,27 @@ public class Av1EntropyTests
         => Assert.Equal(expected, Av1RateDistortion.GetMotionSearchCost(rateMultiplier, motionVectorRate, variance));
 
     [Theory]
+    [InlineData(0, 0, 2)]
+    [InlineData(255, 0, 21)]
+    [InlineData(255, 1, 21)]
+    [InlineData(255, 2, 21)]
+    public void MotionSearchSadPerBitMatchesCurrentLibaom(int qIndex, int bitDepth, int expected)
+        => Assert.Equal(expected, Av1RateDistortion.GetMotionSearchSadPerBit(qIndex, (Av1BitDepth)bitDepth));
+
+    [Theory]
+    [InlineData(2, 255, 100, 101)]
+    [InlineData(21, 512, 100, 121)]
+    [InlineData(21, 1000, 100, 141)]
+    public void MotionSearchSadCostMatchesCurrentLibaom(
+        int sadPerBit,
+        int motionVectorRate,
+        int sumOfAbsoluteDifferences,
+        int expected)
+        => Assert.Equal(
+            expected,
+            Av1RateDistortion.GetMotionSearchSadCost(sadPerBit, motionVectorRate, sumOfAbsoluteDifferences));
+
+    [Theory]
     [InlineData(0, 0, 52)]
     [InlineData(0, 1, 3)]
     [InlineData(0, 2, 1)]

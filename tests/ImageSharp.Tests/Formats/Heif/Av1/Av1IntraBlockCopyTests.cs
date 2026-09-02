@@ -319,6 +319,101 @@ public class Av1IntraBlockCopyTests
     }
 
     /// <summary>
+    /// Verifies that NSTEP pixel search reaches an unaligned reconstructed match which has no exact source hash match.
+    /// </summary>
+    [Fact]
+    public void PixelSearchFindsUnalignedNonHashMatch()
+    {
+        const int Width = 640;
+        const int Height = 256;
+        const int QIndex = 23;
+        Point blockOrigin = new(0, 128);
+        Point predictionOrigin = new(15, 80);
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
+        ObuFrameHeader frameHeader = CreateFrameHeader();
+        frameHeader.AllowScreenContentTools = true;
+        frameHeader.AllowIntraBlockCopy = true;
+
+        using Av1EncoderPictureBuffer pictureBuffer = new(
+            Configuration.Default,
+            sequenceHeader,
+            frameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderFrameBuffer<byte> source = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        Buffer2DRegion<byte> sourceLuma = source.Frame.View.GetPlane(Av1Plane.Y);
+        Buffer2DRegion<byte> reconstructionLuma = reconstruction.Frame.View.GetPlane(Av1Plane.Y);
+        for (int row = 0; row < Height; row++)
+        {
+            sourceLuma.DangerousGetRowSpan(row).Clear();
+            reconstructionLuma.DangerousGetRowSpan(row).Clear();
+        }
+
+        for (int row = 0; row < 8; row++)
+        {
+            byte value = (byte)(100 + (row * 10));
+            sourceLuma.DangerousGetRowSpan(blockOrigin.Y + row).Slice(blockOrigin.X, 8).Fill(value);
+            reconstructionLuma.DangerousGetRowSpan(predictionOrigin.Y + row).Slice(predictionOrigin.X, 8).Fill(value);
+        }
+
+        Buffer2DRegion<byte> codedSourceLuma = source.Frame.CodedView.GetPlane(Av1Plane.Y);
+        Buffer2DRegion<byte> codedReconstructionLuma = reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y);
+        Assert.False(Av1IntraSuperblockEncoder.ByteOperator.BlocksEqual(codedSourceLuma, blockOrigin, predictionOrigin));
+        Assert.Equal(
+            0,
+            Av1IntraSuperblockEncoder.ByteOperator.GetSumOfAbsoluteDifferences(
+                codedSourceLuma,
+                blockOrigin,
+                codedReconstructionLuma,
+                predictionOrigin));
+
+        Assert.Equal(
+            8_640,
+            Av1IntraSuperblockEncoder.ByteOperator.GetSumOfAbsoluteDifferences(
+                codedSourceLuma,
+                blockOrigin,
+                codedReconstructionLuma,
+                new Point(15, 120)));
+
+        using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex);
+        Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
+        int candidateCount = pictureBuffer.Picture.IntraBlockCopySearch
+            .FindPixelCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(
+                codedSourceLuma,
+                codedReconstructionLuma,
+                blockOrigin,
+                new Av1TileInfo(0, 0, frameHeader),
+                sequenceHeader,
+                writer,
+                new Av1MotionVector(-64, 120),
+                QIndex,
+                Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, Av1BitDepth.EightBit),
+                candidates);
+
+        Assert.Equal(1, candidateCount);
+        Assert.Equal(-384, candidates[0].Row);
+        Assert.Equal(120, candidates[0].Column);
+    }
+
+    /// <summary>
     /// Verifies high-bit-depth SIMD variance normalization against the eight-bit search domain.
     /// </summary>
     [Fact]
@@ -355,14 +450,21 @@ public class Av1IntraBlockCopyTests
             }
         }
 
-        int actual = Av1IntraSuperblockEncoder.UInt16Operator.GetVariance(
+        int sumOfAbsoluteDifferences = Av1IntraSuperblockEncoder.UInt16Operator.GetSumOfAbsoluteDifferences(
+            sourceLuma,
+            Point.Empty,
+            reconstructionLuma,
+            Point.Empty);
+
+        int variance = Av1IntraSuperblockEncoder.UInt16Operator.GetVariance(
             sourceLuma,
             Point.Empty,
             reconstructionLuma,
             Point.Empty,
             Av1BitDepth.TwelveBit);
 
-        Assert.Equal(16, actual);
+        Assert.Equal(1600, sumOfAbsoluteDifferences);
+        Assert.Equal(16, variance);
     }
 
     /// <summary>

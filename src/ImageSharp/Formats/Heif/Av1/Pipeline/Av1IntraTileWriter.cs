@@ -110,9 +110,7 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
         int initialSize,
         out int tileDataLength)
         where TSample : unmanaged
-        where TOperator : struct,
-            Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>,
-            Av1IntraBlockCopySearchIndex.ISearchOperation<TSample>
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
     {
         ObuFrameHeader frameHeader = picture.Parent.FrameHeader;
         ObuSequenceHeader sequenceHeader = picture.Sequence.SequenceHeader;

@@ -21,7 +21,7 @@ internal static partial class Av1IntraSuperblockEncoder
     /// Defines type-specific block encoding without coupling traversal to sample storage width.
     /// </summary>
     /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
-    internal interface IBlockEncodingOperator<TSample>
+    internal interface IBlockEncodingOperator<TSample> : Av1IntraBlockCopySearchIndex.ISearchOperation<TSample>
         where TSample : unmanaged
     {
         /// <summary>
@@ -307,9 +307,7 @@ internal static partial class Av1IntraSuperblockEncoder
     /// <summary>
     /// Encodes blocks stored as eight-bit samples.
     /// </summary>
-    internal readonly struct ByteOperator :
-        IBlockEncodingOperator<byte>,
-        Av1IntraBlockCopySearchIndex.ISearchOperation<byte>
+    internal readonly struct ByteOperator : IBlockEncodingOperator<byte>
     {
         /// <inheritdoc/>
         public static Span<byte> GetLeftReference(Span<short> residual, int length)
@@ -338,6 +336,50 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             return true;
+        }
+
+        /// <inheritdoc/>
+        public static int GetSumOfAbsoluteDifferences(
+            Buffer2DRegion<byte> source,
+            Point sourceOrigin,
+            Buffer2DRegion<byte> reconstruction,
+            Point predictionOrigin)
+        {
+            int sum = 0;
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (int row = 0; row < 8; row++)
+                {
+                    ReadOnlySpan<byte> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
+                    ReadOnlySpan<byte> predictionRow =
+                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
+
+                    Vector128<short> difference =
+                        (Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(sourceRow)).AsByte()) -
+                         Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(predictionRow)).AsByte()))
+                        .AsInt16();
+
+                    // Widened signed differences retain both subtraction directions; absolute values then reduce
+                    // the complete eight-sample row without scalar extraction or per-sample branches.
+                    sum += Vector128.Sum(Vector128.Abs(difference));
+                }
+            }
+            else
+            {
+                for (int row = 0; row < 8; row++)
+                {
+                    ReadOnlySpan<byte> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
+                    ReadOnlySpan<byte> predictionRow =
+                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
+
+                    for (int column = 0; column < 8; column++)
+                    {
+                        sum += Math.Abs(sourceRow[column] - predictionRow[column]);
+                    }
+                }
+            }
+
+            return sum;
         }
 
         /// <inheritdoc/>
@@ -675,9 +717,7 @@ internal static partial class Av1IntraSuperblockEncoder
     /// <summary>
     /// Encodes blocks stored as high-bit-depth samples.
     /// </summary>
-    internal readonly struct UInt16Operator :
-        IBlockEncodingOperator<ushort>,
-        Av1IntraBlockCopySearchIndex.ISearchOperation<ushort>
+    internal readonly struct UInt16Operator : IBlockEncodingOperator<ushort>
     {
         /// <inheritdoc/>
         public static Span<ushort> GetLeftReference(Span<short> residual, int length)
@@ -712,6 +752,50 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             return true;
+        }
+
+        /// <inheritdoc/>
+        public static int GetSumOfAbsoluteDifferences(
+            Buffer2DRegion<ushort> source,
+            Point sourceOrigin,
+            Buffer2DRegion<ushort> reconstruction,
+            Point predictionOrigin)
+        {
+            int sum = 0;
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (int row = 0; row < 8; row++)
+                {
+                    ReadOnlySpan<ushort> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
+                    ReadOnlySpan<ushort> predictionRow =
+                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
+
+                    // Twelve-bit samples remain within signed 16-bit subtraction and absolute-value ranges,
+                    // allowing all eight row differences to stay packed until their horizontal reduction.
+                    Vector128<short> difference =
+                        (Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(sourceRow)) -
+                         Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(predictionRow)))
+                        .AsInt16();
+
+                    sum += Vector128.Sum(Vector128.Abs(difference));
+                }
+            }
+            else
+            {
+                for (int row = 0; row < 8; row++)
+                {
+                    ReadOnlySpan<ushort> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
+                    ReadOnlySpan<ushort> predictionRow =
+                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
+
+                    for (int column = 0; column < 8; column++)
+                    {
+                        sum += Math.Abs(sourceRow[column] - predictionRow[column]);
+                    }
+                }
+            }
+
+            return sum;
         }
 
         /// <inheritdoc/>

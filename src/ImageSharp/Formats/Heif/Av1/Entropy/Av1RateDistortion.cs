@@ -65,4 +65,38 @@ internal static class Av1RateDistortion
         int motionError = (int)((weightedRate + (1 << (MotionErrorShift - 1))) >> MotionErrorShift);
         return variance + motionError;
     }
+
+    /// <summary>
+    /// Gets the sum-of-absolute-differences rate scale for a frame quantizer.
+    /// </summary>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <returns>The multiplier that converts motion-vector rate into the absolute-difference domain.</returns>
+    public static int GetMotionSearchSadPerBit(int qIndex, Av1BitDepth bitDepth)
+    {
+        int quantizerDivisor = 1 << (bitDepth.GetBitCount() - 6);
+        double quantizer = Av1QuantizationLookup.GetAcQuant(qIndex, 0, bitDepth) / (double)quantizerDivisor;
+        return (int)((0.0418 * quantizer) + 2.4107);
+    }
+
+    /// <summary>
+    /// Gets the sum-of-absolute-differences cost of a full-pixel motion candidate.
+    /// </summary>
+    /// <param name="sadPerBit">The quantizer-derived motion-rate scale.</param>
+    /// <param name="motionVectorRate">The motion-vector syntax rate in 1/512-bit units.</param>
+    /// <param name="sumOfAbsoluteDifferences">The unnormalized sample-domain absolute difference.</param>
+    /// <returns>The absolute difference plus the motion-vector search cost.</returns>
+    public static int GetMotionSearchSadCost(
+        int sadPerBit,
+        int motionVectorRate,
+        int sumOfAbsoluteDifferences)
+    {
+        const int MotionRateShift = 9;
+
+        // Full-pixel traversal uses absolute differences, so its quantizer-derived rate scale is deliberately
+        // distinct from the variance-domain error-per-bit scale used to compare the resulting search paths.
+        long weightedRate = (long)motionVectorRate * sadPerBit;
+        int motionError = (int)((weightedRate + (1 << (MotionRateShift - 1))) >> MotionRateShift);
+        return sumOfAbsoluteDifferences + motionError;
+    }
 }

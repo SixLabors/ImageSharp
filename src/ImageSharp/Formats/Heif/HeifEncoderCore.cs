@@ -48,12 +48,17 @@ internal sealed class HeifEncoderCore
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
-        using ChunkedMemoryStream compressedPixels = this.encoder.CompressionMethod switch
+        using ChunkedMemoryStream compressedPixels = new(this.configuration.MemoryAllocator);
+        switch (this.encoder.CompressionMethod)
         {
-            HeifCompressionMethod.LegacyJpeg => this.CompressPixels(image, cancellationToken),
-            HeifCompressionMethod.Av1 => throw new NotSupportedException("AV1 encoding is not implemented."),
-            _ => throw new NotSupportedException($"HEIF compression method '{this.encoder.CompressionMethod}' is not supported.")
-        };
+            case HeifCompressionMethod.LegacyJpeg:
+                this.CompressPixels(image, compressedPixels, cancellationToken);
+                break;
+            case HeifCompressionMethod.Av1:
+                throw new NotSupportedException("AV1 encoding is not implemented.");
+            default:
+                throw new NotSupportedException($"HEIF compression method '{this.encoder.CompressionMethod}' is not supported.");
+        }
 
         List<HeifItem> items = new();
         List<HeifItemLink> links = new();
@@ -430,9 +435,12 @@ internal sealed class HeifEncoderCore
     /// </summary>
     /// <typeparam name="TPixel">The source pixel format.</typeparam>
     /// <param name="image">The source image.</param>
+    /// <param name="stream">The destination for the encoded JPEG item bytes.</param>
     /// <param name="cancellationToken">The token used to cancel payload encoding.</param>
-    /// <returns>The pooled stream containing the encoded JPEG item bytes.</returns>
-    private ChunkedMemoryStream CompressPixels<TPixel>(Image<TPixel> image, CancellationToken cancellationToken)
+    private void CompressPixels<TPixel>(
+        Image<TPixel> image,
+        ChunkedMemoryStream stream,
+        CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (this.encoder.Lossless)
@@ -454,7 +462,6 @@ internal sealed class HeifEncoderCore
             _ => throw new NotSupportedException($"HEIF chroma sampling '{this.encoder.ChromaSubsampling}' is not supported.")
         };
 
-        ChunkedMemoryStream stream = new(this.configuration.MemoryAllocator);
         JpegEncoder encoder = new()
         {
             // The HEIF quality scale includes zero while the JPEG payload encoder starts at one.
@@ -463,18 +470,8 @@ internal sealed class HeifEncoderCore
             ColorType = colorType
         };
 
-        try
-        {
-            // ImageEncoder is a synchronous contract. Wait for the cancellable JPEG operation so HEIF encoding
-            // cannot return while its pooled item payload is still being produced.
-            image.SaveAsJpegAsync(stream, encoder, cancellationToken).GetAwaiter().GetResult();
-            return stream;
-        }
-        catch
-        {
-            // Ownership transfers to the caller only after encoding succeeds.
-            stream.Dispose();
-            throw;
-        }
+        // ImageEncoder is a synchronous contract. Wait for the cancellable JPEG operation so HEIF encoding
+        // cannot return while its pooled item payload is still being produced.
+        image.SaveAsJpegAsync(stream, encoder, cancellationToken).GetAwaiter().GetResult();
     }
 }

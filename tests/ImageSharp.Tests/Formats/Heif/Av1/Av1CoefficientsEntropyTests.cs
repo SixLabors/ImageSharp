@@ -299,7 +299,7 @@ public class Av1CoefficientsEntropyTests
         Av1TileWriter.EncodeTransformCoefficientsY(
             picture,
             context,
-            ref writer,
+            writer,
             ref block,
             Point.Empty,
             Av1PredictionMode.DC,
@@ -636,7 +636,7 @@ public class Av1CoefficientsEntropyTests
         Av1TileWriter.WriteSuperblock(
             picture,
             context,
-            ref writer,
+            writer,
             superblock,
             coefficients,
             tileIndex: 0);

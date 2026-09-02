@@ -63,7 +63,7 @@ internal partial class Av1TileWriter
     public static void WriteSuperblock(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext ec_ctx,
-        ref Av1SymbolEncoder writer,
+        Av1SymbolEncoder writer,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex)
@@ -79,7 +79,7 @@ internal partial class Av1TileWriter
         WritePartitionTree(
             pcs,
             ec_ctx,
-            ref writer,
+            writer,
             superblock,
             coefficientBuffer,
             tileIndex,
@@ -95,7 +95,7 @@ internal partial class Av1TileWriter
     private static void WritePartitionTree(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
-        ref Av1SymbolEncoder writer,
+        Av1SymbolEncoder writer,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -119,7 +119,7 @@ internal partial class Av1TileWriter
 
         EncodePartition(
             pcs,
-            ref writer,
+            writer,
             blockSize,
             partition,
             blockOrigin,
@@ -131,7 +131,7 @@ internal partial class Av1TileWriter
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -143,7 +143,7 @@ internal partial class Av1TileWriter
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -155,7 +155,7 @@ internal partial class Av1TileWriter
                     WriteFinalBlock(
                         pcs,
                         entropyCodingContext,
-                        ref writer,
+                        writer,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -168,7 +168,7 @@ internal partial class Av1TileWriter
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -180,7 +180,7 @@ internal partial class Av1TileWriter
                     WriteFinalBlock(
                         pcs,
                         entropyCodingContext,
-                        ref writer,
+                        writer,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -193,7 +193,7 @@ internal partial class Av1TileWriter
                 WritePartitionTree(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -204,7 +204,7 @@ internal partial class Av1TileWriter
                 WritePartitionTree(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -215,7 +215,7 @@ internal partial class Av1TileWriter
                 WritePartitionTree(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -226,7 +226,7 @@ internal partial class Av1TileWriter
                 WritePartitionTree(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -240,7 +240,7 @@ internal partial class Av1TileWriter
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -249,7 +249,7 @@ internal partial class Av1TileWriter
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -258,7 +258,7 @@ internal partial class Av1TileWriter
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -270,7 +270,7 @@ internal partial class Av1TileWriter
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -279,7 +279,7 @@ internal partial class Av1TileWriter
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -288,7 +288,7 @@ internal partial class Av1TileWriter
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -300,7 +300,7 @@ internal partial class Av1TileWriter
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -309,7 +309,7 @@ internal partial class Av1TileWriter
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -318,7 +318,7 @@ internal partial class Av1TileWriter
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -330,7 +330,7 @@ internal partial class Av1TileWriter
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -339,7 +339,7 @@ internal partial class Av1TileWriter
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -348,7 +348,7 @@ internal partial class Av1TileWriter
                 WriteFinalBlock(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     superblock,
                     coefficientBuffer,
                     tileIndex,
@@ -369,7 +369,7 @@ internal partial class Av1TileWriter
                     WriteFinalBlock(
                         pcs,
                         entropyCodingContext,
-                        ref writer,
+                        writer,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -391,7 +391,7 @@ internal partial class Av1TileWriter
                     WriteFinalBlock(
                         pcs,
                         entropyCodingContext,
-                        ref writer,
+                        writer,
                         superblock,
                         coefficientBuffer,
                         tileIndex,
@@ -416,7 +416,7 @@ internal partial class Av1TileWriter
     private static void WriteFinalBlock(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
-        ref Av1SymbolEncoder writer,
+        Av1SymbolEncoder writer,
         Av1Superblock superblock,
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ushort tileIndex,
@@ -427,7 +427,7 @@ internal partial class Av1TileWriter
         WriteModesBlock(
             pcs,
             entropyCodingContext,
-            ref writer,
+            writer,
             superblock,
             ref block,
             tileIndex,
@@ -540,7 +540,7 @@ internal partial class Av1TileWriter
     /// <param name="partition_context_na">The partition neighbor arrays for the tile.</param>
     private static void EncodePartition(
         Av1PictureControlSet pcs,
-        ref Av1SymbolEncoder writer,
+        Av1SymbolEncoder writer,
         Av1BlockSize blockSize,
         Av1PartitionType partitionType,
         Point blockOrigin,
@@ -617,7 +617,7 @@ internal partial class Av1TileWriter
     private static void WriteModesBlock(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
-        ref Av1SymbolEncoder writer,
+        Av1SymbolEncoder writer,
         Av1Superblock tb_ptr,
         ref Av1EncoderBlockStruct blk_ptr,
         ushort tile_idx,
@@ -655,14 +655,14 @@ internal partial class Av1TileWriter
         {
             if (pcs.Parent.FrameHeader.SegmentationParameters.Enabled && pcs.Parent.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
             {
-                WriteSegmentId(pcs, ref writer, blockSize, blockOrigin, macroBlock, ref blk_ptr, skipWritingCoefficients);
+                WriteSegmentId(pcs, writer, blockSize, blockOrigin, macroBlock, ref blk_ptr, skipWritingCoefficients);
             }
 
-            EncodeSkipCoefficients(ref writer, macroBlock, skipWritingCoefficients);
+            EncodeSkipCoefficients(writer, macroBlock, skipWritingCoefficients);
 
             if (pcs.Parent.FrameHeader.SegmentationParameters.Enabled && !pcs.Parent.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
             {
-                WriteSegmentId(pcs, ref writer, blockSize, blockOrigin, macroBlock, ref blk_ptr, skipWritingCoefficients);
+                WriteSegmentId(pcs, writer, blockSize, blockOrigin, macroBlock, ref blk_ptr, skipWritingCoefficients);
             }
 
             WriteCdef(
@@ -693,12 +693,12 @@ internal partial class Av1TileWriter
             Av1ChromaPredictionMode intra_chroma_mode = macroBlockModeInfo.Block.UvMode;
             if (IsIntraBlockCopyAllowed(pcs.Parent.FrameHeader/*, pcs.Parent.SliceType*/))
             {
-                WriteIntraBlockCopyInfo(ref writer, macroBlockModeInfo);
+                WriteIntraBlockCopyInfo(writer, macroBlockModeInfo);
             }
 
             if (!macroBlockModeInfo.Block.UseIntraBlockCopy)
             {
-                EncodeIntraLumaMode(ref writer, macroBlockModeInfo, macroBlock, ref blk_ptr, blockSize, intra_luma_mode);
+                EncodeIntraLumaMode(writer, macroBlockModeInfo, macroBlock, ref blk_ptr, blockSize, intra_luma_mode);
             }
 
             if (!macroBlockModeInfo.Block.UseIntraBlockCopy)
@@ -706,7 +706,7 @@ internal partial class Av1TileWriter
                 if (blk_ptr.HasChroma)
                 {
                     EncodeIntraChromaMode(
-                        ref writer,
+                        writer,
                         macroBlockModeInfo,
                         ref blk_ptr,
                         blockSize,
@@ -720,7 +720,7 @@ internal partial class Av1TileWriter
             {
                 WritePaletteModeInfo(
                     scs,
-                    ref writer,
+                    writer,
                     macroBlockModeInfo,
                     ref blk_ptr,
                     blockSize,
@@ -762,7 +762,7 @@ internal partial class Av1TileWriter
                 EncodeCoefficients1d(
                     pcs,
                     entropyCodingContext,
-                    ref writer,
+                    writer,
                     ref blk_ptr,
                     blockOrigin,
                     intra_luma_mode,
@@ -850,7 +850,7 @@ internal partial class Av1TileWriter
     /// <param name="chromaMode">The selected chroma prediction mode.</param>
     /// <param name="isChromaFromLumaAllowed">A value indicating whether chroma-from-luma mode is available.</param>
     private static void EncodeIntraChromaMode(
-        ref Av1SymbolEncoder writer,
+        Av1SymbolEncoder writer,
         Av1MacroBlockModeInfo macroBlockModeInfo,
         ref Av1EncoderBlockStruct blk_ptr,
         Av1BlockSize blockSize,
@@ -910,7 +910,7 @@ internal partial class Av1TileWriter
     /// <param name="blockSize">The block size.</param>
     /// <param name="lumaMode">The selected luma prediction mode.</param>
     private static void EncodeIntraLumaMode(
-        ref Av1SymbolEncoder writer,
+        Av1SymbolEncoder writer,
         Av1MacroBlockModeInfo macroBlockModeInfo,
         Av1MacroBlockD macroBlock,
         ref Av1EncoderBlockStruct blk_ptr,
@@ -938,7 +938,7 @@ internal partial class Av1TileWriter
     /// <exception cref="NotImplementedException">Palette-mode encoding is not implemented.</exception>
     private static void WritePaletteModeInfo(
         Av1SequenceControlSet scs,
-        ref Av1SymbolEncoder writer,
+        Av1SymbolEncoder writer,
         Av1MacroBlockModeInfo macroBlockModeInfo,
         ref Av1EncoderBlockStruct blk_ptr,
         Av1BlockSize blockSize,
@@ -985,7 +985,7 @@ internal partial class Av1TileWriter
     /// <param name="macroBlockModeInfo">The selected block modes.</param>
     /// <exception cref="NotImplementedException">The displacement-vector syntax is not implemented when intra block copy is selected.</exception>
     private static void WriteIntraBlockCopyInfo(
-        ref Av1SymbolEncoder writer,
+        Av1SymbolEncoder writer,
         Av1MacroBlockModeInfo macroBlockModeInfo)
     {
         bool use_intrabc = macroBlockModeInfo.Block.UseIntraBlockCopy;
@@ -1220,7 +1220,7 @@ internal partial class Av1TileWriter
     private static void EncodeCoefficients1d(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext ec_ctx,
-        ref Av1SymbolEncoder writer,
+        Av1SymbolEncoder writer,
         ref Av1EncoderBlockStruct blk_ptr,
         Point blockOrigin,
         Av1PredictionMode intraLumaDir,
@@ -1234,7 +1234,7 @@ internal partial class Av1TileWriter
         EncodeTransformCoefficientsY(
             pcs,
             ec_ctx,
-            ref writer,
+            writer,
             ref blk_ptr,
             blockOrigin,
             intraLumaDir,
@@ -1246,7 +1246,7 @@ internal partial class Av1TileWriter
         EncodeTransformCoefficientsUv(
             pcs,
             ec_ctx,
-            ref writer,
+            writer,
             ref blk_ptr,
             blockOrigin,
             intraLumaDir,
@@ -1273,7 +1273,7 @@ internal partial class Av1TileWriter
     public static void EncodeTransformCoefficientsY(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
-        ref Av1SymbolEncoder writer,
+        Av1SymbolEncoder writer,
         ref Av1EncoderBlockStruct blk_ptr,
         Point blockOrigin,
         Av1PredictionMode intraLumaDir,
@@ -1387,7 +1387,7 @@ internal partial class Av1TileWriter
     private static void EncodeTransformCoefficientsUv(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
-        ref Av1SymbolEncoder writer,
+        Av1SymbolEncoder writer,
         ref Av1EncoderBlockStruct blk_ptr,
         Point blockOrigin,
         Av1PredictionMode intraLumaDir,
@@ -1631,7 +1631,7 @@ internal partial class Av1TileWriter
     /// <param name="skip">A value indicating whether residual coefficients are omitted.</param>
     private static void WriteSegmentId(
         Av1PictureControlSet pcs,
-        ref Av1SymbolEncoder writer,
+        Av1SymbolEncoder writer,
         Av1BlockSize blockSize,
         Point blockOrigin,
         Av1MacroBlockD macroBlock,
@@ -1738,7 +1738,7 @@ internal partial class Av1TileWriter
     /// <param name="writer">The tile symbol encoder.</param>
     /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
     /// <param name="skip">The skip value to write.</param>
-    public static void EncodeSkipCoefficients(ref Av1SymbolEncoder writer, Av1MacroBlockD macroBlock, bool skip)
+    public static void EncodeSkipCoefficients(Av1SymbolEncoder writer, Av1MacroBlockD macroBlock, bool skip)
     {
         Av1MacroBlockModeInfo? above_mi = macroBlock.AboveMacroBlock;
         Av1MacroBlockModeInfo? left_mi = macroBlock.LeftMacroBlock;

@@ -352,6 +352,23 @@ internal static class Av1TransformBlockEncoder
         {
             Av1DcIntraPredictor.Predict(hasLeft, hasAbove, reconstruction, reconstructionStride, above, left, width, height);
         }
+        else if (mode.IsDirectional())
+        {
+            // The current encoder disables intra-edge filtering in sequence syntax. Reusing transform workspace for
+            // zone-three transposition keeps directional prediction allocation-free before the transform overwrites it.
+            Span<byte> directionalScratch = MemoryMarshal.AsBytes(workspace.TransformWorkspace)[..(width * height)];
+
+            Av1DirectionalIntraPredictor.Predict(
+                reconstruction,
+                reconstructionStride,
+                transformSize,
+                above,
+                left,
+                false,
+                false,
+                mode.ToAngle(),
+                directionalScratch);
+        }
         else
         {
             Av1NonDirectionalIntraPredictorBase.GetPredictor(mode)
@@ -449,6 +466,21 @@ internal static class Av1TransformBlockEncoder
                 width,
                 height,
                 bitDepth.GetBitCount());
+        }
+        else if (mode.IsDirectional())
+        {
+            Span<short> directionalScratch = MemoryMarshal.Cast<int, short>(workspace.TransformWorkspace)[..(width * height)];
+
+            Av1DirectionalIntraPredictor.Predict(
+                signedReconstruction,
+                reconstructionStride,
+                transformSize,
+                signedAbove,
+                signedLeft,
+                false,
+                false,
+                mode.ToAngle(),
+                directionalScratch);
         }
         else
         {

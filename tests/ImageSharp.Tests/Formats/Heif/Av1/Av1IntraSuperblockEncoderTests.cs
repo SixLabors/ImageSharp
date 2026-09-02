@@ -613,6 +613,12 @@ public class Av1IntraSuperblockEncoderTests
     [InlineData((int)Av1PredictionMode.Paeth)]
     [InlineData((int)Av1PredictionMode.SmoothVertical)]
     [InlineData((int)Av1PredictionMode.SmoothHorizontal)]
+    [InlineData((int)Av1PredictionMode.Directional135Degrees)]
+    [InlineData((int)Av1PredictionMode.Directional203Degrees)]
+    [InlineData((int)Av1PredictionMode.Directional157Degrees)]
+    [InlineData((int)Av1PredictionMode.Directional67Degrees)]
+    [InlineData((int)Av1PredictionMode.Directional113Degrees)]
+    [InlineData((int)Av1PredictionMode.Directional45Degrees)]
     public void ProductionTileSelectsModeFromCurrentReconstruction(int expectedModeValue)
     {
         const int Width = 16;
@@ -621,9 +627,41 @@ public class Av1IntraSuperblockEncoderTests
         const byte LeftReference = 208;
         const int QIndex = 1;
         Av1PredictionMode expectedMode = (Av1PredictionMode)expectedModeValue;
+        bool isDiagonal = expectedMode is >= Av1PredictionMode.Directional45Degrees and <= Av1PredictionMode.Directional67Degrees;
         int cornerReference = expectedMode == Av1PredictionMode.Horizontal
             ? LeftReference
             : expectedMode == Av1PredictionMode.Vertical ? TopReference : 128;
+
+        Span<byte> directionalTarget = stackalloc byte[64];
+        if (isDiagonal)
+        {
+            Span<byte> aboveStorage = stackalloc byte[17];
+            Span<byte> above = aboveStorage[1..];
+            Span<byte> leftStorage = stackalloc byte[17];
+            Span<byte> left = leftStorage[1..];
+            aboveStorage[0] = 128;
+            leftStorage[0] = 128;
+            for (int i = 0; i < 8; i++)
+            {
+                above[i] = (byte)(32 + (i * 24));
+                left[i] = (byte)(224 - (i * 24));
+            }
+
+            above[8..].Fill(above[7]);
+            left[8..].Fill(left[7]);
+
+            // Directional arithmetic has separate byte-exact reference coverage. This fixture uses its scalar
+            // path only to isolate production mode traversal, reference gathering, and rate-distortion selection.
+            Av1DirectionalIntraPredictor.PredictScalar(
+                directionalTarget,
+                8,
+                Av1TransformSize.Size8x8,
+                above,
+                left,
+                false,
+                false,
+                expectedMode.ToAngle());
+        }
 
         ObuColorConfig colorConfig = new()
         {
@@ -667,11 +705,19 @@ public class Av1IntraSuperblockEncoderTests
                 {
                     value = x < 8
                         ? cornerReference
-                        : expectedMode == Av1PredictionMode.Paeth ? 40 + (columnIndex * 20) : TopReference;
+                        : isDiagonal
+                            ? 32 + (columnIndex * 24)
+                            : expectedMode == Av1PredictionMode.Paeth ? 40 + (columnIndex * 20) : TopReference;
                 }
                 else if (x < 8)
                 {
-                    value = expectedMode == Av1PredictionMode.Paeth ? 200 - (rowIndex * 20) : LeftReference;
+                    value = isDiagonal
+                        ? 224 - (rowIndex * 24)
+                        : expectedMode == Av1PredictionMode.Paeth ? 200 - (rowIndex * 20) : LeftReference;
+                }
+                else if (isDiagonal)
+                {
+                    value = directionalTarget[(rowIndex * 8) + columnIndex];
                 }
                 else if (expectedMode == Av1PredictionMode.Paeth)
                 {
@@ -737,6 +783,131 @@ public class Av1IntraSuperblockEncoderTests
 
         ref Av1MacroBlockModeInfo targetBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(2, 2));
         Assert.Equal(expectedMode, targetBlock.Block.Mode);
+        Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
+    }
+
+    [Fact]
+    public void ProductionDirectionalModesConsumeAvailableExtendedEdges()
+    {
+        const int Width = 72;
+        const int Height = 16;
+        const int QIndex = 1;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = true,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        using Av1EncoderFrameBuffer<byte> source = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(
+            Configuration.Default,
+            Width,
+            Height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        Buffer2DRegion<byte> sourcePlane = source.Frame.CodedView.GetPlane(Av1Plane.Y);
+        FillPlane(sourcePlane, (byte)128);
+
+        Span<byte> aboveStorage = stackalloc byte[17];
+        Span<byte> above = aboveStorage[1..];
+        Span<byte> leftStorage = stackalloc byte[17];
+        Span<byte> left = leftStorage[1..];
+        aboveStorage[0] = 128;
+        leftStorage[0] = 128;
+        for (int i = 0; i < 16; i++)
+        {
+            above[i] = (byte)(32 + (i * 12));
+            left[i] = (byte)(224 - (i * 12));
+        }
+
+        Span<byte> topRightTarget = stackalloc byte[64];
+        Span<byte> bottomLeftTarget = stackalloc byte[64];
+        Span<byte> predictionScratch = stackalloc byte[64];
+        Av1DirectionalIntraPredictor.Predict(
+            topRightTarget,
+            8,
+            Av1TransformSize.Size8x8,
+            above,
+            left,
+            false,
+            false,
+            45,
+            predictionScratch);
+
+        Av1DirectionalIntraPredictor.Predict(
+            bottomLeftTarget,
+            8,
+            Av1TransformSize.Size8x8,
+            above,
+            left,
+            false,
+            false,
+            203,
+            predictionScratch);
+
+        // The lower-left target consumes top-right samples from the already reconstructed row above.
+        // The upper-right superblock target consumes bottom-left samples from the completed superblock to its left.
+        for (int y = 0; y < Height; y++)
+        {
+            Span<byte> row = sourcePlane.DangerousGetRowSpan(y);
+            if (y < 8)
+            {
+                above.CopyTo(row[..16]);
+                bottomLeftTarget.Slice(y * 8, 8).CopyTo(row.Slice(64, 8));
+            }
+            else
+            {
+                topRightTarget.Slice((y - 8) * 8, 8).CopyTo(row[..8]);
+            }
+
+            row.Slice(56, 8).Fill(left[y]);
+        }
+
+        ClearPlane(reconstruction.Luma);
+        using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, Width, Height, disallow4x4AllFrames: true);
+        Av1PictureControlSet pictureTemplate = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, QIndex);
+        using Av1EncoderPictureBuffer picture = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            pictureTemplate.Parent.FrameHeader,
+            Width,
+            Height);
+
+        using Av1EncoderCoefficientBuffer coefficients = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            Width,
+            Height);
+
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        using Av1IntraTileWriter tileWriter = new(
+            Configuration.Default,
+            source.Frame,
+            reconstruction.Frame,
+            picture.Picture,
+            coefficients,
+            superblockWorkspace,
+            blockWorkspace,
+            initialSize: 2048);
+
+        ref Av1MacroBlockModeInfo topRightBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(0, 2));
+        ref Av1MacroBlockModeInfo bottomLeftBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(16, 0));
+        Assert.Equal(Av1PredictionMode.Directional45Degrees, topRightBlock.Block.Mode);
+        Assert.Equal(Av1PredictionMode.Directional203Degrees, bottomLeftBlock.Block.Mode);
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
     }
 

@@ -80,6 +80,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     private readonly List<HeifItemLink> itemLinks;
 
     /// <summary>
+    /// The absolute stream position at which the current HEIF file begins.
+    /// </summary>
+    private long fileStartOffset;
+
+    /// <summary>
     /// The absolute stream offset of the item-data box payload, or <c>-1</c> when no item-data box exists.
     /// </summary>
     private long itemDataOffset = -1;
@@ -137,6 +142,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <inheritdoc/>
     protected override Image<TPixel> Decode<TPixel>(BufferedReadStream stream, CancellationToken cancellationToken)
     {
+        this.fileStartOffset = stream.Position;
         HeifFileType fileType = this.ReadFileTypeBox(stream);
         if (fileType == HeifFileType.Unsupported)
         {
@@ -184,6 +190,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <inheritdoc/>
     protected override ImageInfo Identify(BufferedReadStream stream, CancellationToken cancellationToken)
     {
+        this.fileStartOffset = stream.Position;
         HeifFileType fileType = this.ReadFileTypeBox(stream);
         if (fileType == HeifFileType.Unsupported)
         {
@@ -270,7 +277,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     throw new InvalidImageContentException("The HEIF image sequence contains more than one movie box.");
                 }
 
-                sequence = this.sequenceParser.Parse(stream, boxLength);
+                sequence = this.sequenceParser.Parse(stream, boxLength, this.fileStartOffset);
             }
             else
             {
@@ -610,7 +617,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         try
         {
             Span<byte> sampleData = sampleOwner.GetSpan()[..sample.Length];
-            stream.Position = sample.Offset;
+            stream.Position = this.fileStartOffset + sample.Offset;
             HeifBoxReader.ReadExactly(stream, sampleData, "The HEIF image-sequence sample is truncated.");
             codecConfiguration.ValidateSampleData(
                 sampleData,
@@ -2195,8 +2202,10 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 if (location.Origin == HeifLocationOffsetOrigin.FileOffset)
                 {
                     // Construction method zero resolves base_offset + extent_offset from the start of the file.
-                    sourceOffset = relativeOffset;
-                    sourceBytesRemaining = stream.Length - sourceOffset;
+                    long fileLength = stream.Length - this.fileStartOffset;
+                    HeifBoxReader.EnsureInsideParent(relativeOffset, fileLength);
+                    sourceOffset = this.fileStartOffset + relativeOffset;
+                    sourceBytesRemaining = fileLength - relativeOffset;
                 }
                 else if (location.Origin == HeifLocationOffsetOrigin.ItemDataOffset)
                 {

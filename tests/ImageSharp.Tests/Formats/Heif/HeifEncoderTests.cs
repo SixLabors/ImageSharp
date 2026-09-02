@@ -80,6 +80,38 @@ public class HeifEncoderTests
     }
 
     [Fact]
+    public void LegacyJpegWritesNonSeekableStream()
+    {
+        using Image<Rgba32> image = new(1, 1);
+        image[0, 0] = new Rgba32(10, 20, 30);
+        using MemoryStream storage = new();
+        using NonSeekableStream destination = new(storage);
+
+        image.Save(destination, new HeifEncoder());
+
+        Assert.NotEqual(0, storage.Length);
+        storage.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(storage);
+        Assert.Equal(image.Size, decoded.Size);
+    }
+
+    [Fact]
+    public void LegacyJpegWritesAtCurrentStreamPosition()
+    {
+        using Image<Rgba32> image = new(1, 1);
+        image[0, 0] = new Rgba32(10, 20, 30);
+        using MemoryStream stream = new();
+        stream.Write([1, 2, 3, 4]);
+        long fileStart = stream.Position;
+
+        image.Save(stream, new HeifEncoder());
+
+        stream.Position = fileStart;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+        Assert.Equal(image.Size, decoded.Size);
+    }
+
+    [Fact]
     public void LegacyJpegRejectsLosslessEncoding()
     {
         using Image<Rgba32> image = new(1, 1);

@@ -93,6 +93,28 @@ public class HeifDecoderTests
         }
     }
 
+    [Theory]
+    [InlineData(TestImages.Heif.Orange4x4, 1, 4, 4)]
+    [InlineData(TestImages.Heif.Animated8Bit, 5, 150, 150)]
+    public void DecodeFromCurrentStreamPosition(
+        string imagePath,
+        int expectedFrameCount,
+        int expectedWidth,
+        int expectedHeight)
+    {
+        TestFile testFile = TestFile.Create(imagePath);
+        using MemoryStream stream = new();
+        stream.Write([1, 2, 3, 4]);
+        long fileStart = stream.Position;
+        stream.Write(testFile.Bytes);
+        stream.Position = fileStart;
+
+        using Image<Rgba32> image = Image.Load<Rgba32>(stream);
+
+        Assert.Equal(new Size(expectedWidth, expectedHeight), image.Size);
+        Assert.Equal(expectedFrameCount, image.Frames.Count);
+    }
+
     /// <summary>
     /// Verifies that AVIF decoding preserves the exact embedded ICC profile bytes.
     /// </summary>

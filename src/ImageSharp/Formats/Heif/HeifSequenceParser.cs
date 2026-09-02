@@ -45,6 +45,11 @@ internal sealed class HeifSequenceParser
     private readonly DecoderOptions options;
 
     /// <summary>
+    /// The absolute stream position at which the current HEIF file begins.
+    /// </summary>
+    private long fileStartOffset;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="HeifSequenceParser"/> class.
     /// </summary>
     /// <param name="options">The general decoder options.</param>
@@ -62,9 +67,11 @@ internal sealed class HeifSequenceParser
     /// </summary>
     /// <param name="stream">The seekable HEIF stream positioned at the movie payload.</param>
     /// <param name="boxLength">The validated movie payload length.</param>
+    /// <param name="fileStartOffset">The absolute stream position at which the HEIF file begins.</param>
     /// <returns>The bounded image-sequence model required by the HEIF decoder.</returns>
-    public HeifSequence Parse(Stream stream, long boxLength)
+    public HeifSequence Parse(Stream stream, long boxLength, long fileStartOffset = 0)
     {
+        this.fileStartOffset = fileStartOffset;
         long movieStart = stream.Position;
         long movieEnd = checked(movieStart + boxLength);
         HeifBoxReader.EnsureInsideParent(boxLength, stream.Length - movieStart);
@@ -821,7 +828,7 @@ internal sealed class HeifSequenceParser
             out int entryCount);
 
         stream.Position = chunkOffsets.Offset;
-        ResolveSampleLocations(stream, chunkOffsets.Length, chunkOffsets.Type, chunkCount, entries.GetSpan()[..entryCount], track, scratch);
+        this.ResolveSampleLocations(stream, chunkOffsets.Length, chunkOffsets.Type, chunkCount, entries.GetSpan()[..entryCount], track, scratch);
         if (syncSamples.IsPresent)
         {
             stream.Position = syncSamples.Offset;
@@ -1524,7 +1531,7 @@ internal sealed class HeifSequenceParser
     /// <param name="entries">The retained sample-to-chunk runs.</param>
     /// <param name="track">The selected track receiving absolute sample locations.</param>
     /// <param name="scratch">The parser-owned reusable scratch span.</param>
-    private static void ResolveSampleLocations(
+    private void ResolveSampleLocations(
         Stream stream,
         long boxLength,
         Heif4CharCode boxType,
@@ -1538,10 +1545,11 @@ internal sealed class HeifSequenceParser
         HeifBoxPayloadReader reader = new(stream, checked((long)chunkCount * entrySize), scratch, "chunk offsets");
         int retainedSample = 0;
         int runIndex = 0;
+        long fileLength = stream.Length - this.fileStartOffset;
         for (uint chunkIndex = 0; chunkIndex < chunkCount; chunkIndex++)
         {
             ulong chunkOffset = entrySize == 8 ? reader.ReadUInt64() : reader.ReadUInt32();
-            if (chunkOffset > (ulong)stream.Length)
+            if (chunkOffset > (ulong)fileLength)
             {
                 throw new InvalidImageContentException("An image-sequence chunk offset extends beyond the file.");
             }
@@ -1558,7 +1566,7 @@ internal sealed class HeifSequenceParser
             {
                 ref HeifSequenceSample sample = ref track.Samples[retainedSample++];
                 ulong sampleEnd = checked(sampleOffset + (uint)sample.Length);
-                if (sampleEnd > (ulong)stream.Length || sampleOffset > long.MaxValue)
+                if (sampleEnd > (ulong)fileLength || sampleOffset > long.MaxValue)
                 {
                     throw new InvalidImageContentException("An image-sequence sample extends beyond the file.");
                 }

@@ -65,8 +65,8 @@ internal sealed class HeifEncoderCore
         GenerateItems(image, compressedPixels.Length, items);
 
         // Write out the generated header and pixels.
-        this.WriteFileTypeBox(stream);
-        this.WriteMetadataBox(items, links, stream);
+        long metadataBoxOffset = this.WriteFileTypeBox(stream);
+        this.WriteMetadataBox(items, links, metadataBoxOffset, stream);
         this.WriteMediaDataBox(compressedPixels, stream);
         stream.Flush();
     }
@@ -138,7 +138,8 @@ internal sealed class HeifEncoderCore
     /// Writes the major brand, minor version, and compatible brands for the current HEIF output.
     /// </summary>
     /// <param name="stream">The destination stream.</param>
-    private void WriteFileTypeBox(Stream stream)
+    /// <returns>The number of bytes written.</returns>
+    private int WriteFileTypeBox(Stream stream)
     {
         Span<byte> buffer = stackalloc byte[16];
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Ftyp);
@@ -149,6 +150,8 @@ internal sealed class HeifEncoderCore
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
         stream.Write(buffer);
+
+        return bytesWritten;
     }
 
     /// <summary>
@@ -156,8 +159,9 @@ internal sealed class HeifEncoderCore
     /// </summary>
     /// <param name="items">The declared image and metadata items.</param>
     /// <param name="links">The typed relationships between items.</param>
+    /// <param name="metadataBoxOffset">The metadata box offset from the start of the encoded file.</param>
     /// <param name="stream">The destination stream positioned after the file-type box.</param>
-    private void WriteMetadataBox(List<HeifItem> items, List<HeifItemLink> links, Stream stream)
+    private void WriteMetadataBox(List<HeifItem> items, List<HeifItemLink> links, long metadataBoxOffset, Stream stream)
     {
         using AutoExpandingMemory<byte> memory = new(this.configuration, 0x1000);
         Span<byte> buffer = memory.GetSpan(12);
@@ -179,7 +183,7 @@ internal sealed class HeifEncoderCore
         bytesWritten += WriteItemLocationBox(memory, bytesWritten, items, 0);
 
         // The mdat payload immediately follows the completed meta box and its own eight-byte header.
-        long mediaDataOffset = checked(stream.Position + bytesWritten + 8);
+        long mediaDataOffset = checked(metadataBoxOffset + bytesWritten + 8);
         WriteItemLocationBox(memory, itemLocationOffset, items, mediaDataOffset);
 
         buffer = memory.GetSpan(bytesWritten);

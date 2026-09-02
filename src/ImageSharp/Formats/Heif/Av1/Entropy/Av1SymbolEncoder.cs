@@ -82,6 +82,11 @@ internal class Av1SymbolEncoder : IDisposable
     private readonly Av1Distribution filterIntraMode;
 
     /// <summary>
+    /// The palette probability state, created only when screen-content coding uses it.
+    /// </summary>
+    private PaletteEntropyContext? paletteEntropyContext;
+
+    /// <summary>
     /// The tile-adaptive absolute quantizer delta distribution.
     /// </summary>
     private readonly Av1Distribution deltaQuantizerAbsolute;
@@ -233,6 +238,184 @@ internal class Av1SymbolEncoder : IDisposable
             ref Av1SymbolWriter writer,
             uint value,
             int bitCount);
+    }
+
+    /// <summary>
+    /// Writes an unsigned fixed-width literal to the tile entropy stream.
+    /// </summary>
+    /// <param name="value">The low-order literal bits.</param>
+    /// <param name="bitCount">The number of bits to write.</param>
+    public void WriteLiteral(uint value, int bitCount)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteLiteral(value, bitCount);
+    }
+
+    /// <summary>
+    /// Writes a uniformly coded value from a non-power-of-two alphabet.
+    /// </summary>
+    /// <param name="valueCount">The number of possible values.</param>
+    /// <param name="value">The value in the range from zero through <paramref name="valueCount"/> minus one.</param>
+    public void WriteUniform(int valueCount, int value)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        int bitCount = Av1Math.Log2(valueCount) + 1;
+        int threshold = (1 << bitCount) - valueCount;
+        if (value < threshold)
+        {
+            // The lower values use the short prefix; every remaining value carries one final disambiguating bit.
+            w.WriteLiteral((uint)value, bitCount - 1);
+            return;
+        }
+
+        int offset = value - threshold;
+        w.WriteLiteral((uint)(threshold + (offset >> 1)), bitCount - 1);
+        w.WriteLiteral((uint)(offset & 1), 1);
+    }
+
+    /// <summary>
+    /// Gets the fixed-point rate of a uniformly coded value.
+    /// </summary>
+    /// <param name="valueCount">The number of possible values.</param>
+    /// <param name="value">The value in the range from zero through <paramref name="valueCount"/> minus one.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetUniformCost(int valueCount, int value)
+    {
+        int bitCount = Av1Math.Log2(valueCount) + 1;
+        int threshold = (1 << bitCount) - valueCount;
+        return Av1ProbabilityCost.GetLiteralCost(value < threshold ? bitCount - 1 : bitCount);
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point cost of the luma palette-mode flag.
+    /// </summary>
+    /// <param name="usePalette">Indicates whether the block uses luma palette prediction.</param>
+    /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
+    /// <param name="neighborContext">The number of available above and left luma neighbors that use palettes.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetPaletteYModeCost(bool usePalette, int blockSizeContext, int neighborContext)
+    {
+        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
+        return Av1ProbabilityCost.GetSymbolCost(
+            context.YMode[blockSizeContext][neighborContext],
+            usePalette ? 1 : 0);
+    }
+
+    /// <summary>
+    /// Writes the luma palette-mode flag.
+    /// </summary>
+    /// <param name="usePalette">Indicates whether the block uses luma palette prediction.</param>
+    /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
+    /// <param name="neighborContext">The number of available above and left luma neighbors that use palettes.</param>
+    public void WritePaletteYMode(bool usePalette, int blockSizeContext, int neighborContext)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
+        w.WriteSymbol(usePalette, context.YMode[blockSizeContext][neighborContext]);
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point cost of the chroma palette-mode flag.
+    /// </summary>
+    /// <param name="usePalette">Indicates whether the block uses chroma palette prediction.</param>
+    /// <param name="hasLumaPalette">Indicates whether the current block uses a luma palette.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetPaletteUvModeCost(bool usePalette, bool hasLumaPalette)
+    {
+        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
+        return Av1ProbabilityCost.GetSymbolCost(
+            context.UvMode[hasLumaPalette ? 1 : 0],
+            usePalette ? 1 : 0);
+    }
+
+    /// <summary>
+    /// Writes the chroma palette-mode flag.
+    /// </summary>
+    /// <param name="usePalette">Indicates whether the block uses chroma palette prediction.</param>
+    /// <param name="hasLumaPalette">Indicates whether the current block uses a luma palette.</param>
+    public void WritePaletteUvMode(bool usePalette, bool hasLumaPalette)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
+        w.WriteSymbol(usePalette, context.UvMode[hasLumaPalette ? 1 : 0]);
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point cost of a palette-size symbol.
+    /// </summary>
+    /// <param name="paletteSize">The palette size in the range from two through eight.</param>
+    /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetPaletteSizeCost(int paletteSize, int blockSizeContext, Av1PlaneType planeType)
+    {
+        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
+        Av1Distribution distribution = planeType == Av1PlaneType.Y
+            ? context.YSize[blockSizeContext]
+            : context.UvSize[blockSizeContext];
+
+        return Av1ProbabilityCost.GetSymbolCost(distribution, paletteSize - 2);
+    }
+
+    /// <summary>
+    /// Writes a palette-size symbol.
+    /// </summary>
+    /// <param name="paletteSize">The palette size in the range from two through eight.</param>
+    /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    public void WritePaletteSize(int paletteSize, int blockSizeContext, Av1PlaneType planeType)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
+        Av1Distribution distribution = planeType == Av1PlaneType.Y
+            ? context.YSize[blockSizeContext]
+            : context.UvSize[blockSizeContext];
+
+        w.WriteSymbol(paletteSize - 2, distribution);
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point cost of a palette color-order index.
+    /// </summary>
+    /// <param name="colorOrderIndex">The index in the context-specific palette color order.</param>
+    /// <param name="paletteSize">The number of colors in the palette.</param>
+    /// <param name="colorContext">The color-index context derived from preceding spatial indices.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetPaletteColorIndexCost(
+        int colorOrderIndex,
+        int paletteSize,
+        int colorContext,
+        Av1PlaneType planeType)
+    {
+        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
+        Av1Distribution distribution = planeType == Av1PlaneType.Y
+            ? context.YColorIndex[paletteSize - 2][colorContext]
+            : context.UvColorIndex[paletteSize - 2][colorContext];
+
+        return Av1ProbabilityCost.GetSymbolCost(distribution, colorOrderIndex);
+    }
+
+    /// <summary>
+    /// Writes a palette color-order index.
+    /// </summary>
+    /// <param name="colorOrderIndex">The index in the context-specific palette color order.</param>
+    /// <param name="paletteSize">The number of colors in the palette.</param>
+    /// <param name="colorContext">The color-index context derived from preceding spatial indices.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    public void WritePaletteColorIndex(
+        int colorOrderIndex,
+        int paletteSize,
+        int colorContext,
+        Av1PlaneType planeType)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
+        Av1Distribution distribution = planeType == Av1PlaneType.Y
+            ? context.YColorIndex[paletteSize - 2][colorContext]
+            : context.UvColorIndex[paletteSize - 2][colorContext];
+
+        w.WriteSymbol(colorOrderIndex, distribution);
     }
 
     /// <summary>
@@ -1223,5 +1406,41 @@ internal class Av1SymbolEncoder : IDisposable
             uint value,
             int bitCount)
             => Av1ProbabilityCost.GetLiteralCost(bitCount);
+    }
+
+    /// <summary>
+    /// Owns the adaptive distributions used only by AV1 palette syntax.
+    /// </summary>
+    private sealed class PaletteEntropyContext
+    {
+        /// <summary>
+        /// Gets the luma palette-mode distributions.
+        /// </summary>
+        public Av1Distribution[][] YMode { get; } = Av1DefaultDistributions.PaletteYMode;
+
+        /// <summary>
+        /// Gets the chroma palette-mode distributions.
+        /// </summary>
+        public Av1Distribution[] UvMode { get; } = Av1DefaultDistributions.PaletteUvMode;
+
+        /// <summary>
+        /// Gets the luma palette-size distributions.
+        /// </summary>
+        public Av1Distribution[] YSize { get; } = Av1DefaultDistributions.PaletteYSize;
+
+        /// <summary>
+        /// Gets the chroma palette-size distributions.
+        /// </summary>
+        public Av1Distribution[] UvSize { get; } = Av1DefaultDistributions.PaletteUvSize;
+
+        /// <summary>
+        /// Gets the luma palette color-index distributions.
+        /// </summary>
+        public Av1Distribution[][] YColorIndex { get; } = Av1DefaultDistributions.PaletteYColorIndex;
+
+        /// <summary>
+        /// Gets the chroma palette color-index distributions.
+        /// </summary>
+        public Av1Distribution[][] UvColorIndex { get; } = Av1DefaultDistributions.PaletteUvColorIndex;
     }
 }

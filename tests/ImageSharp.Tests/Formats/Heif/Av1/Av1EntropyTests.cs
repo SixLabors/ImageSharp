@@ -1009,6 +1009,142 @@ public class Av1EntropyTests
         Assert.Equal(expectedValues, values);
     }
 
+    [Fact]
+    public void RoundTripUniformPaletteIndices()
+    {
+        Configuration configuration = Configuration.Default;
+        using Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex);
+
+        for (int valueCount = 2; valueCount <= Av1Constants.PaletteMaxSize; valueCount++)
+        {
+            for (int value = 0; value < valueCount; value++)
+            {
+                encoder.WriteUniform(valueCount, value);
+            }
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+        Av1SymbolDecoder decoder = new(configuration, encoded.GetSpan(), BaseQIndex);
+        for (int valueCount = 2; valueCount <= Av1Constants.PaletteMaxSize; valueCount++)
+        {
+            for (int value = 0; value < valueCount; value++)
+            {
+                Assert.Equal(value, decoder.ReadUniform(valueCount));
+            }
+        }
+    }
+
+    [Fact]
+    public void RoundTripPaletteSymbols()
+    {
+        Configuration configuration = Configuration.Default;
+        using Av1SymbolEncoder encoder = new(configuration, 256, BaseQIndex);
+
+        for (int blockSizeContext = 0; blockSizeContext < 7; blockSizeContext++)
+        {
+            for (int neighborContext = 0; neighborContext < 3; neighborContext++)
+            {
+                encoder.WritePaletteYMode(
+                    ((blockSizeContext + neighborContext) & 1) != 0,
+                    blockSizeContext,
+                    neighborContext);
+            }
+
+            int paletteSize = blockSizeContext + 2;
+            encoder.WritePaletteSize(paletteSize, blockSizeContext, Av1PlaneType.Y);
+            encoder.WritePaletteSize(Av1Constants.PaletteMaxSize - blockSizeContext, blockSizeContext, Av1PlaneType.Uv);
+        }
+
+        encoder.WritePaletteUvMode(false, false);
+        encoder.WritePaletteUvMode(true, false);
+        encoder.WritePaletteUvMode(false, true);
+        encoder.WritePaletteUvMode(true, true);
+        for (int paletteSize = 2; paletteSize <= Av1Constants.PaletteMaxSize; paletteSize++)
+        {
+            for (int colorContext = 0; colorContext < 5; colorContext++)
+            {
+                int colorOrderIndex = (paletteSize + colorContext - 1) % paletteSize;
+                encoder.WritePaletteColorIndex(colorOrderIndex, paletteSize, colorContext, Av1PlaneType.Y);
+                encoder.WritePaletteColorIndex(colorOrderIndex, paletteSize, colorContext, Av1PlaneType.Uv);
+            }
+        }
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+        Av1SymbolDecoder decoder = new(configuration, encoded.GetSpan(), BaseQIndex);
+        for (int blockSizeContext = 0; blockSizeContext < 7; blockSizeContext++)
+        {
+            for (int neighborContext = 0; neighborContext < 3; neighborContext++)
+            {
+                Assert.Equal(
+                    ((blockSizeContext + neighborContext) & 1) != 0,
+                    decoder.ReadPaletteYMode(blockSizeContext, neighborContext));
+            }
+
+            Assert.Equal(blockSizeContext + 2, decoder.ReadPaletteSize(blockSizeContext, Av1PlaneType.Y));
+            Assert.Equal(
+                Av1Constants.PaletteMaxSize - blockSizeContext,
+                decoder.ReadPaletteSize(blockSizeContext, Av1PlaneType.Uv));
+        }
+
+        Assert.False(decoder.ReadPaletteUvMode(false));
+        Assert.True(decoder.ReadPaletteUvMode(false));
+        Assert.False(decoder.ReadPaletteUvMode(true));
+        Assert.True(decoder.ReadPaletteUvMode(true));
+        for (int paletteSize = 2; paletteSize <= Av1Constants.PaletteMaxSize; paletteSize++)
+        {
+            for (int colorContext = 0; colorContext < 5; colorContext++)
+            {
+                int expected = (paletteSize + colorContext - 1) % paletteSize;
+                Assert.Equal(
+                    expected,
+                    decoder.ReadPaletteColorIndex(paletteSize, colorContext, Av1PlaneType.Y));
+
+                Assert.Equal(
+                    expected,
+                    decoder.ReadPaletteColorIndex(paletteSize, colorContext, Av1PlaneType.Uv));
+            }
+        }
+    }
+
+    [Fact]
+    public void PaletteSyntaxCostsMatchCurrentDistributions()
+    {
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
+        Av1Distribution[][] yMode = Av1DefaultDistributions.PaletteYMode;
+        Av1Distribution[] uvMode = Av1DefaultDistributions.PaletteUvMode;
+        Av1Distribution[] ySize = Av1DefaultDistributions.PaletteYSize;
+        Av1Distribution[] uvSize = Av1DefaultDistributions.PaletteUvSize;
+        Av1Distribution[][] yColorIndex = Av1DefaultDistributions.PaletteYColorIndex;
+        Av1Distribution[][] uvColorIndex = Av1DefaultDistributions.PaletteUvColorIndex;
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(yMode[4][2], 1),
+            encoder.GetPaletteYModeCost(true, 4, 2));
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(uvMode[1], 0),
+            encoder.GetPaletteUvModeCost(false, true));
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(ySize[3], 4),
+            encoder.GetPaletteSizeCost(6, 3, Av1PlaneType.Y));
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(uvSize[5], 1),
+            encoder.GetPaletteSizeCost(3, 5, Av1PlaneType.Uv));
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(yColorIndex[6][4], 7),
+            encoder.GetPaletteColorIndexCost(7, 8, 4, Av1PlaneType.Y));
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(uvColorIndex[3][2], 4),
+            encoder.GetPaletteColorIndexCost(4, 5, 2, Av1PlaneType.Uv));
+
+        Assert.Equal(Av1ProbabilityCost.GetLiteralCost(2), Av1SymbolEncoder.GetUniformCost(5, 2));
+        Assert.Equal(Av1ProbabilityCost.GetLiteralCost(3), Av1SymbolEncoder.GetUniformCost(5, 3));
+    }
+
     [Theory]
     [MemberData(nameof(GetRangeData), 20)]
     public void RoundTripPartitionType(int context)

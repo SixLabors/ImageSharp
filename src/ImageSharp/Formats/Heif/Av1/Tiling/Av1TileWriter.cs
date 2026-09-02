@@ -1157,24 +1157,12 @@ internal partial class Av1TileWriter
         int tileIndex,
         bool hasChroma)
     {
-        int blockSizeContext = Av1Math.Log2(blockSize.GetWidth() * blockSize.GetHeight()) - 6;
+        int blockSizeContext = GetPaletteBlockSizeContext(blockSize);
         Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts = pcs.PaletteContexts[tileIndex];
         int yPaletteSize = paletteInfo.PaletteSizes[0];
         if (macroBlockModeInfo.Block.Mode == Av1PredictionMode.DC)
         {
-            int neighborContext = 0;
-            if (macroBlock.IsUpAvailable &&
-                paletteContexts.Top[paletteContexts.GetTopIndex(blockOrigin)].PaletteSizes[0] != 0)
-            {
-                neighborContext++;
-            }
-
-            if (macroBlock.IsLeftAvailable &&
-                paletteContexts.Left[paletteContexts.GetLeftIndex(blockOrigin)].PaletteSizes[0] != 0)
-            {
-                neighborContext++;
-            }
-
+            int neighborContext = GetPaletteYModeContext(paletteContexts, macroBlock, blockOrigin);
             writer.WritePaletteYMode(yPaletteSize != 0, blockSizeContext, neighborContext);
             if (yPaletteSize != 0)
             {
@@ -1223,7 +1211,7 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Builds the sorted palette-color cache from the available above and left encoder edges.
     /// </summary>
-    private static int GetPaletteCache(
+    internal static int GetPaletteCache(
         Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts,
         Av1MacroBlockD macroBlock,
         Point blockOrigin,
@@ -1245,6 +1233,36 @@ internal partial class Av1TileWriter
         ReadOnlySpan<ushort> aboveColors = hasAbove ? above.GetColors(plane) : [];
         ReadOnlySpan<ushort> leftColors = macroBlock.IsLeftAvailable ? left.GetColors(plane) : [];
         return Av1PaletteCache.Merge(aboveColors, leftColors, cache);
+    }
+
+    /// <summary>
+    /// Gets the palette probability context derived from the logarithmic block area.
+    /// </summary>
+    internal static int GetPaletteBlockSizeContext(Av1BlockSize blockSize)
+        => Av1Math.Log2(blockSize.GetWidth() * blockSize.GetHeight()) - 6;
+
+    /// <summary>
+    /// Counts the available above and left luma neighbors that selected palette mode.
+    /// </summary>
+    internal static int GetPaletteYModeContext(
+        Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts,
+        Av1MacroBlockD macroBlock,
+        Point blockOrigin)
+    {
+        int neighborContext = 0;
+        if (macroBlock.IsUpAvailable &&
+            paletteContexts.Top[paletteContexts.GetTopIndex(blockOrigin)].PaletteSizes[0] != 0)
+        {
+            neighborContext++;
+        }
+
+        if (macroBlock.IsLeftAvailable &&
+            paletteContexts.Left[paletteContexts.GetLeftIndex(blockOrigin)].PaletteSizes[0] != 0)
+        {
+            neighborContext++;
+        }
+
+        return neighborContext;
     }
 
     /// <summary>

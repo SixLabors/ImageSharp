@@ -193,6 +193,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 tileIndex,
                 lumaCoefficients[this.codedAreaLuma..],
                 ref lumaState,
+                ref paletteInfo,
                 out int lumaAngleDelta,
                 out Av1FilterIntraMode filterIntraMode);
 
@@ -348,6 +349,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ushort tileIndex,
             Span<int> retainedCoefficients,
             ref Av1EncoderTransformBlockState retainedState,
+            ref Av1EncoderPaletteInfo paletteInfo,
             out int selectedAngleDelta,
             out Av1FilterIntraMode selectedFilterIntraMode)
         {
@@ -463,6 +465,22 @@ internal static partial class Av1IntraSuperblockEncoder
                 BlockSize,
                 TransformSize);
 
+            int paletteDisabledCost = 0;
+            if (this.picture.Parent.FrameHeader.AllowScreenContentTools)
+            {
+                Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts = this.picture.PaletteContexts[tileIndex];
+                int blockSizeContext = Av1TileWriter.GetPaletteBlockSizeContext(BlockSize);
+                int neighborContext = Av1TileWriter.GetPaletteYModeContext(
+                    paletteContexts,
+                    macroBlock,
+                    blockOrigin);
+
+                paletteDisabledCost = writer.GetPaletteYModeCost(
+                    false,
+                    blockSizeContext,
+                    neighborContext);
+            }
+
             Span<TSample> candidateReconstruction = stackalloc TSample[SampleCount];
             Span<int> candidateCoefficients = stackalloc int[SampleCount];
             long bestCost = long.MaxValue;
@@ -515,6 +533,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     angleDelta,
                     defaultTransformType,
                     blockContext,
+                    paletteDisabledCost,
                     candidateReconstruction,
                     candidateCoefficients,
                     ref candidateState);
@@ -563,6 +582,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     selectedAngleDelta,
                     transformType,
                     blockContext,
+                    paletteDisabledCost,
                     candidateReconstruction,
                     candidateCoefficients,
                     ref candidateState);
@@ -626,6 +646,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             filterIntraMode,
                             transformType,
                             blockContext,
+                            paletteDisabledCost,
                             candidateReconstruction,
                             candidateCoefficients,
                             ref candidateState);
@@ -651,6 +672,28 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
+            if (this.picture.Parent.FrameHeader.AllowScreenContentTools &&
+                this.SelectLumaPalette(
+                    writer,
+                    macroBlock,
+                    sourcePlane,
+                    reconstructionPlane,
+                    blockOrigin,
+                    tileIndex,
+                    transformSetType,
+                    blockContext,
+                    candidateReconstruction,
+                    candidateCoefficients,
+                    retainedCoefficients,
+                    ref retainedState,
+                    ref bestTransformCost,
+                    ref paletteInfo))
+            {
+                bestMode = Av1PredictionMode.DC;
+                selectedAngleDelta = 0;
+                selectedFilterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
+            }
+
             return bestMode;
         }
 
@@ -667,6 +710,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int angleDelta,
             Av1TransformType transformType,
             Av1TransformBlockContext blockContext,
+            int paletteDisabledCost,
             Span<TSample> candidateReconstruction,
             Span<int> candidateCoefficients,
             ref Av1EncoderTransformBlockState candidateState)
@@ -695,6 +739,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref candidateState);
 
             int rate = Av1TileWriter.GetLumaModeCost(writer, macroBlock, BlockSize, mode, angleDelta);
+            if (mode == Av1PredictionMode.DC)
+            {
+                rate += paletteDisabledCost;
+            }
+
             if (mode == Av1PredictionMode.DC && this.picture.Sequence.SequenceHeader.EnableFilterIntra)
             {
                 rate += writer.GetFilterIntraModeCost(Av1FilterIntraMode.AllFilterIntraModes, BlockSize);
@@ -724,6 +773,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1FilterIntraMode filterIntraMode,
             Av1TransformType transformType,
             Av1TransformBlockContext blockContext,
+            int paletteDisabledCost,
             Span<TSample> candidateReconstruction,
             Span<int> candidateCoefficients,
             ref Av1EncoderTransformBlockState candidateState)
@@ -754,6 +804,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1PredictionMode.DC,
                 0);
 
+            rate += paletteDisabledCost;
             rate += writer.GetFilterIntraModeCost(filterIntraMode, BlockSize);
             rate += writer.GetCoefficientCost(
                 TransformSize,

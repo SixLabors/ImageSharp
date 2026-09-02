@@ -59,7 +59,7 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
     public ref Av1EncoderPaletteInfo PaletteInfo => ref this.paletteInfo;
 
     /// <summary>
-    /// Gets the reusable palette maps, allocating their shared owner only after a block selects palette mode.
+    /// Gets the reusable palette maps, allocating their shared owner only after a block enters palette search.
     /// </summary>
     /// <returns>The reusable luma and chroma palette maps.</returns>
     public Av1EncoderPaletteMapBuffer GetPaletteMaps()

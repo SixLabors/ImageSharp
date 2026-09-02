@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -36,6 +37,40 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="value">The sample value.</param>
         /// <returns>The converted sample.</returns>
         public static abstract TSample CreateSample(int value);
+
+        /// <summary>
+        /// Copies active palette-search samples into contiguous signed storage.
+        /// </summary>
+        /// <param name="source">The coded source plane.</param>
+        /// <param name="blockOrigin">The block origin in plane samples.</param>
+        /// <param name="rows">The active row count.</param>
+        /// <param name="columns">The active column count.</param>
+        /// <param name="samples">The contiguous sample destination.</param>
+        public static abstract void CopyPaletteSamples(
+            Buffer2DRegion<TSample> source,
+            Point blockOrigin,
+            int rows,
+            int columns,
+            Span<short> samples);
+
+        /// <summary>
+        /// Builds palette prediction and the matching source residual for transform search.
+        /// </summary>
+        /// <param name="source">The coded source plane.</param>
+        /// <param name="blockOrigin">The block origin in plane samples.</param>
+        /// <param name="paletteColors">The palette colors in index order.</param>
+        /// <param name="colorIndexMap">The complete padded color-index map.</param>
+        /// <param name="prediction">The contiguous prediction destination.</param>
+        /// <param name="residual">The contiguous source-minus-prediction destination.</param>
+        /// <param name="transformSize">The prediction dimensions.</param>
+        public static abstract void PreparePalette(
+            Buffer2DRegion<TSample> source,
+            Point blockOrigin,
+            ReadOnlySpan<ushort> paletteColors,
+            Buffer2DRegion<byte> colorIndexMap,
+            Span<TSample> prediction,
+            Span<short> residual,
+            Av1TransformSize transformSize);
 
         /// <summary>
         /// Builds the zero-mean Q3 luma surface shared by chroma-from-luma candidates.
@@ -265,6 +300,71 @@ internal static partial class Av1IntraSuperblockEncoder
         public static byte CreateSample(int value) => (byte)value;
 
         /// <inheritdoc/>
+        public static void CopyPaletteSamples(
+            Buffer2DRegion<byte> source,
+            Point blockOrigin,
+            int rows,
+            int columns,
+            Span<short> samples)
+        {
+            int sampleOffset = 0;
+            for (int row = 0; row < rows; row++)
+            {
+                ReadOnlySpan<byte> sourceRow = source
+                    .DangerousGetRowSpan(blockOrigin.Y + row)
+                    .Slice(blockOrigin.X, columns);
+
+                // A complete row widens in one vector; clipped edge rows retain scalar bounds.
+                if (columns == 8 && Vector128.IsHardwareAccelerated)
+                {
+                    ulong packed = MemoryMarshal.Read<ulong>(sourceRow);
+                    Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsByte())
+                        .AsInt16()
+                        .CopyTo(samples[sampleOffset..]);
+
+                    sampleOffset += columns;
+                    continue;
+                }
+
+                for (int column = 0; column < sourceRow.Length; column++)
+                {
+                    samples[sampleOffset++] = sourceRow[column];
+                }
+            }
+        }
+
+        /// <inheritdoc/>
+        public static void PreparePalette(
+            Buffer2DRegion<byte> source,
+            Point blockOrigin,
+            ReadOnlySpan<ushort> paletteColors,
+            Buffer2DRegion<byte> colorIndexMap,
+            Span<byte> prediction,
+            Span<short> residual,
+            Av1TransformSize transformSize)
+        {
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+            Av1PalettePredictor.Predict(
+                paletteColors,
+                colorIndexMap,
+                prediction,
+                width,
+                width,
+                height);
+
+            Av1ResidualBuilder.Subtract(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                source.Stride,
+                prediction,
+                width,
+                residual,
+                width,
+                width,
+                height);
+        }
+
+        /// <inheritdoc/>
         public static void PrepareChromaFromLuma(
             Buffer2DRegion<byte> reconstruction,
             Point blockOrigin,
@@ -492,6 +592,57 @@ internal static partial class Av1IntraSuperblockEncoder
 
         /// <inheritdoc/>
         public static ushort CreateSample(int value) => (ushort)value;
+
+        /// <inheritdoc/>
+        public static void CopyPaletteSamples(
+            Buffer2DRegion<ushort> source,
+            Point blockOrigin,
+            int rows,
+            int columns,
+            Span<short> samples)
+        {
+            int sampleOffset = 0;
+            for (int row = 0; row < rows; row++)
+            {
+                ReadOnlySpan<ushort> sourceRow = source
+                    .DangerousGetRowSpan(blockOrigin.Y + row)
+                    .Slice(blockOrigin.X, columns);
+
+                MemoryMarshal.Cast<ushort, short>(sourceRow).CopyTo(samples[sampleOffset..]);
+                sampleOffset += sourceRow.Length;
+            }
+        }
+
+        /// <inheritdoc/>
+        public static void PreparePalette(
+            Buffer2DRegion<ushort> source,
+            Point blockOrigin,
+            ReadOnlySpan<ushort> paletteColors,
+            Buffer2DRegion<byte> colorIndexMap,
+            Span<ushort> prediction,
+            Span<short> residual,
+            Av1TransformSize transformSize)
+        {
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+            Av1PalettePredictor.Predict(
+                paletteColors,
+                colorIndexMap,
+                MemoryMarshal.Cast<ushort, short>(prediction),
+                width,
+                width,
+                height);
+
+            Av1ResidualBuilder.Subtract(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                source.Stride,
+                prediction,
+                width,
+                residual,
+                width,
+                width,
+                height);
+        }
 
         /// <inheritdoc/>
         public static void PrepareChromaFromLuma(

@@ -716,6 +716,70 @@ public class Av1IntraSuperblockEncoderTests
         Assert.False(payloads[0].SequenceEqual(payloads[1]));
     }
 
+    [Fact]
+    public void ProductionTileSelectsExactLumaPaletteAtFullAndClippedSizes()
+    {
+        AssertProductionTileSelectsExactLumaPalette(
+            Av1BitDepth.EightBit,
+            8,
+            8,
+            8,
+            (byte)32,
+            (byte)224,
+            32,
+            224,
+            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new Av1IntraTileWriter(
+                    Configuration.Default,
+                    source,
+                    reconstruction,
+                    picture,
+                    coefficients,
+                    superblockWorkspace,
+                    blockWorkspace,
+                    initialSize: 256));
+
+        AssertProductionTileSelectsExactLumaPalette(
+            Av1BitDepth.TwelveBit,
+            12,
+            8,
+            8,
+            (ushort)512,
+            (ushort)3584,
+            512,
+            3584,
+            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new Av1IntraTileWriter(
+                    Configuration.Default,
+                    source,
+                    reconstruction,
+                    picture,
+                    coefficients,
+                    superblockWorkspace,
+                    blockWorkspace,
+                    initialSize: 256));
+
+        AssertProductionTileSelectsExactLumaPalette(
+            Av1BitDepth.EightBit,
+            8,
+            5,
+            3,
+            (byte)48,
+            (byte)208,
+            48,
+            208,
+            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new Av1IntraTileWriter(
+                    Configuration.Default,
+                    source,
+                    reconstruction,
+                    picture,
+                    coefficients,
+                    superblockWorkspace,
+                    blockWorkspace,
+                    initialSize: 256));
+    }
+
     [Theory]
     [InlineData((int)Av1PredictionMode.Vertical, 0)]
     [InlineData((int)Av1PredictionMode.Horizontal, 0)]
@@ -1833,6 +1897,120 @@ public class Av1IntraSuperblockEncoderTests
             Disallow4x4AllFrames = modeInfo.Disallow4x4AllFrames,
             CdefPreset = [[-1, -1, -1, -1]]
         };
+    }
+
+    private static void AssertProductionTileSelectsExactLumaPalette<TSample>(
+        Av1BitDepth bitDepth,
+        int bitDepthValue,
+        int width,
+        int height,
+        TSample lowerColor,
+        TSample upperColor,
+        ushort expectedLowerColor,
+        ushort expectedUpperColor,
+        TileWriterFactory<TSample> createTileWriter)
+        where TSample : unmanaged
+    {
+        const int QIndex = 37;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = true,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = bitDepth
+        };
+
+        using Av1EncoderFrameBuffer<TSample> source = new(
+            Configuration.Default,
+            width,
+            height,
+            bitDepthValue,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        using Av1EncoderFrameBuffer<TSample> reconstruction = new(
+            Configuration.Default,
+            width,
+            height,
+            bitDepthValue,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        Buffer2DRegion<TSample> sourcePlane = source.Frame.CodedView.GetPlane(Av1Plane.Y);
+        for (int row = 0; row < sourcePlane.Height; row++)
+        {
+            int visibleRow = Math.Min(row, height - 1);
+            sourcePlane.DangerousGetRowSpan(row).Fill(visibleRow < height / 2 ? lowerColor : upperColor);
+        }
+
+        ClearPlane(reconstruction.Luma);
+        using Av1EncoderModeInfoBuffer modeInfo = new(
+            Configuration.Default,
+            width,
+            height,
+            disallow4x4AllFrames: true);
+
+        Av1PictureControlSet pictureTemplate = CreatePicture(
+            modeInfo,
+            colorConfig,
+            use128x128Superblock: false,
+            QIndex);
+
+        pictureTemplate.Parent.FrameHeader.AllowScreenContentTools = true;
+        pictureTemplate.Parent.FrameHeader.FrameSize.FrameWidth = width;
+        pictureTemplate.Parent.FrameHeader.FrameSize.FrameHeight = height;
+        using Av1EncoderPictureBuffer picture = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            pictureTemplate.Parent.FrameHeader,
+            width,
+            height);
+
+        using Av1EncoderCoefficientBuffer coefficients = new(
+            Configuration.Default,
+            pictureTemplate.Sequence.SequenceHeader,
+            width,
+            height);
+
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        using Av1IntraTileWriter tileWriter = createTileWriter(
+            source.Frame,
+            reconstruction.Frame,
+            picture.Picture,
+            coefficients,
+            superblockWorkspace,
+            blockWorkspace);
+
+        ref Av1MacroBlockModeInfo mode = ref picture.Picture.GetMacroBlockModeInfo(default);
+        Assert.Equal(Av1PredictionMode.DC, mode.Block.Mode);
+        Assert.Equal(Av1FilterIntraMode.AllFilterIntraModes, superblockWorkspace.FinalBlocks[0].FilterIntraMode);
+        Assert.Equal((ushort)0, coefficients.GetTransformBlockSpan(0, Av1Plane.Y)[0].EndOfBlock);
+        Assert.Equal(2, superblockWorkspace.PaletteInfo.PaletteSizes[0]);
+        Assert.Equal(
+            [expectedLowerColor, expectedUpperColor],
+            superblockWorkspace.PaletteInfo.GetColors(Av1Plane.Y).ToArray());
+
+        Buffer2DRegion<byte> colorIndexMap = superblockWorkspace
+            .GetPaletteMaps()
+            .GetMap(Av1PlaneType.Y, 8, 8);
+
+        Buffer2DRegion<TSample> reconstructionPlane = reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y);
+        for (int row = 0; row < reconstructionPlane.Height; row++)
+        {
+            int visibleRow = Math.Min(row, height - 1);
+            byte expectedIndex = (byte)(visibleRow < height / 2 ? 0 : 1);
+            foreach (byte index in colorIndexMap.DangerousGetRowSpan(row))
+            {
+                Assert.Equal(expectedIndex, index);
+            }
+
+            Assert.True(sourcePlane.DangerousGetRowSpan(row).SequenceEqual(reconstructionPlane.DangerousGetRowSpan(row)));
+        }
+
+        Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
     }
 
     private static void FillChromaModeSelectionPlane(

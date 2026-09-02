@@ -2,9 +2,12 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers.Binary;
+using System.Text;
+using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Heif;
@@ -303,7 +306,7 @@ internal sealed class HeifEncoderCore
     /// <param name="memoryOffset">The destination offset within the metadata box.</param>
     /// <param name="items">The items whose dimensions are written and associated.</param>
     /// <returns>The complete item-properties-box length.</returns>
-    private static int WriteItemPropertiesBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items)
+    public static int WriteItemPropertiesBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items)
     {
         Span<byte> buffer = memory.GetSpan(memoryOffset, 20);
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Iprp);
@@ -314,12 +317,50 @@ internal sealed class HeifEncoderCore
         foreach (HeifItem item in items)
         {
             bytesWritten += WriteSpatialExtentPropertyBox(memory, memoryOffset + bytesWritten, item);
+
+            byte[]? channelBitDepths = item.ChannelBitDepths;
+            if (channelBitDepths is not null)
+            {
+                bytesWritten += WritePixelInformationPropertyBox(memory, memoryOffset + bytesWritten, channelBitDepths);
+            }
+
+            Av1CodecConfiguration? codecConfiguration = item.Av1CodecConfiguration;
+            if (codecConfiguration is not null)
+            {
+                bytesWritten += WriteAv1CodecConfigurationPropertyBox(memory, memoryOffset + bytesWritten, codecConfiguration);
+            }
+
+            string? auxiliaryType = item.AuxiliaryType;
+            if (auxiliaryType is not null)
+            {
+                bytesWritten += WriteAuxiliaryTypePropertyBox(memory, memoryOffset + bytesWritten, auxiliaryType);
+            }
+
+            CicpProfile? cicpProfile = item.CicpProfile;
+            if (cicpProfile is not null)
+            {
+                bytesWritten += WriteColorInformationPropertyBox(memory, memoryOffset + bytesWritten, cicpProfile);
+            }
         }
 
+        buffer = memory.GetSpan(memoryOffset, bytesWritten);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[ipcoLengthOffset..], (uint)(bytesWritten - ipcoLengthOffset));
-        bool largePropertyIndex = items.Count > 0x7F;
-        int propertyIndexSize = largePropertyIndex ? 2 : 1;
-        buffer = memory.GetSpan(memoryOffset, bytesWritten + 16 + ((3 + propertyIndexSize) * items.Count));
+        int propertyCount = 0;
+        int associationBoxCapacity = 16;
+        foreach (HeifItem item in items)
+        {
+            int itemPropertyCount = GetPropertyCount(item);
+            propertyCount += itemPropertyCount;
+            associationBoxCapacity += 3 + itemPropertyCount;
+        }
+
+        bool largePropertyIndex = propertyCount > 0x7F;
+        if (largePropertyIndex)
+        {
+            associationBoxCapacity += propertyCount;
+        }
+
+        buffer = memory.GetSpan(memoryOffset, bytesWritten + associationBoxCapacity);
 
         // ipma uses a 15-bit index only when the property table cannot fit in the compact seven-bit form.
         int ipmaLengthOffset = bytesWritten;
@@ -331,23 +372,170 @@ internal sealed class HeifEncoderCore
         {
             BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)item.Id);
             bytesWritten += 2;
-            buffer[bytesWritten++] = 1;
-            if (largePropertyIndex)
+
+            int itemPropertyCount = GetPropertyCount(item);
+            buffer[bytesWritten++] = (byte)itemPropertyCount;
+            WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
+
+            if (item.ChannelBitDepths is not null)
             {
-                BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], propertyIndex);
-                bytesWritten += 2;
-            }
-            else
-            {
-                buffer[bytesWritten++] = (byte)propertyIndex;
+                WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
             }
 
-            propertyIndex++;
+            if (item.Av1CodecConfiguration is not null)
+            {
+                WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, true);
+            }
+
+            if (item.AuxiliaryType is not null)
+            {
+                WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
+            }
+
+            if (item.CicpProfile is not null)
+            {
+                WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
+            }
         }
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer[ipmaLengthOffset..], (uint)(bytesWritten - ipmaLengthOffset));
 
         // Update size of enclosing 'iprp' box.
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
+        return bytesWritten;
+    }
+
+    /// <summary>
+    /// Gets the number of properties emitted for an item.
+    /// </summary>
+    /// <param name="item">The item whose populated properties are counted.</param>
+    /// <returns>The number of emitted properties.</returns>
+    private static int GetPropertyCount(HeifItem item)
+    {
+        int count = 1;
+        count += item.ChannelBitDepths is not null ? 1 : 0;
+        count += item.Av1CodecConfiguration is not null ? 1 : 0;
+        count += item.AuxiliaryType is not null ? 1 : 0;
+        count += item.CicpProfile is not null ? 1 : 0;
+        return count;
+    }
+
+    /// <summary>
+    /// Writes one compact or extended property association.
+    /// </summary>
+    /// <param name="buffer">The item-property-association destination.</param>
+    /// <param name="offset">The current destination offset, advanced past the association.</param>
+    /// <param name="propertyIndex">The one-based property index.</param>
+    /// <param name="largePropertyIndex">Whether the association uses a 15-bit property index.</param>
+    /// <param name="essential">Whether decoding the item requires understanding this property.</param>
+    private static void WritePropertyAssociation(
+        Span<byte> buffer,
+        ref int offset,
+        ushort propertyIndex,
+        bool largePropertyIndex,
+        bool essential)
+    {
+        if (largePropertyIndex)
+        {
+            ushort association = essential ? (ushort)(propertyIndex | 0x8000) : propertyIndex;
+            BinaryPrimitives.WriteUInt16BigEndian(buffer[offset..], association);
+            offset += 2;
+        }
+        else
+        {
+            buffer[offset++] = essential ? (byte)(propertyIndex | 0x80) : (byte)propertyIndex;
+        }
+    }
+
+    /// <summary>
+    /// Writes the encoded precision of each image channel.
+    /// </summary>
+    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memoryOffset">The destination offset within the property container.</param>
+    /// <param name="channelBitDepths">The encoded precision of each channel.</param>
+    /// <returns>The complete pixel-information-box length.</returns>
+    private static int WritePixelInformationPropertyBox(
+        AutoExpandingMemory<byte> memory,
+        int memoryOffset,
+        ReadOnlySpan<byte> channelBitDepths)
+    {
+        Span<byte> buffer = memory.GetSpan(memoryOffset, 13 + channelBitDepths.Length);
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Pixi, 0, 0);
+        buffer[bytesWritten++] = (byte)channelBitDepths.Length;
+        channelBitDepths.CopyTo(buffer[bytesWritten..]);
+        bytesWritten += channelBitDepths.Length;
+
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
+        return bytesWritten;
+    }
+
+    /// <summary>
+    /// Writes an AV1 codec-configuration property.
+    /// </summary>
+    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memoryOffset">The destination offset within the property container.</param>
+    /// <param name="configuration">The fixed image configuration.</param>
+    /// <returns>The complete AV1 codec-configuration-box length.</returns>
+    private static int WriteAv1CodecConfigurationPropertyBox(
+        AutoExpandingMemory<byte> memory,
+        int memoryOffset,
+        Av1CodecConfiguration configuration)
+    {
+        Span<byte> buffer = memory.GetSpan(memoryOffset, 8 + Av1CodecConfiguration.FixedHeaderSize);
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Av1C);
+        configuration.WriteFixedHeader(buffer.Slice(bytesWritten, Av1CodecConfiguration.FixedHeaderSize));
+        bytesWritten += Av1CodecConfiguration.FixedHeaderSize;
+
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
+        return bytesWritten;
+    }
+
+    /// <summary>
+    /// Writes the registered type of an auxiliary image item.
+    /// </summary>
+    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memoryOffset">The destination offset within the property container.</param>
+    /// <param name="auxiliaryType">The null-terminated registered auxiliary type.</param>
+    /// <returns>The complete auxiliary-type-box length.</returns>
+    private static int WriteAuxiliaryTypePropertyBox(
+        AutoExpandingMemory<byte> memory,
+        int memoryOffset,
+        string auxiliaryType)
+    {
+        int auxiliaryTypeLength = Encoding.UTF8.GetByteCount(auxiliaryType);
+        Span<byte> buffer = memory.GetSpan(memoryOffset, 13 + auxiliaryTypeLength);
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.AuxC, 0, 0);
+        bytesWritten += Encoding.UTF8.GetBytes(auxiliaryType, buffer[bytesWritten..]);
+        buffer[bytesWritten++] = 0;
+
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
+        return bytesWritten;
+    }
+
+    /// <summary>
+    /// Writes an H.273 color description for a color image item.
+    /// </summary>
+    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memoryOffset">The destination offset within the property container.</param>
+    /// <param name="profile">The color description to write.</param>
+    /// <returns>The complete color-information-box length.</returns>
+    private static int WriteColorInformationPropertyBox(
+        AutoExpandingMemory<byte> memory,
+        int memoryOffset,
+        CicpProfile profile)
+    {
+        Span<byte> buffer = memory.GetSpan(memoryOffset, 19);
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Colr);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Nclx);
+        bytesWritten += 4;
+        BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)profile.ColorPrimaries);
+        bytesWritten += 2;
+        BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)profile.TransferCharacteristics);
+        bytesWritten += 2;
+        BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)profile.MatrixCoefficients);
+        bytesWritten += 2;
+        buffer[bytesWritten++] = profile.FullRange ? (byte)0x80 : (byte)0;
+
         BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
         return bytesWritten;
     }

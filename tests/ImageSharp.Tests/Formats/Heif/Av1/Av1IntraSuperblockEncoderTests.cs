@@ -797,21 +797,23 @@ public class Av1IntraSuperblockEncoderTests
     }
 
     [Theory]
-    [InlineData((int)Av1ChromaPredictionMode.Vertical, 0, (int)Av1ColorFormat.Yuv444)]
-    [InlineData((int)Av1ChromaPredictionMode.Horizontal, 0, (int)Av1ColorFormat.Yuv420)]
-    [InlineData((int)Av1ChromaPredictionMode.Paeth, 0, (int)Av1ColorFormat.Yuv422)]
-    [InlineData((int)Av1ChromaPredictionMode.Directional45Degrees, -3, (int)Av1ColorFormat.Yuv420)]
-    [InlineData((int)Av1ChromaPredictionMode.Directional135Degrees, 3, (int)Av1ColorFormat.Yuv422)]
-    [InlineData((int)Av1ChromaPredictionMode.Directional203Degrees, -3, (int)Av1ColorFormat.Yuv444)]
+    [InlineData((int)Av1ChromaPredictionMode.Vertical, 0, (int)Av1TransformType.AdstDct, (int)Av1ColorFormat.Yuv444)]
+    [InlineData((int)Av1ChromaPredictionMode.Horizontal, 0, (int)Av1TransformType.DctAdst, (int)Av1ColorFormat.Yuv420)]
+    [InlineData((int)Av1ChromaPredictionMode.Paeth, 0, (int)Av1TransformType.AdstAdst, (int)Av1ColorFormat.Yuv422)]
+    [InlineData((int)Av1ChromaPredictionMode.Directional45Degrees, -3, (int)Av1TransformType.DctDct, (int)Av1ColorFormat.Yuv420)]
+    [InlineData((int)Av1ChromaPredictionMode.Directional135Degrees, 3, (int)Av1TransformType.AdstAdst, (int)Av1ColorFormat.Yuv422)]
+    [InlineData((int)Av1ChromaPredictionMode.Directional203Degrees, -3, (int)Av1TransformType.DctAdst, (int)Av1ColorFormat.Yuv444)]
     public void ProductionTileSelectsChromaModeFromCurrentReconstruction(
         int expectedModeValue,
         int expectedAngleDelta,
+        int expectedTransformTypeValue,
         int colorFormatValue)
     {
         const int Width = 16;
         const int Height = 16;
         const int QIndex = 1;
         Av1ChromaPredictionMode expectedMode = (Av1ChromaPredictionMode)expectedModeValue;
+        Av1TransformType expectedTransformType = (Av1TransformType)expectedTransformTypeValue;
         Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
         bool subsamplingX = colorFormat is Av1ColorFormat.Yuv420 or Av1ColorFormat.Yuv422;
         bool subsamplingY = colorFormat == Av1ColorFormat.Yuv420;
@@ -896,6 +898,19 @@ public class Av1IntraSuperblockEncoderTests
             expectedAngleDelta,
             superblockWorkspace.FinalBlocks[3].PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv]);
 
+        int targetTransformIndex = (3 * transformSize.GetSize2d()) /
+            Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+
+        Av1EncoderTransformBlockState blueState =
+            coefficients.GetTransformBlockSpan(0, Av1Plane.U)[targetTransformIndex];
+
+        Av1EncoderTransformBlockState redState =
+            coefficients.GetTransformBlockSpan(0, Av1Plane.V)[targetTransformIndex];
+
+        Assert.NotEqual((ushort)0, blueState.EndOfBlock);
+        Assert.NotEqual((ushort)0, redState.EndOfBlock);
+        Assert.Equal(expectedTransformType, blueState.TransformType);
+        Assert.Equal(expectedTransformType, redState.TransformType);
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
     }
 
@@ -1251,8 +1266,8 @@ public class Av1IntraSuperblockEncoderTests
             }
         }
 
-        // The first three transform-sized quadrants establish the top, left, and corner reconstruction
-        // consumed by the bottom-right target during the real tile traversal.
+        // The first three transform-sized quadrants establish the references consumed by the bottom-right
+        // target. Its checkerboard offset keeps coefficients nonzero so the implicit transform affects the stream.
         for (int row = 0; row < plane.Height; row++)
         {
             Span<byte> destination = plane.DangerousGetRowSpan(row);
@@ -1262,7 +1277,11 @@ public class Av1IntraSuperblockEncoderTests
                     ? column < width ? (byte)128 : above[column - width]
                     : column < width
                         ? left[row - height]
-                        : target[((row - height) * width) + column - width];
+                        : (byte)Math.Clamp(
+                            target[((row - height) * width) + column - width] +
+                                ((((row - height) + column - width) & 1) == 0 ? 5 : -5),
+                            0,
+                            255);
             }
         }
     }

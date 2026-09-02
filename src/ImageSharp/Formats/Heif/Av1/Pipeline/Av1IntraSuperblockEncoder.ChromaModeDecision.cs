@@ -262,6 +262,11 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             Av1PredictionMode predictionMode = chromaMode.ToLumaMode();
+            Av1TransformType transformType = Av1SymbolContextHelper.GetImplicitIntraTransformType(
+                predictionMode,
+                transformSize,
+                this.picture.Parent.FrameHeader.UseReducedTransformSet);
+
             long distortion = TOperator.EncodeCandidate(
                 this.blockWorkspace,
                 blueSource,
@@ -275,6 +280,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 angleDelta,
                 candidateBlueCoefficients,
                 transformSize,
+                transformType,
                 Av1Plane.U,
                 this.quantization.QIndex[0],
                 this.quantization.DeltaQDc[(int)Av1Plane.U],
@@ -295,6 +301,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 angleDelta,
                 candidateRedCoefficients,
                 transformSize,
+                transformType,
                 Av1Plane.V,
                 this.quantization.QIndex[0],
                 this.quantization.DeltaQDc[(int)Av1Plane.V],
@@ -314,7 +321,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             rate += writer.GetCoefficientCost(
                 transformSize,
-                Av1TransformType.DctDct,
+                transformType,
                 lumaMode,
                 candidateBlueCoefficients,
                 Av1ComponentType.Chroma,
@@ -325,7 +332,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             rate += writer.GetCoefficientCost(
                 transformSize,
-                Av1TransformType.DctDct,
+                transformType,
                 lumaMode,
                 candidateRedCoefficients,
                 Av1ComponentType.Chroma,

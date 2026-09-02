@@ -464,6 +464,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 angleDelta,
                 candidateCoefficients,
                 TransformSize,
+                Av1TransformType.DctDct,
                 Av1Plane.Y,
                 this.quantization.QIndex[0],
                 this.quantization.DeltaQDc[(int)Av1Plane.Y],

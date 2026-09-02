@@ -88,6 +88,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="angleDelta">The signed directional-angle adjustment.</param>
         /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
         /// <param name="transformSize">The transform dimensions.</param>
+        /// <param name="transformType">The compound transform applied to the residual.</param>
         /// <param name="plane">The component plane containing the block.</param>
         /// <param name="qIndex">The effective segment quantizer index.</param>
         /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
@@ -108,6 +109,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int angleDelta,
             Span<int> quantizedCoefficients,
             Av1TransformSize transformSize,
+            Av1TransformType transformType,
             Av1Plane plane,
             int qIndex,
             int dcDeltaQ,
@@ -178,6 +180,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int angleDelta,
             Span<int> quantizedCoefficients,
             Av1TransformSize transformSize,
+            Av1TransformType transformType,
             Av1Plane plane,
             int qIndex,
             int dcDeltaQ,
@@ -197,7 +200,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 angleDelta,
                 quantizedCoefficients,
                 transformSize,
-                Av1TransformType.DctDct,
+                transformType,
                 qIndex,
                 dcDeltaQ,
                 acDeltaQ,
@@ -268,6 +271,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int angleDelta,
             Span<int> quantizedCoefficients,
             Av1TransformSize transformSize,
+            Av1TransformType transformType,
             Av1Plane plane,
             int qIndex,
             int dcDeltaQ,
@@ -287,7 +291,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 angleDelta,
                 quantizedCoefficients,
                 transformSize,
-                Av1TransformType.DctDct,
+                transformType,
                 qIndex,
                 dcDeltaQ,
                 acDeltaQ,

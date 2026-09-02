@@ -4,6 +4,7 @@
 using Microsoft.Diagnostics.Symbols;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -43,6 +44,36 @@ public class Av1SymbolContextTests
 
         // Assert
         Assert.Equal(actualIndex, index);
+    }
+
+    [Theory]
+    [InlineData((int)Av1PredictionMode.DC, (int)Av1TransformSize.Size8x8, false, (int)Av1TransformType.DctDct)]
+    [InlineData((int)Av1PredictionMode.Vertical, (int)Av1TransformSize.Size8x8, false, (int)Av1TransformType.AdstDct)]
+    [InlineData((int)Av1PredictionMode.Horizontal, (int)Av1TransformSize.Size8x8, false, (int)Av1TransformType.DctAdst)]
+    [InlineData((int)Av1PredictionMode.Directional45Degrees, (int)Av1TransformSize.Size8x8, false, (int)Av1TransformType.DctDct)]
+    [InlineData((int)Av1PredictionMode.Directional135Degrees, (int)Av1TransformSize.Size8x8, false, (int)Av1TransformType.AdstAdst)]
+    [InlineData((int)Av1PredictionMode.Directional113Degrees, (int)Av1TransformSize.Size8x8, false, (int)Av1TransformType.AdstDct)]
+    [InlineData((int)Av1PredictionMode.Directional157Degrees, (int)Av1TransformSize.Size8x8, false, (int)Av1TransformType.DctAdst)]
+    [InlineData((int)Av1PredictionMode.Directional203Degrees, (int)Av1TransformSize.Size8x8, false, (int)Av1TransformType.DctAdst)]
+    [InlineData((int)Av1PredictionMode.Directional67Degrees, (int)Av1TransformSize.Size8x8, false, (int)Av1TransformType.AdstDct)]
+    [InlineData((int)Av1PredictionMode.Smooth, (int)Av1TransformSize.Size8x8, false, (int)Av1TransformType.AdstAdst)]
+    [InlineData((int)Av1PredictionMode.SmoothVertical, (int)Av1TransformSize.Size8x8, false, (int)Av1TransformType.AdstDct)]
+    [InlineData((int)Av1PredictionMode.SmoothHorizontal, (int)Av1TransformSize.Size8x8, false, (int)Av1TransformType.DctAdst)]
+    [InlineData((int)Av1PredictionMode.Paeth, (int)Av1TransformSize.Size8x8, false, (int)Av1TransformType.AdstAdst)]
+    [InlineData((int)Av1PredictionMode.Directional135Degrees, (int)Av1TransformSize.Size8x8, true, (int)Av1TransformType.AdstAdst)]
+    [InlineData((int)Av1PredictionMode.Directional135Degrees, (int)Av1TransformSize.Size32x32, false, (int)Av1TransformType.DctDct)]
+    public void ImplicitIntraTransformTypeMatchesCurrentLibaom(
+        int modeValue,
+        int transformSizeValue,
+        bool useReducedSet,
+        int expectedValue)
+    {
+        Av1TransformType actual = Av1SymbolContextHelper.GetImplicitIntraTransformType(
+            (Av1PredictionMode)modeValue,
+            (Av1TransformSize)transformSizeValue,
+            useReducedSet);
+
+        Assert.Equal((Av1TransformType)expectedValue, actual);
     }
 
     public static TheoryData<int, int, int> GetLowLevelContextEndOfBlockData()

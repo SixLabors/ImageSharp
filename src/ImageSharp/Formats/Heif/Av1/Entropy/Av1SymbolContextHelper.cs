@@ -543,18 +543,22 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// Maps an intra prediction mode to its default transform type.
+    /// Gets the implicit intra transform type after applying the active transform-set restriction.
     /// </summary>
-    /// <param name="modeInfo">The block prediction modes.</param>
-    /// <param name="planeType">The luma or chroma plane category.</param>
-    /// <returns>The transform type associated with the selected prediction mode.</returns>
-    public static Av1TransformType ConvertIntraModeToTransformType(Av1BlockModeInfo modeInfo, Av1PlaneType planeType)
+    /// <param name="mode">The intra prediction mode.</param>
+    /// <param name="transformSize">The coded transform size.</param>
+    /// <param name="useReducedSet">Indicates whether the frame restricts transform choices.</param>
+    /// <returns>The implicit transform type used to encode and decode the block.</returns>
+    public static Av1TransformType GetImplicitIntraTransformType(
+        Av1PredictionMode mode,
+        Av1TransformSize transformSize,
+        bool useReducedSet)
     {
-        // the reference decoder's get_uv_mode() is the explicit boundary between the distinct UV and luma prediction domains. CfL maps
-        // to DC because the chroma AC contribution is applied to a DC predictor before coefficient reconstruction.
-        Av1PredictionMode mode = planeType == Av1PlaneType.Y ? modeInfo.YMode : modeInfo.UvMode.ToLumaMode();
+        Av1TransformType transformType = mode.ToTransformType();
+        Av1TransformSetType transformSetType = GetExtendedTransformSetType(transformSize, useReducedSet);
 
-        return mode.ToTransformType();
+        // An implicit mode-derived transform falls back to DCT-DCT when its transform set omits that type.
+        return transformType.IsExtendedSetUsed(transformSetType) ? transformType : Av1TransformType.DctDct;
     }
 
     /// <summary>

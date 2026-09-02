@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -26,8 +27,8 @@ internal class ObuWriter
         Justification = "Preserves the existing writer instance contract.")]
     public void WriteAll(Configuration configuration, Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, IAv1TileWriter tileWriter)
     {
-        // The allocation expands when necessary; this initial size avoids repeated growth for
-        // the small headers and tiles produced by the current still-image encoder.
+        // The reusable scratch only contains headers. Entropy-coded tiles remain in their owning
+        // buffers and are streamed directly so the complete compressed frame is never duplicated.
         int initialBufferSize = 2000;
         using AutoExpandingMemory<byte> buffer = new(configuration, initialBufferSize);
         Av1BitStreamWriter writer = new(buffer);
@@ -44,14 +45,34 @@ internal class ObuWriter
         if (frameHeader != null && sequenceHeader != null)
         {
             WriteFrameHeader(ref writer, sequenceHeader, frameHeader);
-            if (frameHeader.TilesInfo != null)
+            ObuTileGroupHeader tileInfo = frameHeader.TilesInfo;
+            if (tileInfo != null)
             {
-                WriteTileGroup(ref writer, frameHeader.TilesInfo, tileWriter);
+                WriteTileGroupHeader(ref writer, tileInfo);
             }
 
-            int bytesWritten = (writer.BitPosition + 7) >> 3;
+            int frameHeaderBytes = (writer.BitPosition + 7) >> 3;
             writer.Flush();
-            WriteObuHeaderAndSize(stream, ObuType.Frame, buffer.GetSpan(bytesWritten));
+
+            uint framePayloadSize = (uint)frameHeaderBytes;
+            if (tileInfo != null)
+            {
+                int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
+                framePayloadSize += (uint)((tileCount - 1) * tileInfo.TileSizeBytes);
+
+                for (int tileNum = 0; tileNum < tileCount; tileNum++)
+                {
+                    framePayloadSize += (uint)tileWriter.GetTileData(tileNum).Length;
+                }
+            }
+
+            WriteObuHeaderAndSize(stream, ObuType.Frame, framePayloadSize);
+            stream.Write(buffer.GetSpan(frameHeaderBytes));
+
+            if (tileInfo != null)
+            {
+                WriteTileData(stream, tileInfo, tileWriter);
+            }
         }
     }
 
@@ -75,13 +96,24 @@ internal class ObuWriter
     /// <param name="payload">The complete OBU payload.</param>
     private static void WriteObuHeaderAndSize(Stream stream, ObuType type, ReadOnlySpan<byte> payload)
     {
+        WriteObuHeaderAndSize(stream, type, (uint)payload.Length);
+        stream.Write(payload);
+    }
+
+    /// <summary>
+    /// Writes a byte-aligned OBU header and its little-endian base-128 payload size.
+    /// </summary>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="type">The OBU payload type.</param>
+    /// <param name="payloadSize">The number of payload bytes that follow the header.</param>
+    private static void WriteObuHeaderAndSize(Stream stream, ObuType type, uint payloadSize)
+    {
         stream.WriteByte(WriteObuHeader(type));
 
         // A 32-bit OBU payload length requires at most five base-128 bytes.
         Span<byte> lengthBytes = stackalloc byte[5];
-        int lengthLength = Av1BitStreamWriter.GetLittleEndianBytes128((uint)payload.Length, lengthBytes);
+        int lengthLength = Av1BitStreamWriter.GetLittleEndianBytes128(payloadSize, lengthBytes);
         stream.Write(lengthBytes, 0, lengthLength);
-        stream.Write(payload);
     }
 
     /// <summary>
@@ -520,12 +552,11 @@ internal class ObuWriter
     }
 
     /// <summary>
-    /// Writes a tile-group header and all tile payloads for a combined frame OBU.
+    /// Writes the byte-aligned tile-group header for a combined frame OBU.
     /// </summary>
     /// <param name="writer">The bit writer receiving the tile group.</param>
     /// <param name="tileInfo">The frame tile layout.</param>
-    /// <param name="tileWriter">The writer that produces each entropy-coded tile payload.</param>
-    private static void WriteTileGroup(ref Av1BitStreamWriter writer, ObuTileGroupHeader tileInfo, IAv1TileWriter tileWriter)
+    private static void WriteTileGroupHeader(ref Av1BitStreamWriter writer, ObuTileGroupHeader tileInfo)
     {
         int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
 
@@ -541,28 +572,30 @@ internal class ObuWriter
         }
 
         AlignToByteBoundary(ref writer);
-
-        WriteTileData(ref writer, tileInfo, tileWriter);
     }
 
     /// <summary>
     /// Writes the size-prefixed tile payloads in raster order.
     /// </summary>
-    /// <param name="writer">The byte-aligned bit writer receiving tile data.</param>
+    /// <param name="stream">The destination stream receiving tile data.</param>
     /// <param name="tileInfo">The frame tile layout and tile-size field width.</param>
     /// <param name="tileWriter">The writer that produces each tile payload.</param>
-    private static void WriteTileData(ref Av1BitStreamWriter writer, ObuTileGroupHeader tileInfo, IAv1TileWriter tileWriter)
+    private static void WriteTileData(Stream stream, ObuTileGroupHeader tileInfo, IAv1TileWriter tileWriter)
     {
         int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
+        Span<byte> tileSizeBuffer = stackalloc byte[sizeof(uint)];
+
         for (int tileNum = 0; tileNum < tileCount; tileNum++)
         {
             ReadOnlySpan<byte> tileData = tileWriter.GetTileData(tileNum);
             if (tileNum != tileCount - 1 && tileCount > 1)
             {
-                writer.WriteLittleEndian((uint)tileData.Length - 1U, tileInfo.TileSizeBytes);
+                // AV1 stores each non-final tile size minus one with the least-significant byte first.
+                BinaryPrimitives.WriteUInt32LittleEndian(tileSizeBuffer, (uint)tileData.Length - 1U);
+                stream.Write(tileSizeBuffer[..tileInfo.TileSizeBytes]);
             }
 
-            writer.WriteBlob(tileData);
+            stream.Write(tileData);
         }
     }
 

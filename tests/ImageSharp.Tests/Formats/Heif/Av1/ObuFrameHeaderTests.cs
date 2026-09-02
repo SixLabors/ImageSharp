@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Tests.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -702,6 +703,37 @@ public class ObuFrameHeaderTests
         Assert.NotNull(obuReader.SequenceHeader);
         Assert.NotNull(obuReader.FrameHeader);
         Assert.Equal(bitStream.Length * 8, reader.BitPosition);
+    }
+
+    /// <summary>
+    /// Verifies that the OBU writer streams an encoded tile from its owning buffer without renting a second payload-sized buffer.
+    /// </summary>
+    [Fact]
+    public void WriteFrameStreamsTilePayloadWithoutRentingPayloadCopy()
+    {
+        const int TilePayloadLength = 64 * 1024;
+
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = new();
+        configuration.MemoryAllocator = allocator;
+        ObuSequenceHeader sequenceHeader = GetDefaultSequenceHeader();
+        ObuFrameHeader frameHeader = GetKeyFrameHeader();
+        byte[] tileData = new byte[TilePayloadLength];
+        tileData.AsSpan().Fill(0x80);
+        Av1TileDecoderStub tileStub = new();
+        tileStub.ReadTile(tileData, 0);
+
+        using MemoryStream stream = new();
+        ObuWriter writer = new();
+        writer.WriteAll(configuration, stream, sequenceHeader, frameHeader, tileStub);
+
+        TestMemoryAllocator.AllocationRequest headerScratch = Assert.Single(allocator.AllocationLog);
+        Assert.Equal(typeof(byte), headerScratch.ElementType);
+        Assert.InRange(headerScratch.Length, 1, TilePayloadLength - 1);
+        TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
+        Assert.Equal(headerScratch.AllocationId, returned.AllocationId);
+        Assert.True(stream.GetBuffer().AsSpan((int)stream.Length - TilePayloadLength, TilePayloadLength).SequenceEqual(tileData));
     }
 
     /// <summary>

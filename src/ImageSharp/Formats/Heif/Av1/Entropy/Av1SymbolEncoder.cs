@@ -670,12 +670,36 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Measures the frame-local intra-block-copy flag against the live distribution.
+    /// </summary>
+    /// <param name="value">Indicates whether intra-block copy is selected.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public int GetUseIntraBlockCopyCost(bool value)
+        => Av1ProbabilityCost.GetSymbolCost(this.tileIntraBlockCopy, value ? 1 : 0);
+
+    /// <summary>
     /// Writes an integer intra-block-copy displacement vector relative to a spatial reference.
     /// </summary>
     /// <param name="value">The displacement vector to encode.</param>
     /// <param name="reference">The spatially derived reference vector.</param>
     public void WriteDisplacementVector(Av1MotionVector value, Av1MotionVector reference)
         => this.displacementVector.Write(this.writer, value, reference);
+
+    /// <summary>
+    /// Measures an integer intra-block-copy displacement vector against the live distributions.
+    /// </summary>
+    /// <param name="value">The displacement vector to measure.</param>
+    /// <param name="reference">The spatially derived reference vector.</param>
+    /// <returns>The discounted syntax cost in 1/512-bit units.</returns>
+    public int GetDisplacementVectorCost(Av1MotionVector value, Av1MotionVector reference)
+    {
+        const int DisplacementVectorCostWeight = 120;
+        const int WeightShift = 7;
+        int rate = this.displacementVector.GetCost(this.writer, value, reference);
+
+        // Displacement syntax uses a 120/128 discount during mode search; adding half the divisor rounds to nearest.
+        return ((rate * DisplacementVectorCostWeight) + (1 << (WeightShift - 1))) >> WeightShift;
+    }
 
     /// <summary>
     /// Writes a complete block partition type using the selected partition context.

@@ -1400,7 +1400,13 @@ public class Av1EntropyTests
 
         using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: false);
         Buffer2DRegion<byte> region = new(map);
-        _ = encoder.GetPaletteColorMapCost(4, Av1PlaneType.Y, map.Height, map.Width, region);
+
+        // Run past tiered-compilation thresholds before measuring the established steady-state allocation contract.
+        for (int i = 0; i < 1000; i++)
+        {
+            _ = encoder.GetPaletteColorMapCost(4, Av1PlaneType.Y, map.Height, map.Width, region);
+        }
+
         long before = GC.GetAllocatedBytesForCurrentThread();
 
         for (int i = 0; i < 1000; i++)
@@ -1760,6 +1766,9 @@ public class Av1EntropyTests
         using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         bool[] actuals = new bool[values.Length];
 
+        Assert.Equal(51, encoder.GetUseIntraBlockCopyCost(false));
+        Assert.Equal(1982, encoder.GetUseIntraBlockCopyCost(true));
+
         // Act
         foreach (bool value in values)
         {
@@ -1786,6 +1795,7 @@ public class Av1EntropyTests
     {
         Av1MotionVector[] references =
         [
+            new(-4096, 0),
             new(0, -4096),
             new(-1024, 0),
             new(256, -256),
@@ -1795,6 +1805,7 @@ public class Av1EntropyTests
 
         Av1MotionVector[] values =
         [
+            new(-4096, 0),
             new(8, -4096),
             new(-1040, 24),
             new(256, -336),
@@ -1802,8 +1813,15 @@ public class Av1EntropyTests
             new(6144, -6144),
         ];
 
+        int[] expectedCosts = [1440, 1661, 5231, 5807, 16955, 31656];
         Configuration configuration = Configuration.Default;
         using Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex);
+
+        // These current-libaom costs cover every joint, both signs, class zero, and large-class offset bits.
+        for (int i = 0; i < values.Length; i++)
+        {
+            Assert.Equal(expectedCosts[i], encoder.GetDisplacementVectorCost(values[i], references[i]));
+        }
 
         for (int i = 0; i < values.Length; i++)
         {

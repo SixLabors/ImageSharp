@@ -30,6 +30,24 @@ internal sealed class Av1MotionVectorContext
     private const int ClassZeroSize = 1 << ClassZeroBitCount;
 
     /// <summary>
+    /// Defines one non-mutating cost or mutating write operation over shared motion-vector syntax.
+    /// </summary>
+    public interface IMotionVectorSymbolOperation
+    {
+        /// <summary>
+        /// Processes one entropy-coded symbol.
+        /// </summary>
+        /// <param name="writer">The tile range encoder.</param>
+        /// <param name="symbol">The zero-based symbol.</param>
+        /// <param name="distribution">The live symbol distribution.</param>
+        /// <returns>The symbol cost in 1/512-bit units, or zero when writing.</returns>
+        public static abstract int ProcessSymbol(
+            Av1SymbolWriter writer,
+            int symbol,
+            Av1Distribution distribution);
+    }
+
+    /// <summary>
     /// Gets the distribution selecting which vector components are nonzero.
     /// </summary>
     public Av1Distribution Joint { get; } = new(4096, 11264, 19328);
@@ -91,6 +109,26 @@ internal sealed class Av1MotionVectorContext
     /// <param name="value">The displacement vector to encode.</param>
     /// <param name="reference">The spatially derived reference vector.</param>
     public void Write(Av1SymbolWriter writer, Av1MotionVector value, Av1MotionVector reference)
+        => _ = this.Process<MotionVectorWriteOperation>(writer, value, reference);
+
+    /// <summary>
+    /// Measures a motion-vector delta against the live distributions without changing them.
+    /// </summary>
+    /// <param name="writer">The tile range encoder associated with the live context.</param>
+    /// <param name="value">The motion vector to measure.</param>
+    /// <param name="reference">The spatially derived reference vector.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public int GetCost(Av1SymbolWriter writer, Av1MotionVector value, Av1MotionVector reference)
+        => this.Process<MotionVectorCostOperation>(writer, value, reference);
+
+    /// <summary>
+    /// Processes one complete motion-vector delta through a closed symbol operation.
+    /// </summary>
+    private int Process<TOperation>(
+        Av1SymbolWriter writer,
+        Av1MotionVector value,
+        Av1MotionVector reference)
+        where TOperation : struct, IMotionVectorSymbolOperation
     {
         int row = value.Row - reference.Row;
         int column = value.Column - reference.Column;
@@ -99,16 +137,47 @@ internal sealed class Av1MotionVectorContext
         // zero/horizontal/vertical/both joint symbols without a lookup.
         int jointType = (row != 0 ? 2 : 0) | (column != 0 ? 1 : 0);
 
-        writer.WriteSymbol(jointType, this.Joint);
+        int rate = TOperation.ProcessSymbol(writer, jointType, this.Joint);
         if (row != 0)
         {
-            this.Vertical.Write(writer, row);
+            rate += this.Vertical.Process<TOperation>(writer, row);
         }
 
         if (column != 0)
         {
-            this.Horizontal.Write(writer, column);
+            rate += this.Horizontal.Process<TOperation>(writer, column);
         }
+
+        return rate;
+    }
+
+    /// <summary>
+    /// Emits motion-vector syntax and reports no estimated rate.
+    /// </summary>
+    private readonly struct MotionVectorWriteOperation : IMotionVectorSymbolOperation
+    {
+        /// <inheritdoc/>
+        public static int ProcessSymbol(
+            Av1SymbolWriter writer,
+            int symbol,
+            Av1Distribution distribution)
+        {
+            writer.WriteSymbol(symbol, distribution);
+            return 0;
+        }
+    }
+
+    /// <summary>
+    /// Measures motion-vector syntax against the live distributions without changing them.
+    /// </summary>
+    private readonly struct MotionVectorCostOperation : IMotionVectorSymbolOperation
+    {
+        /// <inheritdoc/>
+        public static int ProcessSymbol(
+            Av1SymbolWriter writer,
+            int symbol,
+            Av1Distribution distribution)
+            => Av1ProbabilityCost.GetSymbolCost(distribution, symbol);
     }
 
     /// <summary>
@@ -286,6 +355,13 @@ internal sealed class Av1MotionVectorContext
         /// <param name="writer">The tile range encoder.</param>
         /// <param name="value">The nonzero component in one-eighth-sample units.</param>
         public void Write(Av1SymbolWriter writer, int value)
+            => _ = this.Process<MotionVectorWriteOperation>(writer, value);
+
+        /// <summary>
+        /// Processes one nonzero signed component through the shared motion-vector symbol operation.
+        /// </summary>
+        public int Process<TOperation>(Av1SymbolWriter writer, int value)
+            where TOperation : struct, IMotionVectorSymbolOperation
         {
             int magnitude = Math.Abs(value);
             DebugGuard.IsTrue(magnitude > 0 && (magnitude & 7) == 0, "Displacement-vector components must use whole-sample precision.");
@@ -294,13 +370,13 @@ internal sealed class Av1MotionVectorContext
             // minus one selects the doubling range; subtracting three converts the eighth-sample bit index to the class.
             int magnitudeClass = magnitude <= (ClassZeroSize << 3) ? 0 : Av1Math.MostSignificantBit((uint)(magnitude - 1)) - 3;
             DebugGuard.MustBeLessThan(magnitudeClass, MagnitudeClassCount, nameof(magnitudeClass));
-            writer.WriteSymbol(value < 0, this.Sign);
-            writer.WriteSymbol(magnitudeClass, this.MagnitudeClass);
+            int rate = TOperation.ProcessSymbol(writer, value < 0 ? 1 : 0, this.Sign);
+            rate += TOperation.ProcessSymbol(writer, magnitudeClass, this.MagnitudeClass);
 
             if (magnitudeClass == 0)
             {
-                writer.WriteSymbol((magnitude >> 3) - 1, this.ClassZero);
-                return;
+                rate += TOperation.ProcessSymbol(writer, (magnitude >> 3) - 1, this.ClassZero);
+                return rate;
             }
 
             // Remove the class base and the implicit low-bit value 7 plus the final one before coding the remaining
@@ -312,8 +388,13 @@ internal sealed class Av1MotionVectorContext
             {
                 // The decoder reconstructs offsets least-significant bit first, so each adaptive bit model must be
                 // updated in the same order during encoding.
-                writer.WriteSymbol(((integerOffset >> bit) & 1) != 0, this.OffsetBits[bit]);
+                rate += TOperation.ProcessSymbol(
+                    writer,
+                    (integerOffset >> bit) & 1,
+                    this.OffsetBits[bit]);
             }
+
+            return rate;
         }
     }
 }

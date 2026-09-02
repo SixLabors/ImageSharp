@@ -109,7 +109,7 @@ internal sealed class Av1CodecConfiguration
         {
             // The property-reader span is pooled and reused. Retain only the sequence-header bytes required for
             // item/sample equivalence instead of materializing every optional configuration OBU.
-            this.configSequenceHeader = GC.AllocateUninitializedArray<byte>(configSequenceHeaderLength);
+            this.configSequenceHeader = new byte[configSequenceHeaderLength];
             configObus.Slice(configSequenceHeaderOffset, configSequenceHeaderLength).CopyTo(this.configSequenceHeader);
         }
     }

@@ -71,6 +71,7 @@ Current cICP failure correction evidence from 2026-08-31:
 - The direct embedded-ICC case and every row of the 12-case profile matrix passed: 13 of 13 net11.0 Release cases.
 - The exact 34 cases reported by CI passed: 34 of 34 net11.0 Release cases, with zero failures and zero skips.
 - Roslynk reported zero compiler errors after the fix, and `git diff --check` passed.
+- The remaining four branch-introduced `GC.AllocateUninitializedArray` calls are removed from AV1 configuration, pixel-information, XMP, and Exif ownership boundaries. Each retained value still receives exactly one array and one copy because its source span belongs to pooled storage; no second materialization was introduced. The exact net11 Release rebuild remains at 1,005 warnings and zero errors, 166 focused configuration and metadata cases pass, and all 9,181 HEIF tests pass through direct VSTest.
 
 Recovered task-history evidence from 2026-08-31:
 

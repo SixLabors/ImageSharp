@@ -1370,7 +1370,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                         // Property associations are resolved after the pooled box buffer is reused, so retain the
                         // exact channel vector once at this ownership boundary.
-                        byte[] channelBitDepths = GC.AllocateUninitializedArray<byte>(channelCount);
+                        byte[] channelBitDepths = new byte[channelCount];
                         boxBuffer.Slice(offset, channelCount).CopyTo(channelBitDepths);
                         for (int i = 0; i < channelBitDepths.Length; i++)
                         {
@@ -2530,7 +2530,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     Span<byte> itemData = itemMemory.GetSpan();
 
                     // XmpProfile retains its input array after the assembled item buffer is returned to its pool.
-                    byte[] ownedData = GC.AllocateUninitializedArray<byte>(itemData.Length);
+                    byte[] ownedData = new byte[itemData.Length];
                     itemData.CopyTo(ownedData);
                     metadata.XmpProfile = new XmpProfile(ownedData);
                 });
@@ -2583,7 +2583,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         ReadOnlySpan<byte> tiffData = exifData[actualTiffHeaderOffset..];
 
         // ExifProfile retains its input array after the assembled item buffers are disposed at the end of decode.
-        byte[] ownedData = GC.AllocateUninitializedArray<byte>(tiffData.Length);
+        byte[] ownedData = new byte[tiffData.Length];
         tiffData.CopyTo(ownedData);
         metadata.ExifProfile = new ExifProfile(ownedData);
     }

@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
@@ -51,14 +49,14 @@ internal class Av1PictureControlSet
     public required byte[] SegmentationNeighborMap { get; set; }
 
     /// <summary>
-    /// Gets the frame grid that maps each 4x4 position to its mode-information span.
+    /// Gets or sets the frame grid that maps each 4x4 position to its mode-information entry.
     /// </summary>
-    public Av1ModeInfo[][] ModeInfoGrid { get; } = [];
+    public required Av1ModeInfo[] ModeInfoGrid { get; set; }
 
     /// <summary>
     /// Gets or sets the contiguous mode-information storage addressed by <see cref="ModeInfoGrid"/>.
     /// </summary>
-    public required Av1ModeInfo[] Mip { get; set; }
+    public required Av1ModeInfo[] ModeInfoAllocation { get; set; }
 
     /// <summary>
     /// Gets or sets the row stride of <see cref="ModeInfoGrid"/> in 4x4 mode-information units.
@@ -76,51 +74,29 @@ internal class Av1PictureControlSet
     public required int[][] CdefPreset { get; set; }
 
     /// <summary>
-    /// Gets the mode-information span mapped to a frame position.
+    /// Gets the mode-information entry mapped to a frame position.
     /// </summary>
     /// <param name="position">The frame position in 4x4 mode-information units.</param>
-    /// <returns>The mode-information span beginning at the position.</returns>
-    public Span<Av1ModeInfo> GetFromModeInfoGrid(Point position)
+    /// <returns>The mapped mode-information entry.</returns>
+    public Av1ModeInfo GetFromModeInfoGrid(Point position)
         => this.ModeInfoGrid[(position.Y * this.ModeInfoStride) + position.X];
-
-    /// <summary>
-    /// Maps a frame position to the supplied mode-information span.
-    /// </summary>
-    /// <param name="position">The frame position in 4x4 mode-information units.</param>
-    /// <param name="span">The mode-information entries to map.</param>
-    public void SetModeInfoGridRow(Point position, ReadOnlySpan<Av1ModeInfo> span)
-        => this.SetModeInfoGridRow((position.Y * this.ModeInfoStride) + position.X, span);
-
-    /// <summary>
-    /// Maps a linear grid offset to the supplied mode-information span.
-    /// </summary>
-    /// <param name="offset">The linear grid offset.</param>
-    /// <param name="span">The mode-information entries to map.</param>
-    public void SetModeInfoGridRow(int offset, ReadOnlySpan<Av1ModeInfo> span)
-    {
-        // Grid entries own their arrays because the source span can refer to temporary traversal state.
-        this.ModeInfoGrid[offset] = new Av1ModeInfo[span.Length];
-        span.CopyTo(this.ModeInfoGrid[offset]);
-    }
 
     /// <summary>
     /// Gets the macroblock mode information at a block origin and refreshes its grid mapping.
     /// </summary>
-    /// <param name="blockOrigin">The block origin in 4x4 mode-information units.</param>
+    /// <param name="modeInfoPosition">The block position in 4x4 mode-information units.</param>
     /// <returns>The macroblock mode information at the origin.</returns>
-    public Av1MacroBlockModeInfo GetMacroBlockModeInfo(Point blockOrigin)
+    public Av1MacroBlockModeInfo GetMacroBlockModeInfo(Point modeInfoPosition)
     {
         int modeInfoStride = this.ModeInfoStride;
-        int offset = (blockOrigin.Y * modeInfoStride) + blockOrigin.X;
+        int offset = (modeInfoPosition.Y * modeInfoStride) + modeInfoPosition.X;
 
-        // Rectangular mode-decision blocks can replace grid entries. Restore the entry from the
-        // contiguous backing store, whose index is halved when 4x4 blocks are globally disabled.
+        // The grid stores references into the contiguous mode-info allocation, matching libaom's
+        // mi_grid_base/mi_alloc ownership without copying a tail for every coded block.
         int disallow4x4 = this.Disallow4x4AllFrames ? 1 : 0;
-        int mipOffset = ((blockOrigin.Y >> disallow4x4) * (modeInfoStride >> disallow4x4)) + (blockOrigin.X >> disallow4x4);
-        this.SetModeInfoGridRow(offset, ((Span<Av1ModeInfo>)this.Mip)[mipOffset..]);
-
-        // The first mapped entry owns the macroblock state for the entire block.
-        Av1ModeInfo modeInfo = this.ModeInfoGrid[offset][0];
+        int allocationOffset = ((modeInfoPosition.Y >> disallow4x4) * (modeInfoStride >> disallow4x4)) + (modeInfoPosition.X >> disallow4x4);
+        Av1ModeInfo modeInfo = this.ModeInfoAllocation[allocationOffset];
+        this.ModeInfoGrid[offset] = modeInfo;
         return modeInfo.MacroBlockModeInfo;
     }
 

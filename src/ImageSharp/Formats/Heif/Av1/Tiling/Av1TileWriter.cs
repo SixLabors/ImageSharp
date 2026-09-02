@@ -364,26 +364,26 @@ internal partial class Av1TileWriter
         Av1BlockGeometry blockGeometry = Av1BlockGeometryFactory.GetBlockGeometryByModeDecisionScanIndex(blk_ptr.ModeDecisionScanIndex);
         Point blockOrigin = Point.Add(entropyCodingContext.SuperblockOrigin, (Size)blockGeometry.Origin);
         Av1BlockSize blockSize = blockGeometry.BlockSize;
-        Av1MacroBlockModeInfo macroBlockModeInfo = pcs.GetMacroBlockModeInfo(blockOrigin);
+        int mi_row = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
+        int mi_col = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
+        int mi_stride = pcs.Parent.Common.ModeInfoStride;
+        int offset = (mi_row * mi_stride) + mi_col;
+        Point modeInfoPosition = new(mi_col, mi_row);
+        Av1MacroBlockModeInfo macroBlockModeInfo = pcs.GetMacroBlockModeInfo(modeInfoPosition);
         bool skipWritingCoefficients = macroBlockModeInfo.Block.Skip;
         entropyCodingContext.MacroBlockModeInfo = macroBlockModeInfo;
 
         bool skip_mode = macroBlockModeInfo.Block.SkipMode;
 
         Guard.MustBeLessThan((int)blockSize, (int)Av1BlockSize.AllSizes, nameof(blockSize));
-        int mi_row = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
-        int mi_col = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
-        int mi_stride = pcs.Parent.Common.ModeInfoStride;
-        int offset = (mi_row * mi_stride) + mi_col;
-        Point modeInfoPosition = new(mi_col, mi_row);
-        blk_ptr.MacroBlock.ModeInfo = pcs.ModeInfoGrid[offset];
+        blk_ptr.MacroBlock.SetModeInfoGrid(pcs.ModeInfoGrid, offset);
         blk_ptr.MacroBlock.Tile = new Av1TileInfo(tb_ptr.TileInfo);
         blk_ptr.MacroBlock.IsUpAvailable = modeInfoPosition.Y > tb_ptr.TileInfo.ModeInfoRowStart;
         blk_ptr.MacroBlock.IsLeftAvailable = modeInfoPosition.X > tb_ptr.TileInfo.ModeInfoColumnStart;
 
         if (blk_ptr.MacroBlock.IsUpAvailable)
         {
-            blk_ptr.MacroBlock.AboveMacroBlock = blk_ptr.MacroBlock.ModeInfo[-mi_stride].MacroBlockModeInfo;
+            blk_ptr.MacroBlock.AboveMacroBlock = blk_ptr.MacroBlock.GetRelativeModeInfo(-mi_stride).MacroBlockModeInfo;
         }
         else
         {
@@ -392,7 +392,7 @@ internal partial class Av1TileWriter
 
         if (blk_ptr.MacroBlock.IsLeftAvailable)
         {
-            blk_ptr.MacroBlock.LeftMacroBlock = blk_ptr.MacroBlock.ModeInfo[-1].MacroBlockModeInfo;
+            blk_ptr.MacroBlock.LeftMacroBlock = blk_ptr.MacroBlock.GetRelativeModeInfo(-1).MacroBlockModeInfo;
         }
         else
         {
@@ -600,12 +600,12 @@ internal partial class Av1TileWriter
         if (xd.IsLeftAvailable)
         {
             // Key-frame neighbors are intra blocks, so their luma modes directly select the context class.
-            intraLumaLeftMode = xd.ModeInfo[-1].MacroBlockModeInfo.Block.Mode;
+            intraLumaLeftMode = xd.GetRelativeModeInfo(-1).MacroBlockModeInfo.Block.Mode;
         }
 
         if (xd.IsUpAvailable)
         {
-            intraLumaTopMode = xd.ModeInfo[-xd.ModeInfoStride].MacroBlockModeInfo.Block.Mode;
+            intraLumaTopMode = xd.GetRelativeModeInfo(-xd.ModeInfoStride).MacroBlockModeInfo.Block.Mode;
         }
 
         above_ctx = IntraModeContextLookup[(int)intraLumaTopMode];
@@ -738,7 +738,8 @@ internal partial class Av1TileWriter
         Av1NeighborArrayUnit<byte> cr_dc_sign_level_coeff_na = pcs.CrDcSignLevelCoefficientNeighbors[tile_idx];
         Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na = pcs.CbDcSignLevelCoefficientNeighbors[tile_idx];
         Av1BlockGeometry blk_geom = Av1BlockGeometryFactory.GetBlockGeometryByModeDecisionScanIndex(blk_ptr.ModeDecisionScanIndex);
-        Av1MacroBlockModeInfo mbmi = pcs.GetMacroBlockModeInfo(blockOrigin);
+        Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+        Av1MacroBlockModeInfo mbmi = pcs.GetMacroBlockModeInfo(modeInfoPosition);
         bool skip_coeff = mbmi.Block.Skip;
 
         // Store the block-size split mask across the edges that future partition symbols can observe.
@@ -843,7 +844,7 @@ internal partial class Av1TileWriter
 
         // int m = ~((1 << (6 - Av1Constants.ModeInfoSizeLog2)) - 1);
         // cm->mi_grid_visible[(mi_row & m) * cm->mi_stride + (mi_col & m)];
-        Av1ModeInfo mi = pcs.GetFromModeInfoGrid(modeInfoPosition)[0];
+        Av1ModeInfo mi = pcs.GetFromModeInfoGrid(modeInfoPosition);
 
         // Each superblock begins with all contained 64x64 filter units unassigned.
         if ((modeInfoPosition.Y & (scs.SequenceHeader.SuperblockModeInfoSize - 1)) == 0 &&
@@ -897,11 +898,12 @@ internal partial class Av1TileWriter
         // Prediction cannot cross tile boundaries even when frame mode information exists there.
         macroBlock.IsUpAvailable = modeInfoPosition.Y > tile.ModeInfoRowStart;
         macroBlock.IsLeftAvailable = modeInfoPosition.X > tile.ModeInfoColumnStart;
-        macroBlock.ModeInfo = pcs.GetFromModeInfoGrid(modeInfoPosition);
+        int modeInfoIndex = (modeInfoPosition.Y * modeInfoStride) + modeInfoPosition.X;
+        macroBlock.SetModeInfoGrid(pcs.ModeInfoGrid, modeInfoIndex);
 
         if (macroBlock.IsUpAvailable)
         {
-            macroBlock.AboveMacroBlock = macroBlock.ModeInfo[-modeInfoStride].MacroBlockModeInfo;
+            macroBlock.AboveMacroBlock = macroBlock.GetRelativeModeInfo(-modeInfoStride).MacroBlockModeInfo;
         }
         else
         {
@@ -910,7 +912,7 @@ internal partial class Av1TileWriter
 
         if (macroBlock.IsLeftAvailable)
         {
-            macroBlock.LeftMacroBlock = macroBlock.ModeInfo[-1].MacroBlockModeInfo;
+            macroBlock.LeftMacroBlock = macroBlock.GetRelativeModeInfo(-1).MacroBlockModeInfo;
         }
         else
         {

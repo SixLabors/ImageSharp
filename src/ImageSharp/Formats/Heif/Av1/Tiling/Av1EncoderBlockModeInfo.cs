@@ -11,44 +11,34 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 internal class Av1EncoderBlockModeInfo
 {
     /// <summary>
-    /// Gets the encoded block size.
+    /// Gets or sets the encoded block size.
     /// </summary>
-    public Av1BlockSize BlockSize { get; }
+    public Av1BlockSize BlockSize { get; set; }
 
     /// <summary>
-    /// Gets the selected luma prediction mode.
+    /// Gets or sets the partition type that produced the block.
     /// </summary>
-    public Av1PredictionMode PredictionMode { get; }
+    public Av1PartitionType PartitionType { get; set; }
 
     /// <summary>
-    /// Gets the partition type that produced the block.
+    /// Gets or sets a value indicating whether residual coefficients are omitted for the block.
     /// </summary>
-    public Av1PartitionType PartitionType { get; }
+    public bool Skip { get; set; }
 
     /// <summary>
-    /// Gets the selected chroma prediction mode.
+    /// Gets or sets a value indicating whether compound skip mode is selected.
     /// </summary>
-    public Av1ChromaPredictionMode UvPredictionMode { get; }
+    public bool SkipMode { get; set; }
 
     /// <summary>
-    /// Gets a value indicating whether residual coefficients are omitted for the block.
+    /// Gets or sets a value indicating whether intra block copy is selected.
     /// </summary>
-    public bool Skip { get; } = true;
+    public bool UseIntraBlockCopy { get; set; }
 
     /// <summary>
-    /// Gets a value indicating whether compound skip mode is selected.
+    /// Gets or sets the segmentation identifier assigned to the block.
     /// </summary>
-    public bool SkipMode { get; } = true;
-
-    /// <summary>
-    /// Gets a value indicating whether intra block copy is selected.
-    /// </summary>
-    public bool UseIntraBlockCopy { get; } = true;
-
-    /// <summary>
-    /// Gets the segmentation identifier assigned to the block.
-    /// </summary>
-    public int SegmentId { get; }
+    public int SegmentId { get; set; }
 
     /// <summary>
     /// Gets or sets the transform-tree depth selected for the block.

@@ -793,6 +793,13 @@ public class Av1IntraSuperblockEncoderTests
             expectedAngleDelta,
             superblockWorkspace.FinalBlocks[3].PredictionUnit.AngleDelta[(int)Av1PlaneType.Y]);
 
+        Av1EncoderTransformBlockState targetState =
+            coefficients.GetTransformBlockSpan(0, Av1Plane.Y)[12];
+
+        // Every transform has the same skip cost for this exact-prediction target, so reference enum order
+        // requires DCT-DCT to win even when the mode-derived first pass used another transform.
+        Assert.Equal((ushort)0, targetState.EndOfBlock);
+        Assert.Equal(Av1TransformType.DctDct, targetState.TransformType);
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
     }
 
@@ -1124,13 +1131,21 @@ public class Av1IntraSuperblockEncoderTests
             initialSize: 4096);
 
         Assert.Equal(4, coefficients.SuperblockCount);
+        bool usesNonDctTransform = false;
         for (int superblockIndex = 0; superblockIndex < coefficients.SuperblockCount; superblockIndex++)
         {
-            Assert.NotEqual(
-                (ushort)0,
-                coefficients.GetTransformBlockSpan(superblockIndex, Av1Plane.Y)[0].EndOfBlock);
+            Span<Av1EncoderTransformBlockState> transformBlocks =
+                coefficients.GetTransformBlockSpan(superblockIndex, Av1Plane.Y);
+
+            Assert.NotEqual((ushort)0, transformBlocks[0].EndOfBlock);
+            foreach (Av1EncoderTransformBlockState transformBlock in transformBlocks)
+            {
+                usesNonDctTransform |=
+                    transformBlock.EndOfBlock > 0 && transformBlock.TransformType != Av1TransformType.DctDct;
+            }
         }
 
+        Assert.True(usesNonDctTransform);
         Assert.NotEqual(
             (byte)0,
             reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y).DangerousGetRowSpan(Height - 1)[Width - 1]);

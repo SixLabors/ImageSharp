@@ -376,6 +376,10 @@ internal static partial class Av1IntraSuperblockEncoder
             int deltaCount = AngleDeltaSearchOrder.Length;
             int directionalModeCount = (int)Av1PredictionMode.Directional67Degrees - (int)Av1PredictionMode.Vertical + 1;
             int candidateCount = baseModeCount + (directionalModeCount * deltaCount);
+            bool useReducedTransformSet = this.picture.Parent.FrameHeader.UseReducedTransformSet;
+            Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
+                TransformSize,
+                useReducedTransformSet);
 
             // Zero-angle modes precede groups of six nonzero adjustments for each directional mode.
             // A single index preserves that tie-breaking order without duplicating candidate evaluation.
@@ -395,6 +399,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     angleDelta = AngleDeltaSearchOrder[adjustedIndex % deltaCount];
                 }
 
+                Av1TransformType defaultTransformType = Av1SymbolContextHelper.GetDefaultIntraTransformType(
+                    mode,
+                    TransformSize,
+                    useReducedTransformSet);
+
                 Av1EncoderTransformBlockState candidateState = default;
                 long candidateCost = this.GetLumaCandidateCost(
                     writer,
@@ -407,6 +416,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     hasAbove,
                     mode,
                     angleDelta,
+                    defaultTransformType,
                     blockContext,
                     candidateReconstruction,
                     candidateCoefficients,
@@ -430,6 +440,52 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
+            // Mode selection uses the mode-derived default transform, then the winning mode alone pays for
+            // an exhaustive transform refinement. This preserves reference tie order without a 61-by-7 search.
+            long bestTransformCost = long.MaxValue;
+            for (Av1TransformType transformType = Av1TransformType.DctDct;
+                transformType < Av1TransformType.AllTransformTypes;
+                transformType++)
+            {
+                if (!transformType.IsExtendedSetUsed(transformSetType))
+                {
+                    continue;
+                }
+
+                Av1EncoderTransformBlockState candidateState = default;
+                long candidateCost = this.GetLumaCandidateCost(
+                    writer,
+                    macroBlock,
+                    sourcePlane,
+                    blockOrigin,
+                    above,
+                    left,
+                    hasLeft,
+                    hasAbove,
+                    bestMode,
+                    selectedAngleDelta,
+                    transformType,
+                    blockContext,
+                    candidateReconstruction,
+                    candidateCoefficients,
+                    ref candidateState);
+
+                if (candidateCost < bestTransformCost)
+                {
+                    CopyCandidate(
+                        candidateReconstruction,
+                        candidateCoefficients,
+                        reconstructionPlane,
+                        blockOrigin,
+                        retainedCoefficients,
+                        TransformSize,
+                        candidateState,
+                        ref retainedState);
+
+                    bestTransformCost = candidateCost;
+                }
+            }
+
             return bestMode;
         }
 
@@ -444,6 +500,7 @@ internal static partial class Av1IntraSuperblockEncoder
             bool hasAbove,
             Av1PredictionMode mode,
             int angleDelta,
+            Av1TransformType transformType,
             Av1TransformBlockContext blockContext,
             Span<TSample> candidateReconstruction,
             Span<int> candidateCoefficients,
@@ -464,7 +521,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 angleDelta,
                 candidateCoefficients,
                 TransformSize,
-                Av1TransformType.DctDct,
+                transformType,
                 Av1Plane.Y,
                 this.quantization.QIndex[0],
                 this.quantization.DeltaQDc[(int)Av1Plane.Y],
@@ -475,7 +532,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int rate = Av1TileWriter.GetLumaModeCost(writer, macroBlock, BlockSize, mode, angleDelta);
             rate += writer.GetCoefficientCost(
                 TransformSize,
-                Av1TransformType.DctDct,
+                transformType,
                 mode,
                 candidateCoefficients,
                 Av1ComponentType.Luminance,

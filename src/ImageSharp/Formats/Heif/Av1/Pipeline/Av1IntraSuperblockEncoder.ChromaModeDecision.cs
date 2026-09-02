@@ -262,7 +262,7 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             Av1PredictionMode predictionMode = chromaMode.ToLumaMode();
-            Av1TransformType transformType = Av1SymbolContextHelper.GetImplicitIntraTransformType(
+            Av1TransformType transformType = Av1SymbolContextHelper.GetDefaultIntraTransformType(
                 predictionMode,
                 transformSize,
                 this.picture.Parent.FrameHeader.UseReducedTransformSet);

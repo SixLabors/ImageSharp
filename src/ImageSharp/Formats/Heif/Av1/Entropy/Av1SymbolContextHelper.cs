@@ -543,13 +543,13 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
-    /// Gets the implicit intra transform type after applying the active transform-set restriction.
+    /// Gets the mode-derived default intra transform after applying the active transform-set restriction.
     /// </summary>
     /// <param name="mode">The intra prediction mode.</param>
     /// <param name="transformSize">The coded transform size.</param>
     /// <param name="useReducedSet">Indicates whether the frame restricts transform choices.</param>
-    /// <returns>The implicit transform type used to encode and decode the block.</returns>
-    public static Av1TransformType GetImplicitIntraTransformType(
+    /// <returns>The permitted default transform for the mode.</returns>
+    public static Av1TransformType GetDefaultIntraTransformType(
         Av1PredictionMode mode,
         Av1TransformSize transformSize,
         bool useReducedSet)
@@ -557,7 +557,7 @@ internal static class Av1SymbolContextHelper
         Av1TransformType transformType = mode.ToTransformType();
         Av1TransformSetType transformSetType = GetExtendedTransformSetType(transformSize, useReducedSet);
 
-        // An implicit mode-derived transform falls back to DCT-DCT when its transform set omits that type.
+        // A mode-derived transform falls back to DCT-DCT when its transform set omits that type.
         return transformType.IsExtendedSetUsed(transformSetType) ? transformType : Av1TransformType.DctDct;
     }
 

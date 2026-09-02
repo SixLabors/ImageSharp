@@ -1458,7 +1458,7 @@ internal ref struct Av1SymbolDecoder
             else
             {
                 // Chroma has its own intra mode, so its implicit transform must be derived independently of luma.
-                transformType = Av1SymbolContextHelper.GetImplicitIntraTransformType(
+                transformType = Av1SymbolContextHelper.GetDefaultIntraTransformType(
                     modeInfo.UvMode.ToLumaMode(),
                     transformSize,
                     useReducedTransformSet);

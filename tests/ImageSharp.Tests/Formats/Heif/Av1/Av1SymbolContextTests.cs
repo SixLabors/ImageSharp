@@ -62,13 +62,13 @@ public class Av1SymbolContextTests
     [InlineData((int)Av1PredictionMode.Paeth, (int)Av1TransformSize.Size8x8, false, (int)Av1TransformType.AdstAdst)]
     [InlineData((int)Av1PredictionMode.Directional135Degrees, (int)Av1TransformSize.Size8x8, true, (int)Av1TransformType.AdstAdst)]
     [InlineData((int)Av1PredictionMode.Directional135Degrees, (int)Av1TransformSize.Size32x32, false, (int)Av1TransformType.DctDct)]
-    public void ImplicitIntraTransformTypeMatchesCurrentLibaom(
+    public void DefaultIntraTransformTypeMatchesCurrentLibaom(
         int modeValue,
         int transformSizeValue,
         bool useReducedSet,
         int expectedValue)
     {
-        Av1TransformType actual = Av1SymbolContextHelper.GetImplicitIntraTransformType(
+        Av1TransformType actual = Av1SymbolContextHelper.GetDefaultIntraTransformType(
             (Av1PredictionMode)modeValue,
             (Av1TransformSize)transformSizeValue,
             useReducedSet);

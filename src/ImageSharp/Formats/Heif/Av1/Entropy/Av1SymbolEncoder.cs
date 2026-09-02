@@ -102,6 +102,11 @@ internal class Av1SymbolEncoder : IDisposable
     private readonly Av1Distribution[][][] intraExtendedTransform;
 
     /// <summary>
+    /// The tile-adaptive fixed transform-size distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] transformSize;
+
+    /// <summary>
     /// The tile-adaptive spatial segment-identifier distributions.
     /// </summary>
     private readonly Av1Distribution[] segmentId;
@@ -175,6 +180,7 @@ internal class Av1SymbolEncoder : IDisposable
         this.filterIntraMode = Av1DefaultDistributions.FilterIntraMode;
         this.deltaQuantizerAbsolute = Av1DefaultDistributions.DeltaQuantizerAbsolute;
         this.intraExtendedTransform = Av1DefaultDistributions.IntraExtendedTransform;
+        this.transformSize = Av1DefaultDistributions.TransformSize;
         this.segmentId = Av1DefaultDistributions.SegmentId;
         this.angleDelta = Av1DefaultDistributions.AngleDelta;
         this.skip = Av1DefaultDistributions.Skip;
@@ -423,6 +429,36 @@ internal class Av1SymbolEncoder : IDisposable
     {
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol(skip, this.transformBlockSkip[(int)transformSizeContext][skipContext]);
+    }
+
+    /// <summary>
+    /// Writes the selected transform size as its subdivision depth from the block maximum.
+    /// </summary>
+    /// <param name="blockSize">The block size defining the maximum transform.</param>
+    /// <param name="transformSize">The selected transform size.</param>
+    /// <param name="context">The neighboring transform-size context.</param>
+    public void WriteTransformSize(Av1BlockSize blockSize, Av1TransformSize transformSize, int context)
+    {
+        Av1TransformSize maximumTransformSize = blockSize.GetMaximumTransformSize();
+        Av1TransformSize currentTransformSize = maximumTransformSize;
+        int categoryDepth = 0;
+        while (currentTransformSize != Av1TransformSize.Size4x4)
+        {
+            categoryDepth++;
+            currentTransformSize = currentTransformSize.GetSubSize();
+        }
+
+        int selectedDepth = 0;
+        currentTransformSize = maximumTransformSize;
+        while (currentTransformSize != transformSize && selectedDepth < Av1Constants.MaxVarTransform)
+        {
+            selectedDepth++;
+            currentTransformSize = currentTransformSize.GetSubSize();
+        }
+
+        DebugGuard.IsTrue(currentTransformSize == transformSize, nameof(transformSize));
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteSymbol(selectedDepth, this.transformSize[categoryDepth - 1][context]);
     }
 
     /// <summary>

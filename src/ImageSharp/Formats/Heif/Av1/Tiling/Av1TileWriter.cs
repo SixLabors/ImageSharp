@@ -748,6 +748,15 @@ internal partial class Av1TileWriter
                 }
             }
 
+            WriteTransformSize(
+                pcs,
+                writer,
+                macroBlockModeInfo,
+                macroBlock,
+                blockSize,
+                blockOrigin,
+                tile_idx);
+
             if (!skipWritingCoefficients)
             {
                 EncodeCoefficients1d(
@@ -768,6 +777,66 @@ internal partial class Av1TileWriter
 
         // Neighbor state must be updated after all symbols for the block have used the preceding contexts.
         UpdateNeighbors(pcs, entropyCodingContext, blockOrigin, ref blk_ptr, tile_idx, blockSize);
+    }
+
+    /// <summary>
+    /// Writes or derives the block transform size and publishes its edge contexts.
+    /// </summary>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="macroBlockModeInfo">The selected block modes.</param>
+    /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
+    /// <param name="blockSize">The block size.</param>
+    /// <param name="blockOrigin">The block origin in samples.</param>
+    /// <param name="tileIndex">The zero-based tile index.</param>
+    internal static void WriteTransformSize(
+        Av1PictureControlSet pcs,
+        Av1SymbolEncoder writer,
+        Av1MacroBlockModeInfo macroBlockModeInfo,
+        Av1MacroBlockD macroBlock,
+        Av1BlockSize blockSize,
+        Point blockOrigin,
+        int tileIndex)
+    {
+        ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
+        bool isLossless = frameHeader.LosslessArray[macroBlockModeInfo.Block.SegmentId];
+        bool writesTransformSize = !isLossless &&
+            frameHeader.TransformMode == Av1TransformMode.Select &&
+            blockSize > Av1BlockSize.Block4x4;
+        Av1TransformSize transformSize = isLossless
+            ? Av1TransformSize.Size4x4
+            : writesTransformSize
+                ? macroBlockModeInfo.Block.TransformSize
+                : blockSize.GetMaximumTransformSize();
+
+        macroBlockModeInfo.Block.TransformSize = transformSize;
+        Av1NeighborArrayUnit<byte> transformContexts = pcs.TransformFunctionContexts[tileIndex];
+        if (writesTransformSize)
+        {
+            Av1TransformSize maximumTransformSize = blockSize.GetMaximumTransformSize();
+            int above = transformContexts.Top[transformContexts.GetTopIndex(blockOrigin)] >= maximumTransformSize.GetWidth() ? 1 : 0;
+            int left = transformContexts.Left[transformContexts.GetLeftIndex(blockOrigin)] >= maximumTransformSize.GetHeight() ? 1 : 0;
+            int context = macroBlock.IsUpAvailable
+                ? macroBlock.IsLeftAvailable ? above + left : above
+                : macroBlock.IsLeftAvailable ? left : 0;
+
+            writer.WriteTransformSize(blockSize, transformSize, context);
+        }
+
+        Size blockDimensions = new(blockSize.GetWidth(), blockSize.GetHeight());
+
+        // Above entries retain transform widths and left entries retain heights, including rectangular selections.
+        transformContexts.UnitModeWrite(
+            (byte)transformSize.GetWidth(),
+            blockOrigin,
+            blockDimensions,
+            Av1NeighborArrayUnit<byte>.UnitMask.Top);
+
+        transformContexts.UnitModeWrite(
+            (byte)transformSize.GetHeight(),
+            blockOrigin,
+            blockDimensions,
+            Av1NeighborArrayUnit<byte>.UnitMask.Left);
     }
 
     /// <summary>

@@ -346,6 +346,70 @@ public class Av1CoefficientsEntropyTests
         }
     }
 
+    [Fact]
+    public void SelectedTransformSizeRoundTripsAndPublishesRectangularEdgeContexts()
+    {
+        Av1PictureControlSet picture = CreateEncoderPicture(16, 16);
+        picture.Parent.FrameHeader.TransformMode = Av1TransformMode.Select;
+        Av1MacroBlockModeInfo modeInfo = picture.ModeInfoAllocation[0].MacroBlockModeInfo;
+        modeInfo.Block.BlockSize = Av1BlockSize.Block16x32;
+        modeInfo.Block.TransformSize = Av1TransformSize.Size8x8;
+        modeInfo.Block.SegmentId = 0;
+        Point blockOrigin = new(16, 16);
+        Av1MacroBlockD macroBlock = new()
+        {
+            Tile = new Av1TileInfo(0, 0, picture.Parent.FrameHeader),
+            IsUpAvailable = true,
+            IsLeftAvailable = true
+        };
+
+        using Av1NeighborArrayUnit<byte> transforms = new(
+            Configuration.Default,
+            leftSize: 64,
+            topSize: 64,
+            topLeftSize: 128)
+        {
+            GranularityNormalLog2 = Av1Constants.ModeInfoSizeLog2,
+            GranularityTopLeftLog2 = Av1Constants.ModeInfoSizeLog2
+        };
+
+        int topIndex = transforms.GetTopIndex(blockOrigin);
+        int leftIndex = transforms.GetLeftIndex(blockOrigin);
+        transforms.Top[topIndex] = 16;
+        transforms.Left[leftIndex] = 16;
+        picture.TransformFunctionContexts = [transforms];
+
+        Av1SymbolEncoder writer = new(Configuration.Default, 64, BaseQIndex);
+        Av1TileWriter.WriteTransformSize(
+            picture,
+            writer,
+            modeInfo,
+            macroBlock,
+            modeInfo.Block.BlockSize,
+            blockOrigin,
+            tileIndex: 0);
+
+        using IMemoryOwner<byte> encoded = writer.Exit();
+        writer.Dispose();
+
+        Av1SymbolDecoder reader = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        Assert.Equal(
+            Av1TransformSize.Size8x8,
+            reader.ReadTransformSize(Av1BlockSize.Block16x32, context: 1));
+
+        for (int index = 0; index < transforms.Top.Length; index++)
+        {
+            byte expected = index >= topIndex && index < topIndex + 4 ? (byte)8 : (byte)0;
+            Assert.Equal(expected, transforms.Top[index]);
+        }
+
+        for (int index = 0; index < transforms.Left.Length; index++)
+        {
+            byte expected = index >= leftIndex && index < leftIndex + 8 ? (byte)8 : (byte)0;
+            Assert.Equal(expected, transforms.Left[index]);
+        }
+    }
+
     [Theory]
     [InlineData((int)Av1PartitionType.None, 24, 24)]
     [InlineData((int)Av1PartitionType.Horizontal, 24, 28)]
@@ -510,10 +574,21 @@ public class Av1CoefficientsEntropyTests
             GranularityTopLeftLog2 = 2
         };
 
+        using Av1NeighborArrayUnit<byte> transforms = new(
+            Configuration.Default,
+            leftSize: 16,
+            topSize: 32,
+            topLeftSize: 48)
+        {
+            GranularityNormalLog2 = 2,
+            GranularityTopLeftLog2 = 2
+        };
+
         picture.PartitionContexts = [partitions];
         picture.LuminanceDcSignLevelCoefficientNeighbors = [luma];
         picture.CrDcSignLevelCoefficientNeighbors = [red];
         picture.CbDcSignLevelCoefficientNeighbors = [blue];
+        picture.TransformFunctionContexts = [transforms];
         Av1TileInfo tile = new(0, 0, picture.Parent.FrameHeader);
         Point[] blockPositions = [new(16, 0), new(24, 0), new(16, 8), new(24, 8)];
         Av1EncoderBlockStruct[] blocks = new Av1EncoderBlockStruct[blockPositions.Length];
@@ -578,6 +653,16 @@ public class Av1CoefficientsEntropyTests
         for (int index = 0; index < partitions.Left.Length; index++)
         {
             Assert.Equal(24, partitions.Left[index].Left);
+        }
+
+        for (int index = 0; index < transforms.Top.Length; index++)
+        {
+            Assert.Equal(index < 16 ? 0 : 32, transforms.Top[index]);
+        }
+
+        for (int index = 0; index < transforms.Left.Length; index++)
+        {
+            Assert.Equal(32, transforms.Left[index]);
         }
     }
 

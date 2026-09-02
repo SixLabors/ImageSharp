@@ -14,6 +14,11 @@ internal partial class Av1TileWriter
     internal class Av1EntropyCodingContext
     {
         /// <summary>
+        /// Gets the reusable macroblock edge and neighbor state for the current entropy-coding operation.
+        /// </summary>
+        public required Av1MacroBlockD MacroBlock { get; init; }
+
+        /// <summary>
         /// Gets or sets the macroblock mode information currently being encoded.
         /// </summary>
         public required Av1MacroBlockModeInfo MacroBlockModeInfo { get; set; }

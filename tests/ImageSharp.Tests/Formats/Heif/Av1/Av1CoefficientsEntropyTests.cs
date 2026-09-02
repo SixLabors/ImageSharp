@@ -102,8 +102,7 @@ public class Av1CoefficientsEntropyTests
                     TilesInfo = new ObuTileGroupHeader()
                 },
                 FrameHeader = new ObuFrameHeader(),
-                PreviousQIndex = [],
-                SuperblockGeometry = []
+                PreviousQIndex = []
             },
             SegmentationNeighborMap = [],
             ModeInfoGrid = new Av1ModeInfo[16],
@@ -166,39 +165,37 @@ public class Av1CoefficientsEntropyTests
     }
 
     [Fact]
-    public void EncoderBlockInlineStateSupportsEveryTransformWithoutTraversalAllocations()
+    public void EncoderBlocksKeepInlineModeStateWithoutPerBlockAllocations()
     {
-        Av1EncoderBlockStruct block = new() { MacroBlock = CreateMacroBlock() };
+        Av1EncoderBlockStruct[] blocks = new Av1EncoderBlockStruct[2];
 
         long before = GC.GetAllocatedBytesForCurrentThread();
-        Span<Av1TransformUnit> transforms = block.TransformBlocks;
-        transforms[^1].NzCoefficientCount[2] = 17;
-        transforms[^1].TransformType[(int)Av1PlaneType.Uv] = Av1TransformType.VerticalAdst;
+        ref Av1EncoderBlockStruct block = ref blocks[1];
         block.PaletteSize[0] = 3;
         block.PaletteSize[1] = 5;
         block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] = -2;
         block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv] = 3;
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
-        Assert.Equal(Av1Constants.MaxTransformUnitCount, transforms.Length);
-        Assert.Equal(17, block.TransformBlocks[^1].NzCoefficientCount[2]);
-        Assert.Equal(Av1TransformType.VerticalAdst, block.TransformBlocks[^1].TransformType[(int)Av1PlaneType.Uv]);
-        Assert.Equal(3, block.PaletteSize[0]);
-        Assert.Equal(5, block.PaletteSize[1]);
-        Assert.Equal(-2, block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y]);
-        Assert.Equal(3, block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv]);
+        Assert.Equal(3, blocks[1].PaletteSize[0]);
+        Assert.Equal(5, blocks[1].PaletteSize[1]);
+        Assert.Equal(-2, blocks[1].PredictionUnit.AngleDelta[(int)Av1PlaneType.Y]);
+        Assert.Equal(3, blocks[1].PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv]);
         Assert.Equal(0, allocated);
     }
 
     [Theory]
-    [InlineData(false, 6, 4096, 1024, 6144, 36864L)]
-    [InlineData(true, 2, 16384, 4096, 24576, 49152L)]
+    [InlineData(false, 6, 4096, 1024, 6144, 256, 64, 384, 36864L)]
+    [InlineData(true, 2, 16384, 4096, 24576, 1024, 256, 1536, 49152L)]
     public void EncoderCoefficientBufferMatchesLibaom420SuperblockLayout(
         bool use128x128Superblock,
         int expectedSuperblockCount,
         int expectedLumaCount,
         int expectedChromaCount,
         int expectedCoefficientsPerSuperblock,
+        int expectedLumaTransformBlockCount,
+        int expectedChromaTransformBlockCount,
+        int expectedTransformBlocksPerSuperblock,
         long expectedTotalCoefficientCount)
     {
         ObuSequenceHeader sequenceHeader = new() { Use128x128Superblock = use128x128Superblock };
@@ -216,10 +213,16 @@ public class Av1CoefficientsEntropyTests
         Assert.Equal(expectedLumaCount, coefficients.LumaCoefficientCount);
         Assert.Equal(expectedChromaCount, coefficients.ChromaCoefficientCount);
         Assert.Equal(expectedCoefficientsPerSuperblock, coefficients.CoefficientsPerSuperblock);
+        Assert.Equal(expectedLumaTransformBlockCount, coefficients.LumaTransformBlockCount);
+        Assert.Equal(expectedChromaTransformBlockCount, coefficients.ChromaTransformBlockCount);
+        Assert.Equal(expectedTransformBlocksPerSuperblock, coefficients.TransformBlocksPerSuperblock);
         Assert.Equal(expectedTotalCoefficientCount, coefficients.TotalCoefficientCount);
         Assert.Equal(expectedLumaCount, coefficients.GetPlaneSpan(0, Av1Plane.Y).Length);
         Assert.Equal(expectedChromaCount, coefficients.GetPlaneSpan(0, Av1Plane.U).Length);
         Assert.Equal(expectedChromaCount, coefficients.GetPlaneSpan(0, Av1Plane.V).Length);
+        Assert.Equal(expectedLumaTransformBlockCount, coefficients.GetTransformBlockSpan(0, Av1Plane.Y).Length);
+        Assert.Equal(expectedChromaTransformBlockCount, coefficients.GetTransformBlockSpan(0, Av1Plane.U).Length);
+        Assert.Equal(expectedChromaTransformBlockCount, coefficients.GetTransformBlockSpan(0, Av1Plane.V).Length);
     }
 
     [Fact]
@@ -240,11 +243,342 @@ public class Av1CoefficientsEntropyTests
         coefficients.GetPlaneSpan(0, Av1Plane.U)[0] = 22;
         coefficients.GetPlaneSpan(0, Av1Plane.V)[0] = 33;
         coefficients.GetPlaneSpan(1, Av1Plane.Y)[0] = 44;
+        coefficients.GetTransformBlockSpan(0, Av1Plane.Y)[0].EndOfBlock = 55;
+        coefficients.GetTransformBlockSpan(0, Av1Plane.U)[0].EndOfBlock = 66;
+        coefficients.GetTransformBlockSpan(0, Av1Plane.V)[0].EndOfBlock = 77;
+        coefficients.GetTransformBlockSpan(1, Av1Plane.Y)[0].EndOfBlock = 88;
 
         Assert.Equal(11, coefficients.GetPlaneSpan(0, Av1Plane.Y)[0]);
         Assert.Equal(22, coefficients.GetPlaneSpan(0, Av1Plane.U)[0]);
         Assert.Equal(33, coefficients.GetPlaneSpan(0, Av1Plane.V)[0]);
         Assert.Equal(44, coefficients.GetPlaneSpan(1, Av1Plane.Y)[0]);
+        Assert.Equal(55, coefficients.GetTransformBlockSpan(0, Av1Plane.Y)[0].EndOfBlock);
+        Assert.Equal(66, coefficients.GetTransformBlockSpan(0, Av1Plane.U)[0].EndOfBlock);
+        Assert.Equal(77, coefficients.GetTransformBlockSpan(0, Av1Plane.V)[0].EndOfBlock);
+        Assert.Equal(88, coefficients.GetTransformBlockSpan(1, Av1Plane.Y)[0].EndOfBlock);
+    }
+
+    [Fact]
+    public void EncoderLumaTraversalRepresentsAllTransformsIn128x128Block()
+    {
+        Av1PictureControlSet picture = CreateEncoderPicture(32, 32, use128x128Superblock: true);
+        Av1MacroBlockModeInfo modeInfo = picture.ModeInfoAllocation[0].MacroBlockModeInfo;
+        modeInfo.Block.BlockSize = Av1BlockSize.Block128x128;
+        modeInfo.Block.TransformSize = Av1TransformSize.Size16x16;
+        modeInfo.Block.SegmentId = 0;
+        Av1TileInfo tile = new(0, 0, picture.Parent.FrameHeader);
+        Av1TileWriter.Av1EntropyCodingContext context = new()
+        {
+            MacroBlock = new Av1MacroBlockD { Tile = tile },
+            MacroBlockModeInfo = modeInfo,
+            SuperblockOrigin = Point.Empty
+        };
+
+        using Av1NeighborArrayUnit<byte> luma = new(
+            Configuration.Default,
+            leftSize: 128,
+            topSize: 128,
+            topLeftSize: 256)
+        {
+            GranularityNormalLog2 = Av1Constants.ModeInfoSizeLog2,
+            GranularityTopLeftLog2 = Av1Constants.ModeInfoSizeLog2
+        };
+
+        using Av1EncoderCoefficientBuffer coefficients = new(
+            Configuration.Default,
+            picture.Sequence.SequenceHeader,
+            width: 128,
+            height: 128);
+
+        Span<Av1EncoderTransformBlockState> transformBlocks =
+            coefficients.GetTransformBlockSpan(0, Av1Plane.Y);
+        transformBlocks.Fill(new Av1EncoderTransformBlockState { TransformType = Av1TransformType.Identity });
+
+        Av1EncoderBlockStruct block = default;
+        Av1SymbolEncoder writer = new(Configuration.Default, 4096, BaseQIndex);
+        Av1TileWriter.EncodeTransformCoefficientsY(
+            picture,
+            context,
+            ref writer,
+            ref block,
+            Point.Empty,
+            Av1PredictionMode.DC,
+            Av1BlockSize.Block128x128,
+            coefficients,
+            superblockIndex: 0,
+            luma);
+
+        writer.Dispose();
+
+        int visitedTransformCount = 0;
+        for (int index = 0; index < transformBlocks.Length; index++)
+        {
+            if ((index % 16) == 0)
+            {
+                Assert.Equal(Av1TransformType.DctDct, transformBlocks[index].TransformType);
+                visitedTransformCount++;
+            }
+            else
+            {
+                Assert.Equal(Av1TransformType.Identity, transformBlocks[index].TransformType);
+            }
+        }
+
+        Assert.Equal(64, visitedTransformCount);
+        Assert.Equal(16384, context.CodedAreaSuperblock);
+    }
+
+    [Fact]
+    public void SegmentationUpdateUsesModeInfoUnits()
+    {
+        Av1PictureControlSet picture = CreateEncoderPicture(8, 8);
+        picture.SegmentationNeighborMap = new byte[64];
+
+        picture.UpdateSegmentation(Av1BlockSize.Block16x8, new Point(8, 12), segmentId: 5);
+
+        for (int row = 0; row < 8; row++)
+        {
+            for (int column = 0; column < 8; column++)
+            {
+                byte expected = row is 3 or 4 && column >= 2 && column < 6 ? (byte)5 : (byte)0;
+                Assert.Equal(expected, picture.SegmentationNeighborMap[(row * 8) + column]);
+            }
+        }
+    }
+
+    [Theory]
+    [InlineData((int)Av1PartitionType.None, 24, 24)]
+    [InlineData((int)Av1PartitionType.Horizontal, 24, 28)]
+    [InlineData((int)Av1PartitionType.Vertical, 28, 24)]
+    [InlineData((int)Av1PartitionType.Split, 0, 0)]
+    [InlineData((int)Av1PartitionType.HorizontalA, 24, 28)]
+    [InlineData((int)Av1PartitionType.HorizontalB, 28, 28)]
+    [InlineData((int)Av1PartitionType.VerticalA, 28, 24)]
+    [InlineData((int)Av1PartitionType.VerticalB, 28, 28)]
+    [InlineData((int)Av1PartitionType.Horizontal4, 24, 30)]
+    [InlineData((int)Av1PartitionType.Vertical4, 30, 24)]
+    public void PartitionContextUpdatesMatchLibaomExtendedPartitionRules(
+        int partitionValue,
+        byte expectedAbove,
+        byte expectedLeft)
+    {
+        using Av1NeighborArrayUnit<Av1PartitionContext> neighbors = new(
+            Configuration.Default,
+            leftSize: 16,
+            topSize: 16,
+            topLeftSize: 32)
+        {
+            GranularityNormalLog2 = 2,
+            GranularityTopLeftLog2 = 2
+        };
+
+        Av1PartitionType partition = (Av1PartitionType)partitionValue;
+        Av1BlockSize blockSize = Av1BlockSize.Block32x32;
+        Av1BlockSize subSize = partition.GetBlockSubSize(blockSize);
+
+        Av1TileWriter.UpdatePartitionContexts(
+            neighbors,
+            new Point(8, 12),
+            subSize,
+            blockSize,
+            partition);
+
+        for (int index = 0; index < 16; index++)
+        {
+            byte above = index is >= 2 and < 10 ? expectedAbove : (byte)0;
+            byte left = index is >= 3 and < 11 ? expectedLeft : (byte)0;
+            Assert.Equal(above, neighbors.Top[index].Above);
+            Assert.Equal(left, neighbors.Left[index].Left);
+        }
+    }
+
+    [Fact]
+    public void EightByEightSplitPublishesFourByFourPartitionContexts()
+    {
+        using Av1NeighborArrayUnit<Av1PartitionContext> neighbors = new(
+            Configuration.Default,
+            leftSize: 4,
+            topSize: 4,
+            topLeftSize: 8)
+        {
+            GranularityNormalLog2 = 2,
+            GranularityTopLeftLog2 = 2
+        };
+
+        Av1TileWriter.UpdatePartitionContexts(
+            neighbors,
+            new Point(4, 4),
+            Av1BlockSize.Block4x4,
+            Av1BlockSize.Block8x8,
+            Av1PartitionType.Split);
+
+        Assert.Equal(31, neighbors.Top[1].Above);
+        Assert.Equal(31, neighbors.Top[2].Above);
+        Assert.Equal(31, neighbors.Left[1].Left);
+        Assert.Equal(31, neighbors.Left[2].Left);
+    }
+
+    [Fact]
+    public void EncoderModeInfoEdgesUseFourByFourUnits()
+    {
+        Av1PictureControlSet picture = CreateEncoderPicture(6, 5);
+        Av1TileInfo tile = new(0, 0, picture.Parent.FrameHeader);
+        Av1MacroBlockD macroBlock = new() { Tile = tile };
+        Point position = new(2, 3);
+
+        Av1TileWriter.SetModeInfoRowAndColumn(
+            picture,
+            macroBlock,
+            tile,
+            position,
+            Av1BlockSize.Block16x8,
+            picture.ModeInfoStride,
+            picture.Parent.Common.ModeInfoRowCount,
+            picture.Parent.Common.ModeInfoColumnCount);
+
+        Assert.Equal(-96, macroBlock.ToTopEdge);
+        Assert.Equal(0, macroBlock.ToBottomEdge);
+        Assert.Equal(-64, macroBlock.ToLeftEdge);
+        Assert.Equal(0, macroBlock.ToRightEdge);
+        Assert.Same(picture.ModeInfoGrid[14].MacroBlockModeInfo, macroBlock.AboveMacroBlock);
+        Assert.Same(picture.ModeInfoGrid[19].MacroBlockModeInfo, macroBlock.LeftMacroBlock);
+    }
+
+    [Fact]
+    public void CdefUsesLibaomUnitIndexAndFirstBlockStrength()
+    {
+        Av1PictureControlSet picture = CreateEncoderPicture(32, 32, use128x128Superblock: true);
+        picture.Parent.FrameHeader.CdefParameters.BitCount = 2;
+        picture.ModeInfoGrid[16].MacroBlockModeInfo.CdefStrength = 3;
+        picture.ModeInfoGrid[20].MacroBlockModeInfo.CdefStrength = 1;
+        using Av1SymbolEncoder writer = new(Configuration.Default, 16, BaseQIndex);
+
+        Av1TileWriter.WriteCdef(
+            picture.Sequence,
+            picture,
+            writer,
+            tileIndex: 0,
+            skip: false,
+            modeInfoPosition: new Point(20, 4));
+
+        Assert.Equal(new[] { -1, 3, -1, -1 }, picture.CdefPreset[0]);
+    }
+
+    [Fact]
+    public void SuperblockWriterTraversesSplitTreeFromAbsoluteOrigin()
+    {
+        Av1PictureControlSet picture = CreateEncoderPicture(32, 16);
+        picture.Sequence.SequenceHeader.ColorConfig.IsMonochrome = true;
+        picture.Parent.FrameHeader.CodedLossless = true;
+        using Av1NeighborArrayUnit<Av1PartitionContext> partitions = new(
+            Configuration.Default,
+            leftSize: 16,
+            topSize: 32,
+            topLeftSize: 48)
+        {
+            GranularityNormalLog2 = 2,
+            GranularityTopLeftLog2 = 2
+        };
+
+        using Av1NeighborArrayUnit<byte> luma = new(
+            Configuration.Default,
+            leftSize: 16,
+            topSize: 32,
+            topLeftSize: 48)
+        {
+            GranularityNormalLog2 = 2,
+            GranularityTopLeftLog2 = 2
+        };
+
+        using Av1NeighborArrayUnit<byte> red = new(
+            Configuration.Default,
+            leftSize: 16,
+            topSize: 32,
+            topLeftSize: 48)
+        {
+            GranularityNormalLog2 = 2,
+            GranularityTopLeftLog2 = 2
+        };
+
+        using Av1NeighborArrayUnit<byte> blue = new(
+            Configuration.Default,
+            leftSize: 16,
+            topSize: 32,
+            topLeftSize: 48)
+        {
+            GranularityNormalLog2 = 2,
+            GranularityTopLeftLog2 = 2
+        };
+
+        picture.PartitionContexts = [partitions];
+        picture.LuminanceDcSignLevelCoefficientNeighbors = [luma];
+        picture.CrDcSignLevelCoefficientNeighbors = [red];
+        picture.CbDcSignLevelCoefficientNeighbors = [blue];
+        Av1TileInfo tile = new(0, 0, picture.Parent.FrameHeader);
+        Point[] blockPositions = [new(16, 0), new(24, 0), new(16, 8), new(24, 8)];
+        Av1EncoderBlockStruct[] blocks = new Av1EncoderBlockStruct[blockPositions.Length];
+        for (int index = 0; index < blockPositions.Length; index++)
+        {
+            Point position = blockPositions[index];
+            Av1EncoderBlockModeInfo blockMode = picture.ModeInfoAllocation[
+                (position.Y * picture.ModeInfoStride) + position.X].MacroBlockModeInfo.Block;
+
+            blockMode.BlockSize = Av1BlockSize.Block32x32;
+            blockMode.Skip = true;
+            blockMode.Mode = Av1PredictionMode.DC;
+            blockMode.UvMode = Av1ChromaPredictionMode.DC;
+            blocks[index] = new Av1EncoderBlockStruct { HasChroma = false };
+        }
+
+        Av1Superblock superblock = new()
+        {
+            FinalBlocks = blocks,
+            TileInfo = tile,
+            CodingUnitPartitionTypes =
+            [
+                Av1PartitionType.Split,
+                Av1PartitionType.None,
+                Av1PartitionType.None,
+                Av1PartitionType.None,
+                Av1PartitionType.None
+            ],
+            Index = 1
+        };
+        Av1TileWriter.Av1EntropyCodingContext context = new()
+        {
+            MacroBlock = new Av1MacroBlockD { Tile = tile },
+            MacroBlockModeInfo = picture.ModeInfoAllocation[16].MacroBlockModeInfo,
+            SuperblockOrigin = new Point(64, 0)
+        };
+        using Av1EncoderCoefficientBuffer coefficients = new(
+            Configuration.Default,
+            picture.Sequence.SequenceHeader,
+            width: 128,
+            height: 64);
+
+        Av1SymbolEncoder writer = new(Configuration.Default, 512, BaseQIndex);
+
+        Av1TileWriter.WriteSuperblock(
+            picture,
+            context,
+            ref writer,
+            superblock,
+            coefficients,
+            tileIndex: 0);
+
+        writer.Dispose();
+
+        Assert.Equal(4096, context.CodedAreaSuperblock);
+        Assert.Equal(0, context.CodedAreaSuperblockUv);
+        for (int index = 0; index < partitions.Top.Length; index++)
+        {
+            Assert.Equal(index < 16 ? 0 : 24, partitions.Top[index].Above);
+        }
+
+        for (int index = 0; index < partitions.Left.Length; index++)
+        {
+            Assert.Equal(24, partitions.Left[index].Left);
+        }
     }
 
     [Fact]
@@ -262,7 +596,7 @@ public class Av1CoefficientsEntropyTests
         Av1TransformInfo transformInfo = new(transformSize, 0, 0);
         int[] aboveContexts = new int[1];
         int[] leftContexts = new int[1];
-        Av1TransformBlockContext transformBlockContext = new();
+        Av1TransformBlockContext transformBlockContext = default;
         Configuration configuration = Configuration.Default;
         Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         Span<int> coefficientsBuffer = [1, 2, 3, 4, 5];
@@ -332,7 +666,7 @@ public class Av1CoefficientsEntropyTests
         Av1TransformInfo transformInfo = new(transformSize, 0, 0);
         int[] aboveContexts = new int[1];
         int[] leftContexts = new int[1];
-        Av1TransformBlockContext transformBlockContext = new();
+        Av1TransformBlockContext transformBlockContext = default;
         Configuration configuration = Configuration.Default;
         Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         Span<int> coefficientsBuffer = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
@@ -407,7 +741,7 @@ public class Av1CoefficientsEntropyTests
         Av1TransformInfo transformInfo = new(transformSize, 0, 0);
         int[] aboveContexts = new int[transformSize.Get4x4WideCount()];
         int[] leftContexts = new int[transformSize.Get4x4HighCount()];
-        Av1TransformBlockContext transformBlockContext = new();
+        Av1TransformBlockContext transformBlockContext = default;
         Configuration configuration = Configuration.Default;
         Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
         Span<int> coefficientsBuffer = Enumerable.Range(0, blockSize.GetHeight() * blockSize.GetWidth()).ToArray();
@@ -460,6 +794,62 @@ public class Av1CoefficientsEntropyTests
                 Block = new Av1EncoderBlockModeInfo { Mode = mode }
             }
         };
+
+    private static Av1PictureControlSet CreateEncoderPicture(
+        int modeInfoColumnCount,
+        int modeInfoRowCount,
+        bool use128x128Superblock = false)
+    {
+        ObuTileGroupHeader tiles = new()
+        {
+            TileColumnCount = 1,
+            TileRowCount = 1
+        };
+
+        tiles.TileColumnStartModeInfo[1] = modeInfoColumnCount;
+        tiles.TileRowStartModeInfo[1] = modeInfoRowCount;
+        ObuSequenceHeader sequenceHeader = new() { Use128x128Superblock = use128x128Superblock };
+        ObuFrameHeader frameHeader = new()
+        {
+            ModeInfoColumnCount = modeInfoColumnCount,
+            ModeInfoRowCount = modeInfoRowCount,
+            TilesInfo = tiles
+        };
+
+        Av1ModeInfo[] modeInfoGrid = new Av1ModeInfo[modeInfoColumnCount * modeInfoRowCount];
+        for (int index = 0; index < modeInfoGrid.Length; index++)
+        {
+            modeInfoGrid[index] = CreateModeInfo(Av1PredictionMode.DC);
+        }
+
+        return new Av1PictureControlSet
+        {
+            PartitionContexts = [],
+            LuminanceDcSignLevelCoefficientNeighbors = [],
+            CrDcSignLevelCoefficientNeighbors = [],
+            CbDcSignLevelCoefficientNeighbors = [],
+            TransformFunctionContexts = [],
+            Sequence = new Av1SequenceControlSet { SequenceHeader = sequenceHeader },
+            Parent = new Av1PictureParentControlSet
+            {
+                Common = new Av1EncoderCommon
+                {
+                    ModeInfoColumnCount = modeInfoColumnCount,
+                    ModeInfoRowCount = modeInfoRowCount,
+                    ModeInfoStride = modeInfoColumnCount,
+                    FrameSize = new ObuFrameSize(),
+                    TilesInfo = tiles
+                },
+                FrameHeader = frameHeader,
+                PreviousQIndex = []
+            },
+            SegmentationNeighborMap = [],
+            ModeInfoGrid = modeInfoGrid,
+            ModeInfoAllocation = modeInfoGrid,
+            ModeInfoStride = modeInfoColumnCount,
+            CdefPreset = [[-1, -1, -1, -1]]
+        };
+    }
 
     private static Av1MacroBlockD CreateMacroBlock()
     {

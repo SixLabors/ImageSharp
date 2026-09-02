@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -41,9 +42,9 @@ internal class Av1EncoderBlockModeInfo
     public int SegmentId { get; set; }
 
     /// <summary>
-    /// Gets or sets the transform-tree depth selected for the block.
+    /// Gets or sets the luma transform size selected for the block.
     /// </summary>
-    public int TransformDepth { get; set; }
+    public Av1TransformSize TransformSize { get; set; }
 
     /// <summary>
     /// Gets or sets the luma prediction mode written for the block.

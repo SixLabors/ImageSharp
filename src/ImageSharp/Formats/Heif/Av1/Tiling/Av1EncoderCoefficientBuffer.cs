@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Memory;
 
@@ -12,9 +13,14 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 internal sealed class Av1EncoderCoefficientBuffer : IDisposable
 {
     /// <summary>
-    /// Stores one complete superblock's luma and chroma coefficients in each row.
+    /// The number of coefficients represented by one entry in libaom's EOB arrays.
     /// </summary>
-    private readonly Buffer2D<int> coefficients;
+    public const int TransformBlockUnitCoefficientCount = 1 << (Av1Constants.ModeInfoSizeLog2 * 2);
+
+    /// <summary>
+    /// Stores one complete superblock's coefficients and packed transform-block state in each row.
+    /// </summary>
+    private readonly Buffer2D<int> storage;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1EncoderCoefficientBuffer"/> class.
@@ -40,11 +46,15 @@ internal sealed class Av1EncoderCoefficientBuffer : IDisposable
         int chromaSubsampling = (colorConfig.SubSamplingX ? 1 : 0) + (colorConfig.SubSamplingY ? 1 : 0);
         this.ChromaCoefficientCount = colorConfig.IsMonochrome ? 0 : this.LumaCoefficientCount >> chromaSubsampling;
         this.CoefficientsPerSuperblock = this.LumaCoefficientCount + (2 * this.ChromaCoefficientCount);
+        this.LumaTransformBlockCount = this.LumaCoefficientCount / TransformBlockUnitCoefficientCount;
+        this.ChromaTransformBlockCount = this.ChromaCoefficientCount / TransformBlockUnitCoefficientCount;
+        this.TransformBlocksPerSuperblock = this.LumaTransformBlockCount + (2 * this.ChromaTransformBlockCount);
+        int storageElementsPerSuperblock = this.CoefficientsPerSuperblock + this.TransformBlocksPerSuperblock;
 
         // libaom stores finalized coefficients by raster-ordered superblock. A two-dimensional owner preserves that
-        // layout while allowing ImageSharp's allocator to segment the frame instead of demanding one giant rental.
-        this.coefficients = configuration.MemoryAllocator.Allocate2D<int>(
-            this.CoefficientsPerSuperblock,
+        // layout, and packing the EOB/type state into the same row removes its two additional frame-sized allocations.
+        this.storage = configuration.MemoryAllocator.Allocate2D<int>(
+            storageElementsPerSuperblock,
             this.SuperblockCount);
     }
 
@@ -79,6 +89,21 @@ internal sealed class Av1EncoderCoefficientBuffer : IDisposable
     public int CoefficientsPerSuperblock { get; }
 
     /// <summary>
+    /// Gets the number of luma transform-block positions reserved for each superblock.
+    /// </summary>
+    public int LumaTransformBlockCount { get; }
+
+    /// <summary>
+    /// Gets the number of transform-block positions reserved for each chroma plane in each superblock.
+    /// </summary>
+    public int ChromaTransformBlockCount { get; }
+
+    /// <summary>
+    /// Gets the number of transform-block positions reserved for each complete superblock.
+    /// </summary>
+    public int TransformBlocksPerSuperblock { get; }
+
+    /// <summary>
     /// Gets the total number of coefficient positions retained for the frame.
     /// </summary>
     public long TotalCoefficientCount => (long)this.CoefficientsPerSuperblock * this.SuperblockCount;
@@ -91,7 +116,7 @@ internal sealed class Av1EncoderCoefficientBuffer : IDisposable
     /// <returns>The complete coefficient span reserved for that plane and superblock.</returns>
     public Span<int> GetPlaneSpan(int superblockIndex, Av1Plane plane)
     {
-        Span<int> superblock = this.coefficients.DangerousGetRowSpan(superblockIndex);
+        Span<int> superblock = this.storage.DangerousGetRowSpan(superblockIndex);
         return plane switch
         {
             Av1Plane.Y => superblock[..this.LumaCoefficientCount],
@@ -103,7 +128,29 @@ internal sealed class Av1EncoderCoefficientBuffer : IDisposable
     }
 
     /// <summary>
+    /// Gets one component plane's transform-block state for a raster-ordered superblock.
+    /// </summary>
+    /// <param name="superblockIndex">The raster-ordered superblock index.</param>
+    /// <param name="plane">The requested component plane.</param>
+    /// <returns>One state entry for every 4x4 coefficient unit in the plane.</returns>
+    public Span<Av1EncoderTransformBlockState> GetTransformBlockSpan(int superblockIndex, Av1Plane plane)
+    {
+        Span<int> superblock = this.storage.DangerousGetRowSpan(superblockIndex);
+        Span<Av1EncoderTransformBlockState> transformBlocks =
+            MemoryMarshal.Cast<int, Av1EncoderTransformBlockState>(superblock[this.CoefficientsPerSuperblock..]);
+
+        return plane switch
+        {
+            Av1Plane.Y => transformBlocks[..this.LumaTransformBlockCount],
+            Av1Plane.U => transformBlocks.Slice(this.LumaTransformBlockCount, this.ChromaTransformBlockCount),
+            _ => transformBlocks.Slice(
+                this.LumaTransformBlockCount + this.ChromaTransformBlockCount,
+                this.ChromaTransformBlockCount)
+        };
+    }
+
+    /// <summary>
     /// Releases the frame coefficient storage.
     /// </summary>
-    public void Dispose() => this.coefficients.Dispose();
+    public void Dispose() => this.storage.Dispose();
 }

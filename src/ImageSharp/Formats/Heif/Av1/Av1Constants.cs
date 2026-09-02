@@ -287,19 +287,9 @@ internal static class Av1Constants
     public const int MaxVarTransform = 2;
 
     /// <summary>
-    /// The maximum number of transform blocks at one depth.
-    /// </summary>
-    public const int MaxTransformBlockCount = 16;
-
-    /// <summary>
     /// Number of items in the <see cref="Av1PlaneType"/> enumeration.
     /// </summary>
     public const int PlaneTypeCount = 2;
-
-    /// <summary>
-    /// The maximum number of transform units stored for one encoded block.
-    /// </summary>
-    public const int MaxTransformUnitCount = 16;
 
     /// <summary>
     /// Gets the number of payload bits used by each segmentation feature.

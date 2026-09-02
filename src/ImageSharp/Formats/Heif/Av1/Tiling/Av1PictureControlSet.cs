@@ -113,8 +113,8 @@ internal class Av1PictureControlSet
         int mi_col = origin.X >> Av1Constants.ModeInfoSizeLog2;
         int mi_row = origin.Y >> Av1Constants.ModeInfoSizeLog2;
         int mi_offset = (mi_row * cm.ModeInfoColumnCount) + mi_col;
-        int bw = blockSize.GetWidth();
-        int bh = blockSize.GetHeight();
+        int bw = blockSize.Get4x4WideCount();
+        int bh = blockSize.Get4x4HighCount();
         int xmis = Math.Min(cm.ModeInfoColumnCount - mi_col, bw);
         int ymis = Math.Min(cm.ModeInfoRowCount - mi_row, bh);
 

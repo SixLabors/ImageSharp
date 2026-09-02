@@ -69,16 +69,6 @@ internal class Av1MacroBlockD
     public int ToRightEdge { get; set; }
 
     /// <summary>
-    /// Gets or sets the block dimensions in samples for rectangular-partition context selection.
-    /// </summary>
-    public Size N8Size { get; set; }
-
-    /// <summary>
-    /// Gets or sets a value indicating whether this block is the second half of a rectangular partition.
-    /// </summary>
-    public bool IsSecondRectangle { get; set; }
-
-    /// <summary>
     /// Selects the current entry in the frame-owned mode-information reference grid.
     /// </summary>
     /// <param name="grid">The frame-owned mode-information reference grid.</param>

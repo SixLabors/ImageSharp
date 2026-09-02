@@ -348,7 +348,13 @@ internal sealed class Av1PredictionDecoder
         where T : unmanaged, IBinaryInteger<T>
     {
         Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
-        bool isChromaFromLumaAllowedFlag = IsChromaFromLumaAllowedWithFrameHeader(ref partitionInfo, this.sequenceHeader.ColorConfig, this.frameHeader);
+        Av1BlockSize blockSize = modeInfo.BlockSize;
+        DebugGuard.MustBeLessThan((int)blockSize, (int)Av1BlockSize.AllSizes, nameof(blockSize));
+        bool isChromaFromLumaAllowedFlag = blockSize.AllowsChromaFromLuma(
+            this.frameHeader.LosslessArray[modeInfo.SegmentId],
+            this.sequenceHeader.ColorConfig.SubSamplingX,
+            this.sequenceHeader.ColorConfig.SubSamplingY);
+
         DebugGuard.IsTrue(isChromaFromLumaAllowedFlag, "Chroma from Luma should be allowed then computing it.");
 
         if (chromaFromLumaContext == null)
@@ -377,32 +383,6 @@ internal sealed class Av1PredictionDecoder
         {
             Av1ChromaFromLumaPredictor.Predict(chromaFromLumaContext.Q3Buffer, MemoryMarshal.Cast<T, short>(pixelBuffer), stride, alphaQ3, bitDepth.GetBitCount(), width, height);
         }
-    }
-
-    /// <summary>
-    /// Determines whether chroma-from-luma prediction is permitted for the current block and frame state.
-    /// </summary>
-    /// <param name="partitionInfo">The decoded partition and mode state for the containing block.</param>
-    /// <param name="colorConfig">The sequence color configuration.</param>
-    /// <param name="frameHeader">The decoded frame header.</param>
-    /// <returns><see langword="true"/> when the block may use chroma-from-luma prediction; otherwise, <see langword="false"/>.</returns>
-    private static bool IsChromaFromLumaAllowedWithFrameHeader(ref Av1PartitionInfo partitionInfo, ObuColorConfig colorConfig, ObuFrameHeader frameHeader)
-    {
-        Av1BlockModeInfo modeInfo = partitionInfo.ModeInfo;
-        Av1BlockSize blockSize = modeInfo.BlockSize;
-        DebugGuard.MustBeLessThan((int)blockSize, (int)Av1BlockSize.AllSizes, nameof(blockSize));
-        if (frameHeader.LosslessArray[modeInfo.SegmentId])
-        {
-            // In lossless, CfL is available when the partition size is equal to the
-            // transform size.
-            bool subX = colorConfig.SubSamplingX;
-            bool subY = colorConfig.SubSamplingY;
-            Av1BlockSize planeBlockSize = blockSize.GetSubsampled(subX, subY);
-            return planeBlockSize == Av1BlockSize.Block4x4;
-        }
-
-        // Outside lossless mode, AV1 limits CfL to luma partitions no larger than 32 by 32.
-        return blockSize.GetWidth() <= 32 && blockSize.GetHeight() <= 32;
     }
 
     /// <summary>

@@ -813,6 +813,74 @@ public class Av1CoefficientsEntropyTests
         Assert.True(expected.GetSpan().SequenceEqual(actual.GetSpan()));
     }
 
+    [Theory]
+    [InlineData((int)Av1BlockSize.Block4x4, false, false, true, true)]
+    [InlineData((int)Av1BlockSize.Block8x8, true, true, true, true)]
+    [InlineData((int)Av1BlockSize.Block8x8, false, false, true, false)]
+    [InlineData((int)Av1BlockSize.Block16x16, true, true, true, false)]
+    [InlineData((int)Av1BlockSize.Block32x32, true, true, false, true)]
+    [InlineData((int)Av1BlockSize.Block64x64, true, true, false, false)]
+    public void ChromaFromLumaAvailabilityUsesLosslessPlaneGeometry(
+        int blockSize,
+        bool subSamplingX,
+        bool subSamplingY,
+        bool isLossless,
+        bool expected)
+        => Assert.Equal(
+            expected,
+            ((Av1BlockSize)blockSize).AllowsChromaFromLuma(isLossless, subSamplingX, subSamplingY));
+
+    [Fact]
+    public void LosslessChromaModeUsesPlaneSizedChromaFromLumaAlphabet()
+    {
+        ObuFrameHeader frameHeader = new();
+        frameHeader.LosslessArray[0] = true;
+        ObuColorConfig colorConfig = new()
+        {
+            SubSamplingX = true,
+            SubSamplingY = true
+        };
+
+        Av1MacroBlockModeInfo modeInfo = default;
+        modeInfo.Block.SegmentId = 0;
+        Av1EncoderBlockStruct block = default;
+        Av1BlockSize blockSize = Av1BlockSize.Block16x16;
+        ReadOnlySpan<Av1ChromaPredictionMode> decisions =
+        [
+            Av1ChromaPredictionMode.DC,
+            Av1ChromaPredictionMode.Smooth,
+            Av1ChromaPredictionMode.Paeth,
+            Av1ChromaPredictionMode.SmoothVertical,
+            Av1ChromaPredictionMode.DC,
+            Av1ChromaPredictionMode.SmoothHorizontal
+        ];
+
+        using Av1SymbolEncoder actualWriter = new(Configuration.Default, 16, BaseQIndex);
+        using Av1SymbolEncoder expectedWriter = new(Configuration.Default, 16, BaseQIndex);
+        foreach (Av1ChromaPredictionMode decision in decisions)
+        {
+            Av1TileWriter.EncodeIntraChromaMode(
+                actualWriter,
+                frameHeader,
+                colorConfig,
+                modeInfo,
+                ref block,
+                blockSize,
+                Av1PredictionMode.DC,
+                decision);
+
+            expectedWriter.WriteChromaMode(
+                decision,
+                isChromaFromLumaAllowed: false,
+                Av1PredictionMode.DC);
+        }
+
+        using IMemoryOwner<byte> actual = actualWriter.Exit();
+        using IMemoryOwner<byte> expected = expectedWriter.Exit();
+
+        Assert.True(expected.GetSpan().SequenceEqual(actual.GetSpan()));
+    }
+
     [Fact]
     public void RoundTripZeroEndOfBlock()
     {

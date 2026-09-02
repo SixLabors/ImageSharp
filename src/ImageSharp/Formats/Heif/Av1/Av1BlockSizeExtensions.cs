@@ -180,6 +180,29 @@ internal static class Av1BlockSizeExtensions
     }
 
     /// <summary>
+    /// Determines whether a luma block permits chroma-from-luma prediction.
+    /// </summary>
+    /// <param name="blockSize">The luma block size.</param>
+    /// <param name="isLossless">Indicates whether the block belongs to a lossless segment.</param>
+    /// <param name="subX">Indicates horizontal chroma subsampling.</param>
+    /// <param name="subY">Indicates vertical chroma subsampling.</param>
+    /// <returns><see langword="true"/> when chroma-from-luma prediction is permitted; otherwise, <see langword="false"/>.</returns>
+    public static bool AllowsChromaFromLuma(
+        this Av1BlockSize blockSize,
+        bool isLossless,
+        bool subX,
+        bool subY)
+    {
+        if (isLossless)
+        {
+            // Lossless coding fixes the transform to 4x4, so the subsampled chroma block must have the same dimensions.
+            return blockSize.GetSubsampled(subX, subY) == Av1BlockSize.Block4x4;
+        }
+
+        return blockSize.GetWidth() <= 32 && blockSize.GetHeight() <= 32;
+    }
+
+    /// <summary>
     /// Gets the maximum chroma transform size after applying plane subsampling and AV1 chroma transform limits.
     /// </summary>
     /// <param name="blockSize">The luma block size.</param>

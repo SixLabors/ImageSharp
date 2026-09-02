@@ -708,12 +708,13 @@ internal partial class Av1TileWriter
                 {
                     EncodeIntraChromaMode(
                         writer,
+                        frm_hdr,
+                        scs.SequenceHeader.ColorConfig,
                         macroBlockModeInfo,
                         ref blk_ptr,
                         blockSize,
                         intra_luma_mode,
-                        intra_chroma_mode,
-                        blockSize.GetWidth() <= 32 && blockSize.GetHeight() <= 32);
+                        intra_chroma_mode);
                 }
             }
 
@@ -844,21 +845,28 @@ internal partial class Av1TileWriter
     /// Writes the chroma intra mode, chroma-from-luma alpha values, and directional angle adjustment for a block.
     /// </summary>
     /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="frameHeader">The current frame syntax and segment lossless state.</param>
+    /// <param name="colorConfig">The sequence chroma subsampling configuration.</param>
     /// <param name="macroBlockModeInfo">The selected block modes.</param>
     /// <param name="blk_ptr">The encoder prediction-unit state.</param>
     /// <param name="blockSize">The luma block size.</param>
     /// <param name="lumaMode">The selected luma prediction mode.</param>
     /// <param name="chromaMode">The selected chroma prediction mode.</param>
-    /// <param name="isChromaFromLumaAllowed">A value indicating whether chroma-from-luma mode is available.</param>
-    private static void EncodeIntraChromaMode(
+    public static void EncodeIntraChromaMode(
         Av1SymbolEncoder writer,
+        ObuFrameHeader frameHeader,
+        ObuColorConfig colorConfig,
         Av1MacroBlockModeInfo macroBlockModeInfo,
         ref Av1EncoderBlockStruct blk_ptr,
         Av1BlockSize blockSize,
         Av1PredictionMode lumaMode,
-        Av1ChromaPredictionMode chromaMode,
-        bool isChromaFromLumaAllowed)
+        Av1ChromaPredictionMode chromaMode)
     {
+        bool isChromaFromLumaAllowed = blockSize.AllowsChromaFromLuma(
+            frameHeader.LosslessArray[macroBlockModeInfo.Block.SegmentId],
+            colorConfig.SubSamplingX,
+            colorConfig.SubSamplingY);
+
         writer.WriteChromaMode(chromaMode, isChromaFromLumaAllowed, lumaMode);
 
         if (chromaMode == Av1ChromaPredictionMode.ChromaFromLuma)

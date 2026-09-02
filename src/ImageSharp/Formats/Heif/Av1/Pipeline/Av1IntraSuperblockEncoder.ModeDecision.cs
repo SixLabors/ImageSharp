@@ -157,7 +157,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             ushort tileIndex,
             ref Av1MacroBlockModeInfo modeInfo,
-            ref Av1EncoderBlockStruct block)
+            ref Av1EncoderBlockStruct block,
+            ref Av1EncoderPaletteInfo paletteInfo)
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             const Av1TransformSize LumaTransformSize = Av1TransformSize.Size8x8;

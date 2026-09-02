@@ -2702,54 +2702,10 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int leftPaletteSize = leftModeInfo is null ? 0 : left.GetPaletteSize(plane);
         ReadOnlySpan<ushort> aboveColors = aboveModeInfo is null ? [] : above.GetPaletteColors(plane);
         ReadOnlySpan<ushort> leftColors = leftModeInfo is null ? [] : left.GetPaletteColors(plane);
-        int aboveIndex = 0;
-        int leftIndex = 0;
-        int count = 0;
-        while (aboveIndex < abovePaletteSize && leftIndex < leftPaletteSize)
-        {
-            ushort aboveColor = aboveColors[aboveIndex];
-            ushort leftColor = leftColors[leftIndex];
-            if (leftColor < aboveColor)
-            {
-                AddPaletteCacheColor(cache, ref count, leftColor);
-                leftIndex++;
-            }
-            else
-            {
-                AddPaletteCacheColor(cache, ref count, aboveColor);
-                aboveIndex++;
-                if (leftColor == aboveColor)
-                {
-                    leftIndex++;
-                }
-            }
-        }
-
-        while (aboveIndex < abovePaletteSize)
-        {
-            AddPaletteCacheColor(cache, ref count, aboveColors[aboveIndex++]);
-        }
-
-        while (leftIndex < leftPaletteSize)
-        {
-            AddPaletteCacheColor(cache, ref count, leftColors[leftIndex++]);
-        }
-
-        return count;
-    }
-
-    /// <summary>
-    /// Appends a palette cache color unless it duplicates the preceding sorted value.
-    /// </summary>
-    /// <param name="cache">The sorted cache being populated.</param>
-    /// <param name="count">The number of colors currently stored.</param>
-    /// <param name="color">The next sorted color.</param>
-    private static void AddPaletteCacheColor(Span<ushort> cache, ref int count, ushort color)
-    {
-        if (count == 0 || cache[count - 1] != color)
-        {
-            cache[count++] = color;
-        }
+        return Av1PaletteCache.Merge(
+            aboveColors[..abovePaletteSize],
+            leftColors[..leftPaletteSize],
+            cache);
     }
 
     /// <summary>

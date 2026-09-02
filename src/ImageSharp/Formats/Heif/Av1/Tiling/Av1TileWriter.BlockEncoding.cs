@@ -24,13 +24,15 @@ internal partial class Av1TileWriter
         /// <param name="tileIndex">The zero-based tile index.</param>
         /// <param name="modeInfo">The mode information to publish.</param>
         /// <param name="block">The encoder block state to publish.</param>
+        /// <param name="paletteInfo">The current block's palette sizes and colors.</param>
         void EncodeBlock(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
             ref Av1MacroBlockModeInfo modeInfo,
-            ref Av1EncoderBlockStruct block);
+            ref Av1EncoderBlockStruct block,
+            ref Av1EncoderPaletteInfo paletteInfo);
     }
 
     private readonly struct PrecomputedBlockEncodingHandler : IBlockEncodingHandler
@@ -41,7 +43,8 @@ internal partial class Av1TileWriter
             Point blockOrigin,
             ushort tileIndex,
             ref Av1MacroBlockModeInfo modeInfo,
-            ref Av1EncoderBlockStruct block)
+            ref Av1EncoderBlockStruct block,
+            ref Av1EncoderPaletteInfo paletteInfo)
         {
         }
     }

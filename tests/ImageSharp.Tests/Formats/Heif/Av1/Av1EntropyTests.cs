@@ -1254,6 +1254,18 @@ public class Av1EntropyTests
             encoder.GetPaletteColorMapCost(3, Av1PlaneType.Y, 2, 2, region));
     }
 
+    [Fact]
+    public void PaletteCacheMergesSortedNeighborColorsWithoutDuplicates()
+    {
+        ReadOnlySpan<ushort> above = [1, 3, 5, 7];
+        ReadOnlySpan<ushort> left = [2, 3, 6, 7];
+        Span<ushort> cache = stackalloc ushort[2 * Av1Constants.PaletteMaxSize];
+
+        int count = Av1PaletteCache.Merge(above, left, cache);
+
+        Assert.Equal([1, 2, 3, 5, 6, 7], cache[..count].ToArray());
+    }
+
     [Theory]
     [InlineData(1, 1, 0, 0, 0, 1, 4, 1)]
     [InlineData(1, 1, 0, 1, 0, 1, 3, 1)]

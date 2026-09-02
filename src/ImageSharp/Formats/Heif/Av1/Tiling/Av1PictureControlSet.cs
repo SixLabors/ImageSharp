@@ -34,6 +34,11 @@ internal class Av1PictureControlSet
     public required Av1NeighborArrayUnit<byte>[] TransformFunctionContexts { get; set; }
 
     /// <summary>
+    /// Gets or sets the palette sizes and base colors exposed by the above and left block edges for each tile.
+    /// </summary>
+    public Av1NeighborArrayUnit<Av1EncoderPaletteInfo>[] PaletteContexts { get; set; } = [];
+
+    /// <summary>
     /// Gets or sets the sequence-wide encoder state.
     /// </summary>
     public required Av1SequenceControlSet Sequence { get; set; }

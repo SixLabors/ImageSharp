@@ -46,8 +46,12 @@ public class Av1EncoderModeInfoBufferTests
         Assert.Equal(allocation.AllocationId, returned.AllocationId);
     }
 
-    [Fact]
-    public void PictureBufferPacksAllPictureStateIntoTwoAllocatorOwners()
+    [Theory]
+    [InlineData(false, 336)]
+    [InlineData(true, 3_536)]
+    public unsafe void PictureBufferPacksAllPictureStateIntoTwoAllocatorOwners(
+        bool allowScreenContentTools,
+        int expectedStateStorageLength)
     {
         const int Width = 16;
         const int Height = 16;
@@ -79,6 +83,7 @@ public class Av1EncoderModeInfoBufferTests
 
         ObuFrameHeader frameHeader = new()
         {
+            AllowScreenContentTools = allowScreenContentTools,
             ModeInfoColumnCount = Width >> Av1Constants.ModeInfoSizeLog2,
             ModeInfoRowCount = Height >> Av1Constants.ModeInfoSizeLog2,
             TilesInfo = tiles
@@ -98,7 +103,7 @@ public class Av1EncoderModeInfoBufferTests
             Assert.Equal(6_144, allocations[0].Length);
             Assert.Equal(AllocationOptions.Clean, allocations[0].AllocationOptions);
             Assert.Equal(typeof(byte), allocations[1].ElementType);
-            Assert.Equal(336, allocations[1].Length);
+            Assert.Equal(expectedStateStorageLength, allocations[1].Length);
             Assert.Equal(AllocationOptions.Clean, allocations[1].AllocationOptions);
             Assert.Empty(allocator.ReturnLog);
 
@@ -112,6 +117,28 @@ public class Av1EncoderModeInfoBufferTests
             Assert.Equal(16, picture.CbDcSignLevelCoefficientNeighbors[0].Top.Length);
             Assert.Equal(32, picture.TransformFunctionContexts[0].Left.Length);
             Assert.Equal(32, picture.TransformFunctionContexts[0].Top.Length);
+            if (allowScreenContentTools)
+            {
+                Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContext = Assert.Single(picture.PaletteContexts);
+                Assert.Equal(32, paletteContext.Left.Length);
+                Assert.Equal(32, paletteContext.Top.Length);
+                Assert.Equal(Av1Constants.ModeInfoSizeLog2, paletteContext.GranularityNormalLog2);
+                Assert.Equal(0, paletteContext.Left[0].PaletteSizes[0]);
+                Assert.Equal(0, paletteContext.Top[^1].PaletteSizes[1]);
+
+                // The typed palette region starts at its natural 16-bit alignment inside the shared byte owner.
+                fixed (Av1EncoderPaletteInfo* pointer = paletteContext.Left)
+                {
+                    Assert.Equal((nuint)0, (nuint)pointer % (nuint)sizeof(ushort));
+                }
+
+                paletteContext.Left[0].PaletteSizes[0] = 3;
+                Assert.Equal(0, paletteContext.Top[0].PaletteSizes[0]);
+            }
+            else
+            {
+                Assert.Empty(picture.PaletteContexts);
+            }
         }
 
         Assert.Equal(2, allocator.ReturnLog.Count);

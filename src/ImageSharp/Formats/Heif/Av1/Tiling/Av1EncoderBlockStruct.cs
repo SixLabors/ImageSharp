@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -16,12 +15,7 @@ internal struct Av1EncoderBlockStruct
     /// <summary>
     /// The fixed byte width of one packed final-block decision.
     /// </summary>
-    public const int StorageSize = 10;
-
-    /// <summary>
-    /// Stores the luma and shared chroma palette sizes inline with the block.
-    /// </summary>
-    private InlineArray2<byte> paletteSize;
+    public const int StorageSize = 8;
 
     /// <summary>
     /// Stores the block's prediction-unit syntax inline.
@@ -72,23 +66,8 @@ internal struct Av1EncoderBlockStruct
     }
 
     /// <summary>
-    /// Gets the writable palette sizes for luma and for the shared chroma mode.
-    /// </summary>
-    [UnscopedRef]
-    public Span<byte> PaletteSize => this.paletteSize;
-
-    /// <summary>
     /// Gets the encoder prediction-unit state for the block.
     /// </summary>
     [UnscopedRef]
     public ref Av1EncoderPredictionUnit PredictionUnit => ref this.predictionUnit;
-
-    /// <summary>
-    /// Stores the two palette-size values embedded by libaom in block mode information.
-    /// </summary>
-    [InlineArray(2)]
-    private struct InlineArray2<T>
-    {
-        private T element;
-    }
 }

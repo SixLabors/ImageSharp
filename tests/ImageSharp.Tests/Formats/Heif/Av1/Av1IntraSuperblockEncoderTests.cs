@@ -610,6 +610,112 @@ public class Av1IntraSuperblockEncoderTests
         Assert.NotEqual(0, encoded.GetSpan().Length);
     }
 
+    [Fact]
+    public void ProductionWriterConsumesPaletteMapAndPublishesPaletteEdges()
+    {
+        const int Width = 8;
+        const int Height = 8;
+        const int QIndex = 23;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = true,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        ObuTileGroupHeader tiles = new()
+        {
+            TileColumnCount = 1,
+            TileRowCount = 1
+        };
+
+        tiles.TileColumnStartModeInfo[1] = Width >> Av1Constants.ModeInfoSizeLog2;
+        tiles.TileRowStartModeInfo[1] = Height >> Av1Constants.ModeInfoSizeLog2;
+        ObuSequenceHeader sequenceHeader = new()
+        {
+            ColorConfig = colorConfig
+        };
+
+        ObuFrameHeader frameHeader = new()
+        {
+            AllowScreenContentTools = true,
+            ModeInfoColumnCount = Width >> Av1Constants.ModeInfoSizeLog2,
+            ModeInfoRowCount = Height >> Av1Constants.ModeInfoSizeLog2,
+            FrameSize = new ObuFrameSize
+            {
+                FrameWidth = Width,
+                FrameHeight = Height
+            },
+            TilesInfo = tiles
+        };
+
+        frameHeader.QuantizationParameters.BaseQIndex = QIndex;
+        frameHeader.QuantizationParameters.QIndex.Fill(QIndex);
+        byte[][] payloads = new byte[2][];
+        for (int mapVariant = 0; mapVariant < payloads.Length; mapVariant++)
+        {
+            using Av1EncoderPictureBuffer pictureBuffer = new(
+                Configuration.Default,
+                sequenceHeader,
+                frameHeader,
+                Width,
+                Height);
+
+            using Av1EncoderCoefficientBuffer coefficients = new(
+                Configuration.Default,
+                sequenceHeader,
+                Width,
+                Height);
+
+            using Av1EncoderSuperblockWorkspace workspace = new(Configuration.Default);
+            Av1Superblock superblock = new()
+            {
+                Workspace = workspace,
+                TileInfo = new Av1TileInfo(0, 0, frameHeader),
+                Index = 0
+            };
+
+            Av1PictureControlSet picture = pictureBuffer.Picture;
+            Av1IntraSuperblockEncoder.Prepare(picture, superblock, Point.Empty);
+            Av1TileWriter.Av1EntropyCodingContext entropyContext = new()
+            {
+                MacroBlock = new Av1MacroBlockD { Tile = superblock.TileInfo },
+                MacroBlockModeInfo = picture.GetMacroBlockModeInfo(default),
+                SuperblockOrigin = default
+            };
+
+            PaletteBlockEncoder blockEncoder = new(workspace, QIndex, mapVariant);
+            using Av1SymbolEncoder writer = new(Configuration.Default, 128, QIndex);
+            Av1TileWriter.WriteSuperblock(
+                picture,
+                entropyContext,
+                writer,
+                superblock,
+                coefficients,
+                tileIndex: 0,
+                ref blockEncoder);
+
+            using IMemoryOwner<byte> encoded = writer.Exit();
+            payloads[mapVariant] = encoded.GetSpan().ToArray();
+            Assert.Equal(1, blockEncoder.Count);
+            Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContext = Assert.Single(picture.PaletteContexts);
+            for (int index = 0; index < 2; index++)
+            {
+                Assert.Equal(3, paletteContext.Top[index].PaletteSizes[0]);
+                Assert.Equal(3, paletteContext.Left[index].PaletteSizes[0]);
+                Assert.Equal([16, 128, 240], paletteContext.Top[index].GetColors(Av1Plane.Y).ToArray());
+                Assert.Equal([16, 128, 240], paletteContext.Left[index].GetColors(Av1Plane.Y).ToArray());
+            }
+
+            Assert.Equal(0, paletteContext.Top[2].PaletteSizes[0]);
+            Assert.Equal(0, paletteContext.Left[2].PaletteSizes[0]);
+        }
+
+        // Changing only the selected color indices must change the range-coded tile payload.
+        Assert.False(payloads[0].SequenceEqual(payloads[1]));
+    }
+
     [Theory]
     [InlineData((int)Av1PredictionMode.Vertical, 0)]
     [InlineData((int)Av1PredictionMode.Horizontal, 0)]
@@ -1911,7 +2017,8 @@ public class Av1IntraSuperblockEncoderTests
             Point blockOrigin,
             ushort tileIndex,
             ref Av1MacroBlockModeInfo modeInfo,
-            ref Av1EncoderBlockStruct block)
+            ref Av1EncoderBlockStruct block,
+            ref Av1EncoderPaletteInfo paletteInfo)
         {
             this.costs[this.Count++] = Av1TileWriter.GetLumaModeCost(
                 writer,
@@ -1934,6 +2041,81 @@ public class Av1IntraSuperblockEncoderTests
             block.HasChroma = false;
             block.QuantizationIndex = this.qIndex;
             block.SegmentId = 0;
+        }
+    }
+
+    /// <summary>
+    /// Supplies one skipped monochrome palette block to the production tile writer.
+    /// </summary>
+    private struct PaletteBlockEncoder : Av1TileWriter.IBlockEncodingHandler
+    {
+        private readonly Av1EncoderSuperblockWorkspace workspace;
+        private readonly int qIndex;
+        private readonly int mapVariant;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="PaletteBlockEncoder"/> struct.
+        /// </summary>
+        /// <param name="workspace">The workspace that owns the palette index map.</param>
+        /// <param name="qIndex">The block quantizer index.</param>
+        /// <param name="mapVariant">The map pattern selected by the test.</param>
+        public PaletteBlockEncoder(
+            Av1EncoderSuperblockWorkspace workspace,
+            int qIndex,
+            int mapVariant)
+        {
+            this.workspace = workspace;
+            this.qIndex = qIndex;
+            this.mapVariant = mapVariant;
+            this.Count = 0;
+        }
+
+        /// <summary>
+        /// Gets the number of final blocks visited by the writer.
+        /// </summary>
+        public int Count { get; private set; }
+
+        /// <inheritdoc/>
+        public void EncodeBlock(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            ref Av1MacroBlockModeInfo modeInfo,
+            ref Av1EncoderBlockStruct block,
+            ref Av1EncoderPaletteInfo paletteInfo)
+        {
+            this.Count++;
+            modeInfo.Block = new Av1EncoderBlockModeInfo
+            {
+                BlockSize = Av1BlockSize.Block8x8,
+                PartitionType = Av1PartitionType.None,
+                SegmentId = 0,
+                Skip = true,
+                TransformSize = Av1TransformSize.Size8x8,
+                Mode = Av1PredictionMode.DC,
+                UvMode = Av1ChromaPredictionMode.DC
+            };
+
+            block.HasChroma = false;
+            block.QuantizationIndex = this.qIndex;
+            block.SegmentId = 0;
+            paletteInfo.PaletteSizes[0] = 3;
+            paletteInfo.SetColors(Av1Plane.Y, [16, 128, 240]);
+            Buffer2DRegion<byte> map = this.workspace
+                .GetPaletteMaps()
+                .GetMap(Av1PlaneType.Y, 8, 8);
+
+            for (int row = 0; row < map.Height; row++)
+            {
+                Span<byte> mapRow = map.DangerousGetRowSpan(row);
+                for (int column = 0; column < map.Width; column++)
+                {
+                    mapRow[column] = this.mapVariant == 0
+                        ? (byte)0
+                        : (byte)((row + column) % 3);
+                }
+            }
         }
     }
 }

@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -716,13 +717,17 @@ internal partial class Av1TileWriter
 
         // Producing the decision here exposes exactly the reconstructed neighbors, coefficient contexts,
         // and adaptive probabilities that the following syntax writes.
+        tb_ptr.Workspace.PaletteInfo = default;
+        ref Av1EncoderPaletteInfo paletteInfo = ref tb_ptr.Workspace.PaletteInfo;
         blockEncoder.EncodeBlock(
             writer,
             macroBlock,
             blockOrigin,
             tile_idx,
             ref macroBlockModeInfo,
-            ref blk_ptr);
+            ref blk_ptr,
+            ref paletteInfo);
+
         bool skipWritingCoefficients = macroBlockModeInfo.Block.Skip;
 
         // This encoder path currently writes intra frames only, so every block follows the key-frame mode syntax.
@@ -791,35 +796,65 @@ internal partial class Av1TileWriter
                 }
             }
 
-            if (!macroBlockModeInfo.Block.UseIntraBlockCopy && IsPaletteAllowed(frm_hdr.AllowScreenContentTools, blockSize))
+            bool paletteAllowed = !macroBlockModeInfo.Block.UseIntraBlockCopy &&
+                IsPaletteAllowed(frm_hdr.AllowScreenContentTools, blockSize);
+
+            if (paletteAllowed)
             {
                 WritePaletteModeInfo(
                     scs,
+                    pcs,
                     writer,
+                    macroBlock,
                     macroBlockModeInfo,
-                    ref blk_ptr,
+                    ref paletteInfo,
                     blockSize,
-                    blockOrigin >> Av1Constants.ModeInfoSizeLog2);
+                    blockOrigin,
+                    tile_idx,
+                    blk_ptr.HasChroma);
             }
 
             if (!macroBlockModeInfo.Block.UseIntraBlockCopy &&
-                IsFilterIntraAllowed(scs.SequenceHeader.EnableFilterIntra, blockSize, blk_ptr.PaletteSize[0], intra_luma_mode))
+                IsFilterIntraAllowed(
+                    scs.SequenceHeader.EnableFilterIntra,
+                    blockSize,
+                    paletteInfo.PaletteSizes[0],
+                    intra_luma_mode))
             {
                 writer.WriteFilterIntraMode(blk_ptr.FilterIntraMode, blockSize);
             }
 
-            if (!macroBlockModeInfo.Block.UseIntraBlockCopy)
+            if (paletteAllowed)
             {
-                Guard.IsTrue(blk_ptr.PaletteSize[1] == 0, nameof(blk_ptr), "Palette of chroma plane shall be empty.");
-
-                // TOKENEXTRA tok = entropyCodingContext.tok;
-                for (int plane = 0; plane < 2; ++plane)
+                ObuColorConfig colorConfig = scs.SequenceHeader.ColorConfig;
+                int palettePlaneCount = Math.Min(2, colorConfig.PlaneCount);
+                for (int plane = 0; plane < palettePlaneCount; ++plane)
                 {
-                    int palette_size_plane = blk_ptr.PaletteSize[plane];
-                    if (palette_size_plane > 0)
+                    int paletteSize = paletteInfo.PaletteSizes[plane];
+                    if (paletteSize == 0)
                     {
-                        throw new NotImplementedException("Tokenizing palette not implemented.");
+                        continue;
                     }
+
+                    Av1PlaneType planeType = (Av1PlaneType)plane;
+                    int subX = planeType == Av1PlaneType.Uv && colorConfig.SubSamplingX ? 1 : 0;
+                    int subY = planeType == Av1PlaneType.Uv && colorConfig.SubSamplingY ? 1 : 0;
+                    int blockWidth = blockSize.GetWidth();
+                    int blockHeight = blockSize.GetHeight();
+                    int planeWidth = blockWidth >> subX;
+                    int planeHeight = blockHeight >> subY;
+                    int columns = Math.Min(blockWidth, frm_hdr.FrameSize.FrameWidth - blockOrigin.X) >> subX;
+                    int rows = Math.Min(blockHeight, frm_hdr.FrameSize.FrameHeight - blockOrigin.Y) >> subY;
+                    Buffer2DRegion<byte> colorIndexMap = tb_ptr.Workspace
+                        .GetPaletteMaps()
+                        .GetMap(planeType, planeWidth, planeHeight);
+
+                    writer.WritePaletteColorMap(
+                        paletteSize,
+                        planeType,
+                        rows,
+                        columns,
+                        colorIndexMap);
                 }
             }
 
@@ -851,7 +886,21 @@ internal partial class Av1TileWriter
             }
         }
 
-        // Neighbor state must be updated after all symbols for the block have used the preceding contexts.
+        // Palette colors are published only after the current block's mode and map have consumed the preceding edges.
+        if (frm_hdr.AllowScreenContentTools)
+        {
+            const Av1NeighborArrayUnit<Av1EncoderPaletteInfo>.UnitMask PaletteContextMask =
+                Av1NeighborArrayUnit<Av1EncoderPaletteInfo>.UnitMask.Left |
+                Av1NeighborArrayUnit<Av1EncoderPaletteInfo>.UnitMask.Top;
+
+            pcs.PaletteContexts[tile_idx].UnitModeWrite(
+                paletteInfo,
+                blockOrigin,
+                new Size(blockSize.GetWidth(), blockSize.GetHeight()),
+                PaletteContextMask);
+        }
+
+        // Coefficient neighbor state follows the same post-symbol ownership boundary.
         UpdateNeighbors(pcs, entropyCodingContext, blockOrigin, ref blk_ptr, tile_idx, blockSize);
     }
 
@@ -1087,21 +1136,115 @@ internal partial class Av1TileWriter
     /// Writes luma and chroma palette-mode syntax for a block.
     /// </summary>
     /// <param name="scs">The sequence coding state.</param>
+    /// <param name="pcs">The picture coding state.</param>
     /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="macroBlock">The current block's mapped neighbor state.</param>
     /// <param name="macroBlockModeInfo">The selected block modes.</param>
-    /// <param name="blk_ptr">The encoder block state.</param>
+    /// <param name="paletteInfo">The selected palette sizes and colors.</param>
     /// <param name="blockSize">The block size.</param>
-    /// <param name="point">The block position in mode-information units.</param>
-    /// <exception cref="NotImplementedException">Palette-mode encoding is not implemented.</exception>
-    private static void WritePaletteModeInfo(
+    /// <param name="blockOrigin">The absolute luma-sample origin.</param>
+    /// <param name="tileIndex">The zero-based tile index.</param>
+    /// <param name="hasChroma">Whether the block owns chroma syntax.</param>
+    internal static void WritePaletteModeInfo(
         Av1SequenceControlSet scs,
+        Av1PictureControlSet pcs,
         Av1SymbolEncoder writer,
+        Av1MacroBlockD macroBlock,
         Av1MacroBlockModeInfo macroBlockModeInfo,
-        ref Av1EncoderBlockStruct blk_ptr,
+        ref Av1EncoderPaletteInfo paletteInfo,
         Av1BlockSize blockSize,
-        Point point)
+        Point blockOrigin,
+        int tileIndex,
+        bool hasChroma)
     {
-        throw new NotImplementedException("Palette mode encoding not implemented.");
+        int blockSizeContext = Av1Math.Log2(blockSize.GetWidth() * blockSize.GetHeight()) - 6;
+        Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts = pcs.PaletteContexts[tileIndex];
+        int yPaletteSize = paletteInfo.PaletteSizes[0];
+        if (macroBlockModeInfo.Block.Mode == Av1PredictionMode.DC)
+        {
+            int neighborContext = 0;
+            if (macroBlock.IsUpAvailable &&
+                paletteContexts.Top[paletteContexts.GetTopIndex(blockOrigin)].PaletteSizes[0] != 0)
+            {
+                neighborContext++;
+            }
+
+            if (macroBlock.IsLeftAvailable &&
+                paletteContexts.Left[paletteContexts.GetLeftIndex(blockOrigin)].PaletteSizes[0] != 0)
+            {
+                neighborContext++;
+            }
+
+            writer.WritePaletteYMode(yPaletteSize != 0, blockSizeContext, neighborContext);
+            if (yPaletteSize != 0)
+            {
+                writer.WritePaletteSize(yPaletteSize, blockSizeContext, Av1PlaneType.Y);
+                Span<ushort> colorCache = stackalloc ushort[2 * Av1Constants.PaletteMaxSize];
+                int cacheSize = GetPaletteCache(
+                    paletteContexts,
+                    macroBlock,
+                    blockOrigin,
+                    Av1Plane.Y,
+                    colorCache);
+
+                writer.WritePaletteYColors(
+                    colorCache[..cacheSize],
+                    paletteInfo.GetColors(Av1Plane.Y),
+                    scs.SequenceHeader.ColorConfig.BitDepth.GetBitCount());
+            }
+        }
+
+        int uvPaletteSize = paletteInfo.PaletteSizes[1];
+        if (scs.SequenceHeader.ColorConfig.PlaneCount > 1 &&
+            macroBlockModeInfo.Block.UvMode == Av1ChromaPredictionMode.DC &&
+            hasChroma)
+        {
+            writer.WritePaletteUvMode(uvPaletteSize != 0, yPaletteSize != 0);
+            if (uvPaletteSize != 0)
+            {
+                writer.WritePaletteSize(uvPaletteSize, blockSizeContext, Av1PlaneType.Uv);
+                Span<ushort> colorCache = stackalloc ushort[2 * Av1Constants.PaletteMaxSize];
+                int cacheSize = GetPaletteCache(
+                    paletteContexts,
+                    macroBlock,
+                    blockOrigin,
+                    Av1Plane.U,
+                    colorCache);
+
+                writer.WritePaletteUvColors(
+                    colorCache[..cacheSize],
+                    paletteInfo.GetColors(Av1Plane.U),
+                    paletteInfo.GetColors(Av1Plane.V),
+                    scs.SequenceHeader.ColorConfig.BitDepth.GetBitCount());
+            }
+        }
+    }
+
+    /// <summary>
+    /// Builds the sorted palette-color cache from the available above and left encoder edges.
+    /// </summary>
+    private static int GetPaletteCache(
+        Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts,
+        Av1MacroBlockD macroBlock,
+        Point blockOrigin,
+        Av1Plane plane,
+        Span<ushort> cache)
+    {
+        // AV1 excludes the above palette at each 64-sample row boundary, even with 128x128 superblocks.
+        bool hasAbove = macroBlock.IsUpAvailable &&
+            (blockOrigin.Y & (Av1BlockSize.Block64x64.GetHeight() - 1)) != 0;
+
+        Av1EncoderPaletteInfo above = hasAbove
+            ? paletteContexts.Top[paletteContexts.GetTopIndex(blockOrigin)]
+            : default;
+
+        Av1EncoderPaletteInfo left = macroBlock.IsLeftAvailable
+            ? paletteContexts.Left[paletteContexts.GetLeftIndex(blockOrigin)]
+            : default;
+
+        ReadOnlySpan<ushort> aboveColors = hasAbove ? above.GetColors(plane) : [];
+        ReadOnlySpan<ushort> leftColors = macroBlock.IsLeftAvailable ? left.GetColors(plane) : [];
+        return Av1PaletteCache.Merge(aboveColors, leftColors, cache);
     }
 
     /// <summary>
@@ -1220,21 +1363,6 @@ internal partial class Av1TileWriter
 
             entropyCodingContext.CodedAreaSuperblock += size.Width * size.Height;
         }
-    }
-
-    /// <summary>
-    /// Determines whether the encoder palette level and block dimensions permit palette mode.
-    /// </summary>
-    /// <param name="allowPalette">The nonzero encoder palette level.</param>
-    /// <param name="blockSize">The block size.</param>
-    /// <returns><see langword="true"/> when palette mode is enabled for the block; otherwise, <see langword="false"/>.</returns>
-    private static bool IsPaletteAllowed(int allowPalette, Av1BlockSize blockSize)
-    {
-        Guard.MustBeLessThan((int)blockSize, (int)Av1BlockSize.AllSizes, nameof(blockSize));
-        return allowPalette != 0 &&
-            blockSize.GetWidth() <= 64 &&
-            blockSize.GetHeight() <= 64 &&
-            blockSize >= Av1BlockSize.Block8x8;
     }
 
     /// <summary>

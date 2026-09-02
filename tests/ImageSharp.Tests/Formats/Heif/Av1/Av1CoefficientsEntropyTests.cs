@@ -234,20 +234,21 @@ public class Av1CoefficientsEntropyTests
             Assert.Equal(Av1EncoderSuperblockWorkspace.MaximumFinalBlockCount, workspace.FinalBlocks.Length);
             Assert.Equal(Av1EncoderSuperblockWorkspace.MaximumPartitionCount, workspace.PartitionTypes.Length);
             Assert.Equal(Av1EncoderBlockStruct.StorageSize, Unsafe.SizeOf<Av1EncoderBlockStruct>());
-            Assert.Equal(0, workspace.FinalBlocks[0].PaletteSize[0]);
+            Assert.Equal(Av1EncoderPaletteInfo.StorageSize, Unsafe.SizeOf<Av1EncoderPaletteInfo>());
+            Assert.Equal(0, workspace.PaletteInfo.PaletteSizes[0]);
             Assert.Equal(0, workspace.FinalBlocks[^1].QuantizationIndex);
             Assert.Equal(Av1FilterIntraMode.AllFilterIntraModes, workspace.FinalBlocks[0].FilterIntraMode);
             Assert.Equal(Av1FilterIntraMode.AllFilterIntraModes, workspace.FinalBlocks[^1].FilterIntraMode);
             Assert.Equal(0, workspace.PartitionTypes[^1]);
 
-            workspace.FinalBlocks[0].PaletteSize[0] = 7;
+            workspace.PaletteInfo.PaletteSizes[0] = 7;
             workspace.FinalBlocks[0].FilterIntraMode = Av1FilterIntraMode.DC;
             workspace.FinalBlocks[^1].QuantizationIndex = 255;
             workspace.FinalBlocks[^1].FilterIntraMode = Av1FilterIntraMode.Paeth;
             workspace.PartitionTypes.Fill(byte.MaxValue);
             workspace.Reset();
 
-            Assert.Equal(0, workspace.FinalBlocks[0].PaletteSize[0]);
+            Assert.Equal(0, workspace.PaletteInfo.PaletteSizes[0]);
             Assert.Equal(0, workspace.FinalBlocks[^1].QuantizationIndex);
             Assert.Equal(Av1FilterIntraMode.AllFilterIntraModes, workspace.FinalBlocks[0].FilterIntraMode);
             Assert.Equal(Av1FilterIntraMode.AllFilterIntraModes, workspace.FinalBlocks[^1].FilterIntraMode);
@@ -265,26 +266,172 @@ public class Av1CoefficientsEntropyTests
     public void EncoderBlocksKeepInlineModeStateWithoutPerBlockAllocations()
     {
         Av1EncoderBlockStruct[] blocks = new Av1EncoderBlockStruct[2];
+        Av1EncoderPaletteInfo[] palettes = new Av1EncoderPaletteInfo[2];
 
         // Exercise the inline-array accessors before measuring so one-time runtime generic initialization is
         // excluded from the steady-state allocation contract used for every encoded block.
         ref Av1EncoderBlockStruct warmupBlock = ref blocks[0];
-        warmupBlock.PaletteSize[0] = 1;
+        ref Av1EncoderPaletteInfo warmupPalette = ref palettes[0];
+        warmupPalette.PaletteSizes[0] = 1;
         warmupBlock.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] = 1;
 
         long before = GC.GetAllocatedBytesForCurrentThread();
         ref Av1EncoderBlockStruct block = ref blocks[1];
-        block.PaletteSize[0] = 3;
-        block.PaletteSize[1] = 5;
+        ref Av1EncoderPaletteInfo palette = ref palettes[1];
+        palette.PaletteSizes[0] = 3;
+        palette.PaletteSizes[1] = 5;
         block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] = -2;
         block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv] = 3;
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
 
-        Assert.Equal(3, blocks[1].PaletteSize[0]);
-        Assert.Equal(5, blocks[1].PaletteSize[1]);
+        Assert.Equal(3, palettes[1].PaletteSizes[0]);
+        Assert.Equal(5, palettes[1].PaletteSizes[1]);
         Assert.Equal(-2, blocks[1].PredictionUnit.AngleDelta[(int)Av1PlaneType.Y]);
         Assert.Equal(3, blocks[1].PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv]);
         Assert.Equal(0, allocated);
+    }
+
+    [Fact]
+    public void EncoderPaletteMapsUseOneLazyExactSizeOwner()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        TestMemoryAllocator.AllocationRequest[] allocations;
+        using (Av1EncoderSuperblockWorkspace workspace = new(configuration))
+        {
+            Assert.Single(allocator.AllocationLog);
+            Assert.Empty(allocator.ReturnLog);
+
+            Av1EncoderPaletteMapBuffer maps = workspace.GetPaletteMaps();
+            Assert.Same(maps, workspace.GetPaletteMaps());
+            allocations = allocator.AllocationLog.ToArray();
+            Assert.Equal(2, allocations.Length);
+            Assert.Equal(typeof(byte), allocations[1].ElementType);
+            Assert.Equal(Av1EncoderPaletteMapBuffer.StorageLength, allocations[1].Length);
+            Assert.Equal(AllocationOptions.None, allocations[1].AllocationOptions);
+
+            Buffer2DRegion<byte> luma = maps.GetMap(Av1PlaneType.Y, 64, 64);
+            Buffer2DRegion<byte> chroma = maps.GetMap(Av1PlaneType.Uv, 32, 32);
+            luma.DangerousGetRowSpan(0)[0] = 3;
+            chroma.DangerousGetRowSpan(0)[0] = 5;
+            Assert.Equal(3, luma.DangerousGetRowSpan(0)[0]);
+            Assert.Equal(5, chroma.DangerousGetRowSpan(0)[0]);
+        }
+
+        Assert.Equal(2, allocator.ReturnLog.Count);
+        Assert.Equal(
+            allocations.Select(x => x.AllocationId).Order(),
+            allocator.ReturnLog.Select(x => x.AllocationId).Order());
+    }
+
+    [Fact]
+    public void PaletteModeWriterMatchesColorCacheBoundaryAndRoundTrips()
+    {
+        const int Width = 16;
+        const int Height = 72;
+        const int BlockSizeContext = 0;
+        Point blockOrigin = new(8, 64);
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = false,
+            SubSamplingX = false,
+            SubSamplingY = false,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        ObuTileGroupHeader tiles = new()
+        {
+            TileColumnCount = 1,
+            TileRowCount = 1
+        };
+
+        tiles.TileColumnStartModeInfo[1] = Width >> Av1Constants.ModeInfoSizeLog2;
+        tiles.TileRowStartModeInfo[1] = Height >> Av1Constants.ModeInfoSizeLog2;
+        ObuSequenceHeader sequenceHeader = new()
+        {
+            ColorConfig = colorConfig
+        };
+
+        ObuFrameHeader frameHeader = new()
+        {
+            AllowScreenContentTools = true,
+            ModeInfoColumnCount = Width >> Av1Constants.ModeInfoSizeLog2,
+            ModeInfoRowCount = Height >> Av1Constants.ModeInfoSizeLog2,
+            TilesInfo = tiles
+        };
+
+        using Av1EncoderPictureBuffer pictureBuffer = new(
+            Configuration.Default,
+            sequenceHeader,
+            frameHeader,
+            Width,
+            Height);
+
+        Av1PictureControlSet picture = pictureBuffer.Picture;
+        Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts = Assert.Single(picture.PaletteContexts);
+        ref Av1EncoderPaletteInfo above = ref paletteContexts.Top[paletteContexts.GetTopIndex(blockOrigin)];
+        above.PaletteSizes[0] = 2;
+        above.PaletteSizes[1] = 2;
+        above.SetColors(Av1Plane.Y, [10, 30]);
+        above.SetColors(Av1Plane.U, [15, 35]);
+        ref Av1EncoderPaletteInfo left = ref paletteContexts.Left[paletteContexts.GetLeftIndex(blockOrigin)];
+        left.PaletteSizes[0] = 2;
+        left.PaletteSizes[1] = 2;
+        left.SetColors(Av1Plane.Y, [20, 40]);
+        left.SetColors(Av1Plane.U, [25, 45]);
+
+        Av1EncoderPaletteInfo current = default;
+        current.PaletteSizes[0] = 3;
+        current.PaletteSizes[1] = 3;
+        current.SetColors(Av1Plane.Y, [20, 50, 70]);
+        current.SetColors(Av1Plane.U, [25, 55, 80]);
+        current.SetColors(Av1Plane.V, [10, 12, 9]);
+        Av1MacroBlockModeInfo modeInfo = default;
+        modeInfo.Block = new Av1EncoderBlockModeInfo
+        {
+            BlockSize = Av1BlockSize.Block8x8,
+            Mode = Av1PredictionMode.DC,
+            UvMode = Av1ChromaPredictionMode.DC
+        };
+
+        Av1MacroBlockD macroBlock = new()
+        {
+            Tile = new Av1TileInfo(0, 0, frameHeader),
+            IsUpAvailable = true,
+            IsLeftAvailable = true
+        };
+
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 128, BaseQIndex);
+        Av1TileWriter.WritePaletteModeInfo(
+            picture.Sequence,
+            picture,
+            encoder,
+            macroBlock,
+            modeInfo,
+            ref current,
+            Av1BlockSize.Block8x8,
+            blockOrigin,
+            tileIndex: 0,
+            hasChroma: true);
+
+        using IMemoryOwner<byte> encoded = encoder.Exit();
+        Av1SymbolDecoder decoder = new(Configuration.Default, encoded.GetSpan(), BaseQIndex);
+        Assert.True(decoder.ReadPaletteYMode(BlockSizeContext, neighborContext: 2));
+        Assert.Equal(3, decoder.ReadPaletteSize(BlockSizeContext, Av1PlaneType.Y));
+        Span<ushort> decodedY = stackalloc ushort[3];
+        decoder.ReadPaletteYColors([20, 40], 3, bitDepth: 8, decodedY);
+        Assert.Equal([20, 50, 70], decodedY.ToArray());
+        Assert.True(decoder.ReadPaletteUvMode(hasLumaPalette: true));
+        Assert.Equal(3, decoder.ReadPaletteSize(BlockSizeContext, Av1PlaneType.Uv));
+        Span<ushort> decodedU = stackalloc ushort[3];
+        Span<ushort> decodedV = stackalloc ushort[3];
+        decoder.ReadPaletteUvColors([25, 45], 3, bitDepth: 8, decodedU, decodedV);
+        Assert.Equal([25, 55, 80], decodedU.ToArray());
+        Assert.Equal([10, 12, 9], decodedV.ToArray());
+        decoder.ValidateTrailingBits();
     }
 
     [Theory]

@@ -21,6 +21,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
     private readonly Av1NeighborArrayUnit<byte>[] blueCoefficientContexts;
     private readonly Av1NeighborArrayUnit<byte>[] redCoefficientContexts;
     private readonly Av1NeighborArrayUnit<byte>[] transformContexts;
+    private readonly Av1NeighborArrayUnit<Av1EncoderPaletteInfo>[] paletteContexts;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1EncoderPictureBuffer"/> class.
@@ -70,7 +71,20 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             partitionContextLength * Unsafe.SizeOf<Av1PartitionContext>());
 
         int byteContextStorageOffset = checked(partitionStorageOffset + partitionStorageLength);
-        int stateStorageLength = checked(byteContextStorageOffset + (tileCount * byteContextLengthPerTile));
+        int byteContextStorageLength = checked(tileCount * byteContextLengthPerTile);
+        int byteContextStorageEnd = checked(byteContextStorageOffset + byteContextStorageLength);
+        int paletteLeftLength = alignedModeInfoRowCount;
+        int paletteTopLength = this.modeInfo.ModeInfoStride;
+        int paletteContextLength = checked(paletteLeftLength + paletteTopLength);
+        int paletteStorageOffset = frameHeader.AllowScreenContentTools
+            ? Av1Math.AlignPowerOf2(byteContextStorageEnd, 1)
+            : byteContextStorageEnd;
+
+        int paletteStorageLength = frameHeader.AllowScreenContentTools
+            ? checked(tileCount * paletteContextLength * Unsafe.SizeOf<Av1EncoderPaletteInfo>())
+            : 0;
+
+        int stateStorageLength = checked(paletteStorageOffset + paletteStorageLength);
 
         // Segmentation and every tile edge share one clean picture lifetime. The partition region begins at its
         // native alignment, while typed views keep the entropy writer independent from the packed byte owner.
@@ -83,12 +97,27 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             stateStorage.Slice(partitionStorageOffset, partitionStorageLength));
 
         Memory<Av1PartitionContext> partitionStorage = this.partitionContextMemory.Memory;
-        Memory<byte> byteContextStorage = stateStorage[byteContextStorageOffset..];
+        Memory<byte> byteContextStorage = stateStorage.Slice(byteContextStorageOffset, byteContextStorageLength);
         this.partitionContexts = new Av1NeighborArrayUnit<Av1PartitionContext>[tileCount];
         this.lumaCoefficientContexts = new Av1NeighborArrayUnit<byte>[tileCount];
         this.blueCoefficientContexts = new Av1NeighborArrayUnit<byte>[tileCount];
         this.redCoefficientContexts = new Av1NeighborArrayUnit<byte>[tileCount];
         this.transformContexts = new Av1NeighborArrayUnit<byte>[tileCount];
+        Memory<Av1EncoderPaletteInfo> paletteStorage = Memory<Av1EncoderPaletteInfo>.Empty;
+        if (frameHeader.AllowScreenContentTools)
+        {
+            // Palette entries contain 16-bit colors, so their packed typed region begins at an even byte offset.
+            ByteMemoryManager<Av1EncoderPaletteInfo> paletteMemory = new(
+                stateStorage.Slice(paletteStorageOffset, paletteStorageLength));
+
+            paletteStorage = paletteMemory.Memory;
+            this.paletteContexts = new Av1NeighborArrayUnit<Av1EncoderPaletteInfo>[tileCount];
+        }
+        else
+        {
+            this.paletteContexts = [];
+        }
+
         int[][] cdefPreset = new int[tileCount][];
         int[] previousQIndex = new int[tileCount];
         for (int tileIndex = 0; tileIndex < tileCount; tileIndex++)
@@ -137,6 +166,17 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 GranularityNormalLog2 = Av1Constants.ModeInfoSizeLog2
             };
 
+            if (frameHeader.AllowScreenContentTools)
+            {
+                this.paletteContexts[tileIndex] = new Av1NeighborArrayUnit<Av1EncoderPaletteInfo>(
+                    paletteStorage.Slice(tileIndex * paletteContextLength, paletteContextLength),
+                    paletteLeftLength,
+                    paletteTopLength)
+                {
+                    GranularityNormalLog2 = Av1Constants.ModeInfoSizeLog2
+                };
+            }
+
             cdefPreset[tileIndex] = [-1, -1, -1, -1];
             previousQIndex[tileIndex] = frameHeader.QuantizationParameters.BaseQIndex;
         }
@@ -148,6 +188,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             CbDcSignLevelCoefficientNeighbors = this.blueCoefficientContexts,
             CrDcSignLevelCoefficientNeighbors = this.redCoefficientContexts,
             TransformFunctionContexts = this.transformContexts,
+            PaletteContexts = this.paletteContexts,
             Sequence = new Av1SequenceControlSet { SequenceHeader = sequenceHeader },
             Parent = new Av1PictureParentControlSet
             {
@@ -182,6 +223,11 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
     public void Dispose()
     {
         foreach (Av1NeighborArrayUnit<Av1PartitionContext> context in this.partitionContexts)
+        {
+            context.Dispose();
+        }
+
+        foreach (Av1NeighborArrayUnit<Av1EncoderPaletteInfo> context in this.paletteContexts)
         {
             context.Dispose();
         }

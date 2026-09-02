@@ -26,7 +26,10 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
     /// </summary>
     public const int StorageLength = MaximumFinalBlockCount + ((MaximumPartitionCount + Av1EncoderBlockStruct.StorageSize - 1) / Av1EncoderBlockStruct.StorageSize);
 
+    private readonly Configuration configuration;
     private readonly IMemoryOwner<Av1EncoderBlockStruct> owner;
+    private Av1EncoderPaletteMapBuffer? paletteMaps;
+    private Av1EncoderPaletteInfo paletteInfo;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1EncoderSuperblockWorkspace"/> class.
@@ -34,6 +37,7 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
     /// <param name="configuration">The configuration providing the encoder allocator.</param>
     public Av1EncoderSuperblockWorkspace(Configuration configuration)
     {
+        this.configuration = configuration;
         this.owner = configuration.MemoryAllocator.Allocate<Av1EncoderBlockStruct>(StorageLength);
         this.Reset();
     }
@@ -50,6 +54,27 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
         => MemoryMarshal.AsBytes(this.owner.Memory.Span[MaximumFinalBlockCount..])[..MaximumPartitionCount];
 
     /// <summary>
+    /// Gets the palette sizes and colors selected for the block currently being written.
+    /// </summary>
+    public ref Av1EncoderPaletteInfo PaletteInfo => ref this.paletteInfo;
+
+    /// <summary>
+    /// Gets the reusable palette maps, allocating their shared owner only after a block selects palette mode.
+    /// </summary>
+    /// <returns>The reusable luma and chroma palette maps.</returns>
+    public Av1EncoderPaletteMapBuffer GetPaletteMaps()
+    {
+        Av1EncoderPaletteMapBuffer? maps = this.paletteMaps;
+        if (maps is null)
+        {
+            maps = new Av1EncoderPaletteMapBuffer(this.configuration);
+            this.paletteMaps = maps;
+        }
+
+        return maps;
+    }
+
+    /// <summary>
     /// Clears all decisions before the workspace is reused for another superblock.
     /// </summary>
     public void Reset()
@@ -62,10 +87,15 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
 
         this.FinalBlocks.Fill(initialBlock);
         MemoryMarshal.AsBytes(this.owner.Memory.Span[MaximumFinalBlockCount..]).Clear();
+        this.paletteInfo = default;
     }
 
     /// <summary>
     /// Releases the reusable superblock workspace.
     /// </summary>
-    public void Dispose() => this.owner.Dispose();
+    public void Dispose()
+    {
+        this.paletteMaps?.Dispose();
+        this.owner.Dispose();
+    }
 }

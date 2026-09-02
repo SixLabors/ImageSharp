@@ -332,6 +332,19 @@ internal readonly struct Av1EncoderFrame<TSample>
             }
         }
 
+        /// <summary>
+        /// Gets a writable coded component plane.
+        /// </summary>
+        /// <param name="plane">The requested component plane.</param>
+        /// <returns>The complete coded plane region.</returns>
+        public Buffer2DRegion<TSample> GetPlane(Av1Plane plane)
+            => plane switch
+            {
+                Av1Plane.Y => this.luma,
+                Av1Plane.U => this.chromaBlue,
+                _ => this.chromaRed
+            };
+
         /// <inheritdoc/>
         public Span<TSample> GetLumaRowSpan(int row) => this.luma.DangerousGetRowSpan(row);
 

@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Tests.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
@@ -49,6 +50,26 @@ public class Av1TransformBlockEncoderTests
         byte[] left = new byte[height];
         int[] expectedQuantized = new int[coefficientCount + 7];
         int[] actualQuantized = new int[coefficientCount + 7];
+        using Av1EncoderFrameBuffer<byte> sourceFrame = new(
+            Configuration.Default,
+            width,
+            height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        using Av1EncoderFrameBuffer<byte> reconstructionFrame = new(
+            Configuration.Default,
+            width,
+            height,
+            8,
+            Av1ColorFormat.Yuv400,
+            0,
+            0);
+
+        Buffer2DRegion<byte> sourcePlane = sourceFrame.Frame.CodedView.GetPlane(Av1Plane.Y);
+        Buffer2DRegion<byte> reconstructionPlane = reconstructionFrame.Frame.CodedView.GetPlane(Av1Plane.Y);
         using Av1EncoderBlockWorkspace expectedWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace actualWorkspace = new(Configuration.Default);
         FillSource(source, SourceStride, width, height, byte.MaxValue);
@@ -56,6 +77,12 @@ public class Av1TransformBlockEncoderTests
         Array.Fill(actualReconstruction, (byte)211);
         Array.Fill(expectedQuantized, int.MinValue);
         Array.Fill(actualQuantized, int.MinValue);
+
+        for (int y = 0; y < height; y++)
+        {
+            source.AsSpan(y * SourceStride, width).CopyTo(sourcePlane.DangerousGetRowSpan(y));
+            reconstructionPlane.DangerousGetRowSpan(y).Fill(211);
+        }
 
         for (int i = 0; i < above.Length; i++)
         {
@@ -115,10 +142,9 @@ public class Av1TransformBlockEncoderTests
         Av1EncoderTransformBlockState actualState = default;
         Av1TransformBlockEncoder.EncodeIntraDcLossy(
             actualWorkspace,
-            source,
-            SourceStride,
-            actualReconstruction,
-            ReconstructionStride,
+            sourcePlane,
+            reconstructionPlane,
+            Point.Empty,
             above,
             left,
             true,
@@ -132,10 +158,21 @@ public class Av1TransformBlockEncoderTests
             Av1Plane.Y,
             ref actualState);
 
+        for (int y = 0; y < height; y++)
+        {
+            reconstructionPlane.DangerousGetRowSpan(y).CopyTo(
+                actualReconstruction.AsSpan(y * ReconstructionStride, width));
+        }
+
+        int physicalRow = reconstructionPlane.Bounds.Y;
+        int physicalColumn = reconstructionPlane.Bounds.X;
+        ReadOnlySpan<byte> completeRow = reconstructionFrame.Luma.DangerousGetRowSpan(physicalRow);
         Assert.Equal(expectedReconstruction, actualReconstruction);
         Assert.Equal(expectedQuantized, actualQuantized);
         Assert.Equal(expectedState.EndOfBlock, actualState.EndOfBlock);
         Assert.Equal(expectedState.TransformType, actualState.TransformType);
+        Assert.Equal(0, completeRow[physicalColumn - 1]);
+        Assert.Equal(0, completeRow[physicalColumn + width]);
     }
 
     /// <summary>
@@ -158,6 +195,10 @@ public class Av1TransformBlockEncoderTests
         ushort[] left = new ushort[height];
         int[] expectedQuantized = new int[coefficientCount + 7];
         int[] actualQuantized = new int[coefficientCount + 7];
+        using Buffer2D<ushort> sourceBuffer = Buffer2D<ushort>.WrapMemory(source, SourceStride, height, SourceStride);
+        using Buffer2D<ushort> reconstructionBuffer =
+            Buffer2D<ushort>.WrapMemory(actualReconstruction, ReconstructionStride, height, ReconstructionStride);
+
         using Av1EncoderBlockWorkspace expectedWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace actualWorkspace = new(Configuration.Default);
         FillSource(source, SourceStride, width, height, (1 << bitDepth.GetBitCount()) - 1);
@@ -227,10 +268,9 @@ public class Av1TransformBlockEncoderTests
         Av1EncoderTransformBlockState actualState = default;
         Av1TransformBlockEncoder.EncodeIntraDcLossy(
             actualWorkspace,
-            source,
-            SourceStride,
-            actualReconstruction,
-            ReconstructionStride,
+            new Buffer2DRegion<ushort>(sourceBuffer),
+            new Buffer2DRegion<ushort>(reconstructionBuffer),
+            Point.Empty,
             above,
             left,
             true,
@@ -269,6 +309,14 @@ public class Av1TransformBlockEncoderTests
         ushort[] above10 = new ushort[Stride];
         ushort[] left10 = new ushort[Stride];
         int[] quantized = new int[coefficientCount];
+        using Buffer2D<byte> sourceBuffer8 = Buffer2D<byte>.WrapMemory(source8, Stride, Stride);
+        using Buffer2D<byte> reconstructionBuffer8 = Buffer2D<byte>.WrapMemory(reconstruction8, Stride, Stride);
+        using Buffer2D<ushort> sourceBuffer10 = Buffer2D<ushort>.WrapMemory(source10, Stride, Stride);
+        using Buffer2D<ushort> reconstructionBuffer10 = Buffer2D<ushort>.WrapMemory(reconstruction10, Stride, Stride);
+        Buffer2DRegion<byte> sourcePlane8 = new(sourceBuffer8);
+        Buffer2DRegion<byte> reconstructionPlane8 = new(reconstructionBuffer8);
+        Buffer2DRegion<ushort> sourcePlane10 = new(sourceBuffer10);
+        Buffer2DRegion<ushort> reconstructionPlane10 = new(reconstructionBuffer10);
         using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
         FillSource(source8, Stride, Stride, Stride, byte.MaxValue);
         FillSource(source10, Stride, Stride, Stride, 1023);
@@ -280,10 +328,9 @@ public class Av1TransformBlockEncoderTests
 
         Av1TransformBlockEncoder.EncodeIntraDcLossy(
             workspace,
-            source8,
-            Stride,
-            reconstruction8,
-            Stride,
+            sourcePlane8,
+            reconstructionPlane8,
+            Point.Empty,
             above8,
             left8,
             true,
@@ -299,10 +346,9 @@ public class Av1TransformBlockEncoderTests
 
         Av1TransformBlockEncoder.EncodeIntraDcLossy(
             workspace,
-            source10,
-            Stride,
-            reconstruction10,
-            Stride,
+            sourcePlane10,
+            reconstructionPlane10,
+            Point.Empty,
             above10,
             left10,
             true,
@@ -322,10 +368,9 @@ public class Av1TransformBlockEncoderTests
         {
             Av1TransformBlockEncoder.EncodeIntraDcLossy(
                 workspace,
-                source8,
-                Stride,
-                reconstruction8,
-                Stride,
+                sourcePlane8,
+                reconstructionPlane8,
+                Point.Empty,
                 above8,
                 left8,
                 true,
@@ -341,10 +386,9 @@ public class Av1TransformBlockEncoderTests
 
             Av1TransformBlockEncoder.EncodeIntraDcLossy(
                 workspace,
-                source10,
-                Stride,
-                reconstruction10,
-                Stride,
+                sourcePlane10,
+                reconstructionPlane10,
+                Point.Empty,
                 above10,
                 left10,
                 true,

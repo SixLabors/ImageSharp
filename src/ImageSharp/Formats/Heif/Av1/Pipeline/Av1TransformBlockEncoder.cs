@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -14,6 +15,129 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// </summary>
 internal static class Av1TransformBlockEncoder
 {
+    /// <summary>
+    /// Encodes and reconstructs one eight-bit lossy DC intra block in contiguous encoder planes.
+    /// </summary>
+    /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
+    /// <param name="source">The coded source plane.</param>
+    /// <param name="reconstruction">The coded reconstruction plane.</param>
+    /// <param name="blockOrigin">The block origin in plane samples.</param>
+    /// <param name="above">The contiguous top reference samples.</param>
+    /// <param name="left">The contiguous left reference samples.</param>
+    /// <param name="hasLeft">Whether the left reference is available.</param>
+    /// <param name="hasAbove">Whether the top reference is available.</param>
+    /// <param name="quantizedCoefficients">The retained entropy-coding coefficients.</param>
+    /// <param name="transformSize">The selected transform dimensions.</param>
+    /// <param name="transformType">The selected compound transform type.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
+    /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
+    /// <param name="plane">The component plane containing the block.</param>
+    /// <param name="state">The retained transform type and end-of-block syntax.</param>
+    public static void EncodeIntraDcLossy(
+        Av1EncoderBlockWorkspace workspace,
+        Buffer2DRegion<byte> source,
+        Buffer2DRegion<byte> reconstruction,
+        Point blockOrigin,
+        ReadOnlySpan<byte> above,
+        ReadOnlySpan<byte> left,
+        bool hasLeft,
+        bool hasAbove,
+        Span<int> quantizedCoefficients,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        int qIndex,
+        int dcDeltaQ,
+        int acDeltaQ,
+        Av1Plane plane,
+        ref Av1EncoderTransformBlockState state)
+    {
+        ReadOnlySpan<byte> sourceSamples = GetPlaneSpan(source, blockOrigin);
+        Span<byte> reconstructionSamples = GetPlaneSpan(reconstruction, blockOrigin);
+
+        EncodeIntraDcLossyContiguous(
+            workspace,
+            sourceSamples,
+            source.Stride,
+            reconstructionSamples,
+            reconstruction.Stride,
+            above,
+            left,
+            hasLeft,
+            hasAbove,
+            quantizedCoefficients,
+            transformSize,
+            transformType,
+            qIndex,
+            dcDeltaQ,
+            acDeltaQ,
+            plane,
+            ref state);
+    }
+
+    /// <summary>
+    /// Encodes and reconstructs one high-bit-depth lossy DC intra block in contiguous encoder planes.
+    /// </summary>
+    /// <param name="workspace">The reusable residual, coefficient, and transform storage.</param>
+    /// <param name="source">The coded source plane.</param>
+    /// <param name="reconstruction">The coded reconstruction plane.</param>
+    /// <param name="blockOrigin">The block origin in plane samples.</param>
+    /// <param name="above">The contiguous top reference samples.</param>
+    /// <param name="left">The contiguous left reference samples.</param>
+    /// <param name="hasLeft">Whether the left reference is available.</param>
+    /// <param name="hasAbove">Whether the top reference is available.</param>
+    /// <param name="quantizedCoefficients">The retained entropy-coding coefficients.</param>
+    /// <param name="transformSize">The selected transform dimensions.</param>
+    /// <param name="transformType">The selected compound transform type.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
+    /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
+    /// <param name="plane">The component plane containing the block.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <param name="state">The retained transform type and end-of-block syntax.</param>
+    public static void EncodeIntraDcLossy(
+        Av1EncoderBlockWorkspace workspace,
+        Buffer2DRegion<ushort> source,
+        Buffer2DRegion<ushort> reconstruction,
+        Point blockOrigin,
+        ReadOnlySpan<ushort> above,
+        ReadOnlySpan<ushort> left,
+        bool hasLeft,
+        bool hasAbove,
+        Span<int> quantizedCoefficients,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        int qIndex,
+        int dcDeltaQ,
+        int acDeltaQ,
+        Av1Plane plane,
+        Av1BitDepth bitDepth,
+        ref Av1EncoderTransformBlockState state)
+    {
+        ReadOnlySpan<ushort> sourceSamples = GetPlaneSpan(source, blockOrigin);
+        Span<ushort> reconstructionSamples = GetPlaneSpan(reconstruction, blockOrigin);
+
+        EncodeIntraDcLossyContiguous(
+            workspace,
+            sourceSamples,
+            source.Stride,
+            reconstructionSamples,
+            reconstruction.Stride,
+            above,
+            left,
+            hasLeft,
+            hasAbove,
+            quantizedCoefficients,
+            transformSize,
+            transformType,
+            qIndex,
+            dcDeltaQ,
+            acDeltaQ,
+            plane,
+            bitDepth,
+            ref state);
+    }
+
     /// <summary>
     /// Encodes and reconstructs one eight-bit lossy DC intra block.
     /// </summary>
@@ -34,7 +158,7 @@ internal static class Av1TransformBlockEncoder
     /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
     /// <param name="plane">The component plane containing the block.</param>
     /// <param name="state">The retained transform type and end-of-block syntax.</param>
-    public static void EncodeIntraDcLossy(
+    private static void EncodeIntraDcLossyContiguous(
         Av1EncoderBlockWorkspace workspace,
         ReadOnlySpan<byte> source,
         int sourceStride,
@@ -108,7 +232,7 @@ internal static class Av1TransformBlockEncoder
     /// <param name="plane">The component plane containing the block.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
     /// <param name="state">The retained transform type and end-of-block syntax.</param>
-    public static void EncodeIntraDcLossy(
+    private static void EncodeIntraDcLossyContiguous(
         Av1EncoderBlockWorkspace workspace,
         ReadOnlySpan<ushort> source,
         int sourceStride,
@@ -235,5 +359,17 @@ internal static class Av1TransformBlockEncoder
             bitDepth);
 
         state.TransformType = transformType;
+    }
+
+    private static Span<TSample> GetPlaneSpan<TSample>(Buffer2DRegion<TSample> plane, Point blockOrigin)
+        where TSample : unmanaged
+    {
+        int offset =
+            ((plane.Bounds.Y + blockOrigin.Y) * plane.Stride) +
+            plane.Bounds.X +
+            blockOrigin.X;
+
+        // Encoder planes wrap one contiguous frame owner, so direct segment access retains physical strides without an enumerator or row copy.
+        return plane.Buffer.FastMemoryGroup[0].Span[offset..];
     }
 }

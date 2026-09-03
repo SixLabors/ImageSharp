@@ -815,8 +815,7 @@ internal static partial class Av1IntraSuperblockEncoder
             selectedTransformSize = TransformSize;
             if (this.effort >= 6 &&
                 this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select &&
-                paletteInfo.PaletteSizes[0] == 0 &&
-                selectedFilterIntraMode == Av1FilterIntraMode.AllFilterIntraModes)
+                paletteInfo.PaletteSizes[0] == 0)
             {
                 long splitCost = this.GetSplitLumaCandidateCost(
                     writer,
@@ -827,6 +826,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     tileIndex,
                     bestMode,
                     selectedAngleDelta,
+                    selectedFilterIntraMode,
                     paletteDisabledCost,
                     transformSizeContext,
                     bestTransformCost,
@@ -863,6 +863,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ushort tileIndex,
             Av1PredictionMode mode,
             int angleDelta,
+            Av1FilterIntraMode filterIntraMode,
             int paletteDisabledCost,
             int transformSizeContext,
             long costLimit,
@@ -909,7 +910,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (this.picture.Sequence.SequenceHeader.EnableFilterIntra)
                 {
                     rate += writer.GetFilterIntraModeCost(
-                        Av1FilterIntraMode.AllFilterIntraModes,
+                        filterIntraMode,
                         BlockSize);
                 }
             }
@@ -941,20 +942,39 @@ internal static partial class Av1IntraSuperblockEncoder
                         out bool hasLeft,
                         out bool hasAbove);
 
-                    TOperator.PrepareIntra(
-                        this.blockWorkspace,
-                        sourcePlane,
-                        transformOrigin,
-                        prediction,
-                        aboveStorage.Slice(1, TransformWidth * 2),
-                        leftStorage.Slice(1, TransformWidth * 2),
-                        hasLeft,
-                        hasAbove,
-                        mode,
-                        angleDelta,
-                        residual,
-                        TransformSize,
-                        this.bitDepth);
+                    if (filterIntraMode == Av1FilterIntraMode.AllFilterIntraModes)
+                    {
+                        TOperator.PrepareIntra(
+                            this.blockWorkspace,
+                            sourcePlane,
+                            transformOrigin,
+                            prediction,
+                            aboveStorage.Slice(1, TransformWidth * 2),
+                            leftStorage.Slice(1, TransformWidth * 2),
+                            hasLeft,
+                            hasAbove,
+                            mode,
+                            angleDelta,
+                            residual,
+                            TransformSize,
+                            this.bitDepth);
+                    }
+                    else
+                    {
+                        // Filter-intra prediction is recursive within each transform unit, so rebuild it from
+                        // the reconstructed edges established by the preceding 4x4 candidate.
+                        TOperator.PrepareFilterIntra(
+                            this.blockWorkspace,
+                            sourcePlane,
+                            transformOrigin,
+                            prediction,
+                            aboveStorage.Slice(1, TransformWidth * 2),
+                            leftStorage.Slice(1, TransformWidth * 2),
+                            residual,
+                            filterIntraMode,
+                            TransformSize,
+                            this.bitDepth);
+                    }
 
                     Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
                         Av1ComponentType.Luminance,
@@ -1009,7 +1029,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             blockContext,
                             candidateState.EndOfBlock,
                             useReducedTransformSet,
-                            Av1FilterIntraMode.AllFilterIntraModes);
+                            filterIntraMode);
 
                         long candidateCost = Av1RateDistortion.GetCost(
                             this.rateMultiplier,

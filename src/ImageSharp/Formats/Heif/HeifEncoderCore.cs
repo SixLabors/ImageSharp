@@ -10,6 +10,7 @@ using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
 
 namespace SixLabors.ImageSharp.Formats.Heif;
@@ -259,7 +260,21 @@ internal sealed class HeifEncoderCore
     /// <returns>The complete item-information-box length.</returns>
     private static int WriteItemInfoBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 14 + (items.Count * 21));
+        int capacity = 14;
+        foreach (HeifItem item in items)
+        {
+            capacity += 21 + Encoding.UTF8.GetByteCount(item.Name ?? string.Empty);
+            if (item.Type == Heif4CharCode.Mime)
+            {
+                capacity += 1 + Encoding.UTF8.GetByteCount(item.ContentType ?? string.Empty);
+                if (item.ContentEncoding is not null)
+                {
+                    capacity += 1 + Encoding.UTF8.GetByteCount(item.ContentEncoding);
+                }
+            }
+        }
+
+        Span<byte> buffer = memory.GetSpan(memoryOffset, capacity);
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Iinf, 0, 0);
         BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)items.Count);
         bytesWritten += 2;
@@ -273,7 +288,18 @@ internal sealed class HeifEncoderCore
             bytesWritten += 2;
             BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)item.Type);
             bytesWritten += 4;
+            bytesWritten += Encoding.UTF8.GetBytes(item.Name ?? string.Empty, buffer[bytesWritten..]);
             buffer[bytesWritten++] = 0;
+            if (item.Type == Heif4CharCode.Mime)
+            {
+                bytesWritten += Encoding.UTF8.GetBytes(item.ContentType ?? string.Empty, buffer[bytesWritten..]);
+                buffer[bytesWritten++] = 0;
+                if (item.ContentEncoding is not null)
+                {
+                    bytesWritten += Encoding.UTF8.GetBytes(item.ContentEncoding, buffer[bytesWritten..]);
+                    buffer[bytesWritten++] = 0;
+                }
+            }
 
             BinaryPrimitives.WriteUInt32BigEndian(buffer[itemLengthOffset..], (uint)(bytesWritten - itemLengthOffset));
         }
@@ -332,7 +358,10 @@ internal sealed class HeifEncoderCore
         bytesWritten += WriteBoxHeader(buffer[bytesWritten..], Heif4CharCode.Ipco);
         foreach (HeifItem item in items)
         {
-            bytesWritten += WriteSpatialExtentPropertyBox(memory, memoryOffset + bytesWritten, item);
+            if (item.Extent != default)
+            {
+                bytesWritten += WriteSpatialExtentPropertyBox(memory, memoryOffset + bytesWritten, item);
+            }
 
             byte[]? channelBitDepths = item.ChannelBitDepths;
             if (channelBitDepths is not null)
@@ -364,6 +393,12 @@ internal sealed class HeifEncoderCore
                 bytesWritten += WriteAuxiliaryTypePropertyBox(memory, memoryOffset + bytesWritten, auxiliaryType);
             }
 
+            IccProfile? iccProfile = item.IccProfile;
+            if (iccProfile is not null)
+            {
+                bytesWritten += WriteIccColorInformationPropertyBox(memory, memoryOffset + bytesWritten, iccProfile);
+            }
+
             CicpProfile? cicpProfile = item.CicpProfile;
             if (cicpProfile is not null)
             {
@@ -374,11 +409,18 @@ internal sealed class HeifEncoderCore
         buffer = memory.GetSpan(memoryOffset, bytesWritten);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[ipcoLengthOffset..], (uint)(bytesWritten - ipcoLengthOffset));
         int propertyCount = 0;
+        int associationItemCount = 0;
         int associationBoxCapacity = 16;
         foreach (HeifItem item in items)
         {
             int itemPropertyCount = GetPropertyCount(item);
+            if (itemPropertyCount == 0)
+            {
+                continue;
+            }
+
             propertyCount += itemPropertyCount;
+            associationItemCount++;
             associationBoxCapacity += 3 + itemPropertyCount;
         }
 
@@ -393,17 +435,25 @@ internal sealed class HeifEncoderCore
         // ipma uses a 15-bit index only when the property table cannot fit in the compact seven-bit form.
         int ipmaLengthOffset = bytesWritten;
         bytesWritten += WriteBoxHeader(buffer[bytesWritten..], Heif4CharCode.Ipma, 0, largePropertyIndex ? 1U : 0U);
-        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)items.Count);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)associationItemCount);
         bytesWritten += 4;
         ushort propertyIndex = 1;
         foreach (HeifItem item in items)
         {
+            int itemPropertyCount = GetPropertyCount(item);
+            if (itemPropertyCount == 0)
+            {
+                continue;
+            }
+
             BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)item.Id);
             bytesWritten += 2;
 
-            int itemPropertyCount = GetPropertyCount(item);
             buffer[bytesWritten++] = (byte)itemPropertyCount;
-            WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
+            if (item.Extent != default)
+            {
+                WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
+            }
 
             if (item.ChannelBitDepths is not null || item.UniformChannelBitDepth is not null)
             {
@@ -416,6 +466,11 @@ internal sealed class HeifEncoderCore
             }
 
             if (item.AuxiliaryType is not null)
+            {
+                WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
+            }
+
+            if (item.IccProfile is not null)
             {
                 WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
             }
@@ -440,10 +495,11 @@ internal sealed class HeifEncoderCore
     /// <returns>The number of emitted properties.</returns>
     private static int GetPropertyCount(HeifItem item)
     {
-        int count = 1;
+        int count = item.Extent != default ? 1 : 0;
         count += item.ChannelBitDepths is not null || item.UniformChannelBitDepth is not null ? 1 : 0;
         count += item.Av1CodecConfiguration is not null ? 1 : 0;
         count += item.AuxiliaryType is not null ? 1 : 0;
+        count += item.IccProfile is not null ? 1 : 0;
         count += item.CicpProfile is not null ? 1 : 0;
         return count;
     }
@@ -559,6 +615,30 @@ internal sealed class HeifEncoderCore
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.AuxC, 0, 0);
         bytesWritten += Encoding.UTF8.GetBytes(auxiliaryType, buffer[bytesWritten..]);
         buffer[bytesWritten++] = 0;
+
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
+        return bytesWritten;
+    }
+
+    /// <summary>
+    /// Writes an unrestricted ICC color profile for a color image item.
+    /// </summary>
+    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memoryOffset">The destination offset within the property container.</param>
+    /// <param name="profile">The ICC profile to write.</param>
+    /// <returns>The complete color-information-box length.</returns>
+    private static int WriteIccColorInformationPropertyBox(
+        AutoExpandingMemory<byte> memory,
+        int memoryOffset,
+        IccProfile profile)
+    {
+        ReadOnlyMemory<byte> profileData = profile.GetDataForWriting();
+        Span<byte> buffer = memory.GetSpan(memoryOffset, 12 + profileData.Length);
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Colr);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Prof);
+        bytesWritten += 4;
+        profileData.Span.CopyTo(buffer[bytesWritten..]);
+        bytesWritten += profileData.Length;
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
         return bytesWritten;
@@ -809,6 +889,7 @@ internal sealed class HeifEncoderCore
             UniformChannelBitDepth = channelBitDepth,
             BitsPerPixel = channelBitDepth * (isMonochrome ? 1 : 3),
             Av1CodecConfiguration = new Av1CodecConfiguration(colorHeader),
+            IccProfile = this.encoder.SkipMetadata ? null : image.Metadata.IccProfile,
             CicpProfile = colorProfile
         };
 
@@ -817,48 +898,130 @@ internal sealed class HeifEncoderCore
         items.Add(colorItem);
 
         bool hasAlpha = TPixel.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.None;
-        if (!hasAlpha)
+        if (hasAlpha)
+        {
+            ObuColorConfig alphaConfig = new()
+            {
+                IsMonochrome = true,
+                ColorRange = true,
+                SubSamplingX = true,
+                SubSamplingY = true,
+                BitDepth = av1BitDepth
+            };
+
+            int alphaQuality = this.encoder.AlphaQuality ?? quality;
+            int alphaQIndex = GetAv1QuantizerIndex(alphaQuality);
+            cancellationToken.ThrowIfCancellationRequested();
+            long alphaOffset = stream.Length;
+            ObuSequenceHeader alphaHeader = Av1FrameEncoder.EncodeAlpha(
+                this.configuration,
+                image.Frames.RootFrame,
+                stream,
+                alphaConfig,
+                alphaQIndex,
+                this.encoder.Effort);
+
+            long alphaLength = stream.Length - alphaOffset;
+            HeifItem alphaItem = new(Heif4CharCode.Av01, 2)
+            {
+                ChannelCount = 1,
+                UniformChannelBitDepth = channelBitDepth,
+                BitsPerPixel = channelBitDepth,
+                Av1CodecConfiguration = new Av1CodecConfiguration(alphaHeader),
+                AuxiliaryType = HeifConstants.AlphaAuxiliaryType
+            };
+
+            alphaItem.DataLocations.Add(new HeifLocation(HeifLocationOffsetOrigin.FileOffset, 0L, alphaOffset, alphaLength));
+            alphaItem.SetExtent(image.Size);
+            items.Add(alphaItem);
+            HeifItemLink alphaLink = new(Heif4CharCode.Auxl, alphaItem.Id);
+            alphaLink.DestinationIds.Add(colorItem.Id);
+            links.Add(alphaLink);
+        }
+
+        if (this.encoder.SkipMetadata)
         {
             return;
         }
 
-        ObuColorConfig alphaConfig = new()
+        byte[]? exifData = image.Metadata.ExifProfile?.ToByteArray();
+        if (exifData is not null && exifData.Length > 0)
         {
-            IsMonochrome = true,
-            ColorRange = true,
-            SubSamplingX = true,
-            SubSamplingY = true,
-            BitDepth = av1BitDepth
-        };
+            int tiffHeaderOffset = -1;
 
-        int alphaQuality = this.encoder.AlphaQuality ?? quality;
-        int alphaQIndex = GetAv1QuantizerIndex(alphaQuality);
-        cancellationToken.ThrowIfCancellationRequested();
-        long alphaOffset = stream.Length;
-        ObuSequenceHeader alphaHeader = Av1FrameEncoder.EncodeAlpha(
-            this.configuration,
-            image.Frames.RootFrame,
-            stream,
-            alphaConfig,
-            alphaQIndex,
-            this.encoder.Effort);
+            // The HEIF Exif prefix identifies the first TIFF byte-order marker, which can follow an optional Exif
+            // identifier in profiles supplied directly by callers.
+            for (int i = 0; i <= exifData.Length - 4; i++)
+            {
+                bool isBigEndianTiff = exifData[i] == (byte)'M'
+                    && exifData[i + 1] == (byte)'M'
+                    && exifData[i + 2] == 0
+                    && exifData[i + 3] == 42;
 
-        long alphaLength = stream.Length - alphaOffset;
-        HeifItem alphaItem = new(Heif4CharCode.Av01, 2)
+                bool isLittleEndianTiff = exifData[i] == (byte)'I'
+                    && exifData[i + 1] == (byte)'I'
+                    && exifData[i + 2] == 42
+                    && exifData[i + 3] == 0;
+
+                if (isBigEndianTiff || isLittleEndianTiff)
+                {
+                    tiffHeaderOffset = i;
+                    break;
+                }
+            }
+
+            if (tiffHeaderOffset < 0)
+            {
+                throw new ImageFormatException("The Exif profile does not contain a TIFF header.");
+            }
+
+            long exifOffset = stream.Length;
+            Span<byte> offsetBuffer = stackalloc byte[4];
+            BinaryPrimitives.WriteUInt32BigEndian(offsetBuffer, (uint)tiffHeaderOffset);
+            stream.Write(offsetBuffer);
+            stream.Write(exifData);
+
+            HeifItem exifItem = new(Heif4CharCode.Exif, (uint)items.Count + 1)
+            {
+                Name = "Exif"
+            };
+
+            exifItem.DataLocations.Add(
+                new HeifLocation(
+                    HeifLocationOffsetOrigin.FileOffset,
+                    0L,
+                    exifOffset,
+                    4L + exifData.Length));
+
+            items.Add(exifItem);
+            HeifItemLink exifLink = new(Heif4CharCode.Cdsc, exifItem.Id);
+            exifLink.DestinationIds.Add(colorItem.Id);
+            links.Add(exifLink);
+        }
+
+        byte[]? xmpData = image.Metadata.XmpProfile?.Data;
+        if (xmpData is not null && xmpData.Length > 0)
         {
-            ChannelCount = 1,
-            UniformChannelBitDepth = channelBitDepth,
-            BitsPerPixel = channelBitDepth,
-            Av1CodecConfiguration = new Av1CodecConfiguration(alphaHeader),
-            AuxiliaryType = HeifConstants.AlphaAuxiliaryType
-        };
+            long xmpOffset = stream.Length;
+            stream.Write(xmpData);
+            HeifItem xmpItem = new(Heif4CharCode.Mime, (uint)items.Count + 1)
+            {
+                Name = "XMP",
+                ContentType = "application/rdf+xml"
+            };
 
-        alphaItem.DataLocations.Add(new HeifLocation(HeifLocationOffsetOrigin.FileOffset, 0L, alphaOffset, alphaLength));
-        alphaItem.SetExtent(image.Size);
-        items.Add(alphaItem);
-        HeifItemLink alphaLink = new(Heif4CharCode.Auxl, alphaItem.Id);
-        alphaLink.DestinationIds.Add(colorItem.Id);
-        links.Add(alphaLink);
+            xmpItem.DataLocations.Add(
+                new HeifLocation(
+                    HeifLocationOffsetOrigin.FileOffset,
+                    0L,
+                    xmpOffset,
+                    xmpData.Length));
+
+            items.Add(xmpItem);
+            HeifItemLink xmpLink = new(Heif4CharCode.Cdsc, xmpItem.Id);
+            xmpLink.DestinationIds.Add(colorItem.Id);
+            links.Add(xmpLink);
+        }
     }
 
     /// <summary>
@@ -898,7 +1061,8 @@ internal sealed class HeifEncoderCore
             // The HEIF quality scale includes zero while the JPEG payload encoder starts at one.
             // Map the lowest HEIF setting to the lowest representable JPEG setting.
             Quality = this.encoder.Quality == 0 ? 1 : this.encoder.Quality,
-            ColorType = colorType
+            ColorType = colorType,
+            SkipMetadata = this.encoder.SkipMetadata
         };
 
         // ImageEncoder is a synchronous contract. Wait for the cancellable JPEG operation so HEIF encoding

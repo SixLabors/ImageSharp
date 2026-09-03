@@ -3,12 +3,19 @@
 
 using System.Buffers.Binary;
 using System.Text;
+using SixLabors.ImageSharp.ColorProfiles;
+using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
+using SixLabors.ImageSharp.Metadata.Profiles.Icc;
+using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.TestDataIcc;
 using SixLabors.ImageSharp.Tests.TestUtilities.ImageComparison;
 using SixLabors.ImageSharp.Tests.TestUtilities.ReferenceCodecs;
 
@@ -123,6 +130,30 @@ public class HeifEncoderTests
         stream.Position = fileStart;
         using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
         Assert.Equal(image.Size, decoded.Size);
+    }
+
+    [Theory]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    public void LegacyJpegHonorsSkipMetadataForEmbeddedProfiles(bool skipMetadata, bool expectedIccProfile)
+    {
+        using Image<Rgb24> image = new(8, 8);
+        image.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.ProfileRandomArray);
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new() { SkipMetadata = skipMetadata };
+
+        image.Save(stream, encoder);
+
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        stream.Position = 0;
+        using Image<Rgb24> decoded = Image.Load<Rgb24>(preserveOptions, stream);
+        Assert.Equal(expectedIccProfile, decoded.Metadata.IccProfile is not null);
+        if (expectedIccProfile)
+        {
+            Assert.Equal(
+                IccTestDataProfiles.ProfileRandomArray,
+                Assert.IsType<IccProfile>(decoded.Metadata.IccProfile).ToByteArray());
+        }
     }
 
     [Fact]
@@ -428,6 +459,140 @@ public class HeifEncoderTests
     }
 
     [Fact]
+    public void Av1PreservesIccExifAndXmpMetadata()
+    {
+        using Image<Rgb24> image = new(8, 8);
+        image.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.ProfileRandomArray);
+
+        ExifProfile generatedExif = new();
+        generatedExif.SetValue(ExifTag.Software, "ImageSharp HEIF");
+        byte[] exifData = generatedExif.ToByteArray();
+        image.Metadata.ExifProfile = generatedExif;
+
+        byte[] xmpData = Encoding.UTF8.GetBytes("<xmp>ImageSharp HEIF</xmp>");
+        image.Metadata.XmpProfile = new XmpProfile(xmpData);
+
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.Av1,
+            Effort = 0
+        };
+
+        image.Save(stream, encoder);
+        byte[] file = stream.ToArray();
+
+        Span<byte> itemInfo = GetMetadataChild(file, Heif4CharCode.Iinf);
+        Assert.Equal(3, BinaryPrimitives.ReadUInt16BigEndian(itemInfo[12..]));
+        int entryOffset = 14;
+
+        int colorEntryLength = BinaryPrimitives.ReadInt32BigEndian(itemInfo[entryOffset..]);
+        Assert.Equal(1, BinaryPrimitives.ReadUInt16BigEndian(itemInfo[(entryOffset + 12)..]));
+        Assert.Equal(Heif4CharCode.Av01, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(itemInfo[(entryOffset + 16)..]));
+        Assert.Equal([0], itemInfo.Slice(entryOffset + 20, colorEntryLength - 20).ToArray());
+        entryOffset += colorEntryLength;
+
+        int exifEntryLength = BinaryPrimitives.ReadInt32BigEndian(itemInfo[entryOffset..]);
+        Assert.Equal(2, BinaryPrimitives.ReadUInt16BigEndian(itemInfo[(entryOffset + 12)..]));
+        Assert.Equal(Heif4CharCode.Exif, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(itemInfo[(entryOffset + 16)..]));
+        Assert.Equal("Exif\0", Encoding.UTF8.GetString(itemInfo.Slice(entryOffset + 20, exifEntryLength - 20)));
+        entryOffset += exifEntryLength;
+
+        int xmpEntryLength = BinaryPrimitives.ReadInt32BigEndian(itemInfo[entryOffset..]);
+        Assert.Equal(3, BinaryPrimitives.ReadUInt16BigEndian(itemInfo[(entryOffset + 12)..]));
+        Assert.Equal(Heif4CharCode.Mime, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(itemInfo[(entryOffset + 16)..]));
+        Assert.Equal(
+            "XMP\0application/rdf+xml\0",
+            Encoding.UTF8.GetString(itemInfo.Slice(entryOffset + 20, xmpEntryLength - 20)));
+
+        entryOffset += xmpEntryLength;
+        Assert.Equal(itemInfo.Length, entryOffset);
+
+        Span<byte> itemReferences = GetMetadataChild(file, Heif4CharCode.Iref);
+        int referenceOffset = 12;
+        for (ushort sourceId = 2; sourceId <= 3; sourceId++)
+        {
+            int referenceLength = BinaryPrimitives.ReadInt32BigEndian(itemReferences[referenceOffset..]);
+            Assert.Equal(14, referenceLength);
+            Assert.Equal(
+                Heif4CharCode.Cdsc,
+                (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(itemReferences[(referenceOffset + 4)..]));
+
+            Assert.Equal(sourceId, BinaryPrimitives.ReadUInt16BigEndian(itemReferences[(referenceOffset + 8)..]));
+            Assert.Equal(1, BinaryPrimitives.ReadUInt16BigEndian(itemReferences[(referenceOffset + 10)..]));
+            Assert.Equal(1, BinaryPrimitives.ReadUInt16BigEndian(itemReferences[(referenceOffset + 12)..]));
+            referenceOffset += referenceLength;
+        }
+
+        Assert.Equal(itemReferences.Length, referenceOffset);
+
+        Span<byte> encodedExif = GetItemPayload(file, 2);
+        Assert.Equal(0U, BinaryPrimitives.ReadUInt32BigEndian(encodedExif));
+        Assert.Equal(exifData, encodedExif[4..].ToArray());
+        Assert.Equal(xmpData, GetItemPayload(file, 3).ToArray());
+
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        using Image<Rgb24> decoded = Image.Load<Rgb24>(preserveOptions, file);
+        Assert.Equal(
+            IccTestDataProfiles.ProfileRandomArray,
+            Assert.IsType<IccProfile>(decoded.Metadata.IccProfile).ToByteArray());
+
+        ExifProfile decodedExif = Assert.IsType<ExifProfile>(decoded.Metadata.ExifProfile);
+        Assert.True(decodedExif.TryGetValue(ExifTag.Software, out IExifValue<string> software));
+        Assert.Equal("ImageSharp HEIF", software.Value);
+        Assert.Equal(xmpData, Assert.IsType<XmpProfile>(decoded.Metadata.XmpProfile).ToByteArray());
+    }
+
+    [Fact]
+    public void Av1SkipMetadataSuppressesIccExifAndXmp()
+    {
+        using Image<Rgb24> image = new(8, 8);
+        image.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.ProfileRandomArray);
+        image.Metadata.ExifProfile = new ExifProfile();
+        image.Metadata.ExifProfile.SetValue(ExifTag.Software, "ImageSharp HEIF");
+        image.Metadata.XmpProfile = new XmpProfile(Encoding.UTF8.GetBytes("<xmp>ImageSharp HEIF</xmp>"));
+
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.Av1,
+            Effort = 0,
+            SkipMetadata = true
+        };
+
+        image.Save(stream, encoder);
+        byte[] file = stream.ToArray();
+        Span<byte> itemInfo = GetMetadataChild(file, Heif4CharCode.Iinf);
+        Assert.Equal(1, BinaryPrimitives.ReadUInt16BigEndian(itemInfo[12..]));
+
+        Span<byte> itemProperties = GetMetadataChild(file, Heif4CharCode.Iprp);
+        const int IpcoOffset = 8;
+        int ipcoEnd = IpcoOffset + BinaryPrimitives.ReadInt32BigEndian(itemProperties[IpcoOffset..]);
+        int propertyOffset = IpcoOffset + 8;
+        while (propertyOffset < ipcoEnd)
+        {
+            int propertyLength = BinaryPrimitives.ReadInt32BigEndian(itemProperties[propertyOffset..]);
+            Heif4CharCode propertyType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(itemProperties[(propertyOffset + 4)..]);
+            if (propertyType == Heif4CharCode.Colr)
+            {
+                Assert.Equal(
+                    Heif4CharCode.Nclx,
+                    (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(itemProperties[(propertyOffset + 8)..]));
+            }
+
+            propertyOffset += propertyLength;
+        }
+
+        Assert.Equal(ipcoEnd, propertyOffset);
+
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        using Image<Rgb24> decoded = Image.Load<Rgb24>(preserveOptions, file);
+        Assert.Null(decoded.Metadata.IccProfile);
+        Assert.Null(decoded.Metadata.ExifProfile);
+        Assert.Null(decoded.Metadata.XmpProfile);
+    }
+
+    [Fact]
     public void Av1WritesNonSeekableStream()
     {
         using Image<Rgb24> image = new(8, 8);
@@ -596,6 +761,57 @@ public class HeifEncoderTests
     }
 
     [Fact]
+    public void Av1ItemPropertiesWriteIccBeforeCicpAndExcludeMetadataItemsFromAssociations()
+    {
+        IccProfile iccProfile = new(IccTestDataProfiles.ProfileRandomArray);
+        HeifItem colorItem = new(Heif4CharCode.Av01, 1)
+        {
+            IccProfile = iccProfile,
+            CicpProfile = new CicpProfile(1, 13, 6, true)
+        };
+
+        colorItem.SetExtent(new Size(64, 48));
+        List<HeifItem> items =
+        [
+            colorItem,
+            new HeifItem(Heif4CharCode.Exif, 2),
+            new HeifItem(Heif4CharCode.Mime, 3)
+        ];
+
+        using AutoExpandingMemory<byte> memory = new(Configuration.Default, 16);
+        int length = HeifEncoderCore.WriteItemPropertiesBox(memory, 0, items);
+        ReadOnlySpan<byte> propertyBox = memory.GetSpan(length);
+        const int IpcoOffset = 8;
+        int ipcoEnd = IpcoOffset + BinaryPrimitives.ReadInt32BigEndian(propertyBox[IpcoOffset..]);
+        int propertyOffset = IpcoOffset + 8;
+
+        Assert.Equal(Heif4CharCode.Ispe, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(propertyBox[(propertyOffset + 4)..]));
+        propertyOffset += BinaryPrimitives.ReadInt32BigEndian(propertyBox[propertyOffset..]);
+
+        int iccPropertyLength = BinaryPrimitives.ReadInt32BigEndian(propertyBox[propertyOffset..]);
+        Assert.Equal(Heif4CharCode.Colr, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(propertyBox[(propertyOffset + 4)..]));
+        Assert.Equal(Heif4CharCode.Prof, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(propertyBox[(propertyOffset + 8)..]));
+        Assert.Equal(
+            IccTestDataProfiles.ProfileRandomArray,
+            propertyBox.Slice(propertyOffset + 12, iccPropertyLength - 12).ToArray());
+
+        propertyOffset += iccPropertyLength;
+
+        int cicpPropertyLength = BinaryPrimitives.ReadInt32BigEndian(propertyBox[propertyOffset..]);
+        Assert.Equal(Heif4CharCode.Colr, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(propertyBox[(propertyOffset + 4)..]));
+        Assert.Equal(Heif4CharCode.Nclx, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(propertyBox[(propertyOffset + 8)..]));
+        propertyOffset += cicpPropertyLength;
+        Assert.Equal(ipcoEnd, propertyOffset);
+
+        int ipmaOffset = ipcoEnd;
+        int ipmaLength = BinaryPrimitives.ReadInt32BigEndian(propertyBox[ipmaOffset..]);
+        ReadOnlySpan<byte> ipmaPayload = propertyBox.Slice(ipmaOffset + 8, ipmaLength - 8);
+        Assert.Equal(0, BinaryPrimitives.ReadInt32BigEndian(ipmaPayload));
+        Assert.Equal(1, BinaryPrimitives.ReadInt32BigEndian(ipmaPayload[4..]));
+        Assert.Equal([0, 1, 3, 1, 2, 3], ipmaPayload[8..].ToArray());
+    }
+
+    [Fact]
     public void ItemPropertiesUseLargeAssociationsWhenPropertyCountExceedsCompactRange()
     {
         const int ItemCount = 43;
@@ -731,5 +947,37 @@ public class HeifEncoderTests
         }
 
         throw new InvalidImageContentException($"The encoded file has no payload for item {itemId}.");
+    }
+
+    private static Span<byte> GetMetadataChild(Span<byte> file, Heif4CharCode childType)
+    {
+        int offset = 0;
+        while (offset < file.Length)
+        {
+            int boxSize = BinaryPrimitives.ReadInt32BigEndian(file[offset..]);
+            Heif4CharCode boxType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(file[(offset + 4)..]);
+            if (boxType == Heif4CharCode.Meta)
+            {
+                int childOffset = offset + 12;
+                int boxEnd = offset + boxSize;
+                while (childOffset < boxEnd)
+                {
+                    int childSize = BinaryPrimitives.ReadInt32BigEndian(file[childOffset..]);
+                    Heif4CharCode currentChildType =
+                        (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(file[(childOffset + 4)..]);
+
+                    if (currentChildType == childType)
+                    {
+                        return file.Slice(childOffset, childSize);
+                    }
+
+                    childOffset += childSize;
+                }
+            }
+
+            offset += boxSize;
+        }
+
+        throw new InvalidImageContentException($"The encoded file has no {childType} metadata child.");
     }
 }

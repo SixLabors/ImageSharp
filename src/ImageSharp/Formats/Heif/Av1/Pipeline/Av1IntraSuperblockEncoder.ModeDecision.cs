@@ -1042,13 +1042,24 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderModeDecisionWorkspace<TSample> workspace =
                 this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
 
+            // One transient 64-sample plane holds the 4x4 prediction followed by two reconstruction buffers.
+            // The disjoint views stay live together and need no additional owner or allocator rent.
             Span<TSample> transformSamples = workspace.GetCandidateReconstruction(1);
             Span<TSample> prediction = transformSamples[..TransformSampleCount];
-            Span<TSample> transformReconstruction = transformSamples.Slice(
+            Span<TSample> candidateTransformReconstruction = transformSamples.Slice(
                 TransformSampleCount,
                 TransformSampleCount);
 
-            Span<int> transformCoefficients = workspace.GetCandidateCoefficients(1)[..TransformSampleCount];
+            Span<TSample> bestTransformReconstruction = transformSamples.Slice(
+                TransformSampleCount * 2,
+                TransformSampleCount);
+
+            Span<int> transformCoefficientStorage = workspace.GetCandidateCoefficients(1);
+            Span<int> candidateTransformCoefficients = transformCoefficientStorage[..TransformSampleCount];
+            Span<int> bestTransformCoefficients = transformCoefficientStorage.Slice(
+                TransformSampleCount,
+                TransformSampleCount);
+
             Span<short> residual = workspace.Residual[..TransformSampleCount];
             Span<byte> contexts = workspace.TransformContexts;
             Span<byte> topContexts = contexts[..2];
@@ -1196,6 +1207,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         transformIndex * TransformSampleCount,
                         TransformSampleCount);
 
+                    // Each transform writes into the compact buffer that does not hold the current best.
+                    // Swapping spans on improvement keeps the winner without copying it inside the search loop.
                     for (Av1TransformType transformType = Av1TransformType.DctDct;
                         transformType < Av1TransformType.AllTransformTypes;
                         transformType++)
@@ -1212,9 +1225,9 @@ internal static partial class Av1IntraSuperblockEncoder
                             transformOrigin,
                             prediction,
                             residual,
-                            transformReconstruction,
+                            candidateTransformReconstruction,
                             TransformWidth,
-                            transformCoefficients,
+                            candidateTransformCoefficients,
                             TransformSize,
                             transformType,
                             Av1Plane.Y,
@@ -1228,7 +1241,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             TransformSize,
                             transformType,
                             mode,
-                            transformCoefficients,
+                            candidateTransformCoefficients,
                             Av1ComponentType.Luminance,
                             blockContext,
                             candidateState.EndOfBlock,
@@ -1243,17 +1256,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         if (candidateCost < bestTransformCost)
                         {
-                            // Preserve the improving 4x4 trial in the block mosaic. Later transform predictions
-                            // consume that reconstruction, and copying the compact result avoids another transform.
-                            transformCoefficients.CopyTo(retainedTransformCoefficients);
-                            for (int row = 0; row < TransformWidth; row++)
-                            {
-                                transformReconstruction.Slice(row * TransformWidth, TransformWidth)
-                                    .CopyTo(
-                                        candidateReconstruction.Slice(
-                                            reconstructionOffset + (row * BlockWidth),
-                                            TransformWidth));
-                            }
+                            Span<TSample> previousBestReconstruction = bestTransformReconstruction;
+                            bestTransformReconstruction = candidateTransformReconstruction;
+                            candidateTransformReconstruction = previousBestReconstruction;
+
+                            Span<int> previousBestCoefficients = bestTransformCoefficients;
+                            bestTransformCoefficients = candidateTransformCoefficients;
+                            candidateTransformCoefficients = previousBestCoefficients;
 
                             bestTransformCost = candidateCost;
                             bestTransformType = transformType;
@@ -1261,6 +1270,18 @@ internal static partial class Av1IntraSuperblockEncoder
                             bestTransformDistortion = candidateDistortion;
                             bestTransformState = candidateState;
                         }
+                    }
+
+                    // The next 4x4 prediction consumes this reconstruction from the block mosaic. Publish the
+                    // final winner once, after transform search, along with its entropy-context coefficients.
+                    bestTransformCoefficients.CopyTo(retainedTransformCoefficients);
+                    for (int row = 0; row < TransformWidth; row++)
+                    {
+                        bestTransformReconstruction.Slice(row * TransformWidth, TransformWidth)
+                            .CopyTo(
+                                candidateReconstruction.Slice(
+                                    reconstructionOffset + (row * BlockWidth),
+                                    TransformWidth));
                     }
 
                     rate += bestTransformRate;

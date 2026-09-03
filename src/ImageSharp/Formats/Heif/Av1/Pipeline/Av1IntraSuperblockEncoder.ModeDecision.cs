@@ -183,7 +183,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Av1PartitionType preparedPartition)
         {
-            if (blockSize is not Av1BlockSize.Block8x8 and not Av1BlockSize.Block16x16)
+            bool searchPartition = blockSize is Av1BlockSize.Block8x8 or Av1BlockSize.Block16x16 ||
+                (this.effort == 10 && blockSize == Av1BlockSize.Block32x32);
+
+            if (!searchPartition)
             {
                 return preparedPartition;
             }

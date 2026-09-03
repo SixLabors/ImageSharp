@@ -18,7 +18,7 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     /// <summary>
     /// The largest coding-block dimension evaluated directly by the current partition search.
     /// </summary>
-    public const int MaximumBlockDimension = 16;
+    public const int MaximumBlockDimension = 32;
 
     /// <summary>
     /// The maximum number of samples in one directly evaluated coding block.
@@ -49,8 +49,7 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
         2 * (MaximumBlockDimension >> Av1Constants.ModeInfoSizeLog2) * sizeof(byte) / sizeof(int);
 
     private const int TransientStorageOffset = TransformContextStorageOffset + TransformContextStorageLength;
-    private const int ChromaFromLumaSampleCount =
-        Av1ChromaFromLumaContext.BufferLine * MaximumBlockDimension;
+    private const int ChromaFromLumaSampleCount = Av1ChromaFromLumaContext.BufferLength;
 
     private const int ChromaFromLumaSampleStorageLength = ChromaFromLumaSampleCount * sizeof(short) / sizeof(int);
     private const int ChromaFromLumaBlueRateOffset = ChromaFromLumaSampleStorageLength;

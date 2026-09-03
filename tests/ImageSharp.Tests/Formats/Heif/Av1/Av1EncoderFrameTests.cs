@@ -274,6 +274,46 @@ public class Av1EncoderFrameTests
         Assert.Equal(new Size(Size, Size), decoded.Size);
     }
 
+    [Fact]
+    public void EncodeEffortTenSelectsThirtyTwoByThirtyTwoBlocks()
+    {
+        const int Size = 64;
+        using Image<Rgba32> source = new(Size, Size);
+        for (int y = 0; y < Size; y++)
+        {
+            Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < Size; x++)
+            {
+                row[x] = new Rgba32(128, 128, 128);
+            }
+        }
+
+        using MemoryStream stream = new();
+        _ = Av1FrameEncoder.Encode(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            stream,
+            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400),
+            qIndex: 4,
+            effort: 10);
+
+        byte[] payload = stream.ToArray();
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+        for (int modeInfoY = 0; modeInfoY < 16; modeInfoY++)
+        {
+            for (int modeInfoX = 0; modeInfoX < 16; modeInfoX++)
+            {
+                Assert.Equal(
+                    Av1BlockSize.Block32x32,
+                    frameInfo.GetModeInfoAt(new Point(modeInfoX, modeInfoY)).BlockSize);
+            }
+        }
+
+        Assert.Equal(new Size(Size, Size), decoded.Size);
+    }
+
     [Theory]
     [InlineData(EightBit)]
     [InlineData(TenBit)]

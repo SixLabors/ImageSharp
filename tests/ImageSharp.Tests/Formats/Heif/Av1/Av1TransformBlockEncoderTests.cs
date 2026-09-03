@@ -617,10 +617,17 @@ public class Av1TransformBlockEncoderTests
             Av1EncoderIntraBlockCopyWorkspace<ushort> intraBlockCopyWorkspace =
                 workspace.GetIntraBlockCopyWorkspace<ushort>();
 
-            Assert.Equal(17, modeWorkspace.GetReferenceSamples(3).Length);
+            Assert.Equal(
+                (2 * Av1EncoderModeDecisionWorkspace<ushort>.MaximumBlockDimension) + 1,
+                modeWorkspace.GetReferenceSamples(3).Length);
+
             Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumSampleCount, modeWorkspace.GetCandidateReconstruction(1).Length);
             Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumSampleCount, modeWorkspace.GetCandidateCoefficients(1).Length);
-            Assert.Equal(Av1ChromaFromLumaContext.BufferLine * 8, modeWorkspace.ChromaFromLumaSamples.Length);
+            Assert.Equal(
+                Av1ChromaFromLumaContext.BufferLine *
+                    Av1EncoderModeDecisionWorkspace<ushort>.MaximumBlockDimension,
+                modeWorkspace.ChromaFromLumaSamples.Length);
+
             Assert.Equal(Av1ChromaFromLumaMath.AlphaCandidateCount, modeWorkspace.GetChromaFromLumaRates(1).Length);
             Assert.Equal(Av1ChromaFromLumaMath.AlphaCandidateCount, modeWorkspace.GetChromaFromLumaDistortions(1).Length);
             Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumSampleCount, paletteWorkspace.GetPrediction(1).Length);

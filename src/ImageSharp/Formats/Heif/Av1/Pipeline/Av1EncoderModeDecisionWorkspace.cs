@@ -16,9 +16,14 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     where TSample : unmanaged
 {
     /// <summary>
-    /// The maximum number of samples in the encoder's fixed 8x8 transform block.
+    /// The largest coding-block dimension evaluated directly by the current partition search.
     /// </summary>
-    public const int MaximumSampleCount = 8 * 8;
+    public const int MaximumBlockDimension = 16;
+
+    /// <summary>
+    /// The maximum number of samples in one directly evaluated coding block.
+    /// </summary>
+    public const int MaximumSampleCount = MaximumBlockDimension * MaximumBlockDimension;
 
     /// <summary>
     /// The number of 4x4 transform blocks covering one 8x8 coding block.
@@ -30,7 +35,7 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     /// </summary>
     public const int StorageLength = TransientStorageOffset + Av1EncoderPaletteWorkspace<ushort>.StorageLength;
 
-    private const int ReferenceBufferLength = 17;
+    private const int ReferenceBufferLength = (2 * MaximumBlockDimension) + 1;
     private const int ReferenceBufferCount = 4;
     private const int ReferenceStorageLength = ReferenceBufferCount * ReferenceBufferLength * sizeof(ushort) / sizeof(int);
     private const int CandidateSampleStorageOffset = ReferenceStorageLength;
@@ -40,9 +45,13 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     private const int CandidateTransformBlockStorageOffset = CandidateCoefficientStorageOffset + CandidateCoefficientStorageLength;
     private const int CandidateTransformBlockStorageLength = CandidateTransformBlockCount;
     private const int TransformContextStorageOffset = CandidateTransformBlockStorageOffset + CandidateTransformBlockStorageLength;
-    private const int TransformContextStorageLength = 1;
+    private const int TransformContextStorageLength =
+        2 * (MaximumBlockDimension >> Av1Constants.ModeInfoSizeLog2) * sizeof(byte) / sizeof(int);
+
     private const int TransientStorageOffset = TransformContextStorageOffset + TransformContextStorageLength;
-    private const int ChromaFromLumaSampleCount = Av1ChromaFromLumaContext.BufferLine * 8;
+    private const int ChromaFromLumaSampleCount =
+        Av1ChromaFromLumaContext.BufferLine * MaximumBlockDimension;
+
     private const int ChromaFromLumaSampleStorageLength = ChromaFromLumaSampleCount * sizeof(short) / sizeof(int);
     private const int ChromaFromLumaBlueRateOffset = ChromaFromLumaSampleStorageLength;
     private const int ChromaFromLumaRedRateOffset = ChromaFromLumaBlueRateOffset + Av1ChromaFromLumaMath.AlphaCandidateCount;

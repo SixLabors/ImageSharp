@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -39,6 +40,23 @@ internal static partial class Av1IntraSuperblockEncoder
     /// Gets the nonzero directional adjustments in the exhaustive order used by the reference encoder.
     /// </summary>
     private static ReadOnlySpan<sbyte> AngleDeltaSearchOrder => [-3, -2, -1, 1, 2, 3];
+
+    /// <summary>
+    /// Gets partition candidates in the evaluation order used by the reference encoder.
+    /// </summary>
+    private static ReadOnlySpan<Av1PartitionType> PartitionSearchOrder =>
+    [
+        Av1PartitionType.None,
+        Av1PartitionType.Split,
+        Av1PartitionType.Horizontal,
+        Av1PartitionType.Vertical,
+        Av1PartitionType.HorizontalA,
+        Av1PartitionType.HorizontalB,
+        Av1PartitionType.VerticalA,
+        Av1PartitionType.VerticalB,
+        Av1PartitionType.Horizontal4,
+        Av1PartitionType.Vertical4
+    ];
 
     /// <summary>
     /// Builds the fixed 8x8 partition skeleton consumed by interleaved mode decision and tile writing.
@@ -165,32 +183,24 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Av1PartitionType preparedPartition)
         {
-            if (blockSize != Av1BlockSize.Block8x8)
+            if (blockSize is not Av1BlockSize.Block8x8 and not Av1BlockSize.Block16x16)
             {
                 return preparedPartition;
             }
 
             Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
-            bool hasRows = modeInfoPosition.Y + 1 < this.picture.Parent.Common.ModeInfoRowCount;
-            bool hasColumns = modeInfoPosition.X + 1 < this.picture.Parent.Common.ModeInfoColumnCount;
+            bool hasRows =
+                modeInfoPosition.Y + blockSize.Get4x4HighCount() <= this.picture.Parent.Common.ModeInfoRowCount;
+
+            bool hasColumns =
+                modeInfoPosition.X + blockSize.Get4x4WideCount() <= this.picture.Parent.Common.ModeInfoColumnCount;
+
             if (!hasRows || !hasColumns)
             {
-                // A clipped 8x8 node must split because its missing half cannot be represented by PARTITION_NONE.
-                for (int childIndex = 0; childIndex < 4; childIndex++)
-                {
-                    Point childOrigin = blockOrigin + new Size(
-                        (childIndex & 1) << Av1Constants.ModeInfoSizeLog2,
-                        (childIndex >> 1) << Av1Constants.ModeInfoSizeLog2);
-
-                    Point childPosition = childOrigin >> Av1Constants.ModeInfoSizeLog2;
-                    if (childPosition.Y < this.picture.Parent.Common.ModeInfoRowCount &&
-                        childPosition.X < this.picture.Parent.Common.ModeInfoColumnCount)
-                    {
-                        this.SetBlockGeometry(childOrigin, Av1BlockSize.Block4x4, Av1PartitionType.None);
-                    }
-                }
-
-                return Av1PartitionType.Split;
+                // Coded dimensions are aligned to eight samples, so an incomplete searched node must retain
+                // the prepared split tree rather than evaluating a block that extends beyond source storage.
+                this.PreparePartitionGeometry(blockOrigin, blockSize, preparedPartition);
+                return preparedPartition;
             }
 
             if (this.effort < 9)
@@ -198,68 +208,102 @@ internal static partial class Av1IntraSuperblockEncoder
                 return preparedPartition;
             }
 
-            int savedLumaArea = this.codedAreaLuma;
-            int savedChromaArea = this.codedAreaChroma;
-            this.SavePartitionTrialContexts(blockOrigin, tileIndex);
-            long bestCost = this.EvaluatePartitionCandidate(
+            Av1PartitionType selectedPartition = this.SelectBestPartition(
                 writer,
                 macroBlock,
                 blockOrigin,
                 tileIndex,
-                blockSize,
-                Av1PartitionType.None);
-
-            Av1PartitionType selectedPartition = Av1PartitionType.None;
-            this.ResetPartitionTrial(blockOrigin, tileIndex, savedLumaArea, savedChromaArea);
-            long splitCost = this.EvaluatePartitionCandidate(
-                writer,
-                macroBlock,
-                blockOrigin,
-                tileIndex,
-                blockSize,
-                Av1PartitionType.Split);
-
-            if (splitCost < bestCost)
-            {
-                bestCost = splitCost;
-                selectedPartition = Av1PartitionType.Split;
-            }
-
-            this.ResetPartitionTrial(blockOrigin, tileIndex, savedLumaArea, savedChromaArea);
-            long horizontalCost = this.EvaluatePartitionCandidate(
-                writer,
-                macroBlock,
-                blockOrigin,
-                tileIndex,
-                blockSize,
-                Av1PartitionType.Horizontal);
-
-            if (horizontalCost < bestCost)
-            {
-                bestCost = horizontalCost;
-                selectedPartition = Av1PartitionType.Horizontal;
-            }
-
-            this.ResetPartitionTrial(blockOrigin, tileIndex, savedLumaArea, savedChromaArea);
-            long verticalCost = this.EvaluatePartitionCandidate(
-                writer,
-                macroBlock,
-                blockOrigin,
-                tileIndex,
-                blockSize,
-                Av1PartitionType.Vertical);
-
-            if (verticalCost < bestCost)
-            {
-                selectedPartition = Av1PartitionType.Vertical;
-            }
-
-            this.ResetPartitionTrial(blockOrigin, tileIndex, savedLumaArea, savedChromaArea);
+                blockSize);
 
             // Trial reconstruction and mode entries need no copy-back. The selected branch is evaluated again
             // in raster order, overwriting each trial-local value before a later selected leaf can consume it.
             this.PreparePartitionGeometry(blockOrigin, blockSize, selectedPartition);
             return selectedPartition;
+        }
+
+        private Av1PartitionType SelectBestPartition(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1BlockSize blockSize)
+        {
+            int savedLumaArea = this.codedAreaLuma;
+            int savedChromaArea = this.codedAreaChroma;
+            this.SavePartitionTrialContexts(blockOrigin, tileIndex, blockSize);
+            long bestCost = long.MaxValue;
+            Av1PartitionType selectedPartition = Av1PartitionType.None;
+            ReadOnlySpan<Av1PartitionType> searchOrder = PartitionSearchOrder;
+            int candidateCount = blockSize == Av1BlockSize.Block8x8 ? 4 : searchOrder.Length;
+            for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
+            {
+                Av1PartitionType partitionType = searchOrder[candidateIndex];
+                if (!this.IsPartitionCandidateAllowed(blockSize, partitionType))
+                {
+                    continue;
+                }
+
+                long candidateCost = this.EvaluatePartitionCandidate(
+                    writer,
+                    macroBlock,
+                    blockOrigin,
+                    tileIndex,
+                    blockSize,
+                    partitionType,
+                    publishFinalContexts: false);
+
+                if (candidateCost < bestCost)
+                {
+                    bestCost = candidateCost;
+                    selectedPartition = partitionType;
+                }
+
+                this.ResetPartitionTrial(
+                    blockOrigin,
+                    tileIndex,
+                    blockSize,
+                    savedLumaArea,
+                    savedChromaArea);
+            }
+
+            return selectedPartition;
+        }
+
+        private long EvaluateSelectedPartitionTree(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1BlockSize blockSize,
+            bool publishContexts)
+        {
+            Av1PartitionType selectedPartition = this.SelectBestPartition(
+                writer,
+                macroBlock,
+                blockOrigin,
+                tileIndex,
+                blockSize);
+
+            long cost = this.EvaluatePartitionCandidate(
+                writer,
+                macroBlock,
+                blockOrigin,
+                tileIndex,
+                blockSize,
+                selectedPartition,
+                publishContexts);
+
+            if (publishContexts)
+            {
+                Av1TileWriter.UpdatePartitionContexts(
+                    this.picture.PartitionContexts[tileIndex],
+                    blockOrigin,
+                    selectedPartition.GetBlockSubSize(blockSize),
+                    blockSize,
+                    selectedPartition);
+            }
+
+            return cost;
         }
 
         private long EvaluatePartitionCandidate(
@@ -268,7 +312,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             ushort tileIndex,
             Av1BlockSize blockSize,
-            Av1PartitionType partitionType)
+            Av1PartitionType partitionType,
+            bool publishFinalContexts)
         {
             int rate = Av1TileWriter.GetPartitionCost(
                 this.picture,
@@ -279,31 +324,36 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.PartitionContexts[tileIndex]);
 
             long cost = Av1RateDistortion.GetCost(this.rateMultiplier, rate, 0);
-            int leafCount = partitionType == Av1PartitionType.Split
-                ? 4
-                : partitionType == Av1PartitionType.None
-                    ? 1
-                    : 2;
-
-            Av1BlockSize leafSize = partitionType.GetBlockSubSize(blockSize);
+            int leafCount = GetPartitionLeafCount(partitionType);
 
             // Child reconstruction and syntax contexts become input to the next child. Publishing only
-            // non-final leaves reproduces libaom's raster trial without writing entropy symbols.
+            // the required leaves reproduces libaom's raster dry run without writing entropy symbols.
             for (int leafIndex = 0; leafIndex < leafCount; leafIndex++)
             {
-                Point leafOrigin = GetPartitionLeafOrigin(
+                GetPartitionLeafGeometry(
                     blockOrigin,
                     blockSize,
                     partitionType,
-                    leafIndex);
+                    leafIndex,
+                    out Point leafOrigin,
+                    out Av1BlockSize leafSize);
 
-                cost += this.EvaluatePartitionLeaf(
-                    writer,
-                    macroBlock,
-                    leafOrigin,
-                    tileIndex,
-                    leafSize,
-                    publishContexts: leafIndex < leafCount - 1);
+                bool publishContexts = leafIndex < leafCount - 1 || publishFinalContexts;
+                cost += partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8
+                    ? this.EvaluateSelectedPartitionTree(
+                        writer,
+                        macroBlock,
+                        leafOrigin,
+                        tileIndex,
+                        leafSize,
+                        publishContexts)
+                    : this.EvaluatePartitionLeaf(
+                        writer,
+                        macroBlock,
+                        leafOrigin,
+                        tileIndex,
+                        leafSize,
+                        publishContexts);
             }
 
             return cost;
@@ -312,12 +362,13 @@ internal static partial class Av1IntraSuperblockEncoder
         private void ResetPartitionTrial(
             Point blockOrigin,
             ushort tileIndex,
+            Av1BlockSize blockSize,
             int savedLumaArea,
             int savedChromaArea)
         {
             this.codedAreaLuma = savedLumaArea;
             this.codedAreaChroma = savedChromaArea;
-            this.RestorePartitionTrialContexts(blockOrigin, tileIndex);
+            this.RestorePartitionTrialContexts(blockOrigin, tileIndex, blockSize);
         }
 
         private void PreparePartitionGeometry(
@@ -325,42 +376,149 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Av1PartitionType partitionType)
         {
-            int leafCount = partitionType == Av1PartitionType.Split
-                ? 4
-                : partitionType == Av1PartitionType.None
-                    ? 1
-                    : 2;
-
-            Av1BlockSize leafSize = partitionType.GetBlockSubSize(blockSize);
+            int leafCount = GetPartitionLeafCount(partitionType);
             for (int leafIndex = 0; leafIndex < leafCount; leafIndex++)
             {
-                Point leafOrigin = GetPartitionLeafOrigin(
+                GetPartitionLeafGeometry(
                     blockOrigin,
                     blockSize,
                     partitionType,
-                    leafIndex);
+                    leafIndex,
+                    out Point leafOrigin,
+                    out Av1BlockSize leafSize);
 
-                this.SetBlockGeometry(leafOrigin, leafSize, Av1PartitionType.None);
+                if (this.IsBlockOriginInsideFrame(leafOrigin))
+                {
+                    this.SetBlockGeometry(leafOrigin, leafSize, Av1PartitionType.None);
+                }
             }
         }
 
-        private static Point GetPartitionLeafOrigin(
+        private bool IsPartitionCandidateAllowed(
+            Av1BlockSize blockSize,
+            Av1PartitionType partitionType)
+        {
+            if (partitionType.GetBlockSubSize(blockSize) == Av1BlockSize.Invalid)
+            {
+                return false;
+            }
+
+            if (this.source.IsMonochrome)
+            {
+                return true;
+            }
+
+            ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
+            int leafCount = GetPartitionLeafCount(partitionType);
+            for (int leafIndex = 0; leafIndex < leafCount; leafIndex++)
+            {
+                GetPartitionLeafGeometry(
+                    Point.Empty,
+                    blockSize,
+                    partitionType,
+                    leafIndex,
+                    out _,
+                    out Av1BlockSize leafSize);
+
+                if (leafSize.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY) ==
+                    Av1BlockSize.Invalid)
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private bool IsBlockOriginInsideFrame(Point blockOrigin)
+        {
+            Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+            return modeInfoPosition.Y < this.picture.Parent.Common.ModeInfoRowCount &&
+                modeInfoPosition.X < this.picture.Parent.Common.ModeInfoColumnCount;
+        }
+
+        private static int GetPartitionLeafCount(Av1PartitionType partitionType)
+            => partitionType switch
+            {
+                Av1PartitionType.None => 1,
+                Av1PartitionType.Horizontal or Av1PartitionType.Vertical => 2,
+                Av1PartitionType.HorizontalA or
+                    Av1PartitionType.HorizontalB or
+                    Av1PartitionType.VerticalA or
+                    Av1PartitionType.VerticalB => 3,
+                _ => 4
+            };
+
+        private static void GetPartitionLeafGeometry(
             Point blockOrigin,
             Av1BlockSize blockSize,
             Av1PartitionType partitionType,
-            int leafIndex)
+            int leafIndex,
+            out Point leafOrigin,
+            out Av1BlockSize leafSize)
         {
             int halfWidth = blockSize.GetWidth() >> 1;
             int halfHeight = blockSize.GetHeight() >> 1;
-            return partitionType switch
+            Av1BlockSize rectangularSize = partitionType.GetBlockSubSize(blockSize);
+            Av1BlockSize splitSize = Av1PartitionType.Split.GetBlockSubSize(blockSize);
+            switch (partitionType)
             {
-                Av1PartitionType.Horizontal => blockOrigin + new Size(0, leafIndex * halfHeight),
-                Av1PartitionType.Vertical => blockOrigin + new Size(leafIndex * halfWidth, 0),
-                Av1PartitionType.Split => blockOrigin + new Size(
-                    (leafIndex & 1) * halfWidth,
-                    (leafIndex >> 1) * halfHeight),
-                _ => blockOrigin
-            };
+                case Av1PartitionType.Horizontal:
+                    leafOrigin = blockOrigin + new Size(0, leafIndex * halfHeight);
+                    leafSize = rectangularSize;
+                    return;
+                case Av1PartitionType.Vertical:
+                    leafOrigin = blockOrigin + new Size(leafIndex * halfWidth, 0);
+                    leafSize = rectangularSize;
+                    return;
+                case Av1PartitionType.Split:
+                    leafOrigin = blockOrigin + new Size(
+                        (leafIndex & 1) * halfWidth,
+                        (leafIndex >> 1) * halfHeight);
+
+                    leafSize = splitSize;
+                    return;
+                case Av1PartitionType.HorizontalA:
+                    leafOrigin = leafIndex < 2
+                        ? blockOrigin + new Size(leafIndex * halfWidth, 0)
+                        : blockOrigin + new Size(0, halfHeight);
+
+                    leafSize = leafIndex < 2 ? splitSize : rectangularSize;
+                    return;
+                case Av1PartitionType.HorizontalB:
+                    leafOrigin = leafIndex == 0
+                        ? blockOrigin
+                        : blockOrigin + new Size((leafIndex - 1) * halfWidth, halfHeight);
+
+                    leafSize = leafIndex == 0 ? rectangularSize : splitSize;
+                    return;
+                case Av1PartitionType.VerticalA:
+                    leafOrigin = leafIndex < 2
+                        ? blockOrigin + new Size(0, leafIndex * halfHeight)
+                        : blockOrigin + new Size(halfWidth, 0);
+
+                    leafSize = leafIndex < 2 ? splitSize : rectangularSize;
+                    return;
+                case Av1PartitionType.VerticalB:
+                    leafOrigin = leafIndex == 0
+                        ? blockOrigin
+                        : blockOrigin + new Size(halfWidth, (leafIndex - 1) * halfHeight);
+
+                    leafSize = leafIndex == 0 ? rectangularSize : splitSize;
+                    return;
+                case Av1PartitionType.Horizontal4:
+                    leafOrigin = blockOrigin + new Size(0, leafIndex * (blockSize.GetHeight() >> 2));
+                    leafSize = rectangularSize;
+                    return;
+                case Av1PartitionType.Vertical4:
+                    leafOrigin = blockOrigin + new Size(leafIndex * (blockSize.GetWidth() >> 2), 0);
+                    leafSize = rectangularSize;
+                    return;
+                default:
+                    leafOrigin = blockOrigin;
+                    leafSize = blockSize;
+                    return;
+            }
         }
 
         /// <inheritdoc/>
@@ -658,7 +816,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     lumaArea,
                     chromaArea,
                     modeInfo,
-                    block);
+                    block,
+                    paletteInfo);
             }
 
             return this.selectedBlockCost;
@@ -686,7 +845,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int lumaArea,
             int chromaArea,
             Av1MacroBlockModeInfo modeInfo,
-            Av1EncoderBlockStruct block)
+            Av1EncoderBlockStruct block,
+            Av1EncoderPaletteInfo paletteInfo)
         {
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
             Av1TransformSize transformSize = modeInfo.Block.TransformSize;
@@ -707,21 +867,27 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1EncoderTransformBlockState> lumaStates =
                 this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.Y);
 
-            Av1EncoderTransformBlockState lumaState =
-                lumaStates[lumaArea / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount];
-
             Span<int> lumaCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.Y);
-            byte lumaContext = Av1SymbolContextHelper.GetCoefficientContext(
-                lumaCoefficients[lumaArea..],
-                transformSize,
-                lumaState.TransformType,
-                lumaState.EndOfBlock);
-
-            this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].UnitModeWrite(
-                lumaContext,
+            PublishCoefficientContexts(
+                this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
                 blockOrigin,
-                blockDimensions,
-                Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
+                blockSize,
+                transformSize,
+                lumaCoefficients[lumaArea..],
+                lumaStates[(lumaArea / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount)..]);
+
+            if (this.picture.Parent.FrameHeader.AllowScreenContentTools)
+            {
+                const Av1NeighborArrayUnit<Av1EncoderPaletteInfo>.UnitMask PaletteContextMask =
+                    Av1NeighborArrayUnit<Av1EncoderPaletteInfo>.UnitMask.Top |
+                    Av1NeighborArrayUnit<Av1EncoderPaletteInfo>.UnitMask.Left;
+
+                this.picture.PaletteContexts[tileIndex].UnitModeWrite(
+                    paletteInfo,
+                    blockOrigin,
+                    blockDimensions,
+                    PaletteContextMask);
+            }
 
             if (!block.HasChroma)
             {
@@ -753,170 +919,261 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1EncoderTransformBlockState> redStates =
                 this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.V);
 
-            Av1EncoderTransformBlockState blueState = blueStates[chromaStateIndex];
-            Av1EncoderTransformBlockState redState = redStates[chromaStateIndex];
             Span<int> blueCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.U);
             Span<int> redCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.V);
-            byte blueContext = Av1SymbolContextHelper.GetCoefficientContext(
+            PublishCoefficientContexts(
+                this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
+                chromaOrigin,
+                chromaBlockSize,
+                chromaTransformSize,
                 blueCoefficients[chromaArea..],
-                chromaTransformSize,
-                blueState.TransformType,
-                blueState.EndOfBlock);
+                blueStates[chromaStateIndex..]);
 
-            byte redContext = Av1SymbolContextHelper.GetCoefficientContext(
+            PublishCoefficientContexts(
+                this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
+                chromaOrigin,
+                chromaBlockSize,
+                chromaTransformSize,
                 redCoefficients[chromaArea..],
-                chromaTransformSize,
-                redState.TransformType,
-                redState.EndOfBlock);
-
-            Size chromaDimensions = new(chromaBlockSize.GetWidth(), chromaBlockSize.GetHeight());
-            this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex].UnitModeWrite(
-                blueContext,
-                chromaOrigin,
-                chromaDimensions,
-                Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
-
-            this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex].UnitModeWrite(
-                redContext,
-                chromaOrigin,
-                chromaDimensions,
-                Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
+                redStates[chromaStateIndex..]);
         }
 
-        private void SavePartitionTrialContexts(Point blockOrigin, ushort tileIndex)
-        {
-            Span<byte> storage = this.blockWorkspace.PartitionContexts;
-            int offset = 0;
-            SaveNeighborEdges(
-                this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
-                blockOrigin,
-                Av1BlockSize.Block8x8.Get4x4WideCount(),
-                Av1BlockSize.Block8x8.Get4x4HighCount(),
-                storage,
-                ref offset);
-
-            SaveNeighborEdges(
-                this.picture.TransformFunctionContexts[tileIndex],
-                blockOrigin,
-                Av1BlockSize.Block8x8.Get4x4WideCount(),
-                Av1BlockSize.Block8x8.Get4x4HighCount(),
-                storage,
-                ref offset);
-
-            if (this.source.IsMonochrome)
-            {
-                return;
-            }
-
-            ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
-            int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
-            int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
-            Point chromaOrigin = Av1TileWriter.GetChromaBlockOrigin(
-                blockOrigin,
-                subsamplingX,
-                subsamplingY);
-
-            Av1BlockSize chromaBlockSize = Av1BlockSize.Block8x8.GetSubsampled(
-                colorConfig.SubSamplingX,
-                colorConfig.SubSamplingY);
-
-            SaveNeighborEdges(
-                this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
-                chromaOrigin,
-                chromaBlockSize.Get4x4WideCount(),
-                chromaBlockSize.Get4x4HighCount(),
-                storage,
-                ref offset);
-
-            SaveNeighborEdges(
-                this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
-                chromaOrigin,
-                chromaBlockSize.Get4x4WideCount(),
-                chromaBlockSize.Get4x4HighCount(),
-                storage,
-                ref offset);
-        }
-
-        private void RestorePartitionTrialContexts(Point blockOrigin, ushort tileIndex)
-        {
-            ReadOnlySpan<byte> storage = this.blockWorkspace.PartitionContexts;
-            int offset = 0;
-            RestoreNeighborEdges(
-                this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
-                blockOrigin,
-                Av1BlockSize.Block8x8.Get4x4WideCount(),
-                Av1BlockSize.Block8x8.Get4x4HighCount(),
-                storage,
-                ref offset);
-
-            RestoreNeighborEdges(
-                this.picture.TransformFunctionContexts[tileIndex],
-                blockOrigin,
-                Av1BlockSize.Block8x8.Get4x4WideCount(),
-                Av1BlockSize.Block8x8.Get4x4HighCount(),
-                storage,
-                ref offset);
-
-            if (this.source.IsMonochrome)
-            {
-                return;
-            }
-
-            ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
-            int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
-            int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
-            Point chromaOrigin = Av1TileWriter.GetChromaBlockOrigin(
-                blockOrigin,
-                subsamplingX,
-                subsamplingY);
-
-            Av1BlockSize chromaBlockSize = Av1BlockSize.Block8x8.GetSubsampled(
-                colorConfig.SubSamplingX,
-                colorConfig.SubSamplingY);
-
-            RestoreNeighborEdges(
-                this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
-                chromaOrigin,
-                chromaBlockSize.Get4x4WideCount(),
-                chromaBlockSize.Get4x4HighCount(),
-                storage,
-                ref offset);
-
-            RestoreNeighborEdges(
-                this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
-                chromaOrigin,
-                chromaBlockSize.Get4x4WideCount(),
-                chromaBlockSize.Get4x4HighCount(),
-                storage,
-                ref offset);
-        }
-
-        private static void SaveNeighborEdges(
+        private static void PublishCoefficientContexts(
             Av1NeighborArrayUnit<byte> neighbors,
+            Point blockOrigin,
+            Av1BlockSize blockSize,
+            Av1TransformSize transformSize,
+            ReadOnlySpan<int> coefficients,
+            ReadOnlySpan<Av1EncoderTransformBlockState> states)
+        {
+            const Av1NeighborArrayUnit<byte>.UnitMask EdgeMask =
+                Av1NeighborArrayUnit<byte>.UnitMask.Top |
+                Av1NeighborArrayUnit<byte>.UnitMask.Left;
+
+            int blockWidth = blockSize.GetWidth();
+            int blockHeight = blockSize.GetHeight();
+            int transformWidth = transformSize.GetWidth();
+            int transformHeight = transformSize.GetHeight();
+            int transformSampleCount = transformSize.GetSize2d();
+            int transformIndex = 0;
+            int coefficientOffset = 0;
+
+            // Uniform transform blocks are retained and written in raster order. Publishing that same tiling
+            // preserves the distinct top and left contexts consumed by the next coding block in a dry run.
+            for (int row = 0; row < blockHeight; row += transformHeight)
+            {
+                for (int column = 0; column < blockWidth; column += transformWidth)
+                {
+                    Av1EncoderTransformBlockState state = states[transformIndex++];
+                    byte context = Av1SymbolContextHelper.GetCoefficientContext(
+                        coefficients[coefficientOffset..],
+                        transformSize,
+                        state.TransformType,
+                        state.EndOfBlock);
+
+                    neighbors.UnitModeWrite(
+                        context,
+                        blockOrigin + new Size(column, row),
+                        new Size(transformWidth, transformHeight),
+                        EdgeMask);
+
+                    coefficientOffset += transformSampleCount;
+                }
+            }
+        }
+
+        private void SavePartitionTrialContexts(
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1BlockSize blockSize)
+        {
+            Span<byte> storage = this.blockWorkspace.GetPartitionContextStorage(blockSize);
+            int offset = 0;
+            SaveNeighborEdges(
+                this.picture.PartitionContexts[tileIndex],
+                blockOrigin,
+                blockSize.Get4x4WideCount(),
+                blockSize.Get4x4HighCount(),
+                storage,
+                ref offset);
+
+            SaveNeighborEdges(
+                this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
+                blockOrigin,
+                blockSize.Get4x4WideCount(),
+                blockSize.Get4x4HighCount(),
+                storage,
+                ref offset);
+
+            SaveNeighborEdges(
+                this.picture.TransformFunctionContexts[tileIndex],
+                blockOrigin,
+                blockSize.Get4x4WideCount(),
+                blockSize.Get4x4HighCount(),
+                storage,
+                ref offset);
+
+            if (this.picture.Parent.FrameHeader.AllowScreenContentTools)
+            {
+                SaveNeighborEdges(
+                    this.picture.PaletteContexts[tileIndex],
+                    blockOrigin,
+                    blockSize.Get4x4WideCount(),
+                    blockSize.Get4x4HighCount(),
+                    storage,
+                    ref offset);
+            }
+
+            if (this.source.IsMonochrome)
+            {
+                return;
+            }
+
+            ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
+            int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
+            int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
+            Point chromaOrigin = Av1TileWriter.GetChromaBlockOrigin(
+                blockOrigin,
+                subsamplingX,
+                subsamplingY);
+
+            Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(
+                colorConfig.SubSamplingX,
+                colorConfig.SubSamplingY);
+
+            SaveNeighborEdges(
+                this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
+                chromaOrigin,
+                chromaBlockSize.Get4x4WideCount(),
+                chromaBlockSize.Get4x4HighCount(),
+                storage,
+                ref offset);
+
+            SaveNeighborEdges(
+                this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
+                chromaOrigin,
+                chromaBlockSize.Get4x4WideCount(),
+                chromaBlockSize.Get4x4HighCount(),
+                storage,
+                ref offset);
+        }
+
+        private void RestorePartitionTrialContexts(
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1BlockSize blockSize)
+        {
+            ReadOnlySpan<byte> storage = this.blockWorkspace.GetPartitionContextStorage(blockSize);
+            int offset = 0;
+            RestoreNeighborEdges(
+                this.picture.PartitionContexts[tileIndex],
+                blockOrigin,
+                blockSize.Get4x4WideCount(),
+                blockSize.Get4x4HighCount(),
+                storage,
+                ref offset);
+
+            RestoreNeighborEdges(
+                this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
+                blockOrigin,
+                blockSize.Get4x4WideCount(),
+                blockSize.Get4x4HighCount(),
+                storage,
+                ref offset);
+
+            RestoreNeighborEdges(
+                this.picture.TransformFunctionContexts[tileIndex],
+                blockOrigin,
+                blockSize.Get4x4WideCount(),
+                blockSize.Get4x4HighCount(),
+                storage,
+                ref offset);
+
+            if (this.picture.Parent.FrameHeader.AllowScreenContentTools)
+            {
+                RestoreNeighborEdges(
+                    this.picture.PaletteContexts[tileIndex],
+                    blockOrigin,
+                    blockSize.Get4x4WideCount(),
+                    blockSize.Get4x4HighCount(),
+                    storage,
+                    ref offset);
+            }
+
+            if (this.source.IsMonochrome)
+            {
+                return;
+            }
+
+            ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
+            int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
+            int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
+            Point chromaOrigin = Av1TileWriter.GetChromaBlockOrigin(
+                blockOrigin,
+                subsamplingX,
+                subsamplingY);
+
+            Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(
+                colorConfig.SubSamplingX,
+                colorConfig.SubSamplingY);
+
+            RestoreNeighborEdges(
+                this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
+                chromaOrigin,
+                chromaBlockSize.Get4x4WideCount(),
+                chromaBlockSize.Get4x4HighCount(),
+                storage,
+                ref offset);
+
+            RestoreNeighborEdges(
+                this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
+                chromaOrigin,
+                chromaBlockSize.Get4x4WideCount(),
+                chromaBlockSize.Get4x4HighCount(),
+                storage,
+                ref offset);
+        }
+
+        private static void SaveNeighborEdges<T>(
+            Av1NeighborArrayUnit<T> neighbors,
             Point blockOrigin,
             int width,
             int height,
             Span<byte> storage,
             ref int offset)
+            where T : struct
         {
-            neighbors.Top.Slice(neighbors.GetTopIndex(blockOrigin), width).CopyTo(storage[offset..]);
-            offset += width;
-            neighbors.Left.Slice(neighbors.GetLeftIndex(blockOrigin), height).CopyTo(storage[offset..]);
-            offset += height;
+            Span<byte> top = MemoryMarshal.AsBytes(
+                neighbors.Top.Slice(neighbors.GetTopIndex(blockOrigin), width));
+
+            top.CopyTo(storage[offset..]);
+            offset += top.Length;
+            Span<byte> left = MemoryMarshal.AsBytes(
+                neighbors.Left.Slice(neighbors.GetLeftIndex(blockOrigin), height));
+
+            left.CopyTo(storage[offset..]);
+            offset += left.Length;
         }
 
-        private static void RestoreNeighborEdges(
-            Av1NeighborArrayUnit<byte> neighbors,
+        private static void RestoreNeighborEdges<T>(
+            Av1NeighborArrayUnit<T> neighbors,
             Point blockOrigin,
             int width,
             int height,
             ReadOnlySpan<byte> storage,
             ref int offset)
+            where T : struct
         {
-            storage.Slice(offset, width).CopyTo(neighbors.Top[neighbors.GetTopIndex(blockOrigin)..]);
-            offset += width;
-            storage.Slice(offset, height).CopyTo(neighbors.Left[neighbors.GetLeftIndex(blockOrigin)..]);
-            offset += height;
+            Span<byte> top = MemoryMarshal.AsBytes(
+                neighbors.Top.Slice(neighbors.GetTopIndex(blockOrigin), width));
+
+            storage.Slice(offset, top.Length).CopyTo(top);
+            offset += top.Length;
+            Span<byte> left = MemoryMarshal.AsBytes(
+                neighbors.Left.Slice(neighbors.GetLeftIndex(blockOrigin), height));
+
+            storage.Slice(offset, left.Length).CopyTo(left);
+            offset += left.Length;
         }
 
         private long GetRegularBlockCost(

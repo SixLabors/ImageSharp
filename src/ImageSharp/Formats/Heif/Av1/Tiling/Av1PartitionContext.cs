@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -12,8 +13,14 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// Each set bit records a split at one block-size level. For example, <c>11111</c> records splits from
 /// 128 by 128 through 8 by 8, while <c>10000</c> records only the 128 by 128 split.
 /// </remarks>
+[StructLayout(LayoutKind.Sequential, Size = StorageSize)]
 internal struct Av1PartitionContext : IMinMaxValue<Av1PartitionContext>
 {
+    /// <summary>
+    /// The packed size of the above and left context bytes.
+    /// </summary>
+    public const int StorageSize = 2;
+
     /// <summary>
     /// Maps each block size to the five-bit context stored for an above neighbor.
     /// </summary>

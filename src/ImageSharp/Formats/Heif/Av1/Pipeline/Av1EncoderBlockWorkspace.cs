@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
 
@@ -31,7 +32,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         MaximumCoefficientCount +
         MaximumCoefficientCount +
         Av1TransformWorkspace.MaximumLength +
-        IntraBlockCopyStorageLength +
+        SharedModeDecisionStorageLength +
         PartitionContextStorageLength;
 
     private const int ResidualStorageLength = MaximumResidualCount / 2;
@@ -65,10 +66,31 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         IntraBlockCopyResidualStorageLength +
         IntraBlockCopyCoefficientStorageLength;
 
-    private const int PartitionContextStorageOffset =
-        IntraBlockCopySampleStorageOffset + IntraBlockCopyStorageLength;
+    private const int ModeDecisionStorageLength = Av1EncoderModeDecisionWorkspace<ushort>.StorageLength;
+    private const int SharedModeDecisionStorageLength = ModeDecisionStorageLength > IntraBlockCopyStorageLength
+        ? ModeDecisionStorageLength
+        : IntraBlockCopyStorageLength;
 
-    private const int PartitionContextStorageLength = 4;
+    private const int PartitionContextStorageOffset =
+        IntraBlockCopySampleStorageOffset + SharedModeDecisionStorageLength;
+
+    private const int MaximumPartitionEdgeUnitCount =
+        2 * (1 << (Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2));
+
+    private const int PartitionContextBytesPerEdgeUnit =
+        Av1PartitionContext.StorageSize + (4 * sizeof(byte)) + Av1EncoderPaletteInfo.StorageSize;
+
+    private const int PartitionContextSlotByteLength =
+        MaximumPartitionEdgeUnitCount * PartitionContextBytesPerEdgeUnit;
+
+    private const int PartitionContextSlotLength =
+        PartitionContextSlotByteLength / sizeof(int);
+
+    private const int PartitionTrialLevelCount =
+        Av1Constants.MaxSuperBlockSizeLog2 - 3 + 1;
+
+    private const int PartitionContextStorageLength =
+        PartitionContextSlotLength * PartitionTrialLevelCount;
 
     /// <summary>
     /// Owns the complete reusable block workspace in 32-bit elements so every transform region is naturally aligned.
@@ -107,13 +129,20 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         => this.owner.Memory.Span.Slice(TransformWorkspaceOffset, Av1TransformWorkspace.MaximumLength);
 
     /// <summary>
-    /// Gets storage for the coefficient and transform edges restored after an 8x8 partition trial.
+    /// Gets the disjoint edge snapshot used to restore one square partition-search level.
     /// </summary>
-    public Span<byte> PartitionContexts
-        => MemoryMarshal.AsBytes(
-            this.owner.Memory.Span.Slice(
-                PartitionContextStorageOffset,
-                PartitionContextStorageLength));
+    /// <param name="blockSize">The square partition node being evaluated.</param>
+    /// <returns>The maximum-size byte view reserved for that node depth.</returns>
+    public Span<byte> GetPartitionContextStorage(Av1BlockSize blockSize)
+    {
+        int blockSizeLog2 = Av1Math.Log2(blockSize.GetWidth());
+        int slotIndex = Av1Constants.MaxSuperBlockSizeLog2 - blockSizeLog2;
+        Span<int> storage = this.owner.Memory.Span.Slice(
+            PartitionContextStorageOffset + (slotIndex * PartitionContextSlotLength),
+            PartitionContextSlotLength);
+
+        return MemoryMarshal.AsBytes(storage);
+    }
 
     /// <summary>
     /// Gets the reusable storage used while comparing spatial, chroma-from-luma, filter-intra, and palette candidates.
@@ -127,7 +156,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         // Both phases can therefore reuse this aligned region without extending the owner or preserving stale scratch.
         Span<int> storage = this.owner.Memory.Span.Slice(
             IntraBlockCopySampleStorageOffset,
-            IntraBlockCopyStorageLength);
+            SharedModeDecisionStorageLength);
 
         return new(storage[..Av1EncoderModeDecisionWorkspace<TSample>.StorageLength]);
     }

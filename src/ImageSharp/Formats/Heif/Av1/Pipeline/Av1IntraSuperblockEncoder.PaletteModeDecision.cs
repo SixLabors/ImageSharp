@@ -29,12 +29,14 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformSetType transformSetType,
             Av1TransformBlockContext blockContext,
             int transformSizeRate,
+            int transformSizeContext,
             Span<TSample> candidateReconstruction,
             Span<int> candidateCoefficients,
             Span<int> retainedCoefficients,
-            ref Av1EncoderTransformBlockState retainedState,
+            Span<Av1EncoderTransformBlockState> retainedStates,
             ref long bestCost,
-            ref Av1EncoderPaletteInfo paletteInfo)
+            ref Av1EncoderPaletteInfo paletteInfo,
+            ref Av1TransformSize selectedTransformSize)
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             const int BlockLength = 8;
@@ -137,9 +139,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     writer,
                     macroBlock,
                     blockOrigin,
+                    tileIndex,
                     transformSetType,
                     blockContext,
                     transformSizeRate,
+                    transformSizeContext,
                     samples,
                     rows,
                     columns,
@@ -151,11 +155,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     candidateReconstruction,
                     candidateCoefficients,
                     retainedCoefficients,
+                    retainedStates,
                     retainedColorIndexMap,
                     reconstructionPlane,
-                    ref retainedState,
                     ref bestCost,
                     ref paletteInfo,
+                    ref selectedTransformSize,
                     ref paletteSelected);
             }
 
@@ -167,9 +172,11 @@ internal static partial class Av1IntraSuperblockEncoder
                     writer,
                     macroBlock,
                     blockOrigin,
+                    tileIndex,
                     transformSetType,
                     blockContext,
                     transformSizeRate,
+                    transformSizeContext,
                     samples,
                     rows,
                     columns,
@@ -181,11 +188,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     candidateReconstruction,
                     candidateCoefficients,
                     retainedCoefficients,
+                    retainedStates,
                     retainedColorIndexMap,
                     reconstructionPlane,
-                    ref retainedState,
                     ref bestCost,
                     ref paletteInfo,
+                    ref selectedTransformSize,
                     ref paletteSelected);
             }
             else
@@ -206,9 +214,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         writer,
                         macroBlock,
                         blockOrigin,
+                        tileIndex,
                         transformSetType,
                         blockContext,
                         transformSizeRate,
+                        transformSizeContext,
                         samples,
                         rows,
                         columns,
@@ -220,11 +230,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         candidateReconstruction,
                         candidateCoefficients,
                         retainedCoefficients,
+                        retainedStates,
                         retainedColorIndexMap,
                         reconstructionPlane,
-                        ref retainedState,
                         ref bestCost,
                         ref paletteInfo,
+                        ref selectedTransformSize,
                         ref paletteSelected);
                 }
             }
@@ -245,9 +256,11 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
+            ushort tileIndex,
             Av1TransformSetType transformSetType,
             Av1TransformBlockContext blockContext,
             int transformSizeRate,
+            int transformSizeContext,
             ReadOnlySpan<short> samples,
             int rows,
             int columns,
@@ -259,18 +272,21 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> candidateReconstruction,
             Span<int> candidateCoefficients,
             Span<int> retainedCoefficients,
+            Span<Av1EncoderTransformBlockState> retainedStates,
             Span<byte> retainedColorIndexMap,
             Buffer2DRegion<TSample> reconstructionPlane,
-            ref Av1EncoderTransformBlockState retainedState,
             ref long bestCost,
             ref Av1EncoderPaletteInfo paletteInfo,
+            ref Av1TransformSize selectedTransformSize,
             ref bool paletteSelected)
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
             const int BlockLength = 8;
-            Av1EncoderPaletteWorkspace<TSample> workspace =
-                this.blockWorkspace.GetModeDecisionWorkspace<TSample>().Palette;
+            Av1EncoderModeDecisionWorkspace<TSample> modeDecisionWorkspace =
+                this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
+
+            Av1EncoderPaletteWorkspace<TSample> workspace = modeDecisionWorkspace.Palette;
 
             int bitDepth = this.bitDepth.GetBitCount();
             int cacheThreshold = 4 << (bitDepth - 8);
@@ -350,7 +366,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1PredictionMode.DC,
                 0);
 
-            rate += transformSizeRate;
             rate += writer.GetPaletteYModeCost(true, blockSizeContext, neighborContext);
             rate += writer.GetPaletteSizeCost(paletteSize, blockSizeContext, Av1PlaneType.Y);
             rate += Av1SymbolEncoder.GetPaletteYColorCost(colorCache, paletteColors, bitDepth);
@@ -389,7 +404,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.bitDepth,
                     ref candidateState);
 
-                int candidateRate = rate + writer.GetCoefficientCost(
+                int candidateRate = rate + transformSizeRate;
+                candidateRate += writer.GetCoefficientCost(
                     TransformSize,
                     transformType,
                     Av1PredictionMode.DC,
@@ -398,7 +414,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockContext,
                     candidateState.EndOfBlock,
                     this.picture.Parent.FrameHeader.UseReducedTransformSet,
-                    Av1FilterIntraMode.AllFilterIntraModes);
+                    Av1FilterIntraMode.AllFilterIntraModes,
+                    usesInterTransformSet: false);
 
                 long candidateCost = Av1RateDistortion.GetCost(this.rateMultiplier, candidateRate, distortion);
                 if (candidateCost < bestCost)
@@ -411,7 +428,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         retainedCoefficients,
                         TransformSize,
                         candidateState,
-                        ref retainedState);
+                        ref retainedStates[0]);
 
                     for (int row = 0; row < BlockLength; row++)
                     {
@@ -421,7 +438,58 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     paletteInfo.PaletteSizes[0] = (byte)paletteSize;
                     paletteInfo.SetColors(Av1Plane.Y, paletteColors);
+                    selectedTransformSize = TransformSize;
                     bestCost = candidateCost;
+                    paletteSelected = true;
+                }
+            }
+
+            if (this.effort >= 6 &&
+                this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select)
+            {
+                // Transform size is part of each palette candidate's RD result. Searching it here preserves
+                // candidates whose 4x4 residual partition wins even when their 8x8 result does not.
+                long splitCost = this.GetSplitLumaCandidateCost(
+                    writer,
+                    macroBlock,
+                    this.source.GetPlane(Av1Plane.Y),
+                    reconstructionPlane,
+                    blockOrigin,
+                    tileIndex,
+                    Av1PredictionMode.DC,
+                    0,
+                    Av1FilterIntraMode.AllFilterIntraModes,
+                    paletteSize,
+                    paletteColors,
+                    rate,
+                    0,
+                    transformSizeContext,
+                    bestCost,
+                    candidateReconstruction,
+                    candidateCoefficients,
+                    modeDecisionWorkspace.CandidateTransformBlocks);
+
+                if (splitCost < bestCost)
+                {
+                    CopySplitCandidate(
+                        candidateReconstruction,
+                        candidateCoefficients,
+                        modeDecisionWorkspace.CandidateTransformBlocks,
+                        reconstructionPlane,
+                        blockOrigin,
+                        retainedCoefficients,
+                        retainedStates);
+
+                    for (int row = 0; row < BlockLength; row++)
+                    {
+                        colorIndexMap.DangerousGetRowSpan(row)[..BlockLength]
+                            .CopyTo(retainedColorIndexMap[(row * BlockLength)..]);
+                    }
+
+                    paletteInfo.PaletteSizes[0] = (byte)paletteSize;
+                    paletteInfo.SetColors(Av1Plane.Y, paletteColors);
+                    selectedTransformSize = Av1TransformSize.Size4x4;
+                    bestCost = splitCost;
                     paletteSelected = true;
                 }
             }

@@ -1128,7 +1128,7 @@ public class Av1CoefficientsEntropyTests
         Span<int> actuals = new int[16];
 
         // Act
-        encoder.WriteCoefficients(transformSize, transformType, intraDirection, coefficientsBuffer, componentType, transformBlockContext, endOfBlock, true, filterIntraMode);
+        encoder.WriteCoefficients(transformSize, transformType, intraDirection, coefficientsBuffer, componentType, transformBlockContext, endOfBlock, true, filterIntraMode, usesInterTransformSet: false);
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
@@ -1203,7 +1203,7 @@ public class Av1CoefficientsEntropyTests
         Span<int> actuals = new int[16 + 1];
 
         // Act
-        encoder.WriteCoefficients(transformSize, transformType, intraDirection, coefficientsBuffer, componentType, transformBlockContext, endOfBlock, true, filterIntraMode);
+        encoder.WriteCoefficients(transformSize, transformType, intraDirection, coefficientsBuffer, componentType, transformBlockContext, endOfBlock, true, filterIntraMode, usesInterTransformSet: false);
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 
@@ -1331,7 +1331,8 @@ public class Av1CoefficientsEntropyTests
             transformBlockContext,
             endOfBlock,
             useReducedTransformSet,
-            filterIntraMode);
+            filterIntraMode,
+            usesInterTransformSet: false);
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
 

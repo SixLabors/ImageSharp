@@ -983,7 +983,8 @@ internal partial class Av1TileWriter
         bool writesVariableTransformSize = !isLossless &&
             frameHeader.TransformMode == Av1TransformMode.Select &&
             isInter &&
-            !macroBlockModeInfo.Block.Skip;
+            !macroBlockModeInfo.Block.Skip &&
+            blockSize > Av1BlockSize.Block4x4;
 
         Av1TransformSize transformSize = isLossless
             ? Av1TransformSize.Size4x4
@@ -1650,6 +1651,7 @@ internal partial class Av1TileWriter
         Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na)
     {
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
+        bool usesInterTransformSet = entropyCodingContext.MacroBlockModeInfo.Block.UseIntraBlockCopy;
         Span<int> lumaCoefficients = coefficientBuffer.GetPlaneSpan(superblockIndex, Av1Plane.Y);
         Span<Av1EncoderTransformBlockState> lumaTransformBlocks =
             coefficientBuffer.GetTransformBlockSpan(superblockIndex, Av1Plane.Y);
@@ -1720,7 +1722,8 @@ internal partial class Av1TileWriter
                             blockContext,
                             endOfBlock,
                             frameHeader.UseReducedTransformSet,
-                            blk_ptr.FilterIntraMode);
+                            blk_ptr.FilterIntraMode,
+                            usesInterTransformSet);
 
                         int transformWidth = transformSize.GetWidth();
                         int transformHeight = transformSize.GetHeight();
@@ -1771,6 +1774,7 @@ internal partial class Av1TileWriter
         }
 
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
+        bool usesInterTransformSet = entropyCodingContext.MacroBlockModeInfo.Block.UseIntraBlockCopy;
         Span<int> blueCoefficients = coefficientBuffer.GetPlaneSpan(superblockIndex, Av1Plane.U);
         Span<int> redCoefficients = coefficientBuffer.GetPlaneSpan(superblockIndex, Av1Plane.V);
         Span<Av1EncoderTransformBlockState> blueTransformBlocks =
@@ -1847,7 +1851,8 @@ internal partial class Av1TileWriter
                             blockContext,
                             blueTransformBlock.EndOfBlock,
                             frameHeader.UseReducedTransformSet,
-                            blk_ptr.FilterIntraMode);
+                            blk_ptr.FilterIntraMode,
+                            usesInterTransformSet);
 
                         coefficients = redCoefficients[entropyCodingContext.CodedAreaSuperblockUv..];
                         blockContext = GetTransformBlockContexts(
@@ -1866,7 +1871,8 @@ internal partial class Av1TileWriter
                             blockContext,
                             redTransformBlock.EndOfBlock,
                             frameHeader.UseReducedTransformSet,
-                            blk_ptr.FilterIntraMode);
+                            blk_ptr.FilterIntraMode,
+                            usesInterTransformSet);
 
                         cb_dc_sign_level_coeff_na.UnitModeWrite(
                             (byte)culLevelCb,

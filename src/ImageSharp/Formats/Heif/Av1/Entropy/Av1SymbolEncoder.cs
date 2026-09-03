@@ -785,7 +785,7 @@ internal class Av1SymbolEncoder : IDisposable
         ushort endOfBlock,
         bool useReducedTransformSet,
         Av1FilterIntraMode filterIntraMode,
-        bool usesInterTransformSet = false)
+        bool usesInterTransformSet)
     {
         Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
 
@@ -938,7 +938,7 @@ internal class Av1SymbolEncoder : IDisposable
         ushort endOfBlock,
         bool useReducedTransformSet,
         Av1FilterIntraMode filterIntraMode,
-        bool usesInterTransformSet = false)
+        bool usesInterTransformSet)
     {
         Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
 
@@ -1384,7 +1384,7 @@ internal class Av1SymbolEncoder : IDisposable
         int baseQIndex,
         Av1FilterIntraMode filterIntraMode,
         Av1PredictionMode intraDirection,
-        bool usesInterTransformSet = false)
+        bool usesInterTransformSet)
         => this.ProcessTransformType<CoefficientCostOperation>(
             transformType,
             transformSize,
@@ -1411,7 +1411,7 @@ internal class Av1SymbolEncoder : IDisposable
         int baseQIndex,
         Av1FilterIntraMode filterIntraMode,
         Av1PredictionMode intraDirection,
-        bool usesInterTransformSet = false)
+        bool usesInterTransformSet)
     {
         _ = this.ProcessTransformType<CoefficientWriteOperation>(
             transformType,

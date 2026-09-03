@@ -188,6 +188,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     0,
                     0,
                     LumaTransformSize,
+                    Av1TransformType.AllTransformTypes,
                     lumaContext,
                     workspace.LumaPrediction,
                     workspace.Residual,
@@ -216,6 +217,19 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1EncoderTransformBlockState emptyRedState = default;
                 if (!this.source.IsMonochrome)
                 {
+                    Av1TransformType chromaTransformType = lumaCandidateState.TransformType;
+                    Av1TransformSetType chromaTransformSet = Av1SymbolContextHelper.GetExtendedTransformSetType(
+                        chromaTransformSize,
+                        isInter: true,
+                        this.picture.Parent.FrameHeader.UseReducedTransformSet);
+
+                    // Inter prediction does not signal an independent chroma transform type. Chroma reuses the
+                    // selected luma type when that type belongs to its transform set and otherwise falls back to DCT.
+                    if (!chromaTransformType.IsExtendedSetUsed(chromaTransformSet))
+                    {
+                        chromaTransformType = Av1TransformType.DctDct;
+                    }
+
                     this.EvaluateIntraBlockCopyPlane(
                         writer,
                         candidate,
@@ -225,6 +239,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         subsamplingX,
                         subsamplingY,
                         chromaTransformSize,
+                        chromaTransformType,
                         blueContext,
                         workspace.BluePrediction,
                         workspace.Residual,
@@ -248,6 +263,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         subsamplingX,
                         subsamplingY,
                         chromaTransformSize,
+                        chromaTransformType,
                         redContext,
                         workspace.RedPrediction,
                         workspace.Residual,
@@ -424,6 +440,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int subsamplingX,
             int subsamplingY,
             Av1TransformSize transformSize,
+            Av1TransformType transformTypeSelection,
             Av1TransformBlockContext blockContext,
             Span<TSample> prediction,
             Span<short> residual,
@@ -461,6 +478,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 isInter: true,
                 this.picture.Parent.FrameHeader.UseReducedTransformSet);
 
+            Av1TransformType firstTransformType = transformTypeSelection == Av1TransformType.AllTransformTypes
+                ? Av1TransformType.DctDct
+                : transformTypeSelection;
+            Av1TransformType transformTypeLimit = transformTypeSelection == Av1TransformType.AllTransformTypes
+                ? Av1TransformType.AllTransformTypes
+                : (Av1TransformType)((int)transformTypeSelection + 1);
+
             long bestCost = long.MaxValue;
             selectedState = default;
             selectedRate = 0;
@@ -468,8 +492,8 @@ internal static partial class Av1IntraSuperblockEncoder
             hasEmptyTransform = false;
             emptyState = default;
             emptyDistortion = 0;
-            for (Av1TransformType transformType = Av1TransformType.DctDct;
-                transformType < Av1TransformType.AllTransformTypes;
+            for (Av1TransformType transformType = firstTransformType;
+                transformType < transformTypeLimit;
                 transformType++)
             {
                 if (!transformType.IsExtendedSetUsed(transformSetType))

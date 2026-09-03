@@ -330,7 +330,8 @@ public class Av1EntropyTests
             transformBlockContext,
             0,
             false,
-            Av1FilterIntraMode.AllFilterIntraModes);
+            Av1FilterIntraMode.AllFilterIntraModes,
+            usesInterTransformSet: false);
 
         Assert.Equal(Av1ProbabilityCost.GetSymbolCost(transformSkip, 1), emptyCost);
 
@@ -346,7 +347,8 @@ public class Av1EntropyTests
             transformBlockContext,
             16,
             false,
-            Av1FilterIntraMode.AllFilterIntraModes);
+            Av1FilterIntraMode.AllFilterIntraModes,
+            usesInterTransformSet: false);
 
         coefficients.Clear();
         coefficients[0] = 1;
@@ -371,7 +373,8 @@ public class Av1EntropyTests
             transformBlockContext,
             1,
             false,
-            Av1FilterIntraMode.AllFilterIntraModes);
+            Av1FilterIntraMode.AllFilterIntraModes,
+            usesInterTransformSet: false);
 
         Assert.Equal(expectedDcCost, dcCost);
     }
@@ -417,7 +420,8 @@ public class Av1EntropyTests
             transformBlockContext,
             1,
             false,
-            Av1FilterIntraMode.AllFilterIntraModes);
+            Av1FilterIntraMode.AllFilterIntraModes,
+            usesInterTransformSet: false);
 
         Assert.Equal(expected, actual);
     }
@@ -540,7 +544,8 @@ public class Av1EntropyTests
             transformBlockContext,
             endOfBlock,
             false,
-            filterIntraMode);
+            filterIntraMode,
+            usesInterTransformSet: false);
 
         Assert.Equal(expected, actual);
     }
@@ -570,7 +575,8 @@ public class Av1EntropyTests
             transformBlockContext,
             endOfBlock,
             false,
-            Av1FilterIntraMode.AllFilterIntraModes);
+            Av1FilterIntraMode.AllFilterIntraModes,
+            usesInterTransformSet: false);
 
         Assert.Equal(
             initialCost,
@@ -583,7 +589,8 @@ public class Av1EntropyTests
                 transformBlockContext,
                 endOfBlock,
                 false,
-                Av1FilterIntraMode.AllFilterIntraModes));
+                Av1FilterIntraMode.AllFilterIntraModes,
+                usesInterTransformSet: false));
 
         int actualContext = actualEncoder.WriteCoefficients(
             transformSize,
@@ -594,7 +601,8 @@ public class Av1EntropyTests
             transformBlockContext,
             endOfBlock,
             false,
-            Av1FilterIntraMode.AllFilterIntraModes);
+            Av1FilterIntraMode.AllFilterIntraModes,
+            usesInterTransformSet: false);
 
         int adaptedCost = actualEncoder.GetCoefficientCost(
             transformSize,
@@ -605,7 +613,8 @@ public class Av1EntropyTests
             transformBlockContext,
             endOfBlock,
             false,
-            Av1FilterIntraMode.AllFilterIntraModes);
+            Av1FilterIntraMode.AllFilterIntraModes,
+            usesInterTransformSet: false);
 
         int expectedContext = expectedEncoder.WriteCoefficients(
             transformSize,
@@ -616,7 +625,8 @@ public class Av1EntropyTests
             transformBlockContext,
             endOfBlock,
             false,
-            Av1FilterIntraMode.AllFilterIntraModes);
+            Av1FilterIntraMode.AllFilterIntraModes,
+            usesInterTransformSet: false);
 
         using IMemoryOwner<byte> actual = actualEncoder.Exit();
         using IMemoryOwner<byte> expected = expectedEncoder.Exit();
@@ -648,7 +658,8 @@ public class Av1EntropyTests
             default,
             endOfBlock,
             false,
-            Av1FilterIntraMode.AllFilterIntraModes);
+            Av1FilterIntraMode.AllFilterIntraModes,
+            usesInterTransformSet: false);
 
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int i = 0; i < 1000; i++)
@@ -662,7 +673,8 @@ public class Av1EntropyTests
                 default,
                 endOfBlock,
                 false,
-                Av1FilterIntraMode.AllFilterIntraModes);
+                Av1FilterIntraMode.AllFilterIntraModes,
+                usesInterTransformSet: false);
         }
 
         long after = GC.GetAllocatedBytesForCurrentThread();
@@ -825,7 +837,8 @@ public class Av1EntropyTests
                 default,
                 0,
                 false,
-                Av1FilterIntraMode.DC);
+                Av1FilterIntraMode.DC,
+                usesInterTransformSet: false);
 
             Assert.Equal(0, emptyContext);
             Assert.Single(allocator.AllocationLog);
@@ -840,7 +853,8 @@ public class Av1EntropyTests
                 default,
                 1,
                 false,
-                Av1FilterIntraMode.DC);
+                Av1FilterIntraMode.DC,
+                usesInterTransformSet: false);
 
             Assert.Equal(3, allocator.AllocationLog.Count);
 
@@ -853,7 +867,8 @@ public class Av1EntropyTests
                 default,
                 1,
                 false,
-                Av1FilterIntraMode.DC);
+                Av1FilterIntraMode.DC,
+                usesInterTransformSet: false);
 
             Assert.Equal(3, allocator.AllocationLog.Count);
             TestMemoryAllocator.AllocationRequest levelScratch = allocator.AllocationLog[1];
@@ -1634,7 +1649,7 @@ public class Av1EntropyTests
         // Act
         foreach (Av1TransformType value in values)
         {
-            encoder.WriteTransformType(value, transformSizeContext, true, BaseQIndex, filterIntraMode, intraDirection);
+            encoder.WriteTransformType(value, transformSizeContext, true, BaseQIndex, filterIntraMode, intraDirection, usesInterTransformSet: false);
         }
 
         using IMemoryOwner<byte> encoded = encoder.Exit();

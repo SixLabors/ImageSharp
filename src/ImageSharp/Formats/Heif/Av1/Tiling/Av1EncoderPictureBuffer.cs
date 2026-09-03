@@ -207,6 +207,11 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 GranularityNormalLog2 = Av1Constants.ModeInfoSizeLog2
             };
 
+            // Variable-transform contexts consult both edges without separate availability flags. The largest
+            // transform makes an unavailable edge compare as unsplit until a coded neighbor publishes its size.
+            this.transformContexts[tileIndex].Left.Fill((byte)Av1Constants.MaxTransformSize);
+            this.transformContexts[tileIndex].Top.Fill((byte)Av1Constants.MaxTransformSize);
+
             if (frameHeader.AllowScreenContentTools)
             {
                 this.paletteContexts[tileIndex] = new Av1NeighborArrayUnit<Av1EncoderPaletteInfo>(

@@ -728,6 +728,7 @@ public class Av1IntraSuperblockEncoderTests
             8,
             8,
             8,
+            false,
             (byte)32,
             (byte)224,
             32,
@@ -749,6 +750,7 @@ public class Av1IntraSuperblockEncoderTests
             12,
             8,
             8,
+            false,
             (ushort)512,
             (ushort)3584,
             512,
@@ -770,6 +772,7 @@ public class Av1IntraSuperblockEncoderTests
             8,
             5,
             3,
+            false,
             (byte)48,
             (byte)208,
             48,
@@ -785,6 +788,54 @@ public class Av1IntraSuperblockEncoderTests
                     blockWorkspace,
                     initialSize: 256,
                     effort: 5));
+    }
+
+    [Fact]
+    public void ProductionTileSelectsLumaPaletteWithFourByFourTransforms()
+    {
+        AssertProductionTileSelectsExactLumaPalette(
+            Av1BitDepth.EightBit,
+            8,
+            8,
+            8,
+            true,
+            (byte)64,
+            (byte)192,
+            64,
+            192,
+            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new Av1IntraTileWriter(
+                    Configuration.Default,
+                    source,
+                    reconstruction,
+                    picture,
+                    coefficients,
+                    superblockWorkspace,
+                    blockWorkspace,
+                    initialSize: 256,
+                    effort: 6));
+
+        AssertProductionTileSelectsExactLumaPalette(
+            Av1BitDepth.TwelveBit,
+            12,
+            8,
+            8,
+            true,
+            (ushort)1024,
+            (ushort)3072,
+            1024,
+            3072,
+            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new Av1IntraTileWriter(
+                    Configuration.Default,
+                    source,
+                    reconstruction,
+                    picture,
+                    coefficients,
+                    superblockWorkspace,
+                    blockWorkspace,
+                    initialSize: 256,
+                    effort: 6));
     }
 
     [Fact]
@@ -1926,49 +1977,7 @@ public class Av1IntraSuperblockEncoderTests
             long predictionOnlyError = 64L * 40 * 40 * sampleScale * sampleScale;
             Assert.InRange(reconstructionError, 1, predictionOnlyError - 1);
 
-            // Tile fixtures initialize only entropy state. Complete the same still-picture headers as the frame
-            // encoder before serializing so the independent decoder validates the real OBU syntax.
-            ObuSequenceHeader sequenceHeader = pictureTemplate.Sequence.SequenceHeader;
-            sequenceHeader.IsStillPicture = true;
-            sequenceHeader.IsReducedStillPictureHeader = true;
-            sequenceHeader.SequenceProfile = bitDepth == 12
-                ? ObuSequenceProfile.Professional
-                : ObuSequenceProfile.Main;
-
-            sequenceHeader.OperatingPoint = [new ObuOperatingPoint { SequenceLevelIndex = 31 }];
-            sequenceHeader.FrameWidthBits = 4;
-            sequenceHeader.FrameHeightBits = 4;
-            sequenceHeader.MaxFrameWidth = Width;
-            sequenceHeader.MaxFrameHeight = Height;
-            sequenceHeader.ForceScreenContentTools = 2;
-            sequenceHeader.ForceIntegerMotionVector = 2;
-
-            ObuFrameHeader frameHeader = pictureTemplate.Parent.FrameHeader;
-            frameHeader.FrameType = ObuFrameType.KeyFrame;
-            frameHeader.ShowFrame = true;
-            frameHeader.ErrorResilientMode = true;
-            frameHeader.RefreshFrameFlags = byte.MaxValue;
-            frameHeader.DisableFrameEndUpdateCdf = true;
-            frameHeader.FrameSize = new ObuFrameSize
-            {
-                FrameWidth = Width,
-                FrameHeight = Height,
-                SuperResolutionDenominator = Av1Constants.ScaleNumerator,
-                SuperResolutionUpscaledWidth = Width,
-                RenderWidth = Width,
-                RenderHeight = Height
-            };
-
-            frameHeader.TilesInfo.HasUniformTileSpacing = true;
-            using MemoryStream stream = new();
-            new ObuWriter().WriteAll(
-                Configuration.Default,
-                stream,
-                sequenceHeader,
-                frameHeader,
-                tileWriter);
-
-            byte[] payload = stream.ToArray();
+            byte[] payload = WriteCompleteTileObu(pictureTemplate, tileWriter, Width, Height);
             using Av1Decoder decoder = new(Configuration.Default);
             using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
             Assert.NotNull(decoder.FrameInfo);
@@ -2517,6 +2526,62 @@ public class Av1IntraSuperblockEncoderTests
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
     }
 
+    private static byte[] WriteCompleteTileObu(
+        Av1PictureControlSet pictureTemplate,
+        IAv1TileWriter tileWriter,
+        int width,
+        int height)
+    {
+        // Tile fixtures initialize only entropy state. Complete the same still-picture headers as the frame
+        // encoder before serializing so independent decoders validate the real OBU syntax.
+        ObuSequenceHeader sequenceHeader = pictureTemplate.Sequence.SequenceHeader;
+        ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
+        Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
+        sequenceHeader.IsStillPicture = true;
+        sequenceHeader.IsReducedStillPictureHeader = true;
+        sequenceHeader.SequenceProfile = colorConfig.BitDepth == Av1BitDepth.TwelveBit ||
+            colorFormat == Av1ColorFormat.Yuv422
+                ? ObuSequenceProfile.Professional
+                : colorFormat == Av1ColorFormat.Yuv444
+                    ? ObuSequenceProfile.High
+                    : ObuSequenceProfile.Main;
+
+        sequenceHeader.OperatingPoint = [new ObuOperatingPoint { SequenceLevelIndex = 31 }];
+        sequenceHeader.FrameWidthBits = width > 1 ? Av1Math.MostSignificantBit((uint)(width - 1)) + 1 : 1;
+        sequenceHeader.FrameHeightBits = height > 1 ? Av1Math.MostSignificantBit((uint)(height - 1)) + 1 : 1;
+        sequenceHeader.MaxFrameWidth = width;
+        sequenceHeader.MaxFrameHeight = height;
+        sequenceHeader.ForceScreenContentTools = 2;
+        sequenceHeader.ForceIntegerMotionVector = 2;
+
+        ObuFrameHeader frameHeader = pictureTemplate.Parent.FrameHeader;
+        frameHeader.FrameType = ObuFrameType.KeyFrame;
+        frameHeader.ShowFrame = true;
+        frameHeader.ErrorResilientMode = true;
+        frameHeader.RefreshFrameFlags = byte.MaxValue;
+        frameHeader.DisableFrameEndUpdateCdf = true;
+        frameHeader.FrameSize = new ObuFrameSize
+        {
+            FrameWidth = width,
+            FrameHeight = height,
+            SuperResolutionDenominator = Av1Constants.ScaleNumerator,
+            SuperResolutionUpscaledWidth = width,
+            RenderWidth = width,
+            RenderHeight = height
+        };
+
+        frameHeader.TilesInfo.HasUniformTileSpacing = true;
+        using MemoryStream stream = new();
+        new ObuWriter().WriteAll(
+            Configuration.Default,
+            stream,
+            sequenceHeader,
+            frameHeader,
+            tileWriter);
+
+        return stream.ToArray();
+    }
+
     private static Av1PictureControlSet CreatePicture(
         Av1EncoderModeInfoBuffer modeInfo,
         ObuColorConfig colorConfig,
@@ -2581,12 +2646,13 @@ public class Av1IntraSuperblockEncoderTests
         int bitDepthValue,
         int width,
         int height,
+        bool useSplitTransform,
         TSample lowerColor,
         TSample upperColor,
         ushort expectedLowerColor,
         ushort expectedUpperColor,
         TileWriterFactory<TSample> createTileWriter)
-        where TSample : unmanaged
+        where TSample : unmanaged, IBinaryInteger<TSample>
     {
         const int QIndex = 37;
         ObuColorConfig colorConfig = new()
@@ -2619,7 +2685,32 @@ public class Av1IntraSuperblockEncoderTests
         for (int row = 0; row < sourcePlane.Height; row++)
         {
             int visibleRow = Math.Min(row, height - 1);
-            sourcePlane.DangerousGetRowSpan(row).Fill(visibleRow < height / 2 ? lowerColor : upperColor);
+            Span<TSample> sourceRow = sourcePlane.DangerousGetRowSpan(row);
+            if (!useSplitTransform)
+            {
+                sourceRow.Fill(visibleRow < height / 2 ? lowerColor : upperColor);
+                continue;
+            }
+
+            int transformRow = visibleRow >> 2;
+            int localRow = visibleRow & 3;
+            for (int column = 0; column < sourceRow.Length; column++)
+            {
+                int transformColumn = column >> 2;
+                int localColumn = column & 3;
+                int transformIndex = (transformRow * 2) + transformColumn;
+                int residual = transformIndex switch
+                {
+                    0 => (localRow * 2) - 3,
+                    1 => (localColumn * 2) - 3,
+                    2 => (localRow + localColumn) - 3,
+                    _ => localRow - localColumn
+                };
+
+                int baseColor = int.CreateChecked(visibleRow < height / 2 ? lowerColor : upperColor);
+                sourceRow[column] = TSample.CreateChecked(
+                    baseColor + (residual * 4 * (1 << (bitDepthValue - 8))));
+            }
         }
 
         ClearPlane(reconstruction.Luma);
@@ -2636,6 +2727,10 @@ public class Av1IntraSuperblockEncoderTests
             QIndex);
 
         pictureTemplate.Parent.FrameHeader.AllowScreenContentTools = true;
+        pictureTemplate.Parent.FrameHeader.TransformMode = useSplitTransform
+            ? Av1TransformMode.Select
+            : Av1TransformMode.Largest;
+
         pictureTemplate.Parent.FrameHeader.FrameSize.FrameWidth = width;
         pictureTemplate.Parent.FrameHeader.FrameSize.FrameHeight = height;
         using Av1EncoderPictureBuffer picture = new(
@@ -2664,27 +2759,96 @@ public class Av1IntraSuperblockEncoderTests
         ref Av1MacroBlockModeInfo mode = ref picture.Picture.GetMacroBlockModeInfo(default);
         Assert.Equal(Av1PredictionMode.DC, mode.Block.Mode);
         Assert.Equal(Av1FilterIntraMode.AllFilterIntraModes, superblockWorkspace.FinalBlocks[0].FilterIntraMode);
-        Assert.Equal((ushort)0, coefficients.GetTransformBlockSpan(0, Av1Plane.Y)[0].EndOfBlock);
-        Assert.Equal(2, superblockWorkspace.PaletteInfo.PaletteSizes[0]);
         Assert.Equal(
-            [expectedLowerColor, expectedUpperColor],
-            superblockWorkspace.PaletteInfo.GetColors(Av1Plane.Y).ToArray());
+            useSplitTransform ? Av1TransformSize.Size4x4 : Av1TransformSize.Size8x8,
+            mode.Block.TransformSize);
+
+        Span<Av1EncoderTransformBlockState> transformStates = coefficients
+            .GetTransformBlockSpan(0, Av1Plane.Y)[..(useSplitTransform ? 4 : 1)];
+
+        if (useSplitTransform)
+        {
+            int coefficientBearingTransformCount = 0;
+            foreach (Av1EncoderTransformBlockState transformState in transformStates)
+            {
+                if (transformState.EndOfBlock > 0)
+                {
+                    coefficientBearingTransformCount++;
+                }
+            }
+
+            Assert.InRange(coefficientBearingTransformCount, 1, transformStates.Length);
+            Assert.InRange(superblockWorkspace.PaletteInfo.PaletteSizes[0], 2, Av1Constants.PaletteMaxSize);
+        }
+        else
+        {
+            Assert.Equal((ushort)0, transformStates[0].EndOfBlock);
+            Assert.Equal(2, superblockWorkspace.PaletteInfo.PaletteSizes[0]);
+            Assert.Equal(
+                [expectedLowerColor, expectedUpperColor],
+                superblockWorkspace.PaletteInfo.GetColors(Av1Plane.Y).ToArray());
+        }
 
         Buffer2DRegion<byte> colorIndexMap = superblockWorkspace
             .GetPaletteMaps()
             .GetMap(Av1PlaneType.Y, 8, 8);
 
         Buffer2DRegion<TSample> reconstructionPlane = reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y);
+        ReadOnlySpan<ushort> selectedPaletteColors = superblockWorkspace.PaletteInfo.GetColors(Av1Plane.Y);
+        long predictionOnlyError = 0;
+        long reconstructionError = 0;
         for (int row = 0; row < reconstructionPlane.Height; row++)
         {
-            int visibleRow = Math.Min(row, height - 1);
-            byte expectedIndex = (byte)(visibleRow < height / 2 ? 0 : 1);
-            foreach (byte index in colorIndexMap.DangerousGetRowSpan(row))
+            if (useSplitTransform)
             {
-                Assert.Equal(expectedIndex, index);
+                ReadOnlySpan<TSample> sourceRow = sourcePlane.DangerousGetRowSpan(row);
+                ReadOnlySpan<TSample> reconstructionRow = reconstructionPlane.DangerousGetRowSpan(row);
+                ReadOnlySpan<byte> mapRow = colorIndexMap.DangerousGetRowSpan(row);
+                for (int column = 0; column < reconstructionRow.Length; column++)
+                {
+                    long sourceSample = long.CreateChecked(sourceRow[column]);
+                    long predictionDifference = sourceSample - selectedPaletteColors[mapRow[column]];
+                    long reconstructionDifference = sourceSample - long.CreateChecked(reconstructionRow[column]);
+                    predictionOnlyError += predictionDifference * predictionDifference;
+                    reconstructionError += reconstructionDifference * reconstructionDifference;
+                }
             }
+            else
+            {
+                int visibleRow = Math.Min(row, height - 1);
+                byte expectedIndex = (byte)(visibleRow < height / 2 ? 0 : 1);
+                foreach (byte index in colorIndexMap.DangerousGetRowSpan(row))
+                {
+                    Assert.Equal(expectedIndex, index);
+                }
 
-            Assert.True(sourcePlane.DangerousGetRowSpan(row).SequenceEqual(reconstructionPlane.DangerousGetRowSpan(row)));
+                Assert.True(sourcePlane.DangerousGetRowSpan(row).SequenceEqual(reconstructionPlane.DangerousGetRowSpan(row)));
+            }
+        }
+
+        if (useSplitTransform)
+        {
+            Assert.True(predictionOnlyError > 0);
+            Assert.True(reconstructionError < predictionOnlyError);
+            byte[] payload = WriteCompleteTileObu(pictureTemplate, tileWriter, width, height);
+            using Av1Decoder decoder = new(Configuration.Default);
+            using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+            Assert.NotNull(decoder.FrameInfo);
+            Av1BlockModeInfo decodedBlock = decoder.FrameInfo.GetModeInfoAt(default);
+            Assert.True(decodedBlock.GetPaletteSize(Av1Plane.Y) > 0);
+            Assert.Equal(4, decodedBlock.GetTransformUnitCount(Av1Plane.Y));
+            Assert.Equal(new Size(width, height), decoded.Size);
+
+            string outputDirectory = Path.Combine(
+                TestEnvironment.ActualOutputDirectoryFullPath,
+                "Formats",
+                "Heif",
+                "Av1");
+
+            Directory.CreateDirectory(outputDirectory);
+            File.WriteAllBytes(
+                Path.Combine(outputDirectory, $"encoder-palette-transform-size-select-{bitDepthValue}b.obu"),
+                payload);
         }
 
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);

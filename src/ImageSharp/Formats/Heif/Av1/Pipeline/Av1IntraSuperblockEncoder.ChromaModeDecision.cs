@@ -527,7 +527,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 context,
                 state.EndOfBlock,
                 this.picture.Parent.FrameHeader.UseReducedTransformSet,
-                Av1FilterIntraMode.AllFilterIntraModes);
+                Av1FilterIntraMode.AllFilterIntraModes,
+                usesInterTransformSet: false);
 
             return distortion;
         }
@@ -631,7 +632,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 blueContext,
                 candidateBlueState.EndOfBlock,
                 this.picture.Parent.FrameHeader.UseReducedTransformSet,
-                Av1FilterIntraMode.AllFilterIntraModes);
+                Av1FilterIntraMode.AllFilterIntraModes,
+                usesInterTransformSet: false);
 
             rate += writer.GetCoefficientCost(
                 transformSize,
@@ -642,7 +644,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 redContext,
                 candidateRedState.EndOfBlock,
                 this.picture.Parent.FrameHeader.UseReducedTransformSet,
-                Av1FilterIntraMode.AllFilterIntraModes);
+                Av1FilterIntraMode.AllFilterIntraModes,
+                usesInterTransformSet: false);
 
             return Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
         }

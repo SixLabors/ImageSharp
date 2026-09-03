@@ -118,6 +118,11 @@ internal class Av1SymbolEncoder : IDisposable
     private readonly Av1Distribution[][] transformSize;
 
     /// <summary>
+    /// The tile-adaptive variable-transform partition distributions.
+    /// </summary>
+    private readonly Av1Distribution[] transformPartition;
+
+    /// <summary>
     /// The tile-adaptive spatial segment-identifier distributions.
     /// </summary>
     private readonly Av1Distribution[] segmentId;
@@ -200,6 +205,7 @@ internal class Av1SymbolEncoder : IDisposable
         this.intraExtendedTransform = Av1DefaultDistributions.IntraExtendedTransform;
         this.interExtendedTransform = Av1DefaultDistributions.InterExtendedTransform;
         this.transformSize = Av1DefaultDistributions.TransformSize;
+        this.transformPartition = Av1DefaultDistributions.TransformPartition;
         this.segmentId = Av1DefaultDistributions.SegmentId;
         this.angleDelta = Av1DefaultDistributions.AngleDelta;
         this.skip = Av1DefaultDistributions.Skip;
@@ -1206,6 +1212,26 @@ internal class Av1SymbolEncoder : IDisposable
         int selectedDepth = GetTransformSizeDepth(blockSize, transformSize, out int categoryDepth);
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol(selectedDepth, this.transformSize[categoryDepth - 1][context]);
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point cost of one variable-transform partition decision.
+    /// </summary>
+    /// <param name="split">Indicates whether the current transform node is split.</param>
+    /// <param name="context">The neighboring variable-transform context.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetTransformPartitionCost(bool split, int context)
+        => Av1ProbabilityCost.GetSymbolCost(this.transformPartition[context], split ? 1 : 0);
+
+    /// <summary>
+    /// Writes one variable-transform partition decision.
+    /// </summary>
+    /// <param name="split">Indicates whether the current transform node is split.</param>
+    /// <param name="context">The neighboring variable-transform context.</param>
+    public void WriteTransformPartition(bool split, int context)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteSymbol(split ? 1 : 0, this.transformPartition[context]);
     }
 
     private static int GetTransformSizeDepth(

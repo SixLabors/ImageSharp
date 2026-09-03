@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Formats.Heif.Components;
 using SixLabors.ImageSharp.Formats.Heif.Components.Alpha;
 using SixLabors.ImageSharp.Memory;
@@ -488,13 +489,18 @@ public class Av1EncoderFrameTests
     }
 
     [Theory]
-    [InlineData(0, false, false)]
-    [InlineData(1, false, false)]
-    [InlineData(2, false, false)]
-    [InlineData(3, false, false)]
-    [InlineData(4, true, false)]
-    [InlineData(5, true, true)]
-    public void EncodeEffortControlsSearchFeatures(int effort, bool enableFilterIntra, bool enableScreenContentTools)
+    [InlineData(0, false, false, false)]
+    [InlineData(1, false, false, false)]
+    [InlineData(2, false, false, false)]
+    [InlineData(3, false, false, false)]
+    [InlineData(4, true, false, false)]
+    [InlineData(5, true, true, false)]
+    [InlineData(6, true, true, true)]
+    public void EncodeEffortControlsSearchFeatures(
+        int effort,
+        bool enableFilterIntra,
+        bool enableScreenContentTools,
+        bool selectTransformSize)
     {
         const int width = 16;
         const int height = 16;
@@ -529,6 +535,9 @@ public class Av1EncoderFrameTests
         Assert.Equal(enableFilterIntra, sequenceHeader.EnableFilterIntra);
         Assert.Equal(enableScreenContentTools, frameHeader.AllowScreenContentTools);
         Assert.Equal(enableScreenContentTools, frameHeader.AllowIntraBlockCopy);
+        Assert.Equal(
+            selectTransformSize ? Av1TransformMode.Select : Av1TransformMode.Largest,
+            frameHeader.TransformMode);
         Assert.Equal(new Size(width, height), decoded.Size);
 
         int modeCount = 0;
@@ -573,7 +582,64 @@ public class Av1EncoderFrameTests
     }
 
     [Fact]
-    public void EncodeSelectsIntraBlockCopyForRepeatedScreenContent()
+    public void EncodeEffortSixSelectsFourByFourLumaTransforms()
+    {
+        const int Width = 16;
+        const int Height = 16;
+        using Image<Rgba32> source = new(Width, Height);
+        for (int row = 0; row < Height; row++)
+        {
+            Span<Rgba32> pixels = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
+            for (int column = 0; column < Width; column++)
+            {
+                byte value = (byte)(16 + ((((row >> 2) * 4) + (column >> 2)) * 14));
+                pixels[column] = new Rgba32(value, value, value);
+            }
+        }
+
+        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400);
+        using MemoryStream stream = new();
+        _ = Av1FrameEncoder.Encode(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            stream,
+            colorConfig,
+            qIndex: 37,
+            effort: 6);
+
+        byte[] payload = stream.ToArray();
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Image<L8> decoded = decoder.Decode<L8>(payload);
+        Assert.NotNull(decoder.FrameHeader);
+        Assert.Equal(Av1TransformMode.Select, decoder.FrameHeader.TransformMode);
+        Assert.NotNull(decoder.FrameInfo);
+        bool foundSplitTransform = false;
+        foreach (Av1BlockModeInfo modeInfo in decoder.FrameInfo.GetSuperblock(Point.Empty).GetModeInfos())
+        {
+            foundSplitTransform |= modeInfo.GetTransformUnitCount(Av1Plane.Y) == 4;
+        }
+
+        Assert.True(foundSplitTransform);
+        Assert.Equal(new Size(Width, Height), decoded.Size);
+
+        string outputDirectory = Path.Combine(
+            TestEnvironment.ActualOutputDirectoryFullPath,
+            "Formats",
+            "Heif",
+            "Av1");
+
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllBytes(
+            Path.Combine(outputDirectory, "encoder-frame-16x16-8b-400-transform-size-select.obu"),
+            payload);
+    }
+
+    [Theory]
+    [InlineData(5, false)]
+    [InlineData(6, true)]
+    public void EncodeSelectsIntraBlockCopyForRepeatedScreenContent(
+        int effort,
+        bool selectTransformSize)
     {
         const int Width = 328;
         const int Height = 16;
@@ -599,7 +665,7 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 37,
-            effort: 5);
+            effort);
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
@@ -607,6 +673,9 @@ public class Av1EncoderFrameTests
         Assert.NotNull(decoder.FrameHeader);
         Assert.True(decoder.FrameHeader.AllowScreenContentTools);
         Assert.True(decoder.FrameHeader.AllowIntraBlockCopy);
+        Assert.Equal(
+            selectTransformSize ? Av1TransformMode.Select : Av1TransformMode.Largest,
+            decoder.FrameHeader.TransformMode);
         Assert.NotNull(decoder.FrameInfo);
         Av1SuperblockInfo targetSuperblock = decoder.FrameInfo.GetSuperblock(new Point(5, 0));
         bool usesIntraBlockCopy = false;
@@ -625,7 +694,11 @@ public class Av1EncoderFrameTests
             "Av1");
 
         Directory.CreateDirectory(outputDirectory);
-        File.WriteAllBytes(Path.Combine(outputDirectory, "encoder-frame-328x16-8b-444-intrabc.obu"), payload);
+        string fileName = effort == 5
+            ? "encoder-frame-328x16-8b-444-intrabc.obu"
+            : "encoder-frame-328x16-8b-444-intrabc-effort-6.obu";
+
+        File.WriteAllBytes(Path.Combine(outputDirectory, fileName), payload);
     }
 
     [Fact]

@@ -4,6 +4,7 @@
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -20,6 +21,11 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     public const int MaximumSampleCount = 8 * 8;
 
     /// <summary>
+    /// The number of 4x4 transform blocks covering one 8x8 coding block.
+    /// </summary>
+    public const int CandidateTransformBlockCount = 4;
+
+    /// <summary>
     /// The required workspace length in signed-integer storage elements.
     /// </summary>
     public const int StorageLength = TransientStorageOffset + Av1EncoderPaletteWorkspace<ushort>.StorageLength;
@@ -31,7 +37,11 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     private const int CandidateSampleStorageLength = 2 * MaximumSampleCount * sizeof(ushort) / sizeof(int);
     private const int CandidateCoefficientStorageOffset = CandidateSampleStorageOffset + CandidateSampleStorageLength;
     private const int CandidateCoefficientStorageLength = 2 * MaximumSampleCount;
-    private const int TransientStorageOffset = CandidateCoefficientStorageOffset + CandidateCoefficientStorageLength;
+    private const int CandidateTransformBlockStorageOffset = CandidateCoefficientStorageOffset + CandidateCoefficientStorageLength;
+    private const int CandidateTransformBlockStorageLength = CandidateTransformBlockCount;
+    private const int TransformContextStorageOffset = CandidateTransformBlockStorageOffset + CandidateTransformBlockStorageLength;
+    private const int TransformContextStorageLength = 1;
+    private const int TransientStorageOffset = TransformContextStorageOffset + TransformContextStorageLength;
     private const int ChromaFromLumaSampleCount = Av1ChromaFromLumaContext.BufferLine * 8;
     private const int ChromaFromLumaSampleStorageLength = ChromaFromLumaSampleCount * sizeof(short) / sizeof(int);
     private const int ChromaFromLumaBlueRateOffset = ChromaFromLumaSampleStorageLength;
@@ -80,6 +90,19 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     /// </summary>
     public Av1EncoderPaletteWorkspace<TSample> Palette
         => new(this.storage[TransientStorageOffset..]);
+
+    /// <summary>
+    /// Gets the transform state retained while evaluating a uniform 4x4 luma layout.
+    /// </summary>
+    public Span<Av1EncoderTransformBlockState> CandidateTransformBlocks
+        => MemoryMarshal.Cast<int, Av1EncoderTransformBlockState>(
+            this.storage.Slice(CandidateTransformBlockStorageOffset, CandidateTransformBlockStorageLength));
+
+    /// <summary>
+    /// Gets the two above and two left coefficient contexts used by a uniform 4x4 luma layout.
+    /// </summary>
+    public Span<byte> TransformContexts
+        => MemoryMarshal.AsBytes(this.storage.Slice(TransformContextStorageOffset, TransformContextStorageLength));
 
     /// <summary>
     /// Gets one reference edge including its common-corner prefix.

@@ -128,6 +128,23 @@ internal static partial class Av1IntraSuperblockEncoder
                 BlockSize,
                 LumaTransformSize);
 
+            int transformPartitionRate = 0;
+            if (this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select)
+            {
+                Av1NeighborArrayUnit<byte> transformContexts = this.picture.TransformFunctionContexts[tileIndex];
+                int topIndex = transformContexts.GetTopIndex(blockOrigin);
+                int leftIndex = transformContexts.GetLeftIndex(blockOrigin);
+                int transformPartitionContext = Av1SymbolContextHelper.GetTransformPartitionContext(
+                    transformContexts.Top[topIndex],
+                    transformContexts.Left[leftIndex],
+                    BlockSize,
+                    LumaTransformSize);
+
+                transformPartitionRate = writer.GetTransformPartitionCost(
+                    false,
+                    transformPartitionContext);
+            }
+
             ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
             int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
             int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
@@ -250,6 +267,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 int candidateRate = writer.GetUseIntraBlockCopyCost(true) +
                     displacementRate +
                     writer.GetSkipCost(false, skipContext) +
+                    transformPartitionRate +
                     lumaRate +
                     blueRate +
                     redRate;
@@ -385,6 +403,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             modeInfo.Block.Mode = Av1PredictionMode.DC;
             modeInfo.Block.UvMode = Av1ChromaPredictionMode.DC;
+            modeInfo.Block.TransformSize = LumaTransformSize;
             modeInfo.Block.Skip = selectedSkip;
             modeInfo.Block.UseIntraBlockCopy = true;
             block.FilterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
@@ -466,6 +485,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     prediction[..sampleCount],
                     residual[..sampleCount],
                     transformReconstruction[..sampleCount],
+                    transformSize.GetWidth(),
                     transformCoefficients[..sampleCount],
                     transformSize,
                     transformType,

@@ -28,6 +28,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ushort tileIndex,
             Av1TransformSetType transformSetType,
             Av1TransformBlockContext blockContext,
+            int transformSizeRate,
             Span<TSample> candidateReconstruction,
             Span<int> candidateCoefficients,
             Span<int> retainedCoefficients,
@@ -138,6 +139,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockOrigin,
                     transformSetType,
                     blockContext,
+                    transformSizeRate,
                     samples,
                     rows,
                     columns,
@@ -167,6 +169,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockOrigin,
                     transformSetType,
                     blockContext,
+                    transformSizeRate,
                     samples,
                     rows,
                     columns,
@@ -205,6 +208,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         blockOrigin,
                         transformSetType,
                         blockContext,
+                        transformSizeRate,
                         samples,
                         rows,
                         columns,
@@ -243,6 +247,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             Av1TransformSetType transformSetType,
             Av1TransformBlockContext blockContext,
+            int transformSizeRate,
             ReadOnlySpan<short> samples,
             int rows,
             int columns,
@@ -345,6 +350,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1PredictionMode.DC,
                 0);
 
+            rate += transformSizeRate;
             rate += writer.GetPaletteYModeCost(true, blockSizeContext, neighborContext);
             rate += writer.GetPaletteSizeCost(paletteSize, blockSizeContext, Av1PlaneType.Y);
             rate += Av1SymbolEncoder.GetPaletteYColorCost(colorCache, paletteColors, bitDepth);
@@ -372,6 +378,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     prediction,
                     residual,
                     candidateReconstruction,
+                    TransformSize.GetWidth(),
                     candidateCoefficients,
                     TransformSize,
                     transformType,

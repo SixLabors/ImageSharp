@@ -76,6 +76,47 @@ public class Av1SymbolContextTests
         Assert.Equal((Av1TransformType)expectedValue, actual);
     }
 
+    [Theory]
+    [InlineData(0, 0, 0)]
+    [InlineData(-1, 4, 12)]
+    [InlineData(1, 4, 20)]
+    public void CoefficientContextMatchesCurrentLibaom(int dcCoefficient, ushort endOfBlock, byte expected)
+    {
+        Span<int> coefficients = stackalloc int[16];
+        coefficients.Fill(1);
+        coefficients[0] = dcCoefficient;
+
+        byte actual = Av1SymbolContextHelper.GetCoefficientContext(
+            coefficients,
+            Av1TransformSize.Size4x4,
+            Av1TransformType.DctDct,
+            endOfBlock);
+
+        Assert.Equal(expected, actual);
+    }
+
+    [Theory]
+    [InlineData(8, 8, (int)Av1BlockSize.Block8x8, (int)Av1TransformSize.Size8x8, 18)]
+    [InlineData(4, 8, (int)Av1BlockSize.Block8x8, (int)Av1TransformSize.Size8x8, 19)]
+    [InlineData(4, 4, (int)Av1BlockSize.Block8x8, (int)Av1TransformSize.Size8x8, 20)]
+    [InlineData(4, 4, (int)Av1BlockSize.Block16x16, (int)Av1TransformSize.Size8x8, 17)]
+    [InlineData(0, 0, (int)Av1BlockSize.Block8x8, (int)Av1TransformSize.Size4x4, 0)]
+    public void TransformPartitionContextMatchesCurrentLibaom(
+        byte aboveWidth,
+        byte leftHeight,
+        int blockSizeValue,
+        int transformSizeValue,
+        int expected)
+    {
+        int actual = Av1SymbolContextHelper.GetTransformPartitionContext(
+            aboveWidth,
+            leftHeight,
+            (Av1BlockSize)blockSizeValue,
+            (Av1TransformSize)transformSizeValue);
+
+        Assert.Equal(expected, actual);
+    }
+
     public static TheoryData<int, int, int> GetLowLevelContextEndOfBlockData()
     {
         TheoryData<int, int, int> result = [];

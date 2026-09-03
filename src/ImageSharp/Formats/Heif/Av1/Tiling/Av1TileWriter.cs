@@ -911,6 +911,50 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
+    /// Derives the uniform intra transform-size context from the current above and left edges.
+    /// </summary>
+    /// <param name="transformContexts">The retained transform widths and heights.</param>
+    /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
+    /// <param name="blockOrigin">The block origin in samples.</param>
+    /// <param name="blockSize">The block size defining the maximum transform.</param>
+    /// <returns>The uniform transform-size context.</returns>
+    public static int GetTransformSizeContext(
+        Av1NeighborArrayUnit<byte> transformContexts,
+        Av1MacroBlockD macroBlock,
+        Point blockOrigin,
+        Av1BlockSize blockSize)
+    {
+        Av1TransformSize maximumTransformSize = blockSize.GetMaximumTransformSize();
+        int above = transformContexts.Top[transformContexts.GetTopIndex(blockOrigin)] >= maximumTransformSize.GetWidth() ? 1 : 0;
+        int left = transformContexts.Left[transformContexts.GetLeftIndex(blockOrigin)] >= maximumTransformSize.GetHeight() ? 1 : 0;
+
+        // Inter neighbors contribute their coding-block extent, not their residual-transform extent.
+        if (macroBlock.IsUpAvailable)
+        {
+            ref Av1MacroBlockModeInfo aboveModeInfo =
+                ref macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride);
+
+            if (aboveModeInfo.Block.UseIntraBlockCopy)
+            {
+                above = aboveModeInfo.Block.BlockSize.GetWidth() >= maximumTransformSize.GetWidth() ? 1 : 0;
+            }
+        }
+
+        if (macroBlock.IsLeftAvailable)
+        {
+            ref Av1MacroBlockModeInfo leftModeInfo = ref macroBlock.GetRelativeModeInfo(-1);
+            if (leftModeInfo.Block.UseIntraBlockCopy)
+            {
+                left = leftModeInfo.Block.BlockSize.GetHeight() >= maximumTransformSize.GetHeight() ? 1 : 0;
+            }
+        }
+
+        return macroBlock.IsUpAvailable
+            ? macroBlock.IsLeftAvailable ? above + left : above
+            : macroBlock.IsLeftAvailable ? left : 0;
+    }
+
+    /// <summary>
     /// Writes or derives the block transform size and publishes its edge contexts.
     /// </summary>
     /// <param name="pcs">The picture coding state.</param>
@@ -931,27 +975,41 @@ internal partial class Av1TileWriter
     {
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
         bool isLossless = frameHeader.LosslessArray[macroBlockModeInfo.Block.SegmentId];
-        bool writesTransformSize = !isLossless &&
+        bool isInter = macroBlockModeInfo.Block.UseIntraBlockCopy;
+        bool writesUniformTransformSize = !isLossless &&
             frameHeader.TransformMode == Av1TransformMode.Select &&
+            !isInter &&
             blockSize > Av1BlockSize.Block4x4;
+        bool writesVariableTransformSize = !isLossless &&
+            frameHeader.TransformMode == Av1TransformMode.Select &&
+            isInter &&
+            !macroBlockModeInfo.Block.Skip;
+
         Av1TransformSize transformSize = isLossless
             ? Av1TransformSize.Size4x4
-            : writesTransformSize
+            : writesUniformTransformSize || writesVariableTransformSize
                 ? macroBlockModeInfo.Block.TransformSize
                 : blockSize.GetMaximumTransformSize();
 
         macroBlockModeInfo.Block.TransformSize = transformSize;
         Av1NeighborArrayUnit<byte> transformContexts = pcs.TransformFunctionContexts[tileIndex];
-        if (writesTransformSize)
+        if (writesUniformTransformSize)
         {
-            Av1TransformSize maximumTransformSize = blockSize.GetMaximumTransformSize();
-            int above = transformContexts.Top[transformContexts.GetTopIndex(blockOrigin)] >= maximumTransformSize.GetWidth() ? 1 : 0;
-            int left = transformContexts.Left[transformContexts.GetLeftIndex(blockOrigin)] >= maximumTransformSize.GetHeight() ? 1 : 0;
-            int context = macroBlock.IsUpAvailable
-                ? macroBlock.IsLeftAvailable ? above + left : above
-                : macroBlock.IsLeftAvailable ? left : 0;
-
+            int context = GetTransformSizeContext(transformContexts, macroBlock, blockOrigin, blockSize);
             writer.WriteTransformSize(blockSize, transformSize, context);
+        }
+        else if (writesVariableTransformSize)
+        {
+            int topIndex = transformContexts.GetTopIndex(blockOrigin);
+            int leftIndex = transformContexts.GetLeftIndex(blockOrigin);
+            int context = Av1SymbolContextHelper.GetTransformPartitionContext(
+                transformContexts.Top[topIndex],
+                transformContexts.Left[leftIndex],
+                blockSize,
+                blockSize.GetMaximumTransformSize());
+
+            // Intra-block copy currently retains the maximum transform, so its variable-transform tree has one unsplit root.
+            writer.WriteTransformPartition(false, context);
         }
 
         Size blockDimensions = new(blockSize.GetWidth(), blockSize.GetHeight());
@@ -1863,6 +1921,26 @@ internal partial class Av1TileWriter
         int transformBlockHeight = transformSize.Get4x4HighCount();
         ReadOnlySpan<byte> topContexts = dcSignLevelCoefficientNeighborArray.Top.Slice(topIndex, transformBlockWidth);
         ReadOnlySpan<byte> leftContexts = dcSignLevelCoefficientNeighborArray.Left.Slice(leftIndex, transformBlockHeight);
+
+        return GetTransformBlockContexts(plane, topContexts, leftContexts, planeBlockSize, transformSize);
+    }
+
+    /// <summary>
+    /// Derives coefficient skip and DC-sign contexts from explicit transform-edge contexts.
+    /// </summary>
+    /// <param name="plane">The luma or chroma component class.</param>
+    /// <param name="topContexts">The packed contexts immediately above the transform block.</param>
+    /// <param name="leftContexts">The packed contexts immediately left of the transform block.</param>
+    /// <param name="planeBlockSize">The containing block size on the target plane.</param>
+    /// <param name="transformSize">The transform size.</param>
+    /// <returns>The coefficient skip and DC-sign contexts selected by both transform edges.</returns>
+    public static Av1TransformBlockContext GetTransformBlockContexts(
+        Av1ComponentType plane,
+        ReadOnlySpan<byte> topContexts,
+        ReadOnlySpan<byte> leftContexts,
+        Av1BlockSize planeBlockSize,
+        Av1TransformSize transformSize)
+    {
         int dcSign = 0;
         int top = 0;
         int left = 0;

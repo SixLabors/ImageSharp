@@ -119,7 +119,7 @@ internal static class Av1FrameEncoder
             ErrorResilientMode = true,
             RefreshFrameFlags = byte.MaxValue,
             DisableFrameEndUpdateCdf = true,
-            TransformMode = Av1TransformMode.Largest,
+            TransformMode = effort >= 6 ? Av1TransformMode.Select : Av1TransformMode.Largest,
             ModeInfoColumnCount = modeInfoColumnCount,
             ModeInfoRowCount = modeInfoRowCount,
             TilesInfo = tiles,

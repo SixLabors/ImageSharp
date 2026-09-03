@@ -192,6 +192,37 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState state);
 
         /// <summary>
+        /// Builds one spatial intra prediction and its source residual for reuse across transform candidates.
+        /// </summary>
+        /// <param name="workspace">The reusable block workspace.</param>
+        /// <param name="source">The coded source plane.</param>
+        /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
+        /// <param name="prediction">The contiguous prediction destination.</param>
+        /// <param name="above">The top reference samples, with prefix storage for the shared corner.</param>
+        /// <param name="left">The left reference samples.</param>
+        /// <param name="hasLeft">Whether the left reference is available.</param>
+        /// <param name="hasAbove">Whether the top reference is available.</param>
+        /// <param name="mode">The intra prediction mode.</param>
+        /// <param name="angleDelta">The signed directional-angle adjustment.</param>
+        /// <param name="residual">The contiguous source-minus-prediction destination.</param>
+        /// <param name="transformSize">The prediction dimensions.</param>
+        /// <param name="bitDepth">The coded sample bit depth.</param>
+        public static abstract void PrepareIntra(
+            Av1EncoderBlockWorkspace workspace,
+            Buffer2DRegion<TSample> source,
+            Point blockOrigin,
+            Span<TSample> prediction,
+            ReadOnlySpan<TSample> above,
+            ReadOnlySpan<TSample> left,
+            bool hasLeft,
+            bool hasAbove,
+            Av1PredictionMode mode,
+            int angleDelta,
+            Span<short> residual,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth);
+
+        /// <summary>
         /// Builds one filter-intra prediction for reuse across transform candidates.
         /// </summary>
         /// <param name="workspace">The reusable block workspace.</param>
@@ -247,7 +278,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="blockOrigin">The transform-block origin in plane samples.</param>
         /// <param name="prediction">The contiguous prediction samples.</param>
         /// <param name="residual">The contiguous source-minus-prediction samples.</param>
-        /// <param name="reconstruction">The contiguous candidate reconstruction.</param>
+        /// <param name="reconstruction">The candidate reconstruction.</param>
+        /// <param name="reconstructionStride">The number of reconstruction samples between rows.</param>
         /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
         /// <param name="transformSize">The transform dimensions.</param>
         /// <param name="transformType">The compound transform applied to the residual.</param>
@@ -265,6 +297,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> prediction,
             ReadOnlySpan<short> residual,
             Span<TSample> reconstruction,
+            int reconstructionStride,
             Span<int> quantizedCoefficients,
             Av1TransformSize transformSize,
             Av1TransformType transformType,
@@ -705,6 +738,36 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref state);
 
         /// <inheritdoc/>
+        public static void PrepareIntra(
+            Av1EncoderBlockWorkspace workspace,
+            Buffer2DRegion<byte> source,
+            Point blockOrigin,
+            Span<byte> prediction,
+            ReadOnlySpan<byte> above,
+            ReadOnlySpan<byte> left,
+            bool hasLeft,
+            bool hasAbove,
+            Av1PredictionMode mode,
+            int angleDelta,
+            Span<short> residual,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth)
+            => Av1TransformBlockEncoder.PrepareIntraPrediction(
+                workspace,
+                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                source.Stride,
+                prediction,
+                transformSize.GetWidth(),
+                above,
+                left,
+                hasLeft,
+                hasAbove,
+                mode,
+                angleDelta,
+                residual,
+                transformSize);
+
+        /// <inheritdoc/>
         public static void PrepareFilterIntra(
             Av1EncoderBlockWorkspace workspace,
             Buffer2DRegion<byte> source,
@@ -782,6 +845,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<byte> prediction,
             ReadOnlySpan<short> residual,
             Span<byte> reconstruction,
+            int reconstructionStride,
             Span<int> quantizedCoefficients,
             Av1TransformSize transformSize,
             Av1TransformType transformType,
@@ -798,6 +862,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 prediction,
                 residual,
                 reconstruction,
+                reconstructionStride,
                 quantizedCoefficients,
                 transformSize,
                 transformType,
@@ -1214,6 +1279,37 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref state);
 
         /// <inheritdoc/>
+        public static void PrepareIntra(
+            Av1EncoderBlockWorkspace workspace,
+            Buffer2DRegion<ushort> source,
+            Point blockOrigin,
+            Span<ushort> prediction,
+            ReadOnlySpan<ushort> above,
+            ReadOnlySpan<ushort> left,
+            bool hasLeft,
+            bool hasAbove,
+            Av1PredictionMode mode,
+            int angleDelta,
+            Span<short> residual,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth)
+            => Av1TransformBlockEncoder.PrepareIntraPrediction(
+                workspace,
+                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                source.Stride,
+                prediction,
+                transformSize.GetWidth(),
+                above,
+                left,
+                hasLeft,
+                hasAbove,
+                mode,
+                angleDelta,
+                residual,
+                transformSize,
+                bitDepth);
+
+        /// <inheritdoc/>
         public static void PrepareFilterIntra(
             Av1EncoderBlockWorkspace workspace,
             Buffer2DRegion<ushort> source,
@@ -1299,6 +1395,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<ushort> prediction,
             ReadOnlySpan<short> residual,
             Span<ushort> reconstruction,
+            int reconstructionStride,
             Span<int> quantizedCoefficients,
             Av1TransformSize transformSize,
             Av1TransformType transformType,
@@ -1315,6 +1412,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 prediction,
                 residual,
                 reconstruction,
+                reconstructionStride,
                 quantizedCoefficients,
                 transformSize,
                 transformType,

@@ -134,6 +134,15 @@ public class Av1EntropyTests
             Av1ProbabilityCost.GetSymbolCost(transformSize, 1),
             encoder.GetTransformSizeCost(BlockSize, Av1TransformSize.Size4x4, SkipContext));
 
+        Av1Distribution transformPartition = Av1DefaultDistributions.TransformPartition[SkipContext];
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(transformPartition, 0),
+            encoder.GetTransformPartitionCost(false, SkipContext));
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(transformPartition, 1),
+            encoder.GetTransformPartitionCost(true, SkipContext));
+
         Av1Distribution transformSkip = Av1DefaultDistributions
             .GetTransformBlockSkip(BaseQIndex)[(int)TransformSize][SkipContext];
 

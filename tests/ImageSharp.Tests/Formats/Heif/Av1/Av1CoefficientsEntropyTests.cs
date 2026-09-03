@@ -595,6 +595,53 @@ public class Av1CoefficientsEntropyTests
     }
 
     [Fact]
+    public void TransformSizeContextUsesIntraBlockCopyNeighborExtents()
+    {
+        Av1PictureControlSet picture = CreateEncoderPicture(16, 16);
+        Point blockOrigin = new(16, 16);
+        Av1MacroBlockD macroBlock = new()
+        {
+            Tile = new Av1TileInfo(0, 0, picture.Parent.FrameHeader),
+            IsUpAvailable = true,
+            IsLeftAvailable = true
+        };
+
+        int modeInfoIndex =
+            ((blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2) * picture.ModeInfoStride) +
+            (blockOrigin.X >> Av1Constants.ModeInfoSizeLog2);
+
+        macroBlock.ModeInfoStride = picture.ModeInfoStride;
+        macroBlock.SetModeInfoGrid(picture.ModeInfoGrid, picture.ModeInfoAllocation, modeInfoIndex);
+
+        ref Av1MacroBlockModeInfo aboveModeInfo = ref macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride);
+        aboveModeInfo.Block.BlockSize = Av1BlockSize.Block16x8;
+        aboveModeInfo.Block.UseIntraBlockCopy = true;
+        ref Av1MacroBlockModeInfo leftModeInfo = ref macroBlock.GetRelativeModeInfo(-1);
+        leftModeInfo.Block.BlockSize = Av1BlockSize.Block8x16;
+        leftModeInfo.Block.UseIntraBlockCopy = true;
+
+        using Av1NeighborArrayUnit<byte> transforms = new(
+            Configuration.Default,
+            leftSize: 64,
+            topSize: 64)
+        {
+            GranularityNormalLog2 = Av1Constants.ModeInfoSizeLog2
+        };
+
+        // Residual contexts report 8x8, but libaom derives 16x16 availability from the IBC coding blocks.
+        transforms.Top[transforms.GetTopIndex(blockOrigin)] = 8;
+        transforms.Left[transforms.GetLeftIndex(blockOrigin)] = 8;
+
+        Assert.Equal(
+            2,
+            Av1TileWriter.GetTransformSizeContext(
+                transforms,
+                macroBlock,
+                blockOrigin,
+                Av1BlockSize.Block16x16));
+    }
+
+    [Fact]
     public void SelectedTransformSizeRoundTripsAndPublishesRectangularEdgeContexts()
     {
         Av1PictureControlSet picture = CreateEncoderPicture(16, 16);
@@ -610,6 +657,14 @@ public class Av1CoefficientsEntropyTests
             IsUpAvailable = true,
             IsLeftAvailable = true
         };
+
+        int modeInfoIndex =
+            ((blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2) * picture.ModeInfoStride) +
+            (blockOrigin.X >> Av1Constants.ModeInfoSizeLog2);
+
+        // Uniform-size context substitutes coding-block extents for inter neighbors, so mirror production mode-info setup.
+        macroBlock.ModeInfoStride = picture.ModeInfoStride;
+        macroBlock.SetModeInfoGrid(picture.ModeInfoGrid, picture.ModeInfoAllocation, modeInfoIndex);
 
         using Av1NeighborArrayUnit<byte> transforms = new(
             Configuration.Default,

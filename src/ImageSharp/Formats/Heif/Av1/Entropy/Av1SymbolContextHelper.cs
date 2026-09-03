@@ -289,6 +289,43 @@ internal static class Av1SymbolContextHelper
     }
 
     /// <summary>
+    /// Derives the variable-transform partition context from the current node and its adjacent transform edges.
+    /// </summary>
+    /// <param name="aboveTransformWidth">The transform width retained immediately above the current node.</param>
+    /// <param name="leftTransformHeight">The transform height retained immediately left of the current node.</param>
+    /// <param name="blockSize">The containing coding-block size.</param>
+    /// <param name="transformSize">The transform size represented by the current partition node.</param>
+    /// <returns>The variable-transform partition context.</returns>
+    public static int GetTransformPartitionContext(
+        byte aboveTransformWidth,
+        byte leftTransformHeight,
+        Av1BlockSize blockSize,
+        Av1TransformSize transformSize)
+    {
+        if (transformSize <= Av1TransformSize.Size4x4)
+        {
+            return 0;
+        }
+
+        int above = aboveTransformWidth < transformSize.GetWidth() ? 1 : 0;
+        int left = leftTransformHeight < transformSize.GetHeight() ? 1 : 0;
+        int maximumDimension = Math.Max(blockSize.GetWidth(), blockSize.GetHeight());
+        Av1TransformSize maximumSquareTransform = maximumDimension switch
+        {
+            >= 64 => Av1TransformSize.Size64x64,
+            >= 32 => Av1TransformSize.Size32x32,
+            >= 16 => Av1TransformSize.Size16x16,
+            _ => Av1TransformSize.Size8x8
+        };
+
+        int category = (transformSize.GetSquareUpSize() != maximumSquareTransform &&
+            maximumSquareTransform > Av1TransformSize.Size8x8 ? 1 : 0) +
+            ((((int)Av1TransformSize.SquareSizes - 1) - (int)maximumSquareTransform) * 2);
+
+        return (category * 3) + above + left;
+    }
+
+    /// <summary>
     /// Reconstructs an end-of-block coefficient position from its token and extra offset.
     /// </summary>
     /// <param name="endOfBlockPoint">The decoded end-of-block token.</param>
@@ -666,6 +703,37 @@ internal static class Av1SymbolContextHelper
         {
             culLevel += 2 << Av1Constants.CoefficientContextBitCount;
         }
+    }
+
+    /// <summary>
+    /// Packs the magnitude class and DC sign retained by neighboring transform blocks.
+    /// </summary>
+    /// <param name="coefficients">The raster-ordered quantized coefficients.</param>
+    /// <param name="transformSize">The transform dimensions.</param>
+    /// <param name="transformType">The transform type selecting scan order.</param>
+    /// <param name="endOfBlock">The one-based final nonzero scan position.</param>
+    /// <returns>The packed coefficient context, or zero for an empty transform.</returns>
+    public static byte GetCoefficientContext(
+        ReadOnlySpan<int> coefficients,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        ushort endOfBlock)
+    {
+        if (endOfBlock == 0)
+        {
+            return 0;
+        }
+
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+        int culLevel = 0;
+        for (int scanIndex = 0; scanIndex < endOfBlock; scanIndex++)
+        {
+            culLevel += Math.Abs(coefficients[scan[scanIndex]]);
+        }
+
+        culLevel = Math.Min(Av1Constants.CoefficientContextMask, culLevel);
+        SetDcSign(ref culLevel, coefficients[0]);
+        return (byte)culLevel;
     }
 
     /// <summary>

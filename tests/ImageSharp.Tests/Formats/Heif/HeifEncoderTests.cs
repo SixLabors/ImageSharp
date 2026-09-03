@@ -247,6 +247,72 @@ public class HeifEncoderTests
         File.WriteAllBytes(Path.Combine(outputDirectory, "encoder-public-lossless-alpha.obu"), alphaPayload.ToArray());
     }
 
+    [Theory]
+    [InlineData(HeifBitDepth.Bit10)]
+    [InlineData(HeifBitDepth.Bit12)]
+    public void Av1LosslessRoundTripPreservesHighBitDepthSourcePixels(HeifBitDepth bitDepth)
+    {
+        const int width = 8;
+        const int height = 8;
+        int codedMaximum = (1 << (int)bitDepth) - 1;
+        using Image<Rgba64> image = new(width, height);
+        for (int row = 0; row < height; row++)
+        {
+            Span<Rgba64> pixels = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
+            for (int column = 0; column < width; column++)
+            {
+                int red = ((column * 131) + (row * 37) + 1) & codedMaximum;
+                int green = ((column * 61) + (row * 173) + 3) & codedMaximum;
+                int blue = ((column * 211) + (row * 47) + 5) & codedMaximum;
+                int alpha = ((column * 127) + (row * 89)) & codedMaximum;
+                pixels[column] = new Rgba64(
+                    ExpandToUShort(red, codedMaximum),
+                    ExpandToUShort(green, codedMaximum),
+                    ExpandToUShort(blue, codedMaximum),
+                    ExpandToUShort(alpha, codedMaximum));
+            }
+        }
+
+        // Full-range identity 4:4:4 preserves the requested sample lattice, isolating source precision from a
+        // deliberately lossy color matrix or chroma subsampling step.
+        image.Metadata.CicpProfile = new CicpProfile(1, 13, 0, true);
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.Av1,
+            BitDepth = bitDepth,
+            ChromaSubsampling = HeifChromaSubsampling.Yuv444,
+            Lossless = true,
+            Effort = 0
+        };
+
+        image.Save(stream, encoder);
+        byte[] file = stream.ToArray();
+        Span<byte> colorPayload = GetItemPayload(file, 1);
+        Span<byte> alphaPayload = GetItemPayload(file, 2);
+        stream.Position = 0;
+        using Image<Rgba64> decoded = Image.Load<Rgba64>(stream);
+        Assert.Empty(ImageComparer.Exact.CompareImages(image, decoded));
+
+        string outputDirectory = Path.Combine(
+            TestEnvironment.ActualOutputDirectoryFullPath,
+            "Formats",
+            "Heif",
+            "Av1");
+
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllBytes(
+            Path.Combine(outputDirectory, $"encoder-public-lossless-{(int)bitDepth}b-color.obu"),
+            colorPayload.ToArray());
+
+        File.WriteAllBytes(
+            Path.Combine(outputDirectory, $"encoder-public-lossless-{(int)bitDepth}b-alpha.obu"),
+            alphaPayload.ToArray());
+    }
+
+    private static ushort ExpandToUShort(int sample, int maximum)
+        => (ushort)(((sample * (long)ushort.MaxValue) + (maximum / 2)) / maximum);
+
     [Fact]
     public void Av1RejectsImageSequenceBeforeWritingOutput()
     {

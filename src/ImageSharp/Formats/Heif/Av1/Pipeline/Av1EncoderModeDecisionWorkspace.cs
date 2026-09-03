@@ -39,7 +39,8 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     /// <summary>
     /// The maximum number of transform states needed while evaluating both chroma planes of one 128x128 block.
     /// </summary>
-    public const int MaximumCandidateTransformBlockCount = 32;
+    public const int MaximumCandidateTransformBlockCount =
+        2 * MaximumSampleCount / MinimumTransformSampleCount;
 
     /// <summary>
     /// The required workspace length in signed-integer storage elements.
@@ -48,6 +49,7 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
 
     private const int ReferenceBufferLength = (2 * Av1Constants.MaxTransformSize) + 1;
     private const int ReferenceBufferCount = 4;
+    private const int MinimumTransformSampleCount = 1 << (2 * Av1Constants.ModeInfoSizeLog2);
     private const int ReferenceStorageLength = ReferenceBufferCount * ReferenceBufferLength * sizeof(ushort) / sizeof(int);
     private const int CandidateSampleStorageOffset = ReferenceStorageLength;
     private const int CandidateSampleStorageLength = 2 * MaximumSampleCount * sizeof(ushort) / sizeof(int);

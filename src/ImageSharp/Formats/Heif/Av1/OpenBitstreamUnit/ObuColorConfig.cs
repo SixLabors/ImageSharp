@@ -9,11 +9,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 internal sealed class ObuColorConfig
 {
     /// <summary>
-    /// Stores whether the sequence uses a single monochrome plane.
-    /// </summary>
-    private bool isMonochrome;
-
-    /// <summary>
     /// Gets or sets a value indicating whether color-description syntax is present.
     /// </summary>
     public bool IsColorDescriptionPresent { get; set; }
@@ -21,23 +16,13 @@ internal sealed class ObuColorConfig
     /// <summary>
     /// Gets the number of color channels in this image. Can have the value 1 or 3.
     /// </summary>
-    public int PlaneCount { get; private set; }
+    public int PlaneCount => this.IsMonochrome ? 1 : Av1Constants.MaxPlanes;
 
     /// <summary>
     /// Gets or sets a value indicating whether the image has a single greyscale plane, will have
     /// <see cref="Av1Constants.MaxPlanes"/> color planes otherwise.
     /// </summary>
-    public bool IsMonochrome
-    {
-        get => this.isMonochrome;
-        set
-        {
-            // Plane count is derived from the monochrome flag throughout the decoder, so update
-            // both values atomically rather than allowing the two pieces of state to diverge.
-            this.PlaneCount = value ? 1 : Av1Constants.MaxPlanes;
-            this.isMonochrome = value;
-        }
-    }
+    public bool IsMonochrome { get; set; }
 
     /// <summary>
     /// Gets or sets the color-primary chromaticities.

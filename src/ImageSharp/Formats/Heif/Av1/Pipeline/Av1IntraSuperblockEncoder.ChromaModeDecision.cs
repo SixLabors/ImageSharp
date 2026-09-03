@@ -805,10 +805,12 @@ internal static partial class Av1IntraSuperblockEncoder
             int transformHeight4x4 = transformSize.Get4x4HighCount();
             int maximumUnitWidth = Math.Min(maximumUnitBlockSize.GetWidth(), blockWidth);
             int maximumUnitHeight = Math.Min(maximumUnitBlockSize.GetHeight(), blockHeight);
-            Av1TransformType transformType = Av1SymbolContextHelper.GetDefaultIntraTransformType(
-                predictionMode,
-                transformSize,
-                this.picture.Parent.FrameHeader.UseReducedTransformSet);
+            Av1TransformType transformType = this.picture.Parent.FrameHeader.CodedLossless
+                ? Av1TransformType.DctDct
+                : Av1SymbolContextHelper.GetDefaultIntraTransformType(
+                    predictionMode,
+                    transformSize,
+                    this.picture.Parent.FrameHeader.UseReducedTransformSet);
 
             Av1ComponentType componentType = plane == Av1Plane.Y
                 ? Av1ComponentType.Luminance
@@ -1046,10 +1048,12 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Intra chroma derives one transform type from the shared UV prediction mode. The type is not
             // signaled independently for either chroma plane, so U and V must use the same legal fallback.
-            Av1TransformType transformType = Av1SymbolContextHelper.GetDefaultIntraTransformType(
-                predictionMode,
-                transformSize,
-                this.picture.Parent.FrameHeader.UseReducedTransformSet);
+            Av1TransformType transformType = this.picture.Parent.FrameHeader.CodedLossless
+                ? Av1TransformType.DctDct
+                : Av1SymbolContextHelper.GetDefaultIntraTransformType(
+                    predictionMode,
+                    transformSize,
+                    this.picture.Parent.FrameHeader.UseReducedTransformSet);
 
             long distortion = TOperator.EncodeCandidate(
                 this.blockWorkspace,

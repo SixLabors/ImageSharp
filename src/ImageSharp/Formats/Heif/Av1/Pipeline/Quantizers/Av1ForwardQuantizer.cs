@@ -36,21 +36,56 @@ internal static partial class Av1ForwardQuantizer
         int dcDeltaQ,
         int acDeltaQ,
         Av1BitDepth bitDepth)
-        => QuantizeLossy<FastQuantizationOperator>(
+        => bitDepth == Av1BitDepth.EightBit
+            ? Quantize<FastQuantizationOperator>(
+                coefficients,
+                quantizedCoefficients,
+                dequantizedCoefficients,
+                transformSize,
+                transformType,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                bitDepth)
+            : Quantize<HighBitDepthFastQuantizationOperator>(
+                coefficients,
+                quantizedCoefficients,
+                dequantizedCoefficients,
+                transformSize,
+                transformType,
+                qIndex,
+                dcDeltaQ,
+                acDeltaQ,
+                bitDepth);
+
+    /// <summary>
+    /// Quantizes one reversible four-by-four transform without changing its reconstruction coefficients.
+    /// </summary>
+    /// <param name="coefficients">The raster-order reversible-transform coefficients.</param>
+    /// <param name="quantizedCoefficients">The raster-order entropy-coding coefficients.</param>
+    /// <param name="dequantizedCoefficients">The raster-order reconstruction coefficients.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    /// <returns>The one-based end position in coefficient scan order.</returns>
+    public static ushort QuantizeLossless(
+        ReadOnlySpan<int> coefficients,
+        Span<int> quantizedCoefficients,
+        Span<int> dequantizedCoefficients,
+        Av1BitDepth bitDepth)
+        => Quantize<LosslessQuantizationOperator>(
             coefficients,
             quantizedCoefficients,
             dequantizedCoefficients,
-            transformSize,
-            transformType,
-            qIndex,
-            dcDeltaQ,
-            acDeltaQ,
+            Av1TransformSize.Size4x4,
+            Av1TransformType.DctDct,
+            0,
+            0,
+            0,
             bitDepth);
 
     /// <summary>
     /// Applies a closed generic quantization operator across the widest available hardware widths.
     /// </summary>
-    internal static ushort QuantizeLossy<TOperator>(
+    private static ushort Quantize<TOperator>(
         ReadOnlySpan<int> coefficients,
         Span<int> quantizedCoefficients,
         Span<int> dequantizedCoefficients,

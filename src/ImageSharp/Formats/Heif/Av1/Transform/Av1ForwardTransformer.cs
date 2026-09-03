@@ -46,6 +46,133 @@ internal static partial class Av1ForwardTransformer
     }
 
     /// <summary>
+    /// Applies the reversible four-by-four transform required by coded-lossless AV1 blocks.
+    /// </summary>
+    /// <param name="input">The spatial residual samples.</param>
+    /// <param name="coefficients">The destination transform coefficients.</param>
+    /// <param name="stride">The number of input samples between rows.</param>
+    public static void TransformLossless4x4(ReadOnlySpan<short> input, Span<int> coefficients, uint stride)
+    {
+        int inputStride = (int)stride;
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<int> row0 = Vector128.Create((int)input[0], input[1], input[2], input[3]);
+            Vector128<int> row1 = Vector128.Create(
+                input[inputStride],
+                input[inputStride + 1],
+                input[inputStride + 2],
+                input[inputStride + 3]);
+
+            Vector128<int> row2 = Vector128.Create(
+                input[2 * inputStride],
+                input[(2 * inputStride) + 1],
+                input[(2 * inputStride) + 2],
+                input[(2 * inputStride) + 3]);
+
+            Vector128<int> row3 = Vector128.Create(
+                input[3 * inputStride],
+                input[(3 * inputStride) + 1],
+                input[(3 * inputStride) + 2],
+                input[(3 * inputStride) + 3]);
+
+            // Each lane initially holds one column. The first stage transforms those columns in parallel, then the
+            // transpose makes each transformed column a row so the same lane-wise network can process the other axis.
+            TransformLosslessStage(ref row0, ref row1, ref row2, ref row3);
+            Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
+            TransformLosslessStage(ref row0, ref row1, ref row2, ref row3);
+
+            // The entropy pipeline stores transform positions in row-major order, while the reversible reference
+            // walk leaves the two frequency axes exchanged. Normalize that boundary before scan-order traversal.
+            Av1Transform2dOperations.Transpose(ref row0, ref row1, ref row2, ref row3);
+
+            ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
+            (row0 * 4).StoreUnsafe(ref coefficientBase);
+            (row1 * 4).StoreUnsafe(ref coefficientBase, 4);
+            (row2 * 4).StoreUnsafe(ref coefficientBase, 8);
+            (row3 * 4).StoreUnsafe(ref coefficientBase, 12);
+            return;
+        }
+
+        // The first pass writes transposed columns into the destination, matching the layout consumed in-place by
+        // the second pass. This keeps the scalar fallback allocation-free without a temporary matrix.
+        for (int column = 0; column < 4; column++)
+        {
+            int a = input[column];
+            int b = input[inputStride + column];
+            int c = input[(2 * inputStride) + column];
+            int d = input[(3 * inputStride) + column];
+
+            a += b;
+            d -= c;
+            int e = (a - d) >> 1;
+            b = e - b;
+            c = e - c;
+            a -= c;
+            d += b;
+
+            int offset = column * 4;
+            coefficients[offset] = a;
+            coefficients[offset + 1] = c;
+            coefficients[offset + 2] = d;
+            coefficients[offset + 3] = b;
+        }
+
+        for (int column = 0; column < 4; column++)
+        {
+            int a = coefficients[column];
+            int b = coefficients[4 + column];
+            int c = coefficients[8 + column];
+            int d = coefficients[12 + column];
+
+            a += b;
+            d -= c;
+            int e = (a - d) >> 1;
+            b = e - b;
+            c = e - c;
+            a -= c;
+            d += b;
+
+            coefficients[column] = a * 4;
+            coefficients[4 + column] = c * 4;
+            coefficients[8 + column] = d * 4;
+            coefficients[12 + column] = b * 4;
+        }
+
+        // Normalize the scalar reference walk to the row-major coefficient contract used by entropy coding.
+        (coefficients[1], coefficients[4]) = (coefficients[4], coefficients[1]);
+        (coefficients[2], coefficients[8]) = (coefficients[8], coefficients[2]);
+        (coefficients[3], coefficients[12]) = (coefficients[12], coefficients[3]);
+        (coefficients[6], coefficients[9]) = (coefficients[9], coefficients[6]);
+        (coefficients[7], coefficients[13]) = (coefficients[13], coefficients[7]);
+        (coefficients[11], coefficients[14]) = (coefficients[14], coefficients[11]);
+    }
+
+    /// <summary>
+    /// Applies one axis of the reversible four-point transform to four independent SIMD lanes.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void TransformLosslessStage(
+        ref Vector128<int> row0,
+        ref Vector128<int> row1,
+        ref Vector128<int> row2,
+        ref Vector128<int> row3)
+    {
+        Vector128<int> a = row0 + row1;
+        Vector128<int> d = row3 - row2;
+        Vector128<int> e = (a - d) >> 1;
+        Vector128<int> b = e - row1;
+        Vector128<int> c = e - row2;
+        a -= c;
+        d += b;
+
+        row0 = a;
+        row1 = c;
+        row2 = d;
+        row3 = b;
+    }
+
+    /// <summary>
     /// Selects the concrete column operator for a transform block.
     /// </summary>
     /// <param name="input">The spatial residual samples.</param>

@@ -153,6 +153,95 @@ public class Av1EncoderFrameTests
         }
     }
 
+    [Theory]
+    [InlineData(TenBit)]
+    [InlineData(TwelveBit)]
+    public void LosslessHighBitDepthEncodingPreservesNativePlanes(int bitDepthValue)
+    {
+        const int width = 8;
+        const int height = 8;
+        Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
+        using Image<Rgb48> source = new(width, height);
+        for (int row = 0; row < height; row++)
+        {
+            Span<Rgb48> pixels = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
+            for (int column = 0; column < width; column++)
+            {
+                pixels[column] = new Rgb48(
+                    (ushort)((column * 7001) + (row * 997)),
+                    (ushort)((row * 6007) + (column * 1231)),
+                    (ushort)((column * 4001) + (row * 3001)));
+            }
+        }
+
+        ObuColorConfig colorConfig = new()
+        {
+            IsColorDescriptionPresent = true,
+            ColorPrimaries = ObuColorPrimaries.Bt709,
+            TransferCharacteristics = ObuTransferCharacteristics.Srgb,
+            MatrixCoefficients = ObuMatrixCoefficients.Identity,
+            ColorRange = true,
+            BitDepth = bitDepth
+        };
+
+        using Av1EncoderFrameBuffer<ushort> expected = new(
+            Configuration.Default,
+            width,
+            height,
+            bitDepth.GetBitCount(),
+            Av1ColorFormat.Yuv444,
+            1,
+            1);
+
+        Av1FrameEncoder.PrepareSource(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            expected.Frame,
+            colorConfig);
+
+        using MemoryStream stream = new();
+        Av1FrameEncoder.Encode(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            stream,
+            colorConfig,
+            qIndex: 0,
+            effort: 0);
+
+        byte[] payload = stream.ToArray();
+        string outputDirectory = Path.Combine(
+            TestEnvironment.ActualOutputDirectoryFullPath,
+            "Formats",
+            "Heif",
+            "Av1");
+
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllBytes(
+            Path.Combine(outputDirectory, $"encoder-frame-8x8-{bitDepth.GetBitCount()}b-444-lossless.obu"),
+            payload);
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> actual = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
+
+        Assert.Equal(width, actual.Width);
+        Assert.Equal(height, actual.Height);
+        Assert.True(frameHeader.CodedLossless);
+        Assert.True(frameHeader.AllLossless);
+        Assert.Equal(Av1TransformMode.Only4x4, frameHeader.TransformMode);
+
+        foreach (Av1Plane plane in new[] { Av1Plane.Y, Av1Plane.U, Av1Plane.V })
+        {
+            Buffer2DRegion<ushort> expectedPlane = expected.Frame.View.GetPlane(plane);
+            for (int row = 0; row < height; row++)
+            {
+                Assert.Equal(
+                    expectedPlane.DangerousGetRowSpan(row)[..width].ToArray(),
+                    actual.GetHighBitDepthRowSpan(plane, row, 0, 0).ToArray());
+            }
+        }
+    }
+
     [Fact]
     public void EncodeEffortNineSelectsSubEightPartition()
     {

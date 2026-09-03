@@ -786,11 +786,6 @@ internal sealed class HeifEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (this.encoder.Lossless)
-        {
-            throw new NotSupportedException("Lossless AV1 encoding is not implemented.");
-        }
-
         if (image.Frames.Count != 1)
         {
             throw new NotSupportedException("AV1 image-sequence encoding is not implemented.");
@@ -806,8 +801,12 @@ internal sealed class HeifEncoderCore
             _ => throw new NotSupportedException($"HEIF bit depth '{bitDepth}' is not supported.")
         };
 
+        HeifChromaSubsampling defaultChromaSubsampling = this.encoder.Lossless
+            ? HeifChromaSubsampling.Yuv444
+            : HeifChromaSubsampling.Yuv420;
+
         HeifChromaSubsampling chromaSubsampling = this.encoder.ChromaSubsampling ??
-            (metadata.IsMonochrome ? HeifChromaSubsampling.Monochrome : HeifChromaSubsampling.Yuv420);
+            (metadata.IsMonochrome ? HeifChromaSubsampling.Monochrome : defaultChromaSubsampling);
 
         (bool isMonochrome, bool subsamplingX, bool subsamplingY) = chromaSubsampling switch
         {
@@ -871,7 +870,7 @@ internal sealed class HeifEncoderCore
         };
 
         int quality = this.encoder.Quality ?? 75;
-        int qIndex = GetAv1QuantizerIndex(quality);
+        int qIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(quality);
         cancellationToken.ThrowIfCancellationRequested();
         ObuSequenceHeader colorHeader = Av1FrameEncoder.Encode(
             this.configuration,
@@ -910,7 +909,7 @@ internal sealed class HeifEncoderCore
             };
 
             int alphaQuality = this.encoder.AlphaQuality ?? quality;
-            int alphaQIndex = GetAv1QuantizerIndex(alphaQuality);
+            int alphaQIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(alphaQuality);
             cancellationToken.ThrowIfCancellationRequested();
             long alphaOffset = stream.Length;
             ObuSequenceHeader alphaHeader = Av1FrameEncoder.EncodeAlpha(

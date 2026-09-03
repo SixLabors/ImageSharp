@@ -223,10 +223,10 @@ internal static class Av1TransformBlockEncoder
                 reconstruction,
                 reconstructionStride,
                 transformSize,
-                transformType,
+                state.TransformType,
                 (int)plane,
                 state.EndOfBlock,
-                false,
+                qIndex == 0,
                 workspace.TransformWorkspace);
         }
 
@@ -310,10 +310,10 @@ internal static class Av1TransformBlockEncoder
                 reconstruction,
                 width,
                 transformSize,
-                Av1TransformType.DctDct,
+                state.TransformType,
                 (int)plane,
                 state.EndOfBlock,
-                false,
+                qIndex == 0,
                 workspace.TransformWorkspace);
         }
 
@@ -549,10 +549,10 @@ internal static class Av1TransformBlockEncoder
                 MemoryMarshal.Cast<ushort, short>(reconstruction),
                 reconstructionStride,
                 transformSize,
-                transformType,
+                state.TransformType,
                 (int)plane,
                 state.EndOfBlock,
-                false,
+                qIndex == 0,
                 bitDepth,
                 workspace.TransformWorkspace);
         }
@@ -652,10 +652,10 @@ internal static class Av1TransformBlockEncoder
                 signedReconstruction,
                 width,
                 transformSize,
-                Av1TransformType.DctDct,
+                state.TransformType,
                 (int)plane,
                 state.EndOfBlock,
-                false,
+                qIndex == 0,
                 bitDepth,
                 workspace.TransformWorkspace);
         }
@@ -913,10 +913,10 @@ internal static class Av1TransformBlockEncoder
                 reconstruction,
                 reconstructionStride,
                 transformSize,
-                transformType,
+                state.TransformType,
                 (int)plane,
                 state.EndOfBlock,
-                false,
+                qIndex == 0,
                 workspace.TransformWorkspace);
         }
     }
@@ -1001,10 +1001,10 @@ internal static class Av1TransformBlockEncoder
                 MemoryMarshal.Cast<ushort, short>(reconstruction),
                 reconstructionStride,
                 transformSize,
-                transformType,
+                state.TransformType,
                 (int)plane,
                 state.EndOfBlock,
-                false,
+                qIndex == 0,
                 bitDepth,
                 workspace.TransformWorkspace);
         }
@@ -1060,6 +1060,16 @@ internal static class Av1TransformBlockEncoder
         Span<int> transformed = workspace.TransformCoefficients[..coefficientCount];
         Span<int> quantized = quantizedCoefficients[..coefficientCount];
         Span<int> dequantized = workspace.DequantizedCoefficients[..coefficientCount];
+
+        if (qIndex == 0)
+        {
+            // A coded-lossless frame fixes every transform block at 4x4 and uses the reversible transform. Its
+            // quantizer removes only the transform's fixed scale, leaving reconstruction coefficients unchanged.
+            Av1ForwardTransformer.TransformLossless4x4(residual, transformed, (uint)transformSize.GetWidth());
+            state.EndOfBlock = Av1ForwardQuantizer.QuantizeLossless(transformed, quantized, dequantized, bitDepth);
+            state.TransformType = Av1TransformType.DctDct;
+            return;
+        }
 
         // The forward transform reads the prepared residual without changing it, so every type candidate can
         // reuse one source-minus-prediction block. Separate coefficient spans preserve each later representation.

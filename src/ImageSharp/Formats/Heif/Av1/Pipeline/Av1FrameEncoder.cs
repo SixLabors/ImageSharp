@@ -119,7 +119,9 @@ internal static class Av1FrameEncoder
             ErrorResilientMode = true,
             RefreshFrameFlags = byte.MaxValue,
             DisableFrameEndUpdateCdf = true,
-            TransformMode = effort >= 6 ? Av1TransformMode.Select : Av1TransformMode.Largest,
+            TransformMode = qIndex == 0
+                ? Av1TransformMode.Only4x4
+                : effort >= 6 ? Av1TransformMode.Select : Av1TransformMode.Largest,
             ModeInfoColumnCount = modeInfoColumnCount,
             ModeInfoRowCount = modeInfoRowCount,
             TilesInfo = tiles,
@@ -294,14 +296,17 @@ internal static class Av1FrameEncoder
         }
 
         frameHeader.AllowScreenContentTools = allowScreenContentTools;
-        frameHeader.AllowIntraBlockCopy = allowIntraBlockCopy;
+
+        // The current IBC search is specialized for one 8x8 transform. Coded lossless requires reversible 4x4
+        // transforms, so retain palette search but omit this candidate until it has a matching tiled implementation.
+        frameHeader.AllowIntraBlockCopy = !frameHeader.CodedLossless && allowIntraBlockCopy;
         using Av1EncoderPictureBuffer picture = new(
             configuration,
             sequenceHeader,
             frameHeader,
             image.Width,
             image.Height,
-            disallow4x4AllFrames: effort < 9);
+            disallow4x4AllFrames: !frameHeader.CodedLossless && effort < 9);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             configuration,
@@ -358,14 +363,17 @@ internal static class Av1FrameEncoder
         }
 
         frameHeader.AllowScreenContentTools = allowScreenContentTools;
-        frameHeader.AllowIntraBlockCopy = allowIntraBlockCopy;
+
+        // The current IBC search is specialized for one 8x8 transform. Coded lossless requires reversible 4x4
+        // transforms, so retain palette search but omit this candidate until it has a matching tiled implementation.
+        frameHeader.AllowIntraBlockCopy = !frameHeader.CodedLossless && allowIntraBlockCopy;
         using Av1EncoderPictureBuffer picture = new(
             configuration,
             sequenceHeader,
             frameHeader,
             image.Width,
             image.Height,
-            disallow4x4AllFrames: effort < 9);
+            disallow4x4AllFrames: !frameHeader.CodedLossless && effort < 9);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             configuration,

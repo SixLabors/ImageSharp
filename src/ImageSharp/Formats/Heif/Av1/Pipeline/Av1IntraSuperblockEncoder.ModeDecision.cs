@@ -544,7 +544,10 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
             Av1PartitionType partitionType = modeInfo.Block.PartitionType;
-            Av1TransformSize maximumLumaTransformSize = blockSize.GetMaximumTransformSize();
+            Av1TransformSize maximumLumaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
+                ? Av1TransformSize.Size4x4
+                : blockSize.GetMaximumTransformSize();
+
             int qIndex = this.quantization.QIndex[0];
             modeInfo.Block = new Av1EncoderBlockModeInfo
             {
@@ -619,8 +622,9 @@ internal static partial class Av1IntraSuperblockEncoder
                         block.FilterIntraMode)
                     : 0;
 
-                modeInfo.Block.Skip = lumaTransformEmpty &&
-                    Av1TileWriter.ShouldSkipCoefficients(
+                modeInfo.Block.Skip =
+                    !this.picture.Parent.FrameHeader.CodedLossless &&
+                    lumaTransformEmpty && Av1TileWriter.ShouldSkipCoefficients(
                         writer,
                         Av1TileWriter.GetSkipContext(macroBlock),
                         emptyTransformRate);
@@ -660,9 +664,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 subsamplingX,
                 subsamplingY);
 
-            Av1TransformSize chromaTransformSize = blockSize.GetMaxUvTransformSize(
-                colorConfig.SubSamplingX,
-                colorConfig.SubSamplingY);
+            Av1TransformSize chromaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
+                ? Av1TransformSize.Size4x4
+                : blockSize.GetMaxUvTransformSize(
+                    colorConfig.SubSamplingX,
+                    colorConfig.SubSamplingY);
 
             Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(
                 colorConfig.SubSamplingX,
@@ -763,7 +769,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         Av1FilterIntraMode.AllFilterIntraModes);
                 }
 
-                modeInfo.Block.Skip = Av1TileWriter.ShouldSkipCoefficients(
+                modeInfo.Block.Skip = !this.picture.Parent.FrameHeader.CodedLossless &&
+                    Av1TileWriter.ShouldSkipCoefficients(
                     writer,
                     Av1TileWriter.GetSkipContext(macroBlock),
                     regularEmptyTransformRate);
@@ -1336,7 +1343,11 @@ internal static partial class Av1IntraSuperblockEncoder
             out Av1TransformSize selectedTransformSize,
             out long selectedCost)
         {
-            Av1TransformSize transformSize = blockSize.GetMaximumTransformSize();
+            bool codedLossless = this.picture.Parent.FrameHeader.CodedLossless;
+            Av1TransformSize transformSize = codedLossless
+                ? Av1TransformSize.Size4x4
+                : blockSize.GetMaximumTransformSize();
+
             int blockWidth = blockSize.GetWidth();
             int blockHeight = blockSize.GetHeight();
             Av1EncoderModeDecisionWorkspace<TSample> workspace =
@@ -1530,8 +1541,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Transform type and transform size are separate search axes. Splitting their effort thresholds
             // gives callers a useful intermediate tier without changing the fast default path.
-            bool searchEveryTransformType = this.effort >= 7;
-            bool searchEveryTransformSize = this.effort >= 8 &&
+            bool searchEveryTransformType = !codedLossless && this.effort >= 7;
+            bool searchEveryTransformSize = !codedLossless &&
+                this.effort >= 8 &&
                 transformSize == Av1TransformSize.Size8x8;
 
             // Zero-angle modes precede groups of six nonzero adjustments for each directional mode.
@@ -1571,12 +1583,14 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // Transform types are visited in AV1 enumeration order. A strict cost comparison below keeps
                 // the first legal type on ties, while lower efforts visit only the mode-derived default.
-                Av1TransformType firstTransformType = searchEveryTransformType
+                Av1TransformType firstTransformType = codedLossless
                     ? Av1TransformType.DctDct
-                    : Av1SymbolContextHelper.GetDefaultIntraTransformType(
-                        mode,
-                        transformSize,
-                        useReducedTransformSet);
+                    : searchEveryTransformType
+                        ? Av1TransformType.DctDct
+                        : Av1SymbolContextHelper.GetDefaultIntraTransformType(
+                            mode,
+                            transformSize,
+                            useReducedTransformSet);
 
                 Av1TransformType transformTypeLimit = searchEveryTransformType
                     ? Av1TransformType.AllTransformTypes
@@ -1679,7 +1693,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // Midrange effort refines the preliminary mode only. Higher effort already searched every
             // mode-transform pair above, so repeating the winning mode would add no candidates.
             long bestTransformCost = bestCost;
-            if (this.effort >= 3 && !searchEveryTransformType)
+            if (!codedLossless && this.effort >= 3 && !searchEveryTransformType)
             {
                 // The shared spans now contain the last mode visited above, so rebuild the preliminary
                 // winner once before refining its transform types.
@@ -1767,8 +1781,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         transformSize,
                         this.bitDepth);
 
+                    Av1TransformType filterTransformTypeLimit = codedLossless
+                        ? (Av1TransformType)((int)Av1TransformType.DctDct + 1)
+                        : Av1TransformType.AllTransformTypes;
+
                     for (Av1TransformType transformType = Av1TransformType.DctDct;
-                        transformType < Av1TransformType.AllTransformTypes;
+                        transformType < filterTransformTypeLimit;
                         transformType++)
                     {
                         if (!transformType.IsExtendedSetUsed(transformSetType))

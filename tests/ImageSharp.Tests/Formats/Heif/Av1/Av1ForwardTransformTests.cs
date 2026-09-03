@@ -62,6 +62,13 @@ public class Av1ForwardTransformTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertTwoDimensionalPipeline, TransformConfigurations);
 
     /// <summary>
+    /// Verifies the reversible transform against the independent scalar operation order at every hardware tier.
+    /// </summary>
+    [Fact]
+    public void LosslessTransformMatchesLibaomReferenceAcrossHardwareWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertLosslessTransform, TransformConfigurations);
+
+    /// <summary>
     /// Verifies that the complete transform dispatcher reuses caller-owned workspace.
     /// </summary>
     [Fact]
@@ -81,6 +88,90 @@ public class Av1ForwardTransformTests
         }
 
         Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
+
+    private static void AssertLosslessTransform()
+    {
+        const int stride = 7;
+        short[] input = new short[stride * 4];
+        for (int row = 0; row < 4; row++)
+        {
+            for (int column = 0; column < 4; column++)
+            {
+                input[(row * stride) + column] = (short)((row * 1003) - (column * 499) + (row * column * 71) - 1024);
+            }
+        }
+
+        int[] expected = new int[16];
+        int[] actual = new int[16];
+        TransformLosslessReference(input, expected, stride);
+        Av1ForwardTransformer.TransformLossless4x4(input, actual, stride);
+
+        Assert.Equal(expected, actual);
+
+        long before = GC.GetAllocatedBytesForCurrentThread();
+        for (int iteration = 0; iteration < 32; iteration++)
+        {
+            Av1ForwardTransformer.TransformLossless4x4(input, actual, stride);
+        }
+
+        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+    }
+
+    private static void TransformLosslessReference(ReadOnlySpan<short> input, Span<int> output, int stride)
+    {
+        // The first pass traverses columns and writes their four transformed values contiguously. The second
+        // pass consumes that transposed layout in place, matching the normative reversible operation order.
+        for (int column = 0; column < 4; column++)
+        {
+            int a = input[column];
+            int b = input[stride + column];
+            int c = input[(2 * stride) + column];
+            int d = input[(3 * stride) + column];
+
+            a += b;
+            d -= c;
+            int e = (a - d) >> 1;
+            b = e - b;
+            c = e - c;
+            a -= c;
+            d += b;
+
+            int offset = column * 4;
+            output[offset] = a;
+            output[offset + 1] = c;
+            output[offset + 2] = d;
+            output[offset + 3] = b;
+        }
+
+        for (int column = 0; column < 4; column++)
+        {
+            int a = output[column];
+            int b = output[4 + column];
+            int c = output[8 + column];
+            int d = output[12 + column];
+
+            a += b;
+            d -= c;
+            int e = (a - d) >> 1;
+            b = e - b;
+            c = e - c;
+            a -= c;
+            d += b;
+
+            output[column] = a * 4;
+            output[4 + column] = c * 4;
+            output[8 + column] = d * 4;
+            output[12 + column] = b * 4;
+        }
+
+        // Encoder coefficient storage is row-major, so exchange the reference walk's final frequency axes.
+        (output[1], output[4]) = (output[4], output[1]);
+        (output[2], output[8]) = (output[8], output[2]);
+        (output[3], output[12]) = (output[12], output[3]);
+        (output[6], output[9]) = (output[9], output[6]);
+        (output[7], output[13]) = (output[13], output[7]);
+        (output[11], output[14]) = (output[14], output[11]);
     }
 
     /// <summary>

@@ -626,6 +626,7 @@ public class Av1TransformBlockEncoderTests
             Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumTransformSampleCount, modeWorkspace.Prediction.Length);
             Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumTransformSampleCount, modeWorkspace.Residual.Length);
             Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumCandidateTransformBlockCount, modeWorkspace.CandidateTransformBlocks.Length);
+            Assert.Equal(2048, modeWorkspace.CandidateTransformBlocks.Length);
 
             // CfL is unavailable above 32x32, so its scratch remains fixed while larger partitions are enabled.
             Assert.Equal(Av1ChromaFromLumaContext.BufferLength, modeWorkspace.ChromaFromLumaSamples.Length);

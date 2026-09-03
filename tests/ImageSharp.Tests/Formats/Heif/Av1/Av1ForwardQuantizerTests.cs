@@ -69,6 +69,34 @@ public class Av1ForwardQuantizerTests
     }
 
     /// <summary>
+    /// Verifies that lossless quantization removes only the reversible transform scale.
+    /// </summary>
+    [Fact]
+    public void LosslessQuantizerRetainsExactReconstructionCoefficients()
+    {
+        int[] coefficients =
+        [
+            4, -8, 12, -16,
+            20, -24, 28, -32,
+            36, -40, 44, -48,
+            52, -56, 60, -64
+        ];
+
+        int[] quantized = new int[coefficients.Length];
+        int[] dequantized = new int[coefficients.Length];
+
+        ushort endOfBlock = Av1ForwardQuantizer.QuantizeLossless(
+            coefficients,
+            quantized,
+            dequantized,
+            Av1BitDepth.TwelveBit);
+
+        Assert.Equal((ushort)16, endOfBlock);
+        Assert.Equal(coefficients.Select(x => x / 4), quantized);
+        Assert.Equal(coefficients, dequantized);
+    }
+
+    /// <summary>
     /// Exercises each transform-scale category, coded 64-point layout, quantizer range, and sample precision.
     /// </summary>
     private static void ValidateQuantizer()
@@ -188,7 +216,12 @@ public class Av1ForwardQuantizerTests
 
             if ((magnitude << (1 + logScale)) >= dequantizer)
             {
-                magnitude = Math.Clamp(magnitude + rounding, short.MinValue, short.MaxValue);
+                magnitude += rounding;
+                if (bitDepth == Av1BitDepth.EightBit)
+                {
+                    magnitude = Math.Min(magnitude, short.MaxValue);
+                }
+
                 quantizedMagnitude = (int)((magnitude * quantizer) >> (16 - logScale));
             }
 

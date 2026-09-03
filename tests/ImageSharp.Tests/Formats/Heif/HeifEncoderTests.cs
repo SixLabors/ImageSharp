@@ -8,6 +8,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
@@ -181,18 +182,69 @@ public class HeifEncoderTests
     }
 
     [Fact]
-    public void Av1RejectsLosslessEncodingBeforeWritingOutput()
+    public void Av1LosslessRoundTripPreservesColorAndAlpha()
     {
-        using Image<Rgba32> image = new(1, 1);
+        const int width = 8;
+        const int height = 8;
+        using Image<Rgba32> image = new(width, height);
+        for (int row = 0; row < height; row++)
+        {
+            Span<Rgba32> pixels = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
+            for (int column = 0; column < width; column++)
+            {
+                pixels[column] = new Rgba32(
+                    (byte)((column * 31) + row),
+                    (byte)((row * 29) + column),
+                    (byte)((column * 17) + (row * 11)),
+                    (byte)((column * 23) + (row * 7)));
+            }
+        }
+
+        // Identity-matrix 4:4:4 maps the packed RGB channels directly onto AV1 planes, so codec losslessness
+        // can be asserted against the original pixels without a separate color-conversion tolerance.
+        image.Metadata.CicpProfile = new CicpProfile(1, 13, 0, true);
         using MemoryStream stream = new();
         HeifEncoder encoder = new()
         {
             CompressionMethod = HeifCompressionMethod.Av1,
-            Lossless = true
+            Lossless = true,
+            Effort = 0
         };
 
-        Assert.Throws<NotSupportedException>(() => image.Save(stream, encoder));
-        Assert.Equal(0, stream.Length);
+        image.Save(stream, encoder);
+        byte[] file = stream.ToArray();
+        Span<byte> colorPayload = GetItemPayload(file, 1);
+        using Av1Decoder colorDecoder = new(Configuration.Default);
+        using Image<Rgba32> colorImage = colorDecoder.Decode<Rgba32>(colorPayload);
+        ObuSequenceHeader colorSequenceHeader = Assert.IsType<ObuSequenceHeader>(colorDecoder.SequenceHeader);
+        ObuFrameHeader colorFrameHeader = Assert.IsType<ObuFrameHeader>(colorDecoder.FrameHeader);
+
+        Assert.Equal(Av1ColorFormat.Yuv444, colorSequenceHeader.ColorConfig.GetColorFormat());
+        Assert.Equal(0, colorFrameHeader.QuantizationParameters.BaseQIndex);
+        Assert.True(colorFrameHeader.CodedLossless);
+        Assert.True(colorFrameHeader.AllLossless);
+        Assert.Equal(Av1TransformMode.Only4x4, colorFrameHeader.TransformMode);
+
+        Span<byte> alphaPayload = GetItemPayload(file, 2);
+        using Av1Decoder alphaDecoder = new(Configuration.Default);
+        using Image<L8> alphaImage = alphaDecoder.Decode<L8>(alphaPayload);
+        ObuFrameHeader alphaFrameHeader = Assert.IsType<ObuFrameHeader>(alphaDecoder.FrameHeader);
+        Assert.Equal(0, alphaFrameHeader.QuantizationParameters.BaseQIndex);
+        Assert.True(alphaFrameHeader.CodedLossless);
+
+        stream.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+        Assert.Empty(ImageComparer.Exact.CompareImages(image, decoded));
+
+        string outputDirectory = Path.Combine(
+            TestEnvironment.ActualOutputDirectoryFullPath,
+            "Formats",
+            "Heif",
+            "Av1");
+
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllBytes(Path.Combine(outputDirectory, "encoder-public-lossless-color.obu"), colorPayload.ToArray());
+        File.WriteAllBytes(Path.Combine(outputDirectory, "encoder-public-lossless-alpha.obu"), alphaPayload.ToArray());
     }
 
     [Fact]

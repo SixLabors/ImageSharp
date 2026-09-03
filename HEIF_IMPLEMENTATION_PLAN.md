@@ -27,14 +27,14 @@ Reference checkout evidence on 2026-08-31:
 
 ## Current source reconciliation
 
-Reconciled with the worktree on 2026-08-31.
+Reconciled with the worktree on 2026-09-03.
 
 - [~] The bounded container reader, still-image path, sequence parser, AV1 decoder, color pipeline, presentation pipeline, and broad AV1 test suite exist locally.
 - [x] The inter-frame decoder has verified checkpoints through inter deblocking decisions and
   reference/mode deltas.
 - [~] Loop filtering, CDEF, super-resolution, restoration, film grain, layered presentation, alpha composition, and color conversion exist locally. Shared-source cleanup changed the current tree, so final production-path verification is open.
-- [~] AV1 writer primitives, forward transforms, symbol encoding, and tile-writing source exist locally, but they are not connected to the public encoder.
-- [ ] The public AV1 encoder is not implemented. HeifEncoderCore.Encode throws NotSupportedException when AV1 is selected.
+- [~] AV1 writer primitives, forward transforms, symbol encoding, and tile-writing source are connected to the public encoder for bounded still-image AVIF color and optional auxiliary alpha output.
+- [~] The public AV1 encoder supports explicit single-image requests. Lossless output, bounded sequences, grids, metadata preservation, orientation handling, and default format registration remain open.
 - [x] Patented codec production code, registrations, tests, benchmarks, fixtures, reference outputs, and notices were manually deleted and committed by `78a74d448`.
 - [x] Remaining task-created HM, HEVC, libheif, GPAC, Nokia, FFmpeg, Pillow HEIF, libavif-build, and libjpeg-build directories were traced to their creation commands in the recovered Codex session history and deleted on 2026-08-31. The user-provided repositories and all libaom-only source, build, and reference data were left untouched.
 - [x] The PNG metadata-suppression fix and three HEIF/AV1 diagnostic-save call-site corrections passed the exact 34 net11.0 ARM CI cases and were committed with the single-reference checkpoint as `54bb6cbe59bd113058854a3ee31448cf61f462ca`. They are infrastructure evidence, not decoder or encoder completion evidence.
@@ -872,12 +872,14 @@ Encoder verification contract:
 
 - [~] The encoder-side AV1 codec configuration is now derived directly from the encoded sequence header and writes the fixed four-byte `av1C` record with empty `configOBUs`. The image payload retains the required sequence header, so the property introduces no sequence-header allocation, retention, or copy. Four production-header cases cover main, high, and professional profiles; 8-, 10-, and 12-bit precision; monochrome, 4:2:0, 4:2:2, and 4:4:4 sampling; exact fixed bytes; decoder reparsing; and header/property equivalence through direct net11 Release VSTest. Property-container emission and public AVIF activation remain open.
 - [~] AV1 image properties now write `ispe`, `pixi`, `av1C`, `colr`, and `auxC` in current AVIF item order. Only `av1C` is essential; color and alpha items retain independent property sets and the registered alpha auxiliary type. The property container reacquires its span after nested expansion before patching `ipco`, removing the prior stale-buffer write, and selects compact or 15-bit `ipma` indices from the property count rather than the unrelated item count. A forced-growth color-plus-alpha case validates every property payload and association byte; a separate 43-item, 129-property case proves indices 127 through 129 and the extended essential bit. Both pass direct foreground net11 Release VSTest. Complete AVIF assembly remains open.
-- [ ] Write the correct AVIF file type, item information, locations, references, properties, AV1 configuration, dimensions, color, alpha, metadata, and media data.
-- [ ] Support single images, alpha auxiliary images, grids, multiple extents, and bounded image sequences in the final public scope.
+- [~] Explicit public AV1 encoding now writes a still-image AVIF with `avif` major brand, compatible `avif`, `mif1`, and `miaf` brands, one primary color item, an optional alpha auxiliary item, `auxl` from alpha to color, independent item properties, absolute version-one `iloc` extents, and a shared `mdat`. Quality uses current libaom's quantizer-to-qindex mapping with public quality 100 deliberately clamped from lossless qindex 0 to qindex 4. Effort controls the implemented search stages, and the resolved value is required explicitly by every internal frame, tile, and mode-decision operation rather than repeated as optional defaults. Encoder options take precedence over source metadata for 8-, 10-, and 12-bit monochrome, 4:2:0, 4:2:2, and 4:4:4 output. Alpha derives from the source pixel type without scanning pixels, and incompatible identity-matrix metadata is normalized without mutating the source image.
+- [~] The production path writes color and alpha payloads sequentially through allocator-backed chunked storage, supports non-seekable and prefixed destinations, and does not materialize a complete file or payload copy. Uniform encoder-side `pixi` depth is written directly without allocating per-item channel-depth arrays; decoder-side non-uniform channel depths remain supported. The Release test project builds with zero errors, all 39 encoder cases pass, the complete non-HEVC HEIF namespace passes 9,277 of 9,277, and current official libaom accepts all 47 generated payloads.
+- [~] Write the correct AVIF file type, item information, locations, references, properties, AV1 configuration, dimensions, color, alpha, metadata, and media data.
+- [~] Support single images, alpha auxiliary images, grids, multiple extents, and bounded image sequences in the final public scope.
 - [ ] Preserve ICC, Exif, and XMP according to encoder options.
-- [ ] Write CICP, range, chroma position, bit depth, and subsampling values that match the encoded planes.
+- [~] Write CICP, range, chroma position, bit depth, and subsampling values that match the encoded planes.
 - [ ] Apply orientation and clean-aperture behavior consistently with ImageSharp encoder conventions.
-- [ ] Stream output through allocator-backed chunked storage without file-sized copies or ToArray materialization.
+- [~] Stream output through allocator-backed chunked storage without file-sized copies or ToArray materialization.
 
 Encoder exit gate:
 
@@ -887,7 +889,7 @@ Encoder exit gate:
 - [ ] 8, 10, and 12-bit monochrome, 4:2:0, 4:2:2, and 4:4:4 outputs pass.
 - [ ] Alpha, grids, metadata, color profiles, transforms, and bounded sequences pass.
 - [ ] ImageSharp decode of its own output is supplemental coverage only, never the sole oracle.
-- [ ] Public encoding no longer throws for a supported AV1 request.
+- [x] Public encoding no longer throws for a supported AV1 request.
 - [ ] Focused Release and FeatureTestRunner verification passes with exact recorded evidence.
 
 ## Architecture rules

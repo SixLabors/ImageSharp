@@ -34,7 +34,7 @@ internal static class Av1FrameEncoder
         Stream stream,
         ObuColorConfig colorConfig,
         int qIndex,
-        int effort = 5)
+        int effort)
         where TPixel : unmanaged, IPixel<TPixel>
         => Encode(configuration, image, stream, colorConfig, qIndex, effort, false);
 
@@ -55,7 +55,7 @@ internal static class Av1FrameEncoder
         Stream stream,
         ObuColorConfig colorConfig,
         int qIndex,
-        int effort = 5)
+        int effort)
         where TPixel : unmanaged, IPixel<TPixel>
         => Encode(configuration, image, stream, colorConfig, qIndex, effort, true);
 

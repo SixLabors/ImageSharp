@@ -138,7 +138,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1Superblock superblock,
             Av1EncoderCoefficientBuffer coefficientBuffer,
             Av1EncoderBlockWorkspace blockWorkspace,
-            int effort = 5)
+            int effort)
         {
             this.source = source.CodedView;
             this.reconstruction = reconstruction.CodedView;

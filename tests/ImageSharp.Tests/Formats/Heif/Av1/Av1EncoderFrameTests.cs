@@ -87,7 +87,8 @@ public class Av1EncoderFrameTests
             source.Frames.RootFrame,
             stream,
             colorConfig,
-            qIndex: 37);
+            qIndex: 37,
+            effort: 5);
 
         byte[] payload = stream.ToArray();
         string outputDirectory = Path.Combine(
@@ -177,7 +178,8 @@ public class Av1EncoderFrameTests
             source.Frames.RootFrame,
             stream,
             CreateColorConfig(bitDepth),
-            qIndex: 37);
+            qIndex: 37,
+            effort: 5);
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
@@ -273,7 +275,8 @@ public class Av1EncoderFrameTests
             source.Frames.RootFrame,
             stream,
             CreateColorConfig(bitDepth, colorFormat),
-            qIndex: 37);
+            qIndex: 37,
+            effort: 5);
 
         Av1CodecConfiguration configuration = new(sequenceHeader);
         byte[] fixedHeader = new byte[Av1CodecConfiguration.FixedHeaderSize];
@@ -459,7 +462,8 @@ public class Av1EncoderFrameTests
             source.Frames.RootFrame,
             stream,
             colorConfig,
-            qIndex: 37);
+            qIndex: 37,
+            effort: 5);
 
         byte[] payload = stream.ToArray();
         Av1BitStreamReader reader = new(payload);
@@ -594,7 +598,8 @@ public class Av1EncoderFrameTests
             source.Frames.RootFrame,
             stream,
             colorConfig,
-            qIndex: 37);
+            qIndex: 37,
+            effort: 5);
 
         byte[] payload = stream.ToArray();
         using Av1Decoder decoder = new(Configuration.Default);
@@ -797,7 +802,8 @@ public class Av1EncoderFrameTests
             source.Frames.RootFrame,
             destination,
             CreateColorConfig(Av1BitDepth.TwelveBit, Av1ColorFormat.Yuv444),
-            qIndex: 37);
+            qIndex: 37,
+            effort: 5);
 
         Assert.False(destination.CanSeek);
         Assert.NotEqual(0, storage.Length);

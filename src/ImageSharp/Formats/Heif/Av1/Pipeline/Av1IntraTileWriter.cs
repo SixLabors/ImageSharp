@@ -38,7 +38,7 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
         Av1EncoderSuperblockWorkspace superblockWorkspace,
         Av1EncoderBlockWorkspace blockWorkspace,
         int initialSize,
-        int effort = 5)
+        int effort)
     {
         this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator>(
             configuration,
@@ -74,7 +74,7 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
         Av1EncoderSuperblockWorkspace superblockWorkspace,
         Av1EncoderBlockWorkspace blockWorkspace,
         int initialSize,
-        int effort = 5)
+        int effort)
     {
         this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(
             configuration,

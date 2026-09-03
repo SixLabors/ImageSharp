@@ -162,6 +162,12 @@ internal sealed class HeifItem(Heif4CharCode type, uint id)
     public byte[]? ChannelBitDepths { get; set; }
 
     /// <summary>
+    /// Gets or sets the common encoded precision of every image channel, or <see langword="null"/> when channel
+    /// precision is absent or represented individually by <see cref="ChannelBitDepths"/>.
+    /// </summary>
+    public byte? UniformChannelBitDepth { get; set; }
+
+    /// <summary>
     /// Gets or sets the number of bits in a single pixel.
     /// </summary>
     public int BitsPerPixel { get; set; }

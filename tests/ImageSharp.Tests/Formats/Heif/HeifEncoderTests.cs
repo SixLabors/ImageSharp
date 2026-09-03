@@ -18,6 +18,14 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif;
 [ValidateDisposedMemoryAllocations]
 public class HeifEncoderTests
 {
+    private const int Av1EightBit = (int)Av1BitDepth.EightBit;
+    private const int Av1TenBit = (int)Av1BitDepth.TenBit;
+    private const int Av1TwelveBit = (int)Av1BitDepth.TwelveBit;
+    private const int Yuv400 = (int)Av1ColorFormat.Yuv400;
+    private const int Yuv420 = (int)Av1ColorFormat.Yuv420;
+    private const int Yuv422 = (int)Av1ColorFormat.Yuv422;
+    private const int Yuv444 = (int)Av1ColorFormat.Yuv444;
+
     [Fact]
     public void OptionsHaveExpectedDefaults()
     {
@@ -142,14 +150,319 @@ public class HeifEncoderTests
     }
 
     [Fact]
-    public void Av1RejectsEncodingBeforeWritingOutput()
+    public void Av1RejectsLosslessEncodingBeforeWritingOutput()
     {
         using Image<Rgba32> image = new(1, 1);
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.Av1,
+            Lossless = true
+        };
+
+        Assert.Throws<NotSupportedException>(() => image.Save(stream, encoder));
+        Assert.Equal(0, stream.Length);
+    }
+
+    [Fact]
+    public void Av1RejectsImageSequenceBeforeWritingOutput()
+    {
+        using Image<Rgb24> image = new(1, 1);
+        image.Frames.AddFrame(image.Frames.RootFrame);
         using MemoryStream stream = new();
         HeifEncoder encoder = new() { CompressionMethod = HeifCompressionMethod.Av1 };
 
         Assert.Throws<NotSupportedException>(() => image.Save(stream, encoder));
         Assert.Equal(0, stream.Length);
+    }
+
+    [Theory]
+    [InlineData(0, 255)]
+    [InlineData(1, 249)]
+    [InlineData(2, 249)]
+    [InlineData(50, 128)]
+    [InlineData(60, 100)]
+    [InlineData(75, 64)]
+    [InlineData(99, 4)]
+    [InlineData(100, 4)]
+    public void Av1QualityMapsThroughLibaomQuantizers(int quality, int expectedQIndex)
+        => Assert.Equal(expectedQIndex, HeifEncoderCore.GetAv1QuantizerIndex(quality));
+
+    [Fact]
+    public void Av1WritesStillImageWithRequiredBrandsAndProductionPayload()
+    {
+        const int width = 16;
+        const int height = 16;
+        using Image<Rgb24> image = new(width, height);
+        for (int row = 0; row < height; row++)
+        {
+            Span<Rgb24> pixels = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
+            for (int column = 0; column < width; column++)
+            {
+                pixels[column] = new Rgb24(
+                    (byte)(column * 11),
+                    (byte)(row * 13),
+                    (byte)((column + row) * 7));
+            }
+        }
+
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.Av1,
+            Quality = 75,
+            Effort = 0
+        };
+
+        image.Save(stream, encoder);
+        byte[] file = stream.ToArray();
+        ReadOnlySpan<byte> fileType = file.AsSpan(0, 28);
+        Assert.Equal(28, BinaryPrimitives.ReadInt32BigEndian(fileType));
+        Assert.Equal(Heif4CharCode.Ftyp, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(fileType[4..]));
+        Assert.Equal(Heif4CharCode.Avif, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(fileType[8..]));
+        Assert.Equal(0, BinaryPrimitives.ReadInt32BigEndian(fileType[12..]));
+        Assert.Equal(Heif4CharCode.Avif, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(fileType[16..]));
+        Assert.Equal(Heif4CharCode.Mif1, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(fileType[20..]));
+        Assert.Equal(Heif4CharCode.Miaf, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(fileType[24..]));
+
+        Span<byte> payload = GetItemPayload(file, 1);
+        using Av1Decoder payloadDecoder = new(Configuration.Default);
+        using Image<Rgb24> payloadImage = payloadDecoder.Decode<Rgb24>(payload);
+        ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(payloadDecoder.FrameHeader);
+        Assert.Equal(64, frameHeader.QuantizationParameters.BaseQIndex);
+        Assert.Equal(image.Size, payloadImage.Size);
+
+        stream.Position = 0;
+        using Image<Rgb24> decoded = Image.Load<Rgb24>(stream);
+        HeifMetadata metadata = decoded.Metadata.GetHeifMetadata();
+        Assert.Equal(image.Size, decoded.Size);
+        Assert.Equal(HeifCompressionMethod.Av1, metadata.CompressionMethod);
+        Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
+        Assert.False(metadata.IsMonochrome);
+        Assert.False(metadata.HasAlpha);
+        CicpProfile colorProfile = Assert.IsType<CicpProfile>(decoded.Metadata.CicpProfile);
+        Assert.Equal(CicpMatrixCoefficients.ItuRBt601_7_525, colorProfile.MatrixCoefficients);
+        Assert.False(colorProfile.FullRange);
+
+        string outputDirectory = Path.Combine(
+            TestEnvironment.ActualOutputDirectoryFullPath,
+            "Formats",
+            "Heif",
+            "Av1");
+
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllBytes(Path.Combine(outputDirectory, "encoder-public-16x16-8b-420.avif"), file);
+        File.WriteAllBytes(Path.Combine(outputDirectory, "encoder-public-16x16-8b-420.obu"), payload.ToArray());
+    }
+
+    [Fact]
+    public void Av1WritesAuxiliaryAlphaFromSourcePixelType()
+    {
+        const int width = 16;
+        const int height = 8;
+        using Image<Rgba32> image = new(width, height);
+        for (int row = 0; row < height; row++)
+        {
+            Span<Rgba32> pixels = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
+            for (int column = 0; column < width; column++)
+            {
+                pixels[column] = column < 8
+                    ? new Rgba32(40, 80, 120, 0)
+                    : new Rgba32(40, 80, 120, 255);
+            }
+        }
+
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.Av1,
+            Quality = 75,
+            AlphaQuality = 100,
+            Effort = 0
+        };
+
+        image.Save(stream, encoder);
+        byte[] file = stream.ToArray();
+        Span<byte> colorPayload = GetItemPayload(file, 1);
+        Span<byte> alphaPayload = GetItemPayload(file, 2);
+        using Av1Decoder colorDecoder = new(Configuration.Default);
+        using Image<Rgba32> colorImage = colorDecoder.Decode<Rgba32>(colorPayload);
+        ObuFrameHeader colorFrameHeader = Assert.IsType<ObuFrameHeader>(colorDecoder.FrameHeader);
+        Assert.Equal(64, colorFrameHeader.QuantizationParameters.BaseQIndex);
+
+        using Av1Decoder alphaDecoder = new(Configuration.Default);
+        using Image<L8> alphaImage = alphaDecoder.Decode<L8>(alphaPayload);
+        ObuSequenceHeader alphaSequenceHeader = Assert.IsType<ObuSequenceHeader>(alphaDecoder.SequenceHeader);
+        ObuFrameHeader alphaFrameHeader = Assert.IsType<ObuFrameHeader>(alphaDecoder.FrameHeader);
+        Assert.True(alphaSequenceHeader.ColorConfig.IsMonochrome);
+        Assert.Equal(4, alphaFrameHeader.QuantizationParameters.BaseQIndex);
+
+        stream.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+        HeifMetadata metadata = decoded.Metadata.GetHeifMetadata();
+        Assert.True(metadata.HasAlpha);
+        Assert.InRange(decoded[0, 0].A, (byte)0, (byte)8);
+        Assert.InRange(decoded[width - 1, 0].A, (byte)247, byte.MaxValue);
+
+        string outputDirectory = Path.Combine(
+            TestEnvironment.ActualOutputDirectoryFullPath,
+            "Formats",
+            "Heif",
+            "Av1");
+
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllBytes(Path.Combine(outputDirectory, "encoder-public-alpha-color.obu"), colorPayload.ToArray());
+        File.WriteAllBytes(Path.Combine(outputDirectory, "encoder-public-alpha-auxiliary.obu"), alphaPayload.ToArray());
+    }
+
+    [Theory]
+    [InlineData(HeifBitDepth.Bit8, HeifChromaSubsampling.Monochrome, Av1EightBit, Yuv400)]
+    [InlineData(HeifBitDepth.Bit10, HeifChromaSubsampling.Yuv420, Av1TenBit, Yuv420)]
+    [InlineData(HeifBitDepth.Bit10, HeifChromaSubsampling.Yuv422, Av1TenBit, Yuv422)]
+    [InlineData(HeifBitDepth.Bit12, HeifChromaSubsampling.Yuv444, Av1TwelveBit, Yuv444)]
+    public void Av1ExplicitPrecisionAndSamplingReachPayload(
+        HeifBitDepth bitDepth,
+        HeifChromaSubsampling chromaSubsampling,
+        int expectedAv1BitDepthValue,
+        int expectedColorFormatValue)
+    {
+        Av1BitDepth expectedAv1BitDepth = (Av1BitDepth)expectedAv1BitDepthValue;
+        Av1ColorFormat expectedColorFormat = (Av1ColorFormat)expectedColorFormatValue;
+        using Image<Rgb24> image = new(8, 8);
+        for (int row = 0; row < image.Height; row++)
+        {
+            Span<Rgb24> pixels = image.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
+            for (int column = 0; column < image.Width; column++)
+            {
+                pixels[column] = new Rgb24(
+                    (byte)(column * 29),
+                    (byte)(row * 29),
+                    (byte)((column + row) * 13));
+            }
+        }
+
+        image.Metadata.GetHeifMetadata().BitDepth = HeifBitDepth.Bit10;
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.Av1,
+            BitDepth = bitDepth,
+            ChromaSubsampling = chromaSubsampling,
+            Effort = 0
+        };
+
+        image.Save(stream, encoder);
+        byte[] file = stream.ToArray();
+        Span<byte> payload = GetItemPayload(file, 1);
+        using Av1Decoder payloadDecoder = new(Configuration.Default);
+        using Image<Rgb48> payloadImage = payloadDecoder.Decode<Rgb48>(payload);
+        ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(payloadDecoder.SequenceHeader);
+        Assert.Equal(expectedAv1BitDepth, sequenceHeader.ColorConfig.BitDepth);
+        Assert.Equal(expectedColorFormat, sequenceHeader.ColorConfig.GetColorFormat());
+        Assert.Equal(image.Size, payloadImage.Size);
+
+        stream.Position = 0;
+        using Image<Rgb48> decoded = Image.Load<Rgb48>(stream);
+        HeifMetadata metadata = decoded.Metadata.GetHeifMetadata();
+        Assert.Equal(bitDepth, metadata.BitDepth);
+        Assert.Equal(chromaSubsampling == HeifChromaSubsampling.Monochrome, metadata.IsMonochrome);
+
+        string outputDirectory = Path.Combine(
+            TestEnvironment.ActualOutputDirectoryFullPath,
+            "Formats",
+            "Heif",
+            "Av1");
+
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllBytes(
+            Path.Combine(outputDirectory, $"encoder-public-8x8-{(int)bitDepth}b-{chromaSubsampling}.obu"),
+            payload.ToArray());
+    }
+
+    [Fact]
+    public void Av1UsesMetadataBitDepthWhenOptionIsNull()
+    {
+        using Image<Rgb24> image = new(8, 8);
+        image.Metadata.GetHeifMetadata().BitDepth = HeifBitDepth.Bit10;
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.Av1,
+            ChromaSubsampling = HeifChromaSubsampling.Yuv444,
+            Effort = 0
+        };
+
+        image.Save(stream, encoder);
+        byte[] file = stream.ToArray();
+        Span<byte> payload = GetItemPayload(file, 1);
+        using Av1Decoder payloadDecoder = new(Configuration.Default);
+        using Image<Rgb48> payloadImage = payloadDecoder.Decode<Rgb48>(payload);
+        ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(payloadDecoder.SequenceHeader);
+        Assert.Equal(Av1BitDepth.TenBit, sequenceHeader.ColorConfig.BitDepth);
+    }
+
+    [Fact]
+    public void Av1SanitizesIncompatibleIdentityMatrixWithoutMutatingSourceMetadata()
+    {
+        using Image<Rgb24> image = new(8, 8);
+        CicpProfile sourceProfile = new(1, 13, 0, false);
+        image.Metadata.CicpProfile = sourceProfile;
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.Av1,
+            ChromaSubsampling = HeifChromaSubsampling.Yuv420,
+            Effort = 0
+        };
+
+        image.Save(stream, encoder);
+        Assert.Same(sourceProfile, image.Metadata.CicpProfile);
+        Assert.Equal(CicpMatrixCoefficients.Identity, sourceProfile.MatrixCoefficients);
+        Assert.False(sourceProfile.FullRange);
+
+        stream.Position = 0;
+        using Image<Rgb24> decoded = Image.Load<Rgb24>(stream);
+        CicpProfile decodedProfile = Assert.IsType<CicpProfile>(decoded.Metadata.CicpProfile);
+        Assert.Equal(CicpMatrixCoefficients.ItuRBt601_7_525, decodedProfile.MatrixCoefficients);
+        Assert.False(decodedProfile.FullRange);
+    }
+
+    [Fact]
+    public void Av1WritesNonSeekableStream()
+    {
+        using Image<Rgb24> image = new(8, 8);
+        using MemoryStream storage = new();
+        using NonSeekableStream destination = new(storage);
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.Av1,
+            Effort = 0
+        };
+
+        image.Save(destination, encoder);
+        Assert.NotEqual(0, storage.Length);
+        storage.Position = 0;
+        using Image<Rgb24> decoded = Image.Load<Rgb24>(storage);
+        Assert.Equal(image.Size, decoded.Size);
+    }
+
+    [Fact]
+    public void Av1WritesAtCurrentStreamPosition()
+    {
+        using Image<Rgb24> image = new(8, 8);
+        using MemoryStream stream = new();
+        stream.Write([1, 2, 3, 4]);
+        long fileStart = stream.Position;
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.Av1,
+            Effort = 0
+        };
+
+        image.Save(stream, encoder);
+        stream.Position = fileStart;
+        using Image<Rgb24> decoded = Image.Load<Rgb24>(stream);
+        Assert.Equal(image.Size, decoded.Size);
     }
 
     [Fact]
@@ -368,5 +681,55 @@ public class HeifEncoderTests
 
         ImageComparer.Exact.CompareImages(image, encodedImage);
         Assert.Equal(compressionMethod, heifMetadata.CompressionMethod);
+    }
+
+    private static Span<byte> GetItemPayload(Span<byte> file, ushort itemId)
+    {
+        int offset = 0;
+        while (offset < file.Length)
+        {
+            int boxSize = BinaryPrimitives.ReadInt32BigEndian(file[offset..]);
+            Heif4CharCode boxType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(file[(offset + 4)..]);
+            if (boxType == Heif4CharCode.Meta)
+            {
+                int childOffset = offset + 12;
+                int boxEnd = offset + boxSize;
+                while (childOffset < boxEnd)
+                {
+                    int childSize = BinaryPrimitives.ReadInt32BigEndian(file[childOffset..]);
+                    Heif4CharCode childType = (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(file[(childOffset + 4)..]);
+                    if (childType == Heif4CharCode.Iloc)
+                    {
+                        int locationOffset = childOffset + 14;
+                        int itemCount = BinaryPrimitives.ReadUInt16BigEndian(file[locationOffset..]);
+                        locationOffset += 2;
+                        for (int itemIndex = 0; itemIndex < itemCount; itemIndex++)
+                        {
+                            ushort currentItemId = BinaryPrimitives.ReadUInt16BigEndian(file[locationOffset..]);
+                            locationOffset += 6;
+                            int extentCount = BinaryPrimitives.ReadUInt16BigEndian(file[locationOffset..]);
+                            locationOffset += 2;
+                            for (int extentIndex = 0; extentIndex < extentCount; extentIndex++)
+                            {
+                                int itemOffset = checked((int)BinaryPrimitives.ReadUInt64BigEndian(file[locationOffset..]));
+                                locationOffset += 8;
+                                int itemLength = BinaryPrimitives.ReadInt32BigEndian(file[locationOffset..]);
+                                locationOffset += 4;
+                                if (currentItemId == itemId)
+                                {
+                                    return file.Slice(itemOffset, itemLength);
+                                }
+                            }
+                        }
+                    }
+
+                    childOffset += childSize;
+                }
+            }
+
+            offset += boxSize;
+        }
+
+        throw new InvalidImageContentException($"The encoded file has no payload for item {itemId}.");
     }
 }

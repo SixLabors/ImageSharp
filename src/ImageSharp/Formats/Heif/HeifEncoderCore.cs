@@ -4,6 +4,8 @@
 using System.Buffers.Binary;
 using System.Text;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
@@ -51,21 +53,21 @@ internal sealed class HeifEncoderCore
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
+        List<HeifItem> items = new();
+        List<HeifItemLink> links = new();
         using ChunkedMemoryStream compressedPixels = new(this.configuration.MemoryAllocator);
         switch (this.encoder.CompressionMethod)
         {
             case HeifCompressionMethod.LegacyJpeg:
                 this.CompressPixels(image, compressedPixels, cancellationToken);
+                GenerateLegacyJpegItem(image, compressedPixels.Length, items);
                 break;
             case HeifCompressionMethod.Av1:
-                throw new NotSupportedException("AV1 encoding is not implemented.");
+                this.CompressAv1Pixels(image, compressedPixels, items, links, cancellationToken);
+                break;
             default:
                 throw new NotSupportedException($"HEIF compression method '{this.encoder.CompressionMethod}' is not supported.");
         }
-
-        List<HeifItem> items = new();
-        List<HeifItemLink> links = new();
-        GenerateItems(image, compressedPixels.Length, items);
 
         // Write out the generated header and pixels.
         long metadataBoxOffset = this.WriteFileTypeBox(stream);
@@ -81,7 +83,7 @@ internal sealed class HeifEncoderCore
     /// <param name="image">The source image.</param>
     /// <param name="pixelDataLength">The encoded primary-item payload length.</param>
     /// <param name="items">The destination item collection.</param>
-    private static void GenerateItems<TPixel>(Image<TPixel> image, long pixelDataLength, List<HeifItem> items)
+    private static void GenerateLegacyJpegItem<TPixel>(Image<TPixel> image, long pixelDataLength, List<HeifItem> items)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         HeifItem primaryItem = new(Heif4CharCode.Jpeg, 1u);
@@ -144,15 +146,29 @@ internal sealed class HeifEncoderCore
     /// <returns>The number of bytes written.</returns>
     private int WriteFileTypeBox(Stream stream)
     {
-        Span<byte> buffer = stackalloc byte[16];
+        Span<byte> buffer = stackalloc byte[28];
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Ftyp);
-        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Mif1);
+        Heif4CharCode majorBrand = this.encoder.CompressionMethod == HeifCompressionMethod.Av1
+            ? Heif4CharCode.Avif
+            : Heif4CharCode.Mif1;
+
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)majorBrand);
         bytesWritten += 4;
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], 0);
         bytesWritten += 4;
+        if (majorBrand == Heif4CharCode.Avif)
+        {
+            // A still AVIF is also a MIAF image collection, so advertise both structural brands with the codec brand.
+            BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Avif);
+            bytesWritten += 4;
+            BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Mif1);
+            bytesWritten += 4;
+            BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Miaf);
+            bytesWritten += 4;
+        }
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
-        stream.Write(buffer);
+        stream.Write(buffer[..bytesWritten]);
 
         return bytesWritten;
     }
@@ -323,6 +339,18 @@ internal sealed class HeifEncoderCore
             {
                 bytesWritten += WritePixelInformationPropertyBox(memory, memoryOffset + bytesWritten, channelBitDepths);
             }
+            else
+            {
+                byte? uniformChannelBitDepth = item.UniformChannelBitDepth;
+                if (uniformChannelBitDepth is not null)
+                {
+                    bytesWritten += WritePixelInformationPropertyBox(
+                        memory,
+                        memoryOffset + bytesWritten,
+                        item.ChannelCount,
+                        uniformChannelBitDepth.Value);
+                }
+            }
 
             Av1CodecConfiguration? codecConfiguration = item.Av1CodecConfiguration;
             if (codecConfiguration is not null)
@@ -377,7 +405,7 @@ internal sealed class HeifEncoderCore
             buffer[bytesWritten++] = (byte)itemPropertyCount;
             WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
 
-            if (item.ChannelBitDepths is not null)
+            if (item.ChannelBitDepths is not null || item.UniformChannelBitDepth is not null)
             {
                 WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
             }
@@ -413,7 +441,7 @@ internal sealed class HeifEncoderCore
     private static int GetPropertyCount(HeifItem item)
     {
         int count = 1;
-        count += item.ChannelBitDepths is not null ? 1 : 0;
+        count += item.ChannelBitDepths is not null || item.UniformChannelBitDepth is not null ? 1 : 0;
         count += item.Av1CodecConfiguration is not null ? 1 : 0;
         count += item.AuxiliaryType is not null ? 1 : 0;
         count += item.CicpProfile is not null ? 1 : 0;
@@ -464,6 +492,30 @@ internal sealed class HeifEncoderCore
         buffer[bytesWritten++] = (byte)channelBitDepths.Length;
         channelBitDepths.CopyTo(buffer[bytesWritten..]);
         bytesWritten += channelBitDepths.Length;
+
+        BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
+        return bytesWritten;
+    }
+
+    /// <summary>
+    /// Writes one common encoded precision for every image channel.
+    /// </summary>
+    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memoryOffset">The destination offset within the property container.</param>
+    /// <param name="channelCount">The number of encoded image channels.</param>
+    /// <param name="channelBitDepth">The common encoded precision.</param>
+    /// <returns>The complete pixel-information-box length.</returns>
+    private static int WritePixelInformationPropertyBox(
+        AutoExpandingMemory<byte> memory,
+        int memoryOffset,
+        int channelCount,
+        byte channelBitDepth)
+    {
+        Span<byte> buffer = memory.GetSpan(memoryOffset, 13 + channelCount);
+        int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Pixi, 0, 0);
+        buffer[bytesWritten++] = (byte)channelCount;
+        buffer.Slice(bytesWritten, channelCount).Fill(channelBitDepth);
+        bytesWritten += channelCount;
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
         return bytesWritten;
@@ -620,6 +672,193 @@ internal sealed class HeifEncoderCore
         stream.Write(buf[..bytesWritten]);
 
         data.WriteTo(stream);
+    }
+
+    /// <summary>
+    /// Maps the public lossy quality scale through libaom's external quantizer scale to its internal quantizer index.
+    /// </summary>
+    /// <param name="quality">The lossy quality in the inclusive range zero through one hundred.</param>
+    /// <returns>The AV1 quantizer index.</returns>
+    public static int GetAv1QuantizerIndex(int quality)
+    {
+        int scaledQuality = (100 - quality) * 63;
+        int quantizer = (scaledQuality + 50) / 100;
+
+        // External quantizer zero maps to the codec's lossless qindex. Keep quality 100 lossy as its public contract requires.
+        quantizer = Math.Max(quantizer, 1);
+        return quantizer < 62 ? quantizer * 4 : quantizer == 62 ? 249 : 255;
+    }
+
+    /// <summary>
+    /// Encodes the source root frame into AV1 color and optional auxiliary-alpha item payloads.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel format.</typeparam>
+    /// <param name="image">The source image.</param>
+    /// <param name="stream">The shared destination for consecutive item payloads.</param>
+    /// <param name="items">The destination item declarations.</param>
+    /// <param name="links">The destination item relationships.</param>
+    /// <param name="cancellationToken">The token used to cancel payload encoding.</param>
+    private void CompressAv1Pixels<TPixel>(
+        Image<TPixel> image,
+        ChunkedMemoryStream stream,
+        List<HeifItem> items,
+        List<HeifItemLink> links,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        if (this.encoder.Lossless)
+        {
+            throw new NotSupportedException("Lossless AV1 encoding is not implemented.");
+        }
+
+        if (image.Frames.Count != 1)
+        {
+            throw new NotSupportedException("AV1 image-sequence encoding is not implemented.");
+        }
+
+        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
+        HeifBitDepth bitDepth = this.encoder.BitDepth ?? metadata.BitDepth;
+        Av1BitDepth av1BitDepth = bitDepth switch
+        {
+            HeifBitDepth.Bit8 => Av1BitDepth.EightBit,
+            HeifBitDepth.Bit10 => Av1BitDepth.TenBit,
+            HeifBitDepth.Bit12 => Av1BitDepth.TwelveBit,
+            _ => throw new NotSupportedException($"HEIF bit depth '{bitDepth}' is not supported.")
+        };
+
+        HeifChromaSubsampling chromaSubsampling = this.encoder.ChromaSubsampling ??
+            (metadata.IsMonochrome ? HeifChromaSubsampling.Monochrome : HeifChromaSubsampling.Yuv420);
+
+        (bool isMonochrome, bool subsamplingX, bool subsamplingY) = chromaSubsampling switch
+        {
+            HeifChromaSubsampling.Monochrome => (true, true, true),
+            HeifChromaSubsampling.Yuv420 => (false, true, true),
+            HeifChromaSubsampling.Yuv422 => (false, true, false),
+            HeifChromaSubsampling.Yuv444 => (false, false, false),
+            _ => throw new NotSupportedException($"HEIF chroma sampling '{chromaSubsampling}' is not supported.")
+        };
+
+        CicpProfile? sourceColorProfile = image.Metadata.CicpProfile;
+        CicpProfile colorProfile;
+        if (sourceColorProfile is null)
+        {
+            colorProfile = new CicpProfile(2, 2, 6, false);
+        }
+        else
+        {
+            bool identityMatrix = sourceColorProfile.MatrixCoefficients == CicpMatrixCoefficients.Identity;
+            bool legalIdentityMatrix = !isMonochrome
+                && chromaSubsampling == HeifChromaSubsampling.Yuv444
+                && sourceColorProfile.ColorPrimaries == CicpColorPrimaries.ItuRBt709_6
+                && sourceColorProfile.TransferCharacteristics == CicpTransferCharacteristics.Iec61966_2_1;
+
+            if (sourceColorProfile.MatrixCoefficients == CicpMatrixCoefficients.Unspecified
+                || (identityMatrix && !legalIdentityMatrix))
+            {
+                // The converter uses BT.601 for unspecified or incompatible identity signaling, so record that actual matrix.
+                colorProfile = new CicpProfile(
+                    (byte)sourceColorProfile.ColorPrimaries,
+                    (byte)sourceColorProfile.TransferCharacteristics,
+                    (byte)CicpMatrixCoefficients.ItuRBt601_7_525,
+                    sourceColorProfile.FullRange);
+            }
+            else if (identityMatrix && !sourceColorProfile.FullRange)
+            {
+                colorProfile = new CicpProfile(
+                    (byte)sourceColorProfile.ColorPrimaries,
+                    (byte)sourceColorProfile.TransferCharacteristics,
+                    (byte)sourceColorProfile.MatrixCoefficients,
+                    true);
+            }
+            else
+            {
+                colorProfile = sourceColorProfile;
+            }
+        }
+
+        ObuColorConfig colorConfig = new()
+        {
+            IsColorDescriptionPresent = true,
+            IsMonochrome = isMonochrome,
+            ColorPrimaries = (ObuColorPrimaries)colorProfile.ColorPrimaries,
+            TransferCharacteristics = (ObuTransferCharacteristics)colorProfile.TransferCharacteristics,
+            MatrixCoefficients = (ObuMatrixCoefficients)colorProfile.MatrixCoefficients,
+            ColorRange = colorProfile.FullRange,
+            SubSamplingX = subsamplingX,
+            SubSamplingY = subsamplingY,
+            ChromaSamplePosition = ObuChromoSamplePosition.Unknown,
+            BitDepth = av1BitDepth
+        };
+
+        int quality = this.encoder.Quality ?? 75;
+        int qIndex = GetAv1QuantizerIndex(quality);
+        cancellationToken.ThrowIfCancellationRequested();
+        ObuSequenceHeader colorHeader = Av1FrameEncoder.Encode(
+            this.configuration,
+            image.Frames.RootFrame,
+            stream,
+            colorConfig,
+            qIndex,
+            this.encoder.Effort);
+
+        long colorLength = stream.Length;
+        byte channelBitDepth = (byte)bitDepth;
+        HeifItem colorItem = new(Heif4CharCode.Av01, 1)
+        {
+            ChannelCount = isMonochrome ? 1 : 3,
+            UniformChannelBitDepth = channelBitDepth,
+            BitsPerPixel = channelBitDepth * (isMonochrome ? 1 : 3),
+            Av1CodecConfiguration = new Av1CodecConfiguration(colorHeader),
+            CicpProfile = colorProfile
+        };
+
+        colorItem.DataLocations.Add(new HeifLocation(HeifLocationOffsetOrigin.FileOffset, 0L, 0L, colorLength));
+        colorItem.SetExtent(image.Size);
+        items.Add(colorItem);
+
+        bool hasAlpha = TPixel.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.None;
+        if (!hasAlpha)
+        {
+            return;
+        }
+
+        ObuColorConfig alphaConfig = new()
+        {
+            IsMonochrome = true,
+            ColorRange = true,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = av1BitDepth
+        };
+
+        int alphaQuality = this.encoder.AlphaQuality ?? quality;
+        int alphaQIndex = GetAv1QuantizerIndex(alphaQuality);
+        cancellationToken.ThrowIfCancellationRequested();
+        long alphaOffset = stream.Length;
+        ObuSequenceHeader alphaHeader = Av1FrameEncoder.EncodeAlpha(
+            this.configuration,
+            image.Frames.RootFrame,
+            stream,
+            alphaConfig,
+            alphaQIndex,
+            this.encoder.Effort);
+
+        long alphaLength = stream.Length - alphaOffset;
+        HeifItem alphaItem = new(Heif4CharCode.Av01, 2)
+        {
+            ChannelCount = 1,
+            UniformChannelBitDepth = channelBitDepth,
+            BitsPerPixel = channelBitDepth,
+            Av1CodecConfiguration = new Av1CodecConfiguration(alphaHeader),
+            AuxiliaryType = HeifConstants.AlphaAuxiliaryType
+        };
+
+        alphaItem.DataLocations.Add(new HeifLocation(HeifLocationOffsetOrigin.FileOffset, 0L, alphaOffset, alphaLength));
+        alphaItem.SetExtent(image.Size);
+        items.Add(alphaItem);
+        HeifItemLink alphaLink = new(Heif4CharCode.Auxl, alphaItem.Id);
+        alphaLink.DestinationIds.Add(colorItem.Id);
+        links.Add(alphaLink);
     }
 
     /// <summary>

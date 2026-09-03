@@ -102,6 +102,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
+            // Mode-decision costs already contain the selected coefficient syntax but not the block's skip
+            // or IBC choice. When regular intra skips, replace its empty-coefficient rate with skip syntax.
             int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
             int regularRateAdjustment = writer.GetUseIntraBlockCopyCost(false) +
                 writer.GetSkipCost(modeInfo.Block.Skip, skipContext);
@@ -128,6 +130,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 BlockSize,
                 LumaTransformSize);
 
+            // A coded IBC residual uses the unsplit transform root at this fixed block size. A skipped block
+            // omits both the transform-partition bit and coefficient syntax, so this rate is added only below.
             int transformPartitionRate = 0;
             if (this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select)
             {
@@ -176,6 +180,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     chromaTransformSize);
             }
 
+            // Per-vector plane results reuse candidate scratch. Separate selected spans retain only a new
+            // global winner, allowing the complete search to finish before committed reconstruction changes.
             for (int candidateIndex = 0; candidateIndex < uniqueCandidateCount; candidateIndex++)
             {
                 Av1MotionVector candidate = candidates[candidateIndex];
@@ -291,6 +297,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 long candidateDistortion = lumaDistortion + blueDistortion + redDistortion;
                 long candidateCost = Av1RateDistortion.GetCost(this.rateMultiplier, candidateRate, candidateDistortion);
                 bool candidateSkip = false;
+
+                // The skip alternative is available only when every coded plane has an empty transform. Its
+                // distortion comes from prediction alone and its rate excludes the transform tree and coefficients.
                 if (hasEmptyLuma && hasEmptyBlue && hasEmptyRed)
                 {
                     int skipRate = writer.GetUseIntraBlockCopyCost(true) +
@@ -363,6 +372,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 return;
             }
 
+            // Only the winning vector is now visible to later coding blocks. This single publication keeps
+            // rejected motion vectors from contaminating intra references or entropy contexts.
             Span<int> retainedLumaCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.Y);
             Span<Av1EncoderTransformBlockState> retainedLumaTransformBlocks =
                 this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.Y);
@@ -473,6 +484,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 residual[..sampleCount],
                 transformSize);
 
+            // Motion compensation and subtraction do not depend on transform type. Keep them outside the
+            // transform loop so exhaustive luma search traverses the source and reference blocks only once.
             Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
                 transformSize,
                 isInter: true,
@@ -492,6 +505,15 @@ internal static partial class Av1IntraSuperblockEncoder
             hasEmptyTransform = false;
             emptyState = default;
             emptyDistortion = 0;
+
+            // The candidate and best spans alternate ownership whenever a transform improves the result.
+            // This mirrors the reference's buffer-pointer swap and replaces a copy on every improvement
+            // with at most one normalization copy after the transform search.
+            Span<TSample> candidateReconstruction = transformReconstruction[..sampleCount];
+            Span<int> candidateCoefficients = transformCoefficients[..sampleCount];
+            Span<TSample> bestReconstruction = selectedReconstruction[..sampleCount];
+            Span<int> bestCoefficients = selectedCoefficients[..sampleCount];
+            bool bestUsesSelectedStorage = true;
             for (Av1TransformType transformType = firstTransformType;
                 transformType < transformTypeLimit;
                 transformType++)
@@ -508,9 +530,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     planeOrigin,
                     prediction[..sampleCount],
                     residual[..sampleCount],
-                    transformReconstruction[..sampleCount],
+                    candidateReconstruction,
                     transformSize.GetWidth(),
-                    transformCoefficients[..sampleCount],
+                    candidateCoefficients,
                     transformSize,
                     transformType,
                     plane,
@@ -524,7 +546,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformSize,
                     transformType,
                     Av1PredictionMode.DC,
-                    transformCoefficients[..sampleCount],
+                    candidateCoefficients,
                     componentType,
                     blockContext,
                     candidateState.EndOfBlock,
@@ -539,8 +561,14 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (candidateCost < bestCost)
                 {
-                    transformReconstruction[..sampleCount].CopyTo(selectedReconstruction);
-                    transformCoefficients[..sampleCount].CopyTo(selectedCoefficients);
+                    Span<TSample> previousBestReconstruction = bestReconstruction;
+                    bestReconstruction = candidateReconstruction;
+                    candidateReconstruction = previousBestReconstruction;
+
+                    Span<int> previousBestCoefficients = bestCoefficients;
+                    bestCoefficients = candidateCoefficients;
+                    candidateCoefficients = previousBestCoefficients;
+                    bestUsesSelectedStorage = !bestUsesSelectedStorage;
                     bestCost = candidateCost;
                     selectedState = candidateState;
                     selectedRate = candidateRate;
@@ -554,6 +582,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     emptyState = candidateState;
                     emptyDistortion = candidateDistortion;
                 }
+            }
+
+            // Callers retain the designated selected spans after this scratch workspace is reused by the
+            // next plane or motion vector, so normalize only when the final best result occupies scratch.
+            if (!bestUsesSelectedStorage)
+            {
+                bestReconstruction.CopyTo(selectedReconstruction);
+                bestCoefficients.CopyTo(selectedCoefficients);
             }
         }
     }

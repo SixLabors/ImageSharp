@@ -55,6 +55,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int uniqueColorCount = 0;
             short minimum = samples[0];
             short maximum = samples[0];
+
+            // An 8x8 block has at most 64 distinct samples, so a compact workspace histogram avoids a
+            // dictionary allocation while collecting both frequency seeds and range endpoints.
             foreach (short sample in samples)
             {
                 int colorIndex = uniqueColors[..uniqueColorCount].IndexOf(sample);
@@ -127,7 +130,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<short> centroids = workspace.GetCentroids(0);
             bool paletteSelected = false;
 
-            // Exhaustive ascending size search avoids the reference encoder's speed-dependent pruning.
+            // Evaluate both frequency-seeded and range-seeded palette families for every legal size.
+            // Exhaustive ascending size order avoids speed-dependent pruning and gives smaller palettes
+            // deterministic precedence when complete rate-distortion costs tie.
             for (int paletteSize = 2; paletteSize <= maximumPaletteSize; paletteSize++)
             {
                 for (int index = 0; index < paletteSize; index++)
@@ -290,6 +295,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
             int bitDepth = this.bitDepth.GetBitCount();
             int cacheThreshold = 4 << (bitDepth - 8);
+
+            // Nearby colors snap to a coded-neighbor cache entry when the quantization error is bounded.
+            // Snapping can merge centroids, so sorting and compaction below establish the final coded palette.
             for (int colorIndex = 0; colorIndex < centroids.Length && !colorCache.IsEmpty; colorIndex++)
             {
                 int minimumDifference = Math.Abs(centroids[colorIndex] - colorCache[0]);
@@ -376,6 +384,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 columns,
                 colorIndexMap);
 
+            // Palette prediction and subtraction are invariant for this color map. Reuse them across legal
+            // transform types, whose enumeration order also supplies deterministic tie precedence.
             for (Av1TransformType transformType = Av1TransformType.DctDct;
                 transformType < Av1TransformType.AllTransformTypes;
                 transformType++)
@@ -420,6 +430,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 long candidateCost = Av1RateDistortion.GetCost(this.rateMultiplier, candidateRate, distortion);
                 if (candidateCost < bestCost)
                 {
+                    // Later palette sizes reuse every candidate span and the shared color map. Publish the
+                    // complete palette state only when this candidate improves the global luma decision.
                     CopyCandidate(
                         candidateReconstruction,
                         candidateCoefficients,

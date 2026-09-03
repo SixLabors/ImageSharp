@@ -200,6 +200,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 Av1EncoderTransformBlockState candidateBlueState = default;
                 Av1EncoderTransformBlockState candidateRedState = default;
+
+                // A chroma mode and angle are shared by U and V, so neither plane can replace the
+                // retained result independently. Their complete rate and distortion compete jointly.
                 long candidateCost = this.GetChromaCandidateCost(
                     writer,
                     modeInfo,
@@ -395,6 +398,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (chromaFromLumaSelected)
                 {
+                    // The alpha tables retain only rate and distortion. Regenerate the two selected planes
+                    // once here instead of copying reconstruction and coefficient blocks for all 66 trials.
                     Av1EncoderTransformBlockState candidateBlueState = default;
                     _ = this.GetChromaFromLumaPlaneCost(
                         writer,
@@ -561,6 +566,9 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             Av1PredictionMode predictionMode = chromaMode.ToLumaMode();
+
+            // Intra chroma derives one transform type from the shared UV prediction mode. The type is not
+            // signaled independently for either chroma plane, so U and V must use the same legal fallback.
             Av1TransformType transformType = Av1SymbolContextHelper.GetDefaultIntraTransformType(
                 predictionMode,
                 transformSize,
@@ -608,6 +616,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.bitDepth,
                 ref candidateRedState);
 
+            // The mode and angle are written once for the UV pair; coefficient syntax remains independent
+            // because each plane has its own EOB, scan values, and neighboring coefficient context.
             int rate = Av1TileWriter.GetChromaModeCost(
                 writer,
                 this.picture.Parent.FrameHeader,

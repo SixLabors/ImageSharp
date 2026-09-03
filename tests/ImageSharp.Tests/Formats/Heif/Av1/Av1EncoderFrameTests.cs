@@ -496,6 +496,9 @@ public class Av1EncoderFrameTests
     [InlineData(4, true, false, false)]
     [InlineData(5, true, true, false)]
     [InlineData(6, true, true, true)]
+    [InlineData(7, true, true, true)]
+    [InlineData(8, true, true, true)]
+    [InlineData(10, true, true, true)]
     public void EncodeEffortControlsSearchFeatures(
         int effort,
         bool enableFilterIntra,

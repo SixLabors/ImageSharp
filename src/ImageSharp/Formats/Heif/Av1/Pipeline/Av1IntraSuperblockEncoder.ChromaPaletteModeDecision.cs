@@ -150,6 +150,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     workspace.GetAlternateCentroids(1),
                     workspace.AlternateIndices);
 
+                // Only U participates in the neighbor-color cache. Snap bounded U deltas before sorting,
+                // while preserving each U/V centroid as one paired palette entry.
                 for (int colorIndex = 0; colorIndex < paletteSize && !colorCache.IsEmpty; colorIndex++)
                 {
                     int minimumDifference = Math.Abs(candidateBlueCentroids[colorIndex] - colorCache[0]);
@@ -221,6 +223,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     redPaletteColors[colorIndex] = (ushort)candidateRedCentroids[colorIndex];
                 }
 
+                // U and V share one color-index map but reconstruct through their own palette values and
+                // residuals. Both preparations remain valid until the next palette-size candidate.
                 TOperator.PreparePalette(
                     blueSource,
                     chromaOrigin,
@@ -239,6 +243,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     redResidual[..sampleCount],
                     transformSize);
 
+                // Intra chroma derives one transform type from the shared UV mode. Palette uses UV DC, so
+                // both planes use DCT while retaining independent coefficient contexts and end positions.
                 Av1EncoderTransformBlockState candidateBlueState = default;
                 long distortion = TOperator.EncodePredictionCandidate(
                     this.blockWorkspace,
@@ -314,6 +320,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1FilterIntraMode.AllFilterIntraModes,
                     usesInterTransformSet: false);
 
+                // Mode, palette, and color-map syntax is shared by the pair; coefficient syntax and
+                // distortion remain per plane before the joint chroma rate-distortion comparison.
                 rate += writer.GetCoefficientCost(
                     transformSize,
                     Av1TransformType.DctDct,
@@ -329,6 +337,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 long candidateCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
                 if (candidateCost < bestCost)
                 {
+                    // Every following palette size overwrites the shared maps and candidate spans, so a
+                    // global improvement must retain reconstruction, coefficients, colors, and indices together.
                     Buffer2DRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
                     Buffer2DRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
                     CopyCandidate(

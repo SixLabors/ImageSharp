@@ -64,15 +64,15 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     public Av1EncoderModeDecisionWorkspace(Span<int> storage) => this.storage = storage;
 
     /// <summary>
-    /// Gets the temporary prediction span used by filter-intra mode search.
+    /// Gets the temporary prediction span shared by mutually exclusive mode searches.
     /// </summary>
-    public Span<TSample> FilterPrediction
+    public Span<TSample> Prediction
         => MemoryMarshal.Cast<int, TSample>(this.storage[TransientStorageOffset..])[..MaximumSampleCount];
 
     /// <summary>
-    /// Gets the temporary residual span used by filter-intra mode search.
+    /// Gets the temporary residual span shared by mutually exclusive mode searches.
     /// </summary>
-    public Span<short> FilterResidual
+    public Span<short> Residual
         => MemoryMarshal.Cast<int, short>(
             this.storage.Slice(
                 TransientStorageOffset + (MaximumSampleCount * sizeof(ushort) / sizeof(int)),

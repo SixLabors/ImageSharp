@@ -31,7 +31,7 @@ internal static partial class Av1ForwardTransformer
     /// <param name="bitDepth">The source sample bit depth.</param>
     /// <param name="workspace">The reusable workspace owned by the containing encode operation.</param>
     public static void Transform2d(
-        Span<short> input,
+        ReadOnlySpan<short> input,
         Span<int> coefficients,
         uint stride,
         Av1TransformType transformType,
@@ -55,7 +55,7 @@ internal static partial class Av1ForwardTransformer
     /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
     /// <param name="workspace">The reusable transform workspace.</param>
     private static void DispatchColumn(
-        Span<short> input,
+        ReadOnlySpan<short> input,
         Span<int> coefficients,
         uint stride,
         int bitDepth,
@@ -116,7 +116,7 @@ internal static partial class Av1ForwardTransformer
     /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
     /// <param name="workspace">The reusable transform workspace.</param>
     private static void DispatchRow<TColumnOperator>(
-        Span<short> input,
+        ReadOnlySpan<short> input,
         Span<int> coefficients,
         uint stride,
         int bitDepth,
@@ -179,7 +179,7 @@ internal static partial class Av1ForwardTransformer
     /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
     /// <param name="workspace">The reusable transform workspace.</param>
     private static void Transform2d<TColumnOperator, TRowOperator>(
-        Span<short> input,
+        ReadOnlySpan<short> input,
         Span<int> coefficients,
         uint stride,
         int bitDepth,
@@ -210,7 +210,7 @@ internal static partial class Av1ForwardTransformer
     /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
     /// <param name="workspace">The reusable transform workspace.</param>
     private static void TransformPacked<TColumnOperator, TRowOperator>(
-        Span<short> input,
+        ReadOnlySpan<short> input,
         Span<int> coefficients,
         uint stride,
         ref Av1Transform2dFlipConfiguration config,
@@ -324,7 +324,7 @@ internal static partial class Av1ForwardTransformer
     /// <param name="config">The resolved transform functions, shifts, and axis orientation.</param>
     /// <param name="workspace">The reusable transform workspace.</param>
     private static void TransformExpanded<TColumnOperator, TRowOperator>(
-        Span<short> input,
+        ReadOnlySpan<short> input,
         Span<int> coefficients,
         uint stride,
         ref Av1Transform2dFlipConfiguration config,
@@ -395,7 +395,7 @@ internal static partial class Av1ForwardTransformer
     /// <param name="flipUpsideDown">Whether to reverse the input row order.</param>
     /// <param name="flipLeftToRight">Whether to reverse the samples within each row.</param>
     private static void LoadPacked(
-        Span<short> input,
+        ReadOnlySpan<short> input,
         uint inputStride,
         ref short destination,
         int destinationStride,
@@ -476,7 +476,7 @@ internal static partial class Av1ForwardTransformer
     /// <param name="flipUpsideDown">Whether to reverse the input row order.</param>
     /// <param name="flipLeftToRight">Whether to reverse the samples within each row.</param>
     private static void LoadExpanded(
-        Span<short> input,
+        ReadOnlySpan<short> input,
         uint inputStride,
         ref int destination,
         int destinationStride,

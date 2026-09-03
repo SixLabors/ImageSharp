@@ -106,7 +106,7 @@ public class Av1ResidualBuilderTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateSumSquares, ResidualConfigurations);
 
     /// <summary>
-    /// Verifies that repeated maximum-transform residual construction uses only caller-owned buffers.
+    /// Verifies that repeated maximum-transform residual and squared-error processing uses only caller-owned buffers.
     /// </summary>
     [Fact]
     public void ResidualConstructionDoesNotAllocate()
@@ -124,15 +124,34 @@ public class Av1ResidualBuilderTests
 
         Av1ResidualBuilder.Subtract(source, width, prediction, width, residual, width, width, height);
         Av1ResidualBuilder.Subtract(highBitDepthSource, width, highBitDepthPrediction, width, highBitDepthResidual, width, width, height);
+        _ = Av1ResidualBuilder.SumSquaredError(source, width, prediction, width, width, height);
+        _ = Av1ResidualBuilder.SumSquaredError(
+            highBitDepthSource,
+            width,
+            highBitDepthPrediction,
+            width,
+            width,
+            height);
 
+        long sum = 0;
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int iteration = 0; iteration < 32; iteration++)
         {
             Av1ResidualBuilder.Subtract(source, width, prediction, width, residual, width, width, height);
             Av1ResidualBuilder.Subtract(highBitDepthSource, width, highBitDepthPrediction, width, highBitDepthResidual, width, width, height);
+            sum += Av1ResidualBuilder.SumSquaredError(source, width, prediction, width, width, height);
+            sum += Av1ResidualBuilder.SumSquaredError(
+                highBitDepthSource,
+                width,
+                highBitDepthPrediction,
+                width,
+                width,
+                height);
         }
 
-        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
+        long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.True(sum > 0);
+        Assert.Equal(0, allocated);
     }
 
     private static void ValidateSumSquares()
@@ -186,6 +205,26 @@ public class Av1ResidualBuilderTests
         Av1ResidualBuilder.Subtract(sourcePlane, sourceStride, predictionPlane, predictionStride, actualPlane, residualStride, width, height);
 
         Assert.Equal(expected, actual);
+
+        long expectedSquaredError = 0;
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                int difference = sourcePlane[(y * sourceStride) + x] - predictionPlane[(y * predictionStride) + x];
+                expectedSquaredError += difference * difference;
+            }
+        }
+
+        Assert.Equal(
+            expectedSquaredError,
+            Av1ResidualBuilder.SumSquaredError(
+                sourcePlane,
+                sourceStride,
+                predictionPlane,
+                predictionStride,
+                width,
+                height));
     }
 
     private static void ValidateUInt16Residuals(int maximumSample)
@@ -215,6 +254,26 @@ public class Av1ResidualBuilderTests
         Av1ResidualBuilder.Subtract(sourcePlane, sourceStride, predictionPlane, predictionStride, actualPlane, residualStride, width, height);
 
         Assert.Equal(expected, actual);
+
+        long expectedSquaredError = 0;
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                int difference = sourcePlane[(y * sourceStride) + x] - predictionPlane[(y * predictionStride) + x];
+                expectedSquaredError += difference * difference;
+            }
+        }
+
+        Assert.Equal(
+            expectedSquaredError,
+            Av1ResidualBuilder.SumSquaredError(
+                sourcePlane,
+                sourceStride,
+                predictionPlane,
+                predictionStride,
+                width,
+                height));
     }
 
     private static void FillBytePlanes(Span<byte> source, int sourceStride, Span<byte> prediction, int predictionStride, int width, int height)

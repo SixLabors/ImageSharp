@@ -8,7 +8,7 @@ using System.Runtime.Intrinsics;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Builds signed AV1 residual planes from source and prediction samples.
+/// Builds signed AV1 residual planes and measures sample-domain error.
 /// </summary>
 internal static partial class Av1ResidualBuilder
 {
@@ -57,6 +57,44 @@ internal static partial class Av1ResidualBuilder
         => Subtract<ushort, UInt16Operator>(source, sourceStride, prediction, predictionStride, residual, residualStride, width, height);
 
     /// <summary>
+    /// Calculates the exact squared error between strided 8-bit sample planes.
+    /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The source row stride.</param>
+    /// <param name="prediction">The prediction or reconstruction samples.</param>
+    /// <param name="predictionStride">The prediction row stride.</param>
+    /// <param name="width">The number of samples per row.</param>
+    /// <param name="height">The number of rows.</param>
+    /// <returns>The sum of squared sample differences.</returns>
+    public static long SumSquaredError(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        ReadOnlySpan<byte> prediction,
+        int predictionStride,
+        int width,
+        int height)
+        => SumSquaredError<byte, ByteOperator>(source, sourceStride, prediction, predictionStride, width, height);
+
+    /// <summary>
+    /// Calculates the exact squared error between strided high-bit-depth sample planes.
+    /// </summary>
+    /// <param name="source">The source samples.</param>
+    /// <param name="sourceStride">The source row stride.</param>
+    /// <param name="prediction">The prediction or reconstruction samples.</param>
+    /// <param name="predictionStride">The prediction row stride.</param>
+    /// <param name="width">The number of samples per row.</param>
+    /// <param name="height">The number of rows.</param>
+    /// <returns>The sum of squared sample differences.</returns>
+    public static long SumSquaredError(
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
+        ReadOnlySpan<ushort> prediction,
+        int predictionStride,
+        int width,
+        int height)
+        => SumSquaredError<ushort, UInt16Operator>(source, sourceStride, prediction, predictionStride, width, height);
+
+    /// <summary>
     /// Sums the squares of a contiguous signed residual block.
     /// </summary>
     /// <param name="residual">The residual samples.</param>
@@ -76,10 +114,7 @@ internal static partial class Av1ResidualBuilder
             for (; vectorCount > 0; vectorCount--, offset += Vector512<short>.Count)
             {
                 Vector512<short> values = Unsafe.As<short, Vector512<short>>(ref Unsafe.Add(ref residualBase, offset));
-                Vector512<int> lower = Vector512.WidenLower(values);
-                Vector512<int> upper = Vector512.WidenUpper(values);
-                sum += Vector512.Sum(lower * lower);
-                sum += Vector512.Sum(upper * upper);
+                sum += SumSquares(values);
             }
         }
 
@@ -90,10 +125,7 @@ internal static partial class Av1ResidualBuilder
             for (; vectorCount > 0; vectorCount--, offset += Vector256<short>.Count)
             {
                 Vector256<short> values = Unsafe.As<short, Vector256<short>>(ref Unsafe.Add(ref residualBase, offset));
-                Vector256<int> lower = Vector256.WidenLower(values);
-                Vector256<int> upper = Vector256.WidenUpper(values);
-                sum += Vector256.Sum(lower * lower);
-                sum += Vector256.Sum(upper * upper);
+                sum += SumSquares(values);
             }
         }
 
@@ -104,10 +136,7 @@ internal static partial class Av1ResidualBuilder
             for (; vectorCount > 0; vectorCount--, offset += Vector128<short>.Count)
             {
                 Vector128<short> values = Unsafe.As<short, Vector128<short>>(ref Unsafe.Add(ref residualBase, offset));
-                Vector128<int> lower = Vector128.WidenLower(values);
-                Vector128<int> upper = Vector128.WidenUpper(values);
-                sum += Vector128.Sum(lower * lower);
-                sum += Vector128.Sum(upper * upper);
+                sum += SumSquares(values);
             }
         }
 
@@ -115,6 +144,103 @@ internal static partial class Av1ResidualBuilder
         {
             int value = Unsafe.Add(ref residualBase, offset);
             sum += value * value;
+        }
+
+        return sum;
+    }
+
+    private static long SumSquaredError<TSample, TOperator>(
+        ReadOnlySpan<TSample> source,
+        int sourceStride,
+        ReadOnlySpan<TSample> prediction,
+        int predictionStride,
+        int width,
+        int height)
+        where TSample : unmanaged
+        where TOperator : struct, IResidualOperator<TSample>
+    {
+        long sum = 0;
+        for (int y = 0; y < height; y++)
+        {
+            ReadOnlySpan<TSample> sourceRow = source.Slice(y * sourceStride, width);
+            ReadOnlySpan<TSample> predictionRow = prediction.Slice(y * predictionStride, width);
+            ref TSample sourceBase = ref MemoryMarshal.GetReference(sourceRow);
+            ref TSample predictionBase = ref MemoryMarshal.GetReference(predictionRow);
+            int x = 0;
+
+            // Descending hardware widths consume every complete vector before the scalar tail. Byte
+            // subtraction produces two widened residual vectors; high-bit-depth subtraction produces one.
+            if (Vector512.IsHardwareAccelerated)
+            {
+                nuint vectorCount = sourceRow.Vector512Count<TSample>();
+
+                for (; vectorCount > 0; vectorCount--, x += Vector512<TSample>.Count)
+                {
+                    Vector512<TSample> sourceVector =
+                        Unsafe.As<TSample, Vector512<TSample>>(ref Unsafe.Add(ref sourceBase, x));
+
+                    Vector512<TSample> predictionVector =
+                        Unsafe.As<TSample, Vector512<TSample>>(ref Unsafe.Add(ref predictionBase, x));
+
+                    Vector512<short> lower = TOperator.Subtract(sourceVector, predictionVector, out Vector512<short> upper);
+                    sum += SumSquares(lower);
+                    if (Vector512<TSample>.Count != Vector512<short>.Count)
+                    {
+                        sum += SumSquares(upper);
+                    }
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                nuint vectorCount = sourceRow[x..].Vector256Count<TSample>();
+
+                for (; vectorCount > 0; vectorCount--, x += Vector256<TSample>.Count)
+                {
+                    Vector256<TSample> sourceVector =
+                        Unsafe.As<TSample, Vector256<TSample>>(ref Unsafe.Add(ref sourceBase, x));
+
+                    Vector256<TSample> predictionVector =
+                        Unsafe.As<TSample, Vector256<TSample>>(ref Unsafe.Add(ref predictionBase, x));
+
+                    Vector256<short> lower = TOperator.Subtract(sourceVector, predictionVector, out Vector256<short> upper);
+                    sum += SumSquares(lower);
+                    if (Vector256<TSample>.Count != Vector256<short>.Count)
+                    {
+                        sum += SumSquares(upper);
+                    }
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                nuint vectorCount = sourceRow[x..].Vector128Count<TSample>();
+
+                for (; vectorCount > 0; vectorCount--, x += Vector128<TSample>.Count)
+                {
+                    Vector128<TSample> sourceVector =
+                        Unsafe.As<TSample, Vector128<TSample>>(ref Unsafe.Add(ref sourceBase, x));
+
+                    Vector128<TSample> predictionVector =
+                        Unsafe.As<TSample, Vector128<TSample>>(ref Unsafe.Add(ref predictionBase, x));
+
+                    Vector128<short> lower = TOperator.Subtract(sourceVector, predictionVector, out Vector128<short> upper);
+                    sum += SumSquares(lower);
+                    if (Vector128<TSample>.Count != Vector128<short>.Count)
+                    {
+                        sum += SumSquares(upper);
+                    }
+                }
+            }
+
+            for (; x < width; x++)
+            {
+                int difference = TOperator.Subtract(
+                    Unsafe.Add(ref sourceBase, x),
+                    Unsafe.Add(ref predictionBase, x));
+
+                sum += difference * difference;
+            }
         }
 
         return sum;
@@ -210,5 +336,29 @@ internal static partial class Av1ResidualBuilder
                     Unsafe.Add(ref predictionBase, x));
             }
         }
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static long SumSquares(Vector128<short> values)
+    {
+        Vector128<int> lower = Vector128.WidenLower(values);
+        Vector128<int> upper = Vector128.WidenUpper(values);
+        return (long)Vector128.Sum(lower * lower) + Vector128.Sum(upper * upper);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static long SumSquares(Vector256<short> values)
+    {
+        Vector256<int> lower = Vector256.WidenLower(values);
+        Vector256<int> upper = Vector256.WidenUpper(values);
+        return (long)Vector256.Sum(lower * lower) + Vector256.Sum(upper * upper);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static long SumSquares(Vector512<short> values)
+    {
+        Vector512<int> lower = Vector512.WidenLower(values);
+        Vector512<int> upper = Vector512.WidenUpper(values);
+        return (long)Vector512.Sum(lower * lower) + Vector512.Sum(upper * upper);
     }
 }

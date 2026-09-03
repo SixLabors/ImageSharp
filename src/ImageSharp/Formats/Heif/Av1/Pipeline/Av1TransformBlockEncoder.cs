@@ -145,17 +145,15 @@ internal static class Av1TransformBlockEncoder
             plane,
             ref state);
 
-        Av1ResidualBuilder.Subtract(
+        long distortion = Av1ResidualBuilder.SumSquaredError(
             sourceSamples,
             source.Stride,
             reconstruction,
             width,
-            workspace.Residual,
-            width,
             width,
             height);
 
-        return Av1ResidualBuilder.SumSquares(workspace.Residual[..transformSize.GetSize2d()]) << 4;
+        return distortion << 4;
     }
 
     /// <summary>
@@ -199,16 +197,16 @@ internal static class Av1TransformBlockEncoder
         int sampleCount = transformSize.GetSize2d();
         ReadOnlySpan<byte> sourceSamples = GetPlaneSpan(source, blockOrigin);
 
-        // Each transform trial mutates reconstruction and residual scratch, so restore both prepared inputs.
+        // Each transform trial overwrites reconstruction but consumes the prepared residual read-only.
         // Row copies preserve a larger candidate surface without materializing a second compact block.
         for (int row = 0; row < height; row++)
         {
             prediction.Slice(row * width, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
         }
 
-        residual[..sampleCount].CopyTo(workspace.Residual);
         EncodeLossy(
             workspace,
+            residual[..sampleCount],
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -232,17 +230,15 @@ internal static class Av1TransformBlockEncoder
                 workspace.TransformWorkspace);
         }
 
-        Av1ResidualBuilder.Subtract(
+        long distortion = Av1ResidualBuilder.SumSquaredError(
             sourceSamples,
             source.Stride,
             reconstruction,
             reconstructionStride,
-            workspace.Residual,
-            width,
             width,
             height);
 
-        return Av1ResidualBuilder.SumSquares(workspace.Residual[..sampleCount]) << 4;
+        return distortion << 4;
     }
 
     /// <summary>
@@ -322,17 +318,15 @@ internal static class Av1TransformBlockEncoder
         }
 
         // Final distortion is measured against the samples a decoder reconstructs, not the unquantized predictor.
-        Av1ResidualBuilder.Subtract(
+        long distortion = Av1ResidualBuilder.SumSquaredError(
             sourceSamples,
             source.Stride,
             reconstruction,
             width,
-            workspace.Residual,
-            width,
             width,
             height);
 
-        return Av1ResidualBuilder.SumSquares(workspace.Residual[..transformSize.GetSize2d()]) << 4;
+        return distortion << 4;
     }
 
     /// <summary>
@@ -470,17 +464,14 @@ internal static class Av1TransformBlockEncoder
             bitDepth,
             ref state);
 
-        Av1ResidualBuilder.Subtract(
+        long distortion = Av1ResidualBuilder.SumSquaredError(
             sourceSamples,
             source.Stride,
             reconstruction,
             width,
-            workspace.Residual,
-            width,
             width,
             height);
 
-        long distortion = Av1ResidualBuilder.SumSquares(workspace.Residual[..transformSize.GetSize2d()]);
         int shift = (bitDepth.GetBitCount() - 8) * 2;
         long normalizedDistortion = shift == 0
             ? distortion
@@ -532,16 +523,16 @@ internal static class Av1TransformBlockEncoder
         int sampleCount = transformSize.GetSize2d();
         ReadOnlySpan<ushort> sourceSamples = GetPlaneSpan(source, blockOrigin);
 
-        // Each transform trial mutates reconstruction and residual scratch, so restore both prepared inputs.
+        // Each transform trial overwrites reconstruction but consumes the prepared residual read-only.
         // Row copies preserve a larger candidate surface without materializing a second compact block.
         for (int row = 0; row < height; row++)
         {
             prediction.Slice(row * width, width).CopyTo(reconstruction.Slice(row * reconstructionStride, width));
         }
 
-        residual[..sampleCount].CopyTo(workspace.Residual);
         EncodeLossy(
             workspace,
+            residual[..sampleCount],
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -566,17 +557,14 @@ internal static class Av1TransformBlockEncoder
                 workspace.TransformWorkspace);
         }
 
-        Av1ResidualBuilder.Subtract(
+        long distortion = Av1ResidualBuilder.SumSquaredError(
             sourceSamples,
             source.Stride,
             reconstruction,
             reconstructionStride,
-            workspace.Residual,
-            width,
             width,
             height);
 
-        long distortion = Av1ResidualBuilder.SumSquares(workspace.Residual[..sampleCount]);
         int shift = (bitDepth.GetBitCount() - 8) * 2;
         long normalizedDistortion = shift == 0
             ? distortion
@@ -672,17 +660,14 @@ internal static class Av1TransformBlockEncoder
                 workspace.TransformWorkspace);
         }
 
-        Av1ResidualBuilder.Subtract(
+        long distortion = Av1ResidualBuilder.SumSquaredError(
             sourceSamples,
             source.Stride,
             reconstruction,
             width,
-            workspace.Residual,
-            width,
             width,
             height);
 
-        long distortion = Av1ResidualBuilder.SumSquares(workspace.Residual[..transformSize.GetSize2d()]);
         int shift = (bitDepth.GetBitCount() - 8) * 2;
         long normalizedDistortion = shift == 0
             ? distortion
@@ -1047,16 +1032,39 @@ internal static class Av1TransformBlockEncoder
         int acDeltaQ,
         Av1BitDepth bitDepth,
         ref Av1EncoderTransformBlockState state)
+        => EncodeLossy(
+            workspace,
+            workspace.Residual,
+            quantizedCoefficients,
+            transformSize,
+            transformType,
+            qIndex,
+            dcDeltaQ,
+            acDeltaQ,
+            bitDepth,
+            ref state);
+
+    private static void EncodeLossy(
+        Av1EncoderBlockWorkspace workspace,
+        ReadOnlySpan<short> residual,
+        Span<int> quantizedCoefficients,
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        int qIndex,
+        int dcDeltaQ,
+        int acDeltaQ,
+        Av1BitDepth bitDepth,
+        ref Av1EncoderTransformBlockState state)
     {
         int coefficientCount = transformSize.GetAdjusted().GetSize2d();
         Span<int> transformed = workspace.TransformCoefficients[..coefficientCount];
         Span<int> quantized = quantizedCoefficients[..coefficientCount];
         Span<int> dequantized = workspace.DequantizedCoefficients[..coefficientCount];
 
-        // The encoder keeps transformed, quantized, and reconstructed coefficients separate because mode decision
-        // consumes all three while only the quantized values survive in the frame coefficient owner.
+        // The forward transform reads the prepared residual without changing it, so every type candidate can
+        // reuse one source-minus-prediction block. Separate coefficient spans preserve each later representation.
         Av1ForwardTransformer.Transform2d(
-            workspace.Residual,
+            residual,
             transformed,
             (uint)transformSize.GetWidth(),
             transformType,

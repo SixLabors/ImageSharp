@@ -31,7 +31,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         MaximumCoefficientCount +
         MaximumCoefficientCount +
         Av1TransformWorkspace.MaximumLength +
-        IntraBlockCopyStorageLength;
+        IntraBlockCopyStorageLength +
+        PartitionContextStorageLength;
 
     private const int ResidualStorageLength = MaximumResidualCount / 2;
     private const int TransformCoefficientOffset = ResidualStorageLength;
@@ -63,6 +64,11 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         IntraBlockCopySampleStorageLength +
         IntraBlockCopyResidualStorageLength +
         IntraBlockCopyCoefficientStorageLength;
+
+    private const int PartitionContextStorageOffset =
+        IntraBlockCopySampleStorageOffset + IntraBlockCopyStorageLength;
+
+    private const int PartitionContextStorageLength = 4;
 
     /// <summary>
     /// Owns the complete reusable block workspace in 32-bit elements so every transform region is naturally aligned.
@@ -99,6 +105,15 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// </summary>
     public Span<int> TransformWorkspace
         => this.owner.Memory.Span.Slice(TransformWorkspaceOffset, Av1TransformWorkspace.MaximumLength);
+
+    /// <summary>
+    /// Gets storage for the coefficient and transform edges restored after an 8x8 partition trial.
+    /// </summary>
+    public Span<byte> PartitionContexts
+        => MemoryMarshal.AsBytes(
+            this.owner.Memory.Span.Slice(
+                PartitionContextStorageOffset,
+                PartitionContextStorageLength));
 
     /// <summary>
     /// Gets the reusable storage used while comparing spatial, chroma-from-luma, filter-intra, and palette candidates.

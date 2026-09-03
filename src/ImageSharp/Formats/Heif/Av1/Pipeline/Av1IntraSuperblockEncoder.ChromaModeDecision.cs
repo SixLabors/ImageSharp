@@ -46,6 +46,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MacroBlockModeInfo modeInfo,
             Point lumaOrigin,
             Point chromaOrigin,
+            Av1BlockSize blockSize,
             ushort tileIndex,
             Av1PredictionMode lumaMode,
             Av1TransformSize transformSize,
@@ -59,7 +60,6 @@ internal static partial class Av1IntraSuperblockEncoder
             out sbyte selectedChromaFromLumaSigns,
             out long selectedCost)
         {
-            const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             Av1EncoderModeDecisionWorkspace<TSample> workspace =
                 this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
 
@@ -73,11 +73,24 @@ internal static partial class Av1IntraSuperblockEncoder
             int modeInfoColumn = lumaOrigin.X >> Av1Constants.ModeInfoSizeLog2;
             bool hasLeft = macroBlock.IsLeftAvailable;
             bool hasAbove = macroBlock.IsUpAvailable;
+
+            // Subsampled chroma belongs to the bottom-right luma unit in its shared 8x8 region. Its external
+            // references therefore begin before that region, not immediately beside the owning 4x4 luma block.
+            if (subsamplingX != 0 && blockSize.Get4x4WideCount() < Av1BlockSize.Block8x8.Get4x4WideCount())
+            {
+                hasLeft = modeInfoColumn - 1 > macroBlock.Tile.ModeInfoColumnStart;
+            }
+
+            if (subsamplingY != 0 && blockSize.Get4x4HighCount() < Av1BlockSize.Block8x8.Get4x4HighCount())
+            {
+                hasAbove = modeInfoRow - 1 > macroBlock.Tile.ModeInfoRowStart;
+            }
+
             bool rightAvailable = modeInfoColumn + (transformSize.Get4x4WideCount() << subsamplingX) < macroBlock.Tile.ModeInfoColumnEnd;
             bool bottomAvailable = modeInfoRow + (transformSize.Get4x4HighCount() << subsamplingY) < macroBlock.Tile.ModeInfoRowEnd;
             bool hasTopRight = Av1IntraReferenceAvailability.HasTopRight(
                 this.picture.Sequence.SequenceHeader.SuperblockSize,
-                BlockSize,
+                blockSize,
                 modeInfoRow,
                 modeInfoColumn,
                 hasAbove,
@@ -91,7 +104,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             bool hasBottomLeft = Av1IntraReferenceAvailability.HasBottomLeft(
                 this.picture.Sequence.SequenceHeader.SuperblockSize,
-                BlockSize,
+                blockSize,
                 modeInfoRow,
                 modeInfoColumn,
                 bottomAvailable,
@@ -139,7 +152,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> blueLeft = blueLeftStorage.Slice(1, height * 2);
             ReadOnlySpan<TSample> redAbove = redAboveStorage.Slice(1, width * 2);
             ReadOnlySpan<TSample> redLeft = redLeftStorage.Slice(1, height * 2);
-            Av1BlockSize chromaBlockSize = BlockSize.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
+            Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
             Av1TransformBlockContext blueContext = Av1TileWriter.GetTransformBlockContexts(
                 Av1ComponentType.Chroma,
                 this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
@@ -172,11 +185,13 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 0 => 1,
                 1 => baseModeCount,
-                _ => baseModeCount + (directionalModeCount * deltaCount)
+                _ when blockSize >= Av1BlockSize.Block8x8 => baseModeCount + (directionalModeCount * deltaCount),
+                _ => baseModeCount
             };
 
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
-            int paletteDisabledCost = this.picture.Parent.FrameHeader.AllowScreenContentTools
+            int paletteDisabledCost = blockSize >= Av1BlockSize.Block8x8 &&
+                this.picture.Parent.FrameHeader.AllowScreenContentTools
                 ? writer.GetPaletteUvModeCost(false, hasLumaPalette)
                 : 0;
 
@@ -209,6 +224,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     lumaMode,
                     chromaMode,
                     angleDelta,
+                    blockSize,
                     chromaOrigin,
                     transformSize,
                     blueSource,
@@ -257,7 +273,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            bool chromaFromLumaAllowed = BlockSize.AllowsChromaFromLuma(
+            bool chromaFromLumaAllowed = blockSize.AllowsChromaFromLuma(
                 this.picture.Parent.FrameHeader.LosslessArray[modeInfo.Block.SegmentId],
                 colorConfig.SubSamplingX,
                 colorConfig.SubSamplingY);
@@ -265,9 +281,15 @@ internal static partial class Av1IntraSuperblockEncoder
             if (this.effort >= 4 && chromaFromLumaAllowed)
             {
                 Span<short> lumaQ3 = workspace.ChromaFromLumaSamples;
+                Point chromaLumaOrigin = new(
+                    chromaOrigin.X << subsamplingX,
+                    chromaOrigin.Y << subsamplingY);
+
+                // CfL consumes the complete luma region represented by this chroma block, which starts before
+                // the bottom-right ownership point for subsampled 4x4 luma leaves.
                 TOperator.PrepareChromaFromLuma(
                     this.reconstruction.GetPlane(Av1Plane.Y),
-                    lumaOrigin,
+                    chromaLumaOrigin,
                     lumaQ3,
                     transformSize,
                     colorConfig.SubSamplingX,
@@ -345,7 +367,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.picture.Parent.FrameHeader,
                     colorConfig,
                     modeInfo,
-                    BlockSize,
+                    blockSize,
                     lumaMode,
                     Av1ChromaPredictionMode.ChromaFromLuma,
                     0);
@@ -457,6 +479,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             if (this.effort >= 5 &&
+                blockSize == Av1BlockSize.Block8x8 &&
                 this.picture.Parent.FrameHeader.AllowScreenContentTools &&
                 this.SelectChromaPalette(
                     writer,
@@ -544,6 +567,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PredictionMode lumaMode,
             Av1ChromaPredictionMode chromaMode,
             int angleDelta,
+            Av1BlockSize blockSize,
             Point chromaOrigin,
             Av1TransformSize transformSize,
             Buffer2DRegion<TSample> blueSource,
@@ -564,7 +588,6 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderTransformBlockState candidateBlueState,
             ref Av1EncoderTransformBlockState candidateRedState)
         {
-            const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             Av1PredictionMode predictionMode = chromaMode.ToLumaMode();
 
             // Intra chroma derives one transform type from the shared UV prediction mode. The type is not
@@ -623,7 +646,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Parent.FrameHeader,
                 this.picture.Sequence.SequenceHeader.ColorConfig,
                 modeInfo,
-                BlockSize,
+                blockSize,
                 lumaMode,
                 chromaMode,
                 angleDelta);

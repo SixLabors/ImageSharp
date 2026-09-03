@@ -99,7 +99,8 @@ public class Av1EncoderModeInfoBufferTests
             sequenceHeader,
             frameHeader,
             Width,
-            Height))
+            Height,
+            disallow4x4AllFrames: true))
         {
             allocations = allocator.AllocationLog.ToArray();
             Assert.Equal(2, allocations.Length);

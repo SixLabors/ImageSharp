@@ -20,13 +20,12 @@ internal static partial class Av1IntraSuperblockEncoder
         where TSample : unmanaged
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
-        private void SelectIntraBlockCopy(
+        private long SelectIntraBlockCopy(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
-            long regularModeCost,
-            int regularEmptyTransformRate,
+            long regularCost,
             ref Av1MacroBlockModeInfo modeInfo,
             ref Av1EncoderBlockStruct block,
             ref Av1EncoderPaletteInfo paletteInfo)
@@ -99,21 +98,11 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (uniqueCandidateCount == 0)
             {
-                return;
+                return regularCost;
             }
 
-            // Mode-decision costs already contain the selected coefficient syntax but not the block's skip
-            // or IBC choice. When regular intra skips, replace its empty-coefficient rate with skip syntax.
             int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
-            int regularRateAdjustment = writer.GetUseIntraBlockCopyCost(false) +
-                writer.GetSkipCost(modeInfo.Block.Skip, skipContext);
-
-            if (modeInfo.Block.Skip)
-            {
-                regularRateAdjustment -= regularEmptyTransformRate;
-            }
-
-            long bestCost = regularModeCost + Av1RateDistortion.GetCost(this.rateMultiplier, regularRateAdjustment, 0);
+            long bestCost = regularCost;
             bool hasSelectedCandidate = false;
             bool selectedSkip = false;
             Av1MotionVector selectedVector = default;
@@ -369,7 +358,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (!hasSelectedCandidate)
             {
-                return;
+                return bestCost;
             }
 
             // Only the winning vector is now visible to later coding blocks. This single publication keeps
@@ -440,6 +429,7 @@ internal static partial class Av1IntraSuperblockEncoder
             block.PredictionUnit.ChromaFromLumaSigns = 0;
             paletteInfo = default;
             this.picture.SetDisplacementVector(modeInfoPosition, selectedVector);
+            return bestCost;
         }
 
         private void EvaluateIntraBlockCopyPlane(

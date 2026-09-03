@@ -149,7 +149,19 @@ internal partial class Av1TileWriter
             return;
         }
 
-        Av1PartitionType partition = (Av1PartitionType)superblock.CodingUnitPartitionTypes[partitionIndex++];
+        int currentPartitionIndex = partitionIndex++;
+        Av1PartitionType preparedPartition =
+            (Av1PartitionType)superblock.CodingUnitPartitionTypes[currentPartitionIndex];
+
+        Av1PartitionType partition = blockEncoder.SelectPartition(
+            writer,
+            entropyCodingContext.MacroBlock,
+            blockOrigin,
+            tileIndex,
+            blockSize,
+            preparedPartition);
+
+        superblock.CodingUnitPartitionTypes[currentPartitionIndex] = (byte)partition;
         Av1BlockSize subSize = partition.GetBlockSubSize(blockSize);
         int halfBlockSize = blockSize.GetWidth() >> 1;
         int quarterBlockSize = blockSize.GetWidth() >> 2;
@@ -232,54 +244,89 @@ internal partial class Av1TileWriter
 
                 break;
             case Av1PartitionType.Split:
-                WritePartitionTree(
-                    pcs,
-                    entropyCodingContext,
-                    writer,
-                    superblock,
-                    coefficientBuffer,
-                    tileIndex,
-                    subSize,
-                    blockOrigin,
-                    ref partitionIndex,
-                    ref finalBlockIndex,
-                    ref blockEncoder);
-                WritePartitionTree(
-                    pcs,
-                    entropyCodingContext,
-                    writer,
-                    superblock,
-                    coefficientBuffer,
-                    tileIndex,
-                    subSize,
-                    blockOrigin + new Size(halfBlockSize, 0),
-                    ref partitionIndex,
-                    ref finalBlockIndex,
-                    ref blockEncoder);
-                WritePartitionTree(
-                    pcs,
-                    entropyCodingContext,
-                    writer,
-                    superblock,
-                    coefficientBuffer,
-                    tileIndex,
-                    subSize,
-                    blockOrigin + new Size(0, halfBlockSize),
-                    ref partitionIndex,
-                    ref finalBlockIndex,
-                    ref blockEncoder);
-                WritePartitionTree(
-                    pcs,
-                    entropyCodingContext,
-                    writer,
-                    superblock,
-                    coefficientBuffer,
-                    tileIndex,
-                    subSize,
-                    blockOrigin + new Size(halfBlockSize, halfBlockSize),
-                    ref partitionIndex,
-                    ref finalBlockIndex,
-                    ref blockEncoder);
+                if (blockSize == Av1BlockSize.Block8x8)
+                {
+                    // A split 8x8 node terminates in four 4x4 coding blocks. AV1 does not carry another
+                    // partition symbol at that size, so the children are final blocks rather than tree nodes.
+                    for (int childIndex = 0; childIndex < 4; childIndex++)
+                    {
+                        Point childOrigin = blockOrigin + new Size(
+                            (childIndex & 1) * halfBlockSize,
+                            (childIndex >> 1) * halfBlockSize);
+
+                        Point childModeInfoPosition = childOrigin >> Av1Constants.ModeInfoSizeLog2;
+                        if (childModeInfoPosition.Y >= common.ModeInfoRowCount ||
+                            childModeInfoPosition.X >= common.ModeInfoColumnCount)
+                        {
+                            continue;
+                        }
+
+                        WriteFinalBlock(
+                            pcs,
+                            entropyCodingContext,
+                            writer,
+                            superblock,
+                            coefficientBuffer,
+                            tileIndex,
+                            childOrigin,
+                            ref finalBlockIndex,
+                            ref blockEncoder);
+                    }
+                }
+                else
+                {
+                    WritePartitionTree(
+                        pcs,
+                        entropyCodingContext,
+                        writer,
+                        superblock,
+                        coefficientBuffer,
+                        tileIndex,
+                        subSize,
+                        blockOrigin,
+                        ref partitionIndex,
+                        ref finalBlockIndex,
+                        ref blockEncoder);
+
+                    WritePartitionTree(
+                        pcs,
+                        entropyCodingContext,
+                        writer,
+                        superblock,
+                        coefficientBuffer,
+                        tileIndex,
+                        subSize,
+                        blockOrigin + new Size(halfBlockSize, 0),
+                        ref partitionIndex,
+                        ref finalBlockIndex,
+                        ref blockEncoder);
+
+                    WritePartitionTree(
+                        pcs,
+                        entropyCodingContext,
+                        writer,
+                        superblock,
+                        coefficientBuffer,
+                        tileIndex,
+                        subSize,
+                        blockOrigin + new Size(0, halfBlockSize),
+                        ref partitionIndex,
+                        ref finalBlockIndex,
+                        ref blockEncoder);
+
+                    WritePartitionTree(
+                        pcs,
+                        entropyCodingContext,
+                        writer,
+                        superblock,
+                        coefficientBuffer,
+                        tileIndex,
+                        subSize,
+                        blockOrigin + new Size(halfBlockSize, halfBlockSize),
+                        ref partitionIndex,
+                        ref finalBlockIndex,
+                        ref blockEncoder);
+                }
 
                 break;
             case Av1PartitionType.HorizontalA:
@@ -593,6 +640,47 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
+    /// Gets the partition-symbol rate from the above and left contexts available at a block origin.
+    /// </summary>
+    /// <param name="pcs">The picture coding state.</param>
+    /// <param name="writer">The live tile symbol encoder.</param>
+    /// <param name="blockSize">The square parent block size.</param>
+    /// <param name="partitionType">The partition type to measure.</param>
+    /// <param name="blockOrigin">The block origin in samples.</param>
+    /// <param name="partitionContexts">The partition neighbor arrays for the tile.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetPartitionCost(
+        Av1PictureControlSet pcs,
+        Av1SymbolEncoder writer,
+        Av1BlockSize blockSize,
+        Av1PartitionType partitionType,
+        Point blockOrigin,
+        Av1NeighborArrayUnit<Av1PartitionContext> partitionContexts)
+    {
+        int context = GetPartitionContext(
+            pcs,
+            blockSize,
+            blockOrigin,
+            partitionContexts,
+            out bool hasRows,
+            out bool hasColumns);
+
+        if (!hasRows && !hasColumns)
+        {
+            return 0;
+        }
+
+        if (hasRows && hasColumns)
+        {
+            return writer.GetPartitionTypeCost(partitionType, context);
+        }
+
+        return !hasRows
+            ? writer.GetSplitOrHorizontalCost(partitionType, blockSize, context)
+            : writer.GetSplitOrVerticalCost(partitionType, blockSize, context);
+    }
+
+    /// <summary>
     /// Writes a partition symbol using the above and left partition contexts available at a block origin.
     /// </summary>
     /// <param name="pcs">The picture coding state.</param>
@@ -616,33 +704,13 @@ internal partial class Av1TileWriter
             return;
         }
 
-        int halfBlockModeInfoCount = blockSize.Get4x4WideCount() >> 1;
-        Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
-        bool has_rows = modeInfoPosition.Y + halfBlockModeInfoCount < pcs.Parent.Common.ModeInfoRowCount;
-        bool has_cols = modeInfoPosition.X + halfBlockModeInfoCount < pcs.Parent.Common.ModeInfoColumnCount;
-
-        int partition_context_left_neighbor_index = partition_context_na.GetLeftIndex(blockOrigin);
-        int partition_context_top_neighbor_index = partition_context_na.GetTopIndex(blockOrigin);
-
-        int context_index = 0;
-
-        byte above_ctx =
-            (byte)(partition_context_na.Top[partition_context_top_neighbor_index].Above == byte.MaxValue
-            ? 0
-            : partition_context_na.Top[partition_context_top_neighbor_index].Above);
-        byte left_ctx =
-            (byte)(partition_context_na.Left[partition_context_left_neighbor_index].Left == byte.MaxValue
-            ? 0
-            : partition_context_na.Left[partition_context_left_neighbor_index].Left);
-
-        int blockSizeLog2 = blockSize.Get4x4WidthLog2() - 1;
-        int above = (above_ctx >> blockSizeLog2) & 1, left = (left_ctx >> blockSizeLog2) & 1;
-
-        Guard.IsTrue(blockSize.Get4x4WidthLog2() == blockSize.Get4x4HeightLog2(), nameof(blockSize), "Blocks need to be square.");
-        Guard.IsTrue(blockSizeLog2 >= 0, nameof(blockSizeLog2), "bsl needs to be a positive integer.");
-
-        // Each square block-size level owns four contexts selected by the current split bit of its neighbors.
-        context_index = ((left * 2) + above) + (blockSizeLog2 * Av1Constants.PartitionProbabilitySet);
+        int context_index = GetPartitionContext(
+            pcs,
+            blockSize,
+            blockOrigin,
+            partition_context_na,
+            out bool has_rows,
+            out bool has_cols);
 
         if (!has_rows && !has_cols)
         {
@@ -664,6 +732,39 @@ internal partial class Av1TileWriter
         }
 
         return;
+    }
+
+    private static int GetPartitionContext(
+        Av1PictureControlSet pcs,
+        Av1BlockSize blockSize,
+        Point blockOrigin,
+        Av1NeighborArrayUnit<Av1PartitionContext> partitionContexts,
+        out bool hasRows,
+        out bool hasColumns)
+    {
+        int halfBlockModeInfoCount = blockSize.Get4x4WideCount() >> 1;
+        Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+        hasRows = modeInfoPosition.Y + halfBlockModeInfoCount < pcs.Parent.Common.ModeInfoRowCount;
+        hasColumns = modeInfoPosition.X + halfBlockModeInfoCount < pcs.Parent.Common.ModeInfoColumnCount;
+        int leftIndex = partitionContexts.GetLeftIndex(blockOrigin);
+        int topIndex = partitionContexts.GetTopIndex(blockOrigin);
+        byte aboveContext = partitionContexts.Top[topIndex].Above == byte.MaxValue
+            ? (byte)0
+            : partitionContexts.Top[topIndex].Above;
+
+        byte leftContext = partitionContexts.Left[leftIndex].Left == byte.MaxValue
+            ? (byte)0
+            : partitionContexts.Left[leftIndex].Left;
+
+        int blockSizeLog2 = blockSize.Get4x4WidthLog2() - 1;
+        int above = (aboveContext >> blockSizeLog2) & 1;
+        int left = (leftContext >> blockSizeLog2) & 1;
+
+        Guard.IsTrue(blockSize.Get4x4WidthLog2() == blockSize.Get4x4HeightLog2(), nameof(blockSize), "Blocks need to be square.");
+        Guard.IsTrue(blockSizeLog2 >= 0, nameof(blockSizeLog2), "bsl needs to be a positive integer.");
+
+        // Each square block-size level owns four contexts selected by the current split bit of its neighbors.
+        return ((left * 2) + above) + (blockSizeLog2 * Av1Constants.PartitionProbabilitySet);
     }
 
     /// <summary>
@@ -1900,7 +2001,7 @@ internal partial class Av1TileWriter
     /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
     /// <param name="subsamplingY">The vertical chroma subsampling shift.</param>
     /// <returns>The aligned origin in chroma samples.</returns>
-    private static Point GetChromaBlockOrigin(Point lumaOrigin, int subsamplingX, int subsamplingY)
+    public static Point GetChromaBlockOrigin(Point lumaOrigin, int subsamplingX, int subsamplingY)
         => new(
             (lumaOrigin.X >> (Av1Constants.ModeInfoSizeLog2 + subsamplingX)) << Av1Constants.ModeInfoSizeLog2,
             (lumaOrigin.Y >> (Av1Constants.ModeInfoSizeLog2 + subsamplingY)) << Av1Constants.ModeInfoSizeLog2);

@@ -153,6 +153,69 @@ public class Av1EncoderFrameTests
         }
     }
 
+    [Fact]
+    public void EncodeEffortNineSelectsSubEightPartition()
+    {
+        const int Size = 16;
+        using Image<Rgba32> source = new(Size, Size);
+        for (int y = 0; y < Size; y++)
+        {
+            Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < Size; x++)
+            {
+                // The bottom-right 8x8 uses horizontal prediction on its left half and vertical prediction
+                // on its right half. Twelve source values keep a parent palette from reproducing both halves.
+                byte value;
+                if (x < 8 && y < 8)
+                {
+                    value = 128;
+                }
+                else if (y < 8)
+                {
+                    value = (byte)(16 + ((x - 8) * 20));
+                }
+                else
+                {
+                    value = x < 12
+                        ? (byte)(176 + ((y - 8) * 9))
+                        : (byte)(16 + ((x - 8) * 20));
+                }
+
+                row[x] = new Rgba32(value, value, value);
+            }
+        }
+
+        using MemoryStream stream = new();
+        _ = Av1FrameEncoder.Encode(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            stream,
+            CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400),
+            qIndex: 4,
+            effort: 9);
+
+        byte[] payload = stream.ToArray();
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+        Point[] leafPositions =
+        [
+            new(2, 2),
+            new(3, 2),
+            new(2, 3),
+            new(3, 3)
+        ];
+
+        foreach (Point leafPosition in leafPositions)
+        {
+            Assert.Equal(
+                Av1BlockSize.Block4x8,
+                frameInfo.GetModeInfoAt(leafPosition).BlockSize);
+        }
+
+        Assert.Equal(new Size(Size, Size), decoded.Size);
+    }
+
     [Theory]
     [InlineData(EightBit)]
     [InlineData(TenBit)]

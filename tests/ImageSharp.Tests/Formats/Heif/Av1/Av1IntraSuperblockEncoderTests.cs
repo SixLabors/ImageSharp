@@ -244,7 +244,8 @@ public class Av1IntraSuperblockEncoderTests
             picture.Sequence.SequenceHeader,
             picture.Parent.FrameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer tileCoefficients = new(
             Configuration.Default,
@@ -320,7 +321,8 @@ public class Av1IntraSuperblockEncoderTests
             pictureTemplate.Sequence.SequenceHeader,
             pictureTemplate.Parent.FrameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         Av1PictureControlSet picture = pictureBuffer.Picture;
         using Av1EncoderCoefficientBuffer coefficients = new(
@@ -393,7 +395,8 @@ public class Av1IntraSuperblockEncoderTests
             pictureTemplate.Sequence.SequenceHeader,
             pictureTemplate.Parent.FrameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer liveCoefficients = new(
             Configuration.Default,
@@ -517,7 +520,8 @@ public class Av1IntraSuperblockEncoderTests
             picture.Sequence.SequenceHeader,
             picture.Parent.FrameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer tileCoefficients = new(
             Configuration.Default,
@@ -572,7 +576,8 @@ public class Av1IntraSuperblockEncoderTests
             pictureTemplate.Sequence.SequenceHeader,
             pictureTemplate.Parent.FrameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             Configuration.Default,
@@ -664,7 +669,8 @@ public class Av1IntraSuperblockEncoderTests
                 sequenceHeader,
                 frameHeader,
                 Width,
-                Height);
+                Height,
+                disallow4x4AllFrames: true);
 
             using Av1EncoderCoefficientBuffer coefficients = new(
                 Configuration.Default,
@@ -921,7 +927,8 @@ public class Av1IntraSuperblockEncoderTests
             pictureTemplate.Sequence.SequenceHeader,
             pictureTemplate.Parent.FrameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             Configuration.Default,
@@ -1133,7 +1140,8 @@ public class Av1IntraSuperblockEncoderTests
             pictureTemplate.Sequence.SequenceHeader,
             pictureTemplate.Parent.FrameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             Configuration.Default,
@@ -1246,7 +1254,8 @@ public class Av1IntraSuperblockEncoderTests
             pictureTemplate.Sequence.SequenceHeader,
             pictureTemplate.Parent.FrameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             Configuration.Default,
@@ -1406,7 +1415,8 @@ public class Av1IntraSuperblockEncoderTests
             pilotTemplate.Sequence.SequenceHeader,
             pilotTemplate.Parent.FrameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer pilotCoefficients = new(
             Configuration.Default,
@@ -1507,7 +1517,8 @@ public class Av1IntraSuperblockEncoderTests
             pictureTemplate.Sequence.SequenceHeader,
             pictureTemplate.Parent.FrameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             Configuration.Default,
@@ -1747,7 +1758,8 @@ public class Av1IntraSuperblockEncoderTests
             pilotTemplate.Sequence.SequenceHeader,
             pilotTemplate.Parent.FrameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer pilotCoefficients = new(
             Configuration.Default,
@@ -1903,7 +1915,8 @@ public class Av1IntraSuperblockEncoderTests
             pictureTemplate.Sequence.SequenceHeader,
             pictureTemplate.Parent.FrameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             Configuration.Default,
@@ -2101,7 +2114,8 @@ public class Av1IntraSuperblockEncoderTests
             pictureTemplate.Sequence.SequenceHeader,
             pictureTemplate.Parent.FrameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             Configuration.Default,
@@ -2243,7 +2257,8 @@ public class Av1IntraSuperblockEncoderTests
             pictureTemplate.Sequence.SequenceHeader,
             pictureTemplate.Parent.FrameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             Configuration.Default,
@@ -2370,7 +2385,8 @@ public class Av1IntraSuperblockEncoderTests
             pictureTemplate.Sequence.SequenceHeader,
             pictureTemplate.Parent.FrameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             Configuration.Default,
@@ -2480,7 +2496,8 @@ public class Av1IntraSuperblockEncoderTests
             sequenceHeader,
             frameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             Configuration.Default,
@@ -2738,7 +2755,8 @@ public class Av1IntraSuperblockEncoderTests
             pictureTemplate.Sequence.SequenceHeader,
             pictureTemplate.Parent.FrameHeader,
             width,
-            height);
+            height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             Configuration.Default,
@@ -3036,6 +3054,16 @@ public class Av1IntraSuperblockEncoderTests
         public int Count { get; private set; }
 
         /// <inheritdoc/>
+        public readonly Av1PartitionType SelectPartition(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1BlockSize blockSize,
+            Av1PartitionType preparedPartition)
+            => preparedPartition;
+
+        /// <inheritdoc/>
         public void EncodeBlock(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
@@ -3099,6 +3127,16 @@ public class Av1IntraSuperblockEncoderTests
         /// Gets the number of final blocks visited by the writer.
         /// </summary>
         public int Count { get; private set; }
+
+        /// <inheritdoc/>
+        public readonly Av1PartitionType SelectPartition(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1BlockSize blockSize,
+            Av1PartitionType preparedPartition)
+            => preparedPartition;
 
         /// <inheritdoc/>
         public void EncodeBlock(

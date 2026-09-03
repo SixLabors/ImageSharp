@@ -100,7 +100,8 @@ public class Av1IntraBlockCopyTests
             sequenceHeader,
             frameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         Av1PictureControlSet picture = buffer.Picture;
         Point candidatePosition = new(80, 12);
@@ -161,7 +162,8 @@ public class Av1IntraBlockCopyTests
             sequenceHeader,
             frameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         Av1PictureControlSet picture = buffer.Picture;
         Point modeInfoPosition = new(80, 0);
@@ -254,7 +256,8 @@ public class Av1IntraBlockCopyTests
             sequenceHeader,
             frameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderFrameBuffer<byte> source = new(
             Configuration.Default,
@@ -339,7 +342,8 @@ public class Av1IntraBlockCopyTests
             sequenceHeader,
             frameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderFrameBuffer<byte> source = new(
             Configuration.Default,
@@ -434,7 +438,8 @@ public class Av1IntraBlockCopyTests
             sequenceHeader,
             frameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         using Av1EncoderFrameBuffer<byte> source = new(
             Configuration.Default,

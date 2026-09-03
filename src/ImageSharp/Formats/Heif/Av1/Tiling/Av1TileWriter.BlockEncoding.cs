@@ -16,6 +16,24 @@ internal partial class Av1TileWriter
     internal interface IBlockEncodingHandler
     {
         /// <summary>
+        /// Selects the partition used for the current tree node.
+        /// </summary>
+        /// <param name="writer">The live tile symbol encoder.</param>
+        /// <param name="macroBlock">The tile-local macroblock state.</param>
+        /// <param name="blockOrigin">The absolute luma-sample origin.</param>
+        /// <param name="tileIndex">The zero-based tile index.</param>
+        /// <param name="blockSize">The current square partition size.</param>
+        /// <param name="preparedPartition">The partition retained before live analysis.</param>
+        /// <returns>The partition to encode.</returns>
+        Av1PartitionType SelectPartition(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1BlockSize blockSize,
+            Av1PartitionType preparedPartition);
+
+        /// <summary>
         /// Encodes one final block against the current reconstructed neighbors and live tile probabilities.
         /// </summary>
         /// <param name="writer">The live tile symbol encoder.</param>
@@ -37,6 +55,17 @@ internal partial class Av1TileWriter
 
     private readonly struct PrecomputedBlockEncodingHandler : IBlockEncodingHandler
     {
+        /// <inheritdoc/>
+        public Av1PartitionType SelectPartition(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1BlockSize blockSize,
+            Av1PartitionType preparedPartition)
+            => preparedPartition;
+
+        /// <inheritdoc/>
         public void EncodeBlock(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,

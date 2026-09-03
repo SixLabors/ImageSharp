@@ -368,7 +368,8 @@ public class Av1CoefficientsEntropyTests
             sequenceHeader,
             frameHeader,
             Width,
-            Height);
+            Height,
+            disallow4x4AllFrames: true);
 
         Av1PictureControlSet picture = pictureBuffer.Picture;
         Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts = Assert.Single(picture.PaletteContexts);

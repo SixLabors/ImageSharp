@@ -300,7 +300,8 @@ internal static class Av1FrameEncoder
             sequenceHeader,
             frameHeader,
             image.Width,
-            image.Height);
+            image.Height,
+            disallow4x4AllFrames: effort < 9);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             configuration,
@@ -363,7 +364,8 @@ internal static class Av1FrameEncoder
             sequenceHeader,
             frameHeader,
             image.Width,
-            image.Height);
+            image.Height,
+            disallow4x4AllFrames: effort < 9);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             configuration,

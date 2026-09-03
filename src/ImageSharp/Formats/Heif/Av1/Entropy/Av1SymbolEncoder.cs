@@ -723,6 +723,15 @@ internal class Av1SymbolEncoder : IDisposable
         => this.displacementVector.GetCost(this.writer, value, reference);
 
     /// <summary>
+    /// Gets the current fixed-point cost of a complete block partition symbol.
+    /// </summary>
+    /// <param name="partitionType">The partition type to measure.</param>
+    /// <param name="context">The partition probability context.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetPartitionTypeCost(Av1PartitionType partitionType, int context)
+        => Av1ProbabilityCost.GetSymbolCost(this.tilePartitionTypes[context], (int)partitionType);
+
+    /// <summary>
     /// Writes a complete block partition type using the selected partition context.
     /// </summary>
     /// <param name="partitionType">The partition type to encode.</param>
@@ -748,6 +757,26 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Gets the current fixed-point cost of the split-versus-horizontal boundary decision.
+    /// </summary>
+    /// <param name="partitionType">The split or horizontal partition outcome.</param>
+    /// <param name="blockSize">The current block size.</param>
+    /// <param name="context">The partition probability context.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetSplitOrHorizontalCost(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
+    {
+        int frequency = (int)Av1SymbolDecoder.GetSplitOrHorizontalFrequency(
+            this.tilePartitionTypes,
+            blockSize,
+            context);
+
+        return Av1ProbabilityCost.GetProbabilityCost(
+            partitionType == Av1PartitionType.Split
+                ? frequency
+                : Av1Distribution.ProbabilityTop - frequency);
+    }
+
+    /// <summary>
     /// Writes the split-versus-vertical boundary decision for a block clipped at the right tile edge.
     /// </summary>
     /// <param name="partitionType">The split or vertical partition outcome.</param>
@@ -759,6 +788,26 @@ internal class Av1SymbolEncoder : IDisposable
         bool value = partitionType == Av1PartitionType.Split;
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteBoolean(value, frequency);
+    }
+
+    /// <summary>
+    /// Gets the current fixed-point cost of the split-versus-vertical boundary decision.
+    /// </summary>
+    /// <param name="partitionType">The split or vertical partition outcome.</param>
+    /// <param name="blockSize">The current block size.</param>
+    /// <param name="context">The partition probability context.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public int GetSplitOrVerticalCost(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
+    {
+        int frequency = (int)Av1SymbolDecoder.GetSplitOrVerticalFrequency(
+            this.tilePartitionTypes,
+            blockSize,
+            context);
+
+        return Av1ProbabilityCost.GetProbabilityCost(
+            partitionType == Av1PartitionType.Split
+                ? frequency
+                : Av1Distribution.ProbabilityTop - frequency);
     }
 
     /// <summary>

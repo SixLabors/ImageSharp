@@ -32,19 +32,21 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
     /// <param name="frameHeader">The frame header defining dimensions and tiles.</param>
     /// <param name="width">The visible luma width.</param>
     /// <param name="height">The visible luma height.</param>
+    /// <param name="disallow4x4AllFrames">Whether each allocated mode-information value represents an 8x8 region.</param>
     public Av1EncoderPictureBuffer(
         Configuration configuration,
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         int width,
-        int height)
+        int height,
+        bool disallow4x4AllFrames)
     {
         const int ContextAlignmentLog2 = Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2;
         this.modeInfo = new Av1EncoderModeInfoBuffer(
             configuration,
             width,
             height,
-            disallow4x4AllFrames: true);
+            disallow4x4AllFrames);
 
         int alignedModeInfoRowCount = Av1Math.AlignPowerOf2(this.modeInfo.ModeInfoRowCount, ContextAlignmentLog2);
         int lumaLeftLength = alignedModeInfoRowCount;

@@ -205,16 +205,7 @@ public class Av1ResidualBuilderTests
         Av1ResidualBuilder.Subtract(sourcePlane, sourceStride, predictionPlane, predictionStride, actualPlane, residualStride, width, height);
 
         Assert.Equal(expected, actual);
-
-        long expectedSquaredError = 0;
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                int difference = sourcePlane[(y * sourceStride) + x] - predictionPlane[(y * predictionStride) + x];
-                expectedSquaredError += difference * difference;
-            }
-        }
+        long expectedSquaredError = CalculateReferenceSquaredError(expectedPlane, residualStride, width, height);
 
         Assert.Equal(
             expectedSquaredError,
@@ -254,16 +245,7 @@ public class Av1ResidualBuilderTests
         Av1ResidualBuilder.Subtract(sourcePlane, sourceStride, predictionPlane, predictionStride, actualPlane, residualStride, width, height);
 
         Assert.Equal(expected, actual);
-
-        long expectedSquaredError = 0;
-        for (int y = 0; y < height; y++)
-        {
-            for (int x = 0; x < width; x++)
-            {
-                int difference = sourcePlane[(y * sourceStride) + x] - predictionPlane[(y * predictionStride) + x];
-                expectedSquaredError += difference * difference;
-            }
-        }
+        long expectedSquaredError = CalculateReferenceSquaredError(expectedPlane, residualStride, width, height);
 
         Assert.Equal(
             expectedSquaredError,
@@ -346,6 +328,30 @@ public class Av1ResidualBuilderTests
                 residual[(y * residualStride) + x] = (short)(source[(y * sourceStride) + x] - prediction[(y * predictionStride) + x]);
             }
         }
+    }
+
+    /// <summary>
+    /// Calculates residual energy with scalar arithmetic independently of the vectorized implementation under test.
+    /// </summary>
+    private static long CalculateReferenceSquaredError(
+        ReadOnlySpan<short> residual,
+        int residualStride,
+        int width,
+        int height)
+    {
+        long squaredError = 0;
+
+        // Only coded samples contribute to the error metric; stride padding must remain outside the calculation.
+        for (int y = 0; y < height; y++)
+        {
+            for (int x = 0; x < width; x++)
+            {
+                int value = residual[(y * residualStride) + x];
+                squaredError += value * value;
+            }
+        }
+
+        return squaredError;
     }
 
     private static void AssertEqual(ReadOnlySpan<short> expected, ReadOnlySpan<short> actual, int count)

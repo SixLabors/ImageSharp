@@ -52,8 +52,8 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1TransformSize transformSize,
             Span<int> retainedBlueCoefficients,
             Span<int> retainedRedCoefficients,
-            ref Av1EncoderTransformBlockState retainedBlueState,
-            ref Av1EncoderTransformBlockState retainedRedState,
+            Span<Av1EncoderTransformBlockState> retainedBlueStates,
+            Span<Av1EncoderTransformBlockState> retainedRedStates,
             ref Av1EncoderPaletteInfo paletteInfo,
             out int selectedAngleDelta,
             out byte selectedChromaFromLumaIndex,
@@ -69,6 +69,34 @@ internal static partial class Av1IntraSuperblockEncoder
             int width = transformSize.GetWidth();
             int height = transformSize.GetHeight();
             int sampleCount = transformSize.GetSize2d();
+            Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(
+                colorConfig.SubSamplingX,
+                colorConfig.SubSamplingY);
+
+            if (chromaBlockSize.GetWidth() > width || chromaBlockSize.GetHeight() > height)
+            {
+                return this.SelectTiledChromaMode(
+                    writer,
+                    macroBlock,
+                    modeInfo,
+                    lumaOrigin,
+                    chromaOrigin,
+                    blockSize,
+                    chromaBlockSize,
+                    tileIndex,
+                    lumaMode,
+                    transformSize,
+                    retainedBlueCoefficients,
+                    retainedRedCoefficients,
+                    retainedBlueStates,
+                    retainedRedStates,
+                    paletteInfo,
+                    out selectedAngleDelta,
+                    out selectedChromaFromLumaIndex,
+                    out selectedChromaFromLumaSigns,
+                    out selectedCost);
+            }
+
             int modeInfoRow = lumaOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
             int modeInfoColumn = lumaOrigin.X >> Av1Constants.ModeInfoSizeLog2;
             bool hasLeft = macroBlock.IsLeftAvailable;
@@ -152,7 +180,6 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> blueLeft = blueLeftStorage.Slice(1, height * 2);
             ReadOnlySpan<TSample> redAbove = redAboveStorage.Slice(1, width * 2);
             ReadOnlySpan<TSample> redLeft = redLeftStorage.Slice(1, height * 2);
-            Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
             Av1TransformBlockContext blueContext = Av1TileWriter.GetTransformBlockContexts(
                 Av1ComponentType.Chroma,
                 this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
@@ -255,7 +282,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         retainedBlueCoefficients,
                         transformSize,
                         candidateBlueState,
-                        ref retainedBlueState);
+                        ref retainedBlueStates[0]);
 
                     CopyCandidate(
                         candidateRedReconstruction,
@@ -265,7 +292,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         retainedRedCoefficients,
                         transformSize,
                         candidateRedState,
-                        ref retainedRedState);
+                        ref retainedRedStates[0]);
 
                     bestCost = candidateCost;
                     bestMode = chromaMode;
@@ -447,7 +474,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         retainedBlueCoefficients,
                         transformSize,
                         candidateBlueState,
-                        ref retainedBlueState);
+                        ref retainedBlueStates[0]);
 
                     Av1EncoderTransformBlockState candidateRedState = default;
                     _ = this.GetChromaFromLumaPlaneCost(
@@ -474,7 +501,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         retainedRedCoefficients,
                         transformSize,
                         candidateRedState,
-                        ref retainedRedState);
+                        ref retainedRedStates[0]);
                 }
             }
 
@@ -498,8 +525,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     candidateRedCoefficients[..sampleCount],
                     retainedBlueCoefficients,
                     retainedRedCoefficients,
-                    ref retainedBlueState,
-                    ref retainedRedState,
+                    ref retainedBlueStates[0],
+                    ref retainedRedStates[0],
                     ref bestCost,
                     ref paletteInfo))
             {
@@ -511,6 +538,408 @@ internal static partial class Av1IntraSuperblockEncoder
 
             selectedCost = bestCost;
             return bestMode;
+        }
+
+        private Av1ChromaPredictionMode SelectTiledChromaMode(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Av1MacroBlockModeInfo modeInfo,
+            Point lumaOrigin,
+            Point chromaOrigin,
+            Av1BlockSize blockSize,
+            Av1BlockSize chromaBlockSize,
+            ushort tileIndex,
+            Av1PredictionMode lumaMode,
+            Av1TransformSize transformSize,
+            Span<int> retainedBlueCoefficients,
+            Span<int> retainedRedCoefficients,
+            Span<Av1EncoderTransformBlockState> retainedBlueStates,
+            Span<Av1EncoderTransformBlockState> retainedRedStates,
+            Av1EncoderPaletteInfo paletteInfo,
+            out int selectedAngleDelta,
+            out byte selectedChromaFromLumaIndex,
+            out sbyte selectedChromaFromLumaSigns,
+            out long selectedCost)
+        {
+            Av1EncoderModeDecisionWorkspace<TSample> workspace =
+                this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
+
+            ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
+            int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
+            int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
+            int blockWidth = chromaBlockSize.GetWidth();
+            int blockHeight = chromaBlockSize.GetHeight();
+            int blockSampleCount = blockWidth * blockHeight;
+            int transformWidth = transformSize.GetWidth();
+            int transformHeight = transformSize.GetHeight();
+            int transformColumnCount = blockWidth / transformWidth;
+            int transformRowCount = blockHeight / transformHeight;
+            int transformBlockCount = transformColumnCount * transformRowCount;
+            Span<TSample> candidateBlueReconstruction =
+                workspace.GetCandidateReconstruction(0)[..blockSampleCount];
+
+            Span<TSample> candidateRedReconstruction =
+                workspace.GetCandidateReconstruction(1)[..blockSampleCount];
+
+            Span<int> candidateBlueCoefficients =
+                workspace.GetCandidateCoefficients(0)[..blockSampleCount];
+
+            Span<int> candidateRedCoefficients =
+                workspace.GetCandidateCoefficients(1)[..blockSampleCount];
+
+            Span<Av1EncoderTransformBlockState> candidateStates = workspace.CandidateTransformBlocks;
+            Span<Av1EncoderTransformBlockState> candidateBlueStates =
+                candidateStates[..transformBlockCount];
+
+            Span<Av1EncoderTransformBlockState> candidateRedStates =
+                candidateStates.Slice(transformBlockCount, transformBlockCount);
+
+            int contextWidth = chromaBlockSize.Get4x4WideCount();
+            int contextHeight = chromaBlockSize.Get4x4HighCount();
+            Span<byte> contexts = workspace.TransformContexts;
+            Span<byte> blueTopContexts = contexts[..contextWidth];
+            Span<byte> blueLeftContexts = contexts.Slice(contextWidth, contextHeight);
+            Span<byte> redTopContexts = contexts.Slice(contextWidth + contextHeight, contextWidth);
+            Span<byte> redLeftContexts = contexts.Slice(
+                (2 * contextWidth) + contextHeight,
+                contextHeight);
+
+            Av1NeighborArrayUnit<byte> blueNeighbors =
+                this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex];
+
+            Av1NeighborArrayUnit<byte> redNeighbors =
+                this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex];
+
+            int blueTopIndex = blueNeighbors.GetTopIndex(chromaOrigin);
+            int blueLeftIndex = blueNeighbors.GetLeftIndex(chromaOrigin);
+            int redTopIndex = redNeighbors.GetTopIndex(chromaOrigin);
+            int redLeftIndex = redNeighbors.GetLeftIndex(chromaOrigin);
+            Buffer2DRegion<TSample> blueSource = this.source.GetPlane(Av1Plane.U);
+            Buffer2DRegion<TSample> redSource = this.source.GetPlane(Av1Plane.V);
+            Buffer2DRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
+            Buffer2DRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
+            bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
+            int paletteDisabledCost = this.picture.Parent.FrameHeader.AllowScreenContentTools
+                ? writer.GetPaletteUvModeCost(false, hasLumaPalette)
+                : 0;
+
+            int baseModeCount = ChromaModeSearchOrder.Length;
+            int deltaCount = AngleDeltaSearchOrder.Length;
+            int directionalModeCount =
+                (int)Av1ChromaPredictionMode.Directional67Degrees -
+                (int)Av1ChromaPredictionMode.Vertical +
+                1;
+
+            int candidateCount = baseModeCount + (directionalModeCount * deltaCount);
+            long bestCost = long.MaxValue;
+            Av1ChromaPredictionMode bestMode = Av1ChromaPredictionMode.DC;
+            selectedAngleDelta = 0;
+            selectedChromaFromLumaIndex = 0;
+            selectedChromaFromLumaSigns = 0;
+
+            // A large chroma block is predicted and transformed in the same raster order used by the tile
+            // writer. Each completed transform supplies both reconstructed edges and coefficient contexts.
+            for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
+            {
+                Av1ChromaPredictionMode chromaMode;
+                int angleDelta;
+                if (candidateIndex < baseModeCount)
+                {
+                    chromaMode = ChromaModeSearchOrder[candidateIndex];
+                    angleDelta = 0;
+                }
+                else
+                {
+                    int adjustedIndex = candidateIndex - baseModeCount;
+                    chromaMode = (Av1ChromaPredictionMode)(
+                        (int)Av1ChromaPredictionMode.Vertical + (adjustedIndex / deltaCount));
+
+                    angleDelta = AngleDeltaSearchOrder[adjustedIndex % deltaCount];
+                }
+
+                blueNeighbors.Top.Slice(blueTopIndex, contextWidth).CopyTo(blueTopContexts);
+                blueNeighbors.Left.Slice(blueLeftIndex, contextHeight).CopyTo(blueLeftContexts);
+                redNeighbors.Top.Slice(redTopIndex, contextWidth).CopyTo(redTopContexts);
+                redNeighbors.Left.Slice(redLeftIndex, contextHeight).CopyTo(redLeftContexts);
+                Av1PredictionMode predictionMode = chromaMode.ToLumaMode();
+                long distortion = this.GetTiledChromaPlaneCost(
+                    writer,
+                    macroBlock,
+                    lumaOrigin,
+                    chromaOrigin,
+                    blockSize,
+                    chromaBlockSize,
+                    transformSize,
+                    subsamplingX,
+                    subsamplingY,
+                    lumaMode,
+                    predictionMode,
+                    angleDelta,
+                    Av1Plane.U,
+                    blueSource,
+                    blueReconstruction,
+                    candidateBlueReconstruction,
+                    candidateBlueCoefficients,
+                    candidateBlueStates,
+                    blueTopContexts,
+                    blueLeftContexts,
+                    out int blueRate);
+
+                distortion += this.GetTiledChromaPlaneCost(
+                    writer,
+                    macroBlock,
+                    lumaOrigin,
+                    chromaOrigin,
+                    blockSize,
+                    chromaBlockSize,
+                    transformSize,
+                    subsamplingX,
+                    subsamplingY,
+                    lumaMode,
+                    predictionMode,
+                    angleDelta,
+                    Av1Plane.V,
+                    redSource,
+                    redReconstruction,
+                    candidateRedReconstruction,
+                    candidateRedCoefficients,
+                    candidateRedStates,
+                    redTopContexts,
+                    redLeftContexts,
+                    out int redRate);
+
+                int rate = Av1TileWriter.GetChromaModeCost(
+                    writer,
+                    this.picture.Parent.FrameHeader,
+                    colorConfig,
+                    modeInfo,
+                    blockSize,
+                    lumaMode,
+                    chromaMode,
+                    angleDelta);
+
+                rate += blueRate + redRate;
+                if (chromaMode == Av1ChromaPredictionMode.DC)
+                {
+                    rate += paletteDisabledCost;
+                }
+
+                long candidateCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
+                if (candidateCost < bestCost)
+                {
+                    CopyTiledCandidate(
+                        candidateBlueReconstruction,
+                        candidateBlueCoefficients,
+                        candidateBlueStates,
+                        blueReconstruction,
+                        chromaOrigin,
+                        blockWidth,
+                        blockHeight,
+                        transformSize,
+                        retainedBlueCoefficients,
+                        retainedBlueStates);
+
+                    CopyTiledCandidate(
+                        candidateRedReconstruction,
+                        candidateRedCoefficients,
+                        candidateRedStates,
+                        redReconstruction,
+                        chromaOrigin,
+                        blockWidth,
+                        blockHeight,
+                        transformSize,
+                        retainedRedCoefficients,
+                        retainedRedStates);
+
+                    bestCost = candidateCost;
+                    bestMode = chromaMode;
+                    selectedAngleDelta = angleDelta;
+                }
+            }
+
+            selectedCost = bestCost;
+            return bestMode;
+        }
+
+        private long GetTiledChromaPlaneCost(
+            Av1SymbolEncoder writer,
+            Av1MacroBlockD macroBlock,
+            Point lumaOrigin,
+            Point chromaOrigin,
+            Av1BlockSize blockSize,
+            Av1BlockSize chromaBlockSize,
+            Av1TransformSize transformSize,
+            int subsamplingX,
+            int subsamplingY,
+            Av1PredictionMode lumaMode,
+            Av1PredictionMode predictionMode,
+            int angleDelta,
+            Av1Plane plane,
+            Buffer2DRegion<TSample> source,
+            Buffer2DRegion<TSample> reconstruction,
+            Span<TSample> candidateReconstruction,
+            Span<int> candidateCoefficients,
+            Span<Av1EncoderTransformBlockState> candidateStates,
+            Span<byte> topContexts,
+            Span<byte> leftContexts,
+            out int rate)
+        {
+            Av1EncoderModeDecisionWorkspace<TSample> workspace =
+                this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
+
+            int blockWidth = chromaBlockSize.GetWidth();
+            int blockHeight = chromaBlockSize.GetHeight();
+            int transformWidth = transformSize.GetWidth();
+            int transformHeight = transformSize.GetHeight();
+            int transformSampleCount = transformSize.GetSize2d();
+            int transformWidth4x4 = transformSize.Get4x4WideCount();
+            int transformHeight4x4 = transformSize.Get4x4HighCount();
+            Av1TransformType transformType = Av1SymbolContextHelper.GetDefaultIntraTransformType(
+                predictionMode,
+                transformSize,
+                this.picture.Parent.FrameHeader.UseReducedTransformSet);
+
+            Av1ComponentType componentType = Av1ComponentType.Chroma;
+            Span<TSample> prediction = workspace.Prediction[..transformSampleCount];
+            Span<short> residual = workspace.Residual[..transformSampleCount];
+            Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
+            Span<TSample> leftStorage = workspace.GetReferenceSamples(1);
+            int coefficientOffset = 0;
+            int transformIndex = 0;
+            long distortion = 0;
+            rate = 0;
+            for (int transformRow = 0; transformRow < blockHeight / transformHeight; transformRow++)
+            {
+                int rowOffset = transformRow * transformHeight;
+                for (int transformColumn = 0; transformColumn < blockWidth / transformWidth; transformColumn++)
+                {
+                    int columnOffset = transformColumn * transformWidth;
+                    int reconstructionOffset = (rowOffset * blockWidth) + columnOffset;
+                    Point transformOrigin = chromaOrigin + new Size(columnOffset, rowOffset);
+                    this.PrepareTransformReferenceSamples(
+                        reconstruction,
+                        lumaOrigin,
+                        chromaOrigin,
+                        blockSize,
+                        macroBlock,
+                        transformRow,
+                        transformColumn,
+                        blockWidth,
+                        transformSize,
+                        subsamplingX,
+                        subsamplingY,
+                        candidateReconstruction,
+                        aboveStorage,
+                        leftStorage,
+                        out bool hasLeft,
+                        out bool hasAbove);
+
+                    TOperator.PrepareIntra(
+                        this.blockWorkspace,
+                        source,
+                        transformOrigin,
+                        prediction,
+                        aboveStorage.Slice(1, transformWidth * 2),
+                        leftStorage.Slice(1, transformHeight * 2),
+                        hasLeft,
+                        hasAbove,
+                        predictionMode,
+                        angleDelta,
+                        residual,
+                        transformSize,
+                        this.bitDepth);
+
+                    Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
+                        componentType,
+                        topContexts.Slice(transformColumn * transformWidth4x4, transformWidth4x4),
+                        leftContexts.Slice(transformRow * transformHeight4x4, transformHeight4x4),
+                        chromaBlockSize,
+                        transformSize);
+
+                    Span<int> transformCoefficients = candidateCoefficients.Slice(
+                        coefficientOffset,
+                        transformSampleCount);
+
+                    ref Av1EncoderTransformBlockState state = ref candidateStates[transformIndex++];
+                    distortion += TOperator.EncodePredictionCandidate(
+                        this.blockWorkspace,
+                        source,
+                        transformOrigin,
+                        prediction,
+                        residual,
+                        candidateReconstruction[reconstructionOffset..],
+                        blockWidth,
+                        transformCoefficients,
+                        transformSize,
+                        transformType,
+                        plane,
+                        this.quantization.QIndex[0],
+                        this.quantization.DeltaQDc[(int)plane],
+                        this.quantization.DeltaQAc[(int)plane],
+                        this.bitDepth,
+                        ref state);
+
+                    rate += writer.GetCoefficientCost(
+                        transformSize,
+                        transformType,
+                        lumaMode,
+                        transformCoefficients,
+                        componentType,
+                        blockContext,
+                        state.EndOfBlock,
+                        this.picture.Parent.FrameHeader.UseReducedTransformSet,
+                        Av1FilterIntraMode.AllFilterIntraModes,
+                        usesInterTransformSet: false);
+
+                    byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+                        transformCoefficients,
+                        transformSize,
+                        transformType,
+                        state.EndOfBlock);
+
+                    topContexts
+                        .Slice(transformColumn * transformWidth4x4, transformWidth4x4)
+                        .Fill(coefficientContext);
+
+                    leftContexts
+                        .Slice(transformRow * transformHeight4x4, transformHeight4x4)
+                        .Fill(coefficientContext);
+
+                    coefficientOffset += transformSampleCount;
+                }
+            }
+
+            return distortion;
+        }
+
+        private static void CopyTiledCandidate(
+            ReadOnlySpan<TSample> candidateReconstruction,
+            ReadOnlySpan<int> candidateCoefficients,
+            ReadOnlySpan<Av1EncoderTransformBlockState> candidateStates,
+            Buffer2DRegion<TSample> reconstruction,
+            Point blockOrigin,
+            int blockWidth,
+            int blockHeight,
+            Av1TransformSize transformSize,
+            Span<int> retainedCoefficients,
+            Span<Av1EncoderTransformBlockState> retainedStates)
+        {
+            int blockSampleCount = blockWidth * blockHeight;
+            int transformStateStride =
+                transformSize.GetSize2d() /
+                Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+
+            candidateCoefficients[..blockSampleCount].CopyTo(retainedCoefficients);
+            for (int transformIndex = 0; transformIndex < candidateStates.Length; transformIndex++)
+            {
+                retainedStates[transformIndex * transformStateStride] = candidateStates[transformIndex];
+            }
+
+            for (int row = 0; row < blockHeight; row++)
+            {
+                candidateReconstruction.Slice(row * blockWidth, blockWidth)
+                    .CopyTo(reconstruction.DangerousGetRowSpan(blockOrigin.Y + row).Slice(blockOrigin.X, blockWidth));
+            }
         }
 
         private long GetChromaFromLumaPlaneCost(

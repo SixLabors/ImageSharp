@@ -18,7 +18,7 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     /// <summary>
     /// The largest coding-block dimension evaluated directly by the current partition search.
     /// </summary>
-    public const int MaximumBlockDimension = 32;
+    public const int MaximumBlockDimension = 64;
 
     /// <summary>
     /// The maximum number of samples in one directly evaluated coding block.
@@ -29,6 +29,11 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     /// The number of 4x4 transform blocks covering one 8x8 coding block.
     /// </summary>
     public const int CandidateTransformBlockCount = 4;
+
+    /// <summary>
+    /// The maximum number of transform states needed while evaluating both chroma planes of one 64x64 block.
+    /// </summary>
+    public const int MaximumCandidateTransformBlockCount = 8;
 
     /// <summary>
     /// The required workspace length in signed-integer storage elements.
@@ -43,10 +48,10 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     private const int CandidateCoefficientStorageOffset = CandidateSampleStorageOffset + CandidateSampleStorageLength;
     private const int CandidateCoefficientStorageLength = 2 * MaximumSampleCount;
     private const int CandidateTransformBlockStorageOffset = CandidateCoefficientStorageOffset + CandidateCoefficientStorageLength;
-    private const int CandidateTransformBlockStorageLength = CandidateTransformBlockCount;
+    private const int CandidateTransformBlockStorageLength = MaximumCandidateTransformBlockCount;
     private const int TransformContextStorageOffset = CandidateTransformBlockStorageOffset + CandidateTransformBlockStorageLength;
     private const int TransformContextStorageLength =
-        2 * (MaximumBlockDimension >> Av1Constants.ModeInfoSizeLog2) * sizeof(byte) / sizeof(int);
+        4 * (MaximumBlockDimension >> Av1Constants.ModeInfoSizeLog2) * sizeof(byte) / sizeof(int);
 
     private const int TransientStorageOffset = TransformContextStorageOffset + TransformContextStorageLength;
     private const int ChromaFromLumaSampleCount = Av1ChromaFromLumaContext.BufferLength;
@@ -100,14 +105,14 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
         => new(this.storage[TransientStorageOffset..]);
 
     /// <summary>
-    /// Gets the transform state retained while evaluating a uniform 4x4 luma layout.
+    /// Gets the transform states retained while evaluating a multi-transform candidate.
     /// </summary>
     public Span<Av1EncoderTransformBlockState> CandidateTransformBlocks
         => MemoryMarshal.Cast<int, Av1EncoderTransformBlockState>(
             this.storage.Slice(CandidateTransformBlockStorageOffset, CandidateTransformBlockStorageLength));
 
     /// <summary>
-    /// Gets the two above and two left coefficient contexts used by a uniform 4x4 luma layout.
+    /// Gets coefficient-context edges shared by mutually exclusive luma and chroma transform trials.
     /// </summary>
     public Span<byte> TransformContexts
         => MemoryMarshal.AsBytes(this.storage.Slice(TransformContextStorageOffset, TransformContextStorageLength));

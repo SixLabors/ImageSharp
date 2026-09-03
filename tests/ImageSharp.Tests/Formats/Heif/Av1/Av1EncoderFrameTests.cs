@@ -277,7 +277,7 @@ public class Av1EncoderFrameTests
     [Fact]
     public void EncodeEffortTenSelectsThirtyTwoByThirtyTwoBlocks()
     {
-        const int Size = 64;
+        const int Size = 32;
         using Image<Rgba32> source = new(Size, Size);
         for (int y = 0; y < Size; y++)
         {
@@ -301,12 +301,55 @@ public class Av1EncoderFrameTests
         using Av1Decoder decoder = new(Configuration.Default);
         using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
         Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+        for (int modeInfoY = 0; modeInfoY < 8; modeInfoY++)
+        {
+            for (int modeInfoX = 0; modeInfoX < 8; modeInfoX++)
+            {
+                Assert.Equal(
+                    Av1BlockSize.Block32x32,
+                    frameInfo.GetModeInfoAt(new Point(modeInfoX, modeInfoY)).BlockSize);
+            }
+        }
+
+        Assert.Equal(new Size(Size, Size), decoded.Size);
+    }
+
+    [Theory]
+    [InlineData(Yuv400)]
+    [InlineData(Yuv444)]
+    public void EncodeEffortTenSelectsSixtyFourBySixtyFourBlock(int colorFormatValue)
+    {
+        const int Size = 64;
+        Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
+        using Image<Rgba32> source = new(Size, Size);
+        for (int y = 0; y < Size; y++)
+        {
+            Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < Size; x++)
+            {
+                row[x] = new Rgba32(180, 64, 220);
+            }
+        }
+
+        using MemoryStream stream = new();
+        _ = Av1FrameEncoder.Encode(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            stream,
+            CreateColorConfig(Av1BitDepth.EightBit, colorFormat),
+            qIndex: 4,
+            effort: 10);
+
+        byte[] payload = stream.ToArray();
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
         for (int modeInfoY = 0; modeInfoY < 16; modeInfoY++)
         {
             for (int modeInfoX = 0; modeInfoX < 16; modeInfoX++)
             {
                 Assert.Equal(
-                    Av1BlockSize.Block32x32,
+                    Av1BlockSize.Block64x64,
                     frameInfo.GetModeInfoAt(new Point(modeInfoX, modeInfoY)).BlockSize);
             }
         }

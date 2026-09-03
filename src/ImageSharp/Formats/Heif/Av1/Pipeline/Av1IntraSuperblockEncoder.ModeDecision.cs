@@ -184,7 +184,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1PartitionType preparedPartition)
         {
             bool searchPartition = blockSize is Av1BlockSize.Block8x8 or Av1BlockSize.Block16x16 ||
-                (this.effort == 10 && blockSize == Av1BlockSize.Block32x32);
+                (this.effort == 10 && blockSize is Av1BlockSize.Block32x32 or Av1BlockSize.Block64x64);
 
             if (!searchPartition)
             {
@@ -652,6 +652,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 colorConfig.SubSamplingX,
                 colorConfig.SubSamplingY);
 
+            Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(
+                colorConfig.SubSamplingX,
+                colorConfig.SubSamplingY);
+
             Span<int> blueCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.U);
             Span<int> redCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.V);
             Span<Av1EncoderTransformBlockState> blueTransformBlocks =
@@ -662,8 +666,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int chromaTransformIndex = this.codedAreaChroma /
                 Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
 
-            ref Av1EncoderTransformBlockState blueState = ref blueTransformBlocks[chromaTransformIndex];
-            ref Av1EncoderTransformBlockState redState = ref redTransformBlocks[chromaTransformIndex];
+            Span<Av1EncoderTransformBlockState> retainedBlueStates = blueTransformBlocks[chromaTransformIndex..];
+            Span<Av1EncoderTransformBlockState> retainedRedStates = redTransformBlocks[chromaTransformIndex..];
             long chromaCost = 0;
             if (block.HasChroma)
             {
@@ -679,8 +683,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     chromaTransformSize,
                     blueCoefficients[this.codedAreaChroma..],
                     redCoefficients[this.codedAreaChroma..],
-                    ref blueState,
-                    ref redState,
+                    retainedBlueStates,
+                    retainedRedStates,
                     ref paletteInfo,
                     out int chromaAngleDelta,
                     out byte chromaFromLumaIndex,
@@ -694,16 +698,26 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Skip suppresses coefficient syntax for the entire coding block, not one plane independently.
             // Preserve normal coefficient coding when any selected luma or chroma transform is nonempty.
-            bool allTransformsEmpty = lumaTransformEmpty &&
-                (!block.HasChroma || (blueState.EndOfBlock == 0 && redState.EndOfBlock == 0));
+            int chromaTransformSampleCount = chromaTransformSize.GetSize2d();
+            int chromaTransformBlockCount =
+                (chromaBlockSize.GetWidth() * chromaBlockSize.GetHeight()) / chromaTransformSampleCount;
+
+            int chromaStateStride =
+                chromaTransformSampleCount / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+
+            bool chromaTransformsEmpty = true;
+            for (int transformIndex = 0; transformIndex < chromaTransformBlockCount; transformIndex++)
+            {
+                int stateIndex = transformIndex * chromaStateStride;
+                chromaTransformsEmpty &= retainedBlueStates[stateIndex].EndOfBlock == 0 &&
+                    retainedRedStates[stateIndex].EndOfBlock == 0;
+            }
+
+            bool allTransformsEmpty = lumaTransformEmpty && (!block.HasChroma || chromaTransformsEmpty);
 
             int regularEmptyTransformRate = 0;
             if (allTransformsEmpty)
             {
-                Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(
-                    colorConfig.SubSamplingX,
-                    colorConfig.SubSamplingY);
-
                 regularEmptyTransformRate = this.GetEmptyTransformRate(
                     writer,
                     this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
@@ -769,10 +783,6 @@ internal static partial class Av1IntraSuperblockEncoder
             this.codedAreaLuma += blockSize.GetWidth() * blockSize.GetHeight();
             if (block.HasChroma)
             {
-                Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(
-                    colorConfig.SubSamplingX,
-                    colorConfig.SubSamplingY);
-
                 this.codedAreaChroma += chromaBlockSize.GetWidth() * chromaBlockSize.GetHeight();
             }
         }
@@ -958,8 +968,10 @@ internal static partial class Av1IntraSuperblockEncoder
             int transformWidth = transformSize.GetWidth();
             int transformHeight = transformSize.GetHeight();
             int transformSampleCount = transformSize.GetSize2d();
-            int transformIndex = 0;
+            int transformStateOffset = 0;
             int coefficientOffset = 0;
+            int transformStateStride =
+                transformSampleCount / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
 
             // Uniform transform blocks are retained and written in raster order. Publishing that same tiling
             // preserves the distinct top and left contexts consumed by the next coding block in a dry run.
@@ -967,7 +979,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 for (int column = 0; column < blockWidth; column += transformWidth)
                 {
-                    Av1EncoderTransformBlockState state = states[transformIndex++];
+                    Av1EncoderTransformBlockState state = states[transformStateOffset];
                     byte context = Av1SymbolContextHelper.GetCoefficientContext(
                         coefficients[coefficientOffset..],
                         transformSize,
@@ -981,6 +993,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         EdgeMask);
 
                     coefficientOffset += transformSampleCount;
+                    transformStateOffset += transformStateStride;
                 }
             }
         }
@@ -1685,7 +1698,9 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             if (this.effort >= 4 &&
-                this.picture.Sequence.SequenceHeader.EnableFilterIntra)
+                this.picture.Sequence.SequenceHeader.EnableFilterIntra &&
+                blockWidth <= 32 &&
+                blockHeight <= 32)
             {
                 // Each recursive filter prediction and its source residual are independent of transform type.
                 // Prepare them once per filter mode so all legal transforms reuse the same samples.
@@ -2004,12 +2019,18 @@ internal static partial class Av1IntraSuperblockEncoder
                     {
                         Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
                         Span<TSample> leftStorage = workspace.GetReferenceSamples(1);
-                        this.PrepareSplitLumaReferenceSamples(
+                        this.PrepareTransformReferenceSamples(
                             reconstructionPlane,
                             blockOrigin,
+                            blockOrigin,
+                            BlockSize,
                             macroBlock,
                             transformRow,
                             transformColumn,
+                            BlockWidth,
+                            TransformSize,
+                            0,
+                            0,
                             candidateReconstruction,
                             aboveStorage,
                             leftStorage,
@@ -2167,81 +2188,89 @@ internal static partial class Av1IntraSuperblockEncoder
             return Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
         }
 
-        private void PrepareSplitLumaReferenceSamples(
+        private void PrepareTransformReferenceSamples(
             Buffer2DRegion<TSample> reconstructionPlane,
-            Point blockOrigin,
+            Point lumaBlockOrigin,
+            Point planeBlockOrigin,
+            Av1BlockSize blockSize,
             Av1MacroBlockD macroBlock,
             int transformRow,
             int transformColumn,
+            int planeBlockWidth,
+            Av1TransformSize transformSize,
+            int subsamplingX,
+            int subsamplingY,
             ReadOnlySpan<TSample> candidateReconstruction,
             Span<TSample> aboveStorage,
             Span<TSample> leftStorage,
             out bool hasLeft,
             out bool hasAbove)
         {
-            const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
-            const Av1TransformSize TransformSize = Av1TransformSize.Size4x4;
-            const int BlockWidth = 8;
-            const int TransformWidth = 4;
-            int rowOffset = transformRow * TransformWidth;
-            int columnOffset = transformColumn * TransformWidth;
-            int modeInfoRow = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
-            int modeInfoColumn = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
+            int transformWidth = transformSize.GetWidth();
+            int transformHeight = transformSize.GetHeight();
+            int rowOffset = transformRow * transformHeight;
+            int columnOffset = transformColumn * transformWidth;
+            int modeInfoRow = lumaBlockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
+            int modeInfoColumn = lumaBlockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
 
             // Internal top and left edges come from the candidate mosaic built in raster order. Edges outside
-            // the 8x8 candidate continue to read committed reconstruction, keeping unsuccessful trials isolated.
+            // the candidate continue to read committed reconstruction, keeping unsuccessful trials isolated.
             hasAbove = transformRow > 0 || macroBlock.IsUpAvailable;
             hasLeft = transformColumn > 0 || macroBlock.IsLeftAvailable;
+            int transformRow4x4 = rowOffset >> Av1Constants.ModeInfoSizeLog2;
+            int transformColumn4x4 = columnOffset >> Av1Constants.ModeInfoSizeLog2;
             bool rightAvailable =
-                modeInfoColumn + transformColumn + TransformSize.Get4x4WideCount() <
+                modeInfoColumn +
+                    ((transformColumn4x4 + transformSize.Get4x4WideCount()) << subsamplingX) <
                 macroBlock.Tile.ModeInfoColumnEnd;
 
             bool bottomAvailable =
-                modeInfoRow + transformRow + TransformSize.Get4x4HighCount() <
+                modeInfoRow +
+                    ((transformRow4x4 + transformSize.Get4x4HighCount()) << subsamplingY) <
                 macroBlock.Tile.ModeInfoRowEnd;
 
             bool hasTopRight = Av1IntraReferenceAvailability.HasTopRight(
                 this.picture.Sequence.SequenceHeader.SuperblockSize,
-                BlockSize,
+                blockSize,
                 modeInfoRow,
                 modeInfoColumn,
                 hasAbove,
                 rightAvailable,
                 Av1PartitionType.None,
-                TransformSize,
-                transformRow,
-                transformColumn,
-                0,
-                0);
+                transformSize,
+                transformRow4x4,
+                transformColumn4x4,
+                subsamplingX,
+                subsamplingY);
 
             bool hasBottomLeft = Av1IntraReferenceAvailability.HasBottomLeft(
                 this.picture.Sequence.SequenceHeader.SuperblockSize,
-                BlockSize,
+                blockSize,
                 modeInfoRow,
                 modeInfoColumn,
                 bottomAvailable,
                 hasLeft,
                 Av1PartitionType.None,
-                TransformSize,
-                transformRow,
-                transformColumn,
-                0,
-                0);
+                transformSize,
+                transformRow4x4,
+                transformColumn4x4,
+                subsamplingX,
+                subsamplingY);
 
-            Span<TSample> above = aboveStorage.Slice(1, TransformWidth * 2);
-            Span<TSample> left = leftStorage.Slice(1, TransformWidth * 2);
+            Span<TSample> above = aboveStorage.Slice(1, transformWidth * 2);
+            Span<TSample> left = leftStorage.Slice(1, transformHeight * 2);
             if (hasAbove)
             {
                 if (transformRow > 0)
                 {
                     candidateReconstruction
-                        .Slice(((rowOffset - 1) * BlockWidth) + columnOffset, TransformWidth)
+                        .Slice(((rowOffset - 1) * planeBlockWidth) + columnOffset, transformWidth)
                         .CopyTo(above);
                 }
                 else
                 {
-                    reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1)
-                        .Slice(blockOrigin.X + columnOffset, TransformWidth)
+                    reconstructionPlane.DangerousGetRowSpan(planeBlockOrigin.Y - 1)
+                        .Slice(planeBlockOrigin.X + columnOffset, transformWidth)
                         .CopyTo(above);
                 }
             }
@@ -2250,17 +2279,18 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 if (transformColumn > 0)
                 {
-                    for (int row = 0; row < TransformWidth; row++)
+                    for (int row = 0; row < transformHeight; row++)
                     {
-                        left[row] = candidateReconstruction[((rowOffset + row) * BlockWidth) + columnOffset - 1];
+                        left[row] = candidateReconstruction[
+                            ((rowOffset + row) * planeBlockWidth) + columnOffset - 1];
                     }
                 }
                 else
                 {
-                    for (int row = 0; row < TransformWidth; row++)
+                    for (int row = 0; row < transformHeight; row++)
                     {
                         left[row] = reconstructionPlane
-                            .DangerousGetRowSpan(blockOrigin.Y + rowOffset + row)[blockOrigin.X - 1];
+                            .DangerousGetRowSpan(planeBlockOrigin.Y + rowOffset + row)[planeBlockOrigin.X - 1];
                     }
                 }
             }
@@ -2268,12 +2298,12 @@ internal static partial class Av1IntraSuperblockEncoder
             int midpoint = 128 << (this.bitDepth.GetBitCount() - 8);
             if (!hasAbove)
             {
-                above[..TransformWidth].Fill(hasLeft ? left[0] : TOperator.CreateSample(midpoint - 1));
+                above[..transformWidth].Fill(hasLeft ? left[0] : TOperator.CreateSample(midpoint - 1));
             }
 
             if (!hasLeft)
             {
-                left[..TransformWidth].Fill(hasAbove ? above[0] : TOperator.CreateSample(midpoint + 1));
+                left[..transformHeight].Fill(hasAbove ? above[0] : TOperator.CreateSample(midpoint + 1));
             }
 
             if (hasTopRight)
@@ -2282,42 +2312,42 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     candidateReconstruction
                         .Slice(
-                            ((rowOffset - 1) * BlockWidth) + columnOffset + TransformWidth,
-                            TransformWidth)
-                        .CopyTo(above[TransformWidth..]);
+                            ((rowOffset - 1) * planeBlockWidth) + columnOffset + transformWidth,
+                            transformWidth)
+                        .CopyTo(above[transformWidth..]);
                 }
                 else
                 {
-                    reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1)
-                        .Slice(blockOrigin.X + columnOffset + TransformWidth, TransformWidth)
-                        .CopyTo(above[TransformWidth..]);
+                    reconstructionPlane.DangerousGetRowSpan(planeBlockOrigin.Y - 1)
+                        .Slice(planeBlockOrigin.X + columnOffset + transformWidth, transformWidth)
+                        .CopyTo(above[transformWidth..]);
                 }
             }
             else
             {
-                above[TransformWidth..].Fill(above[TransformWidth - 1]);
+                above[transformWidth..].Fill(above[transformWidth - 1]);
             }
 
             if (hasBottomLeft)
             {
-                for (int row = TransformWidth; row < TransformWidth * 2; row++)
+                for (int row = transformHeight; row < transformHeight * 2; row++)
                 {
                     left[row] = reconstructionPlane
-                        .DangerousGetRowSpan(blockOrigin.Y + rowOffset + row)[blockOrigin.X - 1];
+                        .DangerousGetRowSpan(planeBlockOrigin.Y + rowOffset + row)[planeBlockOrigin.X - 1];
                 }
             }
             else
             {
-                left[TransformWidth..].Fill(left[TransformWidth - 1]);
+                left[transformHeight..].Fill(left[transformHeight - 1]);
             }
 
             // Only an interior transform corner belongs to decision scratch. Boundary corners continue
             // to read the already reconstructed neighboring block so candidate trials remain isolated.
             TSample corner = hasAbove && hasLeft
                 ? transformRow > 0 && transformColumn > 0
-                    ? candidateReconstruction[((rowOffset - 1) * BlockWidth) + columnOffset - 1]
-                    : reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + rowOffset - 1)[
-                        blockOrigin.X + columnOffset - 1]
+                    ? candidateReconstruction[((rowOffset - 1) * planeBlockWidth) + columnOffset - 1]
+                    : reconstructionPlane.DangerousGetRowSpan(planeBlockOrigin.Y + rowOffset - 1)[
+                        planeBlockOrigin.X + columnOffset - 1]
                 : hasAbove
                     ? above[0]
                     : hasLeft

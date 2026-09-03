@@ -26,15 +26,17 @@ internal static class Av1FrameEncoder
     /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
     /// <param name="colorConfig">The resolved native color and precision configuration.</param>
     /// <param name="qIndex">The frame quantizer index.</param>
+    /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
     /// <returns>The sequence header describing the encoded payload.</returns>
     public static ObuSequenceHeader Encode<TPixel>(
         Configuration configuration,
         ImageFrame<TPixel> image,
         Stream stream,
         ObuColorConfig colorConfig,
-        int qIndex)
+        int qIndex,
+        int effort = 5)
         where TPixel : unmanaged, IPixel<TPixel>
-        => Encode(configuration, image, stream, colorConfig, qIndex, false);
+        => Encode(configuration, image, stream, colorConfig, qIndex, effort, false);
 
     /// <summary>
     /// Encodes one packed alpha channel as a reduced-still-picture monochrome AV1 frame.
@@ -45,15 +47,17 @@ internal static class Av1FrameEncoder
     /// <param name="stream">The destination receiving the complete AV1 item payload.</param>
     /// <param name="colorConfig">The resolved monochrome precision configuration.</param>
     /// <param name="qIndex">The frame quantizer index.</param>
+    /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
     /// <returns>The sequence header describing the encoded payload.</returns>
     public static ObuSequenceHeader EncodeAlpha<TPixel>(
         Configuration configuration,
         ImageFrame<TPixel> image,
         Stream stream,
         ObuColorConfig colorConfig,
-        int qIndex)
+        int qIndex,
+        int effort = 5)
         where TPixel : unmanaged, IPixel<TPixel>
-        => Encode(configuration, image, stream, colorConfig, qIndex, true);
+        => Encode(configuration, image, stream, colorConfig, qIndex, effort, true);
 
     private static ObuSequenceHeader Encode<TPixel>(
         Configuration configuration,
@@ -61,6 +65,7 @@ internal static class Av1FrameEncoder
         Stream stream,
         ObuColorConfig colorConfig,
         int qIndex,
+        int effort,
         bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -87,7 +92,7 @@ internal static class Av1FrameEncoder
             Use128x128Superblock = false,
             ForceScreenContentTools = 2,
             ForceIntegerMotionVector = 2,
-            EnableFilterIntra = true,
+            EnableFilterIntra = effort >= 4,
             EnableIntraEdgeFilter = false,
             EnableSuperResolution = false,
             EnableCdef = false,
@@ -148,11 +153,11 @@ internal static class Av1FrameEncoder
         int initialTileSize = checked((int)Math.Max(8192L, (sampleCount * sampleSize * 5) / 2));
         if (colorConfig.BitDepth == Av1BitDepth.EightBit)
         {
-            EncodeByte(configuration, image, stream, sequenceHeader, frameHeader, colorFormat, initialTileSize, encodeAlpha);
+            EncodeByte(configuration, image, stream, sequenceHeader, frameHeader, colorFormat, initialTileSize, effort, encodeAlpha);
         }
         else
         {
-            EncodeHighBitDepth(configuration, image, stream, sequenceHeader, frameHeader, colorFormat, initialTileSize, encodeAlpha);
+            EncodeHighBitDepth(configuration, image, stream, sequenceHeader, frameHeader, colorFormat, initialTileSize, effort, encodeAlpha);
         }
 
         return sequenceHeader;
@@ -198,6 +203,7 @@ internal static class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         Av1ColorFormat colorFormat,
         int initialTileSize,
+        int effort,
         bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -219,7 +225,7 @@ internal static class Av1FrameEncoder
             chromaPositionX: 1,
             chromaPositionY: 1);
 
-        Encode(configuration, image, stream, sequenceHeader, frameHeader, source, reconstruction, initialTileSize, encodeAlpha);
+        Encode(configuration, image, stream, sequenceHeader, frameHeader, source, reconstruction, initialTileSize, effort, encodeAlpha);
     }
 
     private static void EncodeHighBitDepth<TPixel>(
@@ -230,6 +236,7 @@ internal static class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         Av1ColorFormat colorFormat,
         int initialTileSize,
+        int effort,
         bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -252,7 +259,7 @@ internal static class Av1FrameEncoder
             chromaPositionX: 1,
             chromaPositionY: 1);
 
-        Encode(configuration, image, stream, sequenceHeader, frameHeader, source, reconstruction, initialTileSize, encodeAlpha);
+        Encode(configuration, image, stream, sequenceHeader, frameHeader, source, reconstruction, initialTileSize, effort, encodeAlpha);
     }
 
     private static void Encode<TPixel>(
@@ -264,6 +271,7 @@ internal static class Av1FrameEncoder
         Av1EncoderFrameBuffer<byte> source,
         Av1EncoderFrameBuffer<byte> reconstruction,
         int initialTileSize,
+        int effort,
         bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -274,10 +282,16 @@ internal static class Av1FrameEncoder
             sequenceHeader.ColorConfig,
             encodeAlpha);
 
-        Av1ScreenContentDetector.Detect(
-            source.Frame,
-            out bool allowScreenContentTools,
-            out bool allowIntraBlockCopy);
+        bool allowScreenContentTools = false;
+        bool allowIntraBlockCopy = false;
+        if (effort >= 5)
+        {
+            // Lower effort levels omit palette and intra-block-copy searches, so they do not need the whole-frame suitability scan.
+            Av1ScreenContentDetector.Detect(
+                source.Frame,
+                out allowScreenContentTools,
+                out allowIntraBlockCopy);
+        }
 
         frameHeader.AllowScreenContentTools = allowScreenContentTools;
         frameHeader.AllowIntraBlockCopy = allowIntraBlockCopy;
@@ -304,7 +318,8 @@ internal static class Av1FrameEncoder
             coefficients,
             superblockWorkspace,
             blockWorkspace,
-            initialTileSize);
+            initialTileSize,
+            effort);
 
         ObuWriter writer = new();
         writer.WriteAll(configuration, stream, sequenceHeader, frameHeader, tileWriter);
@@ -319,6 +334,7 @@ internal static class Av1FrameEncoder
         Av1EncoderFrameBuffer<ushort> source,
         Av1EncoderFrameBuffer<ushort> reconstruction,
         int initialTileSize,
+        int effort,
         bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
     {
@@ -329,10 +345,16 @@ internal static class Av1FrameEncoder
             sequenceHeader.ColorConfig,
             encodeAlpha);
 
-        Av1ScreenContentDetector.Detect(
-            source.Frame,
-            out bool allowScreenContentTools,
-            out bool allowIntraBlockCopy);
+        bool allowScreenContentTools = false;
+        bool allowIntraBlockCopy = false;
+        if (effort >= 5)
+        {
+            // Lower effort levels omit palette and intra-block-copy searches, so they do not need the whole-frame suitability scan.
+            Av1ScreenContentDetector.Detect(
+                source.Frame,
+                out allowScreenContentTools,
+                out allowIntraBlockCopy);
+        }
 
         frameHeader.AllowScreenContentTools = allowScreenContentTools;
         frameHeader.AllowIntraBlockCopy = allowIntraBlockCopy;
@@ -359,7 +381,8 @@ internal static class Av1FrameEncoder
             coefficients,
             superblockWorkspace,
             blockWorkspace,
-            initialTileSize);
+            initialTileSize,
+            effort);
 
         ObuWriter writer = new();
         writer.WriteAll(configuration, stream, sequenceHeader, frameHeader, tileWriter);

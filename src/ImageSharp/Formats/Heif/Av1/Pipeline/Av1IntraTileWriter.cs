@@ -28,6 +28,7 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
     /// <param name="superblockWorkspace">The reusable partition and final-block decision workspace.</param>
     /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
     /// <param name="initialSize">The estimated encoded tile size in bytes.</param>
+    /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
     public Av1IntraTileWriter(
         Configuration configuration,
         Av1EncoderFrame<byte> source,
@@ -36,7 +37,8 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
         Av1EncoderCoefficientBuffer coefficientBuffer,
         Av1EncoderSuperblockWorkspace superblockWorkspace,
         Av1EncoderBlockWorkspace blockWorkspace,
-        int initialSize)
+        int initialSize,
+        int effort = 5)
     {
         this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator>(
             configuration,
@@ -46,6 +48,7 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
             coefficientBuffer,
             superblockWorkspace,
             blockWorkspace,
+            effort,
             initialSize,
             out this.tileDataLength);
     }
@@ -61,6 +64,7 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
     /// <param name="superblockWorkspace">The reusable partition and final-block decision workspace.</param>
     /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
     /// <param name="initialSize">The estimated encoded tile size in bytes.</param>
+    /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
     public Av1IntraTileWriter(
         Configuration configuration,
         Av1EncoderFrame<ushort> source,
@@ -69,7 +73,8 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
         Av1EncoderCoefficientBuffer coefficientBuffer,
         Av1EncoderSuperblockWorkspace superblockWorkspace,
         Av1EncoderBlockWorkspace blockWorkspace,
-        int initialSize)
+        int initialSize,
+        int effort = 5)
     {
         this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(
             configuration,
@@ -79,6 +84,7 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
             coefficientBuffer,
             superblockWorkspace,
             blockWorkspace,
+            effort,
             initialSize,
             out this.tileDataLength);
     }
@@ -107,6 +113,7 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
         Av1EncoderCoefficientBuffer coefficientBuffer,
         Av1EncoderSuperblockWorkspace superblockWorkspace,
         Av1EncoderBlockWorkspace blockWorkspace,
+        int effort,
         int initialSize,
         out int tileDataLength)
         where TSample : unmanaged
@@ -171,7 +178,8 @@ internal sealed partial class Av1IntraTileWriter : IAv1TileWriter, IDisposable
                     picture,
                     superblock,
                     coefficientBuffer,
-                    blockWorkspace);
+                    blockWorkspace,
+                    effort);
 
                 Av1TileWriter.WriteSuperblock(
                     picture,

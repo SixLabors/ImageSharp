@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Components;
 using SixLabors.ImageSharp.Formats.Heif.Components.Alpha;
@@ -480,6 +481,91 @@ public class Av1EncoderFrameTests
 
         Directory.CreateDirectory(outputDirectory);
         File.WriteAllBytes(Path.Combine(outputDirectory, "encoder-frame-16x16-8b-444-palette.obu"), payload);
+    }
+
+    [Theory]
+    [InlineData(0, false, false)]
+    [InlineData(1, false, false)]
+    [InlineData(2, false, false)]
+    [InlineData(3, false, false)]
+    [InlineData(4, true, false)]
+    [InlineData(5, true, true)]
+    public void EncodeEffortControlsSearchFeatures(int effort, bool enableFilterIntra, bool enableScreenContentTools)
+    {
+        const int width = 16;
+        const int height = 16;
+        using Image<Rgba32> source = new(width, height);
+        for (int row = 0; row < height; row++)
+        {
+            Span<Rgba32> pixels = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(row);
+            for (int column = 0; column < width; column++)
+            {
+                pixels[column] = (((column >> 2) + (row >> 2)) & 1) == 0
+                    ? new Rgba32(224, 32, 32)
+                    : new Rgba32(32, 32, 224);
+            }
+        }
+
+        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv444);
+        using MemoryStream stream = new();
+        _ = Av1FrameEncoder.Encode(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            stream,
+            colorConfig,
+            qIndex: 37,
+            effort);
+
+        byte[] payload = stream.ToArray();
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        ObuSequenceHeader sequenceHeader = Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader);
+        ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
+        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+        Assert.Equal(enableFilterIntra, sequenceHeader.EnableFilterIntra);
+        Assert.Equal(enableScreenContentTools, frameHeader.AllowScreenContentTools);
+        Assert.Equal(enableScreenContentTools, frameHeader.AllowIntraBlockCopy);
+        Assert.Equal(new Size(width, height), decoded.Size);
+
+        int modeCount = 0;
+        foreach (Av1BlockModeInfo modeInfo in frameInfo.GetSuperblock(Point.Empty).GetModeInfos())
+        {
+            modeCount++;
+            if (effort == 0)
+            {
+                Assert.Equal(Av1PredictionMode.DC, modeInfo.YMode);
+                Assert.Equal(Av1ChromaPredictionMode.DC, modeInfo.UvMode);
+            }
+
+            if (effort <= 1)
+            {
+                Assert.Equal(0, modeInfo.GetAngleDelta(Av1Plane.Y));
+                Assert.Equal(0, modeInfo.GetAngleDelta(Av1Plane.U));
+            }
+
+            if (effort < 4)
+            {
+                Assert.False(modeInfo.UseFilterIntra);
+            }
+
+            if (effort < 5)
+            {
+                Assert.False(modeInfo.UseIntraBlockCopy);
+                Assert.Equal(0, modeInfo.GetPaletteSize(Av1Plane.Y));
+                Assert.Equal(0, modeInfo.GetPaletteSize(Av1Plane.U));
+            }
+        }
+
+        Assert.NotEqual(0, modeCount);
+
+        string outputDirectory = Path.Combine(
+            TestEnvironment.ActualOutputDirectoryFullPath,
+            "Formats",
+            "Heif",
+            "Av1");
+
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllBytes(Path.Combine(outputDirectory, $"encoder-frame-16x16-8b-444-effort-{effort}.obu"), payload);
     }
 
     [Fact]

@@ -117,6 +117,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private readonly ObuQuantizationParameters quantization;
         private readonly Av1BitDepth bitDepth;
         private readonly int rateMultiplier;
+        private readonly int effort;
         private int codedAreaLuma;
         private int codedAreaChroma;
 
@@ -129,13 +130,15 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="superblock">The current superblock.</param>
         /// <param name="coefficientBuffer">The frame-owned quantized coefficient and transform state.</param>
         /// <param name="blockWorkspace">The reusable block arithmetic workspace.</param>
+        /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
         public ModeDecision(
             Av1EncoderFrame<TSample> source,
             Av1EncoderFrame<TSample> reconstruction,
             Av1PictureControlSet picture,
             Av1Superblock superblock,
             Av1EncoderCoefficientBuffer coefficientBuffer,
-            Av1EncoderBlockWorkspace blockWorkspace)
+            Av1EncoderBlockWorkspace blockWorkspace,
+            int effort = 5)
         {
             this.source = source.CodedView;
             this.reconstruction = reconstruction.CodedView;
@@ -146,6 +149,7 @@ internal static partial class Av1IntraSuperblockEncoder
             this.quantization = picture.Parent.FrameHeader.QuantizationParameters;
             this.bitDepth = picture.Sequence.SequenceHeader.ColorConfig.BitDepth;
             this.rateMultiplier = Av1RateDistortion.GetKeyFrameRateMultiplier(this.quantization.QIndex[0], this.bitDepth);
+            this.effort = effort;
             this.codedAreaLuma = 0;
             this.codedAreaChroma = 0;
         }
@@ -528,7 +532,15 @@ internal static partial class Av1IntraSuperblockEncoder
             int baseModeCount = LumaModeSearchOrder.Length;
             int deltaCount = AngleDeltaSearchOrder.Length;
             int directionalModeCount = (int)Av1PredictionMode.Directional67Degrees - (int)Av1PredictionMode.Vertical + 1;
-            int candidateCount = baseModeCount + (directionalModeCount * deltaCount);
+
+            // Effort zero evaluates DC only, effort one adds every zero-angle mode, and higher levels add all directional adjustments.
+            int candidateCount = this.effort switch
+            {
+                0 => 1,
+                1 => baseModeCount,
+                _ => baseModeCount + (directionalModeCount * deltaCount)
+            };
+
             bool useReducedTransformSet = this.picture.Parent.FrameHeader.UseReducedTransformSet;
             Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
                 TransformSize,
@@ -594,11 +606,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            // Mode selection uses the mode-derived default transform, then the winning mode alone pays for
-            // an exhaustive transform refinement. This preserves reference tie order without a 61-by-7 search.
-            long bestTransformCost = long.MaxValue;
+            // Lower effort levels retain the mode-derived default transform. Higher levels refine only the winning
+            // mode across the legal transform set, preserving search order without evaluating every mode-transform pair.
+            long bestTransformCost = bestCost;
             for (Av1TransformType transformType = Av1TransformType.DctDct;
-                transformType < Av1TransformType.AllTransformTypes;
+                this.effort >= 3 && transformType < Av1TransformType.AllTransformTypes;
                 transformType++)
             {
                 if (!transformType.IsExtendedSetUsed(transformSetType))
@@ -641,7 +653,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            if (this.picture.Sequence.SequenceHeader.EnableFilterIntra)
+            if (this.effort >= 4 && this.picture.Sequence.SequenceHeader.EnableFilterIntra)
             {
                 Span<TSample> filterPrediction = stackalloc TSample[SampleCount];
                 Span<short> filterResidual = stackalloc short[SampleCount];
@@ -710,7 +722,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            if (this.picture.Parent.FrameHeader.AllowScreenContentTools &&
+            if (this.effort >= 5 &&
+                this.picture.Parent.FrameHeader.AllowScreenContentTools &&
                 this.SelectLumaPalette(
                     writer,
                     macroBlock,

@@ -164,7 +164,15 @@ internal static partial class Av1IntraSuperblockEncoder
             int baseModeCount = ChromaModeSearchOrder.Length;
             int deltaCount = AngleDeltaSearchOrder.Length;
             int directionalModeCount = (int)Av1ChromaPredictionMode.Directional67Degrees - (int)Av1ChromaPredictionMode.Vertical + 1;
-            int candidateCount = baseModeCount + (directionalModeCount * deltaCount);
+
+            // Effort zero evaluates DC only, effort one adds every zero-angle mode, and higher levels add all directional adjustments.
+            int candidateCount = this.effort switch
+            {
+                0 => 1,
+                1 => baseModeCount,
+                _ => baseModeCount + (directionalModeCount * deltaCount)
+            };
+
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
             int paletteDisabledCost = this.picture.Parent.FrameHeader.AllowScreenContentTools
                 ? writer.GetPaletteUvModeCost(false, hasLumaPalette)
@@ -249,7 +257,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 colorConfig.SubSamplingX,
                 colorConfig.SubSamplingY);
 
-            if (chromaFromLumaAllowed)
+            if (this.effort >= 4 && chromaFromLumaAllowed)
             {
                 Span<short> lumaQ3 = stackalloc short[Av1ChromaFromLumaContext.BufferLine * 8];
                 TOperator.PrepareChromaFromLuma(
@@ -441,7 +449,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            if (this.picture.Parent.FrameHeader.AllowScreenContentTools &&
+            if (this.effort >= 5 &&
+                this.picture.Parent.FrameHeader.AllowScreenContentTools &&
                 this.SelectChromaPalette(
                     writer,
                     macroBlock,

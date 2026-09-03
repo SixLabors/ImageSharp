@@ -217,8 +217,9 @@ internal static partial class Av1IntraSuperblockEncoder
             };
 
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
-            int paletteDisabledCost = blockSize >= Av1BlockSize.Block8x8 &&
-                this.picture.Parent.FrameHeader.AllowScreenContentTools
+            int paletteDisabledCost = Av1TileWriter.IsPaletteAllowed(
+                this.picture.Parent.FrameHeader.AllowScreenContentTools,
+                blockSize)
                 ? writer.GetPaletteUvModeCost(false, hasLumaPalette)
                 : 0;
 
@@ -575,6 +576,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int transformColumnCount = blockWidth / transformWidth;
             int transformRowCount = blockHeight / transformHeight;
             int transformBlockCount = transformColumnCount * transformRowCount;
+            Av1BlockSize maximumUnitBlockSize =
+                Av1BlockSize.Block64x64.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
+
             Span<TSample> candidateBlueReconstruction =
                 workspace.GetCandidateReconstruction(0)[..blockSampleCount];
 
@@ -619,7 +623,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Buffer2DRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
             Buffer2DRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
             bool hasLumaPalette = paletteInfo.PaletteSizes[0] != 0;
-            int paletteDisabledCost = this.picture.Parent.FrameHeader.AllowScreenContentTools
+            int paletteDisabledCost = Av1TileWriter.IsPaletteAllowed(
+                this.picture.Parent.FrameHeader.AllowScreenContentTools,
+                blockSize)
                 ? writer.GetPaletteUvModeCost(false, hasLumaPalette)
                 : 0;
 
@@ -662,7 +668,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 redNeighbors.Top.Slice(redTopIndex, contextWidth).CopyTo(redTopContexts);
                 redNeighbors.Left.Slice(redLeftIndex, contextHeight).CopyTo(redLeftContexts);
                 Av1PredictionMode predictionMode = chromaMode.ToLumaMode();
-                long distortion = this.GetTiledChromaPlaneCost(
+                long distortion = this.GetTiledPlaneCost(
                     writer,
                     macroBlock,
                     lumaOrigin,
@@ -670,6 +676,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockSize,
                     chromaBlockSize,
                     transformSize,
+                    maximumUnitBlockSize,
                     subsamplingX,
                     subsamplingY,
                     lumaMode,
@@ -685,7 +692,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blueLeftContexts,
                     out int blueRate);
 
-                distortion += this.GetTiledChromaPlaneCost(
+                distortion += this.GetTiledPlaneCost(
                     writer,
                     macroBlock,
                     lumaOrigin,
@@ -693,6 +700,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     blockSize,
                     chromaBlockSize,
                     transformSize,
+                    maximumUnitBlockSize,
                     subsamplingX,
                     subsamplingY,
                     lumaMode,
@@ -761,7 +769,7 @@ internal static partial class Av1IntraSuperblockEncoder
             return bestMode;
         }
 
-        private long GetTiledChromaPlaneCost(
+        private long GetTiledPlaneCost(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point lumaOrigin,
@@ -769,6 +777,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Av1BlockSize chromaBlockSize,
             Av1TransformSize transformSize,
+            Av1BlockSize maximumUnitBlockSize,
             int subsamplingX,
             int subsamplingY,
             Av1PredictionMode lumaMode,
@@ -794,12 +803,17 @@ internal static partial class Av1IntraSuperblockEncoder
             int transformSampleCount = transformSize.GetSize2d();
             int transformWidth4x4 = transformSize.Get4x4WideCount();
             int transformHeight4x4 = transformSize.Get4x4HighCount();
+            int maximumUnitWidth = Math.Min(maximumUnitBlockSize.GetWidth(), blockWidth);
+            int maximumUnitHeight = Math.Min(maximumUnitBlockSize.GetHeight(), blockHeight);
             Av1TransformType transformType = Av1SymbolContextHelper.GetDefaultIntraTransformType(
                 predictionMode,
                 transformSize,
                 this.picture.Parent.FrameHeader.UseReducedTransformSet);
 
-            Av1ComponentType componentType = Av1ComponentType.Chroma;
+            Av1ComponentType componentType = plane == Av1Plane.Y
+                ? Av1ComponentType.Luminance
+                : Av1ComponentType.Chroma;
+
             Span<TSample> prediction = workspace.Prediction[..transformSampleCount];
             Span<short> residual = workspace.Residual[..transformSampleCount];
             Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
@@ -808,104 +822,115 @@ internal static partial class Av1IntraSuperblockEncoder
             int transformIndex = 0;
             long distortion = 0;
             rate = 0;
-            for (int transformRow = 0; transformRow < blockHeight / transformHeight; transformRow++)
+
+            // Residual syntax completes each bounded 64x64 luma region, scaled for chroma, before
+            // moving to the next region. Candidate coefficients and states must retain that exact order.
+            for (int regionRow = 0; regionRow < blockHeight; regionRow += maximumUnitHeight)
             {
-                int rowOffset = transformRow * transformHeight;
-                for (int transformColumn = 0; transformColumn < blockWidth / transformWidth; transformColumn++)
+                int unitBottom = Math.Min(regionRow + maximumUnitHeight, blockHeight);
+                for (int regionColumn = 0; regionColumn < blockWidth; regionColumn += maximumUnitWidth)
                 {
-                    int columnOffset = transformColumn * transformWidth;
-                    int reconstructionOffset = (rowOffset * blockWidth) + columnOffset;
-                    Point transformOrigin = chromaOrigin + new Size(columnOffset, rowOffset);
-                    this.PrepareTransformReferenceSamples(
-                        reconstruction,
-                        lumaOrigin,
-                        chromaOrigin,
-                        blockSize,
-                        macroBlock,
-                        transformRow,
-                        transformColumn,
-                        blockWidth,
-                        transformSize,
-                        subsamplingX,
-                        subsamplingY,
-                        candidateReconstruction,
-                        aboveStorage,
-                        leftStorage,
-                        out bool hasLeft,
-                        out bool hasAbove);
+                    int unitRight = Math.Min(regionColumn + maximumUnitWidth, blockWidth);
+                    for (int rowOffset = regionRow; rowOffset < unitBottom; rowOffset += transformHeight)
+                    {
+                        int transformRow = rowOffset / transformHeight;
+                        for (int columnOffset = regionColumn; columnOffset < unitRight; columnOffset += transformWidth)
+                        {
+                            int transformColumn = columnOffset / transformWidth;
+                            int reconstructionOffset = (rowOffset * blockWidth) + columnOffset;
+                            Point transformOrigin = chromaOrigin + new Size(columnOffset, rowOffset);
+                            this.PrepareTransformReferenceSamples(
+                                reconstruction,
+                                lumaOrigin,
+                                chromaOrigin,
+                                blockSize,
+                                macroBlock,
+                                transformRow,
+                                transformColumn,
+                                blockWidth,
+                                transformSize,
+                                subsamplingX,
+                                subsamplingY,
+                                candidateReconstruction,
+                                aboveStorage,
+                                leftStorage,
+                                out bool hasLeft,
+                                out bool hasAbove);
 
-                    TOperator.PrepareIntra(
-                        this.blockWorkspace,
-                        source,
-                        transformOrigin,
-                        prediction,
-                        aboveStorage.Slice(1, transformWidth * 2),
-                        leftStorage.Slice(1, transformHeight * 2),
-                        hasLeft,
-                        hasAbove,
-                        predictionMode,
-                        angleDelta,
-                        residual,
-                        transformSize,
-                        this.bitDepth);
+                            TOperator.PrepareIntra(
+                                this.blockWorkspace,
+                                source,
+                                transformOrigin,
+                                prediction,
+                                aboveStorage.Slice(1, transformWidth * 2),
+                                leftStorage.Slice(1, transformHeight * 2),
+                                hasLeft,
+                                hasAbove,
+                                predictionMode,
+                                angleDelta,
+                                residual,
+                                transformSize,
+                                this.bitDepth);
 
-                    Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
-                        componentType,
-                        topContexts.Slice(transformColumn * transformWidth4x4, transformWidth4x4),
-                        leftContexts.Slice(transformRow * transformHeight4x4, transformHeight4x4),
-                        chromaBlockSize,
-                        transformSize);
+                            Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
+                                componentType,
+                                topContexts.Slice(transformColumn * transformWidth4x4, transformWidth4x4),
+                                leftContexts.Slice(transformRow * transformHeight4x4, transformHeight4x4),
+                                chromaBlockSize,
+                                transformSize);
 
-                    Span<int> transformCoefficients = candidateCoefficients.Slice(
-                        coefficientOffset,
-                        transformSampleCount);
+                            Span<int> transformCoefficients = candidateCoefficients.Slice(
+                                coefficientOffset,
+                                transformSampleCount);
 
-                    ref Av1EncoderTransformBlockState state = ref candidateStates[transformIndex++];
-                    distortion += TOperator.EncodePredictionCandidate(
-                        this.blockWorkspace,
-                        source,
-                        transformOrigin,
-                        prediction,
-                        residual,
-                        candidateReconstruction[reconstructionOffset..],
-                        blockWidth,
-                        transformCoefficients,
-                        transformSize,
-                        transformType,
-                        plane,
-                        this.quantization.QIndex[0],
-                        this.quantization.DeltaQDc[(int)plane],
-                        this.quantization.DeltaQAc[(int)plane],
-                        this.bitDepth,
-                        ref state);
+                            ref Av1EncoderTransformBlockState state = ref candidateStates[transformIndex++];
+                            distortion += TOperator.EncodePredictionCandidate(
+                                this.blockWorkspace,
+                                source,
+                                transformOrigin,
+                                prediction,
+                                residual,
+                                candidateReconstruction[reconstructionOffset..],
+                                blockWidth,
+                                transformCoefficients,
+                                transformSize,
+                                transformType,
+                                plane,
+                                this.quantization.QIndex[0],
+                                this.quantization.DeltaQDc[(int)plane],
+                                this.quantization.DeltaQAc[(int)plane],
+                                this.bitDepth,
+                                ref state);
 
-                    rate += writer.GetCoefficientCost(
-                        transformSize,
-                        transformType,
-                        lumaMode,
-                        transformCoefficients,
-                        componentType,
-                        blockContext,
-                        state.EndOfBlock,
-                        this.picture.Parent.FrameHeader.UseReducedTransformSet,
-                        Av1FilterIntraMode.AllFilterIntraModes,
-                        usesInterTransformSet: false);
+                            rate += writer.GetCoefficientCost(
+                                transformSize,
+                                transformType,
+                                lumaMode,
+                                transformCoefficients,
+                                componentType,
+                                blockContext,
+                                state.EndOfBlock,
+                                this.picture.Parent.FrameHeader.UseReducedTransformSet,
+                                Av1FilterIntraMode.AllFilterIntraModes,
+                                usesInterTransformSet: false);
 
-                    byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
-                        transformCoefficients,
-                        transformSize,
-                        transformType,
-                        state.EndOfBlock);
+                            byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+                                transformCoefficients,
+                                transformSize,
+                                transformType,
+                                state.EndOfBlock);
 
-                    topContexts
-                        .Slice(transformColumn * transformWidth4x4, transformWidth4x4)
-                        .Fill(coefficientContext);
+                            topContexts
+                                .Slice(transformColumn * transformWidth4x4, transformWidth4x4)
+                                .Fill(coefficientContext);
 
-                    leftContexts
-                        .Slice(transformRow * transformHeight4x4, transformHeight4x4)
-                        .Fill(coefficientContext);
+                            leftContexts
+                                .Slice(transformRow * transformHeight4x4, transformHeight4x4)
+                                .Fill(coefficientContext);
 
-                    coefficientOffset += transformSampleCount;
+                            coefficientOffset += transformSampleCount;
+                        }
+                    }
                 }
             }
 

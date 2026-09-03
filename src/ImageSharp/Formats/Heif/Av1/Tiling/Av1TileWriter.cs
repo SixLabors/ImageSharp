@@ -1452,7 +1452,7 @@ internal partial class Av1TileWriter
     /// <param name="enableFilterIntra">A value indicating whether the sequence enables filter-intra prediction.</param>
     /// <param name="blockSize">The block size.</param>
     /// <returns><see langword="true"/> when filter-intra prediction supports the block dimensions; otherwise, <see langword="false"/>.</returns>
-    private static bool IsFilterIntraAllowedBlockSize(bool enableFilterIntra, Av1BlockSize blockSize)
+    internal static bool IsFilterIntraAllowedBlockSize(bool enableFilterIntra, Av1BlockSize blockSize)
     {
         if (!enableFilterIntra)
         {
@@ -1573,7 +1573,7 @@ internal partial class Av1TileWriter
     /// <param name="allowScreenContentTools">A value indicating whether screen-content tools are enabled.</param>
     /// <param name="blockSize">The block size.</param>
     /// <returns><see langword="true"/> when palette mode is available for the block; otherwise, <see langword="false"/>.</returns>
-    private static bool IsPaletteAllowed(bool allowScreenContentTools, Av1BlockSize blockSize)
+    internal static bool IsPaletteAllowed(bool allowScreenContentTools, Av1BlockSize blockSize)
         => allowScreenContentTools &&
             blockSize.GetWidth() <= 64 &&
             blockSize.GetHeight() <= 64 &&
@@ -1700,7 +1700,7 @@ internal partial class Av1TileWriter
         Av1NeighborArrayUnit<byte> cr_dc_sign_level_coeff_na,
         Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na)
     {
-        EncodeTransformCoefficientsY(
+        EncodeTransformCoefficientRegions(
             pcs,
             ec_ctx,
             writer,
@@ -1710,18 +1710,7 @@ internal partial class Av1TileWriter
             planeBlockSize,
             coefficientBuffer,
             superblockIndex,
-            luma_dc_sign_level_coeff_na);
-
-        EncodeTransformCoefficientsUv(
-            pcs,
-            ec_ctx,
-            writer,
-            ref blk_ptr,
-            blockOrigin,
-            intraLumaDir,
-            planeBlockSize,
-            coefficientBuffer,
-            superblockIndex,
+            luma_dc_sign_level_coeff_na,
             cr_dc_sign_level_coeff_na,
             cb_dc_sign_level_coeff_na);
     }
@@ -1751,14 +1740,6 @@ internal partial class Av1TileWriter
         int superblockIndex,
         Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na)
     {
-        ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
-        bool usesInterTransformSet = entropyCodingContext.MacroBlockModeInfo.Block.UseIntraBlockCopy;
-        Span<int> lumaCoefficients = coefficientBuffer.GetPlaneSpan(superblockIndex, Av1Plane.Y);
-        Span<Av1EncoderTransformBlockState> lumaTransformBlocks =
-            coefficientBuffer.GetTransformBlockSpan(superblockIndex, Av1Plane.Y);
-        Av1TransformSize transformSize = entropyCodingContext.MacroBlockModeInfo.Block.TransformSize;
-        int transformBlockWidth = transformSize.Get4x4WideCount();
-        int transformBlockHeight = transformSize.Get4x4HighCount();
         Av1MacroBlockD macroBlock = entropyCodingContext.MacroBlock;
         int maximumBlocksWide = plane_bsize.GetWidth();
         int maximumBlocksHigh = plane_bsize.GetHeight();
@@ -1777,66 +1758,33 @@ internal partial class Av1TileWriter
         int maximumUnitBlocksWide = Math.Min(
             Av1BlockSize.Block64x64.Get4x4WideCount(),
             maximumBlocksWide);
+
         int maximumUnitBlocksHigh = Math.Min(
             Av1BlockSize.Block64x64.Get4x4HighCount(),
             maximumBlocksHigh);
 
-        // AV1 visits residuals in bounded 64x64 regions so transform order remains stable for 128x128 blocks.
         for (int regionRow = 0; regionRow < maximumBlocksHigh; regionRow += maximumUnitBlocksHigh)
         {
-            int unitHeight = Math.Min(maximumUnitBlocksHigh + regionRow, maximumBlocksHigh);
+            int unitBottom = Math.Min(regionRow + maximumUnitBlocksHigh, maximumBlocksHigh);
             for (int regionColumn = 0; regionColumn < maximumBlocksWide; regionColumn += maximumUnitBlocksWide)
             {
-                int unitWidth = Math.Min(maximumUnitBlocksWide + regionColumn, maximumBlocksWide);
-                for (int blockRow = regionRow; blockRow < unitHeight; blockRow += transformBlockHeight)
-                {
-                    for (int blockColumn = regionColumn; blockColumn < unitWidth; blockColumn += transformBlockWidth)
-                    {
-                        int transformStateIndex = entropyCodingContext.CodedAreaSuperblock /
-                            Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
-                        ref Av1EncoderTransformBlockState transformBlock = ref lumaTransformBlocks[transformStateIndex];
-                        Point transformOrigin = blockOrigin + new Size(
-                            blockColumn << Av1Constants.ModeInfoSizeLog2,
-                            blockRow << Av1Constants.ModeInfoSizeLog2);
-                        Span<int> coefficients = lumaCoefficients[entropyCodingContext.CodedAreaSuperblock..];
-                        Av1TransformBlockContext blockContext = GetTransformBlockContexts(
-                            Av1ComponentType.Luminance,
-                            luma_dc_sign_level_coeff_na,
-                            transformOrigin,
-                            plane_bsize,
-                            transformSize);
-
-                        Av1TransformType transformType = transformBlock.TransformType;
-                        ushort endOfBlock = transformBlock.EndOfBlock;
-                        if (endOfBlock == 0)
-                        {
-                            // Empty transform blocks use the canonical transform type even when mode decision retained another candidate.
-                            transformType = transformBlock.TransformType = Av1TransformType.DctDct;
-                        }
-
-                        int culLevelY = writer.WriteCoefficients(
-                            transformSize,
-                            transformType,
-                            intraLumaDir,
-                            coefficients,
-                            Av1ComponentType.Luminance,
-                            blockContext,
-                            endOfBlock,
-                            frameHeader.UseReducedTransformSet,
-                            blk_ptr.FilterIntraMode,
-                            usesInterTransformSet);
-
-                        int transformWidth = transformSize.GetWidth();
-                        int transformHeight = transformSize.GetHeight();
-                        luma_dc_sign_level_coeff_na.UnitModeWrite(
-                            (byte)culLevelY,
-                            transformOrigin,
-                            new Size(transformWidth, transformHeight),
-                            Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
-
-                        entropyCodingContext.CodedAreaSuperblock += transformWidth * transformHeight;
-                    }
-                }
+                int unitRight = Math.Min(regionColumn + maximumUnitBlocksWide, maximumBlocksWide);
+                EncodeTransformCoefficientRegion(
+                    pcs,
+                    entropyCodingContext,
+                    writer,
+                    ref blk_ptr,
+                    blockOrigin,
+                    intraLumaDir,
+                    plane_bsize,
+                    Av1Plane.Y,
+                    coefficientBuffer,
+                    superblockIndex,
+                    luma_dc_sign_level_coeff_na,
+                    regionRow,
+                    regionColumn,
+                    unitBottom,
+                    unitRight);
             }
         }
     }
@@ -1874,26 +1822,10 @@ internal partial class Av1TileWriter
             return;
         }
 
-        ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
-        bool usesInterTransformSet = entropyCodingContext.MacroBlockModeInfo.Block.UseIntraBlockCopy;
-        Span<int> blueCoefficients = coefficientBuffer.GetPlaneSpan(superblockIndex, Av1Plane.U);
-        Span<int> redCoefficients = coefficientBuffer.GetPlaneSpan(superblockIndex, Av1Plane.V);
-        Span<Av1EncoderTransformBlockState> blueTransformBlocks =
-            coefficientBuffer.GetTransformBlockSpan(superblockIndex, Av1Plane.U);
-        Span<Av1EncoderTransformBlockState> redTransformBlocks =
-            coefficientBuffer.GetTransformBlockSpan(superblockIndex, Av1Plane.V);
-
         int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
         int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
         Av1BlockSize chromaBlockSize = plane_bsize.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
         Point chromaBlockOrigin = GetChromaBlockOrigin(blockOrigin, subsamplingX, subsamplingY);
-        Av1TransformSize chromaTransformSize = frameHeader.LosslessArray[entropyCodingContext.MacroBlockModeInfo.Block.SegmentId]
-            ? Av1TransformSize.Size4x4
-            : plane_bsize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
-        int transformBlockWidth = chromaTransformSize.Get4x4WideCount();
-        int transformBlockHeight = chromaTransformSize.Get4x4HighCount();
-        int transformWidth = chromaTransformSize.GetWidth();
-        int transformHeight = chromaTransformSize.GetHeight();
         Av1MacroBlockD macroBlock = entropyCodingContext.MacroBlock;
         int maximumBlocksWide = chromaBlockSize.GetWidth();
         int maximumBlocksHigh = chromaBlockSize.GetHeight();
@@ -1911,81 +1843,272 @@ internal partial class Av1TileWriter
         maximumBlocksHigh >>= Av1Constants.ModeInfoSizeLog2;
         Av1BlockSize maximumUnitBlockSize =
             Av1BlockSize.Block64x64.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
+
         int maximumUnitBlocksWide = Math.Min(maximumUnitBlockSize.Get4x4WideCount(), maximumBlocksWide);
         int maximumUnitBlocksHigh = Math.Min(maximumUnitBlockSize.Get4x4HighCount(), maximumBlocksHigh);
 
-        int codedAreaStart = entropyCodingContext.CodedAreaSuperblockUv;
-        int codedAreaEnd = codedAreaStart;
-
-        // AV1 completes every transform in one chroma plane before advancing to the other plane.
-        // Both planes use the same coded-area positions because their transform geometry is identical.
-        for (int planeIndex = 0; planeIndex < 2; planeIndex++)
+        for (int regionRow = 0; regionRow < maximumBlocksHigh; regionRow += maximumUnitBlocksHigh)
         {
-            bool isBluePlane = planeIndex == 0;
-            Span<int> planeCoefficients = isBluePlane ? blueCoefficients : redCoefficients;
-            Span<Av1EncoderTransformBlockState> planeTransformBlocks =
-                isBluePlane ? blueTransformBlocks : redTransformBlocks;
-
-            Av1NeighborArrayUnit<byte> coefficientNeighbors =
-                isBluePlane ? cb_dc_sign_level_coeff_na : cr_dc_sign_level_coeff_na;
-
-            int codedArea = codedAreaStart;
-            for (int regionRow = 0; regionRow < maximumBlocksHigh; regionRow += maximumUnitBlocksHigh)
+            int unitBottom = Math.Min(regionRow + maximumUnitBlocksHigh, maximumBlocksHigh);
+            for (int regionColumn = 0; regionColumn < maximumBlocksWide; regionColumn += maximumUnitBlocksWide)
             {
-                int unitHeight = Math.Min(maximumUnitBlocksHigh + regionRow, maximumBlocksHigh);
-                for (int regionColumn = 0; regionColumn < maximumBlocksWide; regionColumn += maximumUnitBlocksWide)
-                {
-                    int unitWidth = Math.Min(maximumUnitBlocksWide + regionColumn, maximumBlocksWide);
-                    for (int blockRow = regionRow; blockRow < unitHeight; blockRow += transformBlockHeight)
-                    {
-                        for (int blockColumn = regionColumn; blockColumn < unitWidth; blockColumn += transformBlockWidth)
-                        {
-                            int transformStateIndex =
-                                codedArea / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+                int unitRight = Math.Min(regionColumn + maximumUnitBlocksWide, maximumBlocksWide);
+                EncodeTransformCoefficientRegion(
+                    pcs,
+                    entropyCodingContext,
+                    writer,
+                    ref blk_ptr,
+                    chromaBlockOrigin,
+                    intraLumaDir,
+                    plane_bsize,
+                    Av1Plane.U,
+                    coefficientBuffer,
+                    superblockIndex,
+                    cb_dc_sign_level_coeff_na,
+                    regionRow,
+                    regionColumn,
+                    unitBottom,
+                    unitRight);
 
-                            ref Av1EncoderTransformBlockState transformBlock =
-                                ref planeTransformBlocks[transformStateIndex];
-
-                            Point chromaOrigin = chromaBlockOrigin + new Size(
-                                blockColumn << Av1Constants.ModeInfoSizeLog2,
-                                blockRow << Av1Constants.ModeInfoSizeLog2);
-
-                            Span<int> coefficients = planeCoefficients[codedArea..];
-                            Av1TransformBlockContext blockContext = GetTransformBlockContexts(
-                                Av1ComponentType.Chroma,
-                                coefficientNeighbors,
-                                chromaOrigin,
-                                chromaBlockSize,
-                                chromaTransformSize);
-
-                            int culLevel = writer.WriteCoefficients(
-                                chromaTransformSize,
-                                transformBlock.TransformType,
-                                intraLumaDir,
-                                coefficients,
-                                Av1ComponentType.Chroma,
-                                blockContext,
-                                transformBlock.EndOfBlock,
-                                frameHeader.UseReducedTransformSet,
-                                blk_ptr.FilterIntraMode,
-                                usesInterTransformSet);
-
-                            coefficientNeighbors.UnitModeWrite(
-                                (byte)culLevel,
-                                chromaOrigin,
-                                new Size(transformWidth, transformHeight),
-                                Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
-
-                            codedArea += transformWidth * transformHeight;
-                        }
-                    }
-                }
+                EncodeTransformCoefficientRegion(
+                    pcs,
+                    entropyCodingContext,
+                    writer,
+                    ref blk_ptr,
+                    chromaBlockOrigin,
+                    intraLumaDir,
+                    plane_bsize,
+                    Av1Plane.V,
+                    coefficientBuffer,
+                    superblockIndex,
+                    cr_dc_sign_level_coeff_na,
+                    regionRow,
+                    regionColumn,
+                    unitBottom,
+                    unitRight);
             }
+        }
+    }
 
-            codedAreaEnd = codedArea;
+    private static void EncodeTransformCoefficientRegions(
+        Av1PictureControlSet pcs,
+        Av1EntropyCodingContext entropyCodingContext,
+        Av1SymbolEncoder writer,
+        ref Av1EncoderBlockStruct block,
+        Point blockOrigin,
+        Av1PredictionMode intraLumaMode,
+        Av1BlockSize blockSize,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        int superblockIndex,
+        Av1NeighborArrayUnit<byte> lumaCoefficientNeighbors,
+        Av1NeighborArrayUnit<byte> redCoefficientNeighbors,
+        Av1NeighborArrayUnit<byte> blueCoefficientNeighbors)
+    {
+        Av1MacroBlockD macroBlock = entropyCodingContext.MacroBlock;
+        int maximumBlocksWide = blockSize.GetWidth();
+        int maximumBlocksHigh = blockSize.GetHeight();
+        if (macroBlock.ToRightEdge < 0)
+        {
+            maximumBlocksWide += macroBlock.ToRightEdge >> 3;
         }
 
-        entropyCodingContext.CodedAreaSuperblockUv = codedAreaEnd;
+        if (macroBlock.ToBottomEdge < 0)
+        {
+            maximumBlocksHigh += macroBlock.ToBottomEdge >> 3;
+        }
+
+        maximumBlocksWide >>= Av1Constants.ModeInfoSizeLog2;
+        maximumBlocksHigh >>= Av1Constants.ModeInfoSizeLog2;
+        int maximumUnitBlocksWide = Math.Min(
+            Av1BlockSize.Block64x64.Get4x4WideCount(),
+            maximumBlocksWide);
+
+        int maximumUnitBlocksHigh = Math.Min(
+            Av1BlockSize.Block64x64.Get4x4HighCount(),
+            maximumBlocksHigh);
+
+        ObuColorConfig colorConfig = pcs.Sequence.SequenceHeader.ColorConfig;
+        bool hasChroma = block.HasChroma && !colorConfig.IsMonochrome;
+        int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
+        int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
+        Point chromaBlockOrigin = GetChromaBlockOrigin(blockOrigin, subsamplingX, subsamplingY);
+
+        // Residual syntax is region-major, then plane-major. Keeping the three plane calls together
+        // prevents a 128x128 block from emitting later luma regions before earlier chroma regions.
+        for (int regionRow = 0; regionRow < maximumBlocksHigh; regionRow += maximumUnitBlocksHigh)
+        {
+            int unitBottom = Math.Min(regionRow + maximumUnitBlocksHigh, maximumBlocksHigh);
+            for (int regionColumn = 0; regionColumn < maximumBlocksWide; regionColumn += maximumUnitBlocksWide)
+            {
+                int unitRight = Math.Min(regionColumn + maximumUnitBlocksWide, maximumBlocksWide);
+                EncodeTransformCoefficientRegion(
+                    pcs,
+                    entropyCodingContext,
+                    writer,
+                    ref block,
+                    blockOrigin,
+                    intraLumaMode,
+                    blockSize,
+                    Av1Plane.Y,
+                    coefficientBuffer,
+                    superblockIndex,
+                    lumaCoefficientNeighbors,
+                    regionRow,
+                    regionColumn,
+                    unitBottom,
+                    unitRight);
+
+                if (hasChroma)
+                {
+                    int chromaRegionRow = regionRow >> subsamplingY;
+                    int chromaRegionColumn = regionColumn >> subsamplingX;
+                    int chromaUnitBottom = unitBottom >> subsamplingY;
+                    int chromaUnitRight = unitRight >> subsamplingX;
+                    EncodeTransformCoefficientRegion(
+                        pcs,
+                        entropyCodingContext,
+                        writer,
+                        ref block,
+                        chromaBlockOrigin,
+                        intraLumaMode,
+                        blockSize,
+                        Av1Plane.U,
+                        coefficientBuffer,
+                        superblockIndex,
+                        blueCoefficientNeighbors,
+                        chromaRegionRow,
+                        chromaRegionColumn,
+                        chromaUnitBottom,
+                        chromaUnitRight);
+
+                    EncodeTransformCoefficientRegion(
+                        pcs,
+                        entropyCodingContext,
+                        writer,
+                        ref block,
+                        chromaBlockOrigin,
+                        intraLumaMode,
+                        blockSize,
+                        Av1Plane.V,
+                        coefficientBuffer,
+                        superblockIndex,
+                        redCoefficientNeighbors,
+                        chromaRegionRow,
+                        chromaRegionColumn,
+                        chromaUnitBottom,
+                        chromaUnitRight);
+                }
+            }
+        }
+    }
+
+    private static void EncodeTransformCoefficientRegion(
+        Av1PictureControlSet pcs,
+        Av1EntropyCodingContext entropyCodingContext,
+        Av1SymbolEncoder writer,
+        ref Av1EncoderBlockStruct block,
+        Point planeBlockOrigin,
+        Av1PredictionMode intraLumaMode,
+        Av1BlockSize lumaBlockSize,
+        Av1Plane plane,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        int superblockIndex,
+        Av1NeighborArrayUnit<byte> coefficientNeighbors,
+        int regionRow,
+        int regionColumn,
+        int unitBottom,
+        int unitRight)
+    {
+        ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
+        ObuColorConfig colorConfig = pcs.Sequence.SequenceHeader.ColorConfig;
+        bool isLuma = plane == Av1Plane.Y;
+        Av1BlockSize planeBlockSize = isLuma
+            ? lumaBlockSize
+            : lumaBlockSize.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
+
+        Av1TransformSize transformSize = isLuma
+            ? entropyCodingContext.MacroBlockModeInfo.Block.TransformSize
+            : frameHeader.LosslessArray[entropyCodingContext.MacroBlockModeInfo.Block.SegmentId]
+                ? Av1TransformSize.Size4x4
+                : lumaBlockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
+
+        int transformBlockWidth = transformSize.Get4x4WideCount();
+        int transformBlockHeight = transformSize.Get4x4HighCount();
+        int transformWidth = transformSize.GetWidth();
+        int transformHeight = transformSize.GetHeight();
+        bool usesInterTransformSet = entropyCodingContext.MacroBlockModeInfo.Block.UseIntraBlockCopy;
+        Av1ComponentType componentType = isLuma
+            ? Av1ComponentType.Luminance
+            : Av1ComponentType.Chroma;
+
+        Span<int> planeCoefficients = coefficientBuffer.GetPlaneSpan(superblockIndex, plane);
+        Span<Av1EncoderTransformBlockState> planeTransformBlocks =
+            coefficientBuffer.GetTransformBlockSpan(superblockIndex, plane);
+
+        int codedArea = isLuma
+            ? entropyCodingContext.CodedAreaSuperblock
+            : entropyCodingContext.CodedAreaSuperblockUv;
+
+        for (int blockRow = regionRow; blockRow < unitBottom; blockRow += transformBlockHeight)
+        {
+            for (int blockColumn = regionColumn; blockColumn < unitRight; blockColumn += transformBlockWidth)
+            {
+                int transformStateIndex =
+                    codedArea / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+
+                ref Av1EncoderTransformBlockState transformBlock =
+                    ref planeTransformBlocks[transformStateIndex];
+
+                Point transformOrigin = planeBlockOrigin + new Size(
+                    blockColumn << Av1Constants.ModeInfoSizeLog2,
+                    blockRow << Av1Constants.ModeInfoSizeLog2);
+
+                Span<int> coefficients = planeCoefficients[codedArea..];
+                Av1TransformBlockContext blockContext = GetTransformBlockContexts(
+                    componentType,
+                    coefficientNeighbors,
+                    transformOrigin,
+                    planeBlockSize,
+                    transformSize);
+
+                Av1TransformType transformType = transformBlock.TransformType;
+                if (isLuma && transformBlock.EndOfBlock == 0)
+                {
+                    // Empty luma transforms carry no transform-type symbol, so retain the canonical state.
+                    transformType = transformBlock.TransformType = Av1TransformType.DctDct;
+                }
+
+                int culLevel = writer.WriteCoefficients(
+                    transformSize,
+                    transformType,
+                    intraLumaMode,
+                    coefficients,
+                    componentType,
+                    blockContext,
+                    transformBlock.EndOfBlock,
+                    frameHeader.UseReducedTransformSet,
+                    block.FilterIntraMode,
+                    usesInterTransformSet);
+
+                coefficientNeighbors.UnitModeWrite(
+                    (byte)culLevel,
+                    transformOrigin,
+                    new Size(transformWidth, transformHeight),
+                    Av1NeighborArrayUnit<byte>.UnitMask.Top | Av1NeighborArrayUnit<byte>.UnitMask.Left);
+
+                codedArea += transformWidth * transformHeight;
+            }
+        }
+
+        if (isLuma)
+        {
+            entropyCodingContext.CodedAreaSuperblock = codedArea;
+        }
+        else if (plane == Av1Plane.V)
+        {
+            // U and V share the same per-plane coded-area positions; advance only after V completes the region.
+            entropyCodingContext.CodedAreaSuperblockUv = codedArea;
+        }
     }
 
     /// <summary>

@@ -358,6 +358,80 @@ public class Av1EncoderFrameTests
     }
 
     [Theory]
+    [InlineData(Yuv400)]
+    [InlineData(Yuv444)]
+    public void EncodeEffortTenSelectsOneHundredTwentyEightByOneHundredTwentyEightBlock(int colorFormatValue)
+    {
+        const int Size = 128;
+        Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
+        using Image<Rgba32> source = new(Size, Size);
+        for (int y = 0; y < Size; y++)
+        {
+            Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < Size; x++)
+            {
+                row[x] = new Rgba32(180, 64, 220);
+            }
+        }
+
+        using MemoryStream stream = new();
+        ObuSequenceHeader sequenceHeader = Av1FrameEncoder.Encode(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            stream,
+            CreateColorConfig(Av1BitDepth.EightBit, colorFormat),
+            qIndex: 4,
+            effort: 10);
+
+        Assert.True(sequenceHeader.Use128x128Superblock);
+        byte[] payload = stream.ToArray();
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+        for (int modeInfoY = 0; modeInfoY < 32; modeInfoY++)
+        {
+            for (int modeInfoX = 0; modeInfoX < 32; modeInfoX++)
+            {
+                Assert.Equal(
+                    Av1BlockSize.Block128x128,
+                    frameInfo.GetModeInfoAt(new Point(modeInfoX, modeInfoY)).BlockSize);
+            }
+        }
+
+        Assert.Equal(new Size(Size, Size), decoded.Size);
+    }
+
+    [Fact]
+    public void EncodeEffortTenSearchesHighBitDepthOneHundredTwentyEightRoot()
+    {
+        const int Size = 128;
+        using Image<Rgba32> source = new(Size, Size);
+        for (int y = 0; y < Size; y++)
+        {
+            Span<Rgba32> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < Size; x++)
+            {
+                row[x] = new Rgba32(180, 64, 220);
+            }
+        }
+
+        using MemoryStream stream = new();
+        ObuSequenceHeader sequenceHeader = Av1FrameEncoder.Encode(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            stream,
+            CreateColorConfig(Av1BitDepth.TwelveBit, Av1ColorFormat.Yuv444),
+            qIndex: 4,
+            effort: 10);
+
+        Assert.True(sequenceHeader.Use128x128Superblock);
+        byte[] payload = stream.ToArray();
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        Assert.Equal(new Size(Size, Size), decoded.Size);
+    }
+
+    [Theory]
     [InlineData(EightBit)]
     [InlineData(TenBit)]
     [InlineData(TwelveBit)]

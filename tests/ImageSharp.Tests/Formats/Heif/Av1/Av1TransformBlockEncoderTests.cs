@@ -618,19 +618,25 @@ public class Av1TransformBlockEncoderTests
                 workspace.GetIntraBlockCopyWorkspace<ushort>();
 
             Assert.Equal(
-                (2 * Av1EncoderModeDecisionWorkspace<ushort>.MaximumBlockDimension) + 1,
+                (2 * Av1Constants.MaxTransformSize) + 1,
                 modeWorkspace.GetReferenceSamples(3).Length);
 
             Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumSampleCount, modeWorkspace.GetCandidateReconstruction(1).Length);
             Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumSampleCount, modeWorkspace.GetCandidateCoefficients(1).Length);
+            Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumTransformSampleCount, modeWorkspace.Prediction.Length);
+            Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumTransformSampleCount, modeWorkspace.Residual.Length);
+            Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumCandidateTransformBlockCount, modeWorkspace.CandidateTransformBlocks.Length);
 
             // CfL is unavailable above 32x32, so its scratch remains fixed while larger partitions are enabled.
             Assert.Equal(Av1ChromaFromLumaContext.BufferLength, modeWorkspace.ChromaFromLumaSamples.Length);
 
             Assert.Equal(Av1ChromaFromLumaMath.AlphaCandidateCount, modeWorkspace.GetChromaFromLumaRates(1).Length);
             Assert.Equal(Av1ChromaFromLumaMath.AlphaCandidateCount, modeWorkspace.GetChromaFromLumaDistortions(1).Length);
-            Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumSampleCount, paletteWorkspace.GetPrediction(1).Length);
-            Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumSampleCount, paletteWorkspace.AlternateIndices.Length);
+            int maximumPaletteSampleCount =
+                Av1BlockSize.Block64x64.GetWidth() * Av1BlockSize.Block64x64.GetHeight();
+
+            Assert.Equal(maximumPaletteSampleCount, paletteWorkspace.GetPrediction(1).Length);
+            Assert.Equal(maximumPaletteSampleCount, paletteWorkspace.AlternateIndices.Length);
 
             // Conventional mode search and IBC are sequential, so their typed views intentionally alias one owner region.
             modeWorkspace.GetReferenceSamples(0)[0] = 123;

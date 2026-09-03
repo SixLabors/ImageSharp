@@ -18,7 +18,7 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     /// <summary>
     /// The largest coding-block dimension evaluated directly by the current partition search.
     /// </summary>
-    public const int MaximumBlockDimension = 64;
+    public const int MaximumBlockDimension = 128;
 
     /// <summary>
     /// The maximum number of samples in one directly evaluated coding block.
@@ -26,21 +26,27 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     public const int MaximumSampleCount = MaximumBlockDimension * MaximumBlockDimension;
 
     /// <summary>
+    /// The maximum number of samples in one AV1 transform.
+    /// </summary>
+    public const int MaximumTransformSampleCount =
+        Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize;
+
+    /// <summary>
     /// The number of 4x4 transform blocks covering one 8x8 coding block.
     /// </summary>
     public const int CandidateTransformBlockCount = 4;
 
     /// <summary>
-    /// The maximum number of transform states needed while evaluating both chroma planes of one 64x64 block.
+    /// The maximum number of transform states needed while evaluating both chroma planes of one 128x128 block.
     /// </summary>
-    public const int MaximumCandidateTransformBlockCount = 8;
+    public const int MaximumCandidateTransformBlockCount = 32;
 
     /// <summary>
     /// The required workspace length in signed-integer storage elements.
     /// </summary>
     public const int StorageLength = TransientStorageOffset + Av1EncoderPaletteWorkspace<ushort>.StorageLength;
 
-    private const int ReferenceBufferLength = (2 * MaximumBlockDimension) + 1;
+    private const int ReferenceBufferLength = (2 * Av1Constants.MaxTransformSize) + 1;
     private const int ReferenceBufferCount = 4;
     private const int ReferenceStorageLength = ReferenceBufferCount * ReferenceBufferLength * sizeof(ushort) / sizeof(int);
     private const int CandidateSampleStorageOffset = ReferenceStorageLength;
@@ -80,7 +86,7 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     /// Gets the temporary prediction span shared by mutually exclusive mode searches.
     /// </summary>
     public Span<TSample> Prediction
-        => MemoryMarshal.Cast<int, TSample>(this.storage[TransientStorageOffset..])[..MaximumSampleCount];
+        => MemoryMarshal.Cast<int, TSample>(this.storage[TransientStorageOffset..])[..MaximumTransformSampleCount];
 
     /// <summary>
     /// Gets the temporary residual span shared by mutually exclusive mode searches.
@@ -88,8 +94,8 @@ internal readonly ref struct Av1EncoderModeDecisionWorkspace<TSample>
     public Span<short> Residual
         => MemoryMarshal.Cast<int, short>(
             this.storage.Slice(
-                TransientStorageOffset + (MaximumSampleCount * sizeof(ushort) / sizeof(int)),
-                MaximumSampleCount * sizeof(short) / sizeof(int)));
+                TransientStorageOffset + (MaximumTransformSampleCount * sizeof(ushort) / sizeof(int)),
+                MaximumTransformSampleCount * sizeof(short) / sizeof(int)));
 
     /// <summary>
     /// Gets the fixed-stride subsampled luma values used by chroma-from-luma mode search.
@@ -182,7 +188,8 @@ internal readonly ref struct Av1EncoderPaletteWorkspace<TSample>
     /// </summary>
     public const int StorageLength = ColorCacheOffset + ColorCacheStorageLength;
 
-    private const int MaximumSampleCount = Av1EncoderModeDecisionWorkspace<ushort>.MaximumSampleCount;
+    private const int MaximumBlockDimension = 64;
+    private const int MaximumSampleCount = MaximumBlockDimension * MaximumBlockDimension;
     private const int PlaneShortStorageLength = MaximumSampleCount * sizeof(short) / sizeof(int);
     private const int PlaneSampleStorageLength = MaximumSampleCount * sizeof(ushort) / sizeof(int);
     private const int PlaneByteStorageLength = MaximumSampleCount / sizeof(int);

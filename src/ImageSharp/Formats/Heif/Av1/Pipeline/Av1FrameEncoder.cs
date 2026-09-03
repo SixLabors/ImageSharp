@@ -89,7 +89,7 @@ internal static class Av1FrameEncoder
             FrameHeightBits = height > 1 ? Av1Math.MostSignificantBit((uint)(height - 1)) + 1 : 1,
             MaxFrameWidth = width,
             MaxFrameHeight = height,
-            Use128x128Superblock = false,
+            Use128x128Superblock = effort == 10 && width >= 128 && height >= 128,
             ForceScreenContentTools = 2,
             ForceIntegerMotionVector = 2,
             EnableFilterIntra = effort >= 4,

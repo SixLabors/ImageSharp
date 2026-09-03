@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -610,6 +611,24 @@ public class Av1TransformBlockEncoderTests
             Assert.Equal(Av1EncoderBlockWorkspace.MaximumCoefficientCount, workspace.TransformCoefficients.Length);
             Assert.Equal(Av1EncoderBlockWorkspace.MaximumCoefficientCount, workspace.DequantizedCoefficients.Length);
             Assert.Equal(Av1TransformWorkspace.MaximumLength, workspace.TransformWorkspace.Length);
+
+            Av1EncoderModeDecisionWorkspace<ushort> modeWorkspace = workspace.GetModeDecisionWorkspace<ushort>();
+            Av1EncoderPaletteWorkspace<ushort> paletteWorkspace = modeWorkspace.Palette;
+            Av1EncoderIntraBlockCopyWorkspace<ushort> intraBlockCopyWorkspace =
+                workspace.GetIntraBlockCopyWorkspace<ushort>();
+
+            Assert.Equal(17, modeWorkspace.GetReferenceSamples(3).Length);
+            Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumSampleCount, modeWorkspace.GetCandidateReconstruction(1).Length);
+            Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumSampleCount, modeWorkspace.GetCandidateCoefficients(1).Length);
+            Assert.Equal(Av1ChromaFromLumaContext.BufferLine * 8, modeWorkspace.ChromaFromLumaSamples.Length);
+            Assert.Equal(Av1ChromaFromLumaMath.AlphaCandidateCount, modeWorkspace.GetChromaFromLumaRates(1).Length);
+            Assert.Equal(Av1ChromaFromLumaMath.AlphaCandidateCount, modeWorkspace.GetChromaFromLumaDistortions(1).Length);
+            Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumSampleCount, paletteWorkspace.GetPrediction(1).Length);
+            Assert.Equal(Av1EncoderModeDecisionWorkspace<ushort>.MaximumSampleCount, paletteWorkspace.AlternateIndices.Length);
+
+            // Conventional mode search and IBC are sequential, so their typed views intentionally alias one owner region.
+            modeWorkspace.GetReferenceSamples(0)[0] = 123;
+            Assert.Equal((ushort)123, intraBlockCopyWorkspace.SelectedLumaReconstruction[0]);
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);

@@ -37,17 +37,18 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             const int BlockLength = 8;
-            const int SampleCapacity = BlockLength * BlockLength;
+            Av1EncoderPaletteWorkspace<TSample> workspace =
+                this.blockWorkspace.GetModeDecisionWorkspace<TSample>().Palette;
+
             ObuFrameSize frameSize = this.picture.Parent.FrameHeader.FrameSize;
             int rows = Math.Min(BlockLength, frameSize.FrameHeight - blockOrigin.Y);
             int columns = Math.Min(BlockLength, frameSize.FrameWidth - blockOrigin.X);
             int sampleCount = rows * columns;
-            Span<short> samples = stackalloc short[SampleCapacity];
-            samples = samples[..sampleCount];
+            Span<short> samples = workspace.GetSamples(0)[..sampleCount];
             TOperator.CopyPaletteSamples(sourcePlane, blockOrigin, rows, columns, samples);
 
-            Span<short> uniqueColors = stackalloc short[SampleCapacity];
-            Span<int> colorCounts = stackalloc int[SampleCapacity];
+            Span<short> uniqueColors = workspace.GetUniqueColors(0);
+            Span<int> colorCounts = workspace.LumaColorCounts;
             int uniqueColorCount = 0;
             short minimum = samples[0];
             short maximum = samples[0];
@@ -75,7 +76,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             int maximumPaletteSize = Math.Min(uniqueColorCount, Av1Constants.PaletteMaxSize);
-            Span<byte> dominantOrder = stackalloc byte[SampleCapacity];
+            Span<byte> dominantOrder = workspace.LumaDominantOrder;
             for (int index = 0; index < uniqueColorCount; index++)
             {
                 dominantOrder[index] = (byte)index;
@@ -107,7 +108,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts = this.picture.PaletteContexts[tileIndex];
             int blockSizeContext = Av1TileWriter.GetPaletteBlockSizeContext(BlockSize);
             int neighborContext = Av1TileWriter.GetPaletteYModeContext(paletteContexts, macroBlock, blockOrigin);
-            Span<ushort> colorCache = stackalloc ushort[2 * Av1Constants.PaletteMaxSize];
+            Span<ushort> colorCache = workspace.ColorCache;
             int colorCacheSize = Av1TileWriter.GetPaletteCache(
                 paletteContexts,
                 macroBlock,
@@ -119,8 +120,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 .GetPaletteMaps()
                 .GetMap(Av1PlaneType.Y, BlockLength, BlockLength);
 
-            Span<byte> retainedColorIndexMap = stackalloc byte[SampleCapacity];
-            Span<short> centroids = stackalloc short[Av1Constants.PaletteMaxSize];
+            Span<byte> retainedColorIndexMap = workspace.RetainedIndices;
+            Span<short> centroids = workspace.GetCentroids(0);
             bool paletteSelected = false;
 
             // Exhaustive ascending size search avoids the reference encoder's speed-dependent pruning.
@@ -186,13 +187,18 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else
             {
-                Span<byte> clusterIndices = stackalloc byte[SampleCapacity];
-                clusterIndices = clusterIndices[..sampleCount];
+                Span<byte> clusterIndices = workspace.Indices[..sampleCount];
                 for (int paletteSize = 2; paletteSize <= maximumPaletteSize; paletteSize++)
                 {
                     Span<short> candidateCentroids = centroids[..paletteSize];
                     Av1PaletteKMeans.InitializeCentroids(minimum, maximum, candidateCentroids);
-                    Av1PaletteKMeans.Cluster(samples, candidateCentroids, clusterIndices);
+                    Av1PaletteKMeans.Cluster(
+                        samples,
+                        candidateCentroids,
+                        clusterIndices,
+                        workspace.GetAlternateCentroids(0),
+                        workspace.AlternateIndices);
+
                     this.EvaluateLumaPaletteCandidate(
                         writer,
                         macroBlock,
@@ -258,7 +264,9 @@ internal static partial class Av1IntraSuperblockEncoder
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
             const int BlockLength = 8;
-            const int SampleCount = BlockLength * BlockLength;
+            Av1EncoderPaletteWorkspace<TSample> workspace =
+                this.blockWorkspace.GetModeDecisionWorkspace<TSample>().Palette;
+
             int bitDepth = this.bitDepth.GetBitCount();
             int cacheThreshold = 4 << (bitDepth - 8);
             for (int colorIndex = 0; colorIndex < centroids.Length && !colorCache.IsEmpty; colorIndex++)
@@ -297,14 +305,13 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             ReadOnlySpan<short> paletteCentroids = centroids[..paletteSize];
-            Span<ushort> paletteColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
-            paletteColors = paletteColors[..paletteSize];
+            Span<ushort> paletteColors = workspace.GetPaletteColors(0)[..paletteSize];
             for (int colorIndex = 0; colorIndex < paletteSize; colorIndex++)
             {
                 paletteColors[colorIndex] = (ushort)paletteCentroids[colorIndex];
             }
 
-            Span<byte> colorIndices = stackalloc byte[SampleCount];
+            Span<byte> colorIndices = workspace.Indices;
             Av1PaletteKMeans.AssignIndices(samples, paletteCentroids, colorIndices);
             for (int row = 0; row < rows; row++)
             {
@@ -320,8 +327,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     .CopyTo(colorIndexMap.DangerousGetRowSpan(row));
             }
 
-            Span<TSample> prediction = stackalloc TSample[SampleCount];
-            Span<short> residual = stackalloc short[SampleCount];
+            Span<TSample> prediction = workspace.GetPrediction(0);
+            Span<short> residual = workspace.GetResidual(0);
             TOperator.PreparePalette(
                 this.source.GetPlane(Av1Plane.Y),
                 blockOrigin,

@@ -34,8 +34,15 @@ public class Av1PaletteKMeansTests
         short[] samples = [0, 1, 2, 100, 101, 102, 200, 201, 202];
         short[] centroids = [33, 100, 167];
         byte[] indices = new byte[samples.Length];
+        short[] alternateCentroids = new short[centroids.Length];
+        byte[] alternateIndices = new byte[samples.Length];
 
-        long distortion = Av1PaletteKMeans.Cluster(samples, centroids, indices);
+        long distortion = Av1PaletteKMeans.Cluster(
+            samples,
+            centroids,
+            indices,
+            alternateCentroids,
+            alternateIndices);
 
         Assert.Equal([1, 101, 201], centroids);
         Assert.Equal([0, 0, 0, 1, 1, 1, 2, 2, 2], indices);

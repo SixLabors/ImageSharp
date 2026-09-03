@@ -27,13 +27,19 @@ public class Av1PaletteKMeans2DTests
         short[] firstCentroids = [20, 100, 180];
         short[] secondCentroids = [30, 110, 190];
         byte[] indices = new byte[firstSamples.Length];
+        short[] alternateFirstCentroids = new short[firstCentroids.Length];
+        short[] alternateSecondCentroids = new short[secondCentroids.Length];
+        byte[] alternateIndices = new byte[firstSamples.Length];
 
         long distortion = Av1PaletteKMeans2D.Cluster(
             firstSamples,
             secondSamples,
             firstCentroids,
             secondCentroids,
-            indices);
+            indices,
+            alternateFirstCentroids,
+            alternateSecondCentroids,
+            alternateIndices);
 
         Assert.Equal([1, 101, 201], firstCentroids);
         Assert.Equal([11, 111, 211], secondCentroids);

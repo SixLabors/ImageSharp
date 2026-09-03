@@ -141,15 +141,28 @@ internal sealed class Av1CdefDecoder
             columnBufferLength += columnBufferLengths[planeIndex];
         }
 
-        int scratchLength = SourceBufferLength + lineBufferLength + columnBufferLength;
+        int directionStorageLength = MaximumBlocksPerUnit * sizeof(int) / sizeof(ushort);
+        int blockStorageLength = MaximumBlocksPerUnit * Unsafe.SizeOf<CdefBlock>() / sizeof(ushort);
+        int unitStorageOffset = SourceBufferLength + lineBufferLength + columnBufferLength;
+        int scratchLength = unitStorageOffset + (directionStorageLength * 2) + blockStorageLength;
         MemoryAllocator allocator = this.frameBuffer.MemoryAllocator;
         using IMemoryOwner<ushort> scratchOwner = allocator.Allocate<ushort>(scratchLength);
         Span<ushort> scratch = scratchOwner.Memory.Span[..scratchLength];
         Span<ushort> source = scratch[..SourceBufferLength];
         Span<ushort> lineBuffer = scratch.Slice(SourceBufferLength, lineBufferLength);
-        Span<ushort> columnBuffer = scratch[(SourceBufferLength + lineBufferLength)..];
-        Span<int> directions = stackalloc int[MaximumBlocksPerUnit];
-        Span<int> variances = stackalloc int[MaximumBlocksPerUnit];
+        Span<ushort> columnBuffer = scratch.Slice(SourceBufferLength + lineBufferLength, columnBufferLength);
+
+        // Every preceding plane region has an even ushort length, so the appended unit state remains 32-bit aligned.
+        // Directions, variances, and block coordinates share the owner because they are reused one unit at a time.
+        Span<int> directions = MemoryMarshal.Cast<ushort, int>(
+            scratch.Slice(unitStorageOffset, directionStorageLength));
+
+        Span<int> variances = MemoryMarshal.Cast<ushort, int>(
+            scratch.Slice(unitStorageOffset + directionStorageLength, directionStorageLength));
+
+        Span<CdefBlock> blocks = MemoryMarshal.Cast<ushort, CdefBlock>(
+            scratch.Slice(unitStorageOffset + (directionStorageLength * 2), blockStorageLength));
+
         Span<bool> cdefLeft = stackalloc bool[3];
         int unitColumnCount = (this.frameHeader.ModeInfoColumnCount + CdefUnitModeInfoSize - 1) / CdefUnitModeInfoSize;
         int unitRowCount = (this.frameHeader.ModeInfoRowCount + CdefUnitModeInfoSize - 1) / CdefUnitModeInfoSize;
@@ -217,7 +230,6 @@ internal sealed class Av1CdefDecoder
 
                 int unitModeInfoRowEnd = Math.Min(unitModeInfoRow + CdefUnitModeInfoSize, this.frameHeader.ModeInfoRowCount);
                 int unitModeInfoColumnEnd = Math.Min(unitModeInfoColumn + CdefUnitModeInfoSize, this.frameHeader.ModeInfoColumnCount);
-                CdefBlockList blocks = default;
                 int blockCount = 0;
 
                 for (int blockModeInfoRow = unitModeInfoRow; blockModeInfoRow < unitModeInfoRowEnd; blockModeInfoRow += 2)
@@ -265,8 +277,7 @@ internal sealed class Av1CdefDecoder
                         subsamplingY[planeIndex],
                         unitModeInfoColumn,
                         unitModeInfoRow,
-                        ref blocks,
-                        blockCount,
+                        blocks[..blockCount],
                         directions,
                         variances,
                         yStrength,
@@ -291,7 +302,6 @@ internal sealed class Av1CdefDecoder
     /// <param name="unitModeInfoColumn">The unit's frame-relative column in 4x4 luma units.</param>
     /// <param name="unitModeInfoRow">The unit's frame-relative row in 4x4 luma units.</param>
     /// <param name="blocks">The unit's non-skipped 8x8 luma blocks.</param>
-    /// <param name="blockCount">The number of initialized entries in <paramref name="blocks"/>.</param>
     /// <param name="directions">The unit-local luma directions in block-list order.</param>
     /// <param name="variances">The unit-local luma directional variances in block-list order.</param>
     /// <param name="yStrength">The coded luma strength.</param>
@@ -306,8 +316,7 @@ internal sealed class Av1CdefDecoder
         int subsamplingY,
         int unitModeInfoColumn,
         int unitModeInfoRow,
-        ref CdefBlockList blocks,
-        int blockCount,
+        ReadOnlySpan<CdefBlock> blocks,
         Span<int> directions,
         Span<int> variances,
         int yStrength,
@@ -429,7 +438,7 @@ internal sealed class Av1CdefDecoder
 
             // The reference decoder analyzes two listed 8x8 blocks together. The per-unit fixed list preserves that traversal
             // without allocating a managed block list or repeating four skip-map lookups during filtering.
-            for (; blockIndex < blockCount - 1; blockIndex += 2)
+            for (; blockIndex < blocks.Length - 1; blockIndex += 2)
             {
                 CdefBlock firstBlock = blocks[blockIndex];
                 CdefBlock secondBlock = blocks[blockIndex + 1];
@@ -446,7 +455,7 @@ internal sealed class Av1CdefDecoder
                     out variances[blockIndex + 1]);
             }
 
-            if (blockIndex < blockCount)
+            if (blockIndex < blocks.Length)
             {
                 CdefBlock block = blocks[blockIndex];
 
@@ -464,7 +473,7 @@ internal sealed class Av1CdefDecoder
             return;
         }
 
-        for (int blockIndex = 0; blockIndex < blockCount; blockIndex++)
+        for (int blockIndex = 0; blockIndex < blocks.Length; blockIndex++)
         {
             CdefBlock block = blocks[blockIndex];
             int filteredPrimaryStrength = plane == Av1Plane.Y
@@ -665,18 +674,6 @@ internal sealed class Av1CdefDecoder
         }
 
         return true;
-    }
-
-    /// <summary>
-    /// Stores the non-skipped blocks in one CDEF unit without a managed allocation.
-    /// </summary>
-    [InlineArray(MaximumBlocksPerUnit)]
-    private struct CdefBlockList
-    {
-        /// <summary>
-        /// The first block in the inline storage.
-        /// </summary>
-        private CdefBlock element0;
     }
 
     /// <summary>

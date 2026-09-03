@@ -144,15 +144,18 @@ internal static class Av1PaletteKMeans
     /// <param name="samples">The active block samples.</param>
     /// <param name="centroids">The initialized colors, replaced with the best refined colors.</param>
     /// <param name="indices">The palette indices belonging to the retained colors.</param>
+    /// <param name="alternateCentroids">Reusable storage for the next centroid iteration.</param>
+    /// <param name="alternateIndices">Reusable storage for the next index iteration.</param>
     /// <returns>The retained sum of squared distances.</returns>
     public static long Cluster(
         ReadOnlySpan<short> samples,
         Span<short> centroids,
-        Span<byte> indices)
+        Span<byte> indices,
+        Span<short> alternateCentroids,
+        Span<byte> alternateIndices)
     {
-        Span<short> alternateCentroids = stackalloc short[Av1Constants.PaletteMaxSize];
-        Span<byte> alternateIndices = stackalloc byte[samples.Length];
         alternateCentroids = alternateCentroids[..centroids.Length];
+        alternateIndices = alternateIndices[..samples.Length];
         long distortion = AssignIndices(samples, centroids, indices);
         bool currentIsAlternate = false;
 

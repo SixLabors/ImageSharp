@@ -31,9 +31,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         MaximumCoefficientCount +
         MaximumCoefficientCount +
         Av1TransformWorkspace.MaximumLength +
-        IntraBlockCopySampleStorageLength +
-        IntraBlockCopyResidualStorageLength +
-        IntraBlockCopyCoefficientStorageLength;
+        IntraBlockCopyStorageLength;
 
     private const int ResidualStorageLength = MaximumResidualCount / 2;
     private const int TransformCoefficientOffset = ResidualStorageLength;
@@ -60,6 +58,11 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     private const int IntraBlockCopyCoefficientStorageLength =
         Av1EncoderIntraBlockCopyWorkspace<ushort>.CoefficientBufferCount *
         Av1EncoderIntraBlockCopyWorkspace<ushort>.MaximumSampleCount;
+
+    private const int IntraBlockCopyStorageLength =
+        IntraBlockCopySampleStorageLength +
+        IntraBlockCopyResidualStorageLength +
+        IntraBlockCopyCoefficientStorageLength;
 
     /// <summary>
     /// Owns the complete reusable block workspace in 32-bit elements so every transform region is naturally aligned.
@@ -96,6 +99,23 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// </summary>
     public Span<int> TransformWorkspace
         => this.owner.Memory.Span.Slice(TransformWorkspaceOffset, Av1TransformWorkspace.MaximumLength);
+
+    /// <summary>
+    /// Gets the reusable storage used while comparing spatial, chroma-from-luma, filter-intra, and palette candidates.
+    /// </summary>
+    /// <typeparam name="TSample">The native sample type selected by the encoder pipeline.</typeparam>
+    /// <returns>The typed mode-decision workspace.</returns>
+    public Av1EncoderModeDecisionWorkspace<TSample> GetModeDecisionWorkspace<TSample>()
+        where TSample : unmanaged
+    {
+        // Conventional intra search finishes before intra-block-copy search begins for the same block.
+        // Both phases can therefore reuse this aligned region without extending the owner or preserving stale scratch.
+        Span<int> storage = this.owner.Memory.Span.Slice(
+            IntraBlockCopySampleStorageOffset,
+            IntraBlockCopyStorageLength);
+
+        return new(storage[..Av1EncoderModeDecisionWorkspace<TSample>.StorageLength]);
+    }
 
     /// <summary>
     /// Gets the reusable storage used while comparing intra-block-copy candidates.

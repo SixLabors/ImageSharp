@@ -397,7 +397,9 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
-            const int SampleCount = 8 * 8;
+            Av1EncoderModeDecisionWorkspace<TSample> workspace =
+                this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
+
             Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             Buffer2DRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
             bool hasLeft = macroBlock.IsLeftAvailable;
@@ -434,9 +436,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 0,
                 0);
 
-            Span<TSample> aboveStorage = stackalloc TSample[17];
+            Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
             Span<TSample> above = aboveStorage[1..];
-            Span<TSample> leftStorage = stackalloc TSample[17];
+            Span<TSample> leftStorage = workspace.GetReferenceSamples(1);
             Span<TSample> left = leftStorage[1..];
 
             if (hasAbove)
@@ -523,8 +525,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     neighborContext);
             }
 
-            Span<TSample> candidateReconstruction = stackalloc TSample[SampleCount];
-            Span<int> candidateCoefficients = stackalloc int[SampleCount];
+            Span<TSample> candidateReconstruction = workspace.GetCandidateReconstruction(0);
+            Span<int> candidateCoefficients = workspace.GetCandidateCoefficients(0);
             long bestCost = long.MaxValue;
             Av1PredictionMode bestMode = Av1PredictionMode.DC;
             selectedAngleDelta = 0;
@@ -655,8 +657,8 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (this.effort >= 4 && this.picture.Sequence.SequenceHeader.EnableFilterIntra)
             {
-                Span<TSample> filterPrediction = stackalloc TSample[SampleCount];
-                Span<short> filterResidual = stackalloc short[SampleCount];
+                Span<TSample> filterPrediction = workspace.FilterPrediction;
+                Span<short> filterResidual = workspace.FilterResidual;
 
                 // Each recursive filter prediction and its source residual are independent of transform type.
                 // Prepare them once per filter mode so all legal transforms reuse the same samples.

@@ -217,19 +217,23 @@ internal static class Av1PaletteKMeans2D
     /// <param name="firstCentroids">The initialized first-plane colors.</param>
     /// <param name="secondCentroids">The initialized second-plane colors.</param>
     /// <param name="indices">The palette indices belonging to the retained colors.</param>
+    /// <param name="alternateFirstCentroids">Reusable storage for the next first-plane centroid iteration.</param>
+    /// <param name="alternateSecondCentroids">Reusable storage for the next second-plane centroid iteration.</param>
+    /// <param name="alternateIndices">Reusable storage for the next index iteration.</param>
     /// <returns>The retained sum of squared two-plane distances.</returns>
     public static long Cluster(
         ReadOnlySpan<short> firstSamples,
         ReadOnlySpan<short> secondSamples,
         Span<short> firstCentroids,
         Span<short> secondCentroids,
-        Span<byte> indices)
+        Span<byte> indices,
+        Span<short> alternateFirstCentroids,
+        Span<short> alternateSecondCentroids,
+        Span<byte> alternateIndices)
     {
-        Span<short> alternateFirstCentroids = stackalloc short[Av1Constants.PaletteMaxSize];
-        Span<short> alternateSecondCentroids = stackalloc short[Av1Constants.PaletteMaxSize];
-        Span<byte> alternateIndices = stackalloc byte[firstSamples.Length];
         alternateFirstCentroids = alternateFirstCentroids[..firstCentroids.Length];
         alternateSecondCentroids = alternateSecondCentroids[..secondCentroids.Length];
+        alternateIndices = alternateIndices[..firstSamples.Length];
         long distortion = AssignIndices(
             firstSamples,
             secondSamples,

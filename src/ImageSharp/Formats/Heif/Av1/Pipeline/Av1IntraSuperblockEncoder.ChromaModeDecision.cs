@@ -60,7 +60,9 @@ internal static partial class Av1IntraSuperblockEncoder
             out long selectedCost)
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
-            const int MaximumSampleCount = 8 * 8;
+            Av1EncoderModeDecisionWorkspace<TSample> workspace =
+                this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
+
             ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
             int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
             int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
@@ -105,10 +107,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Buffer2DRegion<TSample> redSource = this.source.GetPlane(Av1Plane.V);
             Buffer2DRegion<TSample> blueReconstruction = this.reconstruction.GetPlane(Av1Plane.U);
             Buffer2DRegion<TSample> redReconstruction = this.reconstruction.GetPlane(Av1Plane.V);
-            Span<TSample> blueAboveStorage = stackalloc TSample[17];
-            Span<TSample> blueLeftStorage = stackalloc TSample[17];
-            Span<TSample> redAboveStorage = stackalloc TSample[17];
-            Span<TSample> redLeftStorage = stackalloc TSample[17];
+            Span<TSample> blueAboveStorage = workspace.GetReferenceSamples(0);
+            Span<TSample> blueLeftStorage = workspace.GetReferenceSamples(1);
+            Span<TSample> redAboveStorage = workspace.GetReferenceSamples(2);
+            Span<TSample> redLeftStorage = workspace.GetReferenceSamples(3);
             this.PrepareReferenceSamples(
                 blueReconstruction,
                 chromaOrigin,
@@ -152,10 +154,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 chromaBlockSize,
                 transformSize);
 
-            Span<TSample> candidateBlueReconstruction = stackalloc TSample[MaximumSampleCount];
-            Span<TSample> candidateRedReconstruction = stackalloc TSample[MaximumSampleCount];
-            Span<int> candidateBlueCoefficients = stackalloc int[MaximumSampleCount];
-            Span<int> candidateRedCoefficients = stackalloc int[MaximumSampleCount];
+            Span<TSample> candidateBlueReconstruction = workspace.GetCandidateReconstruction(0);
+            Span<TSample> candidateRedReconstruction = workspace.GetCandidateReconstruction(1);
+            Span<int> candidateBlueCoefficients = workspace.GetCandidateCoefficients(0);
+            Span<int> candidateRedCoefficients = workspace.GetCandidateCoefficients(1);
             long bestCost = long.MaxValue;
             Av1ChromaPredictionMode bestMode = Av1ChromaPredictionMode.DC;
             selectedAngleDelta = 0;
@@ -259,7 +261,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (this.effort >= 4 && chromaFromLumaAllowed)
             {
-                Span<short> lumaQ3 = stackalloc short[Av1ChromaFromLumaContext.BufferLine * 8];
+                Span<short> lumaQ3 = workspace.ChromaFromLumaSamples;
                 TOperator.PrepareChromaFromLuma(
                     this.reconstruction.GetPlane(Av1Plane.Y),
                     lumaOrigin,
@@ -290,10 +292,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     this.bitDepth);
 
                 TSample redDc = candidateRedReconstruction[0];
-                Span<int> blueRates = stackalloc int[Av1ChromaFromLumaMath.AlphaCandidateCount];
-                Span<int> redRates = stackalloc int[Av1ChromaFromLumaMath.AlphaCandidateCount];
-                Span<long> blueDistortions = stackalloc long[Av1ChromaFromLumaMath.AlphaCandidateCount];
-                Span<long> redDistortions = stackalloc long[Av1ChromaFromLumaMath.AlphaCandidateCount];
+                Span<int> blueRates = workspace.GetChromaFromLumaRates(0);
+                Span<int> redRates = workspace.GetChromaFromLumaRates(1);
+                Span<long> blueDistortions = workspace.GetChromaFromLumaDistortions(0);
+                Span<long> redDistortions = workspace.GetChromaFromLumaDistortions(1);
 
                 // Each plane has only 33 signed alpha values. Caching those complete transform results reduces
                 // the joint search from 1089 transform pairs to 66 transforms plus inexpensive rate combinations.

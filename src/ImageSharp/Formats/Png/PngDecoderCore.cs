@@ -884,7 +884,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
 
             while (currentRowBytesRead < bytesPerFrameScanline)
             {
-                int bytesRead = compressedStream.Read(scanSpan, currentRowBytesRead, bytesPerFrameScanline - currentRowBytesRead);
+                int bytesRead = compressedStream.Read(scanSpan.Slice(currentRowBytesRead, bytesPerFrameScanline - currentRowBytesRead));
                 if (bytesRead <= 0)
                 {
                     goto EXIT;
@@ -1016,7 +1016,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 cancellationToken.ThrowIfCancellationRequested();
                 while (currentRowBytesRead < bytesPerInterlaceScanline)
                 {
-                    int bytesRead = compressedStream.Read(this.scanline.GetSpan(), currentRowBytesRead, bytesPerInterlaceScanline - currentRowBytesRead);
+                    int bytesRead = compressedStream.Read(this.scanline.GetSpan().Slice(currentRowBytesRead, bytesPerInterlaceScanline - currentRowBytesRead));
                     if (bytesRead <= 0)
                     {
                         goto EXIT;
@@ -1984,7 +1984,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 return false;
             }
 
-            int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
+            int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData);
             while (bytesRead != 0)
             {
                 if (memoryStreamOutput.Length > maxLength)
@@ -1994,7 +1994,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 }
 
                 memoryStreamOutput.Write(destUncompressedData[..bytesRead]);
-                bytesRead = inflateStream.CompressedStream.Read(destUncompressedData, 0, destUncompressedData.Length);
+                bytesRead = inflateStream.CompressedStream.Read(destUncompressedData);
             }
 
             uncompressedBytesArray = memoryStreamOutput.ToArray();

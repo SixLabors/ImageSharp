@@ -34,8 +34,14 @@ public class BmpDecoderTests
         { RLE8, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
     };
 
-    [Fact]
-    public void Decode_WithProfileLargerThanRemainingData_ThrowsInStrictMode()
+    [Theory]
+    [InlineData(SegmentIntegrityHandling.Strict, false)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary, false)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData, false)]
+    [InlineData(SegmentIntegrityHandling.Strict, true)]
+    [InlineData(SegmentIntegrityHandling.IgnoreAncillary, true)]
+    [InlineData(SegmentIntegrityHandling.IgnoreImageData, true)]
+    public void Decode_WithProfileLargerThanRemainingData_RespectsOptions(SegmentIntegrityHandling integrityHandling, bool skipMetadata)
     {
         byte[] payload = Convert.FromHexString(
             "424D8E000000000000008A0000007C0000000100000001000000010018000000" +
@@ -43,9 +49,24 @@ public class BmpDecoderTests
             "0000000000000000000000000000000000000000000000000000000000000000" +
             "000000000000000000000000000000000000000000000000000000000000C800" +
             "00000000004000000000000000");
-        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+        DecoderOptions options = new() { SegmentIntegrityHandling = integrityHandling, SkipMetadata = skipMetadata };
 
-        Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
+        if (integrityHandling is SegmentIntegrityHandling.Strict && !skipMetadata)
+        {
+            Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
+            Assert.Throws<InvalidImageContentException>(() => Image.Identify(options, payload));
+        }
+        else
+        {
+            using Image<Rgba32> image = Image.Load<Rgba32>(options, payload);
+            Assert.Equal(new Size(1, 1), image.Size);
+            Assert.Equal(new Rgba32(0, 0, 0), image[0, 0]);
+            Assert.Null(image.Metadata.IccProfile);
+
+            ImageInfo info = Image.Identify(options, payload);
+            Assert.Equal(image.Size, info.Size);
+            Assert.Null(info.Metadata.IccProfile);
+        }
     }
 
     [Theory]

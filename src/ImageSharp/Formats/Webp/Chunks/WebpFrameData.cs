@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.IO;
+
 namespace SixLabors.ImageSharp.Formats.Webp.Chunks;
 
 internal readonly struct WebpFrameData
@@ -120,7 +122,7 @@ internal readonly struct WebpFrameData
     /// </summary>
     /// <param name="stream">The stream to read from.</param>
     /// <returns>Animation frame data.</returns>
-    public static WebpFrameData Parse(Stream stream)
+    public static WebpFrameData Parse(BufferedReadStream stream)
     {
         Span<byte> buffer = stackalloc byte[4];
 

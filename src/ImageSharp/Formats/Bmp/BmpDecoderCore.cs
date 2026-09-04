@@ -1429,7 +1429,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             // > 108 bytes
             infoHeaderType = BmpInfoHeaderType.WinVersion5;
             this.infoHeader = BmpInfoHeader.ParseV5(buffer);
-            if (this.infoHeader.ProfileData != 0 && this.infoHeader.ProfileSize != 0)
+            if (!this.Options.SkipMetadata && this.infoHeader.ProfileData != 0 && this.infoHeader.ProfileSize != 0)
             {
                 long streamPosition = stream.Position;
                 this.ExecuteAncillarySegmentAction(() => this.ReadIccProfile(stream, this.metadata, infoHeaderStart));
@@ -1477,8 +1477,7 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
         long profileStart = infoHeaderStart + this.infoHeader.ProfileData;
         if (this.infoHeader.ProfileData < 0 ||
             this.infoHeader.ProfileSize <= 0 ||
-            profileStart > stream.Length ||
-            this.infoHeader.ProfileSize > stream.Length - profileStart)
+            !stream.IsReadRangeValid(profileStart, (uint)this.infoHeader.ProfileSize))
         {
             BmpThrowHelper.ThrowInvalidImageContentException("Not enough data to read BMP ICC profile.");
         }

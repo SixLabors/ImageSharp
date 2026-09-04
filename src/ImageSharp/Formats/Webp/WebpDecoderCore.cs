@@ -92,6 +92,13 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
                     return animationDecoder.Decode<TPixel>(stream, this.webImageInfo.Features, this.webImageInfo.Width, this.webImageInfo.Height, fileSize);
                 }
 
+                // A VP8X header alone describes a canvas, not decodable image data.
+                // Ignoring a truncated optional chunk must not bypass this requirement.
+                if (this.webImageInfo.Vp8BitReader is null && this.webImageInfo.Vp8LBitReader is null)
+                {
+                    WebpThrowHelper.ThrowInvalidImageContentException("Missing WebP image data.");
+                }
+
                 image = new Image<TPixel>(this.configuration, (int)this.webImageInfo.Width, (int)this.webImageInfo.Height, metadata);
                 Buffer2D<TPixel> pixels = image.GetRootFramePixelBuffer();
                 if (this.webImageInfo.IsLossless)
@@ -278,10 +285,7 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         switch (chunkType)
         {
             case WebpChunkType.Iccp:
-
-                // While ICC profiles are optional, an invalid ICC profile cannot be ignored because it must
-                // precede the image data, and we cannot safely skip it without successfully reading its size.
-                WebpChunkParsingUtils.ReadIccProfile(stream, metadata, ignoreMetadata);
+                WebpChunkParsingUtils.ReadIccProfile(stream, metadata, ignoreMetadata, this.ExecuteAncillarySegmentAction);
                 break;
 
             case WebpChunkType.Exif:
@@ -330,17 +334,17 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         {
             // Read chunk header.
             WebpChunkType chunkType = WebpChunkParsingUtils.ReadChunkType(stream, buffer);
-            if (chunkType == WebpChunkType.Exif && metadata.ExifProfile == null)
+            if (chunkType == WebpChunkType.Exif)
             {
                 this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, metadata, ignoreMetadata));
             }
-            else if (chunkType == WebpChunkType.Xmp && metadata.XmpProfile == null)
+            else if (chunkType == WebpChunkType.Xmp)
             {
                 this.ExecuteAncillarySegmentAction(() => WebpChunkParsingUtils.ReadXmpProfile(stream, metadata, ignoreMetadata));
             }
             else
             {
-                // Skip duplicate XMP or EXIF chunk.
+                // Skip unknown chunks.
                 uint chunkLength = WebpChunkParsingUtils.ReadChunkSize(stream, buffer, false);
                 stream.Skip((int)chunkLength);
             }

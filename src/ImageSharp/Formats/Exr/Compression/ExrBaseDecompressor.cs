@@ -59,7 +59,7 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
         int totalRead = 0;
         while (totalRead < uncompressedBytes)
         {
-            int bytesRead = dataStream.Read(uncompressed, totalRead, (int)uncompressedBytes - totalRead);
+            int bytesRead = dataStream.Read(uncompressed.Slice(totalRead, (int)uncompressedBytes - totalRead));
             if (bytesRead <= 0)
             {
                 break;

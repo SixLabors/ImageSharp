@@ -381,10 +381,7 @@ internal class WebpAnimationDecoder : IDisposable
         switch (chunkType)
         {
             case WebpChunkType.Iccp:
-
-                // While ICC profiles are optional, an invalid ICC profile cannot be ignored because it must
-                // precede the frame data, and we cannot safely skip it without successfully reading its size.
-                WebpChunkParsingUtils.ReadIccProfile(stream, imageMetadata, ignoreMetadata);
+                WebpChunkParsingUtils.ReadIccProfile(stream, imageMetadata, ignoreMetadata, this.executeAncillarySegmentAction);
                 break;
             case WebpChunkType.Exif:
                 this.executeAncillarySegmentAction(() => WebpChunkParsingUtils.ReadExifProfile(stream, imageMetadata, ignoreMetadata));

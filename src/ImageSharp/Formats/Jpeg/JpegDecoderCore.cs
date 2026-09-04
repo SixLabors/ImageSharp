@@ -274,10 +274,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                 // Get the marker length.
                 int markerContentByteSize = ReadUint16(stream, markerBuffer) - 2;
 
-                // Check whether the stream actually has enough bytes to read
-                // markerContentByteSize is always positive so we cast
-                // to uint to avoid sign extension
-                if (stream.RemainingBytes < (uint)markerContentByteSize)
+                // Validate the entire segment before parsing it. Casting directly
+                // to ulong also rejects lengths smaller than the two-byte length field.
+                if (!stream.IsReadRangeValid(stream.Position, (ulong)markerContentByteSize))
                 {
                     JpegThrowHelper.ThrowNotEnoughBytesForMarker(fileMarker.Marker);
                 }
@@ -351,10 +350,9 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
                 // Get the marker length.
                 int markerContentByteSize = ReadUint16(stream, markerBuffer) - 2;
 
-                // Check whether stream actually has enough bytes to read
-                // markerContentByteSize is always positive so we cast
-                // to uint to avoid sign extension.
-                if (stream.RemainingBytes < (uint)markerContentByteSize)
+                // Validate the entire segment before parsing it. Casting directly
+                // to ulong also rejects lengths smaller than the two-byte length field.
+                if (!stream.IsReadRangeValid(stream.Position, (ulong)markerContentByteSize))
                 {
                     if (metadataOnly && this.Metadata != null && this.Frame != null)
                     {
@@ -841,7 +839,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
         // TODO: thumbnail
         if (remaining > 0)
         {
-            if (stream.Position + remaining >= stream.Length)
+            if (!stream.IsReadRangeValid(stream.Position, (ulong)remaining + 1))
             {
                 this.ThrowOrIgnoreNonStrictSegmentError("Bad App0 Marker length.");
                 stream.Skip(remaining);
@@ -877,7 +875,7 @@ internal sealed class JpegDecoderCore : ImageDecoderCore, IRawJpegData
             return;
         }
 
-        if (stream.Position + remaining >= stream.Length)
+        if (!stream.IsReadRangeValid(stream.Position, (ulong)remaining + 1))
         {
             this.ThrowOrIgnoreNonStrictSegmentError("Bad App1 Marker length.");
             stream.Skip(remaining);

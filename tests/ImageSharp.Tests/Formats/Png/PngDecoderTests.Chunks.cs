@@ -108,6 +108,19 @@ public partial class PngDecoderTests
         Assert.Equal("The frame control chunk does not contain enough data!", exception.Message);
     }
 
+    [Fact]
+    public void DecodeAndIdentify_WithDuplicateHeader_ThrowInvalidImageContentException()
+    {
+        using MemoryStream payloadStream = new();
+        payloadStream.Write(Raw1X1PngIhdrAndpHYs);
+        payloadStream.Write(Raw1X1PngIhdrAndpHYs.AsSpan(8, 25));
+        payloadStream.Write(Raw1X1PngIdatAndIend);
+        byte[] payload = payloadStream.ToArray();
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(payload));
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(payload));
+    }
+
     // https://github.com/SixLabors/ImageSharp/issues/3079
     [Fact]
     public void Decode_CompressedTxtChunk_WithTruncatedData_DoesNotThrow()

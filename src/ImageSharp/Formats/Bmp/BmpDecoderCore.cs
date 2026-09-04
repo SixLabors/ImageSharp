@@ -1560,6 +1560,11 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
             this.infoHeader.Height = -this.infoHeader.Height;
         }
 
+        if (this.infoHeader.Width <= 0 || this.infoHeader.Height <= 0)
+        {
+            BmpThrowHelper.ThrowInvalidImageContentException("Width and height must be greater than 0.");
+        }
+
         int bytesPerColorMapEntry = 4;
         int colorMapSizeBytes = -1;
         if (this.infoHeader.ClrUsed == 0)

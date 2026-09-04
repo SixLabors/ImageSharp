@@ -1474,8 +1474,17 @@ internal sealed class BmpDecoderCore : ImageDecoderCore
     /// <param name="infoHeaderStart">The stream position where the info header begins.</param>
     private void ReadIccProfile(BufferedReadStream stream, ImageMetadata imageMetadata, long infoHeaderStart)
     {
+        long profileStart = infoHeaderStart + this.infoHeader.ProfileData;
+        if (this.infoHeader.ProfileData < 0 ||
+            this.infoHeader.ProfileSize <= 0 ||
+            profileStart > stream.Length ||
+            this.infoHeader.ProfileSize > stream.Length - profileStart)
+        {
+            BmpThrowHelper.ThrowInvalidImageContentException("Not enough data to read BMP ICC profile.");
+        }
+
         byte[] iccProfileData = new byte[this.infoHeader.ProfileSize];
-        stream.Position = infoHeaderStart + this.infoHeader.ProfileData;
+        stream.Position = profileStart;
 
         if (stream.Read(iccProfileData) != iccProfileData.Length)
         {

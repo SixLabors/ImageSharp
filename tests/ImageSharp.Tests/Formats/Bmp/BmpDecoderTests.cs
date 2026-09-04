@@ -34,6 +34,20 @@ public class BmpDecoderTests
         { RLE8, 2835, 2835, PixelResolutionUnit.PixelsPerMeter }
     };
 
+    [Fact]
+    public void Decode_WithProfileLargerThanRemainingData_ThrowsInStrictMode()
+    {
+        byte[] payload = Convert.FromHexString(
+            "424D8E000000000000008A0000007C0000000100000001000000010018000000" +
+            "0000000000000000000000000000000000000000000000000000000000000000" +
+            "0000000000000000000000000000000000000000000000000000000000000000" +
+            "000000000000000000000000000000000000000000000000000000000000C800" +
+            "00000000004000000000000000");
+        DecoderOptions options = new() { SegmentIntegrityHandling = SegmentIntegrityHandling.Strict };
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(options, payload));
+    }
+
     [Theory]
     [WithFileCollection(nameof(MiscBmpFiles), PixelTypes.Rgba32)]
     public void BmpDecoder_CanDecode_MiscellaneousBitmaps<TPixel>(TestImageProvider<TPixel> provider)

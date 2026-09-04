@@ -238,4 +238,14 @@ public class WebpMetaDataTests
         Assert.Throws<InvalidImageContentException>(() => Image.Load(payload));
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(payload));
     }
+
+    [Fact]
+    public void Decode_WithIccChunkLargerThanRemainingData_ThrowsInvalidImageContentException()
+    {
+        byte[] payload = Convert.FromHexString(
+            "524946460000000057454250565038580A00000020000000010000010000494343500000004000000000");
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(payload));
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(payload));
+    }
 }

@@ -143,6 +143,8 @@ internal abstract class BitWriterBase
     {
         if (exifProfile != null)
         {
+            // Materialize lazy values so Parts is applied during serialization.
+            _ = exifProfile.Values;
             RiffHelper.WriteChunk(stream, (uint)WebpChunkType.Exif, exifProfile.ToByteArray());
         }
 

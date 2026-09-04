@@ -4,9 +4,11 @@
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Gif;
+using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.Formats.Png;
 using SixLabors.ImageSharp.Formats.Webp;
 using SixLabors.ImageSharp.Metadata;
+using SixLabors.ImageSharp.Metadata.Profiles.Exif;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
 using SixLabors.ImageSharp.Processing.Processors.Quantization;
@@ -21,6 +23,31 @@ namespace SixLabors.ImageSharp.Tests.Formats.Webp;
 public class WebpEncoderTests
 {
     private static string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.NoFilter06);
+
+    [Fact]
+    public void Encode_LazyExifProfile_AppliesSelectedParts()
+    {
+        using Image<Rgba32> input = new(8, 8);
+        ExifProfile exif = new();
+        exif.SetValue(ExifTag.Make, "ImageSharp");
+        exif.SetValue(ExifTag.GPSLatitudeRef, "N");
+        input.Metadata.ExifProfile = exif;
+
+        using MemoryStream jpegStream = new();
+        input.Save(jpegStream, new JpegEncoder());
+        jpegStream.Position = 0;
+
+        using Image source = Image.Load(jpegStream);
+        source.Metadata.ExifProfile!.Parts = ExifParts.IfdTags | ExifParts.ExifTags;
+
+        using MemoryStream webpStream = new();
+        source.Save(webpStream, new WebpEncoder());
+        webpStream.Position = 0;
+
+        using Image result = Image.Load(webpStream);
+        Assert.True(result.Metadata.ExifProfile!.TryGetValue(ExifTag.Make, out _));
+        Assert.False(result.Metadata.ExifProfile.TryGetValue(ExifTag.GPSLatitudeRef, out _));
+    }
 
     [Theory]
     [WithFile(Lossless.Animated, PixelTypes.Rgba32)]

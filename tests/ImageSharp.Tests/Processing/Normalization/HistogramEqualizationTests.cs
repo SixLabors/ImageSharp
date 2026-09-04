@@ -14,6 +14,18 @@ public class HistogramEqualizationTests
 {
     private static readonly ImageComparer ValidatorComparer = ImageComparer.TolerantPercentage(0.0456F);
 
+    [Fact]
+    public void GlobalHistogramEqualization_ClampsDecodedFloatingPointSamples()
+    {
+        byte[] data = BuildFloatTiff(8, 2F);
+
+        using Image<HalfVector4> image = Image.Load<HalfVector4>(data);
+        image.Mutate(x => x.HistogramEqualization());
+
+        Assert.Equal(8, image.Width);
+        Assert.Equal(1, image.Height);
+    }
+
     [Theory]
     [InlineData(256)]
     [InlineData(65536)]
@@ -237,5 +249,48 @@ public class HistogramEqualizationTests
         });
 
         ValidatorComparer.VerifySimilarity(referenceResult, processed);
+    }
+
+    private static byte[] BuildFloatTiff(int width, float sample)
+    {
+        const int headerLength = 8;
+        const int entryCount = 10;
+        const int ifdLength = 2 + (entryCount * 12) + 4;
+        uint pixelOffset = headerLength + ifdLength;
+
+        using MemoryStream stream = new();
+        using BinaryWriter writer = new(stream);
+
+        writer.Write((byte)0x49);
+        writer.Write((byte)0x49);
+        writer.Write((ushort)42);
+        writer.Write((uint)headerLength);
+        writer.Write((ushort)entryCount);
+        WriteEntry(writer, 256, 4, 1, (uint)width);
+        WriteEntry(writer, 257, 4, 1, 1);
+        WriteEntry(writer, 258, 3, 1, 32);
+        WriteEntry(writer, 259, 3, 1, 1);
+        WriteEntry(writer, 262, 3, 1, 1);
+        WriteEntry(writer, 273, 4, 1, pixelOffset);
+        WriteEntry(writer, 277, 3, 1, 1);
+        WriteEntry(writer, 278, 4, 1, 1);
+        WriteEntry(writer, 279, 4, 1, (uint)(width * sizeof(float)));
+        WriteEntry(writer, 339, 3, 1, 3);
+        writer.Write(0U);
+
+        for (int i = 0; i < width; i++)
+        {
+            writer.Write(sample);
+        }
+
+        return stream.ToArray();
+
+        static void WriteEntry(BinaryWriter writer, ushort tag, ushort type, uint count, uint value)
+        {
+            writer.Write(tag);
+            writer.Write(type);
+            writer.Write(count);
+            writer.Write(value);
+        }
     }
 }

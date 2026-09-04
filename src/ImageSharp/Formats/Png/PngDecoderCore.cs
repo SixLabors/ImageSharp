@@ -651,7 +651,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         frameMetadata.FromChunk(in frameControl);
 
         this.bytesPerPixel = this.CalculateBytesPerPixel();
-        this.bytesPerScanline = this.CalculateScanlineLength(this.header.Width) + 1;
+        this.bytesPerScanline = CalculateScanlineLength(this.header.Width, this.header.BitDepth, this.bytesPerPixel) + 1;
         this.bytesPerSample = 1;
         if (this.header.BitDepth >= 8)
         {
@@ -736,21 +736,29 @@ internal sealed class PngDecoderCore : ImageDecoderCore
     /// Calculates the scanline length.
     /// </summary>
     /// <param name="width">The width of the row.</param>
+    /// <param name="bitDepth">The number of bits per sample.</param>
+    /// <param name="bytesPerPixel">The number of bytes per pixel.</param>
     /// <returns>
     /// The <see cref="int"/> representing the length.
     /// </returns>
-    private int CalculateScanlineLength(int width)
+    internal static int CalculateScanlineLength(int width, int bitDepth, int bytesPerPixel)
     {
-        int mod = this.header.BitDepth == 16 ? 16 : 8;
-        int scanlineLength = width * this.header.BitDepth * this.bytesPerPixel;
+        int mod = bitDepth == 16 ? 16 : 8;
+        long scanlineLength = (long)width * bitDepth * bytesPerPixel;
 
-        int amount = scanlineLength % mod;
+        long amount = scanlineLength % mod;
         if (amount != 0)
         {
             scanlineLength += mod - amount;
         }
 
-        return scanlineLength / mod;
+        scanlineLength /= mod;
+        if (scanlineLength >= int.MaxValue)
+        {
+            PngThrowHelper.ThrowInvalidImageContentException("PNG scanline length exceeds the supported maximum.");
+        }
+
+        return (int)scanlineLength;
     }
 
     /// <summary>
@@ -870,7 +878,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
         while (currentRow < height)
         {
             cancellationToken.ThrowIfCancellationRequested();
-            int bytesPerFrameScanline = this.CalculateScanlineLength((int)frameControl.Width) + 1;
+            int bytesPerFrameScanline = CalculateScanlineLength((int)frameControl.Width, this.header.BitDepth, this.bytesPerPixel) + 1;
             Span<byte> scanSpan = this.scanline.GetSpan()[..bytesPerFrameScanline];
             Span<byte> prevSpan = this.previousScanline.GetSpan()[..bytesPerFrameScanline];
 
@@ -1001,7 +1009,7 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 continue;
             }
 
-            int bytesPerInterlaceScanline = this.CalculateScanlineLength(numColumns) + 1;
+            int bytesPerInterlaceScanline = CalculateScanlineLength(numColumns, this.header.BitDepth, this.bytesPerPixel) + 1;
 
             while (currentRow < endRow)
             {

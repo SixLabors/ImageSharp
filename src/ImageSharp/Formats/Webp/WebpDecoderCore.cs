@@ -285,6 +285,11 @@ internal sealed class WebpDecoderCore : ImageDecoderCore, IDisposable
         switch (chunkType)
         {
             case WebpChunkType.Iccp:
+
+                // While ICC profiles are optional, an invalid ICC profile cannot be ignored because it must
+                // precede the image data, and we cannot safely skip it without successfully reading its size.
+                // ReadIccProfile therefore validates the complete chunk extent before invoking the ancillary
+                // handler. Only errors in the contents of a complete chunk follow that recovery policy.
                 WebpChunkParsingUtils.ReadIccProfile(stream, metadata, ignoreMetadata, this.ExecuteAncillarySegmentAction);
                 break;
 

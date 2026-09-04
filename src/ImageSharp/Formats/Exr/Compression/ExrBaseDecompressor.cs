@@ -67,7 +67,7 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
             totalRead += bytesRead;
         }
 
-        if (totalRead == 0)
+        if (totalRead != uncompressedBytes)
         {
             ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data for zip compressed EXR image data!");
         }

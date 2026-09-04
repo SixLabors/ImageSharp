@@ -313,16 +313,90 @@ public class HeifEncoderTests
     private static ushort ExpandToUShort(int sample, int maximum)
         => (ushort)(((sample * (long)ushort.MaxValue) + (maximum / 2)) / maximum);
 
-    [Fact]
-    public void Av1RejectsImageSequenceBeforeWritingOutput()
+    [Theory]
+    [InlineData((ushort)0)]
+    [InlineData((ushort)3)]
+    public void Av1LosslessImageSequencePreservesFramesTimingAndAlpha(ushort repeatCount)
     {
-        using Image<Rgb24> image = new(1, 1);
+        const int width = 8;
+        const int height = 8;
+        const int frameCount = 3;
+        using Image<Rgba32> image = new(width, height);
         image.Frames.AddFrame(image.Frames.RootFrame);
-        using MemoryStream stream = new();
-        HeifEncoder encoder = new() { CompressionMethod = HeifCompressionMethod.Av1 };
+        image.Frames.AddFrame(image.Frames.RootFrame);
+        for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
+        {
+            ImageFrame<Rgba32> frame = image.Frames[frameIndex];
+            frame.Metadata.GetHeifMetadata().FrameDelay = frameIndex switch
+            {
+                0 => new Rational(1, 24),
+                1 => new Rational(1, 25),
+                _ => new Rational(1, 30)
+            };
 
-        Assert.Throws<NotSupportedException>(() => image.Save(stream, encoder));
-        Assert.Equal(0, stream.Length);
+            for (int row = 0; row < height; row++)
+            {
+                Span<Rgba32> pixels = frame.PixelBuffer.DangerousGetRowSpan(row);
+                for (int column = 0; column < width; column++)
+                {
+                    pixels[column] = new Rgba32(
+                        (byte)((frameIndex * 53) + (column * 19) + row),
+                        (byte)((frameIndex * 31) + (row * 23) + column),
+                        (byte)((frameIndex * 71) + (column * 7) + (row * 13)),
+                        (byte)((frameIndex * 47) + (column * 17) + (row * 11)));
+                }
+            }
+        }
+
+        image.Metadata.CicpProfile = new CicpProfile(1, 13, 0, true);
+        image.Metadata.GetHeifMetadata().RepeatCount = repeatCount;
+        using MemoryStream stream = new();
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.Av1,
+            Lossless = true,
+            Effort = 0
+        };
+
+        image.Save(stream, encoder);
+        byte[] file = stream.ToArray();
+        Assert.Equal((uint)Heif4CharCode.Avis, BinaryPrimitives.ReadUInt32BigEndian(file.AsSpan(8)));
+
+        stream.Position = 0;
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+        Assert.Equal(frameCount, decoded.Frames.Count);
+        Assert.Equal(repeatCount, decoded.Metadata.GetHeifMetadata().RepeatCount);
+        Assert.Empty(ImageComparer.Exact.CompareImages(image, decoded));
+        for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
+        {
+            Assert.Equal(
+                image.Frames[frameIndex].Metadata.GetHeifMetadata().FrameDelay,
+                decoded.Frames[frameIndex].Metadata.GetHeifMetadata().FrameDelay);
+        }
+    }
+
+    [Fact]
+    public void Av1ImageSequenceWritesToPrefixedNonSeekableStream()
+    {
+        using Image<Rgb24> image = new(8, 8);
+        image.Frames.AddFrame(image.Frames.RootFrame);
+        image.Frames.RootFrame.Metadata.GetHeifMetadata().FrameDelay = new Rational(1, 10);
+        image.Frames[1].Metadata.GetHeifMetadata().FrameDelay = new Rational(1, 20);
+        using MemoryStream storage = new();
+        storage.Write([1, 2, 3, 4]);
+        long fileStart = storage.Position;
+        using NonSeekableStream destination = new(storage);
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.Av1,
+            Effort = 0
+        };
+
+        image.Save(destination, encoder);
+        storage.Position = fileStart;
+        using Image<Rgb24> decoded = Image.Load<Rgb24>(storage);
+        Assert.Equal(image.Size, decoded.Size);
+        Assert.Equal(image.Frames.Count, decoded.Frames.Count);
     }
 
     [Theory]

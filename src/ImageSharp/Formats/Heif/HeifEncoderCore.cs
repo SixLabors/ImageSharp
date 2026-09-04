@@ -18,7 +18,7 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// <summary>
 /// Image encoder for writing an image to a stream as a HEIF image.
 /// </summary>
-internal sealed class HeifEncoderCore
+internal sealed partial class HeifEncoderCore
 {
     /// <summary>
     /// The global configuration.
@@ -54,9 +54,25 @@ internal sealed class HeifEncoderCore
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
+        using ChunkedMemoryStream compressedPixels = new(this.configuration.MemoryAllocator);
+        if (this.encoder.CompressionMethod == HeifCompressionMethod.Av1 && image.Frames.Count > 1)
+        {
+            Av1EncodingSettings settings = this.ResolveAv1Encoding(image);
+            HeifSequenceEncoding sequence = this.CompressAv1Sequence(
+                image,
+                compressedPixels,
+                settings,
+                cancellationToken);
+
+            int fileTypeLength = this.WriteSequenceFileTypeBox(stream);
+            this.WriteSequenceMovieBox(sequence, fileTypeLength, stream);
+            this.WriteMediaDataBox(compressedPixels, stream);
+            stream.Flush();
+            return;
+        }
+
         List<HeifItem> items = new();
         List<HeifItemLink> links = new();
-        using ChunkedMemoryStream compressedPixels = new(this.configuration.MemoryAllocator);
         switch (this.encoder.CompressionMethod)
         {
             case HeifCompressionMethod.LegacyJpeg:
@@ -786,138 +802,42 @@ internal sealed class HeifEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (image.Frames.Count != 1)
-        {
-            throw new NotSupportedException("AV1 image-sequence encoding is not implemented.");
-        }
-
-        HeifMetadata metadata = image.Metadata.GetHeifMetadata();
-        HeifBitDepth bitDepth = this.encoder.BitDepth ?? metadata.BitDepth;
-        Av1BitDepth av1BitDepth = bitDepth switch
-        {
-            HeifBitDepth.Bit8 => Av1BitDepth.EightBit,
-            HeifBitDepth.Bit10 => Av1BitDepth.TenBit,
-            HeifBitDepth.Bit12 => Av1BitDepth.TwelveBit,
-            _ => throw new NotSupportedException($"HEIF bit depth '{bitDepth}' is not supported.")
-        };
-
-        HeifChromaSubsampling defaultChromaSubsampling = this.encoder.Lossless
-            ? HeifChromaSubsampling.Yuv444
-            : HeifChromaSubsampling.Yuv420;
-
-        HeifChromaSubsampling chromaSubsampling = this.encoder.ChromaSubsampling ??
-            (metadata.IsMonochrome ? HeifChromaSubsampling.Monochrome : defaultChromaSubsampling);
-
-        (bool isMonochrome, bool subsamplingX, bool subsamplingY) = chromaSubsampling switch
-        {
-            HeifChromaSubsampling.Monochrome => (true, true, true),
-            HeifChromaSubsampling.Yuv420 => (false, true, true),
-            HeifChromaSubsampling.Yuv422 => (false, true, false),
-            HeifChromaSubsampling.Yuv444 => (false, false, false),
-            _ => throw new NotSupportedException($"HEIF chroma sampling '{chromaSubsampling}' is not supported.")
-        };
-
-        CicpProfile? sourceColorProfile = image.Metadata.CicpProfile;
-        CicpProfile colorProfile;
-        if (sourceColorProfile is null)
-        {
-            colorProfile = new CicpProfile(2, 2, 6, false);
-        }
-        else
-        {
-            bool identityMatrix = sourceColorProfile.MatrixCoefficients == CicpMatrixCoefficients.Identity;
-            bool legalIdentityMatrix = !isMonochrome
-                && chromaSubsampling == HeifChromaSubsampling.Yuv444
-                && sourceColorProfile.ColorPrimaries == CicpColorPrimaries.ItuRBt709_6
-                && sourceColorProfile.TransferCharacteristics == CicpTransferCharacteristics.Iec61966_2_1;
-
-            if (sourceColorProfile.MatrixCoefficients == CicpMatrixCoefficients.Unspecified
-                || (identityMatrix && !legalIdentityMatrix))
-            {
-                // The converter uses BT.601 for unspecified or incompatible identity signaling, so record that actual matrix.
-                colorProfile = new CicpProfile(
-                    (byte)sourceColorProfile.ColorPrimaries,
-                    (byte)sourceColorProfile.TransferCharacteristics,
-                    (byte)CicpMatrixCoefficients.ItuRBt601_7_525,
-                    sourceColorProfile.FullRange);
-            }
-            else if (identityMatrix && !sourceColorProfile.FullRange)
-            {
-                colorProfile = new CicpProfile(
-                    (byte)sourceColorProfile.ColorPrimaries,
-                    (byte)sourceColorProfile.TransferCharacteristics,
-                    (byte)sourceColorProfile.MatrixCoefficients,
-                    true);
-            }
-            else
-            {
-                colorProfile = sourceColorProfile;
-            }
-        }
-
-        ObuColorConfig colorConfig = new()
-        {
-            IsColorDescriptionPresent = true,
-            IsMonochrome = isMonochrome,
-            ColorPrimaries = (ObuColorPrimaries)colorProfile.ColorPrimaries,
-            TransferCharacteristics = (ObuTransferCharacteristics)colorProfile.TransferCharacteristics,
-            MatrixCoefficients = (ObuMatrixCoefficients)colorProfile.MatrixCoefficients,
-            ColorRange = colorProfile.FullRange,
-            SubSamplingX = subsamplingX,
-            SubSamplingY = subsamplingY,
-            ChromaSamplePosition = ObuChromoSamplePosition.Unknown,
-            BitDepth = av1BitDepth
-        };
-
-        int quality = this.encoder.Quality ?? 75;
-        int qIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(quality);
+        Av1EncodingSettings settings = this.ResolveAv1Encoding(image);
         cancellationToken.ThrowIfCancellationRequested();
         ObuSequenceHeader colorHeader = Av1FrameEncoder.Encode(
             this.configuration,
             image.Frames.RootFrame,
             stream,
-            colorConfig,
-            qIndex,
+            settings.ColorConfig,
+            settings.ColorQIndex,
             this.encoder.Effort);
 
         long colorLength = stream.Length;
-        byte channelBitDepth = (byte)bitDepth;
+        byte channelBitDepth = (byte)settings.BitDepth;
         HeifItem colorItem = new(Heif4CharCode.Av01, 1)
         {
-            ChannelCount = isMonochrome ? 1 : 3,
+            ChannelCount = settings.ColorConfig.IsMonochrome ? 1 : 3,
             UniformChannelBitDepth = channelBitDepth,
-            BitsPerPixel = channelBitDepth * (isMonochrome ? 1 : 3),
+            BitsPerPixel = channelBitDepth * (settings.ColorConfig.IsMonochrome ? 1 : 3),
             Av1CodecConfiguration = new Av1CodecConfiguration(colorHeader),
             IccProfile = this.encoder.SkipMetadata ? null : image.Metadata.IccProfile,
-            CicpProfile = colorProfile
+            CicpProfile = settings.ColorProfile
         };
 
         colorItem.DataLocations.Add(new HeifLocation(HeifLocationOffsetOrigin.FileOffset, 0L, 0L, colorLength));
         colorItem.SetExtent(image.Size);
         items.Add(colorItem);
 
-        bool hasAlpha = TPixel.GetPixelTypeInfo().AlphaRepresentation != PixelAlphaRepresentation.None;
-        if (hasAlpha)
+        if (settings.HasAlpha)
         {
-            ObuColorConfig alphaConfig = new()
-            {
-                IsMonochrome = true,
-                ColorRange = true,
-                SubSamplingX = true,
-                SubSamplingY = true,
-                BitDepth = av1BitDepth
-            };
-
-            int alphaQuality = this.encoder.AlphaQuality ?? quality;
-            int alphaQIndex = this.encoder.Lossless ? 0 : GetAv1QuantizerIndex(alphaQuality);
             cancellationToken.ThrowIfCancellationRequested();
             long alphaOffset = stream.Length;
             ObuSequenceHeader alphaHeader = Av1FrameEncoder.EncodeAlpha(
                 this.configuration,
                 image.Frames.RootFrame,
                 stream,
-                alphaConfig,
-                alphaQIndex,
+                settings.AlphaConfig,
+                settings.AlphaQIndex,
                 this.encoder.Effort);
 
             long alphaLength = stream.Length - alphaOffset;

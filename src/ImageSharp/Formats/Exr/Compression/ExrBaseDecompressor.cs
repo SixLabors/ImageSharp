@@ -31,8 +31,9 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
     /// </summary>
     /// <param name="stream">The buffered stream to decompress.</param>
     /// <param name="compressedBytes">The compressed bytes.</param>
+    /// <param name="uncompressedBytes">The expected byte count for the current block.</param>
     /// <param name="buffer">The buffer to write the decompressed data to.</param>
-    public abstract void Decompress(BufferedReadStream stream, uint compressedBytes, Span<byte> buffer);
+    public abstract void Decompress(BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer);
 
     /// <summary>
     /// Decompresses zip compressed data.
@@ -67,9 +68,9 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
             totalRead += bytesRead;
         }
 
-        if (totalRead != uncompressedBytes)
+        if (totalRead != uncompressedBytes || dataStream.ReadByte() != -1)
         {
-            ExrThrowHelper.ThrowInvalidImageContentException("Could not read enough data for zip compressed EXR image data!");
+            ExrThrowHelper.ThrowInvalidImageContentException("ZIP compressed EXR block has an invalid decompressed length.");
         }
 
         return totalRead;

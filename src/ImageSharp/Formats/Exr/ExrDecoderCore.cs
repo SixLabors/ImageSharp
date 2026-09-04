@@ -193,9 +193,16 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             this.ValidateChunkOffset(rowOffset, stream);
             stream.Position = (long)rowOffset;
             uint rowStartIndex = this.ReadUnsignedInteger(stream);
+            if (rowStartIndex >= height)
+            {
+                ExrThrowHelper.ThrowInvalidImageContentException("EXR chunk row index is outside the data window.");
+            }
 
             uint compressedBytesCount = this.ReadUnsignedInteger(stream);
-            decompressor.Decompress(stream, compressedBytesCount, decompressedPixelData);
+            uint rowsInBlock = Math.Min(rowsPerBlock, (uint)height - rowStartIndex);
+            uint uncompressedBytesCount = (uint)(bytesPerRow * rowsInBlock);
+
+            decompressor.Decompress(stream, compressedBytesCount, uncompressedBytesCount, decompressedPixelData);
 
             int offset = 0;
             for (uint rowIndex = rowStartIndex; rowIndex < rowStartIndex + rowsPerBlock && rowIndex < height; rowIndex++)
@@ -274,9 +281,16 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             this.ValidateChunkOffset(rowOffset, stream);
             stream.Position = (long)rowOffset;
             uint rowStartIndex = this.ReadUnsignedInteger(stream);
+            if (rowStartIndex >= height)
+            {
+                ExrThrowHelper.ThrowInvalidImageContentException("EXR chunk row index is outside the data window.");
+            }
 
             uint compressedBytesCount = this.ReadUnsignedInteger(stream);
-            decompressor.Decompress(stream, compressedBytesCount, decompressedPixelData);
+            uint rowsInBlock = Math.Min(rowsPerBlock, (uint)height - rowStartIndex);
+            uint uncompressedBytesCount = (uint)(bytesPerRow * rowsInBlock);
+
+            decompressor.Decompress(stream, compressedBytesCount, uncompressedBytesCount, decompressedPixelData);
 
             int offset = 0;
             for (uint rowIndex = rowStartIndex; rowIndex < rowStartIndex + rowsPerBlock && rowIndex < height; rowIndex++)

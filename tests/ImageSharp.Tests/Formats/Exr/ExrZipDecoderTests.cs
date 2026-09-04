@@ -33,7 +33,7 @@ public class ExrZipDecoderTests
 
     private static byte[] BuildExr(byte[] compressed)
     {
-        const int width = 64;
+        const int width = 256;
         const int height = 1;
 
         using MemoryStream output = new();

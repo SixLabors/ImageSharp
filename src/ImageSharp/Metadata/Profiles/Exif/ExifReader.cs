@@ -224,6 +224,13 @@ internal abstract class BaseExifReader
         this.Seek(offset);
         ulong count = this.ReadUInt64();
 
+        // Each entry occupies 20 bytes and the directory ends with an 8-byte next-IFD offset.
+        long remainingDirectoryBytes = this.data.Length - this.data.Position;
+        if (remainingDirectoryBytes < 8 || count > (ulong)((remainingDirectoryBytes - 8) / 20))
+        {
+            throw new InvalidImageContentException("The BigTIFF directory entry count exceeds the available data.");
+        }
+
         Span<byte> offsetBuffer = stackalloc byte[8];
         for (ulong i = 0; i < count; i++)
         {

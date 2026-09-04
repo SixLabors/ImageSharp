@@ -554,6 +554,27 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     public void TiffEncoder_EncodeBiColor_WithCcittGroup3FaxCompression_BlackIsZero_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.CcittGroup3Fax);
 
+    [Fact]
+    public void TiffEncoder_EncodeNarrowCcittGroup3Fax_Works()
+    {
+        using Image<L8> image = new(1, 2000);
+        for (int y = 0; y < image.Height; y++)
+        {
+            image[0, y] = new L8((byte)((y & 1) == 0 ? 255 : 0));
+        }
+
+        TiffFrameMetadata metadata = image.Frames.RootFrame.Metadata.GetTiffMetadata();
+        metadata.BitsPerPixel = TiffBitsPerPixel.Bit1;
+        metadata.Compression = TiffCompression.CcittGroup3Fax;
+
+        using MemoryStream output = new();
+        image.Save(output, new TiffEncoder());
+
+        output.Position = 0;
+        using Image<L8> decoded = Image.Load<L8>(output);
+        Assert.Equal(image.Size, decoded.Size);
+    }
+
     [Theory]
     [WithFile(Issues2255, PixelTypes.Rgba32)]
     public void TiffEncoder_EncodeBiColor_WithCcittGroup3FaxCompression_WithoutSpecifyingBitPerPixel_Works<TPixel>(TestImageProvider<TPixel> provider)

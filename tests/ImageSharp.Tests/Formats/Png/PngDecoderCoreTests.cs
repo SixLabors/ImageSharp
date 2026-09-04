@@ -15,4 +15,12 @@ public class PngDecoderCoreTests
 
         Assert.Equal(536_870_913, length);
     }
+
+    [Fact]
+    public void CalculateScanlineLength_WithLargeRgbaWidth_ReturnsExpectedLength()
+    {
+        int length = PngDecoderCore.CalculateScanlineLength(33_554_432, 16, 8);
+
+        Assert.Equal(268_435_456, length);
+    }
 }

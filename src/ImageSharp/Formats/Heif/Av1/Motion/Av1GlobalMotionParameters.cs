@@ -2,8 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Numerics;
-using System.Runtime.CompilerServices;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 
@@ -484,17 +482,4 @@ internal struct Av1GlobalMotionParameters
         => value < 0
             ? -(((-value) + ((1L << bitCount) >> 1)) >> bitCount)
             : (value + ((1L << bitCount) >> 1)) >> bitCount;
-
-    /// <summary>
-    /// Provides inline storage for the six parameters in an AV1 affine matrix.
-    /// </summary>
-    /// <typeparam name="T">The stored parameter type.</typeparam>
-    [InlineArray(6)]
-    private struct InlineArray6<T>
-    {
-        /// <summary>
-        /// The first element in the compiler-expanded inline buffer.
-        /// </summary>
-        private T element;
-    }
 }

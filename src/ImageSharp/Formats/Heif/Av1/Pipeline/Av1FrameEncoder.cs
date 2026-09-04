@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -17,6 +18,29 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// </summary>
 internal static class Av1FrameEncoder
 {
+    /// <summary>
+    /// The base-two exponent used to align each frame dimension for output sizing. Rounding to 32 samples accounts
+    /// for partial edge storage before the raw-plane size and all-intra expansion factor are calculated.
+    /// </summary>
+    private const int OutputAlignmentLog2 = 5;
+
+    /// <summary>
+    /// The lower bound, in bytes, for the bounded compressed-frame buffer. The raw-size ratio is too small for tiny
+    /// images to provide useful coder headroom, so the reference allocation retains an 8 KiB floor.
+    /// </summary>
+    private const int MinimumCompressedFrameBufferLength = 8 * 1024;
+
+    /// <summary>
+    /// The numerator of the all-intra output-capacity ratio. Together with the denominator, this reserves 2.5 times
+    /// the aligned uncompressed plane size because incompressible input can produce more output than its raw size.
+    /// </summary>
+    private const int AllIntraBufferScaleNumerator = 5;
+
+    /// <summary>
+    /// The denominator of the all-intra output-capacity ratio, completing the reference encoder's 5:2 sizing rule.
+    /// </summary>
+    private const int AllIntraBufferScaleDenominator = 2;
+
     /// <summary>
     /// Encodes one reduced-still-picture AV1 frame into a low-overhead OBU stream.
     /// </summary>
@@ -141,8 +165,8 @@ internal static class Av1FrameEncoder
 
         // Libaom reserves 2.5 times the 32-sample-aligned native input for an all-intra output packet.
         // Counting the active planes directly retains that headroom without charging monochrome for unused chroma.
-        int alignedWidth = Av1Math.AlignPowerOf2(width, 5);
-        int alignedHeight = Av1Math.AlignPowerOf2(height, 5);
+        int alignedWidth = Av1Math.AlignPowerOf2(width, OutputAlignmentLog2);
+        int alignedHeight = Av1Math.AlignPowerOf2(height, OutputAlignmentLog2);
         int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
         int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
         long sampleCount = (long)alignedWidth * alignedHeight;
@@ -152,14 +176,17 @@ internal static class Av1FrameEncoder
         }
 
         int sampleSize = colorConfig.BitDepth == Av1BitDepth.EightBit ? 1 : 2;
-        int initialTileSize = checked((int)Math.Max(8192L, (sampleCount * sampleSize * 5) / 2));
+        long scaledInputLength = (sampleCount * sampleSize * AllIntraBufferScaleNumerator)
+            / AllIntraBufferScaleDenominator;
+
+        int tileBufferLength = checked((int)Math.Max(MinimumCompressedFrameBufferLength, scaledInputLength));
         if (colorConfig.BitDepth == Av1BitDepth.EightBit)
         {
-            EncodeByte(configuration, image, stream, sequenceHeader, frameHeader, colorFormat, initialTileSize, effort, encodeAlpha);
+            EncodeByte(configuration, image, stream, sequenceHeader, frameHeader, colorFormat, tileBufferLength, effort, encodeAlpha);
         }
         else
         {
-            EncodeHighBitDepth(configuration, image, stream, sequenceHeader, frameHeader, colorFormat, initialTileSize, effort, encodeAlpha);
+            EncodeHighBitDepth(configuration, image, stream, sequenceHeader, frameHeader, colorFormat, tileBufferLength, effort, encodeAlpha);
         }
 
         return sequenceHeader;
@@ -204,7 +231,7 @@ internal static class Av1FrameEncoder
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1ColorFormat colorFormat,
-        int initialTileSize,
+        int tileBufferLength,
         int effort,
         bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -227,7 +254,7 @@ internal static class Av1FrameEncoder
             chromaPositionX: 1,
             chromaPositionY: 1);
 
-        Encode(configuration, image, stream, sequenceHeader, frameHeader, source, reconstruction, initialTileSize, effort, encodeAlpha);
+        Encode(configuration, image, stream, sequenceHeader, frameHeader, source, reconstruction, tileBufferLength, effort, encodeAlpha);
     }
 
     private static void EncodeHighBitDepth<TPixel>(
@@ -237,7 +264,7 @@ internal static class Av1FrameEncoder
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1ColorFormat colorFormat,
-        int initialTileSize,
+        int tileBufferLength,
         int effort,
         bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -261,7 +288,7 @@ internal static class Av1FrameEncoder
             chromaPositionX: 1,
             chromaPositionY: 1);
 
-        Encode(configuration, image, stream, sequenceHeader, frameHeader, source, reconstruction, initialTileSize, effort, encodeAlpha);
+        Encode(configuration, image, stream, sequenceHeader, frameHeader, source, reconstruction, tileBufferLength, effort, encodeAlpha);
     }
 
     private static void Encode<TPixel>(
@@ -272,7 +299,7 @@ internal static class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         Av1EncoderFrameBuffer<byte> source,
         Av1EncoderFrameBuffer<byte> reconstruction,
-        int initialTileSize,
+        int tileBufferLength,
         int effort,
         bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -316,15 +343,20 @@ internal static class Av1FrameEncoder
 
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(configuration);
         using Av1EncoderBlockWorkspace blockWorkspace = new(configuration);
-        using Av1IntraTileWriter tileWriter = new(
+        using Av1SymbolEncoder symbolEncoder = new(
             configuration,
+            tileBufferLength,
+            frameHeader.QuantizationParameters.BaseQIndex,
+            updateCdf: !frameHeader.DisableCdfUpdate);
+
+        Av1IntraTileWriter tileWriter = new(
+            symbolEncoder,
             source.Frame,
             reconstruction.Frame,
             picture.Picture,
             coefficients,
             superblockWorkspace,
             blockWorkspace,
-            initialTileSize,
             effort);
 
         ObuWriter writer = new();
@@ -339,7 +371,7 @@ internal static class Av1FrameEncoder
         ObuFrameHeader frameHeader,
         Av1EncoderFrameBuffer<ushort> source,
         Av1EncoderFrameBuffer<ushort> reconstruction,
-        int initialTileSize,
+        int tileBufferLength,
         int effort,
         bool encodeAlpha)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -383,15 +415,20 @@ internal static class Av1FrameEncoder
 
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(configuration);
         using Av1EncoderBlockWorkspace blockWorkspace = new(configuration);
-        using Av1IntraTileWriter tileWriter = new(
+        using Av1SymbolEncoder symbolEncoder = new(
             configuration,
+            tileBufferLength,
+            frameHeader.QuantizationParameters.BaseQIndex,
+            updateCdf: !frameHeader.DisableCdfUpdate);
+
+        Av1IntraTileWriter tileWriter = new(
+            symbolEncoder,
             source.Frame,
             reconstruction.Frame,
             picture.Picture,
             coefficients,
             superblockWorkspace,
             blockWorkspace,
-            initialTileSize,
             effort);
 
         ObuWriter writer = new();

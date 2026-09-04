@@ -15,7 +15,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 /// <summary>
 /// Encodes AV1 tile syntax elements and transform coefficients with tile-local adaptive distributions.
 /// </summary>
-internal class Av1SymbolEncoder : IDisposable
+internal sealed class Av1SymbolEncoder : IDisposable
 {
     /// <summary>
     /// The largest coefficient-context plane required after AV1 removes the uncoded half of 64-point transforms.
@@ -186,10 +186,10 @@ internal class Av1SymbolEncoder : IDisposable
     /// Initializes a new instance of the <see cref="Av1SymbolEncoder"/> class for one AV1 tile.
     /// </summary>
     /// <param name="configuration">The configuration providing output and temporary memory.</param>
-    /// <param name="initialSize">The initial output buffer size in bytes.</param>
+    /// <param name="bufferLength">The complete fixed output allocation length in bytes.</param>
     /// <param name="qIndex">The frame base quantizer index.</param>
     /// <param name="updateCdf">A value indicating whether encoded symbols adapt their tile distributions.</param>
-    public Av1SymbolEncoder(Configuration configuration, int initialSize, int qIndex, bool updateCdf = true)
+    public Av1SymbolEncoder(Configuration configuration, int bufferLength, int qIndex, bool updateCdf)
     {
         this.configuration = configuration;
 
@@ -219,7 +219,7 @@ internal class Av1SymbolEncoder : IDisposable
         this.coefficientsBaseEndOfBlock = Av1DefaultDistributions.GetBaseEndOfBlock(qIndex);
         this.dcSign = Av1DefaultDistributions.GetDcSign(qIndex);
         this.endOfBlockExtra = Av1DefaultDistributions.GetEndOfBlockExtra(qIndex);
-        this.writer = new(configuration, initialSize, updateCdf);
+        this.writer = new(configuration, bufferLength, updateCdf);
         this.baseQIndex = qIndex;
     }
 
@@ -1310,7 +1310,7 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Finalizes the range-coded tile payload and transfers ownership of its memory.
+    /// Finalizes the range-coded tile payload and returns an owned exact-length copy.
     /// </summary>
     /// <returns>The memory owner containing the encoded tile bytes.</returns>
     public IMemoryOwner<byte> Exit()
@@ -1320,18 +1320,18 @@ internal class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Finalizes the range-coded tile payload and transfers its current allocation without copying.
+    /// Finalizes the range-coded tile payload and exposes its encoded prefix without copying.
     /// </summary>
-    /// <param name="length">The number of encoded bytes at the beginning of the returned allocation.</param>
-    /// <returns>The complete allocation containing the encoded tile prefix.</returns>
-    public IMemoryOwner<byte> Exit(out int length)
+    /// <param name="length">The number of encoded bytes in the returned memory.</param>
+    /// <returns>The encoded prefix, valid until this encoder is disposed.</returns>
+    public ReadOnlyMemory<byte> Exit(out int length)
     {
         ref Av1SymbolWriter w = ref this.writer;
         return w.Exit(out length);
     }
 
     /// <summary>
-    /// Releases output memory that has not been transferred by <see cref="Exit()"/>.
+    /// Releases the range-coder output buffer and coefficient scratch memory.
     /// </summary>
     public void Dispose()
     {

@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -51,25 +50,5 @@ internal struct Av1EncoderPaletteInfo
         int offset = (int)plane * Av1Constants.PaletteMaxSize;
         Span<ushort> destination = this.paletteColors;
         colors.CopyTo(destination[offset..]);
-    }
-
-    /// <summary>
-    /// Provides fixed storage for the luma and shared chroma palette sizes.
-    /// </summary>
-    /// <typeparam name="T">The stored value type.</typeparam>
-    [InlineArray(2)]
-    private struct InlineArray2<T>
-    {
-        private T element;
-    }
-
-    /// <summary>
-    /// Provides fixed storage for all three eight-color palette planes.
-    /// </summary>
-    /// <typeparam name="T">The stored value type.</typeparam>
-    [InlineArray(3 * Av1Constants.PaletteMaxSize)]
-    private struct InlineArray24<T>
-    {
-        private T element;
     }
 }

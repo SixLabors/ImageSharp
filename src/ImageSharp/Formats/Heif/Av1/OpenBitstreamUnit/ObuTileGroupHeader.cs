@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 /// <summary>
@@ -10,8 +8,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// </summary>
 internal sealed class ObuTileGroupHeader
 {
-    private InlineTileColumnBoundaryArray tileColumnStartModeInfo;
-    private InlineTileRowBoundaryArray tileRowStartModeInfo;
+    private InlineArray65<int> tileColumnStartModeInfo;
+    private InlineArray65<int> tileRowStartModeInfo;
 
     /// <summary>
     /// Gets or sets the maximum tile width, in superblocks.
@@ -92,16 +90,4 @@ internal sealed class ObuTileGroupHeader
     /// Gets or sets the number of bytes used to signal each tile size.
     /// </summary>
     public int TileSizeBytes { get; set; }
-
-    [InlineArray(Av1Constants.MaxTileColumnCount + 1)]
-    private struct InlineTileColumnBoundaryArray
-    {
-        private int element;
-    }
-
-    [InlineArray(Av1Constants.MaxTileRowCount + 1)]
-    private struct InlineTileRowBoundaryArray
-    {
-        private int element;
-    }
 }

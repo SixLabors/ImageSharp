@@ -329,7 +329,7 @@ public class HeifDecoderTests
     [Fact]
     public void DecodeIgnoresUnknownTopLevelBox()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         data = InsertBytes(data, data.Length, CreateUnknownBox());
 
         using Image<Rgba32> image = Image.Load<Rgba32>(data);
@@ -412,7 +412,7 @@ public class HeifDecoderTests
     [Fact]
     public void DecodePropagatesConfigurationToLegacyJpegItems()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         Configuration configuration = Configuration.CreateDefaultInstance();
         DecoderOptions options = new() { Configuration = configuration };
 
@@ -555,7 +555,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyIgnoresUnknownMetadataBox()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         data = InsertBytes(data, metaOffset + metaSize, CreateUnknownBox());
@@ -701,7 +701,7 @@ public class HeifDecoderTests
     [InlineData(Heif4CharCode.Jpeg)]
     public void DetectorRecognizesSupportedStillImageMajorBrand(Heif4CharCode brand)
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), (uint)brand);
         HeifImageFormatDetector detector = new();
 
@@ -715,7 +715,7 @@ public class HeifDecoderTests
     [InlineData(Heif4CharCode.Avis)]
     public void DetectorRecognizesSupportedSequenceMajorBrand(Heif4CharCode brand)
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), (uint)brand);
         HeifImageFormatDetector detector = new();
 
@@ -745,7 +745,7 @@ public class HeifDecoderTests
     [InlineData(Heif4CharCode.Jpgs)]
     public void DetectorRejectsUnsupportedSequenceMajorBrand(Heif4CharCode brand)
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), (uint)brand);
         HeifImageFormatDetector detector = new();
 
@@ -755,7 +755,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyRejectsUnsupportedBrands()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(8), UnknownBoxType);
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(16), UnknownBoxType);
         BinaryPrimitives.WriteUInt32BigEndian(data.AsSpan(20), UnknownBoxType);
@@ -767,7 +767,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyAcceptsExtendedSizeTopLevelBox()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         byte[] box = new byte[16];
         BinaryPrimitives.WriteUInt32BigEndian(box, 1);
         BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), UnknownBoxType);
@@ -782,7 +782,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyAcceptsUuidTopLevelBox()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         byte[] box = new byte[24];
         BinaryPrimitives.WriteUInt32BigEndian(box, (uint)box.Length);
         BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), (uint)Heif4CharCode.Uuid);
@@ -796,7 +796,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyAcceptsSizeZeroTopLevelBox()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         byte[] box = CreateUnknownBox();
         BinaryPrimitives.WriteUInt32BigEndian(box, 0);
         data = InsertBytes(data, data.Length, box);
@@ -809,7 +809,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyAcceptsExtendedSizeItemInfoEntry()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
@@ -829,7 +829,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyRejectsSizeZeroMetadataChild()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         byte[] box = CreateUnknownBox();
@@ -843,7 +843,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyRejectsMetadataChildBeyondParent()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         byte[] box = CreateUnknownBox();
@@ -857,7 +857,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyRejectsItemInfoEntryBeyondParent()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
@@ -871,7 +871,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyRejectsBoxSmallerThanHeader()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         byte[] box = CreateUnknownBox();
         BinaryPrimitives.WriteUInt32BigEndian(box, 4);
         data = InsertBytes(data, data.Length, box);
@@ -882,7 +882,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyRejectsTruncatedExtendedSizeHeader()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         byte[] box = new byte[12];
         BinaryPrimitives.WriteUInt32BigEndian(box, 1);
         BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), UnknownBoxType);
@@ -894,7 +894,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyRejectsTruncatedUuidHeader()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         byte[] box = new byte[16];
         BinaryPrimitives.WriteUInt32BigEndian(box, 24);
         BinaryPrimitives.WriteUInt32BigEndian(box.AsSpan(4), (uint)Heif4CharCode.Uuid);
@@ -906,7 +906,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyAcceptsItemPropertiesBeforeItemInfo()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
@@ -922,7 +922,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyAcceptsItemLocationBeforeItemInfo()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         int iinfOffset = FindBoxOffset(data, Heif4CharCode.Iinf, metaOffset + 12, metaSize - 12);
@@ -938,7 +938,7 @@ public class HeifDecoderTests
     [Fact]
     public void IdentifyRejectsDuplicateUniqueMetadataBox()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         int pitmOffset = FindBoxOffset(data, Heif4CharCode.Pitm, metaOffset + 12, metaSize - 12);
@@ -949,11 +949,11 @@ public class HeifDecoderTests
         Assert.Throws<InvalidImageContentException>(() => Image.Identify(data));
     }
 
-    private static byte[] CreateEncodedContainer()
+    private static byte[] CreateLegacyJpegContainer()
     {
         using Image<Rgba32> image = new(2, 3);
         using MemoryStream stream = new();
-        image.Save(stream, new HeifEncoder());
+        image.Save(stream, new HeifEncoder { CompressionMethod = HeifCompressionMethod.LegacyJpeg });
         return stream.ToArray();
     }
 
@@ -962,7 +962,7 @@ public class HeifDecoderTests
 
     private static byte[] CreateContainerWithProperty(ReadOnlySpan<byte> property, bool essential)
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         int iprpOffset = FindBoxOffset(data, Heif4CharCode.Iprp, metaOffset + 12, metaSize - 12);
@@ -992,7 +992,7 @@ public class HeifDecoderTests
 
     private static byte[] CreateContainerWithMalformedJpegMetadata()
     {
-        byte[] data = CreateEncodedContainer();
+        byte[] data = CreateLegacyJpegContainer();
         int metaOffset = FindBoxOffset(data, Heif4CharCode.Meta, 0, data.Length);
         int metaSize = (int)BinaryPrimitives.ReadUInt32BigEndian(data.AsSpan(metaOffset));
         int itemLocationOffset = FindBoxOffset(data, Heif4CharCode.Iloc, metaOffset + 12, metaSize - 12);

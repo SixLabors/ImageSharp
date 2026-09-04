@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -281,17 +280,4 @@ internal sealed class Av1MotionVariationCandidates
     /// <returns><see langword="true"/> for inter prediction or intra-block copy; otherwise, <see langword="false"/>.</returns>
     private static bool IsOverlappable(Av1BlockModeInfo candidate)
         => candidate.UseIntraBlockCopy || candidate.ReferenceFrames[0] > Av1ReferenceFrameType.Intra;
-
-    /// <summary>
-    /// Provides fixed storage for AV1's eight local warped-motion projection samples.
-    /// </summary>
-    /// <typeparam name="T">The source or reference point type stored in the inline buffer.</typeparam>
-    [InlineArray(ProjectionSampleCapacity)]
-    private struct InlineArray8<T>
-    {
-        /// <summary>
-        /// The first element in the compiler-expanded inline buffer.
-        /// </summary>
-        private T element;
-    }
 }

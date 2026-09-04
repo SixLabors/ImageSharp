@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -340,18 +339,5 @@ internal sealed class ObuFrameHeader
                 }
             }
         }
-    }
-
-    /// <summary>
-    /// Provides inline storage for the seven canonical AV1 inter reference types.
-    /// </summary>
-    /// <typeparam name="T">The stored parameter type.</typeparam>
-    [InlineArray(Av1Constants.ReferencesPerFrame)]
-    private struct InlineArray7<T>
-    {
-        /// <summary>
-        /// The first element in the compiler-expanded inline buffer.
-        /// </summary>
-        private T element;
     }
 }

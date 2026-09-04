@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 /// <summary>
@@ -249,44 +247,5 @@ internal sealed class ObuFilmGrainParameters
         this.CrOffset = source.CrOffset;
         this.OverlapFlag = source.OverlapFlag;
         this.ClipToRestrictedRange = source.ClipToRestrictedRange;
-    }
-
-    /// <summary>
-    /// Provides inline storage for the maximum luma autoregressive coefficient count.
-    /// </summary>
-    /// <typeparam name="T">The stored value type.</typeparam>
-    [InlineArray(24)]
-    private struct InlineArray24<T>
-    {
-        /// <summary>
-        /// The first element in the compiler-expanded inline buffer.
-        /// </summary>
-        private T element;
-    }
-
-    /// <summary>
-    /// Provides inline storage for the ten scaling points permitted on either chroma plane.
-    /// </summary>
-    /// <typeparam name="T">The stored value type.</typeparam>
-    [InlineArray(10)]
-    private struct InlineArray10<T>
-    {
-        /// <summary>
-        /// The first element in the compiler-expanded inline buffer.
-        /// </summary>
-        private T element;
-    }
-
-    /// <summary>
-    /// Provides inline storage for the maximum autoregressive coefficient count of either chroma plane.
-    /// </summary>
-    /// <typeparam name="T">The stored value type.</typeparam>
-    [InlineArray(25)]
-    private struct InlineArray25<T>
-    {
-        /// <summary>
-        /// The first element in the compiler-expanded inline buffer.
-        /// </summary>
-        private T element;
     }
 }

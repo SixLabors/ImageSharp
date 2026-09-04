@@ -36,7 +36,7 @@ internal sealed class Av1Distribution
     /// <summary>
     /// The inverse cumulative thresholds followed by the required zero sentinel.
     /// </summary>
-    private readonly uint[] probabilities;
+    private InlineArray16<uint> probabilities;
 
     /// <summary>
     /// The symbol-count contribution to the adaptive update rate.
@@ -273,13 +273,13 @@ internal sealed class Av1Distribution
     /// <param name="speed">The symbol-count contribution to the update rate.</param>
     private Av1Distribution(ReadOnlySpan<uint> props, int speed)
     {
-        this.probabilities = new uint[props.Length];
+        Span<uint> probabilities = this.probabilities;
 
         // AV1 range coding consumes inverse cumulative thresholds. The defaults are written in the more readable
         // forward form, so convert every real threshold while leaving the final zero sentinel untouched.
         for (int i = 0; i < props.Length - 1; i++)
         {
-            this.probabilities[i] = ProbabilityTop - props[i];
+            probabilities[i] = ProbabilityTop - props[i];
         }
 
         this.NumberOfSymbols = props.Length;
@@ -292,8 +292,9 @@ internal sealed class Av1Distribution
     /// <param name="source">The distribution state to copy.</param>
     private Av1Distribution(Av1Distribution source)
     {
-        this.probabilities = new uint[source.probabilities.Length];
-        source.probabilities.CopyTo(this.probabilities, 0);
+        ReadOnlySpan<uint> sourceProbabilities = source.probabilities;
+        Span<uint> probabilities = this.probabilities;
+        sourceProbabilities[..source.NumberOfSymbols].CopyTo(probabilities);
 
         // The adaptation rate depends on both the alphabet size and prior update count, so copying only the
         // thresholds would make the cloned frame context diverge after its next symbol.
@@ -328,7 +329,9 @@ internal sealed class Av1Distribution
     {
         // Entropy contexts are created from the same fixed default table shape. Copy only mutable state so resetting a
         // working tile never allocates or replaces the distribution objects referenced by the symbol decoder.
-        source.probabilities.AsSpan().CopyTo(this.probabilities);
+        ReadOnlySpan<uint> sourceProbabilities = source.probabilities;
+        Span<uint> probabilities = this.probabilities;
+        sourceProbabilities[..source.NumberOfSymbols].CopyTo(probabilities);
         this.updateCount = source.updateCount;
     }
 

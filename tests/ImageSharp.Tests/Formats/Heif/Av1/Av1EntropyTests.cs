@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Numerics;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
@@ -19,6 +20,9 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1EntropyTests
 {
     private const int BaseQIndex = 23;
+
+    // Short syntax round trips encode only their small in-method symbol vectors.
+    private const int ShortSyntaxBufferLength = 64;
 
     [Fact]
     public void ProbabilityCostTableMatchesDefinition()
@@ -158,7 +162,7 @@ public class Av1EntropyTests
         const int BlockSkipContext = 2;
         const int TransformSkipContext = 0;
         const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 256, QIndex);
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 256, QIndex, updateCdf: true);
         int emptyTransformRate = encoder.GetTransformBlockSkipCost(
             true,
             TransformSize,
@@ -293,7 +297,7 @@ public class Av1EntropyTests
     [Fact]
     public void SymbolEncoderCostTracksWrittenLumaMode()
     {
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: true);
         Av1Distribution expected = Av1DefaultDistributions.KeyFrameYMode[0][0];
 
         Assert.Equal(
@@ -563,8 +567,8 @@ public class Av1EntropyTests
         coefficients[scan[0]] = -25;
         coefficients[scan[2]] = 3;
         coefficients[scan[3]] = 1;
-        using Av1SymbolEncoder actualEncoder = new(Configuration.Default, 64, BaseQIndex);
-        using Av1SymbolEncoder expectedEncoder = new(Configuration.Default, 64, BaseQIndex);
+        using Av1SymbolEncoder actualEncoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: true);
+        using Av1SymbolEncoder expectedEncoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: true);
 
         int initialCost = actualEncoder.GetCoefficientCost(
             transformSize,
@@ -743,7 +747,7 @@ public class Av1EntropyTests
     [Fact]
     public void SymbolWriterMatchesCurrentLibaomCarryRegression()
     {
-        using Av1SymbolWriter writer = new(Configuration.Default, 1, updateCdf: false);
+        using Av1SymbolWriter writer = new(Configuration.Default, ShortSyntaxBufferLength, updateCdf: false);
         writer.WriteBoolean(false, 16_384);
         writer.WriteBoolean(false, 16_384);
         writer.WriteBoolean(true, 512);
@@ -755,22 +759,22 @@ public class Av1EntropyTests
     }
 
     [Fact]
-    public void SymbolWriterUsesOneByteOfScratchPerEstimatedOutputByte()
+    public void SymbolWriterRentsFixedOutputBuffer()
     {
-        const int initialSize = 257;
+        const int bufferLength = 257;
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
         TestMemoryAllocator.AllocationRequest allocation;
 
-        using (Av1SymbolWriter writer = new(configuration, initialSize, updateCdf: false))
+        using (Av1SymbolWriter writer = new(configuration, bufferLength, updateCdf: false))
         {
             writer.WriteLiteral(false);
             allocation = Assert.Single(allocator.AllocationLog);
 
             Assert.Equal(typeof(byte), allocation.ElementType);
-            Assert.Equal(initialSize, allocation.Length);
+            Assert.Equal(bufferLength, allocation.Length);
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
@@ -778,36 +782,29 @@ public class Av1EntropyTests
     }
 
     [Fact]
-    public void SymbolWriterTransfersExistingOutputAllocationWithoutCopy()
+    public void SymbolWriterExposesExistingOutputAllocationWithoutCopy()
     {
-        const int initialSize = 257;
+        const int bufferLength = 257;
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
         TestMemoryAllocator.AllocationRequest allocation;
-        IMemoryOwner<byte> encoded;
-        int length;
 
-        using (Av1SymbolWriter writer = new(configuration, initialSize, updateCdf: false))
+        using (Av1SymbolWriter writer = new(configuration, bufferLength, updateCdf: false))
         {
             writer.WriteBoolean(false, 16_384);
             writer.WriteBoolean(false, 16_384);
             writer.WriteBoolean(true, 512);
             writer.WriteBoolean(false, 8_192);
             allocation = Assert.Single(allocator.AllocationLog);
-            encoded = writer.Exit(out length);
+            ReadOnlyMemory<byte> encoded = writer.Exit(out int length);
 
+            Assert.Equal(2, length);
+            Assert.Equal(length, encoded.Length);
+            Assert.Equal(63, encoded.Span[0]);
             Assert.Single(allocator.AllocationLog);
             Assert.Empty(allocator.ReturnLog);
-        }
-
-        Assert.Empty(allocator.ReturnLog);
-        using (encoded)
-        {
-            Assert.Equal(2, length);
-            Assert.Equal(initialSize, encoded.Memory.Length);
-            Assert.Equal(63, encoded.Memory.Span[0]);
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
@@ -823,7 +820,7 @@ public class Av1EntropyTests
         configuration.MemoryAllocator = allocator;
         Span<int> coefficients = stackalloc int[16];
 
-        using (Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex))
+        using (Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex, updateCdf: true))
         {
             TestMemoryAllocator.AllocationRequest outputScratch = Assert.Single(allocator.AllocationLog);
             Assert.Equal(typeof(byte), outputScratch.ElementType);
@@ -976,7 +973,7 @@ public class Av1EntropyTests
         uint[] values = new uint[writeCount];
         Array.Fill(values, value);
         Configuration configuration = Configuration.Default;
-        using Av1SymbolWriter writer = new(configuration, (writeCount * bitCount) >> 3);
+        using Av1SymbolWriter writer = new(configuration, ShortSyntaxBufferLength, updateCdf: true);
 
         // Act
         for (int i = 0; i < writeCount; i++)
@@ -1070,7 +1067,7 @@ public class Av1EntropyTests
     public void RoundTripUniformPaletteIndices()
     {
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex, updateCdf: true);
 
         for (int valueCount = 2; valueCount <= Av1Constants.PaletteMaxSize; valueCount++)
         {
@@ -1095,7 +1092,7 @@ public class Av1EntropyTests
     public void RoundTripPaletteSymbols()
     {
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 256, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 256, BaseQIndex, updateCdf: true);
 
         for (int blockSizeContext = 0; blockSizeContext < 7; blockSizeContext++)
         {
@@ -1213,7 +1210,7 @@ public class Av1EntropyTests
         ushort[] uColors = [17, 51, 100];
         ushort[] deltaVColors = [1, 2, 1];
         ushort[] rawVColors = [0, (ushort)(1 << (bitDepth - 1)), 0];
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 128, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 128, BaseQIndex, updateCdf: true);
         encoder.WritePaletteYColors(colorCache, yColors, bitDepth);
         encoder.WritePaletteUvColors(colorCache, uColors, deltaVColors, bitDepth);
         encoder.WritePaletteUvColors(colorCache, uColors, rawVColors, bitDepth);
@@ -1371,7 +1368,7 @@ public class Av1EntropyTests
         using Buffer2D<byte> decoded = configuration.MemoryAllocator.Allocate2D<byte>(Width, Height);
         Buffer2DRegion<byte> sourceRegion = new(source);
         Buffer2DRegion<byte> decodedRegion = new(decoded);
-        using Av1SymbolEncoder encoder = new(configuration, 512, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 512, BaseQIndex, updateCdf: true);
         for (int paletteSize = 2; paletteSize <= Av1Constants.PaletteMaxSize; paletteSize++)
         {
             for (int plane = 0; plane < 2; plane++)
@@ -1481,7 +1478,7 @@ public class Av1EntropyTests
     {
         // Assign
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.None, Av1PartitionType.None];
@@ -1512,7 +1509,7 @@ public class Av1EntropyTests
         // Assign
         Av1BlockSize blockSize = (Av1BlockSize)size;
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Horizontal,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Horizontal, Av1PartitionType.Horizontal];
@@ -1543,7 +1540,7 @@ public class Av1EntropyTests
         // Assign
         Av1BlockSize blockSize = (Av1BlockSize)size;
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
         Av1PartitionType[] values = [
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Vertical,
             Av1PartitionType.Split, Av1PartitionType.Split, Av1PartitionType.Vertical, Av1PartitionType.Vertical];
@@ -1575,7 +1572,7 @@ public class Av1EntropyTests
     {
         // Assign
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
         bool[] values = [true, true, false, false, false, false, false, false, true];
         bool[] actuals = new bool[values.Length];
 
@@ -1604,7 +1601,7 @@ public class Av1EntropyTests
         // Assign
         Av1TransformSize transformSizeContext = (Av1TransformSize)transformContext;
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
         bool[] values = [true, true, false, false, false, false, false, false, true];
         bool[] actuals = new bool[values.Length];
 
@@ -1637,7 +1634,7 @@ public class Av1EntropyTests
         Av1FilterIntraMode filterIntraMode = (Av1FilterIntraMode)intraMode;
         Av1PredictionMode intraDirection = (Av1PredictionMode)intraDir;
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
 
         // TODO: Include AdstFlipAdst, which is currently mapped to Identity.
         Av1TransformType[] values = [
@@ -1680,8 +1677,8 @@ public class Av1EntropyTests
             Av1DefaultDistributions.InterExtendedTransform[extendedSet][(int)squareTransformSize];
 
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder costEncoder = new(configuration, 100 / 8, BaseQIndex, updateCdf: false);
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder costEncoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: false);
+        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
         int transformTypeCount = Av1SymbolContextHelper.GetExtendedTransformTypeCount(transformSetType);
 
         for (int symbol = 0; symbol < transformTypeCount; symbol++)
@@ -1737,7 +1734,7 @@ public class Av1EntropyTests
         Av1PlaneType planeType = (Av1PlaneType)plane;
         Av1TransformClass transformClass = (Av1TransformClass)txClass;
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
 
         int[] values = [1, 2, 3, 4, 5];
         int[] actuals = new int[values.Length];
@@ -1765,10 +1762,13 @@ public class Av1EntropyTests
     {
         // Assign
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
-
         int[] values = Enumerable.Range(0, 16384).ToArray();
         int[] actuals = new int[values.Length];
+
+        // Reserve the longest code for every value so this broad corpus cannot exhaust the fixed entropy output.
+        int maximumCodeBitCount = (BitOperations.Log2((uint)values.Length) * 2) + 1;
+        int bufferLength = (int)Numerics.DivideCeil((uint)(values.Length * maximumCodeBitCount), 8);
+        using Av1SymbolEncoder encoder = new(configuration, bufferLength, BaseQIndex, updateCdf: true);
 
         // Act
         foreach (int value in values)
@@ -1797,7 +1797,7 @@ public class Av1EntropyTests
         // Assign
         int[] values = [3, 6, 7, 0, 2, 0, 2, 1, 1];
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
         int[] actuals = new int[values.Length];
 
         // Act
@@ -1824,7 +1824,7 @@ public class Av1EntropyTests
         // Assign
         int[] values = [3, 6, -7, -8, -2, 0, 2, 1, -1];
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
         int[] actuals = new int[values.Length];
 
         // Act
@@ -1855,7 +1855,7 @@ public class Av1EntropyTests
             Av1FilterIntraMode.DC, Av1FilterIntraMode.Vertical, Av1FilterIntraMode.DC, Av1FilterIntraMode.Paeth,
             Av1FilterIntraMode.AllFilterIntraModes, Av1FilterIntraMode.Directional157, Av1FilterIntraMode.DC, Av1FilterIntraMode.Directional157];
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
         Av1FilterIntraMode[] actuals = new Av1FilterIntraMode[values.Length];
 
         // Act
@@ -1882,7 +1882,7 @@ public class Av1EntropyTests
         // Assign
         bool[] values = [true, true, false, true, false, false, false];
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, ShortSyntaxBufferLength, BaseQIndex, updateCdf: true);
         bool[] actuals = new bool[values.Length];
 
         Assert.Equal(51, encoder.GetUseIntraBlockCopyCost(false));
@@ -1934,7 +1934,7 @@ public class Av1EntropyTests
 
         int[] expectedCosts = [1440, 1661, 5231, 5807, 16955, 31656];
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex, updateCdf: true);
 
         // These current-libaom costs cover every joint, both signs, class zero, and large-class offset bits.
         for (int i = 0; i < values.Length; i++)

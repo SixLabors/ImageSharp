@@ -586,8 +586,8 @@ public class ObuFrameHeaderTests
     public void ReadFrameHeaderRejectsIntraOnlyAllSlotsRefresh()
     {
         byte[] sequenceHeader = CreateNonReducedSequenceHeaderObu(default);
-        using AutoExpandingMemory<byte> frameMemory = new(Configuration.Default, 8);
-        Av1BitStreamWriter frameWriter = new(frameMemory);
+        byte[] framePayload = new byte[2];
+        Av1BitStreamWriter frameWriter = new(framePayload);
 
         frameWriter.WriteBoolean(false);
         frameWriter.WriteLiteral((uint)ObuFrameType.IntraOnlyFrame, 2);
@@ -605,7 +605,7 @@ public class ObuFrameHeaderTests
         int frameObuOffset = sequenceHeader.Length;
         bitStream[frameObuOffset] = (byte)(((byte)ObuType.FrameHeader << 3) | 0x02);
         bitStream[frameObuOffset + 1] = (byte)framePayloadLength;
-        frameMemory.GetSpan(framePayloadLength).CopyTo(bitStream.AsSpan(frameObuOffset + 2));
+        framePayload.AsSpan(0, framePayloadLength).CopyTo(bitStream.AsSpan(frameObuOffset + 2));
 
         Assert.Throws<InvalidImageContentException>(() => ReadObuStream(bitStream));
     }
@@ -796,6 +796,8 @@ public class ObuFrameHeaderTests
     /// <returns>The complete explicitly sized sequence-header OBU.</returns>
     private static byte[] CreateNonReducedSequenceHeaderObu(InvalidSequenceHeaderCase invalidCase)
     {
+        const int SequenceHeaderBufferLength = 32;
+
         bool hasTimingInfo = invalidCase is
             InvalidSequenceHeaderCase.ZeroDisplayTick or
             InvalidSequenceHeaderCase.ZeroTimeScale or
@@ -807,8 +809,8 @@ public class ObuFrameHeaderTests
             InvalidSequenceHeaderCase.MainProfileSrgbIdentity or
             InvalidSequenceHeaderCase.SubsampledIdentityMatrix;
 
-        using AutoExpandingMemory<byte> payloadMemory = new(Configuration.Default, 32);
-        Av1BitStreamWriter writer = new(payloadMemory);
+        byte[] payloadBuffer = new byte[SequenceHeaderBufferLength];
+        Av1BitStreamWriter writer = new(payloadBuffer);
         writer.WriteLiteral((uint)ObuSequenceProfile.Main, 3);
         writer.WriteBoolean(false);
         writer.WriteBoolean(false);
@@ -908,7 +910,7 @@ public class ObuFrameHeaderTests
         byte[] obu = new byte[payloadLength + 2];
         obu[0] = (byte)(((byte)ObuType.SequenceHeader << 3) | 0x02);
         obu[1] = (byte)payloadLength;
-        payloadMemory.GetSpan(payloadLength).CopyTo(obu.AsSpan(2));
+        payloadBuffer.AsSpan(0, payloadLength).CopyTo(obu.AsSpan(2));
         return obu;
     }
 

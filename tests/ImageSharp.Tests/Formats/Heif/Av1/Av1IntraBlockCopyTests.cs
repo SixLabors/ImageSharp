@@ -190,7 +190,7 @@ public class Av1IntraBlockCopyTests
             picture.Parent.Common.ModeInfoRowCount,
             picture.Parent.Common.ModeInfoColumnCount);
 
-        using Av1SymbolEncoder writer = new(Configuration.Default, 64, 0);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 64, 0, updateCdf: true);
         Av1TileWriter.WriteIntraBlockCopyInfo(
             picture,
             writer,
@@ -302,7 +302,7 @@ public class Av1IntraBlockCopyTests
 
         Av1PictureControlSet picture = pictureBuffer.Picture;
         picture.IntraBlockCopySearch.Initialize<byte, Av1IntraSuperblockEncoder.ByteOperator>(sourceLuma);
-        using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
         Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
         Av1MotionVector reference = new(0, -2560);
         int candidateCount = picture.IntraBlockCopySearch.FindCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(
@@ -397,7 +397,7 @@ public class Av1IntraBlockCopyTests
                 codedReconstructionLuma,
                 new Point(15, 120)));
 
-        using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
         Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
         int candidateCount = pictureBuffer.Picture.IntraBlockCopySearch
             .FindPixelCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(
@@ -481,7 +481,7 @@ public class Av1IntraBlockCopyTests
 
         Buffer2DRegion<byte> codedSourceLuma = source.Frame.CodedView.GetPlane(Av1Plane.Y);
         Buffer2DRegion<byte> codedReconstructionLuma = reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y);
-        using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
         Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
         int candidateCount = pictureBuffer.Picture.IntraBlockCopySearch
             .FindPixelCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(

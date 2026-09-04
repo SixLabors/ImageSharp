@@ -10,7 +10,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 /// <summary>
 /// Writes AV1 literals and adaptively coded symbols to a range-coded byte sequence.
 /// </summary>
-internal class Av1SymbolWriter : IDisposable
+internal sealed class Av1SymbolWriter : IDisposable
 {
     /// <summary>
     /// The lower endpoint of the current coding interval.
@@ -36,9 +36,14 @@ internal class Av1SymbolWriter : IDisposable
     private readonly Configuration configuration;
 
     /// <summary>
-    /// The output bytes accumulated during renormalization.
+    /// The owner of the fixed output buffer supplied for this tile.
     /// </summary>
-    private readonly AutoExpandingMemory<byte> memory;
+    private readonly IMemoryOwner<byte> bufferOwner;
+
+    /// <summary>
+    /// The requested output range, excluding any excess capacity returned by a pooling allocator.
+    /// </summary>
+    private readonly Memory<byte> buffer;
 
     /// <summary>
     /// Indicates whether encoded symbols adapt their distributions.
@@ -51,22 +56,23 @@ internal class Av1SymbolWriter : IDisposable
     private int position;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1SymbolWriter"/> class with an estimated output size.
+    /// Initializes a new instance of the <see cref="Av1SymbolWriter"/> class with a bounded output size.
     /// </summary>
     /// <param name="configuration">The configuration that supplies output allocation.</param>
-    /// <param name="initialSize">The estimated encoded size in bytes.</param>
+    /// <param name="bufferLength">The complete fixed output allocation length in bytes.</param>
     /// <param name="updateCdf">A value indicating whether encoded symbols adapt their distributions.</param>
-    public Av1SymbolWriter(Configuration configuration, int initialSize, bool updateCdf = true)
+    public Av1SymbolWriter(Configuration configuration, int bufferLength, bool updateCdf)
     {
         this.configuration = configuration;
-        this.memory = new AutoExpandingMemory<byte>(configuration, initialSize);
+        this.bufferOwner = configuration.MemoryAllocator.Allocate<byte>(bufferLength);
+        this.buffer = this.bufferOwner.Memory[..bufferLength];
         this.updateCdf = updateCdf;
     }
 
     /// <summary>
-    /// Releases the expandable pre-carry buffer.
+    /// Releases the tile output buffer.
     /// </summary>
-    public void Dispose() => this.memory.Dispose();
+    public void Dispose() => this.bufferOwner.Dispose();
 
     /// <summary>
     /// Writes one binary symbol and adapts its distribution when CDF updates are enabled.
@@ -132,20 +138,20 @@ internal class Av1SymbolWriter : IDisposable
     {
         int length = this.FinalizeRange();
         IMemoryOwner<byte> output = this.configuration.MemoryAllocator.Allocate<byte>(length);
-        this.memory.GetSpan(length).CopyTo(output.GetSpan()[..length]);
+        this.buffer.Span[..length].CopyTo(output.Memory.Span);
 
         return output;
     }
 
     /// <summary>
-    /// Finalizes the range-coded sequence and transfers its current allocation without copying.
+    /// Finalizes the range-coded sequence and exposes its encoded prefix without copying.
     /// </summary>
-    /// <param name="length">The number of encoded bytes at the beginning of the returned allocation.</param>
-    /// <returns>The complete allocation containing the encoded byte prefix.</returns>
-    public IMemoryOwner<byte> Exit(out int length)
+    /// <param name="length">The number of encoded bytes in the returned memory.</param>
+    /// <returns>The encoded prefix, valid until this writer is disposed.</returns>
+    public ReadOnlyMemory<byte> Exit(out int length)
     {
         length = this.FinalizeRange();
-        return this.memory.Detach();
+        return this.buffer[..length];
     }
 
     /// <summary>
@@ -164,7 +170,7 @@ internal class Av1SymbolWriter : IDisposable
         ulong e = ((l + m) & ~m) | (m + 1);
         s += c;
         int pendingByteCount = Math.Max((s + 7) >> 3, 0);
-        Span<byte> buffer = this.memory.GetSpan(pos + pendingByteCount);
+        Span<byte> buffer = this.buffer.Span[..(pos + pendingByteCount)];
         if (s > 0)
         {
             ulong n = (1UL << (c + 16)) - 1;
@@ -289,7 +295,7 @@ internal class Av1SymbolWriter : IDisposable
         // bytes together while preserving one carry bit.
         if (s >= 40)
         {
-            Span<byte> buffer = this.memory.GetSpan(this.position + sizeof(ulong));
+            Span<byte> buffer = this.buffer.Span[..(this.position + sizeof(ulong))];
             int readyByteCount = (s >> 3) + 1;
             c += 24 - (readyByteCount << 3);
             ulong output = low >> c;

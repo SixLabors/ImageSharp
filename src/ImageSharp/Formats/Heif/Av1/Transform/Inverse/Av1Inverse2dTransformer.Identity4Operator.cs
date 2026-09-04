@@ -24,7 +24,7 @@ internal static partial class Av1Inverse2dTransformer
         /// <param name="step">Unused stage storage supplied by the common transform-kernel contract.</param>
         /// <param name="cosBit">Unused cosine precision supplied by the common transform-kernel contract.</param>
         /// <param name="stageRange">The signed-bit range assigned to the transform output.</param>
-        public static void Transform(ReadOnlySpan<int> input, Span<int> output, Span<int> step, int cosBit, Av1TransformStageRange stageRange)
+        public static void Transform(ReadOnlySpan<int> input, Span<int> output, Span<int> step, int cosBit, InlineArray12<byte> stageRange)
         {
             _ = step;
             _ = cosBit;
@@ -43,7 +43,7 @@ internal static partial class Av1Inverse2dTransformer
             ref Av1TransformVector<Vector128<int>> output,
             ref Av1TransformVector<Vector128<int>> step,
             int cosBit,
-            Av1TransformStageRange stageRange)
+            InlineArray12<byte> stageRange)
         {
             // Only a twelve-bit row transform has the 20-bit input range that can overflow this fixed-point product.
             // Match the reference decoder's high-bit-depth kernel there while retaining the compact Int32 path for narrower ranges.
@@ -66,7 +66,7 @@ internal static partial class Av1Inverse2dTransformer
             ref Av1TransformVector<Vector256<int>> output,
             ref Av1TransformVector<Vector256<int>> step,
             int cosBit,
-            Av1TransformStageRange stageRange)
+            InlineArray12<byte> stageRange)
         {
             if (stageRange[0] >= Av1Transform1dMath.WidenedIntermediateBitCount)
             {

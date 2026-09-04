@@ -19,6 +19,9 @@ public class Av1CoefficientsEntropyTests
 {
     private const int BaseQIndex = 23;
 
+    // These tests encode at most one 8x8 transform with generated magnitudes no greater than 64.
+    private const int CoefficientSyntaxBufferLength = 256;
+
     [Fact]
     public void NeighborArrayWritesEveryCoveredFourByFourEdgeUnit()
     {
@@ -405,7 +408,7 @@ public class Av1CoefficientsEntropyTests
             IsLeftAvailable = true
         };
 
-        using Av1SymbolEncoder encoder = new(Configuration.Default, 128, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 128, BaseQIndex, updateCdf: true);
         Av1TileWriter.WritePaletteModeInfo(
             picture.Sequence,
             picture,
@@ -544,7 +547,7 @@ public class Av1CoefficientsEntropyTests
         transformBlocks.Fill(new Av1EncoderTransformBlockState { TransformType = Av1TransformType.Identity });
 
         Av1EncoderBlockStruct block = default;
-        using Av1SymbolEncoder writer = new(Configuration.Default, 4096, BaseQIndex);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 4096, BaseQIndex, updateCdf: true);
         Av1TileWriter.EncodeTransformCoefficientsY(
             picture,
             context,
@@ -681,7 +684,7 @@ public class Av1CoefficientsEntropyTests
         transforms.Left[leftIndex] = 16;
         picture.TransformFunctionContexts = [transforms];
 
-        using Av1SymbolEncoder writer = new(Configuration.Default, 64, BaseQIndex);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 64, BaseQIndex, updateCdf: true);
         Av1TileWriter.WriteTransformSize(
             picture,
             writer,
@@ -828,7 +831,7 @@ public class Av1CoefficientsEntropyTests
         picture.Parent.FrameHeader.CdefParameters.BitCount = 2;
         picture.ModeInfoAllocation.Span[16].CdefStrength = 3;
         picture.ModeInfoAllocation.Span[20].CdefStrength = 1;
-        using Av1SymbolEncoder writer = new(Configuration.Default, 16, BaseQIndex);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 16, BaseQIndex, updateCdf: true);
 
         Av1TileWriter.WriteCdef(
             picture.Sequence,
@@ -936,7 +939,7 @@ public class Av1CoefficientsEntropyTests
             width: 128,
             height: 64);
 
-        using Av1SymbolEncoder writer = new(Configuration.Default, 512, BaseQIndex);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 512, BaseQIndex, updateCdf: true);
 
         Av1TileWriter.WriteSuperblock(
             picture,
@@ -1010,8 +1013,8 @@ public class Av1CoefficientsEntropyTests
             Av1PartitionType.Split
         ];
 
-        using Av1SymbolEncoder actualWriter = new(Configuration.Default, 16, BaseQIndex);
-        using Av1SymbolEncoder expectedWriter = new(Configuration.Default, 16, BaseQIndex);
+        using Av1SymbolEncoder actualWriter = new(Configuration.Default, 16, BaseQIndex, updateCdf: true);
+        using Av1SymbolEncoder expectedWriter = new(Configuration.Default, 16, BaseQIndex, updateCdf: true);
         foreach (Av1PartitionType decision in decisions)
         {
             Av1TileWriter.EncodePartition(
@@ -1080,8 +1083,8 @@ public class Av1CoefficientsEntropyTests
             Av1ChromaPredictionMode.SmoothHorizontal
         ];
 
-        using Av1SymbolEncoder actualWriter = new(Configuration.Default, 16, BaseQIndex);
-        using Av1SymbolEncoder expectedWriter = new(Configuration.Default, 16, BaseQIndex);
+        using Av1SymbolEncoder actualWriter = new(Configuration.Default, 16, BaseQIndex, updateCdf: true);
+        using Av1SymbolEncoder expectedWriter = new(Configuration.Default, 16, BaseQIndex, updateCdf: true);
         foreach (Av1ChromaPredictionMode decision in decisions)
         {
             Av1TileWriter.EncodeIntraChromaMode(
@@ -1123,7 +1126,7 @@ public class Av1CoefficientsEntropyTests
         int[] leftContexts = new int[1];
         Av1TransformBlockContext transformBlockContext = default;
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, CoefficientSyntaxBufferLength, BaseQIndex, updateCdf: true);
         Span<int> coefficientsBuffer = [1, 2, 3, 4, 5];
         Span<int> expected = new int[16];
         Span<int> actuals = new int[16];
@@ -1193,7 +1196,7 @@ public class Av1CoefficientsEntropyTests
         int[] leftContexts = new int[1];
         Av1TransformBlockContext transformBlockContext = default;
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, CoefficientSyntaxBufferLength, BaseQIndex, updateCdf: true);
         Span<int> coefficientsBuffer = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
         ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
         for (int scanIndex = endOfBlock; scanIndex < scan.Length; scanIndex++)
@@ -1304,7 +1307,7 @@ public class Av1CoefficientsEntropyTests
         int[] leftContexts = new int[transformSize.Get4x4HighCount()];
         Av1TransformBlockContext transformBlockContext = default;
         Configuration configuration = Configuration.Default;
-        using Av1SymbolEncoder encoder = new(configuration, 100 / 8, BaseQIndex);
+        using Av1SymbolEncoder encoder = new(configuration, CoefficientSyntaxBufferLength, BaseQIndex, updateCdf: true);
         int coefficientCount = blockSize.GetHeight() * blockSize.GetWidth();
         ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
         Span<int> coefficientsBuffer = new int[coefficientCount];

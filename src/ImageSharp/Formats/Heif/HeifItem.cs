@@ -14,6 +14,10 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// <param name="id">The item identifier used by locations, properties, and references.</param>
 internal sealed class HeifItem(Heif4CharCode type, uint id)
 {
+    private IccProfile? iccProfile;
+
+    private ReadOnlyMemory<byte> serializedIccProfile;
+
     /// <summary>
     /// Gets the ID of this Item.
     /// </summary>
@@ -58,7 +62,15 @@ internal sealed class HeifItem(Heif4CharCode type, uint id)
     /// Gets or sets the ICC profile associated with this color image item, or <see langword="null"/> when the item
     /// has no restricted or unrestricted ICC color-information property.
     /// </summary>
-    public IccProfile? IccProfile { get; set; }
+    public IccProfile? IccProfile
+    {
+        get => this.iccProfile;
+        set
+        {
+            this.iccProfile = value;
+            this.serializedIccProfile = default;
+        }
+    }
 
     /// <summary>
     /// Gets or sets the CICP color description associated with this color image item, or <see langword="null"/>
@@ -186,6 +198,22 @@ internal sealed class HeifItem(Heif4CharCode type, uint id)
     /// Gets the list of data locations for this item.
     /// </summary>
     public List<HeifLocation> DataLocations { get; } = [];
+
+    /// <summary>
+    /// Gets the serialized ICC payload used while sizing and writing an encoded item.
+    /// </summary>
+    /// <returns>The serialized profile data, or an empty memory when no profile is assigned.</returns>
+    public ReadOnlyMemory<byte> GetIccProfileDataForWriting()
+    {
+        if (this.serializedIccProfile.IsEmpty && this.iccProfile is not null)
+        {
+            // Exact-size container writing queries the payload length before copying it. Retaining the serialized
+            // view on this transient item prevents an entry-built profile from being serialized for both passes.
+            this.serializedIccProfile = this.iccProfile.GetDataForWriting();
+        }
+
+        return this.serializedIccProfile;
+    }
 
     /// <summary>
     /// Set the image extent.

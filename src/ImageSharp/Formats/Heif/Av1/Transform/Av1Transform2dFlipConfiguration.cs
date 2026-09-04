@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 /// <summary>
@@ -28,17 +26,17 @@ internal ref struct Av1Transform2dFlipConfiguration
     /// <summary>
     /// The fixed-point shifts applied between successive stages of the configured transform pipeline.
     /// </summary>
-    private ShiftBuffer shift;
+    private InlineArray3<int> shift;
 
     /// <summary>
     /// The signed-bit ranges produced by the column transform stages.
     /// </summary>
-    private Av1TransformStageRange stageRangeColumn;
+    private InlineArray12<byte> stageRangeColumn;
 
     /// <summary>
     /// The signed-bit ranges produced by the row transform stages.
     /// </summary>
-    private Av1TransformStageRange stageRangeRow;
+    private InlineArray12<byte> stageRangeRow;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1Transform2dFlipConfiguration"/> struct.
@@ -337,12 +335,12 @@ internal ref struct Av1Transform2dFlipConfiguration
     /// <summary>
     /// Gets the allowed signed-bit range after each column-transform stage.
     /// </summary>
-    public readonly Av1TransformStageRange StageRangeColumn => this.stageRangeColumn;
+    public readonly InlineArray12<byte> StageRangeColumn => this.stageRangeColumn;
 
     /// <summary>
     /// Gets the allowed signed-bit range after each row-transform stage.
     /// </summary>
-    public readonly Av1TransformStageRange StageRangeRow => this.stageRangeRow;
+    public readonly InlineArray12<byte> StageRangeRow => this.stageRangeRow;
 
     /// <summary>
     /// Creates the configuration used to transform spatial residuals into coefficients.
@@ -498,17 +496,5 @@ internal ref struct Av1Transform2dFlipConfiguration
         {
             this.stageRangeRow[i] = rowRange;
         }
-    }
-
-    /// <summary>
-    /// Stores the three fixed-point shifts without allocating an array for each transform block.
-    /// </summary>
-    [InlineArray(3)]
-    private struct ShiftBuffer
-    {
-        /// <summary>
-        /// The first fixed-point shift.
-        /// </summary>
-        private int element0;
     }
 }

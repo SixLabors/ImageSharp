@@ -88,7 +88,7 @@ public class Av1InverseTransformTests
     private static void AssertTwelveBitWideIntermediateParity()
     {
         const int cosBit = 12;
-        Av1TransformStageRange stageRange = default;
+        InlineArray12<byte> stageRange = default;
         for (int index = 0; index < Av1Transform2dFlipConfiguration.MaxStageNumber; index++)
         {
             stageRange[index] = 20;
@@ -182,7 +182,7 @@ public class Av1InverseTransformTests
         Vector128<int> expected128,
         Vector256<int> input256,
         Vector256<int> expected256,
-        Av1TransformStageRange stageRange)
+        InlineArray12<byte> stageRange)
         where TOperator : struct, Av1Inverse2dTransformer.IAv1Transform1dOperator
     {
         const int cosBit = 12;
@@ -252,8 +252,8 @@ public class Av1InverseTransformTests
             Av1TransformSize.Size16x16,
             bitDepth);
 
-        Av1TransformStageRange configuredRowRange = config.StageRangeRow;
-        Av1TransformStageRange configuredColumnRange = config.StageRangeColumn;
+        InlineArray12<byte> configuredRowRange = config.StageRangeRow;
+        InlineArray12<byte> configuredColumnRange = config.StageRangeColumn;
 
         for (int index = 0; index < config.StageNumberRow; index++)
         {
@@ -600,7 +600,7 @@ public class Av1InverseTransformTests
         where TOperator : struct, Av1Inverse2dTransformer.IAv1Transform1dOperator
     {
         const int cosBit = 12;
-        Av1TransformStageRange stageRange = default;
+        InlineArray12<byte> stageRange = default;
 
         for (int index = 0; index < Av1Transform2dFlipConfiguration.MaxStageNumber; index++)
         {

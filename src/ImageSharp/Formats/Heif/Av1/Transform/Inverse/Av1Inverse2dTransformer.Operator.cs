@@ -27,7 +27,7 @@ internal static partial class Av1Inverse2dTransformer
         /// <param name="step">The fixed stage storage for the transform axis.</param>
         /// <param name="cosBit">The fixed-point precision of the cosine constants.</param>
         /// <param name="stageRange">The signed-bit range assigned to each transform stage.</param>
-        public static abstract void Transform(ReadOnlySpan<int> input, Span<int> output, Span<int> step, int cosBit, Av1TransformStageRange stageRange);
+        public static abstract void Transform(ReadOnlySpan<int> input, Span<int> output, Span<int> step, int cosBit, InlineArray12<byte> stageRange);
 
         /// <summary>
         /// Transforms four independent axes in parallel.
@@ -42,7 +42,7 @@ internal static partial class Av1Inverse2dTransformer
             ref Av1TransformVector<Vector128<int>> output,
             ref Av1TransformVector<Vector128<int>> step,
             int cosBit,
-            Av1TransformStageRange stageRange);
+            InlineArray12<byte> stageRange);
 
         /// <summary>
         /// Transforms eight independent axes in parallel.
@@ -57,6 +57,6 @@ internal static partial class Av1Inverse2dTransformer
             ref Av1TransformVector<Vector256<int>> output,
             ref Av1TransformVector<Vector256<int>> step,
             int cosBit,
-            Av1TransformStageRange stageRange);
+            InlineArray12<byte> stageRange);
     }
 }

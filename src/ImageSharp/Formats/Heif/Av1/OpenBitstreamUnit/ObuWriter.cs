@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Buffers.Binary;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -11,8 +12,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 /// <summary>
 /// Writes the AV1 open bitstream units required for a single still-image frame.
 /// </summary>
-internal class ObuWriter
+internal sealed class ObuWriter
 {
+    // Sequence and uncompressed-frame syntax have fixed field and array limits. A 512-byte owner covers their
+    // maximum supported representation without retaining any entropy-coded tile bytes in the header scratch.
+    private const int MaximumHeaderLength = 512;
+
     /// <summary>
     /// Writes a temporal delimiter and the supplied sequence and frame OBUs.
     /// </summary>
@@ -27,11 +32,11 @@ internal class ObuWriter
         Justification = "Preserves the existing writer instance contract.")]
     public void WriteAll(Configuration configuration, Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, IAv1TileWriter tileWriter)
     {
-        // The reusable scratch only contains headers. Entropy-coded tiles remain in their owning
-        // buffers and are streamed directly so the complete compressed frame is never duplicated.
-        int initialBufferSize = 2000;
-        using AutoExpandingMemory<byte> buffer = new(configuration, initialBufferSize);
-        Av1BitStreamWriter writer = new(buffer);
+        // The reusable scratch only contains headers. Entropy-coded tiles remain in their owning buffers and are
+        // streamed directly so the complete compressed frame is never duplicated.
+        using IMemoryOwner<byte> headerOwner = configuration.MemoryAllocator.Allocate<byte>(MaximumHeaderLength);
+        Span<byte> headerBuffer = headerOwner.Memory.Span[..MaximumHeaderLength];
+        Av1BitStreamWriter writer = new(headerBuffer);
         WriteObuHeaderAndSize(stream, ObuType.TemporalDelimiter, []);
 
         if (sequenceHeader != null)
@@ -39,7 +44,7 @@ internal class ObuWriter
             WriteSequenceHeader(ref writer, sequenceHeader);
             int bytesWritten = (writer.BitPosition + 7) >> 3;
             writer.Flush();
-            WriteObuHeaderAndSize(stream, ObuType.SequenceHeader, buffer.GetSpan(bytesWritten));
+            WriteObuHeaderAndSize(stream, ObuType.SequenceHeader, headerBuffer[..bytesWritten]);
         }
 
         if (frameHeader != null && sequenceHeader != null)
@@ -67,7 +72,7 @@ internal class ObuWriter
             }
 
             WriteObuHeaderAndSize(stream, ObuType.Frame, framePayloadSize);
-            stream.Write(buffer.GetSpan(frameHeaderBytes));
+            stream.Write(headerBuffer[..frameHeaderBytes]);
 
             if (tileInfo != null)
             {

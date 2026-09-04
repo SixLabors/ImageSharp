@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
 using SixLabors.ImageSharp.ColorProfiles;
@@ -39,7 +40,7 @@ public class HeifEncoderTests
     {
         HeifEncoder encoder = new();
 
-        Assert.Equal(HeifCompressionMethod.LegacyJpeg, encoder.CompressionMethod);
+        Assert.Equal(HeifCompressionMethod.Av1, encoder.CompressionMethod);
         Assert.Null(encoder.Quality);
         Assert.Null(encoder.AlphaQuality);
         Assert.Equal(5, encoder.Effort);
@@ -91,7 +92,11 @@ public class HeifEncoderTests
         using Image<Rgba32> image = new(1, 1);
         image[0, 0] = new Rgba32(10, 20, 30);
         using MemoryStream stream = new();
-        HeifEncoder encoder = new() { Quality = 0 };
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.LegacyJpeg,
+            Quality = 0
+        };
 
         image.Save(stream, encoder);
 
@@ -109,7 +114,9 @@ public class HeifEncoderTests
         using MemoryStream storage = new();
         using NonSeekableStream destination = new(storage);
 
-        image.Save(destination, new HeifEncoder());
+        image.Save(
+            destination,
+            new HeifEncoder { CompressionMethod = HeifCompressionMethod.LegacyJpeg });
 
         Assert.NotEqual(0, storage.Length);
         storage.Position = 0;
@@ -126,7 +133,9 @@ public class HeifEncoderTests
         stream.Write([1, 2, 3, 4]);
         long fileStart = stream.Position;
 
-        image.Save(stream, new HeifEncoder());
+        image.Save(
+            stream,
+            new HeifEncoder { CompressionMethod = HeifCompressionMethod.LegacyJpeg });
 
         stream.Position = fileStart;
         using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
@@ -141,7 +150,11 @@ public class HeifEncoderTests
         using Image<Rgb24> image = new(8, 8);
         image.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.ProfileRandomArray);
         using MemoryStream stream = new();
-        HeifEncoder encoder = new() { SkipMetadata = skipMetadata };
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.LegacyJpeg,
+            SkipMetadata = skipMetadata
+        };
 
         image.Save(stream, encoder);
 
@@ -162,7 +175,11 @@ public class HeifEncoderTests
     {
         using Image<Rgba32> image = new(1, 1);
         using MemoryStream stream = new();
-        HeifEncoder encoder = new() { Lossless = true };
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.LegacyJpeg,
+            Lossless = true
+        };
 
         Assert.Throws<NotSupportedException>(() => image.Save(stream, encoder));
         Assert.Equal(0, stream.Length);
@@ -175,7 +192,11 @@ public class HeifEncoderTests
     {
         using Image<Rgba32> image = new(1, 1);
         using MemoryStream stream = new();
-        HeifEncoder encoder = new() { BitDepth = bitDepth };
+        HeifEncoder encoder = new()
+        {
+            CompressionMethod = HeifCompressionMethod.LegacyJpeg,
+            BitDepth = bitDepth
+        };
 
         Assert.Throws<NotSupportedException>(() => image.Save(stream, encoder));
         Assert.Equal(0, stream.Length);
@@ -349,6 +370,12 @@ public class HeifEncoderTests
         }
 
         image.Metadata.CicpProfile = new CicpProfile(1, 13, 0, true);
+        image.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.ProfileRandomArray);
+        ExifProfile exifProfile = new();
+        exifProfile.SetValue(ExifTag.Software, "ImageSharp AV1 sequence");
+        image.Metadata.ExifProfile = exifProfile;
+        byte[] xmpData = Encoding.UTF8.GetBytes("<xmp>ImageSharp AV1 sequence</xmp>");
+        image.Metadata.XmpProfile = new XmpProfile(xmpData);
         image.Metadata.GetHeifMetadata().RepeatCount = repeatCount;
         using MemoryStream stream = new();
         HeifEncoder encoder = new()
@@ -363,10 +390,19 @@ public class HeifEncoderTests
         Assert.Equal((uint)Heif4CharCode.Avis, BinaryPrimitives.ReadUInt32BigEndian(file.AsSpan(8)));
 
         stream.Position = 0;
-        using Image<Rgba32> decoded = Image.Load<Rgba32>(stream);
+        DecoderOptions preserveOptions = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        using Image<Rgba32> decoded = Image.Load<Rgba32>(preserveOptions, stream);
         Assert.Equal(frameCount, decoded.Frames.Count);
         Assert.Equal(repeatCount, decoded.Metadata.GetHeifMetadata().RepeatCount);
         Assert.Empty(ImageComparer.Exact.CompareImages(image, decoded));
+        Assert.Equal(
+            IccTestDataProfiles.ProfileRandomArray,
+            Assert.IsType<IccProfile>(decoded.Metadata.IccProfile).ToByteArray());
+
+        ExifProfile decodedExif = Assert.IsType<ExifProfile>(decoded.Metadata.ExifProfile);
+        Assert.True(decodedExif.TryGetValue(ExifTag.Software, out IExifValue<string> software));
+        Assert.Equal("ImageSharp AV1 sequence", software.Value);
+        Assert.Equal(xmpData, Assert.IsType<XmpProfile>(decoded.Metadata.XmpProfile).ToByteArray());
         for (int frameIndex = 0; frameIndex < frameCount; frameIndex++)
         {
             Assert.Equal(
@@ -382,6 +418,10 @@ public class HeifEncoderTests
         image.Frames.AddFrame(image.Frames.RootFrame);
         image.Frames.RootFrame.Metadata.GetHeifMetadata().FrameDelay = new Rational(1, 10);
         image.Frames[1].Metadata.GetHeifMetadata().FrameDelay = new Rational(1, 20);
+        image.Metadata.IccProfile = new IccProfile(IccTestDataProfiles.ProfileRandomArray);
+        image.Metadata.ExifProfile = new ExifProfile();
+        image.Metadata.ExifProfile.SetValue(ExifTag.Software, "suppressed");
+        image.Metadata.XmpProfile = new XmpProfile(Encoding.UTF8.GetBytes("<xmp>suppressed</xmp>"));
         using MemoryStream storage = new();
         storage.Write([1, 2, 3, 4]);
         long fileStart = storage.Position;
@@ -389,7 +429,8 @@ public class HeifEncoderTests
         HeifEncoder encoder = new()
         {
             CompressionMethod = HeifCompressionMethod.Av1,
-            Effort = 0
+            Effort = 0,
+            SkipMetadata = true
         };
 
         image.Save(destination, encoder);
@@ -397,6 +438,9 @@ public class HeifEncoderTests
         using Image<Rgb24> decoded = Image.Load<Rgb24>(storage);
         Assert.Equal(image.Size, decoded.Size);
         Assert.Equal(image.Frames.Count, decoded.Frames.Count);
+        Assert.Null(decoded.Metadata.IccProfile);
+        Assert.Null(decoded.Metadata.ExifProfile);
+        Assert.Null(decoded.Metadata.XmpProfile);
     }
 
     [Theory]
@@ -867,9 +911,10 @@ public class HeifEncoderTests
 
         alphaItem.SetExtent(new Size(64, 48));
         List<HeifItem> items = [colorItem, alphaItem];
-        using AutoExpandingMemory<byte> memory = new(Configuration.Default, 16);
-        int length = HeifEncoderCore.WriteItemPropertiesBox(memory, 0, items);
-        ReadOnlySpan<byte> propertyBox = memory.GetSpan(length);
+        int expectedLength = HeifEncoderCore.GetItemPropertiesBoxLength(items);
+        using IMemoryOwner<byte> owner = Configuration.Default.MemoryAllocator.Allocate<byte>(expectedLength);
+        Span<byte> propertyBox = owner.Memory.Span[..expectedLength];
+        int length = HeifEncoderCore.WriteItemPropertiesBox(propertyBox, 0, items);
 
         Assert.Equal(length, BinaryPrimitives.ReadInt32BigEndian(propertyBox));
         Assert.Equal(Heif4CharCode.Iprp, (Heif4CharCode)BinaryPrimitives.ReadUInt32BigEndian(propertyBox[4..]));
@@ -970,9 +1015,10 @@ public class HeifEncoderTests
             new HeifItem(Heif4CharCode.Mime, 3)
         ];
 
-        using AutoExpandingMemory<byte> memory = new(Configuration.Default, 16);
-        int length = HeifEncoderCore.WriteItemPropertiesBox(memory, 0, items);
-        ReadOnlySpan<byte> propertyBox = memory.GetSpan(length);
+        int expectedLength = HeifEncoderCore.GetItemPropertiesBoxLength(items);
+        using IMemoryOwner<byte> owner = Configuration.Default.MemoryAllocator.Allocate<byte>(expectedLength);
+        Span<byte> propertyBox = owner.Memory.Span[..expectedLength];
+        int length = HeifEncoderCore.WriteItemPropertiesBox(propertyBox, 0, items);
         const int IpcoOffset = 8;
         int ipcoEnd = IpcoOffset + BinaryPrimitives.ReadInt32BigEndian(propertyBox[IpcoOffset..]);
         int propertyOffset = IpcoOffset + 8;
@@ -1034,9 +1080,10 @@ public class HeifEncoderTests
             items.Add(item);
         }
 
-        using AutoExpandingMemory<byte> memory = new(Configuration.Default, 16);
-        int length = HeifEncoderCore.WriteItemPropertiesBox(memory, 0, items);
-        ReadOnlySpan<byte> propertyBox = memory.GetSpan(length);
+        int expectedLength = HeifEncoderCore.GetItemPropertiesBoxLength(items);
+        using IMemoryOwner<byte> owner = Configuration.Default.MemoryAllocator.Allocate<byte>(expectedLength);
+        Span<byte> propertyBox = owner.Memory.Span[..expectedLength];
+        int length = HeifEncoderCore.WriteItemPropertiesBox(propertyBox, 0, items);
         const int IpcoOffset = 8;
         int ipcoSize = BinaryPrimitives.ReadInt32BigEndian(propertyBox[IpcoOffset..]);
         int ipmaOffset = IpcoOffset + ipcoSize;
@@ -1061,7 +1108,7 @@ public class HeifEncoderTests
         HeifMetadata metadata = image.Metadata.GetHeifMetadata();
         metadata.CompressionMethod = HeifCompressionMethod.Av1;
         using MemoryStream stream = new();
-        HeifEncoder encoder = new();
+        HeifEncoder encoder = new() { CompressionMethod = HeifCompressionMethod.LegacyJpeg };
 
         image.Save(stream, encoder);
 
@@ -1076,7 +1123,7 @@ public class HeifEncoderTests
     {
         using Image<TPixel> image = provider.GetImage(new MagickReferenceDecoder(HeifFormat.Instance));
         using MemoryStream stream = new();
-        HeifEncoder encoder = new();
+        HeifEncoder encoder = new() { CompressionMethod = compressionMethod };
         image.Save(stream, encoder);
         stream.Position = 0;
 

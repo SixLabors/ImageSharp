@@ -24,7 +24,7 @@ internal static partial class Av1Inverse2dTransformer
         /// <param name="step">The stage buffer owned by the containing two-dimensional transform.</param>
         /// <param name="cosBit">The fixed-point precision of the sine constants.</param>
         /// <param name="stageRange">The signed-bit range assigned to each transform stage.</param>
-        public static void Transform(ReadOnlySpan<int> input, Span<int> output, Span<int> step, int cosBit, Av1TransformStageRange stageRange)
+        public static void Transform(ReadOnlySpan<int> input, Span<int> output, Span<int> step, int cosBit, InlineArray12<byte> stageRange)
         {
             ReadOnlySpan<int> sinpi = Av1SinusConstants.SinusPi(cosBit);
 
@@ -79,7 +79,7 @@ internal static partial class Av1Inverse2dTransformer
             ref Av1TransformVector<Vector128<int>> output,
             ref Av1TransformVector<Vector128<int>> step,
             int cosBit,
-            Av1TransformStageRange stageRange)
+            InlineArray12<byte> stageRange)
         {
             bool widenedRound = stageRange[0] >= Av1Transform1dMath.WidenedIntermediateBitCount;
 
@@ -115,7 +115,7 @@ internal static partial class Av1Inverse2dTransformer
             ref Av1TransformVector<Vector256<int>> output,
             ref Av1TransformVector<Vector256<int>> step,
             int cosBit,
-            Av1TransformStageRange stageRange)
+            InlineArray12<byte> stageRange)
         {
             bool widenedRound = stageRange[0] >= Av1Transform1dMath.WidenedIntermediateBitCount;
 

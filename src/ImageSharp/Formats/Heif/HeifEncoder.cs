@@ -25,9 +25,9 @@ public sealed class HeifEncoder : AnimatedImageEncoder
 
     /// <summary>
     /// Gets the compression method used for the primary image item.
-    /// The default is <see cref="HeifCompressionMethod.LegacyJpeg"/>.
+    /// The default is <see cref="HeifCompressionMethod.Av1"/>.
     /// </summary>
-    public HeifCompressionMethod CompressionMethod { get; init; } = HeifCompressionMethod.LegacyJpeg;
+    public HeifCompressionMethod CompressionMethod { get; init; } = HeifCompressionMethod.Av1;
 
     /// <summary>
     /// Gets the lossy compression quality, or <see langword="null"/> to use the compression method's default quality.

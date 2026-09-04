@@ -11,6 +11,7 @@ public sealed class HeifConfigurationModule : IImageFormatConfigurationModule
     /// <inheritdoc/>
     public void Configure(Configuration configuration)
     {
+        configuration.ImageFormatsManager.SetEncoder(HeifFormat.Instance, new HeifEncoder());
         configuration.ImageFormatsManager.SetDecoder(HeifFormat.Instance, HeifDecoder.Instance);
         configuration.ImageFormatsManager.AddImageFormatDetector(new HeifImageFormatDetector());
     }

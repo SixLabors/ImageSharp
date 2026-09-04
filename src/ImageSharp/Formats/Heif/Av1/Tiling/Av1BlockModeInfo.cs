@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
@@ -462,18 +461,5 @@ internal struct Av1BlockModeInfo
         {
             this.chromaPaletteColorIndexBounds = bounds;
         }
-    }
-
-    /// <summary>
-    /// Provides fixed storage for the two values associated with AV1's primary and secondary inter references.
-    /// </summary>
-    /// <typeparam name="T">The stored reference label, motion vector, or interpolation-filter type.</typeparam>
-    [InlineArray(2)]
-    private struct InlineArray2<T>
-    {
-        /// <summary>
-        /// The first element in the compiler-expanded inline buffer.
-        /// </summary>
-        private T element;
     }
 }

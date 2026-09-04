@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -1365,30 +1364,4 @@ internal sealed class Av1ReferenceMotionVectors
             Av1PredictionMode.NewNearestMotionVector or
             Av1PredictionMode.NearNewMotionVector or
             Av1PredictionMode.NewNearMotionVector;
-
-    /// <summary>
-    /// Provides fixed storage for AV1's eight reference-motion-vector candidates.
-    /// </summary>
-    /// <typeparam name="T">The motion-vector or weight type stored in the inline buffer.</typeparam>
-    [InlineArray(CandidateCapacity)]
-    private struct InlineArray8<T>
-    {
-        /// <summary>
-        /// The first element in the compiler-expanded inline buffer.
-        /// </summary>
-        private T element;
-    }
-
-    /// <summary>
-    /// Provides fixed storage for the nearest and near motion-vector references.
-    /// </summary>
-    /// <typeparam name="T">The motion-vector type stored in the inline buffer.</typeparam>
-    [InlineArray(2)]
-    private struct InlineArray2<T>
-    {
-        /// <summary>
-        /// The first element in the compiler-expanded inline buffer.
-        /// </summary>
-        private T element;
-    }
 }

@@ -2,7 +2,6 @@
 // Licensed under the Six Labors Split License.
 
 using System.Diagnostics.CodeAnalysis;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -33,13 +32,4 @@ internal struct Av1EncoderPredictionUnit
     /// Gets or sets the packed chroma-from-luma alpha signs for the U and V planes.
     /// </summary>
     public sbyte ChromaFromLumaSigns { get; set; }
-
-    /// <summary>
-    /// Stores the two signed angle deltas embedded by libaom in block mode information.
-    /// </summary>
-    [InlineArray(Av1Constants.PlaneTypeCount)]
-    private struct InlineArray2<T>
-    {
-        private T element;
-    }
 }

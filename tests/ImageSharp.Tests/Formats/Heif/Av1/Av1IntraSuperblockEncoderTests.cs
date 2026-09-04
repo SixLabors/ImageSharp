@@ -211,7 +211,7 @@ public class Av1IntraSuperblockEncoderTests
             SuperblockOrigin = default
         };
 
-        using Av1SymbolEncoder writer = new(Configuration.Default, 512, 73);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 512, 73, updateCdf: true);
         Av1TileWriter.WriteSuperblock(
             picture,
             entropyContext,
@@ -255,15 +255,18 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderSuperblockWorkspace tileSuperblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace tileBlockWorkspace = new(Configuration.Default);
-        using Av1IntraTileWriter tileWriter = new(
-            Configuration.Default,
+        using Av1SymbolEncoder tileSymbolEncoder = CreateTileSymbolEncoder(
+            tilePicture.Picture,
+            512);
+
+        Av1IntraTileWriter tileWriter = new(
+            tileSymbolEncoder,
             source.Frame,
             tileReconstruction.Frame,
             tilePicture.Picture,
             tileCoefficients,
             tileSuperblockWorkspace,
             tileBlockWorkspace,
-            initialSize: 512,
             effort: 5);
 
         // The production tile traversal must be byte-identical to the explicit analyze-then-write composition above.
@@ -364,7 +367,7 @@ public class Av1IntraSuperblockEncoderTests
             SuperblockOrigin = default
         };
 
-        using Av1SymbolEncoder writer = new(Configuration.Default, 256, 37);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 256, 37, updateCdf: true);
         Av1TileWriter.WriteSuperblock(
             picture,
             entropyContext,
@@ -406,15 +409,18 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderSuperblockWorkspace liveSuperblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace liveBlockWorkspace = new(Configuration.Default);
-        using Av1IntraTileWriter liveTileWriter = new(
-            Configuration.Default,
+        using Av1SymbolEncoder liveSymbolEncoder = CreateTileSymbolEncoder(
+            livePicture.Picture,
+            256);
+
+        Av1IntraTileWriter liveTileWriter = new(
+            liveSymbolEncoder,
             source.Frame,
             liveReconstruction.Frame,
             livePicture.Picture,
             liveCoefficients,
             liveSuperblockWorkspace,
             liveBlockWorkspace,
-            initialSize: 256,
             effort: 5);
 
         Assert.True(precomputedTile.GetSpan().SequenceEqual(liveTileWriter.GetTileData(0)));
@@ -531,15 +537,18 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderSuperblockWorkspace tileSuperblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace tileBlockWorkspace = new(Configuration.Default);
-        using Av1IntraTileWriter tileWriter = new(
-            Configuration.Default,
+        using Av1SymbolEncoder tileSymbolEncoder = CreateTileSymbolEncoder(
+            tilePicture.Picture,
+            256);
+
+        Av1IntraTileWriter tileWriter = new(
+            tileSymbolEncoder,
             source.Frame,
             tileReconstruction.Frame,
             tilePicture.Picture,
             tileCoefficients,
             tileSuperblockWorkspace,
             tileBlockWorkspace,
-            initialSize: 256,
             effort: 5);
 
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
@@ -603,7 +612,7 @@ public class Av1IntraSuperblockEncoderTests
 
         int[] costs = new int[2];
         BlockCostRecorder blockEncoder = new(costs, QIndex);
-        using Av1SymbolEncoder writer = new(Configuration.Default, 256, QIndex);
+        using Av1SymbolEncoder writer = new(Configuration.Default, 256, QIndex, updateCdf: true);
         Av1TileWriter.WriteSuperblock(
             picture.Picture,
             entropyContext,
@@ -696,7 +705,7 @@ public class Av1IntraSuperblockEncoderTests
             };
 
             PaletteBlockEncoder blockEncoder = new(workspace, QIndex, mapVariant);
-            using Av1SymbolEncoder writer = new(Configuration.Default, 128, QIndex);
+            using Av1SymbolEncoder writer = new(Configuration.Default, 128, QIndex, updateCdf: true);
             Av1TileWriter.WriteSuperblock(
                 picture,
                 entropyContext,
@@ -739,16 +748,15 @@ public class Av1IntraSuperblockEncoderTests
             (byte)224,
             32,
             224,
-            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new Av1IntraTileWriter(
-                    Configuration.Default,
+                    writer,
                     source,
                     reconstruction,
                     picture,
                     coefficients,
                     superblockWorkspace,
                     blockWorkspace,
-                    initialSize: 256,
                     effort: 5));
 
         AssertProductionTileSelectsExactLumaPalette(
@@ -761,16 +769,15 @@ public class Av1IntraSuperblockEncoderTests
             (ushort)3584,
             512,
             3584,
-            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new Av1IntraTileWriter(
-                    Configuration.Default,
+                    writer,
                     source,
                     reconstruction,
                     picture,
                     coefficients,
                     superblockWorkspace,
                     blockWorkspace,
-                    initialSize: 256,
                     effort: 5));
 
         AssertProductionTileSelectsExactLumaPalette(
@@ -783,16 +790,15 @@ public class Av1IntraSuperblockEncoderTests
             (byte)208,
             48,
             208,
-            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new Av1IntraTileWriter(
-                    Configuration.Default,
+                    writer,
                     source,
                     reconstruction,
                     picture,
                     coefficients,
                     superblockWorkspace,
                     blockWorkspace,
-                    initialSize: 256,
                     effort: 5));
     }
 
@@ -809,16 +815,15 @@ public class Av1IntraSuperblockEncoderTests
             (byte)192,
             64,
             192,
-            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new Av1IntraTileWriter(
-                    Configuration.Default,
+                    writer,
                     source,
                     reconstruction,
                     picture,
                     coefficients,
                     superblockWorkspace,
                     blockWorkspace,
-                    initialSize: 256,
                     effort: 6));
 
         AssertProductionTileSelectsExactLumaPalette(
@@ -831,16 +836,15 @@ public class Av1IntraSuperblockEncoderTests
             (ushort)3072,
             1024,
             3072,
-            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new Av1IntraTileWriter(
-                    Configuration.Default,
+                    writer,
                     source,
                     reconstruction,
                     picture,
                     coefficients,
                     superblockWorkspace,
                     blockWorkspace,
-                    initialSize: 256,
                     effort: 6));
     }
 
@@ -938,15 +942,18 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
-        using Av1IntraTileWriter tileWriter = new(
-            Configuration.Default,
+        using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(
+            picture.Picture,
+            256);
+
+        Av1IntraTileWriter tileWriter = new(
+            symbolEncoder,
             source.Frame,
             reconstruction.Frame,
             picture.Picture,
             coefficients,
             superblockWorkspace,
             blockWorkspace,
-            initialSize: 256,
             effort: 5);
 
         ref Av1MacroBlockModeInfo mode = ref picture.Picture.GetMacroBlockModeInfo(default);
@@ -1151,15 +1158,18 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
-        using Av1IntraTileWriter tileWriter = new(
-            Configuration.Default,
+        using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(
+            picture.Picture,
+            512);
+
+        Av1IntraTileWriter tileWriter = new(
+            symbolEncoder,
             source.Frame,
             reconstruction.Frame,
             picture.Picture,
             coefficients,
             superblockWorkspace,
             blockWorkspace,
-            initialSize: 512,
             effort: 5);
 
         ref Av1MacroBlockModeInfo targetBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(2, 2));
@@ -1265,15 +1275,18 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
-        using Av1IntraTileWriter tileWriter = new(
-            Configuration.Default,
+        using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(
+            picture.Picture,
+            512);
+
+        Av1IntraTileWriter tileWriter = new(
+            symbolEncoder,
             source.Frame,
             reconstruction.Frame,
             picture.Picture,
             coefficients,
             superblockWorkspace,
             blockWorkspace,
-            initialSize: 512,
             effort: 5);
 
         ref Av1MacroBlockModeInfo targetBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(2, 2));
@@ -1306,16 +1319,15 @@ public class Av1IntraSuperblockEncoderTests
         => VerifyProductionTileSelectsChromaFromReconstructedLuma<byte>(
             colorFormatValue,
             8,
-            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(
-                    Configuration.Default,
+                    writer,
                     source,
                     reconstruction,
                     picture,
                     coefficients,
                     superblockWorkspace,
                     blockWorkspace,
-                    initialSize: 512,
                     effort: 5));
 
     [Theory]
@@ -1331,16 +1343,15 @@ public class Av1IntraSuperblockEncoderTests
         => VerifyProductionTileSelectsChromaFromReconstructedLuma<ushort>(
             colorFormatValue,
             bitDepth,
-            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(
-                    Configuration.Default,
+                    writer,
                     source,
                     reconstruction,
                     picture,
                     coefficients,
                     superblockWorkspace,
                     blockWorkspace,
-                    initialSize: 512,
                     effort: 5));
 
     private static void VerifyProductionTileSelectsChromaFromReconstructedLuma<TSample>(
@@ -1352,6 +1363,7 @@ public class Av1IntraSuperblockEncoderTests
         const int Width = 16;
         const int Height = 16;
         const int QIndex = 1;
+        const int TileBufferLength = 512;
         const int AlphaU = 16;
         const int AlphaV = -16;
         Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
@@ -1426,7 +1438,12 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderSuperblockWorkspace pilotSuperblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace pilotBlockWorkspace = new(Configuration.Default);
-        using Av1IntraTileWriter pilotWriter = createWriter(
+        using Av1SymbolEncoder pilotSymbolEncoder = CreateTileSymbolEncoder(
+            pilotPicture.Picture,
+            TileBufferLength);
+
+        Av1IntraTileWriter pilotWriter = createWriter(
+            pilotSymbolEncoder,
             pilotSource.Frame,
             pilotReconstruction.Frame,
             pilotPicture.Picture,
@@ -1528,7 +1545,12 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
-        using Av1IntraTileWriter tileWriter = createWriter(
+        using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(
+            picture.Picture,
+            TileBufferLength);
+
+        Av1IntraTileWriter tileWriter = createWriter(
+            symbolEncoder,
             source.Frame,
             reconstruction.Frame,
             picture.Picture,
@@ -1584,16 +1606,15 @@ public class Av1IntraSuperblockEncoderTests
             filterIntraModeValue,
             8,
             false,
-            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(
-                    Configuration.Default,
+                    writer,
                     source,
                     reconstruction,
                     picture,
                     coefficients,
                     superblockWorkspace,
                     blockWorkspace,
-                    initialSize: 512,
                     effort: 5),
             static (mode, destination, stride, above, left, width, height, _, scratch) =>
                 Av1FilterIntraPredictorBase.GetPredictor(mode)
@@ -1617,16 +1638,15 @@ public class Av1IntraSuperblockEncoderTests
             filterIntraModeValue,
             bitDepth,
             false,
-            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(
-                    Configuration.Default,
+                    writer,
                     source,
                     reconstruction,
                     picture,
                     coefficients,
                     superblockWorkspace,
                     blockWorkspace,
-                    initialSize: 512,
                     effort: 5),
             static (mode, destination, stride, above, left, width, height, sampleBitDepth, scratch) =>
                 Av1FilterIntraPredictorBase.GetPredictor(mode)
@@ -1646,16 +1666,15 @@ public class Av1IntraSuperblockEncoderTests
             (int)Av1FilterIntraMode.DC,
             8,
             true,
-            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(
-                    Configuration.Default,
+                    writer,
                     source,
                     reconstruction,
                     picture,
                     coefficients,
                     superblockWorkspace,
                     blockWorkspace,
-                    initialSize: 512,
                     effort: 6),
             static (mode, destination, stride, above, left, width, height, _, scratch) =>
                 Av1FilterIntraPredictorBase.GetPredictor(mode)
@@ -1669,16 +1688,15 @@ public class Av1IntraSuperblockEncoderTests
             (int)Av1FilterIntraMode.DC,
             bitDepth,
             true,
-            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(
-                    Configuration.Default,
+                    writer,
                     source,
                     reconstruction,
                     picture,
                     coefficients,
                     superblockWorkspace,
                     blockWorkspace,
-                    initialSize: 512,
                     effort: 6),
             static (mode, destination, stride, above, left, width, height, sampleBitDepth, scratch) =>
                 Av1FilterIntraPredictorBase.GetPredictor(mode)
@@ -1703,6 +1721,7 @@ public class Av1IntraSuperblockEncoderTests
         const int Width = 16;
         const int Height = 16;
         const int QIndex = 37;
+        const int TileBufferLength = 512;
         const int TargetX = 8;
         const int TargetY = 8;
         const Av1TransformSize TransformSize = Av1TransformSize.Size8x8;
@@ -1769,7 +1788,12 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderSuperblockWorkspace pilotSuperblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace pilotBlockWorkspace = new(Configuration.Default);
-        using Av1IntraTileWriter pilotWriter = createWriter(
+        using Av1SymbolEncoder pilotSymbolEncoder = CreateTileSymbolEncoder(
+            pilotPicture.Picture,
+            TileBufferLength);
+
+        Av1IntraTileWriter pilotWriter = createWriter(
+            pilotSymbolEncoder,
             pilotSource.Frame,
             pilotReconstruction.Frame,
             pilotPicture.Picture,
@@ -1926,7 +1950,12 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
-        using Av1IntraTileWriter tileWriter = createWriter(
+        using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(
+            picture.Picture,
+            TileBufferLength);
+
+        Av1IntraTileWriter tileWriter = createWriter(
+            symbolEncoder,
             source.Frame,
             reconstruction.Frame,
             picture.Picture,
@@ -2125,15 +2154,18 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
-        using Av1IntraTileWriter tileWriter = new(
-            Configuration.Default,
+        using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(
+            picture.Picture,
+            2048);
+
+        Av1IntraTileWriter tileWriter = new(
+            symbolEncoder,
             source.Frame,
             reconstruction.Frame,
             picture.Picture,
             coefficients,
             superblockWorkspace,
             blockWorkspace,
-            initialSize: 2048,
             effort: 5);
 
         ref Av1MacroBlockModeInfo topRightBlock = ref picture.Picture.GetMacroBlockModeInfo(new Point(0, 2));
@@ -2150,32 +2182,30 @@ public class Av1IntraSuperblockEncoderTests
             Av1BitDepth.EightBit,
             8,
             static value => (byte)value,
-            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new Av1IntraTileWriter(
-                    Configuration.Default,
+                    writer,
                     source,
                     reconstruction,
                     picture,
                     coefficients,
                     superblockWorkspace,
                     blockWorkspace,
-                    initialSize: 4096,
                     effort: 5));
 
         VerifyProductionTileSelectsIntraBlockCopy(
             Av1BitDepth.TwelveBit,
             12,
             static value => (ushort)(value << 4),
-            static (source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new Av1IntraTileWriter(
-                    Configuration.Default,
+                    writer,
                     source,
                     reconstruction,
                     picture,
                     coefficients,
                     superblockWorkspace,
                     blockWorkspace,
-                    initialSize: 4096,
                     effort: 5));
     }
 
@@ -2189,6 +2219,7 @@ public class Av1IntraSuperblockEncoderTests
         const int Width = 328;
         const int Height = 8;
         const int QIndex = 1;
+        const int TileBufferLength = 4096;
         const int ReferenceColumn = 0;
         const int TargetColumn = 320;
         ObuColorConfig colorConfig = new()
@@ -2268,7 +2299,12 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
-        using Av1IntraTileWriter tileWriter = createTileWriter(
+        using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(
+            picture.Picture,
+            TileBufferLength);
+
+        Av1IntraTileWriter tileWriter = createTileWriter(
+            symbolEncoder,
             source.Frame,
             reconstruction.Frame,
             picture.Picture,
@@ -2396,15 +2432,18 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
-        using Av1IntraTileWriter tileWriter = new(
-            Configuration.Default,
+        using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(
+            picture.Picture,
+            4096);
+
+        Av1IntraTileWriter tileWriter = new(
+            symbolEncoder,
             source.Frame,
             reconstruction.Frame,
             picture.Picture,
             coefficients,
             superblockWorkspace,
             blockWorkspace,
-            initialSize: 4096,
             effort: 5);
 
         Point targetModeInfoPosition = new(TargetColumn >> Av1Constants.ModeInfoSizeLog2, 0);
@@ -2507,15 +2546,18 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
-        using Av1IntraTileWriter tileWriter = new(
-            Configuration.Default,
+        using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(
+            picture.Picture,
+            4096);
+
+        Av1IntraTileWriter tileWriter = new(
+            symbolEncoder,
             source.Frame,
             reconstruction.Frame,
             picture.Picture,
             coefficients,
             superblockWorkspace,
             blockWorkspace,
-            initialSize: 4096,
             effort: 5);
 
         Assert.Equal(4, coefficients.SuperblockCount);
@@ -2672,6 +2714,7 @@ public class Av1IntraSuperblockEncoderTests
         where TSample : unmanaged, IBinaryInteger<TSample>
     {
         const int QIndex = 37;
+        const int TileBufferLength = 256;
         ObuColorConfig colorConfig = new()
         {
             IsMonochrome = true,
@@ -2766,7 +2809,12 @@ public class Av1IntraSuperblockEncoderTests
 
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
-        using Av1IntraTileWriter tileWriter = createTileWriter(
+        using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(
+            picture.Picture,
+            TileBufferLength);
+
+        Av1IntraTileWriter tileWriter = createTileWriter(
+            symbolEncoder,
             source.Frame,
             reconstruction.Frame,
             picture.Picture,
@@ -2980,7 +3028,24 @@ public class Av1IntraSuperblockEncoderTests
         }
     }
 
+    /// <summary>
+    /// Creates the operation owner for a production tile's entropy state and bounded output memory.
+    /// </summary>
+    /// <param name="picture">The picture supplying quantization and CDF-update settings.</param>
+    /// <param name="bufferLength">The bounded output allocation length in bytes.</param>
+    /// <returns>The symbol encoder that must remain alive while the tile output is consumed.</returns>
+    private static Av1SymbolEncoder CreateTileSymbolEncoder(Av1PictureControlSet picture, int bufferLength)
+    {
+        ObuFrameHeader frameHeader = picture.Parent.FrameHeader;
+        return new Av1SymbolEncoder(
+            Configuration.Default,
+            bufferLength,
+            frameHeader.QuantizationParameters.BaseQIndex,
+            updateCdf: !frameHeader.DisableCdfUpdate);
+    }
+
     private delegate Av1IntraTileWriter TileWriterFactory<TSample>(
+        Av1SymbolEncoder writer,
         Av1EncoderFrame<TSample> source,
         Av1EncoderFrame<TSample> reconstruction,
         Av1PictureControlSet picture,

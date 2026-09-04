@@ -3449,17 +3449,4 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         /// </summary>
         public Buffer2D<byte> Chroma { get; } = chroma;
     }
-
-    /// <summary>
-    /// Provides inline storage for the two self-guided restoration coefficients of each of the three AV1 planes.
-    /// </summary>
-    /// <typeparam name="T">The stored value type.</typeparam>
-    [InlineArray(6)]
-    private struct InlineArray6<T>
-    {
-        /// <summary>
-        /// The first element in the compiler-expanded inline buffer.
-        /// </summary>
-        private T element;
-    }
 }

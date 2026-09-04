@@ -1,12 +1,10 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using SixLabors.ImageSharp.Memory;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1;
 
 /// <summary>
-/// Writes AV1 fixed-width and variable-length syntax to reusable expanding memory.
+/// Writes AV1 fixed-width and variable-length syntax to a caller-provided buffer.
 /// </summary>
 internal ref struct Av1BitStreamWriter
 {
@@ -16,19 +14,9 @@ internal ref struct Av1BitStreamWriter
     private const int WordSize = 8;
 
     /// <summary>
-    /// The expanding output allocation.
+    /// The writable output buffer.
     /// </summary>
-    private readonly AutoExpandingMemory<byte> memory;
-
-    /// <summary>
-    /// The current writable view over <see cref="memory"/>.
-    /// </summary>
-    private Span<byte> span;
-
-    /// <summary>
-    /// The final byte index that can be written without expanding <see cref="memory"/>.
-    /// </summary>
-    private int capacityTrigger;
+    private readonly Span<byte> span;
 
     /// <summary>
     /// The partially assembled output byte.
@@ -38,12 +26,10 @@ internal ref struct Av1BitStreamWriter
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1BitStreamWriter"/> struct.
     /// </summary>
-    /// <param name="memory">The reusable expanding output allocation.</param>
-    public Av1BitStreamWriter(AutoExpandingMemory<byte> memory)
+    /// <param name="span">The preallocated output buffer.</param>
+    public Av1BitStreamWriter(Span<byte> span)
     {
-        this.memory = memory;
-        this.span = memory.GetEntireSpan();
-        this.capacityTrigger = memory.Capacity - 1;
+        this.span = span;
     }
 
     /// <summary>
@@ -54,7 +40,7 @@ internal ref struct Av1BitStreamWriter
     /// <summary>
     /// Gets the current output capacity in bytes.
     /// </summary>
-    public readonly int Capacity => this.memory.Capacity;
+    public readonly int Capacity => this.span.Length;
 
     /// <summary>
     /// Encodes an unsigned 32-bit value using little-endian base-128 bytes.
@@ -155,14 +141,6 @@ internal ref struct Av1BitStreamWriter
     public void WriteLittleEndianBytes128(uint value)
     {
         int wordPosition = this.BitPosition >> 3;
-        const int maximumEncodedLength = 5;
-        if (this.span.Length - wordPosition < maximumEncodedLength)
-        {
-            this.memory.GetSpan(wordPosition + maximumEncodedLength);
-            this.span = this.memory.GetEntireSpan();
-            this.capacityTrigger = this.span.Length - 1;
-        }
-
         int bytesWritten = GetLittleEndianBytes128(value, this.span[wordPosition..]);
         this.BitPosition += bytesWritten << 3;
     }
@@ -237,30 +215,16 @@ internal ref struct Av1BitStreamWriter
         DebugGuard.IsTrue(Av1Math.Modulus8(this.BitPosition) == 0, "Writing of Tile Data only allowed on byte alignment");
 
         int wordPosition = this.BitPosition >> 3;
-        if (this.span.Length < wordPosition + tileData.Length)
-        {
-            this.memory.GetSpan(wordPosition + tileData.Length);
-            this.span = this.memory.GetEntireSpan();
-        }
-
         tileData.CopyTo(this.span[wordPosition..]);
         this.BitPosition += tileData.Length << 3;
     }
 
     /// <summary>
-    /// Stores the current output byte, expanding the allocation when necessary.
+    /// Stores the current output byte.
     /// </summary>
     private void WriteBuffer()
     {
         int wordPosition = Av1Math.DivideBy8Floor(this.BitPosition);
-        if (wordPosition > this.capacityTrigger)
-        {
-            // Expand the memory allocation.
-            this.memory.GetSpan(wordPosition + 1);
-            this.span = this.memory.GetEntireSpan();
-            this.capacityTrigger = this.span.Length - 1;
-        }
-
         this.span[wordPosition] = this.buffer;
         this.buffer = 0;
     }

@@ -1,14 +1,17 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Text;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.IO;
 using SixLabors.ImageSharp.Memory;
+using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.PixelFormats;
@@ -20,6 +23,30 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 /// </summary>
 internal sealed partial class HeifEncoderCore
 {
+    // ISO BMFF box lengths include their size and type fields. Full boxes also include version and flags.
+    private const int BasicBoxHeaderLength = 8;
+    private const int FullBoxHeaderLength = 12;
+    private const int HandlerBoxLength = 33;
+    private const int PrimaryItemBoxLength = 14;
+    private const int ItemInformationBoxFixedLength = 14;
+    private const int ItemInformationEntryFixedLength = 21;
+    private const int ItemReferenceBoxFixedLength = 12;
+    private const int ItemReferenceEntryFixedLength = 12;
+    private const int ItemPropertiesBoxFixedLength = 32;
+    private const int PropertyAssociationEntryFixedLength = 3;
+    private const int ItemLocationBoxFixedLength = 16;
+    private const int ItemLocationEntryFixedLength = 8;
+    private const int ItemExtentLength = 12;
+    private const int SpatialExtentPropertyBoxLength = 20;
+    private const int PixelInformationPropertyBoxFixedLength = 13;
+    private const int Av1CodecConfigurationPropertyBoxLength = BasicBoxHeaderLength + Av1CodecConfiguration.FixedHeaderSize;
+    private const int AuxiliaryTypePropertyBoxFixedLength = 13;
+    private const int IccColorInformationPropertyBoxFixedLength = 12;
+    private const int CicpColorInformationPropertyBoxLength = 19;
+    private const int MaximumCompactPropertyIndex = 0x7F;
+    private const ushort EssentialPropertyFlag = 0x8000;
+    private const byte CompactEssentialPropertyFlag = 0x80;
+
     /// <summary>
     /// The global configuration.
     /// </summary>
@@ -58,10 +85,16 @@ internal sealed partial class HeifEncoderCore
         if (this.encoder.CompressionMethod == HeifCompressionMethod.Av1 && image.Frames.Count > 1)
         {
             Av1EncodingSettings settings = this.ResolveAv1Encoding(image);
+            int sampleCount = image.Frames.Count * (settings.HasAlpha ? 2 : 1);
+            using IMemoryOwner<HeifSequenceSampleInfo> samplesOwner =
+                this.configuration.MemoryAllocator.Allocate<HeifSequenceSampleInfo>(sampleCount);
+
+            Memory<HeifSequenceSampleInfo> samples = samplesOwner.Memory[..sampleCount];
             HeifSequenceEncoding sequence = this.CompressAv1Sequence(
                 image,
                 compressedPixels,
                 settings,
+                samples,
                 cancellationToken);
 
             int fileTypeLength = this.WriteSequenceFileTypeBox(stream);
@@ -199,8 +232,10 @@ internal sealed partial class HeifEncoderCore
     /// <param name="stream">The destination stream positioned after the file-type box.</param>
     private void WriteMetadataBox(List<HeifItem> items, List<HeifItemLink> links, long metadataBoxOffset, Stream stream)
     {
-        using AutoExpandingMemory<byte> memory = new(this.configuration, 0x1000);
-        Span<byte> buffer = memory.GetSpan(12);
+        int metadataLength = GetMetadataBoxLength(items, links);
+        using IMemoryOwner<byte> metadataOwner = this.configuration.MemoryAllocator.Allocate<byte>(metadataLength);
+        Span<byte> memory = metadataOwner.Memory.Span[..metadataLength];
+        Span<byte> buffer = memory[..FullBoxHeaderLength];
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Meta, 0, 0);
         bytesWritten += WriteHandlerBox(memory, bytesWritten);
         bytesWritten += WritePrimaryItemBox(memory, bytesWritten);
@@ -208,7 +243,7 @@ internal sealed partial class HeifEncoderCore
         if (links.Count > 0)
         {
             // iref is optional and has no meaning without at least one typed item relationship.
-            bytesWritten += WriteItemReferenceBox(memory, bytesWritten, items, links);
+            bytesWritten += WriteItemReferenceBox(memory, bytesWritten, links);
         }
 
         bytesWritten += WriteItemPropertiesBox(memory, bytesWritten, items);
@@ -219,23 +254,130 @@ internal sealed partial class HeifEncoderCore
         bytesWritten += WriteItemLocationBox(memory, bytesWritten, items, 0);
 
         // The mdat payload immediately follows the completed meta box and its own eight-byte header.
-        long mediaDataOffset = checked(metadataBoxOffset + bytesWritten + 8);
+        long mediaDataOffset = checked(metadataBoxOffset + bytesWritten + BasicBoxHeaderLength);
         WriteItemLocationBox(memory, itemLocationOffset, items, mediaDataOffset);
 
-        buffer = memory.GetSpan(bytesWritten);
+        buffer = memory[..bytesWritten];
         BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
         stream.Write(buffer);
+    }
+
+    private static int GetMetadataBoxLength(List<HeifItem> items, List<HeifItemLink> links)
+    {
+        // All variable-length strings, profiles, relationships, properties, and extents are resolved before
+        // allocating the metadata box, so writing it never needs to re-rent or copy a backing buffer.
+        return checked(
+            FullBoxHeaderLength
+            + HandlerBoxLength
+            + PrimaryItemBoxLength
+            + GetItemInformationBoxLength(items)
+            + (links.Count == 0 ? 0 : GetItemReferenceBoxLength(links))
+            + GetItemPropertiesBoxLength(items)
+            + GetItemLocationBoxLength(items));
+    }
+
+    private static int GetItemInformationBoxLength(List<HeifItem> items)
+    {
+        long length = ItemInformationBoxFixedLength;
+        foreach (HeifItem item in items)
+        {
+            length += ItemInformationEntryFixedLength + Encoding.UTF8.GetByteCount(item.Name ?? string.Empty);
+            if (item.Type == Heif4CharCode.Mime)
+            {
+                length += 1 + Encoding.UTF8.GetByteCount(item.ContentType ?? string.Empty);
+                if (item.ContentEncoding is not null)
+                {
+                    length += 1 + Encoding.UTF8.GetByteCount(item.ContentEncoding);
+                }
+            }
+        }
+
+        return checked((int)length);
+    }
+
+    private static int GetItemReferenceBoxLength(List<HeifItemLink> links)
+    {
+        long length = ItemReferenceBoxFixedLength;
+        foreach (HeifItemLink link in links)
+        {
+            length += ItemReferenceEntryFixedLength + ((long)link.DestinationIds.Count * sizeof(ushort));
+        }
+
+        return checked((int)length);
+    }
+
+    /// <summary>
+    /// Gets the exact number of bytes required for the item-properties box.
+    /// </summary>
+    /// <param name="items">The items whose properties and associations are counted.</param>
+    /// <returns>The complete item-properties-box length.</returns>
+    public static int GetItemPropertiesBoxLength(List<HeifItem> items)
+    {
+        long propertyCount = 0;
+        long associationItemCount = 0;
+        long propertyBytes = 0;
+        foreach (HeifItem item in items)
+        {
+            int itemPropertyCount = GetPropertyCount(item);
+            propertyCount += itemPropertyCount;
+            associationItemCount += itemPropertyCount == 0 ? 0 : 1;
+
+            propertyBytes += item.Extent == default ? 0 : SpatialExtentPropertyBoxLength;
+            if (item.ChannelBitDepths is not null)
+            {
+                propertyBytes += PixelInformationPropertyBoxFixedLength + item.ChannelBitDepths.Length;
+            }
+            else if (item.UniformChannelBitDepth is not null)
+            {
+                propertyBytes += PixelInformationPropertyBoxFixedLength + item.ChannelCount;
+            }
+
+            propertyBytes += item.Av1CodecConfiguration is null
+                ? 0
+                : Av1CodecConfigurationPropertyBoxLength;
+            propertyBytes += item.AuxiliaryType is null
+                ? 0
+                : AuxiliaryTypePropertyBoxFixedLength + Encoding.UTF8.GetByteCount(item.AuxiliaryType);
+            propertyBytes += item.IccProfile is null
+                ? 0
+                : IccColorInformationPropertyBoxFixedLength + item.GetIccProfileDataForWriting().Length;
+            propertyBytes += item.CicpProfile is null ? 0 : CicpColorInformationPropertyBoxLength;
+        }
+
+        int associationSize = propertyCount > MaximumCompactPropertyIndex ? sizeof(ushort) : sizeof(byte);
+        long length = ItemPropertiesBoxFixedLength
+            + propertyBytes
+            + (associationItemCount * PropertyAssociationEntryFixedLength)
+            + (propertyCount * associationSize);
+
+        return checked((int)length);
+    }
+
+    private static int GetItemLocationBoxLength(List<HeifItem> items)
+    {
+        long extentCount = 0;
+        foreach (HeifItem item in items)
+        {
+            extentCount += item.DataLocations.Count;
+        }
+
+        long length =
+            ItemLocationBoxFixedLength
+            + ((long)items.Count * ItemLocationEntryFixedLength)
+            + (extentCount * ItemExtentLength);
+
+        return checked((int)length);
     }
 
     /// <summary>
     /// Writes the picture metadata handler box.
     /// </summary>
-    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memory">The preallocated metadata buffer.</param>
     /// <param name="memoryOffset">The destination offset within the metadata box.</param>
     /// <returns>The complete handler-box length.</returns>
-    private static int WriteHandlerBox(AutoExpandingMemory<byte> memory, int memoryOffset)
+    private static int WriteHandlerBox(Span<byte> memory, int memoryOffset)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 33);
+        Span<byte> buffer = memory.Slice(memoryOffset, HandlerBoxLength);
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Hdlr, 0, 0);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], 0);
         bytesWritten += 4;
@@ -253,12 +395,12 @@ internal sealed partial class HeifEncoderCore
     /// <summary>
     /// Writes the identifier of the primary presentation item.
     /// </summary>
-    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memory">The preallocated metadata buffer.</param>
     /// <param name="memoryOffset">The destination offset within the metadata box.</param>
     /// <returns>The complete primary-item-box length.</returns>
-    private static int WritePrimaryItemBox(AutoExpandingMemory<byte> memory, int memoryOffset)
+    private static int WritePrimaryItemBox(Span<byte> memory, int memoryOffset)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 14);
+        Span<byte> buffer = memory.Slice(memoryOffset, PrimaryItemBoxLength);
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Pitm, 0, 0);
         BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], 1);
         bytesWritten += 2;
@@ -270,27 +412,13 @@ internal sealed partial class HeifEncoderCore
     /// <summary>
     /// Writes the item-information box and one version-two entry for each item.
     /// </summary>
-    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memory">The preallocated metadata buffer.</param>
     /// <param name="memoryOffset">The destination offset within the metadata box.</param>
     /// <param name="items">The items to declare.</param>
     /// <returns>The complete item-information-box length.</returns>
-    private static int WriteItemInfoBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items)
+    private static int WriteItemInfoBox(Span<byte> memory, int memoryOffset, List<HeifItem> items)
     {
-        int capacity = 14;
-        foreach (HeifItem item in items)
-        {
-            capacity += 21 + Encoding.UTF8.GetByteCount(item.Name ?? string.Empty);
-            if (item.Type == Heif4CharCode.Mime)
-            {
-                capacity += 1 + Encoding.UTF8.GetByteCount(item.ContentType ?? string.Empty);
-                if (item.ContentEncoding is not null)
-                {
-                    capacity += 1 + Encoding.UTF8.GetByteCount(item.ContentEncoding);
-                }
-            }
-        }
-
-        Span<byte> buffer = memory.GetSpan(memoryOffset, capacity);
+        Span<byte> buffer = memory.Slice(memoryOffset, GetItemInformationBoxLength(items));
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Iinf, 0, 0);
         BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)items.Count);
         bytesWritten += 2;
@@ -327,14 +455,13 @@ internal sealed partial class HeifEncoderCore
     /// <summary>
     /// Writes typed item-reference child boxes using 16-bit item identifiers.
     /// </summary>
-    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memory">The preallocated metadata buffer.</param>
     /// <param name="memoryOffset">The destination offset within the metadata box.</param>
-    /// <param name="items">The declared items used to size the destination.</param>
     /// <param name="links">The relationships to write.</param>
     /// <returns>The complete item-reference-box length.</returns>
-    private static int WriteItemReferenceBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items, List<HeifItemLink> links)
+    private static int WriteItemReferenceBox(Span<byte> memory, int memoryOffset, List<HeifItemLink> links)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 12 + (links.Count * (12 + (items.Count * 2))));
+        Span<byte> buffer = memory.Slice(memoryOffset, GetItemReferenceBoxLength(links));
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Iref, 0, 0);
         foreach (HeifItemLink link in links)
         {
@@ -360,13 +487,13 @@ internal sealed partial class HeifEncoderCore
     /// <summary>
     /// Writes spatial-extent properties and their one-based item associations.
     /// </summary>
-    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memory">The preallocated metadata buffer.</param>
     /// <param name="memoryOffset">The destination offset within the metadata box.</param>
     /// <param name="items">The items whose dimensions are written and associated.</param>
     /// <returns>The complete item-properties-box length.</returns>
-    public static int WriteItemPropertiesBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items)
+    public static int WriteItemPropertiesBox(Span<byte> memory, int memoryOffset, List<HeifItem> items)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 20);
+        Span<byte> buffer = memory.Slice(memoryOffset, GetItemPropertiesBoxLength(items));
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Iprp);
 
         // ipco order defines the one-based property indices written later in ipma.
@@ -412,7 +539,7 @@ internal sealed partial class HeifEncoderCore
             IccProfile? iccProfile = item.IccProfile;
             if (iccProfile is not null)
             {
-                bytesWritten += WriteIccColorInformationPropertyBox(memory, memoryOffset + bytesWritten, iccProfile);
+                bytesWritten += WriteIccColorInformationPropertyBox(memory, memoryOffset + bytesWritten, item.GetIccProfileDataForWriting());
             }
 
             CicpProfile? cicpProfile = item.CicpProfile;
@@ -422,11 +549,9 @@ internal sealed partial class HeifEncoderCore
             }
         }
 
-        buffer = memory.GetSpan(memoryOffset, bytesWritten);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[ipcoLengthOffset..], (uint)(bytesWritten - ipcoLengthOffset));
         int propertyCount = 0;
         int associationItemCount = 0;
-        int associationBoxCapacity = 16;
         foreach (HeifItem item in items)
         {
             int itemPropertyCount = GetPropertyCount(item);
@@ -437,16 +562,9 @@ internal sealed partial class HeifEncoderCore
 
             propertyCount += itemPropertyCount;
             associationItemCount++;
-            associationBoxCapacity += 3 + itemPropertyCount;
         }
 
-        bool largePropertyIndex = propertyCount > 0x7F;
-        if (largePropertyIndex)
-        {
-            associationBoxCapacity += propertyCount;
-        }
-
-        buffer = memory.GetSpan(memoryOffset, bytesWritten + associationBoxCapacity);
+        bool largePropertyIndex = propertyCount > MaximumCompactPropertyIndex;
 
         // ipma uses a 15-bit index only when the property table cannot fit in the compact seven-bit form.
         int ipmaLengthOffset = bytesWritten;
@@ -537,29 +655,29 @@ internal sealed partial class HeifEncoderCore
     {
         if (largePropertyIndex)
         {
-            ushort association = essential ? (ushort)(propertyIndex | 0x8000) : propertyIndex;
+            ushort association = essential ? (ushort)(propertyIndex | EssentialPropertyFlag) : propertyIndex;
             BinaryPrimitives.WriteUInt16BigEndian(buffer[offset..], association);
             offset += 2;
         }
         else
         {
-            buffer[offset++] = essential ? (byte)(propertyIndex | 0x80) : (byte)propertyIndex;
+            buffer[offset++] = essential ? (byte)(propertyIndex | CompactEssentialPropertyFlag) : (byte)propertyIndex;
         }
     }
 
     /// <summary>
     /// Writes the encoded precision of each image channel.
     /// </summary>
-    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memory">The preallocated metadata buffer.</param>
     /// <param name="memoryOffset">The destination offset within the property container.</param>
     /// <param name="channelBitDepths">The encoded precision of each channel.</param>
     /// <returns>The complete pixel-information-box length.</returns>
     private static int WritePixelInformationPropertyBox(
-        AutoExpandingMemory<byte> memory,
+        Span<byte> memory,
         int memoryOffset,
         ReadOnlySpan<byte> channelBitDepths)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 13 + channelBitDepths.Length);
+        Span<byte> buffer = memory.Slice(memoryOffset, PixelInformationPropertyBoxFixedLength + channelBitDepths.Length);
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Pixi, 0, 0);
         buffer[bytesWritten++] = (byte)channelBitDepths.Length;
         channelBitDepths.CopyTo(buffer[bytesWritten..]);
@@ -572,18 +690,18 @@ internal sealed partial class HeifEncoderCore
     /// <summary>
     /// Writes one common encoded precision for every image channel.
     /// </summary>
-    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memory">The preallocated metadata buffer.</param>
     /// <param name="memoryOffset">The destination offset within the property container.</param>
     /// <param name="channelCount">The number of encoded image channels.</param>
     /// <param name="channelBitDepth">The common encoded precision.</param>
     /// <returns>The complete pixel-information-box length.</returns>
     private static int WritePixelInformationPropertyBox(
-        AutoExpandingMemory<byte> memory,
+        Span<byte> memory,
         int memoryOffset,
         int channelCount,
         byte channelBitDepth)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 13 + channelCount);
+        Span<byte> buffer = memory.Slice(memoryOffset, PixelInformationPropertyBoxFixedLength + channelCount);
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Pixi, 0, 0);
         buffer[bytesWritten++] = (byte)channelCount;
         buffer.Slice(bytesWritten, channelCount).Fill(channelBitDepth);
@@ -596,16 +714,16 @@ internal sealed partial class HeifEncoderCore
     /// <summary>
     /// Writes an AV1 codec-configuration property.
     /// </summary>
-    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memory">The preallocated metadata buffer.</param>
     /// <param name="memoryOffset">The destination offset within the property container.</param>
     /// <param name="configuration">The fixed image configuration.</param>
     /// <returns>The complete AV1 codec-configuration-box length.</returns>
     private static int WriteAv1CodecConfigurationPropertyBox(
-        AutoExpandingMemory<byte> memory,
+        Span<byte> memory,
         int memoryOffset,
         Av1CodecConfiguration configuration)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 8 + Av1CodecConfiguration.FixedHeaderSize);
+        Span<byte> buffer = memory.Slice(memoryOffset, Av1CodecConfigurationPropertyBoxLength);
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Av1C);
         configuration.WriteFixedHeader(buffer.Slice(bytesWritten, Av1CodecConfiguration.FixedHeaderSize));
         bytesWritten += Av1CodecConfiguration.FixedHeaderSize;
@@ -617,17 +735,17 @@ internal sealed partial class HeifEncoderCore
     /// <summary>
     /// Writes the registered type of an auxiliary image item.
     /// </summary>
-    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memory">The preallocated metadata buffer.</param>
     /// <param name="memoryOffset">The destination offset within the property container.</param>
     /// <param name="auxiliaryType">The null-terminated registered auxiliary type.</param>
     /// <returns>The complete auxiliary-type-box length.</returns>
     private static int WriteAuxiliaryTypePropertyBox(
-        AutoExpandingMemory<byte> memory,
+        Span<byte> memory,
         int memoryOffset,
         string auxiliaryType)
     {
         int auxiliaryTypeLength = Encoding.UTF8.GetByteCount(auxiliaryType);
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 13 + auxiliaryTypeLength);
+        Span<byte> buffer = memory.Slice(memoryOffset, AuxiliaryTypePropertyBoxFixedLength + auxiliaryTypeLength);
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.AuxC, 0, 0);
         bytesWritten += Encoding.UTF8.GetBytes(auxiliaryType, buffer[bytesWritten..]);
         buffer[bytesWritten++] = 0;
@@ -639,17 +757,16 @@ internal sealed partial class HeifEncoderCore
     /// <summary>
     /// Writes an unrestricted ICC color profile for a color image item.
     /// </summary>
-    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memory">The preallocated metadata buffer.</param>
     /// <param name="memoryOffset">The destination offset within the property container.</param>
-    /// <param name="profile">The ICC profile to write.</param>
+    /// <param name="profileData">The serialized ICC profile to write.</param>
     /// <returns>The complete color-information-box length.</returns>
     private static int WriteIccColorInformationPropertyBox(
-        AutoExpandingMemory<byte> memory,
+        Span<byte> memory,
         int memoryOffset,
-        IccProfile profile)
+        ReadOnlyMemory<byte> profileData)
     {
-        ReadOnlyMemory<byte> profileData = profile.GetDataForWriting();
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 12 + profileData.Length);
+        Span<byte> buffer = memory.Slice(memoryOffset, IccColorInformationPropertyBoxFixedLength + profileData.Length);
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Colr);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Prof);
         bytesWritten += 4;
@@ -663,16 +780,16 @@ internal sealed partial class HeifEncoderCore
     /// <summary>
     /// Writes an H.273 color description for a color image item.
     /// </summary>
-    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memory">The preallocated metadata buffer.</param>
     /// <param name="memoryOffset">The destination offset within the property container.</param>
     /// <param name="profile">The color description to write.</param>
     /// <returns>The complete color-information-box length.</returns>
     private static int WriteColorInformationPropertyBox(
-        AutoExpandingMemory<byte> memory,
+        Span<byte> memory,
         int memoryOffset,
         CicpProfile profile)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 19);
+        Span<byte> buffer = memory.Slice(memoryOffset, CicpColorInformationPropertyBoxLength);
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Colr);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Nclx);
         bytesWritten += 4;
@@ -691,13 +808,13 @@ internal sealed partial class HeifEncoderCore
     /// <summary>
     /// Writes an item's display width and height as an image-spatial-extents property.
     /// </summary>
-    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memory">The preallocated metadata buffer.</param>
     /// <param name="memoryOffset">The destination offset within the property container.</param>
     /// <param name="item">The item whose extent is written.</param>
     /// <returns>The complete image-spatial-extents-box length.</returns>
-    private static int WriteSpatialExtentPropertyBox(AutoExpandingMemory<byte> memory, int memoryOffset, HeifItem item)
+    private static int WriteSpatialExtentPropertyBox(Span<byte> memory, int memoryOffset, HeifItem item)
     {
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 20);
+        Span<byte> buffer = memory.Slice(memoryOffset, SpatialExtentPropertyBoxLength);
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Ispe, 0, 0);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)item.Extent.Width);
         bytesWritten += 4;
@@ -711,15 +828,14 @@ internal sealed partial class HeifEncoderCore
     /// <summary>
     /// Writes version-one file-relative locations for every ordered item extent.
     /// </summary>
-    /// <param name="memory">The expanding metadata buffer.</param>
+    /// <param name="memory">The preallocated metadata buffer.</param>
     /// <param name="memoryOffset">The destination offset within the metadata box.</param>
     /// <param name="items">The items and relative payload extents to locate.</param>
     /// <param name="mediaDataOffset">The absolute stream offset of the media-data payload.</param>
     /// <returns>The complete item-location-box length.</returns>
-    private static int WriteItemLocationBox(AutoExpandingMemory<byte> memory, int memoryOffset, List<HeifItem> items, long mediaDataOffset)
+    private static int WriteItemLocationBox(Span<byte> memory, int memoryOffset, List<HeifItem> items, long mediaDataOffset)
     {
-        int extentCount = items.Sum(item => item.DataLocations.Count);
-        Span<byte> buffer = memory.GetSpan(memoryOffset, 16 + (items.Count * 8) + (extentCount * 12));
+        Span<byte> buffer = memory.Slice(memoryOffset, GetItemLocationBoxLength(items));
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Iloc, 1, 0);
 
         // The high and low nibbles select eight-byte offsets and four-byte lengths. Base offsets and extent indices
@@ -782,7 +898,7 @@ internal sealed partial class HeifEncoderCore
 
         // External quantizer zero maps to the codec's lossless qindex. Keep quality 100 lossy as its public contract requires.
         quantizer = Math.Max(quantizer, 1);
-        return quantizer < 62 ? quantizer * 4 : quantizer == 62 ? 249 : 255;
+        return Av1QuantizationLookup.GetQIndex(quantizer);
     }
 
     /// <summary>
@@ -802,6 +918,19 @@ internal sealed partial class HeifEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
+        byte[]? exifData = null;
+        uint tiffHeaderOffset = 0;
+        byte[]? xmpData = null;
+        if (!this.encoder.SkipMetadata)
+        {
+            exifData = GetExifData(image.Metadata, out tiffHeaderOffset);
+            byte[]? sourceXmpData = image.Metadata.XmpProfile?.Data;
+            if (sourceXmpData is not null && sourceXmpData.Length > 0)
+            {
+                xmpData = sourceXmpData;
+            }
+        }
+
         Av1EncodingSettings settings = this.ResolveAv1Encoding(image);
         cancellationToken.ThrowIfCancellationRequested();
         ObuSequenceHeader colorHeader = Av1FrameEncoder.Encode(
@@ -863,40 +992,11 @@ internal sealed partial class HeifEncoderCore
             return;
         }
 
-        byte[]? exifData = image.Metadata.ExifProfile?.ToByteArray();
-        if (exifData is not null && exifData.Length > 0)
+        if (exifData is not null)
         {
-            int tiffHeaderOffset = -1;
-
-            // The HEIF Exif prefix identifies the first TIFF byte-order marker, which can follow an optional Exif
-            // identifier in profiles supplied directly by callers.
-            for (int i = 0; i <= exifData.Length - 4; i++)
-            {
-                bool isBigEndianTiff = exifData[i] == (byte)'M'
-                    && exifData[i + 1] == (byte)'M'
-                    && exifData[i + 2] == 0
-                    && exifData[i + 3] == 42;
-
-                bool isLittleEndianTiff = exifData[i] == (byte)'I'
-                    && exifData[i + 1] == (byte)'I'
-                    && exifData[i + 2] == 42
-                    && exifData[i + 3] == 0;
-
-                if (isBigEndianTiff || isLittleEndianTiff)
-                {
-                    tiffHeaderOffset = i;
-                    break;
-                }
-            }
-
-            if (tiffHeaderOffset < 0)
-            {
-                throw new ImageFormatException("The Exif profile does not contain a TIFF header.");
-            }
-
             long exifOffset = stream.Length;
             Span<byte> offsetBuffer = stackalloc byte[4];
-            BinaryPrimitives.WriteUInt32BigEndian(offsetBuffer, (uint)tiffHeaderOffset);
+            BinaryPrimitives.WriteUInt32BigEndian(offsetBuffer, tiffHeaderOffset);
             stream.Write(offsetBuffer);
             stream.Write(exifData);
 
@@ -918,8 +1018,7 @@ internal sealed partial class HeifEncoderCore
             links.Add(exifLink);
         }
 
-        byte[]? xmpData = image.Metadata.XmpProfile?.Data;
-        if (xmpData is not null && xmpData.Length > 0)
+        if (xmpData is not null)
         {
             long xmpOffset = stream.Length;
             stream.Write(xmpData);
@@ -941,6 +1040,44 @@ internal sealed partial class HeifEncoderCore
             xmpLink.DestinationIds.Add(colorItem.Id);
             links.Add(xmpLink);
         }
+    }
+
+    /// <summary>
+    /// Materializes the caller's Exif profile once and locates the TIFF header addressed by HEIF's four-byte prefix.
+    /// </summary>
+    /// <param name="metadata">The source image metadata.</param>
+    /// <param name="tiffHeaderOffset">The byte offset of the TIFF header within the returned profile.</param>
+    /// <returns>The serialized profile, or <see langword="null"/> when the source has no Exif payload.</returns>
+    private static byte[]? GetExifData(ImageMetadata metadata, out uint tiffHeaderOffset)
+    {
+        byte[]? exifData = metadata.ExifProfile?.ToByteArray();
+        if (exifData is null || exifData.Length == 0)
+        {
+            tiffHeaderOffset = 0;
+            return null;
+        }
+
+        // A directly supplied profile can retain the optional Exif identifier before its TIFF byte-order marker.
+        for (int i = 0; i <= exifData.Length - 4; i++)
+        {
+            bool isBigEndianTiff = exifData[i] == (byte)'M'
+                && exifData[i + 1] == (byte)'M'
+                && exifData[i + 2] == 0
+                && exifData[i + 3] == 42;
+
+            bool isLittleEndianTiff = exifData[i] == (byte)'I'
+                && exifData[i + 1] == (byte)'I'
+                && exifData[i + 2] == 42
+                && exifData[i + 3] == 0;
+
+            if (isBigEndianTiff || isLittleEndianTiff)
+            {
+                tiffHeaderOffset = (uint)i;
+                return exifData;
+            }
+        }
+
+        throw new ImageFormatException("The Exif profile does not contain a TIFF header.");
     }
 
     /// <summary>

@@ -1,8 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 
 /// <summary>
@@ -138,18 +136,5 @@ internal sealed class Av1FrameEntropyContexts
                 return;
             }
         }
-    }
-
-    /// <summary>
-    /// Provides inline storage for every entropy snapshot graph that one decoder session can allocate concurrently.
-    /// </summary>
-    /// <typeparam name="T">The stored reference type.</typeparam>
-    [InlineArray(MaximumSnapshotCount)]
-    private struct InlineArray10<T>
-    {
-        /// <summary>
-        /// The first element in the compiler-expanded inline buffer.
-        /// </summary>
-        private T element;
     }
 }

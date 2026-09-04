@@ -10,34 +10,20 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 /// </summary>
 internal static class Av1QuantizationLookup
 {
-    // Coefficient scaling and quantization with AV1 TX are tailored to
-    // the AV1 TX transforms.  Regardless of the bit-depth of the input,
-    // the transform stages scale the coefficient values up by a factor of
-    // 8 (3 bits) over the scale of the pixel values.  Thus, for 8-bit
-    // input, the coefficients have effectively 11 bits of scale depth
-    // (8+3), 10-bit input pixels result in 13-bit coefficient depth
-    // (10+3) and 12-bit pixels yield 15-bit (12+3) coefficient depth.
-    // All quantizers are built using this invariant of x8, 3-bit scaling,
-    // thus the Q3 suffix.
+    private const int LinearQuantizerScale = 4;
+    private const int LastLinearQuantizer = 61;
+    private const int PenultimateQuantizer = 62;
+    private const int PenultimateQuantizerIndex = 249;
 
-    // A partial exception to this rule is large transforms; to avoid
-    // overflow, TX blocks with > 256 pels (>16x16) are scaled only
-    // 4-times unity (2 bits) over the pixel depth, and TX blocks with
-    // over 1024 pixels (>32x32) are scaled up only 2x unity (1 bit).
-    // This descaling is found via av1_tx_get_scale().  Thus, 16x32, 32x16
-    // and 32x32 transforms actually return Q2 coefficients, and 32x64,
-    // 64x32 and 64x64 transforms return Q1 coefficients.  However, the
-    // quantizers are de-scaled down on-the-fly by the same amount
-    // (av1_tx_get_scale()) during quantization, and as such the
-    // dequantized/decoded coefficients, even for large TX blocks, are always
-    // effectively Q3. Meanwhile, quantized/coded coefficients are Q0
-    // because Qn quantizers are applied to Qn tx coefficients.
+    // AV1 transforms normally retain three fractional coefficient bits. The quantizer tables use the same Q3
+    // scale, leaving coded coefficients in Q0 and reconstructed coefficients in Q3.
 
-    // Note that encoder decision making (which uses the quantizer to
-    // generate several bespoke lamdas for RDO and other heuristics)
-    // expects quantizers to be larger for higher-bitdepth input.  In
-    // addition, the minimum allowable quantizer is 4; smaller values will
-    // underflow to 0 in the actual quantization routines.
+    // Transforms larger than 16x16 reduce coefficient scaling by one bit, and transforms larger than 32x32 reduce
+    // it by two bits to preserve numeric range. Quantization applies the same reduction to its step, so every
+    // reconstructed transform still reaches the inverse transform in Q3.
+
+    // Encoder rate decisions intentionally retain bit-depth-specific quantizer values. The minimum table value is
+    // four because a smaller step would round to zero during fixed-point quantization.
 
     /// <summary>
     /// The Q3 AC dequantization values for 8-bit samples, indexed by quantizer index.
@@ -161,6 +147,23 @@ internal static class Av1QuantizationLookup
         8945,  9104,  9275,  9450,  9639,  9832,  10031, 10245, 10465, 10702, 10946, 11210, 11482, 11776, 12081, 12409,
         12750, 13118, 13501, 13913, 14343, 14807, 15290, 15812, 16356, 16943, 17575, 18237, 18949, 19718, 20521, 21387,
     ];
+
+    /// <summary>
+    /// Converts a quantizer on libaom's external zero-through-63 scale to an AV1 quantizer index.
+    /// </summary>
+    /// <param name="quantizer">The external quantizer.</param>
+    /// <returns>The corresponding AV1 quantizer index.</returns>
+    public static int GetQIndex(int quantizer)
+    {
+        // Four qindex steps separate the regular entries. The final two entries use 249 and 255 so the external
+        // scale reaches AV1's complete qindex range without changing the spacing of its first 62 entries.
+        if (quantizer <= LastLinearQuantizer)
+        {
+            return quantizer * LinearQuantizerScale;
+        }
+
+        return quantizer == PenultimateQuantizer ? PenultimateQuantizerIndex : Av1Constants.MaxQ;
+    }
 
     /// <summary>
     /// Gets the DC dequantization value after applying a plane delta to the frame quantizer index.

@@ -355,15 +355,15 @@ internal static class WebpChunkParsingUtils
         bool ignoreMetadata)
     {
         Span<byte> buffer = stackalloc byte[4];
-        uint iccpChunkSize = ReadChunkSize(stream, buffer);
+        int iccpChunkSize = ValidateMetadataChunkSize(stream, ReadChunkSize(stream, buffer), "ICCP");
         if (ignoreMetadata || metadata.IccProfile != null)
         {
-            stream.Skip((int)iccpChunkSize);
+            stream.Skip(iccpChunkSize);
         }
         else
         {
             byte[] iccpData = new byte[iccpChunkSize];
-            int bytesRead = stream.Read(iccpData, 0, (int)iccpChunkSize);
+            int bytesRead = stream.Read(iccpData, 0, iccpChunkSize);
             if (bytesRead != iccpChunkSize)
             {
                 WebpThrowHelper.ThrowInvalidImageContentException("Not enough data to read the iccp chunk");
@@ -391,15 +391,15 @@ internal static class WebpChunkParsingUtils
         bool ignoreMetadata)
     {
         Span<byte> buffer = stackalloc byte[4];
-        uint exifChunkSize = ReadChunkSize(stream, buffer);
+        int exifChunkSize = ValidateMetadataChunkSize(stream, ReadChunkSize(stream, buffer), "EXIF");
         if (ignoreMetadata || metadata.ExifProfile != null)
         {
-            stream.Skip((int)exifChunkSize);
+            stream.Skip(exifChunkSize);
         }
         else
         {
             byte[] exifData = new byte[exifChunkSize];
-            int bytesRead = stream.Read(exifData, 0, (int)exifChunkSize);
+            int bytesRead = stream.Read(exifData, 0, exifChunkSize);
             if (bytesRead != exifChunkSize)
             {
                 WebpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for the EXIF profile");
@@ -434,15 +434,15 @@ internal static class WebpChunkParsingUtils
         bool ignoreMetadata)
     {
         Span<byte> buffer = stackalloc byte[4];
-        uint xmpChunkSize = ReadChunkSize(stream, buffer);
+        int xmpChunkSize = ValidateMetadataChunkSize(stream, ReadChunkSize(stream, buffer), "XMP");
         if (ignoreMetadata || metadata.XmpProfile != null)
         {
-            stream.Skip((int)xmpChunkSize);
+            stream.Skip(xmpChunkSize);
         }
         else
         {
             byte[] xmpData = new byte[xmpChunkSize];
-            int bytesRead = stream.Read(xmpData, 0, (int)xmpChunkSize);
+            int bytesRead = stream.Read(xmpData, 0, xmpChunkSize);
             if (bytesRead != xmpChunkSize)
             {
                 WebpThrowHelper.ThrowInvalidImageContentException("Could not read enough data for the XMP profile");
@@ -450,6 +450,16 @@ internal static class WebpChunkParsingUtils
 
             metadata.XmpProfile = new XmpProfile(xmpData);
         }
+    }
+
+    private static int ValidateMetadataChunkSize(BufferedReadStream stream, uint chunkSize, string chunkName)
+    {
+        if (chunkSize > int.MaxValue || chunkSize > stream.Length - stream.Position)
+        {
+            WebpThrowHelper.ThrowInvalidImageContentException($"Not enough data to read the {chunkName} chunk");
+        }
+
+        return (int)chunkSize;
     }
 
     private static double GetExifResolutionValue(ExifProfile exifProfile, ExifTag<Rational> tag)

@@ -228,4 +228,14 @@ public class WebpMetaDataTests
             using Image<Rgba32> image = Image.Load<Rgba32>(options, stream);
         });
     }
+
+    [Fact]
+    public void Decode_WithOversizedIccChunk_ThrowsInvalidImageContentException()
+    {
+        byte[] payload = Convert.FromHexString(
+            "524946462200000057454250565038580A0000002000000000000000000049434350FEFFFFFF01020304");
+
+        Assert.Throws<InvalidImageContentException>(() => Image.Load(payload));
+        Assert.Throws<InvalidImageContentException>(() => Image.Identify(payload));
+    }
 }

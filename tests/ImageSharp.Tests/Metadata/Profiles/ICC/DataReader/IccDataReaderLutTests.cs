@@ -53,6 +53,16 @@ public class IccDataReaderLutTests
         Assert.Equal(expected, output);
     }
 
+    [Fact]
+    public void ReadClut_WithOversizedDimensions_ThrowsInvalidIccProfileException()
+    {
+        byte[] gridPointCount = Enumerable.Repeat((byte)3, 15).ToArray();
+
+        Assert.Throws<InvalidIccProfileException>(() => CreateReader(new byte[8]).ReadClut8(15, 15, gridPointCount));
+        Assert.Throws<InvalidIccProfileException>(() => CreateReader(new byte[8]).ReadClut16(15, 15, gridPointCount));
+        Assert.Throws<InvalidIccProfileException>(() => CreateReader(new byte[8]).ReadClutF32(15, 15, gridPointCount));
+    }
+
     [Theory]
     [MemberData(nameof(IccTestDataLut.Lut8TestData), MemberType = typeof(IccTestDataLut))]
     internal void ReadLut8(byte[] data, IccLut expected)

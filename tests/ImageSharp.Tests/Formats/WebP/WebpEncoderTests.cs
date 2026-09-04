@@ -24,29 +24,68 @@ public class WebpEncoderTests
 {
     private static string TestImageLossyFullPath => Path.Combine(TestEnvironment.InputImagesDirectoryFullPath, Lossy.NoFilter06);
 
-    [Fact]
-    public void Encode_LazyExifProfile_AppliesSelectedParts()
+    /// <summary>
+    /// Selected EXIF parts are respected whether the lazy profile is installed before or after synchronization.
+    /// </summary>
+    /// <param name="reentrant">Whether the stream installs the profile after metadata synchronization.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void Encode_LazyExifProfile_AppliesSelectedParts(bool reentrant)
     {
-        using Image<Rgba32> input = new(8, 8);
-        ExifProfile exif = new();
-        exif.SetValue(ExifTag.Make, "ImageSharp");
-        exif.SetValue(ExifTag.GPSLatitudeRef, "N");
-        input.Metadata.ExifProfile = exif;
+        ExifProfile source = new();
+        source.SetValue(ExifTag.Make, "POC");
+        source.SetValue(ExifTag.GPSLatitudeRef, "N");
+        ExifProfile filteredLazy = new(source.ToByteArray())
+        {
+            Parts = ExifParts.IfdTags | ExifParts.ExifTags
+        };
 
-        using MemoryStream jpegStream = new();
-        input.Save(jpegStream, new JpegEncoder());
-        jpegStream.Position = 0;
+        using Image<Rgba32> image = new(1, 1);
+        using MemoryStream output = reentrant
+            ? new SwapOnCanSeekStream(() => image.Metadata.ExifProfile = filteredLazy)
+            : new MemoryStream();
 
-        using Image source = Image.Load(jpegStream);
-        source.Metadata.ExifProfile!.Parts = ExifParts.IfdTags | ExifParts.ExifTags;
+        if (!reentrant)
+        {
+            image.Metadata.ExifProfile = filteredLazy;
+        }
 
-        using MemoryStream webpStream = new();
-        source.Save(webpStream, new WebpEncoder());
-        webpStream.Position = 0;
+        image.SaveAsWebp(output);
+        output.Position = 0;
+        using Image decoded = Image.Load(output);
 
-        using Image result = Image.Load(webpStream);
-        Assert.True(result.Metadata.ExifProfile!.TryGetValue(ExifTag.Make, out _));
-        Assert.False(result.Metadata.ExifProfile.TryGetValue(ExifTag.GPSLatitudeRef, out _));
+        Assert.NotNull(decoded.Metadata.ExifProfile);
+        Assert.True(decoded.Metadata.ExifProfile.TryGetValue(ExifTag.Make, out IExifValue<string> make));
+        Assert.Equal("POC", make.Value);
+        Assert.False(decoded.Metadata.ExifProfile.TryGetValue(ExifTag.GPSLatitudeRef, out _));
+    }
+
+    /// <summary>
+    /// Replaces metadata at the stream capability check, after encoder synchronization has completed.
+    /// </summary>
+    private sealed class SwapOnCanSeekStream : MemoryStream
+    {
+        private Action callback;
+
+        /// <summary>
+        /// Initializes a stream that invokes the callback on its first capability check.
+        /// </summary>
+        /// <param name="callback">The metadata replacement callback.</param>
+        public SwapOnCanSeekStream(Action callback) => this.callback = callback;
+
+        /// <inheritdoc/>
+        public override bool CanSeek
+        {
+            get
+            {
+                Action action = this.callback;
+                this.callback = null;
+                action?.Invoke();
+
+                return base.CanSeek;
+            }
+        }
     }
 
     [Theory]

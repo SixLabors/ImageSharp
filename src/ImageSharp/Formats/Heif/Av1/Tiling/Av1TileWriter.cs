@@ -2223,8 +2223,11 @@ internal partial class Av1TileWriter
                 {
                     int chromaRegionRow = regionRow >> subsamplingY;
                     int chromaRegionColumn = regionColumn >> subsamplingX;
-                    int chromaUnitBottom = unitBottom >> subsamplingY;
-                    int chromaUnitRight = unitRight >> subsamplingX;
+
+                    // Region limits count 4x4 units. Round the subsampled end upward so a chroma-owning
+                    // 4x4, 4x8, or 8x4 luma block still emits its shared 4x4 chroma transform.
+                    int chromaUnitBottom = Av1Math.RoundPowerOf2(unitBottom, subsamplingY);
+                    int chromaUnitRight = Av1Math.RoundPowerOf2(unitRight, subsamplingX);
                     EncodeTransformCoefficientRegion(
                         pcs,
                         entropyCodingContext,

@@ -1100,6 +1100,13 @@ internal static partial class Av1IntraSuperblockEncoder
                 out Av1EncoderTransformBlockState emptyLumaState,
                 out long emptyLumaDistortion);
 
+            // Empty luma transforms signal no transform type. Chroma inherits the decoder's inferred DCT
+            // type, not the last searched luma type, so normalize before evaluating either chroma plane.
+            if (lumaState.EndOfBlock == 0)
+            {
+                lumaState.TransformType = Av1TransformType.DctDct;
+            }
+
             ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
             int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
             int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;

@@ -238,6 +238,134 @@ public class Av1EncoderFrameTests
     }
 
     /// <summary>
+    /// Verifies dependent color samples with odd visible dimensions and motion across subsampled chroma phases.
+    /// </summary>
+    [Theory]
+    [InlineData(EightBit, Yuv420, 8)]
+    [InlineData(TenBit, Yuv420, 8)]
+    [InlineData(TwelveBit, Yuv420, 8)]
+    [InlineData(EightBit, Yuv420, 9)]
+    [InlineData(TenBit, Yuv420, 9)]
+    [InlineData(TwelveBit, Yuv420, 9)]
+    [InlineData(EightBit, Yuv422, 9)]
+    [InlineData(TenBit, Yuv422, 9)]
+    [InlineData(TwelveBit, Yuv422, 9)]
+    [InlineData(EightBit, Yuv444, 9)]
+    [InlineData(TenBit, Yuv444, 9)]
+    [InlineData(TwelveBit, Yuv444, 9)]
+    public void SequenceEncoderPreservesNativeColorPlanesWithSubpixelMotion(int bitDepthValue, int colorFormatValue, int effort)
+    {
+        const int Width = 23;
+        const int Height = 19;
+        const int QIndex = 17;
+        const int ByteToUInt16Scale = ushort.MaxValue / byte.MaxValue;
+        Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
+        Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
+        ObuColorConfig colorConfig = CreateColorConfig(bitDepth, colorFormat);
+        ReadOnlySpan<int> period = [0, 28, 40, 28, 0, -28, -40, -12];
+        using Image<Rgb48> source = new(Width, Height);
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default, Width, Height, colorConfig, QIndex, effort);
+
+        string outputDirectory = TestEnvironment.CreateOutputDirectory("Heif", "Av1", nameof(this.SequenceEncoderPreservesNativeColorPlanesWithSubpixelMotion));
+        string outputName = $"{bitDepth.GetBitCount()}-{colorFormat}-effort{effort}";
+        using FileStream output = File.Create(Path.Combine(outputDirectory, outputName + ".obu"));
+        using BinaryWriter rawOutput = new(File.Create(Path.Combine(outputDirectory, outputName + ".managed.yuv")));
+        using Av1Decoder decoder = new(Configuration.Default);
+        using MemoryStream sample = new();
+        for (int frameIndex = 0; frameIndex < 2; frameIndex++)
+        {
+            // The second source translates all three channels by one luma sample on each axis. Chroma is
+            // converted independently by the production converter, so 4:2:0 and 4:2:2 cannot hide behind
+            // constant neutral planes. Odd dimensions also exercise each plane's visible-edge clipping.
+            for (int y = 0; y < Height; y++)
+            {
+                Span<Rgb48> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+                int referenceY = Math.Min(y + frameIndex, Height - 1);
+                for (int x = 0; x < Width; x++)
+                {
+                    int referenceX = Math.Min(x + frameIndex, Width - 1);
+                    row[x] = new Rgb48(
+                        (ushort)((128 + period[referenceX % period.Length]) * ByteToUInt16Scale),
+                        (ushort)((128 + period[referenceY % period.Length]) * ByteToUInt16Scale),
+                        (ushort)((128 + period[(referenceX + referenceY) % period.Length]) * ByteToUInt16Scale));
+                }
+            }
+
+            sample.SetLength(0);
+            if (frameIndex == 0)
+            {
+                encoder.EncodeKeyFrame(source.Frames.RootFrame, sample);
+            }
+            else
+            {
+                encoder.EncodeInterFrame(source.Frames.RootFrame, sample);
+            }
+
+            sample.Position = 0;
+            sample.CopyTo(output);
+            decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            Av1FrameBuffer<byte> decoded = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
+            Assert.Equal(Width, decoded.Width);
+            Assert.Equal(Height, decoded.Height);
+            Assert.Equal(bitDepth, decoded.BitDepth);
+            for (int planeIndex = 0; planeIndex < 3; planeIndex++)
+            {
+                Av1Plane plane = (Av1Plane)planeIndex;
+                int subsamplingX = plane == Av1Plane.Y || !colorConfig.SubSamplingX ? 0 : 1;
+                int subsamplingY = plane == Av1Plane.Y || !colorConfig.SubSamplingY ? 0 : 1;
+                int planeHeight = (Height + subsamplingY) >> subsamplingY;
+                if (bitDepth == Av1BitDepth.EightBit)
+                {
+                    Buffer2DRegion<byte> planeSamples = decoded.DeriveBlockPointer(plane, subsamplingX, subsamplingY);
+                    for (int y = 0; y < planeHeight; y++)
+                    {
+                        rawOutput.Write(planeSamples.DangerousGetRowSpan(y));
+                    }
+                }
+                else
+                {
+                    for (int y = 0; y < planeHeight; y++)
+                    {
+                        foreach (ushort value in decoded.GetHighBitDepthRowSpan(plane, y, subsamplingX, subsamplingY))
+                        {
+                            // Raw high-bit-depth output uses explicit little-endian samples on every host.
+                            rawOutput.Write(value);
+                        }
+                    }
+                }
+            }
+        }
+
+        ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
+        Assert.Equal(ObuFrameType.InterFrame, frameHeader.FrameType);
+        Assert.Equal(Av1InterpolationFilter.Switchable, frameHeader.InterpolationFilter);
+        Av1FrameInfo frameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+        bool hasMotion = false;
+        bool hasFractionalChromaMotion = false;
+        foreach (Av1BlockModeInfo mode in frameInfo.GetModeInfos(Point.Empty, frameInfo.GetModeInfoCount(Point.Empty)))
+        {
+            if (mode.ReferenceFrames[0] == Av1ReferenceFrameType.Last)
+            {
+                Av1MotionVector vector = mode.MotionVectors[0];
+                hasMotion |= vector.Column != 0 || vector.Row != 0;
+
+                // A subsampled chroma phase repeats every two luma pixels, or sixteen Q3 motion units.
+                int chromaPhaseMask = (Av1MotionVector.SubpixelScale << 1) - 1;
+                hasFractionalChromaMotion |=
+                    (colorConfig.SubSamplingX && (vector.Column & chromaPhaseMask) != 0) ||
+                    (colorConfig.SubSamplingY && (vector.Row & chromaPhaseMask) != 0);
+            }
+        }
+
+        Assert.True(hasMotion);
+        if (colorConfig.SubSamplingX || colorConfig.SubSamplingY)
+        {
+            Assert.True(hasFractionalChromaMotion);
+        }
+    }
+
+    /// <summary>
     /// Verifies retained reference reconstruction and effort-dependent filter signaling through production sequence decoding.
     /// </summary>
     [Theory]

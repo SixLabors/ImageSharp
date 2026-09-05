@@ -96,6 +96,29 @@ Reference-edge correction checkpoint `578ec34d9`, verified on 2026-09-05:
   output parity, complete encoder control flow, or decoder-wide conformance. No benchmark was run.
   Temporary launch scripts, native comparison output, logs, and reports remain local and are excluded from commits.
 
+Tile-reader construction ownership correction, verified on 2026-09-05:
+
+- At checkpoint `330d4c4ea`, `Av1TileReader.cs:279-316` acquired frame syntax storage before constructing
+  above/left neighbor contexts. Failure in the above constructor bypassed cleanup; failure in the left
+  constructor returned only the above context. Both leaked the completed `FrameInfo` owner. This is a
+  demonstrated lifetime defect, independent of reconstruction quality and encoder search completeness.
+- Reference `av1/common/alloccommon.c:370-408,411-452` keeps partial above-context allocations reachable
+  from common state; decoder destruction calls `av1_remove_common` (`av1/decoder/decoder.c:239`), which
+  frees those contexts (`alloccommon.c:501-506`). Native contexts are reused until dimensions outgrow them
+  (`av1/decoder/decodeframe.c:5125-5135`); the managed per-frame allocation lifetime remains a separate
+  architectural deviation. This correction only restores cleanup at the existing managed owning boundary.
+- The new regression failed when the ninth allocator request was rejected: all eight successful frame-state
+  allocations had no matching return (`tile-ownership-red.trx`). Serialized VSTest stopped on that failure.
+  The existing first catch now also covers above-context construction, and the left-context catch returns
+  both preceding owners. No new buffer, owner, guard, or native dependency was introduced.
+- Four standalone-reader cases cover monochrome/color and 64/128 superblocks, reject every allocator request
+  in turn, and require exactly one return per successful allocation. After the final edit, the focused tiling,
+  reference-store, reference-motion, and decoder conformance set passed **137/137** through serialized
+  Release .NET 11 Visual Studio VSTest in 1.8500 minutes (`tile-ownership-final.trx`). The final build had
+  zero warnings/errors; Roslynk reported zero compiler errors. Reports remain in the temporary directory
+  `D:\GitHub\ynse01\av1-takeover-20260905`, outside the repository. No benchmark was run; this does not
+  establish separate-encoder sample parity or complete decoder ownership/reference-lifetime equivalence.
+
 Sequence-construction ownership correction, verified subsequently on 2026-09-05:
 
 - At checkpoint `578ec34d9`, `Av1FrameEncoder.cs:1492-1560,1668-1713,1778-1824` allocated common state and

@@ -12,12 +12,80 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
 [Trait("Format", "Avif")]
 public class Av1TilingTests
 {
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void ConstructionFailureReturnsEveryAllocation(bool use128x128Superblock, bool monochrome)
+    {
+        ObuSequenceHeader sequenceHeader = new()
+        {
+            MaxFrameWidth = 128,
+            MaxFrameHeight = 128,
+            Use128x128Superblock = use128x128Superblock,
+            ColorConfig = new ObuColorConfig
+            {
+                BitDepth = Av1BitDepth.EightBit,
+                IsMonochrome = monochrome,
+                SubSamplingX = true,
+                SubSamplingY = true
+            }
+        };
+        ObuFrameHeader frameHeader = new()
+        {
+            FrameSize = new ObuFrameSize
+            {
+                FrameWidth = 128,
+                FrameHeight = 128,
+                SuperResolutionUpscaledWidth = 128,
+                RenderWidth = 128,
+                RenderHeight = 128
+            },
+            ModeInfoColumnCount = 32,
+            ModeInfoRowCount = 32,
+            ModeInfoStride = 32
+        };
+
+        Configuration configuration = Configuration.Default.Clone();
+        TestMemoryAllocator successfulAllocator = new();
+        successfulAllocator.EnableNonThreadSafeLogging();
+        configuration.MemoryAllocator = successfulAllocator;
+        using (Av1TileReader reader = new(configuration, sequenceHeader, frameHeader))
+        {
+            Assert.NotEmpty(successfulAllocator.AllocationLog);
+        }
+
+        Assert.Equal(successfulAllocator.AllocationLog.Count, successfulAllocator.ReturnLog.Count);
+        for (int failureIndex = 0; failureIndex < successfulAllocator.AllocationLog.Count; failureIndex++)
+        {
+            FailingTileAllocator allocator = new(failureIndex);
+            configuration.MemoryAllocator = allocator;
+
+            // Fail each actual rent, including nested frame-state and neighbor-context constructors. No reader
+            // reaches the caller's using statement on failure, so construction must return every completed owner.
+            InvalidMemoryOperationException exception = Assert.Throws<InvalidMemoryOperationException>(() =>
+            {
+                using Av1TileReader reader = new(configuration, sequenceHeader, frameHeader);
+            });
+
+            Assert.Equal("Tile allocation failure.", exception.Message);
+            Assert.Equal(failureIndex, allocator.AllocationLog.Count);
+            Assert.All(
+                allocator.AllocationLog,
+                allocation => Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == allocation.AllocationId));
+
+            Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        }
+    }
+
     /// <summary>
     /// Verifies that frame mode-information indices do not wrap at the unsigned 16-bit boundary.
     /// </summary>
@@ -346,5 +414,26 @@ public class Av1TilingTests
         // Assert
         Assert.Equal(dataSize * 8, bitStreamReader.BitPosition);
         Assert.Equal(superblockCount, frameDecoder.SuperblockCount);
+    }
+
+    private sealed class FailingTileAllocator : TestMemoryAllocator
+    {
+        private readonly int failureIndex;
+
+        public FailingTileAllocator(int failureIndex)
+        {
+            this.failureIndex = failureIndex;
+            this.EnableNonThreadSafeLogging();
+        }
+
+        protected override AllocationTrackedMemoryManager<T> AllocateCore<T>(int length, AllocationOptions options)
+        {
+            if (this.AllocationLog.Count == this.failureIndex)
+            {
+                throw new InvalidMemoryOperationException("Tile allocation failure.");
+            }
+
+            return base.AllocateCore<T>(length, options);
+        }
     }
 }

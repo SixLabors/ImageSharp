@@ -272,35 +272,36 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             }
         }
 
-        try
-        {
-            this.FrameInfo.InitializeSegmentIds(this.FrameHeader, this.primaryReferenceState);
-            this.FrameInfo.InitializeLoopRestoration(this.SequenceHeader, this.FrameHeader);
-        }
-        catch
-        {
-            // FrameInfo has already rented the active frame's syntax storage. Return every successful rent if
-            // a later segmentation or restoration allocation prevents this reader from being constructed.
-            this.FrameInfo.Dispose();
-            throw;
-        }
-
         // Above contexts span the aligned frame width, while left contexts are reused for each superblock row.
         int planesCount = sequenceHeader.ColorConfig.PlaneCount;
         int modeInfoWideColumnCount = Av1Math.AlignPowerOf2(
             frameHeader.ModeInfoColumnCount,
             sequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2);
 
-        this.aboveNeighborContext = new Av1ParseAboveNeighbor4x4Context(configuration, planesCount, modeInfoWideColumnCount);
+        try
+        {
+            this.FrameInfo.InitializeSegmentIds(this.FrameHeader, this.primaryReferenceState);
+            this.FrameInfo.InitializeLoopRestoration(this.SequenceHeader, this.FrameHeader);
+            this.aboveNeighborContext = new Av1ParseAboveNeighbor4x4Context(configuration, planesCount, modeInfoWideColumnCount);
+        }
+        catch
+        {
+            // FrameInfo owns the active frame's syntax storage. Return it if segmentation, restoration, or the
+            // first neighbor context fails, because no constructed reader reaches the caller's using statement.
+            this.FrameInfo.Dispose();
+            throw;
+        }
+
         try
         {
             this.leftNeighborContext = new Av1ParseLeftNeighbor4x4Context(configuration, planesCount, sequenceHeader.SuperblockModeInfoSize);
         }
         catch
         {
-            // The reader is not returned when its second context allocation fails, so release the first rent here
-            // rather than relying on an owner that the caller cannot reach.
+            // The second context can fail after both frame state and the above context have acquired owners.
+            // Neither survives failed construction, so unwind both completed owners here.
             this.aboveNeighborContext.Dispose();
+            this.FrameInfo.Dispose();
             throw;
         }
 

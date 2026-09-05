@@ -990,23 +990,32 @@ public class HeifEncoderTests
         Assert.Equal(Av1BitDepth.TenBit, sequenceHeader.ColorConfig.BitDepth);
     }
 
-    [Fact]
-    public void Av1SanitizesIncompatibleIdentityMatrixWithoutMutatingSourceMetadata()
+    [Theory]
+    [InlineData(CicpMatrixCoefficients.Identity, HeifChromaSubsampling.Yuv420)]
+    [InlineData(CicpMatrixCoefficients.YCgCoRe, null)]
+    [InlineData(CicpMatrixCoefficients.YCgCoRe, HeifChromaSubsampling.Yuv420)]
+    [InlineData(CicpMatrixCoefficients.YCgCoRe, HeifChromaSubsampling.Yuv422)]
+    [InlineData(CicpMatrixCoefficients.YCgCoRo, null)]
+    [InlineData(CicpMatrixCoefficients.YCgCoRo, HeifChromaSubsampling.Yuv420)]
+    [InlineData(CicpMatrixCoefficients.YCgCoRo, HeifChromaSubsampling.Yuv422)]
+    public void Av1SanitizesIncompatibleMatrixWithoutMutatingSourceMetadata(
+        CicpMatrixCoefficients matrix,
+        HeifChromaSubsampling? subsampling)
     {
-        using Image<Rgb24> image = new(8, 8);
-        CicpProfile sourceProfile = new(1, 13, 0, false);
+        using Image<Rgb24> image = new(8, 8, new Rgb24(32, 96, 192));
+        CicpProfile sourceProfile = new(1, 13, (byte)matrix, false);
         image.Metadata.CicpProfile = sourceProfile;
         using MemoryStream stream = new();
         HeifEncoder encoder = new()
         {
             CompressionMethod = HeifCompressionMethod.Av1,
-            ChromaSubsampling = HeifChromaSubsampling.Yuv420,
+            ChromaSubsampling = subsampling,
             Effort = 0
         };
 
         image.Save(stream, encoder);
         Assert.Same(sourceProfile, image.Metadata.CicpProfile);
-        Assert.Equal(CicpMatrixCoefficients.Identity, sourceProfile.MatrixCoefficients);
+        Assert.Equal(matrix, sourceProfile.MatrixCoefficients);
         Assert.False(sourceProfile.FullRange);
 
         stream.Position = 0;
@@ -1014,6 +1023,14 @@ public class HeifEncoderTests
         CicpProfile decodedProfile = Assert.IsType<CicpProfile>(decoded.Metadata.CicpProfile);
         Assert.Equal(CicpMatrixCoefficients.ItuRBt601_7_525, decodedProfile.MatrixCoefficients);
         Assert.False(decodedProfile.FullRange);
+
+        // A fallback must change the actual encoded conversion as well as its metadata. Compare with the
+        // same packed pixels explicitly encoded using that fallback matrix and the requested sampling.
+        using Image<Rgb24> explicitConversion = image.Clone();
+        explicitConversion.Metadata.CicpProfile = new CicpProfile(1, 13, (byte)CicpMatrixCoefficients.ItuRBt601_7_525, false);
+        using MemoryStream expected = new();
+        explicitConversion.Save(expected, encoder);
+        Assert.Equal(expected.ToArray(), stream.ToArray());
     }
 
     [Fact]

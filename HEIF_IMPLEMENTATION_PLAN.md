@@ -191,6 +191,42 @@ Coefficient optimization and evaluation-stage investigation:
   `av1/encoder/speed_features.c:2709-2776` show usage-specific CPU settings and feature initialization.
   ImageSharp's 0-10 effort scale has not yet been reconciled with these policies. No new effort mapping is assumed.
 
+Color-conversion boundary correction after checkpoint `f7bd907d6`, verified on 2026-09-05:
+
+- `HeifEncoderCore.Sequence.cs:74-194` resolved output sampling and preserved reversible YCgCo matrix metadata,
+  including when default 4:2:0 or requested 4:2:2 was incompatible. The shared converter's established contract
+  rejects that combination at `HeifColorConversionParameters.cs:265-282`. The public save regression failed
+  on default sampling with that exact exception (`matrix-fallback-before.trx`).
+- PNG and TIFF resolve incompatible options through conversion at `PngEncoderCore.cs:1640-1654` and
+  `TiffEncoderCore.cs:378-444`. HEIF now extends its existing identity-matrix fallback to incompatible
+  YCgCo-Re/Ro sampling, converts with BT.601, and writes the matching matrix metadata. Explicit 4:4:4 remains
+  eligible for the existing reversible operator. This changes encoder option resolution, not decoder acceptance.
+- Seven public cases retain the original profile object and values, inspect decoded matrix/range metadata,
+  and require byte-identical output to the same packed pixels explicitly encoded with the fallback matrix.
+  The cases include the original identity fallback and YCgCo-Re/Ro with default, 4:2:0, and 4:2:2 sampling.
+- A separate lifetime defect existed at `Av1FrameEncoder.cs:1404-1434`: conversion parameters were resolved
+  after renting row storage. The internal-factory regression confirmed that rejected conversion had already
+  made one allocator request (`conversion-allocation-before.trx`). Resolution now precedes storage allocation;
+  the regression requires both allocation and return logs to remain empty. No new guard or owner was added.
+- Final Release .NET 11 build: zero reported warnings and errors on the incremental build. Roslynk reports
+  zero compiler errors. Serialized Visual Studio VSTest with stop-on-failure passes 265/265 affected cases
+  (`conversion-final.trx` in the local takeover report directory).
+  The regenerated color and partition streams again match optimized native decoding on all 23,396 samples,
+  maximum error 0 and zero exceeding one. No benchmark or separate-encoder parity comparison was run.
+
+Color/output source coverage and remaining limits:
+
+- `Av1YuvConverter.cs:24-135,175-274` dispatches byte/high-bit-depth, complete/cropped/scaled output, and alpha
+  through shared HEIF adapters. `HeifPlanarColorConverter.cs:39-320,329-870` was read through both traversals:
+  conversion owns reusable row scratch, interpolates chroma before matrix conversion, and uses existing
+  `PixelOperations<TPixel>` packing/unpacking or Rgb48/Rgba64 conversion.
+- `HeifColorConverter.Operator.cs:164-431` uses closed semantic operators and descending SIMD widths.
+  These architecture observations are not proof that every H.273 operator or pixel format is numerically correct.
+  Independent color-conversion and complete SIMD coverage remain open.
+- The reference codec interface exposes native planes and strides (`aom/aom_image.h:284-292`).
+  The temporary comparison adapter supplies I420 using the managed RGB conversion. Its output cannot independently
+  validate that RGB conversion, even when both codec decoders agree on native planes.
+
 ### Required completion gates
 
 Motion-controller investigation continued after correction checkpoint `578ec34d9`:

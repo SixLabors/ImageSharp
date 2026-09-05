@@ -621,6 +621,28 @@ public class Av1EncoderFrameTests
         Assert.Equal(second.Size, decodedSecond.Size);
     }
 
+    [Fact]
+    public void SequenceEncoderRejectsInvalidConversionBeforeAllocatingStorage()
+    {
+        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.TenBit, Av1ColorFormat.Yuv420);
+        colorConfig.MatrixCoefficients = ObuMatrixCoefficients.YCgCoRe;
+        Configuration configuration = Configuration.Default.Clone();
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        configuration.MemoryAllocator = allocator;
+
+        // This internal factory receives resolved AV1 settings. The shared converter already rejects a
+        // reversible matrix with subsampling; that rejection must occur before any owner can be stranded.
+        Assert.Throws<InvalidImageContentException>(() =>
+        {
+            using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+                configuration, 32, 32, colorConfig, 17, 9);
+        });
+
+        Assert.Empty(allocator.AllocationLog);
+        Assert.Empty(allocator.ReturnLog);
+    }
+
     [Theory]
     [InlineData(false, EightBit)]
     [InlineData(false, TenBit)]

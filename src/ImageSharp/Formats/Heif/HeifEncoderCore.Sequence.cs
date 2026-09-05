@@ -130,10 +130,13 @@ internal sealed partial class HeifEncoderCore
                 && sourceColorProfile.ColorPrimaries == CicpColorPrimaries.ItuRBt709_6
                 && sourceColorProfile.TransferCharacteristics == CicpTransferCharacteristics.Iec61966_2_1;
 
+            bool reversibleMatrix = sourceColorProfile.MatrixCoefficients is CicpMatrixCoefficients.YCgCoRe or CicpMatrixCoefficients.YCgCoRo;
             if (sourceColorProfile.MatrixCoefficients == CicpMatrixCoefficients.Unspecified
-                || (identityMatrix && !legalIdentityMatrix))
+                || (identityMatrix && !legalIdentityMatrix)
+                || (reversibleMatrix && !isMonochrome && chromaSubsampling != HeifChromaSubsampling.Yuv444))
             {
-                // The converter uses BT.601 for unspecified or incompatible identity signaling, so record that actual matrix.
+                // Packed source pixels can be converted to the requested sampling even when their metadata
+                // describes a matrix that requires 4:4:4. Use and signal BT.601 without changing source metadata.
                 colorProfile = new CicpProfile(
                     (byte)sourceColorProfile.ColorPrimaries,
                     (byte)sourceColorProfile.TransferCharacteristics,

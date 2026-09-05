@@ -1408,6 +1408,10 @@ internal static class Av1FrameEncoder
             bool encodeAlpha,
             bool usesHighBitDepth)
         {
+            // Resolve conversion before renting storage: a rejected color description must not strand an owner
+            // in a constructor that never returns to the sequence encoder's disposal boundary.
+            this.parameters = Av1YuvConverter.GetConversionParameters(colorConfig, out HeifColorConversionMode mode);
+            this.colorConverter = HeifColorConverterBase.Create(mode, in this.parameters, colorConfig.IsMonochrome);
             int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
             int componentLength = encodeAlpha
                 ? HeifPlanarAlphaEncoder.GetRowStorageLength(width)
@@ -1427,8 +1431,6 @@ internal static class Av1FrameEncoder
             Memory<float> storage = this.storageOwner.Memory;
             this.componentMemory = storage[..componentLength];
             this.packedMemory = storage.Slice(componentLength, packedFloatLength);
-            this.parameters = Av1YuvConverter.GetConversionParameters(colorConfig, out HeifColorConversionMode mode);
-            this.colorConverter = HeifColorConverterBase.Create(mode, in this.parameters, colorConfig.IsMonochrome);
             this.encodeAlpha = encodeAlpha;
             this.packedPixelCount = usesHighBitDepth && !encodeAlpha ? width : 0;
         }

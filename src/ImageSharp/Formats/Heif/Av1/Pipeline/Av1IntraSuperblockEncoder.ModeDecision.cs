@@ -619,42 +619,10 @@ internal static partial class Av1IntraSuperblockEncoder
             block.FilterIntraMode = filterIntraMode;
             modeInfo.Block.TransformSize = lumaTransformSize;
 
-            // Mode decision retains one state for every uniform transform tile in the coding block. The block
-            // can skip coefficient syntax only when every retained transform has an empty end-of-block marker.
-            int lumaTransformSampleCount = lumaTransformSize.GetSize2d();
-            int lumaTransformBlockCount =
-                (blockSize.GetWidth() * blockSize.GetHeight()) / lumaTransformSampleCount;
-
-            int lumaStateStride =
-                lumaTransformSampleCount / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
-
-            bool lumaTransformEmpty = true;
-            for (int transformIndex = 0; transformIndex < lumaTransformBlockCount; transformIndex++)
-            {
-                lumaTransformEmpty &= retainedLumaStates[transformIndex * lumaStateStride].EndOfBlock == 0;
-            }
-
+            // Ordinary intra keeps the block non-skipped, including when all transforms are empty. Its RD cost
+            // includes those transform symbols and the non-skip flag; only inter or IBC winners can replace this state.
             if (this.source.IsMonochrome)
             {
-                int emptyTransformRate = lumaTransformEmpty
-                    ? this.GetEmptyTransformRate(
-                        writer,
-                        this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
-                        Av1ComponentType.Luminance,
-                        blockOrigin,
-                        blockSize,
-                        lumaTransformSize,
-                        modeInfo.Block.Mode,
-                        block.FilterIntraMode)
-                    : 0;
-
-                modeInfo.Block.Skip =
-                    !this.picture.Parent.FrameHeader.CodedLossless &&
-                    lumaTransformEmpty && Av1TileWriter.ShouldSkipCoefficients(
-                        writer,
-                        Av1TileWriter.GetSkipContext(macroBlock),
-                        emptyTransformRate);
-
                 bool allowIntraBlockCopy = blockSize == Av1BlockSize.Block8x8 &&
                     this.picture.Parent.FrameHeader.AllowIntraBlockCopy;
 
@@ -662,8 +630,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     writer,
                     macroBlock,
                     lumaCost,
-                    emptyTransformRate,
-                    modeInfo.Block.Skip,
                     allowIntraBlockCopy);
 
                 if (!this.picture.Parent.FrameHeader.IsIntra)
@@ -755,68 +721,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 block.PredictionUnit.ChromaFromLumaSigns = chromaFromLumaSigns;
             }
 
-            // Skip suppresses coefficient syntax for the entire coding block, not one plane independently.
-            // Preserve normal coefficient coding when any selected luma or chroma transform is nonempty.
-            int chromaTransformSampleCount = chromaTransformSize.GetSize2d();
-            int chromaTransformBlockCount =
-                (chromaBlockSize.GetWidth() * chromaBlockSize.GetHeight()) / chromaTransformSampleCount;
-
-            int chromaStateStride =
-                chromaTransformSampleCount / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
-
-            bool chromaTransformsEmpty = true;
-            for (int transformIndex = 0; transformIndex < chromaTransformBlockCount; transformIndex++)
-            {
-                int stateIndex = transformIndex * chromaStateStride;
-                chromaTransformsEmpty &= retainedBlueStates[stateIndex].EndOfBlock == 0 &&
-                    retainedRedStates[stateIndex].EndOfBlock == 0;
-            }
-
-            bool allTransformsEmpty = lumaTransformEmpty && (!block.HasChroma || chromaTransformsEmpty);
-
-            int regularEmptyTransformRate = 0;
-            if (allTransformsEmpty)
-            {
-                regularEmptyTransformRate = this.GetEmptyTransformRate(
-                    writer,
-                    this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
-                    Av1ComponentType.Luminance,
-                    blockOrigin,
-                    blockSize,
-                    lumaTransformSize,
-                    modeInfo.Block.Mode,
-                    block.FilterIntraMode);
-
-                if (block.HasChroma)
-                {
-                    regularEmptyTransformRate += this.GetEmptyTransformRate(
-                        writer,
-                        this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
-                        Av1ComponentType.Chroma,
-                        chromaOrigin,
-                        chromaBlockSize,
-                        chromaTransformSize,
-                        modeInfo.Block.Mode,
-                        Av1FilterIntraMode.AllFilterIntraModes);
-
-                    regularEmptyTransformRate += this.GetEmptyTransformRate(
-                        writer,
-                        this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
-                        Av1ComponentType.Chroma,
-                        chromaOrigin,
-                        chromaBlockSize,
-                        chromaTransformSize,
-                        modeInfo.Block.Mode,
-                        Av1FilterIntraMode.AllFilterIntraModes);
-                }
-
-                modeInfo.Block.Skip = !this.picture.Parent.FrameHeader.CodedLossless &&
-                    Av1TileWriter.ShouldSkipCoefficients(
-                    writer,
-                    Av1TileWriter.GetSkipContext(macroBlock),
-                    regularEmptyTransformRate);
-            }
-
             bool allowColorIntraBlockCopy = blockSize == Av1BlockSize.Block8x8 &&
                 this.picture.Parent.FrameHeader.AllowIntraBlockCopy;
 
@@ -824,8 +728,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 writer,
                 macroBlock,
                 lumaCost + chromaCost,
-                regularEmptyTransformRate,
-                modeInfo.Block.Skip,
                 allowColorIntraBlockCopy);
 
             if (!this.picture.Parent.FrameHeader.IsIntra)
@@ -1292,11 +1194,9 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             long modeCost,
-            int emptyTransformRate,
-            bool skip,
             bool allowIntraBlockCopy)
         {
-            int rateAdjustment = writer.GetSkipCost(skip, Av1TileWriter.GetSkipContext(macroBlock));
+            int rateAdjustment = writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock));
             if (!this.picture.Parent.FrameHeader.IsIntra)
             {
                 int intraInterContext = Av1TileWriter.GetIntraInterContext(macroBlock);
@@ -1308,91 +1208,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 rateAdjustment += writer.GetUseIntraBlockCopyCost(false);
             }
 
-            if (skip)
-            {
-                // Mode search includes empty transform symbols, while block skip suppresses them from the bitstream.
-                rateAdjustment -= emptyTransformRate;
-            }
-
             return modeCost + Av1RateDistortion.GetCost(this.rateMultiplier, rateAdjustment, 0);
-        }
-
-        private int GetEmptyTransformRate(
-            Av1SymbolEncoder writer,
-            Av1NeighborArrayUnit<byte> coefficientNeighbors,
-            Av1ComponentType componentType,
-            Point blockOrigin,
-            Av1BlockSize blockSize,
-            Av1TransformSize transformSize,
-            Av1PredictionMode lumaMode,
-            Av1FilterIntraMode filterIntraMode)
-        {
-            int blockWidth = blockSize.Get4x4WideCount();
-            int blockHeight = blockSize.Get4x4HighCount();
-            int transformWidth = transformSize.Get4x4WideCount();
-            int transformHeight = transformSize.Get4x4HighCount();
-            if (blockWidth == transformWidth && blockHeight == transformHeight)
-            {
-                Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
-                    componentType,
-                    coefficientNeighbors,
-                    blockOrigin,
-                    blockSize,
-                    transformSize);
-
-                return writer.GetCoefficientCost(
-                    transformSize,
-                    Av1TransformType.DctDct,
-                    lumaMode,
-                    ReadOnlySpan<int>.Empty,
-                    componentType,
-                    blockContext,
-                    0,
-                    this.picture.Parent.FrameHeader.UseReducedTransformSet,
-                    filterIntraMode,
-                    usesInterTransformSet: false);
-            }
-
-            Span<byte> contexts = this.blockWorkspace
-                .GetModeDecisionWorkspace<TSample>()
-                .TransformContexts;
-
-            Span<byte> topContexts = contexts[..blockWidth];
-            Span<byte> leftContexts = contexts.Slice(blockWidth, blockHeight);
-            int topIndex = coefficientNeighbors.GetTopIndex(blockOrigin);
-            int leftIndex = coefficientNeighbors.GetLeftIndex(blockOrigin);
-            coefficientNeighbors.Top.Slice(topIndex, blockWidth).CopyTo(topContexts);
-            coefficientNeighbors.Left.Slice(leftIndex, blockHeight).CopyTo(leftContexts);
-            int rate = 0;
-            for (int blockRow = 0; blockRow < blockHeight; blockRow += transformHeight)
-            {
-                for (int blockColumn = 0; blockColumn < blockWidth; blockColumn += transformWidth)
-                {
-                    Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
-                        componentType,
-                        topContexts.Slice(blockColumn, transformWidth),
-                        leftContexts.Slice(blockRow, transformHeight),
-                        blockSize,
-                        transformSize);
-
-                    rate += writer.GetCoefficientCost(
-                        transformSize,
-                        Av1TransformType.DctDct,
-                        lumaMode,
-                        ReadOnlySpan<int>.Empty,
-                        componentType,
-                        blockContext,
-                        0,
-                        this.picture.Parent.FrameHeader.UseReducedTransformSet,
-                        filterIntraMode,
-                        usesInterTransformSet: false);
-
-                    topContexts.Slice(blockColumn, transformWidth).Clear();
-                    leftContexts.Slice(blockRow, transformHeight).Clear();
-                }
-            }
-
-            return rate;
         }
 
         private Av1PredictionMode SelectLumaMode(

@@ -401,6 +401,17 @@ public class Av1EncoderFrameTests
             Assert.Equal(Width, decoded.Width);
             Assert.Equal(Height, decoded.Height);
             Assert.Equal(bitDepth, decoded.BitDepth);
+            Av1FrameInfo decodedFrameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+            foreach (Av1BlockModeInfo mode in decodedFrameInfo.GetModeInfos(Point.Empty, decodedFrameInfo.GetModeInfoCount(Point.Empty)))
+            {
+                // The same ordinary-intra policy applies in key and inter frames. Read the emitted syntax,
+                // rather than infer the skip flag from pixel agreement between encoder and decoder.
+                if (mode.ReferenceFrames[0] == Av1ReferenceFrameType.Intra && !mode.UseIntraBlockCopy)
+                {
+                    Assert.False(mode.Skip);
+                }
+            }
+
             for (int planeIndex = 0; planeIndex < 3; planeIndex++)
             {
                 Av1Plane plane = (Av1Plane)planeIndex;
@@ -501,6 +512,14 @@ public class Av1EncoderFrameTests
             null,
             null);
 
+        Av1FrameInfo firstFrameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+        foreach (Av1BlockModeInfo mode in firstFrameInfo.GetModeInfos(Point.Empty, firstFrameInfo.GetModeInfoCount(Point.Empty)))
+        {
+            Assert.Equal(Av1ReferenceFrameType.Intra, mode.ReferenceFrames[0]);
+            Assert.False(mode.UseIntraBlockCopy);
+            Assert.False(mode.Skip);
+        }
+
         using ImageFrame<Rgba32> decodedSecond = decoder.DecodeSequenceFrame<Rgba32>(
             secondSample.ToArray(),
             null,
@@ -515,6 +534,15 @@ public class Av1EncoderFrameTests
         Assert.Equal(37, frameHeader.QuantizationParameters.BaseQIndex);
         Assert.Equal(switchableFilters ? Av1InterpolationFilter.Switchable : Av1InterpolationFilter.Regular, frameHeader.InterpolationFilter);
         Assert.Equal(dualFilters, decoder.SequenceHeader.EnableDualFilter);
+        Av1FrameInfo secondFrameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+        bool hasSkippedInterBlock = false;
+        foreach (Av1BlockModeInfo mode in secondFrameInfo.GetModeInfos(Point.Empty, secondFrameInfo.GetModeInfoCount(Point.Empty)))
+        {
+            hasSkippedInterBlock |= mode.ReferenceFrames[0] == Av1ReferenceFrameType.Last && mode.Skip;
+        }
+
+        // Repeated frames still use the inter skip alternative when prediction supplies the retained samples.
+        Assert.True(hasSkippedInterBlock);
         for (int y = 0; y < Height; y++)
         {
             Assert.Equal(

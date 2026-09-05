@@ -463,7 +463,7 @@ public class Av1IntraSuperblockEncoderTests
             Assert.Equal(Av1TransformSize.Size8x8, block.Block.TransformSize);
             Assert.Equal(Av1PredictionMode.DC, block.Block.Mode);
             Assert.Equal(Av1ChromaPredictionMode.DC, block.Block.UvMode);
-            Assert.True(block.Block.Skip);
+            Assert.False(block.Block.Skip);
         }
 
         Span<Av1EncoderTransformBlockState> lumaStates = coefficients.GetTransformBlockSpan(0, Av1Plane.Y);
@@ -602,7 +602,7 @@ public class Av1IntraSuperblockEncoderTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public void MarksAllZeroTransformBlockAsSkipped(bool isMonochrome)
+    public void PreservesIntraNonSkipForAllZeroTransforms(bool isMonochrome)
     {
         const int Width = 8;
         const int Height = 8;
@@ -678,7 +678,10 @@ public class Av1IntraSuperblockEncoderTests
             blockWorkspace);
 
         ref Av1MacroBlockModeInfo block = ref picture.GetMacroBlockModeInfo(default);
-        Assert.True(block.Block.Skip);
+
+        // Ordinary intra blocks retain the non-skip flag and empty transform symbols. Libaom applies
+        // this policy before final coding even when skipping would reconstruct the same samples.
+        Assert.False(block.Block.Skip);
         Assert.Equal((ushort)0, coefficients.GetTransformBlockSpan(0, Av1Plane.Y)[0].EndOfBlock);
         if (!isMonochrome)
         {

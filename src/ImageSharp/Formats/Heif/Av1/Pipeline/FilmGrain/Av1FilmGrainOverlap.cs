@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 /// </summary>
 /// <remarks>
 /// Vertical boundaries contain only one or two strided columns and use the fixed scalar kernels. Horizontal boundaries
-/// are contiguous and progress from the runtime's preferred native width through smaller vector widths before the
+/// are contiguous and progress through the enabled vector widths before the
 /// scalar tail. Every lane applies the same Q5 overlap weights, rounding offset, and signed grain clamp.
 /// </remarks>
 internal static class Av1FilmGrainOverlap
@@ -43,8 +43,8 @@ internal static class Av1FilmGrainOverlap
         int minimum,
         int maximum)
     {
-        // Each row contributes only one or two strided samples. Gather plus scalar scatter would do more work than
-        // the fixed scalar kernel, while the horizontally contiguous boundary below benefits directly from SIMD.
+        // Each row contributes one or two strided samples. This traversal handles those columns directly;
+        // the horizontal traversal below groups contiguous samples into vector lanes.
         if (width == 1)
         {
             for (int row = 0; row < height; row++)
@@ -151,8 +151,8 @@ internal static class Av1FilmGrainOverlap
     {
         int column = 0;
 
-        // Vector<T> exposes the runtime's preferred native width. This avoids selecting split 512-bit operations on
-        // machines whose execution resources are 256 bits wide while retaining a native 512-bit traversal elsewhere.
+        // The current 512-bit gate also requires Vector<T> to expose sixteen int lanes. That is a dispatch choice,
+        // not evidence of the processor's execution width or of faster overlap processing.
         if (Vector512.IsHardwareAccelerated && Vector<int>.Count == Vector512<int>.Count)
         {
             column = Blend(left, right, destination, width, column, leftWeight, rightWeight, minimum, maximum, Vector512<int>.Zero);

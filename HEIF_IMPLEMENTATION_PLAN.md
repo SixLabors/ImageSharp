@@ -320,6 +320,56 @@ Frame/block RD and decoder filter follow-up after `aa2ecf690`:
   retains bottom lines for its worker-capable traversal. This inspection establishes no decoder-wide or SIMD
   completeness claim. Decoder CDEF storage remains an operation-scoped owner, not native reusable worker state.
 
+Retained-state and cost-policy follow-up after `ef8b1a823`:
+
+- `Av1EncoderTransformBlockState.cs:12-43` uses four bytes for EOB and byte-sized transform type, leaving
+  one padding byte. Reference `av1/encoder/encodetxb.c:593-625,714-730` records the neighboring skip context
+  in bits 0-3 and DC-sign context in bits 4-5 beside each EOB. Its packer consumes those retained contexts
+  (`encodetxb.c:296-306,410-421`). The managed structure can represent that state without increasing its size,
+  but storing it alone would not implement deferred packing; no unused state was added.
+- Reference palette-token allocation is conditional on non-statistics coding with screen-content tools allowed
+  (`av1/encoder/encodeframe.c:1413-1430`). `tokenize.h:105-135` reserves up to two full-resolution planes in
+  maximum-superblock-rounded storage. Tokens retain the selected context and color-order rank, including the
+  first raw index (`tokenize.c:174-225,264-278`, `bitstream.c:353-368`); keeping only palette colors is insufficient.
+- `Av1EncoderPictureBuffer.Reset` clears the complete mode grid and packed state (`:344-363`), so it cannot
+  be reused as the boundary between analysis and packing. Selected prediction fields remain in the reusable
+  `Av1EncoderBlockStruct` workspace, while `Av1EncoderBlockModeInfo` retains only its smaller neighbor subset.
+  These lifetimes must be reconciled together with palette tokens, selected MV state, and coefficient contexts.
+- Native cost defaults are explicit controls as well as speed features: `av1/av1_cx_iface.c:391-394,550-553`
+  differs between default and realtime configurations. `rd.c:724-758,824-851` combines controls with speed policy
+  and initializes frame costs; `encodeframe_utils.c:1629-1689` suppresses block refresh when CDF updates are
+  disabled. No new managed effort mapping or isolated cost-refresh threshold was introduced.
+
+Film-grain decoder source comparison after `ef8b1a823`:
+
+- The complete template generation, random state, autoregression, scaling interpolation, overlap traversal,
+  noise application, and native-sample load/store paths were compared with `av1/decoder/grain_synthesis.c`.
+  Managed `Av1FilmGrainDecoder.cs:874-1172,1204-1231` matches the represented rules in native `:429-629`;
+  all 2,048 Gaussian entries also match exactly. No new arithmetic defect was established in this comparison.
+- Managed noise application processes chroma before luma (`Av1FilmGrainNoise.cs:109-174`), retaining ungrained
+  luma for chroma scaling. Native `grain_synthesis.c:685-745,803-862` uses that same ordering. The two-component
+  luma average is horizontal only; vertical chroma subsampling selects a row rather than averaging two rows.
+  Restricted identity-matrix chroma uses luma's upper endpoint, and high-depth lookup interpolates below entry 255.
+- `Av1FilmGrainDecoder.cs:698-857` and native `grain_synthesis.c:1252-1376` exclude already-applied overlap
+  strips and retain right/bottom grain boundaries. The managed plane span retains existing padded storage
+  (`:208-216`), including addresses for empty interiors at clipped edges; no new guard or scratch plane was added.
+- Grain presentation preserves references in `Av1Decoder.cs:891-909,945-1002`: refreshed frames receive a
+  separate presentation copy, and unreferenced shown frames can be grained in place. `CopyVisibleTo` also copies
+  active geometry (`Av1FrameBuffer.cs:248-258`). This source trace does not complete the decoder-wide lifetime audit.
+- SIMD dispatch remains an open architecture/performance issue. `Av1FilmGrainNoise.cs:180-238,388-522,947-955`
+  uses AVX2 gather or a high-depth-only portable path with separate width overloads. `Av1FilmGrainOverlap.cs:142-175`
+  additionally gates 512-bit processing on `Vector<int>.Count`. Neither gate has fresh end-to-end evidence here.
+  Comments claiming that scalar reads are slower, interpolation repays them, or `Vector<T>` establishes processor
+  execution width were corrected. Runtime dispatch and arithmetic were not changed; no improvement is claimed.
+- After the final comment edit, the Release .NET 11 build completed with zero errors and 1,009 existing warnings;
+  Roslynk reported zero compiler errors. Serialized Visual Studio VSTest passed 5/5 focused film-grain/reference
+  cases in 8.4512 seconds (`film-grain-audit.trx`), including existing hardware-fallback and constrained-allocation checks.
+- Current optimized libaom regenerated seven still references and the two ten-frame official sequence references.
+  All 3,113,847 decoded samples match the retained references exactly: maximum error 0, zero samples exceeding one.
+  Per-frame/per-plane results are in temporary `film-grain-comparison.json`. Those references are also used by the
+  passing managed tests. This is bounded same-bitstream decoder evidence, not complete conformance or encoder parity.
+  No benchmark ran, and no fixture, native integration, or generated comparison output was added to the repository.
+
 Range-writer output-capacity correction, verified after `93aba785f`:
 
 - `Av1SymbolWriter.cs:213-214,339` before correction sliced a fixed initial allocation for finalization

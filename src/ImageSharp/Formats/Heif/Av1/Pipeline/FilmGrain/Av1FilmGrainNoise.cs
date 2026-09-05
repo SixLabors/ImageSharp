@@ -15,9 +15,8 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
 /// <remarks>
 /// SIMD lanes follow consecutive samples within one plane row. Grain values and native samples are widened to signed
 /// 32-bit lanes before the scaling-table lookup and fixed-point addition, then clipped and narrowed only once. AVX2
-/// uses indexed gathers for the 256-entry scaling table. Portable 128-bit traversal is retained where high-bit-depth
-/// interpolation provides enough arithmetic to offset its scalar table reads; all remaining columns use the identical
-/// scalar equation.
+/// uses indexed gathers for the 256-entry scaling table. The current portable 128-bit dispatch handles high-bit-depth
+/// interpolation with scalar table reads; all remaining columns use the same scalar equation.
 /// </remarks>
 internal static class Av1FilmGrainNoise
 {
@@ -417,8 +416,8 @@ internal static class Av1FilmGrainNoise
         int maximum)
         where TSample : unmanaged
     {
-        // Chroma uses the same indexed scaling-table constraint as luma, so gather support determines the primary
-        // width and the portable path remains restricted to workloads that amortize scalar table reads.
+        // Chroma shares luma's dispatch: AVX2 gathers scaling values, while the portable vector path is currently
+        // enabled only for high-bit-depth interpolation. This policy does not establish which path is faster.
         if (Avx2.IsSupported)
         {
             ApplyChroma(
@@ -941,16 +940,16 @@ internal static class Av1FilmGrainNoise
     }
 
     /// <summary>
-    /// Determines whether portable vector arithmetic repays the cost of scalar scaling-table reads.
+    /// Determines whether the current dispatch enables the portable vector traversal.
     /// </summary>
     /// <param name="bitDepth">The decoded sample bit depth.</param>
     /// <returns>Whether to use the portable vector traversal.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool CanVectorizeWithoutGather(int bitDepth)
     {
-        // Portable Vector128 has no indexed table load. At eight bits, assembling each scaling vector from four
-        // scalar reads is slower than the complete scalar loop; high-depth interpolation contains enough arithmetic
-        // to amortize those reads. The AVX2 path uses native gather and remains the primary traversal at every depth.
+        // This path assembles four scale values from scalar lookups. High-depth samples additionally interpolate
+        // between table entries. The current depth gate requires end-to-end evidence before it can be justified
+        // as a performance policy; it does not express a numerical requirement of film-grain synthesis.
         return bitDepth > 8 && Vector128.IsHardwareAccelerated;
     }
 

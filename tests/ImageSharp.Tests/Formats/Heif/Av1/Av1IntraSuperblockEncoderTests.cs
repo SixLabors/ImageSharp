@@ -1131,6 +1131,41 @@ public class Av1IntraSuperblockEncoderTests
                     effort: 5));
     }
 
+    [Theory]
+    [InlineData(5, 3)]
+    [InlineData(3, 5)]
+    [InlineData(1, 5)]
+    public void ProductionTileSelectsExactLumaPaletteAtClippedHighBitDepths(int width, int height)
+    {
+        AssertProductionTileSelectsExactLumaPalette(
+            Av1BitDepth.TenBit,
+            10,
+            width,
+            height,
+            false,
+            (ushort)128,
+            (ushort)896,
+            128,
+            896,
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new Av1TileEncoder(
+                    writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+
+        AssertProductionTileSelectsExactLumaPalette(
+            Av1BitDepth.TwelveBit,
+            12,
+            width,
+            height,
+            false,
+            (ushort)512,
+            (ushort)3584,
+            512,
+            3584,
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new Av1TileEncoder(
+                    writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+    }
+
     [Fact]
     public void ProductionTileSelectsLumaPaletteWithFourByFourTransforms()
     {
@@ -1180,61 +1215,92 @@ public class Av1IntraSuperblockEncoderTests
     [Fact]
     public void ProductionTileSelectsExactPairedChromaPalette()
     {
-        AssertProductionTileSelectsExactPairedChromaPalette(useLumaPalette: false);
-        AssertProductionTileSelectsExactPairedChromaPalette(useLumaPalette: true);
+        AssertProductionTileSelectsExactPairedChromaPalette(false, 8, 8, false, false);
+        AssertProductionTileSelectsExactPairedChromaPalette(true, 8, 8, false, false);
     }
 
-    private static void AssertProductionTileSelectsExactPairedChromaPalette(bool useLumaPalette)
+    [Theory]
+    [InlineData(5, 3, false, false)]
+    [InlineData(3, 5, false, false)]
+    [InlineData(5, 3, true, false)]
+    [InlineData(3, 5, true, false)]
+    [InlineData(5, 3, true, true)]
+    [InlineData(3, 5, true, true)]
+    [InlineData(1, 5, true, false)]
+    [InlineData(5, 1, true, false)]
+    [InlineData(1, 5, true, true)]
+    [InlineData(5, 1, true, true)]
+    public void ProductionTileSelectsExactPairedChromaPaletteAtClippedSizes(int width, int height, bool subX, bool subY)
+        => AssertProductionTileSelectsExactPairedChromaPalette(false, width, height, subX, subY);
+
+    private static void AssertProductionTileSelectsExactPairedChromaPalette(
+        bool useLumaPalette,
+        int width,
+        int height,
+        bool subX,
+        bool subY)
     {
-        const int Width = 8;
-        const int Height = 8;
         const int QIndex = 37;
         ObuColorConfig colorConfig = new()
         {
             IsMonochrome = false,
-            SubSamplingX = false,
-            SubSamplingY = false,
+            SubSamplingX = subX,
+            SubSamplingY = subY,
             BitDepth = Av1BitDepth.EightBit
         };
 
+        Av1ColorFormat colorFormat = subY ? Av1ColorFormat.Yuv420 : subX ? Av1ColorFormat.Yuv422 : Av1ColorFormat.Yuv444;
         using Av1EncoderFrameBuffer<byte> source = new(
             Configuration.Default,
-            Width,
-            Height,
+            width,
+            height,
             8,
-            Av1ColorFormat.Yuv444,
+            colorFormat,
             0,
             0);
 
         using Av1EncoderFrameBuffer<byte> reconstruction = new(
             Configuration.Default,
-            Width,
-            Height,
+            width,
+            height,
             8,
-            Av1ColorFormat.Yuv444,
+            colorFormat,
             0,
             0);
 
         Buffer2DRegion<byte> lumaSource = source.Frame.CodedView.GetPlane(Av1Plane.Y);
         Buffer2DRegion<byte> blueSource = source.Frame.CodedView.GetPlane(Av1Plane.U);
         Buffer2DRegion<byte> redSource = source.Frame.CodedView.GetPlane(Av1Plane.V);
-        for (int row = 0; row < Height; row++)
+        for (int row = 0; row < lumaSource.Height; row++)
         {
             Span<byte> lumaRow = lumaSource.DangerousGetRowSpan(row);
             if (useLumaPalette)
             {
-                for (int column = 0; column < Width; column++)
+                for (int column = 0; column < lumaRow.Length; column++)
                 {
-                    lumaRow[column] = column < Width / 2 ? (byte)64 : (byte)192;
+                    lumaRow[column] = column < width / 2 ? (byte)64 : (byte)192;
                 }
             }
             else
             {
                 lumaRow.Fill(128);
             }
+        }
 
-            blueSource.DangerousGetRowSpan(row).Fill(row < Height / 2 ? (byte)32 : (byte)224);
-            redSource.DangerousGetRowSpan(row).Fill(row < Height / 2 ? (byte)200 : (byte)40);
+        int chromaWidth = (width + (subX ? 1 : 0)) >> (subX ? 1 : 0);
+        int chromaHeight = (height + (subY ? 1 : 0)) >> (subY ? 1 : 0);
+        for (int row = 0; row < blueSource.Height; row++)
+        {
+            for (int column = 0; column < blueSource.Width; column++)
+            {
+                // Repeat the last visible sample into coded alignment, including one-pixel source axes.
+                bool firstColor = chromaHeight > 1
+                    ? Math.Min(row, chromaHeight - 1) < chromaHeight / 2
+                    : Math.Min(column, chromaWidth - 1) < chromaWidth / 2;
+
+                blueSource.DangerousGetRowSpan(row)[column] = firstColor ? (byte)32 : (byte)224;
+                redSource.DangerousGetRowSpan(row)[column] = firstColor ? (byte)200 : (byte)40;
+            }
         }
 
         ClearPlane(reconstruction.Luma);
@@ -1242,8 +1308,8 @@ public class Av1IntraSuperblockEncoderTests
         ClearPlane(Assert.IsType<Buffer2D<byte>>(reconstruction.ChromaRed));
         using Av1EncoderModeInfoBuffer modeInfo = new(
             Configuration.Default,
-            Width,
-            Height,
+            width,
+            height,
             disallow4x4AllFrames: true);
 
         Av1PictureControlSet pictureTemplate = CreatePicture(
@@ -1253,21 +1319,21 @@ public class Av1IntraSuperblockEncoderTests
             QIndex);
 
         pictureTemplate.Parent.FrameHeader.AllowScreenContentTools = true;
-        pictureTemplate.Parent.FrameHeader.FrameSize.FrameWidth = Width;
-        pictureTemplate.Parent.FrameHeader.FrameSize.FrameHeight = Height;
+        pictureTemplate.Parent.FrameHeader.FrameSize.FrameWidth = width;
+        pictureTemplate.Parent.FrameHeader.FrameSize.FrameHeight = height;
         using Av1EncoderPictureBuffer picture = new(
             Configuration.Default,
             pictureTemplate.Sequence.SequenceHeader,
             pictureTemplate.Parent.FrameHeader,
-            Width,
-            Height,
+            width,
+            height,
             disallow4x4AllFrames: true);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             Configuration.Default,
             pictureTemplate.Sequence.SequenceHeader,
-            Width,
-            Height);
+            width,
+            height);
 
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
@@ -1296,20 +1362,53 @@ public class Av1IntraSuperblockEncoderTests
 
         Buffer2DRegion<byte> colorIndexMap = superblockWorkspace
             .GetPaletteMaps()
-            .GetMap(Av1PlaneType.Uv, Width, Height);
+            .GetMap(Av1PlaneType.Uv, blueSource.Width, blueSource.Height);
 
         Buffer2DRegion<byte> blueReconstruction = reconstruction.Frame.CodedView.GetPlane(Av1Plane.U);
         Buffer2DRegion<byte> redReconstruction = reconstruction.Frame.CodedView.GetPlane(Av1Plane.V);
-        for (int row = 0; row < Height; row++)
+        for (int row = 0; row < blueSource.Height; row++)
         {
-            byte expectedIndex = (byte)(row < Height / 2 ? 0 : 1);
-            foreach (byte index in colorIndexMap.DangerousGetRowSpan(row))
+            for (int column = 0; column < blueSource.Width; column++)
             {
-                Assert.Equal(expectedIndex, index);
+                byte expectedIndex = blueSource.DangerousGetRowSpan(row)[column] == 32 ? (byte)0 : (byte)1;
+                Assert.Equal(expectedIndex, colorIndexMap.DangerousGetRowSpan(row)[column]);
             }
 
             Assert.True(blueSource.DangerousGetRowSpan(row).SequenceEqual(blueReconstruction.DangerousGetRowSpan(row)));
             Assert.True(redSource.DangerousGetRowSpan(row).SequenceEqual(redReconstruction.DangerousGetRowSpan(row)));
+        }
+
+        byte[] payload = WriteCompleteTileObu(pictureTemplate, tileWriter, width, height);
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> decodedFrame = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        Assert.Equal(width, decodedFrame.Width);
+        Assert.Equal(height, decodedFrame.Height);
+        Assert.NotNull(decoder.FrameInfo);
+        Assert.Equal(2, decoder.FrameInfo.GetModeInfoAt(default).GetPaletteSize(Av1PlaneType.Uv));
+        for (int plane = 0; plane < 3; plane++)
+        {
+            int planeSubX = plane > 0 && subX ? 1 : 0;
+            int planeSubY = plane > 0 && subY ? 1 : 0;
+            Buffer2DRegion<byte> actual = decodedFrame.DeriveBlockPointer((Av1Plane)plane, planeSubX, planeSubY);
+            Buffer2DRegion<byte> expected = reconstruction.Frame.View.GetPlane((Av1Plane)plane);
+            for (int row = 0; row < expected.Height; row++)
+            {
+                Assert.Equal(expected.DangerousGetRowSpan(row), actual.DangerousGetRowSpan(row));
+            }
+        }
+
+        string outputDirectory = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, "Formats", "Heif", "Av1");
+        string outputName = $"encoder-palette-chroma-{width}x{height}-{subX}-{subY}-{useLumaPalette}";
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllBytes(Path.Combine(outputDirectory, outputName + ".obu"), payload);
+        using FileStream raw = File.Create(Path.Combine(outputDirectory, outputName + ".retained.yuv"));
+        for (int plane = 0; plane < 3; plane++)
+        {
+            Buffer2DRegion<byte> retained = reconstruction.Frame.View.GetPlane((Av1Plane)plane);
+            for (int row = 0; row < retained.Height; row++)
+            {
+                raw.Write(retained.DangerousGetRowSpan(row));
+            }
         }
 
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
@@ -3319,29 +3418,40 @@ public class Av1IntraSuperblockEncoderTests
             }
         }
 
+        // Decode every payload, including clipped maps: retained reconstruction alone cannot reveal missing map symbols.
+        byte[] payload = WriteCompleteTileObu(pictureTemplate, tileWriter, width, height);
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        Assert.NotNull(decoder.FrameInfo);
+        Av1BlockModeInfo decodedBlock = decoder.FrameInfo.GetModeInfoAt(default);
+        Assert.True(decodedBlock.GetPaletteSize(Av1Plane.Y) > 0);
+        Assert.Equal(new Size(width, height), decoded.Size);
+        using Av1FrameBuffer<byte> decodedFrame = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        Buffer2DRegion<byte> decodedPlane = decodedFrame.DeriveBlockPointer(Av1Plane.Y, 0, 0);
+        for (int row = 0; row < height; row++)
+        {
+            ReadOnlySpan<TSample> decodedSamples = MemoryMarshal.Cast<byte, TSample>(decodedPlane.DangerousGetRowSpan(row));
+            Assert.Equal(reconstructionPlane.DangerousGetRowSpan(row)[..width], decodedSamples);
+        }
+
         if (useSplitTransform)
         {
             Assert.True(predictionOnlyError > 0);
             Assert.True(reconstructionError < predictionOnlyError);
-            byte[] payload = WriteCompleteTileObu(pictureTemplate, tileWriter, width, height);
-            using Av1Decoder decoder = new(Configuration.Default);
-            using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
-            Assert.NotNull(decoder.FrameInfo);
-            Av1BlockModeInfo decodedBlock = decoder.FrameInfo.GetModeInfoAt(default);
-            Assert.True(decodedBlock.GetPaletteSize(Av1Plane.Y) > 0);
             Assert.Equal(4, decodedBlock.GetTransformUnitCount(Av1Plane.Y));
-            Assert.Equal(new Size(width, height), decoded.Size);
+        }
 
-            string outputDirectory = Path.Combine(
-                TestEnvironment.ActualOutputDirectoryFullPath,
-                "Formats",
-                "Heif",
-                "Av1");
+        string outputDirectory = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, "Formats", "Heif", "Av1");
+        string outputName = useSplitTransform
+            ? $"encoder-palette-transform-size-select-{bitDepthValue}b"
+            : $"encoder-palette-luma-{bitDepthValue}b-{width}x{height}";
 
-            Directory.CreateDirectory(outputDirectory);
-            File.WriteAllBytes(
-                Path.Combine(outputDirectory, $"encoder-palette-transform-size-select-{bitDepthValue}b.obu"),
-                payload);
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllBytes(Path.Combine(outputDirectory, outputName + ".obu"), payload);
+        using FileStream raw = File.Create(Path.Combine(outputDirectory, outputName + ".retained.yuv"));
+        for (int row = 0; row < height; row++)
+        {
+            raw.Write(MemoryMarshal.AsBytes(reconstructionPlane.DangerousGetRowSpan(row)[..width]));
         }
 
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);

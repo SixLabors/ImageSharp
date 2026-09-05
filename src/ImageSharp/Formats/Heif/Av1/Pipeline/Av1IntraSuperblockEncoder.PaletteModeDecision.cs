@@ -43,9 +43,10 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1EncoderPaletteWorkspace<TSample> workspace =
                 this.blockWorkspace.GetModeDecisionWorkspace<TSample>().Palette;
 
-            ObuFrameSize frameSize = this.picture.Parent.FrameHeader.FrameSize;
-            int rows = Math.Min(BlockLength, frameSize.FrameHeight - blockOrigin.Y);
-            int columns = Math.Min(BlockLength, frameSize.FrameWidth - blockOrigin.X);
+            // Palette samples and symbols extend to the coded mode-info boundary, including replicated source
+            // alignment. The signed edge distances use eighth-sample units and exclude only blocks beyond that boundary.
+            int rows = BlockLength + (Math.Min(0, macroBlock.ToBottomEdge) >> 3);
+            int columns = BlockLength + (Math.Min(0, macroBlock.ToRightEdge) >> 3);
             int sampleCount = rows * columns;
             Span<short> samples = workspace.GetSamples(0)[..sampleCount];
             TOperator.CopyPaletteSamples(sourcePlane, blockOrigin, rows, columns, samples);

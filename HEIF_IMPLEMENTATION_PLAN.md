@@ -228,6 +228,56 @@ Further quantization, distortion, and final-packing source comparison on 2026-09
   delayed packing. Simply flipping CDEF/restoration flags or saving only probability state is insufficient.
 - This comparison ran no benchmark or runtime test and establishes no new numerical or performance result.
 
+Further controller-state findings after `b2aee3036` on 2026-09-05:
+
+- Reference `av1/encoder/block.h:239-259`, `av1/encoder/rdopt.h:315-328`, and
+  `av1/encoder/partition_search.c:1555-1556` retain the winning reference-MV stack, weights, count, mode context,
+  and global vectors for final packing. `av1/encoder/bitstream.c:1062-1089,1133-1158,1251-1264` consumes that
+  retained state for inter-mode, DRL, MV, and IBC symbols. `Av1TileWriter.cs:928-975` currently rebuilds the stack
+  at the immediate-write boundary. Delaying the write requires preserving its decision-time state, not assuming
+  a rebuild against a completed frame grid is equivalent.
+- Reference `av1/common/av1_common_int.h:1775-1856` derives final partition structure from the retained mode grid.
+  A second frame-sized partition-tree copy is therefore not required by the reference architecture.
+- `Av1SymbolEncoder.cs:424-480,1183-1334` calculates candidate costs from live adaptive distributions.
+  Reference `av1/encoder/rd.c:82-130,602-668` fills distinct mode/coefficient cost tables, including marginal
+  coefficient costs needed by optimization. `av1/encoder/encodeframe_utils.c:1556-1692` updates mode,
+  coefficient, MV, and displacement-vector costs at separately configured superblock/row/tile frequencies;
+  `av1/encoder/speed_features.c:2385-2387` starts the inter cost policies at superblock frequency.
+  Updating CDFs after each selected block is not the same as refreshing every RD cost after that block.
+  This missing cost-state lifecycle is an architectural deviation. Its contribution to time or quality has
+  not been measured; no isolated cache or invented effort-dependent refresh policy has been introduced.
+
+Palette coded-boundary correction, verified after `b2aee3036` on 2026-09-05:
+
+- The encoder clipped luma/chroma palette search to visible frame dimensions
+  (`Av1IntraSuperblockEncoder.PaletteModeDecision.cs:46-49`,
+  `Av1IntraSuperblockEncoder.ChromaPaletteModeDecision.cs:54-57` before correction), and
+  `Av1TileWriter.cs:1085-1086` omitted palette symbols outside those visible dimensions. This is a numerical
+  and syntax defect, separate from the conditional distortion-model border policy described above.
+- Reference palette search (`av1/encoder/palette.c:555-597,787-804`), tokenization
+  (`av1/encoder/tokenize.c:229-241`), and decoding (`av1/decoder/detokenize.c:65-77`) all use
+  `av1/common/blockd.h:1517-1557`. Its distances come from coded mode-info dimensions
+  (`av1/common/av1_common_int.h:1358-1364`), not visible-pixel dimensions or the optional RD border policy.
+  The managed decoder already follows those coded distances (`Av1PartitionInfo.cs:190-194`,
+  `Av1TileReader.cs:2720-2744`). Search, rate evaluation, and writing now agree on that same extent.
+- The existing 5x3 luma regression checked retained reconstruction without decoding its payload. Extending it
+  to decode every case exposed a truncated tile entropy stream (`palette-bounds-red.trx`). An earlier assertion
+  incorrectly read `FrameBuffer` after `Decode` had released the native planes; that test mistake was corrected
+  using `DecodeFrameBuffer` and is not codec-failure evidence (`palette-bounds-before.trx`).
+- Existing palette/color/EOB/reconstruction assertions remain. Added cases cover clipped/transposed luma at
+  10/12 bits and 4:4:4, 4:2:2, and 4:2:0 chroma, including one-pixel source axes. The same boundary correction
+  prevents those subsampled axes from creating zero-length palette input. No defensive rejection, new owner,
+  extra production buffer, or change to search effort thresholds was introduced.
+- Final Release .NET 11 build: zero errors, 1,009 existing warnings. A preceding build stopped on a missing
+  blank line before a comment; it was corrected before verification. Roslynk reports zero compiler errors.
+  Serialized Visual Studio VSTest passes 190/190 cases in 18.4734 seconds: intra-superblock encoder,
+  HEIF encoder, and AV1 palette cases (`palette-bounds-final.trx`).
+- Optimized official libaom decodes all 23 regenerated palette payloads with exact agreement against retained
+  encoder reconstruction: 985 visible Y/U/V samples, maximum error 0, zero samples exceeding one unit.
+  Per-plane results and output sizes are in `D:\GitHub\ynse01\av1-takeover-20260905\palette-comparison.json`.
+  All generated streams, raw planes, scripts, and native output remain temporary and excluded from commits.
+  This is same-bitstream reconstruction verification, not separate-encoder parity or performance acceptance.
+
 Explicit grid-sampling conversion correction, verified after `5f7bad3a6` on 2026-09-05:
 
 - `HeifEncoderCore.Sequence.cs:97-109` promoted incompatible odd-grid sampling only when the public option

@@ -1082,8 +1082,11 @@ internal partial class Av1TileWriter
                     int blockHeight = blockSize.GetHeight();
                     int planeWidth = blockWidth >> subX;
                     int planeHeight = blockHeight >> subY;
-                    int columns = Math.Min(blockWidth, frm_hdr.FrameSize.FrameWidth - blockOrigin.X) >> subX;
-                    int rows = Math.Min(blockHeight, frm_hdr.FrameSize.FrameHeight - blockOrigin.Y) >> subY;
+
+                    // Palette syntax covers coded alignment samples too. Visible-frame clipping would omit symbols
+                    // that the decoder consumes before transform syntax and corrupt the remainder of the tile.
+                    int columns = (blockWidth + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subX;
+                    int rows = (blockHeight + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subY;
                     Buffer2DRegion<byte> colorIndexMap = tb_ptr.Workspace
                         .GetPaletteMaps()
                         .GetMap(planeType, planeWidth, planeHeight);

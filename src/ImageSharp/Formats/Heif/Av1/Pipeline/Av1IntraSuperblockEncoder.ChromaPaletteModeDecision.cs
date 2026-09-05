@@ -51,9 +51,11 @@ internal static partial class Av1IntraSuperblockEncoder
             int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
             int width = transformSize.GetWidth();
             int height = transformSize.GetHeight();
-            ObuFrameSize frameSize = this.picture.Parent.FrameHeader.FrameSize;
-            int rows = Math.Min(LumaBlockLength, frameSize.FrameHeight - lumaOrigin.Y) >> subsamplingY;
-            int columns = Math.Min(LumaBlockLength, frameSize.FrameWidth - lumaOrigin.X) >> subsamplingX;
+
+            // Clip against the coded mode-info boundary before subsampling, as the decoder does. Visible odd
+            // dimensions still have complete coded chroma samples; truncating them here can leave an empty palette input.
+            int rows = (LumaBlockLength + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subsamplingY;
+            int columns = (LumaBlockLength + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subsamplingX;
             int activeSampleCount = rows * columns;
             Span<short> blueSamples = workspace.GetSamples(0)[..activeSampleCount];
             Span<short> redSamples = workspace.GetSamples(1)[..activeSampleCount];

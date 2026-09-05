@@ -203,7 +203,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             uint rowsInBlock = Math.Min(rowsPerBlock, (uint)height - rowStartIndex);
             uint uncompressedBytesCount = (uint)(bytesPerRow * rowsInBlock);
 
-            decompressor.Decompress(stream, compressedBytesCount, uncompressedBytesCount, decompressedPixelData);
+            this.DecompressBlock(decompressor, stream, compressedBytesCount, uncompressedBytesCount, decompressedPixelData);
 
             int offset = 0;
             for (uint rowIndex = rowStartIndex; rowIndex < rowStartIndex + rowsPerBlock && rowIndex < height; rowIndex++)
@@ -292,7 +292,7 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             uint rowsInBlock = Math.Min(rowsPerBlock, (uint)height - rowStartIndex);
             uint uncompressedBytesCount = (uint)(bytesPerRow * rowsInBlock);
 
-            decompressor.Decompress(stream, compressedBytesCount, uncompressedBytesCount, decompressedPixelData);
+            this.DecompressBlock(decompressor, stream, compressedBytesCount, uncompressedBytesCount, decompressedPixelData);
 
             int offset = 0;
             for (uint rowIndex = rowStartIndex; rowIndex < rowStartIndex + rowsPerBlock && rowIndex < height; rowIndex++)
@@ -318,6 +318,28 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
             stream.Position = nextRowOffsetPosition;
 
             cancellationToken.ThrowIfCancellationRequested();
+        }
+    }
+
+    /// <summary>
+    /// Decompresses a block according to the configured image-data integrity policy.
+    /// </summary>
+    /// <param name="decompressor">The decompressor for the stored compression type.</param>
+    /// <param name="stream">The encoded block stream.</param>
+    /// <param name="compressedBytes">The declared compressed byte count.</param>
+    /// <param name="uncompressedBytes">The expected byte count for the rows in this block.</param>
+    /// <param name="buffer">The reusable decompressed pixel buffer.</param>
+    private void DecompressBlock(ExrBaseDecompressor decompressor, BufferedReadStream stream, uint compressedBytes, uint uncompressedBytes, Span<byte> buffer)
+    {
+        try
+        {
+            decompressor.Decompress(stream, compressedBytes, uncompressedBytes, buffer);
+        }
+        catch (Exception ex) when (this.Options.SegmentIntegrityHandling == SegmentIntegrityHandling.IgnoreImageData && ex is InvalidImageContentException or InvalidDataException)
+        {
+            // The offset table locates the next block independently of this damaged payload.
+            // Discard the entire failed block so partial output or pooled bytes cannot become pixels.
+            buffer[..(int)uncompressedBytes].Clear();
         }
     }
 

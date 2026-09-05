@@ -16,12 +16,55 @@ namespace SixLabors.ImageSharp.Tests.Formats.Exr;
 [ValidateDisposedMemoryAllocations]
 public class ExrZipDecoderTests
 {
-    [Fact]
-    public void Decode_ShortInflatedBlock_Throws()
+    /// <summary>
+    /// Incomplete and oversized blocks are rejected unless image-data recovery is enabled.
+    /// </summary>
+    /// <param name="length">The inflated payload length.</param>
+    /// <param name="integrity">The image-data integrity policy.</param>
+    [Theory]
+    [InlineData(0, SegmentIntegrityHandling.Strict)]
+    [InlineData(8, SegmentIntegrityHandling.Strict)]
+    [InlineData(1025, SegmentIntegrityHandling.Strict)]
+    [InlineData(0, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(8, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(1025, SegmentIntegrityHandling.IgnoreAncillary)]
+    public void Decode_InvalidInflatedBlock_Throws(int length, SegmentIntegrityHandling integrity)
     {
-        byte[] data = BuildExr(ZlibCompress(new byte[8]), ExrPixelType.Float, 2);
+        byte[] data = BuildExr(ZlibCompress(new byte[length]), ExrPixelType.Float, 2);
+        DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
 
-        Assert.Throws<InvalidImageContentException>(() => Image.Load<RgbaVector>(data));
+        Assert.Throws<InvalidImageContentException>(() => Image.Load<RgbaVector>(options, data));
+    }
+
+    /// <summary>
+    /// Recovering an invalid image-data block must not expose partially decoded or pooled bytes.
+    /// </summary>
+    /// <param name="pixelType">The stored sample type.</param>
+    /// <param name="length">The inflated payload length.</param>
+    [Theory]
+    [InlineData(ExrPixelType.Half, 0)]
+    [InlineData(ExrPixelType.Half, 8)]
+    [InlineData(ExrPixelType.Half, 1025)]
+    [InlineData(ExrPixelType.Float, 0)]
+    [InlineData(ExrPixelType.Float, 8)]
+    [InlineData(ExrPixelType.Float, 1025)]
+    [InlineData(ExrPixelType.UnsignedInt, 0)]
+    [InlineData(ExrPixelType.UnsignedInt, 8)]
+    [InlineData(ExrPixelType.UnsignedInt, 1025)]
+    public void Decode_InvalidInflatedBlock_IgnoreImageData_ClearsPixels(ExrPixelType pixelType, int length)
+    {
+        byte[] data = BuildExr(ZlibCompress(new byte[length]), pixelType, 2);
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = new TestMemoryAllocator(0x3F);
+        DecoderOptions options = new() { Configuration = configuration, SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
+
+        using Image<RgbaVector> image = Image.Load<RgbaVector>(options, data);
+        Assert.Equal(new Size(256, 1), image.Size);
+
+        for (int x = 0; x < image.Width; x++)
+        {
+            Assert.Equal(new Vector4(0, 0, 0, 1), image[x, 0].ToVector4());
+        }
     }
 
     /// <summary>

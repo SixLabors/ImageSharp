@@ -283,6 +283,32 @@ Frame/block RD and decoder filter follow-up after `aa2ecf690`:
   superblock modifier from the range of subblock variances (`partition_search.c:5721-5734`).
   `Av1IntraSuperblockEncoder.ModeDecision.cs:172-176` uses only the segment-zero base quantizer and intra flag.
   These missing policies remain architectural deviations; no isolated multiplier adjustment was introduced.
+- The default `disable_trellis_quant = 3` (`av1/av1_cx_iface.c:291`) means
+  `NO_ESTIMATE_YRD_TRELLIS_OPT`, not final-pass-only optimization (`speed_features.c:2493-2513`).
+  `encodemb.h:157-162` and `tx_search.c:2084-2085,2216-2229` still allow optimization during transform
+  candidate evaluation under that default. Control value 2 selects final-pass-only behavior. A winner-only
+  optimizer would therefore leave the default production path incomplete.
+- The complete optimizer traversal at `av1/encoder/txb_rdopt.c:18-560` and its cost/dequantization helpers
+  (`txb_rdopt_utils.h:39-204`) were followed through level lowering, EOB replacement, empty-transform selection,
+  signed DC handling, plane/precision/tuning scaling, and joint rate/EOB/context publication. It retains only
+  three nonzero positions for the EOB phase, then changes traversal after that phase's bound is exceeded.
+  That bound belongs to this complete traversal; it is not a general candidate-pruning threshold.
+  Managed `Av1SymbolEncoder.cs:1183-1334` evaluates an unchanged coefficient vector and
+  `Av1TransformBlockEncoder.cs:1175-1225` stops at fast quantization. Existing scratch can support parts of the
+  arithmetic, but cost-state policy, evaluation stages, mutation, and reconstruction must be integrated together.
+- The caller policy also changes quantization, not only the decision to invoke trellis:
+  `tx_search.c:1964-2000,2147-2156,2216-2229` derives the MSE/SATD gates from the active evaluation stage,
+  switches between fast and regular quantization, then optimizes before distortion/reconstruction.
+  Threshold tables and default/mode/winner selection live in `speed_features.c:76-100` and `rd.h:353-381`.
+  Managed candidate reconstruction currently happens before `GetCoefficientCost`
+  (`Av1TransformBlockEncoder.cs:187-251`, `Av1IntraSuperblockEncoder.ModeDecision.cs:2494-2550`).
+  Adding optimization to that later cost call would reconstruct twice or leave candidate pixels stale.
+- The optional residual border policy is selected in `encoder.c:4559-4568`: GOOD mode, objective delta-Q,
+  TPL enabled, no AQ/segmentation/ROI/QP sweep/ducky path, and sharpness other than three.
+  `encodemb.c:80-173` fills outside-visible residuals using a whole-block mean, per-axis mean, or zero,
+  depending on transform type. Thus border residual reuse across transform candidates is conditional.
+  This policy is not an unconditional replacement for coded-edge replication, and is not enabled for ALLINTRA.
+  No isolated border-padding rule was added; its configuration and candidate integration remain open.
 - Transform pixel-error normalization and the modeled-rate skip comparison were also traced through
   `Av1TransformBlockEncoder.cs:577-590`, `Av1RateDistortion.cs:259-307`, native
   `av1/encoder/model_rd.h:70-106,162-199`, and `av1/encoder/tx_search.c:979-1051`.
@@ -293,6 +319,32 @@ Frame/block RD and decoder filter follow-up after `aa2ecf690`:
   reuse are present. The managed sequential traversal reads the still-unmodified bottom row directly; native
   retains bottom lines for its worker-capable traversal. This inspection establishes no decoder-wide or SIMD
   completeness claim. Decoder CDEF storage remains an operation-scoped owner, not native reusable worker state.
+
+Range-writer output-capacity correction, verified after `93aba785f`:
+
+- `Av1SymbolWriter.cs:213-214,339` before correction sliced a fixed initial allocation for finalization
+  and eight-byte flushes. Reference `aom_dsp/entenc.c:78-91,270-285` grows capacity when either needs
+  more room. The packet estimate in `Av1FrameEncoder.cs:544-563` does not replace that range-coder policy.
+  This is a demonstrated writer-capacity deviation; no production frame overflowing that estimate was established.
+- The existing owner now grows at those two boundaries. Word flushes double the current tile capacity and add
+  eight bytes; finalization reserves its exact terminating length. Reallocation preserves finalized preceding
+  tiles and the current completed prefix, including bytes that can receive a backward carry. Pending bits stay
+  in the range state. The old owner is returned only after successful allocation/copy, and reset reuses capacity.
+  Existing frame aggregation remains; this does not complete native deferred-packing or worker ownership parity.
+- Before correction, the zero-capacity consecutive-tile regression failed in `Normalize` with
+  `ArgumentOutOfRangeException` (`writer-growth-red.trx`); VSTest stopped on that first failure.
+  Five small initial capacities now preserve three consecutive tiles byte-for-byte against sufficient-capacity
+  encoding, with CDF adaptation enabled/disabled. Existing native carry assertions cover two additional
+  finalization-growth capacities. Allocation limits independently exercise failure at both growth boundaries,
+  and allocation identities verify every successful owner is returned exactly once.
+- Final Release .NET 11 incremental build: zero errors and warnings; preceding test compilation:
+  1,009 existing warnings. Roslynk reports zero compiler errors. Serialized Visual Studio VSTest passes
+  2,292/2,292 entropy, intra-superblock, encoder-frame, and HEIF encoder cases in 26.9726 seconds
+  (`writer-growth-final.trx`), including the twelve focused writer cases.
+- Current optimized libaom decoding of the regenerated 23 palette, eight partition, and twelve color-sequence
+  streams matches all 38,973 samples exactly: maximum error 0, zero samples exceeding one.
+  These are bounded same-bitstream checks, not separate-encoder parity or a timing/quality improvement.
+  No benchmark was run. All temporary native comparison output and test reports remain excluded from commits.
 
 Restoration processing-unit correction:
 

@@ -545,6 +545,7 @@ internal static class Av1FrameEncoder
     {
         // Libaom reserves 2.5 times the 32-sample-aligned native input for an all-intra output packet.
         // Counting the active planes directly retains that headroom without charging monochrome for unused chroma.
+        // This is an initial estimate: the range writer grows if encoded syntax exceeds its remaining capacity.
         int alignedWidth = Av1Math.AlignPowerOf2(width, OutputAlignmentLog2);
         int alignedHeight = Av1Math.AlignPowerOf2(height, OutputAlignmentLog2);
         int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;

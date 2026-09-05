@@ -222,7 +222,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// Initializes a new instance of the <see cref="Av1SymbolEncoder"/> class with reusable tile state.
     /// </summary>
     /// <param name="configuration">The configuration providing output and temporary memory.</param>
-    /// <param name="bufferLength">The complete fixed output allocation length in bytes.</param>
+    /// <param name="bufferLength">The initial output capacity in bytes.</param>
     /// <param name="qIndex">The frame base quantizer index.</param>
     /// <param name="updateCdf">A value indicating whether encoded symbols adapt their tile distributions.</param>
     public Av1SymbolEncoder(Configuration configuration, int bufferLength, int qIndex, bool updateCdf)
@@ -1527,7 +1527,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// Exposes a prefix containing every consecutively encoded tile without copying their bytes.
     /// </summary>
     /// <param name="length">The number of bytes in the prefix.</param>
-    /// <returns>The encoded prefix, valid until this encoder is reset to offset zero or disposed.</returns>
+    /// <returns>The encoded prefix, valid until this encoder is reset or disposed.</returns>
     public ReadOnlyMemory<byte> GetOutput(int length)
         => this.writer.GetOutput(length);
 

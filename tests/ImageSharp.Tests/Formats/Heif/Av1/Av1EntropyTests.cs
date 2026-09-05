@@ -931,10 +931,13 @@ public class Av1EntropyTests
         int expected)
         => Assert.Equal(expected, Av1RateDistortion.GetInterFrameRateMultiplier(qIndex, (Av1BitDepth)bitDepth));
 
-    [Fact]
-    public void SymbolWriterMatchesCurrentLibaomCarryRegression()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(ShortSyntaxBufferLength)]
+    public void SymbolWriterMatchesCurrentLibaomCarryRegression(int initialCapacity)
     {
-        using Av1SymbolWriter writer = new(Configuration.Default, ShortSyntaxBufferLength, updateCdf: false);
+        using Av1SymbolWriter writer = new(Configuration.Default, initialCapacity, updateCdf: false);
         writer.WriteBoolean(false, 16_384);
         writer.WriteBoolean(false, 16_384);
         writer.WriteBoolean(true, 512);
@@ -966,6 +969,105 @@ public class Av1EntropyTests
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
         Assert.Equal(allocation.HashCodeOfBuffer, returned.HashCodeOfBuffer);
+    }
+
+    [Theory]
+    [InlineData(0, false)]
+    [InlineData(1, true)]
+    [InlineData(7, false)]
+    [InlineData(8, true)]
+    [InlineData(17, true)]
+    public void SymbolWriterGrowthPreservesConsecutiveTiles(int initialCapacity, bool updateCdf)
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        using (Av1SymbolWriter writer = new(configuration, initialCapacity, updateCdf))
+        using (Av1SymbolWriter expected = new(Configuration.Default, 8192, updateCdf))
+        {
+            int outputLength = 0;
+            for (int tile = 0; tile < 3; tile++)
+            {
+                writer.Reset(outputLength);
+                expected.Reset(outputLength);
+                Av1Distribution distribution = new(100, 16000, 32000);
+                Av1Distribution expectedDistribution = new(100, 16000, 32000);
+                for (int index = 0; index < 257; index++)
+                {
+                    // Small intervals provoke carries while literals cross repeated word-flush boundaries.
+                    int symbol = (index + tile) & 3;
+                    uint literal = (uint)((index * 73) + tile);
+                    writer.WriteSymbol(symbol, distribution);
+                    writer.WriteLiteral(literal, 8);
+                    expected.WriteSymbol(symbol, expectedDistribution);
+                    expected.WriteLiteral(literal, 8);
+                }
+
+                ReadOnlyMemory<byte> actualTile = writer.Exit(out int length);
+                ReadOnlyMemory<byte> expectedTile = expected.Exit(out int expectedLength);
+                Assert.Equal(expectedLength, length);
+                Assert.True(expectedTile.Span.SequenceEqual(actualTile.Span));
+                outputLength += length;
+
+                // Growth in a later tile must preserve all earlier finalized tile bytes too.
+                Assert.True(expected.GetOutput(outputLength).Span.SequenceEqual(writer.GetOutput(outputLength).Span));
+            }
+
+            Assert.True(allocator.AllocationLog.Count > 1);
+            Assert.Equal(allocator.AllocationLog.Count - 1, allocator.ReturnLog.Count);
+            int allocations = allocator.AllocationLog.Count;
+            writer.Reset();
+            writer.WriteLiteral(false);
+            _ = writer.Exit(out _);
+            Assert.Equal(allocations, allocator.AllocationLog.Count);
+        }
+
+        Assert.Equal(
+            allocator.AllocationLog.Select(x => x.AllocationId).Order(),
+            allocator.ReturnLog.Select(x => x.AllocationId).Order());
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void SymbolWriterGrowthFailureRetainsItsOwner(bool failDuringFinalization)
+    {
+        int initialCapacity = failDuringFinalization ? 1 : 8;
+        OutputLimitedAllocator allocator = new(initialCapacity);
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+
+        using (Av1SymbolWriter writer = new(configuration, initialCapacity, updateCdf: false))
+        {
+            Assert.Throws<InvalidMemoryOperationException>(() =>
+            {
+                if (failDuringFinalization)
+                {
+                    writer.WriteBoolean(false, 16_384);
+                    writer.WriteBoolean(false, 16_384);
+                    writer.WriteBoolean(true, 512);
+                    writer.WriteBoolean(false, 8_192);
+                    _ = writer.Exit(out _);
+                }
+                else
+                {
+                    for (int index = 0; index < 32; index++)
+                    {
+                        writer.WriteLiteral((uint)index, 8);
+                    }
+                }
+            });
+
+            Assert.Single(allocator.AllocationLog);
+            Assert.Empty(allocator.ReturnLog);
+        }
+
+        Assert.Equal(
+            Assert.Single(allocator.AllocationLog).AllocationId,
+            Assert.Single(allocator.ReturnLog).AllocationId);
     }
 
     [Fact]
@@ -2266,6 +2368,12 @@ public class Av1EntropyTests
         }
 
         return result;
+    }
+
+    // Exercise the allocator's actual contiguous-buffer boundary while retaining the existing owner log.
+    private sealed class OutputLimitedAllocator : TestMemoryAllocator
+    {
+        public OutputLimitedAllocator(int limit) => this.SingleBufferAllocationLimitBytes = limit;
     }
 
     public static TheoryData<int, bool> GetInterTransformTypeData()

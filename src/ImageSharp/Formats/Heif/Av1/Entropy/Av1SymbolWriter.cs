@@ -46,14 +46,14 @@ internal sealed class Av1SymbolWriter : IDisposable
     private readonly Configuration configuration;
 
     /// <summary>
-    /// The owner of the fixed output buffer shared by consecutively encoded tiles.
+    /// The owner of the output buffer shared by consecutively encoded tiles.
     /// </summary>
-    private readonly IMemoryOwner<byte> bufferOwner;
+    private IMemoryOwner<byte> bufferOwner;
 
     /// <summary>
     /// The complete requested output allocation, including every consecutively encoded tile.
     /// </summary>
-    private readonly Memory<byte> outputBuffer;
+    private Memory<byte> outputBuffer;
 
     /// <summary>
     /// The requested output range, excluding any excess capacity returned by a pooling allocator.
@@ -71,10 +71,10 @@ internal sealed class Av1SymbolWriter : IDisposable
     private int position;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1SymbolWriter"/> class with a bounded output size.
+    /// Initializes a new instance of the <see cref="Av1SymbolWriter"/> class.
     /// </summary>
     /// <param name="configuration">The configuration that supplies output allocation.</param>
-    /// <param name="bufferLength">The complete fixed output allocation length in bytes.</param>
+    /// <param name="bufferLength">The initial output capacity in bytes.</param>
     /// <param name="updateCdf">A value indicating whether encoded symbols adapt their distributions.</param>
     public Av1SymbolWriter(Configuration configuration, int bufferLength, bool updateCdf)
     {
@@ -86,7 +86,7 @@ internal sealed class Av1SymbolWriter : IDisposable
     }
 
     /// <summary>
-    /// Restores the initial range-coder state while retaining the bounded output allocation.
+    /// Restores the initial range-coder state and begins a new output sequence.
     /// </summary>
     public void Reset() => this.Reset(0);
 
@@ -192,7 +192,7 @@ internal sealed class Av1SymbolWriter : IDisposable
     /// Exposes a prefix containing consecutively encoded tiles without copying their bytes.
     /// </summary>
     /// <param name="length">The number of bytes in the prefix.</param>
-    /// <returns>The encoded prefix, valid until this writer is reset to offset zero or disposed.</returns>
+    /// <returns>The encoded prefix, valid until this writer is reset or disposed.</returns>
     public ReadOnlyMemory<byte> GetOutput(int length) => this.outputBuffer[..length];
 
     /// <summary>
@@ -211,6 +211,12 @@ internal sealed class Av1SymbolWriter : IDisposable
         ulong e = ((l + m) & ~m) | (m + 1);
         s += c;
         int pendingByteCount = Math.Max((s + 7) >> 3, 0);
+        if (pos + pendingByteCount > this.buffer.Length)
+        {
+            // Finalization needs only the terminating bytes; ordinary word flushes reserve their own headroom.
+            this.ResizeBuffer(pos + pendingByteCount);
+        }
+
         Span<byte> buffer = this.buffer.Span[..(pos + pendingByteCount)];
         if (s > 0)
         {
@@ -336,6 +342,13 @@ internal sealed class Av1SymbolWriter : IDisposable
         // bytes together while preserving one carry bit.
         if (s >= 40)
         {
+            if (this.position + sizeof(ulong) > this.buffer.Length)
+            {
+                // A word store touches eight bytes even when fewer become logical output. Double the current
+                // tile capacity and add one word, matching the range coder's amortized growth from an empty buffer.
+                this.ResizeBuffer(checked((2 * this.buffer.Length) + sizeof(ulong)));
+            }
+
             Span<byte> buffer = this.buffer.Span[..(this.position + sizeof(ulong))];
             int readyByteCount = (s >> 3) + 1;
             c += 24 - (readyByteCount << 3);
@@ -363,6 +376,27 @@ internal sealed class Av1SymbolWriter : IDisposable
         this.low = low << d;
         this.rng = rng << d;
         this.cnt = s;
+    }
+
+    /// <summary>
+    /// Replaces the output owner while retaining finalized tiles and the current tile's completed bytes.
+    /// </summary>
+    /// <param name="tileCapacity">The required capacity starting at the current tile's output offset.</param>
+    private void ResizeBuffer(int tileCapacity)
+    {
+        int outputOffset = this.outputBuffer.Length - this.buffer.Length;
+        int capacity = checked(outputOffset + tileCapacity);
+        IMemoryOwner<byte> replacement = this.configuration.MemoryAllocator.Allocate<byte>(capacity);
+        Memory<byte> replacementBuffer = replacement.Memory[..capacity];
+
+        // Previous tile bytes remain part of the frame payload. The current tile's completed prefix also carries
+        // backward into earlier bytes, so preserve that prefix before returning the old owner. Pending bits stay
+        // in low/cnt and need no copy. If allocation fails, the original owner remains available for disposal.
+        this.outputBuffer.Span[..(outputOffset + this.position)].CopyTo(replacementBuffer.Span);
+        this.bufferOwner.Dispose();
+        this.bufferOwner = replacement;
+        this.outputBuffer = replacementBuffer;
+        this.buffer = replacementBuffer[outputOffset..];
     }
 
     /// <summary>

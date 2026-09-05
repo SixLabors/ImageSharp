@@ -58,7 +58,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out int selectedAngleDelta,
             out byte selectedChromaFromLumaIndex,
             out sbyte selectedChromaFromLumaSigns,
-            out long selectedCost)
+            out Av1RateDistortionStatistics selectedStatistics)
         {
             Av1EncoderModeDecisionWorkspace<TSample> workspace =
                 this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
@@ -94,7 +94,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     out selectedAngleDelta,
                     out selectedChromaFromLumaIndex,
                     out selectedChromaFromLumaSigns,
-                    out selectedCost);
+                    out selectedStatistics);
             }
 
             int modeInfoRow = lumaOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
@@ -201,7 +201,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> candidateRedReconstruction = workspace.GetCandidateReconstruction(1);
             Span<int> candidateBlueCoefficients = workspace.GetCandidateCoefficients(0);
             Span<int> candidateRedCoefficients = workspace.GetCandidateCoefficients(1);
-            long bestCost = long.MaxValue;
+            Av1RateDistortionStatistics bestStatistics = Av1RateDistortionStatistics.Invalid;
             Av1ChromaPredictionMode bestMode = Av1ChromaPredictionMode.DC;
             selectedAngleDelta = 0;
             selectedChromaFromLumaIndex = 0;
@@ -249,7 +249,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 // A chroma mode and angle are shared by U and V, so neither plane can replace the
                 // retained result independently. Their complete rate and distortion compete jointly.
-                long candidateCost = this.GetChromaCandidateCost(
+                Av1RateDistortionStatistics candidateStatistics = this.GetChromaCandidateCost(
                     writer,
                     modeInfo,
                     lumaMode,
@@ -277,7 +277,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     ref candidateBlueState,
                     ref candidateRedState);
 
-                if (candidateCost < bestCost)
+                if (candidateStatistics.Cost < bestStatistics.Cost)
                 {
                     CopyCandidate(
                         candidateBlueReconstruction,
@@ -299,7 +299,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         candidateRedState,
                         ref retainedRedStates[0]);
 
-                    bestCost = candidateCost;
+                    bestStatistics = candidateStatistics;
                     bestMode = chromaMode;
                     selectedAngleDelta = angleDelta;
                 }
@@ -430,15 +430,15 @@ internal static partial class Av1IntraSuperblockEncoder
                             + writer.GetChromaFromLumaCost(packedIndex, jointSign);
 
                         long distortion = blueDistortions[blueCandidateIndex] + redDistortions[redCandidateIndex];
-                        long candidateCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
-                        bool winsSearchOrderTie = candidateCost == bestCost
+                        Av1RateDistortionStatistics candidateStatistics = new(this.rateMultiplier, rate, distortion);
+                        bool winsSearchOrderTie = candidateStatistics.Cost == bestStatistics.Cost
                             && !chromaFromLumaSelected
                             && bestMode != Av1ChromaPredictionMode.DC;
 
                         // CfL follows DC and precedes every other chroma mode in the reference search order.
-                        if (candidateCost < bestCost || winsSearchOrderTie)
+                        if (candidateStatistics.Cost < bestStatistics.Cost || winsSearchOrderTie)
                         {
-                            bestCost = candidateCost;
+                            bestStatistics = candidateStatistics;
                             bestMode = Av1ChromaPredictionMode.ChromaFromLuma;
                             selectedAngleDelta = 0;
                             selectedBlueCandidateIndex = blueCandidateIndex;
@@ -532,7 +532,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     retainedRedCoefficients,
                     ref retainedBlueStates[0],
                     ref retainedRedStates[0],
-                    ref bestCost,
+                    ref bestStatistics,
                     ref paletteInfo))
             {
                 bestMode = Av1ChromaPredictionMode.DC;
@@ -541,7 +541,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 selectedChromaFromLumaSigns = 0;
             }
 
-            selectedCost = bestCost;
+            selectedStatistics = bestStatistics;
             return bestMode;
         }
 
@@ -564,7 +564,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out int selectedAngleDelta,
             out byte selectedChromaFromLumaIndex,
             out sbyte selectedChromaFromLumaSigns,
-            out long selectedCost)
+            out Av1RateDistortionStatistics selectedStatistics)
         {
             Av1EncoderModeDecisionWorkspace<TSample> workspace =
                 this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
@@ -650,7 +650,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 _ => baseModeCount
             };
 
-            long bestCost = long.MaxValue;
+            Av1RateDistortionStatistics bestStatistics = Av1RateDistortionStatistics.Invalid;
             Av1ChromaPredictionMode bestMode = Av1ChromaPredictionMode.DC;
             selectedAngleDelta = 0;
             selectedChromaFromLumaIndex = 0;
@@ -745,8 +745,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     rate += paletteDisabledCost;
                 }
 
-                long candidateCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
-                if (candidateCost < bestCost)
+                Av1RateDistortionStatistics candidateStatistics = new(this.rateMultiplier, rate, distortion);
+                if (candidateStatistics.Cost < bestStatistics.Cost)
                 {
                     CopyTiledCandidate(
                         candidateBlueReconstruction,
@@ -772,13 +772,13 @@ internal static partial class Av1IntraSuperblockEncoder
                         retainedRedCoefficients,
                         retainedRedStates);
 
-                    bestCost = candidateCost;
+                    bestStatistics = candidateStatistics;
                     bestMode = chromaMode;
                     selectedAngleDelta = angleDelta;
                 }
             }
 
-            selectedCost = bestCost;
+            selectedStatistics = bestStatistics;
             return bestMode;
         }
 
@@ -1083,7 +1083,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 && modeInfo.UvMode is Av1ChromaPredictionMode.Smooth or Av1ChromaPredictionMode.SmoothVertical or Av1ChromaPredictionMode.SmoothHorizontal;
         }
 
-        private long GetChromaCandidateCost(
+        private Av1RateDistortionStatistics GetChromaCandidateCost(
             Av1SymbolEncoder writer,
             Av1MacroBlockModeInfo modeInfo,
             Av1PredictionMode lumaMode,
@@ -1209,7 +1209,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1FilterIntraMode.AllFilterIntraModes,
                 usesInterTransformSet: false);
 
-            return Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
+            return new(this.rateMultiplier, rate, distortion);
         }
 
         /// <summary>

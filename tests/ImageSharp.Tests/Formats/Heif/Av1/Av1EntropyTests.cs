@@ -818,6 +818,29 @@ public class Av1EntropyTests
     }
 
     [Theory]
+    [InlineData(128, 2, 0L, 2, 0L, 1L)]
+    [InlineData(128, 1, 0L, 1, 0L, 1L)]
+    [InlineData(64, 512, 2_000_000_000L, 512, 2_000_000_000L, 512_000_000_128L)]
+    public void RateDistortionStatisticsRoundCombinedRate(
+        int multiplier,
+        int firstRate,
+        long firstDistortion,
+        int secondRate,
+        long secondDistortion,
+        long expectedCost)
+    {
+        // The first two cases cross opposite sides of the half-unit boundary: independently rounded
+        // child costs would be two and zero, while the combined reference cost is one in both cases.
+        Av1RateDistortionStatistics combined = new(multiplier, firstRate, firstDistortion);
+        Av1RateDistortionStatistics second = new(multiplier, secondRate, secondDistortion);
+        combined.Add(multiplier, in second);
+
+        Assert.Equal(firstRate + secondRate, combined.Rate);
+        Assert.Equal(firstDistortion + secondDistortion, combined.Distortion);
+        Assert.Equal(expectedCost, combined.Cost);
+    }
+
+    [Theory]
     [InlineData(1, 255, 0L, 0L)]
     [InlineData(1, 256, 0L, 1L)]
     [InlineData(128, 512, 1000L, 128_128L)]

@@ -370,6 +370,35 @@ Film-grain decoder source comparison after `ef8b1a823`:
   passing managed tests. This is bounded same-bitstream decoder evidence, not complete conformance or encoder parity.
   No benchmark ran, and no fixture, native integration, or generated comparison output was added to the repository.
 
+RD accumulation correction after `4c7880d`:
+
+- Numerical defect: before this correction, `Av1IntraSuperblockEncoder.ModeDecision.cs:349-381` added
+  rounded child costs, `:727-731` added rounded luma/chroma costs, and `:1193-1212` added separately rounded
+  block syntax. Reference `av1/encoder/rd.h:32-34,208-233` keeps raw rate and distortion; rectangle and split
+  accumulation in `partition_search.c:3487-3504,4605-4607` rounds the combined rate. For multiplier 128,
+  two rates of 2 cost 1 jointly but cost 2 when rounded separately; two rates of 1 show the opposite error.
+- `Av1RateDistortionStatistics.cs:9-61` now carries raw rate, distortion, and the comparison cost through
+  spatial, tiled, filter-intra, palette, CfL, IBC, and inter winners. Mode/transform comparisons retain their
+  existing strict tie rules and scalar bounds. Bounded-out split candidates retain an invalid sentinel;
+  only valid selected statistics are accumulated. Existing per-transform raw accumulation is preserved.
+- Partition evaluation now combines those statistics in `Av1IntraSuperblockEncoder.ModeDecision.cs:336-390`;
+  ordinary block syntax and luma/chroma aggregation use the same retained raw inputs. This adds value state,
+  not a buffer or allocation. It does not implement native partition pruning, mode order, cost refresh,
+  quantization stages, reference control, or adaptive rate multipliers. No performance improvement is claimed.
+- Seven focused regressions pass in Release .NET 11 through serialized Visual Studio VSTest
+  (`rd-statistics-focused.trx`, 2.6557 seconds). Four production block cases independently recount selected
+  syntax and pixel-domain SSE for monochrome/color and zero/nonzero residuals. Three fixed arithmetic cases
+  cover both rounding directions and 64-bit distortion.
+- After the final C# edit, the Release .NET 11 build completed with zero errors and 1,009 existing warnings;
+  Roslynk reported zero compiler errors. Serialized Visual Studio VSTest passed 2,259 entropy,
+  intra-superblock, HEIF encoder, and reconstruction-conformance cases in 2.1328 minutes
+  (`rd-statistics-final.trx`), then 132 encoder-frame cases in 18.7250 seconds (`rd-statistics-frames.trx`).
+  The seven new cases are included in those totals. Tests encoding the existing effort policy only verify
+  current behavior; their success does not validate that policy against libaom.
+- Optimized libaom decoding of the regenerated eight partition, 23 palette, and twelve color-sequence
+  streams matches all 38,973 samples exactly: maximum error 0, zero samples exceeding one. This is
+  same-bitstream reconstruction evidence. Separate-encoder acceptance remains unmet; no benchmark ran.
+
 Range-writer output-capacity correction, verified after `93aba785f`:
 
 - `Av1SymbolWriter.cs:213-214,339` before correction sliced a fixed initial allocation for finalization

@@ -38,7 +38,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> retainedRedCoefficients,
             ref Av1EncoderTransformBlockState retainedBlueState,
             ref Av1EncoderTransformBlockState retainedRedState,
-            ref long bestCost,
+            ref Av1RateDistortionStatistics bestStatistics,
             ref Av1EncoderPaletteInfo paletteInfo)
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
@@ -336,8 +336,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1FilterIntraMode.AllFilterIntraModes,
                     usesInterTransformSet: false);
 
-                long candidateCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
-                if (candidateCost < bestCost)
+                Av1RateDistortionStatistics candidateStatistics = new(this.rateMultiplier, rate, distortion);
+                if (candidateStatistics.Cost < bestStatistics.Cost)
                 {
                     // Every following palette size overwrites the shared maps and candidate spans, so a
                     // global improvement must retain reconstruction, coefficients, colors, and indices together.
@@ -372,7 +372,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     paletteInfo.PaletteSizes[1] = (byte)paletteSize;
                     paletteInfo.SetColors(Av1Plane.U, bluePaletteColors);
                     paletteInfo.SetColors(Av1Plane.V, redPaletteColors);
-                    bestCost = candidateCost;
+                    bestStatistics = candidateStatistics;
                     paletteSelected = true;
                 }
             }

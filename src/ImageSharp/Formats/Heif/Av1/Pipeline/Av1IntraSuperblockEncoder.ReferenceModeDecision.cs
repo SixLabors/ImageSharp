@@ -57,12 +57,12 @@ internal static partial class Av1IntraSuperblockEncoder
         where TSample : unmanaged
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
-        private long SelectIntraBlockCopy(
+        private Av1RateDistortionStatistics SelectIntraBlockCopy(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
-            long regularCost,
+            Av1RateDistortionStatistics regularStatistics,
             ref Av1MacroBlockModeInfo modeInfo,
             ref Av1EncoderBlockStruct block,
             ref Av1EncoderPaletteInfo paletteInfo)
@@ -135,11 +135,11 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (uniqueCandidateCount == 0)
             {
-                return regularCost;
+                return regularStatistics;
             }
 
             int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
-            long bestCost = regularCost;
+            Av1RateDistortionStatistics bestStatistics = regularStatistics;
             bool hasSelectedCandidate = false;
             bool selectedSkip = false;
             Av1MotionVector selectedVector = default;
@@ -336,7 +336,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     redRate;
 
                 long candidateDistortion = lumaDistortion + blueDistortion + redDistortion;
-                long candidateCost = Av1RateDistortion.GetCost(this.rateMultiplier, candidateRate, candidateDistortion);
+                Av1RateDistortionStatistics candidateStatistics = new(this.rateMultiplier, candidateRate, candidateDistortion);
                 bool candidateSkip = false;
 
                 // The skip alternative is available only when every coded plane has an empty transform. Its
@@ -348,21 +348,21 @@ internal static partial class Av1IntraSuperblockEncoder
                         writer.GetSkipCost(true, skipContext);
 
                     long skipDistortion = emptyLumaDistortion + emptyBlueDistortion + emptyRedDistortion;
-                    long skipCost = Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, skipDistortion);
-                    if (skipCost < candidateCost)
+                    Av1RateDistortionStatistics skipStatistics = new(this.rateMultiplier, skipRate, skipDistortion);
+                    if (skipStatistics.Cost < candidateStatistics.Cost)
                     {
-                        candidateCost = skipCost;
+                        candidateStatistics = skipStatistics;
                         candidateSkip = true;
                     }
                 }
 
                 // Conventional intra and earlier IBC vectors retain strict search-order precedence on equal RD.
-                if (candidateCost >= bestCost)
+                if (candidateStatistics.Cost >= bestStatistics.Cost)
                 {
                     continue;
                 }
 
-                bestCost = candidateCost;
+                bestStatistics = candidateStatistics;
                 hasSelectedCandidate = true;
                 selectedSkip = candidateSkip;
                 selectedVector = candidate;
@@ -410,7 +410,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             if (!hasSelectedCandidate)
             {
-                return bestCost;
+                return bestStatistics;
             }
 
             // Only the winning vector is now visible to later coding blocks. This single publication keeps
@@ -481,18 +481,18 @@ internal static partial class Av1IntraSuperblockEncoder
             block.PredictionUnit.ChromaFromLumaSigns = 0;
             paletteInfo = default;
             this.picture.SetDisplacementVector(modeInfoPosition, selectedVector);
-            return bestCost;
+            return bestStatistics;
         }
 
         /// <summary>
         /// Compares the retained intra result with an inter candidate without disturbing the intra result on loss.
         /// </summary>
-        private long SelectInterPrediction(
+        private Av1RateDistortionStatistics SelectInterPrediction(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
-            long regularCost,
+            Av1RateDistortionStatistics regularStatistics,
             ref Av1MacroBlockModeInfo modeInfo,
             ref Av1EncoderBlockStruct block,
             ref Av1EncoderPaletteInfo paletteInfo)
@@ -500,35 +500,35 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MacroBlockModeInfo interModeInfo = modeInfo;
             Av1EncoderBlockStruct interBlock = block;
             Av1EncoderPaletteInfo interPaletteInfo = default;
-            long selectedCost = this.SelectInterBlock(
+            Av1RateDistortionStatistics selectedStatistics = this.SelectInterBlock(
                 writer,
                 macroBlock,
                 blockOrigin,
                 tileIndex,
-                regularCost,
+                regularStatistics,
                 ref interModeInfo,
                 ref interBlock,
                 ref interPaletteInfo);
 
-            if (selectedCost < regularCost)
+            if (selectedStatistics.Cost < regularStatistics.Cost)
             {
                 modeInfo = interModeInfo;
                 block = interBlock;
                 paletteInfo = interPaletteInfo;
             }
 
-            return selectedCost;
+            return selectedStatistics;
         }
 
         /// <summary>
         /// Evaluates the supported LAST_FRAME modes and publishes only a strict improvement over the intra result.
         /// </summary>
-        private long SelectInterBlock(
+        private Av1RateDistortionStatistics SelectInterBlock(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
-            long regularCost,
+            Av1RateDistortionStatistics regularStatistics,
             ref Av1MacroBlockModeInfo modeInfo,
             ref Av1EncoderBlockStruct block,
             ref Av1EncoderPaletteInfo paletteInfo)
@@ -651,7 +651,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformPartitionRate = writer.GetTransformPartitionCost(false, transformPartitionContext);
             }
 
-            long selectedCost = regularCost;
+            Av1RateDistortionStatistics selectedStatistics = regularStatistics;
             Av1MotionVector selectedVector = default;
             Av1PredictionMode selectedMode = default;
             int selectedReferenceIndex = 0;
@@ -785,7 +785,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
-                long candidateCost = this.EvaluateInterCandidate(
+                Av1RateDistortionStatistics candidateStatistics = this.EvaluateInterCandidate(
                     writer,
                     blockOrigin,
                     tileIndex,
@@ -812,7 +812,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     out Av1EncoderTransformBlockState candidateRedState);
 
                 // Strict replacement preserves predictor-stack, global, then new-motion order on equal RD cost.
-                if (candidateCost >= selectedCost)
+                if (candidateStatistics.Cost >= selectedStatistics.Cost)
                 {
                     continue;
                 }
@@ -841,7 +841,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 selectedRedCoefficients = candidateRedCoefficients;
                 candidateRedCoefficients = previousRedCoefficients;
 
-                selectedCost = candidateCost;
+                selectedStatistics = candidateStatistics;
                 selectedVector = candidateVectors[candidateIndex];
                 selectedMode = candidateModes[candidateIndex];
                 selectedHorizontalFilter = horizontalFilter;
@@ -858,7 +858,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // when no inter candidate strictly improves its rate-distortion cost.
             if (!hasInterWinner)
             {
-                return regularCost;
+                return regularStatistics;
             }
 
             Span<int> retainedLumaCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.Y);
@@ -930,7 +930,7 @@ internal static partial class Av1IntraSuperblockEncoder
             modeInfo.Block.HorizontalInterpolationFilter = selectedHorizontalFilter;
             block.ReferenceMotionVectorIndex = selectedReferenceIndex;
             this.picture.SetDisplacementVector(modeInfoPosition, selectedVector);
-            return selectedCost;
+            return selectedStatistics;
         }
 
         /// <summary>
@@ -1034,7 +1034,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <summary>
         /// Evaluates one inter mode through prediction, transform, coefficient, skip, and distortion selection.
         /// </summary>
-        private long EvaluateInterCandidate(
+        private Av1RateDistortionStatistics EvaluateInterCandidate(
             Av1SymbolEncoder writer,
             Point blockOrigin,
             ushort tileIndex,
@@ -1238,16 +1238,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 redRate;
 
             long codedDistortion = lumaDistortion + blueDistortion + redDistortion;
-            long selectedCost = Av1RateDistortion.GetCost(this.rateMultiplier, codedRate, codedDistortion);
+            Av1RateDistortionStatistics selectedStatistics = new(this.rateMultiplier, codedRate, codedDistortion);
             skip = false;
             if (hasEmptyLuma && hasEmptyBlue && hasEmptyRed)
             {
                 int skipRate = predictionRate + writer.GetSkipCost(true, skipContext);
                 long skipDistortion = emptyLumaDistortion + emptyBlueDistortion + emptyRedDistortion;
-                long skipCost = Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, skipDistortion);
-                if (skipCost < selectedCost)
+                Av1RateDistortionStatistics skipStatistics = new(this.rateMultiplier, skipRate, skipDistortion);
+                if (skipStatistics.Cost < selectedStatistics.Cost)
                 {
-                    selectedCost = skipCost;
+                    selectedStatistics = skipStatistics;
                     skip = true;
                     workspace.LumaPrediction[..LumaTransformSize.GetSize2d()].CopyTo(lumaReconstruction);
                     lumaCoefficients[..LumaTransformSize.GetSize2d()].Clear();
@@ -1265,7 +1265,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            return selectedCost;
+            return selectedStatistics;
         }
 
         /// <summary>

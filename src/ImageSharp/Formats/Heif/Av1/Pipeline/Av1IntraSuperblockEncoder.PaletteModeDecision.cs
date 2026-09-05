@@ -34,7 +34,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> candidateCoefficients,
             Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates,
-            ref long bestCost,
+            ref Av1RateDistortionStatistics bestStatistics,
             ref Av1EncoderPaletteInfo paletteInfo,
             ref Av1TransformSize selectedTransformSize)
         {
@@ -164,7 +164,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     retainedStates,
                     retainedColorIndexMap,
                     reconstructionPlane,
-                    ref bestCost,
+                    ref bestStatistics,
                     ref paletteInfo,
                     ref selectedTransformSize,
                     ref paletteSelected);
@@ -197,7 +197,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     retainedStates,
                     retainedColorIndexMap,
                     reconstructionPlane,
-                    ref bestCost,
+                    ref bestStatistics,
                     ref paletteInfo,
                     ref selectedTransformSize,
                     ref paletteSelected);
@@ -239,7 +239,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         retainedStates,
                         retainedColorIndexMap,
                         reconstructionPlane,
-                        ref bestCost,
+                        ref bestStatistics,
                         ref paletteInfo,
                         ref selectedTransformSize,
                         ref paletteSelected);
@@ -281,7 +281,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1EncoderTransformBlockState> retainedStates,
             Span<byte> retainedColorIndexMap,
             Buffer2DRegion<TSample> reconstructionPlane,
-            ref long bestCost,
+            ref Av1RateDistortionStatistics bestStatistics,
             ref Av1EncoderPaletteInfo paletteInfo,
             ref Av1TransformSize selectedTransformSize,
             ref bool paletteSelected)
@@ -429,8 +429,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     Av1FilterIntraMode.AllFilterIntraModes,
                     usesInterTransformSet: false);
 
-                long candidateCost = Av1RateDistortion.GetCost(this.rateMultiplier, candidateRate, distortion);
-                if (candidateCost < bestCost)
+                Av1RateDistortionStatistics candidateStatistics = new(this.rateMultiplier, candidateRate, distortion);
+                if (candidateStatistics.Cost < bestStatistics.Cost)
                 {
                     // Later palette sizes reuse every candidate span and the shared color map. Publish the
                     // complete palette state only when this candidate improves the global luma decision.
@@ -453,7 +453,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     paletteInfo.PaletteSizes[0] = (byte)paletteSize;
                     paletteInfo.SetColors(Av1Plane.Y, paletteColors);
                     selectedTransformSize = TransformSize;
-                    bestCost = candidateCost;
+                    bestStatistics = candidateStatistics;
                     paletteSelected = true;
                 }
             }
@@ -463,7 +463,7 @@ internal static partial class Av1IntraSuperblockEncoder
             {
                 // Transform size is part of each palette candidate's RD result. Searching it here preserves
                 // candidates whose 4x4 residual partition wins even when their 8x8 result does not.
-                long splitCost = this.GetSplitLumaCandidateCost(
+                Av1RateDistortionStatistics splitStatistics = this.GetSplitLumaCandidateCost(
                     writer,
                     macroBlock,
                     this.source.GetPlane(Av1Plane.Y),
@@ -478,12 +478,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     rate,
                     0,
                     transformSizeContext,
-                    bestCost,
+                    bestStatistics.Cost,
                     candidateReconstruction,
                     candidateCoefficients,
                     modeDecisionWorkspace.CandidateTransformBlocks);
 
-                if (splitCost < bestCost)
+                if (splitStatistics.Cost < bestStatistics.Cost)
                 {
                     CopySplitCandidate(
                         candidateReconstruction,
@@ -503,7 +503,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     paletteInfo.PaletteSizes[0] = (byte)paletteSize;
                     paletteInfo.SetColors(Av1Plane.Y, paletteColors);
                     selectedTransformSize = Av1TransformSize.Size4x4;
-                    bestCost = splitCost;
+                    bestStatistics = splitStatistics;
                     paletteSelected = true;
                 }
             }

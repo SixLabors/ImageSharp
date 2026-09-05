@@ -139,7 +139,6 @@ internal static partial class Av1IntraSuperblockEncoder
         private readonly int effort;
         private int codedAreaLuma;
         private int codedAreaChroma;
-        private long selectedBlockCost;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModeDecision{TSample, TOperator}"/> struct.
@@ -178,8 +177,13 @@ internal static partial class Av1IntraSuperblockEncoder
             this.effort = effort;
             this.codedAreaLuma = 0;
             this.codedAreaChroma = 0;
-            this.selectedBlockCost = 0;
+            this.SelectedBlockStatistics = default;
         }
+
+        /// <summary>
+        /// Gets the statistics of the most recently encoded block.
+        /// </summary>
+        public Av1RateDistortionStatistics SelectedBlockStatistics { get; private set; }
 
         /// <inheritdoc/>
         public Av1PartitionType SelectPartition(
@@ -254,7 +258,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int savedLumaArea = this.codedAreaLuma;
             int savedChromaArea = this.codedAreaChroma;
             this.SavePartitionTrialContexts(blockOrigin, tileIndex, blockSize);
-            long bestCost = long.MaxValue;
+            Av1RateDistortionStatistics bestStatistics = Av1RateDistortionStatistics.Invalid;
             Av1PartitionType selectedPartition = Av1PartitionType.None;
             ReadOnlySpan<Av1PartitionType> searchOrder = PartitionSearchOrder;
             int candidateCount = blockSize == Av1BlockSize.Block8x8 ? 4 : searchOrder.Length;
@@ -266,7 +270,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
-                long candidateCost = this.EvaluatePartitionCandidate(
+                Av1RateDistortionStatistics candidateStatistics = this.EvaluatePartitionCandidate(
                     writer,
                     macroBlock,
                     blockOrigin,
@@ -275,9 +279,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     partitionType,
                     publishFinalContexts: false);
 
-                if (candidateCost < bestCost)
+                if (candidateStatistics.Cost < bestStatistics.Cost)
                 {
-                    bestCost = candidateCost;
+                    bestStatistics = candidateStatistics;
                     selectedPartition = partitionType;
                 }
 
@@ -292,7 +296,7 @@ internal static partial class Av1IntraSuperblockEncoder
             return selectedPartition;
         }
 
-        private long EvaluateSelectedPartitionTree(
+        private Av1RateDistortionStatistics EvaluateSelectedPartitionTree(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
@@ -307,7 +311,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 tileIndex,
                 blockSize);
 
-            long cost = this.EvaluatePartitionCandidate(
+            Av1RateDistortionStatistics statistics = this.EvaluatePartitionCandidate(
                 writer,
                 macroBlock,
                 blockOrigin,
@@ -326,10 +330,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     selectedPartition);
             }
 
-            return cost;
+            return statistics;
         }
 
-        private long EvaluatePartitionCandidate(
+        private Av1RateDistortionStatistics EvaluatePartitionCandidate(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
@@ -346,7 +350,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 blockOrigin,
                 this.picture.PartitionContexts[tileIndex]);
 
-            long cost = Av1RateDistortion.GetCost(this.rateMultiplier, rate, 0);
+            Av1RateDistortionStatistics statistics = new(this.rateMultiplier, rate, 0);
             int leafCount = GetPartitionLeafCount(partitionType);
 
             // Child reconstruction and syntax contexts become input to the next child. Publishing only
@@ -362,7 +366,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     out Av1BlockSize leafSize);
 
                 bool publishContexts = leafIndex < leafCount - 1 || publishFinalContexts;
-                cost += partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8
+                Av1RateDistortionStatistics childStatistics = partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8
                     ? this.EvaluateSelectedPartitionTree(
                         writer,
                         macroBlock,
@@ -378,9 +382,11 @@ internal static partial class Av1IntraSuperblockEncoder
                         leafSize,
                         partitionType == Av1PartitionType.Split ? Av1PartitionType.None : partitionType,
                         publishContexts);
+
+                statistics.Add(this.rateMultiplier, in childStatistics);
             }
 
-            return cost;
+            return statistics;
         }
 
         private void ResetPartitionTrial(
@@ -613,7 +619,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 out int lumaAngleDelta,
                 out Av1FilterIntraMode filterIntraMode,
                 out Av1TransformSize lumaTransformSize,
-                out long lumaCost);
+                out Av1RateDistortionStatistics lumaStatistics);
 
             block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] = (sbyte)lumaAngleDelta;
             block.FilterIntraMode = filterIntraMode;
@@ -626,37 +632,37 @@ internal static partial class Av1IntraSuperblockEncoder
                 bool allowIntraBlockCopy = blockSize == Av1BlockSize.Block8x8 &&
                     this.picture.Parent.FrameHeader.AllowIntraBlockCopy;
 
-                long regularCost = this.GetRegularBlockCost(
+                Av1RateDistortionStatistics regularStatistics = this.GetRegularBlockCost(
                     writer,
                     macroBlock,
-                    lumaCost,
+                    lumaStatistics,
                     allowIntraBlockCopy);
 
                 if (!this.picture.Parent.FrameHeader.IsIntra)
                 {
-                    this.selectedBlockCost = this.SelectInterPrediction(
+                    this.SelectedBlockStatistics = this.SelectInterPrediction(
                         writer,
                         macroBlock,
                         blockOrigin,
                         tileIndex,
-                        regularCost,
+                        regularStatistics,
                         ref modeInfo,
                         ref block,
                         ref paletteInfo);
                 }
                 else
                 {
-                    this.selectedBlockCost = allowIntraBlockCopy
+                    this.SelectedBlockStatistics = allowIntraBlockCopy
                         ? this.SelectIntraBlockCopy(
                             writer,
                             macroBlock,
                             blockOrigin,
                             tileIndex,
-                            regularCost,
+                            regularStatistics,
                             ref modeInfo,
                             ref block,
                             ref paletteInfo)
-                        : regularCost;
+                        : regularStatistics;
                 }
 
                 this.codedAreaLuma += blockSize.GetWidth() * blockSize.GetHeight();
@@ -693,7 +699,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Span<Av1EncoderTransformBlockState> retainedBlueStates = blueTransformBlocks[chromaTransformIndex..];
             Span<Av1EncoderTransformBlockState> retainedRedStates = redTransformBlocks[chromaTransformIndex..];
-            long chromaCost = 0;
+            Av1RateDistortionStatistics chromaStatistics = default;
             if (block.HasChroma)
             {
                 modeInfo.Block.UvMode = this.SelectChromaMode(
@@ -714,7 +720,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     out int chromaAngleDelta,
                     out byte chromaFromLumaIndex,
                     out sbyte chromaFromLumaSigns,
-                    out chromaCost);
+                    out chromaStatistics);
 
                 block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv] = (sbyte)chromaAngleDelta;
                 block.PredictionUnit.ChromaFromLumaIndex = chromaFromLumaIndex;
@@ -724,37 +730,38 @@ internal static partial class Av1IntraSuperblockEncoder
             bool allowColorIntraBlockCopy = blockSize == Av1BlockSize.Block8x8 &&
                 this.picture.Parent.FrameHeader.AllowIntraBlockCopy;
 
-            long regularColorCost = this.GetRegularBlockCost(
+            lumaStatistics.Add(this.rateMultiplier, in chromaStatistics);
+            Av1RateDistortionStatistics regularColorStatistics = this.GetRegularBlockCost(
                 writer,
                 macroBlock,
-                lumaCost + chromaCost,
+                lumaStatistics,
                 allowColorIntraBlockCopy);
 
             if (!this.picture.Parent.FrameHeader.IsIntra)
             {
-                this.selectedBlockCost = this.SelectInterPrediction(
+                this.SelectedBlockStatistics = this.SelectInterPrediction(
                     writer,
                     macroBlock,
                     blockOrigin,
                     tileIndex,
-                    regularColorCost,
+                    regularColorStatistics,
                     ref modeInfo,
                     ref block,
                     ref paletteInfo);
             }
             else
             {
-                this.selectedBlockCost = allowColorIntraBlockCopy
+                this.SelectedBlockStatistics = allowColorIntraBlockCopy
                     ? this.SelectIntraBlockCopy(
                         writer,
                         macroBlock,
                         blockOrigin,
                         tileIndex,
-                        regularColorCost,
+                        regularColorStatistics,
                         ref modeInfo,
                         ref block,
                         ref paletteInfo)
-                    : regularColorCost;
+                    : regularColorStatistics;
             }
 
             this.codedAreaLuma += blockSize.GetWidth() * blockSize.GetHeight();
@@ -764,7 +771,7 @@ internal static partial class Av1IntraSuperblockEncoder
             }
         }
 
-        private long EvaluatePartitionLeaf(
+        private Av1RateDistortionStatistics EvaluatePartitionLeaf(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
@@ -812,7 +819,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     paletteInfo);
             }
 
-            return this.selectedBlockCost;
+            return this.SelectedBlockStatistics;
         }
 
         private void SetBlockGeometry(
@@ -1190,10 +1197,10 @@ internal static partial class Av1IntraSuperblockEncoder
             offset += left.Length;
         }
 
-        private long GetRegularBlockCost(
+        private Av1RateDistortionStatistics GetRegularBlockCost(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
-            long modeCost,
+            Av1RateDistortionStatistics modeStatistics,
             bool allowIntraBlockCopy)
         {
             int rateAdjustment = writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock));
@@ -1208,7 +1215,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 rateAdjustment += writer.GetUseIntraBlockCopyCost(false);
             }
 
-            return modeCost + Av1RateDistortion.GetCost(this.rateMultiplier, rateAdjustment, 0);
+            return new(this.rateMultiplier, modeStatistics.Rate + rateAdjustment, modeStatistics.Distortion);
         }
 
         private Av1PredictionMode SelectLumaMode(
@@ -1223,7 +1230,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out int selectedAngleDelta,
             out Av1FilterIntraMode selectedFilterIntraMode,
             out Av1TransformSize selectedTransformSize,
-            out long selectedCost)
+            out Av1RateDistortionStatistics selectedStatistics)
         {
             bool codedLossless = this.picture.Parent.FrameHeader.CodedLossless;
             Av1TransformSize transformSize = codedLossless
@@ -1251,7 +1258,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     out selectedAngleDelta,
                     out selectedFilterIntraMode,
                     out selectedTransformSize,
-                    out selectedCost);
+                    out selectedStatistics);
             }
 
             bool hasLeft = macroBlock.IsLeftAvailable;
@@ -1347,7 +1354,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<int> candidateCoefficients = workspace.GetCandidateCoefficients(0);
             Span<TSample> prediction = workspace.Prediction;
             Span<short> residual = workspace.Residual;
-            long bestCost = long.MaxValue;
+            Av1RateDistortionStatistics bestStatistics = Av1RateDistortionStatistics.Invalid;
             Av1PredictionMode bestMode = Av1PredictionMode.DC;
             selectedAngleDelta = 0;
             selectedFilterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
@@ -1439,7 +1446,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     Av1EncoderTransformBlockState candidateState = default;
-                    long candidateCost = this.GetLumaCandidateCost(
+                    Av1RateDistortionStatistics candidateStatistics = this.GetLumaCandidateCost(
                         writer,
                         macroBlock,
                         sourcePlane,
@@ -1458,7 +1465,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         candidateCoefficients,
                         ref candidateState);
 
-                    if (candidateCost < bestCost)
+                    if (candidateStatistics.Cost < bestStatistics.Cost)
                     {
                         // The shared candidate spans are overwritten by the next transform. Copy only a
                         // global improvement into final block storage so no per-mode retained buffer is needed.
@@ -1472,7 +1479,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             candidateState,
                             ref retainedStates[0]);
 
-                        bestCost = candidateCost;
+                        bestStatistics = candidateStatistics;
                         bestMode = mode;
                         selectedAngleDelta = angleDelta;
                         selectedTransformSize = transformSize;
@@ -1484,7 +1491,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (searchEveryTransformSize &&
                     this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select)
                 {
-                    long splitCost = this.GetSplitLumaCandidateCost(
+                    Av1RateDistortionStatistics splitStatistics = this.GetSplitLumaCandidateCost(
                         writer,
                         macroBlock,
                         sourcePlane,
@@ -1499,12 +1506,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         0,
                         paletteDisabledCost,
                         transformSizeContext,
-                        bestCost,
+                        bestStatistics.Cost,
                         candidateReconstruction,
                         candidateCoefficients,
                         workspace.CandidateTransformBlocks);
 
-                    if (splitCost < bestCost)
+                    if (splitStatistics.Cost < bestStatistics.Cost)
                     {
                         CopySplitCandidate(
                             candidateReconstruction,
@@ -1515,7 +1522,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             retainedCoefficients,
                             retainedStates);
 
-                        bestCost = splitCost;
+                        bestStatistics = splitStatistics;
                         bestMode = mode;
                         selectedAngleDelta = angleDelta;
                         selectedTransformSize = Av1TransformSize.Size4x4;
@@ -1525,7 +1532,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Midrange effort refines the preliminary mode only. Higher effort already searched every
             // mode-transform pair above, so repeating the winning mode would add no candidates.
-            long bestTransformCost = bestCost;
+            Av1RateDistortionStatistics bestTransformStatistics = bestStatistics;
             if (!codedLossless && this.effort >= 3 && !searchEveryTransformType)
             {
                 // The shared spans now contain the last mode visited above, so rebuild the preliminary
@@ -1557,7 +1564,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
 
                     Av1EncoderTransformBlockState candidateState = default;
-                    long candidateCost = this.GetLumaCandidateCost(
+                    Av1RateDistortionStatistics candidateStatistics = this.GetLumaCandidateCost(
                         writer,
                         macroBlock,
                         sourcePlane,
@@ -1576,7 +1583,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         candidateCoefficients,
                         ref candidateState);
 
-                    if (candidateCost < bestTransformCost)
+                    if (candidateStatistics.Cost < bestTransformStatistics.Cost)
                     {
                         CopyCandidate(
                             candidateReconstruction,
@@ -1588,7 +1595,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             candidateState,
                             ref retainedStates[0]);
 
-                        bestTransformCost = candidateCost;
+                        bestTransformStatistics = candidateStatistics;
                     }
                 }
             }
@@ -1630,7 +1637,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         }
 
                         Av1EncoderTransformBlockState candidateState = default;
-                        long candidateCost = this.GetFilterIntraCandidateCost(
+                        Av1RateDistortionStatistics candidateStatistics = this.GetFilterIntraCandidateCost(
                             writer,
                             macroBlock,
                             sourcePlane,
@@ -1648,7 +1655,7 @@ internal static partial class Av1IntraSuperblockEncoder
                             candidateCoefficients,
                             ref candidateState);
 
-                        if (candidateCost < bestTransformCost)
+                        if (candidateStatistics.Cost < bestTransformStatistics.Cost)
                         {
                             CopyCandidate(
                                 candidateReconstruction,
@@ -1660,7 +1667,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 candidateState,
                                 ref retainedStates[0]);
 
-                            bestTransformCost = candidateCost;
+                            bestTransformStatistics = candidateStatistics;
                             bestMode = Av1PredictionMode.DC;
                             selectedAngleDelta = 0;
                             selectedFilterIntraMode = filterIntraMode;
@@ -1673,7 +1680,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     if (searchEveryTransformSize &&
                         this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select)
                     {
-                        long splitCost = this.GetSplitLumaCandidateCost(
+                        Av1RateDistortionStatistics splitStatistics = this.GetSplitLumaCandidateCost(
                             writer,
                             macroBlock,
                             sourcePlane,
@@ -1688,12 +1695,12 @@ internal static partial class Av1IntraSuperblockEncoder
                             0,
                             paletteDisabledCost,
                             transformSizeContext,
-                            bestTransformCost,
+                            bestTransformStatistics.Cost,
                             candidateReconstruction,
                             candidateCoefficients,
                             workspace.CandidateTransformBlocks);
 
-                        if (splitCost < bestTransformCost)
+                        if (splitStatistics.Cost < bestTransformStatistics.Cost)
                         {
                             CopySplitCandidate(
                                 candidateReconstruction,
@@ -1704,7 +1711,7 @@ internal static partial class Av1IntraSuperblockEncoder
                                 retainedCoefficients,
                                 retainedStates);
 
-                            bestTransformCost = splitCost;
+                            bestTransformStatistics = splitStatistics;
                             bestMode = Av1PredictionMode.DC;
                             selectedAngleDelta = 0;
                             selectedFilterIntraMode = filterIntraMode;
@@ -1732,7 +1739,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     candidateCoefficients,
                     retainedCoefficients,
                     retainedStates,
-                    ref bestTransformCost,
+                    ref bestTransformStatistics,
                     ref paletteInfo,
                     ref selectedTransformSize))
             {
@@ -1749,7 +1756,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.picture.Parent.FrameHeader.TransformMode == Av1TransformMode.Select &&
                 paletteInfo.PaletteSizes[0] == 0)
             {
-                long splitCost = this.GetSplitLumaCandidateCost(
+                Av1RateDistortionStatistics splitStatistics = this.GetSplitLumaCandidateCost(
                     writer,
                     macroBlock,
                     sourcePlane,
@@ -1764,12 +1771,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     0,
                     paletteDisabledCost,
                     transformSizeContext,
-                    bestTransformCost,
+                    bestTransformStatistics.Cost,
                     candidateReconstruction,
                     candidateCoefficients,
                     workspace.CandidateTransformBlocks);
 
-                if (splitCost < bestTransformCost)
+                if (splitStatistics.Cost < bestTransformStatistics.Cost)
                 {
                     CopySplitCandidate(
                         candidateReconstruction,
@@ -1780,12 +1787,12 @@ internal static partial class Av1IntraSuperblockEncoder
                         retainedCoefficients,
                         retainedStates);
 
-                    bestTransformCost = splitCost;
+                    bestTransformStatistics = splitStatistics;
                     selectedTransformSize = Av1TransformSize.Size4x4;
                 }
             }
 
-            selectedCost = bestTransformCost;
+            selectedStatistics = bestTransformStatistics;
             return bestMode;
         }
 
@@ -1801,7 +1808,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out int selectedAngleDelta,
             out Av1FilterIntraMode selectedFilterIntraMode,
             out Av1TransformSize selectedTransformSize,
-            out long selectedCost)
+            out Av1RateDistortionStatistics selectedStatistics)
         {
             Av1EncoderModeDecisionWorkspace<TSample> workspace =
                 this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
@@ -1868,7 +1875,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
             Buffer2DRegion<TSample> reconstructionPlane = this.reconstruction.GetPlane(Av1Plane.Y);
-            long bestCost = long.MaxValue;
+            Av1RateDistortionStatistics bestStatistics = Av1RateDistortionStatistics.Invalid;
             Av1PredictionMode bestMode = Av1PredictionMode.DC;
             selectedAngleDelta = 0;
             selectedFilterIntraMode = Av1FilterIntraMode.AllFilterIntraModes;
@@ -1942,8 +1949,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                 }
 
-                long candidateCost = Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
-                if (candidateCost < bestCost)
+                Av1RateDistortionStatistics candidateStatistics = new(this.rateMultiplier, rate, distortion);
+                if (candidateStatistics.Cost < bestStatistics.Cost)
                 {
                     CopyTiledCandidate(
                         candidateReconstruction,
@@ -1957,17 +1964,17 @@ internal static partial class Av1IntraSuperblockEncoder
                         retainedCoefficients,
                         retainedStates);
 
-                    bestCost = candidateCost;
+                    bestStatistics = candidateStatistics;
                     bestMode = mode;
                     selectedAngleDelta = angleDelta;
                 }
             }
 
-            selectedCost = bestCost;
+            selectedStatistics = bestStatistics;
             return bestMode;
         }
 
-        private long GetSplitLumaCandidateCost(
+        private Av1RateDistortionStatistics GetSplitLumaCandidateCost(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Buffer2DRegion<TSample> sourcePlane,
@@ -2267,12 +2274,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     // Every remaining transform can only add nonnegative rate and distortion.
                     if (Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion) >= costLimit)
                     {
-                        return long.MaxValue;
+                        return Av1RateDistortionStatistics.Invalid;
                     }
                 }
             }
 
-            return Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
+            return new(this.rateMultiplier, rate, distortion);
         }
 
         private void PrepareTransformReferenceSamples(
@@ -2471,7 +2478,7 @@ internal static partial class Av1IntraSuperblockEncoder
             leftStorage[0] = corner;
         }
 
-        private long GetLumaCandidateCost(
+        private Av1RateDistortionStatistics GetLumaCandidateCost(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Buffer2DRegion<TSample> sourcePlane,
@@ -2546,10 +2553,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1FilterIntraMode.AllFilterIntraModes,
                 usesInterTransformSet: false);
 
-            return Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
+            return new(this.rateMultiplier, rate, distortion);
         }
 
-        private long GetFilterIntraCandidateCost(
+        private Av1RateDistortionStatistics GetFilterIntraCandidateCost(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Buffer2DRegion<TSample> sourcePlane,
@@ -2608,7 +2615,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 filterIntraMode,
                 usesInterTransformSet: false);
 
-            return Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
+            return new(this.rateMultiplier, rate, distortion);
         }
 
         private static void CopyCandidate(

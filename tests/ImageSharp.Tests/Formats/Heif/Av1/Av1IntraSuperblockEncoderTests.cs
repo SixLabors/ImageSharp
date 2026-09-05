@@ -888,6 +888,171 @@ public class Av1IntraSuperblockEncoderTests
         Assert.InRange(reconstructedSample, (ushort)(byte.MaxValue + 1), (ushort)4095);
     }
 
+    [Theory]
+    [InlineData(true, false)]
+    [InlineData(false, false)]
+    [InlineData(true, true)]
+    [InlineData(false, true)]
+    public void BlockDecisionRetainsUnroundedRateAndDistortion(bool isMonochrome, bool textured)
+    {
+        const int Width = 8;
+        const int Height = 8;
+        const int QIndex = 37;
+        Av1ColorFormat colorFormat = isMonochrome ? Av1ColorFormat.Yuv400 : Av1ColorFormat.Yuv420;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = isMonochrome,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        using Av1EncoderFrameBuffer<byte> source = new(Configuration.Default, Width, Height, 8, colorFormat, 1, 1);
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(Configuration.Default, Width, Height, 8, colorFormat, 1, 1);
+        int planeCount = isMonochrome ? 1 : 3;
+        for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
+        {
+            Buffer2DRegion<byte> plane = source.Frame.CodedView.GetPlane((Av1Plane)planeIndex);
+            int length = planeIndex == 0 ? 8 : 4;
+            for (int y = 0; y < length; y++)
+            {
+                Span<byte> row = plane.DangerousGetRowSpan(y);
+                for (int x = 0; x < length; x++)
+                {
+                    row[x] = textured ? (byte)(114 + (((x * 13) + (y * 7) + (planeIndex * 5)) % 29)) : (byte)128;
+                }
+            }
+        }
+
+        using Av1EncoderModeInfoBuffer modeInfoBuffer = new(Configuration.Default, Width, Height, disallow4x4AllFrames: true);
+        Av1PictureControlSet template = CreatePicture(modeInfoBuffer, colorConfig, use128x128Superblock: false, QIndex);
+        template.Parent.FrameHeader.TransformMode = Av1TransformMode.Largest;
+        using Av1EncoderPictureBuffer pictureBuffer = new(
+            Configuration.Default,
+            template.Sequence.SequenceHeader,
+            template.Parent.FrameHeader,
+            Width,
+            Height,
+            disallow4x4AllFrames: true);
+
+        Av1PictureControlSet picture = pictureBuffer.Picture;
+        using Av1EncoderCoefficientBuffer coefficients = new(Configuration.Default, template.Sequence.SequenceHeader, Width, Height);
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        Av1Superblock superblock = new()
+        {
+            Workspace = superblockWorkspace,
+            TileInfo = new Av1TileInfo(0, 0, picture.Parent.FrameHeader),
+            Index = 0
+        };
+
+        Av1IntraSuperblockEncoder.Prepare(picture, superblock, Point.Empty);
+        Av1MacroBlockD macroBlock = new() { Tile = superblock.TileInfo };
+        Av1TileWriter.SetModeInfoRowAndColumn(
+            picture,
+            macroBlock,
+            superblock.TileInfo,
+            Point.Empty,
+            Av1BlockSize.Block8x8,
+            picture.Parent.Common.ModeInfoStride,
+            picture.Parent.Common.ModeInfoRowCount,
+            picture.Parent.Common.ModeInfoColumnCount);
+
+        Av1IntraSuperblockEncoder.ModeDecision<byte, Av1IntraSuperblockEncoder.ByteOperator> decision = new(
+            source.Frame,
+            reconstruction.Frame,
+            reconstruction.Frame,
+            picture,
+            superblock,
+            coefficients,
+            blockWorkspace,
+            effort: 0);
+
+        ref Av1MacroBlockModeInfo modeInfo = ref picture.GetMacroBlockModeInfo(Point.Empty);
+        Av1EncoderBlockStruct block = default;
+        Av1EncoderPaletteInfo palette = default;
+        using Av1SymbolEncoder writer = new(Configuration.Default, 256, QIndex, updateCdf: true);
+        decision.EncodeBlock(writer, macroBlock, Point.Empty, 0, ref modeInfo, ref block, ref palette);
+
+        Assert.Equal(Av1PredictionMode.DC, modeInfo.Block.Mode);
+        Assert.Equal(Av1TransformSize.Size8x8, modeInfo.Block.TransformSize);
+        Assert.False(modeInfo.Block.Skip);
+        int expectedRate = writer.GetSkipCost(false, Av1TileWriter.GetSkipContext(macroBlock));
+        expectedRate += Av1TileWriter.GetLumaModeCost(
+            writer,
+            macroBlock,
+            Av1BlockSize.Block8x8,
+            Av1PredictionMode.DC,
+            0,
+            isIntraFrame: true);
+
+        if (!isMonochrome)
+        {
+            Assert.Equal(Av1ChromaPredictionMode.DC, modeInfo.Block.UvMode);
+            expectedRate += Av1TileWriter.GetChromaModeCost(
+                writer,
+                picture.Parent.FrameHeader,
+                colorConfig,
+                modeInfo,
+                Av1BlockSize.Block8x8,
+                Av1PredictionMode.DC,
+                Av1ChromaPredictionMode.DC,
+                0);
+        }
+
+        long squaredError = 0;
+        for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
+        {
+            Av1Plane plane = (Av1Plane)planeIndex;
+            Av1TransformSize transformSize = planeIndex == 0 ? Av1TransformSize.Size8x8 : Av1TransformSize.Size4x4;
+            Av1BlockSize blockSize = planeIndex == 0 ? Av1BlockSize.Block8x8 : Av1BlockSize.Block4x4;
+            Av1ComponentType component = planeIndex == 0 ? Av1ComponentType.Luminance : Av1ComponentType.Chroma;
+            Av1NeighborArrayUnit<byte> neighbors = planeIndex switch
+            {
+                0 => picture.LuminanceDcSignLevelCoefficientNeighbors[0],
+                1 => picture.CbDcSignLevelCoefficientNeighbors[0],
+                _ => picture.CrDcSignLevelCoefficientNeighbors[0]
+            };
+
+            Av1EncoderTransformBlockState state = coefficients.GetTransformBlockSpan(0, plane)[0];
+            expectedRate += writer.GetCoefficientCost(
+                transformSize,
+                state.TransformType,
+                Av1PredictionMode.DC,
+                coefficients.GetPlaneSpan(0, plane)[..transformSize.GetSize2d()],
+                component,
+                Av1TileWriter.GetTransformBlockContexts(component, neighbors, Point.Empty, blockSize, transformSize),
+                state.EndOfBlock,
+                picture.Parent.FrameHeader.UseReducedTransformSet,
+                Av1FilterIntraMode.AllFilterIntraModes,
+                usesInterTransformSet: false);
+
+            Buffer2DRegion<byte> sourcePlane = source.Frame.CodedView.GetPlane(plane);
+            Buffer2DRegion<byte> reconstructedPlane = reconstruction.Frame.CodedView.GetPlane(plane);
+            int length = planeIndex == 0 ? 8 : 4;
+            for (int y = 0; y < length; y++)
+            {
+                ReadOnlySpan<byte> sourceRow = sourcePlane.DangerousGetRowSpan(y);
+                ReadOnlySpan<byte> reconstructedRow = reconstructedPlane.DangerousGetRowSpan(y);
+                for (int x = 0; x < length; x++)
+                {
+                    int difference = sourceRow[x] - reconstructedRow[x];
+                    squaredError += difference * difference;
+                }
+            }
+        }
+
+        // Pixel-domain SSE uses the reference's four fractional distortion bits. The probability rate
+        // is rounded after all planes and block syntax have been counted, before adding scaled distortion.
+        long expectedDistortion = squaredError * 16;
+        int multiplier = Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, Av1BitDepth.EightBit);
+        long expectedCost = ((((long)expectedRate * multiplier) + 256) / 512) + (expectedDistortion * 128);
+        Assert.Equal(textured, squaredError > 0);
+        Assert.Equal(expectedRate, decision.SelectedBlockStatistics.Rate);
+        Assert.Equal(expectedDistortion, decision.SelectedBlockStatistics.Distortion);
+        Assert.Equal(expectedCost, decision.SelectedBlockStatistics.Cost);
+    }
+
     [Fact]
     public void BlockDecisionObservesLiveCdfInWriterOrder()
     {

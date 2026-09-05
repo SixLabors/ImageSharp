@@ -22,6 +22,40 @@ public partial class PngDecoderTests
         Assert.Throws<InvalidIccProfileException>(() => Image.Load(options, pngData));
     }
 
+    /// <summary>
+    /// Three-channel LUT conversion remains supported.
+    /// </summary>
+    [Fact]
+    public void Decode_IccLutWithSupportedChannelCount_ConvertsPixels()
+    {
+        byte[] pngData = BuildPng(BuildLut16Profile(3, 3, 2, 2, 2));
+        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Convert };
+
+        using Image<Rgb24> image = Image.Load<Rgb24>(options, pngData);
+        Assert.Equal(new Size(16, 16), image.Size);
+
+        // Every CLUT node contains a nonzero XYZ value, even though the encoded pixels are black.
+        Assert.NotEqual(default(Rgb24), image[0, 0]);
+    }
+
+    /// <summary>
+    /// Preserving a profile does not impose the converter's four-component storage limit on the parser.
+    /// </summary>
+    /// <param name="outputChannels">The number of output channels in the LUT.</param>
+    [Theory]
+    [InlineData(3)]
+    [InlineData(15)]
+    public void Decode_IccLut_Preserve_RetainsChannels(int outputChannels)
+    {
+        byte[] pngData = BuildPng(BuildLut16Profile(3, outputChannels, 2, 2, 2));
+        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+
+        using Image<Rgb24> image = Image.Load<Rgb24>(options, pngData);
+        IccLut16TagDataEntry entry = Assert.IsType<IccLut16TagDataEntry>(Assert.Single(image.Metadata.IccProfile.Entries));
+        Assert.Equal(outputChannels, entry.OutputValues.Length);
+        Assert.Equal(default(Rgb24), image[0, 0]);
+    }
+
     private static byte[] BuildLut16Profile(int inputChannels, int outputChannels, int clutPoints, int inputTableLength, int outputTableLength)
     {
         using MemoryStream stream = new();

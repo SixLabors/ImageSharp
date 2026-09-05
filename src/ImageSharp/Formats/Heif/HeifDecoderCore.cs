@@ -16,6 +16,7 @@ using SixLabors.ImageSharp.Metadata.Profiles.Icc;
 using SixLabors.ImageSharp.Metadata.Profiles.Xmp;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.Processing.Processors.Transforms;
 
 namespace SixLabors.ImageSharp.Formats.Heif;
 
@@ -266,23 +267,32 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <returns>The bounded selected image-sequence model.</returns>
     private HeifSequence ParseImageSequence(BufferedReadStream stream)
     {
+        this.items.Clear();
+        this.itemLinks.Clear();
+        this.itemDataOffset = -1;
+        this.itemDataLength = 0;
+
         HeifSequence? sequence = null;
         while (stream.Position < stream.Length)
         {
             long boxLength = HeifBoxReader.ReadHeader(stream, stream.Length, this.boxHeaderScratch, out Heif4CharCode boxType, true);
-            if (boxType == Heif4CharCode.Moov)
+            switch (boxType)
             {
-                if (sequence is not null)
-                {
-                    throw new InvalidImageContentException("The HEIF image sequence contains more than one movie box.");
-                }
+                case Heif4CharCode.Meta:
+                    this.ParseMetadata(stream, boxLength);
+                    break;
+                case Heif4CharCode.Moov:
+                    if (sequence is not null)
+                    {
+                        throw new InvalidImageContentException("The HEIF image sequence contains more than one movie box.");
+                    }
 
-                sequence = this.sequenceParser.Parse(stream, boxLength, this.fileStartOffset);
-            }
-            else
-            {
-                // Sequence samples use absolute file offsets, so unrelated top-level payloads never need buffering.
-                HeifBoxReader.Skip(stream, boxLength);
+                    sequence = this.sequenceParser.Parse(stream, boxLength, this.fileStartOffset);
+                    break;
+                default:
+                    // Sequence samples and image items use file-relative offsets, so payload boxes never need buffering.
+                    HeifBoxReader.Skip(stream, boxLength);
+                    break;
             }
         }
 
@@ -297,9 +307,18 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     private ImageInfo IdentifyImageSequence(HeifSequence sequence)
     {
         HeifSequenceTrack colorTrack = sequence.ColorTrack;
-        this.UpdateSequenceMetadata(this.metadata, sequence);
-        ImageFrameMetadata[] frameMetadata = CreateSequenceFrameMetadata(colorTrack);
-        this.Dimensions = GetSequencePresentationExtent(colorTrack);
+        HeifItem primaryItem = this.FindSequencePrimaryItem();
+        bool animateRootFrame = IsPrimaryItemFirstSequenceSample(primaryItem, colorTrack);
+        Size sequenceExtent = GetSequencePresentationExtent(colorTrack);
+        this.Dimensions = animateRootFrame ? sequenceExtent : GetPresentationExtent(primaryItem);
+        if (!animateRootFrame && this.Dimensions != sequenceExtent)
+        {
+            throw new InvalidImageContentException("The primary image and image sequence have different presentation dimensions.");
+        }
+
+        this.UpdateMetadata(this.metadata, primaryItem);
+        this.UpdateSequenceMetadata(this.metadata, sequence, animateRootFrame);
+        ImageFrameMetadata[] frameMetadata = CreateSequenceFrameMetadata(colorTrack, animateRootFrame);
         return new ImageInfo(this.Dimensions, this.metadata, frameMetadata);
     }
 
@@ -318,61 +337,222 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         HeifSequenceTrack colorTrack = sequence.ColorTrack;
-        this.UpdateSequenceMetadata(this.metadata, sequence);
-        ImageFrame<TPixel>[] colorFrames = this.DecodeVisibleSequenceFrames<TPixel>(
-            stream,
-            colorTrack,
-            cancellationToken,
-            out int[] sampleIndices);
+        HeifItem primaryItem = this.FindSequencePrimaryItem();
+        bool animateRootFrame = IsPrimaryItemFirstSequenceSample(primaryItem, colorTrack);
+        this.UpdateSequenceMetadata(this.metadata, sequence, animateRootFrame);
+        Size codedSize = new(colorTrack.CodedWidth, colorTrack.CodedHeight);
+        Rectangle sourceRectangle = colorTrack.CleanAperture is not null
+            ? colorTrack.CleanAperture.Value.ToRectangle(codedSize)
+            : new Rectangle(Point.Empty, codedSize);
 
-        Image<TPixel>? image = null;
+        // HEIF stores counter-clockwise quarter turns; ImageSharp's exact modes are clockwise.
+        RotateMode rotation = colorTrack.RotationAngle switch
+        {
+            1 => RotateMode.Rotate270,
+            2 => RotateMode.Rotate180,
+            3 => RotateMode.Rotate90,
+            _ => RotateMode.None
+        };
+
+        Size presentationSize = rotation is RotateMode.Rotate90 or RotateMode.Rotate270
+            ? new Size(sourceRectangle.Height, sourceRectangle.Width)
+            : sourceRectangle.Size;
+
+        // The returned image owns every presented frame from the outset. A separate primary becomes its root;
+        // otherwise the first successfully decoded timed sample fills the root allocated here.
+        Image<TPixel> image = animateRootFrame
+            ? new Image<TPixel>(
+                this.configuration,
+                presentationSize.Width,
+                presentationSize.Height,
+                this.metadata)
+            : this.DecodePrimaryItem<TPixel>(stream, cancellationToken);
+
         try
         {
-            // Each codec frame owns its pixel buffer. The multi-frame image adopts those buffers directly instead
-            // of cloning a complete decoded frame on every append.
-            image = new Image<TPixel>(this.configuration, this.metadata, colorFrames);
-            HeifSequenceTrack? alphaTrack = sequence.AlphaTrack;
-            if (alphaTrack is not null)
+            if (image.Size != presentationSize)
             {
-                int frameIndex = 0;
-                using Av1Decoder alphaDecoder = new(this.configuration);
-                for (int sampleIndex = 0; sampleIndex < alphaTrack.Samples.Length; sampleIndex++)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
-                    HeifSequenceSample alphaSample = alphaTrack.Samples[sampleIndex];
-                    if (alphaSample.IsHidden ||
-                        frameIndex >= colorFrames.Length ||
-                        sampleIndices[frameIndex] != sampleIndex)
-                    {
-                        this.ExecuteImageDataSegmentAction(
-                            () => this.DecodeSequenceReference(stream, alphaTrack, alphaSample, alphaDecoder));
-
-                        continue;
-                    }
-
-                    this.ExecuteImageDataSegmentAction(
-                        () => this.DecodeSequenceAlphaFrame(
-                            stream,
-                            alphaTrack,
-                            alphaSample,
-                            alphaDecoder,
-                            colorFrames[frameIndex],
-                            colorTrack.IsPremultiplied));
-
-                    frameIndex++;
-                }
+                throw new InvalidImageContentException(
+                    "The primary image and image sequence have different presentation dimensions.");
             }
 
-            ApplyPresentationTransforms(
-                image,
-                colorTrack.CleanAperture,
-                colorTrack.RotationAngle,
-                colorTrack.MirrorAxis);
+            using Av1Decoder colorDecoder = new(this.configuration);
+
+            HeifSequenceTrack? alphaTrack = sequence.AlphaTrack;
+            (HeifSequenceTrack Track, Av1Decoder Decoder)? alphaState = alphaTrack is null
+                ? null
+                : (alphaTrack, new Av1Decoder(this.configuration));
+
+            using Av1Decoder? alphaDecoder = alphaState?.Decoder;
+
+            // Quarter turns need source and destination frames with opposite dimensions. Reuse one source frame
+            // across the sequence, then rotate each completed color-and-alpha sample into its final owned frame.
+            using ImageFrame<TPixel>? rotationSource = rotation == RotateMode.None
+                ? null
+                : new ImageFrame<TPixel>(
+                    this.configuration,
+                    sourceRectangle.Width,
+                    sourceRectangle.Height);
+
+            int decodedFrameCount = 0;
+            for (int sampleIndex = 0; sampleIndex < colorTrack.Samples.Length; sampleIndex++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                HeifSequenceSample colorSample = colorTrack.Samples[sampleIndex];
+                if (colorSample.IsHidden)
+                {
+                    this.ExecuteImageDataSegmentAction(
+                        () => this.DecodeSequenceReference(stream, colorTrack, colorSample, colorDecoder));
+
+                    if (alphaState is not null)
+                    {
+                        (HeifSequenceTrack Track, Av1Decoder Decoder) currentAlphaState = alphaState.Value;
+                        HeifSequenceSample alphaSample = currentAlphaState.Track.Samples[sampleIndex];
+                        this.ExecuteImageDataSegmentAction(
+                            () => this.DecodeSequenceReference(
+                                stream,
+                                currentAlphaState.Track,
+                                alphaSample,
+                                currentAlphaState.Decoder));
+                    }
+
+                    continue;
+                }
+
+                bool appendedDestination = false;
+                ImageFrame<TPixel> decodedFrame;
+                if (rotationSource is not null)
+                {
+                    decodedFrame = rotationSource;
+                }
+                else if (animateRootFrame && decodedFrameCount == 0)
+                {
+                    decodedFrame = image.Frames.RootFrame;
+                }
+                else
+                {
+                    decodedFrame = image.Frames.CreateFrame();
+                    appendedDestination = true;
+                }
+
+                bool colorDecoded = false;
+                this.ExecuteImageDataSegmentAction(
+                    () =>
+                    {
+                        this.DecodeSequenceFrame(
+                            stream,
+                            colorTrack,
+                            colorSample,
+                            colorDecoder,
+                            sourceRectangle,
+                            decodedFrame);
+
+                        colorDecoded = true;
+                    });
+
+                if (!colorDecoded)
+                {
+                    if (alphaState is not null)
+                    {
+                        (HeifSequenceTrack Track, Av1Decoder Decoder) currentAlphaState = alphaState.Value;
+                        HeifSequenceSample alphaSample = currentAlphaState.Track.Samples[sampleIndex];
+                        this.ExecuteImageDataSegmentAction(
+                            () => this.DecodeSequenceReference(
+                                stream,
+                                currentAlphaState.Track,
+                                alphaSample,
+                                currentAlphaState.Decoder));
+                    }
+
+                    if (appendedDestination)
+                    {
+                        image.Frames.RemoveFrame(image.Frames.Count - 1);
+                    }
+
+                    continue;
+                }
+
+                bool alphaDecoded = true;
+                if (alphaState is not null)
+                {
+                    alphaDecoded = false;
+                    (HeifSequenceTrack Track, Av1Decoder Decoder) currentAlphaState = alphaState.Value;
+                    HeifSequenceSample alphaSample = currentAlphaState.Track.Samples[sampleIndex];
+                    this.ExecuteImageDataSegmentAction(
+                        () =>
+                        {
+                            this.DecodeSequenceAlphaFrame(
+                                stream,
+                                currentAlphaState.Track,
+                                alphaSample,
+                                currentAlphaState.Decoder,
+                                sourceRectangle,
+                                decodedFrame,
+                                colorTrack.IsPremultiplied);
+
+                            alphaDecoded = true;
+                        });
+                }
+
+                if (!alphaDecoded)
+                {
+                    if (appendedDestination)
+                    {
+                        image.Frames.RemoveFrame(image.Frames.Count - 1);
+                    }
+
+                    continue;
+                }
+
+                ImageFrame<TPixel> presentedFrame = decodedFrame;
+                if (rotationSource is not null)
+                {
+                    presentedFrame = animateRootFrame && decodedFrameCount == 0
+                        ? image.Frames.RootFrame
+                        : image.Frames.CreateFrame();
+
+                    RotateProcessor<TPixel>.ApplyQuarterTurn(
+                        rotation,
+                        rotationSource,
+                        presentedFrame,
+                        this.configuration);
+
+                    presentedFrame.Metadata.CicpProfile = rotationSource.Metadata.CicpProfile;
+                }
+
+                if (colorTrack.MirrorAxis is not null)
+                {
+                    // Axis zero reflects top-to-bottom around the horizontal axis; axis one reflects left-to-right.
+                    FlipMode flip = colorTrack.MirrorAxis.Value == 0 ? FlipMode.Vertical : FlipMode.Horizontal;
+                    FlipProcessor<TPixel>.Apply(flip, presentedFrame, this.configuration);
+                }
+
+                presentedFrame.Metadata.GetHeifMetadata().FrameDelay = new Rational(
+                    colorSample.Duration,
+                    colorTrack.MediaTimescale);
+
+                if (!animateRootFrame && !this.Options.SkipMetadata)
+                {
+                    presentedFrame.Metadata.IccProfile = colorTrack.IccProfile;
+                    _ = this.TryConvertIccProfile(presentedFrame);
+                }
+
+                decodedFrameCount++;
+            }
+
+            if (decodedFrameCount == 0)
+            {
+                throw new InvalidImageContentException(
+                    "The HEIF image sequence contains no decodable visible samples.");
+            }
 
             if (!this.Options.SkipMetadata)
             {
-                image.Metadata.CicpProfile ??= image.Frames.RootFrame.Metadata.CicpProfile?.DeepClone();
-                _ = this.TryConvertIccProfile(image);
+                if (animateRootFrame)
+                {
+                    image.Metadata.CicpProfile ??= image.Frames.RootFrame.Metadata.CicpProfile?.DeepClone();
+                    _ = this.TryConvertIccProfile(image);
+                }
             }
             else
             {
@@ -382,106 +562,16 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                 }
             }
 
+            HeifMetadata resultMetadata = image.Metadata.GetHeifMetadata();
+            resultMetadata.RepeatCount = colorTrack.RepeatCount;
+            resultMetadata.AnimateRootFrame = animateRootFrame;
+            resultMetadata.HasAlpha |= alphaState is not null;
             this.Dimensions = image.Size;
             return image;
         }
         catch
         {
-            if (image is not null)
-            {
-                image.Dispose();
-            }
-            else
-            {
-                // Ownership transfers to Image only after its constructor validates every decoded frame.
-                foreach (ImageFrame<TPixel> frame in colorFrames)
-                {
-                    frame.Dispose();
-                }
-            }
-
-            throw;
-        }
-    }
-
-    /// <summary>
-    /// Decodes visible samples while preserving their source indices for frame-aligned alpha lookup.
-    /// </summary>
-    /// <typeparam name="TPixel">The destination pixel format.</typeparam>
-    /// <param name="stream">The complete seekable HEIF stream.</param>
-    /// <param name="track">The selected coded-image track.</param>
-    /// <param name="cancellationToken">The token used to cancel work between coded samples.</param>
-    /// <param name="sampleIndices">Receives the decode-order sample index for each returned visible frame.</param>
-    /// <returns>The exact array of successfully decoded visible frames.</returns>
-    private ImageFrame<TPixel>[] DecodeVisibleSequenceFrames<TPixel>(
-        BufferedReadStream stream,
-        HeifSequenceTrack track,
-        CancellationToken cancellationToken,
-        out int[] sampleIndices)
-        where TPixel : unmanaged, IPixel<TPixel>
-    {
-        int visibleFrameCount = 0;
-        foreach (HeifSequenceSample sample in track.Samples)
-        {
-            visibleFrameCount += sample.IsHidden ? 0 : 1;
-        }
-
-        ImageFrame<TPixel>[] frames = new ImageFrame<TPixel>[visibleFrameCount];
-        sampleIndices = new int[visibleFrameCount];
-        int decodedFrameCount = 0;
-        using Av1Decoder decoder = new(this.configuration);
-        try
-        {
-            for (int sampleIndex = 0; sampleIndex < track.Samples.Length; sampleIndex++)
-            {
-                HeifSequenceSample sample = track.Samples[sampleIndex];
-                if (sample.IsHidden)
-                {
-                    this.ExecuteImageDataSegmentAction(
-                        () => this.DecodeSequenceReference(stream, track, sample, decoder));
-
-                    continue;
-                }
-
-                cancellationToken.ThrowIfCancellationRequested();
-                ImageFrame<TPixel>? frame = null;
-                this.ExecuteImageDataSegmentAction(
-                    () => frame = this.DecodeSequenceFrame<TPixel>(stream, track, sample, decoder));
-
-                if (frame is null)
-                {
-                    continue;
-                }
-
-                frame.Metadata.GetHeifMetadata().FrameDelay = new Rational(sample.Duration, track.MediaTimescale);
-                frames[decodedFrameCount] = frame;
-                sampleIndices[decodedFrameCount] = sampleIndex;
-                decodedFrameCount++;
-            }
-
-            if (decodedFrameCount == 0)
-            {
-                throw new InvalidImageContentException("The HEIF image sequence contains no decodable visible samples.");
-            }
-
-            if (decodedFrameCount != frames.Length)
-            {
-                // Compaction occurs only in IgnoreImageData mode after a recoverable coded-sample failure.
-                Array.Resize(ref frames, decodedFrameCount);
-                Array.Resize(ref sampleIndices, decodedFrameCount);
-            }
-
-            return frames;
-        }
-        catch
-        {
-            // Frames are independently allocated before the final Image adopts them. Retain ownership until this
-            // method returns so a later sample failure cannot leak the successfully decoded prefix.
-            for (int frameIndex = 0; frameIndex < decodedFrameCount; frameIndex++)
-            {
-                frames[frameIndex].Dispose();
-            }
-
+            image.Dispose();
             throw;
         }
     }
@@ -494,12 +584,15 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="track">The track supplying the codec configuration and color description.</param>
     /// <param name="sample">The validated sample range.</param>
     /// <param name="decoder">The decoder retaining earlier sequence references.</param>
-    /// <returns>The independently owned decoded frame.</returns>
-    private ImageFrame<TPixel> DecodeSequenceFrame<TPixel>(
+    /// <param name="sourceRectangle">The clean-aperture region mapped to the destination frame.</param>
+    /// <param name="destination">The caller-owned frame receiving the presented sample.</param>
+    private void DecodeSequenceFrame<TPixel>(
         BufferedReadStream stream,
         HeifSequenceTrack track,
         HeifSequenceSample sample,
-        Av1Decoder decoder)
+        Av1Decoder decoder,
+        Rectangle sourceRectangle,
+        ImageFrame<TPixel> destination)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         if (track.CodecType != Heif4CharCode.Av01)
@@ -513,18 +606,13 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         using IMemoryOwner<byte> sampleOwner = this.ReadSequenceSample(stream, track, sample);
         Span<byte> sampleData = sampleOwner.GetSpan()[..sample.Length];
 
-        ImageFrame<TPixel> frame = decoder.DecodeSequenceFrame<TPixel>(
+        decoder.DecodeSequenceFrame(
             sampleData,
             track.CicpProfile,
-            codecConfiguration);
-
-        if (frame.Width != track.CodedWidth || frame.Height != track.CodedHeight)
-        {
-            frame.Dispose();
-            throw new InvalidImageContentException("The decoded image-sequence sample dimensions do not match its visual sample entry.");
-        }
-
-        return frame;
+            codecConfiguration,
+            new Size(track.CodedWidth, track.CodedHeight),
+            sourceRectangle,
+            destination);
     }
 
     /// <summary>
@@ -535,6 +623,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// <param name="track">The alpha track supplying the codec configuration and color description.</param>
     /// <param name="sample">The validated alpha sample range.</param>
     /// <param name="decoder">The decoder retaining earlier alpha-sequence references.</param>
+    /// <param name="sourceRectangle">The clean-aperture region mapped to the destination frame.</param>
     /// <param name="destination">The decoded color frame receiving alpha values.</param>
     /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
     private void DecodeSequenceAlphaFrame<TPixel>(
@@ -542,6 +631,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         HeifSequenceTrack track,
         HeifSequenceSample sample,
         Av1Decoder decoder,
+        Rectangle sourceRectangle,
         ImageFrame<TPixel> destination,
         bool premultiplied)
         where TPixel : unmanaged, IPixel<TPixel>
@@ -566,6 +656,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             track.CicpProfile,
             codecConfiguration,
             new Size(track.CodedWidth, track.CodedHeight),
+            sourceRectangle,
             destination,
             destination.Size,
             destination.Bounds,
@@ -642,28 +733,33 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// </summary>
     /// <param name="metadata">The image metadata receiving the sequence description.</param>
     /// <param name="sequence">The parsed selected image sequence.</param>
-    private void UpdateSequenceMetadata(ImageMetadata metadata, HeifSequence sequence)
+    /// <param name="animateRootFrame">Whether the primary image is also the first timed sample.</param>
+    private void UpdateSequenceMetadata(ImageMetadata metadata, HeifSequence sequence, bool animateRootFrame)
     {
         HeifSequenceTrack colorTrack = sequence.ColorTrack;
         HeifMetadata heifMetadata = metadata.GetHeifMetadata();
         heifMetadata.RepeatCount = colorTrack.RepeatCount;
-        heifMetadata.AnimateRootFrame = true;
-        heifMetadata.HasAlpha = sequence.AlphaTrack is not null;
+        heifMetadata.AnimateRootFrame = animateRootFrame;
+        heifMetadata.HasAlpha |= sequence.AlphaTrack is not null;
         switch (colorTrack.CodecType)
         {
             case Heif4CharCode.Av01:
                 Av1CodecConfiguration av1Configuration = colorTrack.Av1CodecConfiguration
                     ?? throw new InvalidImageContentException("The AV1 image-sequence track has no codec configuration.");
 
-                heifMetadata.CompressionMethod = HeifCompressionMethod.Av1;
-                heifMetadata.BitDepth = av1Configuration.BitDepth;
-                heifMetadata.IsMonochrome = av1Configuration.IsMonochrome;
+                if (animateRootFrame)
+                {
+                    heifMetadata.CompressionMethod = HeifCompressionMethod.Av1;
+                    heifMetadata.BitDepth = av1Configuration.BitDepth;
+                    heifMetadata.IsMonochrome = av1Configuration.IsMonochrome;
+                }
+
                 break;
             default:
                 throw new InvalidImageContentException($"The image-sequence sample entry '{colorTrack.CodecType}' is not supported.");
         }
 
-        if (this.Options.SkipMetadata)
+        if (this.Options.SkipMetadata || !animateRootFrame)
         {
             return;
         }
@@ -696,8 +792,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     /// Creates one HEIF frame-metadata entry for each visible retained sequence sample.
     /// </summary>
     /// <param name="track">The selected color track supplying sample durations.</param>
+    /// <param name="animateRootFrame">Whether the first sequence sample occupies the root-frame slot.</param>
     /// <returns>The exact visible-frame metadata array in presentation order.</returns>
-    private static ImageFrameMetadata[] CreateSequenceFrameMetadata(HeifSequenceTrack track)
+    private static ImageFrameMetadata[] CreateSequenceFrameMetadata(
+        HeifSequenceTrack track,
+        bool animateRootFrame)
     {
         int visibleFrameCount = 0;
         foreach (HeifSequenceSample sample in track.Samples)
@@ -705,8 +804,14 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
             visibleFrameCount += sample.IsHidden ? 0 : 1;
         }
 
-        ImageFrameMetadata[] result = new ImageFrameMetadata[visibleFrameCount];
-        int frameIndex = 0;
+        int firstSequenceFrameIndex = animateRootFrame ? 0 : 1;
+        ImageFrameMetadata[] result = new ImageFrameMetadata[visibleFrameCount + firstSequenceFrameIndex];
+        if (!animateRootFrame)
+        {
+            result[0] = new ImageFrameMetadata();
+        }
+
+        int frameIndex = firstSequenceFrameIndex;
         foreach (HeifSequenceSample sample in track.Samples)
         {
             if (sample.IsHidden)
@@ -720,6 +825,39 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// Gets the primary image item required alongside an AVIF image sequence.
+    /// </summary>
+    private HeifItem FindSequencePrimaryItem()
+        => this.FindItemById(this.primaryItem)
+            ?? throw new InvalidImageContentException("The HEIF image sequence contains no primary image item.");
+
+    /// <summary>
+    /// Determines whether the primary image item reuses the first presented sequence sample.
+    /// </summary>
+    private static bool IsPrimaryItemFirstSequenceSample(HeifItem primaryItem, HeifSequenceTrack colorTrack)
+    {
+        if (primaryItem.DataLocations.Count != 1)
+        {
+            return false;
+        }
+
+        HeifLocation location = primaryItem.DataLocations[0];
+        foreach (HeifSequenceSample sample in colorTrack.Samples)
+        {
+            if (sample.IsHidden)
+            {
+                continue;
+            }
+
+            return location.Origin == HeifLocationOffsetOrigin.FileOffset
+                && location.BaseOffset + location.Offset == sample.Offset
+                && location.Length == sample.Length;
+        }
+
+        return false;
     }
 
     /// <summary>

@@ -93,6 +93,48 @@ internal static class Av1YuvConverter
     }
 
     /// <summary>
+    /// Converts a rectangular region of reconstructed component planes directly to packed pixels.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel type.</typeparam>
+    /// <param name="configuration">The configuration used for allocation and pixel conversion.</param>
+    /// <param name="frameBuffer">The reconstructed AV1 frame.</param>
+    /// <param name="sourceRectangle">The luma-sample region mapped to the complete destination frame.</param>
+    /// <param name="image">The destination image frame.</param>
+    public static void ConvertRegionToRgb<TPixel>(
+        Configuration configuration,
+        Av1FrameBuffer<byte> frameBuffer,
+        Rectangle sourceRectangle,
+        ImageFrame<TPixel> image)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        HeifColorConversionParameters parameters = GetConversionParameters(frameBuffer.ColorConfig, out HeifColorConversionMode mode);
+        if (frameBuffer.BitDepth == Av1BitDepth.EightBit)
+        {
+            Av1PlanarSampleBuffer<byte> buffer = new(frameBuffer);
+            HeifPlanarColorConverter.ConvertToRgb<TPixel, Av1PlanarSampleBuffer<byte>, byte, HeifByteSampleConverter>(
+                configuration,
+                buffer,
+                image,
+                in parameters,
+                mode,
+                sourceRectangle.X,
+                sourceRectangle.Y);
+
+            return;
+        }
+
+        Av1PlanarSampleBuffer<ushort> highBitDepthBuffer = new(frameBuffer);
+        HeifPlanarColorConverter.ConvertToRgb<TPixel, Av1PlanarSampleBuffer<ushort>>(
+            configuration,
+            highBitDepthBuffer,
+            image,
+            in parameters,
+            mode,
+            sourceRectangle.X,
+            sourceRectangle.Y);
+    }
+
+    /// <summary>
     /// Composes the reconstructed luma plane into a packed color frame as auxiliary alpha.
     /// </summary>
     /// <typeparam name="TPixel">The destination color pixel type.</typeparam>
@@ -110,9 +152,37 @@ internal static class Av1YuvConverter
         Rectangle destinationRectangle,
         bool premultiplied)
         where TPixel : unmanaged, IPixel<TPixel>
+        => ComposeAlpha(
+            configuration,
+            frameBuffer,
+            new Rectangle(0, 0, frameBuffer.Width, frameBuffer.Height),
+            destination,
+            outputSize,
+            destinationRectangle,
+            premultiplied);
+
+    /// <summary>
+    /// Composes a rectangular reconstructed luma region into a packed color frame as auxiliary alpha.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination color pixel type.</typeparam>
+    /// <param name="configuration">The configuration used for allocation and pixel conversion.</param>
+    /// <param name="frameBuffer">The reconstructed AV1 frame containing the alpha luma plane.</param>
+    /// <param name="sourceRectangle">The luma-sample region mapped to the destination rectangle.</param>
+    /// <param name="destination">The packed color frame receiving alpha values.</param>
+    /// <param name="outputSize">The complete presented size of the auxiliary image or grid tile.</param>
+    /// <param name="destinationRectangle">The destination region receiving the presented alpha image.</param>
+    /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
+    public static void ComposeAlpha<TPixel>(
+        Configuration configuration,
+        Av1FrameBuffer<byte> frameBuffer,
+        Rectangle sourceRectangle,
+        ImageFrame<TPixel> destination,
+        Size outputSize,
+        Rectangle destinationRectangle,
+        bool premultiplied)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         HeifColorConversionParameters parameters = GetConversionParameters(frameBuffer.ColorConfig, out _);
-        Rectangle sourceRectangle = new(0, 0, frameBuffer.Width, frameBuffer.Height);
         if (frameBuffer.BitDepth == Av1BitDepth.EightBit)
         {
             Av1PlanarSampleBuffer<byte> buffer = new(frameBuffer);

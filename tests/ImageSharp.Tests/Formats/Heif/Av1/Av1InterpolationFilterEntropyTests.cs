@@ -115,6 +115,50 @@ public class Av1InterpolationFilterEntropyTests
     }
 
     /// <summary>
+    /// Verifies the encoder's context selection, read-only costing, and adaptive output against independently seeded distributions.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(GetContexts))]
+    public void EncoderUsesRequestedContextAndLiveCosts(int context)
+    {
+        ReadOnlySpan<Av1InterpolationFilter> filters =
+        [
+            Av1InterpolationFilter.Sharp,
+            Av1InterpolationFilter.Smooth,
+            Av1InterpolationFilter.Regular,
+            Av1InterpolationFilter.Sharp,
+            Av1InterpolationFilter.Regular,
+            Av1InterpolationFilter.Smooth,
+        ];
+
+        // The constructor converts forward thresholds to inverse CDF storage. Supply the published forward
+        // values directly, independently of the production context factory.
+        Av1Distribution distribution = new(
+            ForwardThresholds[context * 2],
+            ForwardThresholds[(context * 2) + 1]);
+
+        using Av1SymbolWriter expectedWriter = new(Configuration.Default, 64, updateCdf: true);
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, qIndex: 0, updateCdf: true);
+        foreach (Av1InterpolationFilter filter in filters)
+        {
+            int expectedCost = Av1ProbabilityCost.GetSymbolCost(distribution, (int)filter);
+            Assert.Equal(expectedCost, encoder.GetSwitchableInterpolationFilterCost(filter, context));
+            Assert.Equal(expectedCost, encoder.GetSwitchableInterpolationFilterCost(filter, context));
+            expectedWriter.WriteSymbol((int)filter, distribution);
+            encoder.WriteSwitchableInterpolationFilter(filter, context);
+        }
+
+        using IMemoryOwner<byte> expected = expectedWriter.Exit();
+        using IMemoryOwner<byte> actual = encoder.Exit();
+        Assert.Equal(expected.Memory.Span, actual.Memory.Span);
+        Av1SymbolDecoder decoder = new(Configuration.Default, actual.Memory.Span, 0, updateCdf: true);
+        foreach (Av1InterpolationFilter filter in filters)
+        {
+            Assert.Equal(filter, decoder.ReadSwitchableInterpolationFilter(context));
+        }
+    }
+
+    /// <summary>
     /// Verifies all sixteen combinations of reference type, direction, and contributing neighbor filter state.
     /// </summary>
     [Fact]

@@ -6,6 +6,7 @@ using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.IntraBlockCopy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -18,6 +19,11 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 /// </content>
 internal static partial class Av1IntraSuperblockEncoder
 {
+    /// <summary>
+    /// The width and height of the fixed block currently used by inter motion search.
+    /// </summary>
+    private const int InterSearchBlockDimension = 8;
+
     /// <summary>
     /// Defines type-specific block encoding without coupling traversal to sample storage width.
     /// </summary>
@@ -259,7 +265,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="prediction">The contiguous prediction destination.</param>
         /// <param name="residual">The contiguous source-minus-prediction destination.</param>
         /// <param name="transformSize">The prediction dimensions.</param>
-        public static abstract void PrepareIntraBlockCopy(
+        public static abstract void PrepareIntraBlockCopyPrediction(
             Buffer2DRegion<TSample> source,
             Point blockOrigin,
             Buffer2DRegion<TSample> reconstruction,
@@ -269,6 +275,68 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> prediction,
             Span<short> residual,
             Av1TransformSize transformSize);
+
+        /// <summary>
+        /// Subtracts a retained prediction from its source without rebuilding the inter predictor.
+        /// </summary>
+        /// <param name="source">The source plane.</param>
+        /// <param name="blockOrigin">The block origin in plane samples.</param>
+        /// <param name="prediction">The tightly packed prediction samples.</param>
+        /// <param name="residual">The destination signed residual samples.</param>
+        /// <param name="transformSize">The plane block geometry.</param>
+        public static abstract void SubtractPrediction(
+            Buffer2DRegion<TSample> source,
+            Point blockOrigin,
+            ReadOnlySpan<TSample> prediction,
+            Span<short> residual,
+            Av1TransformSize transformSize);
+
+        /// <summary>
+        /// Builds a translational prediction from a retained reference frame and the matching source residual.
+        /// </summary>
+        /// <param name="source">The coded source plane.</param>
+        /// <param name="blockOrigin">The destination block origin in plane samples.</param>
+        /// <param name="reference">The padded retained reference plane.</param>
+        /// <param name="predictionOrigin">The integer reference origin preceding the subpixel phase.</param>
+        /// <param name="horizontalFilter">The horizontal interpolation filter.</param>
+        /// <param name="verticalFilter">The vertical interpolation filter.</param>
+        /// <param name="horizontalPhase">The horizontal phase in one-sixteenth-sample units.</param>
+        /// <param name="verticalPhase">The vertical phase in one-sixteenth-sample units.</param>
+        /// <param name="prediction">The contiguous prediction destination.</param>
+        /// <param name="residual">The contiguous source-minus-prediction destination.</param>
+        /// <param name="predictionScratch">The intermediate storage used by two-dimensional filtering.</param>
+        /// <param name="transformSize">The prediction dimensions.</param>
+        /// <param name="bitDepth">The coded sample bit depth.</param>
+        public static abstract void PrepareTranslationalInterPrediction(
+            Buffer2DRegion<TSample> source,
+            Point blockOrigin,
+            Buffer2DRegion<TSample> reference,
+            Point predictionOrigin,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int verticalPhase,
+            Span<TSample> prediction,
+            Span<short> residual,
+            Span<short> predictionScratch,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth);
+
+        /// <summary>
+        /// Measures an 8x8 full-pixel reference candidate through the bordered plane storage.
+        /// </summary>
+        /// <param name="source">The coded source plane.</param>
+        /// <param name="sourceOrigin">The source block origin in visible-plane coordinates.</param>
+        /// <param name="reference">The padded retained reference plane.</param>
+        /// <param name="predictionOrigin">The candidate origin, which may lie inside the physical border.</param>
+        /// <param name="bitDepth">The coded sample precision.</param>
+        /// <returns>The squared error normalized to the eight-bit distortion domain.</returns>
+        public static abstract long GetInterPredictionError(
+            Buffer2DRegion<TSample> source,
+            Point sourceOrigin,
+            Buffer2DRegion<TSample> reference,
+            Point predictionOrigin,
+            Av1BitDepth bitDepth);
 
         /// <summary>
         /// Encodes one prepared prediction with the selected transform into decision scratch.
@@ -384,9 +452,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 ReadOnlySpan<byte> firstRow = plane.DangerousGetRowSpan(first.Y + row)[first.X..];
                 ReadOnlySpan<byte> secondRow = plane.DangerousGetRowSpan(second.Y + row)[second.X..];
 
-                // An 8x8 search row occupies one machine word, so one unaligned load and comparison replaces
-                // eight dependent scalar branches while retaining exact collision rejection.
-                if (MemoryMarshal.Read<ulong>(firstRow) != MemoryMarshal.Read<ulong>(secondRow))
+                // Compare the complete row as byte lanes so collision rejection remains independent of native endianness.
+                if (Vector64.Create(firstRow) != Vector64.Create(secondRow))
                 {
                     return false;
                 }
@@ -396,48 +463,46 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <inheritdoc/>
+        public static long GetInterPredictionError(
+            Buffer2DRegion<byte> source,
+            Point sourceOrigin,
+            Buffer2DRegion<byte> reference,
+            Point predictionOrigin,
+            Av1BitDepth bitDepth)
+        {
+            Rectangle sourceBounds = source.Bounds;
+            Rectangle referenceBounds = reference.Bounds;
+            int sourceIndex =
+                ((sourceBounds.Y + sourceOrigin.Y) * source.Stride) +
+                sourceBounds.X +
+                sourceOrigin.X;
+
+            int referenceIndex =
+                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
+                referenceBounds.X +
+                predictionOrigin.X;
+
+            // The shared residual kernel selects the widest available vector width and handles the scalar tail.
+            return Av1ResidualBuilder.SumSquaredError(
+                source.Buffer.DangerousGetSingleSpan()[sourceIndex..],
+                source.Stride,
+                reference.Buffer.DangerousGetSingleSpan()[referenceIndex..],
+                reference.Stride,
+                InterSearchBlockDimension,
+                InterSearchBlockDimension);
+        }
+
+        /// <inheritdoc/>
         public static int GetSumOfAbsoluteDifferences(
             Buffer2DRegion<byte> source,
             Point sourceOrigin,
             Buffer2DRegion<byte> reconstruction,
             Point predictionOrigin)
-        {
-            int sum = 0;
-            if (Vector128.IsHardwareAccelerated)
-            {
-                for (int row = 0; row < 8; row++)
-                {
-                    ReadOnlySpan<byte> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
-                    ReadOnlySpan<byte> predictionRow =
-                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
-
-                    Vector128<short> difference =
-                        (Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(sourceRow)).AsByte()) -
-                         Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(predictionRow)).AsByte()))
-                        .AsInt16();
-
-                    // Widened signed differences retain both subtraction directions; absolute values then reduce
-                    // the complete eight-sample row without scalar extraction or per-sample branches.
-                    sum += Vector128.Sum(Vector128.Abs(difference));
-                }
-            }
-            else
-            {
-                for (int row = 0; row < 8; row++)
-                {
-                    ReadOnlySpan<byte> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
-                    ReadOnlySpan<byte> predictionRow =
-                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
-
-                    for (int column = 0; column < 8; column++)
-                    {
-                        sum += Math.Abs(sourceRow[column] - predictionRow[column]);
-                    }
-                }
-            }
-
-            return sum;
-        }
+            => Av1ResidualBuilder.SumAbsoluteDifferences8x8(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, sourceOrigin),
+                source.Stride,
+                Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, predictionOrigin),
+                reconstruction.Stride);
 
         /// <inheritdoc/>
         public static void GetFourSumsOfAbsoluteDifferences(
@@ -446,66 +511,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Buffer2DRegion<byte> reconstruction,
             Point firstPredictionOrigin,
             Span<int> sums)
-        {
-            int sum0 = 0;
-            int sum1 = 0;
-            int sum2 = 0;
-            int sum3 = 0;
-            if (Vector128.IsHardwareAccelerated)
-            {
-                for (int row = 0; row < 8; row++)
-                {
-                    ReadOnlySpan<byte> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
-                    ReadOnlySpan<byte> predictionRow =
-                        reconstruction.DangerousGetRowSpan(firstPredictionOrigin.Y + row)[firstPredictionOrigin.X..];
-
-                    // The four candidates reuse one widened source vector; only their overlapping predictor
-                    // windows are loaded separately before the packed absolute-difference reductions.
-                    Vector128<short> sourceSamples =
-                        Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(sourceRow)).AsByte()).AsInt16();
-
-                    Vector128<short> prediction0 =
-                        Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(predictionRow)).AsByte()).AsInt16();
-
-                    Vector128<short> prediction1 =
-                        Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(predictionRow[1..])).AsByte()).AsInt16();
-
-                    Vector128<short> prediction2 =
-                        Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(predictionRow[2..])).AsByte()).AsInt16();
-
-                    Vector128<short> prediction3 =
-                        Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(predictionRow[3..])).AsByte()).AsInt16();
-
-                    sum0 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction0));
-                    sum1 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction1));
-                    sum2 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction2));
-                    sum3 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction3));
-                }
-            }
-            else
-            {
-                for (int row = 0; row < 8; row++)
-                {
-                    ReadOnlySpan<byte> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
-                    ReadOnlySpan<byte> predictionRow =
-                        reconstruction.DangerousGetRowSpan(firstPredictionOrigin.Y + row)[firstPredictionOrigin.X..];
-
-                    for (int column = 0; column < 8; column++)
-                    {
-                        int sourceSample = sourceRow[column];
-                        sum0 += Math.Abs(sourceSample - predictionRow[column]);
-                        sum1 += Math.Abs(sourceSample - predictionRow[column + 1]);
-                        sum2 += Math.Abs(sourceSample - predictionRow[column + 2]);
-                        sum3 += Math.Abs(sourceSample - predictionRow[column + 3]);
-                    }
-                }
-            }
-
-            sums[0] = sum0;
-            sums[1] = sum1;
-            sums[2] = sum2;
-            sums[3] = sum3;
-        }
+            => Av1ResidualBuilder.SumFourAbsoluteDifferences8x8(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, sourceOrigin),
+                source.Stride,
+                Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, firstPredictionOrigin),
+                reconstruction.Stride,
+                sums);
 
         /// <inheritdoc/>
         public static int GetVariance(
@@ -515,44 +526,13 @@ internal static partial class Av1IntraSuperblockEncoder
             Point predictionOrigin,
             Av1BitDepth bitDepth)
         {
-            int sum = 0;
-            int sumOfSquares = 0;
-            if (Vector128.IsHardwareAccelerated)
-            {
-                for (int row = 0; row < 8; row++)
-                {
-                    ReadOnlySpan<byte> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
-                    ReadOnlySpan<byte> predictionRow =
-                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
-
-                    Vector128<short> difference =
-                        (Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(sourceRow)).AsByte()) -
-                         Vector128.WidenLower(Vector128.CreateScalarUnsafe(MemoryMarshal.Read<ulong>(predictionRow)).AsByte()))
-                        .AsInt16();
-
-                    // Widen before squaring so signed residuals cannot wrap in 16-bit lanes.
-                    Vector128<int> lower = Vector128.WidenLower(difference);
-                    Vector128<int> upper = Vector128.WidenUpper(difference);
-                    sum += Vector128.Sum(difference);
-                    sumOfSquares += Vector128.Sum(lower * lower) + Vector128.Sum(upper * upper);
-                }
-            }
-            else
-            {
-                for (int row = 0; row < 8; row++)
-                {
-                    ReadOnlySpan<byte> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
-                    ReadOnlySpan<byte> predictionRow =
-                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
-
-                    for (int column = 0; column < 8; column++)
-                    {
-                        int difference = sourceRow[column] - predictionRow[column];
-                        sum += difference;
-                        sumOfSquares += difference * difference;
-                    }
-                }
-            }
+            Av1ResidualBuilder.GetMoments8x8(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, sourceOrigin),
+                source.Stride,
+                Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, predictionOrigin),
+                reconstruction.Stride,
+                out int sum,
+                out int sumOfSquares);
 
             return GetNormalizedVariance(sum, sumOfSquares, bitDepth);
         }
@@ -575,10 +555,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 // A complete row widens in one vector; clipped edge rows retain scalar bounds.
                 if (columns == 8 && Vector128.IsHardwareAccelerated)
                 {
-                    ulong packed = MemoryMarshal.Read<ulong>(sourceRow);
-                    Vector128.WidenLower(Vector128.CreateScalarUnsafe(packed).AsByte())
-                        .AsInt16()
-                        .CopyTo(samples[sampleOffset..]);
+                    Vector128.WidenLower(Vector128.Create(Vector64.Create(sourceRow), Vector64<byte>.Zero)).AsInt16().CopyTo(samples[sampleOffset..]);
 
                     sampleOffset += columns;
                     continue;
@@ -803,7 +780,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <inheritdoc/>
-        public static void PrepareIntraBlockCopy(
+        public static void PrepareIntraBlockCopyPrediction(
             Buffer2DRegion<byte> source,
             Point blockOrigin,
             Buffer2DRegion<byte> reconstruction,
@@ -835,6 +812,64 @@ internal static partial class Av1IntraSuperblockEncoder
                 width,
                 width,
                 height);
+        }
+
+        /// <inheritdoc/>
+        public static void SubtractPrediction(
+            Buffer2DRegion<byte> source,
+            Point blockOrigin,
+            ReadOnlySpan<byte> prediction,
+            Span<short> residual,
+            Av1TransformSize transformSize)
+            => Av1ResidualBuilder.Subtract(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                source.Stride,
+                prediction,
+                transformSize.GetWidth(),
+                residual,
+                transformSize.GetWidth(),
+                transformSize.GetWidth(),
+                transformSize.GetHeight());
+
+        /// <inheritdoc/>
+        public static void PrepareTranslationalInterPrediction(
+            Buffer2DRegion<byte> source,
+            Point blockOrigin,
+            Buffer2DRegion<byte> reference,
+            Point predictionOrigin,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int verticalPhase,
+            Span<byte> prediction,
+            Span<short> residual,
+            Span<short> predictionScratch,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth)
+        {
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+            Rectangle referenceBounds = reference.Bounds;
+            int referenceOrigin =
+                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
+                referenceBounds.X +
+                predictionOrigin.X;
+
+            Av1TranslationalInterPredictor.Predict(
+                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Stride,
+                referenceOrigin,
+                prediction,
+                width,
+                width,
+                height,
+                horizontalFilter,
+                verticalFilter,
+                horizontalPhase,
+                verticalPhase,
+                predictionScratch);
+
+            SubtractPrediction(source, blockOrigin, prediction, residual, transformSize);
         }
 
         /// <inheritdoc/>
@@ -947,48 +982,48 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <inheritdoc/>
+        public static long GetInterPredictionError(
+            Buffer2DRegion<ushort> source,
+            Point sourceOrigin,
+            Buffer2DRegion<ushort> reference,
+            Point predictionOrigin,
+            Av1BitDepth bitDepth)
+        {
+            Rectangle sourceBounds = source.Bounds;
+            Rectangle referenceBounds = reference.Bounds;
+            int sourceIndex =
+                ((sourceBounds.Y + sourceOrigin.Y) * source.Stride) +
+                sourceBounds.X +
+                sourceOrigin.X;
+
+            int referenceIndex =
+                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
+                referenceBounds.X +
+                predictionOrigin.X;
+
+            long error = Av1ResidualBuilder.SumSquaredError(
+                source.Buffer.DangerousGetSingleSpan()[sourceIndex..],
+                source.Stride,
+                reference.Buffer.DangerousGetSingleSpan()[referenceIndex..],
+                reference.Stride,
+                InterSearchBlockDimension,
+                InterSearchBlockDimension);
+
+            int shift = (bitDepth.GetBitCount() - 8) * 2;
+            return shift == 0 ? error : (error + (1L << (shift - 1))) >> shift;
+        }
+
+        /// <inheritdoc/>
         public static int GetSumOfAbsoluteDifferences(
             Buffer2DRegion<ushort> source,
             Point sourceOrigin,
             Buffer2DRegion<ushort> reconstruction,
             Point predictionOrigin)
-        {
-            int sum = 0;
-            if (Vector128.IsHardwareAccelerated)
-            {
-                for (int row = 0; row < 8; row++)
-                {
-                    ReadOnlySpan<ushort> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
-                    ReadOnlySpan<ushort> predictionRow =
-                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
-
-                    // Twelve-bit samples remain within signed 16-bit subtraction and absolute-value ranges,
-                    // allowing all eight row differences to stay packed until their horizontal reduction.
-                    Vector128<short> difference =
-                        (Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(sourceRow)) -
-                         Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(predictionRow)))
-                        .AsInt16();
-
-                    sum += Vector128.Sum(Vector128.Abs(difference));
-                }
-            }
-            else
-            {
-                for (int row = 0; row < 8; row++)
-                {
-                    ReadOnlySpan<ushort> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
-                    ReadOnlySpan<ushort> predictionRow =
-                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
-
-                    for (int column = 0; column < 8; column++)
-                    {
-                        sum += Math.Abs(sourceRow[column] - predictionRow[column]);
-                    }
-                }
-            }
-
-            return sum;
-        }
+            => Av1ResidualBuilder.SumAbsoluteDifferences8x8(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, sourceOrigin),
+                source.Stride,
+                Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, predictionOrigin),
+                reconstruction.Stride);
 
         /// <inheritdoc/>
         public static void GetFourSumsOfAbsoluteDifferences(
@@ -997,66 +1032,12 @@ internal static partial class Av1IntraSuperblockEncoder
             Buffer2DRegion<ushort> reconstruction,
             Point firstPredictionOrigin,
             Span<int> sums)
-        {
-            int sum0 = 0;
-            int sum1 = 0;
-            int sum2 = 0;
-            int sum3 = 0;
-            if (Vector128.IsHardwareAccelerated)
-            {
-                for (int row = 0; row < 8; row++)
-                {
-                    ReadOnlySpan<ushort> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
-                    ReadOnlySpan<ushort> predictionRow =
-                        reconstruction.DangerousGetRowSpan(firstPredictionOrigin.Y + row)[firstPredictionOrigin.X..];
-
-                    // Signed 16-bit lanes preserve every AV1 sample difference while four horizontally adjacent
-                    // candidates reuse the same source load and stay packed through horizontal reduction.
-                    Vector128<short> sourceSamples =
-                        Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(sourceRow)).AsInt16();
-
-                    Vector128<short> prediction0 =
-                        Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(predictionRow)).AsInt16();
-
-                    Vector128<short> prediction1 =
-                        Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(predictionRow[1..])).AsInt16();
-
-                    Vector128<short> prediction2 =
-                        Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(predictionRow[2..])).AsInt16();
-
-                    Vector128<short> prediction3 =
-                        Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(predictionRow[3..])).AsInt16();
-
-                    sum0 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction0));
-                    sum1 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction1));
-                    sum2 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction2));
-                    sum3 += Vector128.Sum(Vector128.Abs(sourceSamples - prediction3));
-                }
-            }
-            else
-            {
-                for (int row = 0; row < 8; row++)
-                {
-                    ReadOnlySpan<ushort> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
-                    ReadOnlySpan<ushort> predictionRow =
-                        reconstruction.DangerousGetRowSpan(firstPredictionOrigin.Y + row)[firstPredictionOrigin.X..];
-
-                    for (int column = 0; column < 8; column++)
-                    {
-                        int sourceSample = sourceRow[column];
-                        sum0 += Math.Abs(sourceSample - predictionRow[column]);
-                        sum1 += Math.Abs(sourceSample - predictionRow[column + 1]);
-                        sum2 += Math.Abs(sourceSample - predictionRow[column + 2]);
-                        sum3 += Math.Abs(sourceSample - predictionRow[column + 3]);
-                    }
-                }
-            }
-
-            sums[0] = sum0;
-            sums[1] = sum1;
-            sums[2] = sum2;
-            sums[3] = sum3;
-        }
+            => Av1ResidualBuilder.SumFourAbsoluteDifferences8x8(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, sourceOrigin),
+                source.Stride,
+                Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, firstPredictionOrigin),
+                reconstruction.Stride,
+                sums);
 
         /// <inheritdoc/>
         public static int GetVariance(
@@ -1066,45 +1047,13 @@ internal static partial class Av1IntraSuperblockEncoder
             Point predictionOrigin,
             Av1BitDepth bitDepth)
         {
-            int sum = 0;
-            int sumOfSquares = 0;
-            if (Vector128.IsHardwareAccelerated)
-            {
-                for (int row = 0; row < 8; row++)
-                {
-                    ReadOnlySpan<ushort> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
-                    ReadOnlySpan<ushort> predictionRow =
-                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
-
-                    // AV1's high-bit-depth domain tops out at 4095, so signed 16-bit subtraction preserves
-                    // every possible sample difference before the square is widened to 32-bit lanes.
-                    Vector128<short> difference =
-                        (Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(sourceRow)) -
-                         Vector128.LoadUnsafe(ref MemoryMarshal.GetReference(predictionRow)))
-                        .AsInt16();
-
-                    Vector128<int> lower = Vector128.WidenLower(difference);
-                    Vector128<int> upper = Vector128.WidenUpper(difference);
-                    sum += Vector128.Sum(difference);
-                    sumOfSquares += Vector128.Sum(lower * lower) + Vector128.Sum(upper * upper);
-                }
-            }
-            else
-            {
-                for (int row = 0; row < 8; row++)
-                {
-                    ReadOnlySpan<ushort> sourceRow = source.DangerousGetRowSpan(sourceOrigin.Y + row)[sourceOrigin.X..];
-                    ReadOnlySpan<ushort> predictionRow =
-                        reconstruction.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X..];
-
-                    for (int column = 0; column < 8; column++)
-                    {
-                        int difference = sourceRow[column] - predictionRow[column];
-                        sum += difference;
-                        sumOfSquares += difference * difference;
-                    }
-                }
-            }
+            Av1ResidualBuilder.GetMoments8x8(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, sourceOrigin),
+                source.Stride,
+                Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, predictionOrigin),
+                reconstruction.Stride,
+                out int sum,
+                out int sumOfSquares);
 
             return GetNormalizedVariance(sum, sumOfSquares, bitDepth);
         }
@@ -1353,7 +1302,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <inheritdoc/>
-        public static void PrepareIntraBlockCopy(
+        public static void PrepareIntraBlockCopyPrediction(
             Buffer2DRegion<ushort> source,
             Point blockOrigin,
             Buffer2DRegion<ushort> reconstruction,
@@ -1385,6 +1334,65 @@ internal static partial class Av1IntraSuperblockEncoder
                 width,
                 width,
                 height);
+        }
+
+        /// <inheritdoc/>
+        public static void SubtractPrediction(
+            Buffer2DRegion<ushort> source,
+            Point blockOrigin,
+            ReadOnlySpan<ushort> prediction,
+            Span<short> residual,
+            Av1TransformSize transformSize)
+            => Av1ResidualBuilder.Subtract(
+                Av1TransformBlockEncoder.GetPlaneSpan(source, blockOrigin),
+                source.Stride,
+                prediction,
+                transformSize.GetWidth(),
+                residual,
+                transformSize.GetWidth(),
+                transformSize.GetWidth(),
+                transformSize.GetHeight());
+
+        /// <inheritdoc/>
+        public static void PrepareTranslationalInterPrediction(
+            Buffer2DRegion<ushort> source,
+            Point blockOrigin,
+            Buffer2DRegion<ushort> reference,
+            Point predictionOrigin,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int verticalPhase,
+            Span<ushort> prediction,
+            Span<short> residual,
+            Span<short> predictionScratch,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth)
+        {
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+            Rectangle referenceBounds = reference.Bounds;
+            int referenceOrigin =
+                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
+                referenceBounds.X +
+                predictionOrigin.X;
+
+            Av1TranslationalInterPredictor.Predict(
+                reference.Buffer.DangerousGetSingleSpan(),
+                reference.Stride,
+                referenceOrigin,
+                prediction,
+                width,
+                width,
+                height,
+                horizontalFilter,
+                verticalFilter,
+                horizontalPhase,
+                verticalPhase,
+                bitDepth.GetBitCount(),
+                predictionScratch);
+
+            SubtractPrediction(source, blockOrigin, prediction, residual, transformSize);
         }
 
         /// <inheritdoc/>

@@ -35,7 +35,7 @@ internal static partial class Av1TranslationalInterPredictor
     /// <summary>
     /// The maximum number of source rows added by an eight-tap vertical filter.
     /// </summary>
-    private const int MaximumExtraRows = FilterCoefficientCount - 1;
+    internal const int MaximumExtraRows = FilterCoefficientCount - 1;
 
     /// <summary>
     /// The minimum scratch stride that lets a 128-bit byte kernel handle four- and eight-sample blocks.

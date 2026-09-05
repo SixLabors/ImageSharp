@@ -3,82 +3,142 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 
 /// <summary>
-/// Writes the AV1 open bitstream units required for a single still-image frame.
+/// Writes the AV1 open bitstream units for one coded frame.
 /// </summary>
-internal sealed class ObuWriter
+internal sealed class ObuWriter : IDisposable
 {
     // Sequence and uncompressed-frame syntax have fixed field and array limits. A 512-byte owner covers their
     // maximum supported representation without retaining any entropy-coded tile bytes in the header scratch.
     private const int MaximumHeaderLength = 512;
 
+    private readonly IMemoryOwner<byte> headerOwner;
+
     /// <summary>
-    /// Writes a temporal delimiter and the supplied sequence and frame OBUs.
+    /// Initializes a new instance of the <see cref="ObuWriter"/> class.
+    /// </summary>
+    /// <param name="configuration">The configuration providing reusable header memory.</param>
+    public ObuWriter(Configuration configuration)
+        => this.headerOwner = configuration.MemoryAllocator.Allocate<byte>(MaximumHeaderLength);
+
+    /// <summary>
+    /// Writes a temporal delimiter, sequence header, and coded frame for the first sample in a sequence.
+    /// </summary>
+    /// <typeparam name="TTileWriter">The non-boxed tile source type.</typeparam>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="sequenceHeader">The sequence header.</param>
+    /// <param name="frameHeader">The frame header.</param>
+    /// <param name="tileWriter">The encoded tile source.</param>
+    public void WriteSequenceFrame<TTileWriter>(
+        Stream stream,
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        TTileWriter tileWriter)
+        where TTileWriter : IAv1TileWriter
+    {
+        Span<byte> headerBuffer = this.headerOwner.Memory.Span[..MaximumHeaderLength];
+        Av1BitStreamWriter writer = new(headerBuffer);
+        WriteObuHeaderAndSize(stream, ObuType.TemporalDelimiter, []);
+        WriteSequenceHeader(ref writer, sequenceHeader);
+        int bytesWritten = (writer.BitPosition + 7) >> 3;
+        writer.Flush();
+        WriteObuHeaderAndSize(stream, ObuType.SequenceHeader, headerBuffer[..bytesWritten]);
+        WriteFrameObu(stream, sequenceHeader, frameHeader, tileWriter, headerBuffer, ref writer);
+    }
+
+    /// <summary>
+    /// Writes an empty temporal-delimiter OBU.
+    /// </summary>
+    /// <param name="stream">The destination stream.</param>
+    public static void WriteTemporalDelimiter(Stream stream)
+        => WriteObuHeaderAndSize(stream, ObuType.TemporalDelimiter, []);
+
+    /// <summary>
+    /// Writes a temporal delimiter followed by one sequence-header OBU.
     /// </summary>
     /// <param name="configuration">The configuration used to allocate temporary encoding memory.</param>
     /// <param name="stream">The destination stream.</param>
-    /// <param name="sequenceHeader">The optional still-picture sequence header.</param>
-    /// <param name="frameHeader">The optional intra-frame header.</param>
-    /// <param name="tileWriter">The tile writer used when a frame header is supplied.</param>
-    [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "Performance",
-        "CA1822:Mark members as static",
-        Justification = "Preserves the existing writer instance contract.")]
-    public void WriteAll(Configuration configuration, Stream stream, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader, IAv1TileWriter tileWriter)
+    /// <param name="sequenceHeader">The sequence header.</param>
+    public static void WriteSequenceHeader(Configuration configuration, Stream stream, ObuSequenceHeader sequenceHeader)
     {
-        // The reusable scratch only contains headers. Entropy-coded tiles remain in their owning buffers and are
-        // streamed directly so the complete compressed frame is never duplicated.
         using IMemoryOwner<byte> headerOwner = configuration.MemoryAllocator.Allocate<byte>(MaximumHeaderLength);
         Span<byte> headerBuffer = headerOwner.Memory.Span[..MaximumHeaderLength];
         Av1BitStreamWriter writer = new(headerBuffer);
         WriteObuHeaderAndSize(stream, ObuType.TemporalDelimiter, []);
+        WriteSequenceHeader(ref writer, sequenceHeader);
+        int bytesWritten = (writer.BitPosition + 7) >> 3;
+        writer.Flush();
+        WriteObuHeaderAndSize(stream, ObuType.SequenceHeader, headerBuffer[..bytesWritten]);
+    }
 
-        if (sequenceHeader != null)
+    /// <summary>
+    /// Writes a temporal delimiter and coded frame that continues an established sequence.
+    /// </summary>
+    /// <typeparam name="TTileWriter">The non-boxed tile source type.</typeparam>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="sequenceHeader">The sequence header established by an earlier sample.</param>
+    /// <param name="frameHeader">The frame header.</param>
+    /// <param name="tileWriter">The encoded tile source.</param>
+    public void WriteFrame<TTileWriter>(
+        Stream stream,
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        TTileWriter tileWriter)
+        where TTileWriter : IAv1TileWriter
+    {
+        Span<byte> headerBuffer = this.headerOwner.Memory.Span[..MaximumHeaderLength];
+        Av1BitStreamWriter writer = new(headerBuffer);
+        WriteObuHeaderAndSize(stream, ObuType.TemporalDelimiter, []);
+        WriteFrameObu(stream, sequenceHeader, frameHeader, tileWriter, headerBuffer, ref writer);
+    }
+
+    /// <inheritdoc/>
+    public void Dispose() => this.headerOwner.Dispose();
+
+    /// <summary>
+    /// Writes the combined frame OBU header followed by each retained tile payload.
+    /// </summary>
+    /// <typeparam name="TTileWriter">The non-boxed tile source type.</typeparam>
+    /// <param name="stream">The destination stream.</param>
+    /// <param name="sequenceHeader">The sequence header governing frame syntax.</param>
+    /// <param name="frameHeader">The uncompressed frame header.</param>
+    /// <param name="tileWriter">The encoded tile source.</param>
+    /// <param name="headerBuffer">The reusable OBU header scratch.</param>
+    /// <param name="writer">The bit writer over <paramref name="headerBuffer"/>.</param>
+    private static void WriteFrameObu<TTileWriter>(
+        Stream stream,
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        TTileWriter tileWriter,
+        Span<byte> headerBuffer,
+        ref Av1BitStreamWriter writer)
+        where TTileWriter : IAv1TileWriter
+    {
+        WriteFrameHeader(ref writer, sequenceHeader, frameHeader);
+        ObuTileGroupHeader tileInfo = frameHeader.TilesInfo;
+        WriteTileGroupHeader(ref writer, tileInfo);
+
+        int frameHeaderBytes = (writer.BitPosition + 7) >> 3;
+        writer.Flush();
+
+        int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
+        uint framePayloadSize = (uint)(frameHeaderBytes + ((tileCount - 1) * tileInfo.TileSizeBytes));
+        for (int tileNum = 0; tileNum < tileCount; tileNum++)
         {
-            WriteSequenceHeader(ref writer, sequenceHeader);
-            int bytesWritten = (writer.BitPosition + 7) >> 3;
-            writer.Flush();
-            WriteObuHeaderAndSize(stream, ObuType.SequenceHeader, headerBuffer[..bytesWritten]);
+            framePayloadSize += (uint)tileWriter.GetTileData(tileNum).Length;
         }
 
-        if (frameHeader != null && sequenceHeader != null)
-        {
-            WriteFrameHeader(ref writer, sequenceHeader, frameHeader);
-            ObuTileGroupHeader tileInfo = frameHeader.TilesInfo;
-            if (tileInfo != null)
-            {
-                WriteTileGroupHeader(ref writer, tileInfo);
-            }
-
-            int frameHeaderBytes = (writer.BitPosition + 7) >> 3;
-            writer.Flush();
-
-            uint framePayloadSize = (uint)frameHeaderBytes;
-            if (tileInfo != null)
-            {
-                int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
-                framePayloadSize += (uint)((tileCount - 1) * tileInfo.TileSizeBytes);
-
-                for (int tileNum = 0; tileNum < tileCount; tileNum++)
-                {
-                    framePayloadSize += (uint)tileWriter.GetTileData(tileNum).Length;
-                }
-            }
-
-            WriteObuHeaderAndSize(stream, ObuType.Frame, framePayloadSize);
-            stream.Write(headerBuffer[..frameHeaderBytes]);
-
-            if (tileInfo != null)
-            {
-                WriteTileData(stream, tileInfo, tileWriter);
-            }
-        }
+        WriteObuHeaderAndSize(stream, ObuType.Frame, framePayloadSize);
+        stream.Write(headerBuffer[..frameHeaderBytes]);
+        WriteTileData(stream, tileInfo, tileWriter);
     }
 
     /// <summary>
@@ -145,35 +205,188 @@ internal sealed class ObuWriter
     }
 
     /// <summary>
-    /// Writes a reduced still-picture sequence header.
+    /// Writes an AV1 sequence header.
     /// </summary>
     /// <param name="writer">The bit writer receiving the sequence header.</param>
     /// <param name="sequenceHeader">The sequence header to encode.</param>
     private static void WriteSequenceHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader)
     {
         writer.WriteLiteral((uint)sequenceHeader.SequenceProfile, 3);
-        writer.WriteBoolean(true); // IsStillPicture
-        writer.WriteBoolean(true); // IsReducedStillPicture
-        writer.WriteLiteral((uint)sequenceHeader.OperatingPoint[0].SequenceLevelIndex, Av1Constants.LevelBits);
+        writer.WriteBoolean(sequenceHeader.IsStillPicture);
+        writer.WriteBoolean(sequenceHeader.IsReducedStillPictureHeader);
+        if (sequenceHeader.IsReducedStillPictureHeader)
+        {
+            writer.WriteLiteral((uint)sequenceHeader.OperatingPoint[0].SequenceLevelIndex, Av1Constants.LevelBits);
+        }
+        else
+        {
+            writer.WriteBoolean(sequenceHeader.TimingInfoPresentFlag);
+            if (sequenceHeader.TimingInfoPresentFlag)
+            {
+                WriteTimingInfo(ref writer, sequenceHeader.GetTimingInfo());
+                writer.WriteBoolean(sequenceHeader.DecoderModelInfoPresentFlag);
+                if (sequenceHeader.DecoderModelInfoPresentFlag)
+                {
+                    WriteDecoderModelInfo(ref writer, sequenceHeader.GetDecoderModelInfo());
+                }
+            }
 
-        // Frame width and Height
+            writer.WriteBoolean(sequenceHeader.InitialDisplayDelayPresentFlag);
+            writer.WriteLiteral(
+                (uint)(sequenceHeader.OperatingPoint.Length - 1),
+                Av1Constants.OperatingPointCountBits);
+
+            foreach (ObuOperatingPoint operatingPoint in sequenceHeader.OperatingPoint)
+            {
+                writer.WriteLiteral(operatingPoint.Idc, Av1Constants.OperatingPointIdcBits);
+                writer.WriteLiteral((uint)operatingPoint.SequenceLevelIndex, Av1Constants.LevelBits);
+                if (operatingPoint.SequenceLevelIndex >= Av1Constants.SequenceTierMinimumLevelIndex)
+                {
+                    writer.WriteBoolean(operatingPoint.SequenceTier != 0);
+                }
+
+                if (sequenceHeader.DecoderModelInfoPresentFlag)
+                {
+                    writer.WriteBoolean(operatingPoint.IsDecoderModelInfoPresent);
+                    if (operatingPoint.IsDecoderModelInfoPresent)
+                    {
+                        WriteOperatingParametersInfo(
+                            ref writer,
+                            sequenceHeader.GetDecoderModelInfo(),
+                            operatingPoint);
+                    }
+                }
+
+                if (sequenceHeader.InitialDisplayDelayPresentFlag)
+                {
+                    writer.WriteBoolean(operatingPoint.IsInitialDisplayDelayPresent);
+                    if (operatingPoint.IsInitialDisplayDelayPresent)
+                    {
+                        writer.WriteLiteral(operatingPoint.InitialDisplayDelay - 1, 4);
+                    }
+                }
+            }
+        }
+
+        // The maximum dimensions determine the fixed-width fields used by every frame in the sequence.
         writer.WriteLiteral((uint)sequenceHeader.FrameWidthBits - 1, 4);
         writer.WriteLiteral((uint)sequenceHeader.FrameHeightBits - 1, 4);
         writer.WriteLiteral((uint)sequenceHeader.MaxFrameWidth - 1, sequenceHeader.FrameWidthBits);
         writer.WriteLiteral((uint)sequenceHeader.MaxFrameHeight - 1, sequenceHeader.FrameHeightBits);
+        if (!sequenceHeader.IsReducedStillPictureHeader)
+        {
+            writer.WriteBoolean(sequenceHeader.IsFrameIdNumbersPresent);
+            if (sequenceHeader.IsFrameIdNumbersPresent)
+            {
+                writer.WriteLiteral((uint)sequenceHeader.DeltaFrameIdLength - 2, 4);
+                writer.WriteLiteral(sequenceHeader.AdditionalFrameIdLength - 1, 3);
+            }
+        }
 
-        // Video related flags removed
         writer.WriteBoolean(sequenceHeader.Use128x128Superblock);
         writer.WriteBoolean(sequenceHeader.EnableFilterIntra);
         writer.WriteBoolean(sequenceHeader.EnableIntraEdgeFilter);
+        if (!sequenceHeader.IsReducedStillPictureHeader)
+        {
+            writer.WriteBoolean(sequenceHeader.EnableInterIntraCompound);
+            writer.WriteBoolean(sequenceHeader.EnableMaskedCompound);
+            writer.WriteBoolean(sequenceHeader.EnableWarpedMotion);
+            writer.WriteBoolean(sequenceHeader.EnableDualFilter);
+            writer.WriteBoolean(sequenceHeader.EnableOrderHint);
+            if (sequenceHeader.EnableOrderHint)
+            {
+                writer.WriteBoolean(sequenceHeader.OrderHintInfo.EnableJointCompound);
+                writer.WriteBoolean(sequenceHeader.OrderHintInfo.EnableReferenceFrameMotionVectors);
+            }
 
-        // Video related flags removed
+            bool chooseScreenContentTools = sequenceHeader.ForceScreenContentTools == Av1Constants.SelectScreenContentTools;
+            writer.WriteBoolean(chooseScreenContentTools);
+            if (!chooseScreenContentTools)
+            {
+                writer.WriteBoolean(sequenceHeader.ForceScreenContentTools != 0);
+            }
+
+            if (sequenceHeader.ForceScreenContentTools > 0)
+            {
+                bool chooseIntegerMotionVector = sequenceHeader.ForceIntegerMotionVector == Av1Constants.SelectIntegerMotionVector;
+                writer.WriteBoolean(chooseIntegerMotionVector);
+                if (!chooseIntegerMotionVector)
+                {
+                    writer.WriteBoolean(sequenceHeader.ForceIntegerMotionVector != 0);
+                }
+            }
+
+            if (sequenceHeader.EnableOrderHint)
+            {
+                writer.WriteLiteral((uint)sequenceHeader.OrderHintInfo.OrderHintBits - 1, 3);
+            }
+        }
+
         writer.WriteBoolean(sequenceHeader.EnableSuperResolution);
         writer.WriteBoolean(sequenceHeader.EnableCdef);
         writer.WriteBoolean(sequenceHeader.EnableRestoration);
         WriteColorConfig(ref writer, sequenceHeader);
         writer.WriteBoolean(sequenceHeader.AreFilmGrainingParametersPresent);
         WriteTrailingBits(ref writer);
+    }
+
+    /// <summary>
+    /// Writes sequence timing in the fixed-width and unsigned-variable-length forms required by AV1.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the timing information.</param>
+    /// <param name="timingInfo">The timing values to encode.</param>
+    private static void WriteTimingInfo(ref Av1BitStreamWriter writer, ObuTimingInfo timingInfo)
+    {
+        writer.WriteLiteral(timingInfo.NumUnitsInDisplayTick, 32);
+        writer.WriteLiteral(timingInfo.TimeScale, 32);
+        writer.WriteBoolean(timingInfo.EqualPictureInterval);
+        if (timingInfo.EqualPictureInterval)
+        {
+            WriteUnsignedVariableLength(ref writer, timingInfo.NumTicksPerPicture - 1);
+        }
+    }
+
+    /// <summary>
+    /// Writes decoder-buffer field widths and decoding-clock units.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the decoder-model information.</param>
+    /// <param name="decoderModelInfo">The decoder-model values to encode.</param>
+    private static void WriteDecoderModelInfo(ref Av1BitStreamWriter writer, ObuDecoderModelInfo decoderModelInfo)
+    {
+        writer.WriteLiteral(decoderModelInfo.BufferDelayLength - 1, 5);
+        writer.WriteLiteral(decoderModelInfo.NumUnitsInDecodingTick, 32);
+        writer.WriteLiteral(decoderModelInfo.BufferRemovalTimeLength - 1, 5);
+        writer.WriteLiteral(decoderModelInfo.FramePresentationTimeLength - 1, 5);
+    }
+
+    /// <summary>
+    /// Writes the decoder-model parameters for one operating point.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the operating-point parameters.</param>
+    /// <param name="decoderModelInfo">The decoder model defining the delay field width.</param>
+    /// <param name="operatingPoint">The operating-point values to encode.</param>
+    private static void WriteOperatingParametersInfo(
+        ref Av1BitStreamWriter writer,
+        ObuDecoderModelInfo decoderModelInfo,
+        ObuOperatingPoint operatingPoint)
+    {
+        int bufferDelayLength = (int)decoderModelInfo.BufferDelayLength;
+        writer.WriteLiteral(operatingPoint.DecoderBufferDelay, bufferDelayLength);
+        writer.WriteLiteral(operatingPoint.EncoderBufferDelay, bufferDelayLength);
+        writer.WriteBoolean(operatingPoint.LowDelayMode);
+    }
+
+    /// <summary>
+    /// Writes an AV1 unsigned variable-length value.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the value.</param>
+    /// <param name="value">The value to encode.</param>
+    private static void WriteUnsignedVariableLength(ref Av1BitStreamWriter writer, uint value)
+    {
+        uint encodedValue = value + 1;
+        int leadingZeroCount = Av1Math.MostSignificantBit(encodedValue);
+        writer.WriteLiteral(0, leadingZeroCount);
+        writer.WriteLiteral(encodedValue, leadingZeroCount + 1);
     }
 
     /// <summary>
@@ -418,15 +631,60 @@ internal sealed class ObuWriter
     }
 
     /// <summary>
-    /// Writes the reduced uncompressed header for an intra still-image frame.
+    /// Writes the uncompressed header for an AV1 frame.
     /// </summary>
     /// <param name="writer">The bit writer receiving the uncompressed frame header.</param>
     /// <param name="sequenceHeader">The sequence header controlling available coding tools.</param>
     /// <param name="frameHeader">The frame header to encode.</param>
     private static void WriteUncompressedFrameHeader(ref Av1BitStreamWriter writer, ObuSequenceHeader sequenceHeader, ObuFrameHeader frameHeader)
     {
+        bool frameSizeOverrideFlag = false;
+        if (!sequenceHeader.IsReducedStillPictureHeader)
+        {
+            writer.WriteBoolean(frameHeader.ShowExistingFrame);
+            if (frameHeader.ShowExistingFrame)
+            {
+                writer.WriteLiteral(frameHeader.FrameToShowMapIdx, Av1Constants.ReferenceFrameIndexBits);
+                if (sequenceHeader.DecoderModelInfoPresentFlag && !sequenceHeader.GetTimingInfo().EqualPictureInterval)
+                {
+                    writer.WriteLiteral(
+                        frameHeader.FramePresentationTime,
+                        (int)sequenceHeader.GetDecoderModelInfo().FramePresentationTimeLength);
+                }
+
+                if (sequenceHeader.IsFrameIdNumbersPresent)
+                {
+                    writer.WriteLiteral(frameHeader.DisplayFrameId, sequenceHeader.FrameIdLength);
+                }
+
+                return;
+            }
+
+            writer.WriteLiteral((uint)frameHeader.FrameType, Av1Constants.FrameTypeBits);
+            writer.WriteBoolean(frameHeader.ShowFrame);
+            if (frameHeader.ShowFrame &&
+                sequenceHeader.DecoderModelInfoPresentFlag &&
+                !sequenceHeader.GetTimingInfo().EqualPictureInterval)
+            {
+                writer.WriteLiteral(
+                    frameHeader.FramePresentationTime,
+                    (int)sequenceHeader.GetDecoderModelInfo().FramePresentationTimeLength);
+            }
+
+            if (!frameHeader.ShowFrame)
+            {
+                writer.WriteBoolean(frameHeader.ShowableFrame);
+            }
+
+            if (frameHeader.FrameType != ObuFrameType.SwitchFrame &&
+                (frameHeader.FrameType != ObuFrameType.KeyFrame || !frameHeader.ShowFrame))
+            {
+                writer.WriteBoolean(frameHeader.ErrorResilientMode);
+            }
+        }
+
         writer.WriteBoolean(frameHeader.DisableCdfUpdate);
-        if (sequenceHeader.ForceScreenContentTools == 2)
+        if (sequenceHeader.ForceScreenContentTools == Av1Constants.SelectScreenContentTools)
         {
             writer.WriteBoolean(frameHeader.AllowScreenContentTools);
         }
@@ -437,7 +695,7 @@ internal sealed class ObuWriter
 
         if (frameHeader.AllowScreenContentTools)
         {
-            if (sequenceHeader.ForceIntegerMotionVector == 2)
+            if (sequenceHeader.ForceIntegerMotionVector == Av1Constants.SelectIntegerMotionVector)
             {
                 writer.WriteBoolean(frameHeader.ForceIntegerMotionVector);
             }
@@ -445,6 +703,41 @@ internal sealed class ObuWriter
             {
                 // Guard.IsTrue(frameHeader.ForceIntegerMotionVector == sequenceHeader.ForceIntegerMotionVector, nameof(frameHeader.ForceIntegerMotionVector), "Frame and sequence must be in sync");
             }
+        }
+
+        if (!sequenceHeader.IsReducedStillPictureHeader)
+        {
+            if (sequenceHeader.IsFrameIdNumbersPresent)
+            {
+                writer.WriteLiteral(frameHeader.CurrentFrameId, sequenceHeader.FrameIdLength);
+            }
+
+            frameSizeOverrideFlag = frameHeader.FrameType == ObuFrameType.SwitchFrame ||
+                frameHeader.FrameSize.SuperResolutionUpscaledWidth != sequenceHeader.MaxFrameWidth ||
+                frameHeader.FrameSize.FrameHeight != sequenceHeader.MaxFrameHeight;
+
+            if (frameHeader.FrameType != ObuFrameType.SwitchFrame)
+            {
+                writer.WriteBoolean(frameSizeOverrideFlag);
+            }
+
+            writer.WriteLiteral(frameHeader.OrderHint, sequenceHeader.OrderHintInfo.OrderHintBits);
+            if (!frameHeader.ErrorResilientMode && !frameHeader.IsIntra)
+            {
+                writer.WriteLiteral(frameHeader.PrimaryReferenceFrame, Av1Constants.PrimaryReferenceBits);
+            }
+        }
+
+        if (sequenceHeader.DecoderModelInfoPresentFlag)
+        {
+            // Image-sequence timing is carried by the container track, so encoded samples do not signal decoder-buffer removal times.
+            writer.WriteBoolean(false);
+        }
+
+        if ((frameHeader.FrameType == ObuFrameType.KeyFrame && !frameHeader.ShowFrame) ||
+            frameHeader.FrameType is ObuFrameType.InterFrame or ObuFrameType.IntraOnlyFrame)
+        {
+            writer.WriteLiteral(frameHeader.RefreshFrameFlags, Av1Constants.ReferenceFrameCount);
         }
 
         if (frameHeader.FrameType == ObuFrameType.KeyFrame)
@@ -461,7 +754,7 @@ internal sealed class ObuWriter
 
         if (frameHeader.FrameType == ObuFrameType.KeyFrame)
         {
-            WriteFrameSize(ref writer, sequenceHeader, frameHeader, false);
+            WriteFrameSize(ref writer, sequenceHeader, frameHeader, frameSizeOverrideFlag);
             WriteRenderSize(ref writer, frameHeader);
             if (frameHeader.AllowScreenContentTools)
             {
@@ -470,7 +763,7 @@ internal sealed class ObuWriter
         }
         else if (frameHeader.FrameType == ObuFrameType.IntraOnlyFrame)
         {
-            WriteFrameSize(ref writer, sequenceHeader, frameHeader, false);
+            WriteFrameSize(ref writer, sequenceHeader, frameHeader, frameSizeOverrideFlag);
             WriteRenderSize(ref writer, frameHeader);
             if (frameHeader.AllowScreenContentTools)
             {
@@ -479,7 +772,32 @@ internal sealed class ObuWriter
         }
         else
         {
-            throw new NotImplementedException("Inter frames not applicable for AVIF.");
+            WriteReferenceFrameIndices(ref writer, sequenceHeader, frameHeader);
+            WriteFrameSize(ref writer, sequenceHeader, frameHeader, frameSizeOverrideFlag);
+            WriteRenderSize(ref writer, frameHeader);
+            if (!frameHeader.ForceIntegerMotionVector)
+            {
+                writer.WriteBoolean(frameHeader.AllowHighPrecisionMotionVector);
+            }
+
+            WriteFrameInterpolationFilter(ref writer, frameHeader.InterpolationFilter);
+            writer.WriteBoolean(frameHeader.IsMotionModeSwitchable);
+        }
+
+        bool mightAllowReferenceFrameMotionVectors =
+            !frameHeader.ErrorResilientMode &&
+            sequenceHeader.OrderHintInfo.EnableReferenceFrameMotionVectors &&
+            sequenceHeader.EnableOrderHint &&
+            !frameHeader.IsIntra;
+
+        if (mightAllowReferenceFrameMotionVectors)
+        {
+            writer.WriteBoolean(frameHeader.UseReferenceFrameMotionVectors);
+        }
+
+        if (!sequenceHeader.IsReducedStillPictureHeader && !frameHeader.DisableCdfUpdate)
+        {
+            writer.WriteBoolean(frameHeader.DisableFrameEndUpdateCdf);
         }
 
         WriteTileInfo(ref writer, sequenceHeader, frameHeader);
@@ -531,18 +849,66 @@ internal sealed class ObuWriter
             }
         }
 
-        // No Frame Reference mode selection for AVIF
         WriteTransformMode(ref writer, frameHeader);
 
-        // No compound INTER-INTER for AVIF.
         WriteFrameReferenceMode(ref writer, frameHeader);
         WriteSkipModeParameters(ref writer, frameHeader);
+        if (!frameHeader.IsIntra && !frameHeader.ErrorResilientMode && sequenceHeader.EnableWarpedMotion)
+        {
+            writer.WriteBoolean(frameHeader.AllowWarpedMotion);
+        }
 
-        // No warp motion for AVIF.
         writer.WriteBoolean(frameHeader.UseReducedTransformSet);
 
         WriteGlobalMotionParameters(ref writer, frameHeader);
         WriteFilmGrainFilterParameters(ref writer, sequenceHeader, frameHeader);
+    }
+
+    /// <summary>
+    /// Writes the seven reference-map slots selected by an inter frame.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the reference indices.</param>
+    /// <param name="sequenceHeader">The sequence header defining frame-ID and order-hint syntax.</param>
+    /// <param name="frameHeader">The frame header containing the selected reference slots.</param>
+    private static void WriteReferenceFrameIndices(
+        ref Av1BitStreamWriter writer,
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader)
+    {
+        // Long signaling is deterministic and permits every reference role to select the same retained slot.
+        if (sequenceHeader.EnableOrderHint)
+        {
+            writer.WriteBoolean(false);
+        }
+
+        Span<uint> referenceFrameIndices = frameHeader.GetReferenceFrameIndices();
+        Span<uint> referenceFrameIds = frameHeader.GetReferenceFrameIds();
+        uint frameIdModulus = 1U << sequenceHeader.FrameIdLength;
+        for (int reference = 0; reference < Av1Constants.ReferencesPerFrame; reference++)
+        {
+            uint slot = referenceFrameIndices[reference];
+            writer.WriteLiteral(slot, Av1Constants.ReferenceFrameIndexBits);
+            if (sequenceHeader.IsFrameIdNumbersPresent)
+            {
+                uint deltaFrameId = (frameHeader.CurrentFrameId + frameIdModulus - referenceFrameIds[(int)slot]) % frameIdModulus;
+                writer.WriteLiteral(deltaFrameId - 1, sequenceHeader.DeltaFrameIdLength);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Writes the frame-level interpolation-filter selection.
+    /// </summary>
+    /// <param name="writer">The bit writer receiving the filter selection.</param>
+    /// <param name="filter">The fixed filter family or per-block selection.</param>
+    private static void WriteFrameInterpolationFilter(ref Av1BitStreamWriter writer, Av1InterpolationFilter filter)
+    {
+        bool isSwitchable = filter == Av1InterpolationFilter.Switchable;
+        writer.WriteBoolean(isSwitchable);
+        if (!isSwitchable)
+        {
+            writer.WriteLiteral((uint)filter, 2);
+        }
     }
 
     /// <summary>
@@ -571,8 +937,8 @@ internal sealed class ObuWriter
 
         if (tileCount > 1)
         {
-            // A combined OBU_FRAME has implicit complete-frame tile bounds. The reference decoder still
-            // writes the presence bit for a multi-tile frame, but requires that bit to remain zero.
+            // A combined frame always carries the complete raster tile group. The zero bit selects those implicit
+            // full-frame bounds instead of adding explicit start and end tile indices.
             writer.WriteBoolean(false);
         }
 
@@ -582,10 +948,15 @@ internal sealed class ObuWriter
     /// <summary>
     /// Writes the size-prefixed tile payloads in raster order.
     /// </summary>
+    /// <typeparam name="TTileWriter">The non-boxed tile source type.</typeparam>
     /// <param name="stream">The destination stream receiving tile data.</param>
     /// <param name="tileInfo">The frame tile layout and tile-size field width.</param>
     /// <param name="tileWriter">The writer that produces each tile payload.</param>
-    private static void WriteTileData(Stream stream, ObuTileGroupHeader tileInfo, IAv1TileWriter tileWriter)
+    private static void WriteTileData<TTileWriter>(
+        Stream stream,
+        ObuTileGroupHeader tileInfo,
+        TTileWriter tileWriter)
+        where TTileWriter : IAv1TileWriter
     {
         int tileCount = tileInfo.TileColumnCount * tileInfo.TileRowCount;
         Span<byte> tileSizeBuffer = stackalloc byte[sizeof(uint)];
@@ -659,7 +1030,7 @@ internal sealed class ObuWriter
     }
 
     /// <summary>
-    /// Writes segmentation feature data for an independently decoded still-image frame.
+    /// Writes segmentation feature data for one coded frame.
     /// </summary>
     /// <param name="writer">The bit writer receiving the segmentation parameters.</param>
     /// <param name="frameHeader">The frame header containing segmentation feature data.</param>
@@ -672,9 +1043,8 @@ internal sealed class ObuWriter
             return;
         }
 
-        // The still-image writer emits independent intra frames with no primary reference.
-        // AV1 therefore infers update-map and update-data as enabled and carries feature data
-        // directly, without the inter-frame update flags.
+        // A frame with no primary reference starts a new segmentation domain. AV1 therefore infers
+        // update-map and update-data as enabled and carries the complete feature state directly.
         for (int segmentId = 0; segmentId < Av1Constants.MaxSegmentCount; segmentId++)
         {
             for (int featureId = 0; featureId < Av1Constants.SegmentationLevelMax; featureId++)
@@ -839,15 +1209,140 @@ internal sealed class ObuWriter
     /// <param name="frameHeader">The current frame header.</param>
     private static void WriteGlobalMotionParameters(ref Av1BitStreamWriter writer, ObuFrameHeader frameHeader)
     {
-        _ = writer;
-
         if (frameHeader.IsIntra)
         {
-            // Nothing to be written for INTRA frames.
             return;
         }
 
-        throw new InvalidImageContentException("AVIF files can only contain INTRA frames.");
+        ReadOnlySpan<Av1GlobalMotionParameters> parameters = frameHeader.GetGlobalMotionParameters();
+        Av1GlobalMotionParameters referenceParameters = Av1GlobalMotionParameters.Identity;
+        for (int reference = 0; reference < Av1Constants.ReferencesPerFrame; reference++)
+        {
+            WriteGlobalMotionModel(
+                ref writer,
+                parameters[reference],
+                referenceParameters,
+                frameHeader.AllowHighPrecisionMotionVector);
+        }
+    }
+
+    /// <summary>
+    /// Writes one global-motion model relative to the same-role model in the primary reference frame.
+    /// </summary>
+    private static void WriteGlobalMotionModel(
+        ref Av1BitStreamWriter writer,
+        Av1GlobalMotionParameters parameters,
+        Av1GlobalMotionParameters referenceParameters,
+        bool allowHighPrecisionMotionVector)
+    {
+        Av1GlobalMotionType type = parameters.Type;
+        writer.WriteBoolean(type != Av1GlobalMotionType.Identity);
+        if (type != Av1GlobalMotionType.Identity)
+        {
+            writer.WriteBoolean(type == Av1GlobalMotionType.RotationZoom);
+            if (type != Av1GlobalMotionType.RotationZoom)
+            {
+                writer.WriteBoolean(type == Av1GlobalMotionType.Translation);
+            }
+        }
+
+        if (type >= Av1GlobalMotionType.RotationZoom)
+        {
+            int horizontalScale =
+                (parameters[2] >> Av1GlobalMotionParameters.AlphaPrecisionDifference) -
+                (1 << Av1GlobalMotionParameters.AlphaPrecisionBits);
+
+            int referenceHorizontalScale =
+                (referenceParameters[2] >> Av1GlobalMotionParameters.AlphaPrecisionDifference) -
+                (1 << Av1GlobalMotionParameters.AlphaPrecisionBits);
+
+            writer.WriteSignedReferenceSubexponential(
+                horizontalScale,
+                Av1GlobalMotionParameters.AlphaValueMagnitude,
+                Av1GlobalMotionParameters.SubexponentialGroupBitCount,
+                referenceHorizontalScale);
+
+            writer.WriteSignedReferenceSubexponential(
+                parameters[3] >> Av1GlobalMotionParameters.AlphaPrecisionDifference,
+                Av1GlobalMotionParameters.AlphaValueMagnitude,
+                Av1GlobalMotionParameters.SubexponentialGroupBitCount,
+                referenceParameters[3] >> Av1GlobalMotionParameters.AlphaPrecisionDifference);
+        }
+
+        if (type >= Av1GlobalMotionType.Affine)
+        {
+            int verticalScale =
+                (parameters[5] >> Av1GlobalMotionParameters.AlphaPrecisionDifference) -
+                (1 << Av1GlobalMotionParameters.AlphaPrecisionBits);
+
+            int referenceVerticalScale =
+                (referenceParameters[5] >> Av1GlobalMotionParameters.AlphaPrecisionDifference) -
+                (1 << Av1GlobalMotionParameters.AlphaPrecisionBits);
+
+            writer.WriteSignedReferenceSubexponential(
+                parameters[4] >> Av1GlobalMotionParameters.AlphaPrecisionDifference,
+                Av1GlobalMotionParameters.AlphaValueMagnitude,
+                Av1GlobalMotionParameters.SubexponentialGroupBitCount,
+                referenceParameters[4] >> Av1GlobalMotionParameters.AlphaPrecisionDifference);
+
+            writer.WriteSignedReferenceSubexponential(
+                verticalScale,
+                Av1GlobalMotionParameters.AlphaValueMagnitude,
+                Av1GlobalMotionParameters.SubexponentialGroupBitCount,
+                referenceVerticalScale);
+        }
+
+        if (type >= Av1GlobalMotionType.Translation)
+        {
+            int precisionAdjustment =
+                type == Av1GlobalMotionType.Translation && !allowHighPrecisionMotionVector ? 1 : 0;
+
+            int translationBits = type == Av1GlobalMotionType.Translation
+                ? Av1GlobalMotionParameters.AbsoluteTranslationOnlyBits - precisionAdjustment
+                : Av1GlobalMotionParameters.AbsoluteTranslationBits;
+
+            int translationPrecisionDifference = type == Av1GlobalMotionType.Translation
+                ? Av1GlobalMotionParameters.ModelPrecisionBits -
+                    Av1GlobalMotionParameters.TranslationOnlyPrecisionBits +
+                    precisionAdjustment
+                : Av1GlobalMotionParameters.ModelPrecisionBits -
+                    Av1GlobalMotionParameters.TranslationPrecisionBits;
+
+            int translationValueMagnitude = (1 << translationBits) + 1;
+            writer.WriteSignedReferenceSubexponential(
+                parameters[0] >> translationPrecisionDifference,
+                translationValueMagnitude,
+                Av1GlobalMotionParameters.SubexponentialGroupBitCount,
+                referenceParameters[0] >> translationPrecisionDifference);
+
+            writer.WriteSignedReferenceSubexponential(
+                parameters[1] >> translationPrecisionDifference,
+                translationValueMagnitude,
+                Av1GlobalMotionParameters.SubexponentialGroupBitCount,
+                referenceParameters[1] >> translationPrecisionDifference);
+        }
+    }
+
+    /// <summary>
+    /// Gets the exact number of uncompressed-header bits required by one global-motion model.
+    /// </summary>
+    /// <param name="parameters">The model to measure.</param>
+    /// <param name="allowHighPrecisionMotionVector">Whether translation may retain one-eighth-sample precision.</param>
+    /// <returns>The encoded model length in bits.</returns>
+    internal static int GetGlobalMotionModelBitCount(
+        Av1GlobalMotionParameters parameters,
+        bool allowHighPrecisionMotionVector)
+    {
+        InlineArray16<byte> storage = default;
+        Span<byte> buffer = storage;
+        Av1BitStreamWriter writer = new(buffer);
+        WriteGlobalMotionModel(
+            ref writer,
+            parameters,
+            Av1GlobalMotionParameters.Identity,
+            allowHighPrecisionMotionVector);
+
+        return writer.BitPosition;
     }
 
     /// <summary>
@@ -857,15 +1352,12 @@ internal sealed class ObuWriter
     /// <param name="frameHeader">The current frame header.</param>
     private static void WriteFrameReferenceMode(ref Av1BitStreamWriter writer, ObuFrameHeader frameHeader)
     {
-        _ = writer;
-
         if (frameHeader.IsIntra)
         {
-            // Nothing to be written for INTRA frames.
             return;
         }
 
-        throw new InvalidImageContentException("AVIF files can only contain INTRA frames.");
+        writer.WriteBoolean(frameHeader.ReferenceMode == ObuReferenceMode.ReferenceModeSelect);
     }
 
     /// <summary>
@@ -882,7 +1374,7 @@ internal sealed class ObuWriter
     }
 
     /// <summary>
-    /// Writes film-grain synthesis parameters for a displayed still-image frame.
+    /// Writes film-grain synthesis parameters for a displayed frame.
     /// </summary>
     /// <param name="writer">The bit writer receiving the film-grain parameters.</param>
     /// <param name="sequenceHeader">The sequence header defining film-grain availability and color sampling.</param>

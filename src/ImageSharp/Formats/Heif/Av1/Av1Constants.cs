@@ -22,6 +22,41 @@ internal static class Av1Constants
     public const int LevelBits = 5;
 
     /// <summary>
+    /// The number of bits used for the zero-based operating-point count.
+    /// </summary>
+    public const int OperatingPointCountBits = 5;
+
+    /// <summary>
+    /// The number of bits used for an operating-point layer-selection mask.
+    /// </summary>
+    public const int OperatingPointIdcBits = 12;
+
+    /// <summary>
+    /// The number of bits used for a frame type.
+    /// </summary>
+    public const int FrameTypeBits = 2;
+
+    /// <summary>
+    /// The first sequence-level index that carries an explicit tier bit.
+    /// </summary>
+    public const int SequenceTierMinimumLevelIndex = 8;
+
+    /// <summary>
+    /// The number of bits used to select a frame from the eight-slot reference map.
+    /// </summary>
+    public const int ReferenceFrameIndexBits = 3;
+
+    /// <summary>
+    /// The sequence-header value that lets each frame choose whether to use screen-content tools.
+    /// </summary>
+    public const int SelectScreenContentTools = 2;
+
+    /// <summary>
+    /// The sequence-header value that lets each applicable frame choose whether to require integer motion vectors.
+    /// </summary>
+    public const int SelectIntegerMotionVector = 2;
+
+    /// <summary>
     /// The maximum number of operating points declared by one AV1 sequence header.
     /// </summary>
     public const int MaxOperatingPointCount = 32;
@@ -47,6 +82,11 @@ internal static class Av1Constants
     public const int ReferencesPerFrame = 7;
 
     /// <summary>
+    /// The largest frame width or height representable by the 16-bit AV1 dimension syntax.
+    /// </summary>
+    public const int MaxFrameDimension = 1 << 16;
+
+    /// <summary>
     /// The maximum area of a tile in units of luma samples.
     /// </summary>
     public const int MaxTileArea = 4096 * 2304;
@@ -65,6 +105,11 @@ internal static class Av1Constants
     /// The maximum number of tile rows.
     /// </summary>
     public const int MaxTileRowCount = 64;
+
+    /// <summary>
+    /// The number of 64x64 CDEF filter units in a 128x128 superblock.
+    /// </summary>
+    public const int CdefUnitsPerSuperblock = 4;
 
     /// <summary>
     /// The number of frames that can be stored for future reference.

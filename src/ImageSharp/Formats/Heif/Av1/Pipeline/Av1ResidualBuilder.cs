@@ -13,6 +13,226 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1ResidualBuilder
 {
     /// <summary>
+    /// The width and height of the encoder's fixed motion-search block, in samples.
+    /// </summary>
+    private const int SearchBlockDimension = 8;
+
+    /// <summary>
+    /// Calculates the sum of absolute differences for an 8x8 block.
+    /// </summary>
+    /// <param name="source">The source samples starting at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">The prediction samples starting at the block origin.</param>
+    /// <param name="predictionStride">The prediction row stride, in samples.</param>
+    /// <returns>The sum of absolute sample differences.</returns>
+    public static int SumAbsoluteDifferences8x8(ReadOnlySpan<byte> source, int sourceStride, ReadOnlySpan<byte> prediction, int predictionStride)
+        => SumAbsoluteDifferences8x8<byte, ByteOperator>(source, sourceStride, prediction, predictionStride);
+
+    /// <summary>
+    /// Measures four horizontally adjacent 8x8 predictions against one source block.
+    /// </summary>
+    /// <param name="source">The source samples starting at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">The first prediction, with three additional samples available at the right of each row.</param>
+    /// <param name="predictionStride">The prediction row stride, in samples.</param>
+    /// <param name="sums">The four results in increasing horizontal-offset order.</param>
+    public static void SumFourAbsoluteDifferences8x8(
+        ReadOnlySpan<byte> source, int sourceStride, ReadOnlySpan<byte> prediction, int predictionStride, Span<int> sums)
+        => SumFourAbsoluteDifferences8x8<byte, ByteOperator>(source, sourceStride, prediction, predictionStride, sums);
+
+    /// <summary>
+    /// Calculates the signed sum and squared sum of differences for an 8x8 block.
+    /// </summary>
+    /// <param name="source">The source samples starting at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">The prediction samples starting at the block origin.</param>
+    /// <param name="predictionStride">The prediction row stride, in samples.</param>
+    /// <param name="sum">The signed sum of sample differences.</param>
+    /// <param name="sumOfSquares">The sum of squared sample differences.</param>
+    public static void GetMoments8x8(
+        ReadOnlySpan<byte> source, int sourceStride, ReadOnlySpan<byte> prediction, int predictionStride, out int sum, out int sumOfSquares)
+        => GetMoments8x8<byte, ByteOperator>(source, sourceStride, prediction, predictionStride, out sum, out sumOfSquares);
+
+    /// <summary>
+    /// Calculates the sum of absolute differences for an 8x8 block.
+    /// </summary>
+    /// <param name="source">The source samples starting at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">The prediction samples starting at the block origin.</param>
+    /// <param name="predictionStride">The prediction row stride, in samples.</param>
+    /// <returns>The sum of absolute sample differences.</returns>
+    public static int SumAbsoluteDifferences8x8(ReadOnlySpan<ushort> source, int sourceStride, ReadOnlySpan<ushort> prediction, int predictionStride)
+        => SumAbsoluteDifferences8x8<ushort, UInt16Operator>(source, sourceStride, prediction, predictionStride);
+
+    /// <summary>
+    /// Measures four horizontally adjacent 8x8 predictions against one source block.
+    /// </summary>
+    /// <param name="source">The source samples starting at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">The first prediction, with three additional samples available at the right of each row.</param>
+    /// <param name="predictionStride">The prediction row stride, in samples.</param>
+    /// <param name="sums">The four results in increasing horizontal-offset order.</param>
+    public static void SumFourAbsoluteDifferences8x8(
+        ReadOnlySpan<ushort> source, int sourceStride, ReadOnlySpan<ushort> prediction, int predictionStride, Span<int> sums)
+        => SumFourAbsoluteDifferences8x8<ushort, UInt16Operator>(source, sourceStride, prediction, predictionStride, sums);
+
+    /// <summary>
+    /// Calculates the signed sum and squared sum of differences for an 8x8 block.
+    /// </summary>
+    /// <param name="source">The source samples starting at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">The prediction samples starting at the block origin.</param>
+    /// <param name="predictionStride">The prediction row stride, in samples.</param>
+    /// <param name="sum">The signed sum of sample differences.</param>
+    /// <param name="sumOfSquares">The sum of squared sample differences.</param>
+    public static void GetMoments8x8(
+        ReadOnlySpan<ushort> source, int sourceStride, ReadOnlySpan<ushort> prediction, int predictionStride, out int sum, out int sumOfSquares)
+        => GetMoments8x8<ushort, UInt16Operator>(source, sourceStride, prediction, predictionStride, out sum, out sumOfSquares);
+
+    /// <summary>
+    /// Traverses an 8x8 block while its closed operator calculates scalar or eight-sample row costs.
+    /// </summary>
+    private static int SumAbsoluteDifferences8x8<TSample, TOperator>(
+        ReadOnlySpan<TSample> source, int sourceStride, ReadOnlySpan<TSample> prediction, int predictionStride)
+        where TSample : unmanaged
+        where TOperator : struct, IResidualOperator<TSample>
+    {
+        int sum = 0;
+        if (Vector128.IsHardwareAccelerated)
+        {
+            // Eight widened AV1 samples exactly fill 128 bits. Wider loads would cross the row boundary;
+            // byte storage is loaded as eight bytes and ushort storage as eight native-order words.
+            for (int row = 0; row < SearchBlockDimension; row++)
+            {
+                Vector128<TSample> sourceRow = LoadSearchRow(source[(row * sourceStride)..]);
+                Vector128<TSample> predictionRow = LoadSearchRow(prediction[(row * predictionStride)..]);
+                sum += TOperator.SumAbsoluteDifferences(sourceRow, predictionRow);
+            }
+        }
+        else
+        {
+            for (int row = 0; row < SearchBlockDimension; row++)
+            {
+                ReadOnlySpan<TSample> sourceRow = source.Slice(row * sourceStride, SearchBlockDimension);
+                ReadOnlySpan<TSample> predictionRow = prediction.Slice(row * predictionStride, SearchBlockDimension);
+                for (int column = 0; column < SearchBlockDimension; column++)
+                {
+                    sum += TOperator.SumAbsoluteDifferences(sourceRow[column], predictionRow[column]);
+                }
+            }
+        }
+
+        return sum;
+    }
+
+    /// <summary>
+    /// Traverses four adjacent candidates together, retaining one source load per row or scalar sample.
+    /// </summary>
+    private static void SumFourAbsoluteDifferences8x8<TSample, TOperator>(
+        ReadOnlySpan<TSample> source, int sourceStride, ReadOnlySpan<TSample> prediction, int predictionStride, Span<int> sums)
+        where TSample : unmanaged
+        where TOperator : struct, IResidualOperator<TSample>
+    {
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<int> totals = Vector128<int>.Zero;
+            for (int row = 0; row < SearchBlockDimension; row++)
+            {
+                ReadOnlySpan<TSample> predictionRow = prediction[(row * predictionStride)..];
+                Vector128<TSample> sourceRow = LoadSearchRow(source[(row * sourceStride)..]);
+
+                // The four prediction windows overlap, but each candidate owns one result lane. The operator
+                // widens the source only once and reuses it for all four independent absolute-difference sums.
+                totals += TOperator.SumFourAbsoluteDifferences(
+                    sourceRow,
+                    LoadSearchRow(predictionRow),
+                    LoadSearchRow(predictionRow[1..]),
+                    LoadSearchRow(predictionRow[2..]),
+                    LoadSearchRow(predictionRow[3..]));
+            }
+
+            totals.CopyTo(sums);
+        }
+        else
+        {
+            int sum0 = 0;
+            int sum1 = 0;
+            int sum2 = 0;
+            int sum3 = 0;
+            for (int row = 0; row < SearchBlockDimension; row++)
+            {
+                ReadOnlySpan<TSample> sourceRow = source.Slice(row * sourceStride, SearchBlockDimension);
+                ReadOnlySpan<TSample> predictionRow = prediction.Slice(row * predictionStride, SearchBlockDimension + 3);
+                for (int column = 0; column < SearchBlockDimension; column++)
+                {
+                    TSample sample = sourceRow[column];
+                    sum0 += TOperator.SumAbsoluteDifferences(sample, predictionRow[column]);
+                    sum1 += TOperator.SumAbsoluteDifferences(sample, predictionRow[column + 1]);
+                    sum2 += TOperator.SumAbsoluteDifferences(sample, predictionRow[column + 2]);
+                    sum3 += TOperator.SumAbsoluteDifferences(sample, predictionRow[column + 3]);
+                }
+            }
+
+            sums[0] = sum0;
+            sums[1] = sum1;
+            sums[2] = sum2;
+            sums[3] = sum3;
+        }
+    }
+
+    /// <summary>
+    /// Accumulates both residual moments in one traversal without materializing a residual buffer.
+    /// </summary>
+    private static void GetMoments8x8<TSample, TOperator>(
+        ReadOnlySpan<TSample> source, int sourceStride, ReadOnlySpan<TSample> prediction, int predictionStride, out int sum, out int sumOfSquares)
+        where TSample : unmanaged
+        where TOperator : struct, IResidualOperator<TSample>
+    {
+        sum = 0;
+        sumOfSquares = 0;
+
+        // Even 64 maximum twelve-bit residual squares fit in a signed int. Preserve the unnormalized
+        // moments here; the caller applies the frame's precision-dependent rounding before deriving variance.
+        if (Vector128.IsHardwareAccelerated)
+        {
+            for (int row = 0; row < SearchBlockDimension; row++)
+            {
+                Vector128<TSample> sourceRow = LoadSearchRow(source[(row * sourceStride)..]);
+                Vector128<TSample> predictionRow = LoadSearchRow(prediction[(row * predictionStride)..]);
+                sumOfSquares += TOperator.SumSquaredDifferences(sourceRow, predictionRow, out int rowSum);
+                sum += rowSum;
+            }
+        }
+        else
+        {
+            for (int row = 0; row < SearchBlockDimension; row++)
+            {
+                ReadOnlySpan<TSample> sourceRow = source.Slice(row * sourceStride, SearchBlockDimension);
+                ReadOnlySpan<TSample> predictionRow = prediction.Slice(row * predictionStride, SearchBlockDimension);
+                for (int column = 0; column < SearchBlockDimension; column++)
+                {
+                    sumOfSquares += TOperator.SumSquaredDifferences(sourceRow[column], predictionRow[column], out int difference);
+                    sum += difference;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Loads exactly eight native-order samples; byte rows occupy the lower half of the returned vector.
+    /// </summary>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static Vector128<TSample> LoadSearchRow<TSample>(ReadOnlySpan<TSample> source)
+        where TSample : unmanaged
+    {
+        // The closed byte/ushort instantiation removes this storage-width choice. The eight-byte load
+        // never consumes padding or a following row; the operator widens only its eight populated lanes.
+        return Vector128<TSample>.Count == SearchBlockDimension
+            ? Vector128.Create(source)
+            : Vector128.Create(Vector64.Create(source), Vector64<TSample>.Zero);
+    }
+
+    /// <summary>
     /// Subtracts an 8-bit prediction plane from its source plane.
     /// </summary>
     /// <param name="source">The source samples.</param>

@@ -262,6 +262,52 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     }
 
     /// <summary>
+    /// Decodes the next visible sample in a bounded AV1 image sequence directly into a caller-owned frame.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination pixel type.</typeparam>
+    /// <param name="buffer">The complete AV1 sample payload.</param>
+    /// <param name="containerColorProfile">The container color description.</param>
+    /// <param name="codecConfiguration">The AV1 sample-entry configuration.</param>
+    /// <param name="expectedCodedSize">The coded dimensions declared by the visual sample entry.</param>
+    /// <param name="sourceRectangle">The clean-aperture region mapped to the complete destination frame.</param>
+    /// <param name="destination">The caller-owned packed-pixel frame receiving the presented sample.</param>
+    public void DecodeSequenceFrame<TPixel>(
+        Span<byte> buffer,
+        CicpProfile? containerColorProfile,
+        Av1CodecConfiguration? codecConfiguration,
+        Size expectedCodedSize,
+        Rectangle sourceRectangle,
+        ImageFrame<TPixel> destination)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        CicpProfile effectiveColorProfile = this.DecodePayload(
+            buffer,
+            containerColorProfile,
+            codecConfiguration,
+            null,
+            requireShownFrame: true);
+
+        Av1ReferenceFrame outputFrame = this.referenceFrames.ResolveOutput();
+        Size codedSize = new(
+            outputFrame.FrameHeader.FrameSize.SuperResolutionUpscaledWidth,
+            outputFrame.FrameHeader.FrameSize.FrameHeight);
+
+        if (codedSize != expectedCodedSize)
+        {
+            throw new InvalidImageContentException(
+                "The decoded image-sequence sample dimensions do not match its visual sample entry.");
+        }
+
+        Av1YuvConverter.ConvertRegionToRgb(
+            this.configuration,
+            outputFrame.FrameBuffer,
+            sourceRectangle,
+            destination);
+
+        destination.Metadata.CicpProfile = effectiveColorProfile.DeepClone();
+    }
+
+    /// <summary>
     /// Decodes one non-presented AV1 image-sequence sample while retaining its reference state.
     /// </summary>
     /// <param name="buffer">The complete AV1 sample payload.</param>
@@ -286,6 +332,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// <param name="containerColorProfile">The container color description.</param>
     /// <param name="codecConfiguration">The AV1 sample-entry configuration.</param>
     /// <param name="expectedCodedSize">The required coded dimensions.</param>
+    /// <param name="sourceRectangle">The clean-aperture luma region mapped to the destination.</param>
     /// <param name="destination">The packed color frame receiving alpha values.</param>
     /// <param name="outputSize">The complete presented size of the auxiliary image.</param>
     /// <param name="destinationRectangle">The destination region receiving the alpha image.</param>
@@ -295,6 +342,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         CicpProfile? containerColorProfile,
         Av1CodecConfiguration? codecConfiguration,
         Size expectedCodedSize,
+        Rectangle sourceRectangle,
         ImageFrame<TPixel> destination,
         Size outputSize,
         Rectangle destinationRectangle,
@@ -312,6 +360,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         this.ComposeAlpha(
             outputFrame.FrameBuffer,
             expectedCodedSize,
+            sourceRectangle,
             destination,
             outputSize,
             destinationRectangle,
@@ -424,6 +473,35 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         Rectangle destinationRectangle,
         bool premultiplied)
         where TPixel : unmanaged, IPixel<TPixel>
+        => this.ComposeAlpha(
+            frameBuffer,
+            expectedCodedSize,
+            new Rectangle(0, 0, frameBuffer.Width, frameBuffer.Height),
+            destination,
+            outputSize,
+            destinationRectangle,
+            premultiplied);
+
+    /// <summary>
+    /// Composes one decoded monochrome region into a packed color frame.
+    /// </summary>
+    /// <typeparam name="TPixel">The destination color pixel type.</typeparam>
+    /// <param name="frameBuffer">The decoded monochrome planes.</param>
+    /// <param name="expectedCodedSize">The required coded dimensions.</param>
+    /// <param name="sourceRectangle">The luma region mapped to the destination rectangle.</param>
+    /// <param name="destination">The packed color frame receiving alpha values.</param>
+    /// <param name="outputSize">The complete presented size of the auxiliary image.</param>
+    /// <param name="destinationRectangle">The destination region receiving the alpha image.</param>
+    /// <param name="premultiplied">Whether stored color samples must be converted to unassociated alpha.</param>
+    private void ComposeAlpha<TPixel>(
+        Av1FrameBuffer<byte> frameBuffer,
+        Size expectedCodedSize,
+        Rectangle sourceRectangle,
+        ImageFrame<TPixel> destination,
+        Size outputSize,
+        Rectangle destinationRectangle,
+        bool premultiplied)
+        where TPixel : unmanaged, IPixel<TPixel>
     {
         if (expectedCodedSize != default && (frameBuffer.Width != expectedCodedSize.Width || frameBuffer.Height != expectedCodedSize.Height))
         {
@@ -440,6 +518,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         Av1YuvConverter.ComposeAlpha(
             this.configuration,
             frameBuffer,
+            sourceRectangle,
             destination,
             outputSize,
             destinationRectangle,

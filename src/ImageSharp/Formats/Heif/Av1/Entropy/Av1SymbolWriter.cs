@@ -13,6 +13,16 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 internal sealed class Av1SymbolWriter : IDisposable
 {
     /// <summary>
+    /// The normalized range before the first symbol narrows the coding interval.
+    /// </summary>
+    private const uint InitialRange = 0x8000U;
+
+    /// <summary>
+    /// The initial bit count that crosses the first byte-and-carry flush boundary after one output byte.
+    /// </summary>
+    private const int InitialCount = -9;
+
+    /// <summary>
     /// The lower endpoint of the current coding interval.
     /// </summary>
     private ulong low;
@@ -20,7 +30,7 @@ internal sealed class Av1SymbolWriter : IDisposable
     /// <summary>
     /// The width of the current normalized coding interval.
     /// </summary>
-    private uint rng = 0x8000U;
+    private uint rng = InitialRange;
 
     /// <summary>
     /// The number of accumulated bits relative to the next byte-and-carry flush boundary.
@@ -28,7 +38,7 @@ internal sealed class Av1SymbolWriter : IDisposable
     /// <remarks>
     /// The initial value of -9 crosses zero after one output byte and its carry bit have accumulated.
     /// </remarks>
-    private int cnt = -9;
+    private int cnt = InitialCount;
 
     /// <summary>
     /// The configuration that supplies output allocation.
@@ -36,14 +46,19 @@ internal sealed class Av1SymbolWriter : IDisposable
     private readonly Configuration configuration;
 
     /// <summary>
-    /// The owner of the fixed output buffer supplied for this tile.
+    /// The owner of the fixed output buffer shared by consecutively encoded tiles.
     /// </summary>
     private readonly IMemoryOwner<byte> bufferOwner;
 
     /// <summary>
+    /// The complete requested output allocation, including every consecutively encoded tile.
+    /// </summary>
+    private readonly Memory<byte> outputBuffer;
+
+    /// <summary>
     /// The requested output range, excluding any excess capacity returned by a pooling allocator.
     /// </summary>
-    private readonly Memory<byte> buffer;
+    private Memory<byte> buffer;
 
     /// <summary>
     /// Indicates whether encoded symbols adapt their distributions.
@@ -65,8 +80,27 @@ internal sealed class Av1SymbolWriter : IDisposable
     {
         this.configuration = configuration;
         this.bufferOwner = configuration.MemoryAllocator.Allocate<byte>(bufferLength);
-        this.buffer = this.bufferOwner.Memory[..bufferLength];
+        this.outputBuffer = this.bufferOwner.Memory[..bufferLength];
+        this.buffer = this.outputBuffer;
         this.updateCdf = updateCdf;
+    }
+
+    /// <summary>
+    /// Restores the initial range-coder state while retaining the bounded output allocation.
+    /// </summary>
+    public void Reset() => this.Reset(0);
+
+    /// <summary>
+    /// Restores the initial range-coder state and begins writing at an offset in the retained output allocation.
+    /// </summary>
+    /// <param name="outputOffset">The first byte available to the next range-coded tile.</param>
+    public void Reset(int outputOffset)
+    {
+        this.buffer = this.outputBuffer[outputOffset..];
+        this.low = 0;
+        this.rng = InitialRange;
+        this.cnt = InitialCount;
+        this.position = 0;
     }
 
     /// <summary>
@@ -147,12 +181,19 @@ internal sealed class Av1SymbolWriter : IDisposable
     /// Finalizes the range-coded sequence and exposes its encoded prefix without copying.
     /// </summary>
     /// <param name="length">The number of encoded bytes in the returned memory.</param>
-    /// <returns>The encoded prefix, valid until this writer is disposed.</returns>
+    /// <returns>The encoded prefix, valid until this writer is reset or disposed.</returns>
     public ReadOnlyMemory<byte> Exit(out int length)
     {
         length = this.FinalizeRange();
         return this.buffer[..length];
     }
+
+    /// <summary>
+    /// Exposes a prefix containing consecutively encoded tiles without copying their bytes.
+    /// </summary>
+    /// <param name="length">The number of bytes in the prefix.</param>
+    /// <returns>The encoded prefix, valid until this writer is reset to offset zero or disposed.</returns>
+    public ReadOnlyMemory<byte> GetOutput(int length) => this.outputBuffer[..length];
 
     /// <summary>
     /// Terminates the range-coded sequence in the current output allocation.

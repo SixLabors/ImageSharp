@@ -345,6 +345,44 @@ internal readonly struct Av1EncoderFrame<TSample>
                 _ => this.chromaRed
             };
 
+        /// <summary>
+        /// Gets a top-left view whose visible dimensions can be smaller than the backing coded planes.
+        /// </summary>
+        /// <param name="width">The visible luma width.</param>
+        /// <param name="height">The visible luma height.</param>
+        /// <returns>The requested non-owning planar view.</returns>
+        public PlanarView GetSubView(int width, int height)
+        {
+            Av1ColorFormat colorFormat = this.IsMonochrome
+                ? Av1ColorFormat.Yuv400
+                : this.ChromaSubsamplingX == 0
+                    ? Av1ColorFormat.Yuv444
+                    : this.ChromaSubsamplingY == 0
+                        ? Av1ColorFormat.Yuv422
+                        : Av1ColorFormat.Yuv420;
+
+            int chromaWidth = (width + this.ChromaSubsamplingX) >> this.ChromaSubsamplingX;
+            int chromaHeight = (height + this.ChromaSubsamplingY) >> this.ChromaSubsamplingY;
+            Buffer2DRegion<TSample> blue = this.IsMonochrome
+                ? default
+                : this.chromaBlue.GetSubRegion(0, 0, chromaWidth, chromaHeight);
+
+            Buffer2DRegion<TSample> red = this.IsMonochrome
+                ? default
+                : this.chromaRed.GetSubRegion(0, 0, chromaWidth, chromaHeight);
+
+            return new PlanarView(
+                this.luma.GetSubRegion(0, 0, width, height),
+                blue,
+                red,
+                width,
+                height,
+                this.LumaBitDepth,
+                colorFormat,
+                this.ChromaPositionX,
+                this.ChromaPositionY);
+        }
+
         /// <inheritdoc/>
         public Span<TSample> GetLumaRowSpan(int row) => this.luma.DangerousGetRowSpan(row);
 

@@ -10,7 +10,6 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Jpeg;
 using SixLabors.ImageSharp.IO;
-using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
 using SixLabors.ImageSharp.Metadata.Profiles.Icc;
@@ -46,6 +45,32 @@ internal sealed partial class HeifEncoderCore
     private const int MaximumCompactPropertyIndex = 0x7F;
     private const ushort EssentialPropertyFlag = 0x8000;
     private const byte CompactEssentialPropertyFlag = 0x80;
+    private const uint HiddenImageItemFlag = 1;
+
+    /// <summary>
+    /// The version defined for the AVIF grid item payload.
+    /// </summary>
+    private const byte GridDescriptorVersion = 0;
+
+    /// <summary>
+    /// The largest row or column count representable by a grid descriptor.
+    /// </summary>
+    private const int MaximumGridAxisCellCount = byte.MaxValue + 1;
+
+    /// <summary>
+    /// The minimum width and height permitted for the first cell of an AVIF grid.
+    /// </summary>
+    private const int MinimumGridCellDimension = 64;
+
+    /// <summary>
+    /// The grid descriptor length when output dimensions use 32-bit fields.
+    /// </summary>
+    private const int LongGridDescriptorLength = 12;
+
+    /// <summary>
+    /// Selects 32-bit output dimensions in a grid descriptor.
+    /// </summary>
+    private const byte LargeGridDimensionsFlag = 1;
 
     /// <summary>
     /// The global configuration.
@@ -81,13 +106,55 @@ internal sealed partial class HeifEncoderCore
         Guard.NotNull(image, nameof(image));
         Guard.NotNull(stream, nameof(stream));
 
+        switch (this.encoder.CompressionMethod)
+        {
+            case HeifCompressionMethod.LegacyJpeg:
+                break;
+            case HeifCompressionMethod.Av1:
+                if (image.Frames.Count > 1)
+                {
+                    if (image.Width > ushort.MaxValue || image.Height > ushort.MaxValue)
+                    {
+                        throw new NotSupportedException("AV1 image-sequence dimensions cannot exceed 65535 pixels.");
+                    }
+                }
+
+                break;
+            default:
+                throw new NotSupportedException($"HEIF compression method '{this.encoder.CompressionMethod}' is not supported.");
+        }
+
         using ChunkedMemoryStream compressedPixels = new(this.configuration.MemoryAllocator);
         if (this.encoder.CompressionMethod == HeifCompressionMethod.Av1 && image.Frames.Count > 1)
         {
             Av1EncodingSettings settings = this.ResolveAv1Encoding(image);
-            int sampleCount = image.Frames.Count * (settings.HasAlpha ? 2 : 1);
+            bool animateRootFrame = this.encoder.AnimateRootFrame
+                ?? image.Metadata.GetHeifMetadata().AnimateRootFrame;
+
+            int firstFrameIndex = animateRootFrame ? 0 : 1;
+            int sequenceFrameCount = image.Frames.Count - firstFrameIndex;
+            int sampleCount = sequenceFrameCount * (settings.HasAlpha ? 2 : 1);
             using IMemoryOwner<HeifSequenceSampleInfo> samplesOwner =
                 this.configuration.MemoryAllocator.Allocate<HeifSequenceSampleInfo>(sampleCount);
+
+            List<HeifItem> sequenceItems = new();
+            List<HeifItemLink> sequenceLinks = new();
+            if (!animateRootFrame)
+            {
+                Av1ImageItemEncoding primaryImage = this.CompressAv1ImageItem(
+                    image.Frames.RootFrame,
+                    compressedPixels,
+                    settings,
+                    cancellationToken);
+
+                this.WriteAv1ImageItems(
+                    image,
+                    compressedPixels,
+                    settings,
+                    primaryImage,
+                    sequenceItems,
+                    sequenceLinks);
+            }
 
             Memory<HeifSequenceSampleInfo> samples = samplesOwner.Memory[..sampleCount];
             HeifSequenceEncoding sequence = this.CompressAv1Sequence(
@@ -95,10 +162,37 @@ internal sealed partial class HeifEncoderCore
                 compressedPixels,
                 settings,
                 samples,
+                firstFrameIndex,
                 cancellationToken);
 
+            if (animateRootFrame)
+            {
+                HeifSequenceSampleInfo colorSample = sequence.ColorTrack.Samples[0];
+                HeifSequenceTrackEncoding? alphaTrack = sequence.AlphaTrack;
+                Av1ImageItemEncoding primaryImage = new(
+                    sequence.ColorTrack.Configuration,
+                    colorSample.Offset,
+                    colorSample.Length,
+                    alphaTrack?.Configuration,
+                    alphaTrack?.Samples[0].Offset ?? 0,
+                    alphaTrack?.Samples[0].Length ?? 0);
+
+                // The primary image item and the first track sample describe the same sync sample. Sharing its
+                // extent matches libavif and avoids encoding or storing the root frame twice.
+                this.WriteAv1ImageItems(
+                    image,
+                    compressedPixels,
+                    settings,
+                    primaryImage,
+                    sequenceItems,
+                    sequenceLinks);
+            }
+
             int fileTypeLength = this.WriteSequenceFileTypeBox(stream);
-            this.WriteSequenceMovieBox(sequence, fileTypeLength, stream);
+            int metadataLength = GetMetadataBoxLength(sequenceItems, sequenceLinks);
+            int movieLength = GetSequenceMovieBoxLength(sequence);
+            this.WriteMetadataBox(sequenceItems, sequenceLinks, fileTypeLength, movieLength, stream);
+            this.WriteSequenceMovieBox(sequence, fileTypeLength + metadataLength, stream);
             this.WriteMediaDataBox(compressedPixels, stream);
             stream.Flush();
             return;
@@ -115,13 +209,11 @@ internal sealed partial class HeifEncoderCore
             case HeifCompressionMethod.Av1:
                 this.CompressAv1Pixels(image, compressedPixels, items, links, cancellationToken);
                 break;
-            default:
-                throw new NotSupportedException($"HEIF compression method '{this.encoder.CompressionMethod}' is not supported.");
         }
 
         // Write out the generated header and pixels.
         long metadataBoxOffset = this.WriteFileTypeBox(stream);
-        this.WriteMetadataBox(items, links, metadataBoxOffset, stream);
+        this.WriteMetadataBox(items, links, metadataBoxOffset, 0, stream);
         this.WriteMediaDataBox(compressedPixels, stream);
         stream.Flush();
     }
@@ -229,8 +321,14 @@ internal sealed partial class HeifEncoderCore
     /// <param name="items">The declared image and metadata items.</param>
     /// <param name="links">The typed relationships between items.</param>
     /// <param name="metadataBoxOffset">The metadata box offset from the start of the encoded file.</param>
+    /// <param name="followingBoxLength">The number of bytes between this box and the media-data box.</param>
     /// <param name="stream">The destination stream positioned after the file-type box.</param>
-    private void WriteMetadataBox(List<HeifItem> items, List<HeifItemLink> links, long metadataBoxOffset, Stream stream)
+    private void WriteMetadataBox(
+        List<HeifItem> items,
+        List<HeifItemLink> links,
+        long metadataBoxOffset,
+        int followingBoxLength,
+        Stream stream)
     {
         int metadataLength = GetMetadataBoxLength(items, links);
         using IMemoryOwner<byte> metadataOwner = this.configuration.MemoryAllocator.Allocate<byte>(metadataLength);
@@ -254,7 +352,7 @@ internal sealed partial class HeifEncoderCore
         bytesWritten += WriteItemLocationBox(memory, bytesWritten, items, 0);
 
         // The mdat payload immediately follows the completed meta box and its own eight-byte header.
-        long mediaDataOffset = checked(metadataBoxOffset + bytesWritten + BasicBoxHeaderLength);
+        long mediaDataOffset = checked(metadataBoxOffset + bytesWritten + followingBoxLength + BasicBoxHeaderLength);
         WriteItemLocationBox(memory, itemLocationOffset, items, mediaDataOffset);
 
         buffer = memory[..bytesWritten];
@@ -315,13 +413,21 @@ internal sealed partial class HeifEncoderCore
     {
         long propertyCount = 0;
         long associationItemCount = 0;
+        long associationPropertyCount = 0;
         long propertyBytes = 0;
         foreach (HeifItem item in items)
         {
-            int itemPropertyCount = GetPropertyCount(item);
-            propertyCount += itemPropertyCount;
+            HeifItem propertyItem = item.PropertySource ?? item;
+            int itemPropertyCount = GetPropertyCount(propertyItem);
             associationItemCount += itemPropertyCount == 0 ? 0 : 1;
+            associationPropertyCount += itemPropertyCount;
 
+            if (item.PropertySource is not null)
+            {
+                continue;
+            }
+
+            propertyCount += itemPropertyCount;
             propertyBytes += item.Extent == default ? 0 : SpatialExtentPropertyBoxLength;
             if (item.ChannelBitDepths is not null)
             {
@@ -348,7 +454,7 @@ internal sealed partial class HeifEncoderCore
         long length = ItemPropertiesBoxFixedLength
             + propertyBytes
             + (associationItemCount * PropertyAssociationEntryFixedLength)
-            + (propertyCount * associationSize);
+            + (associationPropertyCount * associationSize);
 
         return checked((int)length);
     }
@@ -425,7 +531,12 @@ internal sealed partial class HeifEncoderCore
         foreach (HeifItem item in items)
         {
             int itemLengthOffset = bytesWritten;
-            bytesWritten += WriteBoxHeader(buffer[bytesWritten..], Heif4CharCode.Infe, 2, 0);
+            bytesWritten += WriteBoxHeader(
+                buffer[bytesWritten..],
+                Heif4CharCode.Infe,
+                2,
+                item.IsHidden ? HiddenImageItemFlag : 0);
+
             BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], (ushort)item.Id);
             bytesWritten += 2;
             BinaryPrimitives.WriteUInt16BigEndian(buffer[bytesWritten..], 0);
@@ -499,17 +610,26 @@ internal sealed partial class HeifEncoderCore
         // ipco order defines the one-based property indices written later in ipma.
         int ipcoLengthOffset = bytesWritten;
         bytesWritten += WriteBoxHeader(buffer[bytesWritten..], Heif4CharCode.Ipco);
+        ushort nextPropertyIndex = 1;
         foreach (HeifItem item in items)
         {
+            if (item.PropertySource is not null)
+            {
+                continue;
+            }
+
+            item.FirstPropertyIndex = nextPropertyIndex;
             if (item.Extent != default)
             {
                 bytesWritten += WriteSpatialExtentPropertyBox(memory, memoryOffset + bytesWritten, item);
+                nextPropertyIndex++;
             }
 
             byte[]? channelBitDepths = item.ChannelBitDepths;
             if (channelBitDepths is not null)
             {
                 bytesWritten += WritePixelInformationPropertyBox(memory, memoryOffset + bytesWritten, channelBitDepths);
+                nextPropertyIndex++;
             }
             else
             {
@@ -521,6 +641,8 @@ internal sealed partial class HeifEncoderCore
                         memoryOffset + bytesWritten,
                         item.ChannelCount,
                         uniformChannelBitDepth.Value);
+
+                    nextPropertyIndex++;
                 }
             }
 
@@ -528,39 +650,43 @@ internal sealed partial class HeifEncoderCore
             if (codecConfiguration is not null)
             {
                 bytesWritten += WriteAv1CodecConfigurationPropertyBox(memory, memoryOffset + bytesWritten, codecConfiguration);
+                nextPropertyIndex++;
             }
 
             string? auxiliaryType = item.AuxiliaryType;
             if (auxiliaryType is not null)
             {
                 bytesWritten += WriteAuxiliaryTypePropertyBox(memory, memoryOffset + bytesWritten, auxiliaryType);
+                nextPropertyIndex++;
             }
 
             IccProfile? iccProfile = item.IccProfile;
             if (iccProfile is not null)
             {
                 bytesWritten += WriteIccColorInformationPropertyBox(memory, memoryOffset + bytesWritten, item.GetIccProfileDataForWriting());
+                nextPropertyIndex++;
             }
 
             CicpProfile? cicpProfile = item.CicpProfile;
             if (cicpProfile is not null)
             {
                 bytesWritten += WriteColorInformationPropertyBox(memory, memoryOffset + bytesWritten, cicpProfile);
+                nextPropertyIndex++;
             }
         }
 
         BinaryPrimitives.WriteUInt32BigEndian(buffer[ipcoLengthOffset..], (uint)(bytesWritten - ipcoLengthOffset));
-        int propertyCount = 0;
+        int propertyCount = nextPropertyIndex - 1;
         int associationItemCount = 0;
         foreach (HeifItem item in items)
         {
-            int itemPropertyCount = GetPropertyCount(item);
+            HeifItem propertyItem = item.PropertySource ?? item;
+            int itemPropertyCount = GetPropertyCount(propertyItem);
             if (itemPropertyCount == 0)
             {
                 continue;
             }
 
-            propertyCount += itemPropertyCount;
             associationItemCount++;
         }
 
@@ -571,10 +697,10 @@ internal sealed partial class HeifEncoderCore
         bytesWritten += WriteBoxHeader(buffer[bytesWritten..], Heif4CharCode.Ipma, 0, largePropertyIndex ? 1U : 0U);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)associationItemCount);
         bytesWritten += 4;
-        ushort propertyIndex = 1;
         foreach (HeifItem item in items)
         {
-            int itemPropertyCount = GetPropertyCount(item);
+            HeifItem propertyItem = item.PropertySource ?? item;
+            int itemPropertyCount = GetPropertyCount(propertyItem);
             if (itemPropertyCount == 0)
             {
                 continue;
@@ -584,32 +710,33 @@ internal sealed partial class HeifEncoderCore
             bytesWritten += 2;
 
             buffer[bytesWritten++] = (byte)itemPropertyCount;
-            if (item.Extent != default)
+            ushort propertyIndex = propertyItem.FirstPropertyIndex;
+            if (propertyItem.Extent != default)
             {
                 WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
             }
 
-            if (item.ChannelBitDepths is not null || item.UniformChannelBitDepth is not null)
+            if (propertyItem.ChannelBitDepths is not null || propertyItem.UniformChannelBitDepth is not null)
             {
                 WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
             }
 
-            if (item.Av1CodecConfiguration is not null)
+            if (propertyItem.Av1CodecConfiguration is not null)
             {
                 WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, true);
             }
 
-            if (item.AuxiliaryType is not null)
+            if (propertyItem.AuxiliaryType is not null)
             {
                 WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
             }
 
-            if (item.IccProfile is not null)
+            if (propertyItem.IccProfile is not null)
             {
                 WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
             }
 
-            if (item.CicpProfile is not null)
+            if (propertyItem.CicpProfile is not null)
             {
                 WritePropertyAssociation(buffer, ref bytesWritten, propertyIndex++, largePropertyIndex, false);
             }
@@ -918,68 +1045,396 @@ internal sealed partial class HeifEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        byte[]? exifData = null;
-        uint tiffHeaderOffset = 0;
-        byte[]? xmpData = null;
+        Av1EncodingSettings settings = this.ResolveAv1Encoding(image);
+        if (image.Width > Av1Constants.MaxFrameDimension || image.Height > Av1Constants.MaxFrameDimension)
+        {
+            this.CompressAv1GridPixels(image, stream, settings, items, links, cancellationToken);
+            return;
+        }
+
+        Av1ImageItemEncoding encoding = this.CompressAv1ImageItem(
+            image.Frames.RootFrame,
+            stream,
+            settings,
+            cancellationToken);
+
+        this.WriteAv1ImageItems(image, stream, settings, encoding, items, links);
+    }
+
+    /// <summary>
+    /// Encodes a still image as independently coded AV1 cells referenced by one derived grid item.
+    /// </summary>
+    private void CompressAv1GridPixels<TPixel>(
+        Image<TPixel> image,
+        ChunkedMemoryStream stream,
+        Av1EncodingSettings settings,
+        List<HeifItem> items,
+        List<HeifItemLink> links,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
+        bool isSubsampledX = !settings.ColorConfig.IsMonochrome && settings.ColorConfig.SubSamplingX;
+        bool isSubsampledY = !settings.ColorConfig.IsMonochrome && settings.ColorConfig.SubSamplingY;
+        if ((isSubsampledX && (image.Width & 1) != 0) || (isSubsampledY && (image.Height & 1) != 0))
+        {
+            throw new NotSupportedException("AVIF grid output dimensions must be even along each subsampled chroma axis.");
+        }
+
+        int columns = GetGridCellCount(image.Width, Av1Constants.MaxFrameDimension);
+        int rows = GetGridCellCount(image.Height, Av1Constants.MaxFrameDimension);
+        if (columns > MaximumGridAxisCellCount || rows > MaximumGridAxisCellCount)
+        {
+            throw new NotSupportedException(
+                $"AVIF grids support at most {MaximumGridAxisCellCount} columns and rows.");
+        }
+
+        int cellWidth = GetGridCellSize(image.Width, columns, isSubsampledX);
+        int cellHeight = GetGridCellSize(image.Height, rows, isSubsampledY);
+        Size encodedCellSize = new(
+            Math.Max(cellWidth, MinimumGridCellDimension),
+            Math.Max(cellHeight, MinimumGridCellDimension));
+
+        long cellCount = (long)columns * rows;
+        long itemCount = 1 + cellCount;
+        if (settings.HasAlpha)
+        {
+            itemCount += 1 + cellCount;
+        }
+
         if (!this.encoder.SkipMetadata)
         {
-            exifData = GetExifData(image.Metadata, out tiffHeaderOffset);
-            byte[]? sourceXmpData = image.Metadata.XmpProfile?.Data;
-            if (sourceXmpData is not null && sourceXmpData.Length > 0)
+            itemCount += image.Metadata.ExifProfile is null ? 0 : 1;
+            itemCount += image.Metadata.XmpProfile is null ? 0 : 1;
+        }
+
+        if (itemCount > ushort.MaxValue)
+        {
+            throw new NotSupportedException(
+                $"The encoded AVIF grid requires {itemCount} items, but this container supports at most {ushort.MaxValue}.");
+        }
+
+        byte channelBitDepth = (byte)settings.BitDepth;
+        long descriptorOffset = stream.Length;
+        int descriptorLength = WriteGridDescriptor(stream, rows, columns, image.Size);
+        HeifItem colorGrid = new(Heif4CharCode.Grid, 1)
+        {
+            ChannelCount = settings.ColorConfig.IsMonochrome ? 1 : 3,
+            UniformChannelBitDepth = channelBitDepth,
+            BitsPerPixel = channelBitDepth * (settings.ColorConfig.IsMonochrome ? 1 : 3),
+            IccProfile = this.encoder.SkipMetadata ? null : image.Metadata.IccProfile,
+            CicpProfile = settings.ColorProfile
+        };
+
+        colorGrid.DataLocations.Add(
+            new HeifLocation(
+                HeifLocationOffsetOrigin.FileOffset,
+                0L,
+                descriptorOffset,
+                descriptorLength));
+
+        colorGrid.SetExtent(image.Size);
+        items.Add(colorGrid);
+        HeifItemLink colorGridLink = new(Heif4CharCode.Dimg, colorGrid.Id);
+        links.Add(colorGridLink);
+        HeifItem? colorPropertySource = null;
+        ImageFrame<TPixel> rootFrame = image.Frames.RootFrame;
+        for (int row = 0; row < rows; row++)
+        {
+            int y = row * cellHeight;
+            int height = Math.Min(cellHeight, image.Height - y);
+            for (int column = 0; column < columns; column++)
             {
-                xmpData = sourceXmpData;
+                cancellationToken.ThrowIfCancellationRequested();
+                int x = column * cellWidth;
+                int width = Math.Min(cellWidth, image.Width - x);
+                Rectangle sourceRectangle = new(x, y, width, height);
+                long colorOffset = stream.Length;
+                ObuSequenceHeader colorHeader = Av1FrameEncoder.EncodeGridCell(
+                    this.configuration,
+                    rootFrame,
+                    sourceRectangle,
+                    encodedCellSize,
+                    stream,
+                    settings.ColorConfig,
+                    settings.ColorQIndex,
+                    this.encoder.Effort);
+
+                long colorLength = stream.Length - colorOffset;
+                HeifItem colorCell = new(Heif4CharCode.Av01, (uint)items.Count + 1)
+                {
+                    IsHidden = true,
+                    ChannelCount = colorGrid.ChannelCount,
+                    UniformChannelBitDepth = channelBitDepth,
+                    BitsPerPixel = colorGrid.BitsPerPixel,
+                    Av1CodecConfiguration = new Av1CodecConfiguration(colorHeader),
+                    IccProfile = colorGrid.IccProfile,
+                    CicpProfile = settings.ColorProfile
+                };
+
+                colorCell.DataLocations.Add(
+                    new HeifLocation(
+                        HeifLocationOffsetOrigin.FileOffset,
+                        0L,
+                        colorOffset,
+                        colorLength));
+
+                colorCell.SetExtent(encodedCellSize);
+                ShareGridCellProperties(colorCell, ref colorPropertySource);
+
+                items.Add(colorCell);
+                colorGridLink.DestinationIds.Add(colorCell.Id);
             }
         }
 
-        Av1EncodingSettings settings = this.ResolveAv1Encoding(image);
+        if (settings.HasAlpha)
+        {
+            descriptorOffset = stream.Length;
+            descriptorLength = WriteGridDescriptor(stream, rows, columns, image.Size);
+            HeifItem alphaGrid = new(Heif4CharCode.Grid, (uint)items.Count + 1)
+            {
+                ChannelCount = 1,
+                UniformChannelBitDepth = channelBitDepth,
+                BitsPerPixel = channelBitDepth,
+                AuxiliaryType = HeifConstants.AlphaAuxiliaryType
+            };
+
+            alphaGrid.DataLocations.Add(
+                new HeifLocation(
+                    HeifLocationOffsetOrigin.FileOffset,
+                    0L,
+                    descriptorOffset,
+                    descriptorLength));
+
+            alphaGrid.SetExtent(image.Size);
+            items.Add(alphaGrid);
+            HeifItemLink alphaGridLink = new(Heif4CharCode.Dimg, alphaGrid.Id);
+            links.Add(alphaGridLink);
+            HeifItemLink alphaLink = new(Heif4CharCode.Auxl, alphaGrid.Id);
+            alphaLink.DestinationIds.Add(colorGrid.Id);
+            links.Add(alphaLink);
+            HeifItem? alphaPropertySource = null;
+            for (int row = 0; row < rows; row++)
+            {
+                int y = row * cellHeight;
+                int height = Math.Min(cellHeight, image.Height - y);
+                for (int column = 0; column < columns; column++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int x = column * cellWidth;
+                    int width = Math.Min(cellWidth, image.Width - x);
+                    Rectangle sourceRectangle = new(x, y, width, height);
+                    long alphaOffset = stream.Length;
+                    ObuSequenceHeader alphaHeader = Av1FrameEncoder.EncodeAlphaGridCell(
+                        this.configuration,
+                        rootFrame,
+                        sourceRectangle,
+                        encodedCellSize,
+                        stream,
+                        settings.AlphaConfig,
+                        settings.AlphaQIndex,
+                        this.encoder.Effort);
+
+                    long alphaLength = stream.Length - alphaOffset;
+                    HeifItem alphaCell = new(Heif4CharCode.Av01, (uint)items.Count + 1)
+                    {
+                        IsHidden = true,
+                        ChannelCount = 1,
+                        UniformChannelBitDepth = channelBitDepth,
+                        BitsPerPixel = channelBitDepth,
+                        Av1CodecConfiguration = new Av1CodecConfiguration(alphaHeader),
+                        AuxiliaryType = HeifConstants.AlphaAuxiliaryType
+                    };
+
+                    alphaCell.DataLocations.Add(
+                        new HeifLocation(
+                            HeifLocationOffsetOrigin.FileOffset,
+                            0L,
+                            alphaOffset,
+                            alphaLength));
+
+                    alphaCell.SetExtent(encodedCellSize);
+                    ShareGridCellProperties(alphaCell, ref alphaPropertySource);
+
+                    items.Add(alphaCell);
+                    alphaGridLink.DestinationIds.Add(alphaCell.Id);
+                }
+            }
+        }
+
+        this.WriteMetadataItems(image, stream, colorGrid, items, links);
+    }
+
+    /// <summary>
+    /// Gets the minimum number of independently coded cells needed along one grid axis.
+    /// </summary>
+    /// <param name="dimension">The complete output dimension along the axis.</param>
+    /// <param name="maximumCellDimension">The largest permitted nominal cell dimension.</param>
+    private static int GetGridCellCount(int dimension, int maximumCellDimension)
+        => (int)(((long)dimension + maximumCellDimension - 1) / maximumCellDimension);
+
+    /// <summary>
+    /// Gets the nominal cell size while preserving chroma alignment for every non-edge cell.
+    /// </summary>
+    private static int GetGridCellSize(int dimension, int cellCount, bool isSubsampled)
+    {
+        int cellSize = (int)(((long)dimension + cellCount - 1) / cellCount);
+        if (isSubsampled && (cellSize & 1) != 0)
+        {
+            cellSize++;
+        }
+
+        return cellSize;
+    }
+
+    /// <summary>
+    /// Writes the fixed grid item payload and returns its exact length.
+    /// </summary>
+    private static int WriteGridDescriptor(Stream stream, int rows, int columns, Size outputSize)
+    {
+        bool usesLargeDimensions = outputSize.Width > ushort.MaxValue || outputSize.Height > ushort.MaxValue;
+        Span<byte> descriptor = stackalloc byte[LongGridDescriptorLength];
+        int descriptorLength = 0;
+        descriptor[descriptorLength++] = GridDescriptorVersion;
+        descriptor[descriptorLength++] = usesLargeDimensions ? LargeGridDimensionsFlag : (byte)0;
+        descriptor[descriptorLength++] = (byte)(rows - 1);
+        descriptor[descriptorLength++] = (byte)(columns - 1);
+        if (usesLargeDimensions)
+        {
+            BinaryPrimitives.WriteUInt32BigEndian(descriptor[descriptorLength..], (uint)outputSize.Width);
+            descriptorLength += sizeof(uint);
+            BinaryPrimitives.WriteUInt32BigEndian(descriptor[descriptorLength..], (uint)outputSize.Height);
+            descriptorLength += sizeof(uint);
+        }
+        else
+        {
+            BinaryPrimitives.WriteUInt16BigEndian(descriptor[descriptorLength..], (ushort)outputSize.Width);
+            descriptorLength += sizeof(ushort);
+            BinaryPrimitives.WriteUInt16BigEndian(descriptor[descriptorLength..], (ushort)outputSize.Height);
+            descriptorLength += sizeof(ushort);
+        }
+
+        stream.Write(descriptor[..descriptorLength]);
+        return descriptorLength;
+    }
+
+    /// <summary>
+    /// Reuses the common property set emitted for the first cell in one grid plane.
+    /// </summary>
+    private static void ShareGridCellProperties(HeifItem item, ref HeifItem? source)
+    {
+        if (source is null)
+        {
+            source = item;
+            return;
+        }
+
+        // Every cell in one plane is coded to the same extent and configuration so current AVIF readers can
+        // share one property set. Only the source rectangle differs for cells clipped by the output canvas.
+        item.PropertySource = source;
+    }
+
+    /// <summary>
+    /// Encodes one frame as the color and optional alpha payloads used by a primary AV1 image item.
+    /// </summary>
+    private Av1ImageItemEncoding CompressAv1ImageItem<TPixel>(
+        ImageFrame<TPixel> frame,
+        ChunkedMemoryStream stream,
+        Av1EncodingSettings settings,
+        CancellationToken cancellationToken)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         cancellationToken.ThrowIfCancellationRequested();
+        long colorOffset = stream.Length;
         ObuSequenceHeader colorHeader = Av1FrameEncoder.Encode(
             this.configuration,
-            image.Frames.RootFrame,
+            frame,
             stream,
             settings.ColorConfig,
             settings.ColorQIndex,
             this.encoder.Effort);
 
-        long colorLength = stream.Length;
+        long colorLength = stream.Length - colorOffset;
+        Av1CodecConfiguration? alphaConfiguration = null;
+        long alphaOffset = 0;
+        long alphaLength = 0;
+
+        if (settings.HasAlpha)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            alphaOffset = stream.Length;
+            ObuSequenceHeader alphaHeader = Av1FrameEncoder.EncodeAlpha(
+                this.configuration,
+                frame,
+                stream,
+                settings.AlphaConfig,
+                settings.AlphaQIndex,
+                this.encoder.Effort);
+
+            alphaLength = stream.Length - alphaOffset;
+            alphaConfiguration = new Av1CodecConfiguration(alphaHeader);
+        }
+
+        return new Av1ImageItemEncoding(
+            new Av1CodecConfiguration(colorHeader),
+            colorOffset,
+            colorLength,
+            alphaConfiguration,
+            alphaOffset,
+            alphaLength);
+    }
+
+    /// <summary>
+    /// Declares a primary AV1 image item over existing payload extents and appends its associated metadata payloads.
+    /// </summary>
+    private void WriteAv1ImageItems<TPixel>(
+        Image<TPixel> image,
+        ChunkedMemoryStream stream,
+        Av1EncodingSettings settings,
+        Av1ImageItemEncoding encoding,
+        List<HeifItem> items,
+        List<HeifItemLink> links)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         byte channelBitDepth = (byte)settings.BitDepth;
         HeifItem colorItem = new(Heif4CharCode.Av01, 1)
         {
             ChannelCount = settings.ColorConfig.IsMonochrome ? 1 : 3,
             UniformChannelBitDepth = channelBitDepth,
             BitsPerPixel = channelBitDepth * (settings.ColorConfig.IsMonochrome ? 1 : 3),
-            Av1CodecConfiguration = new Av1CodecConfiguration(colorHeader),
+            Av1CodecConfiguration = encoding.ColorConfiguration,
             IccProfile = this.encoder.SkipMetadata ? null : image.Metadata.IccProfile,
             CicpProfile = settings.ColorProfile
         };
 
-        colorItem.DataLocations.Add(new HeifLocation(HeifLocationOffsetOrigin.FileOffset, 0L, 0L, colorLength));
+        colorItem.DataLocations.Add(
+            new HeifLocation(
+                HeifLocationOffsetOrigin.FileOffset,
+                0L,
+                encoding.ColorOffset,
+                encoding.ColorLength));
+
         colorItem.SetExtent(image.Size);
         items.Add(colorItem);
 
-        if (settings.HasAlpha)
+        Av1CodecConfiguration? alphaConfiguration = encoding.AlphaConfiguration;
+        if (alphaConfiguration is not null)
         {
-            cancellationToken.ThrowIfCancellationRequested();
-            long alphaOffset = stream.Length;
-            ObuSequenceHeader alphaHeader = Av1FrameEncoder.EncodeAlpha(
-                this.configuration,
-                image.Frames.RootFrame,
-                stream,
-                settings.AlphaConfig,
-                settings.AlphaQIndex,
-                this.encoder.Effort);
-
-            long alphaLength = stream.Length - alphaOffset;
             HeifItem alphaItem = new(Heif4CharCode.Av01, 2)
             {
                 ChannelCount = 1,
                 UniformChannelBitDepth = channelBitDepth,
                 BitsPerPixel = channelBitDepth,
-                Av1CodecConfiguration = new Av1CodecConfiguration(alphaHeader),
+                Av1CodecConfiguration = alphaConfiguration,
                 AuxiliaryType = HeifConstants.AlphaAuxiliaryType
             };
 
-            alphaItem.DataLocations.Add(new HeifLocation(HeifLocationOffsetOrigin.FileOffset, 0L, alphaOffset, alphaLength));
+            alphaItem.DataLocations.Add(
+                new HeifLocation(
+                    HeifLocationOffsetOrigin.FileOffset,
+                    0L,
+                    encoding.AlphaOffset,
+                    encoding.AlphaLength));
+
             alphaItem.SetExtent(image.Size);
             items.Add(alphaItem);
             HeifItemLink alphaLink = new(Heif4CharCode.Auxl, alphaItem.Id);
@@ -987,15 +1442,30 @@ internal sealed partial class HeifEncoderCore
             links.Add(alphaLink);
         }
 
+        this.WriteMetadataItems(image, stream, colorItem, items, links);
+    }
+
+    /// <summary>
+    /// Appends Exif and XMP payload items associated with the primary presentation item.
+    /// </summary>
+    private void WriteMetadataItems<TPixel>(
+        Image<TPixel> image,
+        ChunkedMemoryStream stream,
+        HeifItem primaryItem,
+        List<HeifItem> items,
+        List<HeifItemLink> links)
+        where TPixel : unmanaged, IPixel<TPixel>
+    {
         if (this.encoder.SkipMetadata)
         {
             return;
         }
 
+        byte[]? exifData = GetExifData(image.Metadata, out uint tiffHeaderOffset);
         if (exifData is not null)
         {
             long exifOffset = stream.Length;
-            Span<byte> offsetBuffer = stackalloc byte[4];
+            Span<byte> offsetBuffer = stackalloc byte[sizeof(uint)];
             BinaryPrimitives.WriteUInt32BigEndian(offsetBuffer, tiffHeaderOffset);
             stream.Write(offsetBuffer);
             stream.Write(exifData);
@@ -1010,15 +1480,16 @@ internal sealed partial class HeifEncoderCore
                     HeifLocationOffsetOrigin.FileOffset,
                     0L,
                     exifOffset,
-                    4L + exifData.Length));
+                    sizeof(uint) + (long)exifData.Length));
 
             items.Add(exifItem);
             HeifItemLink exifLink = new(Heif4CharCode.Cdsc, exifItem.Id);
-            exifLink.DestinationIds.Add(colorItem.Id);
+            exifLink.DestinationIds.Add(primaryItem.Id);
             links.Add(exifLink);
         }
 
-        if (xmpData is not null)
+        byte[]? xmpData = image.Metadata.XmpProfile?.Data;
+        if (xmpData is not null && xmpData.Length > 0)
         {
             long xmpOffset = stream.Length;
             stream.Write(xmpData);
@@ -1037,7 +1508,7 @@ internal sealed partial class HeifEncoderCore
 
             items.Add(xmpItem);
             HeifItemLink xmpLink = new(Heif4CharCode.Cdsc, xmpItem.Id);
-            xmpLink.DestinationIds.Add(colorItem.Id);
+            xmpLink.DestinationIds.Add(primaryItem.Id);
             links.Add(xmpLink);
         }
     }
@@ -1093,16 +1564,6 @@ internal sealed partial class HeifEncoderCore
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (this.encoder.Lossless)
-        {
-            throw new NotSupportedException("Legacy JPEG image items do not support lossless encoding.");
-        }
-
-        if (this.encoder.BitDepth is not null and not HeifBitDepth.Bit8)
-        {
-            throw new NotSupportedException("Legacy JPEG image items support only 8-bit component encoding.");
-        }
-
         JpegColorType colorType = this.encoder.ChromaSubsampling switch
         {
             null or HeifChromaSubsampling.Yuv420 => JpegColorType.YCbCrRatio420,
@@ -1124,5 +1585,39 @@ internal sealed partial class HeifEncoderCore
         // ImageEncoder is a synchronous contract. Wait for the cancellable JPEG operation so HEIF encoding
         // cannot return while its pooled item payload is still being produced.
         image.SaveAsJpegAsync(stream, encoder, cancellationToken).GetAwaiter().GetResult();
+    }
+
+    /// <summary>
+    /// Describes the already-written color and optional alpha extents backing one AV1 image item.
+    /// </summary>
+    private readonly struct Av1ImageItemEncoding
+    {
+        public Av1ImageItemEncoding(
+            Av1CodecConfiguration colorConfiguration,
+            long colorOffset,
+            long colorLength,
+            Av1CodecConfiguration? alphaConfiguration,
+            long alphaOffset,
+            long alphaLength)
+        {
+            this.ColorConfiguration = colorConfiguration;
+            this.ColorOffset = colorOffset;
+            this.ColorLength = colorLength;
+            this.AlphaConfiguration = alphaConfiguration;
+            this.AlphaOffset = alphaOffset;
+            this.AlphaLength = alphaLength;
+        }
+
+        public Av1CodecConfiguration ColorConfiguration { get; }
+
+        public long ColorOffset { get; }
+
+        public long ColorLength { get; }
+
+        public Av1CodecConfiguration? AlphaConfiguration { get; }
+
+        public long AlphaOffset { get; }
+
+        public long AlphaLength { get; }
     }
 }

@@ -92,20 +92,22 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     /// <summary>
     /// Gets a value indicating whether the primary and auxiliary alpha images are encoded without loss. When
     /// <see langword="true"/>, <see cref="Quality"/> and <see cref="AlphaQuality"/> do not affect the encoded image.
-    /// Legacy JPEG image items do not support lossless encoding. The default is <see langword="false"/>.
+    /// This option has no effect on legacy JPEG image items. The default is <see langword="false"/>.
     /// </summary>
     public bool Lossless { get; init; }
 
     /// <summary>
     /// Gets the encoded precision of each image component, or <see langword="null"/> to use the HEIF metadata bit
     /// depth. Metadata that does not specify a bit depth defaults to <see cref="HeifBitDepth.Bit8"/>. Legacy JPEG
-    /// image items support only <see cref="HeifBitDepth.Bit8"/>.
+    /// image items are always encoded with <see cref="HeifBitDepth.Bit8"/>.
     /// </summary>
     public HeifBitDepth? BitDepth { get; init; }
 
     /// <summary>
     /// Gets the encoded chroma sampling, or <see langword="null"/> to use <see cref="HeifChromaSubsampling.Yuv420"/>
-    /// for lossy encoding and <see cref="HeifChromaSubsampling.Yuv444"/> for lossless encoding.
+    /// for lossy encoding and <see cref="HeifChromaSubsampling.Yuv444"/> for lossless encoding. Oversized still
+    /// images use <see cref="HeifChromaSubsampling.Yuv444"/> when a subsampled AVIF grid cannot represent an odd
+    /// output dimension.
     /// </summary>
     public HeifChromaSubsampling? ChromaSubsampling { get; init; }
 

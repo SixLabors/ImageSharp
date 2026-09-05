@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -39,40 +40,49 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     private const int TransformCoefficientOffset = ResidualStorageLength;
     private const int DequantizedCoefficientOffset = TransformCoefficientOffset + MaximumCoefficientCount;
     private const int TransformWorkspaceOffset = DequantizedCoefficientOffset + MaximumCoefficientCount;
-    private const int IntraBlockCopySampleStorageOffset = TransformWorkspaceOffset + Av1TransformWorkspace.MaximumLength;
-    private const int IntraBlockCopySampleStorageLength =
-        Av1EncoderIntraBlockCopyWorkspace<ushort>.SampleBufferCount *
-        Av1EncoderIntraBlockCopyWorkspace<ushort>.MaximumSampleCount *
+    private const int InterPredictionSampleStorageOffset = TransformWorkspaceOffset + Av1TransformWorkspace.MaximumLength;
+    private const int InterPredictionSampleStorageLength =
+        Av1EncoderInterPredictionWorkspace<ushort>.SampleBufferCount *
+        Av1EncoderInterPredictionWorkspace<ushort>.MaximumSampleCount *
         sizeof(ushort) /
         sizeof(int);
 
-    private const int IntraBlockCopyResidualStorageOffset =
-        IntraBlockCopySampleStorageOffset + IntraBlockCopySampleStorageLength;
+    private const int InterPredictionResidualStorageOffset =
+        InterPredictionSampleStorageOffset + InterPredictionSampleStorageLength;
 
-    private const int IntraBlockCopyResidualStorageLength =
-        Av1EncoderIntraBlockCopyWorkspace<ushort>.MaximumSampleCount *
+    private const int InterPredictionResidualStorageLength =
+        Av1EncoderInterPredictionWorkspace<ushort>.MaximumSampleCount *
         sizeof(short) /
         sizeof(int);
 
-    private const int IntraBlockCopyCoefficientStorageOffset =
-        IntraBlockCopyResidualStorageOffset + IntraBlockCopyResidualStorageLength;
+    private const int InterPredictionScratchStorageOffset =
+        InterPredictionResidualStorageOffset + InterPredictionResidualStorageLength;
 
-    private const int IntraBlockCopyCoefficientStorageLength =
-        Av1EncoderIntraBlockCopyWorkspace<ushort>.CoefficientBufferCount *
-        Av1EncoderIntraBlockCopyWorkspace<ushort>.MaximumSampleCount;
+    private const int InterPredictionScratchStorageLength =
+        Av1EncoderInterPredictionWorkspace<ushort>.PredictionScratchCount *
+        sizeof(short) /
+        sizeof(int);
 
-    private const int IntraBlockCopyStorageLength =
-        IntraBlockCopySampleStorageLength +
-        IntraBlockCopyResidualStorageLength +
-        IntraBlockCopyCoefficientStorageLength;
+    private const int InterPredictionCoefficientStorageOffset =
+        InterPredictionScratchStorageOffset + InterPredictionScratchStorageLength;
+
+    private const int InterPredictionCoefficientStorageLength =
+        Av1EncoderInterPredictionWorkspace<ushort>.CoefficientBufferCount *
+        Av1EncoderInterPredictionWorkspace<ushort>.MaximumSampleCount;
+
+    private const int InterPredictionStorageLength =
+        InterPredictionSampleStorageLength +
+        InterPredictionResidualStorageLength +
+        InterPredictionScratchStorageLength +
+        InterPredictionCoefficientStorageLength;
 
     private const int ModeDecisionStorageLength = Av1EncoderModeDecisionWorkspace<ushort>.StorageLength;
-    private const int SharedModeDecisionStorageLength = ModeDecisionStorageLength > IntraBlockCopyStorageLength
+    private const int SharedModeDecisionStorageLength = ModeDecisionStorageLength > InterPredictionStorageLength
         ? ModeDecisionStorageLength
-        : IntraBlockCopyStorageLength;
+        : InterPredictionStorageLength;
 
     private const int PartitionContextStorageOffset =
-        IntraBlockCopySampleStorageOffset + SharedModeDecisionStorageLength;
+        InterPredictionSampleStorageOffset + SharedModeDecisionStorageLength;
 
     private const int MaximumPartitionEdgeUnitCount =
         2 * (1 << (Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2));
@@ -96,6 +106,11 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// Owns the complete reusable block workspace in 32-bit elements so every transform region is naturally aligned.
     /// </summary>
     private readonly IMemoryOwner<int> owner;
+
+    /// <summary>
+    /// Reuses the fixed-capacity reference-vector stack for every inter block in the frame.
+    /// </summary>
+    private Av1ReferenceMotionVectors referenceMotionVectors;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1EncoderBlockWorkspace"/> class.
@@ -129,6 +144,11 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         => this.owner.Memory.Span.Slice(TransformWorkspaceOffset, Av1TransformWorkspace.MaximumLength);
 
     /// <summary>
+    /// Gets the reusable reference-vector stack used by inter mode decision and syntax writing.
+    /// </summary>
+    public ref Av1ReferenceMotionVectors ReferenceMotionVectors => ref this.referenceMotionVectors;
+
+    /// <summary>
     /// Gets the disjoint edge snapshot used to restore one square partition-search level.
     /// </summary>
     /// <param name="blockSize">The square partition node being evaluated.</param>
@@ -152,43 +172,49 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public Av1EncoderModeDecisionWorkspace<TSample> GetModeDecisionWorkspace<TSample>()
         where TSample : unmanaged
     {
-        // Conventional intra search finishes before intra-block-copy search begins for the same block.
+        // Conventional intra search finishes before reference prediction begins for the same block.
         // Both phases can therefore reuse this aligned region without extending the owner or preserving stale scratch.
         Span<int> storage = this.owner.Memory.Span.Slice(
-            IntraBlockCopySampleStorageOffset,
+            InterPredictionSampleStorageOffset,
             SharedModeDecisionStorageLength);
 
         return new(storage[..Av1EncoderModeDecisionWorkspace<TSample>.StorageLength]);
     }
 
     /// <summary>
-    /// Gets the reusable storage used while comparing intra-block-copy candidates.
+    /// Gets the reusable storage used while comparing single-reference or intra-block-copy candidates.
     /// </summary>
     /// <typeparam name="TSample">The native sample type selected by the encoder pipeline.</typeparam>
-    /// <returns>The typed intra-block-copy workspace.</returns>
-    public Av1EncoderIntraBlockCopyWorkspace<TSample> GetIntraBlockCopyWorkspace<TSample>()
+    /// <returns>The typed inter-prediction workspace.</returns>
+    public Av1EncoderInterPredictionWorkspace<TSample> GetInterPredictionWorkspace<TSample>()
         where TSample : unmanaged
     {
         Span<int> storage = this.owner.Memory.Span;
         Span<TSample> sampleStorage = MemoryMarshal
-            .Cast<int, TSample>(storage.Slice(IntraBlockCopySampleStorageOffset, IntraBlockCopySampleStorageLength));
+            .Cast<int, TSample>(storage.Slice(InterPredictionSampleStorageOffset, InterPredictionSampleStorageLength));
 
         sampleStorage = sampleStorage[
-            ..(Av1EncoderIntraBlockCopyWorkspace<TSample>.SampleBufferCount *
-                Av1EncoderIntraBlockCopyWorkspace<TSample>.MaximumSampleCount)];
+            ..(Av1EncoderInterPredictionWorkspace<TSample>.SampleBufferCount *
+                Av1EncoderInterPredictionWorkspace<TSample>.MaximumSampleCount)];
 
         Span<short> residualStorage = MemoryMarshal
-            .Cast<int, short>(storage.Slice(IntraBlockCopyResidualStorageOffset, IntraBlockCopyResidualStorageLength));
+            .Cast<int, short>(storage.Slice(InterPredictionResidualStorageOffset, InterPredictionResidualStorageLength));
 
-        residualStorage = residualStorage[..Av1EncoderIntraBlockCopyWorkspace<TSample>.MaximumSampleCount];
+        residualStorage = residualStorage[..Av1EncoderInterPredictionWorkspace<TSample>.MaximumSampleCount];
+
+        Span<short> predictionScratch = MemoryMarshal
+            .Cast<int, short>(storage.Slice(InterPredictionScratchStorageOffset, InterPredictionScratchStorageLength));
+
+        predictionScratch = predictionScratch[..Av1EncoderInterPredictionWorkspace<TSample>.PredictionScratchCount];
 
         Span<int> coefficientStorage = storage.Slice(
-            IntraBlockCopyCoefficientStorageOffset,
-            IntraBlockCopyCoefficientStorageLength);
+            InterPredictionCoefficientStorageOffset,
+            InterPredictionCoefficientStorageLength);
 
-        return new Av1EncoderIntraBlockCopyWorkspace<TSample>(
+        return new Av1EncoderInterPredictionWorkspace<TSample>(
             sampleStorage,
             residualStorage,
+            predictionScratch,
             coefficientStorage);
     }
 

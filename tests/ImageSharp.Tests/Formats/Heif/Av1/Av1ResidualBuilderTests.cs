@@ -15,6 +15,128 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 [Trait("Format", "Avif")]
 public class Av1ResidualBuilderTests
 {
+    /// <summary>
+    /// Verifies precision limits, independent strides, candidate order, and exact final-row bounds.
+    /// </summary>
+    [Theory]
+    [InlineData(255, false)]
+    [InlineData(255, true)]
+    public void ByteSearchMetricsMatchKnownMoments(int maximum, bool negative)
+    {
+        const int SourceStride = 13;
+        const int PredictionStride = 17;
+        const int SourceOffset = 1;
+        const int PredictionOffset = 3;
+        byte[] sourceBuffer = new byte[SourceOffset + (7 * SourceStride) + 8];
+        byte[] predictionBuffer = new byte[PredictionOffset + (7 * PredictionStride) + 11];
+        sourceBuffer.AsSpan().Fill((byte)maximum);
+        predictionBuffer.AsSpan().Fill((byte)maximum);
+        Span<byte> source = sourceBuffer.AsSpan(SourceOffset);
+        Span<byte> prediction = predictionBuffer.AsSpan(PredictionOffset);
+        int[] sums = [-1, 0, 0, 0, 0, -1];
+
+        // The last source row contains exactly eight samples, and the four prediction windows require
+        // exactly eleven. Distinct nonzero padding catches accidental participation of neighboring rows.
+        for (int row = 0; row < 8; row++)
+        {
+            source.Slice(row * SourceStride, 8).Fill((byte)(negative ? 0 : maximum));
+            prediction.Slice(row * PredictionStride, 11).Fill((byte)(negative ? maximum : 0));
+        }
+
+        Assert.Equal(64 * maximum, Av1ResidualBuilder.SumAbsoluteDifferences8x8(source, SourceStride, prediction, PredictionStride));
+        Av1ResidualBuilder.GetMoments8x8(source, SourceStride, prediction, PredictionStride, out int sum, out int squaredSum);
+        Assert.Equal((negative ? -64 : 64) * maximum, sum);
+        Assert.Equal(64 * maximum * maximum, squaredSum);
+        Av1ResidualBuilder.SumFourAbsoluteDifferences8x8(source, SourceStride, prediction, PredictionStride, sums.AsSpan(1, 4));
+        Assert.Equal(new[] { -1, 64 * maximum, 64 * maximum, 64 * maximum, 64 * maximum, -1 }, sums);
+
+        // Source (2*y + x) and prediction (y + 2*x) give residual (y - x) * step, exercising both signs
+        // and distinct rows. Across the 8x8 square its signed sum is zero, absolute sum 168, and squared sum 672.
+        // Offsetting prediction by 1, 2, or 3 columns gives absolute sums 198, 276, and 386 respectively.
+        int step = maximum / 32;
+        for (int row = 0; row < 8; row++)
+        {
+            for (int column = 0; column < 8; column++)
+            {
+                source[(row * SourceStride) + column] = (byte)(((2 * row) + column) * step);
+            }
+
+            for (int column = 0; column < 11; column++)
+            {
+                prediction[(row * PredictionStride) + column] = (byte)((row + (2 * column)) * step);
+            }
+        }
+
+        Assert.Equal(168 * step, Av1ResidualBuilder.SumAbsoluteDifferences8x8(source, SourceStride, prediction, PredictionStride));
+        Av1ResidualBuilder.GetMoments8x8(source, SourceStride, prediction, PredictionStride, out sum, out squaredSum);
+        Assert.Equal(0, sum);
+        Assert.Equal(672 * step * step, squaredSum);
+        Av1ResidualBuilder.SumFourAbsoluteDifferences8x8(source, SourceStride, prediction, PredictionStride, sums.AsSpan(1, 4));
+        Assert.Equal(new[] { -1, 168 * step, 198 * step, 276 * step, 386 * step, -1 }, sums);
+    }
+
+    /// <summary>
+    /// Verifies precision limits, independent strides, candidate order, and exact final-row bounds.
+    /// </summary>
+    [Theory]
+    [InlineData(1023, false)]
+    [InlineData(1023, true)]
+    [InlineData(4095, false)]
+    [InlineData(4095, true)]
+    public void HighBitDepthSearchMetricsMatchKnownMoments(int maximum, bool negative)
+    {
+        const int SourceStride = 13;
+        const int PredictionStride = 17;
+        const int SourceOffset = 1;
+        const int PredictionOffset = 3;
+        ushort[] sourceBuffer = new ushort[SourceOffset + (7 * SourceStride) + 8];
+        ushort[] predictionBuffer = new ushort[PredictionOffset + (7 * PredictionStride) + 11];
+        sourceBuffer.AsSpan().Fill((ushort)maximum);
+        predictionBuffer.AsSpan().Fill((ushort)maximum);
+        Span<ushort> source = sourceBuffer.AsSpan(SourceOffset);
+        Span<ushort> prediction = predictionBuffer.AsSpan(PredictionOffset);
+        int[] sums = [-1, 0, 0, 0, 0, -1];
+
+        // The last source row contains exactly eight samples, and the four prediction windows require
+        // exactly eleven. Distinct nonzero padding catches accidental participation of neighboring rows.
+        for (int row = 0; row < 8; row++)
+        {
+            source.Slice(row * SourceStride, 8).Fill((ushort)(negative ? 0 : maximum));
+            prediction.Slice(row * PredictionStride, 11).Fill((ushort)(negative ? maximum : 0));
+        }
+
+        Assert.Equal(64 * maximum, Av1ResidualBuilder.SumAbsoluteDifferences8x8(source, SourceStride, prediction, PredictionStride));
+        Av1ResidualBuilder.GetMoments8x8(source, SourceStride, prediction, PredictionStride, out int sum, out int squaredSum);
+        Assert.Equal((negative ? -64 : 64) * maximum, sum);
+        Assert.Equal(64 * maximum * maximum, squaredSum);
+        Av1ResidualBuilder.SumFourAbsoluteDifferences8x8(source, SourceStride, prediction, PredictionStride, sums.AsSpan(1, 4));
+        Assert.Equal(new[] { -1, 64 * maximum, 64 * maximum, 64 * maximum, 64 * maximum, -1 }, sums);
+
+        // Source (2*y + x) and prediction (y + 2*x) give residual (y - x) * step, exercising both signs
+        // and distinct rows. Across the 8x8 square its signed sum is zero, absolute sum 168, and squared sum 672.
+        // Offsetting prediction by 1, 2, or 3 columns gives absolute sums 198, 276, and 386 respectively.
+        int step = maximum / 32;
+        for (int row = 0; row < 8; row++)
+        {
+            for (int column = 0; column < 8; column++)
+            {
+                source[(row * SourceStride) + column] = (ushort)(((2 * row) + column) * step);
+            }
+
+            for (int column = 0; column < 11; column++)
+            {
+                prediction[(row * PredictionStride) + column] = (ushort)((row + (2 * column)) * step);
+            }
+        }
+
+        Assert.Equal(168 * step, Av1ResidualBuilder.SumAbsoluteDifferences8x8(source, SourceStride, prediction, PredictionStride));
+        Av1ResidualBuilder.GetMoments8x8(source, SourceStride, prediction, PredictionStride, out sum, out squaredSum);
+        Assert.Equal(0, sum);
+        Assert.Equal(672 * step * step, squaredSum);
+        Av1ResidualBuilder.SumFourAbsoluteDifferences8x8(source, SourceStride, prediction, PredictionStride, sums.AsSpan(1, 4));
+        Assert.Equal(new[] { -1, 168 * step, 198 * step, 276 * step, 386 * step, -1 }, sums);
+    }
+
     private const HwIntrinsics ResidualConfigurations =
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
@@ -133,6 +255,14 @@ public class Av1ResidualBuilderTests
             width,
             height);
 
+        int[] candidateSums = new int[4];
+        _ = Av1ResidualBuilder.SumAbsoluteDifferences8x8(source, width, prediction, width);
+        _ = Av1ResidualBuilder.SumAbsoluteDifferences8x8(highBitDepthSource, width, highBitDepthPrediction, width);
+        Av1ResidualBuilder.SumFourAbsoluteDifferences8x8(source, width, prediction, width, candidateSums);
+        Av1ResidualBuilder.SumFourAbsoluteDifferences8x8(highBitDepthSource, width, highBitDepthPrediction, width, candidateSums);
+        Av1ResidualBuilder.GetMoments8x8(source, width, prediction, width, out _, out _);
+        Av1ResidualBuilder.GetMoments8x8(highBitDepthSource, width, highBitDepthPrediction, width, out _, out _);
+
         long sum = 0;
         long before = GC.GetAllocatedBytesForCurrentThread();
         for (int iteration = 0; iteration < 32; iteration++)
@@ -147,6 +277,16 @@ public class Av1ResidualBuilderTests
                 width,
                 width,
                 height);
+
+            sum += Av1ResidualBuilder.SumAbsoluteDifferences8x8(source, width, prediction, width);
+            sum += Av1ResidualBuilder.SumAbsoluteDifferences8x8(highBitDepthSource, width, highBitDepthPrediction, width);
+            Av1ResidualBuilder.SumFourAbsoluteDifferences8x8(source, width, prediction, width, candidateSums);
+            sum += candidateSums[0];
+            Av1ResidualBuilder.SumFourAbsoluteDifferences8x8(highBitDepthSource, width, highBitDepthPrediction, width, candidateSums);
+            sum += candidateSums[3];
+            Av1ResidualBuilder.GetMoments8x8(source, width, prediction, width, out int byteSum, out int byteSquares);
+            Av1ResidualBuilder.GetMoments8x8(highBitDepthSource, width, highBitDepthPrediction, width, out int wordSum, out int wordSquares);
+            sum += byteSum + byteSquares + wordSum + wordSquares;
         }
 
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;

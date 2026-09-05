@@ -15,57 +15,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 internal sealed class ObuReader
 {
     /// <summary>
-    /// The number of bits used to address one of AV1's eight reference-map slots.
-    /// </summary>
-    private const int ReferenceFrameIndexBits = 3;
-
-    /// <summary>
-    /// The initial finite-subexponential group width used by every global-motion parameter.
-    /// </summary>
-    private const int GlobalMotionSubexponentialGroupBitCount = 3;
-
-    /// <summary>
-    /// The finite signed-domain size parameter for coded global-motion affine coefficients.
-    /// </summary>
-    private const int GlobalMotionAlphaValueMagnitude = (1 << 12) + 1;
-
-    /// <summary>
-    /// The number of fractional bits carried by coded global-motion affine coefficients.
-    /// </summary>
-    private const int GlobalMotionAlphaPrecisionBits = 15;
-
-    /// <summary>
-    /// The precision increase from a coded affine coefficient to the stored global-motion matrix.
-    /// </summary>
-    private const int GlobalMotionAlphaPrecisionDifference =
-        Av1GlobalMotionParameters.ModelPrecisionBits - GlobalMotionAlphaPrecisionBits;
-
-    /// <summary>
-    /// The scale factor that restores a coded affine coefficient to the global-motion matrix precision.
-    /// </summary>
-    private const int GlobalMotionAlphaDecodeFactor = 1 << GlobalMotionAlphaPrecisionDifference;
-
-    /// <summary>
-    /// The signed magnitude bit count of a general affine model's translation components.
-    /// </summary>
-    private const int GlobalMotionAbsoluteTranslationBits = 12;
-
-    /// <summary>
-    /// The signed magnitude bit count of a translation-only model before precision adjustment.
-    /// </summary>
-    private const int GlobalMotionAbsoluteTranslationOnlyBits = 9;
-
-    /// <summary>
-    /// The number of fractional bits carried by general affine translation components.
-    /// </summary>
-    private const int GlobalMotionTranslationPrecisionBits = 6;
-
-    /// <summary>
-    /// The number of fractional bits carried by translation-only components.
-    /// </summary>
-    private const int GlobalMotionTranslationOnlyPrecisionBits = 3;
-
-    /// <summary>
     /// The zero-based sequence-header operating-point index selected by the container.
     /// </summary>
     private readonly byte operatingPointIndex;
@@ -951,7 +900,7 @@ internal sealed class ObuReader
             }
 
             sequenceHeader.InitialDisplayDelayPresentFlag = reader.ReadBoolean();
-            int operatingPointsCnt = (int)reader.ReadLiteral(5) + 1;
+            int operatingPointsCnt = (int)reader.ReadLiteral(Av1Constants.OperatingPointCountBits) + 1;
             if (sequenceHeader.OperatingPoint.Length != operatingPointsCnt)
             {
                 sequenceHeader.OperatingPoint = new ObuOperatingPoint[operatingPointsCnt];
@@ -961,15 +910,15 @@ internal sealed class ObuReader
             {
                 sequenceHeader.OperatingPoint[i] = new ObuOperatingPoint
                 {
-                    Idc = reader.ReadLiteral(12),
-                    SequenceLevelIndex = (int)reader.ReadLiteral(5)
+                    Idc = reader.ReadLiteral(Av1Constants.OperatingPointIdcBits),
+                    SequenceLevelIndex = (int)reader.ReadLiteral(Av1Constants.LevelBits)
                 };
                 if (!IsValidSequenceLevel(sequenceHeader.OperatingPoint[i].SequenceLevelIndex))
                 {
                     throw new InvalidImageContentException("The AV1 sequence header contains an undefined sequence-level index.");
                 }
 
-                if (sequenceHeader.OperatingPoint[i].SequenceLevelIndex > 7)
+                if (sequenceHeader.OperatingPoint[i].SequenceLevelIndex >= Av1Constants.SequenceTierMinimumLevelIndex)
                 {
                     sequenceHeader.OperatingPoint[i].SequenceTier = (int)reader.ReadLiteral(1);
                 }
@@ -983,10 +932,13 @@ internal sealed class ObuReader
                     sequenceHeader.OperatingPoint[i].IsDecoderModelInfoPresent = reader.ReadBoolean();
                     if (sequenceHeader.OperatingPoint[i].IsDecoderModelInfoPresent)
                     {
-                        // Operating-point delays affect scheduling rather than still-image reconstruction, but their
-                        // syntax must be consumed so the following image dimensions remain bit aligned.
+                        // Retain the scheduling values so the parsed sequence header can be written again without
+                        // losing decoder-model state that is independent from pixel reconstruction.
                         ObuDecoderModelInfo decoderModelInfo = sequenceHeader.GetDecoderModelInfo();
-                        ReadOperatingParametersInfo(ref reader, (int)decoderModelInfo.BufferDelayLength);
+                        ReadOperatingParametersInfo(
+                            ref reader,
+                            (int)decoderModelInfo.BufferDelayLength,
+                            sequenceHeader.OperatingPoint[i]);
                     }
                 }
                 else
@@ -1047,8 +999,8 @@ internal sealed class ObuReader
             sequenceHeader.EnableDualFilter = false;
             sequenceHeader.OrderHintInfo.EnableJointCompound = false;
             sequenceHeader.OrderHintInfo.EnableReferenceFrameMotionVectors = false;
-            sequenceHeader.ForceScreenContentTools = 2; // SELECT_SCREEN_CONTENT_TOOLS
-            sequenceHeader.ForceIntegerMotionVector = 2; // SELECT_INTEGER_MV
+            sequenceHeader.ForceScreenContentTools = Av1Constants.SelectScreenContentTools;
+            sequenceHeader.ForceIntegerMotionVector = Av1Constants.SelectIntegerMotionVector;
             sequenceHeader.OrderHintInfo.OrderHintBits = 0;
         }
         else
@@ -1072,7 +1024,7 @@ internal sealed class ObuReader
             bool seqChooseScreenContentTools = reader.ReadBoolean();
             if (seqChooseScreenContentTools)
             {
-                sequenceHeader.ForceScreenContentTools = 2; // SELECT_SCREEN_CONTENT_TOOLS
+                sequenceHeader.ForceScreenContentTools = Av1Constants.SelectScreenContentTools;
             }
             else
             {
@@ -1084,7 +1036,7 @@ internal sealed class ObuReader
                 bool seqChooseIntegerMv = reader.ReadBoolean();
                 if (seqChooseIntegerMv)
                 {
-                    sequenceHeader.ForceIntegerMotionVector = 2; // SELECT_INTEGER_MV
+                    sequenceHeader.ForceIntegerMotionVector = Av1Constants.SelectIntegerMotionVector;
                 }
                 else
                 {
@@ -1093,7 +1045,7 @@ internal sealed class ObuReader
             }
             else
             {
-                sequenceHeader.ForceIntegerMotionVector = 2; // SELECT_INTEGER_MV
+                sequenceHeader.ForceIntegerMotionVector = Av1Constants.SelectIntegerMotionVector;
             }
 
             if (sequenceHeader.EnableOrderHint)
@@ -1233,15 +1185,19 @@ internal sealed class ObuReader
     };
 
     /// <summary>
-    /// Consumes operating-point buffer parameters that do not affect still-image reconstruction.
+    /// Reads the decoder-model parameters for one operating point.
     /// </summary>
     /// <param name="reader">The reader positioned at the operating-point parameters.</param>
     /// <param name="bufferDelayLength">The bit width of each encoded buffer delay.</param>
-    private static void ReadOperatingParametersInfo(ref Av1BitStreamReader reader, int bufferDelayLength)
+    /// <param name="operatingPoint">The operating point that receives the decoded parameters.</param>
+    private static void ReadOperatingParametersInfo(
+        ref Av1BitStreamReader reader,
+        int bufferDelayLength,
+        ObuOperatingPoint operatingPoint)
     {
-        _ = reader.ReadLiteral(bufferDelayLength);
-        _ = reader.ReadLiteral(bufferDelayLength);
-        _ = reader.ReadBoolean();
+        operatingPoint.DecoderBufferDelay = reader.ReadLiteral(bufferDelayLength);
+        operatingPoint.EncoderBufferDelay = reader.ReadLiteral(bufferDelayLength);
+        operatingPoint.LowDelayMode = reader.ReadBoolean();
     }
 
     /// <summary>
@@ -1716,7 +1672,7 @@ internal sealed class ObuReader
                     throw new InvalidImageContentException("An AV1 still picture cannot display a previously decoded frame.");
                 }
 
-                frameHeader.FrameToShowMapIdx = reader.ReadLiteral(3);
+                frameHeader.FrameToShowMapIdx = reader.ReadLiteral(Av1Constants.ReferenceFrameIndexBits);
 
                 if (sequenceHeader.DecoderModelInfoPresentFlag && sequenceHeader.TimingInfo?.EqualPictureInterval == false)
                 {
@@ -1781,7 +1737,7 @@ internal sealed class ObuReader
                 return;
             }
 
-            frameHeader.FrameType = (ObuFrameType)reader.ReadLiteral(2);
+            frameHeader.FrameType = (ObuFrameType)reader.ReadLiteral(Av1Constants.FrameTypeBits);
             frameHeader.ShowFrame = reader.ReadBoolean();
             if (sequenceHeader.IsStillPicture && (frameHeader.FrameType != ObuFrameType.KeyFrame || !frameHeader.ShowFrame))
             {
@@ -2109,8 +2065,8 @@ internal sealed class ObuReader
 
         if (usesShortSignaling)
         {
-            uint lastFrameIndex = reader.ReadLiteral(ReferenceFrameIndexBits);
-            uint goldenFrameIndex = reader.ReadLiteral(ReferenceFrameIndexBits);
+            uint lastFrameIndex = reader.ReadLiteral(Av1Constants.ReferenceFrameIndexBits);
+            uint goldenFrameIndex = reader.ReadLiteral(Av1Constants.ReferenceFrameIndexBits);
             InlineArray8<bool> slotOccupancyStorage = default;
             Span<bool> slotOccupancy = slotOccupancyStorage;
 
@@ -2136,7 +2092,7 @@ internal sealed class ObuReader
             uint slot = referenceFrameIndices[reference];
             if (!usesShortSignaling)
             {
-                slot = reader.ReadLiteral(ReferenceFrameIndexBits);
+                slot = reader.ReadLiteral(Av1Constants.ReferenceFrameIndexBits);
                 referenceFrameIndices[reference] = slot;
             }
 
@@ -2778,31 +2734,43 @@ internal sealed class ObuReader
         {
             // Diagonal terms are coded as a delta from the identity scale, whereas off-diagonal terms are centered
             // directly around zero. Both are restored to the common sixteen-bit matrix precision after decoding.
+            int referenceHorizontalScale =
+                (referenceParameters[2] >> Av1GlobalMotionParameters.AlphaPrecisionDifference) -
+                (1 << Av1GlobalMotionParameters.AlphaPrecisionBits);
+
             parameters[2] =
                 (reader.ReadSignedReferenceSubexponential(
-                    GlobalMotionAlphaValueMagnitude,
-                    GlobalMotionSubexponentialGroupBitCount,
-                    (referenceParameters[2] >> GlobalMotionAlphaPrecisionDifference) - (1 << GlobalMotionAlphaPrecisionBits)) * GlobalMotionAlphaDecodeFactor) +
+                    Av1GlobalMotionParameters.AlphaValueMagnitude,
+                    Av1GlobalMotionParameters.SubexponentialGroupBitCount,
+                    referenceHorizontalScale) *
+                    Av1GlobalMotionParameters.AlphaDecodeFactor) +
                 Av1GlobalMotionParameters.ModelScale;
 
             parameters[3] = reader.ReadSignedReferenceSubexponential(
-                GlobalMotionAlphaValueMagnitude,
-                GlobalMotionSubexponentialGroupBitCount,
-                referenceParameters[3] >> GlobalMotionAlphaPrecisionDifference) * GlobalMotionAlphaDecodeFactor;
+                Av1GlobalMotionParameters.AlphaValueMagnitude,
+                Av1GlobalMotionParameters.SubexponentialGroupBitCount,
+                referenceParameters[3] >> Av1GlobalMotionParameters.AlphaPrecisionDifference) *
+                Av1GlobalMotionParameters.AlphaDecodeFactor;
         }
 
         if (type >= Av1GlobalMotionType.Affine)
         {
+            int referenceVerticalScale =
+                (referenceParameters[5] >> Av1GlobalMotionParameters.AlphaPrecisionDifference) -
+                (1 << Av1GlobalMotionParameters.AlphaPrecisionBits);
+
             parameters[4] = reader.ReadSignedReferenceSubexponential(
-                GlobalMotionAlphaValueMagnitude,
-                GlobalMotionSubexponentialGroupBitCount,
-                referenceParameters[4] >> GlobalMotionAlphaPrecisionDifference) * GlobalMotionAlphaDecodeFactor;
+                Av1GlobalMotionParameters.AlphaValueMagnitude,
+                Av1GlobalMotionParameters.SubexponentialGroupBitCount,
+                referenceParameters[4] >> Av1GlobalMotionParameters.AlphaPrecisionDifference) *
+                Av1GlobalMotionParameters.AlphaDecodeFactor;
 
             parameters[5] =
                 (reader.ReadSignedReferenceSubexponential(
-                    GlobalMotionAlphaValueMagnitude,
-                    GlobalMotionSubexponentialGroupBitCount,
-                    (referenceParameters[5] >> GlobalMotionAlphaPrecisionDifference) - (1 << GlobalMotionAlphaPrecisionBits)) * GlobalMotionAlphaDecodeFactor) +
+                    Av1GlobalMotionParameters.AlphaValueMagnitude,
+                    Av1GlobalMotionParameters.SubexponentialGroupBitCount,
+                    referenceVerticalScale) *
+                    Av1GlobalMotionParameters.AlphaDecodeFactor) +
                 Av1GlobalMotionParameters.ModelScale;
         }
         else
@@ -2820,23 +2788,26 @@ internal sealed class ObuReader
             // remains in quarter-sample units. Affine translation retains the fixed model-to-translation precision gap.
             int precisionAdjustment = type == Av1GlobalMotionType.Translation && !allowHighPrecisionMotionVector ? 1 : 0;
             int translationBits = type == Av1GlobalMotionType.Translation
-                ? GlobalMotionAbsoluteTranslationOnlyBits - precisionAdjustment
-                : GlobalMotionAbsoluteTranslationBits;
+                ? Av1GlobalMotionParameters.AbsoluteTranslationOnlyBits - precisionAdjustment
+                : Av1GlobalMotionParameters.AbsoluteTranslationBits;
 
             int translationPrecisionDifference = type == Av1GlobalMotionType.Translation
-                ? Av1GlobalMotionParameters.ModelPrecisionBits - GlobalMotionTranslationOnlyPrecisionBits + precisionAdjustment
-                : Av1GlobalMotionParameters.ModelPrecisionBits - GlobalMotionTranslationPrecisionBits;
+                ? Av1GlobalMotionParameters.ModelPrecisionBits -
+                    Av1GlobalMotionParameters.TranslationOnlyPrecisionBits +
+                    precisionAdjustment
+                : Av1GlobalMotionParameters.ModelPrecisionBits -
+                    Av1GlobalMotionParameters.TranslationPrecisionBits;
 
             int translationDecodeFactor = 1 << translationPrecisionDifference;
             int translationValueMagnitude = (1 << translationBits) + 1;
             parameters[0] = reader.ReadSignedReferenceSubexponential(
                 translationValueMagnitude,
-                GlobalMotionSubexponentialGroupBitCount,
+                Av1GlobalMotionParameters.SubexponentialGroupBitCount,
                 referenceParameters[0] >> translationPrecisionDifference) * translationDecodeFactor;
 
             parameters[1] = reader.ReadSignedReferenceSubexponential(
                 translationValueMagnitude,
-                GlobalMotionSubexponentialGroupBitCount,
+                Av1GlobalMotionParameters.SubexponentialGroupBitCount,
                 referenceParameters[1] >> translationPrecisionDifference) * translationDecodeFactor;
         }
 

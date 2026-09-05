@@ -129,8 +129,8 @@ public class ObuFrameHeaderTests
         MemoryStream encoded = new();
 
         // Act 2
-        ObuWriter obuWriter = new();
-        obuWriter.WriteAll(Configuration.Default, encoded, obuReader.SequenceHeader, obuReader.FrameHeader, tileStub);
+        using ObuWriter obuWriter = new(Configuration.Default);
+        obuWriter.WriteSequenceFrame(encoded, obuReader.SequenceHeader, obuReader.FrameHeader, tileStub);
 
         // Assert
         byte[] encodedArray = encoded.ToArray();
@@ -157,8 +157,8 @@ public class ObuFrameHeaderTests
         MemoryStream encoded = new();
 
         // Act 2
-        ObuWriter obuWriter = new();
-        obuWriter.WriteAll(Configuration.Default, encoded, obuReader1.SequenceHeader, obuReader1.FrameHeader, tileStub);
+        using ObuWriter obuWriter = new(Configuration.Default);
+        obuWriter.WriteSequenceFrame(encoded, obuReader1.SequenceHeader, obuReader1.FrameHeader, tileStub);
 
         // Assign 2
         Span<byte> encodedBuffer = encoded.ToArray();
@@ -456,8 +456,8 @@ public class ObuFrameHeaderTests
         tileStub.ReadTile(emptyTile, 0);
 
         using MemoryStream stream = new();
-        ObuWriter writer = new();
-        writer.WriteAll(Configuration.Default, stream, sequenceHeader, frameHeader, tileStub);
+        using ObuWriter writer = new(Configuration.Default);
+        writer.WriteSequenceFrame(stream, sequenceHeader, frameHeader, tileStub);
         byte[] bitStream = stream.ToArray();
 
         int sequenceObuOffset = DefaultTemporalDelimiterBitStream.Length;
@@ -639,10 +639,9 @@ public class ObuFrameHeaderTests
     {
         // Arrange
         using MemoryStream stream = new(2);
-        ObuWriter obuWriter = new();
 
         // Act
-        obuWriter.WriteAll(Configuration.Default, stream, null, null, null);
+        ObuWriter.WriteTemporalDelimiter(stream);
         byte[] actual = stream.GetBuffer();
 
         // Assert
@@ -655,16 +654,77 @@ public class ObuFrameHeaderTests
         // Arrange
         using MemoryStream stream = new(10);
         ObuSequenceHeader input = GetDefaultSequenceHeader();
-        ObuWriter obuWriter = new();
 
         // Act
-        obuWriter.WriteAll(Configuration.Default, stream, input, null, null);
+        ObuWriter.WriteSequenceHeader(Configuration.Default, stream, input);
         byte[] buffer = stream.GetBuffer();
 
         // Assert
         // Skip over Temporal Delimiter header.
         byte[] actual = buffer.AsSpan()[DefaultTemporalDelimiterBitStream.Length..].ToArray();
         Assert.Equal(DefaultSequenceHeaderBitStream, actual);
+    }
+
+    [Fact]
+    public void WriteNonReducedSequenceHeaderPreservesTimingAndDecoderModel()
+    {
+        ObuSequenceHeader input = GetDefaultSequenceHeader();
+        input.IsStillPicture = false;
+        input.IsReducedStillPictureHeader = false;
+        input.TimingInfoPresentFlag = true;
+        input.TimingInfo = new ObuTimingInfo
+        {
+            NumUnitsInDisplayTick = 1001,
+            TimeScale = 60000,
+            EqualPictureInterval = true,
+            NumTicksPerPicture = 2
+        };
+
+        input.DecoderModelInfoPresentFlag = true;
+        input.DecoderModelInfo = new ObuDecoderModelInfo
+        {
+            BufferDelayLength = 12,
+            NumUnitsInDecodingTick = 1000,
+            BufferRemovalTimeLength = 10,
+            FramePresentationTimeLength = 9
+        };
+
+        input.InitialDisplayDelayPresentFlag = true;
+        ObuOperatingPoint inputOperatingPoint = input.OperatingPoint[0];
+        inputOperatingPoint.SequenceLevelIndex = Av1Constants.SequenceTierMinimumLevelIndex;
+        inputOperatingPoint.SequenceTier = 1;
+        inputOperatingPoint.IsDecoderModelInfoPresent = true;
+        inputOperatingPoint.DecoderBufferDelay = 137;
+        inputOperatingPoint.EncoderBufferDelay = 211;
+        inputOperatingPoint.LowDelayMode = true;
+        inputOperatingPoint.IsInitialDisplayDelayPresent = true;
+        inputOperatingPoint.InitialDisplayDelay = 4;
+
+        using MemoryStream stream = new();
+        ObuWriter.WriteSequenceHeader(Configuration.Default, stream, input);
+        byte[] bitStream = stream.ToArray();
+        Av1BitStreamReader reader = new(bitStream);
+        ObuReader obuReader = new();
+        obuReader.ReadAll(ref reader, bitStream.Length, () => new Av1TileDecoderStub());
+
+        ObuSequenceHeader output = obuReader.SequenceHeader;
+        ObuTimingInfo outputTiming = output.GetTimingInfo();
+        ObuDecoderModelInfo outputDecoderModel = output.GetDecoderModelInfo();
+        ObuOperatingPoint outputOperatingPoint = output.OperatingPoint[0];
+        Assert.False(output.IsStillPicture);
+        Assert.False(output.IsReducedStillPictureHeader);
+        Assert.Equal(input.TimingInfo.NumUnitsInDisplayTick, outputTiming.NumUnitsInDisplayTick);
+        Assert.Equal(input.TimingInfo.TimeScale, outputTiming.TimeScale);
+        Assert.Equal(input.TimingInfo.NumTicksPerPicture, outputTiming.NumTicksPerPicture);
+        Assert.Equal(input.DecoderModelInfo.BufferDelayLength, outputDecoderModel.BufferDelayLength);
+        Assert.Equal(input.DecoderModelInfo.NumUnitsInDecodingTick, outputDecoderModel.NumUnitsInDecodingTick);
+        Assert.Equal(input.DecoderModelInfo.BufferRemovalTimeLength, outputDecoderModel.BufferRemovalTimeLength);
+        Assert.Equal(input.DecoderModelInfo.FramePresentationTimeLength, outputDecoderModel.FramePresentationTimeLength);
+        Assert.Equal(inputOperatingPoint.SequenceTier, outputOperatingPoint.SequenceTier);
+        Assert.Equal(inputOperatingPoint.DecoderBufferDelay, outputOperatingPoint.DecoderBufferDelay);
+        Assert.Equal(inputOperatingPoint.EncoderBufferDelay, outputOperatingPoint.EncoderBufferDelay);
+        Assert.Equal(inputOperatingPoint.LowDelayMode, outputOperatingPoint.LowDelayMode);
+        Assert.Equal(inputOperatingPoint.InitialDisplayDelay, outputOperatingPoint.InitialDisplayDelay);
     }
 
     /// <summary>
@@ -680,10 +740,10 @@ public class ObuFrameHeaderTests
         Av1TileDecoderStub tileStub = new();
         byte[] tileData = [0x80];
         tileStub.ReadTile(tileData, 0);
-        ObuWriter obuWriter = new();
+        using ObuWriter obuWriter = new(Configuration.Default);
 
         // Act
-        obuWriter.WriteAll(Configuration.Default, stream, sequenceInput, frameInput, tileStub);
+        obuWriter.WriteSequenceFrame(stream, sequenceInput, frameInput, tileStub);
         byte[] bitStream = stream.ToArray();
 
         // Assert
@@ -706,10 +766,10 @@ public class ObuFrameHeaderTests
     }
 
     /// <summary>
-    /// Verifies that the OBU writer streams an encoded tile from its owning buffer without renting a second payload-sized buffer.
+    /// Verifies that the OBU writer reuses header scratch and streams encoded tiles without a payload-sized copy.
     /// </summary>
     [Fact]
-    public void WriteFrameStreamsTilePayloadWithoutRentingPayloadCopy()
+    public void WriterReusesHeaderScratchAndStreamsTilePayloadWithoutCopy()
     {
         const int TilePayloadLength = 64 * 1024;
 
@@ -725,8 +785,13 @@ public class ObuFrameHeaderTests
         tileStub.ReadTile(tileData, 0);
 
         using MemoryStream stream = new();
-        ObuWriter writer = new();
-        writer.WriteAll(configuration, stream, sequenceHeader, frameHeader, tileStub);
+        using (ObuWriter writer = new(configuration))
+        {
+            writer.WriteSequenceFrame(stream, sequenceHeader, frameHeader, tileStub);
+
+            // A second complete write must reuse the same bounded header owner retained by the writer.
+            writer.WriteSequenceFrame(stream, sequenceHeader, frameHeader, tileStub);
+        }
 
         TestMemoryAllocator.AllocationRequest headerScratch = Assert.Single(allocator.AllocationLog);
         Assert.Equal(typeof(byte), headerScratch.ElementType);
@@ -760,8 +825,8 @@ public class ObuFrameHeaderTests
         sourceTiles.ReadTile([0x80], 1);
 
         using MemoryStream stream = new();
-        ObuWriter writer = new();
-        writer.WriteAll(Configuration.Default, stream, sequenceHeader, frameHeader, sourceTiles);
+        using ObuWriter writer = new(Configuration.Default);
+        writer.WriteSequenceFrame(stream, sequenceHeader, frameHeader, sourceTiles);
         byte[] bitStream = stream.ToArray();
         Assert.Equal([0x00, 0x80, 0x80], bitStream[^3..]);
 
@@ -936,8 +1001,8 @@ public class ObuFrameHeaderTests
         tileStub.ReadTile([0x80], 1);
 
         using MemoryStream stream = new();
-        ObuWriter writer = new();
-        writer.WriteAll(Configuration.Default, stream, sequenceHeader, frameHeader, tileStub);
+        using ObuWriter writer = new(Configuration.Default);
+        writer.WriteSequenceFrame(stream, sequenceHeader, frameHeader, tileStub);
         return stream.ToArray();
     }
 

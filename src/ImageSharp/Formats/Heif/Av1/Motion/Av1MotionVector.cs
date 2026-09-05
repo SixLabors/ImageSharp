@@ -14,6 +14,16 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
     public const int MaximumTemporalDistance = 31;
 
     /// <summary>
+    /// The number of fractional bits used by AV1 motion-vector components.
+    /// </summary>
+    public const int SubpixelBits = 3;
+
+    /// <summary>
+    /// The number of motion-vector units in one full pixel.
+    /// </summary>
+    public const int SubpixelScale = 1 << SubpixelBits;
+
+    /// <summary>
     /// The reserved lower endpoint of the signed AV1 motion-vector domain.
     /// </summary>
     private const int LowerBound = -16384;

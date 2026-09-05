@@ -16,16 +16,59 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 
 internal sealed partial class HeifEncoderCore
 {
+    /// <summary>
+    /// The millisecond media timescale used when every frame delay can be represented exactly.
+    /// </summary>
     private const uint DefaultSequenceTimescale = 1000;
+
+    /// <summary>
+    /// The microsecond fallback used when the exact common frame-delay timescale exceeds 32 bits.
+    /// </summary>
     private const uint FallbackSequenceTimescale = 1000000;
+
+    /// <summary>
+    /// The identity value for signed 16.16 movie and track matrix entries.
+    /// </summary>
     private const uint UnityFixed16Point16 = 1U << 16;
+
+    /// <summary>
+    /// The identity value for the signed 2.30 homogeneous movie and track matrix entry.
+    /// </summary>
     private const uint UnityFixed2Point30 = 1U << 30;
+
+    /// <summary>
+    /// The identity value for unsigned 8.8 track volume.
+    /// </summary>
     private const ushort UnityFixed8Point8 = 1 << 8;
+
+    /// <summary>
+    /// The packed ISO 639-2/T language code for undetermined content.
+    /// </summary>
     private const ushort PackedUndeterminedLanguage = 0x55C4;
+
+    /// <summary>
+    /// The coding-constraints flag stating that every reference picture is intra.
+    /// </summary>
     private const uint AllReferencePicturesIntraMask = 1U << 31;
+
+    /// <summary>
+    /// The coding-constraints flag stating that intra prediction is used.
+    /// </summary>
     private const uint IntraPicturePredictionUsedMask = 1U << 30;
+
+    /// <summary>
+    /// The conventional 72-dpi horizontal and vertical resolution stored as unsigned 16.16.
+    /// </summary>
     private const uint DefaultVisualSampleResolution = 72U << 16;
+
+    /// <summary>
+    /// The fixed visual-sample-entry compressor-name field length.
+    /// </summary>
     private const int VisualSampleCompressorNameLength = 32;
+
+    /// <summary>
+    /// The visual-sample-entry depth used for color pictures.
+    /// </summary>
     private const ushort VisualSampleDepth = 24;
 
     private Av1EncodingSettings ResolveAv1Encoding<TPixel>(Image<TPixel> image)
@@ -47,6 +90,18 @@ internal sealed partial class HeifEncoderCore
 
         HeifChromaSubsampling chromaSubsampling = this.encoder.ChromaSubsampling ??
             (metadata.IsMonochrome ? HeifChromaSubsampling.Monochrome : defaultChromaSubsampling);
+
+        if (this.encoder.ChromaSubsampling is null
+            && image.Frames.Count == 1
+            && (image.Width > Av1Constants.MaxFrameDimension || image.Height > Av1Constants.MaxFrameDimension)
+            && ((chromaSubsampling == HeifChromaSubsampling.Yuv420
+                    && (((image.Width & 1) != 0) || ((image.Height & 1) != 0)))
+                || (chromaSubsampling == HeifChromaSubsampling.Yuv422 && (image.Width & 1) != 0)))
+        {
+            // A derived grid requires even output dimensions on every subsampled axis. When sampling was not
+            // explicitly requested, retain the complete image dimensions by selecting full-resolution chroma.
+            chromaSubsampling = HeifChromaSubsampling.Yuv444;
+        }
 
         (bool isMonochrome, bool subsamplingX, bool subsamplingY) = chromaSubsampling switch
         {
@@ -143,14 +198,10 @@ internal sealed partial class HeifEncoderCore
         ChunkedMemoryStream stream,
         Av1EncodingSettings settings,
         Memory<HeifSequenceSampleInfo> samples,
+        int firstFrameIndex,
         CancellationToken cancellationToken)
         where TPixel : unmanaged, IPixel<TPixel>
     {
-        if (image.Width > ushort.MaxValue || image.Height > ushort.MaxValue)
-        {
-            throw new NotSupportedException("AV1 image-sequence dimensions cannot exceed 65535 pixels.");
-        }
-
         byte[]? exifData = null;
         uint tiffHeaderOffset = 0;
         byte[]? xmpData = null;
@@ -164,47 +215,58 @@ internal sealed partial class HeifEncoderCore
             }
         }
 
-        int frameCount = image.Frames.Count;
-        uint timescale = GetSequenceTimescale(image);
+        int frameCount = image.Frames.Count - firstFrameIndex;
+        uint timescale = GetSequenceTimescale(image, firstFrameIndex);
 
         // The container needs only offset, length, and duration after each frame is streamed. Color and alpha
         // share one allocator-owned table, with each track occupying one contiguous slice until moov is written.
         Span<HeifSequenceSampleInfo> colorSamples = samples.Span[..frameCount];
-        ImageFrame<TPixel> rootFrame = image.Frames.RootFrame;
-        uint duration = GetSequenceSampleDuration(rootFrame.Metadata.GetHeifMetadata().FrameDelay, timescale);
-        cancellationToken.ThrowIfCancellationRequested();
-        long colorOffset = stream.Length;
-        ObuSequenceHeader colorHeader = Av1FrameEncoder.Encode(
+        ImageFrame<TPixel> firstFrame = image.Frames[firstFrameIndex];
+        ObuSequenceHeader colorHeader;
+        bool colorUsesInterPrediction = settings.ColorQIndex != 0;
+        using (Av1FrameEncoder.SequenceEncoder colorEncoder = Av1FrameEncoder.CreateColorSequenceEncoder(
             this.configuration,
-            rootFrame,
-            stream,
+            image.Width,
+            image.Height,
             settings.ColorConfig,
             settings.ColorQIndex,
-            this.encoder.Effort);
-
-        colorSamples[0] = new HeifSequenceSampleInfo(
-            colorOffset,
-            checked((int)(stream.Length - colorOffset)),
-            duration);
-
-        for (int frameIndex = 1; frameIndex < frameCount; frameIndex++)
+            this.encoder.Effort))
         {
             cancellationToken.ThrowIfCancellationRequested();
-            ImageFrame<TPixel> frame = image.Frames[frameIndex];
-            duration = GetSequenceSampleDuration(frame.Metadata.GetHeifMetadata().FrameDelay, timescale);
-            colorOffset = stream.Length;
-            _ = Av1FrameEncoder.Encode(
-                this.configuration,
-                frame,
-                stream,
-                settings.ColorConfig,
-                settings.ColorQIndex,
-                this.encoder.Effort);
+            long colorOffset = stream.Length;
+            colorEncoder.EncodeKeyFrame(firstFrame, stream);
+            colorHeader = colorEncoder.SequenceHeader;
 
-            colorSamples[frameIndex] = new HeifSequenceSampleInfo(
+            colorSamples[0] = new HeifSequenceSampleInfo(
                 colorOffset,
                 checked((int)(stream.Length - colorOffset)),
-                duration);
+                GetSequenceSampleDuration(firstFrame.Metadata.GetHeifMetadata().FrameDelay, timescale),
+                isSyncSample: true);
+
+            for (int sampleIndex = 1; sampleIndex < frameCount; sampleIndex++)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                int frameIndex = firstFrameIndex + sampleIndex;
+                ImageFrame<TPixel> frame = image.Frames[frameIndex];
+                uint duration = GetSequenceSampleDuration(frame.Metadata.GetHeifMetadata().FrameDelay, timescale);
+                colorOffset = stream.Length;
+                if (colorUsesInterPrediction)
+                {
+                    colorEncoder.EncodeInterFrame(frame, stream);
+                }
+                else
+                {
+                    // Lossless AV1 requires 4x4 transforms. Until the inter path supports that reversible size,
+                    // continuation samples remain independent key frames instead of weakening losslessness.
+                    colorEncoder.EncodeKeyFrame(frame, stream);
+                }
+
+                colorSamples[sampleIndex] = new HeifSequenceSampleInfo(
+                    colorOffset,
+                    checked((int)(stream.Length - colorOffset)),
+                    duration,
+                    isSyncSample: !colorUsesInterPrediction);
+            }
         }
 
         HeifSequenceTrackEncoding colorTrack = new(
@@ -217,37 +279,47 @@ internal sealed partial class HeifEncoderCore
         {
             Memory<HeifSequenceSampleInfo> alphaSampleMemory = samples.Slice(frameCount, frameCount);
             Span<HeifSequenceSampleInfo> alphaSamples = alphaSampleMemory.Span;
-            cancellationToken.ThrowIfCancellationRequested();
-            long alphaOffset = stream.Length;
-            ObuSequenceHeader alphaHeader = Av1FrameEncoder.EncodeAlpha(
+            ObuSequenceHeader alphaHeader;
+            bool alphaUsesInterPrediction = settings.AlphaQIndex != 0;
+            using (Av1FrameEncoder.SequenceEncoder alphaEncoder = Av1FrameEncoder.CreateAlphaSequenceEncoder(
                 this.configuration,
-                rootFrame,
-                stream,
+                image.Width,
+                image.Height,
                 settings.AlphaConfig,
                 settings.AlphaQIndex,
-                this.encoder.Effort);
-
-            alphaSamples[0] = new HeifSequenceSampleInfo(
-                alphaOffset,
-                checked((int)(stream.Length - alphaOffset)),
-                colorSamples[0].Duration);
-
-            for (int frameIndex = 1; frameIndex < frameCount; frameIndex++)
+                this.encoder.Effort))
             {
                 cancellationToken.ThrowIfCancellationRequested();
-                alphaOffset = stream.Length;
-                _ = Av1FrameEncoder.EncodeAlpha(
-                    this.configuration,
-                    image.Frames[frameIndex],
-                    stream,
-                    settings.AlphaConfig,
-                    settings.AlphaQIndex,
-                    this.encoder.Effort);
+                long alphaOffset = stream.Length;
+                alphaEncoder.EncodeKeyFrame(firstFrame, stream);
+                alphaHeader = alphaEncoder.SequenceHeader;
 
-                alphaSamples[frameIndex] = new HeifSequenceSampleInfo(
+                alphaSamples[0] = new HeifSequenceSampleInfo(
                     alphaOffset,
                     checked((int)(stream.Length - alphaOffset)),
-                    colorSamples[frameIndex].Duration);
+                    colorSamples[0].Duration,
+                    isSyncSample: true);
+
+                for (int sampleIndex = 1; sampleIndex < frameCount; sampleIndex++)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    int frameIndex = firstFrameIndex + sampleIndex;
+                    alphaOffset = stream.Length;
+                    if (alphaUsesInterPrediction)
+                    {
+                        alphaEncoder.EncodeInterFrame(image.Frames[frameIndex], stream);
+                    }
+                    else
+                    {
+                        alphaEncoder.EncodeKeyFrame(image.Frames[frameIndex], stream);
+                    }
+
+                    alphaSamples[sampleIndex] = new HeifSequenceSampleInfo(
+                        alphaOffset,
+                        checked((int)(stream.Length - alphaOffset)),
+                        colorSamples[sampleIndex].Duration,
+                        isSyncSample: !alphaUsesInterPrediction);
+                }
             }
 
             alphaTrack = new HeifSequenceTrackEncoding(
@@ -266,7 +338,7 @@ internal sealed partial class HeifEncoderCore
         return new HeifSequenceEncoding(
             image.Width,
             image.Height,
-            image.Metadata.GetHeifMetadata().RepeatCount,
+            this.encoder.RepeatCount ?? image.Metadata.GetHeifMetadata().RepeatCount,
             timescale,
             colorTrack,
             alphaTrack,
@@ -279,7 +351,7 @@ internal sealed partial class HeifEncoderCore
 
     private int WriteSequenceFileTypeBox(Stream stream)
     {
-        Span<byte> buffer = stackalloc byte[32];
+        Span<byte> buffer = stackalloc byte[44];
         int bytesWritten = WriteBoxHeader(buffer, Heif4CharCode.Ftyp);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Avis);
         bytesWritten += sizeof(uint);
@@ -287,18 +359,24 @@ internal sealed partial class HeifEncoderCore
         bytesWritten += sizeof(uint);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Avif);
         bytesWritten += sizeof(uint);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Avio);
+        bytesWritten += sizeof(uint);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Avis);
+        bytesWritten += sizeof(uint);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Msf1);
         bytesWritten += sizeof(uint);
         BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Iso8);
         bytesWritten += sizeof(uint);
-        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Avio);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Mif1);
+        bytesWritten += sizeof(uint);
+        BinaryPrimitives.WriteUInt32BigEndian(buffer[bytesWritten..], (uint)Heif4CharCode.Miaf);
         bytesWritten += sizeof(uint);
         BinaryPrimitives.WriteUInt32BigEndian(buffer, (uint)bytesWritten);
         stream.Write(buffer[..bytesWritten]);
         return bytesWritten;
     }
 
-    private void WriteSequenceMovieBox(HeifSequenceEncoding sequence, int fileTypeLength, Stream stream)
+    private void WriteSequenceMovieBox(HeifSequenceEncoding sequence, int precedingBoxLength, Stream stream)
     {
         int movieLength = GetSequenceMovieBoxLength(sequence);
         using IMemoryOwner<byte> movieOwner = this.configuration.MemoryAllocator.Allocate<byte>(movieLength);
@@ -343,7 +421,7 @@ internal sealed partial class HeifEncoderCore
         }
 
         EndSequenceBox(memory, movieStart, offset);
-        ulong mediaDataOffset = checked((ulong)fileTypeLength + (uint)offset + 8U);
+        ulong mediaDataOffset = checked((ulong)precedingBoxLength + (uint)offset + 8U);
         BinaryPrimitives.WriteUInt64BigEndian(
             memory[colorChunkOffsetPosition..],
             checked(mediaDataOffset + (ulong)sequence.ColorTrack.Samples[0].Offset));
@@ -377,7 +455,8 @@ internal sealed partial class HeifEncoderCore
         const int chunkOffsetBoxLength = 24;
         const int syncSampleBoxFixedLength = 16;
         const int timingRunLength = 8;
-        const int sampleSizeAndSyncEntryLength = 8;
+        const int sampleSizeEntryLength = sizeof(uint);
+        const int syncSampleEntryLength = sizeof(uint);
         const int sampleTableFixedLength =
             sampleTableBoxHeaderLength
             + sampleDescriptionBoxLength
@@ -398,10 +477,12 @@ internal sealed partial class HeifEncoderCore
 
         int repeatBoxLength = sequence.RepeatCount == 1 ? 0 : editListBoxLength;
         int colorRunCount = GetSequenceTimingRunCount(sequence.ColorTrack.Samples);
+        int colorSyncSampleCount = GetSequenceSyncSampleCount(sequence.ColorTrack.Samples);
         long colorSampleTableLength =
             (long)sampleTableFixedLength
             + (colorRunCount * timingRunLength)
-            + (sequence.ColorTrack.Samples.Length * sampleSizeAndSyncEntryLength)
+            + (sequence.ColorTrack.Samples.Length * sampleSizeEntryLength)
+            + (colorSyncSampleCount * syncSampleEntryLength)
             + colorInformationBoxLength;
 
         if (!sequence.IccProfileData.IsEmpty)
@@ -436,6 +517,7 @@ internal sealed partial class HeifEncoderCore
         {
             HeifSequenceTrackEncoding alphaTrack = sequence.AlphaTrack.GetValueOrDefault();
             int alphaRunCount = GetSequenceTimingRunCount(alphaTrack.Samples);
+            int alphaSyncSampleCount = GetSequenceSyncSampleCount(alphaTrack.Samples);
             int auxiliaryTypeBoxLength =
                 FullBoxHeaderLength
                 + Encoding.UTF8.GetByteCount(HeifConstants.AlphaAuxiliaryType)
@@ -444,7 +526,8 @@ internal sealed partial class HeifEncoderCore
             long alphaSampleTableLength =
                 (long)sampleTableFixedLength
                 + (alphaRunCount * timingRunLength)
-                + (alphaTrack.Samples.Length * sampleSizeAndSyncEntryLength)
+                + (alphaTrack.Samples.Length * sampleSizeEntryLength)
+                + (alphaSyncSampleCount * syncSampleEntryLength)
                 + auxiliaryTypeBoxLength;
 
             alphaTrackLength =
@@ -774,13 +857,19 @@ internal sealed partial class HeifEncoderCore
         WriteSequenceUInt64(memory, ref offset, 0);
         EndSequenceBox(memory, chunkOffsetsStart, offset);
 
-        // The current bounded sequence encoder emits independent all-intra pictures; every sample is seekable.
+        int syncSampleCount = GetSequenceSyncSampleCount(track.Samples);
         int syncSamplesStart = BeginSequenceBox(memory, ref offset, Heif4CharCode.Stss);
         WriteSequenceFullBoxHeader(memory, ref offset, 0, 0);
-        WriteSequenceUInt32(memory, ref offset, (uint)track.Samples.Length);
-        for (uint sampleIndex = 1; sampleIndex <= track.Samples.Length; sampleIndex++)
+        WriteSequenceUInt32(memory, ref offset, (uint)syncSampleCount);
+        uint sampleNumber = 1;
+        foreach (HeifSequenceSampleInfo sample in track.Samples)
         {
-            WriteSequenceUInt32(memory, ref offset, sampleIndex);
+            if (sample.IsSyncSample)
+            {
+                WriteSequenceUInt32(memory, ref offset, sampleNumber);
+            }
+
+            sampleNumber++;
         }
 
         EndSequenceBox(memory, syncSamplesStart, offset);
@@ -839,9 +928,15 @@ internal sealed partial class HeifEncoderCore
         int codingConstraintsStart = BeginSequenceBox(memory, ref offset, Heif4CharCode.Ccst);
         WriteSequenceFullBoxHeader(memory, ref offset, 0, 0);
 
-        // Every emitted sequence sample is independently decodable, while intra prediction remains available inside
-        // each picture. No inter-picture reference slot is therefore advertised.
-        WriteSequenceUInt32(memory, ref offset, AllReferencePicturesIntraMask | IntraPicturePredictionUsedMask);
+        uint codingConstraints = IntraPicturePredictionUsedMask;
+        if (GetSequenceSyncSampleCount(track.Samples) == track.Samples.Length)
+        {
+            codingConstraints |= AllReferencePicturesIntraMask;
+        }
+
+        // Sync samples are key frames in this encoder. The all-intra flag is therefore valid when every sample
+        // is independently decodable, including lossless sequences that deliberately avoid inter transforms.
+        WriteSequenceUInt32(memory, ref offset, codingConstraints);
         EndSequenceBox(memory, codingConstraintsStart, offset);
         EndSequenceBox(memory, sampleEntryStart, offset);
         EndSequenceBox(memory, descriptionStart, offset);
@@ -892,6 +987,20 @@ internal sealed partial class HeifEncoderCore
         return runCount;
     }
 
+    private static int GetSequenceSyncSampleCount(ReadOnlySpan<HeifSequenceSampleInfo> samples)
+    {
+        int count = 0;
+        foreach (HeifSequenceSampleInfo sample in samples)
+        {
+            if (sample.IsSyncSample)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
     private static uint GetSequenceSampleDuration(Rational delay, uint timescale)
     {
         // HEIF metadata uses either a zero numerator or a zero denominator for an unspecified duration.
@@ -905,12 +1014,13 @@ internal sealed partial class HeifEncoderCore
         return checked((uint)Math.Max(1UL, scaledDuration / delay.Denominator));
     }
 
-    private static uint GetSequenceTimescale<TPixel>(Image<TPixel> image)
+    private static uint GetSequenceTimescale<TPixel>(Image<TPixel> image, int firstFrameIndex)
         where TPixel : unmanaged, IPixel<TPixel>
     {
         uint timescale = DefaultSequenceTimescale;
-        foreach (ImageFrame<TPixel> frame in image.Frames)
+        for (int frameIndex = firstFrameIndex; frameIndex < image.Frames.Count; frameIndex++)
         {
+            ImageFrame<TPixel> frame = image.Frames[frameIndex];
             Rational delay = frame.Metadata.GetHeifMetadata().FrameDelay;
             if (delay.Numerator == 0 || delay.Denominator == 0)
             {
@@ -1070,11 +1180,12 @@ internal sealed partial class HeifEncoderCore
 
     private readonly struct HeifSequenceSampleInfo
     {
-        public HeifSequenceSampleInfo(long offset, int length, uint duration)
+        public HeifSequenceSampleInfo(long offset, int length, uint duration, bool isSyncSample)
         {
             this.Offset = offset;
             this.Length = length;
             this.Duration = duration;
+            this.IsSyncSample = isSyncSample;
         }
 
         public long Offset { get; }
@@ -1082,6 +1193,8 @@ internal sealed partial class HeifEncoderCore
         public int Length { get; }
 
         public uint Duration { get; }
+
+        public bool IsSyncSample { get; }
     }
 
     private readonly struct HeifSequenceEncoding

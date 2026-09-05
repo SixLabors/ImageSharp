@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -22,14 +23,26 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
     public const int MaximumPartitionCount = 1 + 4 + 16 + 64 + 256;
 
     /// <summary>
-    /// The complete workspace length in packed final-block storage elements.
+    /// The decision-region length in packed final-block storage elements.
     /// </summary>
-    public const int StorageLength = MaximumFinalBlockCount + ((MaximumPartitionCount + Av1EncoderBlockStruct.StorageSize - 1) / Av1EncoderBlockStruct.StorageSize);
+    public const int DecisionStorageLength = MaximumFinalBlockCount + ((MaximumPartitionCount + Av1EncoderBlockStruct.StorageSize - 1) / Av1EncoderBlockStruct.StorageSize);
 
-    private readonly Configuration configuration;
-    private readonly IMemoryOwner<Av1EncoderBlockStruct> owner;
-    private Av1EncoderPaletteMapBuffer? paletteMaps;
+    /// <summary>
+    /// The byte length of the aligned final-block and partition decision region.
+    /// </summary>
+    public const int DecisionStorageByteLength = DecisionStorageLength * Av1EncoderBlockStruct.StorageSize;
+
+    /// <summary>
+    /// The complete byte length of the decision and palette-map regions.
+    /// </summary>
+    public const int StorageByteLength = DecisionStorageByteLength + Av1EncoderPaletteMapBuffer.StorageLength;
+
+    private const int PartitionStorageOffset = MaximumFinalBlockCount * Av1EncoderBlockStruct.StorageSize;
+
+    private readonly IMemoryOwner<byte> owner;
+    private readonly Av1EncoderPaletteMapBuffer paletteMaps;
     private Av1EncoderPaletteInfo paletteInfo;
+    private Av1ReferenceMotionVectors referenceMotionVectors;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1EncoderSuperblockWorkspace"/> class.
@@ -37,21 +50,27 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
     /// <param name="configuration">The configuration providing the encoder allocator.</param>
     public Av1EncoderSuperblockWorkspace(Configuration configuration)
     {
-        this.configuration = configuration;
-        this.owner = configuration.MemoryAllocator.Allocate<Av1EncoderBlockStruct>(StorageLength);
+        this.owner = configuration.MemoryAllocator.Allocate<byte>(StorageByteLength);
+        Memory<byte> storage = this.owner.Memory[..StorageByteLength];
+
+        // Decisions and palette maps have the same serial superblock lifetime. Keeping both regions in one
+        // owner preserves their distinct layouts while removing a separate palette allocation and cleanup path.
+        this.paletteMaps = new Av1EncoderPaletteMapBuffer(
+            storage.Slice(DecisionStorageByteLength, Av1EncoderPaletteMapBuffer.StorageLength));
+
         this.Reset();
     }
 
     /// <summary>
     /// Gets the maximum-size final-block decision span in partition traversal order.
     /// </summary>
-    public Span<Av1EncoderBlockStruct> FinalBlocks => this.owner.Memory.Span[..MaximumFinalBlockCount];
+    public Span<Av1EncoderBlockStruct> FinalBlocks
+        => MemoryMarshal.Cast<byte, Av1EncoderBlockStruct>(this.owner.Memory.Span[..DecisionStorageByteLength])[..MaximumFinalBlockCount];
 
     /// <summary>
     /// Gets the maximum-size partition-type span in partition-tree preorder.
     /// </summary>
-    public Span<byte> PartitionTypes
-        => MemoryMarshal.AsBytes(this.owner.Memory.Span[MaximumFinalBlockCount..])[..MaximumPartitionCount];
+    public Span<byte> PartitionTypes => this.owner.Memory.Span.Slice(PartitionStorageOffset, MaximumPartitionCount);
 
     /// <summary>
     /// Gets the palette sizes and colors selected for the block currently being written.
@@ -59,20 +78,15 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
     public ref Av1EncoderPaletteInfo PaletteInfo => ref this.paletteInfo;
 
     /// <summary>
-    /// Gets the reusable palette maps, allocating their shared owner only after a block enters palette search.
+    /// Gets the reusable reference-vector stack used while writing inter syntax.
+    /// </summary>
+    public ref Av1ReferenceMotionVectors ReferenceMotionVectors => ref this.referenceMotionVectors;
+
+    /// <summary>
+    /// Gets the reusable palette maps within the superblock-workspace owner.
     /// </summary>
     /// <returns>The reusable luma and chroma palette maps.</returns>
-    public Av1EncoderPaletteMapBuffer GetPaletteMaps()
-    {
-        Av1EncoderPaletteMapBuffer? maps = this.paletteMaps;
-        if (maps is null)
-        {
-            maps = new Av1EncoderPaletteMapBuffer(this.configuration);
-            this.paletteMaps = maps;
-        }
-
-        return maps;
-    }
+    public Av1EncoderPaletteMapBuffer GetPaletteMaps() => this.paletteMaps;
 
     /// <summary>
     /// Clears all decisions before the workspace is reused for another superblock.
@@ -86,7 +100,7 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
         };
 
         this.FinalBlocks.Fill(initialBlock);
-        MemoryMarshal.AsBytes(this.owner.Memory.Span[MaximumFinalBlockCount..]).Clear();
+        this.PartitionTypes.Clear();
         this.paletteInfo = default;
     }
 
@@ -95,7 +109,7 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
     /// </summary>
     public void Dispose()
     {
-        this.paletteMaps?.Dispose();
+        this.paletteMaps.Dispose();
         this.owner.Dispose();
     }
 }

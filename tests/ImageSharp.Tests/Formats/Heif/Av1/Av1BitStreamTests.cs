@@ -204,6 +204,26 @@ public class Av1BitStreamTests
         Assert.Equal(values, actuals);
     }
 
+    [Fact]
+    public void SignedReferenceSubexponentialMatchesFiniteRecentering()
+    {
+        const int ValueMagnitude = 5;
+        const int GroupBitCount = 3;
+        byte[] buffer = new byte[2];
+        Av1BitStreamWriter writer = new(buffer);
+        writer.WriteSignedReferenceSubexponential(-4, ValueMagnitude, GroupBitCount, -4);
+        writer.WriteSignedReferenceSubexponential(4, ValueMagnitude, GroupBitCount, -4);
+        writer.WriteSignedReferenceSubexponential(0, ValueMagnitude, GroupBitCount, 0);
+        writer.Flush();
+
+        Assert.Equal([0x1e, 0x00], buffer);
+
+        Av1BitStreamReader reader = new(buffer);
+        Assert.Equal(-4, reader.ReadSignedReferenceSubexponential(ValueMagnitude, GroupBitCount, -4));
+        Assert.Equal(4, reader.ReadSignedReferenceSubexponential(ValueMagnitude, GroupBitCount, -4));
+        Assert.Equal(0, reader.ReadSignedReferenceSubexponential(ValueMagnitude, GroupBitCount, 0));
+    }
+
     [Theory]
     [InlineData(3)]
     [InlineData(4)]

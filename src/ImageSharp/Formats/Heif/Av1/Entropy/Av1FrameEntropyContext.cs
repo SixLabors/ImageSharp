@@ -512,8 +512,8 @@ internal sealed class Av1FrameEntropyContext
     {
         int qContext = GetQContext(qIndex);
 
-        // The prototypes are never exposed to a range reader. Copying their state lets a decoder session reuse the
-        // same three mutable object graphs even when successive frames select different coefficient-model bands.
+        // The prototypes are never exposed to a range reader or writer. Copying their state lets each codec session
+        // reuse its mutable object graphs even when successive frames select different coefficient-model bands.
         this.CopyFrom(DefaultPrototypes[qContext]);
     }
 

@@ -112,6 +112,37 @@ public class Av1MotionVectorEntropyTests
         Assert.True(decoder.ReadDrl(1));
     }
 
+    [Theory]
+    [InlineData((int)Av1MotionVectorPrecision.Integer, 16, -24)]
+    [InlineData((int)Av1MotionVectorPrecision.QuarterSample, 6, -10)]
+    [InlineData((int)Av1MotionVectorPrecision.EighthSample, 11, -17)]
+    public void WriteMotionVectorRoundTripsRequestedPrecision(
+        int precisionValue,
+        int rowDelta,
+        int columnDelta)
+    {
+        Av1MotionVectorPrecision precision = (Av1MotionVectorPrecision)precisionValue;
+        Av1MotionVector reference = new(27, -11);
+        Av1MotionVector value = reference + new Av1MotionVector(rowDelta, columnDelta);
+        Av1MotionVectorContext writerContext = new();
+        Av1Distribution trailingDistribution = Av1DefaultDistributions.Drl[1];
+        using Av1SymbolWriter writer = new(Configuration.Default, 32, updateCdf: true);
+
+        writerContext.Write(writer, value, reference, precision);
+        writer.WriteSymbol(true, trailingDistribution);
+
+        using IMemoryOwner<byte> encoded = writer.Exit();
+        Av1FrameEntropyContext decoderContext = new(0);
+        Av1SymbolDecoder decoder = new(
+            Configuration.Default,
+            encoded.Memory.Span,
+            decoderContext,
+            updateCdf: true);
+
+        Assert.Equal(value, decoder.ReadMotionVector(reference, precision));
+        Assert.True(decoder.ReadDrl(1));
+    }
+
     /// <summary>
     /// Verifies that normal and displacement motion vectors never share adaptive distribution state.
     /// </summary>

@@ -3,7 +3,6 @@
 
 using System.Buffers;
 using System.Buffers.Binary;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Components.Alpha;
 using SixLabors.ImageSharp.Memory;
@@ -19,6 +18,31 @@ namespace SixLabors.ImageSharp.Formats.Heif;
 internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IHeifAlphaItemDecoder<TPixel>
     where TPixel : unmanaged, IPixel<TPixel>
 {
+    /// <summary>
+    /// The image-grid descriptor version defined by HEIF.
+    /// </summary>
+    private const byte GridDescriptorVersion = 0;
+
+    /// <summary>
+    /// The descriptor flag that selects 32-bit output dimensions instead of 16-bit dimensions.
+    /// </summary>
+    private const byte LargeDimensionsFlag = 1;
+
+    /// <summary>
+    /// The descriptor length when output dimensions use 16-bit fields.
+    /// </summary>
+    private const int ShortGridDescriptorLength = 8;
+
+    /// <summary>
+    /// The descriptor length when output dimensions use 32-bit fields.
+    /// </summary>
+    private const int LongGridDescriptorLength = 12;
+
+    /// <summary>
+    /// The minimum width and height of the first cell in a MIAF image grid.
+    /// </summary>
+    private const int MinimumGridCellDimension = 64;
+
     /// <summary>
     /// The item definitions available to the grid, indexed by item identifier.
     /// </summary>
@@ -122,9 +146,16 @@ internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
                     ref av1GridConfiguration,
                     cancellationToken);
 
-                if (tile.Width != tileWidth || tile.Height != tileHeight)
+                Size copySize = GetGridTileCopySize(
+                    descriptor,
+                    tileWidth,
+                    tileHeight,
+                    tileIndex);
+
+                if (!IsGridTileExtentValid(tile.Size, copySize, tileWidth, tileHeight))
                 {
-                    throw new InvalidImageContentException("The HEIF image grid contains tiles with mismatched dimensions.");
+                    throw new InvalidImageContentException(
+                        $"HEIF image grid tile {item.Id} has dimensions {tile.Size}, which cannot cover its {copySize} grid region.");
                 }
 
                 CopyGridTile(tile, result, descriptor, tileIndex, tileWidth, tileHeight);
@@ -165,16 +196,13 @@ internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
 
         tileWidth = tile.Width;
         tileHeight = tile.Height;
-        if (((long)tileWidth * descriptor.Columns) < descriptor.OutputSize.Width ||
-            ((long)tileHeight * descriptor.Rows) < descriptor.OutputSize.Height)
+        ValidateGridCoverage(descriptor, tileWidth, tileHeight);
+        ValidateGridDimensions(descriptor, tile.Size, av1GridConfiguration);
+        Size copySize = GetGridTileCopySize(descriptor, tileWidth, tileHeight, 0);
+        if (!IsGridTileExtentValid(tile.Size, copySize, tileWidth, tileHeight))
         {
-            throw new InvalidImageContentException("The HEIF image grid tiles do not cover the output canvas.");
-        }
-
-        if (((long)tileWidth * (descriptor.Columns - 1)) >= descriptor.OutputSize.Width ||
-            ((long)tileHeight * (descriptor.Rows - 1)) >= descriptor.OutputSize.Height)
-        {
-            throw new InvalidImageContentException("The HEIF image grid edge tiles do not overlap the output canvas.");
+            throw new InvalidImageContentException(
+                $"HEIF image grid tile {item.Id} has dimensions {tile.Size}, which cannot cover its {copySize} grid region.");
         }
 
         Image<TPixel> result = new(
@@ -279,12 +307,20 @@ internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
         IReadOnlyList<uint> linked = this.GetLinkedTileIds(gridItem, descriptor);
         Heif4CharCode tileType = default;
         Av1CodecConfiguration? av1GridConfiguration = null;
-        Size tileSize = default;
+        HeifItem firstItem = this.items[linked[0]];
+        if (firstItem.Extent == default)
+        {
+            throw new InvalidImageContentException($"HEIF alpha grid tile {firstItem.Id} has no spatial extent.");
+        }
+
+        Size tileSize = firstItem.Extent;
+        ValidateGridCoverage(descriptor, tileSize.Width, tileSize.Height);
 
         // Validate the complete grid before mutating the color frame. IgnoreImageData can then omit a failed alpha
         // grid without leaving a partially composed prefix in the returned image.
-        foreach (uint id in linked)
+        for (int tileIndex = 0; tileIndex < linked.Count; tileIndex++)
         {
+            uint id = linked[tileIndex];
             HeifItem item = this.items[id];
             ValidateTileConfiguration(item, ref tileType, ref av1GridConfiguration);
             if (HeifCompressionFactory.GetDecoder<TPixel>(item.Type) is not IHeifAlphaItemDecoder<TPixel>)
@@ -297,29 +333,23 @@ internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
                 throw new InvalidImageContentException($"HEIF alpha grid tile {item.Id} has no spatial extent.");
             }
 
-            if (tileSize == default)
+            Size copySize = GetGridTileCopySize(
+                descriptor,
+                tileSize.Width,
+                tileSize.Height,
+                tileIndex);
+
+            if (!IsGridTileExtentValid(item.Extent, copySize, tileSize.Width, tileSize.Height))
             {
-                tileSize = item.Extent;
-            }
-            else if (item.Extent != tileSize)
-            {
-                throw new InvalidImageContentException("The HEIF alpha grid contains tiles with mismatched dimensions.");
+                throw new InvalidImageContentException(
+                    $"HEIF alpha grid tile {item.Id} has dimensions {item.Extent}, which cannot cover its {copySize} grid region.");
             }
         }
+
+        ValidateGridDimensions(descriptor, tileSize, av1GridConfiguration);
 
         int gridWidth = descriptor.OutputSize.Width;
         int gridHeight = descriptor.OutputSize.Height;
-        if (((long)tileSize.Width * descriptor.Columns) < gridWidth || ((long)tileSize.Height * descriptor.Rows) < gridHeight)
-        {
-            throw new InvalidImageContentException("The HEIF alpha grid tiles do not cover the output canvas.");
-        }
-
-        if (((long)tileSize.Width * (descriptor.Columns - 1)) >= gridWidth ||
-            ((long)tileSize.Height * (descriptor.Rows - 1)) >= gridHeight)
-        {
-            throw new InvalidImageContentException("The HEIF alpha grid edge tiles do not overlap the output canvas.");
-        }
-
         if (descriptor.OutputSize != outputSize || destinationRectangle.Size != outputSize)
         {
             throw new InvalidImageContentException("The HEIF alpha grid dimensions do not match the color grid dimensions.");
@@ -340,19 +370,106 @@ internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
             int row = tileIndex / descriptor.Columns;
             int destinationX = destinationRectangle.X + (column * tileSize.Width);
             int destinationY = destinationRectangle.Y + (row * tileSize.Height);
-            int copyWidth = Math.Min(tileSize.Width, destinationRectangle.Right - destinationX);
-            int copyHeight = Math.Min(tileSize.Height, destinationRectangle.Bottom - destinationY);
-            Rectangle tileDestination = new(destinationX, destinationY, copyWidth, copyHeight);
+            Size copySize = GetGridTileCopySize(
+                descriptor,
+                tileSize.Width,
+                tileSize.Height,
+                tileIndex);
+
+            Rectangle tileDestination = new(destinationX, destinationY, copySize.Width, copySize.Height);
 
             decoder.DecodeAlphaItemData(
                 options,
                 item,
                 itemMemory.GetSpan(),
                 destination,
-                tileSize,
+                item.Extent,
                 tileDestination,
                 premultiplied,
                 cancellationToken);
+        }
+    }
+
+    /// <summary>
+    /// Validates that the first cell dimensions cover the grid while leaving a nonempty final row and column.
+    /// </summary>
+    private static void ValidateGridCoverage(in GridDescriptor descriptor, int tileWidth, int tileHeight)
+    {
+        if (((long)tileWidth * descriptor.Columns) < descriptor.OutputSize.Width ||
+            ((long)tileHeight * descriptor.Rows) < descriptor.OutputSize.Height)
+        {
+            throw new InvalidImageContentException("The HEIF image grid tiles do not cover the output canvas.");
+        }
+
+        if (((long)tileWidth * (descriptor.Columns - 1)) >= descriptor.OutputSize.Width ||
+            ((long)tileHeight * (descriptor.Rows - 1)) >= descriptor.OutputSize.Height)
+        {
+            throw new InvalidImageContentException("The HEIF image grid edge tiles do not overlap the output canvas.");
+        }
+    }
+
+    /// <summary>
+    /// Gets the portion of one cell that overlaps the output canvas.
+    /// </summary>
+    private static Size GetGridTileCopySize(
+        in GridDescriptor descriptor,
+        int tileWidth,
+        int tileHeight,
+        int tileIndex)
+    {
+        int column = tileIndex % descriptor.Columns;
+        int row = tileIndex / descriptor.Columns;
+        int copyWidth = column == descriptor.Columns - 1
+            ? descriptor.OutputSize.Width - (tileWidth * (descriptor.Columns - 1))
+            : tileWidth;
+
+        int copyHeight = row == descriptor.Rows - 1
+            ? descriptor.OutputSize.Height - (tileHeight * (descriptor.Rows - 1))
+            : tileHeight;
+
+        return new Size(copyWidth, copyHeight);
+    }
+
+    /// <summary>
+    /// Determines whether a cell can cover its output region without exceeding the first cell's dimensions.
+    /// </summary>
+    private static bool IsGridTileExtentValid(Size extent, Size copySize, int tileWidth, int tileHeight)
+        => extent.Width >= copySize.Width
+            && extent.Width <= tileWidth
+            && extent.Height >= copySize.Height
+            && extent.Height <= tileHeight;
+
+    /// <summary>
+    /// Validates the MIAF cell-size and chroma-alignment rules established by the first grid cell.
+    /// </summary>
+    private static void ValidateGridDimensions(
+        in GridDescriptor descriptor,
+        Size tileSize,
+        Av1CodecConfiguration? av1GridConfiguration)
+    {
+        if (tileSize.Width < MinimumGridCellDimension || tileSize.Height < MinimumGridCellDimension)
+        {
+            throw new InvalidImageContentException(
+                $"HEIF image grid cells must be at least {MinimumGridCellDimension} samples wide and high.");
+        }
+
+        if (av1GridConfiguration is null || av1GridConfiguration.IsMonochrome)
+        {
+            return;
+        }
+
+        if (av1GridConfiguration.ChromaSubsamplingX &&
+            (((descriptor.OutputSize.Width & 1) != 0) || ((tileSize.Width & 1) != 0)))
+        {
+            throw new InvalidImageContentException(
+                "HEIF image grid widths must be even when AV1 chroma is horizontally subsampled.");
+        }
+
+        if (av1GridConfiguration.ChromaSubsamplingY &&
+            (((descriptor.OutputSize.Height & 1) != 0) || ((tileSize.Height & 1) != 0)))
+        {
+            throw new InvalidImageContentException(
+                "HEIF image grid heights must be even when AV1 chroma is vertically subsampled.");
         }
     }
 
@@ -363,38 +480,43 @@ internal sealed class GridHeifItemDecoder<TPixel> : IHeifItemDecoder<TPixel>, IH
     /// <returns>The validated row, column, and output dimensions.</returns>
     private static GridDescriptor ParseGridDescriptor(ReadOnlySpan<byte> data)
     {
-        if (data.Length < 8)
+        if (data.Length < ShortGridDescriptorLength)
         {
             throw new InvalidImageContentException("The HEIF image grid descriptor is truncated.");
         }
 
-        byte version = data[0];
-        if (version != 0)
+        int offset = 0;
+        byte version = data[offset++];
+        if (version != GridDescriptorVersion)
         {
             throw new InvalidImageContentException($"The HEIF image grid descriptor has unsupported version {version}.");
         }
 
-        bool usesLargeDimensions = (data[1] & 1) != 0;
-        int descriptorLength = usesLargeDimensions ? 12 : 8;
+        byte flags = data[offset++];
+        bool usesLargeDimensions = (flags & LargeDimensionsFlag) != 0;
+        int descriptorLength = usesLargeDimensions ? LongGridDescriptorLength : ShortGridDescriptorLength;
         if (data.Length != descriptorLength)
         {
             throw new InvalidImageContentException("The HEIF image grid descriptor has an invalid length.");
         }
 
+        int rows = data[offset++] + 1;
+        int columns = data[offset++] + 1;
         uint outputWidth = usesLargeDimensions
-            ? BinaryPrimitives.ReadUInt32BigEndian(data[4..])
-            : BinaryPrimitives.ReadUInt16BigEndian(data[4..]);
+            ? BinaryPrimitives.ReadUInt32BigEndian(data[offset..])
+            : BinaryPrimitives.ReadUInt16BigEndian(data[offset..]);
 
+        offset += usesLargeDimensions ? sizeof(uint) : sizeof(ushort);
         uint outputHeight = usesLargeDimensions
-            ? BinaryPrimitives.ReadUInt32BigEndian(data[8..])
-            : BinaryPrimitives.ReadUInt16BigEndian(data[6..]);
+            ? BinaryPrimitives.ReadUInt32BigEndian(data[offset..])
+            : BinaryPrimitives.ReadUInt16BigEndian(data[offset..]);
 
         if (outputWidth is 0 or > int.MaxValue || outputHeight is 0 or > int.MaxValue)
         {
             throw new InvalidImageContentException("The HEIF image grid descriptor has invalid output dimensions.");
         }
 
-        return new GridDescriptor(data[2] + 1, data[3] + 1, new Size((int)outputWidth, (int)outputHeight));
+        return new GridDescriptor(rows, columns, new Size((int)outputWidth, (int)outputHeight));
     }
 
     /// <summary>

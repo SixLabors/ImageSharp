@@ -127,6 +127,7 @@ internal static partial class Av1IntraSuperblockEncoder
         where TOperator : struct, IBlockEncodingOperator<TSample>
     {
         private readonly Av1EncoderFrame<TSample>.PlanarView source;
+        private readonly Av1EncoderFrame<TSample>.PlanarView reference;
         private readonly Av1EncoderFrame<TSample>.PlanarView reconstruction;
         private readonly Av1PictureControlSet picture;
         private readonly Av1Superblock superblock;
@@ -144,6 +145,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// Initializes a new instance of the <see cref="ModeDecision{TSample, TOperator}"/> struct.
         /// </summary>
         /// <param name="source">The coded source frame.</param>
+        /// <param name="reference">The reconstructed inter reference, or the current reconstruction for an intra frame.</param>
         /// <param name="reconstruction">The reconstructed frame updated by winning candidates.</param>
         /// <param name="picture">The frame coding and mode-information state.</param>
         /// <param name="superblock">The current superblock.</param>
@@ -152,6 +154,7 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="effort">The mode-search effort in the inclusive range zero through ten.</param>
         public ModeDecision(
             Av1EncoderFrame<TSample> source,
+            Av1EncoderFrame<TSample> reference,
             Av1EncoderFrame<TSample> reconstruction,
             Av1PictureControlSet picture,
             Av1Superblock superblock,
@@ -160,6 +163,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int effort)
         {
             this.source = source.CodedView;
+            this.reference = reference.CodedView;
             this.reconstruction = reconstruction.CodedView;
             this.picture = picture;
             this.superblock = superblock;
@@ -167,7 +171,10 @@ internal static partial class Av1IntraSuperblockEncoder
             this.blockWorkspace = blockWorkspace;
             this.quantization = picture.Parent.FrameHeader.QuantizationParameters;
             this.bitDepth = picture.Sequence.SequenceHeader.ColorConfig.BitDepth;
-            this.rateMultiplier = Av1RateDistortion.GetKeyFrameRateMultiplier(this.quantization.QIndex[0], this.bitDepth);
+            this.rateMultiplier = picture.Parent.FrameHeader.IsIntra
+                ? Av1RateDistortion.GetKeyFrameRateMultiplier(this.quantization.QIndex[0], this.bitDepth)
+                : Av1RateDistortion.GetInterFrameRateMultiplier(this.quantization.QIndex[0], this.bitDepth);
+
             this.effort = effort;
             this.codedAreaLuma = 0;
             this.codedAreaChroma = 0;
@@ -183,6 +190,13 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Av1PartitionType preparedPartition)
         {
+            if (!this.picture.Parent.FrameHeader.IsIntra)
+            {
+                // The first inter implementation retains the prepared 8x8 tree so every prediction and residual
+                // transform fits the single reusable block workspace while larger inter partitions remain unsearched.
+                return preparedPartition;
+            }
+
             bool searchPartition = blockSize is Av1BlockSize.Block8x8 or Av1BlockSize.Block16x16 ||
                 (this.effort == 10 &&
                     blockSize is Av1BlockSize.Block32x32 or Av1BlockSize.Block64x64 or Av1BlockSize.Block128x128);
@@ -640,8 +654,9 @@ internal static partial class Av1IntraSuperblockEncoder
                     modeInfo.Block.Skip,
                     allowIntraBlockCopy);
 
-                this.selectedBlockCost = allowIntraBlockCopy
-                    ? this.SelectIntraBlockCopy(
+                if (!this.picture.Parent.FrameHeader.IsIntra)
+                {
+                    this.selectedBlockCost = this.SelectInterPrediction(
                         writer,
                         macroBlock,
                         blockOrigin,
@@ -649,8 +664,22 @@ internal static partial class Av1IntraSuperblockEncoder
                         regularCost,
                         ref modeInfo,
                         ref block,
-                        ref paletteInfo)
-                    : regularCost;
+                        ref paletteInfo);
+                }
+                else
+                {
+                    this.selectedBlockCost = allowIntraBlockCopy
+                        ? this.SelectIntraBlockCopy(
+                            writer,
+                            macroBlock,
+                            blockOrigin,
+                            tileIndex,
+                            regularCost,
+                            ref modeInfo,
+                            ref block,
+                            ref paletteInfo)
+                        : regularCost;
+                }
 
                 this.codedAreaLuma += blockSize.GetWidth() * blockSize.GetHeight();
                 return;
@@ -787,8 +816,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfo.Block.Skip,
                 allowColorIntraBlockCopy);
 
-            this.selectedBlockCost = allowColorIntraBlockCopy
-                ? this.SelectIntraBlockCopy(
+            if (!this.picture.Parent.FrameHeader.IsIntra)
+            {
+                this.selectedBlockCost = this.SelectInterPrediction(
                     writer,
                     macroBlock,
                     blockOrigin,
@@ -796,8 +826,22 @@ internal static partial class Av1IntraSuperblockEncoder
                     regularColorCost,
                     ref modeInfo,
                     ref block,
-                    ref paletteInfo)
-                : regularColorCost;
+                    ref paletteInfo);
+            }
+            else
+            {
+                this.selectedBlockCost = allowColorIntraBlockCopy
+                    ? this.SelectIntraBlockCopy(
+                        writer,
+                        macroBlock,
+                        blockOrigin,
+                        tileIndex,
+                        regularColorCost,
+                        ref modeInfo,
+                        ref block,
+                        ref paletteInfo)
+                    : regularColorCost;
+            }
 
             this.codedAreaLuma += blockSize.GetWidth() * blockSize.GetHeight();
             if (block.HasChroma)
@@ -1237,6 +1281,12 @@ internal static partial class Av1IntraSuperblockEncoder
             bool allowIntraBlockCopy)
         {
             int rateAdjustment = writer.GetSkipCost(skip, Av1TileWriter.GetSkipContext(macroBlock));
+            if (!this.picture.Parent.FrameHeader.IsIntra)
+            {
+                int intraInterContext = Av1TileWriter.GetIntraInterContext(macroBlock);
+                rateAdjustment += writer.GetIsInterCost(false, intraInterContext);
+            }
+
             if (allowIntraBlockCopy)
             {
                 rateAdjustment += writer.GetUseIntraBlockCopyCost(false);
@@ -2082,7 +2132,14 @@ internal static partial class Av1IntraSuperblockEncoder
                     leftContexts,
                     out int coefficientRate);
 
-                int rate = Av1TileWriter.GetLumaModeCost(writer, macroBlock, blockSize, mode, angleDelta);
+                int rate = Av1TileWriter.GetLumaModeCost(
+                    writer,
+                    macroBlock,
+                    blockSize,
+                    mode,
+                    angleDelta,
+                    this.picture.Parent.FrameHeader.IsIntra);
+
                 rate += transformSizeRate + coefficientRate;
                 if (mode == Av1PredictionMode.DC)
                 {
@@ -2193,7 +2250,14 @@ internal static partial class Av1IntraSuperblockEncoder
             }
             else
             {
-                rate += Av1TileWriter.GetLumaModeCost(writer, macroBlock, BlockSize, mode, angleDelta);
+                rate += Av1TileWriter.GetLumaModeCost(
+                    writer,
+                    macroBlock,
+                    BlockSize,
+                    mode,
+                    angleDelta,
+                    this.picture.Parent.FrameHeader.IsIntra);
+
                 if (mode == Av1PredictionMode.DC)
                 {
                     rate += paletteDisabledCost;
@@ -2643,7 +2707,14 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Charge every block-level choice that distinguishes this spatial candidate before adding
             // coefficient syntax derived from the live neighboring-transform context.
-            int rate = Av1TileWriter.GetLumaModeCost(writer, macroBlock, blockSize, mode, angleDelta);
+            int rate = Av1TileWriter.GetLumaModeCost(
+                writer,
+                macroBlock,
+                blockSize,
+                mode,
+                angleDelta,
+                this.picture.Parent.FrameHeader.IsIntra);
+
             rate += transformSizeRate;
             if (mode == Av1PredictionMode.DC)
             {
@@ -2714,7 +2785,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 macroBlock,
                 blockSize,
                 Av1PredictionMode.DC,
-                0);
+                0,
+                this.picture.Parent.FrameHeader.IsIntra);
 
             rate += transformSizeRate;
             rate += paletteDisabledCost;

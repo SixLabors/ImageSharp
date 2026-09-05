@@ -41,10 +41,7 @@ internal sealed class Av1MotionVectorContext
         /// <param name="symbol">The zero-based symbol.</param>
         /// <param name="distribution">The live symbol distribution.</param>
         /// <returns>The symbol cost in 1/512-bit units, or zero when writing.</returns>
-        public static abstract int ProcessSymbol(
-            Av1SymbolWriter writer,
-            int symbol,
-            Av1Distribution distribution);
+        public static abstract int ProcessSymbol(Av1SymbolWriter writer, int symbol, Av1Distribution distribution);
     }
 
     /// <summary>
@@ -103,13 +100,14 @@ internal sealed class Av1MotionVectorContext
     }
 
     /// <summary>
-    /// Writes an integer displacement vector relative to a spatially derived reference.
+    /// Writes a motion vector relative to a spatially derived reference.
     /// </summary>
     /// <param name="writer">The tile range encoder.</param>
     /// <param name="value">The displacement vector to encode.</param>
     /// <param name="reference">The spatially derived reference vector.</param>
-    public void Write(Av1SymbolWriter writer, Av1MotionVector value, Av1MotionVector reference)
-        => _ = this.Process<MotionVectorWriteOperation>(writer, value, reference);
+    /// <param name="precision">The fractional precision selected by the frame header.</param>
+    public void Write(Av1SymbolWriter writer, Av1MotionVector value, Av1MotionVector reference, Av1MotionVectorPrecision precision)
+        => _ = this.Process<MotionVectorWriteOperation>(writer, value, reference, precision);
 
     /// <summary>
     /// Measures a motion-vector delta against the live distributions without changing them.
@@ -117,17 +115,15 @@ internal sealed class Av1MotionVectorContext
     /// <param name="writer">The tile range encoder associated with the live context.</param>
     /// <param name="value">The motion vector to measure.</param>
     /// <param name="reference">The spatially derived reference vector.</param>
+    /// <param name="precision">The fractional precision selected by the frame header.</param>
     /// <returns>The syntax cost in 1/512-bit units.</returns>
-    public int GetCost(Av1SymbolWriter writer, Av1MotionVector value, Av1MotionVector reference)
-        => this.Process<MotionVectorCostOperation>(writer, value, reference);
+    public int GetCost(Av1SymbolWriter writer, Av1MotionVector value, Av1MotionVector reference, Av1MotionVectorPrecision precision)
+        => this.Process<MotionVectorCostOperation>(writer, value, reference, precision);
 
     /// <summary>
     /// Processes one complete motion-vector delta through a closed symbol operation.
     /// </summary>
-    private int Process<TOperation>(
-        Av1SymbolWriter writer,
-        Av1MotionVector value,
-        Av1MotionVector reference)
+    private int Process<TOperation>(Av1SymbolWriter writer, Av1MotionVector value, Av1MotionVector reference, Av1MotionVectorPrecision precision)
         where TOperation : struct, IMotionVectorSymbolOperation
     {
         int row = value.Row - reference.Row;
@@ -140,12 +136,12 @@ internal sealed class Av1MotionVectorContext
         int rate = TOperation.ProcessSymbol(writer, jointType, this.Joint);
         if (row != 0)
         {
-            rate += this.Vertical.Process<TOperation>(writer, row);
+            rate += this.Vertical.Process<TOperation>(writer, row, precision);
         }
 
         if (column != 0)
         {
-            rate += this.Horizontal.Process<TOperation>(writer, column);
+            rate += this.Horizontal.Process<TOperation>(writer, column, precision);
         }
 
         return rate;
@@ -157,10 +153,7 @@ internal sealed class Av1MotionVectorContext
     private readonly struct MotionVectorWriteOperation : IMotionVectorSymbolOperation
     {
         /// <inheritdoc/>
-        public static int ProcessSymbol(
-            Av1SymbolWriter writer,
-            int symbol,
-            Av1Distribution distribution)
+        public static int ProcessSymbol(Av1SymbolWriter writer, int symbol, Av1Distribution distribution)
         {
             writer.WriteSymbol(symbol, distribution);
             return 0;
@@ -173,10 +166,7 @@ internal sealed class Av1MotionVectorContext
     private readonly struct MotionVectorCostOperation : IMotionVectorSymbolOperation
     {
         /// <inheritdoc/>
-        public static int ProcessSymbol(
-            Av1SymbolWriter writer,
-            int symbol,
-            Av1Distribution distribution)
+        public static int ProcessSymbol(Av1SymbolWriter writer, int symbol, Av1Distribution distribution)
             => Av1ProbabilityCost.GetSymbolCost(distribution, symbol);
     }
 
@@ -350,48 +340,72 @@ internal sealed class Av1MotionVectorContext
         }
 
         /// <summary>
-        /// Writes one signed integer-precision component.
+        /// Writes one signed motion-vector component.
         /// </summary>
         /// <param name="writer">The tile range encoder.</param>
         /// <param name="value">The nonzero component in one-eighth-sample units.</param>
-        public void Write(Av1SymbolWriter writer, int value)
-            => _ = this.Process<MotionVectorWriteOperation>(writer, value);
+        /// <param name="precision">The fractional precision selected by the frame header.</param>
+        public void Write(Av1SymbolWriter writer, int value, Av1MotionVectorPrecision precision)
+            => _ = this.Process<MotionVectorWriteOperation>(writer, value, precision);
 
         /// <summary>
         /// Processes one nonzero signed component through the shared motion-vector symbol operation.
         /// </summary>
-        public int Process<TOperation>(Av1SymbolWriter writer, int value)
+        public int Process<TOperation>(Av1SymbolWriter writer, int value, Av1MotionVectorPrecision precision)
             where TOperation : struct, IMotionVectorSymbolOperation
         {
             int magnitude = Math.Abs(value);
-            DebugGuard.IsTrue(magnitude > 0 && (magnitude & 7) == 0, "Displacement-vector components must use whole-sample precision.");
+            int precisionMask = precision == Av1MotionVectorPrecision.Integer
+                ? 7
+                : precision == Av1MotionVectorPrecision.QuarterSample ? 1 : 0;
 
-            // Class zero contains the two whole-sample magnitudes 8 and 16. Above it, the highest set bit of magnitude
-            // minus one selects the doubling range; subtracting three converts the eighth-sample bit index to the class.
-            int magnitudeClass = magnitude <= (ClassZeroSize << 3) ? 0 : Av1Math.MostSignificantBit((uint)(magnitude - 1)) - 3;
+            DebugGuard.IsTrue(
+                magnitude > 0 && (magnitude & precisionMask) == 0,
+                "Motion-vector components must match the frame precision.");
+
+            // The coded value is magnitude minus one. Its whole-sample portion selects the doubling class,
+            // while the remainder carries integer offset, fractional phase, and the high-precision bit.
+            int codedMagnitude = magnitude - 1;
+            uint classValue = (uint)(codedMagnitude >> 3);
+            int magnitudeClass = classValue == 0 ? 0 : Av1Math.MostSignificantBit(classValue);
             DebugGuard.MustBeLessThan(magnitudeClass, MagnitudeClassCount, nameof(magnitudeClass));
+            int magnitudeBase = magnitudeClass == 0 ? 0 : ClassZeroSize << (magnitudeClass + 2);
+            int offset = codedMagnitude - magnitudeBase;
+            int integerOffset = offset >> 3;
+            int fractional = (offset >> 1) & 3;
+            int highPrecision = offset & 1;
             int rate = TOperation.ProcessSymbol(writer, value < 0 ? 1 : 0, this.Sign);
             rate += TOperation.ProcessSymbol(writer, magnitudeClass, this.MagnitudeClass);
 
             if (magnitudeClass == 0)
             {
-                rate += TOperation.ProcessSymbol(writer, (magnitude >> 3) - 1, this.ClassZero);
-                return rate;
+                rate += TOperation.ProcessSymbol(writer, integerOffset, this.ClassZero);
+            }
+            else
+            {
+                for (int bit = 0; bit < magnitudeClass; bit++)
+                {
+                    // Integer offsets are transmitted least-significant bit first through independent models.
+                    rate += TOperation.ProcessSymbol(writer, (integerOffset >> bit) & 1, this.OffsetBits[bit]);
+                }
             }
 
-            // Remove the class base and the implicit low-bit value 7 plus the final one before coding the remaining
-            // whole-sample offset least-significant bit first.
-            int magnitudeBase = ClassZeroSize << (magnitudeClass + 2);
-            int integerOffset = (magnitude - magnitudeBase - 8) >> 3;
-
-            for (int bit = 0; bit < magnitudeClass; bit++)
+            if (precision != Av1MotionVectorPrecision.Integer)
             {
-                // The decoder reconstructs offsets least-significant bit first, so each adaptive bit model must be
-                // updated in the same order during encoding.
-                rate += TOperation.ProcessSymbol(
-                    writer,
-                    (integerOffset >> bit) & 1,
-                    this.OffsetBits[bit]);
+                Av1Distribution fractionalDistribution = magnitudeClass == 0
+                    ? this.ClassZeroFractional[integerOffset]
+                    : this.Fractional;
+
+                rate += TOperation.ProcessSymbol(writer, fractional, fractionalDistribution);
+            }
+
+            if (precision == Av1MotionVectorPrecision.EighthSample)
+            {
+                Av1Distribution highPrecisionDistribution = magnitudeClass == 0
+                    ? this.ClassZeroHighPrecision
+                    : this.HighPrecision;
+
+                rate += TOperation.ProcessSymbol(writer, highPrecision, highPrecisionDistribution);
             }
 
             return rate;

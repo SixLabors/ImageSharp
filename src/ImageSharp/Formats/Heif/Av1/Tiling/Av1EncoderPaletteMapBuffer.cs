@@ -1,13 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
-/// Owns the reusable luma and chroma palette color-index maps for encoder block decisions.
+/// Exposes reusable luma and chroma palette color-index maps over superblock-workspace storage.
 /// </summary>
 internal sealed class Av1EncoderPaletteMapBuffer : IDisposable
 {
@@ -21,21 +20,19 @@ internal sealed class Av1EncoderPaletteMapBuffer : IDisposable
     /// </summary>
     public const int StorageLength = 2 * MapLength * MapLength;
 
-    private readonly IMemoryOwner<byte> owner;
     private readonly Buffer2D<byte> luma;
     private readonly Buffer2D<byte> chroma;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1EncoderPaletteMapBuffer"/> class.
     /// </summary>
-    /// <param name="configuration">The configuration providing the encoder allocator.</param>
-    public Av1EncoderPaletteMapBuffer(Configuration configuration)
+    /// <param name="storage">The superblock-owned backing storage.</param>
+    public Av1EncoderPaletteMapBuffer(Memory<byte> storage)
     {
-        this.owner = configuration.MemoryAllocator.Allocate<byte>(StorageLength);
         int mapArea = MapLength * MapLength;
-        Memory<byte> storage = this.owner.Memory[..StorageLength];
-        this.luma = Buffer2D<byte>.WrapMemory(storage[..mapArea], MapLength, MapLength);
-        this.chroma = Buffer2D<byte>.WrapMemory(storage[mapArea..], MapLength, MapLength);
+        Memory<byte> mapStorage = storage[..StorageLength];
+        this.luma = Buffer2D<byte>.WrapMemory(mapStorage[..mapArea], MapLength, MapLength);
+        this.chroma = Buffer2D<byte>.WrapMemory(mapStorage[mapArea..], MapLength, MapLength);
     }
 
     /// <summary>
@@ -51,12 +48,11 @@ internal sealed class Av1EncoderPaletteMapBuffer : IDisposable
             new Rectangle(0, 0, width, height));
 
     /// <summary>
-    /// Returns the shared palette-map owner to the configured allocator.
+    /// Releases the non-owning two-dimensional wrappers.
     /// </summary>
     public void Dispose()
     {
         this.luma.Dispose();
         this.chroma.Dispose();
-        this.owner.Dispose();
     }
 }

@@ -156,6 +156,27 @@ public class Av1EntropyTests
     }
 
     [Fact]
+    public void SymbolEncoderResetRestoresNormativeDistributionState()
+    {
+        const byte TopContext = 0;
+        const byte LeftContext = 0;
+        const Av1PredictionMode LumaMode = Av1PredictionMode.DC;
+        using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: true);
+        int initialCost = encoder.GetLumaModeCost(LumaMode, TopContext, LeftContext);
+
+        for (int i = 0; i < 8; i++)
+        {
+            encoder.WriteLumaMode(LumaMode, TopContext, LeftContext);
+        }
+
+        Assert.NotEqual(initialCost, encoder.GetLumaModeCost(LumaMode, TopContext, LeftContext));
+
+        encoder.Reset();
+
+        Assert.Equal(initialCost, encoder.GetLumaModeCost(LumaMode, TopContext, LeftContext));
+    }
+
+    [Fact]
     public void BlockSkipDecisionUsesAdaptedRatesForEmptyTransforms()
     {
         const int QIndex = 73;
@@ -246,7 +267,8 @@ public class Av1EntropyTests
                 macroBlock,
                 Av1BlockSize.Block8x8,
                 Mode,
-                angleDelta));
+                angleDelta,
+                isIntraFrame: true));
     }
 
     /// <summary>
@@ -698,6 +720,48 @@ public class Av1EntropyTests
         long expected)
         => Assert.Equal(expected, Av1RateDistortion.GetCost(rateMultiplier, rate, distortion));
 
+    /// <summary>
+    /// Verifies fixed curve samples, interpolation, error categories, native quantizer normalization, and skip selection.
+    /// </summary>
+    [Theory]
+    [InlineData(Av1BlockSize.Block4x4, 16L, 16, 8, Av1BitDepth.EightBit, 1, 13243, 17L)]
+    [InlineData(Av1BlockSize.Block8x8, 64L, 64, 8, Av1BitDepth.EightBit, 1, 45715, 66L)]
+    [InlineData(Av1BlockSize.Block16x16, 256L, 256, 8, Av1BitDepth.EightBit, 1, 154928, 265L)]
+    [InlineData(Av1BlockSize.Block32x32, 1024L, 1024, 8, Av1BitDepth.EightBit, 1, 410224, 1061L)]
+    [InlineData(Av1BlockSize.Block8x8, 96L, 64, 8, Av1BitDepth.EightBit, 1, 53253, 71L)]
+    [InlineData(Av1BlockSize.Block8x8, 1024L, 64, 8, Av1BitDepth.EightBit, 1, 96672, 95L)]
+    [InlineData(Av1BlockSize.Block8x8, 1056L, 64, 8, Av1BitDepth.EightBit, 1, 97253, 95L)]
+    [InlineData(Av1BlockSize.Block8x8, 64L, 64, 32, Av1BitDepth.TenBit, 1, 45715, 66L)]
+    [InlineData(Av1BlockSize.Block8x8, 64L, 64, 128, Av1BitDepth.TwelveBit, 1, 45715, 66L)]
+    [InlineData(Av1BlockSize.Block8x8, 64L, 64, 8, Av1BitDepth.EightBit, 1000000, 0, 1024L)]
+    [InlineData(Av1BlockSize.Block8x8, 0L, 64, 8, Av1BitDepth.EightBit, 1, 0, 0L)]
+    [InlineData(Av1BlockSize.Block128x128, 1L, 16384, 21387, Av1BitDepth.TwelveBit, 1, 0, 16L)]
+    public void PredictionErrorModelMatchesReferenceCurveSamples(
+        int blockSize,
+        long squaredError,
+        int sampleCount,
+        int acQuantizer,
+        int bitDepth,
+        int rateMultiplier,
+        int expectedRate,
+        long expectedDistortion)
+    {
+        // Expectations come from the published curve samples and cubic polynomial, not from an encode/decode
+        // round trip. Unit normalized error and unit quantizer hit rate column 31 in each block-size category.
+        Av1RateDistortion.ModelPredictionError(
+            (Av1BlockSize)blockSize,
+            squaredError,
+            sampleCount,
+            acQuantizer,
+            (Av1BitDepth)bitDepth,
+            rateMultiplier,
+            out int rate,
+            out long distortion);
+
+        Assert.Equal(expectedRate, rate);
+        Assert.Equal(expectedDistortion, distortion);
+    }
+
     [Theory]
     [InlineData(1, 8191, 100, 100)]
     [InlineData(1, 8192, 100, 101)]
@@ -744,6 +808,19 @@ public class Av1EntropyTests
         int expected)
         => Assert.Equal(expected, Av1RateDistortion.GetKeyFrameRateMultiplier(qIndex, (Av1BitDepth)bitDepth));
 
+    [Theory]
+    [InlineData(0, 0, 51)]
+    [InlineData(0, 1, 3)]
+    [InlineData(0, 2, 1)]
+    [InlineData(255, 0, 9_288_598)]
+    [InlineData(255, 1, 20_049_918)]
+    [InlineData(255, 2, 63_036_850)]
+    public void InterFrameRateMultiplierMatchesCurrentLibaom(
+        int qIndex,
+        int bitDepth,
+        int expected)
+        => Assert.Equal(expected, Av1RateDistortion.GetInterFrameRateMultiplier(qIndex, (Av1BitDepth)bitDepth));
+
     [Fact]
     public void SymbolWriterMatchesCurrentLibaomCarryRegression()
     {
@@ -782,7 +859,7 @@ public class Av1EntropyTests
     }
 
     [Fact]
-    public void SymbolWriterExposesExistingOutputAllocationWithoutCopy()
+    public void SymbolWriterResetReusesExistingOutputAllocation()
     {
         const int bufferLength = 257;
         TestMemoryAllocator allocator = new();
@@ -805,14 +882,46 @@ public class Av1EntropyTests
             Assert.Equal(63, encoded.Span[0]);
             Assert.Single(allocator.AllocationLog);
             Assert.Empty(allocator.ReturnLog);
+
+            int firstLength = length;
+            writer.Reset(firstLength);
+            writer.WriteBoolean(false, 16_384);
+            writer.WriteBoolean(false, 16_384);
+            writer.WriteBoolean(true, 512);
+            writer.WriteBoolean(false, 8_192);
+            encoded = writer.Exit(out length);
+
+            Assert.Equal(2, length);
+            Assert.Equal(length, encoded.Length);
+            Assert.Equal(63, encoded.Span[0]);
+            ReadOnlyMemory<byte> output = writer.GetOutput(firstLength + length);
+            Assert.True(output.Span[..firstLength].SequenceEqual(output.Span[firstLength..]));
+            Assert.Single(allocator.AllocationLog);
+            Assert.Empty(allocator.ReturnLog);
+
+            writer.Reset();
+            writer.WriteBoolean(false, 16_384);
+            writer.WriteBoolean(false, 16_384);
+            writer.WriteBoolean(true, 512);
+            writer.WriteBoolean(false, 8_192);
+            encoded = writer.Exit(out length);
+
+            Assert.Equal(2, length);
+            Assert.Equal(length, encoded.Length);
+            Assert.Equal(63, encoded.Span[0]);
+            Assert.Single(allocator.AllocationLog);
+            Assert.Empty(allocator.ReturnLog);
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
         Assert.Equal(allocation.AllocationId, returned.AllocationId);
     }
 
+    /// <summary>
+    /// Verifies bounded coefficient scratch is rented at construction and reused by costing, coding, and frame resets.
+    /// </summary>
     [Fact]
-    public void SymbolEncoderRentsCoefficientScratchOnlyForNonzeroBlocks()
+    public void SymbolEncoderReusesConstructorOwnedCoefficientScratchAcrossFrames()
     {
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
@@ -822,54 +931,10 @@ public class Av1EntropyTests
 
         using (Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex, updateCdf: true))
         {
-            TestMemoryAllocator.AllocationRequest outputScratch = Assert.Single(allocator.AllocationLog);
-            Assert.Equal(typeof(byte), outputScratch.ElementType);
-
-            int emptyContext = encoder.WriteCoefficients(
-                Av1TransformSize.Size4x4,
-                Av1TransformType.DctDct,
-                Av1PredictionMode.DC,
-                coefficients,
-                Av1ComponentType.Luminance,
-                default,
-                0,
-                false,
-                Av1FilterIntraMode.DC,
-                usesInterTransformSet: false);
-
-            Assert.Equal(0, emptyContext);
-            Assert.Single(allocator.AllocationLog);
-
-            coefficients[0] = 1;
-            _ = encoder.GetCoefficientCost(
-                Av1TransformSize.Size4x4,
-                Av1TransformType.DctDct,
-                Av1PredictionMode.DC,
-                coefficients,
-                Av1ComponentType.Luminance,
-                default,
-                1,
-                false,
-                Av1FilterIntraMode.DC,
-                usesInterTransformSet: false);
-
             Assert.Equal(3, allocator.AllocationLog.Count);
-
-            encoder.WriteCoefficients(
-                Av1TransformSize.Size4x4,
-                Av1TransformType.DctDct,
-                Av1PredictionMode.DC,
-                coefficients,
-                Av1ComponentType.Luminance,
-                default,
-                1,
-                false,
-                Av1FilterIntraMode.DC,
-                usesInterTransformSet: false);
-
-            Assert.Equal(3, allocator.AllocationLog.Count);
-            TestMemoryAllocator.AllocationRequest levelScratch = allocator.AllocationLog[1];
-            TestMemoryAllocator.AllocationRequest contextScratch = allocator.AllocationLog[2];
+            TestMemoryAllocator.AllocationRequest levelScratch = allocator.AllocationLog[0];
+            TestMemoryAllocator.AllocationRequest contextScratch = allocator.AllocationLog[1];
+            TestMemoryAllocator.AllocationRequest outputScratch = allocator.AllocationLog[2];
             int maximumTransformDimension = Av1Constants.MaxTransformSize / 2;
             int expectedLevelLength =
                 (Av1Constants.TransformPadHorizontal + maximumTransformDimension) *
@@ -880,6 +945,59 @@ public class Av1EntropyTests
             Assert.Equal(AllocationOptions.Clean, levelScratch.AllocationOptions);
             Assert.Equal(typeof(sbyte), contextScratch.ElementType);
             Assert.Equal(maximumTransformDimension * maximumTransformDimension, contextScratch.Length);
+            Assert.Equal(typeof(byte), outputScratch.ElementType);
+            Assert.Equal(64, outputScratch.Length);
+
+            // Exercise both an empty and a coded transform on each side of a frame reset. The second pass must
+            // reuse every constructor-owned buffer even after nonzero levels and probability updates exist.
+            for (int frame = 0; frame < 2; frame++)
+            {
+                coefficients.Clear();
+                int emptyContext = encoder.WriteCoefficients(
+                    Av1TransformSize.Size4x4,
+                    Av1TransformType.DctDct,
+                    Av1PredictionMode.DC,
+                    coefficients,
+                    Av1ComponentType.Luminance,
+                    default,
+                    0,
+                    false,
+                    Av1FilterIntraMode.DC,
+                    usesInterTransformSet: false);
+
+                Assert.Equal(0, emptyContext);
+                Assert.Equal(3, allocator.AllocationLog.Count);
+
+                coefficients[0] = 1;
+                _ = encoder.GetCoefficientCost(
+                    Av1TransformSize.Size4x4,
+                    Av1TransformType.DctDct,
+                    Av1PredictionMode.DC,
+                    coefficients,
+                    Av1ComponentType.Luminance,
+                    default,
+                    1,
+                    false,
+                    Av1FilterIntraMode.DC,
+                    usesInterTransformSet: false);
+
+                encoder.WriteCoefficients(
+                    Av1TransformSize.Size4x4,
+                    Av1TransformType.DctDct,
+                    Av1PredictionMode.DC,
+                    coefficients,
+                    Av1ComponentType.Luminance,
+                    default,
+                    1,
+                    false,
+                    Av1FilterIntraMode.DC,
+                    usesInterTransformSet: false);
+
+                encoder.Exit(out _);
+                encoder.Reset();
+                Assert.Equal(3, allocator.AllocationLog.Count);
+                Assert.Empty(allocator.ReturnLog);
+            }
         }
 
         Assert.Equal(3, allocator.ReturnLog.Count);

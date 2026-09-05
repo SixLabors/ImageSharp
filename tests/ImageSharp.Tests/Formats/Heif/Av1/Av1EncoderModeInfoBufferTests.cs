@@ -54,10 +54,13 @@ public class Av1EncoderModeInfoBufferTests
     public unsafe void PictureBufferPacksAllPictureStateIntoTwoAllocatorOwners(
         bool allowScreenContentTools,
         bool allowIntraBlockCopy,
-        int expectedStateStorageLength)
+        int expectedContextStorageLength)
     {
         const int Width = 16;
         const int Height = 16;
+
+        // Four CDEF presets, the preceding quantizer, and two payload bounds follow the context regions.
+        const int TileStateStorageLength = 7 * sizeof(int);
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.Default.Clone();
@@ -108,7 +111,7 @@ public class Av1EncoderModeInfoBufferTests
             Assert.Equal(6_144, allocations[0].Length);
             Assert.Equal(AllocationOptions.Clean, allocations[0].AllocationOptions);
             Assert.Equal(typeof(byte), allocations[1].ElementType);
-            Assert.Equal(expectedStateStorageLength, allocations[1].Length);
+            Assert.Equal(expectedContextStorageLength + TileStateStorageLength, allocations[1].Length);
             Assert.Equal(AllocationOptions.Clean, allocations[1].AllocationOptions);
             Assert.Empty(allocator.ReturnLog);
 
@@ -122,6 +125,29 @@ public class Av1EncoderModeInfoBufferTests
             Assert.Equal(16, picture.CbDcSignLevelCoefficientNeighbors[0].Top.Length);
             Assert.Equal(32, picture.TransformFunctionContexts[0].Left.Length);
             Assert.Equal(32, picture.TransformFunctionContexts[0].Top.Length);
+            Assert.Equal(4, picture.CdefPreset.Length);
+            Assert.Equal(1, picture.Parent.PreviousQIndex.Length);
+            Assert.Equal(1, picture.TileDataOffsets.Length);
+            Assert.Equal(1, picture.TileDataLengths.Length);
+
+            // Exact offsets prove that all four typed views occupy the trailing region of the same owner,
+            // without gaps, overlapping fields, or a separate allocation hidden behind a memory manager.
+            fixed (byte* state = picture.SegmentationNeighborMap.Span)
+            {
+                fixed (int* cdef = picture.CdefPreset.Span,
+                    quantizer = picture.Parent.PreviousQIndex.Span,
+                    offsets = picture.TileDataOffsets.Span,
+                    lengths = picture.TileDataLengths.Span)
+                {
+                    Assert.Equal((nuint)0, (nuint)cdef % (nuint)sizeof(int));
+                    Assert.Equal(expectedContextStorageLength, (byte*)cdef - state);
+                    Assert.Equal(4, quantizer - cdef);
+                    Assert.Equal(1, offsets - quantizer);
+                    Assert.Equal(1, lengths - offsets);
+                    Assert.Equal(allocations[1].Length, (byte*)(lengths + 1) - state);
+                }
+            }
+
             if (allowScreenContentTools)
             {
                 Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContext = Assert.Single(picture.PaletteContexts);
@@ -174,6 +200,157 @@ public class Av1EncoderModeInfoBufferTests
         Assert.Equal(
             allocations.Select(x => x.AllocationId).Order(),
             allocator.ReturnLog.Select(x => x.AllocationId).Order());
+    }
+
+    [Fact]
+    public void InterPictureBufferExposesPackedMotionVectorStorage()
+    {
+        const int Width = 16;
+        const int Height = 16;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = false,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        ObuTileGroupHeader tiles = new()
+        {
+            TileColumnCount = 1,
+            TileRowCount = 1
+        };
+
+        tiles.TileColumnStartModeInfo[1] = Width >> Av1Constants.ModeInfoSizeLog2;
+        tiles.TileRowStartModeInfo[1] = Height >> Av1Constants.ModeInfoSizeLog2;
+        ObuSequenceHeader sequenceHeader = new() { ColorConfig = colorConfig };
+        ObuFrameHeader frameHeader = new()
+        {
+            FrameType = ObuFrameType.InterFrame,
+            ModeInfoColumnCount = Width >> Av1Constants.ModeInfoSizeLog2,
+            ModeInfoRowCount = Height >> Av1Constants.ModeInfoSizeLog2,
+            TilesInfo = tiles
+        };
+
+        using Av1EncoderPictureBuffer buffer = new(
+            Configuration.Default,
+            sequenceHeader,
+            frameHeader,
+            Width,
+            Height,
+            disallow4x4AllFrames: true);
+
+        Av1PictureControlSet picture = buffer.Picture;
+        Assert.Equal(256, picture.DisplacementVectors.Length);
+        Assert.Equal(0, picture.IntraBlockCopySearch.OriginWidth);
+
+        Point position = new(2, 2);
+        Av1MotionVector vector = new(-32, 40);
+        picture.MapModeInfoBlock(position, Av1BlockSize.Block8x8);
+        picture.SetDisplacementVector(position, vector);
+        Assert.Equal(vector, picture.GetDisplacementVector(new Point(3, 3)));
+    }
+
+    [Fact]
+    public void PictureBufferResetReusesStorageAndRestoresFrameState()
+    {
+        const int Width = 16;
+        const int Height = 16;
+        const int InitialQIndex = 37;
+        const int NextQIndex = 91;
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = false,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        ObuTileGroupHeader initialTiles = new()
+        {
+            TileColumnCount = 1,
+            TileRowCount = 1
+        };
+
+        initialTiles.TileColumnStartModeInfo[1] = Width >> Av1Constants.ModeInfoSizeLog2;
+        initialTiles.TileRowStartModeInfo[1] = Height >> Av1Constants.ModeInfoSizeLog2;
+        ObuSequenceHeader sequenceHeader = new()
+        {
+            Use128x128Superblock = true,
+            ColorConfig = colorConfig
+        };
+
+        ObuFrameHeader initialFrameHeader = new()
+        {
+            FrameType = ObuFrameType.KeyFrame,
+            ModeInfoColumnCount = Width >> Av1Constants.ModeInfoSizeLog2,
+            ModeInfoRowCount = Height >> Av1Constants.ModeInfoSizeLog2,
+            TilesInfo = initialTiles
+        };
+
+        initialFrameHeader.QuantizationParameters.BaseQIndex = InitialQIndex;
+        using Av1EncoderPictureBuffer buffer = new(
+            configuration,
+            sequenceHeader,
+            initialFrameHeader,
+            Width,
+            Height,
+            disallow4x4AllFrames: true,
+            allocateScreenContentState: true,
+            allocateMotionVectorState: true,
+            allocateIntraBlockCopySearch: true);
+
+        Av1PictureControlSet picture = buffer.Picture;
+        int allocationCount = allocator.AllocationLog.Count;
+        picture.ModeInfoGrid.Span[0] = 7;
+        picture.ModeInfoAllocation.Span[0].Block.Mode = Av1PredictionMode.Paeth;
+        picture.SegmentationNeighborMap.Span[0] = 3;
+        picture.PartitionContexts[0].Left[0] = new Av1PartitionContext(5, 7);
+        picture.TransformFunctionContexts[0].Top[0] = 8;
+        picture.PaletteContexts[0].Left[0].PaletteSizes[0] = 2;
+        picture.DisplacementVectors.Span[0] = new Av1EncoderDisplacementVector { Row = -8, Column = 16 };
+        picture.CdefPreset.Span[0] = 2;
+        picture.Parent.PreviousQIndex.Span[0] = InitialQIndex + 1;
+        picture.TileDataOffsets.Span[0] = 11;
+        picture.TileDataLengths.Span[0] = 13;
+        ObuTileGroupHeader nextTiles = new()
+        {
+            TileColumnCount = 1,
+            TileRowCount = 1
+        };
+
+        nextTiles.TileColumnStartModeInfo[1] = Width >> Av1Constants.ModeInfoSizeLog2;
+        nextTiles.TileRowStartModeInfo[1] = Height >> Av1Constants.ModeInfoSizeLog2;
+        ObuFrameHeader nextFrameHeader = new()
+        {
+            FrameType = ObuFrameType.InterFrame,
+            ModeInfoColumnCount = Width >> Av1Constants.ModeInfoSizeLog2,
+            ModeInfoRowCount = Height >> Av1Constants.ModeInfoSizeLog2,
+            TilesInfo = nextTiles
+        };
+
+        nextFrameHeader.QuantizationParameters.BaseQIndex = NextQIndex;
+        buffer.Reset(nextFrameHeader);
+
+        Assert.Equal(allocationCount, allocator.AllocationLog.Count);
+        Assert.Empty(allocator.ReturnLog);
+        Assert.Equal(0, picture.ModeInfoGrid.Span[0]);
+        Assert.Equal(Av1PredictionMode.DC, picture.ModeInfoAllocation.Span[0].Block.Mode);
+        Assert.Equal(0, picture.SegmentationNeighborMap.Span[0]);
+        Assert.Equal(default, picture.PartitionContexts[0].Left[0]);
+        Assert.Equal(Av1Constants.MaxTransformSize, picture.TransformFunctionContexts[0].Top[0]);
+        Assert.Equal(0, picture.PaletteContexts[0].Left[0].PaletteSizes[0]);
+        Assert.Equal(default, picture.DisplacementVectors.Span[0]);
+        Assert.Equal(-1, picture.CdefPreset.Span[0]);
+        Assert.Equal(NextQIndex, picture.Parent.PreviousQIndex.Span[0]);
+        Assert.Equal(0, picture.TileDataOffsets.Span[0]);
+        Assert.Equal(0, picture.TileDataLengths.Span[0]);
+        Assert.Same(nextFrameHeader, picture.Parent.FrameHeader);
+        Assert.Same(nextTiles, picture.Parent.Common.TilesInfo);
     }
 
     [Theory]
@@ -248,14 +425,16 @@ public class Av1EncoderModeInfoBufferTests
                     TilesInfo = tiles
                 },
                 FrameHeader = frameHeader,
-                PreviousQIndex = []
+                PreviousQIndex = Memory<int>.Empty
             },
             SegmentationNeighborMap = Memory<byte>.Empty,
             ModeInfoGrid = buffer.Grid,
             ModeInfoAllocation = buffer.Allocation,
             ModeInfoStride = buffer.ModeInfoStride,
             Disallow4x4AllFrames = buffer.Disallow4x4AllFrames,
-            CdefPreset = []
+            CdefPreset = Memory<int>.Empty,
+            TileDataOffsets = Memory<int>.Empty,
+            TileDataLengths = Memory<int>.Empty
         };
     }
 }

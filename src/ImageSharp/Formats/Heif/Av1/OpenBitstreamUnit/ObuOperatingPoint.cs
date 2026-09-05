@@ -29,6 +29,21 @@ internal sealed class ObuOperatingPoint
     public bool IsDecoderModelInfoPresent { get; set; }
 
     /// <summary>
+    /// Gets or sets the decoder-buffer delay measured in decoding ticks.
+    /// </summary>
+    public uint DecoderBufferDelay { get; set; }
+
+    /// <summary>
+    /// Gets or sets the encoder-buffer delay measured in decoding ticks.
+    /// </summary>
+    public uint EncoderBufferDelay { get; set; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the operating point uses the low-delay decoding model.
+    /// </summary>
+    public bool LowDelayMode { get; set; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether an initial display delay is present for this operating point.
     /// </summary>
     public bool IsInitialDisplayDelayPresent { get; set; }

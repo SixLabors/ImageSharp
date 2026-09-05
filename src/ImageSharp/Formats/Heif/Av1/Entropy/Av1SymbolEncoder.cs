@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -23,6 +24,11 @@ internal sealed class Av1SymbolEncoder : IDisposable
     private const int MaximumCoefficientContextCount = (Av1Constants.MaxTransformSize / 2) * (Av1Constants.MaxTransformSize / 2);
 
     /// <summary>
+    /// Owns every mutable tile distribution and restores normative defaults without rebuilding the object graph.
+    /// </summary>
+    private readonly Av1FrameEntropyContext entropyContext;
+
+    /// <summary>
     /// The tile-adaptive intra-block-copy distribution.
     /// </summary>
     private readonly Av1Distribution tileIntraBlockCopy;
@@ -30,7 +36,32 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// The tile-adaptive integer displacement-vector context.
     /// </summary>
-    private readonly Av1MotionVectorContext displacementVector = new();
+    private readonly Av1MotionVectorContext displacementVector;
+
+    /// <summary>
+    /// The tile-adaptive normal inter motion-vector context.
+    /// </summary>
+    private readonly Av1MotionVectorContext motionVector;
+
+    /// <summary>
+    /// The tile-adaptive NEWMV branch distributions.
+    /// </summary>
+    private readonly Av1Distribution[] newMotionVector;
+
+    /// <summary>
+    /// The tile-adaptive GLOBALMV branch distributions.
+    /// </summary>
+    private readonly Av1Distribution[] zeroMotionVector;
+
+    /// <summary>
+    /// The tile-adaptive NEARESTMV branch distributions.
+    /// </summary>
+    private readonly Av1Distribution[] referenceMotionVector;
+
+    /// <summary>
+    /// The tile-adaptive dynamic-reference-list distributions.
+    /// </summary>
+    private readonly Av1Distribution[] dynamicReferenceList;
 
     /// <summary>
     /// The tile-adaptive partition-type distributions.
@@ -41,6 +72,21 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// The tile-adaptive key-frame luma-mode distributions.
     /// </summary>
     private readonly Av1Distribution[][] keyFrameYMode;
+
+    /// <summary>
+    /// The tile-adaptive inter-frame intra luma-mode distributions.
+    /// </summary>
+    private readonly Av1Distribution[] frameYMode;
+
+    /// <summary>
+    /// The tile-adaptive intra-versus-inter distributions.
+    /// </summary>
+    private readonly Av1Distribution[] intraInter;
+
+    /// <summary>
+    /// The tile-adaptive single-reference branch distributions.
+    /// </summary>
+    private readonly Av1Distribution[][] singleReference;
 
     /// <summary>
     /// The tile-adaptive chroma intra-mode distributions.
@@ -81,11 +127,6 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// The tile-adaptive filter-intra mode distribution.
     /// </summary>
     private readonly Av1Distribution filterIntraMode;
-
-    /// <summary>
-    /// The palette probability state, created only when screen-content coding uses it.
-    /// </summary>
-    private PaletteEntropyContext? paletteEntropyContext;
 
     /// <summary>
     /// The tile-adaptive absolute quantizer delta distribution.
@@ -158,19 +199,14 @@ internal sealed class Av1SymbolEncoder : IDisposable
     private bool isDisposed;
 
     /// <summary>
-    /// The configuration providing lazily allocated coefficient scratch.
-    /// </summary>
-    private readonly Configuration configuration;
-
-    /// <summary>
     /// The reusable padded coefficient levels used to derive entropy contexts.
     /// </summary>
-    private Av1LevelBuffer? levels;
+    private readonly Av1LevelBuffer levels;
 
     /// <summary>
     /// The reusable raster-order coefficient contexts for one transform.
     /// </summary>
-    private IMemoryOwner<sbyte>? coefficientContexts;
+    private readonly IMemoryOwner<sbyte> coefficientContexts;
 
     /// <summary>
     /// The range writer producing the current tile payload.
@@ -183,7 +219,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     private readonly int baseQIndex;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1SymbolEncoder"/> class for one AV1 tile.
+    /// Initializes a new instance of the <see cref="Av1SymbolEncoder"/> class with reusable tile state.
     /// </summary>
     /// <param name="configuration">The configuration providing output and temporary memory.</param>
     /// <param name="bufferLength">The complete fixed output allocation length in bytes.</param>
@@ -191,34 +227,50 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="updateCdf">A value indicating whether encoded symbols adapt their tile distributions.</param>
     public Av1SymbolEncoder(Configuration configuration, int bufferLength, int qIndex, bool updateCdf)
     {
-        this.configuration = configuration;
+        this.entropyContext = new Av1FrameEntropyContext(qIndex);
 
-        // Every default accessor creates independently mutable state. Encoding and decoding therefore begin from
-        // equivalent tile-local models without constructing and immediately deep-copying a second object graph.
-        this.tileIntraBlockCopy = Av1DefaultDistributions.IntraBlockCopy;
-        this.tilePartitionTypes = Av1DefaultDistributions.PartitionTypes;
-        this.keyFrameYMode = Av1DefaultDistributions.KeyFrameYMode;
-        this.uvMode = Av1DefaultDistributions.UvMode;
-        this.filterIntra = Av1DefaultDistributions.FilterIntra;
-        this.filterIntraMode = Av1DefaultDistributions.FilterIntraMode;
-        this.deltaQuantizerAbsolute = Av1DefaultDistributions.DeltaQuantizerAbsolute;
-        this.intraExtendedTransform = Av1DefaultDistributions.IntraExtendedTransform;
-        this.interExtendedTransform = Av1DefaultDistributions.InterExtendedTransform;
-        this.transformSize = Av1DefaultDistributions.TransformSize;
-        this.transformPartition = Av1DefaultDistributions.TransformPartition;
-        this.segmentId = Av1DefaultDistributions.SegmentId;
-        this.angleDelta = Av1DefaultDistributions.AngleDelta;
-        this.skip = Av1DefaultDistributions.Skip;
-        this.skipMode = Av1DefaultDistributions.SkipMode;
-        this.chromaFromLumaSign = Av1DefaultDistributions.ChromaFromLumaSign;
-        this.chromaFromLumaAlpha = Av1DefaultDistributions.ChromaFromLumaAlpha;
-        this.transformBlockSkip = Av1DefaultDistributions.GetTransformBlockSkip(qIndex);
-        this.endOfBlockFlag = Av1DefaultDistributions.GetEndOfBlockFlag(qIndex);
-        this.coefficientsBaseRange = Av1DefaultDistributions.GetCoefficientsBaseRange(qIndex);
-        this.coefficientsBase = Av1DefaultDistributions.GetCoefficientsBase(qIndex);
-        this.coefficientsBaseEndOfBlock = Av1DefaultDistributions.GetBaseEndOfBlock(qIndex);
-        this.dcSign = Av1DefaultDistributions.GetDcSign(qIndex);
-        this.endOfBlockExtra = Av1DefaultDistributions.GetEndOfBlockExtra(qIndex);
+        // Encoder and decoder now share the same mutable context shape. Every field aliases that single graph so
+        // sequence samples can restore normative defaults without replacing any distribution or array.
+        this.tileIntraBlockCopy = this.entropyContext.IntraBlockCopy;
+        this.motionVector = this.entropyContext.MotionVector;
+        this.displacementVector = this.entropyContext.DisplacementVector;
+        this.tilePartitionTypes = this.entropyContext.PartitionTypes;
+        this.keyFrameYMode = this.entropyContext.KeyFrameYMode;
+        this.frameYMode = this.entropyContext.FrameYMode;
+        this.intraInter = this.entropyContext.IntraInter;
+        this.singleReference = this.entropyContext.SingleReference;
+        this.newMotionVector = this.entropyContext.NewMv;
+        this.zeroMotionVector = this.entropyContext.ZeroMv;
+        this.referenceMotionVector = this.entropyContext.RefMv;
+        this.dynamicReferenceList = this.entropyContext.Drl;
+        this.uvMode = this.entropyContext.UvMode;
+        this.filterIntra = this.entropyContext.FilterIntra;
+        this.filterIntraMode = this.entropyContext.FilterIntraMode;
+        this.deltaQuantizerAbsolute = this.entropyContext.DeltaQuantizerAbsolute;
+        this.intraExtendedTransform = this.entropyContext.IntraExtendedTransform;
+        this.interExtendedTransform = this.entropyContext.InterExtendedTransform;
+        this.transformSize = this.entropyContext.TransformSize;
+        this.transformPartition = this.entropyContext.TransformPartition;
+        this.segmentId = this.entropyContext.SegmentId;
+        this.angleDelta = this.entropyContext.AngleDelta;
+        this.skip = this.entropyContext.Skip;
+        this.skipMode = this.entropyContext.SkipMode;
+        this.chromaFromLumaSign = this.entropyContext.ChromaFromLumaSign;
+        this.chromaFromLumaAlpha = this.entropyContext.ChromaFromLumaAlpha;
+        this.transformBlockSkip = this.entropyContext.TransformBlockSkip;
+        this.endOfBlockFlag = this.entropyContext.EndOfBlockFlag;
+        this.coefficientsBaseRange = this.entropyContext.CoefficientsBaseRange;
+        this.coefficientsBase = this.entropyContext.CoefficientsBase;
+        this.coefficientsBaseEndOfBlock = this.entropyContext.BaseEndOfBlock;
+        this.dcSign = this.entropyContext.DcSign;
+        this.endOfBlockExtra = this.entropyContext.EndOfBlockExtra;
+
+        // Transform dimensions are bounded by the AV1 coefficient-coding rules, so the complete entropy scratch
+        // is known with the tile output capacity and remains valid for every transform in every sequence sample.
+        this.levels = new Av1LevelBuffer(configuration);
+        this.coefficientContexts =
+            configuration.MemoryAllocator.Allocate<sbyte>(MaximumCoefficientContextCount);
+
         this.writer = new(configuration, bufferLength, updateCdf);
         this.baseQIndex = qIndex;
     }
@@ -288,6 +340,25 @@ internal sealed class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Restores the initial tile distributions and range coder while retaining their complete object graph and buffers.
+    /// </summary>
+    public void Reset()
+    {
+        this.entropyContext.ResetToDefaults(this.baseQIndex);
+        this.writer.Reset();
+    }
+
+    /// <summary>
+    /// Restores the initial tile distributions and begins the next tile at an offset in the retained output buffer.
+    /// </summary>
+    /// <param name="outputOffset">The first output byte available to the next tile.</param>
+    public void Reset(int outputOffset)
+    {
+        this.entropyContext.ResetToDefaults(this.baseQIndex);
+        this.writer.Reset(outputOffset);
+    }
+
+    /// <summary>
     /// Writes an unsigned fixed-width literal to the tile entropy stream.
     /// </summary>
     /// <param name="value">The low-order literal bits.</param>
@@ -342,9 +413,8 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetPaletteYModeCost(bool usePalette, int blockSizeContext, int neighborContext)
     {
-        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
         return Av1ProbabilityCost.GetSymbolCost(
-            context.YMode[blockSizeContext][neighborContext],
+            this.entropyContext.PaletteYMode[blockSizeContext][neighborContext],
             usePalette ? 1 : 0);
     }
 
@@ -357,8 +427,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     public void WritePaletteYMode(bool usePalette, int blockSizeContext, int neighborContext)
     {
         ref Av1SymbolWriter w = ref this.writer;
-        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
-        w.WriteSymbol(usePalette, context.YMode[blockSizeContext][neighborContext]);
+        w.WriteSymbol(usePalette, this.entropyContext.PaletteYMode[blockSizeContext][neighborContext]);
     }
 
     /// <summary>
@@ -369,9 +438,8 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetPaletteUvModeCost(bool usePalette, bool hasLumaPalette)
     {
-        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
         return Av1ProbabilityCost.GetSymbolCost(
-            context.UvMode[hasLumaPalette ? 1 : 0],
+            this.entropyContext.PaletteUvMode[hasLumaPalette ? 1 : 0],
             usePalette ? 1 : 0);
     }
 
@@ -383,8 +451,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     public void WritePaletteUvMode(bool usePalette, bool hasLumaPalette)
     {
         ref Av1SymbolWriter w = ref this.writer;
-        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
-        w.WriteSymbol(usePalette, context.UvMode[hasLumaPalette ? 1 : 0]);
+        w.WriteSymbol(usePalette, this.entropyContext.PaletteUvMode[hasLumaPalette ? 1 : 0]);
     }
 
     /// <summary>
@@ -396,10 +463,9 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetPaletteSizeCost(int paletteSize, int blockSizeContext, Av1PlaneType planeType)
     {
-        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
         Av1Distribution distribution = planeType == Av1PlaneType.Y
-            ? context.YSize[blockSizeContext]
-            : context.UvSize[blockSizeContext];
+            ? this.entropyContext.PaletteYSize[blockSizeContext]
+            : this.entropyContext.PaletteUvSize[blockSizeContext];
 
         return Av1ProbabilityCost.GetSymbolCost(distribution, paletteSize - 2);
     }
@@ -413,10 +479,9 @@ internal sealed class Av1SymbolEncoder : IDisposable
     public void WritePaletteSize(int paletteSize, int blockSizeContext, Av1PlaneType planeType)
     {
         ref Av1SymbolWriter w = ref this.writer;
-        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
         Av1Distribution distribution = planeType == Av1PlaneType.Y
-            ? context.YSize[blockSizeContext]
-            : context.UvSize[blockSizeContext];
+            ? this.entropyContext.PaletteYSize[blockSizeContext]
+            : this.entropyContext.PaletteUvSize[blockSizeContext];
 
         w.WriteSymbol(paletteSize - 2, distribution);
     }
@@ -435,10 +500,9 @@ internal sealed class Av1SymbolEncoder : IDisposable
         int colorContext,
         Av1PlaneType planeType)
     {
-        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
         Av1Distribution distribution = planeType == Av1PlaneType.Y
-            ? context.YColorIndex[paletteSize - 2][colorContext]
-            : context.UvColorIndex[paletteSize - 2][colorContext];
+            ? this.entropyContext.PaletteYColorIndex[paletteSize - 2][colorContext]
+            : this.entropyContext.PaletteUvColorIndex[paletteSize - 2][colorContext];
 
         return Av1ProbabilityCost.GetSymbolCost(distribution, colorOrderIndex);
     }
@@ -457,10 +521,9 @@ internal sealed class Av1SymbolEncoder : IDisposable
         Av1PlaneType planeType)
     {
         ref Av1SymbolWriter w = ref this.writer;
-        PaletteEntropyContext context = this.paletteEntropyContext ??= new();
         Av1Distribution distribution = planeType == Av1PlaneType.Y
-            ? context.YColorIndex[paletteSize - 2][colorContext]
-            : context.UvColorIndex[paletteSize - 2][colorContext];
+            ? this.entropyContext.PaletteYColorIndex[paletteSize - 2][colorContext]
+            : this.entropyContext.PaletteUvColorIndex[paletteSize - 2][colorContext];
 
         w.WriteSymbol(colorOrderIndex, distribution);
     }
@@ -695,7 +758,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="value">The displacement vector to encode.</param>
     /// <param name="reference">The spatially derived reference vector.</param>
     public void WriteDisplacementVector(Av1MotionVector value, Av1MotionVector reference)
-        => this.displacementVector.Write(this.writer, value, reference);
+        => this.displacementVector.Write(this.writer, value, reference, Av1MotionVectorPrecision.Integer);
 
     /// <summary>
     /// Measures an integer intra-block-copy displacement vector against the live distributions.
@@ -707,7 +770,11 @@ internal sealed class Av1SymbolEncoder : IDisposable
     {
         const int DisplacementVectorCostWeight = 120;
         const int WeightShift = 7;
-        int rate = this.displacementVector.GetCost(this.writer, value, reference);
+        int rate = this.displacementVector.GetCost(
+            this.writer,
+            value,
+            reference,
+            Av1MotionVectorPrecision.Integer);
 
         // Displacement syntax uses a 120/128 discount during mode search; adding half the divisor rounds to nearest.
         return ((rate * DisplacementVectorCostWeight) + (1 << (WeightShift - 1))) >> WeightShift;
@@ -720,7 +787,133 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="reference">The spatially derived reference vector.</param>
     /// <returns>The syntax cost in 1/512-bit units.</returns>
     public int GetDisplacementVectorSearchCost(Av1MotionVector value, Av1MotionVector reference)
-        => this.displacementVector.GetCost(this.writer, value, reference);
+        => this.displacementVector.GetCost(
+            this.writer,
+            value,
+            reference,
+            Av1MotionVectorPrecision.Integer);
+
+    /// <summary>
+    /// Measures one switchable interpolation filter against its live tile distribution.
+    /// </summary>
+    /// <param name="filter">The regular, smooth, or sharp filter.</param>
+    /// <param name="context">The spatial filter context for the selected direction.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public int GetSwitchableInterpolationFilterCost(Av1InterpolationFilter filter, int context)
+        => Av1ProbabilityCost.GetSymbolCost(this.entropyContext.SwitchableInterpolation[context], (int)filter);
+
+    /// <summary>
+    /// Writes one switchable interpolation filter and updates its live tile distribution.
+    /// </summary>
+    /// <param name="filter">The regular, smooth, or sharp filter.</param>
+    /// <param name="context">The spatial filter context for the selected direction.</param>
+    public void WriteSwitchableInterpolationFilter(Av1InterpolationFilter filter, int context)
+        => this.writer.WriteSymbol((int)filter, this.entropyContext.SwitchableInterpolation[context]);
+
+    /// <summary>
+    /// Measures a single-reference inter mode against the live branch distributions.
+    /// </summary>
+    /// <param name="mode">The new, global, nearest, or near motion-vector mode.</param>
+    /// <param name="modeContext">The packed context derived from the reference-vector stack.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public int GetInterModeCost(Av1PredictionMode mode, int modeContext)
+    {
+        bool isNotNew = mode != Av1PredictionMode.NewMotionVector;
+        int rate = Av1ProbabilityCost.GetSymbolCost(
+            this.newMotionVector[Av1SymbolContextHelper.GetNewMvContext(modeContext)],
+            isNotNew ? 1 : 0);
+
+        if (!isNotNew)
+        {
+            return rate;
+        }
+
+        bool isNotGlobal = mode != Av1PredictionMode.GlobalMotionVector;
+        rate += Av1ProbabilityCost.GetSymbolCost(
+            this.zeroMotionVector[Av1SymbolContextHelper.GetZeroMvContext(modeContext)],
+            isNotGlobal ? 1 : 0);
+
+        if (!isNotGlobal)
+        {
+            return rate;
+        }
+
+        return rate + Av1ProbabilityCost.GetSymbolCost(
+            this.referenceMotionVector[Av1SymbolContextHelper.GetRefMvContext(modeContext)],
+            mode == Av1PredictionMode.NearMotionVector ? 1 : 0);
+    }
+
+    /// <summary>
+    /// Writes a single-reference inter mode through the NEWMV, GLOBALMV, and NEARESTMV branch tree.
+    /// </summary>
+    /// <param name="mode">The new, global, nearest, or near motion-vector mode.</param>
+    /// <param name="modeContext">The packed context derived from the reference-vector stack.</param>
+    public void WriteInterMode(Av1PredictionMode mode, int modeContext)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        bool isNotNew = mode != Av1PredictionMode.NewMotionVector;
+        w.WriteSymbol(isNotNew, this.newMotionVector[Av1SymbolContextHelper.GetNewMvContext(modeContext)]);
+        if (!isNotNew)
+        {
+            return;
+        }
+
+        bool isNotGlobal = mode != Av1PredictionMode.GlobalMotionVector;
+        w.WriteSymbol(isNotGlobal, this.zeroMotionVector[Av1SymbolContextHelper.GetZeroMvContext(modeContext)]);
+        if (!isNotGlobal)
+        {
+            return;
+        }
+
+        w.WriteSymbol(
+            mode == Av1PredictionMode.NearMotionVector,
+            this.referenceMotionVector[Av1SymbolContextHelper.GetRefMvContext(modeContext)]);
+    }
+
+    /// <summary>
+    /// Measures one dynamic-reference-list advance decision.
+    /// </summary>
+    /// <param name="advance">Whether selection advances to the next candidate.</param>
+    /// <param name="context">The candidate-weight context.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public int GetDynamicReferenceListCost(bool advance, int context)
+        => Av1ProbabilityCost.GetSymbolCost(this.dynamicReferenceList[context], advance ? 1 : 0);
+
+    /// <summary>
+    /// Writes one dynamic-reference-list advance decision.
+    /// </summary>
+    /// <param name="advance">Whether selection advances to the next candidate.</param>
+    /// <param name="context">The candidate-weight context.</param>
+    public void WriteDynamicReferenceList(bool advance, int context)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteSymbol(advance, this.dynamicReferenceList[context]);
+    }
+
+    /// <summary>
+    /// Measures an inter motion vector relative to its selected stack reference.
+    /// </summary>
+    /// <param name="value">The selected motion vector.</param>
+    /// <param name="reference">The differential reference from the candidate stack.</param>
+    /// <param name="precision">The fractional precision selected by the frame header.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public int GetMotionVectorCost(
+        Av1MotionVector value,
+        Av1MotionVector reference,
+        Av1MotionVectorPrecision precision)
+        => this.motionVector.GetCost(this.writer, value, reference, precision);
+
+    /// <summary>
+    /// Writes an inter motion vector relative to its selected stack reference.
+    /// </summary>
+    /// <param name="value">The selected motion vector.</param>
+    /// <param name="reference">The differential reference from the candidate stack.</param>
+    /// <param name="precision">The fractional precision selected by the frame header.</param>
+    public void WriteMotionVector(
+        Av1MotionVector value,
+        Av1MotionVector reference,
+        Av1MotionVectorPrecision precision)
+        => this.motionVector.Write(this.writer, value, reference, precision);
 
     /// <summary>
     /// Gets the current fixed-point cost of a complete block partition symbol.
@@ -1136,15 +1329,11 @@ internal sealed class Av1SymbolEncoder : IDisposable
         bool clearLevels,
         out Span<sbyte> coefficientContexts)
     {
-        Av1LevelBuffer levels = this.levels ??= new(this.configuration);
-        IMemoryOwner<sbyte> coefficientContextOwner = this.coefficientContexts ??=
-            this.configuration.MemoryAllocator.Allocate<sbyte>(MaximumCoefficientContextCount);
-
         // AV1 omits high-frequency coefficients beyond 32 samples on every 64-point transform dimension. The tile
         // creates maximum-sized workspaces once, then changes only the active views for subsequent transform blocks.
-        levels.Reset(new Size(width, height), clearLevels);
-        coefficientContexts = coefficientContextOwner.Memory.Span[..(width * height)];
-        return levels;
+        this.levels.Reset(new Size(width, height), clearLevels);
+        coefficientContexts = this.coefficientContexts.Memory.Span[..(width * height)];
+        return this.levels;
     }
 
     /// <summary>
@@ -1314,21 +1503,23 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// </summary>
     /// <returns>The memory owner containing the encoded tile bytes.</returns>
     public IMemoryOwner<byte> Exit()
-    {
-        ref Av1SymbolWriter w = ref this.writer;
-        return w.Exit();
-    }
+        => this.writer.Exit();
 
     /// <summary>
     /// Finalizes the range-coded tile payload and exposes its encoded prefix without copying.
     /// </summary>
     /// <param name="length">The number of encoded bytes in the returned memory.</param>
-    /// <returns>The encoded prefix, valid until this encoder is disposed.</returns>
+    /// <returns>The encoded prefix, valid until this encoder is reset or disposed.</returns>
     public ReadOnlyMemory<byte> Exit(out int length)
-    {
-        ref Av1SymbolWriter w = ref this.writer;
-        return w.Exit(out length);
-    }
+        => this.writer.Exit(out length);
+
+    /// <summary>
+    /// Exposes a prefix containing every consecutively encoded tile without copying their bytes.
+    /// </summary>
+    /// <param name="length">The number of bytes in the prefix.</param>
+    /// <returns>The encoded prefix, valid until this encoder is reset to offset zero or disposed.</returns>
+    public ReadOnlyMemory<byte> GetOutput(int length)
+        => this.writer.GetOutput(length);
 
     /// <summary>
     /// Releases the range-coder output buffer and coefficient scratch memory.
@@ -1337,8 +1528,8 @@ internal sealed class Av1SymbolEncoder : IDisposable
     {
         if (!this.isDisposed)
         {
-            this.coefficientContexts?.Dispose();
-            this.levels?.Dispose();
+            this.coefficientContexts.Dispose();
+            this.levels.Dispose();
             this.writer.Dispose();
             this.isDisposed = true;
         }
@@ -1655,6 +1846,142 @@ internal sealed class Av1SymbolEncoder : IDisposable
     {
         ref Av1SymbolWriter w = ref this.writer;
         w.WriteSymbol((int)lumaMode, this.keyFrameYMode[topContext][leftContext]);
+    }
+
+    /// <summary>
+    /// Gets the cost of an intra luma mode coded inside an inter frame.
+    /// </summary>
+    /// <param name="lumaMode">The intra luma mode.</param>
+    /// <param name="blockSize">The coding block size selecting the size group.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public int GetInterFrameLumaModeCost(Av1PredictionMode lumaMode, Av1BlockSize blockSize)
+        => Av1ProbabilityCost.GetSymbolCost(this.frameYMode[blockSize.GetSizeGroup()], (int)lumaMode);
+
+    /// <summary>
+    /// Writes an intra luma mode coded inside an inter frame.
+    /// </summary>
+    /// <param name="lumaMode">The intra luma mode.</param>
+    /// <param name="blockSize">The coding block size selecting the size group.</param>
+    public void WriteInterFrameLumaMode(Av1PredictionMode lumaMode, Av1BlockSize blockSize)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteSymbol((int)lumaMode, this.frameYMode[blockSize.GetSizeGroup()]);
+    }
+
+    /// <summary>
+    /// Gets the cost of the prediction-domain decision for an inter-frame block.
+    /// </summary>
+    /// <param name="isInter">Whether the block uses a retained reference frame.</param>
+    /// <param name="context">The neighboring prediction-domain context.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public int GetIsInterCost(bool isInter, int context)
+        => Av1ProbabilityCost.GetSymbolCost(this.intraInter[context], isInter ? 1 : 0);
+
+    /// <summary>
+    /// Writes the prediction-domain decision for an inter-frame block.
+    /// </summary>
+    /// <param name="isInter">Whether the block uses a retained reference frame.</param>
+    /// <param name="context">The neighboring prediction-domain context.</param>
+    public void WriteIsInter(bool isInter, int context)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        w.WriteSymbol(isInter, this.intraInter[context]);
+    }
+
+    /// <summary>
+    /// Gets the cost of selecting one reference from the single-reference branch tree.
+    /// </summary>
+    /// <param name="referenceFrame">The selected reference-frame label.</param>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by reference-frame label.</param>
+    /// <returns>The syntax cost in 1/512-bit units.</returns>
+    public int GetSingleReferenceCost(
+        Av1ReferenceFrameType referenceFrame,
+        ReadOnlySpan<byte> referenceCounts)
+    {
+        bool isBackward = referenceFrame >= Av1ReferenceFrameType.Backward;
+        int context = Av1SymbolContextHelper.GetSingleReferenceBackwardContext(referenceCounts);
+        int rate = Av1ProbabilityCost.GetSymbolCost(this.singleReference[context][0], isBackward ? 1 : 0);
+        if (isBackward)
+        {
+            bool isAlternate = referenceFrame == Av1ReferenceFrameType.Alternate;
+            context = Av1SymbolContextHelper.GetSingleReferenceAlternateContext(referenceCounts);
+            rate += Av1ProbabilityCost.GetSymbolCost(this.singleReference[context][1], isAlternate ? 1 : 0);
+            if (isAlternate)
+            {
+                return rate;
+            }
+
+            context = Av1SymbolContextHelper.GetSingleReferenceAlternate2Context(referenceCounts);
+            return rate + Av1ProbabilityCost.GetSymbolCost(
+                this.singleReference[context][5],
+                referenceFrame == Av1ReferenceFrameType.Alternate2 ? 1 : 0);
+        }
+
+        bool isLast3OrGolden = referenceFrame is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
+        context = Av1SymbolContextHelper.GetSingleReferenceLast3OrGoldenContext(referenceCounts);
+        rate += Av1ProbabilityCost.GetSymbolCost(this.singleReference[context][2], isLast3OrGolden ? 1 : 0);
+        if (isLast3OrGolden)
+        {
+            context = Av1SymbolContextHelper.GetSingleReferenceGoldenContext(referenceCounts);
+            return rate + Av1ProbabilityCost.GetSymbolCost(
+                this.singleReference[context][4],
+                referenceFrame == Av1ReferenceFrameType.Golden ? 1 : 0);
+        }
+
+        context = Av1SymbolContextHelper.GetSingleReferenceLast2Context(referenceCounts);
+        return rate + Av1ProbabilityCost.GetSymbolCost(
+            this.singleReference[context][3],
+            referenceFrame == Av1ReferenceFrameType.Last2 ? 1 : 0);
+    }
+
+    /// <summary>
+    /// Writes one reference through the single-reference branch tree.
+    /// </summary>
+    /// <param name="referenceFrame">The selected reference-frame label.</param>
+    /// <param name="referenceCounts">The neighboring reference counts indexed by reference-frame label.</param>
+    public void WriteSingleReference(
+        Av1ReferenceFrameType referenceFrame,
+        ReadOnlySpan<byte> referenceCounts)
+    {
+        ref Av1SymbolWriter w = ref this.writer;
+        bool isBackward = referenceFrame >= Av1ReferenceFrameType.Backward;
+        int context = Av1SymbolContextHelper.GetSingleReferenceBackwardContext(referenceCounts);
+        w.WriteSymbol(isBackward, this.singleReference[context][0]);
+        if (isBackward)
+        {
+            bool isAlternate = referenceFrame == Av1ReferenceFrameType.Alternate;
+            context = Av1SymbolContextHelper.GetSingleReferenceAlternateContext(referenceCounts);
+            w.WriteSymbol(isAlternate, this.singleReference[context][1]);
+            if (isAlternate)
+            {
+                return;
+            }
+
+            context = Av1SymbolContextHelper.GetSingleReferenceAlternate2Context(referenceCounts);
+            w.WriteSymbol(
+                referenceFrame == Av1ReferenceFrameType.Alternate2,
+                this.singleReference[context][5]);
+
+            return;
+        }
+
+        bool isLast3OrGolden = referenceFrame is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
+        context = Av1SymbolContextHelper.GetSingleReferenceLast3OrGoldenContext(referenceCounts);
+        w.WriteSymbol(isLast3OrGolden, this.singleReference[context][2]);
+        if (isLast3OrGolden)
+        {
+            context = Av1SymbolContextHelper.GetSingleReferenceGoldenContext(referenceCounts);
+            w.WriteSymbol(
+                referenceFrame == Av1ReferenceFrameType.Golden,
+                this.singleReference[context][4]);
+
+            return;
+        }
+
+        context = Av1SymbolContextHelper.GetSingleReferenceLast2Context(referenceCounts);
+        w.WriteSymbol(
+            referenceFrame == Av1ReferenceFrameType.Last2,
+            this.singleReference[context][3]);
     }
 
     /// <summary>
@@ -2086,41 +2413,5 @@ internal sealed class Av1SymbolEncoder : IDisposable
                 paletteSize,
                 colorContext,
                 planeType);
-    }
-
-    /// <summary>
-    /// Owns the adaptive distributions used only by AV1 palette syntax.
-    /// </summary>
-    private sealed class PaletteEntropyContext
-    {
-        /// <summary>
-        /// Gets the luma palette-mode distributions.
-        /// </summary>
-        public Av1Distribution[][] YMode { get; } = Av1DefaultDistributions.PaletteYMode;
-
-        /// <summary>
-        /// Gets the chroma palette-mode distributions.
-        /// </summary>
-        public Av1Distribution[] UvMode { get; } = Av1DefaultDistributions.PaletteUvMode;
-
-        /// <summary>
-        /// Gets the luma palette-size distributions.
-        /// </summary>
-        public Av1Distribution[] YSize { get; } = Av1DefaultDistributions.PaletteYSize;
-
-        /// <summary>
-        /// Gets the chroma palette-size distributions.
-        /// </summary>
-        public Av1Distribution[] UvSize { get; } = Av1DefaultDistributions.PaletteUvSize;
-
-        /// <summary>
-        /// Gets the luma palette color-index distributions.
-        /// </summary>
-        public Av1Distribution[][] YColorIndex { get; } = Av1DefaultDistributions.PaletteYColorIndex;
-
-        /// <summary>
-        /// Gets the chroma palette color-index distributions.
-        /// </summary>
-        public Av1Distribution[][] UvColorIndex { get; } = Av1DefaultDistributions.PaletteUvColorIndex;
     }
 }

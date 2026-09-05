@@ -103,23 +103,50 @@ internal class RotateProcessor<TPixel> : AffineTransformProcessor<TPixel>
 
         if (MathF.Abs(degrees - 90) < Constants.Epsilon)
         {
-            Rotate90(source, destination, configuration);
+            ApplyQuarterTurn(RotateMode.Rotate90, source, destination, configuration);
             return true;
         }
 
         if (MathF.Abs(degrees - 180) < Constants.Epsilon)
         {
-            Rotate180(source, destination, configuration);
+            ApplyQuarterTurn(RotateMode.Rotate180, source, destination, configuration);
             return true;
         }
 
         if (MathF.Abs(degrees - 270) < Constants.Epsilon)
         {
-            Rotate270(source, destination, configuration);
+            ApplyQuarterTurn(RotateMode.Rotate270, source, destination, configuration);
             return true;
         }
 
         return false;
+    }
+
+    /// <summary>
+    /// Applies an exact quarter-turn rotation between already allocated frames.
+    /// </summary>
+    /// <param name="rotation">The clockwise quarter-turn rotation.</param>
+    /// <param name="source">The source frame.</param>
+    /// <param name="destination">The destination frame with the rotated dimensions.</param>
+    /// <param name="configuration">The configuration controlling row parallelism.</param>
+    internal static void ApplyQuarterTurn(
+        RotateMode rotation,
+        ImageFrame<TPixel> source,
+        ImageFrame<TPixel> destination,
+        Configuration configuration)
+    {
+        switch (rotation)
+        {
+            case RotateMode.Rotate90:
+                Rotate90(source, destination, configuration);
+                break;
+            case RotateMode.Rotate180:
+                Rotate180(source, destination, configuration);
+                break;
+            case RotateMode.Rotate270:
+                Rotate270(source, destination, configuration);
+                break;
+        }
     }
 
     /// <summary>

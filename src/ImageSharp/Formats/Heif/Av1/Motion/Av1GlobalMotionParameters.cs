@@ -21,6 +21,51 @@ internal struct Av1GlobalMotionParameters
     public const int ModelScale = 1 << ModelPrecisionBits;
 
     /// <summary>
+    /// The initial finite-subexponential group width used by every global-motion parameter.
+    /// </summary>
+    public const int SubexponentialGroupBitCount = 3;
+
+    /// <summary>
+    /// The finite signed-domain size parameter for coded affine coefficients.
+    /// </summary>
+    public const int AlphaValueMagnitude = (1 << 12) + 1;
+
+    /// <summary>
+    /// The number of fractional bits carried by coded affine coefficients.
+    /// </summary>
+    public const int AlphaPrecisionBits = 15;
+
+    /// <summary>
+    /// The precision increase from a coded affine coefficient to the stored matrix.
+    /// </summary>
+    public const int AlphaPrecisionDifference = ModelPrecisionBits - AlphaPrecisionBits;
+
+    /// <summary>
+    /// The scale factor that restores a coded affine coefficient to the stored matrix precision.
+    /// </summary>
+    public const int AlphaDecodeFactor = 1 << AlphaPrecisionDifference;
+
+    /// <summary>
+    /// The signed magnitude bit count of a general affine model's translation components.
+    /// </summary>
+    public const int AbsoluteTranslationBits = 12;
+
+    /// <summary>
+    /// The signed magnitude bit count of a translation-only model before precision adjustment.
+    /// </summary>
+    public const int AbsoluteTranslationOnlyBits = 9;
+
+    /// <summary>
+    /// The number of fractional bits carried by general affine translation components.
+    /// </summary>
+    public const int TranslationPrecisionBits = 6;
+
+    /// <summary>
+    /// The number of fractional bits carried by translation-only components.
+    /// </summary>
+    public const int TranslationOnlyPrecisionBits = 3;
+
+    /// <summary>
     /// The number of low-order bits removed from the derived shear parameters.
     /// </summary>
     private const int ShearParameterReductionBits = 6;

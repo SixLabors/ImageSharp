@@ -134,7 +134,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <summary>
     /// Reusable fixed-capacity storage for one block's weighted reference-motion-vector candidates.
     /// </summary>
-    private readonly Av1ReferenceMotionVectors referenceMotionVectors = new();
+    private Av1ReferenceMotionVectors referenceMotionVectors;
 
     /// <summary>
     /// Reusable fixed-capacity state for motion-mode eligibility and local warped-motion projection.
@@ -250,6 +250,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Av1ReferenceFrameStore? referenceFrames,
         PaletteColorIndexMaps? sharedPaletteColorIndexMaps)
     {
+        this.referenceMotionVectors = default;
         this.FrameHeader = frameHeader;
         this.configuration = configuration;
         this.SequenceHeader = sequenceHeader;
@@ -2044,7 +2045,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             Av1ReferenceFrameType secondaryReferenceFrame = modeInfo.ReferenceFrames[1];
             bool isCompound = secondaryReferenceFrame > Av1ReferenceFrameType.Intra;
 
-            Av1ReferenceMotionVectors referenceMotionVectors = this.referenceMotionVectors;
+            ref Av1ReferenceMotionVectors referenceMotionVectors = ref this.referenceMotionVectors;
             referenceMotionVectors.Build(
                 ref partitionInfo,
                 tileInfo,
@@ -2110,9 +2111,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 }
             }
 
-            Av1MotionVectorPrecision precision = this.FrameHeader.ForceIntegerMotionVector
-                ? Av1MotionVectorPrecision.Integer
-                : this.FrameHeader.AllowHighPrecisionMotionVector ? Av1MotionVectorPrecision.EighthSample : Av1MotionVectorPrecision.QuarterSample;
+            Av1MotionVectorPrecision precision = this.FrameHeader.MotionVectorPrecision;
 
             Span<Av1MotionVector> motionVectors = modeInfo.MotionVectors;
             if (!isCompound)

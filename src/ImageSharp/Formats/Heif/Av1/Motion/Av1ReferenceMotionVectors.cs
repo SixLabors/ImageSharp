@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Diagnostics.CodeAnalysis;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -10,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 /// <summary>
 /// Derives the weighted AV1 reference-motion-vector candidates for one inter block.
 /// </summary>
-internal sealed class Av1ReferenceMotionVectors
+internal struct Av1ReferenceMotionVectors
 {
     /// <summary>
     /// The number of surrounding mode-information rows and columns examined by the spatial search.
@@ -80,16 +81,19 @@ internal sealed class Av1ReferenceMotionVectors
     /// <summary>
     /// Gets the derived candidates in normative nearest-region then outer-region order.
     /// </summary>
+    [UnscopedRef]
     public ReadOnlySpan<Av1MotionVector> Candidates => this.candidates[..this.Count];
 
     /// <summary>
     /// Gets the secondary vectors corresponding to <see cref="Candidates"/> for a compound block.
     /// </summary>
+    [UnscopedRef]
     public ReadOnlySpan<Av1MotionVector> CompoundCandidates => this.compoundCandidates[..this.Count];
 
     /// <summary>
     /// Gets the accumulated weight corresponding to each entry in <see cref="Candidates"/>.
     /// </summary>
+    [UnscopedRef]
     public ReadOnlySpan<ushort> Weights => this.weights[..this.Count];
 
     /// <summary>
@@ -116,11 +120,67 @@ internal sealed class Av1ReferenceMotionVectors
         Av1ReferenceFrameType referenceFrame,
         Av1ReferenceFrameType secondaryReferenceFrame = Av1ReferenceFrameType.None)
     {
-        Av1BlockSize blockSize = partitionInfo.ModeInfo.BlockSize;
+        ReferenceContext context = new(ref partitionInfo, sequenceHeader.SuperblockModeInfoSize, frameInfo);
+        this.Build(
+            in context,
+            tileInfo,
+            sequenceHeader,
+            frameHeader,
+            referenceFrame,
+            secondaryReferenceFrame);
+    }
+
+    /// <summary>
+    /// Derives the spatial single-reference motion-vector candidates for an encoder block.
+    /// </summary>
+    /// <param name="picture">The encoder picture state containing previously coded neighbors.</param>
+    /// <param name="macroBlock">The current block geometry and tile availability.</param>
+    /// <param name="modeInfoPosition">The current block origin in 4x4 mode-information units.</param>
+    /// <param name="blockSize">The current coding-block size.</param>
+    /// <param name="partitionType">The partition that produced the current block.</param>
+    /// <param name="sequenceHeader">The sequence-level superblock configuration.</param>
+    /// <param name="frameHeader">The frame-level global-motion and motion-vector precision configuration.</param>
+    /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
+    public void Build(
+        Av1PictureControlSet picture,
+        Av1MacroBlockD macroBlock,
+        Point modeInfoPosition,
+        Av1BlockSize blockSize,
+        Av1PartitionType partitionType,
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        Av1ReferenceFrameType referenceFrame)
+    {
+        ReferenceContext context = new(
+            picture,
+            macroBlock,
+            modeInfoPosition,
+            blockSize,
+            partitionType,
+            sequenceHeader.SuperblockModeInfoSize);
+
+        this.Build(
+            in context,
+            macroBlock.Tile,
+            sequenceHeader,
+            frameHeader,
+            referenceFrame,
+            Av1ReferenceFrameType.None);
+    }
+
+    private void Build(
+        in ReferenceContext context,
+        Av1TileInfo tileInfo,
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        Av1ReferenceFrameType referenceFrame,
+        Av1ReferenceFrameType secondaryReferenceFrame)
+    {
+        Av1BlockSize blockSize = context.BlockSize;
         int width = blockSize.Get4x4WideCount();
         int height = blockSize.Get4x4HighCount();
-        int row = partitionInfo.RowIndex;
-        int column = partitionInfo.ColumnIndex;
+        int row = context.RowIndex;
+        int column = context.ColumnIndex;
         int rowAdjustment = height < 2 && (row & 1) != 0 ? 1 : 0;
         int columnAdjustment = width < 2 && (column & 1) != 0 ? 1 : 0;
         int maximumRowOffset = 0;
@@ -129,13 +189,13 @@ internal sealed class Av1ReferenceMotionVectors
         this.Count = 0;
         this.ModeContext = 0;
 
-        if (partitionInfo.AvailableAbove)
+        if (context.AvailableAbove)
         {
             maximumRowOffset = height < 2 ? -4 + rowAdjustment : -(ReferenceSearchDistance << 1) + rowAdjustment;
             maximumRowOffset = Math.Clamp(maximumRowOffset, tileInfo.ModeInfoRowStart - row, tileInfo.ModeInfoRowEnd - row - 1);
         }
 
-        if (partitionInfo.AvailableLeft)
+        if (context.AvailableLeft)
         {
             maximumColumnOffset = width < 2 ? -4 + columnAdjustment : -(ReferenceSearchDistance << 1) + columnAdjustment;
             maximumColumnOffset = Math.Clamp(maximumColumnOffset, tileInfo.ModeInfoColumnStart - column, tileInfo.ModeInfoColumnEnd - column - 1);
@@ -171,7 +231,7 @@ internal sealed class Av1ReferenceMotionVectors
         if (Math.Abs(maximumRowOffset) >= 1)
         {
             this.ScanRow(
-                ref partitionInfo,
+                in context,
                 referenceFrame,
                 secondaryReferenceFrame,
                 in globalMotion,
@@ -188,7 +248,7 @@ internal sealed class Av1ReferenceMotionVectors
         if (Math.Abs(maximumColumnOffset) >= 1)
         {
             this.ScanColumn(
-                ref partitionInfo,
+                in context,
                 referenceFrame,
                 secondaryReferenceFrame,
                 in globalMotion,
@@ -202,10 +262,10 @@ internal sealed class Av1ReferenceMotionVectors
                 ref processedColumns);
         }
 
-        if (partitionInfo.HasTopRight(sequenceHeader.SuperblockModeInfoSize))
+        if (context.HasTopRight)
         {
             this.AddSpatialBlock(
-                ref partitionInfo,
+                in context,
                 tileInfo,
                 referenceFrame,
                 secondaryReferenceFrame,
@@ -229,9 +289,8 @@ internal sealed class Av1ReferenceMotionVectors
         if (frameHeader.UseReferenceFrameMotionVectors)
         {
             this.AddTemporalCandidates(
-                ref partitionInfo,
+                in context,
                 tileInfo,
-                frameInfo,
                 sequenceHeader.OrderHintInfo,
                 frameHeader,
                 referenceFrame,
@@ -245,7 +304,7 @@ internal sealed class Av1ReferenceMotionVectors
         // The top-left block begins the lower-priority outer region. Candidate deduplication still spans both
         // regions, while the two independent stable sorts below preserve the normative nearest-before-outer order.
         this.AddSpatialBlock(
-            ref partitionInfo,
+            in context,
             tileInfo,
             referenceFrame,
             secondaryReferenceFrame,
@@ -265,7 +324,7 @@ internal sealed class Av1ReferenceMotionVectors
             if (Math.Abs(rowOffset) <= Math.Abs(maximumRowOffset) && Math.Abs(rowOffset) > processedRows)
             {
                 this.ScanRow(
-                    ref partitionInfo,
+                    in context,
                     referenceFrame,
                     secondaryReferenceFrame,
                     in globalMotion,
@@ -282,7 +341,7 @@ internal sealed class Av1ReferenceMotionVectors
             if (Math.Abs(columnOffset) <= Math.Abs(maximumColumnOffset) && Math.Abs(columnOffset) > processedColumns)
             {
                 this.ScanColumn(
-                    ref partitionInfo,
+                    in context,
                     referenceFrame,
                     secondaryReferenceFrame,
                     in globalMotion,
@@ -323,8 +382,7 @@ internal sealed class Av1ReferenceMotionVectors
             if (this.Count < 2)
             {
                 this.ExtendCompoundStack(
-                    ref partitionInfo,
-                    frameInfo,
+                    in context,
                     referenceFrame,
                     secondaryReferenceFrame,
                     globalMotionVector,
@@ -340,15 +398,15 @@ internal sealed class Av1ReferenceMotionVectors
             // Differing reference sign biases are reversed before either candidate enters that pair.
             for (int index = 0; Math.Abs(maximumRowOffset) >= 1 && index < extensionLength && this.Count < 2;)
             {
-                Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(column + index, row - 1));
-                this.AddExtensionCandidate(candidate, frameInfo, referenceFrame);
+                ReferenceBlock candidate = context.GetModeInfoAt(new Point(column + index, row - 1));
+                this.AddExtensionCandidate(candidate, in context, referenceFrame);
                 index += candidate.BlockSize.Get4x4WideCount();
             }
 
             for (int index = 0; Math.Abs(maximumColumnOffset) >= 1 && index < extensionLength && this.Count < 2;)
             {
-                Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(column - 1, row + index));
-                this.AddExtensionCandidate(candidate, frameInfo, referenceFrame);
+                ReferenceBlock candidate = context.GetModeInfoAt(new Point(column - 1, row + index));
+                this.AddExtensionCandidate(candidate, in context, referenceFrame);
                 index += candidate.BlockSize.Get4x4HighCount();
             }
         }
@@ -358,20 +416,20 @@ internal sealed class Av1ReferenceMotionVectors
             this.candidates[index] = this.candidates[index].ClampReference(
                 blockSize.GetWidth(),
                 blockSize.GetHeight(),
-                partitionInfo.ModeBlockToLeftEdge,
-                partitionInfo.ModeBlockToRightEdge,
-                partitionInfo.ModeBlockToTopEdge,
-                partitionInfo.ModeBlockToBottomEdge);
+                context.ModeBlockToLeftEdge,
+                context.ModeBlockToRightEdge,
+                context.ModeBlockToTopEdge,
+                context.ModeBlockToBottomEdge);
 
             if (secondaryReferenceFrame > Av1ReferenceFrameType.Intra)
             {
                 this.compoundCandidates[index] = this.compoundCandidates[index].ClampReference(
                     blockSize.GetWidth(),
                     blockSize.GetHeight(),
-                    partitionInfo.ModeBlockToLeftEdge,
-                    partitionInfo.ModeBlockToRightEdge,
-                    partitionInfo.ModeBlockToTopEdge,
-                    partitionInfo.ModeBlockToBottomEdge);
+                    context.ModeBlockToLeftEdge,
+                    context.ModeBlockToRightEdge,
+                    context.ModeBlockToTopEdge,
+                    context.ModeBlockToBottomEdge);
             }
         }
 
@@ -452,7 +510,7 @@ internal sealed class Av1ReferenceMotionVectors
     /// <summary>
     /// Scans one spatial row using AV1's block-size-dependent steps and weights.
     /// </summary>
-    /// <param name="partitionInfo">The current block geometry and frame-wide mode map.</param>
+    /// <param name="context">The current block geometry and frame-wide mode map.</param>
     /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
     /// <param name="secondaryReferenceFrame">The secondary compound reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
     /// <param name="globalMotion">The selected reference's global-motion model.</param>
@@ -465,7 +523,7 @@ internal sealed class Av1ReferenceMotionVectors
     /// <param name="newMotionVectorCount">Accumulates matching neighbors whose inter mode contains a new vector.</param>
     /// <param name="processedRows">Receives the spatial depth covered by block-height weighting.</param>
     private void ScanRow(
-        ref Av1PartitionInfo partitionInfo,
+        in ReferenceContext context,
         Av1ReferenceFrameType referenceFrame,
         Av1ReferenceFrameType secondaryReferenceFrame,
         in Av1GlobalMotionParameters globalMotion,
@@ -478,13 +536,13 @@ internal sealed class Av1ReferenceMotionVectors
         ref int newMotionVectorCount,
         ref int processedRows)
     {
-        int width = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
-        int end = Math.Min(partitionInfo.GetMaxBlockWide(partitionInfo.ModeInfo.BlockSize, false), MaximumSearchBlockSize);
+        int width = context.BlockSize.Get4x4WideCount();
+        int end = Math.Min(context.GetMaxBlockWide(), MaximumSearchBlockSize);
         int columnOffset = 0;
         if (Math.Abs(rowOffset) > 1)
         {
             columnOffset = 1;
-            if ((partitionInfo.ColumnIndex & 1) != 0 && width < 2)
+            if ((context.ColumnIndex & 1) != 0 && width < 2)
             {
                 columnOffset--;
             }
@@ -495,8 +553,8 @@ internal sealed class Av1ReferenceMotionVectors
         bool useFourUnitStep = width >= MaximumSearchBlockSize;
         for (int index = 0; index < end;)
         {
-            Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(
-                new Point(partitionInfo.ColumnIndex + columnOffset + index, partitionInfo.RowIndex + rowOffset));
+            ReferenceBlock candidate = context.GetModeInfoAt(
+                new Point(context.ColumnIndex + columnOffset + index, context.RowIndex + rowOffset));
 
             int candidateWidth = candidate.BlockSize.Get4x4WideCount();
             int length = Math.Min(width, candidateWidth);
@@ -536,7 +594,7 @@ internal sealed class Av1ReferenceMotionVectors
     /// <summary>
     /// Scans one spatial column using AV1's block-size-dependent steps and weights.
     /// </summary>
-    /// <param name="partitionInfo">The current block geometry and frame-wide mode map.</param>
+    /// <param name="context">The current block geometry and frame-wide mode map.</param>
     /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
     /// <param name="secondaryReferenceFrame">The secondary compound reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
     /// <param name="globalMotion">The selected reference's global-motion model.</param>
@@ -549,7 +607,7 @@ internal sealed class Av1ReferenceMotionVectors
     /// <param name="newMotionVectorCount">Accumulates matching neighbors whose inter mode contains a new vector.</param>
     /// <param name="processedColumns">Receives the spatial depth covered by block-width weighting.</param>
     private void ScanColumn(
-        ref Av1PartitionInfo partitionInfo,
+        in ReferenceContext context,
         Av1ReferenceFrameType referenceFrame,
         Av1ReferenceFrameType secondaryReferenceFrame,
         in Av1GlobalMotionParameters globalMotion,
@@ -562,13 +620,13 @@ internal sealed class Av1ReferenceMotionVectors
         ref int newMotionVectorCount,
         ref int processedColumns)
     {
-        int height = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
-        int end = Math.Min(partitionInfo.GetMaxBlockHigh(partitionInfo.ModeInfo.BlockSize, false), MaximumSearchBlockSize);
+        int height = context.BlockSize.Get4x4HighCount();
+        int end = Math.Min(context.GetMaxBlockHigh(), MaximumSearchBlockSize);
         int rowOffset = 0;
         if (Math.Abs(columnOffset) > 1)
         {
             rowOffset = 1;
-            if ((partitionInfo.RowIndex & 1) != 0 && height < 2)
+            if ((context.RowIndex & 1) != 0 && height < 2)
             {
                 rowOffset--;
             }
@@ -579,8 +637,8 @@ internal sealed class Av1ReferenceMotionVectors
         bool useFourUnitStep = height >= MaximumSearchBlockSize;
         for (int index = 0; index < end;)
         {
-            Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(
-                new Point(partitionInfo.ColumnIndex + columnOffset, partitionInfo.RowIndex + rowOffset + index));
+            ReferenceBlock candidate = context.GetModeInfoAt(
+                new Point(context.ColumnIndex + columnOffset, context.RowIndex + rowOffset + index));
 
             int candidateHeight = candidate.BlockSize.Get4x4HighCount();
             int length = Math.Min(height, candidateHeight);
@@ -620,7 +678,7 @@ internal sealed class Av1ReferenceMotionVectors
     /// <summary>
     /// Adds the candidate at one tile-relative spatial search position.
     /// </summary>
-    /// <param name="partitionInfo">The current block geometry and frame-wide mode map.</param>
+    /// <param name="context">The current block geometry and frame-wide mode map.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
     /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
     /// <param name="secondaryReferenceFrame">The secondary compound reference, or <see cref="Av1ReferenceFrameType.None"/>.</param>
@@ -633,7 +691,7 @@ internal sealed class Av1ReferenceMotionVectors
     /// <param name="referenceMatchCount">Accumulates matching reference labels at the search position.</param>
     /// <param name="newMotionVectorCount">Accumulates matching neighbors whose inter mode contains a new vector.</param>
     private void AddSpatialBlock(
-        ref Av1PartitionInfo partitionInfo,
+        in ReferenceContext context,
         Av1TileInfo tileInfo,
         Av1ReferenceFrameType referenceFrame,
         Av1ReferenceFrameType secondaryReferenceFrame,
@@ -646,15 +704,15 @@ internal sealed class Av1ReferenceMotionVectors
         ref int referenceMatchCount,
         ref int newMotionVectorCount)
     {
-        int row = partitionInfo.RowIndex + rowOffset;
-        int column = partitionInfo.ColumnIndex + columnOffset;
+        int row = context.RowIndex + rowOffset;
+        int column = context.ColumnIndex + columnOffset;
         if (row < tileInfo.ModeInfoRowStart || row >= tileInfo.ModeInfoRowEnd ||
             column < tileInfo.ModeInfoColumnStart || column >= tileInfo.ModeInfoColumnEnd)
         {
             return;
         }
 
-        Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(column, row));
+        ReferenceBlock candidate = context.GetModeInfoAt(new Point(column, row));
         this.AddCandidate(
             candidate,
             referenceFrame,
@@ -682,7 +740,7 @@ internal sealed class Av1ReferenceMotionVectors
     /// <param name="referenceMatchCount">Accumulates matching reference labels in the active scan direction.</param>
     /// <param name="newMotionVectorCount">Accumulates matching neighbors whose inter mode contains a new vector.</param>
     private void AddCandidate(
-        Av1BlockModeInfo candidate,
+        ReferenceBlock candidate,
         Av1ReferenceFrameType referenceFrame,
         Av1ReferenceFrameType secondaryReferenceFrame,
         in Av1GlobalMotionParameters globalMotion,
@@ -693,16 +751,15 @@ internal sealed class Av1ReferenceMotionVectors
         ref int referenceMatchCount,
         ref int newMotionVectorCount)
     {
-        Span<Av1ReferenceFrameType> candidateReferences = candidate.ReferenceFrames;
-        if (candidateReferences[0] <= Av1ReferenceFrameType.Intra)
+        if (candidate.GetReferenceFrame(0) <= Av1ReferenceFrameType.Intra)
         {
             return;
         }
 
-        Span<Av1MotionVector> candidateMotionVectors = candidate.MotionVectors;
         if (secondaryReferenceFrame > Av1ReferenceFrameType.Intra)
         {
-            if (candidateReferences[0] != referenceFrame || candidateReferences[1] != secondaryReferenceFrame)
+            if (candidate.GetReferenceFrame(0) != referenceFrame ||
+                candidate.GetReferenceFrame(1) != secondaryReferenceFrame)
             {
                 return;
             }
@@ -719,11 +776,11 @@ internal sealed class Av1ReferenceMotionVectors
 
             Av1MotionVector primaryMotionVector = usePrimaryGlobalMotion
                 ? globalMotionVector
-                : candidateMotionVectors[0];
+                : candidate.GetMotionVector(0);
 
             Av1MotionVector secondaryMotionVector = useSecondaryGlobalMotion
                 ? secondaryGlobalMotionVector
-                : candidateMotionVectors[1];
+                : candidate.GetMotionVector(1);
 
             this.AddUnique(primaryMotionVector, secondaryMotionVector, weight);
             if (UsesNewMotionVector(candidate.YMode))
@@ -737,7 +794,7 @@ internal sealed class Av1ReferenceMotionVectors
 
         for (int referenceIndex = 0; referenceIndex < 2; referenceIndex++)
         {
-            if (candidateReferences[referenceIndex] != referenceFrame)
+            if (candidate.GetReferenceFrame(referenceIndex) != referenceFrame)
             {
                 continue;
             }
@@ -752,7 +809,7 @@ internal sealed class Av1ReferenceMotionVectors
 
             Av1MotionVector motionVector = useGlobalMotion
                 ? globalMotionVector
-                : candidateMotionVectors[referenceIndex];
+                : candidate.GetMotionVector(referenceIndex);
 
             this.AddUnique(motionVector, weight);
 
@@ -770,9 +827,8 @@ internal sealed class Av1ReferenceMotionVectors
     /// <summary>
     /// Adds projected temporal candidates over the current block and its permitted extension positions.
     /// </summary>
-    /// <param name="partitionInfo">The current block geometry.</param>
+    /// <param name="context">The current block geometry and decoder temporal state.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
-    /// <param name="frameInfo">The projected temporal motion field.</param>
     /// <param name="orderHintInfo">The sequence modulo order-hint configuration.</param>
     /// <param name="frameHeader">The frame-level motion-vector precision configuration.</param>
     /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
@@ -780,9 +836,8 @@ internal sealed class Av1ReferenceMotionVectors
     /// <param name="globalMotionVector">The selected reference's global-motion vector at the current block.</param>
     /// <param name="secondaryGlobalMotionVector">The secondary reference's global-motion vector at the current block.</param>
     private void AddTemporalCandidates(
-        ref Av1PartitionInfo partitionInfo,
+        in ReferenceContext context,
         Av1TileInfo tileInfo,
-        Av1FrameInfo frameInfo,
         ObuOrderHintInfo orderHintInfo,
         ObuFrameHeader frameHeader,
         Av1ReferenceFrameType referenceFrame,
@@ -790,8 +845,8 @@ internal sealed class Av1ReferenceMotionVectors
         Av1MotionVector globalMotionVector,
         Av1MotionVector secondaryGlobalMotionVector)
     {
-        int width = partitionInfo.ModeInfo.BlockSize.Get4x4WideCount();
-        int height = partitionInfo.ModeInfo.BlockSize.Get4x4HighCount();
+        int width = context.BlockSize.Get4x4WideCount();
+        int height = context.BlockSize.Get4x4HighCount();
         int verticalOffset = Math.Max(2, height);
         int horizontalOffset = Math.Max(2, width);
         int blockRowEnd = Math.Min(height, MaximumSearchBlockSize);
@@ -805,9 +860,8 @@ internal sealed class Av1ReferenceMotionVectors
             for (int blockColumn = 0; blockColumn < blockColumnEnd; blockColumn += columnStep)
             {
                 bool available = this.AddTemporalCandidate(
-                    ref partitionInfo,
+                    in context,
                     tileInfo,
-                    frameInfo,
                     orderHintInfo,
                     frameHeader,
                     referenceFrame,
@@ -838,9 +892,8 @@ internal sealed class Av1ReferenceMotionVectors
         // These three positions extend the temporal search below-left, below-right, and above-right. The 64x64
         // boundary test is normative even when the sequence uses 128x128 superblocks.
         this.AddTemporalExtension(
-            ref partitionInfo,
+            in context,
             tileInfo,
-            frameInfo,
             orderHintInfo,
             frameHeader,
             referenceFrame,
@@ -851,9 +904,8 @@ internal sealed class Av1ReferenceMotionVectors
             -2);
 
         this.AddTemporalExtension(
-            ref partitionInfo,
+            in context,
             tileInfo,
-            frameInfo,
             orderHintInfo,
             frameHeader,
             referenceFrame,
@@ -864,9 +916,8 @@ internal sealed class Av1ReferenceMotionVectors
             horizontalOffset);
 
         this.AddTemporalExtension(
-            ref partitionInfo,
+            in context,
             tileInfo,
-            frameInfo,
             orderHintInfo,
             frameHeader,
             referenceFrame,
@@ -880,9 +931,8 @@ internal sealed class Av1ReferenceMotionVectors
     /// <summary>
     /// Adds one optional temporal extension candidate after applying the normative 64x64 boundary rule.
     /// </summary>
-    /// <param name="partitionInfo">The current block geometry.</param>
+    /// <param name="context">The current block geometry and decoder temporal state.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
-    /// <param name="frameInfo">The projected temporal motion field.</param>
     /// <param name="orderHintInfo">The sequence modulo order-hint configuration.</param>
     /// <param name="frameHeader">The frame-level motion-vector precision configuration.</param>
     /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
@@ -892,9 +942,8 @@ internal sealed class Av1ReferenceMotionVectors
     /// <param name="blockRow">The temporal sample row relative to the current block in 4x4 units.</param>
     /// <param name="blockColumn">The temporal sample column relative to the current block in 4x4 units.</param>
     private void AddTemporalExtension(
-        ref Av1PartitionInfo partitionInfo,
+        in ReferenceContext context,
         Av1TileInfo tileInfo,
-        Av1FrameInfo frameInfo,
         ObuOrderHintInfo orderHintInfo,
         ObuFrameHeader frameHeader,
         Av1ReferenceFrameType referenceFrame,
@@ -904,8 +953,8 @@ internal sealed class Av1ReferenceMotionVectors
         int blockRow,
         int blockColumn)
     {
-        int rowWithinBlock64 = partitionInfo.RowIndex & (MaximumSearchBlockSize - 1);
-        int columnWithinBlock64 = partitionInfo.ColumnIndex & (MaximumSearchBlockSize - 1);
+        int rowWithinBlock64 = context.RowIndex & (MaximumSearchBlockSize - 1);
+        int columnWithinBlock64 = context.ColumnIndex & (MaximumSearchBlockSize - 1);
         if (rowWithinBlock64 + blockRow < 0 || rowWithinBlock64 + blockRow >= MaximumSearchBlockSize ||
             columnWithinBlock64 + blockColumn < 0 || columnWithinBlock64 + blockColumn >= MaximumSearchBlockSize)
         {
@@ -913,9 +962,8 @@ internal sealed class Av1ReferenceMotionVectors
         }
 
         _ = this.AddTemporalCandidate(
-            ref partitionInfo,
+            in context,
             tileInfo,
-            frameInfo,
             orderHintInfo,
             frameHeader,
             referenceFrame,
@@ -929,9 +977,8 @@ internal sealed class Av1ReferenceMotionVectors
     /// <summary>
     /// Projects and accumulates one temporal motion-field sample.
     /// </summary>
-    /// <param name="partitionInfo">The current block geometry.</param>
+    /// <param name="context">The current block geometry and decoder temporal state.</param>
     /// <param name="tileInfo">The active tile boundaries.</param>
-    /// <param name="frameInfo">The projected temporal motion field.</param>
     /// <param name="orderHintInfo">The sequence modulo order-hint configuration.</param>
     /// <param name="frameHeader">The frame-level motion-vector precision configuration.</param>
     /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
@@ -942,9 +989,8 @@ internal sealed class Av1ReferenceMotionVectors
     /// <param name="blockColumn">The temporal sample column relative to the current block in 4x4 units.</param>
     /// <returns><see langword="true"/> when the projected motion field covers the requested position.</returns>
     private bool AddTemporalCandidate(
-        ref Av1PartitionInfo partitionInfo,
+        in ReferenceContext context,
         Av1TileInfo tileInfo,
-        Av1FrameInfo frameInfo,
         ObuOrderHintInfo orderHintInfo,
         ObuFrameHeader frameHeader,
         Av1ReferenceFrameType referenceFrame,
@@ -954,17 +1000,17 @@ internal sealed class Av1ReferenceMotionVectors
         int blockRow,
         int blockColumn)
     {
-        int rowOffset = (partitionInfo.RowIndex & 1) != 0 ? blockRow : blockRow + 1;
-        int columnOffset = (partitionInfo.ColumnIndex & 1) != 0 ? blockColumn : blockColumn + 1;
-        int row = partitionInfo.RowIndex + rowOffset;
-        int column = partitionInfo.ColumnIndex + columnOffset;
+        int rowOffset = (context.RowIndex & 1) != 0 ? blockRow : blockRow + 1;
+        int columnOffset = (context.ColumnIndex & 1) != 0 ? blockColumn : blockColumn + 1;
+        int row = context.RowIndex + rowOffset;
+        int column = context.ColumnIndex + columnOffset;
         if (row < tileInfo.ModeInfoRowStart || row >= tileInfo.ModeInfoRowEnd ||
             column < tileInfo.ModeInfoColumnStart || column >= tileInfo.ModeInfoColumnEnd)
         {
             return false;
         }
 
-        if (!frameInfo.TryGetProjectedTemporalMotionVector(
+        if (!context.TryGetProjectedTemporalMotionVector(
             row,
             column,
             referenceFrame,
@@ -978,7 +1024,7 @@ internal sealed class Av1ReferenceMotionVectors
 
         Av1MotionVector secondaryMotionVector = default;
         if (secondaryReferenceFrame > Av1ReferenceFrameType.Intra &&
-            !frameInfo.TryGetProjectedTemporalMotionVector(
+            !context.TryGetProjectedTemporalMotionVector(
                 row,
                 column,
                 secondaryReferenceFrame,
@@ -1018,27 +1064,25 @@ internal sealed class Av1ReferenceMotionVectors
     /// Extends a short stack with inter vectors from a neighboring block, correcting their temporal direction.
     /// </summary>
     /// <param name="candidate">The decoded neighboring block.</param>
-    /// <param name="frameInfo">The reference-side classification for the current frame.</param>
+    /// <param name="context">The current block geometry and decoder reference classification.</param>
     /// <param name="referenceFrame">The canonical inter reference selected for the current block.</param>
     private void AddExtensionCandidate(
-        Av1BlockModeInfo candidate,
-        Av1FrameInfo frameInfo,
+        ReferenceBlock candidate,
+        in ReferenceContext context,
         Av1ReferenceFrameType referenceFrame)
     {
-        Span<Av1ReferenceFrameType> candidateReferences = candidate.ReferenceFrames;
-        Span<Av1MotionVector> candidateMotionVectors = candidate.MotionVectors;
-        bool targetSignBias = frameInfo.IsReferenceSignBiased(referenceFrame);
+        bool targetSignBias = context.IsReferenceSignBiased(referenceFrame);
 
         for (int referenceIndex = 0; referenceIndex < 2; referenceIndex++)
         {
-            Av1ReferenceFrameType candidateReference = candidateReferences[referenceIndex];
+            Av1ReferenceFrameType candidateReference = candidate.GetReferenceFrame(referenceIndex);
             if (candidateReference <= Av1ReferenceFrameType.Intra)
             {
                 continue;
             }
 
-            Av1MotionVector motionVector = candidateMotionVectors[referenceIndex];
-            if (frameInfo.IsReferenceSignBiased(candidateReference) != targetSignBias)
+            Av1MotionVector motionVector = candidate.GetMotionVector(referenceIndex);
+            if (context.IsReferenceSignBiased(candidateReference) != targetSignBias)
             {
                 motionVector = new Av1MotionVector(-motionVector.Row, -motionVector.Column);
             }
@@ -1067,8 +1111,7 @@ internal sealed class Av1ReferenceMotionVectors
     /// Extends a short compound stack from the immediate above and left blocks.
     /// </summary>
     private void ExtendCompoundStack(
-        ref Av1PartitionInfo partitionInfo,
-        Av1FrameInfo frameInfo,
+        in ReferenceContext context,
         Av1ReferenceFrameType referenceFrame,
         Av1ReferenceFrameType secondaryReferenceFrame,
         Av1MotionVector globalMotionVector,
@@ -1085,15 +1128,15 @@ internal sealed class Av1ReferenceMotionVectors
         int secondaryExactCount = 0;
         int primaryDifferentCount = 0;
         int secondaryDifferentCount = 0;
-        int row = partitionInfo.RowIndex;
-        int column = partitionInfo.ColumnIndex;
+        int row = context.RowIndex;
+        int column = context.ColumnIndex;
 
         for (int index = 0; hasAbove && index < extensionLength;)
         {
-            Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(column + index, row - 1));
+            ReferenceBlock candidate = context.GetModeInfoAt(new Point(column + index, row - 1));
             CollectCompoundExtensionCandidate(
                 candidate,
-                frameInfo,
+                in context,
                 referenceFrame,
                 secondaryReferenceFrame,
                 ref primaryExact,
@@ -1110,10 +1153,10 @@ internal sealed class Av1ReferenceMotionVectors
 
         for (int index = 0; hasLeft && index < extensionLength;)
         {
-            Av1BlockModeInfo candidate = partitionInfo.SuperblockInfo.GetModeInfoAt(new Point(column - 1, row + index));
+            ReferenceBlock candidate = context.GetModeInfoAt(new Point(column - 1, row + index));
             CollectCompoundExtensionCandidate(
                 candidate,
-                frameInfo,
+                in context,
                 referenceFrame,
                 secondaryReferenceFrame,
                 ref primaryExact,
@@ -1168,8 +1211,8 @@ internal sealed class Av1ReferenceMotionVectors
     /// Collects exact-reference and temporal-direction-corrected fallback vectors from one neighboring block.
     /// </summary>
     private static void CollectCompoundExtensionCandidate(
-        Av1BlockModeInfo candidate,
-        Av1FrameInfo frameInfo,
+        ReferenceBlock candidate,
+        in ReferenceContext context,
         Av1ReferenceFrameType referenceFrame,
         Av1ReferenceFrameType secondaryReferenceFrame,
         ref InlineArray2<Av1MotionVector> primaryExact,
@@ -1181,13 +1224,10 @@ internal sealed class Av1ReferenceMotionVectors
         ref InlineArray2<Av1MotionVector> secondaryDifferent,
         ref int secondaryDifferentCount)
     {
-        Span<Av1ReferenceFrameType> candidateReferences = candidate.ReferenceFrames;
-        Span<Av1MotionVector> candidateMotionVectors = candidate.MotionVectors;
-
         for (int candidateIndex = 0; candidateIndex < 2; candidateIndex++)
         {
-            Av1ReferenceFrameType candidateReference = candidateReferences[candidateIndex];
-            Av1MotionVector candidateMotionVector = candidateMotionVectors[candidateIndex];
+            Av1ReferenceFrameType candidateReference = candidate.GetReferenceFrame(candidateIndex);
+            Av1MotionVector candidateMotionVector = candidate.GetMotionVector(candidateIndex);
 
             for (int targetIndex = 0; targetIndex < 2; targetIndex++)
             {
@@ -1223,7 +1263,7 @@ internal sealed class Av1ReferenceMotionVectors
                 }
 
                 Av1MotionVector differentMotionVector = candidateMotionVector;
-                if (frameInfo.IsReferenceSignBiased(candidateReference) != frameInfo.IsReferenceSignBiased(targetReference))
+                if (context.IsReferenceSignBiased(candidateReference) != context.IsReferenceSignBiased(targetReference))
                 {
                     differentMotionVector = new Av1MotionVector(-differentMotionVector.Row, -differentMotionVector.Column);
                 }
@@ -1364,4 +1404,195 @@ internal sealed class Av1ReferenceMotionVectors
             Av1PredictionMode.NewNearestMotionVector or
             Av1PredictionMode.NearNewMotionVector or
             Av1PredictionMode.NewNearMotionVector;
+
+    /// <summary>
+    /// Provides one allocation-free view over decoder or encoder mode-information storage.
+    /// </summary>
+    private readonly struct ReferenceContext
+    {
+        private readonly Av1SuperblockInfo decodedSuperblock;
+        private readonly Av1PictureControlSet? encodedPicture;
+        private readonly Av1FrameInfo? decodedFrame;
+
+        public ReferenceContext(ref Av1PartitionInfo partitionInfo, int superblockModeInfoSize, Av1FrameInfo frameInfo)
+        {
+            this.decodedSuperblock = partitionInfo.SuperblockInfo;
+            this.encodedPicture = null;
+            this.decodedFrame = frameInfo;
+            this.BlockSize = partitionInfo.ModeInfo.BlockSize;
+            this.RowIndex = partitionInfo.RowIndex;
+            this.ColumnIndex = partitionInfo.ColumnIndex;
+            this.AvailableAbove = partitionInfo.AvailableAbove;
+            this.AvailableLeft = partitionInfo.AvailableLeft;
+            this.ModeBlockToLeftEdge = partitionInfo.ModeBlockToLeftEdge;
+            this.ModeBlockToRightEdge = partitionInfo.ModeBlockToRightEdge;
+            this.ModeBlockToTopEdge = partitionInfo.ModeBlockToTopEdge;
+            this.ModeBlockToBottomEdge = partitionInfo.ModeBlockToBottomEdge;
+            this.HasTopRight = partitionInfo.HasTopRight(superblockModeInfoSize);
+        }
+
+        public ReferenceContext(
+            Av1PictureControlSet picture,
+            Av1MacroBlockD macroBlock,
+            Point modeInfoPosition,
+            Av1BlockSize blockSize,
+            Av1PartitionType partitionType,
+            int superblockModeInfoSize)
+        {
+            this.decodedSuperblock = default;
+            this.encodedPicture = picture;
+            this.decodedFrame = null;
+            this.BlockSize = blockSize;
+            this.RowIndex = modeInfoPosition.Y;
+            this.ColumnIndex = modeInfoPosition.X;
+            this.AvailableAbove = macroBlock.IsUpAvailable;
+            this.AvailableLeft = macroBlock.IsLeftAvailable;
+            this.ModeBlockToLeftEdge = macroBlock.ToLeftEdge;
+            this.ModeBlockToRightEdge = macroBlock.ToRightEdge;
+            this.ModeBlockToTopEdge = macroBlock.ToTopEdge;
+            this.ModeBlockToBottomEdge = macroBlock.ToBottomEdge;
+            this.HasTopRight = Av1PartitionInfo.HasTopRight(
+                blockSize,
+                partitionType,
+                modeInfoPosition.Y,
+                modeInfoPosition.X,
+                superblockModeInfoSize);
+        }
+
+        public Av1BlockSize BlockSize { get; }
+
+        public int RowIndex { get; }
+
+        public int ColumnIndex { get; }
+
+        public bool AvailableAbove { get; }
+
+        public bool AvailableLeft { get; }
+
+        public int ModeBlockToLeftEdge { get; }
+
+        public int ModeBlockToRightEdge { get; }
+
+        public int ModeBlockToTopEdge { get; }
+
+        public int ModeBlockToBottomEdge { get; }
+
+        public bool HasTopRight { get; }
+
+        public int GetMaxBlockWide()
+        {
+            int width = this.BlockSize.GetWidth();
+            if (this.ModeBlockToRightEdge < 0)
+            {
+                width += this.ModeBlockToRightEdge >> 3;
+            }
+
+            return width >> Av1Constants.ModeInfoSizeLog2;
+        }
+
+        public int GetMaxBlockHigh()
+        {
+            int height = this.BlockSize.GetHeight();
+            if (this.ModeBlockToBottomEdge < 0)
+            {
+                height += this.ModeBlockToBottomEdge >> 3;
+            }
+
+            return height >> Av1Constants.ModeInfoSizeLog2;
+        }
+
+        public ReferenceBlock GetModeInfoAt(Point position)
+        {
+            Av1PictureControlSet? picture = this.encodedPicture;
+            if (picture is not null)
+            {
+                Av1MacroBlockModeInfo encodedModeInfo = picture.GetFromModeInfoGrid(position);
+                return new ReferenceBlock(
+                    encodedModeInfo.Block.BlockSize,
+                    encodedModeInfo.Block.Mode,
+                    encodedModeInfo.Block.ReferenceFrame,
+                    Av1ReferenceFrameType.None,
+                    picture.GetDisplacementVector(position),
+                    default);
+            }
+
+            Av1BlockModeInfo decodedModeInfo = this.decodedSuperblock.GetModeInfoAt(position);
+            return new ReferenceBlock(
+                decodedModeInfo.BlockSize,
+                decodedModeInfo.YMode,
+                decodedModeInfo.ReferenceFrames[0],
+                decodedModeInfo.ReferenceFrames[1],
+                decodedModeInfo.MotionVectors[0],
+                decodedModeInfo.MotionVectors[1]);
+        }
+
+        public bool IsReferenceSignBiased(Av1ReferenceFrameType referenceFrame)
+        {
+            Av1FrameInfo? frameInfo = this.decodedFrame;
+            return frameInfo is not null && frameInfo.IsReferenceSignBiased(referenceFrame);
+        }
+
+        public bool TryGetProjectedTemporalMotionVector(
+            int row,
+            int column,
+            Av1ReferenceFrameType referenceFrame,
+            ObuOrderHintInfo orderHintInfo,
+            bool allowHighPrecisionMotionVector,
+            bool forceIntegerMotionVector,
+            out Av1MotionVector motionVector)
+        {
+            Av1FrameInfo? frameInfo = this.decodedFrame;
+            if (frameInfo is null)
+            {
+                motionVector = default;
+                return false;
+            }
+
+            return frameInfo.TryGetProjectedTemporalMotionVector(
+                row,
+                column,
+                referenceFrame,
+                orderHintInfo,
+                allowHighPrecisionMotionVector,
+                forceIntegerMotionVector,
+                out motionVector);
+        }
+    }
+
+    /// <summary>
+    /// Carries the neighboring mode fields consumed by reference-vector ranking.
+    /// </summary>
+    private readonly struct ReferenceBlock
+    {
+        private readonly Av1ReferenceFrameType primaryReferenceFrame;
+        private readonly Av1ReferenceFrameType secondaryReferenceFrame;
+        private readonly Av1MotionVector primaryMotionVector;
+        private readonly Av1MotionVector secondaryMotionVector;
+
+        public ReferenceBlock(
+            Av1BlockSize blockSize,
+            Av1PredictionMode mode,
+            Av1ReferenceFrameType primaryReferenceFrame,
+            Av1ReferenceFrameType secondaryReferenceFrame,
+            Av1MotionVector primaryMotionVector,
+            Av1MotionVector secondaryMotionVector)
+        {
+            this.BlockSize = blockSize;
+            this.YMode = mode;
+            this.primaryReferenceFrame = primaryReferenceFrame;
+            this.secondaryReferenceFrame = secondaryReferenceFrame;
+            this.primaryMotionVector = primaryMotionVector;
+            this.secondaryMotionVector = secondaryMotionVector;
+        }
+
+        public Av1BlockSize BlockSize { get; }
+
+        public Av1PredictionMode YMode { get; }
+
+        public Av1ReferenceFrameType GetReferenceFrame(int index)
+            => index == 0 ? this.primaryReferenceFrame : this.secondaryReferenceFrame;
+
+        public Av1MotionVector GetMotionVector(int index)
+            => index == 0 ? this.primaryMotionVector : this.secondaryMotionVector;
+    }
 }

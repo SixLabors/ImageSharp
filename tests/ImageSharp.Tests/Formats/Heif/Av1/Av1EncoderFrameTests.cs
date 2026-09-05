@@ -3,9 +3,11 @@
 
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Formats.Heif.Components;
@@ -25,6 +27,42 @@ public class Av1EncoderFrameTests
     private const int Yuv420 = (int)Av1ColorFormat.Yuv420;
     private const int Yuv422 = (int)Av1ColorFormat.Yuv422;
     private const int Yuv444 = (int)Av1ColorFormat.Yuv444;
+
+    [Fact]
+    public void EncodeUsesMultipleTilesWhenSingleTileWidthLimitIsExceeded()
+    {
+        const int Width = Av1Constants.MaxTileWidth + 1;
+        const int SuperblockSize = 1 << (Av1Constants.MaxSuperBlockSizeLog2 - 1);
+        const int Height = SuperblockSize;
+        int superblockColumns = (Width + SuperblockSize - 1) / SuperblockSize;
+        int secondTileStart = ((superblockColumns + 1) / 2) * SuperblockSize;
+        using Image<L8> source = new(Width, Height, new L8(128));
+        source[0, 0] = new L8(1);
+        source[secondTileStart - 1, 0] = new L8(17);
+        source[secondTileStart, 0] = new L8(241);
+        source[Width - 1, Height - 1] = new L8(255);
+        using MemoryStream stream = new();
+        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400);
+
+        Av1FrameEncoder.Encode(
+            Configuration.Default,
+            source.Frames.RootFrame,
+            stream,
+            colorConfig,
+            qIndex: 0,
+            effort: 0);
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Image<L8> decoded = decoder.Decode<L8>(stream.ToArray());
+
+        Assert.Equal(2, decoder.FrameHeader.TilesInfo.TileColumnCount);
+        Assert.Equal(1, decoder.FrameHeader.TilesInfo.TileRowCount);
+        Assert.Equal(source.Size, decoded.Size);
+        Assert.Equal(source[0, 0], decoded[0, 0]);
+        Assert.Equal(source[secondTileStart - 1, 0], decoded[secondTileStart - 1, 0]);
+        Assert.Equal(source[secondTileStart, 0], decoded[secondTileStart, 0]);
+        Assert.Equal(source[Width - 1, Height - 1], decoded[Width - 1, Height - 1]);
+    }
 
     [Theory]
     [InlineData(8, 8, false, EightBit, Yuv400)]
@@ -151,6 +189,250 @@ public class Av1EncoderFrameTests
                 }
             }
         }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void EncodeSequenceFrameWritesNonReducedHeaderConsumedByProductionDecoder(bool encodeAlpha)
+    {
+        const int Width = 16;
+        const int Height = 16;
+        using Image<Rgba32> source = new(Width, Height, new Rgba32(48, 96, 192));
+        using MemoryStream stream = new();
+        ObuColorConfig colorConfig = encodeAlpha
+            ? CreateColorConfig(Av1BitDepth.EightBit)
+            : CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420);
+
+        using Av1FrameEncoder.SequenceEncoder encoder = encodeAlpha
+            ? Av1FrameEncoder.CreateAlphaSequenceEncoder(
+                Configuration.Default,
+                Width,
+                Height,
+                colorConfig,
+                qIndex: 37,
+                effort: 5)
+            : Av1FrameEncoder.CreateColorSequenceEncoder(
+                Configuration.Default,
+                Width,
+                Height,
+                colorConfig,
+                qIndex: 37,
+                effort: 5);
+
+        encoder.EncodeKeyFrame(source.Frames.RootFrame, stream);
+        ObuSequenceHeader encodedHeader = encoder.SequenceHeader;
+        byte[] payload = stream.ToArray();
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Image<Rgba32> decoded = decoder.Decode<Rgba32>(payload);
+        ObuSequenceHeader decodedHeader = decoder.SequenceHeader;
+
+        Assert.False(encodedHeader.IsStillPicture);
+        Assert.False(encodedHeader.IsReducedStillPictureHeader);
+        Assert.Equal(encodeAlpha, encodedHeader.ColorConfig.IsMonochrome);
+        Assert.NotNull(decodedHeader);
+        Assert.False(decodedHeader.IsStillPicture);
+        Assert.False(decodedHeader.IsReducedStillPictureHeader);
+        Assert.Equal(new Size(Width, Height), decoded.Size);
+    }
+
+    /// <summary>
+    /// Verifies retained reference reconstruction and effort-dependent filter signaling through production sequence decoding.
+    /// </summary>
+    [Theory]
+    [InlineData(5, false, false)]
+    [InlineData(7, false, false)]
+    [InlineData(8, true, false)]
+    [InlineData(9, true, true)]
+    public void SequenceEncoderUsesRetainedReconstructionForInterFrame(int effort, bool switchableFilters, bool dualFilters)
+    {
+        const int Width = 16;
+        const int Height = 16;
+        Rgba32 sourceColor = new(48, 96, 192);
+        using Image<Rgba32> source = new(Width, Height, sourceColor);
+        using MemoryStream firstSample = new();
+        using MemoryStream secondSample = new();
+        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420);
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default,
+            Width,
+            Height,
+            colorConfig,
+            qIndex: 37,
+            effort);
+
+        encoder.EncodeKeyFrame(source.Frames.RootFrame, firstSample);
+        encoder.EncodeInterFrame(source.Frames.RootFrame, secondSample);
+
+        // Retain the exact two-sample elementary stream for independent reference-decoder acceptance.
+        string outputDirectory = TestEnvironment.CreateOutputDirectory("Heif", "Av1", nameof(this.SequenceEncoderUsesRetainedReconstructionForInterFrame));
+        using (FileStream output = File.Create(Path.Combine(outputDirectory, $"effort-{effort}.obu")))
+        {
+            firstSample.Position = 0;
+            firstSample.CopyTo(output);
+            secondSample.Position = 0;
+            secondSample.CopyTo(output);
+        }
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using ImageFrame<Rgba32> decodedFirst = decoder.DecodeSequenceFrame<Rgba32>(
+            firstSample.ToArray(),
+            null,
+            null);
+
+        using ImageFrame<Rgba32> decodedSecond = decoder.DecodeSequenceFrame<Rgba32>(
+            secondSample.ToArray(),
+            null,
+            null);
+
+        ObuFrameHeader frameHeader = decoder.FrameHeader;
+        Assert.Equal(ObuFrameType.InterFrame, frameHeader.FrameType);
+        Assert.False(frameHeader.SegmentationParameters.Enabled);
+        Assert.False(frameHeader.AllowScreenContentTools);
+        Assert.False(frameHeader.ForceIntegerMotionVector);
+        Assert.Equal(effort >= 8, frameHeader.AllowHighPrecisionMotionVector);
+        Assert.Equal(37, frameHeader.QuantizationParameters.BaseQIndex);
+        Assert.Equal(switchableFilters ? Av1InterpolationFilter.Switchable : Av1InterpolationFilter.Regular, frameHeader.InterpolationFilter);
+        Assert.Equal(dualFilters, decoder.SequenceHeader.EnableDualFilter);
+        for (int y = 0; y < Height; y++)
+        {
+            Assert.Equal(
+                decodedFirst.PixelBuffer.DangerousGetRowSpan(y),
+                decodedSecond.PixelBuffer.DangerousGetRowSpan(y));
+        }
+    }
+
+    [Fact]
+    public void SequenceEncoderWritesSelectedGlobalTranslation()
+    {
+        const int Width = 64;
+        const int Height = 64;
+        const int HorizontalOffset = 4;
+        using Image<Rgba32> first = new(Width, Height);
+        using Image<Rgba32> second = new(Width, Height);
+        for (int y = 0; y < Height; y++)
+        {
+            Span<Rgba32> firstRow = first.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < Width; x++)
+            {
+                byte value = (byte)(((x * 37) + (y * 53) + ((x * y) * 11)) & byte.MaxValue);
+                firstRow[x] = new Rgba32(value, value, value);
+            }
+        }
+
+        for (int y = 0; y < Height; y++)
+        {
+            ReadOnlySpan<Rgba32> firstRow = first.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            Span<Rgba32> secondRow = second.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < Width; x++)
+            {
+                secondRow[x] = firstRow[Math.Min(x + HorizontalOffset, Width - 1)];
+            }
+        }
+
+        using MemoryStream firstSample = new();
+        using MemoryStream secondSample = new();
+        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv420);
+        using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            Configuration.Default,
+            Width,
+            Height,
+            colorConfig,
+            qIndex: 4,
+            effort: 6);
+
+        encoder.EncodeKeyFrame(first.Frames.RootFrame, firstSample);
+        encoder.EncodeInterFrame(second.Frames.RootFrame, secondSample);
+
+        using Av1Decoder decoder = new(Configuration.Default);
+        using ImageFrame<Rgba32> decodedFirst = decoder.DecodeSequenceFrame<Rgba32>(
+            firstSample.ToArray(),
+            null,
+            null);
+
+        using ImageFrame<Rgba32> decodedSecond = decoder.DecodeSequenceFrame<Rgba32>(
+            secondSample.ToArray(),
+            null,
+            null);
+
+        ObuFrameHeader frameHeader = decoder.FrameHeader;
+        Av1GlobalMotionParameters globalMotion = frameHeader.GetGlobalMotionParameters()[0];
+        Av1MotionVector vector = globalMotion.GetMotionVector(
+            frameHeader.AllowHighPrecisionMotionVector,
+            Av1BlockSize.Block8x8,
+            default,
+            frameHeader.ForceIntegerMotionVector);
+
+        Assert.Equal(Av1GlobalMotionType.RotationZoom, globalMotion.Type);
+        Assert.False(frameHeader.AllowScreenContentTools);
+        Assert.False(frameHeader.ForceIntegerMotionVector);
+        Assert.Equal(0, vector.Row);
+        Assert.Equal(HorizontalOffset * 8, vector.Column);
+        Assert.Equal(first.Size, decodedFirst.Size);
+        Assert.Equal(second.Size, decodedSecond.Size);
+    }
+
+    [Theory]
+    [InlineData(false, EightBit, Yuv420, 384)]
+    [InlineData(false, TwelveBit, Yuv444, 288)]
+    [InlineData(true, EightBit, Yuv400, 192)]
+    [InlineData(true, TwelveBit, Yuv400, 192)]
+    public void SequenceEncoderReusesAllocatorOwnedRowStorage(
+        bool encodeAlpha,
+        int bitDepthValue,
+        int colorFormatValue,
+        int expectedRowStorageLength)
+    {
+        const int Width = 64;
+        const int Height = 64;
+        Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
+        Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
+        using Image<Rgba64> source = new(
+            Width,
+            Height,
+            new Rgba64(ushort.MaxValue, 32768, 16384, 49152));
+
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        ObuColorConfig colorConfig = CreateColorConfig(bitDepth, colorFormat);
+        TestMemoryAllocator.AllocationRequest rowStorage;
+        int allocationCount;
+        using (Av1FrameEncoder.SequenceEncoder encoder = encodeAlpha
+            ? Av1FrameEncoder.CreateAlphaSequenceEncoder(
+                configuration,
+                Width,
+                Height,
+                colorConfig,
+                qIndex: 37,
+                effort: 6)
+            : Av1FrameEncoder.CreateColorSequenceEncoder(
+                configuration,
+                Width,
+                Height,
+                colorConfig,
+                qIndex: 37,
+                effort: 6))
+        {
+            rowStorage = Assert.Single(
+                allocator.AllocationLog,
+                allocation => allocation.ElementType == typeof(float));
+
+            allocationCount = allocator.AllocationLog.Count;
+            using MemoryStream output = new(256 * 1024);
+            encoder.EncodeKeyFrame(source.Frames.RootFrame, output);
+            encoder.EncodeInterFrame(source.Frames.RootFrame, output);
+
+            // Fixed sequence geometry lets libaom retain its frame-sized compressor data. The ImageSharp
+            // sequence encoder must likewise perform every sample conversion and coding pass without another rent.
+            Assert.Equal(allocationCount, allocator.AllocationLog.Count);
+        }
+
+        Assert.Equal(expectedRowStorageLength, rowStorage.Length);
+        Assert.Contains(
+            allocator.ReturnLog,
+            returned => returned.AllocationId == rowStorage.AllocationId);
     }
 
     [Theory]

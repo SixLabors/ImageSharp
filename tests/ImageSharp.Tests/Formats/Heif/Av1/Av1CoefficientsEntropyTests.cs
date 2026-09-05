@@ -5,8 +5,10 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -133,14 +135,16 @@ public class Av1CoefficientsEntropyTests
                     TilesInfo = new ObuTileGroupHeader()
                 },
                 FrameHeader = new ObuFrameHeader(),
-                PreviousQIndex = []
+                PreviousQIndex = Memory<int>.Empty
             },
             SegmentationNeighborMap = Memory<byte>.Empty,
             ModeInfoGrid = grid,
             ModeInfoAllocation = allocation,
             ModeInfoStride = 4,
             Disallow4x4AllFrames = disallow4x4,
-            CdefPreset = []
+            CdefPreset = Memory<int>.Empty,
+            TileDataOffsets = Memory<int>.Empty,
+            TileDataLengths = Memory<int>.Empty
         };
 
         Point position = new(column, row);
@@ -218,6 +222,137 @@ public class Av1CoefficientsEntropyTests
         Assert.Equal(8, Unsafe.SizeOf<Av1MacroBlockModeInfo>());
     }
 
+    /// <summary>
+    /// Verifies that segment, reference, filter, and flag updates preserve adjacent packed values.
+    /// </summary>
+    [Fact]
+    public void EncoderBlockModeInfoPackedFieldsRemainIndependent()
+    {
+        for (int segment = 0; segment < 8; segment++)
+        {
+            for (int reference = 0; reference < 8; reference++)
+            {
+                for (int vertical = 0; vertical < 4; vertical++)
+                {
+                    for (int horizontal = 0; horizontal < 4; horizontal++)
+                    {
+                        Av1EncoderBlockModeInfo modeInfo = new()
+                        {
+                            Skip = true,
+                            SkipMode = true,
+                            UseIntraBlockCopy = true,
+                            SegmentId = segment,
+                            ReferenceFrame = (Av1ReferenceFrameType)reference,
+                            VerticalInterpolationFilter = (Av1InterpolationFilter)vertical,
+                            HorizontalInterpolationFilter = (Av1InterpolationFilter)horizontal
+                        };
+
+                        Assert.Equal(segment, modeInfo.SegmentId);
+                        Assert.Equal((Av1ReferenceFrameType)reference, modeInfo.ReferenceFrame);
+                        Assert.Equal((Av1InterpolationFilter)vertical, modeInfo.VerticalInterpolationFilter);
+                        Assert.Equal((Av1InterpolationFilter)horizontal, modeInfo.HorizontalInterpolationFilter);
+                        Assert.True(modeInfo.Skip);
+                        Assert.True(modeInfo.SkipMode);
+                        Assert.True(modeInfo.UseIntraBlockCopy);
+
+                        // Overwrite every bit in each shared region after the adjacent value has been populated.
+                        modeInfo.SegmentId = segment ^ 7;
+                        Assert.Equal((Av1ReferenceFrameType)reference, modeInfo.ReferenceFrame);
+                        modeInfo.ReferenceFrame = (Av1ReferenceFrameType)(reference ^ 7);
+                        Assert.Equal(segment ^ 7, modeInfo.SegmentId);
+                        modeInfo.Skip = false;
+                        modeInfo.SkipMode = false;
+                        modeInfo.UseIntraBlockCopy = false;
+                        Assert.Equal((Av1InterpolationFilter)vertical, modeInfo.VerticalInterpolationFilter);
+                        Assert.Equal((Av1InterpolationFilter)horizontal, modeInfo.HorizontalInterpolationFilter);
+                        modeInfo.VerticalInterpolationFilter = (Av1InterpolationFilter)(vertical ^ 3);
+                        modeInfo.HorizontalInterpolationFilter = (Av1InterpolationFilter)(horizontal ^ 3);
+                        Assert.False(modeInfo.Skip);
+                        Assert.False(modeInfo.SkipMode);
+                        Assert.False(modeInfo.UseIntraBlockCopy);
+                    }
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Verifies both filter directions for matching references, mismatches, and unavailable tile neighbors.
+    /// </summary>
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void EncoderInterpolationContextUsesTileNeighbors(bool aboveAvailable, bool leftAvailable)
+    {
+        // Rows are the above filter and columns the left filter; index three means a nonmatching reference.
+        ReadOnlySpan<int> expectedContexts = [0, 3, 3, 0, 3, 1, 3, 1, 3, 3, 2, 2, 0, 1, 2, 3];
+        Av1MacroBlockModeInfo[] allocation = new Av1MacroBlockModeInfo[3];
+        int[] grid = new int[9];
+        grid[1] = 0;
+        grid[3] = 1;
+        grid[4] = 2;
+        Av1MacroBlockD macroBlock = CreateMacroBlock();
+        macroBlock.ModeInfoStride = 3;
+        macroBlock.IsUpAvailable = aboveAvailable;
+        macroBlock.IsLeftAvailable = leftAvailable;
+        macroBlock.SetModeInfoGrid(grid, allocation, 4);
+        Av1EncoderBlockModeInfo current = new() { ReferenceFrame = Av1ReferenceFrameType.Last };
+        for (int above = 0; above < 4; above++)
+        {
+            for (int left = 0; left < 4; left++)
+            {
+                allocation[0].Block.ReferenceFrame = above == 3 ? Av1ReferenceFrameType.Golden : Av1ReferenceFrameType.Last;
+                allocation[0].Block.VerticalInterpolationFilter = (Av1InterpolationFilter)(above % 3);
+                allocation[0].Block.HorizontalInterpolationFilter = (Av1InterpolationFilter)((above + 1) % 3);
+                allocation[1].Block.ReferenceFrame = left == 3 ? Av1ReferenceFrameType.Golden : Av1ReferenceFrameType.Last;
+                allocation[1].Block.VerticalInterpolationFilter = (Av1InterpolationFilter)(left % 3);
+                allocation[1].Block.HorizontalInterpolationFilter = (Av1InterpolationFilter)((left + 1) % 3);
+                int aboveVertical = aboveAvailable ? above : 3;
+                int leftVertical = leftAvailable ? left : 3;
+                int aboveHorizontal = aboveVertical == 3 ? 3 : (above + 1) % 3;
+                int leftHorizontal = leftVertical == 3 ? 3 : (left + 1) % 3;
+
+                Assert.Equal(expectedContexts[(aboveVertical * 4) + leftVertical], Av1SymbolContextHelper.GetSwitchableInterpolationContext(current, macroBlock, 0));
+                Assert.Equal(8 + expectedContexts[(aboveHorizontal * 4) + leftHorizontal], Av1SymbolContextHelper.GetSwitchableInterpolationContext(current, macroBlock, 1));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Verifies which inter modes signal filters and distinguishes residual skip from compound skip mode.
+    /// </summary>
+    [Theory]
+    [InlineData(Av1GlobalMotionType.Identity, Av1PredictionMode.GlobalMotionVector, false)]
+    [InlineData(Av1GlobalMotionType.Translation, Av1PredictionMode.GlobalMotionVector, true)]
+    [InlineData(Av1GlobalMotionType.RotationZoom, Av1PredictionMode.GlobalMotionVector, false)]
+    [InlineData(Av1GlobalMotionType.Affine, Av1PredictionMode.GlobalMotionVector, false)]
+    [InlineData(Av1GlobalMotionType.Identity, Av1PredictionMode.NewMotionVector, true)]
+    [InlineData(Av1GlobalMotionType.Identity, Av1PredictionMode.NearestMotionVector, true)]
+    public void EncoderInterpolationSyntaxMatchesModeEligibility(int globalType, int predictionMode, bool expected)
+    {
+        ObuFrameHeader frameHeader = new() { InterpolationFilter = Av1InterpolationFilter.Switchable };
+        frameHeader.GetGlobalMotionParameters()[0].Type = (Av1GlobalMotionType)globalType;
+        Av1EncoderBlockModeInfo modeInfo = new()
+        {
+            BlockSize = Av1BlockSize.Block8x8,
+            ReferenceFrame = Av1ReferenceFrameType.Last,
+            Mode = (Av1PredictionMode)predictionMode
+        };
+
+        Assert.Equal(expected, Av1TileWriter.UsesSwitchableInterpolation(frameHeader, modeInfo));
+        modeInfo.Skip = true;
+        Assert.Equal(expected, Av1TileWriter.UsesSwitchableInterpolation(frameHeader, modeInfo));
+        modeInfo.BlockSize = Av1BlockSize.Block4x8;
+        Assert.True(Av1TileWriter.UsesSwitchableInterpolation(frameHeader, modeInfo));
+        modeInfo.SkipMode = true;
+        Assert.False(Av1TileWriter.UsesSwitchableInterpolation(frameHeader, modeInfo));
+        modeInfo.SkipMode = false;
+        frameHeader.InterpolationFilter = Av1InterpolationFilter.Regular;
+        Assert.False(Av1TileWriter.UsesSwitchableInterpolation(frameHeader, modeInfo));
+    }
+
     [Fact]
     public void EncoderSuperblockWorkspaceUsesOneExactSizeOwner()
     {
@@ -231,9 +366,9 @@ public class Av1CoefficientsEntropyTests
         {
             allocation = Assert.Single(allocator.AllocationLog);
             Assert.Empty(allocator.ReturnLog);
-            Assert.Equal(typeof(Av1EncoderBlockStruct), allocation.ElementType);
+            Assert.Equal(typeof(byte), allocation.ElementType);
             Assert.Equal(AllocationOptions.None, allocation.AllocationOptions);
-            Assert.Equal(Av1EncoderSuperblockWorkspace.StorageLength, allocation.Length);
+            Assert.Equal(Av1EncoderSuperblockWorkspace.StorageByteLength, allocation.Length);
             Assert.Equal(Av1EncoderSuperblockWorkspace.MaximumFinalBlockCount, workspace.FinalBlocks.Length);
             Assert.Equal(Av1EncoderSuperblockWorkspace.MaximumPartitionCount, workspace.PartitionTypes.Length);
             Assert.Equal(Av1EncoderBlockStruct.StorageSize, Unsafe.SizeOf<Av1EncoderBlockStruct>());
@@ -295,39 +430,34 @@ public class Av1CoefficientsEntropyTests
     }
 
     [Fact]
-    public void EncoderPaletteMapsUseOneLazyExactSizeOwner()
+    public void EncoderSuperblockWorkspaceExposesReusablePaletteMaps()
     {
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = allocator;
 
-        TestMemoryAllocator.AllocationRequest[] allocations;
+        TestMemoryAllocator.AllocationRequest allocation;
         using (Av1EncoderSuperblockWorkspace workspace = new(configuration))
         {
-            Assert.Single(allocator.AllocationLog);
+            allocation = Assert.Single(allocator.AllocationLog);
             Assert.Empty(allocator.ReturnLog);
 
             Av1EncoderPaletteMapBuffer maps = workspace.GetPaletteMaps();
             Assert.Same(maps, workspace.GetPaletteMaps());
-            allocations = allocator.AllocationLog.ToArray();
-            Assert.Equal(2, allocations.Length);
-            Assert.Equal(typeof(byte), allocations[1].ElementType);
-            Assert.Equal(Av1EncoderPaletteMapBuffer.StorageLength, allocations[1].Length);
-            Assert.Equal(AllocationOptions.None, allocations[1].AllocationOptions);
+            Assert.Single(allocator.AllocationLog);
 
             Buffer2DRegion<byte> luma = maps.GetMap(Av1PlaneType.Y, 64, 64);
             Buffer2DRegion<byte> chroma = maps.GetMap(Av1PlaneType.Uv, 32, 32);
             luma.DangerousGetRowSpan(0)[0] = 3;
             chroma.DangerousGetRowSpan(0)[0] = 5;
-            Assert.Equal(3, luma.DangerousGetRowSpan(0)[0]);
-            Assert.Equal(5, chroma.DangerousGetRowSpan(0)[0]);
+            Av1EncoderPaletteMapBuffer retainedMaps = workspace.GetPaletteMaps();
+            Assert.Equal(3, retainedMaps.GetMap(Av1PlaneType.Y, 64, 64).DangerousGetRowSpan(0)[0]);
+            Assert.Equal(5, retainedMaps.GetMap(Av1PlaneType.Uv, 32, 32).DangerousGetRowSpan(0)[0]);
         }
 
-        Assert.Equal(2, allocator.ReturnLog.Count);
-        Assert.Equal(
-            allocations.Select(x => x.AllocationId).Order(),
-            allocator.ReturnLog.Select(x => x.AllocationId).Order());
+        TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);
+        Assert.Equal(allocation.AllocationId, returned.AllocationId);
     }
 
     [Fact]
@@ -841,7 +971,7 @@ public class Av1CoefficientsEntropyTests
             skip: false,
             modeInfoPosition: new Point(20, 4));
 
-        Assert.Equal(new[] { -1, 3, -1, -1 }, picture.CdefPreset[0]);
+        Assert.True(picture.CdefPreset.Span.SequenceEqual([-1, 3, -1, -1]));
     }
 
     [Fact]
@@ -1431,13 +1561,15 @@ public class Av1CoefficientsEntropyTests
                     TilesInfo = tiles
                 },
                 FrameHeader = frameHeader,
-                PreviousQIndex = []
+                PreviousQIndex = Memory<int>.Empty
             },
             SegmentationNeighborMap = Memory<byte>.Empty,
             ModeInfoGrid = modeInfoGrid,
             ModeInfoAllocation = modeInfoAllocation,
             ModeInfoStride = modeInfoColumnCount,
-            CdefPreset = [[-1, -1, -1, -1]]
+            CdefPreset = new int[] { -1, -1, -1, -1 },
+            TileDataOffsets = Memory<int>.Empty,
+            TileDataLengths = Memory<int>.Empty
         };
     }
 

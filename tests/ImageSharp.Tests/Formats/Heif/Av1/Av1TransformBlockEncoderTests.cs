@@ -614,8 +614,8 @@ public class Av1TransformBlockEncoderTests
 
             Av1EncoderModeDecisionWorkspace<ushort> modeWorkspace = workspace.GetModeDecisionWorkspace<ushort>();
             Av1EncoderPaletteWorkspace<ushort> paletteWorkspace = modeWorkspace.Palette;
-            Av1EncoderIntraBlockCopyWorkspace<ushort> intraBlockCopyWorkspace =
-                workspace.GetIntraBlockCopyWorkspace<ushort>();
+            Av1EncoderInterPredictionWorkspace<ushort> intraBlockCopyWorkspace =
+                workspace.GetInterPredictionWorkspace<ushort>();
 
             Assert.Equal(
                 (2 * Av1Constants.MaxTransformSize) + 1,

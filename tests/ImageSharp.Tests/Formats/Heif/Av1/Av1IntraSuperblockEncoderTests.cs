@@ -8,12 +8,15 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 
@@ -23,6 +26,168 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 [Trait("Format", "Avif")]
 public class Av1IntraSuperblockEncoderTests
 {
+    /// <summary>
+    /// Verifies non-regular filter selection, retained reconstruction, and allocation-free inter tile coding.
+    /// </summary>
+    [Theory]
+    [InlineData((int)Av1InterpolationFilter.Smooth, false)]
+    [InlineData((int)Av1InterpolationFilter.Sharp, false)]
+    [InlineData((int)Av1InterpolationFilter.Smooth, true)]
+    [InlineData((int)Av1InterpolationFilter.Sharp, true)]
+    public void ProductionTileSelectsNonRegularInterpolation(int filterValue, bool dualFilter)
+    {
+        const int Width = 32;
+        const int Height = 8;
+        const int TargetColumn = 8;
+        const int BlockWidth = 8;
+        const int QIndex = 37;
+        const int TileBufferLength = 4096;
+        Av1InterpolationFilter filter = (Av1InterpolationFilter)filterValue;
+        int effort = dualFilter ? 9 : 8;
+        ReadOnlySpan<byte> referencePeriod = [128, 184, 208, 184, 128, 72, 48, 72];
+
+        // These are fixed half-sample responses of the reference's eight-tap smooth and sharp kernels.
+        // The horizontal pass rounds first by three bits and then by four; edge samples are replicated.
+        // Keeping the results literal avoids using the predictor under test to manufacture its own target.
+        ReadOnlySpan<byte> targetRow = filter == Av1InterpolationFilter.Smooth
+            ? [159, 189, 190, 154, 102, 66, 66, 102, 154, 190, 190, 154, 102, 66, 66, 102,
+               154, 190, 190, 154, 102, 66, 66, 102, 154, 190, 190, 154, 102, 67, 61, 69]
+            : [153, 204, 200, 158, 98, 55, 55, 98, 158, 202, 202, 158, 98, 55, 55, 98,
+               158, 202, 202, 158, 98, 55, 55, 98, 158, 202, 202, 158, 100, 53, 59, 75];
+
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = true,
+            ColorRange = true,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        using Image<L8> referenceImage = new(Width, Height);
+        using Av1EncoderFrameBuffer<byte> reference = new(configuration, Width, Height, 8, Av1ColorFormat.Yuv400, 0, 0);
+        using Av1EncoderFrameBuffer<byte> source = new(configuration, Width, Height, 8, Av1ColorFormat.Yuv400, 0, 0);
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(configuration, Width, Height, 8, Av1ColorFormat.Yuv400, 0, 0);
+        for (int y = 0; y < Height; y++)
+        {
+            Span<L8> pixels = referenceImage.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            Span<byte> referenceRow = reference.Frame.CodedView.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y);
+            for (int x = 0; x < Width; x++)
+            {
+                byte sample = referencePeriod[x % referencePeriod.Length];
+                referenceRow[x] = sample;
+                pixels[x] = new L8(sample);
+            }
+
+            targetRow.CopyTo(source.Frame.CodedView.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y));
+        }
+
+        reference.Frame.ExtendBorders();
+        source.Frame.ExtendBorders();
+        ClearPlane(reconstruction.Luma);
+
+        // A lossless key frame gives an independent decoder exactly the reference samples used by tile search.
+        using MemoryStream firstSample = new();
+        using Av1FrameEncoder.SequenceEncoder keyEncoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            configuration,
+            Width,
+            Height,
+            colorConfig,
+            qIndex: 0,
+            effort);
+
+        keyEncoder.EncodeKeyFrame(referenceImage.Frames.RootFrame, firstSample);
+        ObuSequenceHeader sequenceHeader = keyEncoder.SequenceHeader;
+        using Av1EncoderModeInfoBuffer modeInfo = new(configuration, Width, Height, disallow4x4AllFrames: true);
+        Av1PictureControlSet template = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, QIndex);
+        ObuFrameHeader frameHeader = template.Parent.FrameHeader;
+        frameHeader.FrameType = ObuFrameType.InterFrame;
+        frameHeader.ShowFrame = true;
+        frameHeader.ErrorResilientMode = true;
+        frameHeader.RefreshFrameFlags = byte.MaxValue;
+        frameHeader.DisableFrameEndUpdateCdf = true;
+        frameHeader.ReferenceMode = ObuReferenceMode.SingleReference;
+        frameHeader.InterpolationFilter = Av1InterpolationFilter.Switchable;
+        frameHeader.AllowHighPrecisionMotionVector = true;
+        frameHeader.TransformMode = Av1TransformMode.Select;
+        frameHeader.FrameSize.FrameWidth = Width;
+        frameHeader.FrameSize.FrameHeight = Height;
+        frameHeader.FrameSize.SuperResolutionUpscaledWidth = Width;
+        frameHeader.FrameSize.RenderWidth = Width;
+        frameHeader.FrameSize.RenderHeight = Height;
+        frameHeader.TilesInfo.HasUniformTileSpacing = true;
+        Av1QuantizationLookup.UpdateFrameQuantizationState(frameHeader);
+
+        using Av1EncoderPictureBuffer picture = new(configuration, sequenceHeader, frameHeader, Width, Height, disallow4x4AllFrames: true);
+        using Av1EncoderCoefficientBuffer coefficients = new(configuration, sequenceHeader, Width, Height);
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(configuration);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(configuration);
+        using Av1SymbolEncoder symbolEncoder = new(configuration, TileBufferLength, QIndex, updateCdf: true);
+        Av1EncoderTileWorkspace tileWorkspace = new(frameHeader, superblockWorkspace);
+        int allocationCount = allocator.AllocationLog.Count;
+        Av1TileEncoder tileWriter = new(
+            symbolEncoder,
+            source.Frame,
+            reference.Frame,
+            reconstruction.Frame,
+            picture.Picture,
+            coefficients,
+            tileWorkspace,
+            blockWorkspace,
+            effort);
+
+        Assert.Equal(allocationCount, allocator.AllocationLog.Count);
+        Point targetPosition = new(TargetColumn >> Av1Constants.ModeInfoSizeLog2, 0);
+        ref Av1MacroBlockModeInfo targetMode = ref picture.Picture.GetMacroBlockModeInfo(targetPosition);
+        Assert.Equal(Av1ReferenceFrameType.Last, targetMode.Block.ReferenceFrame);
+        Assert.Equal(filter, targetMode.Block.HorizontalInterpolationFilter);
+        Assert.Equal(dualFilter ? Av1InterpolationFilter.Regular : filter, targetMode.Block.VerticalInterpolationFilter);
+        Assert.Equal(4, picture.Picture.GetDisplacementVector(targetPosition).Column);
+        Assert.Equal(0, picture.Picture.GetDisplacementVector(targetPosition).Row);
+        for (int y = 0; y < Height; y++)
+        {
+            Assert.Equal(
+                targetRow.Slice(TargetColumn, BlockWidth),
+                reconstruction.Frame.View.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y).Slice(TargetColumn, BlockWidth));
+        }
+
+        using MemoryStream secondSample = new();
+        using ObuWriter obuWriter = new(configuration);
+        obuWriter.WriteFrame(secondSample, sequenceHeader, frameHeader, tileWriter);
+        using Av1Decoder decoder = new(configuration);
+        using Av1FrameBuffer<byte> decodedFirst = decoder.DecodeFrameBuffer(firstSample.ToArray(), null, null, out _);
+        using Av1FrameBuffer<byte> decodedSecond = decoder.DecodeFrameBuffer(secondSample.ToArray(), null, null, out _);
+
+        // Preserve both the production stream and every managed reconstructed luma sample for exact libaom comparison.
+        string outputDirectory = TestEnvironment.CreateOutputDirectory("Heif", "Av1", nameof(this.ProductionTileSelectsNonRegularInterpolation));
+        string outputName = $"{filter}-{dualFilter}";
+        using FileStream output = File.Create(Path.Combine(outputDirectory, outputName + ".obu"));
+        firstSample.Position = 0;
+        firstSample.CopyTo(output);
+        secondSample.Position = 0;
+        secondSample.CopyTo(output);
+        using FileStream rawOutput = File.Create(Path.Combine(outputDirectory, outputName + ".managed.yuv"));
+        for (int y = 0; y < Height; y++)
+        {
+            ReadOnlySpan<byte> expected = reference.Frame.View.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y);
+            ReadOnlySpan<byte> actual = decodedFirst.DeriveBlockPointer(Av1Plane.Y, new Point(0, y), 0, 0, out _)[..Width];
+            Assert.Equal(expected, actual);
+            rawOutput.Write(actual);
+        }
+
+        for (int y = 0; y < Height; y++)
+        {
+            ReadOnlySpan<byte> expected = reconstruction.Frame.View.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y);
+            ReadOnlySpan<byte> actual = decodedSecond.DeriveBlockPointer(Av1Plane.Y, new Point(0, y), 0, 0, out _)[..Width];
+            Assert.Equal(expected, actual);
+            rawOutput.Write(actual);
+        }
+    }
+
     /// <summary>
     /// Gets the normative eight-sample weights used to build independent smooth-mode fixtures.
     /// </summary>
@@ -259,7 +424,7 @@ public class Av1IntraSuperblockEncoderTests
             tilePicture.Picture,
             512);
 
-        Av1IntraTileWriter tileWriter = new(
+        Av1TileEncoder tileWriter = new(
             tileSymbolEncoder,
             source.Frame,
             tileReconstruction.Frame,
@@ -413,7 +578,7 @@ public class Av1IntraSuperblockEncoderTests
             livePicture.Picture,
             256);
 
-        Av1IntraTileWriter liveTileWriter = new(
+        Av1TileEncoder liveTileWriter = new(
             liveSymbolEncoder,
             source.Frame,
             liveReconstruction.Frame,
@@ -541,7 +706,7 @@ public class Av1IntraSuperblockEncoderTests
             tilePicture.Picture,
             256);
 
-        Av1IntraTileWriter tileWriter = new(
+        Av1TileEncoder tileWriter = new(
             tileSymbolEncoder,
             source.Frame,
             tileReconstruction.Frame,
@@ -749,7 +914,7 @@ public class Av1IntraSuperblockEncoderTests
             32,
             224,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
-                new Av1IntraTileWriter(
+                new Av1TileEncoder(
                     writer,
                     source,
                     reconstruction,
@@ -770,7 +935,7 @@ public class Av1IntraSuperblockEncoderTests
             512,
             3584,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
-                new Av1IntraTileWriter(
+                new Av1TileEncoder(
                     writer,
                     source,
                     reconstruction,
@@ -791,7 +956,7 @@ public class Av1IntraSuperblockEncoderTests
             48,
             208,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
-                new Av1IntraTileWriter(
+                new Av1TileEncoder(
                     writer,
                     source,
                     reconstruction,
@@ -816,7 +981,7 @@ public class Av1IntraSuperblockEncoderTests
             64,
             192,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
-                new Av1IntraTileWriter(
+                new Av1TileEncoder(
                     writer,
                     source,
                     reconstruction,
@@ -837,7 +1002,7 @@ public class Av1IntraSuperblockEncoderTests
             1024,
             3072,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
-                new Av1IntraTileWriter(
+                new Av1TileEncoder(
                     writer,
                     source,
                     reconstruction,
@@ -946,7 +1111,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             256);
 
-        Av1IntraTileWriter tileWriter = new(
+        Av1TileEncoder tileWriter = new(
             symbolEncoder,
             source.Frame,
             reconstruction.Frame,
@@ -1162,7 +1327,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             512);
 
-        Av1IntraTileWriter tileWriter = new(
+        Av1TileEncoder tileWriter = new(
             symbolEncoder,
             source.Frame,
             reconstruction.Frame,
@@ -1279,7 +1444,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             512);
 
-        Av1IntraTileWriter tileWriter = new(
+        Av1TileEncoder tileWriter = new(
             symbolEncoder,
             source.Frame,
             reconstruction.Frame,
@@ -1442,7 +1607,7 @@ public class Av1IntraSuperblockEncoderTests
             pilotPicture.Picture,
             TileBufferLength);
 
-        Av1IntraTileWriter pilotWriter = createWriter(
+        Av1TileEncoder pilotWriter = createWriter(
             pilotSymbolEncoder,
             pilotSource.Frame,
             pilotReconstruction.Frame,
@@ -1549,7 +1714,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             TileBufferLength);
 
-        Av1IntraTileWriter tileWriter = createWriter(
+        Av1TileEncoder tileWriter = createWriter(
             symbolEncoder,
             source.Frame,
             reconstruction.Frame,
@@ -1792,7 +1957,7 @@ public class Av1IntraSuperblockEncoderTests
             pilotPicture.Picture,
             TileBufferLength);
 
-        Av1IntraTileWriter pilotWriter = createWriter(
+        Av1TileEncoder pilotWriter = createWriter(
             pilotSymbolEncoder,
             pilotSource.Frame,
             pilotReconstruction.Frame,
@@ -1954,7 +2119,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             TileBufferLength);
 
-        Av1IntraTileWriter tileWriter = createWriter(
+        Av1TileEncoder tileWriter = createWriter(
             symbolEncoder,
             source.Frame,
             reconstruction.Frame,
@@ -2158,7 +2323,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             2048);
 
-        Av1IntraTileWriter tileWriter = new(
+        Av1TileEncoder tileWriter = new(
             symbolEncoder,
             source.Frame,
             reconstruction.Frame,
@@ -2183,7 +2348,7 @@ public class Av1IntraSuperblockEncoderTests
             8,
             static value => (byte)value,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
-                new Av1IntraTileWriter(
+                new Av1TileEncoder(
                     writer,
                     source,
                     reconstruction,
@@ -2198,7 +2363,7 @@ public class Av1IntraSuperblockEncoderTests
             12,
             static value => (ushort)(value << 4),
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
-                new Av1IntraTileWriter(
+                new Av1TileEncoder(
                     writer,
                     source,
                     reconstruction,
@@ -2303,7 +2468,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             TileBufferLength);
 
-        Av1IntraTileWriter tileWriter = createTileWriter(
+        Av1TileEncoder tileWriter = createTileWriter(
             symbolEncoder,
             source.Frame,
             reconstruction.Frame,
@@ -2436,7 +2601,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             4096);
 
-        Av1IntraTileWriter tileWriter = new(
+        Av1TileEncoder tileWriter = new(
             symbolEncoder,
             source.Frame,
             reconstruction.Frame,
@@ -2550,7 +2715,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             4096);
 
-        Av1IntraTileWriter tileWriter = new(
+        Av1TileEncoder tileWriter = new(
             symbolEncoder,
             source.Frame,
             reconstruction.Frame,
@@ -2631,8 +2796,8 @@ public class Av1IntraSuperblockEncoderTests
 
         frameHeader.TilesInfo.HasUniformTileSpacing = true;
         using MemoryStream stream = new();
-        new ObuWriter().WriteAll(
-            Configuration.Default,
+        using ObuWriter obuWriter = new(Configuration.Default);
+        obuWriter.WriteSequenceFrame(
             stream,
             sequenceHeader,
             frameHeader,
@@ -2689,14 +2854,16 @@ public class Av1IntraSuperblockEncoderTests
                     FrameSize = new ObuFrameSize()
                 },
                 FrameHeader = frameHeader,
-                PreviousQIndex = [qIndex]
+                PreviousQIndex = new int[] { qIndex }
             },
             SegmentationNeighborMap = new byte[modeInfo.ModeInfoColumnCount * modeInfo.ModeInfoRowCount],
             ModeInfoGrid = modeInfo.Grid,
             ModeInfoAllocation = modeInfo.Allocation,
             ModeInfoStride = modeInfo.ModeInfoStride,
             Disallow4x4AllFrames = modeInfo.Disallow4x4AllFrames,
-            CdefPreset = [[-1, -1, -1, -1]]
+            CdefPreset = new int[] { -1, -1, -1, -1 },
+            TileDataOffsets = Memory<int>.Empty,
+            TileDataLengths = Memory<int>.Empty
         };
     }
 
@@ -2813,7 +2980,7 @@ public class Av1IntraSuperblockEncoderTests
             picture.Picture,
             TileBufferLength);
 
-        Av1IntraTileWriter tileWriter = createTileWriter(
+        Av1TileEncoder tileWriter = createTileWriter(
             symbolEncoder,
             source.Frame,
             reconstruction.Frame,
@@ -3044,7 +3211,7 @@ public class Av1IntraSuperblockEncoderTests
             updateCdf: !frameHeader.DisableCdfUpdate);
     }
 
-    private delegate Av1IntraTileWriter TileWriterFactory<TSample>(
+    private delegate Av1TileEncoder TileWriterFactory<TSample>(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<TSample> source,
         Av1EncoderFrame<TSample> reconstruction,
@@ -3143,7 +3310,8 @@ public class Av1IntraSuperblockEncoderTests
                 macroBlock,
                 Av1BlockSize.Block8x8,
                 Av1PredictionMode.DC,
-                0);
+                0,
+                isIntraFrame: true);
 
             modeInfo.Block = new Av1EncoderBlockModeInfo
             {

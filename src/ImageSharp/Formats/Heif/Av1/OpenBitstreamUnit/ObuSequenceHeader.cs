@@ -220,6 +220,14 @@ internal sealed class ObuSequenceHeader
     public uint AdditionalFrameIdLength { get; set; }
 
     /// <summary>
+    /// Gets the timing information required by syntax whose presence flag is set.
+    /// </summary>
+    /// <returns>The sequence timing information.</returns>
+    public ObuTimingInfo GetTimingInfo() =>
+        this.TimingInfo
+        ?? throw new InvalidOperationException("The AV1 sequence has no timing information.");
+
+    /// <summary>
     /// Gets the decoder-buffer model information required by syntax whose presence flag is set.
     /// </summary>
     /// <returns>The decoder-buffer model information.</returns>

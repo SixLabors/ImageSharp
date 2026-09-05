@@ -372,7 +372,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 macroBlock,
                 BlockSize,
                 Av1PredictionMode.DC,
-                0);
+                0,
+                this.picture.Parent.FrameHeader.IsIntra);
 
             rate += writer.GetPaletteYModeCost(true, blockSizeContext, neighborContext);
             rate += writer.GetPaletteSizeCost(paletteSize, blockSizeContext, Av1PlaneType.Y);

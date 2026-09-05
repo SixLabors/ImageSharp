@@ -66,6 +66,18 @@ internal struct Av1EncoderBlockStruct
     }
 
     /// <summary>
+    /// Gets or sets the dynamic-reference-list index selected for an inter block.
+    /// </summary>
+    /// <remarks>
+    /// Filter-intra and inter prediction are mutually exclusive, so both syntax branches share one packed byte.
+    /// </remarks>
+    public int ReferenceMotionVectorIndex
+    {
+        readonly get => this.filterIntraMode;
+        set => this.filterIntraMode = (byte)value;
+    }
+
+    /// <summary>
     /// Gets the encoder prediction-unit state for the block.
     /// </summary>
     [UnscopedRef]

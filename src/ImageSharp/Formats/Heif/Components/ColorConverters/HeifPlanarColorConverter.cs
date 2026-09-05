@@ -3,8 +3,6 @@
 
 using System.Buffers;
 using System.Runtime.InteropServices;
-using SixLabors.ImageSharp.Advanced;
-using SixLabors.ImageSharp.Common.Helpers;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 
@@ -16,6 +14,16 @@ namespace SixLabors.ImageSharp.Formats.Heif.Components;
 internal static class HeifPlanarColorConverter
 {
     /// <summary>
+    /// The number of planar color components retained for each source row.
+    /// </summary>
+    private const int ColorComponentCount = 3;
+
+    /// <summary>
+    /// The number of source rows consumed together by vertically subsampled chroma.
+    /// </summary>
+    private const int VerticallySubsampledRowCount = 2;
+
+    /// <summary>
     /// The largest value represented by an eight-bit packed RGB component.
     /// </summary>
     private const float ByteMaximum = byte.MaxValue;
@@ -26,7 +34,20 @@ internal static class HeifPlanarColorConverter
     private const float UShortMaximum = ushort.MaxValue;
 
     /// <summary>
-    /// Converts native unsigned 16-bit component storage to packed pixels and selects eligible exact integer kernels.
+    /// Converts complete native unsigned 16-bit component planes to packed pixels.
+    /// </summary>
+    public static void ConvertToRgb<TPixel, TBuffer>(
+        Configuration configuration,
+        TBuffer buffer,
+        ImageFrame<TPixel> image,
+        in HeifColorConversionParameters parameters,
+        HeifColorConversionMode mode)
+        where TPixel : unmanaged, IPixel<TPixel>
+        where TBuffer : struct, IHeifPlanarSampleBuffer<ushort>
+        => ConvertToRgb(configuration, buffer, image, in parameters, mode, 0, 0);
+
+    /// <summary>
+    /// Converts a region of native unsigned 16-bit component storage to packed pixels and selects eligible exact integer kernels.
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel type.</typeparam>
     /// <typeparam name="TBuffer">The codec adapter exposing the native component planes.</typeparam>
@@ -43,8 +64,8 @@ internal static class HeifPlanarColorConverter
         ImageFrame<TPixel> image,
         in HeifColorConversionParameters parameters,
         HeifColorConversionMode mode,
-        int sourceX = 0,
-        int sourceY = 0)
+        int sourceX,
+        int sourceY)
         where TPixel : unmanaged, IPixel<TPixel>
         where TBuffer : struct, IHeifPlanarSampleBuffer<ushort>
     {
@@ -74,7 +95,22 @@ internal static class HeifPlanarColorConverter
     }
 
     /// <summary>
-    /// Converts native component planes to packed pixels.
+    /// Converts complete native component planes to packed pixels.
+    /// </summary>
+    public static void ConvertToRgb<TPixel, TBuffer, TSample, TLoader>(
+        Configuration configuration,
+        TBuffer buffer,
+        ImageFrame<TPixel> image,
+        in HeifColorConversionParameters parameters,
+        HeifColorConversionMode mode)
+        where TPixel : unmanaged, IPixel<TPixel>
+        where TBuffer : struct, IHeifPlanarSampleBuffer<TSample>
+        where TSample : unmanaged
+        where TLoader : struct, IHeifSampleConverter<TSample>
+        => ConvertToRgb<TPixel, TBuffer, TSample, TLoader>(configuration, buffer, image, in parameters, mode, 0, 0);
+
+    /// <summary>
+    /// Converts a region of native component planes to packed pixels.
     /// </summary>
     /// <typeparam name="TPixel">The destination pixel type.</typeparam>
     /// <typeparam name="TBuffer">The codec adapter exposing the native component planes.</typeparam>
@@ -93,8 +129,8 @@ internal static class HeifPlanarColorConverter
         ImageFrame<TPixel> image,
         in HeifColorConversionParameters parameters,
         HeifColorConversionMode mode,
-        int sourceX = 0,
-        int sourceY = 0)
+        int sourceX,
+        int sourceY)
         where TPixel : unmanaged, IPixel<TPixel>
         where TBuffer : struct, IHeifPlanarSampleBuffer<TSample>
         where TSample : unmanaged
@@ -140,11 +176,47 @@ internal static class HeifPlanarColorConverter
         where TSample : unmanaged
         where TStorer : struct, IHeifSampleConverter<TSample>
     {
+        Rectangle sourceRectangle = new(0, 0, image.Width, image.Height);
+        ConvertFromRgb<TPixel, TBuffer, TSample, TStorer>(
+            configuration,
+            image,
+            sourceRectangle,
+            buffer,
+            in parameters,
+            mode);
+    }
+
+    /// <summary>
+    /// Converts a rectangular packed-pixel region to native component planes.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel type.</typeparam>
+    /// <typeparam name="TBuffer">The codec adapter exposing the native component planes.</typeparam>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TStorer">The SIMD narrowing and storage operations for the sample type.</typeparam>
+    /// <param name="configuration">The configuration used for allocation and pixel conversion.</param>
+    /// <param name="image">The source image frame.</param>
+    /// <param name="sourceRectangle">The source region mapped to the complete destination buffer.</param>
+    /// <param name="buffer">The destination component-plane buffer.</param>
+    /// <param name="parameters">The resolved H.273 conversion parameters.</param>
+    /// <param name="mode">The resolved H.273 conversion mode.</param>
+    public static void ConvertFromRgb<TPixel, TBuffer, TSample, TStorer>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Rectangle sourceRectangle,
+        TBuffer buffer,
+        in HeifColorConversionParameters parameters,
+        HeifColorConversionMode mode)
+        where TPixel : unmanaged, IPixel<TPixel>
+        where TBuffer : struct, IHeifPlanarSampleBuffer<TSample>
+        where TSample : unmanaged
+        where TStorer : struct, IHeifSampleConverter<TSample>
+    {
         HeifColorConverterBase colorConverter = HeifColorConverterBase.Create(mode, in parameters, buffer.IsMonochrome);
         RgbToYuvRowConverter<TPixel, TBuffer, TSample, TStorer> converter = new(
             configuration,
             buffer,
             image,
+            sourceRectangle,
             colorConverter,
             in parameters);
 
@@ -156,9 +228,59 @@ internal static class HeifPlanarColorConverter
             return;
         }
 
-        using IMemoryOwner<Rgb48> packedOwner = configuration.MemoryAllocator.Allocate<Rgb48>(image.Width);
-        converter.Convert(packedOwner.GetSpan()[..image.Width], components);
+        using IMemoryOwner<Rgb48> packedOwner = configuration.MemoryAllocator.Allocate<Rgb48>(sourceRectangle.Width);
+        converter.Convert(packedOwner.GetSpan()[..sourceRectangle.Width], components);
     }
+
+    /// <summary>
+    /// Converts a rectangular packed-pixel region using a retained color converter and caller-owned row storage.
+    /// </summary>
+    /// <typeparam name="TPixel">The source pixel type.</typeparam>
+    /// <typeparam name="TBuffer">The codec adapter exposing the native component planes.</typeparam>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TStorer">The SIMD narrowing and storage operations for the sample type.</typeparam>
+    /// <param name="configuration">The configuration used for pixel conversion.</param>
+    /// <param name="image">The source image frame.</param>
+    /// <param name="sourceRectangle">The source region mapped to the complete destination buffer.</param>
+    /// <param name="buffer">The destination component-plane buffer.</param>
+    /// <param name="parameters">The resolved H.273 conversion parameters.</param>
+    /// <param name="colorConverter">The retained converter matching <paramref name="parameters"/>.</param>
+    /// <param name="packed">The reusable high-bit-depth packed RGB row, or an empty span for eight-bit input.</param>
+    /// <param name="components">The reusable planar component rows.</param>
+    public static void ConvertFromRgb<TPixel, TBuffer, TSample, TStorer>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Rectangle sourceRectangle,
+        TBuffer buffer,
+        in HeifColorConversionParameters parameters,
+        HeifColorConverterBase colorConverter,
+        Span<Rgb48> packed,
+        Span<float> components)
+        where TPixel : unmanaged, IPixel<TPixel>
+        where TBuffer : struct, IHeifPlanarSampleBuffer<TSample>
+        where TSample : unmanaged
+        where TStorer : struct, IHeifSampleConverter<TSample>
+    {
+        RgbToYuvRowConverter<TPixel, TBuffer, TSample, TStorer> converter = new(
+            configuration,
+            buffer,
+            image,
+            sourceRectangle,
+            colorConverter,
+            in parameters);
+
+        converter.Convert(packed, components);
+    }
+
+    /// <summary>
+    /// Gets the planar float storage required to convert one row, or one vertically subsampled row pair.
+    /// </summary>
+    /// <param name="width">The source-row width.</param>
+    /// <param name="isMonochrome">Whether only luma is written.</param>
+    /// <param name="subsamplingY">The vertical chroma-subsampling shift.</param>
+    /// <returns>The required number of float elements.</returns>
+    public static int GetRgbToYuvComponentBufferLength(int width, bool isMonochrome, int subsamplingY)
+        => width * ColorComponentCount * (subsamplingY == 0 || isMonochrome ? 1 : VerticallySubsampledRowCount);
 
     /// <summary>
     /// Resolves the two chroma rows and quarter-sample weight surrounding a luma row.
@@ -485,6 +607,11 @@ internal static class HeifPlanarColorConverter
         private readonly ImageFrame<TPixel> image;
 
         /// <summary>
+        /// The source region mapped to the complete destination planes.
+        /// </summary>
+        private readonly Rectangle sourceRectangle;
+
+        /// <summary>
         /// The selected H.273 color converter.
         /// </summary>
         private readonly HeifColorConverterBase colorConverter;
@@ -535,18 +662,21 @@ internal static class HeifPlanarColorConverter
         /// <param name="configuration">The configuration used for pixel conversion.</param>
         /// <param name="buffer">The codec adapter exposing the destination component planes.</param>
         /// <param name="image">The source image frame.</param>
+        /// <param name="sourceRectangle">The source region mapped to the complete destination planes.</param>
         /// <param name="colorConverter">The selected H.273 color converter.</param>
         /// <param name="parameters">The resolved H.273 component ranges.</param>
         public RgbToYuvRowConverter(
             Configuration configuration,
             TBuffer buffer,
             ImageFrame<TPixel> image,
+            Rectangle sourceRectangle,
             HeifColorConverterBase colorConverter,
             in HeifColorConversionParameters parameters)
         {
             this.configuration = configuration;
             this.buffer = buffer;
             this.image = image;
+            this.sourceRectangle = sourceRectangle;
             this.colorConverter = colorConverter;
             this.lumaMaximum = parameters.LumaSampleMaximum;
             this.chromaMaximum = parameters.ChromaSampleMaximum;
@@ -566,7 +696,8 @@ internal static class HeifPlanarColorConverter
         /// <summary>
         /// Gets the number of float elements required by the reusable component buffer.
         /// </summary>
-        public readonly int ComponentBufferLength => this.image.Width * (this.subsamplingY == 0 || this.isMonochrome ? 3 : 6);
+        public readonly int ComponentBufferLength
+            => GetRgbToYuvComponentBufferLength(this.sourceRectangle.Width, this.isMonochrome, this.subsamplingY);
 
         /// <summary>
         /// Converts every packed source row to the destination component planes.
@@ -575,13 +706,13 @@ internal static class HeifPlanarColorConverter
         /// <param name="components">The reusable planar component buffer.</param>
         public void Convert(Span<Rgb48> packed, Span<float> components)
         {
-            int width = this.image.Width;
+            int width = this.sourceRectangle.Width;
             Span<float> luma0 = components[..width];
             Span<float> blue0 = components.Slice(width, width);
             Span<float> red0 = components.Slice(width * 2, width);
             if (this.subsamplingY == 0)
             {
-                for (int y = 0; y < this.image.Height; y++)
+                for (int y = 0; y < this.sourceRectangle.Height; y++)
                 {
                     this.ConvertSourceRow(y, packed, luma0, blue0, red0);
                     HeifSampleConversion.WriteSamples<TSample, TStorer>(
@@ -603,7 +734,7 @@ internal static class HeifPlanarColorConverter
             Span<float> luma1 = this.isMonochrome ? luma0 : components.Slice(width * 3, width);
             Span<float> blue1 = this.isMonochrome ? blue0 : components.Slice(width * 4, width);
             Span<float> red1 = this.isMonochrome ? red0 : components.Slice(width * 5, width);
-            int chromaHeight = (this.image.Height + 1) >> 1;
+            int chromaHeight = (this.sourceRectangle.Height + 1) >> 1;
             for (int destinationY = 0; destinationY < chromaHeight; destinationY++)
             {
                 // A vertically subsampled chroma row is owned by one two-row luma cell. Processing that cell as a
@@ -617,7 +748,7 @@ internal static class HeifPlanarColorConverter
                     this.colorConverter.LumaBias,
                     this.lumaMaximum);
 
-                bool hasSecondRow = sourceY + 1 < this.image.Height;
+                bool hasSecondRow = sourceY + 1 < this.sourceRectangle.Height;
                 if (hasSecondRow)
                 {
                     this.ConvertSourceRow(sourceY + 1, packed, luma1, blue1, red1);
@@ -659,7 +790,10 @@ internal static class HeifPlanarColorConverter
         /// <param name="chromaRed">The destination red-difference or third component values.</param>
         private void ConvertSourceRow(int y, Span<Rgb48> packed, Span<float> luma, Span<float> chromaBlue, Span<float> chromaRed)
         {
-            ReadOnlySpan<TPixel> source = this.image.PixelBuffer.DangerousGetRowSpan(y);
+            ReadOnlySpan<TPixel> source = this.image.PixelBuffer
+                .DangerousGetRowSpan(this.sourceRectangle.Y + y)
+                .Slice(this.sourceRectangle.X, this.sourceRectangle.Width);
+
             if (this.UsesByteInput)
             {
                 // JPEG's planar unpack contract reaches the existing pixel-specific SIMD implementation before

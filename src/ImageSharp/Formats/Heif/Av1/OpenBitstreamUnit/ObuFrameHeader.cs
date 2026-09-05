@@ -73,6 +73,15 @@ internal sealed class ObuFrameHeader
     public bool AllowHighPrecisionMotionVector { get; set; }
 
     /// <summary>
+    /// Gets the component precision selected by the integer and high-precision frame flags.
+    /// </summary>
+    public Av1MotionVectorPrecision MotionVectorPrecision => this.ForceIntegerMotionVector
+        ? Av1MotionVectorPrecision.Integer
+        : this.AllowHighPrecisionMotionVector
+            ? Av1MotionVectorPrecision.EighthSample
+            : Av1MotionVectorPrecision.QuarterSample;
+
+    /// <summary>
     /// Gets or sets the frame-level interpolation filter used for inter prediction.
     /// </summary>
     public Av1InterpolationFilter InterpolationFilter { get; set; }

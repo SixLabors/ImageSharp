@@ -1,19 +1,33 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
+
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <summary>
-/// Provides disjoint reusable buffers for intra-block-copy mode decisions.
+/// Provides disjoint reusable buffers for single-reference and intra-block-copy mode decisions.
 /// </summary>
 /// <typeparam name="TSample">The native sample type selected by the encoder pipeline.</typeparam>
-internal readonly ref struct Av1EncoderIntraBlockCopyWorkspace<TSample>
+internal readonly ref struct Av1EncoderInterPredictionWorkspace<TSample>
     where TSample : unmanaged
 {
     /// <summary>
-    /// The number of samples in the fixed 8x8 intra-block-copy transform.
+    /// The width and height of the fixed prediction block handled by the current inter search.
     /// </summary>
-    public const int MaximumSampleCount = 8 * 8;
+    private const int MaximumBlockDimension = 8;
+
+    /// <summary>
+    /// The number of samples in the fixed prediction block.
+    /// </summary>
+    public const int MaximumSampleCount = MaximumBlockDimension * MaximumBlockDimension;
+
+    /// <summary>
+    /// The signed intermediate capacity needed when both translational interpolation axes are filtered.
+    /// </summary>
+    public const int PredictionScratchCount =
+        Av1TranslationalInterPredictor.MinimumScratchStride *
+        (MaximumBlockDimension + Av1TranslationalInterPredictor.MaximumExtraRows);
 
     /// <summary>
     /// The number of sample buffers retained by one mode decision.
@@ -27,21 +41,25 @@ internal readonly ref struct Av1EncoderIntraBlockCopyWorkspace<TSample>
 
     private readonly Span<TSample> samples;
     private readonly Span<short> residual;
+    private readonly Span<short> predictionScratch;
     private readonly Span<int> coefficients;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="Av1EncoderIntraBlockCopyWorkspace{TSample}"/> struct.
+    /// Initializes a new instance of the <see cref="Av1EncoderInterPredictionWorkspace{TSample}"/> struct.
     /// </summary>
     /// <param name="samples">The sample storage.</param>
     /// <param name="residual">The residual storage shared by sequential plane evaluations.</param>
+    /// <param name="predictionScratch">The intermediate storage used by two-dimensional interpolation.</param>
     /// <param name="coefficients">The coefficient storage.</param>
-    public Av1EncoderIntraBlockCopyWorkspace(
+    public Av1EncoderInterPredictionWorkspace(
         Span<TSample> samples,
         Span<short> residual,
+        Span<short> predictionScratch,
         Span<int> coefficients)
     {
         this.samples = samples;
         this.residual = residual;
+        this.predictionScratch = predictionScratch;
         this.coefficients = coefficients;
     }
 
@@ -99,6 +117,11 @@ internal readonly ref struct Av1EncoderIntraBlockCopyWorkspace<TSample>
     /// Gets the residual scratch shared by sequential plane evaluations.
     /// </summary>
     public Span<short> Residual => this.residual;
+
+    /// <summary>
+    /// Gets the intermediate scratch used when both translational interpolation axes are filtered.
+    /// </summary>
+    public Span<short> PredictionScratch => this.predictionScratch;
 
     /// <summary>
     /// Gets the selected luma coefficients.

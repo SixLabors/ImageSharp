@@ -15,6 +15,11 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
     where TSample : unmanaged
 {
     /// <summary>
+    /// The byte boundary used by libaom for SIMD-accessible component planes.
+    /// </summary>
+    private const int PlaneAlignmentBytes = 32;
+
+    /// <summary>
     /// The complete frame owner, or <see langword="null"/> after disposal.
     /// </summary>
     private IMemoryOwner<TSample>? owner;
@@ -48,7 +53,7 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
             : Av1EncoderFrame<TSample>.GetPlaneBufferSize(width, height, subsamplingX, subsamplingY);
 
         int chromaElementCount = checked(chromaSize.Width * chromaSize.Height);
-        int planeAlignment = Math.Max(32 / Unsafe.SizeOf<TSample>(), 1);
+        int planeAlignment = Math.Max(PlaneAlignmentBytes / Unsafe.SizeOf<TSample>(), 1);
         int chromaBlueOffset = Align(lumaElementCount, planeAlignment);
         int chromaRedOffset = Align(checked(chromaBlueOffset + chromaElementCount), planeAlignment);
         int storageLength = colorFormat == Av1ColorFormat.Yuv400

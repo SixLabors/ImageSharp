@@ -16,6 +16,28 @@ namespace SixLabors.ImageSharp.Formats.Heif.Components.Alpha;
 internal static class HeifPlanarAlphaEncoder
 {
     /// <summary>
+    /// The number of float elements sharing storage with one packed <see cref="Rgba64"/> value.
+    /// </summary>
+    private const int Rgba64FloatElementCount = 2;
+
+    /// <summary>
+    /// The additional float element receiving one extracted alpha value.
+    /// </summary>
+    private const int AlphaFloatElementCount = 1;
+
+    /// <summary>
+    /// The complete reusable row-storage length per source pixel.
+    /// </summary>
+    private const int RowFloatElementCount = Rgba64FloatElementCount + AlphaFloatElementCount;
+
+    /// <summary>
+    /// Gets the reusable row-storage length required for the specified source width.
+    /// </summary>
+    /// <param name="width">The source-row width.</param>
+    /// <returns>The required number of float elements.</returns>
+    public static int GetRowStorageLength(int width) => width * RowFloatElementCount;
+
+    /// <summary>
     /// Converts one packed image frame into a full-range native alpha plane.
     /// </summary>
     /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
@@ -34,19 +56,85 @@ internal static class HeifPlanarAlphaEncoder
         where TSample : unmanaged
         where TStorer : struct, IHeifSampleConverter<TSample>
     {
-        int width = image.Width;
+        Rectangle sourceRectangle = new(0, 0, image.Width, image.Height);
+        Convert<TPixel, TBuffer, TSample, TStorer>(configuration, image, sourceRectangle, buffer);
+    }
+
+    /// <summary>
+    /// Converts one packed image region into a full-range native alpha plane.
+    /// </summary>
+    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <typeparam name="TBuffer">The codec adapter exposing the destination plane.</typeparam>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TStorer">The SIMD narrowing and storage operations for the sample type.</typeparam>
+    /// <param name="configuration">The configuration used for row allocation and pixel conversion.</param>
+    /// <param name="image">The packed source image frame.</param>
+    /// <param name="sourceRectangle">The source region mapped to the complete destination plane.</param>
+    /// <param name="buffer">The monochrome destination buffer.</param>
+    public static void Convert<TPixel, TBuffer, TSample, TStorer>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Rectangle sourceRectangle,
+        TBuffer buffer)
+        where TPixel : unmanaged, IPixel<TPixel>
+        where TBuffer : struct, IHeifPlanarSampleBuffer<TSample>
+        where TSample : unmanaged
+        where TStorer : struct, IHeifSampleConverter<TSample>
+    {
+        int width = sourceRectangle.Width;
 
         // Rgba64 preserves the source pixel's normalized alpha precision before quantization to the requested AV1
         // depth. Both row views share one owner because their lifetimes never escape this conversion operation.
-        using IMemoryOwner<float> rowOwner = configuration.MemoryAllocator.Allocate<float>(width * 3);
-        Span<float> rowStorage = rowOwner.GetSpan();
-        Span<Rgba64> packed = MemoryMarshal.Cast<float, Rgba64>(rowStorage[..(width * 2)]);
-        Span<float> alpha = rowStorage.Slice(width * 2, width);
+        using IMemoryOwner<float> rowOwner = configuration.MemoryAllocator.Allocate<float>(
+            GetRowStorageLength(width));
+
+        Convert<TPixel, TBuffer, TSample, TStorer>(
+            configuration,
+            image,
+            sourceRectangle,
+            buffer,
+            rowOwner.GetSpan());
+    }
+
+    /// <summary>
+    /// Converts one packed image region using caller-owned reusable row storage.
+    /// </summary>
+    /// <typeparam name="TPixel">The packed source pixel type.</typeparam>
+    /// <typeparam name="TBuffer">The codec adapter exposing the destination plane.</typeparam>
+    /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
+    /// <typeparam name="TStorer">The SIMD narrowing and storage operations for the sample type.</typeparam>
+    /// <param name="configuration">The configuration used for pixel conversion.</param>
+    /// <param name="image">The packed source image frame.</param>
+    /// <param name="sourceRectangle">The source region mapped to the complete destination plane.</param>
+    /// <param name="buffer">The monochrome destination buffer.</param>
+    /// <param name="rowStorage">Storage for one packed high-precision row and its extracted alpha values.</param>
+    public static void Convert<TPixel, TBuffer, TSample, TStorer>(
+        Configuration configuration,
+        ImageFrame<TPixel> image,
+        Rectangle sourceRectangle,
+        TBuffer buffer,
+        Span<float> rowStorage)
+        where TPixel : unmanaged, IPixel<TPixel>
+        where TBuffer : struct, IHeifPlanarSampleBuffer<TSample>
+        where TSample : unmanaged
+        where TStorer : struct, IHeifSampleConverter<TSample>
+    {
+        int width = sourceRectangle.Width;
+        Span<Rgba64> packed = MemoryMarshal.Cast<float, Rgba64>(
+            rowStorage[..(width * Rgba64FloatElementCount)]);
+
+        Span<float> alpha = rowStorage.Slice(
+            width * Rgba64FloatElementCount,
+            width * AlphaFloatElementCount);
+
         float maximum = (1 << buffer.LumaBitDepth) - 1;
         float scale = maximum / ushort.MaxValue;
-        for (int y = 0; y < image.Height; y++)
+        for (int y = 0; y < sourceRectangle.Height; y++)
         {
-            ReadOnlySpan<TPixel> source = image.PixelBuffer.DangerousGetRowSpan(y);
+            ReadOnlySpan<TPixel> source = image.PixelBuffer
+                .DangerousGetRowSpan(sourceRectangle.Y + y)
+                .Slice(sourceRectangle.X, sourceRectangle.Width);
+
             PixelOperations<TPixel>.Instance.ToRgba64(configuration, source, packed);
             ExtractAlpha(packed, alpha);
             HeifSampleConversion.WriteSamples<TSample, TStorer>(

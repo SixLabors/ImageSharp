@@ -10,12 +10,18 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 /// <summary>
-/// Owns mode information, segmentation data, and tile-neighbor contexts for one encoded AV1 picture.
+/// Owns reusable mode information, segmentation data, and tile-neighbor contexts for fixed-geometry AV1 pictures.
 /// </summary>
 internal sealed class Av1EncoderPictureBuffer : IDisposable
 {
     private readonly Av1EncoderModeInfoBuffer modeInfo;
     private readonly IMemoryOwner<byte> stateStorage;
+
+    /// <summary>
+    /// The exact packed state region cleared between frames without touching excess pool capacity.
+    /// </summary>
+    private readonly Memory<byte> stateMemory;
+
     private readonly ByteMemoryManager<Av1PartitionContext> partitionContextMemory;
     private readonly Av1NeighborArrayUnit<Av1PartitionContext>[] partitionContexts;
     private readonly Av1NeighborArrayUnit<byte>[] lumaCoefficientContexts;
@@ -40,6 +46,42 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         int width,
         int height,
         bool disallow4x4AllFrames)
+        : this(
+            configuration,
+            sequenceHeader,
+            frameHeader,
+            width,
+            height,
+            disallow4x4AllFrames,
+            frameHeader.AllowScreenContentTools,
+            frameHeader.AllowIntraBlockCopy || !frameHeader.IsIntra,
+            frameHeader.AllowIntraBlockCopy)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1EncoderPictureBuffer"/> class with the maximum state
+    /// required by a fixed-geometry sequence.
+    /// </summary>
+    /// <param name="configuration">The configuration providing picture-lifetime memory.</param>
+    /// <param name="sequenceHeader">The sequence header defining superblock and chroma geometry.</param>
+    /// <param name="frameHeader">The initial frame header defining dimensions and tiles.</param>
+    /// <param name="width">The visible luma width.</param>
+    /// <param name="height">The visible luma height.</param>
+    /// <param name="disallow4x4AllFrames">Whether each allocated mode-information value represents an 8x8 region.</param>
+    /// <param name="allocateScreenContentState">Whether palette neighbor state can be required by any frame.</param>
+    /// <param name="allocateMotionVectorState">Whether inter or intra-block-copy vectors can be required by any frame.</param>
+    /// <param name="allocateIntraBlockCopySearch">Whether intra-block-copy search state can be required by any frame.</param>
+    public Av1EncoderPictureBuffer(
+        Configuration configuration,
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        int width,
+        int height,
+        bool disallow4x4AllFrames,
+        bool allocateScreenContentState,
+        bool allocateMotionVectorState,
+        bool allocateIntraBlockCopySearch)
     {
         const int ContextAlignmentLog2 = Av1Constants.MaxSuperBlockSizeLog2 - Av1Constants.ModeInfoSizeLog2;
         this.modeInfo = new Av1EncoderModeInfoBuffer(
@@ -79,17 +121,17 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         int paletteLeftLength = alignedModeInfoRowCount;
         int paletteTopLength = this.modeInfo.ModeInfoStride;
         int paletteContextLength = checked(paletteLeftLength + paletteTopLength);
-        int paletteStorageOffset = frameHeader.AllowScreenContentTools
+        int paletteStorageOffset = allocateScreenContentState
             ? Av1Math.AlignPowerOf2(byteContextStorageEnd, 1)
             : byteContextStorageEnd;
 
-        int paletteStorageLength = frameHeader.AllowScreenContentTools
+        int paletteStorageLength = allocateScreenContentState
             ? checked(tileCount * paletteContextLength * Unsafe.SizeOf<Av1EncoderPaletteInfo>())
             : 0;
 
         int paletteStorageEnd = checked(paletteStorageOffset + paletteStorageLength);
-        int displacementVectorLength = frameHeader.AllowIntraBlockCopy ? this.modeInfo.Allocation.Length : 0;
-        int displacementVectorStorageOffset = frameHeader.AllowIntraBlockCopy
+        int displacementVectorLength = allocateMotionVectorState ? this.modeInfo.Allocation.Length : 0;
+        int displacementVectorStorageOffset = allocateMotionVectorState
             ? Av1Math.AlignPowerOf2(paletteStorageEnd, 1)
             : paletteStorageEnd;
 
@@ -97,23 +139,32 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             displacementVectorLength * Unsafe.SizeOf<Av1EncoderDisplacementVector>());
 
         int displacementVectorStorageEnd = checked(displacementVectorStorageOffset + displacementVectorStorageLength);
-        int intraBlockCopySearchStorageOffset = frameHeader.AllowIntraBlockCopy
+        int intraBlockCopySearchStorageOffset = allocateIntraBlockCopySearch
             ? Av1Math.AlignPowerOf2(displacementVectorStorageEnd, 2)
             : displacementVectorStorageEnd;
 
-        int intraBlockCopySearchStorageLength = frameHeader.AllowIntraBlockCopy
+        int intraBlockCopySearchStorageLength = allocateIntraBlockCopySearch
             ? Av1IntraBlockCopySearchIndex.GetStorageLength(width, height)
             : 0;
 
-        int stateStorageLength = checked(intraBlockCopySearchStorageOffset + intraBlockCopySearchStorageLength);
+        int intraBlockCopySearchStorageEnd = checked(
+            intraBlockCopySearchStorageOffset + intraBlockCopySearchStorageLength);
+
+        int tileStateStorageOffset = Av1Math.AlignPowerOf2(intraBlockCopySearchStorageEnd, 2);
+        int cdefPresetLength = tileCount * Av1Constants.CdefUnitsPerSuperblock;
+        int tileStateLength = cdefPresetLength + (3 * tileCount);
+        int tileStateStorageLength = tileStateLength * sizeof(int);
+        int stateStorageLength = checked(tileStateStorageOffset + tileStateStorageLength);
 
         // Segmentation and every tile edge share one clean picture lifetime. The partition region begins at its
-        // native alignment, while typed views keep the entropy writer independent from the packed byte owner.
+        // native alignment. CDEF, quantizer, and encoded-tile bounds occupy one aligned trailing integer region
+        // instead of allocating separate managed arrays for every picture.
         this.stateStorage = configuration.MemoryAllocator.Allocate<byte>(
             stateStorageLength,
             AllocationOptions.Clean);
 
-        Memory<byte> stateStorage = this.stateStorage.Memory[..stateStorageLength];
+        this.stateMemory = this.stateStorage.Memory[..stateStorageLength];
+        Memory<byte> stateStorage = this.stateMemory;
         this.partitionContextMemory = new ByteMemoryManager<Av1PartitionContext>(
             stateStorage.Slice(partitionStorageOffset, partitionStorageLength));
 
@@ -125,7 +176,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         this.redCoefficientContexts = new Av1NeighborArrayUnit<byte>[tileCount];
         this.transformContexts = new Av1NeighborArrayUnit<byte>[tileCount];
         Memory<Av1EncoderPaletteInfo> paletteStorage = Memory<Av1EncoderPaletteInfo>.Empty;
-        if (frameHeader.AllowScreenContentTools)
+        if (allocateScreenContentState)
         {
             // Palette entries contain 16-bit colors, so their packed typed region begins at an even byte offset.
             ByteMemoryManager<Av1EncoderPaletteInfo> paletteMemory = new(
@@ -140,10 +191,10 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         }
 
         Memory<Av1EncoderDisplacementVector> displacementVectors = Memory<Av1EncoderDisplacementVector>.Empty;
-        if (frameHeader.AllowIntraBlockCopy)
+        if (allocateMotionVectorState)
         {
-            // Each component lies strictly inside plus or minus 16384, so two signed 16-bit fields preserve the
-            // complete syntax domain without expanding every frame's compact mode-information allocation.
+            // Each component lies strictly inside plus or minus 16384. Two signed 16-bit fields preserve both
+            // inter and intra-block-copy vectors without expanding every compact mode-information entry.
             ByteMemoryManager<Av1EncoderDisplacementVector> displacementVectorMemory = new(
                 stateStorage.Slice(displacementVectorStorageOffset, displacementVectorStorageLength));
 
@@ -151,7 +202,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
         }
 
         Av1IntraBlockCopySearchIndex intraBlockCopySearch = default;
-        if (frameHeader.AllowIntraBlockCopy)
+        if (allocateIntraBlockCopySearch)
         {
             // The search index casts its packed workspace to 32-bit links, so its non-owning region begins at
             // a four-byte boundary inside the existing picture-state rent.
@@ -161,8 +212,15 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 height);
         }
 
-        int[][] cdefPreset = new int[tileCount][];
-        int[] previousQIndex = new int[tileCount];
+        ByteMemoryManager<int> tileStateMemory = new(
+            stateStorage.Slice(tileStateStorageOffset, tileStateStorageLength));
+
+        Memory<int> tileState = tileStateMemory.Memory;
+        Memory<int> cdefPreset = tileState[..cdefPresetLength];
+        Memory<int> previousQIndex = tileState.Slice(cdefPresetLength, tileCount);
+        Memory<int> tileDataOffsets = tileState.Slice(cdefPresetLength + tileCount, tileCount);
+        Memory<int> tileDataLengths = tileState.Slice(cdefPresetLength + (2 * tileCount), tileCount);
+        cdefPreset.Span.Fill(-1);
         for (int tileIndex = 0; tileIndex < tileCount; tileIndex++)
         {
             this.partitionContexts[tileIndex] = new Av1NeighborArrayUnit<Av1PartitionContext>(
@@ -214,7 +272,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             this.transformContexts[tileIndex].Left.Fill((byte)Av1Constants.MaxTransformSize);
             this.transformContexts[tileIndex].Top.Fill((byte)Av1Constants.MaxTransformSize);
 
-            if (frameHeader.AllowScreenContentTools)
+            if (allocateScreenContentState)
             {
                 this.paletteContexts[tileIndex] = new Av1NeighborArrayUnit<Av1EncoderPaletteInfo>(
                     paletteStorage.Slice(tileIndex * paletteContextLength, paletteContextLength),
@@ -225,8 +283,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 };
             }
 
-            cdefPreset[tileIndex] = [-1, -1, -1, -1];
-            previousQIndex[tileIndex] = frameHeader.QuantizationParameters.BaseQIndex;
+            previousQIndex.Span[tileIndex] = frameHeader.QuantizationParameters.BaseQIndex;
         }
 
         this.Picture = new Av1PictureControlSet
@@ -258,7 +315,9 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             IntraBlockCopySearch = intraBlockCopySearch,
             ModeInfoStride = this.modeInfo.ModeInfoStride,
             Disallow4x4AllFrames = this.modeInfo.Disallow4x4AllFrames,
-            CdefPreset = cdefPreset
+            CdefPreset = cdefPreset,
+            TileDataOffsets = tileDataOffsets,
+            TileDataLengths = tileDataLengths
         };
     }
 
@@ -266,6 +325,31 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
     /// Gets the non-owning picture state consumed by superblock analysis and tile writing.
     /// </summary>
     public Av1PictureControlSet Picture { get; }
+
+    /// <summary>
+    /// Restores clean per-frame state while retaining every fixed-geometry allocation.
+    /// </summary>
+    /// <param name="frameHeader">The frame header consumed by the next encoding pass.</param>
+    public void Reset(ObuFrameHeader frameHeader)
+    {
+        this.modeInfo.Grid.Span.Clear();
+        this.modeInfo.Allocation.Span.Clear();
+        this.stateMemory.Span.Clear();
+
+        // Transform contexts begin at the largest transform size until an encoded neighbor publishes its
+        // selected size. This sentinel must be restored after the packed state owner is cleared.
+        foreach (Av1NeighborArrayUnit<byte> context in this.transformContexts)
+        {
+            context.Left.Fill((byte)Av1Constants.MaxTransformSize);
+            context.Top.Fill((byte)Av1Constants.MaxTransformSize);
+        }
+
+        this.Picture.CdefPreset.Span.Fill(-1);
+        this.Picture.Parent.PreviousQIndex.Span.Fill(frameHeader.QuantizationParameters.BaseQIndex);
+        this.Picture.Parent.FrameHeader = frameHeader;
+        this.Picture.Parent.Common.FrameSize = frameHeader.FrameSize;
+        this.Picture.Parent.Common.TilesInfo = frameHeader.TilesInfo;
+    }
 
     /// <summary>
     /// Returns every picture-lifetime allocation to the configured allocator.

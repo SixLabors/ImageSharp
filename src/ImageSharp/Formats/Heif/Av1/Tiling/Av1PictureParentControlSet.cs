@@ -23,7 +23,7 @@ internal class Av1PictureParentControlSet
     /// <summary>
     /// Gets or sets the preceding quantizer index for each tile context.
     /// </summary>
-    public required int[] PreviousQIndex { get; set; }
+    public required Memory<int> PreviousQIndex { get; set; }
 
     /// <summary>
     /// Gets or sets the encoder palette-search level.

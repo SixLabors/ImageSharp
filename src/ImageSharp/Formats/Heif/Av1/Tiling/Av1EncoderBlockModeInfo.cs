@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -11,16 +12,36 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 /// </summary>
 internal struct Av1EncoderBlockModeInfo
 {
+    /// <summary>The residual-skip flag in the packed prediction state.</summary>
     private const byte SkipMask = 1 << 0;
+
+    /// <summary>The compound-skip flag in the packed prediction state.</summary>
     private const byte SkipModeMask = 1 << 1;
+
+    /// <summary>The intra-block-copy flag in the packed prediction state.</summary>
     private const byte IntraBlockCopyMask = 1 << 2;
 
-    // Every stored syntax value has an AV1-defined range below 256. Byte fields and one shared flag byte
-    // keep the frame-wide mode allocation compact without losing any representable encoder state.
+    /// <summary>The three low bits store the segment identifier, followed by the primary reference.</summary>
+    private const int ReferenceFrameShift = 3;
+
+    /// <summary>Both segment identifiers and primary references have eight possible values.</summary>
+    private const int SegmentAndReferenceMask = 7;
+
+    /// <summary>The vertical filter follows the three prediction flags.</summary>
+    private const int VerticalFilterShift = 3;
+
+    /// <summary>The horizontal filter follows the two-bit vertical filter.</summary>
+    private const int HorizontalFilterShift = 5;
+
+    /// <summary>Two bits represent each concrete interpolation filter, excluding the frame-level switchable sentinel.</summary>
+    private const int InterpolationFilterMask = 3;
+
+    // Primary references never use the absent-secondary sentinel. Pack their three bits beside the segment,
+    // and the concrete filters beside the flags, so adding inter syntax does not enlarge the frame-wide grid.
     private byte blockSize;
     private byte partitionType;
     private byte flags;
-    private byte segmentId;
+    private byte segmentAndReference;
     private byte transformSize;
     private byte mode;
     private byte uvMode;
@@ -75,8 +96,8 @@ internal struct Av1EncoderBlockModeInfo
     /// </summary>
     public int SegmentId
     {
-        readonly get => this.segmentId;
-        set => this.segmentId = (byte)value;
+        readonly get => this.segmentAndReference & SegmentAndReferenceMask;
+        set => this.segmentAndReference = (byte)((this.segmentAndReference & ~SegmentAndReferenceMask) | value);
     }
 
     /// <summary>
@@ -104,5 +125,32 @@ internal struct Av1EncoderBlockModeInfo
     {
         readonly get => (Av1ChromaPredictionMode)this.uvMode;
         set => this.uvMode = (byte)value;
+    }
+
+    /// <summary>
+    /// Gets or sets the primary prediction reference selected for the block.
+    /// </summary>
+    public Av1ReferenceFrameType ReferenceFrame
+    {
+        readonly get => (Av1ReferenceFrameType)(this.segmentAndReference >> ReferenceFrameShift);
+        set => this.segmentAndReference = (byte)((this.segmentAndReference & SegmentAndReferenceMask) | ((int)value << ReferenceFrameShift));
+    }
+
+    /// <summary>
+    /// Gets or sets the concrete vertical interpolation filter selected for the block.
+    /// </summary>
+    public Av1InterpolationFilter VerticalInterpolationFilter
+    {
+        readonly get => (Av1InterpolationFilter)((this.flags >> VerticalFilterShift) & InterpolationFilterMask);
+        set => this.flags = (byte)((this.flags & ~(InterpolationFilterMask << VerticalFilterShift)) | ((int)value << VerticalFilterShift));
+    }
+
+    /// <summary>
+    /// Gets or sets the concrete horizontal interpolation filter selected for the block.
+    /// </summary>
+    public Av1InterpolationFilter HorizontalInterpolationFilter
+    {
+        readonly get => (Av1InterpolationFilter)((this.flags >> HorizontalFilterShift) & InterpolationFilterMask);
+        set => this.flags = (byte)((this.flags & ~(InterpolationFilterMask << HorizontalFilterShift)) | ((int)value << HorizontalFilterShift));
     }
 }

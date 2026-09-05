@@ -29,6 +29,21 @@ internal sealed class HeifItem(Heif4CharCode type, uint id)
     public Heif4CharCode Type { get; } = type;
 
     /// <summary>
+    /// Gets or sets a value indicating whether this item is excluded from primary-item discovery.
+    /// </summary>
+    public bool IsHidden { get; set; }
+
+    /// <summary>
+    /// Gets or sets an earlier item whose identical property associations are reused by this item.
+    /// </summary>
+    public HeifItem? PropertySource { get; set; }
+
+    /// <summary>
+    /// Gets or sets the first one-based property index assigned while writing the property container.
+    /// </summary>
+    public ushort FirstPropertyIndex { get; set; }
+
+    /// <summary>
     /// Gets or sets the name of this item.
     /// </summary>
     public string? Name { get; set; }

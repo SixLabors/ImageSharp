@@ -46,7 +46,7 @@ internal static class Av1SymbolContextHelper
     /// <summary>
     /// The number of interpolation filters selectable by per-block switchable syntax.
     /// </summary>
-    private const int SwitchableInterpolationFilterCount = 3;
+    public const int SwitchableInterpolationFilterCount = 3;
 
     /// <summary>
     /// The number of transform types represented by each flattened transform-set row.
@@ -961,25 +961,70 @@ internal static class Av1SymbolContextHelper
         Av1BlockModeInfo? left,
         int direction)
     {
-        const int filterContextCount = SwitchableInterpolationFilterCount + 1;
-        const int horizontalContextOffset = filterContextCount * 2;
         ReadOnlySpan<Av1ReferenceFrameType> referenceFrames = modeInfo.ReferenceFrames;
         Av1ReferenceFrameType primaryReference = referenceFrames[0];
         bool isCompound = referenceFrames[1] > Av1ReferenceFrameType.Intra;
 
-        // The sixteen rows are laid out as single vertical, compound vertical, single horizontal, then compound
-        // horizontal, with four neighbor states in each group.
-        int context = (isCompound ? filterContextCount : 0) + (direction * horizontalContextOffset);
         int leftFilter = GetReferenceInterpolationFilterContext(left, primaryReference, direction);
         int aboveFilter = GetReferenceInterpolationFilterContext(above, primaryReference, direction);
+
+        return GetSwitchableInterpolationContext(aboveFilter, leftFilter, isCompound, direction);
+    }
+
+    /// <summary>
+    /// Gets the switchable interpolation-filter context from the encoder's packed single-reference neighbors.
+    /// </summary>
+    /// <param name="modeInfo">The current inter block.</param>
+    /// <param name="macroBlock">The current block's available spatial neighbors.</param>
+    /// <param name="direction">Zero for the vertical filter or one for the horizontal filter.</param>
+    /// <returns>The single-reference context for the selected direction.</returns>
+    public static int GetSwitchableInterpolationContext(
+        Av1EncoderBlockModeInfo modeInfo,
+        Av1MacroBlockD macroBlock,
+        int direction)
+    {
+        int aboveFilter = SwitchableInterpolationFilterCount;
+        int leftFilter = SwitchableInterpolationFilterCount;
+        if (macroBlock.IsUpAvailable)
+        {
+            Av1EncoderBlockModeInfo above = macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride).Block;
+            if (above.ReferenceFrame == modeInfo.ReferenceFrame)
+            {
+                aboveFilter = (int)(direction == 0 ? above.VerticalInterpolationFilter : above.HorizontalInterpolationFilter);
+            }
+        }
+
+        if (macroBlock.IsLeftAvailable)
+        {
+            Av1EncoderBlockModeInfo left = macroBlock.GetRelativeModeInfo(-1).Block;
+            if (left.ReferenceFrame == modeInfo.ReferenceFrame)
+            {
+                leftFilter = (int)(direction == 0 ? left.VerticalInterpolationFilter : left.HorizontalInterpolationFilter);
+            }
+        }
+
+        return GetSwitchableInterpolationContext(aboveFilter, leftFilter, isCompound: false, direction);
+    }
+
+    /// <summary>
+    /// Combines the two neighboring filter states into the shared encoder and decoder context layout.
+    /// </summary>
+    private static int GetSwitchableInterpolationContext(int aboveFilter, int leftFilter, bool isCompound, int direction)
+    {
+        const int filterContextCount = SwitchableInterpolationFilterCount + 1;
+        const int horizontalContextOffset = filterContextCount * 2;
+
+        // The sixteen rows are single vertical, compound vertical, single horizontal, then compound horizontal,
+        // with four neighbor states in each group. Both storage representations must use this same mapping.
+        int context = (isCompound ? filterContextCount : 0) + (direction * horizontalContextOffset);
 
         if (leftFilter == aboveFilter)
         {
             return context + leftFilter;
         }
 
-        // The fourth neighbor state is not a selectable Bilinear filter. It is the value the reference decoder uses when a neighbor
-        // does not share the current primary reference, and when two contributing neighbors selected different filters.
+        // The fourth neighbor state means no matching primary reference or disagreement between contributing
+        // neighbors. It is not the Bilinear filter, which is absent from the switchable alphabet.
         if (leftFilter == SwitchableInterpolationFilterCount)
         {
             return context + aboveFilter;

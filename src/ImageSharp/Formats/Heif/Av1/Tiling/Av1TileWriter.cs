@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
 
@@ -832,18 +833,35 @@ internal partial class Av1TileWriter
 
         bool skipWritingCoefficients = macroBlockModeInfo.Block.Skip;
 
-        // This encoder path currently writes intra frames only, so every block follows the key-frame mode syntax.
+        // Segmentation, skip, filter, and quantizer syntax precede the prediction-domain branch in both
+        // intra and inter frames. Keeping this prefix shared preserves the decoder's symbol order.
         {
             if (pcs.Parent.FrameHeader.SegmentationParameters.Enabled && pcs.Parent.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
             {
-                WriteSegmentId(pcs, writer, blockSize, blockOrigin, macroBlock, ref blk_ptr, skipWritingCoefficients);
+                WriteSegmentId(
+                    pcs,
+                    writer,
+                    blockSize,
+                    blockOrigin,
+                    macroBlock,
+                    ref blk_ptr,
+                    skipWritingCoefficients,
+                    beforeSkip: true);
             }
 
             EncodeSkipCoefficients(writer, macroBlock, skipWritingCoefficients);
 
             if (pcs.Parent.FrameHeader.SegmentationParameters.Enabled && !pcs.Parent.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
             {
-                WriteSegmentId(pcs, writer, blockSize, blockOrigin, macroBlock, ref blk_ptr, skipWritingCoefficients);
+                WriteSegmentId(
+                    pcs,
+                    writer,
+                    blockSize,
+                    blockOrigin,
+                    macroBlock,
+                    ref blk_ptr,
+                    skipWritingCoefficients,
+                    beforeSkip: false);
             }
 
             WriteCdef(
@@ -862,17 +880,122 @@ internal partial class Av1TileWriter
                 if ((blockSize != scs.SequenceHeader.SuperblockSize || !skipWritingCoefficients) && super_block_upper_left)
                 {
                     Guard.MustBeGreaterThan(current_q_index, 0, nameof(current_q_index));
-                    int reduced_delta_qindex = (current_q_index - pcs.Parent.PreviousQIndex[tile_idx]) /
+                    int reduced_delta_qindex = (current_q_index - pcs.Parent.PreviousQIndex.Span[tile_idx]) /
                         frm_hdr.DeltaQParameters.Resolution;
 
                     writer.WriteDeltaQuantizerIndex(reduced_delta_qindex);
-                    pcs.Parent.PreviousQIndex[tile_idx] = current_q_index;
+                    pcs.Parent.PreviousQIndex.Span[tile_idx] = current_q_index;
                 }
             }
 
-            Av1PredictionMode intra_luma_mode = macroBlockModeInfo.Block.Mode;
+            bool isInterBlock = macroBlockModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra;
+            bool isGlobalMotionForced = false;
+            bool isReferenceForced = false;
+            if (!frm_hdr.IsIntra)
+            {
+                ObuSegmentationParameters segmentation = frm_hdr.SegmentationParameters;
+                int segmentId = macroBlockModeInfo.Block.SegmentId;
+                isReferenceForced = segmentation.IsFeatureActive(
+                    segmentId,
+                    ObuSegmentationLevelFeature.ReferenceFrame);
+
+                isGlobalMotionForced = segmentation.IsFeatureActive(
+                    segmentId,
+                    ObuSegmentationLevelFeature.GlobalMotionVector);
+
+                if (!isReferenceForced && !isGlobalMotionForced)
+                {
+                    int intraInterContext = GetIntraInterContext(macroBlock);
+                    writer.WriteIsInter(isInterBlock, intraInterContext);
+                }
+            }
+
+            Av1PredictionMode lumaMode = macroBlockModeInfo.Block.Mode;
             Av1ChromaPredictionMode intra_chroma_mode = macroBlockModeInfo.Block.UvMode;
-            if (IsIntraBlockCopyAllowed(pcs.Parent.FrameHeader/*, pcs.Parent.SliceType*/))
+            if (isInterBlock)
+            {
+                if (!isReferenceForced && !isGlobalMotionForced)
+                {
+                    Span<byte> referenceCounts = stackalloc byte[Av1Constants.ReferenceFrameCount];
+                    CollectNeighborReferenceCounts(macroBlock, referenceCounts);
+                    writer.WriteSingleReference(
+                        macroBlockModeInfo.Block.ReferenceFrame,
+                        referenceCounts);
+                }
+
+                if (!isGlobalMotionForced)
+                {
+                    ref Av1ReferenceMotionVectors referenceMotionVectors = ref tb_ptr.Workspace.ReferenceMotionVectors;
+                    referenceMotionVectors.Build(
+                        pcs,
+                        macroBlock,
+                        modeInfoPosition,
+                        blockSize,
+                        macroBlockModeInfo.Block.PartitionType,
+                        scs.SequenceHeader,
+                        frm_hdr,
+                        macroBlockModeInfo.Block.ReferenceFrame);
+
+                    writer.WriteInterMode(lumaMode, referenceMotionVectors.ModeContext);
+                    int referenceMotionVectorIndex = blk_ptr.ReferenceMotionVectorIndex;
+                    if (lumaMode == Av1PredictionMode.NearMotionVector)
+                    {
+                        // NEARMV reserves stack entry zero for NEARESTMV, so its DRL decisions advance from
+                        // near entry zero to one and then from one to two.
+                        for (int index = 1; index < 3 && referenceMotionVectors.Count > index + 1; index++)
+                        {
+                            bool advance = referenceMotionVectorIndex >= index;
+                            int context = Av1SymbolContextHelper.GetDrlContext(referenceMotionVectors.Weights, index);
+                            writer.WriteDynamicReferenceList(advance, context);
+                            if (!advance)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                    else if (lumaMode == Av1PredictionMode.NewMotionVector)
+                    {
+                        // NEWMV begins at stack entry zero and can advance through entries one and two.
+                        for (int index = 0; index < 2 && referenceMotionVectors.Count > index + 1; index++)
+                        {
+                            bool advance = referenceMotionVectorIndex > index;
+                            int context = Av1SymbolContextHelper.GetDrlContext(referenceMotionVectors.Weights, index);
+                            writer.WriteDynamicReferenceList(advance, context);
+                            if (!advance)
+                            {
+                                break;
+                            }
+                        }
+
+                        Av1MotionVector vector = pcs.GetDisplacementVector(modeInfoPosition);
+                        writer.WriteMotionVector(
+                            vector,
+                            referenceMotionVectors.GetNewReference(referenceMotionVectorIndex),
+                            frm_hdr.MotionVectorPrecision);
+                    }
+                }
+
+                if (UsesSwitchableInterpolation(frm_hdr, macroBlockModeInfo.Block))
+                {
+                    // The vertical symbol is first and supplies both axes unless the sequence enables dual filters.
+                    int verticalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(
+                        macroBlockModeInfo.Block,
+                        macroBlock,
+                        direction: 0);
+
+                    writer.WriteSwitchableInterpolationFilter(macroBlockModeInfo.Block.VerticalInterpolationFilter, verticalContext);
+                    if (scs.SequenceHeader.EnableDualFilter)
+                    {
+                        int horizontalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(
+                            macroBlockModeInfo.Block,
+                            macroBlock,
+                            direction: 1);
+
+                        writer.WriteSwitchableInterpolationFilter(macroBlockModeInfo.Block.HorizontalInterpolationFilter, horizontalContext);
+                    }
+                }
+            }
+            else if (IsIntraBlockCopyAllowed(pcs.Parent.FrameHeader/*, pcs.Parent.SliceType*/))
             {
                 WriteIntraBlockCopyInfo(
                     pcs,
@@ -882,12 +1005,19 @@ internal partial class Av1TileWriter
                     macroBlockModeInfo);
             }
 
-            if (!macroBlockModeInfo.Block.UseIntraBlockCopy)
+            if (!isInterBlock && !macroBlockModeInfo.Block.UseIntraBlockCopy)
             {
-                EncodeIntraLumaMode(writer, macroBlockModeInfo, macroBlock, ref blk_ptr, blockSize, intra_luma_mode);
+                EncodeIntraLumaMode(
+                    writer,
+                    frm_hdr,
+                    macroBlockModeInfo,
+                    macroBlock,
+                    ref blk_ptr,
+                    blockSize,
+                    lumaMode);
             }
 
-            if (!macroBlockModeInfo.Block.UseIntraBlockCopy)
+            if (!isInterBlock && !macroBlockModeInfo.Block.UseIntraBlockCopy)
             {
                 if (blk_ptr.HasChroma)
                 {
@@ -898,12 +1028,13 @@ internal partial class Av1TileWriter
                         macroBlockModeInfo,
                         ref blk_ptr,
                         blockSize,
-                        intra_luma_mode,
+                        lumaMode,
                         intra_chroma_mode);
                 }
             }
 
-            bool paletteAllowed = !macroBlockModeInfo.Block.UseIntraBlockCopy &&
+            bool paletteAllowed = !isInterBlock &&
+                !macroBlockModeInfo.Block.UseIntraBlockCopy &&
                 IsPaletteAllowed(frm_hdr.AllowScreenContentTools, blockSize);
 
             if (paletteAllowed)
@@ -921,12 +1052,13 @@ internal partial class Av1TileWriter
                     blk_ptr.HasChroma);
             }
 
-            if (!macroBlockModeInfo.Block.UseIntraBlockCopy &&
+            if (!isInterBlock &&
+                !macroBlockModeInfo.Block.UseIntraBlockCopy &&
                 IsFilterIntraAllowed(
                     scs.SequenceHeader.EnableFilterIntra,
                     blockSize,
                     paletteInfo.PaletteSizes[0],
-                    intra_luma_mode))
+                    lumaMode))
             {
                 writer.WriteFilterIntraMode(blk_ptr.FilterIntraMode, blockSize);
             }
@@ -983,7 +1115,7 @@ internal partial class Av1TileWriter
                     writer,
                     ref blk_ptr,
                     blockOrigin,
-                    intra_luma_mode,
+                    lumaMode,
                     blockSize,
                     coefficientBuffer,
                     tb_ptr.Index,
@@ -1035,7 +1167,8 @@ internal partial class Av1TileWriter
             ref Av1MacroBlockModeInfo aboveModeInfo =
                 ref macroBlock.GetRelativeModeInfo(-macroBlock.ModeInfoStride);
 
-            if (aboveModeInfo.Block.UseIntraBlockCopy)
+            if (aboveModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra ||
+                aboveModeInfo.Block.UseIntraBlockCopy)
             {
                 above = aboveModeInfo.Block.BlockSize.GetWidth() >= maximumTransformSize.GetWidth() ? 1 : 0;
             }
@@ -1044,7 +1177,8 @@ internal partial class Av1TileWriter
         if (macroBlock.IsLeftAvailable)
         {
             ref Av1MacroBlockModeInfo leftModeInfo = ref macroBlock.GetRelativeModeInfo(-1);
-            if (leftModeInfo.Block.UseIntraBlockCopy)
+            if (leftModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra ||
+                leftModeInfo.Block.UseIntraBlockCopy)
             {
                 left = leftModeInfo.Block.BlockSize.GetHeight() >= maximumTransformSize.GetHeight() ? 1 : 0;
             }
@@ -1076,7 +1210,8 @@ internal partial class Av1TileWriter
     {
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
         bool isLossless = frameHeader.LosslessArray[macroBlockModeInfo.Block.SegmentId];
-        bool isInter = macroBlockModeInfo.Block.UseIntraBlockCopy;
+        bool isInter = macroBlockModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra ||
+            macroBlockModeInfo.Block.UseIntraBlockCopy;
         bool writesUniformTransformSize = !isLossless &&
             frameHeader.TransformMode == Av1TransformMode.Select &&
             !isInter &&
@@ -1110,7 +1245,7 @@ internal partial class Av1TileWriter
                 blockSize,
                 blockSize.GetMaximumTransformSize());
 
-            // Intra-block copy currently retains the maximum transform, so its variable-transform tree has one unsplit root.
+            // Current inter decisions retain the maximum transform, so their variable-transform tree has one unsplit root.
             writer.WriteTransformPartition(false, context);
         }
 
@@ -1247,23 +1382,34 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// Gets the key-frame luma mode rate against the current neighboring modes and tile probabilities.
+    /// Gets the luma mode rate from the frame-appropriate distribution.
     /// </summary>
     /// <param name="writer">The live tile symbol encoder.</param>
     /// <param name="macroBlock">The current block's mapped neighbor state.</param>
     /// <param name="blockSize">The selected block size.</param>
     /// <param name="mode">The candidate luma mode.</param>
     /// <param name="angleDelta">The signed directional-angle adjustment.</param>
+    /// <param name="isIntraFrame">Whether the frame uses key-frame neighbor-conditioned mode syntax.</param>
     /// <returns>The luma mode and directional-angle rate in 1/512-bit units.</returns>
     public static int GetLumaModeCost(
         Av1SymbolEncoder writer,
         Av1MacroBlockD macroBlock,
         Av1BlockSize blockSize,
         Av1PredictionMode mode,
-        int angleDelta)
+        int angleDelta,
+        bool isIntraFrame)
     {
-        GetYModeContext(macroBlock, out byte topContext, out byte leftContext);
-        int cost = writer.GetLumaModeCost(mode, topContext, leftContext);
+        int cost;
+        if (isIntraFrame)
+        {
+            GetYModeContext(macroBlock, out byte topContext, out byte leftContext);
+            cost = writer.GetLumaModeCost(mode, topContext, leftContext);
+        }
+        else
+        {
+            cost = writer.GetInterFrameLumaModeCost(mode, blockSize);
+        }
+
         if (blockSize >= Av1BlockSize.Block8x8 && mode.IsDirectional())
         {
             cost += writer.GetAngleDeltaCost(angleDelta + Av1Constants.MaxAngleDelta, mode);
@@ -1273,9 +1419,10 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
-    /// Writes the key-frame luma prediction mode and any directional angle adjustment.
+    /// Writes the frame-appropriate luma prediction mode and any directional angle adjustment.
     /// </summary>
     /// <param name="writer">The tile symbol encoder.</param>
+    /// <param name="frameHeader">The frame header that selects the luma-mode probability model.</param>
     /// <param name="macroBlockModeInfo">The selected block modes.</param>
     /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
     /// <param name="blk_ptr">The encoder prediction-unit state.</param>
@@ -1283,18 +1430,111 @@ internal partial class Av1TileWriter
     /// <param name="lumaMode">The selected luma prediction mode.</param>
     private static void EncodeIntraLumaMode(
         Av1SymbolEncoder writer,
+        ObuFrameHeader frameHeader,
         Av1MacroBlockModeInfo macroBlockModeInfo,
         Av1MacroBlockD macroBlock,
         ref Av1EncoderBlockStruct blk_ptr,
         Av1BlockSize blockSize,
         Av1PredictionMode lumaMode)
     {
-        GetYModeContext(macroBlock, out byte topContext, out byte leftContext);
-        writer.WriteLumaMode(lumaMode, topContext, leftContext);
+        if (frameHeader.IsIntra)
+        {
+            GetYModeContext(macroBlock, out byte topContext, out byte leftContext);
+            writer.WriteLumaMode(lumaMode, topContext, leftContext);
+        }
+        else
+        {
+            writer.WriteInterFrameLumaMode(lumaMode, blockSize);
+        }
 
         if (blockSize >= Av1BlockSize.Block8x8 && macroBlockModeInfo.Block.Mode.IsDirectional())
         {
             writer.WriteAngleDelta(blk_ptr.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] + Av1Constants.MaxAngleDelta, lumaMode);
+        }
+    }
+
+    /// <summary>
+    /// Gets the prediction-domain context from the immediately above and left encoder blocks.
+    /// </summary>
+    /// <param name="macroBlock">The current block's mapped neighbor state.</param>
+    /// <returns>The context in the inclusive range zero through three.</returns>
+    public static int GetIntraInterContext(Av1MacroBlockD macroBlock)
+    {
+        bool hasAbove = macroBlock.IsUpAvailable;
+        bool hasLeft = macroBlock.IsLeftAvailable;
+        if (hasAbove && hasLeft)
+        {
+            bool aboveIsIntra = macroBlock
+                .GetRelativeModeInfo(-macroBlock.ModeInfoStride)
+                .Block.ReferenceFrame <= Av1ReferenceFrameType.Intra;
+
+            bool leftIsIntra = macroBlock
+                .GetRelativeModeInfo(-1)
+                .Block.ReferenceFrame <= Av1ReferenceFrameType.Intra;
+
+            if (aboveIsIntra && leftIsIntra)
+            {
+                return 3;
+            }
+
+            return aboveIsIntra || leftIsIntra ? 1 : 0;
+        }
+
+        if (hasAbove)
+        {
+            return macroBlock
+                .GetRelativeModeInfo(-macroBlock.ModeInfoStride)
+                .Block.ReferenceFrame <= Av1ReferenceFrameType.Intra
+                    ? 2
+                    : 0;
+        }
+
+        if (hasLeft)
+        {
+            return macroBlock
+                .GetRelativeModeInfo(-1)
+                .Block.ReferenceFrame <= Av1ReferenceFrameType.Intra
+                    ? 2
+                    : 0;
+        }
+
+        return 0;
+    }
+
+    /// <summary>
+    /// Counts the single-reference labels used by the immediately above and left encoded blocks.
+    /// </summary>
+    /// <param name="macroBlock">The current block's mapped neighbor state.</param>
+    /// <param name="referenceCounts">The eight-entry destination indexed by reference-frame label.</param>
+    public static void CollectNeighborReferenceCounts(
+        Av1MacroBlockD macroBlock,
+        Span<byte> referenceCounts)
+    {
+        // The caller supplies short-lived fixed storage for one block. Clearing it here keeps unavailable
+        // neighbors from retaining votes collected for a preceding block.
+        referenceCounts.Clear();
+        if (macroBlock.IsUpAvailable)
+        {
+            Av1ReferenceFrameType referenceFrame = macroBlock
+                .GetRelativeModeInfo(-macroBlock.ModeInfoStride)
+                .Block.ReferenceFrame;
+
+            if (referenceFrame > Av1ReferenceFrameType.Intra)
+            {
+                referenceCounts[(int)referenceFrame]++;
+            }
+        }
+
+        if (macroBlock.IsLeftAvailable)
+        {
+            Av1ReferenceFrameType referenceFrame = macroBlock
+                .GetRelativeModeInfo(-1)
+                .Block.ReferenceFrame;
+
+            if (referenceFrame > Av1ReferenceFrameType.Intra)
+            {
+                referenceCounts[(int)referenceFrame]++;
+            }
         }
     }
 
@@ -1499,6 +1739,26 @@ internal partial class Av1TileWriter
     }
 
     /// <summary>
+    /// Determines whether a single-reference encoder block carries switchable interpolation symbols.
+    /// </summary>
+    /// <param name="frameHeader">The current frame header.</param>
+    /// <param name="modeInfo">The selected block syntax.</param>
+    /// <returns>Whether the block writes a vertical filter and, when enabled, a horizontal filter.</returns>
+    public static bool UsesSwitchableInterpolation(ObuFrameHeader frameHeader, Av1EncoderBlockModeInfo modeInfo)
+    {
+        if (frameHeader.InterpolationFilter != Av1InterpolationFilter.Switchable || modeInfo.SkipMode)
+        {
+            return false;
+        }
+
+        // Global identity and affine models infer the regular filter on blocks at least 8x8. Translation still
+        // carries filter symbols, including integer translations. Residual skip does not suppress these symbols.
+        return modeInfo.Mode != Av1PredictionMode.GlobalMotionVector ||
+            Math.Min(modeInfo.BlockSize.GetWidth(), modeInfo.BlockSize.GetHeight()) < Av1BlockSize.Block8x8.GetWidth() ||
+            frameHeader.GetGlobalMotionParameters()[(int)modeInfo.ReferenceFrame - 1].Type == Av1GlobalMotionType.Translation;
+    }
+
+    /// <summary>
     /// Determines whether the current frame permits intra block copy.
     /// </summary>
     /// <param name="frameHeader">The current frame header.</param>
@@ -1603,14 +1863,15 @@ internal partial class Av1TileWriter
             return;
         }
 
+        Span<int> cdefPreset = pcs.CdefPreset.Span.Slice(
+            tileIndex * Av1Constants.CdefUnitsPerSuperblock,
+            Av1Constants.CdefUnitsPerSuperblock);
+
         // Each superblock begins with all contained 64x64 filter units unassigned.
         if ((modeInfoPosition.Y & (scs.SequenceHeader.SuperblockModeInfoSize - 1)) == 0 &&
             (modeInfoPosition.X & (scs.SequenceHeader.SuperblockModeInfoSize - 1)) == 0)
         {
-            pcs.CdefPreset[tileIndex][0] = -1;
-            pcs.CdefPreset[tileIndex][1] = -1;
-            pcs.CdefPreset[tileIndex][2] = -1;
-            pcs.CdefPreset[tileIndex][3] = -1;
+            cdefPreset.Fill(-1);
         }
 
         // The strength is coded once, at the first non-skipped block in each 64x64 CDEF filter unit.
@@ -1619,7 +1880,7 @@ internal partial class Av1TileWriter
         int unitRow = (modeInfoPosition.Y & cdefSize) != 0 ? 1 : 0;
         int index = scs.SequenceHeader.Use128x128Superblock ? unitColumn + (2 * unitRow) : 0;
 
-        if (pcs.CdefPreset[tileIndex][index] == -1 && !skip)
+        if (cdefPreset[index] == -1 && !skip)
         {
             int firstBlockMask = ~(cdefSize - 1);
             Point firstBlockPosition = new(
@@ -1630,7 +1891,7 @@ internal partial class Av1TileWriter
             // CDEF strength belongs to the first mode-info block in the 64x64 filter unit even when skipped
             // blocks delay transmission until a later coding block.
             writer.WriteCdefStrength(firstBlock.CdefStrength, frameHeader.CdefParameters.BitCount);
-            pcs.CdefPreset[tileIndex][index] = firstBlock.CdefStrength;
+            cdefPreset[index] = firstBlock.CdefStrength;
         }
     }
 
@@ -2036,7 +2297,9 @@ internal partial class Av1TileWriter
         int transformBlockHeight = transformSize.Get4x4HighCount();
         int transformWidth = transformSize.GetWidth();
         int transformHeight = transformSize.GetHeight();
-        bool usesInterTransformSet = entropyCodingContext.MacroBlockModeInfo.Block.UseIntraBlockCopy;
+        bool usesInterTransformSet =
+            entropyCodingContext.MacroBlockModeInfo.Block.ReferenceFrame > Av1ReferenceFrameType.Intra ||
+            entropyCodingContext.MacroBlockModeInfo.Block.UseIntraBlockCopy;
         Av1ComponentType componentType = isLuma
             ? Av1ComponentType.Luminance
             : Av1ComponentType.Chroma;
@@ -2240,6 +2503,7 @@ internal partial class Av1TileWriter
     /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
     /// <param name="block">The encoder block state.</param>
     /// <param name="skip">A value indicating whether residual coefficients are omitted.</param>
+    /// <param name="beforeSkip">Whether the segment identifier is written before the skip flag.</param>
     private static void WriteSegmentId(
         Av1PictureControlSet pcs,
         Av1SymbolEncoder writer,
@@ -2247,7 +2511,8 @@ internal partial class Av1TileWriter
         Point blockOrigin,
         Av1MacroBlockD macroBlock,
         ref Av1EncoderBlockStruct block,
-        bool skip)
+        bool skip,
+        bool beforeSkip)
     {
         ObuSegmentationParameters segmentation_params = pcs.Parent.FrameHeader.SegmentationParameters;
         if (!segmentation_params.Enabled)
@@ -2256,9 +2521,9 @@ internal partial class Av1TileWriter
         }
 
         int spatial_pred = GetSpatialSegmentationPrediction(pcs, macroBlock, blockOrigin, out int cdf_num);
-        if (skip)
+        if (!beforeSkip && skip)
         {
-            // With segment-id-before-skip syntax, a skipped block inherits the spatial predictor without coding a residual ID.
+            // Post-skip segment syntax can infer the spatial predictor once the decoder already knows the block is skipped.
             pcs.UpdateSegmentation(blockSize, blockOrigin, spatial_pred);
             block.SegmentId = spatial_pred;
             return;

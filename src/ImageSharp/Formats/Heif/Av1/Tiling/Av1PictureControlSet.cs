@@ -86,9 +86,20 @@ internal class Av1PictureControlSet
     public bool Disallow4x4AllFrames { get; set; }
 
     /// <summary>
-    /// Gets or sets the constrained directional enhancement filter presets for each filter block.
+    /// Gets or sets the constrained directional enhancement filter presets for each tile.
+    /// Each tile occupies <see cref="Av1Constants.CdefUnitsPerSuperblock"/> consecutive entries.
     /// </summary>
-    public required int[][] CdefPreset { get; set; }
+    public required Memory<int> CdefPreset { get; set; }
+
+    /// <summary>
+    /// Gets or sets the starting byte of each tile in the shared encoded output buffer.
+    /// </summary>
+    public required Memory<int> TileDataOffsets { get; set; }
+
+    /// <summary>
+    /// Gets or sets the encoded byte length of each tile.
+    /// </summary>
+    public required Memory<int> TileDataLengths { get; set; }
 
     /// <summary>
     /// Gets the mode-information entry mapped to a frame position.

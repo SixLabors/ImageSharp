@@ -174,6 +174,84 @@ internal ref struct Av1BitStreamWriter
     }
 
     /// <summary>
+    /// Writes a finite subexponential value recentered around a signed reference value.
+    /// </summary>
+    /// <param name="value">The signed value to write.</param>
+    /// <param name="valueMagnitude">One greater than the maximum absolute value in the signed domain.</param>
+    /// <param name="groupBitCount">The bit width of the first subexponential group.</param>
+    /// <param name="reference">The signed reference value around which smaller codewords are concentrated.</param>
+    public void WriteSignedReferenceSubexponential(int value, int valueMagnitude, int groupBitCount, int reference)
+    {
+        int shiftedReference = reference + valueMagnitude - 1;
+        int shiftedValue = value + valueMagnitude - 1;
+        int scaledValueCount = (valueMagnitude << 1) - 1;
+        int recenteredValue = RecenterFiniteNonNegative(scaledValueCount, shiftedReference, shiftedValue);
+
+        this.WriteSubexponential(recenteredValue, scaledValueCount, groupBitCount);
+    }
+
+    /// <summary>
+    /// Writes one value using a finite sequence of exponentially growing code groups.
+    /// </summary>
+    private void WriteSubexponential(int value, int valueCount, int groupBitCount)
+    {
+        int groupIndex = 0;
+        int groupStart = 0;
+        while (true)
+        {
+            // The first two groups retain the initial width. Later groups grow one bit at a time until the
+            // finite tail is small enough for the exact non-symmetric alphabet.
+            int bitCount = groupIndex == 0 ? groupBitCount : groupBitCount + groupIndex - 1;
+            int groupSize = 1 << bitCount;
+            if (valueCount <= groupStart + (3 * groupSize))
+            {
+                this.WriteNonSymmetric((uint)(value - groupStart), (uint)(valueCount - groupStart));
+
+                return;
+            }
+
+            bool useLaterGroup = value >= groupStart + groupSize;
+            this.WriteBoolean(useLaterGroup);
+            if (!useLaterGroup)
+            {
+                this.WriteLiteral((uint)(value - groupStart), bitCount);
+                return;
+            }
+
+            groupIndex++;
+            groupStart += groupSize;
+        }
+    }
+
+    /// <summary>
+    /// Maps an unsigned value to increasing distance from a reference inside a finite domain.
+    /// </summary>
+    private static int RecenterFiniteNonNegative(int valueCount, int reference, int value)
+    {
+        if ((reference << 1) <= valueCount)
+        {
+            return RecenterNonNegative(reference, value);
+        }
+
+        return RecenterNonNegative(valueCount - 1 - reference, valueCount - 1 - value);
+    }
+
+    /// <summary>
+    /// Maps an unsigned value to alternating positions around a nonnegative reference.
+    /// </summary>
+    private static int RecenterNonNegative(int reference, int value)
+    {
+        if (value > (reference << 1))
+        {
+            return value;
+        }
+
+        return value >= reference
+            ? (value - reference) << 1
+            : ((reference - value) << 1) - 1;
+    }
+
+    /// <summary>
     /// Appends one bit to the partially assembled output byte.
     /// </summary>
     /// <param name="value">Zero or one.</param>

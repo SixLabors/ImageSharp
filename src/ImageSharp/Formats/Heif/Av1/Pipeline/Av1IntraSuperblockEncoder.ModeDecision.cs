@@ -1408,6 +1408,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     hasAbove,
                     mode,
                     angleDelta,
+                    this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
+                    this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y),
                     residual,
                     transformSize,
                     this.bitDepth);
@@ -1539,6 +1541,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     hasAbove,
                     bestMode,
                     selectedAngleDelta,
+                    this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
+                    this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, Av1Plane.Y),
                     residual,
                     transformSize,
                     this.bitDepth);
@@ -2131,6 +2135,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 hasAbove,
                                 mode,
                                 angleDelta,
+                                this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
+                                this.UseSmoothIntraEdges(macroBlock, blockOrigin, BlockSize, Av1Plane.Y),
                                 residual,
                                 TransformSize,
                                 this.bitDepth);

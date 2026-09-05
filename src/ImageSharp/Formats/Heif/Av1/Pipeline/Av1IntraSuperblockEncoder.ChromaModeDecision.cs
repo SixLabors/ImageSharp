@@ -266,6 +266,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     redLeft,
                     hasLeft,
                     hasAbove,
+                    this.UseSmoothIntraEdges(macroBlock, lumaOrigin, blockSize, Av1Plane.U),
                     blueContext,
                     redContext,
                     paletteDisabledCost,
@@ -882,6 +883,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 hasAbove,
                                 predictionMode,
                                 angleDelta,
+                                this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
+                                this.UseSmoothIntraEdges(macroBlock, lumaOrigin, blockSize, plane),
                                 residual,
                                 transformSize,
                                 this.bitDepth);
@@ -1029,6 +1032,57 @@ internal static partial class Av1IntraSuperblockEncoder
             return distortion;
         }
 
+        /// <summary>
+        /// Derives the directional edge-filter class from the relevant neighboring coding blocks.
+        /// </summary>
+        private bool UseSmoothIntraEdges(Av1MacroBlockD macroBlock, Point lumaOrigin, Av1BlockSize blockSize, Av1Plane plane)
+        {
+            ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
+            int subX = plane == Av1Plane.Y ? 0 : colorConfig.SubSamplingX ? 1 : 0;
+            int subY = plane == Av1Plane.Y ? 0 : colorConfig.SubSamplingY ? 1 : 0;
+            int row = lumaOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
+            int column = lumaOrigin.X >> Av1Constants.ModeInfoSizeLog2;
+            bool hasAbove = macroBlock.IsUpAvailable;
+            bool hasLeft = macroBlock.IsLeftAvailable;
+            if (subX != 0 && blockSize.Get4x4WideCount() < 2)
+            {
+                hasLeft = column - 1 > macroBlock.Tile.ModeInfoColumnStart;
+            }
+
+            if (subY != 0 && blockSize.Get4x4HighCount() < 2)
+            {
+                hasAbove = row - 1 > macroBlock.Tile.ModeInfoRowStart;
+            }
+
+            // Chroma may cover several luma units. Its neighbors are the bottom-right luma units in the
+            // adjacent chroma regions, measured from the top-left unit covered by the current chroma block.
+            int baseOffset = -((row & subY) * macroBlock.ModeInfoStride) - (column & subX);
+            if (hasAbove && IsSmoothIntraNeighbor(
+                macroBlock.GetRelativeModeInfo(baseOffset - macroBlock.ModeInfoStride + subX).Block, plane))
+            {
+                return true;
+            }
+
+            return hasLeft && IsSmoothIntraNeighbor(
+                macroBlock.GetRelativeModeInfo(baseOffset + (subY * macroBlock.ModeInfoStride) - 1).Block, plane);
+        }
+
+        /// <summary>
+        /// Determines whether a neighboring block supplies the smooth edge-filter class.
+        /// </summary>
+        private static bool IsSmoothIntraNeighbor(Av1EncoderBlockModeInfo modeInfo, Av1Plane plane)
+        {
+            if (plane == Av1Plane.Y)
+            {
+                return modeInfo.Mode is Av1PredictionMode.Smooth or Av1PredictionMode.SmoothVertical or Av1PredictionMode.SmoothHorizontal;
+            }
+
+            // An inter winner can retain the preceding intra trial's UV field. That field has no inter
+            // meaning, so only an ordinary intra neighbor can select chroma smooth-edge thresholds.
+            return !modeInfo.UseIntraBlockCopy && modeInfo.Mode < Av1PredictionMode.InterModeStart
+                && modeInfo.UvMode is Av1ChromaPredictionMode.Smooth or Av1ChromaPredictionMode.SmoothVertical or Av1ChromaPredictionMode.SmoothHorizontal;
+        }
+
         private long GetChromaCandidateCost(
             Av1SymbolEncoder writer,
             Av1MacroBlockModeInfo modeInfo,
@@ -1046,6 +1100,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ReadOnlySpan<TSample> redLeft,
             bool hasLeft,
             bool hasAbove,
+            bool smoothIntraEdges,
             Av1TransformBlockContext blueContext,
             Av1TransformBlockContext redContext,
             int paletteDisabledCost,
@@ -1078,6 +1133,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 hasAbove,
                 predictionMode,
                 angleDelta,
+                this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
+                smoothIntraEdges,
                 candidateBlueCoefficients,
                 transformSize,
                 transformType,
@@ -1099,6 +1156,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 hasAbove,
                 predictionMode,
                 angleDelta,
+                this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
+                smoothIntraEdges,
                 candidateRedCoefficients,
                 transformSize,
                 transformType,

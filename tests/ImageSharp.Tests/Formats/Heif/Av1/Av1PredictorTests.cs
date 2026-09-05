@@ -108,18 +108,109 @@ public class Av1PredictorTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilterIntraPredictors, PredictorConfigurations);
 
     /// <summary>
-    /// Verifies intra-edge upsampling with Vector128 and the scalar fallback.
+    /// Verifies intra-edge upsampling with each register-width tier and the scalar fallback.
     /// </summary>
     [Fact]
     public void EdgeUpsamplingMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateEdgeUpsampling, HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateEdgeUpsampling, PredictorConfigurations);
 
     /// <summary>
-    /// Verifies intra-edge filtering with Vector128 and the scalar fallback.
+    /// Verifies intra-edge filtering with each register-width tier and the scalar fallback.
     /// </summary>
     [Fact]
     public void EdgeFilteringMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateEdgeFiltering, HwIntrinsics.AllowAll | HwIntrinsics.DisableHWIntrinsic);
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateEdgeFiltering, PredictorConfigurations);
+
+    /// <summary>
+    /// Verifies the different edge preparation selected by a smooth neighbor on a 4x8 directional block.
+    /// </summary>
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void EdgePreparationUsesSmoothNeighborThresholds(bool transpose, bool smoothNeighbor)
+    {
+        const int Count = 12;
+        byte[] edge = CreateUpsampleByteEdge(Count);
+        byte[] expected = (byte[])edge.Clone();
+        byte[] unusedEdge = CreateUpsampleByteEdge(Count);
+        byte[] expectedUnused = (byte[])unusedEdge.Clone();
+        byte[] scratch = new byte[Av1IntraEdgeFilter.ScratchLength];
+
+        // At 23 degrees from the cardinal direction and width + height = 12, an ordinary neighbor
+        // selects unfiltered half samples. A smooth neighbor selects strength one without upsampling.
+        // The expected samples use the independent scalar kernels, never the production selector.
+        if (smoothNeighbor)
+        {
+            byte[] source = edge.AsSpan(1, Count + 1).ToArray();
+            byte[] filtered = (byte[])source.Clone();
+            FilterEdgeScalar(source, filtered, 1);
+            filtered.CopyTo(expected, 1);
+        }
+        else
+        {
+            UpsampleEdgeScalar(expected, Count, 8);
+        }
+
+        Av1IntraEdgePreparation.Prepare<byte>(
+            (transpose ? unusedEdge : edge).AsSpan(2),
+            (transpose ? edge : unusedEdge).AsSpan(2),
+            transpose ? 8 : 4,
+            transpose ? 4 : 8,
+            transpose ? 203 : 67,
+            transpose ? 8 : 4,
+            transpose ? 4 : 8,
+            smoothNeighbor,
+            8,
+            scratch,
+            out bool upsampleAbove,
+            out bool upsampleLeft);
+
+        Assert.Equal(!transpose && !smoothNeighbor, upsampleAbove);
+        Assert.Equal(transpose && !smoothNeighbor, upsampleLeft);
+        Assert.Equal(expected, edge);
+        Assert.Equal(expectedUnused, unusedEdge);
+    }
+
+    /// <summary>
+    /// Verifies that an unavailable sole directional edge retains its constant prediction and distinct corner.
+    /// </summary>
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public void EdgePreparationPreservesUnavailableSoleEdge(bool transpose, bool perpendicularAvailable)
+    {
+        byte[] edge = CreateUpsampleByteEdge(12);
+        byte[] perpendicular = CreateUpsampleByteEdge(12);
+        edge.AsSpan(2, 12).Fill(perpendicularAvailable ? perpendicular[2] : transpose ? (byte)129 : (byte)127);
+        byte[] expected = (byte[])edge.Clone();
+        byte[] expectedPerpendicular = (byte[])perpendicular.Clone();
+        byte[] scratch = new byte[Av1IntraEdgeFilter.ScratchLength];
+
+        // These angles normally enable half-sample interpolation. Native prediction exits before that
+        // stage when its sole edge is unavailable; the corner must not introduce a nonconstant sample.
+        Av1IntraEdgePreparation.Prepare<byte>(
+            (transpose ? perpendicular : edge).AsSpan(2),
+            (transpose ? edge : perpendicular).AsSpan(2),
+            transpose ? 8 : 4,
+            transpose ? 4 : 8,
+            transpose ? 203 : 67,
+            transpose && perpendicularAvailable ? 8 : 0,
+            !transpose && perpendicularAvailable ? 8 : 0,
+            false,
+            8,
+            scratch,
+            out bool upsampleAbove,
+            out bool upsampleLeft);
+
+        Assert.False(upsampleAbove);
+        Assert.False(upsampleLeft);
+        Assert.Equal(expected, edge);
+        Assert.Equal(expectedPerpendicular, perpendicular);
+    }
 
     /// <summary>
     /// Verifies the traversal-order bits that distinguish current libaom's mixed-vertical square tables.
@@ -608,15 +699,15 @@ public class Av1PredictorTests
     /// </summary>
     private static void ValidateEdgeUpsampling()
     {
-        ReadOnlySpan<int> counts = [4, 8, 12, 16];
+        ReadOnlySpan<int> counts = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16];
         foreach (int count in counts)
         {
             byte[] actual = CreateUpsampleByteEdge(count);
             byte[] expected = (byte[])actual.Clone();
-            byte[] scratch = new byte[160];
+            byte[] scratch = new byte[Av1IntraEdgeUpsampler.ScratchLength];
 
             UpsampleEdgeScalar(expected, count, 8);
-            Av1PredictionDecoder.UpsampleIntraEdge(actual.AsSpan(2), count, scratch);
+            Av1IntraEdgeUpsampler.Apply(actual.AsSpan(2), count, scratch);
 
             Assert.Equal(expected, actual);
 
@@ -626,10 +717,10 @@ public class Av1PredictorTests
             {
                 short[] actualHigh = CreateUpsampleHighBitDepthEdge(count, bitDepth);
                 short[] expectedHigh = (short[])actualHigh.Clone();
-                short[] scratchHigh = new short[160];
+                short[] scratchHigh = new short[Av1IntraEdgeUpsampler.ScratchLength];
 
                 UpsampleEdgeScalar(expectedHigh, count, bitDepth);
-                Av1PredictionDecoder.UpsampleIntraEdge(actualHigh.AsSpan(2), count, bitDepth, scratchHigh);
+                Av1IntraEdgeUpsampler.Apply(actualHigh.AsSpan(2), count, bitDepth, scratchHigh);
 
                 Assert.Equal(expectedHigh, actualHigh);
             }
@@ -641,7 +732,7 @@ public class Av1PredictorTests
     /// </summary>
     private static void ValidateEdgeFiltering()
     {
-        ReadOnlySpan<int> counts = [4, 8, 9, 16, 31, 64, 129];
+        ReadOnlySpan<int> counts = [4, 8, 9, 16, 17, 31, 32, 33, 64, 65, 129];
         foreach (int count in counts)
         {
             for (int strength = 1; strength <= 3; strength++)
@@ -649,20 +740,20 @@ public class Av1PredictorTests
                 byte[] actual = CreateByteSamples(count, 31);
                 byte[] expected = (byte[])actual.Clone();
                 byte[] source = (byte[])actual.Clone();
-                byte[] scratch = new byte[160];
+                byte[] scratch = new byte[Av1IntraEdgeFilter.ScratchLength];
 
                 FilterEdgeScalar(source, expected, strength);
-                Av1PredictionDecoder.FilterIntraEdge(ref actual[0], count, strength, scratch);
+                Av1IntraEdgeFilter.Apply(ref actual[0], count, strength, scratch);
 
                 Assert.Equal(expected, actual);
 
                 short[] actualHigh = CreateHighBitDepthSamples(count, 31);
                 short[] expectedHigh = (short[])actualHigh.Clone();
                 short[] sourceHigh = (short[])actualHigh.Clone();
-                short[] scratchHigh = new short[160];
+                short[] scratchHigh = new short[Av1IntraEdgeFilter.ScratchLength];
 
                 FilterEdgeScalar(sourceHigh, expectedHigh, strength);
-                Av1PredictionDecoder.FilterIntraEdge(ref actualHigh[0], count, strength, scratchHigh);
+                Av1IntraEdgeFilter.Apply(ref actualHigh[0], count, strength, scratchHigh);
 
                 Assert.Equal(expectedHigh, actualHigh);
             }

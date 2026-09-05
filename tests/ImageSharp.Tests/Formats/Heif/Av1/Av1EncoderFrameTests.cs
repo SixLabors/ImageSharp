@@ -409,6 +409,7 @@ public class Av1EncoderFrameTests
             sample.Position = 0;
             sample.CopyTo(output);
             decoder.DecodeSequenceReference(sample.ToArray(), null, null);
+            Assert.True(Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader).EnableIntraEdgeFilter);
             Av1FrameBuffer<byte> decoded = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
             Assert.Equal(Width, decoded.Width);
             Assert.Equal(Height, decoded.Height);

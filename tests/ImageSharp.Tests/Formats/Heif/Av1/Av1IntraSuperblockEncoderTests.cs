@@ -2918,11 +2918,15 @@ public class Av1IntraSuperblockEncoderTests
     /// Verifies that mixed partition trials and final writing retain the decoder's reconstruction order.
     /// </summary>
     [Theory]
-    [InlineData(false, 32)]
-    [InlineData(true, 32)]
-    [InlineData(false, 56)]
-    [InlineData(true, 56)]
-    public void ProductionMixedPartitionsPreserveReconstructionOrder(bool transpose, int size)
+    [InlineData(false, 32, false)]
+    [InlineData(true, 32, false)]
+    [InlineData(false, 56, false)]
+    [InlineData(true, 56, false)]
+    [InlineData(false, 32, true)]
+    [InlineData(true, 32, true)]
+    [InlineData(false, 56, true)]
+    [InlineData(true, 56, true)]
+    public void ProductionMixedPartitionsPreserveReconstructionOrder(bool transpose, int size, bool enableIntraEdgeFilter)
     {
         const int QIndex = 4;
         ObuColorConfig colorConfig = new()
@@ -2956,6 +2960,7 @@ public class Av1IntraSuperblockEncoderTests
         ClearPlane(reconstruction.Luma);
         using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, size, size, disallow4x4AllFrames: false);
         Av1PictureControlSet template = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, QIndex);
+        template.Sequence.SequenceHeader.EnableIntraEdgeFilter = enableIntraEdgeFilter;
         using Av1EncoderPictureBuffer picture = new(
             Configuration.Default, template.Sequence.SequenceHeader, template.Parent.FrameHeader, size, size, disallow4x4AllFrames: false);
 
@@ -2969,6 +2974,7 @@ public class Av1IntraSuperblockEncoderTests
         byte[] payload = WriteCompleteTileObu(picture.Picture, tileWriter, size, size);
         using Av1Decoder decoder = new(Configuration.Default);
         decoder.DecodeSequenceReference(payload, null, null);
+        Assert.Equal(enableIntraEdgeFilter, Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader).EnableIntraEdgeFilter);
         Av1FrameInfo decodedInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
         Av1FrameBuffer<byte> decodedFrame = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
         Buffer2DRegion<byte> decodedPlane = decodedFrame.DeriveBlockPointer(Av1Plane.Y, 0, 0);
@@ -2996,8 +3002,8 @@ public class Av1IntraSuperblockEncoderTests
             TestEnvironment.ActualOutputDirectoryFullPath, "Heif", "Av1", nameof(this.ProductionMixedPartitionsPreserveReconstructionOrder));
 
         Directory.CreateDirectory(directory);
-        File.WriteAllBytes(Path.Combine(directory, $"{size}-{transpose}.obu"), payload);
-        using FileStream raw = File.Create(Path.Combine(directory, $"{size}-{transpose}.retained.yuv"));
+        File.WriteAllBytes(Path.Combine(directory, $"{size}-{transpose}-{enableIntraEdgeFilter}.obu"), payload);
+        using FileStream raw = File.Create(Path.Combine(directory, $"{size}-{transpose}-{enableIntraEdgeFilter}.retained.yuv"));
         for (int y = 0; y < size; y++)
         {
             raw.Write(retainedPlane.DangerousGetRowSpan(y));

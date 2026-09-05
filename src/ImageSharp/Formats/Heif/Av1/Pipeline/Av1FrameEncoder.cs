@@ -399,7 +399,7 @@ internal static class Av1FrameEncoder
             ForceIntegerMotionVector = Av1Constants.SelectIntegerMotionVector,
             EnableFilterIntra = effort >= 4,
             EnableDualFilter = !isStillPicture && effort >= MinimumDualInterpolationEffort,
-            EnableIntraEdgeFilter = false,
+            EnableIntraEdgeFilter = true,
             EnableSuperResolution = false,
             EnableCdef = false,
             EnableRestoration = false,

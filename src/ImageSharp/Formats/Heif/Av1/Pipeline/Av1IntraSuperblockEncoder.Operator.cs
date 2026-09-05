@@ -166,6 +166,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="hasAbove">Whether the top reference is available.</param>
         /// <param name="mode">The intra prediction mode.</param>
         /// <param name="angleDelta">The signed directional-angle adjustment.</param>
+        /// <param name="enableIntraEdgeFilter">Whether sequence syntax enables directional edge filtering.</param>
+        /// <param name="smoothIntraEdges">Whether a relevant neighboring block uses smooth prediction.</param>
         /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
         /// <param name="transformSize">The transform dimensions.</param>
         /// <param name="transformType">The compound transform applied to the residual.</param>
@@ -187,6 +189,8 @@ internal static partial class Av1IntraSuperblockEncoder
             bool hasAbove,
             Av1PredictionMode mode,
             int angleDelta,
+            bool enableIntraEdgeFilter,
+            bool smoothIntraEdges,
             Span<int> quantizedCoefficients,
             Av1TransformSize transformSize,
             Av1TransformType transformType,
@@ -210,6 +214,8 @@ internal static partial class Av1IntraSuperblockEncoder
         /// <param name="hasAbove">Whether the top reference is available.</param>
         /// <param name="mode">The intra prediction mode.</param>
         /// <param name="angleDelta">The signed directional-angle adjustment.</param>
+        /// <param name="enableIntraEdgeFilter">Whether sequence syntax enables directional edge filtering.</param>
+        /// <param name="smoothIntraEdges">Whether a relevant neighboring block uses smooth prediction.</param>
         /// <param name="residual">The contiguous source-minus-prediction destination.</param>
         /// <param name="transformSize">The prediction dimensions.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
@@ -224,6 +230,8 @@ internal static partial class Av1IntraSuperblockEncoder
             bool hasAbove,
             Av1PredictionMode mode,
             int angleDelta,
+            bool enableIntraEdgeFilter,
+            bool smoothIntraEdges,
             Span<short> residual,
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth);
@@ -685,6 +693,8 @@ internal static partial class Av1IntraSuperblockEncoder
             bool hasAbove,
             Av1PredictionMode mode,
             int angleDelta,
+            bool enableIntraEdgeFilter,
+            bool smoothIntraEdges,
             Span<int> quantizedCoefficients,
             Av1TransformSize transformSize,
             Av1TransformType transformType,
@@ -705,6 +715,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 hasAbove,
                 mode,
                 angleDelta,
+                enableIntraEdgeFilter,
+                smoothIntraEdges,
                 quantizedCoefficients,
                 transformSize,
                 transformType,
@@ -726,6 +738,8 @@ internal static partial class Av1IntraSuperblockEncoder
             bool hasAbove,
             Av1PredictionMode mode,
             int angleDelta,
+            bool enableIntraEdgeFilter,
+            bool smoothIntraEdges,
             Span<short> residual,
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth)
@@ -741,6 +755,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 hasAbove,
                 mode,
                 angleDelta,
+                enableIntraEdgeFilter,
+                smoothIntraEdges,
                 residual,
                 transformSize);
 
@@ -1197,6 +1213,8 @@ internal static partial class Av1IntraSuperblockEncoder
             bool hasAbove,
             Av1PredictionMode mode,
             int angleDelta,
+            bool enableIntraEdgeFilter,
+            bool smoothIntraEdges,
             Span<int> quantizedCoefficients,
             Av1TransformSize transformSize,
             Av1TransformType transformType,
@@ -1217,6 +1235,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 hasAbove,
                 mode,
                 angleDelta,
+                enableIntraEdgeFilter,
+                smoothIntraEdges,
                 quantizedCoefficients,
                 transformSize,
                 transformType,
@@ -1239,6 +1259,8 @@ internal static partial class Av1IntraSuperblockEncoder
             bool hasAbove,
             Av1PredictionMode mode,
             int angleDelta,
+            bool enableIntraEdgeFilter,
+            bool smoothIntraEdges,
             Span<short> residual,
             Av1TransformSize transformSize,
             Av1BitDepth bitDepth)
@@ -1254,6 +1276,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 hasAbove,
                 mode,
                 angleDelta,
+                enableIntraEdgeFilter,
+                smoothIntraEdges,
                 residual,
                 transformSize,
                 bitDepth);

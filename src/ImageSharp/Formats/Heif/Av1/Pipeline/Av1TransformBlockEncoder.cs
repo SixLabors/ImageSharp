@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -68,6 +69,8 @@ internal static class Av1TransformBlockEncoder
             hasAbove,
             Av1PredictionMode.DC,
             0,
+            false,
+            false,
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -91,6 +94,8 @@ internal static class Av1TransformBlockEncoder
     /// <param name="hasAbove">Whether the top reference is available.</param>
     /// <param name="mode">The intra prediction mode.</param>
     /// <param name="angleDelta">The signed directional-angle adjustment.</param>
+    /// <param name="enableIntraEdgeFilter">Whether sequence syntax enables directional edge filtering.</param>
+    /// <param name="smoothIntraEdges">Whether a relevant neighboring block uses smooth prediction.</param>
     /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
@@ -111,6 +116,8 @@ internal static class Av1TransformBlockEncoder
         bool hasAbove,
         Av1PredictionMode mode,
         int angleDelta,
+        bool enableIntraEdgeFilter,
+        bool smoothIntraEdges,
         Span<int> quantizedCoefficients,
         Av1TransformSize transformSize,
         Av1TransformType transformType,
@@ -136,6 +143,8 @@ internal static class Av1TransformBlockEncoder
             hasAbove,
             mode,
             angleDelta,
+            enableIntraEdgeFilter,
+            smoothIntraEdges,
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -383,6 +392,8 @@ internal static class Av1TransformBlockEncoder
             hasAbove,
             Av1PredictionMode.DC,
             0,
+            false,
+            false,
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -407,6 +418,8 @@ internal static class Av1TransformBlockEncoder
     /// <param name="hasAbove">Whether the top reference is available.</param>
     /// <param name="mode">The intra prediction mode.</param>
     /// <param name="angleDelta">The signed directional-angle adjustment.</param>
+    /// <param name="enableIntraEdgeFilter">Whether sequence syntax enables directional edge filtering.</param>
+    /// <param name="smoothIntraEdges">Whether a relevant neighboring block uses smooth prediction.</param>
     /// <param name="quantizedCoefficients">The candidate entropy-coding coefficients.</param>
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
@@ -428,6 +441,8 @@ internal static class Av1TransformBlockEncoder
         bool hasAbove,
         Av1PredictionMode mode,
         int angleDelta,
+        bool enableIntraEdgeFilter,
+        bool smoothIntraEdges,
         Span<int> quantizedCoefficients,
         Av1TransformSize transformSize,
         Av1TransformType transformType,
@@ -454,6 +469,8 @@ internal static class Av1TransformBlockEncoder
             hasAbove,
             mode,
             angleDelta,
+            enableIntraEdgeFilter,
+            smoothIntraEdges,
             quantizedCoefficients,
             transformSize,
             transformType,
@@ -690,6 +707,8 @@ internal static class Av1TransformBlockEncoder
     /// <param name="hasAbove">Whether the top reference is available.</param>
     /// <param name="mode">The intra prediction mode.</param>
     /// <param name="angleDelta">The signed directional-angle adjustment.</param>
+    /// <param name="enableIntraEdgeFilter">Whether sequence syntax enables directional edge filtering.</param>
+    /// <param name="smoothIntraEdges">Whether a relevant neighboring block uses smooth prediction.</param>
     /// <param name="residual">The compact source-minus-prediction destination.</param>
     /// <param name="transformSize">The prediction dimensions.</param>
     public static void PrepareIntraPrediction(
@@ -704,6 +723,8 @@ internal static class Av1TransformBlockEncoder
         bool hasAbove,
         Av1PredictionMode mode,
         int angleDelta,
+        bool enableIntraEdgeFilter,
+        bool smoothIntraEdges,
         Span<short> residual,
         Av1TransformSize transformSize)
     {
@@ -718,9 +739,53 @@ internal static class Av1TransformBlockEncoder
         }
         else if (mode.IsDirectional())
         {
-            // The current encoder disables intra-edge filtering in sequence syntax. Zone-three transposition
-            // borrows transform scratch because prediction completes before forward transformation starts.
-            Span<byte> directionalScratch = MemoryMarshal.AsBytes(workspace.TransformWorkspace)[..(width * height)];
+            int angle = mode.ToAngle() + (angleDelta * Av1Constants.AngleStep);
+            Span<byte> scratch = MemoryMarshal.AsBytes(workspace.TransformWorkspace);
+            int predictionLength = width * height;
+            Span<byte> directionalScratch = scratch[..predictionLength];
+            bool upsampleAbove = false;
+            bool upsampleLeft = false;
+            if (enableIntraEdgeFilter)
+            {
+                // Mode trials share raw references. Prepare private edge copies after the directional scratch;
+                // this entire transform workspace is reusable once prediction and residual formation finish.
+                int edgeLength = Av1IntraEdgePreparation.ReferenceBufferLength;
+                int prefixLength = Av1IntraEdgePreparation.ReferencePrefixLength;
+                Span<byte> aboveStorage = scratch.Slice(predictionLength, edgeLength);
+                Span<byte> leftStorage = scratch.Slice(predictionLength + edgeLength, edgeLength);
+                aboveStorage.Fill(127);
+                leftStorage.Fill(129);
+                if (angle < 180)
+                {
+                    above.CopyTo(aboveStorage[prefixLength..]);
+                    aboveStorage[prefixLength - 1] = Unsafe.Subtract(ref MemoryMarshal.GetReference(above), 1);
+                }
+
+                if (angle > 90)
+                {
+                    left.CopyTo(leftStorage[prefixLength..]);
+                    leftStorage[prefixLength - 1] = Unsafe.Subtract(ref MemoryMarshal.GetReference(left), 1);
+                }
+
+                Span<byte> filteredAbove = aboveStorage[prefixLength..];
+                Span<byte> filteredLeft = leftStorage[prefixLength..];
+                Av1IntraEdgePreparation.Prepare(
+                    filteredAbove,
+                    filteredLeft,
+                    width,
+                    height,
+                    angle,
+                    hasAbove ? width : 0,
+                    hasLeft ? height : 0,
+                    smoothIntraEdges,
+                    8,
+                    scratch.Slice(predictionLength + (2 * edgeLength), Av1IntraEdgeFilter.ScratchLength),
+                    out upsampleAbove,
+                    out upsampleLeft);
+
+                above = filteredAbove;
+                left = filteredLeft;
+            }
 
             Av1DirectionalIntraPredictor.Predict(
                 prediction,
@@ -728,9 +793,9 @@ internal static class Av1TransformBlockEncoder
                 transformSize,
                 above,
                 left,
-                false,
-                false,
-                mode.ToAngle() + (angleDelta * Av1Constants.AngleStep),
+                upsampleAbove,
+                upsampleLeft,
+                angle,
                 directionalScratch);
         }
         else
@@ -764,6 +829,8 @@ internal static class Av1TransformBlockEncoder
     /// <param name="hasAbove">Whether the top reference is available.</param>
     /// <param name="mode">The intra prediction mode.</param>
     /// <param name="angleDelta">The signed directional-angle adjustment.</param>
+    /// <param name="enableIntraEdgeFilter">Whether sequence syntax enables directional edge filtering.</param>
+    /// <param name="smoothIntraEdges">Whether a relevant neighboring block uses smooth prediction.</param>
     /// <param name="residual">The compact source-minus-prediction destination.</param>
     /// <param name="transformSize">The prediction dimensions.</param>
     /// <param name="bitDepth">The coded sample bit depth.</param>
@@ -779,6 +846,8 @@ internal static class Av1TransformBlockEncoder
         bool hasAbove,
         Av1PredictionMode mode,
         int angleDelta,
+        bool enableIntraEdgeFilter,
+        bool smoothIntraEdges,
         Span<short> residual,
         Av1TransformSize transformSize,
         Av1BitDepth bitDepth)
@@ -806,7 +875,54 @@ internal static class Av1TransformBlockEncoder
         }
         else if (mode.IsDirectional())
         {
-            Span<short> directionalScratch = MemoryMarshal.Cast<int, short>(workspace.TransformWorkspace)[..(width * height)];
+            int angle = mode.ToAngle() + (angleDelta * Av1Constants.AngleStep);
+            Span<short> scratch = MemoryMarshal.Cast<int, short>(workspace.TransformWorkspace);
+            int predictionLength = width * height;
+            Span<short> directionalScratch = scratch[..predictionLength];
+            bool upsampleAbove = false;
+            bool upsampleLeft = false;
+            if (enableIntraEdgeFilter)
+            {
+                // Mode trials share raw references. Prepare private edge copies after the directional scratch;
+                // this entire transform workspace is reusable once prediction and residual formation finish.
+                int edgeLength = Av1IntraEdgePreparation.ReferenceBufferLength;
+                int prefixLength = Av1IntraEdgePreparation.ReferencePrefixLength;
+                Span<short> aboveStorage = scratch.Slice(predictionLength, edgeLength);
+                Span<short> leftStorage = scratch.Slice(predictionLength + edgeLength, edgeLength);
+                int midpoint = 128 << (bitDepth.GetBitCount() - 8);
+                aboveStorage.Fill((short)(midpoint - 1));
+                leftStorage.Fill((short)(midpoint + 1));
+                if (angle < 180)
+                {
+                    signedAbove.CopyTo(aboveStorage[prefixLength..]);
+                    aboveStorage[prefixLength - 1] = Unsafe.Subtract(ref MemoryMarshal.GetReference(signedAbove), 1);
+                }
+
+                if (angle > 90)
+                {
+                    signedLeft.CopyTo(leftStorage[prefixLength..]);
+                    leftStorage[prefixLength - 1] = Unsafe.Subtract(ref MemoryMarshal.GetReference(signedLeft), 1);
+                }
+
+                Span<short> filteredAbove = aboveStorage[prefixLength..];
+                Span<short> filteredLeft = leftStorage[prefixLength..];
+                Av1IntraEdgePreparation.Prepare(
+                    filteredAbove,
+                    filteredLeft,
+                    width,
+                    height,
+                    angle,
+                    hasAbove ? width : 0,
+                    hasLeft ? height : 0,
+                    smoothIntraEdges,
+                    bitDepth.GetBitCount(),
+                    scratch.Slice(predictionLength + (2 * edgeLength), Av1IntraEdgeFilter.ScratchLength),
+                    out upsampleAbove,
+                    out upsampleLeft);
+
+                signedAbove = filteredAbove;
+                signedLeft = filteredLeft;
+            }
 
             Av1DirectionalIntraPredictor.Predict(
                 signedPrediction,
@@ -814,9 +930,9 @@ internal static class Av1TransformBlockEncoder
                 transformSize,
                 signedAbove,
                 signedLeft,
-                false,
-                false,
-                mode.ToAngle() + (angleDelta * Av1Constants.AngleStep),
+                upsampleAbove,
+                upsampleLeft,
+                angle,
                 directionalScratch);
         }
         else
@@ -850,6 +966,8 @@ internal static class Av1TransformBlockEncoder
     /// <param name="hasAbove">Whether the top reference is available.</param>
     /// <param name="mode">The intra prediction mode.</param>
     /// <param name="angleDelta">The signed directional-angle adjustment.</param>
+    /// <param name="enableIntraEdgeFilter">Whether sequence syntax enables directional edge filtering.</param>
+    /// <param name="smoothIntraEdges">Whether a relevant neighboring block uses smooth prediction.</param>
     /// <param name="quantizedCoefficients">The retained entropy-coding coefficients.</param>
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
@@ -870,6 +988,8 @@ internal static class Av1TransformBlockEncoder
         bool hasAbove,
         Av1PredictionMode mode,
         int angleDelta,
+        bool enableIntraEdgeFilter,
+        bool smoothIntraEdges,
         Span<int> quantizedCoefficients,
         Av1TransformSize transformSize,
         Av1TransformType transformType,
@@ -891,6 +1011,8 @@ internal static class Av1TransformBlockEncoder
             hasAbove,
             mode,
             angleDelta,
+            enableIntraEdgeFilter,
+            smoothIntraEdges,
             workspace.Residual,
             transformSize);
 
@@ -935,6 +1057,8 @@ internal static class Av1TransformBlockEncoder
     /// <param name="hasAbove">Whether the top reference is available.</param>
     /// <param name="mode">The intra prediction mode.</param>
     /// <param name="angleDelta">The signed directional-angle adjustment.</param>
+    /// <param name="enableIntraEdgeFilter">Whether sequence syntax enables directional edge filtering.</param>
+    /// <param name="smoothIntraEdges">Whether a relevant neighboring block uses smooth prediction.</param>
     /// <param name="quantizedCoefficients">The retained entropy-coding coefficients.</param>
     /// <param name="transformSize">The selected transform dimensions.</param>
     /// <param name="transformType">The selected compound transform type.</param>
@@ -956,6 +1080,8 @@ internal static class Av1TransformBlockEncoder
         bool hasAbove,
         Av1PredictionMode mode,
         int angleDelta,
+        bool enableIntraEdgeFilter,
+        bool smoothIntraEdges,
         Span<int> quantizedCoefficients,
         Av1TransformSize transformSize,
         Av1TransformType transformType,
@@ -978,6 +1104,8 @@ internal static class Av1TransformBlockEncoder
             hasAbove,
             mode,
             angleDelta,
+            enableIntraEdgeFilter,
+            smoothIntraEdges,
             workspace.Residual,
             transformSize,
             bitDepth);

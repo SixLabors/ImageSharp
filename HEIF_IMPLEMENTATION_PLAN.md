@@ -255,21 +255,46 @@ Intra-reference frame-extent correction after checkpoint `182f39ae5`, verified o
   **29,668** samples, with **0** samples exceeding one. These are same-bitstream decoder/reconstruction comparisons;
   they do not establish separate-encoder parity or performance. No benchmark was run.
 
-The intra-edge investigation also confirmed these unresolved integration requirements:
+Intra-edge integration after checkpoint `2424ff9f9`, verified on 2026-09-05:
 
-- `Av1PredictionDecoder.cs:989-1837` owns separate directional preparation, edge smoothing, upsampling,
-  strength selection, and neighboring-mode selection. Native `reconintra.c:989-1082,1349-1381` uses endpoint
-  extension, rounded nonnegative smoothing kernels, and clipped signed four-tap half-sample interpolation.
-  No new numerical discrepancy in those arithmetic kernels has been established by this comparison.
-- Encoder `Av1EncoderModeDecisionWorkspace.cs:50-53,133-135` retains four raw edge spans with one prefix sample.
-  The decoder needs writable prefix positions -1 and -2 and candidate-specific filtering; mutating those raw
-  encoder spans across mode trials would contaminate later candidates. `Av1EncoderBlockWorkspace.cs:143-144`
-  exposes transform scratch whose lifetime must be reconciled with directional prediction before sharing it.
-- `Av1IntraSuperblockEncoder.ModeDecision.cs:2272-2466` draws tiled edges from both committed reconstruction
-  and the current candidate mosaic. Enabling filtering must preserve that distinction, coded extents,
-  chroma neighbor ownership, corner preparation, and smooth-neighbor-dependent thresholds across all callers.
-  The sequence flag remains disabled pending that complete integration. The decoder's private kernels are
-  not a substitute for the required shared closed-generic traversal and semantic-operator architecture.
+- Reference `av1/av1_cx_iface.c:333,1561-1562` enables intra-edge filtering by default and propagates it to
+  sequence configuration (`av1/encoder/encoder.c:641-647`). `Av1FrameEncoder.cs:402` now enables that syntax.
+  CDEF and restoration remain disabled and unresolved. The starting-tree findings above remain historical evidence.
+- Encoder `Av1TransformBlockEncoder.cs:739-800,875-937` now prepares directional edges before prediction.
+  Luma mode trials, selected-mode transform refinement, split luma transforms, tiled planes, and chroma candidates
+  propagate both the sequence flag and the neighboring smooth-mode class. Raw references remain separate from
+  candidate copies; filtering does not mutate references used by subsequent mode or transform trials.
+- Neighbor selection at `Av1IntraSuperblockEncoder.ChromaModeDecision.cs:1035-1081` follows native
+  `av1/common/av1_common_int.h:1359-1415` for the luma units that own subsampled chroma neighbors and
+  `reconintra.c:958-986` for smooth-mode classification. Inter winners can retain a previous intra trial's UV field
+  (`Av1IntraSuperblockEncoder.ReferenceModeDecision.cs:925-933`), so that field is only meaningful for an intra neighbor.
+- `Av1IntraEdgePreparation.cs:39-116` shares the complete corner/filter/upsampling order between encoder and decoder.
+  Native `reconintra.c:1132-1147,1204-1243,1512-1548` defines the missing-sole-edge early return and directional
+  preparation. Strength thresholds follow `reconintra.c:989-1026`; half-sample selection follows `reconintra.h:148-155`.
+  The shared code preserves a missing sole edge's constant value rather than interpolating its distinct corner.
+- `Av1IntraEdgeFilter` and `Av1IntraEdgeUpsampler` have separate closed generic traversals and semantic readonly
+  operators, with descending 512/256/128-bit widths and scalar tails. Smoothing uses rounded nonnegative kernels;
+  upsampling uses signed [-1,9,9,-1] arithmetic, rounding, clipping, and linear interleaving. Native definitions are
+  `reconintra.c:1028-1082,1349-1381`. Inline comments explain endpoint padding, lane ordering, bounds, and scaling.
+- Each candidate borrows existing transform scratch (`Av1EncoderBlockWorkspace.cs:143-144`) until prediction and
+  residual formation finish. Two 160-sample edges retain native prefix sizing; only required edges are copied.
+  Smoothing uses 132 samples including three endpoint padding positions. Upsampling needs exactly the native
+  19 samples, including corner and endpoint extension; vector reads no longer require a larger padded window.
+  Decoder scratch is 4,548 short samples (about 8.88 KiB), replacing its previous 4,576-sample workspace.
+  No new owner or per-candidate allocation was added. This source-level sizing result is not a timing claim.
+- Existing independent scalar kernel tests now cover all SIMD tiers, lengths around lane boundaries, extrema,
+  and exact scratch capacities. Eight added preparation cases distinguish smooth-neighbor thresholds and missing
+  sole edges in both orientations. Production tests assert the emitted sequence flag; mixed-partition tests retain
+  the four unfiltered cases and add four filtered cases without weakening partition or reconstruction assertions.
+- Final Release net11.0 build: zero errors and 1,009 existing warnings. Roslynk: zero compiler errors.
+  Serialized Visual Studio VSTest passed **314/314** in `intra-edge-final.trx` (30.7293 seconds), including encoder
+  frames, intra-superblocks, transform-block contracts, predictor SIMD tiers, native decoder fixtures and fallbacks,
+  HEIF encoder contracts, and the retained empty-transform cost-helper test.
+- Fresh optimized-reference decoding of eight regenerated partition streams matches all 16,640 retained luma samples.
+  Twelve regenerated moving color streams match all 21,348 Y/U/V samples. Combined maximum error is **0** across
+  **37,988** samples, with **0** exceeding one. These remain bounded same-bitstream reconstruction comparisons;
+  separate-encoder sample parity, complete decoder coverage, and end-to-end performance are still unverified.
+  No benchmark was run. Temporary scripts, native output, and reports remain outside the commit.
 
 ### Required completion gates
 

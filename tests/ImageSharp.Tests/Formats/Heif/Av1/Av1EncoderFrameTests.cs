@@ -594,6 +594,55 @@ public class Av1EncoderFrameTests
     }
 
     [Theory]
+    [InlineData(false, EightBit)]
+    [InlineData(false, TenBit)]
+    [InlineData(false, TwelveBit)]
+    [InlineData(true, EightBit)]
+    [InlineData(true, TenBit)]
+    [InlineData(true, TwelveBit)]
+    public void SequenceEncoderConstructionFailureReturnsEveryAllocation(bool encodeAlpha, int bitDepthValue)
+    {
+        ObuColorConfig colorConfig = CreateColorConfig(
+            (Av1BitDepth)bitDepthValue,
+            encodeAlpha ? Av1ColorFormat.Yuv400 : Av1ColorFormat.Yuv420);
+
+        Configuration configuration = Configuration.Default.Clone();
+        TestMemoryAllocator successfulAllocator = new();
+        successfulAllocator.EnableNonThreadSafeLogging();
+        configuration.MemoryAllocator = successfulAllocator;
+        using (Av1FrameEncoder.SequenceEncoder encoder = encodeAlpha
+            ? Av1FrameEncoder.CreateAlphaSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9)
+            : Av1FrameEncoder.CreateColorSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9))
+        {
+            Assert.NotEmpty(successfulAllocator.AllocationLog);
+        }
+
+        Assert.Equal(successfulAllocator.AllocationLog.Count, successfulAllocator.ReturnLog.Count);
+        for (int failureIndex = 0; failureIndex < successfulAllocator.AllocationLog.Count; failureIndex++)
+        {
+            FailingSequenceAllocator allocator = new(failureIndex);
+            configuration.MemoryAllocator = allocator;
+
+            // Fail each real allocator request, including those made inside nested constructors. A constructor
+            // that throws never reaches the caller's using statement, so its completed owners must unwind there.
+            InvalidMemoryOperationException exception = Assert.Throws<InvalidMemoryOperationException>(() =>
+            {
+                using Av1FrameEncoder.SequenceEncoder encoder = encodeAlpha
+                    ? Av1FrameEncoder.CreateAlphaSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9)
+                    : Av1FrameEncoder.CreateColorSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9);
+            });
+
+            Assert.Equal("Sequence allocation failure.", exception.Message);
+            Assert.Equal(failureIndex, allocator.AllocationLog.Count);
+            Assert.All(
+                allocator.AllocationLog,
+                allocation => Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == allocation.AllocationId));
+
+            Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        }
+    }
+
+    [Theory]
     [InlineData(false, EightBit, Yuv420, 384)]
     [InlineData(false, TwelveBit, Yuv444, 288)]
     [InlineData(true, EightBit, Yuv400, 192)]
@@ -1877,6 +1926,32 @@ public class Av1EncoderFrameTests
                 int sourceX = Math.Clamp(x - originX, 0, expected.Length - 1);
                 Assert.Equal(expected[sourceX], row[x]);
             }
+        }
+    }
+
+    private sealed class FailingSequenceAllocator : TestMemoryAllocator
+    {
+        private readonly int failureIndex;
+
+        /// <summary>
+        /// Initializes a new instance of the <see cref="FailingSequenceAllocator"/> class.
+        /// </summary>
+        /// <param name="failureIndex">The zero-based allocation request that fails.</param>
+        public FailingSequenceAllocator(int failureIndex)
+        {
+            this.failureIndex = failureIndex;
+            this.EnableNonThreadSafeLogging();
+        }
+
+        /// <inheritdoc/>
+        protected override AllocationTrackedMemoryManager<T> AllocateCore<T>(int length, AllocationOptions options)
+        {
+            if (this.AllocationLog.Count == this.failureIndex)
+            {
+                throw new InvalidMemoryOperationException("Sequence allocation failure.");
+            }
+
+            return base.AllocateCore<T>(length, options);
         }
     }
 }

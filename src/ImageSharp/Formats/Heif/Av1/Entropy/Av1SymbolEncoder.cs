@@ -268,11 +268,21 @@ internal sealed class Av1SymbolEncoder : IDisposable
         // Transform dimensions are bounded by the AV1 coefficient-coding rules, so the complete entropy scratch
         // is known with the tile output capacity and remains valid for every transform in every sequence sample.
         this.levels = new Av1LevelBuffer(configuration);
-        this.coefficientContexts =
-            configuration.MemoryAllocator.Allocate<sbyte>(MaximumCoefficientContextCount);
+        try
+        {
+            this.coefficientContexts =
+                configuration.MemoryAllocator.Allocate<sbyte>(MaximumCoefficientContextCount);
 
-        this.writer = new(configuration, bufferLength, updateCdf);
-        this.baseQIndex = qIndex;
+            this.writer = new(configuration, bufferLength, updateCdf);
+            this.baseQIndex = qIndex;
+        }
+        catch
+        {
+            // The level buffer is already owned here; a later allocation failure cannot be unwound by the caller.
+            this.coefficientContexts?.Dispose();
+            this.levels.Dispose();
+            throw;
+        }
     }
 
     /// <summary>

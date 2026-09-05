@@ -1519,44 +1519,54 @@ internal static class Av1FrameEncoder
                 encodeAlpha,
                 usesHighBitDepth);
 
-            bool allocateScreenContentState = effort >= 5;
-            bool allocateIntraBlockCopySearch =
-                allocateScreenContentState &&
-                !this.FrameHeader.CodedLossless;
+            try
+            {
+                bool allocateScreenContentState = effort >= 5;
+                bool allocateIntraBlockCopySearch =
+                    allocateScreenContentState &&
+                    !this.FrameHeader.CodedLossless;
 
-            // Sequence geometry and maximum tool capacity are fixed before the first sample. Reusing this owner
-            // avoids renting the complete mode grid and optional screen-content index for every frame.
-            this.PictureBuffer = new Av1EncoderPictureBuffer(
-                configuration,
-                this.SequenceHeader,
-                this.FrameHeader,
-                width,
-                height,
-                disallow4x4AllFrames: !this.FrameHeader.CodedLossless && effort < 9,
-                allocateScreenContentState: allocateScreenContentState,
-                allocateMotionVectorState: true,
-                allocateIntraBlockCopySearch: allocateIntraBlockCopySearch);
+                // Sequence geometry and maximum tool capacity are fixed before the first sample. Reusing this owner
+                // avoids renting the complete mode grid and optional screen-content index for every frame.
+                this.PictureBuffer = new Av1EncoderPictureBuffer(
+                    configuration,
+                    this.SequenceHeader,
+                    this.FrameHeader,
+                    width,
+                    height,
+                    disallow4x4AllFrames: !this.FrameHeader.CodedLossless && effort < 9,
+                    allocateScreenContentState: allocateScreenContentState,
+                    allocateMotionVectorState: true,
+                    allocateIntraBlockCopySearch: allocateIntraBlockCopySearch);
 
-            this.Coefficients = new Av1EncoderCoefficientBuffer(
-                configuration,
-                this.SequenceHeader,
-                width,
-                height);
+                this.Coefficients = new Av1EncoderCoefficientBuffer(
+                    configuration,
+                    this.SequenceHeader,
+                    width,
+                    height);
 
-            this.SuperblockWorkspace = new Av1EncoderSuperblockWorkspace(configuration);
+                this.SuperblockWorkspace = new Av1EncoderSuperblockWorkspace(configuration);
 
-            this.TileWorkspace = new Av1EncoderTileWorkspace(this.FrameHeader, this.SuperblockWorkspace);
-            this.BlockWorkspace = new Av1EncoderBlockWorkspace(configuration);
+                this.TileWorkspace = new Av1EncoderTileWorkspace(this.FrameHeader, this.SuperblockWorkspace);
+                this.BlockWorkspace = new Av1EncoderBlockWorkspace(configuration);
 
-            // Tile probabilities adapt within a sample, while error-resilient frame headers prohibit carrying
-            // those updates into the next sample. The retained encoder is therefore reset before each frame.
-            this.SymbolEncoder = new Av1SymbolEncoder(
-                configuration,
-                this.TileBufferLength,
-                qIndex,
-                updateCdf: true);
+                // Tile probabilities adapt within a sample, while error-resilient frame headers prohibit carrying
+                // those updates into the next sample. The retained encoder is therefore reset before each frame.
+                this.SymbolEncoder = new Av1SymbolEncoder(
+                    configuration,
+                    this.TileBufferLength,
+                    qIndex,
+                    updateCdf: true);
 
-            this.ObuWriter = new ObuWriter(configuration);
+                this.ObuWriter = new ObuWriter(configuration);
+            }
+            catch
+            {
+                // The caller receives no encoder when construction fails. Release only completed common owners;
+                // derived frame construction has not started and must not be reached through virtual disposal.
+                this.DisposeResources();
+                throw;
+            }
         }
 
         /// <summary>
@@ -1637,13 +1647,7 @@ internal static class Av1FrameEncoder
         public void Dispose()
         {
             this.DisposeFrames();
-            this.ConversionWorkspace.Dispose();
-            this.PictureBuffer.Dispose();
-            this.Coefficients.Dispose();
-            this.SuperblockWorkspace.Dispose();
-            this.BlockWorkspace.Dispose();
-            this.ObuWriter.Dispose();
-            this.SymbolEncoder.Dispose();
+            this.DisposeResources();
         }
 
         /// <summary>
@@ -1657,6 +1661,19 @@ internal static class Av1FrameEncoder
             ObuFrameType frameType,
             bool writeSequenceHeader)
             where TPixel : unmanaged, IPixel<TPixel>;
+
+        private void DisposeResources()
+        {
+            // Construction can stop between any two allocations. Successful instances have every owner;
+            // failed constructors retain only the prefix completed before the allocator rejected a request.
+            this.ObuWriter?.Dispose();
+            this.SymbolEncoder?.Dispose();
+            this.BlockWorkspace?.Dispose();
+            this.SuperblockWorkspace?.Dispose();
+            this.Coefficients?.Dispose();
+            this.PictureBuffer?.Dispose();
+            this.ConversionWorkspace.Dispose();
+        }
     }
 
     private sealed class ByteSequenceEncoder : SequenceEncoder
@@ -1683,40 +1700,50 @@ internal static class Av1FrameEncoder
                 encodeAlpha,
                 usesHighBitDepth: false)
         {
-            Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
-            this.source = new(
-                configuration,
-                width,
-                height,
-                ByteSampleBitDepth,
-                colorFormat,
-                CenteredChromaSamplePosition,
-                CenteredChromaSamplePosition);
+            try
+            {
+                Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
+                this.source = new(
+                    configuration,
+                    width,
+                    height,
+                    ByteSampleBitDepth,
+                    colorFormat,
+                    CenteredChromaSamplePosition,
+                    CenteredChromaSamplePosition);
 
-            this.reference = new(
-                configuration,
-                width,
-                height,
-                ByteSampleBitDepth,
-                colorFormat,
-                CenteredChromaSamplePosition,
-                CenteredChromaSamplePosition);
+                this.reference = new(
+                    configuration,
+                    width,
+                    height,
+                    ByteSampleBitDepth,
+                    colorFormat,
+                    CenteredChromaSamplePosition,
+                    CenteredChromaSamplePosition);
 
-            this.reconstruction = new(
-                configuration,
-                width,
-                height,
-                ByteSampleBitDepth,
-                colorFormat,
-                CenteredChromaSamplePosition,
-                CenteredChromaSamplePosition);
+                this.reconstruction = new(
+                    configuration,
+                    width,
+                    height,
+                    ByteSampleBitDepth,
+                    colorFormat,
+                    CenteredChromaSamplePosition,
+                    CenteredChromaSamplePosition);
+            }
+            catch
+            {
+                // The common state already exists, and any preceding frame allocations also need returning.
+                this.Dispose();
+                throw;
+            }
         }
 
         protected override void DisposeFrames()
         {
-            this.source.Dispose();
-            this.reference.Dispose();
-            this.reconstruction.Dispose();
+            // A derived constructor can fail before all three frame owners exist.
+            this.reconstruction?.Dispose();
+            this.reference?.Dispose();
+            this.source?.Dispose();
         }
 
         protected override void EncodeFrame<TPixel>(
@@ -1793,41 +1820,51 @@ internal static class Av1FrameEncoder
                 encodeAlpha,
                 usesHighBitDepth: true)
         {
-            int bitDepth = colorConfig.BitDepth.GetBitCount();
-            Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
-            this.source = new(
-                configuration,
-                width,
-                height,
-                bitDepth,
-                colorFormat,
-                CenteredChromaSamplePosition,
-                CenteredChromaSamplePosition);
+            try
+            {
+                int bitDepth = colorConfig.BitDepth.GetBitCount();
+                Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
+                this.source = new(
+                    configuration,
+                    width,
+                    height,
+                    bitDepth,
+                    colorFormat,
+                    CenteredChromaSamplePosition,
+                    CenteredChromaSamplePosition);
 
-            this.reference = new(
-                configuration,
-                width,
-                height,
-                bitDepth,
-                colorFormat,
-                CenteredChromaSamplePosition,
-                CenteredChromaSamplePosition);
+                this.reference = new(
+                    configuration,
+                    width,
+                    height,
+                    bitDepth,
+                    colorFormat,
+                    CenteredChromaSamplePosition,
+                    CenteredChromaSamplePosition);
 
-            this.reconstruction = new(
-                configuration,
-                width,
-                height,
-                bitDepth,
-                colorFormat,
-                CenteredChromaSamplePosition,
-                CenteredChromaSamplePosition);
+                this.reconstruction = new(
+                    configuration,
+                    width,
+                    height,
+                    bitDepth,
+                    colorFormat,
+                    CenteredChromaSamplePosition,
+                    CenteredChromaSamplePosition);
+            }
+            catch
+            {
+                // The common state already exists, and any preceding frame allocations also need returning.
+                this.Dispose();
+                throw;
+            }
         }
 
         protected override void DisposeFrames()
         {
-            this.source.Dispose();
-            this.reference.Dispose();
-            this.reconstruction.Dispose();
+            // A derived constructor can fail before all three frame owners exist.
+            this.reconstruction?.Dispose();
+            this.reference?.Dispose();
+            this.source?.Dispose();
         }
 
         protected override void EncodeFrame<TPixel>(

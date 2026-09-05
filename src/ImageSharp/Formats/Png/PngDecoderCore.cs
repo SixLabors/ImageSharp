@@ -1984,21 +1984,36 @@ internal sealed class PngDecoderCore : ImageDecoderCore
                 return false;
             }
 
-            int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData);
-            while (bytesRead != 0)
+            try
             {
-                if (memoryStreamOutput.Length > maxLength)
+                int bytesRead = inflateStream.CompressedStream.Read(destUncompressedData);
+                while (bytesRead != 0)
                 {
-                    uncompressedBytesArray = [];
-                    return false;
+                    if (memoryStreamOutput.Length > maxLength)
+                    {
+                        uncompressedBytesArray = [];
+                        return false;
+                    }
+
+                    memoryStreamOutput.Write(destUncompressedData[..bytesRead]);
+                    bytesRead = inflateStream.CompressedStream.Read(destUncompressedData);
                 }
 
-                memoryStreamOutput.Write(destUncompressedData[..bytesRead]);
-                bytesRead = inflateStream.CompressedStream.Read(destUncompressedData);
+                uncompressedBytesArray = memoryStreamOutput.ToArray();
+                return true;
             }
+            catch (InvalidDataException ex)
+            {
+                // ICC and text chunks are already bounded in memory, so rejecting their compressed contents
+                // does not lose the next chunk boundary. Apply the ancillary policy without keeping partial output.
+                if (this.Options.SegmentIntegrityHandling == SegmentIntegrityHandling.Strict)
+                {
+                    throw new InvalidImageContentException("Invalid compressed PNG metadata.", ex);
+                }
 
-            uncompressedBytesArray = memoryStreamOutput.ToArray();
-            return true;
+                uncompressedBytesArray = [];
+                return false;
+            }
         }
     }
 

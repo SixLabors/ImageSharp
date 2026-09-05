@@ -636,7 +636,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 (int)Av1ChromaPredictionMode.Vertical +
                 1;
 
-            int candidateCount = baseModeCount + (directionalModeCount * deltaCount);
+            // Multiple transforms do not expand the block's prediction syntax. Preserve the ordinary
+            // effort tiers and exclude angle adjustments for 4x8/8x4 blocks, where no delta is signaled.
+            int candidateCount = this.effort switch
+            {
+                0 => 1,
+                1 => baseModeCount,
+                _ when blockSize >= Av1BlockSize.Block8x8 => baseModeCount + (directionalModeCount * deltaCount),
+                _ => baseModeCount
+            };
+
             long bestCost = long.MaxValue;
             Av1ChromaPredictionMode bestMode = Av1ChromaPredictionMode.DC;
             selectedAngleDelta = 0;

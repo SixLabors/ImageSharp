@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
@@ -436,12 +437,14 @@ public class Av1EncoderFrameTests
     }
 
     [Theory]
-    [InlineData(TenBit)]
-    [InlineData(TwelveBit)]
-    public void LosslessHighBitDepthEncodingPreservesNativePlanes(int bitDepthValue)
+    [InlineData(TenBit, 8, 8, 0)]
+    [InlineData(TwelveBit, 8, 8, 0)]
+    [InlineData(TenBit, 24, 16, 9)]
+    [InlineData(TwelveBit, 24, 16, 9)]
+    [InlineData(TenBit, 16, 24, 10)]
+    [InlineData(TwelveBit, 16, 24, 10)]
+    public void LosslessHighBitDepthEncodingPreservesNativePlanes(int bitDepthValue, int width, int height, int effort)
     {
-        const int width = 8;
-        const int height = 8;
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         using Image<Rgb48> source = new(width, height);
         for (int row = 0; row < height; row++)
@@ -450,9 +453,9 @@ public class Av1EncoderFrameTests
             for (int column = 0; column < width; column++)
             {
                 pixels[column] = new Rgb48(
-                    (ushort)((column * 7001) + (row * 997)),
-                    (ushort)((row * 6007) + (column * 1231)),
-                    (ushort)((column * 4001) + (row * 3001)));
+                    (ushort)(((column * 7001) + (row * 997)) & ushort.MaxValue),
+                    (ushort)(((row * 6007) + (column * 1231)) & ushort.MaxValue),
+                    (ushort)(((column * 4001) + (row * 3001)) & ushort.MaxValue));
             }
         }
 
@@ -488,7 +491,7 @@ public class Av1EncoderFrameTests
             stream,
             colorConfig,
             qIndex: 0,
-            effort: 0);
+            effort);
 
         byte[] payload = stream.ToArray();
         string outputDirectory = Path.Combine(
@@ -498,8 +501,9 @@ public class Av1EncoderFrameTests
             "Av1");
 
         Directory.CreateDirectory(outputDirectory);
+        string outputName = $"encoder-frame-{width}x{height}-{bitDepth.GetBitCount()}b-444-lossless-effort{effort}";
         File.WriteAllBytes(
-            Path.Combine(outputDirectory, $"encoder-frame-8x8-{bitDepth.GetBitCount()}b-444-lossless.obu"),
+            Path.Combine(outputDirectory, outputName + ".obu"),
             payload);
 
         using Av1Decoder decoder = new(Configuration.Default);
@@ -512,15 +516,68 @@ public class Av1EncoderFrameTests
         Assert.True(frameHeader.AllLossless);
         Assert.Equal(Av1TransformMode.Only4x4, frameHeader.TransformMode);
 
+        // Lossless native planes are the oracle for external decoding, not the packed RGB conversion on return.
+        // UInt16 raw samples are explicitly little-endian even when these tests run on a different host byte order.
+        using BinaryWriter rawOutput = new(File.Create(Path.Combine(outputDirectory, outputName + ".source.yuv")));
         foreach (Av1Plane plane in new[] { Av1Plane.Y, Av1Plane.U, Av1Plane.V })
         {
             Buffer2DRegion<ushort> expectedPlane = expected.Frame.View.GetPlane(plane);
             for (int row = 0; row < height; row++)
             {
-                Assert.Equal(
-                    expectedPlane.DangerousGetRowSpan(row)[..width].ToArray(),
-                    actual.GetHighBitDepthRowSpan(plane, row, 0, 0).ToArray());
+                ReadOnlySpan<ushort> expectedRow = expectedPlane.DangerousGetRowSpan(row);
+                Assert.Equal(expectedRow, actual.GetHighBitDepthRowSpan(plane, row, 0, 0));
+                foreach (ushort sample in expectedRow)
+                {
+                    rawOutput.Write(sample);
+                }
             }
+        }
+    }
+
+    /// <summary>
+    /// Verifies that live partition search preserves lossless syntax across clipped parent nodes and superblocks.
+    /// </summary>
+    [Theory]
+    [InlineData(48, 24, 9)]
+    [InlineData(24, 48, 9)]
+    [InlineData(80, 24, 9)]
+    [InlineData(24, 80, 9)]
+    [InlineData(96, 24, 10)]
+    [InlineData(24, 96, 10)]
+    public void EncodeLosslessPartitionSearchAcrossClippedSuperblocks(int width, int height, int effort)
+    {
+        ReadOnlySpan<int> period = [0, 28, 40, 28, 0, -28, -40, -12];
+        using Image<L8> source = new(width, height);
+        for (int y = 0; y < height; y++)
+        {
+            Span<L8> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            for (int x = 0; x < width; x++)
+            {
+                row[x] = new L8((byte)(128 + period[x % period.Length] + period[y % period.Length]));
+            }
+        }
+
+        // The repeated surface favors larger early leaves. Later clipped parents must still split from their
+        // own geometry instead of reading a stale position in the original fixed-eight partition preorder.
+        ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit, Av1ColorFormat.Yuv400);
+        colorConfig.ColorRange = true;
+        using MemoryStream stream = new();
+        Av1FrameEncoder.Encode(Configuration.Default, source.Frames.RootFrame, stream, colorConfig, qIndex: 0, effort);
+        byte[] payload = stream.ToArray();
+        string outputDirectory = TestEnvironment.CreateOutputDirectory("Heif", "Av1", nameof(this.EncodeLosslessPartitionSearchAcrossClippedSuperblocks));
+        string outputName = $"{width}x{height}-effort{effort}";
+        File.WriteAllBytes(Path.Combine(outputDirectory, outputName + ".obu"), payload);
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> decoded = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        Assert.Equal(width, decoded.Width);
+        Assert.Equal(height, decoded.Height);
+        Buffer2DRegion<byte> actual = decoded.DeriveBlockPointer(Av1Plane.Y, 0, 0);
+        using FileStream rawOutput = File.Create(Path.Combine(outputDirectory, outputName + ".source.yuv"));
+        for (int y = 0; y < height; y++)
+        {
+            ReadOnlySpan<byte> expectedRow = MemoryMarshal.AsBytes(source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y));
+            Assert.Equal(expectedRow, actual.DangerousGetRowSpan(y));
+            rawOutput.Write(expectedRow);
         }
     }
 

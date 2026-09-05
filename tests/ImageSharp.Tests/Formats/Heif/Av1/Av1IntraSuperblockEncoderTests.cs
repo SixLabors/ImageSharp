@@ -159,8 +159,11 @@ public class Av1IntraSuperblockEncoderTests
         using ObuWriter obuWriter = new(configuration);
         obuWriter.WriteFrame(secondSample, sequenceHeader, frameHeader, tileWriter);
         using Av1Decoder decoder = new(configuration);
-        using Av1FrameBuffer<byte> decodedFirst = decoder.DecodeFrameBuffer(firstSample.ToArray(), null, null, out _);
-        using Av1FrameBuffer<byte> decodedSecond = decoder.DecodeFrameBuffer(secondSample.ToArray(), null, null, out _);
+
+        // Sequence decoding retains the first frame's reference slots. The still-image transfer API deliberately
+        // releases those slots, so it cannot be used between dependent samples. Full-range monochrome L8 is exact.
+        using ImageFrame<L8> decodedFirst = decoder.DecodeSequenceFrame<L8>(firstSample.ToArray(), null, null);
+        using ImageFrame<L8> decodedSecond = decoder.DecodeSequenceFrame<L8>(secondSample.ToArray(), null, null);
 
         // Preserve both the production stream and every managed reconstructed luma sample for exact libaom comparison.
         string outputDirectory = TestEnvironment.CreateOutputDirectory("Heif", "Av1", nameof(this.ProductionTileSelectsNonRegularInterpolation));
@@ -174,7 +177,7 @@ public class Av1IntraSuperblockEncoderTests
         for (int y = 0; y < Height; y++)
         {
             ReadOnlySpan<byte> expected = reference.Frame.View.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y);
-            ReadOnlySpan<byte> actual = decodedFirst.DeriveBlockPointer(Av1Plane.Y, new Point(0, y), 0, 0, out _)[..Width];
+            ReadOnlySpan<byte> actual = MemoryMarshal.AsBytes(decodedFirst.PixelBuffer.DangerousGetRowSpan(y));
             Assert.Equal(expected, actual);
             rawOutput.Write(actual);
         }
@@ -182,9 +185,167 @@ public class Av1IntraSuperblockEncoderTests
         for (int y = 0; y < Height; y++)
         {
             ReadOnlySpan<byte> expected = reconstruction.Frame.View.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y);
-            ReadOnlySpan<byte> actual = decodedSecond.DeriveBlockPointer(Av1Plane.Y, new Point(0, y), 0, 0, out _)[..Width];
+            ReadOnlySpan<byte> actual = MemoryMarshal.AsBytes(decodedSecond.PixelBuffer.DangerousGetRowSpan(y));
             Assert.Equal(expected, actual);
             rawOutput.Write(actual);
+        }
+    }
+
+    /// <summary>
+    /// Verifies independent half-sample filters on both axes without discarding native sample precision.
+    /// </summary>
+    [Theory]
+    [InlineData(10, false)]
+    [InlineData(10, true)]
+    [InlineData(12, false)]
+    [InlineData(12, true)]
+    public void ProductionTileSelectsDualAxisInterpolationHighBitDepth(int bitDepth, bool reverseFilters)
+    {
+        const int Width = 48;
+        const int Height = 24;
+        const int TargetColumn = 16;
+        const int TargetRow = 8;
+        const int BlockSize = 8;
+        const int QIndex = 1;
+        const int Effort = 9;
+        const int TileBufferLength = 8192;
+        const int FilterScale = 128;
+        int sampleScale = 1 << (bitDepth - 8);
+        int maximumSample = (1 << bitDepth) - 1;
+        Av1InterpolationFilter horizontalFilter = reverseFilters ? Av1InterpolationFilter.Sharp : Av1InterpolationFilter.Smooth;
+        Av1InterpolationFilter verticalFilter = reverseFilters ? Av1InterpolationFilter.Smooth : Av1InterpolationFilter.Sharp;
+        ReadOnlySpan<int> referencePeriod = [0, 28, 40, 28, 0, -28, -40, -12];
+
+        // These Q7 sums are the fixed half-sample responses of the periodic reference to libaom's eight-tap
+        // kernels. The source is separable: 128 + horizontal period + vertical period. Each horizontal sum
+        // is divisible by the first-pass rounding unit (including the five-bit shift at 12 bits), so the
+        // two-axis result is the sum of these responses with one final Q7 rounding, not two rounded pixels.
+        // The asymmetric final phase separates sharp from regular after eight-bit error normalization. A low
+        // quantizer makes retaining the exact two-axis predictor preferable to saving a filter symbol.
+        ReadOnlySpan<int> smoothResponse = [1872, 3952, 3984, 1648, -1680, -3760, -3152, -816];
+        ReadOnlySpan<int> sharpResponse = [1536, 4896, 4640, 1856, -1728, -5088, -3424, -640];
+        ReadOnlySpan<int> horizontalResponse = reverseFilters ? sharpResponse : smoothResponse;
+        ReadOnlySpan<int> verticalResponse = reverseFilters ? smoothResponse : sharpResponse;
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = true,
+            ColorRange = true,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = (Av1BitDepth)((bitDepth - 8) / 2)
+        };
+
+        using Image<L16> referenceImage = new(Width, Height);
+        using Av1EncoderFrameBuffer<ushort> reference = new(configuration, Width, Height, bitDepth, Av1ColorFormat.Yuv400, 0, 0);
+        using Av1EncoderFrameBuffer<ushort> source = new(configuration, Width, Height, bitDepth, Av1ColorFormat.Yuv400, 0, 0);
+        using Av1EncoderFrameBuffer<ushort> reconstruction = new(configuration, Width, Height, bitDepth, Av1ColorFormat.Yuv400, 0, 0);
+        for (int y = 0; y < Height; y++)
+        {
+            Span<L16> pixels = referenceImage.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
+            Span<ushort> referenceRow = reference.Frame.CodedView.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y);
+            Span<ushort> sourceRow = source.Frame.CodedView.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y);
+            for (int x = 0; x < Width; x++)
+            {
+                int sample = (128 + referencePeriod[x % BlockSize] + referencePeriod[y % BlockSize]) * sampleScale;
+                referenceRow[x] = (ushort)sample;
+
+                // Map native samples to L16's complete range. The lossless key-frame comparison below proves
+                // that the public pixel conversion recovers every original 10/12-bit reference sample.
+                pixels[x] = new L16((ushort)(((sample * ushort.MaxValue) + (maximumSample / 2)) / maximumSample));
+                int response = (128 * FilterScale) + horizontalResponse[x % BlockSize] + verticalResponse[y % BlockSize];
+                sourceRow[x] = (ushort)(((response * sampleScale) + (FilterScale / 2)) / FilterScale);
+            }
+        }
+
+        reference.Frame.ExtendBorders();
+        source.Frame.ExtendBorders();
+        ClearPlane(reconstruction.Luma);
+        using MemoryStream firstSample = new();
+        using Av1FrameEncoder.SequenceEncoder keyEncoder = Av1FrameEncoder.CreateColorSequenceEncoder(
+            configuration, Width, Height, colorConfig, qIndex: 0, Effort);
+
+        keyEncoder.EncodeKeyFrame(referenceImage.Frames.RootFrame, firstSample);
+        ObuSequenceHeader sequenceHeader = keyEncoder.SequenceHeader;
+        using Av1EncoderModeInfoBuffer modeInfo = new(configuration, Width, Height, disallow4x4AllFrames: true);
+        Av1PictureControlSet template = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, QIndex);
+        ObuFrameHeader frameHeader = template.Parent.FrameHeader;
+        frameHeader.FrameType = ObuFrameType.InterFrame;
+        frameHeader.ShowFrame = true;
+        frameHeader.ErrorResilientMode = true;
+        frameHeader.RefreshFrameFlags = byte.MaxValue;
+        frameHeader.DisableFrameEndUpdateCdf = true;
+        frameHeader.ReferenceMode = ObuReferenceMode.SingleReference;
+        frameHeader.InterpolationFilter = Av1InterpolationFilter.Switchable;
+        frameHeader.AllowHighPrecisionMotionVector = true;
+        frameHeader.TransformMode = Av1TransformMode.Select;
+        frameHeader.FrameSize.FrameWidth = Width;
+        frameHeader.FrameSize.FrameHeight = Height;
+        frameHeader.FrameSize.SuperResolutionUpscaledWidth = Width;
+        frameHeader.FrameSize.RenderWidth = Width;
+        frameHeader.FrameSize.RenderHeight = Height;
+        frameHeader.TilesInfo.HasUniformTileSpacing = true;
+        Av1QuantizationLookup.UpdateFrameQuantizationState(frameHeader);
+
+        using Av1EncoderPictureBuffer picture = new(configuration, sequenceHeader, frameHeader, Width, Height, disallow4x4AllFrames: true);
+        using Av1EncoderCoefficientBuffer coefficients = new(configuration, sequenceHeader, Width, Height);
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(configuration);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(configuration);
+        using Av1SymbolEncoder symbolEncoder = new(configuration, TileBufferLength, QIndex, updateCdf: true);
+        Av1EncoderTileWorkspace tileWorkspace = new(frameHeader, superblockWorkspace);
+        int allocationCount = allocator.AllocationLog.Count;
+        Av1TileEncoder tileWriter = new(
+            symbolEncoder, source.Frame, reference.Frame, reconstruction.Frame, picture.Picture, coefficients, tileWorkspace, blockWorkspace, Effort);
+
+        Assert.Equal(allocationCount, allocator.AllocationLog.Count);
+
+        // This block is at least three reference taps from every frame edge. It must retain two genuinely
+        // fractional axes, not a zero-phase filter alias.
+        Point targetPosition = new(TargetColumn >> Av1Constants.ModeInfoSizeLog2, TargetRow >> Av1Constants.ModeInfoSizeLog2);
+        ref Av1MacroBlockModeInfo targetMode = ref picture.Picture.GetMacroBlockModeInfo(targetPosition);
+        Assert.Equal(Av1ReferenceFrameType.Last, targetMode.Block.ReferenceFrame);
+        Assert.Equal(horizontalFilter, targetMode.Block.HorizontalInterpolationFilter);
+        Assert.Equal(verticalFilter, targetMode.Block.VerticalInterpolationFilter);
+        Assert.Equal(4, picture.Picture.GetDisplacementVector(targetPosition).Column);
+        Assert.Equal(4, picture.Picture.GetDisplacementVector(targetPosition).Row);
+        for (int y = TargetRow; y < TargetRow + BlockSize; y++)
+        {
+            Assert.Equal(
+                source.Frame.View.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y).Slice(TargetColumn, BlockSize),
+                reconstruction.Frame.View.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y).Slice(TargetColumn, BlockSize));
+        }
+
+        using MemoryStream secondSample = new();
+        using ObuWriter obuWriter = new(configuration);
+        obuWriter.WriteFrame(secondSample, sequenceHeader, frameHeader, tileWriter);
+        string outputDirectory = TestEnvironment.CreateOutputDirectory("Heif", "Av1", nameof(this.ProductionTileSelectsDualAxisInterpolationHighBitDepth));
+        string outputName = $"{bitDepth}-{horizontalFilter}-{verticalFilter}";
+        using FileStream output = File.Create(Path.Combine(outputDirectory, outputName + ".obu"));
+        firstSample.Position = 0;
+        firstSample.CopyTo(output);
+        secondSample.Position = 0;
+        secondSample.CopyTo(output);
+        using BinaryWriter rawOutput = new(File.Create(Path.Combine(outputDirectory, outputName + ".managed.yuv")));
+        using Av1Decoder decoder = new(configuration);
+        for (int frameIndex = 0; frameIndex < 2; frameIndex++)
+        {
+            // Consume native retained planes before the next sample can replace them. BinaryWriter emits explicit
+            // little-endian UInt16 samples, matching the raw reference-decoder output independently of host byte order.
+            decoder.DecodeSequenceReference((frameIndex == 0 ? firstSample : secondSample).ToArray(), null, null);
+            Av1FrameBuffer<byte> decoded = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
+            Buffer2DRegion<ushort> expected = (frameIndex == 0 ? reference : reconstruction).Frame.View.GetPlane(Av1Plane.Y);
+            for (int y = 0; y < Height; y++)
+            {
+                ReadOnlySpan<ushort> actualRow = decoded.GetHighBitDepthRowSpan(Av1Plane.Y, y, 0, 0);
+                Assert.Equal(expected.DangerousGetRowSpan(y), actualRow);
+                foreach (ushort sample in actualRow)
+                {
+                    rawOutput.Write(sample);
+                }
+            }
         }
     }
 

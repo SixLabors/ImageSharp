@@ -197,6 +197,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 return preparedPartition;
             }
 
+            // Live decisions change the number of nodes visited before this position. The original flat
+            // skeleton's index no longer identifies this block, so derive its default from current geometry.
+            // Otherwise an earlier unsplit 16x16 can make a later 32x32 consume an old 8x8 NONE entry.
+            preparedPartition = blockSize == Av1BlockSize.Block8x8 ? Av1PartitionType.None : Av1PartitionType.Split;
+
             bool searchPartition = blockSize is Av1BlockSize.Block8x8 or Av1BlockSize.Block16x16 ||
                 (this.effort == 10 &&
                     blockSize is Av1BlockSize.Block32x32 or Av1BlockSize.Block64x64 or Av1BlockSize.Block128x128);
@@ -983,9 +988,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 colorConfig.SubSamplingX,
                 colorConfig.SubSamplingY);
 
-            Av1TransformSize chromaTransformSize = blockSize.GetMaxUvTransformSize(
-                colorConfig.SubSamplingX,
-                colorConfig.SubSamplingY);
+            // Lossless residuals retain one state per 4x4 transform, including chroma. Publish those exact
+            // edges during partition trials so a later sibling sees the contexts that final writing will use.
+            Av1TransformSize chromaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
+                ? Av1TransformSize.Size4x4
+                : blockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
 
             Av1BlockSize maximumChromaUnitBlockSize =
                 Av1BlockSize.Block64x64.GetSubsampled(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
@@ -2071,11 +2078,14 @@ internal static partial class Av1IntraSuperblockEncoder
             int directionalModeCount =
                 (int)Av1PredictionMode.Directional67Degrees - (int)Av1PredictionMode.Vertical + 1;
 
+            // A lossless 4x8 or 8x4 block has multiple 4x4 transforms but carries no angle-delta symbol.
+            // Its predictor must therefore use the unadjusted direction, just as the decoder does.
             int candidateCount = this.effort switch
             {
                 0 => 1,
                 1 => baseModeCount,
-                _ => baseModeCount + (directionalModeCount * deltaCount)
+                _ when blockSize >= Av1BlockSize.Block8x8 => baseModeCount + (directionalModeCount * deltaCount),
+                _ => baseModeCount
             };
 
             Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);

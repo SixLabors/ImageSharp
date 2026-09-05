@@ -193,7 +193,9 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
             this.ValidateChunkOffset(rowOffset, stream);
             stream.Position = (long)rowOffset;
-            uint rowStartIndex = this.ReadUnsignedInteger(stream);
+
+            // Chunk coordinates are signed and absolute; pixel rows are relative to the data window.
+            uint rowStartIndex = (uint)((long)this.ReadSignedInteger(stream) - this.HeaderAttributes.DataWindow.YMin);
             if (rowStartIndex >= height)
             {
                 ExrThrowHelper.ThrowInvalidImageContentException("EXR chunk row index is outside the data window.");
@@ -282,7 +284,9 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
 
             this.ValidateChunkOffset(rowOffset, stream);
             stream.Position = (long)rowOffset;
-            uint rowStartIndex = this.ReadUnsignedInteger(stream);
+
+            // Chunk coordinates are signed and absolute; pixel rows are relative to the data window.
+            uint rowStartIndex = (uint)((long)this.ReadSignedInteger(stream) - this.HeaderAttributes.DataWindow.YMin);
             if (rowStartIndex >= height)
             {
                 ExrThrowHelper.ThrowInvalidImageContentException("EXR chunk row index is outside the data window.");

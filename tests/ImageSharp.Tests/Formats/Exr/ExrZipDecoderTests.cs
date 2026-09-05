@@ -30,7 +30,7 @@ public class ExrZipDecoderTests
     [InlineData(1025, SegmentIntegrityHandling.IgnoreAncillary)]
     public void Decode_InvalidInflatedBlock_Throws(int length, SegmentIntegrityHandling integrity)
     {
-        byte[] data = BuildExr(ZlibCompress(new byte[length]), ExrPixelType.Float, 2);
+        byte[] data = BuildExr(ZlibCompress(new byte[length]), ExrPixelType.Float, 2, 0);
         DecoderOptions options = new() { SegmentIntegrityHandling = integrity };
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load<RgbaVector>(options, data));
@@ -53,7 +53,7 @@ public class ExrZipDecoderTests
     [InlineData(ExrPixelType.UnsignedInt, 1025)]
     public void Decode_InvalidInflatedBlock_IgnoreImageData_ClearsPixels(ExrPixelType pixelType, int length)
     {
-        byte[] data = BuildExr(ZlibCompress(new byte[length]), pixelType, 2);
+        byte[] data = BuildExr(ZlibCompress(new byte[length]), pixelType, 2, 0);
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = new TestMemoryAllocator(0x3F);
         DecoderOptions options = new() { Configuration = configuration, SegmentIntegrityHandling = SegmentIntegrityHandling.IgnoreImageData };
@@ -72,20 +72,27 @@ public class ExrZipDecoderTests
     /// </summary>
     /// <param name="pixelType">The stored sample type.</param>
     /// <param name="compression">The ZIP compression code.</param>
+    /// <param name="yMin">The data window's first row coordinate.</param>
     [Theory]
-    [InlineData(ExrPixelType.Half, 2)]
-    [InlineData(ExrPixelType.Float, 2)]
-    [InlineData(ExrPixelType.UnsignedInt, 2)]
-    [InlineData(ExrPixelType.Half, 3)]
-    [InlineData(ExrPixelType.Float, 3)]
-    [InlineData(ExrPixelType.UnsignedInt, 3)]
-    public void Decode_SingleRedChannel_InitializesMissingColorChannels(ExrPixelType pixelType, byte compression)
+    [InlineData(ExrPixelType.Half, 2, 0)]
+    [InlineData(ExrPixelType.Float, 2, 0)]
+    [InlineData(ExrPixelType.UnsignedInt, 2, 0)]
+    [InlineData(ExrPixelType.Half, 3, 0)]
+    [InlineData(ExrPixelType.Float, 3, 0)]
+    [InlineData(ExrPixelType.UnsignedInt, 3, 0)]
+    [InlineData(ExrPixelType.Half, 3, -10)]
+    [InlineData(ExrPixelType.Float, 3, -10)]
+    [InlineData(ExrPixelType.UnsignedInt, 3, -10)]
+    [InlineData(ExrPixelType.Half, 3, 10)]
+    [InlineData(ExrPixelType.Float, 3, 10)]
+    [InlineData(ExrPixelType.UnsignedInt, 3, 10)]
+    public void Decode_SingleRedChannel_InitializesMissingColorChannels(ExrPixelType pixelType, byte compression, int yMin)
     {
         byte[] predicted = new byte[256 * (pixelType == ExrPixelType.Half ? 2 : 4)];
 
         // A zero first byte followed by 128-valued differences reconstructs an all-zero sample plane.
         predicted.AsSpan(1).Fill(128);
-        byte[] data = BuildExr(ZlibCompress(predicted), pixelType, compression);
+        byte[] data = BuildExr(ZlibCompress(predicted), pixelType, compression, yMin);
         Configuration configuration = Configuration.Default.Clone();
         configuration.MemoryAllocator = new TestMemoryAllocator(0x3F);
         DecoderOptions options = new() { Configuration = configuration };
@@ -121,8 +128,9 @@ public class ExrZipDecoderTests
     /// <param name="compressed">The compressed scanline bytes.</param>
     /// <param name="pixelType">The stored sample type.</param>
     /// <param name="compression">The ZIP compression code.</param>
+    /// <param name="yMin">The data window's first row coordinate.</param>
     /// <returns>The encoded image.</returns>
-    private static byte[] BuildExr(byte[] compressed, ExrPixelType pixelType, byte compression)
+    private static byte[] BuildExr(byte[] compressed, ExrPixelType pixelType, byte compression, int yMin)
     {
         const int width = 256;
         const int height = 1;
@@ -154,9 +162,9 @@ public class ExrZipDecoderTests
         using (BinaryWriter boxWriter = new(boxStream))
         {
             boxWriter.Write(0);
-            boxWriter.Write(0);
+            boxWriter.Write(yMin);
             boxWriter.Write(width - 1);
-            boxWriter.Write(height - 1);
+            boxWriter.Write(yMin + height - 1);
 
             byte[] box = boxStream.ToArray();
             WriteAttribute(writer, "dataWindow", "box2i", box);
@@ -174,7 +182,7 @@ public class ExrZipDecoderTests
 
         long chunkStart = output.Position + sizeof(ulong);
         writer.Write((ulong)chunkStart);
-        writer.Write(0U);
+        writer.Write(yMin);
         writer.Write((uint)compressed.Length);
         writer.Write(compressed);
 

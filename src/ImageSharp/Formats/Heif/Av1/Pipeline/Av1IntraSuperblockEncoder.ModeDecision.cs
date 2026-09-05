@@ -2390,7 +2390,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 left[..transformHeight].Fill(hasAbove ? above[0] : TOperator.CreateSample(midpoint + 1));
             }
 
-            int topRightCount = hasTopRight ? Math.Min(transformWidth, transformHeight) : 0;
+            // Candidate mosaics share the committed frame's coded extent. Padding beyond that extent is
+            // never a reference sample, even when coding order makes the adjacent block available.
+            int topRightCount = hasTopRight
+                ? Math.Min(
+                    Math.Min(transformWidth, transformHeight),
+                    reconstructionPlane.Width - planeBlockOrigin.X - columnOffset - transformWidth)
+                : 0;
+
             if (hasTopRight)
             {
                 if (transformRow > 0)
@@ -2412,7 +2419,12 @@ internal static partial class Av1IntraSuperblockEncoder
             int topCount = transformWidth + topRightCount;
             above[topCount..].Fill(above[topCount - 1]);
 
-            int bottomLeftCount = hasBottomLeft ? Math.Min(transformHeight, transformWidth) : 0;
+            int bottomLeftCount = hasBottomLeft
+                ? Math.Min(
+                    Math.Min(transformHeight, transformWidth),
+                    reconstructionPlane.Height - planeBlockOrigin.Y - rowOffset - transformHeight)
+                : 0;
+
             if (hasBottomLeft)
             {
                 if (transformColumn > 0)

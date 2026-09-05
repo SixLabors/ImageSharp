@@ -1208,7 +1208,12 @@ internal static partial class Av1IntraSuperblockEncoder
                 left[..height].Fill(hasAbove ? above[0] : TOperator.CreateSample(midpoint + 1));
             }
 
-            int topRightCount = hasTopRight ? Math.Min(width, height) : 0;
+            // Availability describes coding order, not the number of samples left at the frame boundary.
+            // A partially present adjacent block contributes only its coded samples before endpoint repetition.
+            int topRightCount = hasTopRight
+                ? Math.Min(Math.Min(width, height), reconstructionPlane.Width - blockOrigin.X - width)
+                : 0;
+
             if (hasTopRight)
             {
                 reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1)
@@ -1219,7 +1224,10 @@ internal static partial class Av1IntraSuperblockEncoder
             int topCount = width + topRightCount;
             above[topCount..].Fill(above[topCount - 1]);
 
-            int bottomLeftCount = hasBottomLeft ? Math.Min(height, width) : 0;
+            int bottomLeftCount = hasBottomLeft
+                ? Math.Min(Math.Min(height, width), reconstructionPlane.Height - blockOrigin.Y - height)
+                : 0;
+
             for (int row = height; row < height + bottomLeftCount; row++)
             {
                 left[row] = reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];

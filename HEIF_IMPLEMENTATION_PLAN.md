@@ -227,6 +227,50 @@ Color/output source coverage and remaining limits:
   The temporary comparison adapter supplies I420 using the managed RGB conversion. Its output cannot independently
   validate that RGB conversion, even when both codec decoders agree on native planes.
 
+Intra-reference frame-extent correction after checkpoint `182f39ae5`, verified on 2026-09-05:
+
+- Source comparison found that extension availability and extension length had been conflated.
+  `Av1IntraSuperblockEncoder.ChromaModeDecision.cs:1211-1240` and
+  `Av1IntraSuperblockEncoder.ModeDecision.cs:2393-2449` previously copied a complete adjacent extent whenever
+  its coding-order availability flag was true. Reference `av1/common/reconintra.c:1737-1742,1817-1820`
+  also clips the available count to the remaining coded frame extent, then repeats the final available
+  sample in the edge preparation at `reconintra.c:1149-1184`.
+- The new 56x56 production partition case failed before the correction with `ArgumentOutOfRangeException`
+  at the top-right copy (`edge-extent-before.trx`: two existing 32x32 cases passed, then execution stopped
+  on the new failure). This is an implementation defect, not a search-performance hypothesis.
+  Bottom-edge reads also require the bound: `Buffer2DRegion{T}.cs:89-97` limits row width but resolves the
+  row index against the backing buffer, whose encoder border can contain samples outside the coded region.
+- Both shared luma/chroma references and tiled candidate references now bound adjacent samples by the
+  plane's coded extent before endpoint repetition. The existing availability rules and allocation ownership
+  remain the governing contracts; no new guard, rejection policy, owner, or scratch buffer was introduced.
+- The rectangular reference cases retain all twelve earlier checks and add six explicit clipped-extent
+  cases across 8, 10, and 12 bits and both orientations. They use a larger backing buffer with distinct
+  values beyond the coded region, fixed expected edge sequences, and destination sentinels.
+  The production mixed-partition test retains both 32x32 orientations and adds both 56x56 orientations.
+- Final Release net11.0 build: zero errors and 1,009 existing warnings. Serialized Visual Studio VSTest:
+  **273/273 passed** in `edge-extent-final.trx` (20.3789 seconds), covering encoder frames, intra-superblocks,
+  HEIF encoder contracts, and the retained empty-transform cost-helper test. Roslynk reports zero compiler errors.
+- Fresh optimized-reference decoding of four regenerated partition streams matches all 8,320 retained luma samples.
+  Twelve regenerated moving color streams match all 21,348 Y/U/V samples. Combined maximum error is **0** across
+  **29,668** samples, with **0** samples exceeding one. These are same-bitstream decoder/reconstruction comparisons;
+  they do not establish separate-encoder parity or performance. No benchmark was run.
+
+The intra-edge investigation also confirmed these unresolved integration requirements:
+
+- `Av1PredictionDecoder.cs:989-1837` owns separate directional preparation, edge smoothing, upsampling,
+  strength selection, and neighboring-mode selection. Native `reconintra.c:989-1082,1349-1381` uses endpoint
+  extension, rounded nonnegative smoothing kernels, and clipped signed four-tap half-sample interpolation.
+  No new numerical discrepancy in those arithmetic kernels has been established by this comparison.
+- Encoder `Av1EncoderModeDecisionWorkspace.cs:50-53,133-135` retains four raw edge spans with one prefix sample.
+  The decoder needs writable prefix positions -1 and -2 and candidate-specific filtering; mutating those raw
+  encoder spans across mode trials would contaminate later candidates. `Av1EncoderBlockWorkspace.cs:143-144`
+  exposes transform scratch whose lifetime must be reconciled with directional prediction before sharing it.
+- `Av1IntraSuperblockEncoder.ModeDecision.cs:2272-2466` draws tiled edges from both committed reconstruction
+  and the current candidate mosaic. Enabling filtering must preserve that distinction, coded extents,
+  chroma neighbor ownership, corner preparation, and smooth-neighbor-dependent thresholds across all callers.
+  The sequence flag remains disabled pending that complete integration. The decoder's private kernels are
+  not a substitute for the required shared closed-generic traversal and semantic-operator architecture.
+
 ### Required completion gates
 
 Motion-controller investigation continued after correction checkpoint `578ec34d9`:

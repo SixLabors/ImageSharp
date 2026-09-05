@@ -2918,11 +2918,12 @@ public class Av1IntraSuperblockEncoderTests
     /// Verifies that mixed partition trials and final writing retain the decoder's reconstruction order.
     /// </summary>
     [Theory]
-    [InlineData(false)]
-    [InlineData(true)]
-    public void ProductionMixedPartitionsPreserveReconstructionOrder(bool transpose)
+    [InlineData(false, 32)]
+    [InlineData(true, 32)]
+    [InlineData(false, 56)]
+    [InlineData(true, 56)]
+    public void ProductionMixedPartitionsPreserveReconstructionOrder(bool transpose, int size)
     {
-        const int Size = 32;
         const int QIndex = 4;
         ObuColorConfig colorConfig = new()
         {
@@ -2932,12 +2933,12 @@ public class Av1IntraSuperblockEncoderTests
             BitDepth = Av1BitDepth.EightBit
         };
 
-        using Av1EncoderFrameBuffer<byte> source = new(Configuration.Default, Size, Size, 8, Av1ColorFormat.Yuv400, 0, 0);
-        using Av1EncoderFrameBuffer<byte> reconstruction = new(Configuration.Default, Size, Size, 8, Av1ColorFormat.Yuv400, 0, 0);
+        using Av1EncoderFrameBuffer<byte> source = new(Configuration.Default, size, size, 8, Av1ColorFormat.Yuv400, 0, 0);
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(Configuration.Default, size, size, 8, Av1ColorFormat.Yuv400, 0, 0);
         Buffer2DRegion<byte> sourcePlane = source.Frame.CodedView.GetPlane(Av1Plane.Y);
-        for (int y = 0; y < Size; y++)
+        for (int y = 0; y < size; y++)
         {
-            for (int x = 0; x < Size; x++)
+            for (int x = 0; x < size; x++)
             {
                 // The lower-right quadrant contains two different square surfaces beside one vertical
                 // surface. Transposition exercises the corresponding horizontal reconstruction order.
@@ -2953,19 +2954,19 @@ public class Av1IntraSuperblockEncoderTests
         }
 
         ClearPlane(reconstruction.Luma);
-        using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, Size, Size, disallow4x4AllFrames: false);
+        using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, size, size, disallow4x4AllFrames: false);
         Av1PictureControlSet template = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, QIndex);
         using Av1EncoderPictureBuffer picture = new(
-            Configuration.Default, template.Sequence.SequenceHeader, template.Parent.FrameHeader, Size, Size, disallow4x4AllFrames: false);
+            Configuration.Default, template.Sequence.SequenceHeader, template.Parent.FrameHeader, size, size, disallow4x4AllFrames: false);
 
-        using Av1EncoderCoefficientBuffer coefficients = new(Configuration.Default, template.Sequence.SequenceHeader, Size, Size);
+        using Av1EncoderCoefficientBuffer coefficients = new(Configuration.Default, template.Sequence.SequenceHeader, size, size);
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
         using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(picture.Picture, 8192);
         Av1TileEncoder tileWriter = new(
             symbolEncoder, source.Frame, reconstruction.Frame, picture.Picture, coefficients, superblockWorkspace, blockWorkspace, effort: 9);
 
-        byte[] payload = WriteCompleteTileObu(picture.Picture, tileWriter, Size, Size);
+        byte[] payload = WriteCompleteTileObu(picture.Picture, tileWriter, size, size);
         using Av1Decoder decoder = new(Configuration.Default);
         decoder.DecodeSequenceReference(payload, null, null);
         Av1FrameInfo decodedInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
@@ -2973,10 +2974,10 @@ public class Av1IntraSuperblockEncoderTests
         Buffer2DRegion<byte> decodedPlane = decodedFrame.DeriveBlockPointer(Av1Plane.Y, 0, 0);
         Buffer2DRegion<byte> retainedPlane = reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y);
         bool hasMixedPartition = false;
-        for (int y = 0; y < Size; y++)
+        for (int y = 0; y < size; y++)
         {
             Assert.Equal(retainedPlane.DangerousGetRowSpan(y).ToArray(), decodedPlane.DangerousGetRowSpan(y).ToArray());
-            for (int x = 0; x < Size; x += 4)
+            for (int x = 0; x < size; x += 4)
             {
                 Point position = new(x >> 2, y >> 2);
                 Av1PartitionType partition = decodedInfo.GetModeInfoAt(position).PartitionType;
@@ -2995,9 +2996,9 @@ public class Av1IntraSuperblockEncoderTests
             TestEnvironment.ActualOutputDirectoryFullPath, "Heif", "Av1", nameof(this.ProductionMixedPartitionsPreserveReconstructionOrder));
 
         Directory.CreateDirectory(directory);
-        File.WriteAllBytes(Path.Combine(directory, $"{transpose}.obu"), payload);
-        using FileStream raw = File.Create(Path.Combine(directory, $"{transpose}.retained.yuv"));
-        for (int y = 0; y < Size; y++)
+        File.WriteAllBytes(Path.Combine(directory, $"{size}-{transpose}.obu"), payload);
+        using FileStream raw = File.Create(Path.Combine(directory, $"{size}-{transpose}.retained.yuv"));
+        for (int y = 0; y < size; y++)
         {
             raw.Write(retainedPlane.DangerousGetRowSpan(y));
         }

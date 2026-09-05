@@ -144,26 +144,26 @@ internal sealed class Av1LoopRestorationDecoder
         // Restoration units overlap in their filter context but not in their output. Reading the reconstructed
         // plane directly while writing a native-width destination matches libaom's frame/rst_frame ownership.
 
-        // AV1 lets the last unit absorb a remainder smaller than 150 percent of the nominal size.
-        // Size scratch storage for that largest legal unit rather than the nominal grid step.
+        // The last restoration unit can absorb a remainder, but both filters process at most 64 luma samples
+        // per axis before reusing scratch. Unit dimensions therefore do not determine the filter workspace.
         int extendedUnitSize = (unitSize * 3) / 2;
-        int maximumUnitWidth = Math.Min(extendedUnitSize, planeWidth);
+        int processingUnitWidth = Av1LoopRestorationBoundary.ProcessingStripeSize >> subsamplingX;
+        int maximumBlockWidth = Math.Min(processingUnitWidth, planeWidth);
         int maximumStripeHeight = Av1LoopRestorationBoundary.ProcessingStripeSize >> subsamplingY;
-        int borderedStride = maximumUnitWidth + (FilterBorder * 2) + WienerPadding;
+        int borderedStride = maximumBlockWidth + (FilterBorder * 2) + WienerPadding;
         int borderedLength = borderedStride * (maximumStripeHeight + (FilterBorder * 2) + WienerPadding);
-        int wienerScratchLength = Av1WienerFilter.GetScratchLength(maximumUnitWidth, maximumStripeHeight);
+        int wienerScratchLength = Av1WienerFilter.GetScratchLength(maximumBlockWidth, maximumStripeHeight);
         int filterOutputLength = this.frameBuffer.BytesPerSample == 1
-            ? maximumUnitWidth * maximumStripeHeight
+            ? maximumBlockWidth * maximumStripeHeight
             : 0;
+
         int ushortScratchLength = borderedLength + wienerScratchLength + filterOutputLength;
         using IMemoryOwner<ushort> ushortScratchOwner = allocator.Allocate<ushort>(ushortScratchLength);
         Span<ushort> ushortScratch = ushortScratchOwner.Memory.Span[..ushortScratchLength];
         Span<ushort> borderedSource = ushortScratch[..borderedLength];
         Span<ushort> wienerScratch = ushortScratch.Slice(borderedLength, wienerScratchLength);
         Span<ushort> filterOutput = ushortScratch[(borderedLength + wienerScratchLength)..];
-        int processingUnitWidth = Av1LoopRestorationBoundary.ProcessingStripeSize >> subsamplingX;
-        int maximumSelfGuidedWidth = Math.Min(processingUnitWidth, maximumUnitWidth);
-        int selfGuidedScratchLength = Av1SelfGuidedFilter.GetScratchLength(maximumSelfGuidedWidth, maximumStripeHeight);
+        int selfGuidedScratchLength = Av1SelfGuidedFilter.GetScratchLength(maximumBlockWidth, maximumStripeHeight);
         using IMemoryOwner<int> selfGuidedScratchOwner = allocator.Allocate<int>(selfGuidedScratchLength);
         Span<int> selfGuidedScratch = selfGuidedScratchOwner.Memory.Span[..selfGuidedScratchLength];
 
@@ -306,9 +306,15 @@ internal sealed class Av1LoopRestorationDecoder
 
             // The first frame stripe is shortened by the upward offset; subsequent stripes remain
             // 64 luma samples high, with the current unit limiting only the final iteration.
-            if (unit.FilterType == Av1RestorationFilterType.Wiener)
+            int processingUnitWidth = Av1LoopRestorationBoundary.ProcessingStripeSize >> subsamplingX;
+
+            // Both filters consume bounded processing units. Their context still comes from the full plane,
+            // so a chunk boundary never becomes a replicated edge or reads an already restored sample.
+            for (int unitColumn = 0; unitColumn < unitWidth; unitColumn += processingUnitWidth)
             {
-                int borderedStride = unitWidth + (FilterBorder * 2) + WienerPadding;
+                int blockWidth = Math.Min(processingUnitWidth, unitWidth - unitColumn);
+                int blockStart = horizontalStart + unitColumn;
+                int borderedStride = blockWidth + (FilterBorder * 2) + WienerPadding;
                 int sourceLength = borderedStride * (stripeHeight + (FilterBorder * 2) + WienerPadding);
                 Span<ushort> filterSource = borderedSource[..sourceLength];
                 this.PopulateBorderedSource(
@@ -319,76 +325,39 @@ internal sealed class Av1LoopRestorationDecoder
                     sourceStride,
                     planeWidth,
                     planeHeight,
-                    horizontalStart,
-                    unitWidth,
+                    blockStart,
+                    blockWidth,
                     stripeStart,
                     stripeHeight,
                     borderedStride,
                     filterSource);
 
-                int destinationOffset = (stripeStart * planeWidth) + horizontalStart;
+                int destinationOffset = (stripeStart * planeWidth) + blockStart;
                 Span<ushort> filterDestination = highBitDepthDestination.IsEmpty
-                    ? filterOutput[..(unitWidth * stripeHeight)]
+                    ? filterOutput[..(blockWidth * stripeHeight)]
                     : highBitDepthDestination[destinationOffset..];
-                int filterDestinationStride = highBitDepthDestination.IsEmpty ? unitWidth : planeWidth;
-                int scratchLength = Av1WienerFilter.GetScratchLength(unitWidth, stripeHeight);
-                Av1WienerFilter.FilterStripe(
-                    filterSource,
-                    borderedStride,
-                    filterDestination,
-                    filterDestinationStride,
-                    unitWidth,
-                    stripeHeight,
-                    this.frameBuffer.BitDepth.GetBitCount(),
-                    unit.WienerHorizontal,
-                    unit.WienerVertical,
-                    wienerScratch[..scratchLength]);
 
-                if (highBitDepthDestination.IsEmpty)
+                int filterDestinationStride = highBitDepthDestination.IsEmpty ? blockWidth : planeWidth;
+
+                // Native Wiener kernels round the final chunk's write width up for SIMD. This kernel accepts
+                // the exact tail width, retaining all seven-tap context without writing beyond the plane.
+                if (unit.FilterType == Av1RestorationFilterType.Wiener)
                 {
-                    CopyFilterOutput(
+                    int scratchLength = Av1WienerFilter.GetScratchLength(blockWidth, stripeHeight);
+                    Av1WienerFilter.FilterStripe(
+                        filterSource,
+                        borderedStride,
                         filterDestination,
                         filterDestinationStride,
-                        lowBitDepthDestination,
-                        destinationOffset,
-                        planeWidth,
-                        unitWidth,
-                        stripeHeight);
-                }
-            }
-            else
-            {
-                int processingUnitWidth = Av1LoopRestorationBoundary.ProcessingStripeSize >> subsamplingX;
-
-                // Self-guided local statistics restart at each normative 64-luma processing unit.
-                // Context still crosses the chunk boundary because the source is the full plane.
-                for (int unitColumn = 0; unitColumn < unitWidth; unitColumn += processingUnitWidth)
-                {
-                    int blockWidth = Math.Min(processingUnitWidth, unitWidth - unitColumn);
-                    int blockStart = horizontalStart + unitColumn;
-                    int borderedStride = blockWidth + (FilterBorder * 2) + WienerPadding;
-                    int sourceLength = borderedStride * (stripeHeight + (FilterBorder * 2) + WienerPadding);
-                    Span<ushort> filterSource = borderedSource[..sourceLength];
-                    this.PopulateBorderedSource(
-                        plane,
-                        frameStripe,
-                        lowBitDepthSource,
-                        highBitDepthSource,
-                        sourceStride,
-                        planeWidth,
-                        planeHeight,
-                        blockStart,
                         blockWidth,
-                        stripeStart,
                         stripeHeight,
-                        borderedStride,
-                        filterSource);
-
-                    int destinationOffset = (stripeStart * planeWidth) + blockStart;
-                    Span<ushort> filterDestination = highBitDepthDestination.IsEmpty
-                        ? filterOutput[..(blockWidth * stripeHeight)]
-                        : highBitDepthDestination[destinationOffset..];
-                    int filterDestinationStride = highBitDepthDestination.IsEmpty ? blockWidth : planeWidth;
+                        this.frameBuffer.BitDepth.GetBitCount(),
+                        unit.WienerHorizontal,
+                        unit.WienerVertical,
+                        wienerScratch[..scratchLength]);
+                }
+                else
+                {
                     int scratchLength = Av1SelfGuidedFilter.GetScratchLength(blockWidth, stripeHeight);
                     Av1SelfGuidedFilter.FilterBlock(
                         filterSource,
@@ -401,18 +370,18 @@ internal sealed class Av1LoopRestorationDecoder
                         unit.SgrParameterSet,
                         unit.SgrProjectionCoefficients,
                         selfGuidedScratch[..scratchLength]);
+                }
 
-                    if (highBitDepthDestination.IsEmpty)
-                    {
-                        CopyFilterOutput(
-                            filterDestination,
-                            filterDestinationStride,
-                            lowBitDepthDestination,
-                            destinationOffset,
-                            planeWidth,
-                            blockWidth,
-                            stripeHeight);
-                    }
+                if (highBitDepthDestination.IsEmpty)
+                {
+                    CopyFilterOutput(
+                        filterDestination,
+                        filterDestinationStride,
+                        lowBitDepthDestination,
+                        destinationOffset,
+                        planeWidth,
+                        blockWidth,
+                        stripeHeight);
                 }
             }
 

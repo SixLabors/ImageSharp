@@ -274,6 +274,55 @@ CDF symbol-cost floor correction, verified after `37541f7f3` on 2026-09-05:
   in the temporary takeover directory. These are bounded same-bitstream checks, not separate-encoder parity,
   a quality improvement claim, or performance acceptance. No benchmark was run.
 
+Frame/block RD and decoder filter follow-up after `aa2ecf690`:
+
+- The two base multiplier formulas and high-bit-depth normalization in `Av1RateDistortion.cs:122-158` match
+  native `av1/encoder/rd.c:371-444` for their represented key/ordinary-inter roles with default PSNR tuning.
+  They do not implement the surrounding frame-role, layer/boost, tuning, or block adjustments
+  (`rd.c:447-463,802-809`, `av1/encoder/partition_search.c:596-658`). In particular, ALLINTRA derives a
+  superblock modifier from the range of subblock variances (`partition_search.c:5721-5734`).
+  `Av1IntraSuperblockEncoder.ModeDecision.cs:172-176` uses only the segment-zero base quantizer and intra flag.
+  These missing policies remain architectural deviations; no isolated multiplier adjustment was introduced.
+- Transform pixel-error normalization and the modeled-rate skip comparison were also traced through
+  `Av1TransformBlockEncoder.cs:577-590`, `Av1RateDistortion.cs:259-307`, native
+  `av1/encoder/model_rd.h:70-106,162-199`, and `av1/encoder/tx_search.c:979-1051`.
+  No additional numerical defect was established in those formulas. The conditional border policy and
+  transform-domain/winner evaluation stages remain unresolved as recorded above.
+- The complete `Av1CdefDecoder.cs` frame/unit traversal was compared with `av1/common/cdef.c:29-478`:
+  unfiltered top/left context, coded-edge sentinels, skipped-block lists, luma direction ownership, and chroma
+  reuse are present. The managed sequential traversal reads the still-unmodified bottom row directly; native
+  retains bottom lines for its worker-capable traversal. This inspection establishes no decoder-wide or SIMD
+  completeness claim. Decoder CDEF storage remains an operation-scoped owner, not native reusable worker state.
+
+Restoration processing-unit correction:
+
+- Before correction, `Av1LoopRestorationDecoder.cs:147-166,309-358` sized its bordered source, Wiener
+  intermediate, and eight-bit output bridge for a whole restoration-unit stripe, including an absorbed tail.
+  Only the self-guided branch split horizontally into processing units. Native
+  `av1/common/restoration.c:389-408,904-963,987-1054` dispatches both filters in 64-luma-sample processing
+  units with chroma subsampling applied. This is a traversal/sizing deviation, not a demonstrated pixel defect.
+- Both branches now share that bounded traversal and scratch sizing. Source context crosses every chunk and
+  restoration-unit edge; replication remains restricted to the frame edge. Stripe-boundary rows retain their
+  deblocked provenance. Existing kernels accept the exact tail width, whereas native Wiener SIMD rounds its
+  final write into padded storage. Frame output ownership and the self-guided statistics boundaries are retained.
+- For a luma plane at least 384 samples wide with a nominal 256-sample restoration unit, the combined ushort
+  scratch request calculated from the source falls from 155.47 KiB to 26.72 KiB at eight bits, and from
+  107.47 KiB to 18.72 KiB at 10/12 bits. These figures exclude the destination plane and integer self-guided
+  scratch. They are allocation-formula results, not measured process memory or a timing improvement.
+- Final verification passes nine serialized Release .NET 11 VSTest cases in 16.0008 seconds
+  (`restoration-grid-final-r2.trx`), including native-plane restoration, both filter
+  types, all three precisions, 4:2:0/4:2:2/4:4:4, super-resolution, and hardware fallbacks. No tests or expected
+  outputs were changed. The final incremental build reports zero errors and warnings; the preceding compilation
+  reported 1,009 existing warnings. Roslynk reports zero compiler errors.
+- All six retained restoration references were independently regenerated with the current optimized native
+  decoder and match exactly: 5,386,240 Y/U/V samples, maximum error 0, zero samples exceeding one.
+  Per-plane results and payload sizes are in the temporary `restoration-comparison.json`. This verifies the
+  provenance of the exact references used by the tests; it does not establish separate-encoder parity.
+- `Av1WienerFilter.cs:96-134,165-188` still computes one horizontal output using a vector dot product and
+  traverses vertical outputs scalarly. The optimized reference instead processes multiple outputs per vector
+  (`av1/common/x86/wiener_convolve_avx2.c`). That SIMD/traversal architecture and the eight-bit output bridge
+  remain open. No benchmark was run, and temporary native output and scripts remain excluded from commits.
+
 Palette coded-boundary correction, verified after `b2aee3036` on 2026-09-05:
 
 - The encoder clipped luma/chroma palette search to visible frame dimensions

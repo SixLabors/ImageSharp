@@ -246,6 +246,33 @@ Further controller-state findings after `b2aee3036` on 2026-09-05:
   Updating CDFs after each selected block is not the same as refreshing every RD cost after that block.
   This missing cost-state lifecycle is an architectural deviation. Its contribution to time or quality has
   not been measured; no isolated cache or invented effort-dependent refresh policy has been introduced.
+- Reference `av1/encoder/rd.c:687-853` initializes the complete cost state and combines control and speed-feature
+  update frequencies. `av1/av1_cx_iface.c:391-394,1342-1348` defaults controls to superblock updates and disables
+  MV-cost updates for all-intra configuration. These are configured policies, not a public-effort mapping.
+  `av1/encoder/encoder_alloc.h:58-88` omits the main MV-cost allocation for all-intra; displacement costs are
+  initialized only when needed (`rd.c:843-851`). Worker costs are separately owned when their update policy
+  requires independent state (`av1/encoder/ethread.c:1610-1641`). Managed sizing and lifetime must follow those
+  usage boundaries rather than adding every table to every frame or candidate.
+
+CDF symbol-cost floor correction, verified after `37541f7f3` on 2026-09-05:
+
+- `Av1ProbabilityCost.cs:47-52` previously passed each CDF interval directly to raw probability conversion.
+  Native `av1/encoder/cost.c:30-48` first floors symbol mass at `EC_MIN_PROB` (4, `aom_dsp/entcode.h:21`).
+  Raw conversion has a different domain and still permits 1 (`av1/encoder/cost.h:32-42`). Conflating the two
+  overcharged sufficiently rare symbols by up to 1,024 rate units, or two bits.
+- CDF symbol conversion now applies the existing range-coder minimum before raw conversion. Gathered edge
+  partition costs (`Av1SymbolEncoder.cs:969-980,1003-1014`) use that same symbol boundary, matching native
+  `av1/encoder/partition_search.c:3419-3449`. Existing raw-probability behavior and tests remain unchanged.
+- The new zero-mass middle-interval regression failed before correction: expected 6,656, actual 7,680
+  (`symbol-floor-red.trx`). Cases at masses 0 through 4 and 8 exercise both ordinary CDF and gathered-symbol
+  conversion. They do not replace the missing RD-cost refresh lifecycle or coefficient optimizer.
+- Final Release .NET 11 build: zero errors and 1,009 existing warnings; Roslynk: zero compiler errors.
+  Serialized Visual Studio VSTest passes 2,283/2,283 in 27.0448 seconds (`symbol-floor-final.trx`), covering
+  entropy, intra-superblock, encoder-frame, and public HEIF encoder tests.
+- Optimized libaom decoding was repeated after the final edit for 23 palette, eight partition, and twelve color
+  sequence streams: 38,973 samples, maximum error 0, and zero samples exceeding one. Per-plane reports remain
+  in the temporary takeover directory. These are bounded same-bitstream checks, not separate-encoder parity,
+  a quality improvement claim, or performance acceptance. No benchmark was run.
 
 Palette coded-boundary correction, verified after `b2aee3036` on 2026-09-05:
 

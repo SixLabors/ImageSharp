@@ -157,6 +157,22 @@ public class Av1EntropyTests
     }
 
     [Theory]
+    [InlineData(0, 6656)]
+    [InlineData(1, 6656)]
+    [InlineData(2, 6656)]
+    [InlineData(3, 6656)]
+    [InlineData(4, 6656)]
+    [InlineData(8, 6144)]
+    public void SymbolCostUsesRangeCoderMinimumProbability(uint probability, int expected)
+    {
+        // A middle interval can collapse during adaptation. Libaom cost.c floors its mass at EC_MIN_PROB=4,
+        // giving 13 * 512 rate units at and below that floor, while mass 8 costs 12 * 512 units.
+        Av1Distribution distribution = new(16384, 16384 + probability);
+        Assert.Equal(expected, Av1ProbabilityCost.GetSymbolCost(distribution, 1));
+        Assert.Equal(expected, Av1ProbabilityCost.GetSymbolCost((int)probability));
+    }
+
+    [Theory]
     [InlineData(0, 0)]
     [InlineData(1, 512)]
     [InlineData(7, 3584)]

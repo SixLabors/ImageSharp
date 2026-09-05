@@ -48,7 +48,19 @@ internal static class Av1ProbabilityCost
     {
         int inverseLower = symbol == 0 ? Av1Distribution.ProbabilityTop : (int)distribution[symbol - 1];
         int inverseUpper = (int)distribution[symbol];
-        return GetProbabilityCost(inverseLower - inverseUpper);
+        return GetSymbolCost(inverseLower - inverseUpper);
+    }
+
+    /// <summary>
+    /// Gets the fixed-point cost of an entropy-coded symbol with a Q15 probability.
+    /// </summary>
+    /// <param name="probability">The Q15 probability numerator.</param>
+    /// <returns>The rate cost in 1/512-bit units.</returns>
+    public static int GetSymbolCost(int probability)
+    {
+        // The range coder reserves a minimum interval even when CDF adaptation collapses a symbol's mass.
+        // RD costs use that same floor; the raw probability conversion below retains its separate numerical domain.
+        return GetProbabilityCost(Math.Max(probability, Av1Distribution.ProbabilityMinimum));
     }
 
     /// <summary>

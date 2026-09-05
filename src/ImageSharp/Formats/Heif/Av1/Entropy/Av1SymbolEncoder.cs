@@ -973,7 +973,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
             blockSize,
             context);
 
-        return Av1ProbabilityCost.GetProbabilityCost(
+        return Av1ProbabilityCost.GetSymbolCost(
             partitionType == Av1PartitionType.Split
                 ? frequency
                 : Av1Distribution.ProbabilityTop - frequency);
@@ -1007,7 +1007,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
             blockSize,
             context);
 
-        return Av1ProbabilityCost.GetProbabilityCost(
+        return Av1ProbabilityCost.GetSymbolCost(
             partitionType == Av1PartitionType.Split
                 ? frequency
                 : Av1Distribution.ProbabilityTop - frequency);

@@ -91,15 +91,14 @@ internal sealed partial class HeifEncoderCore
         HeifChromaSubsampling chromaSubsampling = this.encoder.ChromaSubsampling ??
             (metadata.IsMonochrome ? HeifChromaSubsampling.Monochrome : defaultChromaSubsampling);
 
-        if (this.encoder.ChromaSubsampling is null
-            && image.Frames.Count == 1
+        if (image.Frames.Count == 1
             && (image.Width > Av1Constants.MaxFrameDimension || image.Height > Av1Constants.MaxFrameDimension)
             && ((chromaSubsampling == HeifChromaSubsampling.Yuv420
                     && (((image.Width & 1) != 0) || ((image.Height & 1) != 0)))
                 || (chromaSubsampling == HeifChromaSubsampling.Yuv422 && (image.Width & 1) != 0)))
         {
-            // A derived grid requires even output dimensions on every subsampled axis. When sampling was not
-            // explicitly requested, retain the complete image dimensions by selecting full-resolution chroma.
+            // A derived grid requires even output dimensions on every subsampled axis. Resolve incompatible
+            // sampling through conversion so the complete source dimensions remain representable.
             chromaSubsampling = HeifChromaSubsampling.Yuv444;
         }
 

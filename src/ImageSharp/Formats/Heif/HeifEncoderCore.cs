@@ -1075,11 +1075,6 @@ internal sealed partial class HeifEncoderCore
     {
         bool isSubsampledX = !settings.ColorConfig.IsMonochrome && settings.ColorConfig.SubSamplingX;
         bool isSubsampledY = !settings.ColorConfig.IsMonochrome && settings.ColorConfig.SubSamplingY;
-        if ((isSubsampledX && (image.Width & 1) != 0) || (isSubsampledY && (image.Height & 1) != 0))
-        {
-            throw new NotSupportedException("AVIF grid output dimensions must be even along each subsampled chroma axis.");
-        }
-
         int columns = GetGridCellCount(image.Width, Av1Constants.MaxFrameDimension);
         int rows = GetGridCellCount(image.Height, Av1Constants.MaxFrameDimension);
         if (columns > MaximumGridAxisCellCount || rows > MaximumGridAxisCellCount)

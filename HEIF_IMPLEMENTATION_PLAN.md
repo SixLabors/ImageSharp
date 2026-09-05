@@ -191,6 +191,62 @@ Coefficient optimization and evaluation-stage investigation:
   `av1/encoder/speed_features.c:2709-2776` show usage-specific CPU settings and feature initialization.
   ImageSharp's 0-10 effort scale has not yet been reconciled with these policies. No new effort mapping is assumed.
 
+Further quantization, distortion, and final-packing source comparison on 2026-09-05:
+
+- `Av1ForwardQuantizer.cs:88-236` and `Av1ForwardQuantizer.Operator.cs:98-316` implement the no-matrix
+  fast quantizers. The rounding factor 64 agrees with `av1/encoder/av1_quantize.c:609-651` at sharpness zero;
+  the regular quantizer's factor 48 is not evidence of a fast-quantizer rounding defect. The managed path
+  does not implement the reference's sharpness adjustment, regular quantizer, or quantization-matrix policy.
+- `Av1TransformBlockEncoder.cs:1175-1225` always ends lossy coefficient selection at fast quantization.
+  Reference `av1/encoder/tx_search.c:2064-2391` derives trellis eligibility from segment, evaluation stage,
+  normalized residual energy, and transformed SATD; chooses fast or regular quantization; measures coefficient
+  rate before reconstruction; selects transform-domain or pixel-domain distortion; retains the winning
+  coefficient buffer, EOB, type, and entropy context; then reconstructs intra neighbors. These are coupled
+  state transitions, not interchangeable standalone numerical primitives.
+- `Av1IntraSuperblockEncoder.ModeDecision.cs:166-168` stores coded planar views.
+  `Av1EncoderFrame.cs:109-119` assigns those views the aligned dimensions. Consequently
+  `Av1IntraSuperblockEncoder.ReferenceModeDecision.cs:984-987` includes coded alignment in its model bounds.
+  An initial suspicion that this always violates reference clipping was rejected after following
+  `av1/encoder/encoder.h:4291-4309`: the reference also uses aligned dimensions when `do_border_pad` is false.
+  Its conditional true-frame policy is selected at `av1/encoder/encoder.c:4560-4568` and consumed by
+  `av1/encoder/rdopt_utils.h:361-401` and `av1/encoder/model_rd.h:256-303`. That policy is missing here.
+  The misleading visible-only comment was corrected; no arithmetic change or numerical-defect claim is justified
+  without reconciling that policy and its delta-Q/TPL prerequisites. High-bit-depth SSE rounding in the current
+  caller matches `av1/encoder/model_rd.h:70-108`.
+- `Av1TileEncoder.cs:294-329` selects each block and writes its entropy data immediately.
+  `Av1TileWriter.cs:820-834,1070-1097` consumes the current palette and map, and
+  `Av1EncoderSuperblockWorkspace.cs:94-105` clears reusable decisions between superblocks.
+  Frame coefficients and EOB/type state survive in `Av1EncoderCoefficientBuffer.cs:32-59,117-150`, but these
+  alone cannot reproduce all final block syntax after frame-wide filter selection.
+- Reference `av1/encoder/encoder.c:2787-2838,2891-2911,3787-3813` selects/applies deblocking, CDEF,
+  and restoration after reconstruction and before final bitstream packing. It preserves restoration boundary
+  rows before and after CDEF. Its palette path tokenizes selected maps during coding
+  (`av1/encoder/tokenize.c:182-225,264-278`) and packs those retained tokens later
+  (`av1/encoder/bitstream.c:1516-1535`). `TokenExtra` occupies one byte per palette sample;
+  `av1/encoder/tokenize.h:105-135` and `av1/encoder/encodeframe.c:1413-1430` size and retain that frame storage.
+  The managed single-pass lifetime is a controller/ownership deviation that must be resolved together with
+  delayed packing. Simply flipping CDEF/restoration flags or saving only probability state is insufficient.
+- This comparison ran no benchmark or runtime test and establishes no new numerical or performance result.
+
+Explicit grid-sampling conversion correction, verified after `5f7bad3a6` on 2026-09-05:
+
+- `HeifEncoderCore.Sequence.cs:97-109` promoted incompatible odd-grid sampling only when the public option
+  was unspecified; `HeifEncoderCore.cs:1078-1081` then rejected the same dimensions for explicit 4:2:0/4:2:2.
+  The established TIFF conversion contract (`TiffEncoderCore.cs:371-444`) resolves unsupported option
+  combinations before encoding, including explicit choices. The existing HEIF fallback already demonstrates
+  that these source dimensions can be preserved through 4:4:4 conversion.
+- The extended existing public grid regression first passed default sampling and then failed on explicit
+  4:2:0 with that exact exception. VSTest stopped on the failure; see `grid-sampling-before.trx` in the local
+  takeover report directory. Option resolution now promotes explicit and default incompatible sampling alike
+  before matrix/profile selection. The redundant private grid guard was removed: its only caller obtains the
+  resolved settings first (`HeifEncoderCore.cs:1040-1062`), and multi-frame AV1 input follows the sequence path.
+- All original descriptor, extent, edge-replication, hidden-item, reference-order, and exact-pixel assertions
+  remain. Four cases additionally inspect both emitted cell headers and preserve the source profile object.
+  Final serialized Release .NET 11 Visual Studio VSTest passes 67/67 HEIF encoder cases in 6.2836 seconds
+  (`D:\GitHub\ynse01\av1-takeover-20260905\grid-sampling-final.trx`). The final source build reports zero errors
+  and warnings; the preceding test compilation reports 1,009 existing warnings. Roslynk reports zero compiler errors.
+  No benchmark or separate-encoder measurement was run. Decoder rejection tests for invalid input grids remain unchanged.
+
 Color-conversion boundary correction after checkpoint `f7bd907d6`, verified on 2026-09-05:
 
 - `HeifEncoderCore.Sequence.cs:74-194` resolved output sampling and preserved reversible YCgCo matrix metadata,
@@ -1330,7 +1386,7 @@ Encoder verification contract:
 - [x] Exact container tests verify every emitted item declaration, name, MIME content type, `cdsc` relationship, Exif offset and payload, XMP payload, ICC/CICP property order, compact association byte, propertyless metadata exclusion, decoded profile value, and both `SkipMetadata` branches. The final HEIF encoder set passes 44 of 44 and the complete JPEG encoder set passes 257 of 257 through direct foreground net11 Release VSTest. The complete non-HEVC HEIF namespace passes 9,282 of 9,282 with no failure, crash, or detached test host, and current official libaom accepts all 47 current generated AV1 payloads.
 - [x] A code-wide production HEIF/AV1 stack-storage audit, excluding HEVC, removed every block-sized, variable-length, or repeatedly nested scratch buffer. Spatial luma and chroma, filter-intra, chroma-from-luma, luma and chroma palette selection, and K-means iteration now use typed views over 642 signed-integer elements, about 2.51 KiB, at the start of the shared inter-prediction region. Those searches are sequential for one block, so the block-workspace owner does not grow and no rent, copy, or additional lifetime is introduced. CDEF directions, variances, and its 64-entry block list now append 1 KiB to the existing bounded operation owner instead of occupying hidden inline or explicit stack arrays. No remaining `stackalloc` depends on block dimensions, sample count, or runtime length; the largest remaining individual span is 128 bytes, and the remaining sites are fixed syntax, SIMD-lane, filter-tap, plane-metadata, or small candidate storage. The exact-owner test now proves the mode, palette, and reference-prediction views share one allocation. Roslynk reports zero compiler errors and no diagnostics in the changed files, the Release test-project build completes with the established 1,992 warnings and zero errors, 81 of 81 focused cases pass, and the complete non-HEVC HEIF/AV1 namespace passes 9,282 of 9,282 through one foreground net11 VSTest run.
 - [~] Bounded public image-sequence output now emits an `avis` movie with version-one movie, track, and media headers; AV1 visual sample entries; exact run-length-compressed timing; per-sample sizes; 64-bit chunk offsets; and an explicit sync-sample table. The file type includes the required `miaf` compatibility brand, and every sequence now has the MIAF primary image item emitted by current libavif: normal sequences share the first sync-sample extent without another encode or copy, while separate-root sequences retain the still root as the primary image and begin timed samples at frame index one. The decoder allocates one final `Image<TPixel>`: the root is either the first timed sample or the separately decoded primary item, and each visible timed sample is decoded directly into a frame owned by that image. Exact quarter-turn presentation uses one frame-sized reusable pre-rotation buffer rather than a second image or a separately built frame collection. Color and optional auxiliary alpha use independently configured AV1 tracks linked by `auxl`. Lossless samples remain independently decodable key pictures and repeat the sequence header required for random access. Lossy continuation samples use LAST_FRAME inter prediction through the existing SIMD translational predictor; one track-scoped encoder session reuses its source allocation, packed-to-planar row storage and color converter, frame-sized coefficient storage, fixed-geometry picture and frame-header syntax state, tile/superblock/entropy cursors, block arithmetic workspace, complete probability graph, bounded tile-output owner, and OBU-header owner, and swaps two complete reconstruction buffers so the preceding decoded frame becomes the next reference without a plane copy. Sequence samples signal `still_picture=0` and use the complete non-reduced sequence and frame-header prefixes required for a multi-frame coded sequence. Frame payloads are written once into contiguous allocator-backed chunks per track. One compact managed table retains only offset, length, and duration for both tracks, and the bounded `moov` owner is patched once after its final size is known, so prefixed and non-seekable destinations require neither seeking nor a file-sized copy. The media timescale uses the exact representable least common multiple of animated frame-delay denominators and a documented microsecond fallback; zero delays become the smallest legal positive duration. Public lossless color-and-alpha round trips preserve all frames, distinct 24, 25, and 30 fps delays, finite or infinite repetition, ICC, Exif, and XMP metadata, while a separate case proves prefixed non-seekable output. Per-tile CDEF preset, preceding-quantizer state, and payload bounds now occupy one aligned region in the reusable allocator-owned picture buffer rather than separate managed arrays for every frame. The last verified net11 Release checkpoint completed with the established 1,005 warnings and zero errors, all 48 HEIF encoder cases passed, and the complete non-HEVC HEIF/AV1 namespace passed 9,317 of 9,317 through foreground VSTest. Current official libaom `main` at `d565eec60f084421fa34fc0534b760c6452b6a6c` accepted all 66 raw AV1 payloads regenerated by that suite. Verification of the current primary-item, separate-root, non-reduced sequence-header, retained-reference continuation, grid implementation, block-local motion search, conversion-row, probability, picture, frame-header, tile-cursor, tile-output, and OBU-header reuse, and multi-tile output is pending. Additional reference roles and compound prediction remain open.
-- [~] Oversized still-image encoding now writes a derived AVIF grid when either source dimension exceeds the AV1 frame-header limit. Cells are encoded row-major from source rectangles without cropping to temporary images. Every coded cell uses the same at-most-65,536-sample extent for current-reader interoperability, with edge replication supplying the AVIF minimum 64-sample dimension and any final-row or final-column crop. Color and optional alpha grids use hidden AV1 items, ordered `dimg` references, one shared property set per plane, and independent descriptor payloads. The item-property length calculation counts every reused `ipma` association while retaining one `ipco` property definition. Explicit subsampled output rejects grid dimensions that MIAF cannot represent; an unspecified sampling choice promotes that exceptional odd-dimension grid to 4:4:4. Exact descriptor, hidden-flag, reference-order, property-reuse, cell-padding, and public round-trip coverage is present, and Roslynk reports zero compiler errors. Runtime verification remains pending.
+- [~] Oversized still-image encoding now writes a derived AVIF grid when either source dimension exceeds the AV1 frame-header limit. Cells are encoded row-major from source rectangles without cropping to temporary images. Every coded cell uses the same at-most-65,536-sample extent for current-reader interoperability, with edge replication supplying the AVIF minimum 64-sample dimension and any final-row or final-column crop. Color and optional alpha grids use hidden AV1 items, ordered `dimg` references, one shared property set per plane, and independent descriptor payloads. The item-property length calculation counts every reused `ipma` association while retaining one `ipco` property definition. Grid dimensions that are odd along a requested subsampled axis promote the resolved color sampling to 4:4:4, for both explicit and default options. Exact descriptor, hidden-flag, reference-order, property-reuse, cell-padding, and public round-trip coverage is present, and Roslynk reports zero compiler errors. Runtime verification remains pending.
 - [~] Write the correct AVIF file type, item information, locations, references, properties, AV1 configuration, dimensions, color, alpha, metadata, and media data.
 - [~] Support single images, alpha auxiliary images, grids, multiple extents, and bounded image sequences in the final public scope.
 - [x] Preserve ICC, Exif, and XMP according to encoder options.

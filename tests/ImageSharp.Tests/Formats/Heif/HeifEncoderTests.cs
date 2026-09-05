@@ -449,8 +449,12 @@ public class HeifEncoderTests
         Assert.Contains("must be even", exception.Message, StringComparison.Ordinal);
     }
 
-    [Fact]
-    public void Av1OversizedStillImageWritesAndDecodesGrid()
+    [Theory]
+    [InlineData(null)]
+    [InlineData(HeifChromaSubsampling.Yuv420)]
+    [InlineData(HeifChromaSubsampling.Yuv422)]
+    [InlineData(HeifChromaSubsampling.Yuv444)]
+    public void Av1OversizedStillImageWritesAndDecodesGrid(HeifChromaSubsampling? chromaSubsampling)
     {
         const int width = 65537;
         using Image<Rgb24> image = new(width, 1);
@@ -460,12 +464,14 @@ public class HeifEncoderTests
         image[width - 1, 0] = new Rgb24(31, 37, 41);
 
         // Identity-matrix 4:4:4 makes the lossless AV1 cells preserve the packed RGB channels exactly.
-        image.Metadata.CicpProfile = new CicpProfile(1, 13, 0, true);
+        CicpProfile sourceProfile = new(1, 13, 0, true);
+        image.Metadata.CicpProfile = sourceProfile;
         using MemoryStream stream = new();
         HeifEncoder encoder = new()
         {
             CompressionMethod = HeifCompressionMethod.Av1,
             Lossless = true,
+            ChromaSubsampling = chromaSubsampling,
             Effort = 0
         };
 
@@ -479,6 +485,18 @@ public class HeifEncoderTests
         using Image<Rgb24> firstCell = firstCellDecoder.Decode<Rgb24>(GetItemPayload(file, 2));
         using Av1Decoder secondCellDecoder = new(Configuration.Default);
         using Image<Rgb24> secondCell = secondCellDecoder.Decode<Rgb24>(GetItemPayload(file, 3));
+
+        // Odd grid dimensions require full-resolution chroma, including when subsampling was explicitly requested.
+        // The conversion must retain the source profile and signal the resolved sampling on every coded cell.
+        ObuSequenceHeader firstHeader = Assert.IsType<ObuSequenceHeader>(firstCellDecoder.SequenceHeader);
+        ObuSequenceHeader secondHeader = Assert.IsType<ObuSequenceHeader>(secondCellDecoder.SequenceHeader);
+        Assert.False(firstHeader.ColorConfig.SubSamplingX);
+        Assert.False(firstHeader.ColorConfig.SubSamplingY);
+        Assert.False(secondHeader.ColorConfig.SubSamplingX);
+        Assert.False(secondHeader.ColorConfig.SubSamplingY);
+        Assert.Equal(ObuMatrixCoefficients.Identity, firstHeader.ColorConfig.MatrixCoefficients);
+        Assert.Equal(ObuMatrixCoefficients.Identity, secondHeader.ColorConfig.MatrixCoefficients);
+        Assert.Same(sourceProfile, image.Metadata.CicpProfile);
 
         // AVIF requires the first grid cell to be at least 64 samples on both axes. The derived grid trims
         // the replicated right and bottom edges back to the presentation encoded in its descriptor.

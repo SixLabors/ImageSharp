@@ -988,7 +988,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 int visibleHeight = Math.Min(height, ((this.source.Height + subsamplingY) >> subsamplingY) - planeOrigin.Y);
                 long squaredError = 0;
 
-                // Cropped border samples participate in prediction, but not in the reference model's visible SSE.
+                // This view includes coded alignment samples, matching libaom when do_border_pad is false.
+                // Its conditional border-padding policy is not implemented here; these are not visible-frame bounds.
                 // Full blocks use one SIMD reduction; only a partial right edge needs row-sized reductions.
                 if (visibleWidth == width)
                 {

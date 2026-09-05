@@ -263,63 +263,95 @@ internal static class Numerics
     }
 
     /// <summary>
-    /// Returns the value clamped to the inclusive range of min and max.
+    /// Returns the value clamped to the inclusive range of min and max, mapping NaN to min.
     /// </summary>
     /// <param name="value">The value to clamp.</param>
     /// <param name="min">The minimum inclusive value.</param>
     /// <param name="max">The maximum inclusive value.</param>
     /// <returns>The clamped <see cref="float"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static float Clamp(float value, float min, float max)
-    {
-        if (value > max)
-        {
-            return max;
-        }
-
-        if (value < min)
-        {
-            return min;
-        }
-
-        return value;
-    }
+    public static float Clamp(float value, float min, float max) => Clamp<float>(value, min, max);
 
     /// <summary>
-    /// Returns the value clamped to the inclusive range of min and max.
+    /// Returns the value clamped to the inclusive range of min and max, mapping NaN to min.
     /// </summary>
     /// <param name="value">The value to clamp.</param>
     /// <param name="min">The minimum inclusive value.</param>
     /// <param name="max">The maximum inclusive value.</param>
     /// <returns>The clamped <see cref="double"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static double Clamp(double value, double min, double max)
+    public static double Clamp(double value, double min, double max) => Clamp<double>(value, min, max);
+
+    /// <summary>
+    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
+    /// </summary>
+    /// <param name="value">The components to clamp.</param>
+    /// <param name="min">The inclusive lower bounds.</param>
+    /// <param name="max">The inclusive upper bounds.</param>
+    /// <returns>The clamped components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector2 Clamp(Vector2 value, Vector2 min, Vector2 max) => Clamp(value.AsVector128(), min.AsVector128(), max.AsVector128()).AsVector2();
+
+    /// <summary>
+    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
+    /// </summary>
+    /// <typeparam name="T">The component type.</typeparam>
+    /// <param name="value">The components to clamp.</param>
+    /// <param name="min">The inclusive lower bounds.</param>
+    /// <param name="max">The inclusive upper bounds.</param>
+    /// <returns>The clamped components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector128<T> Clamp<T>(Vector128<T> value, Vector128<T> min, Vector128<T> max)
+        where T : struct, INumber<T>
     {
-        if (value > max)
-        {
-            return max;
-        }
-
-        if (value < min)
-        {
-            return min;
-        }
-
-        return value;
+        // Ordered comparisons map NaN to min and preserve in-range signed zero on every runtime.
+        Vector128<T> lowerClamped = Vector128.ConditionalSelect(Vector128.GreaterThanOrEqual(value, min), value, min);
+        return Vector128.ConditionalSelect(Vector128.GreaterThan(value, max), max, lowerClamped);
     }
 
     /// <summary>
-    /// Returns the value clamped to the inclusive range of min and max.
-    /// 5x Faster than <see cref="Vector4.Clamp(Vector4, Vector4, Vector4)"/>
-    /// on platforms &lt; NET 5.
+    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
+    /// </summary>
+    /// <typeparam name="T">The component type.</typeparam>
+    /// <param name="value">The components to clamp.</param>
+    /// <param name="min">The inclusive lower bounds.</param>
+    /// <param name="max">The inclusive upper bounds.</param>
+    /// <returns>The clamped components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector256<T> Clamp<T>(Vector256<T> value, Vector256<T> min, Vector256<T> max)
+        where T : struct, INumber<T>
+    {
+        // Ordered comparisons map NaN to min and preserve in-range signed zero on every runtime.
+        Vector256<T> lowerClamped = Vector256.ConditionalSelect(Vector256.GreaterThanOrEqual(value, min), value, min);
+        return Vector256.ConditionalSelect(Vector256.GreaterThan(value, max), max, lowerClamped);
+    }
+
+    /// <summary>
+    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
+    /// </summary>
+    /// <typeparam name="T">The component type.</typeparam>
+    /// <param name="value">The components to clamp.</param>
+    /// <param name="min">The inclusive lower bounds.</param>
+    /// <param name="max">The inclusive upper bounds.</param>
+    /// <returns>The clamped components.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static Vector512<T> Clamp<T>(Vector512<T> value, Vector512<T> min, Vector512<T> max)
+        where T : struct, INumber<T>
+    {
+        // Ordered comparisons map NaN to min and preserve in-range signed zero on every runtime.
+        Vector512<T> lowerClamped = Vector512.ConditionalSelect(Vector512.GreaterThanOrEqual(value, min), value, min);
+        return Vector512.ConditionalSelect(Vector512.GreaterThan(value, max), max, lowerClamped);
+    }
+
+    /// <summary>
+    /// Clamps components to the inclusive range of min and max, mapping NaN to min.
     /// </summary>
     /// <param name="value">The value to clamp.</param>
     /// <param name="min">The minimum inclusive value.</param>
     /// <param name="max">The maximum inclusive value.</param>
     /// <returns>The clamped <see cref="Vector4"/>.</returns>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public static Vector4 Clamp(Vector4 value, Vector4 min, Vector4 max)
-        => Vector4.Min(Vector4.Max(value, min), max);
+    public static Vector4 Clamp(Vector4 value, Vector4 min, Vector4 max) => Clamp(value.AsVector128(), min.AsVector128(), max.AsVector128()).AsVector4();
 
     /// <summary>
     /// Clamps the span values to the inclusive range of min and max.
@@ -352,24 +384,24 @@ internal static class Numerics
         => TensorPrimitives_.Clamp(span, min, max, span);
 
     /// <summary>
-    /// Clamps the span values to the inclusive range of min and max.
+    /// Clamps the span values to the inclusive range of min and max, mapping NaN to min.
     /// </summary>
     /// <param name="span">The span containing the values to clamp.</param>
     /// <param name="min">The minimum inclusive value.</param>
     /// <param name="max">The maximum inclusive value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Clamp(Span<float> span, float min, float max)
-        => TensorPrimitives_.Clamp(span, min, max, span);
+        => Clamp<float>(span, min, max);
 
     /// <summary>
-    /// Clamps the span values to the inclusive range of min and max.
+    /// Clamps the span values to the inclusive range of min and max, mapping NaN to min.
     /// </summary>
     /// <param name="span">The span containing the values to clamp.</param>
     /// <param name="min">The minimum inclusive value.</param>
     /// <param name="max">The maximum inclusive value.</param>
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Clamp(Span<double> span, double min, double max)
-        => TensorPrimitives_.Clamp(span, min, max, span);
+        => Clamp<double>(span, min, max);
 
     /// <summary>
     /// Pre-multiplies the "x", "y", "z" components of a vector by its "w" component leaving the "w" component intact.
@@ -392,7 +424,7 @@ internal static class Numerics
     public static void ClampRgbToAlpha(ref Vector4 source)
     {
         Vector4 alpha = PermuteW(source);
-        source = WithW(Vector4.Min(Vector4.Max(source, Vector4.Zero), alpha), alpha);
+        source = WithW(Clamp(source, Vector4.Zero, alpha), alpha);
     }
 
     /// <summary>
@@ -1071,4 +1103,78 @@ internal static class Numerics
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public static void Normalize(Span<float> span, float sum)
         => TensorPrimitives_.Divide(span, sum, span);
+
+    /// <summary>
+    /// Clamps a floating-point component while mapping NaN to the lower bound.
+    /// </summary>
+    /// <typeparam name="T">The component type.</typeparam>
+    /// <param name="value">The component to clamp.</param>
+    /// <param name="min">The inclusive lower bound.</param>
+    /// <param name="max">The inclusive upper bound.</param>
+    /// <returns>The clamped component.</returns>
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static T Clamp<T>(T value, T min, T max)
+        where T : struct, INumber<T>
+    {
+        // Ordered comparisons map NaN to min; in-range values retain their original bits, including signed zero.
+        return value > max ? max : value >= min ? value : min;
+    }
+
+    /// <summary>
+    /// Applies the scalar clamp contract to floating-point spans in place.
+    /// </summary>
+    /// <typeparam name="T">The component type.</typeparam>
+    /// <param name="span">The components to clamp.</param>
+    /// <param name="min">The inclusive lower bound.</param>
+    /// <param name="max">The inclusive upper bound.</param>
+    private static void Clamp<T>(Span<T> span, T min, T max)
+        where T : struct, INumber<T>
+    {
+        ref T start = ref MemoryMarshal.GetReference(span);
+        int i = 0;
+
+        // Each register uses the same Clamp overload as individual vector callers. Descending widths consume
+        // the remainder without overlapping stores, and the final components use the scalar overload.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<T> lower = Vector512.Create(min);
+            Vector512<T> upper = Vector512.Create(max);
+
+            for (; i <= span.Length - Vector512<T>.Count; i += Vector512<T>.Count)
+            {
+                Vector512<T> value = Vector512.LoadUnsafe(ref start, (nuint)i);
+                Clamp(value, lower, upper).StoreUnsafe(ref start, (nuint)i);
+            }
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<T> lower = Vector256.Create(min);
+            Vector256<T> upper = Vector256.Create(max);
+
+            for (; i <= span.Length - Vector256<T>.Count; i += Vector256<T>.Count)
+            {
+                Vector256<T> value = Vector256.LoadUnsafe(ref start, (nuint)i);
+                Clamp(value, lower, upper).StoreUnsafe(ref start, (nuint)i);
+            }
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<T> lower = Vector128.Create(min);
+            Vector128<T> upper = Vector128.Create(max);
+
+            for (; i <= span.Length - Vector128<T>.Count; i += Vector128<T>.Count)
+            {
+                Vector128<T> value = Vector128.LoadUnsafe(ref start, (nuint)i);
+                Clamp(value, lower, upper).StoreUnsafe(ref start, (nuint)i);
+            }
+        }
+
+        for (; i < span.Length; i++)
+        {
+            ref T value = ref Unsafe.Add(ref start, (uint)i);
+            value = Clamp(value, min, max);
+        }
+    }
 }

@@ -1009,6 +1009,138 @@ public class HeifEncoderTests
     }
 
     [Theory]
+    [InlineData(HeifBitDepth.Bit8, false, false, false)]
+    [InlineData(HeifBitDepth.Bit8, true, false, false)]
+    [InlineData(HeifBitDepth.Bit10, false, false, false)]
+    [InlineData(HeifBitDepth.Bit10, true, false, false)]
+    [InlineData(HeifBitDepth.Bit12, false, false, false)]
+    [InlineData(HeifBitDepth.Bit12, true, false, false)]
+    [InlineData(HeifBitDepth.Bit8, false, true, false)]
+    [InlineData(HeifBitDepth.Bit8, true, true, false)]
+    [InlineData(HeifBitDepth.Bit10, false, true, false)]
+    [InlineData(HeifBitDepth.Bit10, true, true, false)]
+    [InlineData(HeifBitDepth.Bit12, false, true, false)]
+    [InlineData(HeifBitDepth.Bit12, true, true, false)]
+    [InlineData(HeifBitDepth.Bit8, false, false, true)]
+    [InlineData(HeifBitDepth.Bit12, false, true, true)]
+    public void Av1PreservesIdentityMatrixColorDescription(
+        HeifBitDepth bitDepth,
+        bool fullRange,
+        bool sequence,
+        bool srgb)
+    {
+        const int Width = 8;
+        const int Height = 8;
+        using Image<Rgb24> image = new(Width, Height);
+        if (sequence)
+        {
+            image.Frames.AddFrame(image.Frames.RootFrame);
+        }
+
+        for (int frameIndex = 0; frameIndex < image.Frames.Count; frameIndex++)
+        {
+            ImageFrame<Rgb24> frame = image.Frames[frameIndex];
+            frame.Metadata.GetHeifMetadata().FrameDelay = new Rational(1, 25);
+            for (int y = 0; y < Height; y++)
+            {
+                Span<Rgb24> row = frame.PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < Width; x++)
+                {
+                    row[x] = new Rgb24(
+                        (byte)((x * 31) + y + frameIndex),
+                        (byte)((y * 29) + x + frameIndex),
+                        (byte)((x * 17) + (y * 11) + frameIndex));
+                }
+            }
+        }
+
+        // BT.2020/PQ identity uses explicit range syntax. Only the BT.709/sRGB identity combination
+        // infers full range, so its limited-range metadata must be normalized before pixel conversion.
+        CicpProfile profile = srgb ? new(1, 13, 0, fullRange) : new(9, 16, 0, fullRange);
+        image.Metadata.CicpProfile = profile;
+        bool expectedFullRange = fullRange || srgb;
+        using MemoryStream stream = new();
+        image.Save(stream, new HeifEncoder
+        {
+            CompressionMethod = HeifCompressionMethod.Av1,
+            BitDepth = bitDepth,
+            ChromaSubsampling = HeifChromaSubsampling.Yuv444,
+            Lossless = true,
+            Effort = 0
+        });
+
+        Assert.Same(profile, image.Metadata.CicpProfile);
+        Assert.Equal(fullRange, profile.FullRange);
+        byte[] file = stream.ToArray();
+        using Av1Decoder sampleDecoder = new(Configuration.Default);
+        using Image<Rgb24> sample = sampleDecoder.Decode<Rgb24>(GetItemPayload(file, 1));
+        ObuSequenceHeader header = Assert.IsType<ObuSequenceHeader>(sampleDecoder.SequenceHeader);
+        Assert.Equal(ObuMatrixCoefficients.Identity, header.ColorConfig.MatrixCoefficients);
+        Assert.Equal((byte)profile.ColorPrimaries, (byte)header.ColorConfig.ColorPrimaries);
+        Assert.Equal((byte)profile.TransferCharacteristics, (byte)header.ColorConfig.TransferCharacteristics);
+        Assert.Equal(expectedFullRange, header.ColorConfig.ColorRange);
+        Assert.Equal(Av1ColorFormat.Yuv444, header.ColorConfig.GetColorFormat());
+
+        stream.Position = 0;
+        DecoderOptions options = new() { ColorProfileHandling = ColorProfileHandling.Preserve };
+        using Image<Rgb24> decoded = Image.Load<Rgb24>(options, stream);
+        CicpProfile decodedProfile = Assert.IsType<CicpProfile>(decoded.Metadata.CicpProfile);
+        Assert.Equal(profile.ColorPrimaries, decodedProfile.ColorPrimaries);
+        Assert.Equal(profile.TransferCharacteristics, decodedProfile.TransferCharacteristics);
+        Assert.Equal(CicpMatrixCoefficients.Identity, decodedProfile.MatrixCoefficients);
+        Assert.Equal(expectedFullRange, decodedProfile.FullRange);
+        Assert.Equal(image.Frames.Count, decoded.Frames.Count);
+        for (int frameIndex = 0; frameIndex < image.Frames.Count; frameIndex++)
+        {
+            for (int y = 0; y < Height; y++)
+            {
+                ReadOnlySpan<Rgb24> expectedRow = image.Frames[frameIndex].PixelBuffer.DangerousGetRowSpan(y);
+                ReadOnlySpan<Rgb24> actualRow = decoded.Frames[frameIndex].PixelBuffer.DangerousGetRowSpan(y);
+                for (int x = 0; x < Width; x++)
+                {
+                    // Limited-range conversion rounds onto 219 codes before the lossless codec stage.
+                    Assert.InRange((int)actualRow[x].R - expectedRow[x].R, -1, 1);
+                    Assert.InRange((int)actualRow[x].G - expectedRow[x].G, -1, 1);
+                    Assert.InRange((int)actualRow[x].B - expectedRow[x].B, -1, 1);
+                }
+            }
+        }
+
+        string directory = TestEnvironment.CreateOutputDirectory("Heif", "Av1", nameof(this.Av1PreservesIdentityMatrixColorDescription));
+        string name = $"{(int)bitDepth}-{fullRange}-{sequence}-{srgb}";
+        File.WriteAllBytes(Path.Combine(directory, name + ".obu"), GetTopLevelBox(file, Heif4CharCode.Mdat)[8..].ToArray());
+        using BinaryWriter expectedSamples = new(File.Create(Path.Combine(directory, name + ".expected.yuv")));
+        int depthScale = 1 << ((int)bitDepth - 8);
+        int bias = expectedFullRange ? 0 : 16 * depthScale;
+        int range = expectedFullRange ? (1 << (int)bitDepth) - 1 : 219 * depthScale;
+        for (int frameIndex = 0; frameIndex < image.Frames.Count; frameIndex++)
+        {
+            for (int plane = 0; plane < 3; plane++)
+            {
+                for (int y = 0; y < Height; y++)
+                {
+                    ReadOnlySpan<Rgb24> row = image.Frames[frameIndex].PixelBuffer.DangerousGetRowSpan(y);
+                    for (int x = 0; x < Width; x++)
+                    {
+                        // The independent reference is G, B, R with the luma range on every plane.
+                        // These integer sample expectations do not call the production color converter.
+                        int channel = plane == 0 ? row[x].G : plane == 1 ? row[x].B : row[x].R;
+                        int value = bias + (((channel * range) + 127) / 255);
+                        if (bitDepth == HeifBitDepth.Bit8)
+                        {
+                            expectedSamples.Write((byte)value);
+                        }
+                        else
+                        {
+                            expectedSamples.Write((ushort)value);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    [Theory]
     [InlineData(CicpMatrixCoefficients.Identity, HeifChromaSubsampling.Yuv420)]
     [InlineData(CicpMatrixCoefficients.YCgCoRe, null)]
     [InlineData(CicpMatrixCoefficients.YCgCoRe, HeifChromaSubsampling.Yuv420)]

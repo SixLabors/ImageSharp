@@ -504,6 +504,29 @@ Explicit grid-sampling conversion correction, verified after `5f7bad3a6` on 2026
   and warnings; the preceding test compilation reports 1,009 existing warnings. Roslynk reports zero compiler errors.
   No benchmark or separate-encoder measurement was run. Decoder rejection tests for invalid input grids remain unchanged.
 
+Identity-matrix option correction after `fff06700d`:
+
+- Unsupported restriction: `HeifEncoderCore.Sequence.cs:129-156` required BT.709/sRGB metadata for every
+  identity-matrix 4:4:4 encode and otherwise substituted BT.601. Reference
+  `av1/encoder/bitstream.c:2457-2494` permits other primaries/transfer descriptions with an explicit range
+  bit. The special BT.709/sRGB branch alone infers full range. Reference validation requires unsubsampled
+  identity planes (`av1/av1_cx_iface.c:921-928,1005-1013`), not that special color description.
+- The production writer already has the correct syntax branches (`ObuWriter.cs:397-446`), and the shared
+  semantic identity operator already maps G/B/R with the luma range on every plane
+  (`HeifColorConverter.IdentityOperator.cs:17-139`). Option resolution now preserves valid identity
+  descriptions and their explicit range; only BT.709/sRGB identity normalizes limited to full range.
+  Existing conversion for incompatible sampling remains. No converter, buffer, or public API was added.
+- Before correction the first public regression failed with expected Identity versus emitted BT.601
+  (`identity-profile-red.trx`); VSTest stopped on that failure. After the final edit, Release .NET 11
+  built with zero errors/warnings and Roslynk reported zero compiler errors. Serialized Visual Studio
+  VSTest passed 81/81 HEIF encoder cases in 6.4887 seconds (`identity-profile-final.trx`).
+- Fourteen new cases cover BT.2020/PQ full/limited range at 8/10/12 bits, stills/sequences, and special
+  sRGB range inference. They inspect emitted syntax, container metadata, preserved source metadata,
+  and every decoded RGB component with a one-unit limit for range conversion. Optimized libaom decoding
+  matches all 4,032 independently calculated GBR samples exactly: maximum error 0, zero samples exceeding
+  one (`identity-comparison.json`, temporary and outside the repository). This is bounded conversion and
+  same-bitstream evidence, not separate-encoder parity or performance evidence. No benchmark ran.
+
 Color-conversion boundary correction after checkpoint `f7bd907d6`, verified on 2026-09-05:
 
 - `HeifEncoderCore.Sequence.cs:74-194` resolved output sampling and preserved reversible YCgCo matrix metadata,

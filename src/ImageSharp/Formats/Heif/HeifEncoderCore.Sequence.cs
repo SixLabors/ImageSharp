@@ -125,9 +125,7 @@ internal sealed partial class HeifEncoderCore
         {
             bool identityMatrix = sourceColorProfile.MatrixCoefficients == CicpMatrixCoefficients.Identity;
             bool legalIdentityMatrix = !isMonochrome
-                && chromaSubsampling == HeifChromaSubsampling.Yuv444
-                && sourceColorProfile.ColorPrimaries == CicpColorPrimaries.ItuRBt709_6
-                && sourceColorProfile.TransferCharacteristics == CicpTransferCharacteristics.Iec61966_2_1;
+                && chromaSubsampling == HeifChromaSubsampling.Yuv444;
 
             bool reversibleMatrix = sourceColorProfile.MatrixCoefficients is CicpMatrixCoefficients.YCgCoRe or CicpMatrixCoefficients.YCgCoRo;
             if (sourceColorProfile.MatrixCoefficients == CicpMatrixCoefficients.Unspecified
@@ -142,8 +140,13 @@ internal sealed partial class HeifEncoderCore
                     (byte)CicpMatrixCoefficients.ItuRBt601_7_525,
                     sourceColorProfile.FullRange);
             }
-            else if (identityMatrix && !sourceColorProfile.FullRange)
+            else if (identityMatrix
+                && sourceColorProfile.ColorPrimaries == CicpColorPrimaries.ItuRBt709_6
+                && sourceColorProfile.TransferCharacteristics == CicpTransferCharacteristics.Iec61966_2_1
+                && !sourceColorProfile.FullRange)
             {
+                // Only BT.709/sRGB identity omits the range bit and infers full range. Other identity
+                // descriptions carry that bit explicitly and can preserve limited-range sample conversion.
                 colorProfile = new CicpProfile(
                     (byte)sourceColorProfile.ColorPrimaries,
                     (byte)sourceColorProfile.TransferCharacteristics,

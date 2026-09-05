@@ -166,7 +166,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         int height = this.Height;
         int channelCount = this.Channels.Count;
 
-        using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>(width * 4);
+        // EXR can omit color channels. Initialize their planes once so absent channels remain black on every row.
+        using IMemoryOwner<float> rowBuffer = this.memoryAllocator.Allocate<float>(width * 4, AllocationOptions.Clean);
         using IMemoryOwner<byte> decompressedPixelDataBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock);
         Span<byte> decompressedPixelData = decompressedPixelDataBuffer.GetSpan();
         Span<float> redPixelData = rowBuffer.GetSpan()[..width];
@@ -254,7 +255,8 @@ internal sealed class ExrDecoderCore : ImageDecoderCore
         int height = this.Height;
         int channelCount = this.Channels.Count;
 
-        using IMemoryOwner<uint> rowBuffer = this.memoryAllocator.Allocate<uint>(width * 4);
+        // EXR can omit color channels. Initialize their planes once so absent channels remain black on every row.
+        using IMemoryOwner<uint> rowBuffer = this.memoryAllocator.Allocate<uint>(width * 4, AllocationOptions.Clean);
         using IMemoryOwner<byte> decompressedPixelDataBuffer = this.memoryAllocator.Allocate<byte>((int)bytesPerBlock);
         Span<byte> decompressedPixelData = decompressedPixelDataBuffer.GetSpan();
         Span<uint> redPixelData = rowBuffer.GetSpan()[..width];

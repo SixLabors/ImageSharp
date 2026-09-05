@@ -3,8 +3,12 @@
 
 using System.Buffers.Binary;
 using System.IO.Compression;
+using System.Numerics;
 using System.Text;
+using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Exr.Constants;
 using SixLabors.ImageSharp.PixelFormats;
+using SixLabors.ImageSharp.Tests.Memory;
 
 namespace SixLabors.ImageSharp.Tests.Formats.Exr;
 
@@ -15,11 +19,48 @@ public class ExrZipDecoderTests
     [Fact]
     public void Decode_ShortInflatedBlock_Throws()
     {
-        byte[] data = BuildExr(ZlibCompress(new byte[8]));
+        byte[] data = BuildExr(ZlibCompress(new byte[8]), ExrPixelType.Float, 2);
 
         Assert.Throws<InvalidImageContentException>(() => Image.Load<RgbaVector>(data));
     }
 
+    /// <summary>
+    /// Missing color channels must not inherit the allocator's previous contents.
+    /// </summary>
+    /// <param name="pixelType">The stored sample type.</param>
+    /// <param name="compression">The ZIP compression code.</param>
+    [Theory]
+    [InlineData(ExrPixelType.Half, 2)]
+    [InlineData(ExrPixelType.Float, 2)]
+    [InlineData(ExrPixelType.UnsignedInt, 2)]
+    [InlineData(ExrPixelType.Half, 3)]
+    [InlineData(ExrPixelType.Float, 3)]
+    [InlineData(ExrPixelType.UnsignedInt, 3)]
+    public void Decode_SingleRedChannel_InitializesMissingColorChannels(ExrPixelType pixelType, byte compression)
+    {
+        byte[] predicted = new byte[256 * (pixelType == ExrPixelType.Half ? 2 : 4)];
+
+        // A zero first byte followed by 128-valued differences reconstructs an all-zero sample plane.
+        predicted.AsSpan(1).Fill(128);
+        byte[] data = BuildExr(ZlibCompress(predicted), pixelType, compression);
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = new TestMemoryAllocator(0x3F);
+        DecoderOptions options = new() { Configuration = configuration };
+
+        using Image<RgbaVector> image = Image.Load<RgbaVector>(options, data);
+        Assert.Equal(new Size(256, 1), image.Size);
+
+        for (int x = 0; x < image.Width; x++)
+        {
+            Assert.Equal(new Vector4(0, 0, 0, 1), image[x, 0].ToVector4());
+        }
+    }
+
+    /// <summary>
+    /// Compresses the predictor bytes for a scanline block.
+    /// </summary>
+    /// <param name="data">The predictor bytes.</param>
+    /// <returns>The zlib stream.</returns>
     private static byte[] ZlibCompress(byte[] data)
     {
         using MemoryStream output = new();
@@ -31,7 +72,14 @@ public class ExrZipDecoderTests
         return output.ToArray();
     }
 
-    private static byte[] BuildExr(byte[] compressed)
+    /// <summary>
+    /// Builds a single-row EXR containing only the red channel.
+    /// </summary>
+    /// <param name="compressed">The compressed scanline bytes.</param>
+    /// <param name="pixelType">The stored sample type.</param>
+    /// <param name="compression">The ZIP compression code.</param>
+    /// <returns>The encoded image.</returns>
+    private static byte[] BuildExr(byte[] compressed, ExrPixelType pixelType, byte compression)
     {
         const int width = 256;
         const int height = 1;
@@ -47,7 +95,7 @@ public class ExrZipDecoderTests
         using (BinaryWriter channelWriter = new(channelStream))
         {
             WriteString(channelWriter, "R");
-            channelWriter.Write(2);
+            channelWriter.Write((int)pixelType);
             channelWriter.Write((byte)0);
             channelWriter.Write(new byte[] { 0, 0, 0 });
             channelWriter.Write(1);
@@ -57,7 +105,7 @@ public class ExrZipDecoderTests
             WriteAttribute(writer, "channels", "chlist", channelStream.ToArray());
         }
 
-        WriteAttribute(writer, "compression", "compression", [2]);
+        WriteAttribute(writer, "compression", "compression", [compression]);
 
         using (MemoryStream boxStream = new())
         using (BinaryWriter boxWriter = new(boxStream))

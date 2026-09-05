@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
@@ -1177,11 +1178,12 @@ internal ref struct Av1SymbolDecoder
     /// <param name="isLossless">Indicates whether the active segment is lossless.</param>
     /// <param name="useReducedTransformSet">Indicates whether the frame restricts transform choices.</param>
     /// <param name="lumaTransformType">The luma transform type shared by inter-predicted chroma.</param>
-    /// <param name="transformInfo">The transform descriptor updated with the decoded type and coded-block flag.</param>
+    /// <param name="transformInfo">The transform descriptor updated with the decoded type and end-of-block position.</param>
     /// <param name="modeBlocksToRightEdge">The signed distance from the mode block to the right frame edge.</param>
     /// <param name="modeBlocksToBottomEdge">The signed distance from the mode block to the bottom frame edge.</param>
     /// <param name="levels">Reusable padded coefficient-context storage owned by the tile reader.</param>
-    /// <param name="coefficientBuffer">The destination receiving the coefficient count followed by scan-ordered signed levels.</param>
+    /// <param name="coefficientBuffer">The zero-initialized destination receiving dequantized raster coefficients.</param>
+    /// <param name="inverseQuantizer">The quantizer containing the active segment and superblock delta-Q values.</param>
     /// <returns>The one-based end-of-block position, or zero for an empty transform block.</returns>
     public int ReadCoefficients(
         Av1BlockModeInfo modeInfo,
@@ -1202,7 +1204,8 @@ internal ref struct Av1SymbolDecoder
         int modeBlocksToRightEdge,
         int modeBlocksToBottomEdge,
         Av1LevelBuffer levels,
-        Span<int> coefficientBuffer)
+        Span<int> coefficientBuffer,
+        Av1InverseQuantizer inverseQuantizer)
     {
         Av1TransformSize adjustedTransformSize = transformSize.GetAdjusted();
         int width = adjustedTransformSize.GetWidth();
@@ -1219,10 +1222,10 @@ internal ref struct Av1SymbolDecoder
         int endOfBlock;
         if (allZero)
         {
+            transformInfo.EndOfBlock = 0;
             if (plane == 0)
             {
                 transformInfo.Type = Av1TransformType.DctDct;
-                transformInfo.CodeBlockFlag = false;
             }
 
             UpdateCoefficientContext(aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
@@ -1278,10 +1281,15 @@ internal ref struct Av1SymbolDecoder
         }
 
         DebugGuard.MustBeGreaterThan(scan.Length, 0, nameof(scan));
-        culLevel = this.ReadCoefficientsSign(coefficientBuffer, endOfBlock, scan, levels, transformBlockContext.DcSignContext, planeType);
+        Av1InverseQuantizer.TransformParameters quantization = new(
+            inverseQuantizer, modeInfo, transformInfo.Type, transformSize, (Av1Plane)plane);
+
+        culLevel = this.ReadCoefficientsSign(
+            coefficientBuffer, endOfBlock, scan, levels, transformBlockContext.DcSignContext, planeType, quantization);
+
         UpdateCoefficientContext(aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
 
-        transformInfo.CodeBlockFlag = true;
+        transformInfo.EndOfBlock = (ushort)endOfBlock;
         return endOfBlock;
     }
 
@@ -1403,21 +1411,28 @@ internal ref struct Av1SymbolDecoder
     }
 
     /// <summary>
-    /// Reads coefficient signs and Golomb extensions, then writes scan-ordered signed levels.
+    /// Reads coefficient signs and Golomb extensions, then writes dequantized raster coefficients.
     /// </summary>
-    /// <param name="coefficientBuffer">The destination receiving the coefficient count followed by signed levels.</param>
+    /// <param name="coefficientBuffer">The zero-initialized destination receiving dequantized coefficients.</param>
     /// <param name="endOfBlock">The one-based end-of-block position and coefficient count.</param>
     /// <param name="scan">The transform's scan-to-raster mapping.</param>
     /// <param name="levels">The decoded absolute-coefficient level plane.</param>
     /// <param name="dcSignContext">The neighboring DC sign context.</param>
     /// <param name="planeType">The luma or chroma plane category.</param>
+    /// <param name="quantization">The segment, plane, matrix, scale, and clipping parameters for this transform.</param>
     /// <returns>The packed coefficient context used by adjacent transform blocks.</returns>
-    public int ReadCoefficientsSign(Span<int> coefficientBuffer, int endOfBlock, ReadOnlySpan<short> scan, Av1LevelBuffer levels, int dcSignContext, Av1PlaneType planeType)
+    private int ReadCoefficientsSign(
+        Span<int> coefficientBuffer,
+        int endOfBlock,
+        ReadOnlySpan<short> scan,
+        Av1LevelBuffer levels,
+        int dcSignContext,
+        Av1PlaneType planeType,
+        Av1InverseQuantizer.TransformParameters quantization)
     {
         ref Av1SymbolReader r = ref this.reader;
         int culLevel = 0;
         int dcValue = 0;
-        coefficientBuffer[0] = endOfBlock;
         for (int c = 0; c < endOfBlock; c++)
         {
             int sign = 0;
@@ -1447,9 +1462,11 @@ internal ref struct Av1SymbolDecoder
 
                 level &= 0xfffff;
                 culLevel += level;
-            }
 
-            coefficientBuffer[c + 1] = sign != 0 ? -level : level;
+                // The entropy context uses the masked quantized magnitude, while reconstruction consumes the
+                // dequantized raster coefficient. Write it directly into the current superblock's zeroed region.
+                coefficientBuffer[pos] = quantization.Dequantize(level, pos, sign != 0);
+            }
         }
 
         culLevel = Math.Min(Av1Constants.CoefficientContextMask, culLevel);

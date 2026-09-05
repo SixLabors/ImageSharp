@@ -5,12 +5,10 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.SuperResolution;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
@@ -45,16 +43,6 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     private readonly Av1ReferenceFrameStore referenceFrames;
 
     /// <summary>
-    /// The coefficient inverse-quantization stage shared across superblocks.
-    /// </summary>
-    private readonly Av1InverseQuantizer inverseQuantizer;
-
-    /// <summary>
-    /// The frame's base per-segment and per-plane dequantization values.
-    /// </summary>
-    private readonly Av1DeQuantizationContext deQuants;
-
-    /// <summary>
     /// The transform-size map populated during reconstruction and consumed by deblocking.
     /// </summary>
     private readonly Av1LoopFilterContext loopFilterContext;
@@ -86,8 +74,6 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
         this.frameInfo = frameInfo;
         this.frameBuffer = frameBuffer;
         this.referenceFrames = referenceFrames;
-        this.inverseQuantizer = new(sequenceHeader, frameHeader);
-        this.deQuants = new(sequenceHeader, frameHeader);
         this.loopFilterContext = new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
         try
         {
@@ -96,7 +82,6 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
                 this.frameHeader,
                 this.frameBuffer,
                 this.loopFilterContext,
-                this.inverseQuantizer,
                 this.referenceFrames,
                 paletteColorIndexMaps);
         }
@@ -165,7 +150,7 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     }
 
     /// <summary>
-    /// Reconstructs one superblock after applying its block state and delta-Q context.
+    /// Reconstructs one superblock from its parsed block state and dequantized coefficients.
     /// </summary>
     /// <param name="modeInfoPosition">The superblock's top-left position in 4x4 mode-info units.</param>
     /// <param name="superblockInfo">The decoded syntax and block modes for the superblock.</param>
@@ -173,7 +158,6 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     public void DecodeSuperblock(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         this.blockDecoder.UpdateSuperblock(superblockInfo);
-        this.inverseQuantizer.UpdateDequant(this.deQuants, superblockInfo);
         this.DecodePartition(modeInfoPosition, superblockInfo, tileInfo);
     }
 

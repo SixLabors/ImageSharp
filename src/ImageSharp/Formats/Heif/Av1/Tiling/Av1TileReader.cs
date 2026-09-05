@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
@@ -75,6 +76,16 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// The quantizer index carried between delta-quantized blocks in the current tile.
     /// </summary>
     private int currentQuantizerIndex;
+
+    /// <summary>
+    /// The coefficient quantizer updated before residual syntax consumes the active superblock delta-Q state.
+    /// </summary>
+    private readonly Av1InverseQuantizer inverseQuantizer;
+
+    /// <summary>
+    /// The frame's base per-segment and per-plane dequantization values.
+    /// </summary>
+    private readonly Av1DeQuantizationContext deQuants;
 
     /// <summary>
     /// Stores the loop-filter delta values carried between superblocks in the current tile.
@@ -258,6 +269,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         this.referenceFrames = referenceFrames;
         this.ownsPaletteColorIndexMaps = sharedPaletteColorIndexMaps is null;
         this.entropyContexts.BeginFrame(frameHeader.QuantizationParameters.BaseQIndex, primaryReferenceContext);
+        this.inverseQuantizer = new(sequenceHeader, frameHeader);
+        this.deQuants = new(sequenceHeader, frameHeader);
 
         // FrameInfo owns traversal records for this coded frame and one superblock of coefficient scratch.
         this.FrameInfo = new(this.configuration, this.SequenceHeader, this.FrameHeader);
@@ -1038,6 +1051,9 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         Av1TileInfo tileInfo,
         Av1BlockSize blockSize)
     {
+        // Mode syntax has established delta-Q before residual decoding. Keep dequantization at this parsing
+        // boundary so each signed level is published once in the form consumed by inverse reconstruction.
+        this.inverseQuantizer.UpdateDequant(this.deQuants, superblockInfo);
         int maxBlocksWide = partitionInfo.GetMaxBlockWide(blockSize, false);
         int maxBlocksHigh = partitionInfo.GetMaxBlockHigh(blockSize, false);
         Av1BlockSize maxUnitSize = Av1BlockSize.Block64x64;
@@ -1145,17 +1161,10 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                                 subY != 0);
                         }
 
-                        if (endOfBlock != 0)
-                        {
-                            // Coefficients are stored as an end index followed by scan-order values, so the
-                            // next transform begins after both the prefix and its decoded coefficient range.
-                            this.coefficientIndex[plane] += endOfBlock + 1;
-                            transformInfo.CodeBlockFlag = true;
-                        }
-                        else
-                        {
-                            transformInfo.CodeBlockFlag = false;
-                        }
+                        // Each transform reserves its nominal area even when its residual is empty. EOB belongs
+                        // to the descriptor, so the raster coefficient region contains no packed metadata prefix.
+                        this.coefficientIndex[plane] += transformInfo.Size.GetWidth() * transformInfo.Size.GetHeight();
+                        transformInfo.EndOfBlock = (ushort)endOfBlock;
 
                         transformInfoIndex++;
                     }
@@ -1353,7 +1362,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             partitionInfo.ModeBlockToRightEdge,
             partitionInfo.ModeBlockToBottomEdge,
             this.coefficientLevels,
-            coefficientBuffer);
+            coefficientBuffer,
+            this.inverseQuantizer);
     }
 
     /// <summary>

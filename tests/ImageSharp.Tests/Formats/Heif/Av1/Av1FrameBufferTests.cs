@@ -127,15 +127,14 @@ public class Av1FrameBufferTests
     /// Verifies that block reconstruction uses one exact-size owner across monochrome and chroma plane layouts.
     /// </summary>
     [Theory]
-    [InlineData(true, false, false, 4096)]
-    [InlineData(false, true, true, 6144)]
-    [InlineData(false, true, false, 8192)]
-    [InlineData(false, false, false, 12288)]
+    [InlineData(true, false, false)]
+    [InlineData(false, true, true)]
+    [InlineData(false, true, false)]
+    [InlineData(false, false, false)]
     public void BlockDecoderUsesOneContiguousWorkspaceOwner(
         bool isMonochrome,
         bool subsamplingX,
-        bool subsamplingY,
-        int expectedInverseQuantizationSize)
+        bool subsamplingY)
     {
         TestMemoryAllocator allocator = new();
         Configuration configuration = Configuration.Default.Clone();
@@ -170,7 +169,6 @@ public class Av1FrameBufferTests
         using Av1LoopFilterContext loopFilterContext =
             new(Configuration.Default.MemoryAllocator, sequenceHeader, frameHeader);
 
-        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
         using Av1ReferenceFrameStore referenceFrames = new();
 
         // Reset the frame-plane logs so the following assertions describe only the block decoder's scratch owner.
@@ -191,7 +189,6 @@ public class Av1FrameBufferTests
             Av1ChromaFromLumaContext.BufferLength;
 
         int expectedWorkspaceLength =
-            (expectedInverseQuantizationSize * 2) +
             (Av1TransformWorkspace.MaximumLength * 2) +
             predictionScratchLength;
 
@@ -201,14 +198,12 @@ public class Av1FrameBufferTests
                 frameHeader,
                 frameBuffer,
                 loopFilterContext,
-                inverseQuantizer,
                 referenceFrames))
         {
             workspaceAllocation = Assert.Single(allocator.AllocationLog);
             Assert.Empty(allocator.ReturnLog);
             Assert.Equal(typeof(short), workspaceAllocation.ElementType);
             Assert.Equal(expectedWorkspaceLength, workspaceAllocation.Length);
-            Assert.Equal(expectedInverseQuantizationSize, blockDecoder.CurrentInverseQuantizationCoefficients.Length);
         }
 
         TestMemoryAllocator.ReturnRequest returned = Assert.Single(allocator.ReturnLog);

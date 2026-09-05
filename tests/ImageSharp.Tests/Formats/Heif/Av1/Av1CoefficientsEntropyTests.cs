@@ -7,6 +7,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -1287,10 +1288,11 @@ public class Av1CoefficientsEntropyTests
             0,
             0,
             levels,
-            actuals);
+            actuals,
+            CreateInverseQuantizer());
 
         // Assert
-        Assert.Equal(endOfBlock, actuals[0]);
+        Assert.Equal(endOfBlock, transformInfo.EndOfBlock);
         Assert.Equal(expected, actuals);
     }
 
@@ -1334,7 +1336,7 @@ public class Av1CoefficientsEntropyTests
             coefficientsBuffer[scan[scanIndex]] = 0;
         }
 
-        Span<int> actuals = new int[16 + 1];
+        Span<int> actuals = new int[16];
 
         // Act
         encoder.WriteCoefficients(transformSize, transformType, intraDirection, coefficientsBuffer, componentType, transformBlockContext, endOfBlock, true, filterIntraMode, usesInterTransformSet: false);
@@ -1363,12 +1365,13 @@ public class Av1CoefficientsEntropyTests
             0,
             0,
             levels,
-            actuals);
+            actuals,
+            CreateInverseQuantizer());
 
         decoder.ValidateTrailingBits();
 
         // Assert
-        Assert.Equal(endOfBlock, actuals[0]);
+        Assert.Equal(endOfBlock, transformInfo.EndOfBlock);
     }
 
     [Theory]
@@ -1420,6 +1423,18 @@ public class Av1CoefficientsEntropyTests
         RoundTripCoefficientsCore(endOfBlock, componentType, blockSize, transformSize, transformType, intraDirection, filterIntraMode, false, true);
     }
 
+    private static Av1InverseQuantizer CreateInverseQuantizer()
+    {
+        ObuSequenceHeader sequenceHeader = new()
+        {
+            ColorConfig = new ObuColorConfig { BitDepth = Av1BitDepth.EightBit }
+        };
+
+        ObuFrameHeader frameHeader = new();
+        frameHeader.QuantizationParameters.BaseQIndex = BaseQIndex;
+        return new Av1InverseQuantizer(sequenceHeader, frameHeader);
+    }
+
     private static void RoundTripCoefficientsCore(
         ushort endOfBlock,
         Av1ComponentType componentType,
@@ -1453,7 +1468,7 @@ public class Av1CoefficientsEntropyTests
             }
         }
 
-        Span<int> actuals = new int[coefficientCount + 1];
+        Span<int> actuals = new int[coefficientCount];
 
         // Act
         encoder.WriteCoefficients(
@@ -1492,17 +1507,20 @@ public class Av1CoefficientsEntropyTests
             0,
             0,
             levels,
-            actuals);
+            actuals,
+            CreateInverseQuantizer());
 
         decoder.ValidateTrailingBits();
 
         // Assert
-        Assert.Equal(endOfBlock, actuals[0]);
+        Assert.Equal(endOfBlock, transformInfo.EndOfBlock);
 
-        // The parser retains quantized levels in entropy scan order; inverse quantization maps them back to raster positions.
-        for (int coefficientIndex = 0; coefficientIndex < endOfBlock; coefficientIndex++)
+        // Reference quant_common.c defines 8-bit qindex 23 as DC=26 and AC=30. Entropy output now publishes
+        // dequantized raster values, including zero runs and positions beyond EOB, rather than packed raw levels.
+        for (int coefficientIndex = 0; coefficientIndex < coefficientCount; coefficientIndex++)
         {
-            Assert.Equal(coefficientsBuffer[scan[coefficientIndex]], actuals[coefficientIndex + 1]);
+            int dequant = coefficientIndex == 0 ? 26 : 30;
+            Assert.Equal(coefficientsBuffer[coefficientIndex] * dequant, actuals[coefficientIndex]);
         }
     }
 

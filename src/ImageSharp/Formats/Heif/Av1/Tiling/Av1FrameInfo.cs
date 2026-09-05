@@ -83,9 +83,9 @@ internal sealed partial class Av1FrameInfo : IDisposable
     private readonly MemoryAllocator memoryAllocator;
 
     /// <summary>
-    /// The coefficient slots reserved for one 4x4 mode-information unit: one end index followed by 16 coefficients.
+    /// The raster coefficient slots reserved for one 4x4 mode-information unit.
     /// </summary>
-    public const int CoefficientCountPerModeInfo = 1 + 16;
+    public const int CoefficientCountPerModeInfo = 16;
 
     /// <summary>
     /// Owns the luma and chroma coefficient scratch for the superblock currently being decoded.

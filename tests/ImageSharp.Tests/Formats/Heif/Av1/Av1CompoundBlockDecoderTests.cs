@@ -5,7 +5,6 @@ using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
@@ -86,13 +85,12 @@ public class Av1CompoundBlockDecoderTests
 
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
+
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            inverseQuantizer,
             referenceFrames);
 
         decoder.UpdateSuperblock(superblockInfo);
@@ -205,13 +203,12 @@ public class Av1CompoundBlockDecoderTests
 
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
+
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            inverseQuantizer,
             referenceFrames);
 
         decoder.UpdateSuperblock(superblockInfo);
@@ -331,13 +328,12 @@ public class Av1CompoundBlockDecoderTests
 
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
+
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            inverseQuantizer,
             referenceFrames);
 
         decoder.UpdateSuperblock(superblockInfo);
@@ -422,13 +418,12 @@ public class Av1CompoundBlockDecoderTests
 
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
+
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            inverseQuantizer,
             referenceFrames);
 
         decoder.UpdateSuperblock(superblockInfo);
@@ -505,13 +500,12 @@ public class Av1CompoundBlockDecoderTests
 
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
+
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            inverseQuantizer,
             referenceFrames);
 
         decoder.UpdateSuperblock(superblockInfo);
@@ -601,13 +595,12 @@ public class Av1CompoundBlockDecoderTests
 
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
+
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            inverseQuantizer,
             referenceFrames);
 
         decoder.UpdateSuperblock(superblockInfo);
@@ -857,13 +850,12 @@ public class Av1CompoundBlockDecoderTests
         superblockInfo.GetTransformInfoY()[0] = new Av1TransformInfo(Av1TransformSize.Size8x8, 0, 0);
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
+
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            inverseQuantizer,
             referenceFrames);
 
         decoder.UpdateSuperblock(superblockInfo);
@@ -1252,13 +1244,12 @@ public class Av1CompoundBlockDecoderTests
         superblockInfo.GetTransformInfoY()[0] = new Av1TransformInfo(Av1TransformSize.Size8x8, 0, 0);
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
+
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            inverseQuantizer,
             referenceFrames);
 
         decoder.UpdateSuperblock(superblockInfo);
@@ -1461,13 +1452,12 @@ public class Av1CompoundBlockDecoderTests
 
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
-        Av1InverseQuantizer inverseQuantizer = new(sequenceHeader, frameHeader);
+
         using Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            inverseQuantizer,
             referenceFrames);
 
         decoder.UpdateSuperblock(superblockInfo);

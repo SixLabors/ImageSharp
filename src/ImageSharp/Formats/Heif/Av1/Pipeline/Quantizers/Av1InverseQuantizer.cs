@@ -70,99 +70,68 @@ internal sealed class Av1InverseQuantizer
     }
 
     /// <summary>
-    /// Converts scan-ordered quantized levels into clamped, raster-ordered transform coefficients.
+    /// Applies the active segment, plane, matrix, and transform scale to decoded coefficient magnitudes.
     /// </summary>
-    /// <param name="mode">The block mode information containing the active segment identifier.</param>
-    /// <param name="level">The packed coefficient buffer: the first element is the coefficient count and the remaining elements are scan-ordered levels.</param>
-    /// <param name="qCoefficients">The destination for raster-ordered dequantized coefficients.</param>
-    /// <param name="transformType">The transform type that selects the coefficient scan and matrix class.</param>
-    /// <param name="transformSize">The transform dimensions and scale.</param>
-    /// <param name="plane">The color plane whose quantizer and matrix are used.</param>
-    /// <returns>The number of coefficient levels consumed.</returns>
-    public int InverseQuantize(Av1BlockModeInfo mode, Span<int> level, Span<int> qCoefficients, Av1TransformType transformType, Av1TransformSize transformSize, Av1Plane plane)
+    public readonly ref struct TransformParameters
     {
-        Av1ScanOrder scanOrder = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType);
-        ReadOnlySpan<short> scanIndices = scanOrder.Scan;
+        private readonly short dc;
+        private readonly short ac;
+        private readonly int minimum;
+        private readonly int maximum;
+        private readonly int shift;
+        private readonly ReadOnlySpan<int> inverseMatrix;
 
-        // AV1 bounds reconstructed coefficients to a signed range with seven headroom bits beyond pixel precision.
-        int maxValue = (1 << (7 + this.sequenceHeader.ColorConfig.BitDepth.GetBitCount())) - 1;
-        int minValue = -(1 << (7 + this.sequenceHeader.ColorConfig.BitDepth.GetBitCount()));
-        bool usingQuantizationMatrix = this.frameHeader.QuantizationParameters.IsUsingQMatrix;
-        bool lossless = this.frameHeader.LosslessArray[mode.SegmentId];
-        short dequantDc = this.deQuantsDeltaQ.GetDc(mode.SegmentId, plane);
-        short dequantAc = this.deQuantsDeltaQ.GetAc(mode.SegmentId, plane);
-
-        // The final matrix level is flat. Lossless blocks and frames without matrices select it globally. AV1 also
-        // requires identity and one-dimensional transform types, which occupy the enum range from Identity onward,
-        // to bypass frequency weighting even when the frame signals quantization matrices.
-        int qmLevel = lossless || !usingQuantizationMatrix
-            ? Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1
-            : this.frameHeader.SegmentationParameters.QMLevel[(int)plane][mode.SegmentId];
-
-        ReadOnlySpan<int> iqMatrix = transformType < Av1TransformType.Identity
-            ? Av1InverseQuantizationLookup.GetQuantizationMatrix(qmLevel, plane, transformSize)
-            : Av1InverseQuantizationLookup.GetQuantizationMatrix(Av1Constants.QuantificationMatrixLevelCount - 1, Av1Plane.Y, transformSize);
-
-        int shift = transformSize.GetScale();
-
-        // Entropy decoding stores the populated coefficient count in the leading slot and the levels after it.
-        int coefficientCount = level[0];
-        level = level[1..];
-        int lev = level[0];
-        int qCoefficient;
-        if (lev != 0)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="TransformParameters"/> struct.
+        /// </summary>
+        /// <param name="quantizer">The active frame and superblock quantization values.</param>
+        /// <param name="mode">The block mode selecting the segment.</param>
+        /// <param name="transformType">The transform type selecting frequency weighting.</param>
+        /// <param name="transformSize">The transform dimensions and coefficient scale.</param>
+        /// <param name="plane">The color plane selecting DC, AC, and matrix values.</param>
+        public TransformParameters(
+            Av1InverseQuantizer quantizer,
+            Av1BlockModeInfo mode,
+            Av1TransformType transformType,
+            Av1TransformSize transformSize,
+            Av1Plane plane)
         {
-            int pos = scanIndices[0];
+            int bitCount = quantizer.sequenceHeader.ColorConfig.BitDepth.GetBitCount();
+            this.minimum = -(1 << (7 + bitCount));
+            this.maximum = (1 << (7 + bitCount)) - 1;
+            this.dc = quantizer.deQuantsDeltaQ.GetDc(mode.SegmentId, plane);
+            this.ac = quantizer.deQuantsDeltaQ.GetAc(mode.SegmentId, plane);
+            this.shift = transformSize.GetScale();
 
-            // Preserve the AV1 24-bit dequantization intermediate before removing transform-size scaling.
-            qCoefficient = (int)(((long)Math.Abs(lev) * GetDeQuantizedValue(dequantDc, pos, iqMatrix)) & 0xffffff);
-            qCoefficient >>= shift;
+            // Lossless segments and one-dimensional or identity transforms use the flat matrix. Matrix lookup
+            // happens once per transform, before the entropy loop supplies its nonzero magnitudes and signs.
+            int matrixLevel = quantizer.frameHeader.LosslessArray[mode.SegmentId] ||
+                !quantizer.frameHeader.QuantizationParameters.IsUsingQMatrix ||
+                transformType >= Av1TransformType.Identity
+                ? Av1ScanOrderConstants.QuantizationMatrixLevelCount - 1
+                : quantizer.frameHeader.SegmentationParameters.QMLevel[(int)plane][mode.SegmentId];
 
-            if (lev < 0)
-            {
-                qCoefficient = -qCoefficient;
-            }
-
-            qCoefficients[0] = Av1Math.Clamp(qCoefficient, minValue, maxValue);
+            this.inverseMatrix = Av1InverseQuantizationLookup.GetQuantizationMatrix(matrixLevel, plane, transformSize);
         }
 
-        for (int i = 1; i < coefficientCount; i++)
+        /// <summary>
+        /// Dequantizes one coefficient magnitude and applies its sign and precision bounds.
+        /// </summary>
+        /// <param name="magnitude">The nonnegative coefficient magnitude masked to twenty bits.</param>
+        /// <param name="coefficientIndex">The coefficient's raster position.</param>
+        /// <param name="negative">Whether the decoded coefficient sign is negative.</param>
+        /// <returns>The signed, scaled, and clipped transform coefficient.</returns>
+        public int Dequantize(int magnitude, int coefficientIndex, bool negative)
         {
-            lev = level[i];
-            if (lev != 0)
-            {
-                int pos = scanIndices[i];
+            int dequant = coefficientIndex == 0 ? this.dc : this.ac;
 
-                // AC levels arrive in entropy scan order but the inverse transform consumes raster positions.
-                qCoefficient = (int)(((long)Math.Abs(lev) * GetDeQuantizedValue(dequantAc, pos, iqMatrix)) & 0xffffff);
-                qCoefficient >>= shift;
-
-                if (lev < 0)
-                {
-                    qCoefficient = -qCoefficient;
-                }
-
-                qCoefficients[pos] = Av1Math.Clamp(qCoefficient, minValue, maxValue);
-            }
+            // Matrix weights have five fractional bits. Round the weighted quantizer first, then retain the
+            // normative 24-bit product before removing transform-size scaling. Sign and clipping follow the shift.
+            const int bias = 1 << (Av1Constants.QuantizationMatrixElementBitCount - 1);
+            dequant = ((this.inverseMatrix[coefficientIndex] * dequant) + bias) >> Av1Constants.QuantizationMatrixElementBitCount;
+            int coefficient = (int)(((long)magnitude * dequant) & 0xffffff) >> this.shift;
+            coefficient = negative ? -coefficient : coefficient;
+            return Av1Math.Clamp(coefficient, this.minimum, this.maximum);
         }
-
-        return coefficientCount;
-    }
-
-    /// <summary>
-    /// Applies an inverse quantization-matrix weight to a plane dequantization value.
-    /// </summary>
-    /// <param name="dequant">The unweighted DC or AC dequantization value.</param>
-    /// <param name="coefficientIndex">The raster coefficient index into the inverse matrix.</param>
-    /// <param name="iqMatrix">The inverse quantization matrix for the current level, plane, and transform size.</param>
-    /// <returns>The matrix-weighted dequantization value.</returns>
-    private static int GetDeQuantizedValue(short dequant, int coefficientIndex, ReadOnlySpan<int> iqMatrix)
-    {
-        // Matrix elements use fixed-point precision; adding half a unit produces nearest-integer rounding on shift.
-        const int bias = 1 << (Av1Constants.QuantizationMatrixElementBitCount - 1);
-        int deQuantifiedValue = dequant;
-
-        deQuantifiedValue = ((iqMatrix[coefficientIndex] * deQuantifiedValue) + bias) >> Av1Constants.QuantizationMatrixElementBitCount;
-        return deQuantifiedValue;
     }
 }

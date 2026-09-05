@@ -363,6 +363,57 @@ Retained-state and cost-policy follow-up after `ef8b1a823`:
   and initializes frame costs; `encodeframe_utils.c:1629-1689` suppresses block refresh when CDF updates are
   disabled. No new managed effort mapping or isolated cost-refresh threshold was introduced.
 
+Decoder coefficient-stage correction after `b305e6e89`, verified on 2026-09-05:
+
+- The source trace established an architectural deviation: `Av1SymbolDecoder.cs:1415-1459` published a
+  count prefix and scan-ordered quantized levels; `Av1TileReader.cs:1148-1157` packed those variable-length
+  groups. `Av1BlockDecoder.cs:126-153,1349-1399` then used another superblock-sized, all-plane workspace
+  to dequantize and reorder every transform during reconstruction. Both buffers were cleared separately.
+  The native entropy traversal dequantizes each signed level directly into its coefficient region
+  (`av1/decoder/decodetxb.c:116-165,279-312`); EOB belongs to separate metadata
+  (`av1/common/blockd.h:452-461`). Native region cursors advance by nominal transform area
+  (`av1/decoder/decodeframe.c:274-279`), independently of EOB.
+- Parsing now publishes dequantized coefficients directly and records EOB in `Av1TransformInfo`. Each plane's
+  parser/reconstruction cursor advances by nominal transform area, including skipped transforms. Frame state
+  reserves 16 coefficient slots per 4x4 unit, with no count prefix. Reconstruction consumes that storage
+  directly; its second coefficient workspace and inverse-quantization pass are removed. These changes span
+  the production parser, transform descriptors, frame storage, and reconstruction caller, rather than adding
+  a disconnected native primitive.
+- Quantization state moves to the parser. Mode syntax establishes delta-Q before `Residual` updates the
+  segment/plane values, matching `decodeframe.c:1172-1221`. Transform-local parameters preserve matrix
+  bypass, weighted-quantizer rounding, the 24-bit product mask, transform scaling before sign, and signed
+  precision clipping (`Av1InverseQuantizer.cs:92-135`, `decodetxb.c:52-58,298-312`). The entropy context still
+  uses the masked quantized magnitude and original DC sign (`Av1SymbolDecoder.cs:1424-1476`). No additional
+  allocator-owned buffer or native production dependency was added.
+- The coefficient capacities decrease by 25.5 KiB for a 64x64 4:2:0 superblock configuration and 102 KiB for
+  128x128 4:2:0: this combines removal of the second workspace with removal of count-prefix capacity.
+  These are source-derived coefficient-buffer sizes, excluding descriptor/object overhead, not measured
+  total memory or a timing improvement. No benchmark was run.
+- Existing entropy tests now check the published dequantized raster values, including sparse and beyond-EOB
+  zeros, against fixed reference qindex-23 DC/AC values. Four added matrix/arithmetic cases use explicit
+  8/10/12-bit reference values, matrix bypass for identity/one-dimensional transforms, lossless bypass,
+  asymmetric precision limits, product-mask wraparound, and sign-after-scaling rounding. The old matrix test
+  checked lengths only. These component cases do not establish complete signaled-matrix bitstream coverage.
+- After the production edit, serialized Release .NET 11 Visual Studio VSTest passed **9,371/9,371** AV1 and
+  public HEIF encoder cases in 2.6933 minutes (`coefficient-stage-final.trx`). After adding the fixed-value
+  tests, a focused set passed **130/130** in 3.0217 seconds (`coefficient-stage-last-edit.trx`). Following final
+  whitespace cleanup, the checkpoint set passed **159/159** in 5.5189 seconds (`coefficient-stage-checkpoint.trx`).
+  The final build had zero errors and the existing 1,009 warnings; Roslynk reported zero compiler errors.
+  No production behavior changed after the broad run, and no retained reference samples were altered.
+- Optimized current-reference redecoding matched the retained restoration and film-grain references across
+  **8,500,087** samples, maximum error **0**, zero exceeding one; those references also passed the managed
+  conformance tests. Twelve regenerated color sequences matched another **21,348** native samples exactly.
+  Reports are `restoration-comparison.json`, `film-grain-comparison.json`, and `decoder-comparison.json` in
+  `D:\GitHub\ynse01\av1-takeover-20260905`, outside the repository. This is bounded same-bitstream evidence,
+  not separately encoded output parity, complete decoder conformance, or a performance acceptance result.
+- Remaining architecture differences are explicit: the managed reader still parses a complete superblock
+  before reconstruction (`Av1TileReader.ReadTile`, `Av1FrameDecoder.DecodePartition`) and clears its complete
+  coefficient regions before reuse. Native single-thread decoding interleaves parsing/reconstruction through
+  visitors (`decodeframe.c:935-958,2746-2765,2792-2801`), clears only through the maximum populated raster
+  position after inverse transform (`:154-164`), and separates parsing/reconstruction for row workers with
+  different buffer lifetimes (`:3244-3277`). Those traversal, clearing, and worker-lifetime differences remain
+  open; this checkpoint does not claim that changing coefficient representation completes them.
+
 Film-grain decoder source comparison after `ef8b1a823`:
 
 - The complete template generation, random state, autoregression, scaling interpolation, overlap traversal,

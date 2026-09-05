@@ -2,19 +2,16 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
-using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.IntraBlockCopy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
-using SixLabors.ImageSharp.Memory;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
@@ -44,29 +41,14 @@ internal sealed class Av1BlockDecoder : IDisposable
     private readonly Av1LoopFilterContext loopFilterContext;
 
     /// <summary>
-    /// The frame-owned inverse quantizer carrying the active superblock delta-Q state.
-    /// </summary>
-    private readonly Av1InverseQuantizer inverseQuantizer;
-
-    /// <summary>
     /// The retained reconstructed frames addressable by inter prediction.
     /// </summary>
     private readonly Av1ReferenceFrameStore referenceFrames;
 
     /// <summary>
-    /// Owns all reusable inverse-quantization, transform, and prediction storage.
+    /// Owns the reusable inverse-transform and prediction storage.
     /// </summary>
     private readonly IMemoryOwner<short> workspaceOwner;
-
-    /// <summary>
-    /// The inverse-quantization prefix length in signed-short storage elements.
-    /// </summary>
-    private readonly int inverseQuantizationStorageLength;
-
-    /// <summary>
-    /// The inverse-transform workspace offset in signed-short storage elements.
-    /// </summary>
-    private readonly int transformWorkspaceOffset;
 
     /// <summary>
     /// The prediction workspace offset in signed-short storage elements.
@@ -89,7 +71,7 @@ internal sealed class Av1BlockDecoder : IDisposable
     private readonly bool isLoopFilterEnabled;
 
     /// <summary>
-    /// The next packed coefficient position for each plane in the current superblock.
+    /// The next raster coefficient region for each plane in the current superblock.
     /// </summary>
     private InlineArray4<int> currentCoefficientIndex;
 
@@ -105,7 +87,6 @@ internal sealed class Av1BlockDecoder : IDisposable
     /// <param name="frameHeader">The decoded frame header.</param>
     /// <param name="frameBuffer">The frame buffer receiving reconstructed samples.</param>
     /// <param name="loopFilterContext">The transform-size map populated while reconstructing blocks.</param>
-    /// <param name="inverseQuantizer">The inverse quantizer carrying the active superblock delta-Q state.</param>
     /// <param name="referenceFrames">The retained reconstructed frames selected by inter blocks.</param>
     /// <param name="paletteColorIndexMaps">The complete decoder-session palette map state.</param>
     public Av1BlockDecoder(
@@ -113,7 +94,6 @@ internal sealed class Av1BlockDecoder : IDisposable
         ObuFrameHeader frameHeader,
         Av1FrameBuffer<byte> frameBuffer,
         Av1LoopFilterContext loopFilterContext,
-        Av1InverseQuantizer inverseQuantizer,
         Av1ReferenceFrameStore referenceFrames,
         Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps = null)
     {
@@ -121,16 +101,7 @@ internal sealed class Av1BlockDecoder : IDisposable
         this.frameHeader = frameHeader;
         this.frameBuffer = frameBuffer;
         this.loopFilterContext = loopFilterContext;
-        this.inverseQuantizer = inverseQuantizer;
         this.referenceFrames = referenceFrames;
-        int ySize = (1 << this.sequenceHeader.SuperblockSizeLog2) * (1 << this.sequenceHeader.SuperblockSizeLog2);
-
-        // One scratch plane is reused for every transform unit. Its maximum size must cover a complete superblock
-        // across all coded planes, with chroma dimensions reduced independently by their subsampling axes.
-        ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
-        int chromaSubsampling = (colorConfig.SubSamplingX ? 1 : 0) + (colorConfig.SubSamplingY ? 1 : 0);
-        int chromaSize = ySize >> chromaSubsampling;
-        int inverseQuantizationSize = colorConfig.IsMonochrome ? ySize : ySize + (2 * chromaSize);
         int maximumBlockLength = 1 << sequenceHeader.SuperblockSizeLog2;
         int maximumBlockArea = maximumBlockLength * maximumBlockLength;
         int predictorWorkingLength = Math.Max(
@@ -143,9 +114,7 @@ internal sealed class Av1BlockDecoder : IDisposable
         int predictorWorkingOffset = (2 * maximumBlockArea) + compoundMaskLength;
         int chromaFromLumaOffset = predictorWorkingOffset + predictorWorkingLength;
         int predictionScratchLength = chromaFromLumaOffset + Av1ChromaFromLumaContext.BufferLength;
-        this.inverseQuantizationStorageLength = inverseQuantizationSize * 2;
-        this.transformWorkspaceOffset = this.inverseQuantizationStorageLength;
-        this.predictionScratchOffset = this.transformWorkspaceOffset + (Av1TransformWorkspace.MaximumLength * 2);
+        this.predictionScratchOffset = Av1TransformWorkspace.MaximumLength * 2;
 
         // Integer workspaces occupy even signed-short slices so one allocator owner can retain the complete block
         // lifetime while prediction still receives the Memory<short> contract needed by its reusable context.
@@ -168,24 +137,18 @@ internal sealed class Av1BlockDecoder : IDisposable
     }
 
     /// <summary>
-    /// Gets the reusable raster-order coefficient buffer populated by inverse quantization.
-    /// </summary>
-    public Span<int> CurrentInverseQuantizationCoefficients
-        => MemoryMarshal.Cast<short, int>(this.workspaceOwner.Memory.Span[..this.inverseQuantizationStorageLength]);
-
-    /// <summary>
     /// Releases the pooled reconstruction workspaces owned by this decoder.
     /// </summary>
     public void Dispose() => this.workspaceOwner.Dispose();
 
     /// <summary>
-    /// Resets the per-plane packed coefficient cursors before reconstructing a superblock.
+    /// Resets the per-plane coefficient-region cursors before reconstructing a superblock.
     /// </summary>
     /// <param name="superblockInfo">The superblock whose coefficient streams will be consumed.</param>
     public void UpdateSuperblock(Av1SuperblockInfo superblockInfo)
     {
-        // Each superblock owns independent packed coefficient streams for Y, U, and V. The first value for each
-        // transform unit stores its coefficient count, so DecodeBlock advances a plane cursor as units are consumed.
+        // Each superblock owns independent coefficient regions for Y, U, and V. Every transform advances its
+        // plane cursor by its nominal area, including transforms with no coded residual.
         this.currentCoefficientIndex[0] = 0;
         this.currentCoefficientIndex[1] = 0;
         this.currentCoefficientIndex[2] = 0;
@@ -202,9 +165,7 @@ internal sealed class Av1BlockDecoder : IDisposable
     public void DecodeBlock(Av1BlockModeInfo modeInfo, Point modeInfoPosition, Av1BlockSize blockSize, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
         Span<int> transformWorkspace = MemoryMarshal.Cast<short, int>(
-            this.workspaceOwner.Memory.Span.Slice(
-                this.transformWorkspaceOffset,
-                Av1TransformWorkspace.MaximumLength * 2));
+            this.workspaceOwner.Memory.Span[..(Av1TransformWorkspace.MaximumLength * 2)]);
 
         ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
         Av1TransformType transformType;
@@ -1346,57 +1307,43 @@ internal sealed class Av1BlockDecoder : IDisposable
                     }
                 }
 
-                int numberOfCoefficients = 0;
-
-                if (!modeInfo.Skip && transformInfo[0].CodeBlockFlag)
+                int endOfBlock = transformInfo[0].EndOfBlock;
+                if (endOfBlock != 0)
                 {
-                    Span<int> quantizationCoefficients = this.CurrentInverseQuantizationCoefficients;
-                    int inverseQuantizationSize = transformSize.GetWidth() * transformSize.GetHeight();
-                    quantizationCoefficients[..inverseQuantizationSize].Clear();
                     transformType = transformInfo[0].Type;
 
-                    // Inverse quantization writes raster coefficients into the reusable superblock scratch plane.
-                    numberOfCoefficients = this.inverseQuantizer.InverseQuantize(
-                        modeInfo, coefficients, quantizationCoefficients, transformType, transformSize, (Av1Plane)plane);
-                    if (numberOfCoefficients != 0)
+                    // Entropy decoding has already applied quantization, scan placement, and coefficient clipping.
+                    // Prediction includes a top-reference row; inverse reconstruction begins one stride after it.
+                    if (highBitDepth)
                     {
-                        // The packed coefficient stream prefixes every transform unit with its decoded coefficient
-                        // count. Advance past that prefix as well as the coefficient values before the next unit.
-                        this.currentCoefficientIndex[plane] += numberOfCoefficients + 1;
-
-                        if (highBitDepth)
-                        {
-                            // Prediction receives a reference-prefixed span beginning on the previous row. Inverse
-                            // reconstruction operates on the transform itself, so advance to the first destination row.
-                            Av1InverseTransformer.ReconstructHighBitDepth(
-                                quantizationCoefficients,
-                                highBitDepthTransformBlockReconstructionBuffer[reconstructionStride..],
-                                reconstructionStride,
-                                transformSize,
-                                transformType,
-                                plane,
-                                numberOfCoefficients,
-                                isLossless,
-                                this.frameBuffer.BitDepth,
-                                transformWorkspace);
-                        }
-                        else
-                        {
-                            // Keep the reference-prefix convention local to prediction; residuals are added at the
-                            // first reconstructed row rather than the top-neighbor row.
-                            Av1InverseTransformer.Reconstruct8Bit(
-                                quantizationCoefficients,
-                                transformBlockReconstructionBuffer[reconstructionStride..],
-                                reconstructionStride,
-                                transformSize,
-                                transformType,
-                                plane,
-                                numberOfCoefficients,
-                                isLossless,
-                                transformWorkspace);
-                        }
+                        Av1InverseTransformer.ReconstructHighBitDepth(
+                            coefficients,
+                            highBitDepthTransformBlockReconstructionBuffer[reconstructionStride..],
+                            reconstructionStride,
+                            transformSize,
+                            transformType,
+                            plane,
+                            endOfBlock,
+                            isLossless,
+                            this.frameBuffer.BitDepth,
+                            transformWorkspace);
+                    }
+                    else
+                    {
+                        Av1InverseTransformer.Reconstruct8Bit(
+                            coefficients,
+                            transformBlockReconstructionBuffer[reconstructionStride..],
+                            reconstructionStride,
+                            transformSize,
+                            transformType,
+                            plane,
+                            endOfBlock,
+                            isLossless,
+                            transformWorkspace);
                     }
                 }
+
+                this.currentCoefficientIndex[plane] += transformSize.GetWidth() * transformSize.GetHeight();
 
                 // Store Luma for CFL if required!
                 if (plane == (int)Av1Plane.Y && StoreChromaFromLumaRequired(colorConfig, ref partitionInfo))
@@ -1429,7 +1376,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                     }
                 }
 
-                // Transform descriptors are stored in the same traversal order as their packed coefficient groups.
+                // Transform descriptors and their coefficient regions follow the same per-plane traversal order.
                 transformInfo = transformInfo[1..];
             }
         }

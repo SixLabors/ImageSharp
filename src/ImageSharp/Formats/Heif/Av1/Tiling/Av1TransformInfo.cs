@@ -63,17 +63,7 @@ internal struct Av1TransformInfo
     public int OffsetY { get; set; }
 
     /// <summary>
-    /// Gets or sets a value indicating whether the transform block contains a coded residual.
-    /// <list type="table">
-    /// <item>
-    /// <term>false</term>
-    /// <description>The block has no residual.</description>
-    /// </item>
-    /// <item>
-    /// <term>true</term>
-    /// <description>The block has a residual.</description>
-    /// </item>
-    /// </list>
+    /// Gets or sets the end position of the coded coefficients in entropy scan order; zero means no residual.
     /// </summary>
-    public bool CodeBlockFlag { get; set; }
+    public ushort EndOfBlock { get; set; }
 }

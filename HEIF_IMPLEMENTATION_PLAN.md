@@ -338,10 +338,29 @@ Independent loop-filter delta entropy correction, verified on 2026-09-05:
   `av1/encoder/encodeframe.c:2357`). Existing native output must not be assumed to exercise multi-delta syntax.
   A complete independently authored multi-delta bitstream remains a verification gap. This correction does not
   establish encoder parity or complete decoder correctness. No benchmark was run.
-- Following the decoded values into deblocking found a further clipping-order discrepancy:
-  `Av1LoopFilterDecoder.cs:373-390` clips the reference adjustment before adding the mode adjustment;
-  native `av1/common/av1_loopfilter.c:95-101,195-201` clips their combined result once. A production-frame
-  regression and correction are still pending for that separately identified numerical defect.
+
+Loop-filter level clipping correction after checkpoint `77f535828`, verified on 2026-09-05:
+
+- Following decoded delta values into deblocking found another numerical defect. At the preceding checkpoint,
+  `Av1LoopFilterDecoder.cs:373-390` clipped the reference adjustment before adding the mode adjustment.
+  Native `av1/common/av1_loopfilter.c:95-101,182-187` clips their combined result once, both for per-block
+  delta-LF and for the precomputed frame-level table. Opposite adjustments must be allowed to cancel before clipping.
+- The production-frame regression failed before correction: base level 1, reference delta -63, and mode delta +63
+  should retain level 1, but premature clipping produced level 63. An expected sample of 100 became 104 at the first
+  differing position (`loop-level-before.trx`); later edge samples also differed. VSTest stopped on that first failure.
+  The local runner then failed to print xUnit's Unicode arrows under cp1252. The saved report was inspected and the
+  runner's stdout encoding corrected; the failed test was not rerun before the implementation change.
+- `Av1LoopFilterDecoder.GetFilterLevel` now adds both adjustments using the scale derived from the original level,
+  then clips once. Existing base/delta-LF and segmentation clipping remain in their normative order.
+  No allocation, ownership, or syntax policy changed.
+- The existing production-frame test and its three expected outputs are retained. Four new cases exercise cancelling
+  deltas at both limits, with delta-LF present and absent, through `DecodeFrame` and an independent scalar filter.
+  Final Release net11.0 incremental build reported zero errors and zero warnings; the earlier test compilation
+  reported 1,009 existing warnings. Roslynk reports zero compiler errors.
+- Serialized Visual Studio VSTest passed **11/11** in `loop-level-final.trx` (5.7519 seconds): deblocking scalar/SIMD
+  definitions, production-frame delta cases, and native deblocking, CDF-update, profile, and all-intra fixtures.
+  The earlier 2,095-case report applies to the preceding checkpoint. No benchmark or separate-encoder parity
+  measurement was run, and the complete multi-delta bitstream verification gap remains open.
 
 Motion-controller investigation continued after correction checkpoint `578ec34d9`:
 

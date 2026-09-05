@@ -59,17 +59,51 @@ public class Av1DeblockingFilterTests
         ValidateInterEdgeAndDeltaDecisions(
             Av1PredictionMode.GlobalMotionVector,
             Av1ReferenceFrameType.Last,
+            20,
+            -3,
+            4,
+            false,
             17);
 
         ValidateInterEdgeAndDeltaDecisions(
             Av1PredictionMode.NewMotionVector,
             Av1ReferenceFrameType.Last,
+            20,
+            -3,
+            4,
+            false,
             21);
 
         ValidateInterEdgeAndDeltaDecisions(
             Av1PredictionMode.GlobalMotionVector,
             Av1ReferenceFrameType.Golden,
+            20,
+            2,
+            4,
+            false,
             22);
+    }
+
+    /// <summary>
+    /// Verifies that opposite reference and mode adjustments cancel before the final filter-level clamp.
+    /// </summary>
+    [Theory]
+    [InlineData(1, -63, 63, false)]
+    [InlineData(63, 63, -63, false)]
+    [InlineData(1, -63, 63, true)]
+    [InlineData(63, 63, -63, true)]
+    public void DecodeFrameCombinesDeltasBeforeClipping(int baseLevel, int referenceDelta, int modeDelta, bool deltaLoopFilterPresent)
+    {
+        // Both native paths, per-block delta-LF and the precomputed frame table, clamp only after adding
+        // reference and mode adjustments. These equal and opposite deltas leave the base level unchanged.
+        ValidateInterEdgeAndDeltaDecisions(
+            Av1PredictionMode.NewMotionVector,
+            Av1ReferenceFrameType.Last,
+            baseLevel,
+            referenceDelta,
+            modeDelta,
+            deltaLoopFilterPresent,
+            baseLevel);
     }
 
     /// <summary>
@@ -109,12 +143,15 @@ public class Av1DeblockingFilterTests
     private static void ValidateInterEdgeAndDeltaDecisions(
         Av1PredictionMode mode,
         Av1ReferenceFrameType referenceFrame,
+        int baseLevel,
+        int referenceDelta,
+        int modeDelta,
+        bool deltaLoopFilterPresent,
         int expectedLevel)
     {
         const int width = Stride;
         const int height = 8;
         const int edge = 16;
-        const int baseLevel = 20;
         ObuSequenceHeader sequenceHeader = new()
         {
             MaxFrameWidth = width,
@@ -140,11 +177,12 @@ public class Av1DeblockingFilterTests
         };
 
         ObuLoopFilterParameters filterParameters = frameHeader.LoopFilterParameters;
+        frameHeader.DeltaQParameters.IsPresent = deltaLoopFilterPresent;
+        frameHeader.DeltaLoopFilterParameters.IsPresent = deltaLoopFilterPresent;
         filterParameters.FilterLevel[0] = baseLevel;
         filterParameters.ReferenceDeltaModeEnabled = true;
-        filterParameters.ReferenceDeltas[(int)Av1ReferenceFrameType.Last] = -3;
-        filterParameters.ReferenceDeltas[(int)Av1ReferenceFrameType.Golden] = 2;
-        filterParameters.ModeDeltas[1] = 4;
+        filterParameters.ReferenceDeltas[(int)referenceFrame] = referenceDelta;
+        filterParameters.ModeDeltas[1] = modeDelta;
 
         using Av1FrameBuffer<byte> frameBuffer = new(
             Configuration.Default,

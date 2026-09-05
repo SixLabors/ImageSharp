@@ -372,10 +372,7 @@ internal sealed class Av1LoopFilterDecoder
         {
             int referenceScale = 1 << (level >> 5);
             Av1ReferenceFrameType referenceFrame = modeInfo.ReferenceFrames[0];
-            level = Av1Math.Clip3(
-                0,
-                Av1Constants.MaxLoopFilter,
-                level + (parameters.ReferenceDeltas[(int)referenceFrame] * referenceScale));
+            level += parameters.ReferenceDeltas[(int)referenceFrame] * referenceScale;
 
             if (referenceFrame > Av1ReferenceFrameType.Intra)
             {
@@ -384,11 +381,12 @@ internal sealed class Av1LoopFilterDecoder
                 int modeDeltaIndex = modeInfo.YMode is Av1PredictionMode.GlobalMotionVector or
                     Av1PredictionMode.GlobalGlobalMotionVector ? 0 : 1;
 
-                level = Av1Math.Clip3(
-                    0,
-                    Av1Constants.MaxLoopFilter,
-                    level + (parameters.ModeDeltas[modeDeltaIndex] * referenceScale));
+                level += parameters.ModeDeltas[modeDeltaIndex] * referenceScale;
             }
+
+            // Reference and mode adjustments use the same scale and may cancel beyond either limit.
+            // Clipping the intermediate reference sum would discard part of that cancellation.
+            level = Av1Math.Clip3(0, Av1Constants.MaxLoopFilter, level);
         }
 
         return level;

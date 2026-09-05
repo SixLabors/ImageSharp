@@ -53,8 +53,14 @@ internal abstract class ExrBaseDecompressor : ExrBaseCompression
                        int left = (int)(compressedBytes - (stream.Position - pos));
                        return left > 0 ? left : 0;
                    });
-        inflateStream.AllocateNewBytes((int)compressedBytes, true);
-        using DeflateStream dataStream = inflateStream.CompressedStream!;
+
+        // Incomplete headers return false even for critical chunks, leaving no stream to read.
+        if (!inflateStream.AllocateNewBytes((int)compressedBytes, true))
+        {
+            ExrThrowHelper.ThrowInvalidImageContentException("ZIP compressed EXR block has an incomplete zlib header.");
+        }
+
+        using DeflateStream dataStream = inflateStream.CompressedStream;
 
         int totalRead = 0;
         while (totalRead < uncompressedBytes)

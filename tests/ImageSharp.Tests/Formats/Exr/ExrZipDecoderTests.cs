@@ -68,6 +68,42 @@ public class ExrZipDecoderTests
     }
 
     /// <summary>
+    /// Missing or truncated zlib headers obey the image-data integrity policy.
+    /// </summary>
+    /// <param name="length">The number of available zlib header bytes.</param>
+    /// <param name="integrity">The image-data integrity policy.</param>
+    [Theory]
+    [InlineData(0, SegmentIntegrityHandling.Strict)]
+    [InlineData(1, SegmentIntegrityHandling.Strict)]
+    [InlineData(0, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(1, SegmentIntegrityHandling.IgnoreAncillary)]
+    [InlineData(0, SegmentIntegrityHandling.IgnoreImageData)]
+    [InlineData(1, SegmentIntegrityHandling.IgnoreImageData)]
+    public void Decode_IncompleteZlibHeader_RespectsIntegrityHandling(int length, SegmentIntegrityHandling integrity)
+    {
+        byte[] header = [0x78, 0x9C];
+        byte[] data = BuildExr(header[..length], ExrPixelType.Float, 2, 0);
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = new TestMemoryAllocator(0x3F);
+        DecoderOptions options = new() { Configuration = configuration, SegmentIntegrityHandling = integrity };
+
+        if (integrity == SegmentIntegrityHandling.IgnoreImageData)
+        {
+            using Image<RgbaVector> image = Image.Load<RgbaVector>(options, data);
+            Assert.Equal(new Size(256, 1), image.Size);
+
+            for (int x = 0; x < image.Width; x++)
+            {
+                Assert.Equal(new Vector4(0, 0, 0, 1), image[x, 0].ToVector4());
+            }
+        }
+        else
+        {
+            Assert.Throws<InvalidImageContentException>(() => Image.Load<RgbaVector>(options, data));
+        }
+    }
+
+    /// <summary>
     /// Missing color channels must not inherit the allocator's previous contents.
     /// </summary>
     /// <param name="pixelType">The stored sample type.</param>
@@ -113,6 +149,13 @@ public class ExrZipDecoderTests
     /// <returns>The zlib stream.</returns>
     private static byte[] ZlibCompress(byte[] data)
     {
+        if (data.Length == 0)
+        {
+            // An empty write produces no output on some runtimes. Use a complete zlib stream
+            // containing an empty final DEFLATE block and Adler-32 checksum instead.
+            return [0x78, 0x9C, 0x03, 0x00, 0x00, 0x00, 0x00, 0x01];
+        }
+
         using MemoryStream output = new();
         using (ZLibStream zlib = new(output, CompressionLevel.Optimal, leaveOpen: true))
         {

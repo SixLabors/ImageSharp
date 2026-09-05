@@ -554,13 +554,23 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     public void TiffEncoder_EncodeBiColor_WithCcittGroup3FaxCompression_BlackIsZero_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.CcittGroup3Fax);
 
-    [Fact]
-    public void TiffEncoder_EncodeNarrowCcittGroup3Fax_Works()
+    /// <summary>
+    /// CCITT row framing must fit even when each row contains only one pixel.
+    /// </summary>
+    /// <param name="width">The image width.</param>
+    [Theory]
+    [InlineData(1)]
+    [InlineData(64)]
+    public void TiffEncoder_EncodeNarrowCcittGroup3Fax_Works(int width)
     {
-        using Image<L8> image = new(1, 2000);
+        using Image<L8> image = new(width, 2000);
+
         for (int y = 0; y < image.Height; y++)
         {
-            image[0, y] = new L8((byte)((y & 1) == 0 ? 255 : 0));
+            for (int x = 0; x < image.Width; x++)
+            {
+                image[x, y] = new L8((byte)(((x + y) & 1) == 0 ? 255 : 0));
+            }
         }
 
         TiffFrameMetadata metadata = image.Frames.RootFrame.Metadata.GetTiffMetadata();
@@ -573,6 +583,14 @@ public class TiffEncoderTests : TiffEncoderBaseTester
         output.Position = 0;
         using Image<L8> decoded = Image.Load<L8>(output);
         Assert.Equal(image.Size, decoded.Size);
+
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                Assert.Equal(image[x, y], decoded[x, y]);
+            }
+        }
     }
 
     [Theory]
@@ -590,18 +608,24 @@ public class TiffEncoderTests : TiffEncoderBaseTester
     public void TiffEncoder_EncodeBiColor_WithCcittGroup4FaxCompression_BlackIsZero_Works<TPixel>(TestImageProvider<TPixel> provider)
         where TPixel : unmanaged, IPixel<TPixel> => TestTiffEncoderCore(provider, TiffBitsPerPixel.Bit1, TiffPhotometricInterpretation.BlackIsZero, TiffCompression.CcittGroup4Fax);
 
+    /// <summary>
+    /// Re-encoding a one-pixel Group 4 image must retain its pixel and fit the end-of-block code.
+    /// </summary>
     [Fact]
     public void TiffEncoder_ReencodeNarrowCcittGroup4Fax_Works()
     {
-        byte[] data = BuildCcittGroup4Tiff([0x80, 0x08, 0x00, 0x80]);
+        byte[] data = Convert.FromBase64String(
+            "SUkqAAgAAAAJAAABAwABAAAAAQAAAAEBAwABAAAAAQAAAAIBAwABAAAAAQAAAAMBAwABAAAABAAAAAYBAwABAAAAAAAAABEBBAABAAAA" +
+            "egAAABUBAwABAAAAAQAAABYBBAABAAAAAQAAABcBBAABAAAABAAAAAAAAACACACA");
 
-        using Image image = Image.Load(data);
+        using Image<L8> image = Image.Load<L8>(data);
         using MemoryStream output = new();
         image.Save(output, new TiffEncoder());
 
         output.Position = 0;
-        using Image decoded = Image.Load(output);
+        using Image<L8> decoded = Image.Load<L8>(output);
         Assert.Equal(new Size(1, 1), decoded.Size);
+        Assert.Equal(image[0, 0], decoded[0, 0]);
     }
 
     [Theory]
@@ -660,62 +684,5 @@ public class TiffEncoderTests : TiffEncoderBaseTester
 
         TiffEncoder encoder = new() { PhotometricInterpretation = photometricInterpretation };
         image.DebugSave(provider, encoder);
-    }
-
-    private static byte[] BuildCcittGroup4Tiff(byte[] strip)
-    {
-        (ushort Tag, ushort Type, uint Count, uint Value)[] entries =
-        [
-            (256, 3, 1, 1),
-            (257, 3, 1, 1),
-            (258, 3, 1, 1),
-            (259, 3, 1, 4),
-            (262, 3, 1, 0),
-            (273, 4, 1, 0),
-            (277, 3, 1, 1),
-            (278, 4, 1, 1),
-            (279, 4, 1, (uint)strip.Length),
-        ];
-
-        using MemoryStream stream = new();
-        using BinaryWriter writer = new(stream);
-        writer.Write((byte)'I');
-        writer.Write((byte)'I');
-        writer.Write((ushort)42);
-        writer.Write(8U);
-        writer.Write((ushort)entries.Length);
-
-        long stripOffsetPosition = 0;
-        foreach ((ushort tag, ushort type, uint count, uint value) in entries)
-        {
-            writer.Write(tag);
-            writer.Write(type);
-            writer.Write(count);
-            if (tag == 273)
-            {
-                stripOffsetPosition = stream.Position;
-                writer.Write(0U);
-            }
-            else if (type == 3)
-            {
-                writer.Write((ushort)value);
-                writer.Write((ushort)0);
-            }
-            else
-            {
-                writer.Write(value);
-            }
-        }
-
-        writer.Write(0U);
-        uint stripOffset = (uint)stream.Position;
-        writer.Write(strip);
-
-        long endPosition = stream.Position;
-        stream.Position = stripOffsetPosition;
-        writer.Write(stripOffset);
-        stream.Position = endPosition;
-
-        return stream.ToArray();
     }
 }

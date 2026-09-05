@@ -2911,6 +2911,95 @@ public class Av1IntraSuperblockEncoderTests
         Assert.NotEqual(0, tileWriter.GetTileData(0).Length);
     }
 
+    /// <summary>
+    /// Verifies that mixed partition trials and final writing retain the decoder's reconstruction order.
+    /// </summary>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ProductionMixedPartitionsPreserveReconstructionOrder(bool transpose)
+    {
+        const int Size = 32;
+        const int QIndex = 4;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = true,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = Av1BitDepth.EightBit
+        };
+
+        using Av1EncoderFrameBuffer<byte> source = new(Configuration.Default, Size, Size, 8, Av1ColorFormat.Yuv400, 0, 0);
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(Configuration.Default, Size, Size, 8, Av1ColorFormat.Yuv400, 0, 0);
+        Buffer2DRegion<byte> sourcePlane = source.Frame.CodedView.GetPlane(Av1Plane.Y);
+        for (int y = 0; y < Size; y++)
+        {
+            for (int x = 0; x < Size; x++)
+            {
+                // The lower-right quadrant contains two different square surfaces beside one vertical
+                // surface. Transposition exercises the corresponding horizontal reconstruction order.
+                int value = x < 16 && y < 16 ? 128
+                    : y < 16 ? 16 + ((x - 16) * 12)
+                    : x < 16 ? 16 + ((y - 16) * 12)
+                    : x >= 24 ? 16 + ((x - 16) * 12)
+                    : y < 24 ? 16 + ((x + y - 31) * 12)
+                    : 16 + ((x - 8) * 12);
+
+                sourcePlane.DangerousGetRowSpan(transpose ? x : y)[transpose ? y : x] = (byte)value;
+            }
+        }
+
+        ClearPlane(reconstruction.Luma);
+        using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, Size, Size, disallow4x4AllFrames: false);
+        Av1PictureControlSet template = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, QIndex);
+        using Av1EncoderPictureBuffer picture = new(
+            Configuration.Default, template.Sequence.SequenceHeader, template.Parent.FrameHeader, Size, Size, disallow4x4AllFrames: false);
+
+        using Av1EncoderCoefficientBuffer coefficients = new(Configuration.Default, template.Sequence.SequenceHeader, Size, Size);
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(picture.Picture, 8192);
+        Av1TileEncoder tileWriter = new(
+            symbolEncoder, source.Frame, reconstruction.Frame, picture.Picture, coefficients, superblockWorkspace, blockWorkspace, effort: 9);
+
+        byte[] payload = WriteCompleteTileObu(picture.Picture, tileWriter, Size, Size);
+        using Av1Decoder decoder = new(Configuration.Default);
+        decoder.DecodeSequenceReference(payload, null, null);
+        Av1FrameInfo decodedInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
+        Av1FrameBuffer<byte> decodedFrame = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
+        Buffer2DRegion<byte> decodedPlane = decodedFrame.DeriveBlockPointer(Av1Plane.Y, 0, 0);
+        Buffer2DRegion<byte> retainedPlane = reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y);
+        bool hasMixedPartition = false;
+        for (int y = 0; y < Size; y++)
+        {
+            Assert.Equal(retainedPlane.DangerousGetRowSpan(y).ToArray(), decodedPlane.DangerousGetRowSpan(y).ToArray());
+            for (int x = 0; x < Size; x += 4)
+            {
+                Point position = new(x >> 2, y >> 2);
+                Av1PartitionType partition = decodedInfo.GetModeInfoAt(position).PartitionType;
+
+                // Interior 4x4 entries alias the block origin through the live grid; unused allocation
+                // slots may still contain rejected trial data and are not retained block state.
+                int allocationIndex = picture.Picture.ModeInfoGrid.Span[(position.Y * picture.Picture.ModeInfoStride) + position.X];
+                Assert.Equal(partition, picture.Picture.ModeInfoAllocation.Span[allocationIndex].Block.PartitionType);
+                hasMixedPartition |= partition is Av1PartitionType.HorizontalA or Av1PartitionType.HorizontalB
+                    or Av1PartitionType.VerticalA or Av1PartitionType.VerticalB;
+            }
+        }
+
+        Assert.True(hasMixedPartition);
+        string directory = Path.Combine(
+            TestEnvironment.ActualOutputDirectoryFullPath, "Heif", "Av1", nameof(this.ProductionMixedPartitionsPreserveReconstructionOrder));
+
+        Directory.CreateDirectory(directory);
+        File.WriteAllBytes(Path.Combine(directory, $"{transpose}.obu"), payload);
+        using FileStream raw = File.Create(Path.Combine(directory, $"{transpose}.retained.yuv"));
+        for (int y = 0; y < Size; y++)
+        {
+            raw.Write(retainedPlane.DangerousGetRowSpan(y));
+        }
+    }
+
     private static byte[] WriteCompleteTileObu(
         Av1PictureControlSet pictureTemplate,
         IAv1TileWriter tileWriter,

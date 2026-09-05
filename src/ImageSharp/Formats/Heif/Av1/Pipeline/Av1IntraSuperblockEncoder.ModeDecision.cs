@@ -376,6 +376,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         leafOrigin,
                         tileIndex,
                         leafSize,
+                        partitionType == Av1PartitionType.Split ? Av1PartitionType.None : partitionType,
                         publishContexts);
             }
 
@@ -412,7 +413,13 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (this.IsBlockOriginInsideFrame(leafOrigin))
                 {
-                    this.SetBlockGeometry(leafOrigin, leafSize, Av1PartitionType.None);
+                    // Mixed vertical partitions reconstruct square leaves in a different order.
+                    // Retain the parent decision so prediction uses the same edge availability as the decoder.
+                    // Split children own another partition node; a terminal 4x4 child implicitly owns NONE.
+                    this.SetBlockGeometry(
+                        leafOrigin,
+                        leafSize,
+                        partitionType == Av1PartitionType.Split ? Av1PartitionType.None : partitionType);
                 }
             }
         }
@@ -861,9 +868,11 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             ushort tileIndex,
             Av1BlockSize blockSize,
+            Av1PartitionType partitionType,
             bool publishContexts)
         {
-            this.SetBlockGeometry(blockOrigin, blockSize, Av1PartitionType.None);
+            // Trial leaves must use the same reconstruction order as final leaves of this partition.
+            this.SetBlockGeometry(blockOrigin, blockSize, partitionType);
             Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
             Av1TileWriter.SetModeInfoRowAndColumn(
                 this.picture,
@@ -1435,6 +1444,7 @@ internal static partial class Av1IntraSuperblockEncoder
             int modeInfoColumn = blockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
             bool rightAvailable = modeInfoColumn + transformSize.Get4x4WideCount() < macroBlock.Tile.ModeInfoColumnEnd;
             bool bottomAvailable = modeInfoRow + transformSize.Get4x4HighCount() < macroBlock.Tile.ModeInfoRowEnd;
+            Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
             bool hasTopRight = Av1IntraReferenceAvailability.HasTopRight(
                 this.picture.Sequence.SequenceHeader.SuperblockSize,
                 blockSize,
@@ -1442,7 +1452,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoColumn,
                 hasAbove,
                 rightAvailable,
-                Av1PartitionType.None,
+                partitionType,
                 transformSize,
                 0,
                 0,
@@ -1456,7 +1466,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoColumn,
                 bottomAvailable,
                 hasLeft,
-                Av1PartitionType.None,
+                partitionType,
                 transformSize,
                 0,
                 0,
@@ -1464,74 +1474,22 @@ internal static partial class Av1IntraSuperblockEncoder
                 0);
 
             Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
-            Span<TSample> above = aboveStorage[1..];
             Span<TSample> leftStorage = workspace.GetReferenceSamples(1);
-            Span<TSample> left = leftStorage[1..];
+            PrepareReferenceSamples(
+                reconstructionPlane,
+                blockOrigin,
+                blockWidth,
+                blockHeight,
+                hasLeft,
+                hasAbove,
+                hasTopRight,
+                hasBottomLeft,
+                this.bitDepth,
+                aboveStorage,
+                leftStorage);
 
-            if (hasAbove)
-            {
-                reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1)
-                    .Slice(blockOrigin.X, blockWidth)
-                    .CopyTo(above[..blockWidth]);
-            }
-
-            if (hasLeft)
-            {
-                for (int row = 0; row < blockHeight; row++)
-                {
-                    left[row] = reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
-                }
-            }
-
-            int midpoint = 128 << (this.bitDepth.GetBitCount() - 8);
-
-            // A missing edge repeats the closest perpendicular sample. Only a block with neither edge
-            // available uses the asymmetric midpoint offsets that distinguish top from left.
-            if (!hasAbove)
-            {
-                above[..blockWidth].Fill(hasLeft ? left[0] : TOperator.CreateSample(midpoint - 1));
-            }
-
-            if (!hasLeft)
-            {
-                left[..blockHeight].Fill(hasAbove ? above[0] : TOperator.CreateSample(midpoint + 1));
-            }
-
-            if (hasTopRight)
-            {
-                reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1)
-                    .Slice(blockOrigin.X + blockWidth, blockWidth)
-                    .CopyTo(above.Slice(blockWidth, blockWidth));
-            }
-            else
-            {
-                above.Slice(blockWidth, blockWidth).Fill(above[blockWidth - 1]);
-            }
-
-            if (hasBottomLeft)
-            {
-                for (int row = blockHeight; row < blockHeight * 2; row++)
-                {
-                    left[row] = reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
-                }
-            }
-            else
-            {
-                left.Slice(blockHeight, blockHeight).Fill(left[blockHeight - 1]);
-            }
-
-            // Zone-two projection and Paeth address the common corner immediately before both prepared edges.
-            // When an edge is unavailable AV1 derives that corner from the closest coded edge.
-            TSample corner = hasAbove && hasLeft
-                ? reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1)[blockOrigin.X - 1]
-                : hasAbove
-                    ? above[0]
-                    : hasLeft
-                        ? left[0]
-                        : TOperator.CreateSample(midpoint);
-
-            aboveStorage[0] = corner;
-            leftStorage[0] = corner;
+            ReadOnlySpan<TSample> above = aboveStorage.Slice(1, blockWidth + blockHeight);
+            ReadOnlySpan<TSample> left = leftStorage.Slice(1, blockWidth + blockHeight);
 
             Av1TransformBlockContext blockContext = Av1TileWriter.GetTransformBlockContexts(
                 Av1ComponentType.Luminance,
@@ -2536,6 +2494,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     ((transformRow4x4 + transformSize.Get4x4HighCount()) << subsamplingY) <
                 macroBlock.Tile.ModeInfoRowEnd;
 
+            Av1PartitionType partitionType = macroBlock.GetRelativeModeInfo(0).Block.PartitionType;
             bool hasTopRight = Av1IntraReferenceAvailability.HasTopRight(
                 this.picture.Sequence.SequenceHeader.SuperblockSize,
                 blockSize,
@@ -2543,7 +2502,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoColumn,
                 hasAbove,
                 rightAvailable,
-                Av1PartitionType.None,
+                partitionType,
                 transformSize,
                 transformRow4x4,
                 transformColumn4x4,
@@ -2557,15 +2516,17 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoColumn,
                 bottomAvailable,
                 hasLeft,
-                Av1PartitionType.None,
+                partitionType,
                 transformSize,
                 transformRow4x4,
                 transformColumn4x4,
                 subsamplingX,
                 subsamplingY);
 
-            Span<TSample> above = aboveStorage.Slice(1, transformWidth * 2);
-            Span<TSample> left = leftStorage.Slice(1, transformHeight * 2);
+            // Rectangular transforms project as far as width + height - 1 on either edge.
+            // The existing reference storage already holds this maximum; no additional scratch is needed.
+            Span<TSample> above = aboveStorage.Slice(1, transformWidth + transformHeight);
+            Span<TSample> left = leftStorage.Slice(1, transformWidth + transformHeight);
             if (hasAbove)
             {
                 if (transformRow > 0)
@@ -2613,6 +2574,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 left[..transformHeight].Fill(hasAbove ? above[0] : TOperator.CreateSample(midpoint + 1));
             }
 
+            int topRightCount = hasTopRight ? Math.Min(transformWidth, transformHeight) : 0;
             if (hasTopRight)
             {
                 if (transformRow > 0)
@@ -2620,26 +2582,26 @@ internal static partial class Av1IntraSuperblockEncoder
                     candidateReconstruction
                         .Slice(
                             ((rowOffset - 1) * planeBlockWidth) + columnOffset + transformWidth,
-                            transformWidth)
+                            topRightCount)
                         .CopyTo(above[transformWidth..]);
                 }
                 else
                 {
                     reconstructionPlane.DangerousGetRowSpan(planeBlockOrigin.Y - 1)
-                        .Slice(planeBlockOrigin.X + columnOffset + transformWidth, transformWidth)
+                        .Slice(planeBlockOrigin.X + columnOffset + transformWidth, topRightCount)
                         .CopyTo(above[transformWidth..]);
                 }
             }
-            else
-            {
-                above[transformWidth..].Fill(above[transformWidth - 1]);
-            }
 
+            int topCount = transformWidth + topRightCount;
+            above[topCount..].Fill(above[topCount - 1]);
+
+            int bottomLeftCount = hasBottomLeft ? Math.Min(transformHeight, transformWidth) : 0;
             if (hasBottomLeft)
             {
                 if (transformColumn > 0)
                 {
-                    for (int row = transformHeight; row < transformHeight * 2; row++)
+                    for (int row = transformHeight; row < transformHeight + bottomLeftCount; row++)
                     {
                         left[row] = candidateReconstruction[
                             ((rowOffset + row) * planeBlockWidth) + columnOffset - 1];
@@ -2647,17 +2609,16 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
                 else
                 {
-                    for (int row = transformHeight; row < transformHeight * 2; row++)
+                    for (int row = transformHeight; row < transformHeight + bottomLeftCount; row++)
                     {
                         left[row] = reconstructionPlane
                             .DangerousGetRowSpan(planeBlockOrigin.Y + rowOffset + row)[planeBlockOrigin.X - 1];
                     }
                 }
             }
-            else
-            {
-                left[transformHeight..].Fill(left[transformHeight - 1]);
-            }
+
+            int leftCount = transformHeight + bottomLeftCount;
+            left[leftCount..].Fill(left[leftCount - 1]);
 
             // Only an interior transform corner belongs to decision scratch. Boundary corners continue
             // to read the already reconstructed neighboring block so candidate trials remain isolated.

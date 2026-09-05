@@ -29,6 +29,98 @@ public class Av1EncoderFrameTests
     private const int Yuv422 = (int)Av1ColorFormat.Yuv422;
     private const int Yuv444 = (int)Av1ColorFormat.Yuv444;
 
+    [Theory]
+    [InlineData(EightBit, false, false)]
+    [InlineData(EightBit, false, true)]
+    [InlineData(EightBit, true, false)]
+    [InlineData(EightBit, true, true)]
+    [InlineData(TenBit, false, false)]
+    [InlineData(TenBit, false, true)]
+    [InlineData(TenBit, true, false)]
+    [InlineData(TenBit, true, true)]
+    [InlineData(TwelveBit, false, false)]
+    [InlineData(TwelveBit, false, true)]
+    [InlineData(TwelveBit, true, false)]
+    [InlineData(TwelveBit, true, true)]
+    public void RectangularIntraReferencesExtendTheLastAvailableSample(int bitDepthValue, bool transpose, bool extensionAvailable)
+    {
+        Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
+        if (bitDepth == Av1BitDepth.EightBit)
+        {
+            AssertRectangularIntraReferences<byte, Av1IntraSuperblockEncoder.ByteOperator>(bitDepth, transpose, extensionAvailable);
+        }
+        else
+        {
+            AssertRectangularIntraReferences<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(bitDepth, transpose, extensionAvailable);
+        }
+    }
+
+    private static void AssertRectangularIntraReferences<TSample, TOperator>(
+        Av1BitDepth bitDepth,
+        bool transpose,
+        bool extensionAvailable)
+        where TSample : unmanaged
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+    {
+        int width = transpose ? 16 : 4;
+        int height = transpose ? 4 : 16;
+        int scale = 1 << (bitDepth.GetBitCount() - 8);
+        using Buffer2D<TSample> plane = Configuration.Default.MemoryAllocator.Allocate2D<TSample>(33, 33);
+        for (int i = 0; i < 32; i++)
+        {
+            plane.DangerousGetRowSpan(0)[i + 1] = TOperator.CreateSample((10 + i) * scale);
+            plane.DangerousGetRowSpan(i + 1)[0] = TOperator.CreateSample((50 + i) * scale);
+        }
+
+        plane.DangerousGetRowSpan(0)[0] = TOperator.CreateSample(100 * scale);
+
+        // Native reconintra.c extends a four-sample edge through its four-sample neighbor, then
+        // repeats sample seven to cover the twenty samples required by a 4x16 directional ray.
+        // These explicit offsets also distinguish unavailable neighbors from available extension.
+        int[] shortEdge = extensionAvailable
+            ? [0, 1, 2, 3, 4, 5, 6, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7]
+            : [0, 1, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3];
+
+        int[] longEdge = extensionAvailable
+            ? [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
+            : [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 15, 15, 15, 15];
+
+        int[] expectedAbove = transpose ? longEdge : shortEdge;
+        int[] expectedLeft = transpose ? shortEdge : longEdge;
+        TSample poison = TOperator.CreateSample((1 << bitDepth.GetBitCount()) - 1);
+        TSample[] above = new TSample[23];
+        TSample[] left = new TSample[23];
+        above.AsSpan().Fill(poison);
+        left.AsSpan().Fill(poison);
+
+        // The exact-sized interior includes the corner and twenty projected samples. Sentinel samples
+        // on either side detect writes outside the reference view, including the former 2*long-edge span.
+        Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator>.PrepareReferenceSamples(
+            plane.GetRegion(),
+            new Point(1, 1),
+            width,
+            height,
+            true,
+            true,
+            extensionAvailable,
+            extensionAvailable,
+            bitDepth,
+            above.AsSpan(1, 21),
+            left.AsSpan(1, 21));
+
+        Assert.Equal(poison, above[0]);
+        Assert.Equal(poison, left[0]);
+        Assert.Equal(poison, above[^1]);
+        Assert.Equal(poison, left[^1]);
+        Assert.Equal(TOperator.CreateSample(100 * scale), above[1]);
+        Assert.Equal(TOperator.CreateSample(100 * scale), left[1]);
+        for (int i = 0; i < 20; i++)
+        {
+            Assert.Equal(TOperator.CreateSample((10 + expectedAbove[i]) * scale), above[i + 2]);
+            Assert.Equal(TOperator.CreateSample((50 + expectedLeft[i]) * scale), left[i + 2]);
+        }
+    }
+
     [Fact]
     public void EncodeUsesMultipleTilesWhenSingleTileWidthLimitIsExceeded()
     {

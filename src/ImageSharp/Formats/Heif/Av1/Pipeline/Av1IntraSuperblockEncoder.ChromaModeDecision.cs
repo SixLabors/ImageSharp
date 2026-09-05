@@ -116,6 +116,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
             bool rightAvailable = modeInfoColumn + (transformSize.Get4x4WideCount() << subsamplingX) < macroBlock.Tile.ModeInfoColumnEnd;
             bool bottomAvailable = modeInfoRow + (transformSize.Get4x4HighCount() << subsamplingY) < macroBlock.Tile.ModeInfoRowEnd;
+            Av1PartitionType partitionType = modeInfo.Block.PartitionType;
             bool hasTopRight = Av1IntraReferenceAvailability.HasTopRight(
                 this.picture.Sequence.SequenceHeader.SuperblockSize,
                 blockSize,
@@ -123,7 +124,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoColumn,
                 hasAbove,
                 rightAvailable,
-                Av1PartitionType.None,
+                partitionType,
                 transformSize,
                 0,
                 0,
@@ -137,7 +138,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 modeInfoColumn,
                 bottomAvailable,
                 hasLeft,
-                Av1PartitionType.None,
+                partitionType,
                 transformSize,
                 0,
                 0,
@@ -152,7 +153,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<TSample> blueLeftStorage = workspace.GetReferenceSamples(1);
             Span<TSample> redAboveStorage = workspace.GetReferenceSamples(2);
             Span<TSample> redLeftStorage = workspace.GetReferenceSamples(3);
-            this.PrepareReferenceSamples(
+            PrepareReferenceSamples(
                 blueReconstruction,
                 chromaOrigin,
                 width,
@@ -161,10 +162,11 @@ internal static partial class Av1IntraSuperblockEncoder
                 hasAbove,
                 hasTopRight,
                 hasBottomLeft,
+                this.bitDepth,
                 blueAboveStorage,
                 blueLeftStorage);
 
-            this.PrepareReferenceSamples(
+            PrepareReferenceSamples(
                 redReconstruction,
                 chromaOrigin,
                 width,
@@ -173,13 +175,14 @@ internal static partial class Av1IntraSuperblockEncoder
                 hasAbove,
                 hasTopRight,
                 hasBottomLeft,
+                this.bitDepth,
                 redAboveStorage,
                 redLeftStorage);
 
-            ReadOnlySpan<TSample> blueAbove = blueAboveStorage.Slice(1, width * 2);
-            ReadOnlySpan<TSample> blueLeft = blueLeftStorage.Slice(1, height * 2);
-            ReadOnlySpan<TSample> redAbove = redAboveStorage.Slice(1, width * 2);
-            ReadOnlySpan<TSample> redLeft = redLeftStorage.Slice(1, height * 2);
+            ReadOnlySpan<TSample> blueAbove = blueAboveStorage.Slice(1, width + height);
+            ReadOnlySpan<TSample> blueLeft = blueLeftStorage.Slice(1, width + height);
+            ReadOnlySpan<TSample> redAbove = redAboveStorage.Slice(1, width + height);
+            ReadOnlySpan<TSample> redLeft = redLeftStorage.Slice(1, width + height);
             Av1TransformBlockContext blueContext = Av1TileWriter.GetTransformBlockContexts(
                 Av1ComponentType.Chroma,
                 this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
@@ -873,8 +876,8 @@ internal static partial class Av1IntraSuperblockEncoder
                                 source,
                                 transformOrigin,
                                 prediction,
-                                aboveStorage.Slice(1, transformWidth * 2),
-                                leftStorage.Slice(1, transformHeight * 2),
+                                aboveStorage.Slice(1, transformWidth + transformHeight),
+                                leftStorage.Slice(1, transformWidth + transformHeight),
                                 hasLeft,
                                 hasAbove,
                                 predictionMode,
@@ -1150,7 +1153,21 @@ internal static partial class Av1IntraSuperblockEncoder
             return Av1RateDistortion.GetCost(this.rateMultiplier, rate, distortion);
         }
 
-        private void PrepareReferenceSamples(
+        /// <summary>
+        /// Prepares the shared corner and extended top and left edges for intra prediction.
+        /// </summary>
+        /// <param name="reconstructionPlane">The previously reconstructed plane.</param>
+        /// <param name="blockOrigin">The prediction block's origin in plane samples.</param>
+        /// <param name="width">The transform width in samples.</param>
+        /// <param name="height">The transform height in samples.</param>
+        /// <param name="hasLeft">Whether the left edge is available.</param>
+        /// <param name="hasAbove">Whether the top edge is available.</param>
+        /// <param name="hasTopRight">Whether the adjacent top-right block is reconstructed.</param>
+        /// <param name="hasBottomLeft">Whether the adjacent bottom-left block is reconstructed.</param>
+        /// <param name="bitDepth">The sample precision used for unavailable edges.</param>
+        /// <param name="aboveStorage">The corner followed by at least width plus height top-edge samples.</param>
+        /// <param name="leftStorage">The corner followed by at least width plus height left-edge samples.</param>
+        public static void PrepareReferenceSamples(
             Buffer2DRegion<TSample> reconstructionPlane,
             Point blockOrigin,
             int width,
@@ -1159,11 +1176,14 @@ internal static partial class Av1IntraSuperblockEncoder
             bool hasAbove,
             bool hasTopRight,
             bool hasBottomLeft,
+            Av1BitDepth bitDepth,
             Span<TSample> aboveStorage,
             Span<TSample> leftStorage)
         {
-            Span<TSample> above = aboveStorage.Slice(1, width * 2);
-            Span<TSample> left = leftStorage.Slice(1, height * 2);
+            // A directional ray can reach width + height - 1 on either edge, including on rectangles.
+            // Only one adjacent block supplies extension samples; the rest repeat its final sample.
+            Span<TSample> above = aboveStorage.Slice(1, width + height);
+            Span<TSample> left = leftStorage.Slice(1, width + height);
             if (hasAbove)
             {
                 reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1).Slice(blockOrigin.X, width).CopyTo(above[..width]);
@@ -1177,7 +1197,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
             }
 
-            int midpoint = 128 << (this.bitDepth.GetBitCount() - 8);
+            int midpoint = 128 << (bitDepth.GetBitCount() - 8);
             if (!hasAbove)
             {
                 above[..width].Fill(hasLeft ? left[0] : TOperator.CreateSample(midpoint - 1));
@@ -1188,26 +1208,25 @@ internal static partial class Av1IntraSuperblockEncoder
                 left[..height].Fill(hasAbove ? above[0] : TOperator.CreateSample(midpoint + 1));
             }
 
+            int topRightCount = hasTopRight ? Math.Min(width, height) : 0;
             if (hasTopRight)
             {
-                reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1).Slice(blockOrigin.X + width, width).CopyTo(above[width..]);
-            }
-            else
-            {
-                above[width..].Fill(above[width - 1]);
+                reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y - 1)
+                    .Slice(blockOrigin.X + width, topRightCount)
+                    .CopyTo(above[width..]);
             }
 
-            if (hasBottomLeft)
+            int topCount = width + topRightCount;
+            above[topCount..].Fill(above[topCount - 1]);
+
+            int bottomLeftCount = hasBottomLeft ? Math.Min(height, width) : 0;
+            for (int row = height; row < height + bottomLeftCount; row++)
             {
-                for (int row = height; row < height * 2; row++)
-                {
-                    left[row] = reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
-                }
+                left[row] = reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row)[blockOrigin.X - 1];
             }
-            else
-            {
-                left[height..].Fill(left[height - 1]);
-            }
+
+            int leftCount = height + bottomLeftCount;
+            left[leftCount..].Fill(left[leftCount - 1]);
 
             // Zone-two projection and Paeth address the common corner immediately before both edges.
             // Missing edges derive it from the closest coded sample or the bit-depth midpoint.

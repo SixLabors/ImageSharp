@@ -108,6 +108,7 @@ internal sealed class Av1FrameEntropyContext
         this.Skip = Av1DefaultDistributions.Skip;
         this.SkipMode = Av1DefaultDistributions.SkipMode;
         this.DeltaLoopFilterAbsolute = Av1DefaultDistributions.DeltaLoopFilterAbsolute;
+        this.DeltaLoopFilterMultiAbsolute = Av1DefaultDistributions.DeltaLoopFilterMultiAbsolute;
         this.DeltaQuantizerAbsolute = Av1DefaultDistributions.DeltaQuantizerAbsolute;
         this.SegmentId = Av1DefaultDistributions.SegmentId;
         this.SegmentIdPredicted = Av1DefaultDistributions.SegmentIdPredicted;
@@ -183,6 +184,7 @@ internal sealed class Av1FrameEntropyContext
         this.Skip = Av1Distribution.CreateCopy(source.Skip);
         this.SkipMode = Av1Distribution.CreateCopy(source.SkipMode);
         this.DeltaLoopFilterAbsolute = source.DeltaLoopFilterAbsolute.CreateCopy();
+        this.DeltaLoopFilterMultiAbsolute = Av1Distribution.CreateCopy(source.DeltaLoopFilterMultiAbsolute);
         this.DeltaQuantizerAbsolute = source.DeltaQuantizerAbsolute.CreateCopy();
         this.SegmentId = Av1Distribution.CreateCopy(source.SegmentId);
         this.SegmentIdPredicted = Av1Distribution.CreateCopy(source.SegmentIdPredicted);
@@ -410,6 +412,11 @@ internal sealed class Av1FrameEntropyContext
     public Av1Distribution DeltaLoopFilterAbsolute { get; }
 
     /// <summary>
+    /// Gets independent delta distributions for vertical luma, horizontal luma, U, and V loop filters.
+    /// </summary>
+    public Av1Distribution[] DeltaLoopFilterMultiAbsolute { get; }
+
+    /// <summary>
     /// Gets the absolute quantizer delta distribution.
     /// </summary>
     public Av1Distribution DeltaQuantizerAbsolute { get; }
@@ -578,6 +585,7 @@ internal sealed class Av1FrameEntropyContext
         CopyState(source.Skip, this.Skip);
         CopyState(source.SkipMode, this.SkipMode);
         this.DeltaLoopFilterAbsolute.CopyFrom(source.DeltaLoopFilterAbsolute);
+        CopyState(source.DeltaLoopFilterMultiAbsolute, this.DeltaLoopFilterMultiAbsolute);
         this.DeltaQuantizerAbsolute.CopyFrom(source.DeltaQuantizerAbsolute);
         CopyState(source.SegmentId, this.SegmentId);
         CopyState(source.SegmentIdPredicted, this.SegmentIdPredicted);
@@ -659,6 +667,7 @@ internal sealed class Av1FrameEntropyContext
         ResetUpdateCounts(this.Skip);
         ResetUpdateCounts(this.SkipMode);
         this.DeltaLoopFilterAbsolute.ResetUpdateCount();
+        ResetUpdateCounts(this.DeltaLoopFilterMultiAbsolute);
         this.DeltaQuantizerAbsolute.ResetUpdateCount();
         ResetUpdateCounts(this.SegmentId);
         ResetUpdateCounts(this.SegmentIdPredicted);

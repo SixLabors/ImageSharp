@@ -3064,7 +3064,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
 
             for (int i = 0; i < frameLoopFilterCount; i++)
             {
-                int reducedDeltaLoopFilterLevel = reader.ReadDeltaLoopFilter();
+                int reducedDeltaLoopFilterLevel = reader.ReadDeltaLoopFilter(this.FrameHeader.DeltaLoopFilterParameters.IsMulti, i);
                 int deltaLoopFilterResolution = this.FrameHeader.DeltaLoopFilterParameters.Resolution;
                 this.currentDeltaLoopFilter[i] = Av1Math.Clip3(
                     -Av1Constants.MaxLoopFilter,

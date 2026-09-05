@@ -24,6 +24,100 @@ public class Av1EntropyTests
     // Short syntax round trips encode only their small in-method symbol vectors.
     private const int ShortSyntaxBufferLength = 64;
 
+    [Theory]
+    [InlineData(4, true)]
+    [InlineData(2, true)]
+    [InlineData(1, true)]
+    [InlineData(4, false)]
+    public void DeltaLoopFilterChannelsAdaptIndependently(int channelCount, bool updateCdf)
+    {
+        ReadOnlySpan<int> deltas = [0, 1, -2, 3, -1, 0, 17, -3, 2, -9, 0, 1];
+        Av1Distribution[] channels = new Av1Distribution[channelCount];
+        for (int channel = 0; channel < channelCount; channel++)
+        {
+            // libaom entropymode.c gives each multi-delta channel this independent initial CDF.
+            channels[channel] = new(28160, 32120, 32677);
+        }
+
+        using Av1SymbolWriter writer = new(Configuration.Default, 512, updateCdf);
+        for (int index = 0; index < 96; index++)
+        {
+            int delta = deltas[index % deltas.Length];
+            int magnitude = Math.Abs(delta);
+            writer.WriteSymbol(Math.Min(magnitude, 3), channels[index % channelCount]);
+            if (magnitude >= 3)
+            {
+                // The escape magnitude is 2^bits + 1 plus the transmitted remainder, followed by its sign.
+                int bits = BitOperations.Log2((uint)(magnitude - 1));
+                writer.WriteLiteral((uint)(bits - 1), 3);
+                writer.WriteLiteral((uint)(magnitude - (1 << bits) - 1), bits);
+            }
+
+            if (magnitude != 0)
+            {
+                writer.WriteLiteral(delta < 0 ? 1U : 0U, 1);
+            }
+        }
+
+        using IMemoryOwner<byte> payload = writer.Exit();
+        Av1SymbolDecoder reader = new(Configuration.Default, payload.Memory.Span, BaseQIndex, updateCdf);
+        for (int index = 0; index < 96; index++)
+        {
+            Assert.Equal(deltas[index % deltas.Length], reader.ReadDeltaLoopFilter(channelCount > 1, index % channelCount));
+        }
+    }
+
+    [Fact]
+    public void FrameEntropyLifecyclePreservesIndependentDeltaLoopFilterChannels()
+    {
+        Av1FrameEntropyContext source = new(BaseQIndex);
+        Av1FrameEntropyContext copy = new(BaseQIndex);
+        Av1FrameEntropyContext snapshot = new(BaseQIndex);
+        Av1Distribution defaults = new(28160, 32120, 32677);
+        for (int channel = 0; channel < 4; channel++)
+        {
+            for (int observation = 0; observation < 20; observation++)
+            {
+                source.DeltaLoopFilterMultiAbsolute[channel].Update((channel % 3) + 1);
+            }
+        }
+
+        copy.CopyFrom(source);
+        source.SnapshotTo(snapshot);
+        for (int channel = 0; channel < 4; channel++)
+        {
+            Av1Distribution original = source.DeltaLoopFilterMultiAbsolute[channel];
+            Av1Distribution copied = copy.DeltaLoopFilterMultiAbsolute[channel];
+            Av1Distribution published = snapshot.DeltaLoopFilterMultiAbsolute[channel];
+            Assert.NotSame(original, copied);
+            Assert.NotSame(original, published);
+            for (int symbol = 0; symbol < 4; symbol++)
+            {
+                Assert.Equal(original[symbol], copied[symbol]);
+                Assert.Equal(original[symbol], published[symbol]);
+                Assert.Equal(defaults[symbol], source.DeltaLoopFilterAbsolute[symbol]);
+            }
+
+            // A published CDF preserves probabilities but restarts its observation history. The next
+            // identical symbol must therefore move its threshold further than in the twenty-count source.
+            original.Update(0);
+            published.Update(0);
+            Assert.NotEqual(original[0], published[0]);
+            Assert.NotEqual(original[0], copied[0]);
+        }
+
+        copy.ResetToDefaults(255);
+        Av1FrameEntropyContext fresh = new(BaseQIndex);
+        for (int channel = 0; channel < 4; channel++)
+        {
+            for (int symbol = 0; symbol < 4; symbol++)
+            {
+                Assert.Equal(defaults[symbol], copy.DeltaLoopFilterMultiAbsolute[channel][symbol]);
+                Assert.Equal(defaults[symbol], fresh.DeltaLoopFilterMultiAbsolute[channel][symbol]);
+            }
+        }
+    }
+
     [Fact]
     public void ProbabilityCostTableMatchesDefinition()
     {

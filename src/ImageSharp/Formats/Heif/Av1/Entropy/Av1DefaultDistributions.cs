@@ -496,6 +496,17 @@ internal static class Av1DefaultDistributions
     public static Av1Distribution DeltaLoopFilterAbsolute => new(28160, 32120, 32677);
 
     /// <summary>
+    /// Gets independent loop-filter delta distributions for vertical luma, horizontal luma, U, and V.
+    /// </summary>
+    public static Av1Distribution[] DeltaLoopFilterMultiAbsolute =>
+    [
+        new(28160, 32120, 32677),
+        new(28160, 32120, 32677),
+        new(28160, 32120, 32677),
+        new(28160, 32120, 32677)
+    ];
+
+    /// <summary>
     /// Gets the distribution for an absolute quantizer delta magnitude.
     /// </summary>
     public static Av1Distribution DeltaQuantizerAbsolute => new(28160, 32120, 32677);

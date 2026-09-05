@@ -917,11 +917,17 @@ internal ref struct Av1SymbolDecoder
     /// <summary>
     /// Reads a signed loop-filter delta value.
     /// </summary>
+    /// <param name="isMulti">Whether the frame signals independent deltas for each loop-filter channel.</param>
+    /// <param name="channel">The loop-filter channel, used only when <paramref name="isMulti"/> is true.</param>
     /// <returns>The decoded loop-filter delta.</returns>
-    public int ReadDeltaLoopFilter()
+    public int ReadDeltaLoopFilter(bool isMulti, int channel)
     {
         ref Av1SymbolReader r = ref this.reader;
-        int deltaLoopFilterAbsolute = r.ReadSymbol(this.context.DeltaLoopFilterAbsolute);
+
+        // Multi-delta syntax adapts one CDF per filter channel. Sharing the scalar-delta CDF would let
+        // an earlier channel change the range intervals used to decode the next channel in the same block.
+        Av1Distribution distribution = isMulti ? this.context.DeltaLoopFilterMultiAbsolute[channel] : this.context.DeltaLoopFilterAbsolute;
+        int deltaLoopFilterAbsolute = r.ReadSymbol(distribution);
         if (deltaLoopFilterAbsolute == Av1Constants.DeltaLoopFilterSmall)
         {
             int deltaLoopFilterRemainingBits = r.ReadLiteral(3) + 1;

@@ -298,6 +298,51 @@ Intra-edge integration after checkpoint `2424ff9f9`, verified on 2026-09-05:
 
 ### Required completion gates
 
+Frame-context investigation after checkpoint `1639550a0`:
+
+- `Av1SymbolEncoder.cs:355-369` resets tile CDFs to quantizer-band defaults. `Av1TileEncoder.cs:281-337`
+  does that between tiles and retains only their output offsets and lengths. Reference
+  `av1/encoder/encodeframe.c:1456` initializes each tile from the unchanged frame context, then
+  `av1/encoder/bitstream.c:4074-4079` signals the largest encoded tile as the update source.
+  `av1/encoder/encoder.c:4489-4495` copies that tile's CDFs, resets observation counters, and stores them
+  with the reconstructed reference frame. Encoder publication is missing in the managed path.
+- Primary-reference selection is coupled to the reference-role and frame-layer controller
+  (`av1/encoder/encode_strategy.c:168-230`), not simply the last encoded frame. The managed encoder retains
+  only the preceding reconstruction and always writes global-motion models relative to identity
+  (`ObuWriter.cs:1206-1226`). Enabling primary-reference reuse requires reconciling those inherited models,
+  loop-filter deltas, segmentation, refresh slots, and entropy state together. No encoder frame-context flag
+  or reference policy was changed during this investigation.
+- Existing `Av1FrameEntropyContexts.BeginFrame`, `Av1FrameEntropyContext.CopyFrom`, and `SnapshotTo`
+  already implement decoder base/working/published state and counter reset. They are existing reusable
+  contracts to consider when implementing encoder publication; a new ownership framework is not justified.
+
+Independent loop-filter delta entropy correction, verified on 2026-09-05:
+
+- The context-family comparison found a numerical decoder defect. Before correction,
+  `Av1SymbolDecoder.cs:921-924` always read `DeltaLoopFilterAbsolute`, including the per-channel loop at
+  `Av1TileReader.cs:3065-3067`. Native `av1/decoder/decodemv.c:749-765` instead selects independent
+  `delta_lf_multi_cdf[lf_id]` distributions for multi-delta syntax and the shared CDF otherwise.
+  Defaults are in `av1/common/entropymode.c:844-851`; counter reset is in `av1/common/entropy.c:166-169`.
+- A new regression encodes independent channel histories using explicit reference defaults and signed magnitude
+  syntax from `av1/encoder/bitstream.c:323-353`. The original decoder failed on the third symbol, returning
+  **-1 instead of -2** (`delta-lf-before.trx`, stopped on the first failure).
+- Four independent distributions now participate in prototype construction, deep copying, default restoration,
+  and frame snapshot counter reset. The existing tile loop passes its parsed multi-delta flag and channel index
+  to the symbol reader. No per-symbol owner, allocation, new guard, or rejection policy was introduced.
+- Tests cover four color channels, two monochrome channels, shared-delta syntax, disabled CDF adaptation,
+  signed escape magnitudes, independent copies, counter reset, and unchanged shared-delta defaults.
+  Final Release net11.0 build: zero errors and 1,009 existing warnings; Roslynk: zero compiler errors.
+  Serialized Visual Studio VSTest passed **2,095/2,095** in `delta-lf-final.trx` (1.8771 minutes), covering
+  entropy tests, frame-context lifecycle tests, and the AV1 reconstruction conformance suite.
+- Current libaom normal encoding sets `DEFAULT_DELTA_LF_MULTI` to zero (`av1/common/enums.h:73`,
+  `av1/encoder/encodeframe.c:2357`). Existing native output must not be assumed to exercise multi-delta syntax.
+  A complete independently authored multi-delta bitstream remains a verification gap. This correction does not
+  establish encoder parity or complete decoder correctness. No benchmark was run.
+- Following the decoded values into deblocking found a further clipping-order discrepancy:
+  `Av1LoopFilterDecoder.cs:373-390` clips the reference adjustment before adding the mode adjustment;
+  native `av1/common/av1_loopfilter.c:95-101,195-201` clips their combined result once. A production-frame
+  regression and correction are still pending for that separately identified numerical defect.
+
 Motion-controller investigation continued after correction checkpoint `578ec34d9`:
 
 - Managed `Av1IntraSuperblockEncoder.ReferenceModeDecision.cs:1278-1493` uses the same normalized squared-error

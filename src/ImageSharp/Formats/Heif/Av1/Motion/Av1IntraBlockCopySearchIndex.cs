@@ -686,6 +686,9 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         where TSample : unmanaged
         where TOperation : struct, ISearchOperation<TSample>
     {
+        // Sample operators retain native precision. Truncate the complete SAD into the eight-bit domain before
+        // adding motion rate; scaling only the rate would change integer rounding and candidate ties.
+        int sadShift = bitDepth.GetBitCount() - 8;
         SearchDiamond<TSample, TOperation>(
             source,
             reconstruction,
@@ -693,6 +696,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             writer,
             reference,
             sadPerBit,
+            sadShift,
             searchStepParameter,
             minimumColumnOffset,
             minimumRowOffset,
@@ -724,6 +728,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                 writer,
                 reference,
                 sadPerBit,
+                sadShift,
                 searchStepParameter + shortenedBy,
                 minimumColumnOffset,
                 minimumRowOffset,
@@ -763,6 +768,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                 writer,
                 reference,
                 sadPerBit,
+                sadShift,
                 minimumColumnOffset,
                 minimumRowOffset,
                 maximumColumnOffset,
@@ -795,6 +801,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Av1SymbolEncoder writer,
         Av1MotionVector reference,
         int sadPerBit,
+        int sadShift,
         int searchStepParameter,
         int minimumColumnOffset,
         int minimumRowOffset,
@@ -816,6 +823,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             writer,
             reference,
             sadPerBit,
+            sadShift,
             best);
 
         for (int stage = SearchRadii.Length - 1 - searchStepParameter; stage >= 0; stage--)
@@ -839,7 +847,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                     source,
                     blockOrigin,
                     reconstruction,
-                    predictionOrigin);
+                    predictionOrigin) >> sadShift;
 
                 // Motion-vector cost is nonnegative, so a raw absolute difference that already reaches the
                 // best combined cost cannot win and does not need an entropy-rate lookup.
@@ -891,6 +899,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Av1SymbolEncoder writer,
         Av1MotionVector reference,
         int sadPerBit,
+        int sadShift,
         int minimumColumnOffset,
         int minimumRowOffset,
         int maximumColumnOffset,
@@ -907,6 +916,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             writer,
             reference,
             sadPerBit,
+            sadShift,
             start);
 
         int startColumn = Math.Max(-ExhaustiveSearchRange, minimumColumnOffset - start.X);
@@ -924,8 +934,8 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                     blockOrigin.X + firstCandidate.X,
                     blockOrigin.Y + firstCandidate.Y);
 
-                // Four adjacent candidates share the source load and row traversal, matching the batch width
-                // used by the native full-resolution pass without allocating temporary candidate buffers.
+                // Four adjacent candidates share the source load and row traversal. Normalize each complete sum
+                // independently so batching preserves individual candidate costs and their tie order.
                 TOperation.GetFourSumsOfAbsoluteDifferences(
                     source,
                     blockOrigin,
@@ -935,7 +945,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
 
                 for (int i = 0; i < ExhaustiveSearchBatchSize; i++)
                 {
-                    int sumOfAbsoluteDifferences = sumsOfAbsoluteDifferences[i];
+                    int sumOfAbsoluteDifferences = sumsOfAbsoluteDifferences[i] >> sadShift;
                     if (sumOfAbsoluteDifferences >= bestCost)
                     {
                         continue;
@@ -967,7 +977,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                     source,
                     blockOrigin,
                     reconstruction,
-                    predictionOrigin);
+                    predictionOrigin) >> sadShift;
 
                 if (sumOfAbsoluteDifferences >= bestCost)
                 {
@@ -999,6 +1009,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Av1SymbolEncoder writer,
         Av1MotionVector reference,
         int sadPerBit,
+        int sadShift,
         Point candidate)
         where TSample : unmanaged
         where TOperation : struct, ISearchOperation<TSample>
@@ -1008,7 +1019,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             source,
             blockOrigin,
             reconstruction,
-            predictionOrigin);
+            predictionOrigin) >> sadShift;
 
         Av1MotionVector vector = new(candidate.Y * 8, candidate.X * 8);
         int rate = writer.GetDisplacementVectorSearchCost(vector, reference);

@@ -17,7 +17,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Modular.Encoding;
 
 internal static class JxlMaEncoder
 {
-    internal enum IntersectionType
+    internal enum IntersectionType : byte
     {
         None,
         Partial,

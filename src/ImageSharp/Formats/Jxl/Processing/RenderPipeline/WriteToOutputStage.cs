@@ -4,7 +4,6 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Image;
 
@@ -13,6 +12,23 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.RenderPipeline;
 internal sealed class WriteToOutputStage
 {
     private const int ChunkSize = 1024;
+
+    private int width;
+    private int height;
+    private IJxlImageOutput main;
+    private int numColors;
+    private bool wantAlpha;
+    private bool hasAlpha;
+    private bool unpremultiplyAlpha;
+    private int alphaC;
+    private bool flipX;
+    private bool flipY;
+    private bool transpose;
+    private readonly List<IJxlImageOutput> extraChannels = [];
+    private readonly List<float> opaqueAlpha = [];
+    private readonly Configuration configuration;
+    private List<Memory<byte>> tempIn;
+    private List<Memory<byte>> tempOut;
 
     /// <summary>
     /// Gets the 32x32 blue noise dithering pattern lookup
@@ -234,4 +250,85 @@ internal sealed class WriteToOutputStage
             JxlExifOrientation.Rotate90 or
             JxlExifOrientation.Rotate270 or
             JxlExifOrientation.AntiTranspose;
+
+    private unsafe void UnpremultiplyAlpha(int threadId, int len, float** lineBuffers)
+    {
+        // Highly unsafe code! ⚠️
+        float** tempIn = stackalloc float*[4];
+        Vector<float> one = Vector<float>.One;
+
+        for (int c = 0; c < this.main.PixelFormat.Channels; ++c)
+        {
+            // size_t tix = thread_id * main_.num_channels_ + c;
+            // temp_in[c] = temp_in_[tix].address<float>();
+            // memcpy(temp_in[c], line_buffers[c], sizeof(float) * len);
+            int tix = (threadId * this.main.PixelFormat.Channels) + c;
+
+            tempIn[c] = (float*)Unsafe.AsPointer(ref MemoryMarshal.Cast<byte, float>(this.tempIn[tix].Span)[0]);
+
+            MemoryMarshal.CreateSpan(ref Unsafe.AsRef<float>(lineBuffers[c]), len)
+                .CopyTo(MemoryMarshal.CreateSpan(ref Unsafe.AsRef<float>(tempIn[c]), len));
+        }
+
+        Vector<float> smallAlpha = Vector.Create(SmallAlpha);
+
+        for (int ix = 0; ix < len; ix += Vector<float>.Count)
+        {
+            float* ptr = tempIn[this.numColors + ix];
+
+            // Using an aligned and unaligned branch
+            // REVIEW: does the branch outweigh alignment? we will have to benchmark this
+            // when the codec can build
+            if (JxlUnsafe.IsSimdAligned(ptr))
+            {
+                Vector<float> alpha = Vector.LoadAlignedNonTemporal(tempIn[this.numColors] + ix);
+                Vector<float> mul = one / Vector.Max(smallAlpha, alpha);
+
+                for (int c = 0; c < this.numColors; ++c)
+                {
+                    float* currPtr = tempIn[c] + ix;
+
+                    if (JxlUnsafe.IsSimdAligned(currPtr))
+                    {
+                        Vector<float> val = Vector.LoadAlignedNonTemporal(currPtr);
+                        Vector.StoreAlignedNonTemporal(val * mul, currPtr);
+                    }
+                    else
+                    {
+                        Vector<float> val = Vector.Load(currPtr);
+                        Vector.Store(val * mul, currPtr);
+                    }
+                }
+            }
+            else
+            {
+                Vector<float> alpha = Vector.Load(tempIn[this.numColors] + ix);
+                Vector<float> mul = one / Vector.Max(smallAlpha, alpha);
+
+                for (int c = 0; c < this.numColors; ++c)
+                {
+                    float* currPtr = tempIn[c] + ix;
+
+                    if (JxlUnsafe.IsSimdAligned(currPtr))
+                    {
+                        Vector<float> val = Vector.LoadAlignedNonTemporal(currPtr);
+                        Vector.StoreAlignedNonTemporal(val * mul, currPtr);
+                    }
+                    else
+                    {
+                        Vector<float> val = Vector.Load(currPtr);
+                        Vector.Store(val * mul, currPtr);
+                    }
+                }
+            }
+        }
+
+        for (int c = 0; c < this.main.PixelFormat.Channels; c++)
+        {
+            fixed (byte* ptr = this.tempIn[c].Span)
+            {
+                lineBuffers[c] = (float*)ptr;
+            }
+        }
+    }
 }

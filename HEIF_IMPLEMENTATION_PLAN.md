@@ -65,8 +65,17 @@ verification before advancing. The following dependency result does not close th
   `Av1EncoderBlockWorkspace` appends exactly 131,072 integer elements (512 KiB) only for inter workers.
   The sequence owner retains this storage across frames; still-image workers retain their previous allocation.
   Native evidence: `block.h:763-793`, `encoder_alloc.h:57-75`, `encodemv.c:125-250`, `rd.c:687-705`,
-  and `encodeframe_utils.c:1663-1675`. Per-superblock refresh is connected; speed-dependent row/set refresh
-  remains to be integrated with the new configuration controller.
+  and `encodeframe_utils.c:1663-1675`. Motion-cost refresh now follows the configured superblock, row, or
+  evenly spaced row-set cadence. Levels 3 and above use rows; levels 5 and above below 720p use row sets.
+  Evidence: `speed_features.c:1002,1315`, `encodeframe_utils.c:1556-1589,1628-1630,1663-1675`.
+  `Av1MotionSearchSettings` resolves the policy and `Av1TileEncoder.ProcessTiles` applies it to the actual
+  serial traversal, initializing each tile even when CDF adaptation is disabled. The frame-height rounding
+  yields evenly distributed update rows for both 64- and 128-sample superblocks, including short final tiles.
+  Release .NET 11 passed with zero errors and 1,009 existing warnings after the final edit. VSTest passed
+  324/324 focused frame, motion-policy, and superblock cases. Optimized native decoding matched all 39
+  compact streams (86,859 samples), plus three 129x273 multi-row streams (477,243 samples): maximum error
+  zero, differing samples zero, samples exceeding one zero. These checks do not establish encoder parity
+  or a measured performance improvement. Mode and coefficient cost-refresh lifecycles remain unresolved.
 - Inter-mode rate calculation now applies the missing rounded 108/128 weight to motion-vector rate alone.
   Evidence: `mcomp.c:306-312`, `rd.h:46`, `motion_search_facade.c:535-542`; managed owning method is
   `Av1IntraSuperblockEncoder.ReferenceModeDecision.GetInterModeRate`. Search still requires the separate
@@ -272,7 +281,7 @@ verification before advancing. The following dependency result does not close th
   The fixture now supplies an explicit entropy history favoring GLOBALMV and checks its cost against every
   competing mode; all preexisting expected skip/rate/distortion/coefficient/pixel assertions remain intact.
 - This remains the same active production milestone. Scaled references, production temporal analysis,
-  broader block/reference support, complete mode pruning and ordering, and speed-dependent entropy-cost refresh
+  broader block/reference support, complete mode pruning and ordering, and mode/coefficient cost refresh
   remain open. Still-image and intra/global-motion Effort policies are not migrated. The production decoder
   comparisons establish same-bitstream equality only, not separate-encoder parity, performance, or codec completion.
 

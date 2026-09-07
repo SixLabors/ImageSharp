@@ -94,6 +94,7 @@ internal readonly struct Av1MotionSearchSettings
                 this.SecondCandidateSelection = CandidateSelection.FirstOnly;
                 this.MeshPruningLevel = 1;
                 this.AllowIntraBlockCopy = false;
+                this.MotionCostUpdate = CostUpdateFrequency.SuperblockRow;
             }
 
             if (speed >= HeifEncodingSpeed.Level4)
@@ -140,6 +141,7 @@ internal readonly struct Av1MotionSearchSettings
                 if (!is720pOrLarger)
                 {
                     this.DownsampledSadLevel = 1;
+                    this.MotionCostUpdate = CostUpdateFrequency.SuperblockRowSet;
                 }
             }
 
@@ -183,6 +185,27 @@ internal readonly struct Av1MotionSearchSettings
                 this.fullPixelMethod = FullPixelSearchMethod.EightPointNStep;
             }
         }
+    }
+
+    /// <summary>
+    /// The serial tile traversal boundaries at which motion costs are refreshed.
+    /// </summary>
+    public enum CostUpdateFrequency
+    {
+        /// <summary>
+        /// Refresh before each superblock.
+        /// </summary>
+        Superblock,
+
+        /// <summary>
+        /// Refresh at the first superblock of each tile row.
+        /// </summary>
+        SuperblockRow,
+
+        /// <summary>
+        /// Refresh at evenly spaced sets of superblock rows within a tile.
+        /// </summary>
+        SuperblockRowSet
     }
 
     /// <summary>
@@ -303,6 +326,11 @@ internal readonly struct Av1MotionSearchSettings
         /// </summary>
         FirstOnly
     }
+
+    /// <summary>
+    /// Gets the frequency at which selected motion symbols refresh the search cost tables.
+    /// </summary>
+    public CostUpdateFrequency MotionCostUpdate { get; }
 
     /// <summary>
     /// Gets the adaptation level for the initial full-pixel step.

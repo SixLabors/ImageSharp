@@ -392,26 +392,46 @@ public class Av1EncoderFrameTests
         int colorFormatValue,
         int effort,
         HeifEncodingSpeed speed)
+        => VerifySequenceEncoderColorPlanes(bitDepthValue, colorFormatValue, effort, speed, 23, 19);
+
+    [Theory]
+    [InlineData(HeifEncodingSpeed.Level0)]
+    [InlineData(HeifEncodingSpeed.Level3)]
+    [InlineData(HeifEncodingSpeed.Level5)]
+    public void SequenceEncoderPreservesNativeColorPlanesAcrossMotionCostRefreshRows(HeifEncodingSpeed speed)
+        => VerifySequenceEncoderColorPlanes(EightBit, Yuv420, 8, speed, 129, 273);
+
+    private static void VerifySequenceEncoderColorPlanes(
+        int bitDepthValue,
+        int colorFormatValue,
+        int effort,
+        HeifEncodingSpeed speed,
+        int width,
+        int height)
     {
-        const int Width = 23;
-        const int Height = 19;
+        // A 129x273 frame crosses both columns and uneven row sets of 64- or 128-sample superblocks.
+        // The compact fixture retains its odd visible edges and all precision/subsampling combinations.
         const int QIndex = 17;
         const int ByteToUInt16Scale = ushort.MaxValue / byte.MaxValue;
         Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
         Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
         ObuColorConfig colorConfig = CreateColorConfig(bitDepth, colorFormat);
         ReadOnlySpan<int> period = [0, 28, 40, 28, 0, -28, -40, -12];
-        using Image<Rgb48> source = new(Width, Height);
+        using Image<Rgb48> source = new(width, height);
         using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
             Configuration.Default,
-            Width,
-            Height,
+            width,
+            height,
             colorConfig,
             QIndex,
             effort,
             speed);
 
-        string outputDirectory = TestEnvironment.CreateOutputDirectory("Heif", "Av1", nameof(this.SequenceEncoderPreservesNativeColorPlanesWithSubpixelMotion));
+        string outputFolder = width == 23 ? nameof(SequenceEncoderPreservesNativeColorPlanesWithSubpixelMotion)
+            : nameof(SequenceEncoderPreservesNativeColorPlanesAcrossMotionCostRefreshRows);
+
+        string outputDirectory = TestEnvironment.CreateOutputDirectory("Heif", "Av1", outputFolder);
+
         string outputName = $"{bitDepth.GetBitCount()}-{colorFormat}-effort{effort}-speed{(int)speed}";
         using FileStream output = File.Create(Path.Combine(outputDirectory, outputName + ".obu"));
         using BinaryWriter rawOutput = new(File.Create(Path.Combine(outputDirectory, outputName + ".managed.yuv")));
@@ -422,13 +442,13 @@ public class Av1EncoderFrameTests
             // The second source translates all three channels by one luma sample on each axis. Chroma is
             // converted independently by the production converter, so 4:2:0 and 4:2:2 cannot hide behind
             // constant neutral planes. Odd dimensions also exercise each plane's visible-edge clipping.
-            for (int y = 0; y < Height; y++)
+            for (int y = 0; y < height; y++)
             {
                 Span<Rgb48> row = source.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
-                int referenceY = Math.Min(y + frameIndex, Height - 1);
-                for (int x = 0; x < Width; x++)
+                int referenceY = Math.Min(y + frameIndex, height - 1);
+                for (int x = 0; x < width; x++)
                 {
-                    int referenceX = Math.Min(x + frameIndex, Width - 1);
+                    int referenceX = Math.Min(x + frameIndex, width - 1);
                     row[x] = new Rgb48(
                         (ushort)((128 + period[referenceX % period.Length]) * ByteToUInt16Scale),
                         (ushort)((128 + period[referenceY % period.Length]) * ByteToUInt16Scale),
@@ -451,8 +471,8 @@ public class Av1EncoderFrameTests
             decoder.DecodeSequenceReference(sample.ToArray(), null, null);
             Assert.True(Assert.IsType<ObuSequenceHeader>(decoder.SequenceHeader).EnableIntraEdgeFilter);
             Av1FrameBuffer<byte> decoded = Assert.IsType<Av1FrameBuffer<byte>>(decoder.FrameBuffer);
-            Assert.Equal(Width, decoded.Width);
-            Assert.Equal(Height, decoded.Height);
+            Assert.Equal(width, decoded.Width);
+            Assert.Equal(height, decoded.Height);
             Assert.Equal(bitDepth, decoded.BitDepth);
             Av1FrameInfo decodedFrameInfo = Assert.IsType<Av1FrameInfo>(decoder.FrameInfo);
             foreach (Av1BlockModeInfo mode in decodedFrameInfo.GetModeInfos(Point.Empty, decodedFrameInfo.GetModeInfoCount(Point.Empty)))
@@ -470,7 +490,7 @@ public class Av1EncoderFrameTests
                 Av1Plane plane = (Av1Plane)planeIndex;
                 int subsamplingX = plane == Av1Plane.Y || !colorConfig.SubSamplingX ? 0 : 1;
                 int subsamplingY = plane == Av1Plane.Y || !colorConfig.SubSamplingY ? 0 : 1;
-                int planeHeight = (Height + subsamplingY) >> subsamplingY;
+                int planeHeight = (height + subsamplingY) >> subsamplingY;
                 if (bitDepth == Av1BitDepth.EightBit)
                 {
                     Buffer2DRegion<byte> planeSamples = decoded.DeriveBlockPointer(plane, subsamplingX, subsamplingY);

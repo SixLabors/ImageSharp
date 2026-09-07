@@ -327,6 +327,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         ObuTileGroupHeader tileLayout = frameHeader.TilesInfo;
         Span<int> tileDataOffsets = picture.TileDataOffsets.Span;
         Span<int> tileDataLengths = picture.TileDataLengths.Span;
+        Av1MotionSearchSettings.CostUpdateFrequency motionCostUpdate = picture.Parent.MotionSearchSettings.MotionCostUpdate;
         if (!TSymbolOperation.WritesOutput && frameHeader.AllowIntraBlockCopy)
         {
             // Hash the visible source once before reconstruction begins so candidate discovery never depends
@@ -347,6 +348,17 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                 // Each pass begins every tile from the same frame probabilities. Only the packing pass
                 // advances the output offset; the analysis operation does not touch range-coder state.
                 writer.Reset(tileDataEnd);
+
+                int motionCostRowInterval = 1;
+                if (motionCostUpdate == Av1MotionSearchSettings.CostUpdateFrequency.SuperblockRowSet)
+                {
+                    // Target one update per 256 luma rows, then distribute those updates evenly over the
+                    // tile's superblock rows. Two rounded divisions keep short final tiles evenly spaced.
+                    int tileHeight = (tile.ModeInfoRowEnd - tile.ModeInfoRowStart) << Av1Constants.ModeInfoSizeLog2;
+                    int updateCount = (tileHeight + 255) / 256;
+                    int updateSpan = updateCount << sequenceHeader.SuperblockSizeLog2;
+                    motionCostRowInterval = (tileHeight + updateSpan - 1) / updateSpan;
+                }
 
                 Point firstModeInfoPosition = new(tile.ModeInfoColumnStart, tile.ModeInfoRowStart);
                 entropyContext.MacroBlockModeInfo = picture.GetMacroBlockModeInfo(firstModeInfoPosition);
@@ -379,10 +391,17 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                         }
                         else
                         {
-                            if (!frameHeader.IsIntra)
+                            bool firstColumn = modeInfoColumn == tile.ModeInfoColumnStart;
+                            bool firstSuperblock = firstColumn && modeInfoRow == tile.ModeInfoRowStart;
+                            int tileSuperblockRow = (modeInfoRow - tile.ModeInfoRowStart) >> superblockShift;
+                            bool refreshMotionCosts = motionCostUpdate == Av1MotionSearchSettings.CostUpdateFrequency.Superblock ||
+                                (firstColumn && (tileSuperblockRow % motionCostRowInterval) == 0);
+
+                            if (!frameHeader.IsIntra && (firstSuperblock || (!frameHeader.DisableCdfUpdate && refreshMotionCosts)))
                             {
-                                // Candidates within a superblock share one entropy snapshot. Updating while
-                                // trying partitions would make the search depend on discarded alternatives.
+                                // Initialize from each tile's starting CDF even when adaptation is disabled.
+                                // Later updates consume only preceding selected blocks at the configured boundary;
+                                // all candidate trials between boundaries share the same cost snapshot.
                                 writer.FillMotionVectorCosts(blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision));
                             }
 

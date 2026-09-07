@@ -180,6 +180,9 @@ internal static partial class Av1IntraSuperblockEncoder
             this.SelectedBlockStatistics = default;
         }
 
+        /// <inheritdoc/>
+        public static bool UsesRetainedDecisions => false;
+
         /// <summary>
         /// Gets the statistics of the most recently encoded block.
         /// </summary>

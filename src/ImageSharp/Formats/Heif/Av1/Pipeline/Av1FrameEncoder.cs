@@ -272,8 +272,9 @@ internal static class Av1FrameEncoder
         int height,
         ObuColorConfig colorConfig,
         int qIndex,
-        int effort)
-        => CreateSequenceEncoder(configuration, width, height, colorConfig, qIndex, effort, false);
+        int effort,
+        HeifEncodingSpeed speed)
+        => CreateSequenceEncoder(configuration, width, height, colorConfig, qIndex, effort, speed, false);
 
     /// <summary>
     /// Creates an encoder that retains reconstructed alpha frames for prediction by later samples in the sequence.
@@ -284,8 +285,9 @@ internal static class Av1FrameEncoder
         int height,
         ObuColorConfig colorConfig,
         int qIndex,
-        int effort)
-        => CreateSequenceEncoder(configuration, width, height, colorConfig, qIndex, effort, true);
+        int effort,
+        HeifEncodingSpeed speed)
+        => CreateSequenceEncoder(configuration, width, height, colorConfig, qIndex, effort, speed, true);
 
     private static ObuSequenceHeader Encode<TPixel>(
         Configuration configuration,
@@ -359,14 +361,15 @@ internal static class Av1FrameEncoder
         ObuColorConfig colorConfig,
         int qIndex,
         int effort,
+        HeifEncodingSpeed speed,
         bool encodeAlpha)
     {
         if (colorConfig.BitDepth == Av1BitDepth.EightBit)
         {
-            return new ByteSequenceEncoder(configuration, width, height, colorConfig, qIndex, effort, encodeAlpha);
+            return new ByteSequenceEncoder(configuration, width, height, colorConfig, qIndex, effort, speed, encodeAlpha);
         }
 
-        return new HighBitDepthSequenceEncoder(configuration, width, height, colorConfig, qIndex, effort, encodeAlpha);
+        return new HighBitDepthSequenceEncoder(configuration, width, height, colorConfig, qIndex, effort, speed, encodeAlpha);
     }
 
     private static ObuSequenceHeader CreateSequenceHeader(
@@ -622,7 +625,8 @@ internal static class Av1FrameEncoder
             ByteSampleBitDepth,
             colorFormat,
             chromaPositionX: CenteredChromaSamplePosition,
-            chromaPositionY: CenteredChromaSamplePosition);
+            chromaPositionY: CenteredChromaSamplePosition,
+            lumaBorder: Av1EncoderFrame<byte>.LumaBorder);
 
         using Av1EncoderFrameBuffer<byte> reconstruction = new(
             configuration,
@@ -631,7 +635,8 @@ internal static class Av1FrameEncoder
             ByteSampleBitDepth,
             colorFormat,
             chromaPositionX: CenteredChromaSamplePosition,
-            chromaPositionY: CenteredChromaSamplePosition);
+            chromaPositionY: CenteredChromaSamplePosition,
+            lumaBorder: Av1EncoderFrame<byte>.LumaBorder);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             configuration,
@@ -651,7 +656,7 @@ internal static class Av1FrameEncoder
 
         using ObuWriter obuWriter = new(configuration);
 
-        PrepareFrame(
+        bool isScreenContent = PrepareFrame(
             configuration,
             image,
             sourceRectangle,
@@ -670,6 +675,7 @@ internal static class Av1FrameEncoder
             source.Frame.Height,
             disallow4x4AllFrames: !frameHeader.CodedLossless && effort < 9);
 
+        picture.Picture.Parent.IsScreenContent = isScreenContent;
         Encode(
             obuWriter,
             stream,
@@ -709,7 +715,8 @@ internal static class Av1FrameEncoder
             bitDepth,
             colorFormat,
             chromaPositionX: CenteredChromaSamplePosition,
-            chromaPositionY: CenteredChromaSamplePosition);
+            chromaPositionY: CenteredChromaSamplePosition,
+            lumaBorder: Av1EncoderFrame<ushort>.LumaBorder);
 
         using Av1EncoderFrameBuffer<ushort> reconstruction = new(
             configuration,
@@ -718,7 +725,8 @@ internal static class Av1FrameEncoder
             bitDepth,
             colorFormat,
             chromaPositionX: CenteredChromaSamplePosition,
-            chromaPositionY: CenteredChromaSamplePosition);
+            chromaPositionY: CenteredChromaSamplePosition,
+            lumaBorder: Av1EncoderFrame<ushort>.LumaBorder);
 
         using Av1EncoderCoefficientBuffer coefficients = new(
             configuration,
@@ -738,7 +746,7 @@ internal static class Av1FrameEncoder
 
         using ObuWriter obuWriter = new(configuration);
 
-        PrepareFrame(
+        bool isScreenContent = PrepareFrame(
             configuration,
             image,
             sourceRectangle,
@@ -757,6 +765,7 @@ internal static class Av1FrameEncoder
             source.Frame.Height,
             disallow4x4AllFrames: !frameHeader.CodedLossless && effort < 9);
 
+        picture.Picture.Parent.IsScreenContent = isScreenContent;
         Encode(
             obuWriter,
             stream,
@@ -777,7 +786,7 @@ internal static class Av1FrameEncoder
     /// <summary>
     /// Converts one source frame and resolves every content-dependent coding tool before picture-state allocation.
     /// </summary>
-    private static void PrepareFrame<TPixel>(
+    private static bool PrepareFrame<TPixel>(
         Configuration configuration,
         ImageFrame<TPixel> image,
         Rectangle sourceRectangle,
@@ -797,7 +806,7 @@ internal static class Av1FrameEncoder
             sequenceHeader.ColorConfig,
             encodeAlpha);
 
-        ConfigureFrameTools(
+        return ConfigureFrameTools(
             source,
             reference,
             sequenceHeader,
@@ -808,7 +817,7 @@ internal static class Av1FrameEncoder
     /// <summary>
     /// Converts one sequence sample through its retained row workspace before resolving frame coding tools.
     /// </summary>
-    private static void PrepareFrame<TPixel>(
+    private static bool PrepareFrame<TPixel>(
         Configuration configuration,
         ImageFrame<TPixel> image,
         Rectangle sourceRectangle,
@@ -827,7 +836,7 @@ internal static class Av1FrameEncoder
             source,
             conversionWorkspace);
 
-        ConfigureFrameTools(
+        return ConfigureFrameTools(
             source,
             reference,
             sequenceHeader,
@@ -838,7 +847,7 @@ internal static class Av1FrameEncoder
     /// <summary>
     /// Resolves the eight-bit frame tools whose syntax depends on the converted source samples.
     /// </summary>
-    private static void ConfigureFrameTools(
+    private static bool ConfigureFrameTools(
         Av1EncoderFrame<byte> source,
         Av1EncoderFrame<byte> reference,
         ObuSequenceHeader sequenceHeader,
@@ -852,32 +861,28 @@ internal static class Av1FrameEncoder
             sequenceHeader.ColorConfig.BitDepth,
             effort);
 
-        bool allowScreenContentTools = false;
-        bool allowIntraBlockCopy = false;
-        if (effort >= 5)
-        {
-            // Lower effort levels never search palette or intra-block-copy modes, so scanning the complete
-            // luma plane cannot affect their bitstream decisions.
-            Av1ScreenContentDetector.Detect(
-                source,
-                out allowScreenContentTools,
-                out allowIntraBlockCopy);
-        }
+        bool isScreenContent = Av1ScreenContentDetector.Detect(
+            source,
+            out bool allowScreenContentTools,
+            out bool allowIntraBlockCopy);
 
-        frameHeader.AllowScreenContentTools = allowScreenContentTools;
+        frameHeader.AllowScreenContentTools = effort >= 5 && allowScreenContentTools;
 
         // The current intra-block-copy search owns one 8x8 transform. Lossless coding requires reversible
         // 4x4 transforms, so palette remains available while this incompatible candidate is omitted.
         frameHeader.AllowIntraBlockCopy =
             frameHeader.IsIntra &&
             !frameHeader.CodedLossless &&
+            frameHeader.AllowScreenContentTools &&
             allowIntraBlockCopy;
+
+        return isScreenContent;
     }
 
     /// <summary>
     /// Converts one high-bit-depth source frame and resolves every content-dependent coding tool before picture-state allocation.
     /// </summary>
-    private static void PrepareFrame<TPixel>(
+    private static bool PrepareFrame<TPixel>(
         Configuration configuration,
         ImageFrame<TPixel> image,
         Rectangle sourceRectangle,
@@ -897,7 +902,7 @@ internal static class Av1FrameEncoder
             sequenceHeader.ColorConfig,
             encodeAlpha);
 
-        ConfigureFrameTools(
+        return ConfigureFrameTools(
             source,
             reference,
             sequenceHeader,
@@ -908,7 +913,7 @@ internal static class Av1FrameEncoder
     /// <summary>
     /// Converts one high-bit-depth sequence sample through retained row storage before resolving frame coding tools.
     /// </summary>
-    private static void PrepareFrame<TPixel>(
+    private static bool PrepareFrame<TPixel>(
         Configuration configuration,
         ImageFrame<TPixel> image,
         Rectangle sourceRectangle,
@@ -927,7 +932,7 @@ internal static class Av1FrameEncoder
             source,
             conversionWorkspace);
 
-        ConfigureFrameTools(
+        return ConfigureFrameTools(
             source,
             reference,
             sequenceHeader,
@@ -938,7 +943,7 @@ internal static class Av1FrameEncoder
     /// <summary>
     /// Resolves the high-bit-depth frame tools whose syntax depends on the converted source samples.
     /// </summary>
-    private static void ConfigureFrameTools(
+    private static bool ConfigureFrameTools(
         Av1EncoderFrame<ushort> source,
         Av1EncoderFrame<ushort> reference,
         ObuSequenceHeader sequenceHeader,
@@ -952,26 +957,22 @@ internal static class Av1FrameEncoder
             sequenceHeader.ColorConfig.BitDepth,
             effort);
 
-        bool allowScreenContentTools = false;
-        bool allowIntraBlockCopy = false;
-        if (effort >= 5)
-        {
-            // Lower effort levels never search palette or intra-block-copy modes, so scanning the complete
-            // luma plane cannot affect their bitstream decisions.
-            Av1ScreenContentDetector.Detect(
-                source,
-                out allowScreenContentTools,
-                out allowIntraBlockCopy);
-        }
+        bool isScreenContent = Av1ScreenContentDetector.Detect(
+            source,
+            out bool allowScreenContentTools,
+            out bool allowIntraBlockCopy);
 
-        frameHeader.AllowScreenContentTools = allowScreenContentTools;
+        frameHeader.AllowScreenContentTools = effort >= 5 && allowScreenContentTools;
 
         // The current intra-block-copy search owns one 8x8 transform. Lossless coding requires reversible
         // 4x4 transforms, so palette remains available while this incompatible candidate is omitted.
         frameHeader.AllowIntraBlockCopy =
             frameHeader.IsIntra &&
             !frameHeader.CodedLossless &&
+            frameHeader.AllowScreenContentTools &&
             allowIntraBlockCopy;
+
+        return isScreenContent;
     }
 
     private static void Encode(
@@ -1166,7 +1167,7 @@ internal static class Av1FrameEncoder
         int effortShift = effort - MinimumGlobalMotionSearchEffort;
         int searchRadius = Math.Min(
             MinimumGlobalMotionSearchRadius << effortShift,
-            Av1EncoderFrame<TSample>.LumaBorder);
+            Math.Min(referenceLuma.Bounds.X, referenceLuma.Bounds.Y));
 
         Point bestOffset = default;
         long bestAnalysisError = GetGlobalMotionSquaredError<TSample, TOperator>(
@@ -1499,6 +1500,7 @@ internal static class Av1FrameEncoder
             ObuColorConfig colorConfig,
             int qIndex,
             int effort,
+            HeifEncodingSpeed speed,
             bool encodeAlpha,
             bool usesHighBitDepth)
         {
@@ -1548,10 +1550,11 @@ internal static class Av1FrameEncoder
                     width,
                     height);
 
+                this.PictureBuffer.Picture.Parent.EncodingSpeed = speed;
                 this.SuperblockWorkspace = new Av1EncoderSuperblockWorkspace(configuration);
 
                 this.TileWorkspace = new Av1EncoderTileWorkspace(this.FrameHeader, this.SuperblockWorkspace);
-                this.BlockWorkspace = new Av1EncoderBlockWorkspace(configuration);
+                this.BlockWorkspace = new Av1EncoderBlockWorkspace(configuration, allocateInterMotionCosts: true);
 
                 // Tile probabilities adapt within a sample, while error-resilient frame headers prohibit carrying
                 // those updates into the next sample. The retained encoder is therefore reset before each frame.
@@ -1692,6 +1695,7 @@ internal static class Av1FrameEncoder
             ObuColorConfig colorConfig,
             int qIndex,
             int effort,
+            HeifEncodingSpeed speed,
             bool encodeAlpha)
             : base(
                 configuration,
@@ -1700,12 +1704,17 @@ internal static class Av1FrameEncoder
                 colorConfig,
                 qIndex,
                 effort,
+                speed,
                 encodeAlpha,
                 usesHighBitDepth: false)
         {
             try
             {
                 Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
+
+                // Inter prediction needs a complete superblock beyond the image plus interpolation and alignment margins.
+                int lumaBorder = (this.SequenceHeader.Use128x128Superblock ? 128 : 64) + 32;
+
                 this.source = new(
                     configuration,
                     width,
@@ -1713,7 +1722,8 @@ internal static class Av1FrameEncoder
                     ByteSampleBitDepth,
                     colorFormat,
                     CenteredChromaSamplePosition,
-                    CenteredChromaSamplePosition);
+                    CenteredChromaSamplePosition,
+                    lumaBorder);
 
                 this.reference = new(
                     configuration,
@@ -1722,7 +1732,8 @@ internal static class Av1FrameEncoder
                     ByteSampleBitDepth,
                     colorFormat,
                     CenteredChromaSamplePosition,
-                    CenteredChromaSamplePosition);
+                    CenteredChromaSamplePosition,
+                    lumaBorder);
 
                 this.reconstruction = new(
                     configuration,
@@ -1731,7 +1742,8 @@ internal static class Av1FrameEncoder
                     ByteSampleBitDepth,
                     colorFormat,
                     CenteredChromaSamplePosition,
-                    CenteredChromaSamplePosition);
+                    CenteredChromaSamplePosition,
+                    lumaBorder);
             }
             catch
             {
@@ -1764,7 +1776,7 @@ internal static class Av1FrameEncoder
 
             Rectangle sourceRectangle = new(0, 0, image.Width, image.Height);
             this.SymbolEncoder.Reset();
-            PrepareFrame(
+            bool isScreenContent = PrepareFrame(
                 this.Configuration,
                 image,
                 sourceRectangle,
@@ -1776,6 +1788,7 @@ internal static class Av1FrameEncoder
                 this.ConversionWorkspace);
 
             this.PictureBuffer.Reset(frameHeader);
+            this.PictureBuffer.Picture.Parent.IsScreenContent = isScreenContent;
             Encode(
                 this.ObuWriter,
                 stream,
@@ -1812,6 +1825,7 @@ internal static class Av1FrameEncoder
             ObuColorConfig colorConfig,
             int qIndex,
             int effort,
+            HeifEncodingSpeed speed,
             bool encodeAlpha)
             : base(
                 configuration,
@@ -1820,6 +1834,7 @@ internal static class Av1FrameEncoder
                 colorConfig,
                 qIndex,
                 effort,
+                speed,
                 encodeAlpha,
                 usesHighBitDepth: true)
         {
@@ -1827,6 +1842,10 @@ internal static class Av1FrameEncoder
             {
                 int bitDepth = colorConfig.BitDepth.GetBitCount();
                 Av1ColorFormat colorFormat = colorConfig.GetColorFormat();
+
+                // Inter prediction needs a complete superblock beyond the image plus interpolation and alignment margins.
+                int lumaBorder = (this.SequenceHeader.Use128x128Superblock ? 128 : 64) + 32;
+
                 this.source = new(
                     configuration,
                     width,
@@ -1834,7 +1853,8 @@ internal static class Av1FrameEncoder
                     bitDepth,
                     colorFormat,
                     CenteredChromaSamplePosition,
-                    CenteredChromaSamplePosition);
+                    CenteredChromaSamplePosition,
+                    lumaBorder);
 
                 this.reference = new(
                     configuration,
@@ -1843,7 +1863,8 @@ internal static class Av1FrameEncoder
                     bitDepth,
                     colorFormat,
                     CenteredChromaSamplePosition,
-                    CenteredChromaSamplePosition);
+                    CenteredChromaSamplePosition,
+                    lumaBorder);
 
                 this.reconstruction = new(
                     configuration,
@@ -1852,7 +1873,8 @@ internal static class Av1FrameEncoder
                     bitDepth,
                     colorFormat,
                     CenteredChromaSamplePosition,
-                    CenteredChromaSamplePosition);
+                    CenteredChromaSamplePosition,
+                    lumaBorder);
             }
             catch
             {
@@ -1885,7 +1907,7 @@ internal static class Av1FrameEncoder
 
             Rectangle sourceRectangle = new(0, 0, image.Width, image.Height);
             this.SymbolEncoder.Reset();
-            PrepareFrame(
+            bool isScreenContent = PrepareFrame(
                 this.Configuration,
                 image,
                 sourceRectangle,
@@ -1897,6 +1919,7 @@ internal static class Av1FrameEncoder
                 this.ConversionWorkspace);
 
             this.PictureBuffer.Reset(frameHeader);
+            this.PictureBuffer.Picture.Parent.IsScreenContent = isScreenContent;
             Encode(
                 this.ObuWriter,
                 stream,

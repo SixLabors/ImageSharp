@@ -6,11 +6,282 @@ Complete a production-quality, fully managed AV1 codec and its bounded AVIF/HEIF
 
 This plan is the authoritative delivery checklist. A source file, unit test, build, self-roundtrip, or local implementation is not completion evidence by itself.
 
+Checkpoint handling: work stays in the existing checkout. Do not create or use worktrees; the user reported a crash.
+Commit completed, verified features regularly, with native reference material and temporary integration excluded.
+The probability-storage checkpoint is `a658a2cb7`; adaptive syntax and retained palette tokens are `d8f6a1de3`.
+The final supporting entropy, mode-grid, frame-buffer, and intra-copy run passed 2,085 tests with zero failures.
+The encoder deblocking comparison covered 102,390 samples in 12 streams at 8/10/12 bits and 400/420/422/444:
+maximum difference zero, differing samples zero, and samples exceeding one zero. These are same-bitstream
+reconstruction checks; they do not establish parity between separately configured encoders or performance acceptance.
+
+Acceptance criteria are separate for encoding and decoding:
+
+- Encoder parity permits at most one component unit per sample when comparing separately encoded results
+  from identical source samples and explicitly reconciled settings. Report maximum errors and counts exceeding one.
+- Decoder output must be byte exact against the reference for the same bitstream, precision, and output conversion.
+  No one-unit tolerance applies to decoding. Report every differing sample and byte count; the required count is zero.
+- Historical decoder reports of zero samples exceeding one are insufficient by themselves. A recorded maximum
+  error of zero establishes sample equality only for the stated comparison scope, not complete decoder correctness.
+
+## Active production milestone: encoder motion search
+
+The persistent goal remains active. Complete the integrated encoder motion-search path, including configuration,
+allocation geometry, rate costs, candidate and winner state, full-pixel search, fractional refinement, and production
+verification before advancing. The following dependency result does not close that milestone.
+
+- The user resolved the speed-setting question: replace the invented Effort 0-10 scale with the reference's
+  cpu-used setting as an enum. Preserve values 0-9 and the native direction, with higher values selecting faster
+  encoding. Do not reverse-map or alias effort values. Use descriptive PascalCase names; the independent-frame
+  coding mode is named IntraOnly in managed code. `HeifEncodingSpeed` now defines Level0-Level9.
+  The public Speed property now passes these values unchanged into sequence motion search. The old Effort
+  property still controls unmigrated intra and global-motion policies; replacing those policies remains required.
+- The non-realtime reference default is zero (`av1/av1_cx_iface.c:255-256`); validation permits 0-9 outside
+  realtime mode (`:781-782`). The value is assigned directly to encoder speed (`:1401`).
+- Frame storage now takes an explicit luma border. Still images retain 64 samples; the byte and high-bit-depth
+  sequence owners use the selected superblock width plus 32. Source, reconstruction, and reference owners use the
+  same geometry. Native evidence: `av1/encoder/encoder_utils.h:1051-1064`,
+  `av1/av1_cx_iface.c:3280-3282,3513-3531`, and `av1/encoder/encoder.c:2684-2694`.
+  Managed changes are in `Av1EncoderFrame.GetPlaneBufferSize`, `Av1EncoderFrameBuffer`, and both sequence
+  constructors in `Av1FrameEncoder`. Motion consumers read the physical border from the retained plane view.
+- Release .NET 11 build passed with zero errors and 1,009 warnings. The focused frame, superblock, intra-copy,
+  and transform run passed all 275 cases in 21.1628 seconds. Existing edge-replication and exact-owner tests now
+  include 96- and 160-sample borders while retaining every 64-sample expectation.
+  Evidence: `D:\GitHub\ynse01\av1-takeover-20260905\inter-frame-border-r1.trx`.
+- At the border-only checkpoint, search still used the old effort-dependent controller. The production
+  integration recorded below supersedes that controller. No separate-encoder parity measurement has been run.
+- The 12 regenerated moving-color sequence streams match optimized native decoding at all 21,348 samples:
+  maximum error zero, differing samples zero, and counts above one zero. This is same-stream evidence only.
+- `Av1MotionSearchSettings` now resolves the motion-policy dependency from the enum, coding mode, dimensions,
+  quantizer, boosted-frame role, and content classification. The production integration below consumes these settings.
+  The reference initialization and override order is in `speed_features.c:2345-2377,2709-2739,2670-2685`,
+  with independent-frame policies at `:345-618`, sequence policies at `:1097-1516`, dimension policies at
+  `:169-342,713-1089`, and quantizer-selected patterns at `:2999-3050`. Block-size pattern changes are in
+  `motion_search_facade.h:97-144`; mesh patterns are in `speed_features.c:25-46`. Verification and consumption
+  by the full motion-search path remain required. This type is not a completed encoder architecture.
+- The settings/border dependency run passed 312/312 tests in 20.7714 seconds under Release .NET 11
+  (`motion-settings-border-r1.trx`). These assertions check policy boundaries and allocation geometry only.
+- Inter motion rates now use worker-lifetime tables capturing the tile distributions at superblock entry.
+  `Av1MotionVectorCosts.cs:35-204` builds all signed component costs by magnitude recurrence;
+  `Av1EncoderBlockWorkspace` appends exactly 131,072 integer elements (512 KiB) only for inter workers.
+  The sequence owner retains this storage across frames; still-image workers retain their previous allocation.
+  Native evidence: `block.h:763-793`, `encoder_alloc.h:57-75`, `encodemv.c:125-250`, `rd.c:687-705`,
+  and `encodeframe_utils.c:1663-1675`. Per-superblock refresh is connected; speed-dependent row/set refresh
+  remains to be integrated with the new configuration controller.
+- Inter-mode rate calculation now applies the missing rounded 108/128 weight to motion-vector rate alone.
+  Evidence: `mcomp.c:306-312`, `rd.h:46`, `motion_search_facade.c:535-542`; managed owning method is
+  `Av1IntraSuperblockEncoder.ReferenceModeDecision.GetInterModeRate`. Search still requires the separate
+  SAD and variance domains; this mode-rate correction does not reconcile the old search controller.
+- After correcting a member-order analyzer failure, the Release .NET 11 build passed with zero errors and
+  1,009 warnings. `motion-costs-r1.trx` passed 132/132 tests in 11.5927 seconds. New tests compare every
+  representable component at integer, quarter-, and eighth-sample precision against independent syntax
+  traversal, before and after adaptation, and verify snapshot retention and exact allocation ownership.
+  No separate-encoder parity or performance conclusion follows from this verification.
+- Frame-relative search bounds are now integrated into the existing inter full-pixel and fractional path.
+  `Av1MotionVector.cs:115-168` computes distinct-prediction limits, reference-centered range intersections,
+  inward full-pixel rounding, and reserved-endpoint exclusion using `Rectangle` with exclusive upper edges.
+  Native evidence: `mcomp.h:203-228,341-357` and `mcomp.c:233-264`. The old search-order policy remains open.
+- Final focused verification after the motion-state edits passed 185/185 cases in 12.7853 seconds
+  (`motion-state-final-r1.trx`), following a successful Release .NET 11 build with zero errors and 1,009 warnings.
+  The 12 freshly regenerated sequence streams again matched native decoding at all 21,348 samples, maximum
+  error zero, differing samples zero, and samples exceeding one zero. This does not establish separate-encoder parity.
+- Corrected a further numerical defect in high-bit-depth full-pixel intra-copy search. The shared SAD operators
+  deliberately return unnormalized differences; the controller now truncates each complete SAD by 2 or 4 bits
+  before adding eight-bit-domain motion cost. Native evidence: `encoder_utils.h:157-172`; managed evidence:
+  `Av1IntraBlockCopySearchIndex.cs:689-691,797-893,895-1003,1005-1027`. Initial candidates, diamond candidates,
+  mesh batches, and tails use the same normalization. The existing raw sample-operator contract is preserved.
+- `PixelSearchNormalizesSadBeforeComparingMotionRate` verifies the actual search winner at 10 and 12 bits.
+  Its two candidates deliberately reverse their SAD-plus-rate ordering if normalization is omitted; the test
+  asserts that arrangement before invoking production search. The final focused run passed 138/138 cases in
+  12.5530 seconds (`motion-sad-normalization-r1.trx`), after a successful Release .NET 11 build with zero errors
+  and 1,009 warnings. Fresh native comparison again reported maximum error zero across all 21,348 samples.
+  Full search policy, inter SAD/variance domains, and separate-encoder parity remain unresolved.
+
+- The user has authorized regular commits after completed features. Inspect every staged diff and exclude
+  temporary native integration and generated artifacts. Checkpoint `d78734dc7` contains the verified high-depth
+  intra-copy SAD correction only; its regression tests remain with the pending explicit-border constructor changes.
+- Rectangular SAD and residual-moment traversals now extend the existing residual operators without allocating
+  a residual plane. They cover full and alternate rows, independent strides, vector-width tails, and wide squared
+  totals for 128x128 twelve-bit blocks. Source contracts: `aom_dsp/variance.c:268-356` and
+  `av1/encoder/encoder_utils.h:157-172`. The fixed 8x8 entry points are preserved. The new rectangular entry
+  points are not yet consumed by the production motion controller and do not establish larger inter-block support.
+- After correcting six comment-spacing analyzer errors, Release .NET 11 built with zero errors and 1,009 warnings.
+  `rectangular-motion-metrics-r1.trx` passed 289/289 cases in 24.4180 seconds, including scalar comparisons
+  across hardware paths, both signs at maximum precision, full-row and alternate-row costs, frame ownership,
+  intra-copy, and sequence encoding. The 12 newly regenerated streams again matched native decoding across
+  21,348 samples with maximum error zero. No encoder parity or performance conclusion follows.
+- Full-pixel and fractional controller comparison now includes `mcomp.c:1005-1294,1311-1920,2482-3366`.
+  Full-pixel SAD rates use an integer-rounded reference vector, whereas variance and fractional costs retain
+  the subpixel reference (`mcomp.c:317-386`). Search retains winner variance, SSE, motion cost, a second
+  candidate, and the five-position neighboring cost list; these are inputs to subsequent candidate refinement.
+  The regular fractional tree uses directional ties, a selected diagonal, and conditional second-level probes;
+  the two pruned trees have different first-step and follow-up decisions. These paths remain to be integrated.
+
+- The complete single-reference full-pixel controller is now implemented in
+  `Av1MotionSearchBase.FullPixelSearch.Search` (`Av1MotionSearchBase.cs:146-243`), with diamond restarts,
+  pattern walks, mesh passes, alternate-row reliability fallback, separate SAD/variance rates, and retained
+  winner/second-candidate/neighborhood state. Its byte and word operators consume the existing rectangular
+  residual traversal. It is not yet called by the production frame encoder: fractional search, native-valued
+  configuration plumbing, frame/block starting-candidate state, and final winner refinement remain open.
+- `Av1MotionSearchSites.Configure` (`Av1MotionSearchSites.cs:63-153`) retains the six distinct site shapes and
+  stride-relative offsets in the existing worker owner. Each configuration uses 794 integers, matching the
+  eight-byte site and 22-stage/17-slot layout in `mcomp_structs.h:42-54`; six configurations add 18.61 KiB.
+  Fast diamond variants share the big-diamond shape. Configuration is rebuilt only after a stride change.
+  Pixel kernels are vectorized, but arbitrary three/four-candidate batches still require integration.
+- Independent native verification calls the official `av1_make_default_fullpel_ms_params` and
+  `av1_full_pixel_search` from the optimized static library. Temporary adapter sources, binaries, and results
+  are outside the repository in `D:\GitHub\ynse01\av1-takeover-20260905`. Native source rows are copied into
+  32-byte-aligned rows with identical pixel contents because optimized eight-bit SAD performs aligned source
+  loads (`aom_dsp/x86/sad4d_sse2.asm:152,165`); the managed inputs intentionally have odd strides.
+  The adapter first required a command-quoting correction, then exposed an eight-bit source-alignment access
+  violation. The aligned-row contract was corrected before accepting comparison results.
+- The first valid comparison found two hexagon disagreements. Source tracing identified the interior
+  four-site-group path: `mcomp.c:1061-1076,1130-1147` passes a remainder count to the scalar helper whose
+  loop bound is exclusive (`:947-967`). Interior six-site stages therefore omit their trailing two sites;
+  the boundary path includes them. The managed controller now preserves that observed decision path.
+  No claim that extra candidate evaluation improves the encoder is made.
+- Final Release .NET 11 build passed with zero errors and 1,009 warnings.
+  `full-pixel-controller-final-r1.trx` passed 315/315 cases in 20.7391 seconds. The freshly exported
+  324 native comparisons cover all nine search methods, 16x16 and 64x64 blocks, 8/10/12-bit samples,
+  exact/perturbed predictions, fractional spatial references, clamped starts, mesh-triggering error, and
+  alternate-row fallback. Winner, second candidate, variance, squared error, motion cost, and five neighboring
+  costs all matched exactly: zero mismatched cases, zero differing fields, and maximum field difference zero.
+  Evidence: `motion-reference-comparison.json`. This verifies this controller subset, not encoder parity,
+  complete motion search, the full codec, or performance.
+- Fractional refinement now implements the regular, pruned, and more-pruned trees in
+  `Av1MotionSearchBase.FractionalSearch.Search` (`Av1MotionSearchBase.Fractional.cs:136-275`).
+  It preserves integer winner statistics, strict directional ties, conditional second-level probes, quadratic
+  half-sample selection, precision stops, and the three retained centers used to terminate duplicate paths.
+  Native evidence: `mcomp.c:2615-2897,2971-3000,3026-3350`. The new controller is not yet wired into frame encoding;
+  scaled references, compound prediction, and frame/block candidate coordination remain open.
+- Search interpolation reuses the existing direct SIMD convolution routines through
+  `Av1TranslationalInterPredictor.PredictForSearch` (`Av1TranslationalInterPredictor.Search.cs:25-239`).
+  Each Q7 pass rounds and clips to sample precision. The second pass consumes the clipped first pass, unlike
+  the final reconstruction path. The packed prediction aliases consumed rows of the 128-column intermediate.
+  Native evidence: `reconinter_enc.c:462-595` and `common/filter.h:271-279`. Required worker capacity is
+  17,408 samples (17 KiB for bytes, 34 KiB for words), from `encoder.c:982-992`; production ownership plumbing
+  remains in progress. This does not enlarge the existing ten-buffer 8x8 inter workspace.
+- After correcting ten argument-formatting analyzer errors and one test brace-spacing warning, Release .NET 11
+  built with zero errors and 1,009 warnings. `fractional-controller-final-r1.trx` passed 329/329 focused tests
+  in 23.6178 seconds. Expanded native verification matched all 486 full-pixel cases and all 1,944 fractional
+  cases exactly, including 8x8, 16x16, and 64x64 blocks at 8/10/12 bits. Fractional coverage includes all three
+  policies, all three tap selections, four precision stops, retained/recomputed starting statistics, absent/present
+  integer costs, and repeated-path termination. All 18 published fractional fields had maximum difference zero
+  and mismatch count zero (`fractional-reference-comparison.json`, outside the repository).
+  These comparisons establish the stated unscaled search subset only; encoder parity and performance remain unproven.
+- Checkpoint `e9babd55a` commits only the rectangular error-metric API and its independent scalar/SIMD tests
+  after the final focused run. The staged diff was inspected and contained no temporary native material.
+- Production caller comparison identifies the next required integration dependencies:
+  `Av1IntraSuperblockEncoder.ReferenceModeDecision.cs:1248-1385` still uses effort-derived radius and
+  one eight-direction pass per stage, while `motion_search_facade.c:151-283` derives stages from frame motion
+  history, spatial-reference magnitude, configured site radii, and the caller's search-range limit.
+  Frame history is initialized/consumed in `encoder.c:2010-2042`, updated from encoded new vectors in
+  `encodemv.c:268-272` and `bitstream.c:3953-3967`, and combined with spatial context from `rd.c:1173-1203`.
+  This is missing control/state functionality, not a proposed performance heuristic.
+- `SelectInterBlock` still gathers candidates in advance (`ReferenceModeDecision.cs:555-596`) and lacks the
+  coordinated TPL/start-candidate and DRL-result state in `motion_search_facade.c:47-118,174-258,344-392,499-534`.
+  The reference selects up to two weighted full-pixel starts and retains the second winner for fractional
+  refinement (`:294-323,403-438`). Under the slower policy, the two refined winners are compared using
+  estimated transform rate-distortion (`:439-481`), so selecting solely by search variance would be incorrect.
+- The required transform estimator is `tx_search.c:3142-3265`: DCT transforms, regular quantization,
+  coefficient rate, transform-domain distortion, and skip/non-skip decisions with retained entropy contexts.
+  Existing `Av1ForwardQuantizer.QuantizeLossy` (`Av1ForwardQuantizer.cs:29-59`) provides fast quantization
+  only. The regular quantizer and transform estimator are now implemented as described below; their consumption
+  by the production motion controller remains required instead of the current reconstruction-SSE cost.
+  Parameter evidence: `av1_quantize.c:582-631`; arithmetic evidence:
+  `aom_dsp/quantize.c:109-169,262-316`; transform-error scaling: `tx_search.c:1115-1154`.
+
+- Checkpoint `d5d4d74b1` adds regular quantization through the existing closed-generic quantizer traversal:
+  `Av1ForwardQuantizer.Regular.cs:25-175` and its byte/high-bit-depth semantic operators. It preserves
+  zero-bin rounding, sharpness, signed reciprocal correction, byte-source magnitude saturation, dequantization,
+  and scan end positions. No per-transform allocation or coefficient copy is introduced.
+- Checkpoint `869340d68` adds `Av1TransformBlockEncoder.EstimateInterTransform`
+  (`Av1TransformBlockEncoder.cs:1256-1408`), which composes
+  DCT/reversible transforms, regular/lossless quantization, coefficient rate, local entropy-edge updates,
+  whole-block skip selection, and partial-estimate termination. It visits multiple transforms within prediction
+  blocks up to 128x128 and reuses the caller's coefficient workspace. Only two 32-byte local context arrays are
+  added. `GetTransformError` widens SIMD lanes before squaring, rounds high-depth totals before transform
+  scaling, and uses the scale-zero/one/two factors of one-quarter/one/four. The scaling constant is one
+  (`av1/common/idct.h:34`), not two; normalization is in `rdopt.c:789-806`.
+- Source reconciliation confirms this estimator uses no quantization matrices or coefficient optimization:
+  `tx_search.c:3199-3205` calls `av1_setup_quant`, whose matrix pointers are null (`encodemb.c:478-496`).
+  This is specific to the winner estimate and does not resolve missing optimization/matrix policy elsewhere.
+  The estimate retains coefficient-skip rate for all-empty blocks and excludes the block skip-header rate
+  from returned statistics, while including that rate in the decision (`tx_search.c:3236-3265`).
+- Independent temporary tooling calls the complete optimized `av1_estimate_txfm_yrd`, with default tile
+  probabilities, explicit matching rate multiplier/header costs, source-minus-prediction inputs, bit depth,
+  quantizer, sharpness, block/transform geometry, and incoming coefficient contexts. A first comparison exposed
+  invalid test-generated sign contexts packed above bit six instead of bit three. Input generation was corrected;
+  production rate arithmetic was unchanged. Regular-quantizer comparison separately reconciles native
+  column-major coefficients with the established managed raster layout before invoking native quantization.
+- Hardware exports now retain separate results for each actual vector width. This exposed an inert .NET 11
+  `EnableAVX512F` test switch; `FeatureTestRunner` now maps that request to `EnableAVX512` on .NET 11.
+  All four executed paths (scalar, 128, 256, 512) independently match optimized native results: 5,184 regular
+  quantizer cases with zero differing quantized/dequantized coefficients or end positions, and 1,248 complete
+  transform estimates with zero differences in rate, distortion, original energy, skip selection, and final cost.
+  Earlier reports that only requested DisableAVX512F do not establish execution of the 256-bit path on .NET 11.
+- Final Release .NET 11 build passed with zero errors and 1,009 existing warnings.
+  `transform-estimate-final-r2.trx` passed 379/379 focused cases in 29.1507 seconds, including the shared
+  feature runner, frame/superblock paths, coefficient entropy, transform blocks, and motion search.
+  Evidence remains outside the repository in `D:\GitHub\ynse01\av1-takeover-20260905`:
+  `regular-quantization-comparison.json` and `transform-estimate-comparison.json`.
+  At the transform-estimator checkpoint, the production encoder still called the old effort-dependent search.
+  The subsequent production integration below connects frame/block coordination, DRL state, storage, and configuration.
+  No benchmark, encoder parity, or full-codec completion claim follows from these dependency results.
+
+- Checkpoint `105d76954` adds `Av1MotionSearchBase.SingleReference.cs`, which coordinates spatial/temporal starts,
+  duplicate-start history, frame/block step selection, full-pixel winners, DRL pruning, fractional refinement,
+  final interpolation and transform-RD selection, and retained results across three differential-reference choices.
+  It borrows source/reference planes and caller-owned arithmetic buffers; it adds no per-candidate owner.
+  `CollectStartingCandidates` retains partial temporal analysis, groups full-sample positions into rounded
+  eight-sample cells, weights the spatial start, and orders completed temporal votes by descending weight.
+  Reference control-flow evidence is `motion_search_facade.c:47-118,120-544`; normal coding disables the optional
+  full-pixel cost list (`speed_features.c:2360`, `encoder.h:4240-4244`), so the controller passes an empty span.
+  Full-result DRL pruning resolves from `speed_features.c:781,890,971,997`, including the inclusive 480-line boundary.
+- Temporary tooling now calls the actual optimized `av1_single_motion_search`, its final predictor, and its
+  transform estimator. With reconciled block inputs, cost tables, speed policy, frame/block step parameters,
+  reference choices, temporal analysis, and header costs, all 2,646 decisions match exactly across 8/10/12-bit
+  samples, 8/16/64-square blocks, seven speed levels, integer/fractional motion, and incomplete temporal analysis.
+  All compared vector components, syntax rates, skip decisions, start counts, and retained full-search values
+  have maximum difference zero and zero mismatches (`single-motion-comparison.json`, temporary directory above).
+  Final .NET 11 Release VSTest run `single-motion-final-r3.trx` passed 467/467 focused cases in 33.9823 seconds;
+  the final build had zero errors and 1,009 existing warnings. The complete full-pixel and fractional comparisons
+  also match exactly in all 486 and 1,944 cases respectively, with zero maximum errors and zero mismatch counts.
+  This run used the host SIMD configuration; it does not independently establish each disabled-intrinsic path.
+  The complete staged checkpoint was reviewed before committing; it contains 18 managed source/test files and
+  excludes temporary native source, integration, libraries, executables, builds, and generated comparison data.
+- Production integration now replaces FindInterMotionVector and its SSE/radius loop in
+  Av1IntraSuperblockEncoder.ReferenceModeDecision.cs:490-1022. NEWMV uses the coordinated controller with
+  frame-relative bounds, live reference-stack rates, local coefficient contexts, predictor filters, and retained DRL results.
+  The existing LAST-frame candidate path now follows nearest/new/near/global ordering and no longer gates
+  nearest, near, or new motion on Effort. Reference order: rdopt.c:111-143. Reference-dependent range reduction
+  follows rdopt.c:1240-1271; frame/spatial steps follow encoder.c:2010-2042 and rd.c:1130-1203.
+  Prediction storage borrows the inactive intra workspace beyond the retained inter candidates, with 17,408
+  samples available and no additional owner. Byte and ushort block operators use the existing motion operator family.
+- Av1TileEncoder.Encode:246-303 resolves frame policy and initializes retained motion history. Actual packed
+  NEWMV syntax updates the absolute whole-sample maximum in Av1TileWriter.WriteModesBlock. Trials and
+  inherited/global vectors do not contribute. Reference evidence: encodemv.c:251-273 and bitstream.c:3953-3967.
+  Source classification is now carried separately from palette/intra-copy syntax eligibility; the detector
+  includes the eight-sample-aligned source extent. Reference evidence: encoder.c:2047-2110,2445-2484 and
+  aom_scale/generic/yv12config.c:247-248. Existing Effort-based screen-tool eligibility remains a deviation.
+- Release .NET 11 build passed with zero errors and 1,009 existing warnings. The final focused run
+  motion-production-r2.trx passed 494/494 cases in 36.0448 seconds. Thirty-nine regenerated streams exercise
+  all ten speed levels at 8/10/12 bits, three-frame 4:2:0 prediction, and additional 4:2:2/4:4:4 cases.
+  Optimized native decoding and managed decoding match byte-for-byte for all 117 frames and 86,859 samples:
+  maximum error zero, differing samples zero, samples exceeding one zero (production-motion-decoder-comparison.json).
+  The first run stopped at an old Effort-0 fixture that assumed GLOBALMV was the only available inter candidate.
+  The fixture now supplies an explicit entropy history favoring GLOBALMV and checks its cost against every
+  competing mode; all preexisting expected skip/rate/distortion/coefficient/pixel assertions remain intact.
+- This remains the same active production milestone. Scaled references, production temporal analysis,
+  broader block/reference support, complete mode pruning and ordering, and speed-dependent entropy-cost refresh
+  remain open. Still-image and intra/global-motion Effort policies are not migrated. The production decoder
+  comparisons establish same-bitstream equality only, not separate-encoder parity, performance, or codec completion.
+
 ## Takeover audit: 2026-09-05
 
 The earlier checked boxes and measurements below are historical checkpoint reports, not accepted conclusions about
-the current encoder or complete decoder. The fresh production-path audit is still in progress. No benchmark has
-been run during this investigation, and the complete 738-file upstream diff has not yet received a line-by-line audit.
+the current encoder or complete decoder. The fresh production-path audit is still in progress. The first decoder
+measurement after source-led corrections is recorded below for 2026-09-07; no encoder benchmark has been run during
+the takeover. The complete 738-file upstream diff has not yet received a line-by-line audit.
 
 ### Reference and worktree evidence
 
@@ -219,7 +490,8 @@ Further quantization, distortion, and final-packing source comparison on 2026-09
 - `Av1ForwardQuantizer.cs:88-236` and `Av1ForwardQuantizer.Operator.cs:98-316` implement the no-matrix
   fast quantizers. The rounding factor 64 agrees with `av1/encoder/av1_quantize.c:609-651` at sharpness zero;
   the regular quantizer's factor 48 is not evidence of a fast-quantizer rounding defect. The managed path
-  does not implement the reference's sharpness adjustment, regular quantizer, or quantization-matrix policy.
+  still lacks the complete quantizer-selection/optimization and quantization-matrix policy. Regular quantization
+  with sharpness is now implemented for the motion-winner estimator; its production integration remains open.
 - `Av1TransformBlockEncoder.cs:1175-1225` always ends lossy coefficient selection at fast quantization.
   Reference `av1/encoder/tx_search.c:2064-2391` derives trellis eligibility from segment, evaluation stage,
   normalized residual energy, and transformed SATD; chooses fast or regular quantization; measures coefficient
@@ -345,23 +617,565 @@ Frame/block RD and decoder filter follow-up after `aa2ecf690`:
 
 Retained-state and cost-policy follow-up after `ef8b1a823`:
 
+Implementation in progress on 2026-09-06: symbol and tile traversal now support separate write and CDF-update
+operations. `Av1TileEncoder.cs:239-381` completes block analysis across all tiles before a second traversal
+packs their bytes. `Av1TileWriter.BlockEncoding.cs:70-151` derives partitions from the completed mode grid
+and loads retained prediction parameters. Palette tokens, selected motion references, and coefficient contexts
+have production writers and consumers. `Av1PictureControlSet.cs:127-154` resets entropy edges without clearing
+those decisions. Final frame filter selection and the complete reference search/rate controller remain missing.
+
+Allocation evidence for the picture-state extension:
+
+- `av1/encoder/encodeframe.c:1413-1430` allocates palette tokens only when screen-content tools are allowed,
+  using `MAX_SB_SIZE_LOG2`, rather than the selected frame superblock size. `tokenize.h:42-46,105-135` stores
+  one byte per token and reserves `ceil(width/128) * ceil(height/128) * 128 * 128 * min(2, planeCount)` bytes.
+  The managed extension uses this maximum-superblock rounding. Color token storage is 128 KiB
+  at 256x256 and 15.9375 MiB at 3840x2160 for color; monochrome requires half those amounts.
+- `Av1EncoderPictureBuffer.cs:75-333,368-390` already owns a combined picture-state allocation and disposes it
+  on constructor failure and normal disposal. New regions are non-owning slices of that same allocation;
+  they add no allocator call, per-candidate rent, or independently disposable owner. All byte-length products
+  and sums use checked arithmetic. Existing fixed-geometry sequence reuse retains the allocation across frames.
+- Final prediction parameters use a separate eight-byte `Av1EncoderBlockStruct` region; the frequently read
+  `Av1MacroBlockModeInfo` entry remains eight bytes. Block palette entries use the existing 50-byte
+  `Av1EncoderPaletteInfo` and the existing mode-allocation count.
+  Motion contexts use that same count only when motion-vector state is allocated. Native frame extensions use
+  mode-allocation geometry too (`encoder_alloc.h:36-57`) and retain four usable candidate entries, weights,
+  count, global vectors, and mode context (`block.h:245-259`). The 28-byte compact managed context covers the
+  currently implemented single-reference/IBC syntax; compound and complete reference-controller parity remain open.
+- Palette token capacity bounds all block tokens because coded blocks partition each superblock, each active
+  palette plane emits at most one token per luma sample, and there are at most two palette planes. Token writes
+  must stay in their assigned superblock region. Existing coefficient storage uses the same raster superblock
+  decomposition (`Av1EncoderCoefficientBuffer.cs:32-59`).
+
 - `Av1EncoderTransformBlockState.cs:12-43` uses four bytes for EOB and byte-sized transform type, leaving
   one padding byte. Reference `av1/encoder/encodetxb.c:593-625,714-730` records the neighboring skip context
   in bits 0-3 and DC-sign context in bits 4-5 beside each EOB. Its packer consumes those retained contexts
   (`encodetxb.c:296-306,410-421`). The managed structure can represent that state without increasing its size,
-  but storing it alone would not implement deferred packing; no unused state was added.
+  and both analysis and packing now use the spare byte. The broader verification run below covers these paths.
 - Reference palette-token allocation is conditional on non-statistics coding with screen-content tools allowed
   (`av1/encoder/encodeframe.c:1413-1430`). `tokenize.h:105-135` reserves up to two full-resolution planes in
   maximum-superblock-rounded storage. Tokens retain the selected context and color-order rank, including the
   first raw index (`tokenize.c:174-225,264-278`, `bitstream.c:353-368`); keeping only palette colors is insufficient.
-- `Av1EncoderPictureBuffer.Reset` clears the complete mode grid and packed state (`:344-363`), so it cannot
-  be reused as the boundary between analysis and packing. Selected prediction fields remain in the reusable
-  `Av1EncoderBlockStruct` workspace, while `Av1EncoderBlockModeInfo` retains only its smaller neighbor subset.
-  These lifetimes must be reconciled together with palette tokens, selected MV state, and coefficient contexts.
+- `Av1EncoderPictureBuffer.Reset` still clears the complete mode grid and packed state between frames.
+  The separate `ResetEntropyContexts` boundary preserves retained syntax between analysis and packing.
 - Native cost defaults are explicit controls as well as speed features: `av1/av1_cx_iface.c:391-394,550-553`
   differs between default and realtime configurations. `rd.c:724-758,824-851` combines controls with speed policy
   and initializes frame costs; `encodeframe_utils.c:1629-1689` suppresses block refresh when CDF updates are
   disabled. No new managed effort mapping or isolated cost-refresh threshold was introduced.
+
+Verification of the staging change:
+
+- The focused frame/sequence, intra-superblock, coefficient/entropy, and HEIF encoder run passed 2,411 cases
+  (`encoder-staging-focused-r3.trx`). Native decoding matched 12 regenerated color sequences (21,348 samples),
+  eight partition streams (16,640 samples), and 23 palette streams (985 samples), with maximum error zero and
+  zero differing samples. These are same-bitstream/reconstruction checks, not separate-encoder parity.
+- The first broad run stopped on the old packed-state allocation-size assertion. The ownership test now checks
+  the additional fixed-width regions, exact pointer offsets, conditional allocation, clean storage, and return
+  of the same two owners. The existing compact-mode eight-byte assertion remains unchanged.
+- All 13 storage/token checks pass (`encoder-staging-storage-tokens-r3.trx`). The new token test poisons the
+  color map after analysis, verifies unchanged packed bytes and matching adaptive costs, and compares analysis
+  output with an empty range coder. It covers both palette planes with CDF updates enabled and disabled.
+- Intermediate failures exposed an unconditional four-entry read from a shorter candidate-weight span and an
+  initial expansion of compact mode storage; both production defects were fixed. Test-development failures
+  involved size arithmetic and unsupported InlineArray value equality; clean storage now uses byte-span checks.
+- Final Release/.NET 11 build: zero errors, 1,009 existing warnings. The broad run passed all 9,379 cases
+  (`encoder-staging-production-r2.trx`, 2.6931 minutes), including the final storage and token tests.
+  No benchmark or claim of complete codec correctness, reference-controller parity, or performance improvement.
+
+Further filter-controller source comparison on 2026-09-06:
+
+- `Av1LoopFilterBase.cs:75-265` now owns the shared boundary traversal and level arithmetic. Decoder and encoder
+  operators supply their existing mode state; both call the same byte/high-bit-depth deblocking operators.
+  `Av1LoopFilterEncoder.cs:24-140` consumes the retained encoder grid and component planes without allocating a
+  second mode map or copying samples. `Av1TileEncoder` applies the signaled levels after analysis and before
+  packing. Automatic level selection is still missing; production frame configuration still leaves levels zero.
+- Native `av1/common/av1_loopfilter.c:197-215` selects lossless 4x4, luma block/variable-inter transforms, and
+  maximum chroma transforms. The encoder currently retains a uniform luma transform per block. Variable inter
+  transform trees and superblock filter-delta encoding remain unresolved capabilities, not new rejection rules.
+- The shared decoder traversal passed 26 focused tests (`shared-loop-filter-r1.trx`). Restoration and film-grain
+  native reference checks covered 8,500,087 samples with maximum error zero and zero differing samples.
+  New encoder reconstruction tests cover 8/10/12-bit monochrome and 4:2:0/4:2:2/4:4:4 at 33x137, distinct
+  component/direction levels, sharpness, and reference deltas. Their final verification is still in progress.
+- All 12 encoder-filtering cases pass (`encoder-loop-filter-r2.trx`). Optimized native decoding of their
+  exported bitstreams matches retained reconstruction byte-for-byte: 102,390 samples, maximum error zero,
+  zero differing samples, and zero errors above one. These remain same-bitstream comparisons. Subsequent
+  shared-traversal cleanup retains each resolved block mode through level derivation, avoiding another grid
+  lookup and mode-structure copy. Final verification after that cleanup passed 138 focused cases
+  (`loop-filter-and-sequence-final-r1.trx`, 9.9613 seconds) and all 9,429 explicitly selected AV1, HEIF encoder,
+  and sequence-parser cases (`av1-sequence-final-r1.trx`, 2.6884 minutes). The Release .NET 11 build had zero
+  errors and 1,009 existing warnings. The 12 regenerated filtering streams again matched native decoding
+  exactly across 102,390 samples. This verifies the selected-level application, not automatic level selection.
+- The six restoration and nine film-grain reference streams were decoded again with the optimized native
+  executable after the final run: 8,500,087 samples, maximum error zero and zero differing samples. The managed
+  conformance path uses `Av1ReconstructionConformanceTests.AssertNativePlanesEqual` (`:4053-4164`) and
+  `AssertSampleEqual` (`:4187-4284`): it compares every native sample, checks the complete reference length, and
+  fails on any unequal value. These assertions use no one-unit tolerance. Native reference-file validation and
+  managed comparison to those same files form bounded decoder evidence, not a separate-encoder comparison.
+- `av1/encoder/picklpf.c:62-209,348-401` searches filter levels from previous-frame levels, caches per-level SSE,
+  applies directional bias and step reduction, restores the complete coded plane after each candidate, and
+  searches combined luma before separate luma directions and chroma. The trial buffer is reused by the encoder.
+- `picklpf.c:211-347,403-467` also depends on explicit filter controls, tuning/sharpness, speed-selected search
+  methods, frame layers, and retained reference levels. Those policies cannot be replaced with a fixed quantizer
+  formula or a newly invented effort threshold. `speed_features.c:2545-2548` supplies the full-image search
+  defaults; speed-specific overrides still need to be reconciled with the complete encoder configuration.
+- `encoder.c:2868-2923,3786-3815` places level selection and deblocking before CDEF/restoration and final
+  packing. `picklpf.c:348-367` retains a bordered unfiltered frame and reuses it across trials/frames. This
+  owner has not been added yet; the current application stage requires no additional frame buffer.
+- `encoder_utils.h:1051-1064` uses 64-pixel borders for non-resized all-intra, selected-superblock-width plus
+  32 for inter sequences, and a separate resizing border. Managed `Av1EncoderFrame.cs:28` still fixes the
+  border at 64 for both roles. This is an allocation/layout deviation; no performance claim follows from it.
+- At this historical checkpoint public Effort remained 0-10 and the configuration question was pending.
+  The user subsequently required the native cpu-used setting as an enum; see the active milestone above.
+
+Sequence recovery failure found during broader verification on 2026-09-06:
+
+- `shared-loop-filter-production-r1.trx` stopped after 9,373 passes on
+  `HeifSequenceParserTests.DecodeSkipsInvalidAv1SampleWhenImageDataErrorsAreIgnored`. Earlier 9,379-case runs
+  selected AV1 plus HEIF encoder tests, not sequence parser tests. They did not establish this behavior.
+- The failure preceded codec dispatch: `HeifDecoderCore.FindSequencePrimaryItem` rejected the usable track
+  because the synthetic file had no still primary item. Current [libavif track selection](https://github.com/AOMediaCodec/libavif/blob/main/src/read.c#L5754-L5869)
+  selects track configuration and samples independently of primary-item availability. The
+  [AVIF sequence specification](https://aomediacodec.github.io/av1-avif/#avif-image-sequence-brands) still describes
+  MIAF's image-item requirement for conforming files; accepting a usable track is decoder tolerance, not a claim
+  that the synthetic file conforms. Production sequence output continues to include its primary image item.
+- Identification and decoding now use the first timed sample as the animated root when no still item is
+  available. Existing independent primary roots retain their presentation, metadata, and frame behavior.
+  No expected output or failure assertion was weakened. The existing recovery test now also checks every
+  retained RGBA pixel against the valid standalone image and asserts animated-root metadata.
+- The initial targeted parser/encoder run passed 119 cases (`sequence-primary-recovery-r1.trx`). After the final
+  pixel assertions, both the 138-case focused run and the 9,429-case AV1/encoder/sequence-parser run passed.
+  The recovery regression now establishes the retained pixels and animated-root metadata as well as frame count.
+
+Motion-controller follow-up:
+
+- `Av1IntraSuperblockEncoder.ReferenceModeDecision.cs:1275-1412` bounds an effort-scaled staged search by
+  a fixed 64-pixel border. `:1426-1496` uses prediction SSE and full mode/vector RD cost for both integer and
+  fractional search. Native `mcomp.c:72-240,317-386` carries frame-relative MV limits, search sites, mesh policy,
+  separate SAD/error-per-bit scaling, and subpixel stop/iteration policy. Enlarging the allocation alone would
+  not correct that controller. The active milestone now includes the allocation correction as a dependency;
+  the complete controller replacement remains required.
+- Roslyn references for `Av1ForwardTransformer.GetHadamard8x8Cost` currently resolve only to two tests. The
+  retained primitive is not on the production search path; its tests do not establish encoder pruning behavior.
+
+Mode and transform controller follow-up on 2026-09-06:
+
+- Current `Av1IntraSuperblockEncoder.ModeDecision.cs:613-625,708-726,743-753` completes luma and chroma intra
+  selection before inter evaluation. Native `rdopt.c:6196-6333` evaluates ordered inter candidates while retaining
+  reference costs, skip costs, prediction SSE, motion candidates, and estimated transform results. It then runs
+  motion refinement and deferred transform search (`:6338-6358`), gates and evaluates intra (`:6367-6375`), and
+  refines winners (`:6383-6389`). Reordering one call without those retained dependencies would not reproduce
+  this controller.
+- Native `rdopt.c:3746-3892` restores each winner's mode and references, selects winner-stage transform policy,
+  recomputes luma/chroma transforms, revisits skip, replaces the old transform rates, and retains an improved
+  result. Managed `EncodeBlock` has no corresponding refinement phase. This is missing functionality, separate
+  from numerical defects in individual transforms.
+- `Av1TransformBlockEncoder.cs:1175-1225` always ends lossy coefficient decisions at fast quantization. Native
+  `tx_search.c:2084-2191,2216-2235` selects trellis by segment, evaluation stage, normalized residual MSE and
+  transform SATD, then optimizes before distortion evaluation and coefficient-rate pruning. Final intra encoding
+  also optimizes before inverse reconstruction (`encodemb.c:825-886`) and only then publishes entropy context
+  (`:912-945`). Adding an optimizer after managed reconstruction or packing would be the wrong integration point.
+- Native `rdopt_utils.h:607-709` distinguishes default, candidate, and winner evaluation, changes transform and
+  coefficient policy together, and invalidates cached RD records when the stage changes. `speed_features.c:2810-2846`
+  derives those staged parameters from the profile. GOOD speed zero already enables partition, reference, and
+  transform pruning (`:1113-1172`); full enumeration is not its baseline architecture.
+- GOOD's filter selection remains full-image at baseline, uses coarse inter search from cpu-used 3
+  (`speed_features.c:1364-1365`), and disables independent luma-direction search from 4 (`:1425`). ALLINTRA's
+  later quantizer-based choice is a different profile decision. Public Effort mapping remains unresolved.
+
+Entropy-cost and frame-controller source trace on 2026-09-06:
+
+- `Av1SymbolEncoder.cs:1444-1595` measures coefficients directly from its live distributions. Native
+  `rd.c:602-684` fills coefficient snapshots, including base-level decrement costs and cumulative base-range
+  costs plus decrement deltas. `txb_rdopt_utils.h:112-162,226-238` uses those deltas when comparing a coefficient
+  with its one-level reduction. A copied probability graph or an optimizer attached after reconstruction would
+  not reproduce this cost architecture.
+- Native mode snapshots cover partition, luma/chroma, palette, transform, angle, segment, reference, and motion
+  syntax together (`rd.c:82-322`). Frame initialization reconciles codec controls with speed policy and fills
+  the required cost families (`:723-851`); superblock refresh respects disabled adaptation and each family's
+  update boundary (`encodeframe_utils.c:1621-1692`). The managed live-CDF queries have no equivalent boundary.
+- Current still-frame ownership is in `Av1FrameEncoder.cs:604-775`; sequence ownership is in `:1493-1921`.
+  Both call the tile encoder through `:977-1049`, which currently contains analysis, selected deblocking, and
+  packing. The sequence then extends borders and swaps reconstruction/reference owners. The existing source,
+  reconstruction, coefficient, picture, and operation workspaces must be retained when adding the missing
+  frame-level decisions; replacing them with decoder state or extra frame copies is not required.
+- Before the sparse follow-up below, the decoder inverse factory forwarded every non-DC lossy case into full transforms
+  (`Av1InverseTransformerFactory.cs:47-60,98-112`). The 256-bit driver uses eight Int32 lanes and traverses the
+  complete height, including the uncoded half of 64-point inputs (`Av1Inverse2dTransformer.cs:385-524`).
+  Native low-bit-depth AVX2 selects separate sparse row/column functions and limits transformed row batches from
+  EOB bounds (`av1/common/x86/av1_inv_txfm_avx2.c:1611-1708`;
+  `av1_inv_txfm_ssse3.h:171-220`). Default, horizontal-identity, and vertical-identity scans have different
+  bounds. This is an established dispatch/traversal gap; its timing contribution is unmeasured on the current tree.
+
+Sparse inverse-transform follow-up on 2026-09-06:
+
+- Native high-bit-depth dispatch selects separate axis kernels for one, eight, sixteen, and thirty-two supported
+  inputs (`av1/common/x86/highbd_inv_txfm_avx2.c:4081-4179`). Four-point axes fall back to their complete
+  narrower kernels (`:4214-4230`; `highbd_inv_txfm_sse4.c:5503-5715`). High-bit-depth mixed identity paths
+  retain a complete identity axis and use conservative support on the other axis (`:5226-5361`); the low-bit-depth
+  paths use the row/column scan bounds in both dimensions (`av1_inv_txfm_avx2.c:1796-1889`).
+- All 36 stored managed coefficient-scan arrays were compared with their native arrays after converting native
+  column-major indices into managed raster indices: 5,936 entries, zero differences. Native diagonal support
+  tables and identity bounds are in `av1_inv_txfm_ssse3.h:96-219`. The larger-transform matrix-scan aliases in
+  the managed dispatch table occur outside the legal transform sets; they are not evidence of a reachable decoder
+  numerical defect. `Av1ScanOrder.InverseScan` currently has no production references.
+- `Av1Transform2dFlipConfiguration.cs:382-502` now carries EOB-derived support bounds into the factory dispatch.
+  `Av1Inverse2dTransformer.cs:167-458` selects closed generic sparse DCT/ADST operators for both axes.
+  Thirteen operator variants cover DCT lengths 8/16/32/64 and ADST lengths 8/16, including the coded 32-input
+  network for 64-point DCTs. Zero branches are removed while preserving surviving rotations, rounding, and
+  stage clamps. DC DCT variants retain their cosine scaling and uniform inverse-stage clamp.
+- Each operator declares its input prefix in the existing operator interface. The scalar, 128-bit, and 256-bit
+  traversals (`Av1Inverse2dTransformer.cs:515-896`) process only potentially nonzero row batches, initialize every
+  input consumed by a complete second-axis operator, and continue writing the entire active destination.
+  Existing caller-owned workspace and independently strided prediction/output contracts are retained.
+- Release .NET 11 build after the final relevant edit: zero errors and 1,009 existing warnings. The focused
+  inverse-transform suite passed 996/996 cases (`sparse-transform-focused-r1.trx`). New checks cover every
+  permitted scan prefix, sparse scalar/128-bit/256-bit operators against complete scalar arithmetic, poisoned
+  unused inputs and scratch, and production reconstruction at EOB support transitions. These are managed
+  arithmetic and dispatch checks. The final native-backed reconstruction suite passed 93/93 cases
+  (`sparse-transform-reconstruction-r1.trx`). These fixtures cover the existing production reconstruction corpus;
+  they do not independently enumerate every sparse arithmetic input or establish encoder parity.
+- Remaining architecture gaps include packed 16-bit low-bit-depth arithmetic, native intermediate layout/sizing,
+  and further SIMD coverage. The existing full raster workspace is not the native compact intermediate layout.
+  No performance improvement or complete decoder/encoder parity is claimed, and no benchmark has been run.
+
+Inverse-transform storage follow-up on 2026-09-06:
+
+- The decoder previously reserved the forward-transform maximum: 11,520 Int32 values, or 45 KiB.
+  `Av1TransformWorkspace.cs:49-64` now distinguishes inverse storage: two axis vectors and one raster,
+  with a maximum of 5,120 Int32 values, or 20 KiB. This removes 25 KiB from each block decoder's
+  existing contiguous workspace owner; it adds no owner or allocator request.
+- All 75 inverse scalar/128-bit/256-bit operator overloads consume their input before writing stage scratch.
+  The traversal now aliases those lifetimes and sizes vectors from the active dimensions
+  (`Av1Inverse2dTransformer.cs:533-544,698-709,842-853`). Native high-bit-depth traversal also uses
+  in-place axis storage with local kernel stages (`av1/common/x86/highbd_inv_txfm_avx2.c:4112,4138-4146`).
+  The managed raster layout and Int32 low-bit-depth arithmetic still differ; the allocation reduction is
+  not a claim of complete native storage or SIMD parity.
+- Operator parity checks now exercise aliased input/stage storage, and the production sparse reconstruction
+  checks use the exact inverse workspace requirement. The owner test checks its reduced exact size.
+  After the final edit, Release .NET 11 built with zero errors and 1,009 existing warnings; Roslynk reported
+  zero compiler errors. The focused inverse/owner run passed 1,000/1,000 in 6.2844 seconds
+  (`inverse-storage-focused-r1.trx`). The broader AV1, HEIF encoder, and sequence-parser run then passed
+  9,908/9,908 in 2.7773 minutes (`inverse-storage-production-r1.trx`), including the reconstruction fixtures.
+  These are correctness checks, not codec timing measurements or separate-encoder acceptance.
+
+Film-grain presentation storage follow-up on 2026-09-06:
+
+- The two presentation-copy branches previously allocated the full 288-sample prediction border
+  (`Av1Decoder.cs:899-906,952-959` before this change). Native output creation requests even visible dimensions,
+  no border, and 16-byte row alignment (`av1/av1_dx_iface.c:768-795`; `aom/src/aom_image.c:128-186,217-224`).
+  The synthesized output is separate from the ungrained reference. This is a demonstrated allocation-role
+  deviation, not an unmeasured claim that a particular SIMD kernel is faster.
+- `Av1FrameBuffer.cs:255-259,562-612` now creates a presentation layout with those dimensions and row strides
+  in the existing single owner. Monochrome continues to omit unused chroma planes. The byte count describes
+  managed plane storage, not native allocator alignment overhead or total process memory. For a 100x60
+  eight-bit 4:2:0 presentation, the calculated plane storage changes from 660 KiB to 9.84375 KiB.
+- `CopyVisibleTo` preserves destination origins, strides, and allocation capacity (`Av1FrameBuffer.cs:276-325`)
+  while copying the active picture. Both newly decoded and shown-existing grained frames use the compact
+  layout; retained references keep their original bordered storage. Color conversion consumes independently
+  located rows through `Av1PlanarSampleBuffer.cs:100-131`, so no additional pixel-conversion buffer was added.
+- Removing the border exposed empty overlap rectangles that the old padding had made addressable.
+  The new overlap-edge regression failed with an out-of-range span at `Av1FilmGrainDecoder.cs:525`
+  (`grain-presentation-overlap-red.trx`). Native calls carry zero height/width for these regions and its sample
+  loops do no work (`grain_synthesis.c:1133-1166,1252-1305`). The managed region owner now forms sample spans
+  only for nonempty vertical strips/interiors, while preserving all boundary blending and outgoing state.
+- Tests cover exact owner size/return, separate origins and strides, untouched padding, and 144 grain cases
+  at clipped overlap edges across 8/10/12-bit monochrome and 4:2:0/4:2:2/4:4:4. These compare compact output
+  with bordered managed output; they are not independent native vectors for every edge case. The reference
+  ownership test now compares actual visible samples instead of comparing differently sized whole buffers.
+- After the final relevant edit, Release .NET 11 built with zero errors and 1,009 existing warnings;
+  Roslynk reported zero compiler errors. The focused frame/reference run passed 55/55 in 3.0082 seconds
+  (`grain-presentation-overlap-fixed.trx`). The AV1, HEIF encoder, and sequence-parser run passed 9,932/9,932
+  in 2.8026 minutes (`grain-presentation-production-final.trx`), including the existing exact native-plane
+  grain fixtures and hardware fallbacks. Their retained references were previously verified against the same
+  optimized native revision: 3,113,847 samples, maximum error 0, zero nonzero errors. No new native arithmetic
+  result, codec timing, or separate-encoder parity is claimed. No benchmark was run.
+
+Active-frame allocation validation follow-up on 2026-09-06:
+
+- The decoder rejected a valid small frame when its sequence maximum would require an oversized contiguous
+  allocation. `Av1Decoder.ValidateSequence` and the frame-buffer constructor both validated sequence maxima
+  even though `ReadTile` already allocates the active upscaled width and height. Native ordinary frame setup
+  reads the size override and allocates that active frame (`av1/decoder/decodeframe.c:1995-2049`). The separate
+  maximum-sized neutral-reference allocation at `:4854-4904` is corruption recovery, not ordinary frame setup.
+- The regression preserves the original 4x4 Orange fixture's tile bytes and writes a full sequence header
+  declaring 65,536x65,536 maxima with an explicit 4x4 frame override. Before correction it failed at the
+  sequence-capacity check (`active-frame-size-red.trx`). The optimized native decoder accepts both the original
+  and expanded-maximum payloads and produces identical output: 24 samples per payload, maximum error 0,
+  zero differing samples and bytes. The reference build has `CONFIG_SIZE_LIMIT=0`.
+- `Av1FrameBuffer.cs:231-250` now validates the requested allocation dimensions. `Av1Decoder.ReadTile:767-774`
+  performs the same active-frame capacity check before allocating syntax state. Sequence-only validation
+  continues to reconcile codec configuration and color declarations. Requests that actually exceed the
+  contiguous allocation limit remain rejected; no allocation limit or malformed-input assertion was weakened.
+- Final Release .NET 11 build: zero errors and 1,009 existing warnings; Roslynk: zero compiler errors.
+  Header/lifecycle/frame-buffer verification passed 80/80 in 2.9384 seconds (`active-frame-size-focused.trx`).
+  The final reconstruction suite passed 93/93 in 1.9015 minutes (`active-frame-size-reconstruction.trx`).
+  Fresh optimized-native comparison matches the corrected managed output for both payloads on every byte;
+  per-plane counts are in temporary `active-frame-size-comparison.json`. This is bounded decoder evidence,
+  not separate-encoder parity or a performance result.
+
+Restoration boundary ownership and precision follow-up on 2026-09-06:
+
+- Architectural deviation: boundary rows were allocated in each frame's completion operation and always
+  widened to ushort. Native `av1/common/alloccommon.c:299-348` retains above/below buffers in decoder state,
+  allocates all sequence planes when restoration is used, aligns each row to 32 samples after adding four
+  samples on each horizontal side, and replaces owners when their physical byte length changes. Stripe
+  allocation uses the mode-info-aligned luma height for every plane. Native decoder destruction releases
+  these buffers (`av1/av1_dx_iface.c:122-137`, `av1/common/alloccommon.c:350-366`).
+- `Av1LoopRestorationBoundary.cs:81-149` now owns those buffers for the decoder session, with physical byte
+  storage at both sample precisions and the corresponding aligned layout. The frame/header arguments are
+  borrowed by each save operation; no reconstructed frame or header remains referenced by boundary storage.
+  Its save/copy methods at `:360-445` preserve byte or ushort samples directly, including super-resolution,
+  and replicate horizontal context. The allocation-failure path retains successfully acquired owners for
+  normal session disposal. `Av1Decoder` owns/disposes this object and passes it through `Av1FrameDecoder`.
+- Fourteen focused cases passed in 2.6187 seconds (`restoration-boundary-focused.trx`): all bit-depth/chroma
+  combinations, exact contents across multiple stripes, same-size reuse, growth/shrink replacement, and
+  exactly-once returns after initial/replacement allocation failure. Release .NET 11 build: zero errors,
+  1,009 existing warnings; Roslynk: zero compiler errors. Reconstruction and ownership verification passed
+  162/162 in 1.8952 minutes (`restoration-boundary-reconstruction.trx`). A further independent-plane regression
+  reuses one decoder across 8/8/10/12/8-bit fixtures, exercising unchanged size, changed size, changed precision
+  at identical byte size, and return to byte samples. After that final test edit, the Release build again had
+  zero errors and 1,009 warnings; all 15 focused boundary/sequence cases passed in 3.6690 seconds
+  (`restoration-boundary-sequence-final.trx`). Fresh optimized native decoding matches the six retained
+  restoration/super-resolution fixtures: 5,386,240 samples, maximum error 0, zero nonzero errors and zero
+  errors above one. Managed tests independently compare current output to those same native reference planes.
+- At this checkpoint, `Av1LoopRestorationDecoder.DecodePlane:102-233` still rented a per-plane output and
+  filter scratch, copied each bordered processing block into ushort storage, and narrowed filtered 8-bit
+  output. The later physical-sample correction below replaces those block copies. Native
+  `restoration.c:252-383` temporarily replaces and restores stripe
+  boundary rows in the source. Its destination frame persists with a 32-sample border
+  (`restoration.c:1069-1138`, `restoration.h:30`); its shared filter scratch and line-save buffers persist
+  (`alloccommon.c:299-310`). Correcting boundary ownership does not resolve these other paths.
+- Native self-guided scratch is not just its two output arrays: `restoration.c:718-862` also uses local
+  source and intermediate arrays, while `:863-898` places its two outputs 161,588 integers apart.
+  `restoration.h:74-92` reserves about 1.233 MiB for those two outputs despite processing 64-sample chunks.
+  The optimized AVX2 path differs from scalar scratch ownership: `x86/selfguided_avx2.c:547-637` allocates
+  four aligned intermediate/integral planes per filter call and frees them afterward; the coefficient and
+  integral phases correspond to managed `Av1SelfGuidedFilter.Operations.cs:33-117`. Managed scratch combines
+  these with the two outputs in caller-owned storage sized to the actual processing block. Their complete
+  layouts and lifetimes must remain distinct in the comparison. No performance benefit has been measured,
+  and no benchmark was run.
+
+Wiener traversal follow-up on 2026-09-06:
+
+- SIMD coverage/architecture finding: the previous `Av1WienerFilter` reduced an eight-tap SIMD dot product
+  to one horizontal output and performed every vertical dot product scalarly. Native optimized filtering
+  processes independent columns together in both passes (`av1/common/x86/highbd_wiener_convolve_avx2.c:28-245`,
+  `av1/common/x86/wiener_convolve_avx2.c:43-242`). Native scalar equations and intermediate clipping were
+  traced in `av1/common/convolve.c:1350-1519`. No numerical defect was established in the prior arithmetic.
+- `Av1WienerFilter.cs:57-116` now sends both passes through one closed generic traversal
+  (`Av1WienerFilter.Operator.cs:172-329`). The semantic `WienerOperator` at `.WienerOperator.cs:17-162`
+  implements symmetric tap arithmetic at scalar/128/256/512 widths. The driver owns row/column access,
+  complete vector bounds, width selection, coefficient broadcasts, and one scalar remainder.
+  The operator widens before symmetric additions and retains signed 32-bit sums through rounding/clipping.
+- The implicit center contribution is incorporated into each kernel before filtering. First-pass bias,
+  intermediate clipping, the 12-bit first-pass shift of five, and final bias removal remain at their
+  original stages. The source and intermediate layouts and requested scratch size are unchanged.
+  Portable lane order remains sequential; it does not reproduce x86-specific lane permutations.
+  Wider dispatch is not evidence of an end-to-end performance improvement.
+- New focused verification uses a separate complete eight-slot, 64-bit scalar calculation across legal
+  coefficient extrema, mixed signs, both pass orderings, 8/10/12-bit precision, vector boundary widths,
+  odd heights, clipping, output padding and scratch sentinels. The first focused run failed its explicit
+  intermediate-clipping coverage assertion: random/checkerboard inputs had not reached that boundary.
+  No compared sample had mismatched before the assertion. The failing remote test process subsequently
+  timed out after 60 seconds (`wiener-vector-focused.trx`); its failure-reporting log also contains an
+  access-denied message. The identified child process IDs were absent after the failed test completed.
+  The test now adds sparse impulses and inverse impulses to force both clipping endpoints and runs the
+  matrix in the VSTest host before the restricted hardware child runs. No assertion or expected output was
+  weakened. The corrected matrix passed (`wiener-vector-coverage-fixed.trx`, 3.2988 seconds total test time).
+  Release .NET 11 build: zero errors, 1,009 existing warnings. Final reconstruction/ownership/row-filter
+  verification passed 164/164 in 1.8839 minutes (`wiener-vector-reconstruction.trx`), including the six
+  restoration/super-resolution streams compared to byte-exact native planes. Their fresh optimized-native
+  agreement remains 5,386,240 samples with maximum error 0 and zero differing samples. The filter matrix
+  runs the current hardware path before restricted hardware configurations and scalar fallback; unavailable
+  host instruction sets cannot be established by feature-disable runs. No performance comparison was run.
+  At this checkpoint, byte-source integration, restoration output/scratch lifetime, and per-block widening
+  remained open. The subsequent correction below addresses sample storage and stripe dataflow; this
+  traversal verification does not establish encoder parity.
+
+Restoration physical-sample and stripe dataflow correction on 2026-09-06:
+
+- Architectural deviation: the prior controller materialized every bordered processing block as ushort
+  samples, then copied/narrowed each result into a per-plane output. Native
+  `av1/common/restoration.c:252-383,985-1051` filters the original physical sample storage after saving and
+  replacing only three context rows above/below each stripe, then restores those rows before another unit
+  reads them. The fixed six-row save area is 4.594 KiB
+  (`av1/common/restoration.h:211-219`), irrespective of sample precision.
+- `Av1LoopRestorationDecoder.cs:77-110` now selects byte/ushort once for the complete frame traversal.
+  `:120-236` extends the existing reconstruction border, allocates output at physical sample precision,
+  and copies the completed plane back after all units consume its original samples.
+  `:259-402` saves/replaces/restores the bounded stripe context and gives both filters direct strided
+  views of the source and destination. It no longer materializes bordered blocks or widens frame rows.
+  `Av1LoopRestorationBoundary.cs:354-365` exposes the saved rows including horizontal context.
+- Both filter families retain their existing arithmetic scales and scratch representation while carrying
+  the selected physical sample type through source reads and output writes. Shared register operations in
+  `Av1RestorationSampleOperations.cs:20-253` load only the samples owned by each batch, widen unsigned values
+  in registers, and narrow only after clipping. No numerical mismatch had been established in the prior
+  ushort arithmetic; this corrects storage and traversal rather than changing the filter equations.
+- Release .NET 11 build: zero errors, 1,009 existing warnings, 31.83 seconds. Independent Wiener full-kernel
+  and self-guided direct-window tests now include byte-backed sources/destinations, row padding and outer
+  sentinels. Both passed with their available hardware and scalar configurations
+  (`restoration-physical-kernels.trx`, 4.0156 seconds). Final reconstruction, ownership, and filter
+  verification passed 165/165 in 1.9481 minutes (`restoration-physical-reconstruction.trx`). The six
+  restoration/super-resolution native-plane fixtures are byte exact with the edited managed decoder.
+  Fresh optimized libaom decoding independently matches those retained planes across 5,386,240 samples:
+  maximum error 0, nonzero errors 0, errors above one 0 (`restoration-comparison.json`).
+- At this checkpoint, output, line-save, and arithmetic workspace still rented per active plane. The later
+  output-frame correction below addresses destination lifetime/layout; scratch remains unresolved against
+  `alloccommon.c:299-310`. The distinct
+  optimized self-guided temporary allocations described above must not be conflated with its shared output
+  workspace. No performance comparison or encoder parity claim follows from this change.
+
+Restoration output-frame lifetime follow-up on 2026-09-06:
+
+- Architectural deviation: restored output was rented and returned for every active plane. Native
+  `av1/common/restoration.c:1069-1138` retains the destination frame in decoder state, uses a 32-sample
+  border, and copies only restored planes back after all filtering. Its allocation grows only when the
+  required byte capacity increases; new storage is cleared, while reuse does not clear or copy previous
+  samples (`aom_scale/generic/yv12config.c:59-267`).
+- `Av1FrameBuffer.cs:281-332` now creates/resizes restoration output using its existing single-owner
+  plane abstraction. The shared layout calculation at `:628-685` retains eight-sample coded alignment,
+  32-sample luma row alignment, subsampled chroma strides, and the restoration border. Growth releases the
+  previous allocation before renting the new one. A failed rent leaves the target empty and recoverable
+  on a subsequent resize; no second complete output frame is retained during growth.
+- `Av1Decoder` owns this output independently of reference/presentation frames and disposes it with the
+  session. `Av1FrameDecoder.CompleteFrame` prepares it after super-resolution and before restoration.
+  `Av1LoopRestorationDecoder.DecodeFrame:101-139` publishes only active restored planes after all units,
+  preserving its source until filtering finishes. The output no longer rents per plane.
+- Monochrome continues to allocate only luma through the established managed frame abstraction; the native
+  generic destination allocator reserves chroma even in this case. No unused monochrome chroma owner was
+  introduced. This is an explicit sizing difference, not an assertion that allocation layouts are identical.
+  Line-save and filter arithmetic scratch still need their separate lifetime comparison.
+- Two Release builds stopped on StyleCop enum ordering before tests: first an enum after methods, then a
+  constructor after the enum. The enum is now between constructors and properties; Roslyn's analyzer pass
+  reports zero errors. Fourteen focused layout/ownership/sequence-change cases passed
+  (`restoration-output-ownership.trx`, 3.6731 seconds), including unchanged-layout view reuse, growth,
+  shrinkage, byte/ushort transitions, clean new allocations, preserved reused storage, and recovery after
+  allocation failure with exactly-once returns. Two new assertion-style warnings were corrected without
+  changing their checks. Final Release .NET 11 build: zero errors, 1,009 existing warnings, 13.67 seconds.
+  Broader reconstruction/ownership/filter verification after that final edit passed 178/178 in
+  1.9329 minutes (`restoration-output-final.trx`), including byte-exact native restoration fixtures.
+
+Restoration stripe-save lifetime follow-up on 2026-09-06:
+
+- Native `av1/common/alloccommon.c:299-310,350-366` retains one line-save allocation for the decoder session.
+  `restoration.h:211-219` specifies six rows of 392 ushort slots, 4.594 KiB total, even for byte samples.
+  The managed controller previously included that storage in every active plane's temporary Wiener owner.
+- `Av1LoopRestorationBoundary` now owns that fixed save area alongside its preserved boundary rows,
+  initializes ownership before saving deblocked rows, shares it with every restoration plane, and returns it
+  at session disposal. The per-plane Wiener owner now contains only its convolution intermediate.
+- Existing exact allocation/content tests include the additional session owner, its fixed size, and reuse
+  across dimension changes. Failure cases now target the first save-area allocation and the initial/replacement
+  below-row allocations after it. Exactly-once return assertions remain in place. Release .NET 11 build:
+  zero errors, 1,009 existing warnings, 33.80 seconds. All 51 frame-buffer and sequence-change cases passed
+  (`restoration-save-ownership.trx`, 3.8032 seconds). Final reconstruction/ownership/filter verification
+  passed 179/179 (`restoration-save-final.trx`, 1.9193 minutes).
+
+Self-guided work-row alignment correction on 2026-09-06:
+
+- The managed integral/coefficient rows reserved multiples of sixteen integers, although the widest
+  implemented arithmetic batch contains eight. The optimized reference uses eight-integer row alignment
+  after its border and row-separation columns (`av1/common/x86/selfguided_avx2.c:547-637`).
+  `Av1SelfGuidedFilter.GetBufferStride` now retains that eight-lane alignment. At 64x64 this changes the
+  combined managed scratch request from 138.5 KiB to 129.625 KiB. The native shared output and per-call
+  temporary allocations remain distinct from this combined managed workspace; their lifetimes are unresolved.
+- The independent direct-window matrix now includes 32x32 and 64x64 processing blocks and poisons scratch
+  inside two outer sentinels for both physical sample types. An initial Release build stopped on SA1515
+  because a comment followed an expression-bodied method declaration without the required spacing.
+  The explanation now sits inside the method body. The corrected Release .NET 11 build passed with zero
+  errors and 1,009 existing warnings (35.64 seconds). The expanded filter matrix passed
+  (`restoration-alignment-kernel.trx`, 3.2735 seconds), followed by 179/179 reconstruction/ownership/filter
+  cases (`restoration-alignment-final.trx`, 1.9455 minutes). No benchmark or encoder parity check was run.
+
+Additional production-path source checks on 2026-09-06:
+
+- Restoration stage lifetime follow-up: `Av1LoopRestorationDecoder.cs:26-139` now follows the existing
+  session-owned CDEF stage pattern. It owns the restored output and grows/reuses the two managed arithmetic
+  workspaces; borrowed source/header/unit state stays in call parameters. `Av1FrameDecoder.CompleteFrame`
+  invokes the retained stage, and `Av1Decoder` disposes it with the session. Native persistent self-guided
+  outputs are allocated in `av1/common/alloccommon.c:299-305` and freed at `:350-366`. Native AVX2 temporary
+  integral/coefficient allocations (`x86/selfguided_avx2.c:547-637`) and Wiener stack intermediates
+  (`x86/wiener_convolve_avx2.c:43-242`, `x86/highbd_wiener_convolve_avx2.c:28-245`) remain a separate layout
+  and lifetime difference: managed code retains these bounded workspaces to avoid block-level rents and
+  oversized stack storage. This is not a claim of identical native allocation layout or measured speed.
+  The sequence regression first failed its early-return assertion (`restoration-scratch-before.trx`).
+  After correction it requires one retained 4,544-ushort workspace and one 33,184-integer workspace across
+  all five 8/8/10/12/8-bit frames, byte-exact native-plane output, and exactly-once disposal. Six additional
+  cases reject each initial/growing output or scratch rent and verify retry, unchanged-input copying,
+  steady-capacity reuse, and balanced returns. All seven passed (`restoration-scratch-failure.trx`, 3.5712
+  seconds); final reconstruction/ownership/filter verification passed 185/185 (`restoration-scratch-final.trx`,
+  1.9700 minutes). Final Release .NET 11 build: zero errors, 1,009 existing warnings, 8.39 seconds.
+  Roslynk reports zero compiler errors. No benchmark or separate-encoder parity check was run.
+
+- Frame-header serialization is already after analysis: both `Av1TileEncoder` sample-type constructors complete
+  `Encode` before `Av1FrameEncoder` calls the OBU writer; `GetTileData:239-244` only exposes retained bytes.
+  The fact that `ObuWriter.WriteFrameObu:116-142` writes header scratch before querying tile lengths therefore
+  does not establish another ordering defect. Automatic filter selection remains missing as documented above.
+- Tile-list decoding remains missing functionality. `ObuReader.cs:388-391` rejects it, while native
+  `av1/decoder/obu.c:479-591,1073-1092` supports its camera-header/external-reference path when normal-only
+  tile mode is disabled. The optimized reference has `CONFIG_NORMAL_TILE_MODE=0`. The existing rejection test
+  proves the current restriction, not implementation of that mode; its container/API integration is unresolved.
+
+CDEF controller and storage follow-up on 2026-09-06:
+
+- Encoder CDEF remains missing. `Av1FrameEncoder.cs:372-408` disables it, and `Av1TileEncoder.cs:261-270`
+  currently runs only selected deblocking between analysis and packing. Native `encoder.c:2777-2825` preserves
+  restoration boundaries, searches CDEF, applies it, performs super-resolution, preserves the later boundaries,
+  and searches restoration. Enabling the sequence flag or calling a filter primitive does not implement that path.
+- The complete CDEF search was read in `av1/encoder/pickcdef.c` and `pickcdef.h`. Search excludes wholly skipped
+  units and groups 128-wide/high blocks (`pickcdef.h:173-218`, `pickcdef.c:523-647`). Distortion covers only the
+  listed non-skipped blocks; high-bit-depth squared error is shifted after accumulation
+  (`pickcdef.c:236-261,397-518`). Luma directions are reused across strengths and chroma
+  (`:543-617`). Joint strength selection includes per-unit index bits and frame strength literals; distortion is
+  scaled by 16 before RD comparison (`:897-973`), followed by per-unit selections, adaptive decisions, and strength
+  remapping (`:976-1099`). These dependencies remain absent from production encoding.
+- Search distortion arrays and unit indices are allocated per search and freed afterward
+  (`pickcdef.c:655-680,1099`), while the search-context object persists (`:891-894`). Application buffers have a
+  different lifetime: `av1/common/alloccommon.c:192-278` retains them, replaces changed sizes, and releases them
+  when CDEF is disabled. The decoder invokes that boundary after its final tile (`decodeframe.c:5396-5402`).
+  These two allocation lifetimes must not be conflated when integrating encoder search and filtering.
+- The managed application stage previously rented its entire scratch region inside each `DecodeFrame`
+  (`Av1CdefDecoder.cs:145-157` before this edit). It now belongs to `Av1Decoder` and accepts frame inputs
+  per call, retaining no frame references. Equal storage requirements reuse the owner, resizing returns the old
+  allocation, and disabling CDEF or disposing the decoder releases it. Filter arithmetic and traversal are unchanged.
+- Remaining application differences are explicit: managed scratch still uses a 68-sample stride and two-column
+  border, two saved top-row slots, and block-local sample-width dispatch. Native application uses its aligned
+  source/line/column layouts and a separately captured bottom border
+  (`av1/common/cdef.c:161-253,369-421`; `alloccommon.c:209-231`). This lifetime correction does not establish
+  matching sizing, complete shared encoder/decoder traversal, SIMD coverage, or a measured timing improvement.
+- The production reuse test decodes 8-bit 4:2:0 twice, then 10/12-bit 4:4:4, then returns to the smaller frame.
+  It checks live allocator identities, exact-once returns on resize/disposal, and every sample against native
+  references. All 11 focused cases passed after the final edit (`cdef-lifetime-focused-r1.trx`, 13.4479 seconds).
+  Release .NET 11 compiled with zero errors and 1,009 existing warnings. The final wider reconstruction run passed
+  all 93 cases (`cdef-lifetime-reconstruction-r1.trx`, 1.8393 minutes), including reference frames, restoration,
+  film grain, intrinsic fallbacks, and constrained allocators. Roslynk reports zero compiler errors.
+- Fresh optimized-native decoding of the three CDEF streams matches 3,219,456 reference samples exactly:
+  maximum error zero, zero differing samples, zero exceeding one, and zero differing bytes. The comparison script,
+  output, and `cdef-comparison.json` remain outside the repository. No benchmark or encoder-parity claim follows.
+- The remaining quantizer-dependent profile policy was read in `speed_features.c:2892-3134`. It changes motion
+  search, partition eligibility, coefficient optimization, winner transforms, and restoration-unit size using frame
+  role, dimensions, screen-content state, and qindex together. Public Effort mapping is still unresolved; copying
+  any one threshold would not establish the required encoder policy.
+
+Decoder intra-block-copy traversal correction on 2026-09-06:
+
+- Before this edit, `Av1BlockDecoder.cs:1211-1277` rebuilt the source coordinates and dispatched prediction for
+  every transform. Native `av1/decoder/decodeframe.c:681-693,852-879,971-973` predicts the complete block planes
+  before residual traversal. Plane dimensions are at least four samples (`av1/common/av1_common_int.h:1343-1355`);
+  displacement validity covers the full source rectangle and decoded-region delay
+  (`av1/common/mvref_common.h:279-337`). This establishes the traversal boundary without a timing hypothesis.
+- Prediction now runs once for each participating block plane, before the transform loop, using the existing
+  byte/high-bit-depth predictor and frame spans. Transform reconstruction and CfL publication keep their order.
+  No new owner, buffer, copy of a frame, search policy, or rejection rule was introduced.
+- The native-fixture regression now requires actual IBC blocks with multiple luma transforms at every tested
+  precision, in addition to comparing every sample. All 25 focused cases passed after the final edit
+  (`ibc-plane-prediction-r1.trx`, 12.6576 seconds), including half-sample chroma production tests and the official
+  extreme-displacement sequence. Release .NET 11 compiled with zero errors and 1,009 existing test warnings.
+- Fresh optimized-native comparison of the three 512x256 4:4:4 streams and the two-frame official sequence
+  matched all 7,400,448 retained reference samples: maximum error zero, zero differing samples, and zero differing
+  bytes. The local comparison script, extracted payloads, and report are outside the repository. Final wider
+  reconstruction verification passed all 92 cases (`ibc-plane-reconstruction-r1.trx`, 1.8239 minutes), including
+  native precision, presentation, intrinsic tiers, sequence references, and constrained allocator cases.
+  No encoder-parity or measured-performance claim follows from this change.
 
 Decoder coefficient-stage correction after `b305e6e89`, verified on 2026-09-05:
 
@@ -413,6 +1227,271 @@ Decoder coefficient-stage correction after `b305e6e89`, verified on 2026-09-05:
   position after inverse transform (`:154-164`), and separates parsing/reconstruction for row workers with
   different buffer lifetimes (`:3244-3277`). Those traversal, clearing, and worker-lifetime differences remain
   open; this checkpoint does not claim that changing coefficient representation completes them.
+
+Decoder CDF storage correction in progress on 2026-09-07:
+
+- `Av1Distribution.cs:39,274-303,328-335,395-422` stored sixteen inverse cumulative thresholds as unsigned
+  32-bit values. Their complete domain is 0 through 32768. Native `aom_dsp/prob.h:29,110-137` uses unsigned
+  16-bit storage and wider arithmetic during adaptation. The managed field and copy views now use the existing
+  `InlineArray16<ushort>`; initialization narrows after inverse conversion. The indexer and update arithmetic
+  retain their wider types. The threshold region is 32 bytes instead of 64 bytes per distribution.
+  Alphabet size, counters, object identity, copying boundaries, and CDF adaptation are unchanged.
+- This follows a current-tree decoder measurement after the residual-skip verification below, using the existing
+  benchmark and optimized native adapter. Both paths include construction, parsing, reconstruction, RGB48 output
+  allocation/conversion, and disposal. The native path uses the same ImageSharp color converter, so packed output
+  equality does not independently validate that converter. Both inputs passed exact packed-sample comparisons.
+- Before the CDF-width edit, the three-iteration Short job measured 13.739 ms managed versus 5.133 ms native
+  for `libavif-kodim23-8b.bit`, and 24.848 ms versus 9.263 ms for `libavif-cosmos1650-10b.bit`.
+  The approximately 2.68x gap remains open. Managed allocation counts were 933.1 KiB and 1014.38 KiB;
+  native allocations are not included in the managed counter. No historical speedup is established by this run.
+  CPU model lookup and power-plan configuration were denied by the environment. The baseline report is
+  `D:\GitHub\ynse01\av1-takeover-20260905\decoder-current-short\20260907-011627`.
+  BenchmarkDotNet 0.15.8 used the in-process toolchain, .NET 11 preview 7, x64, one coding thread, three warmups,
+  and three measured iterations. Production assembly SHA-256 was
+  `4264B2B47188E8B5B15B24E55D9B5CDA468C407D9F48EE02F928DB977BBFDE5A`, matching the verified test assembly.
+- The complete CDF object graph still differs from the flat native frame context (`av1/common/entropymode.h:71`
+  onward). `Av1FrameEntropyContexts.cs:31-37,99-121` retains three active graphs plus independently owned
+  reference snapshots, and `Av1FrameEntropyContext.cs:140-207` constructs each distribution separately.
+  Reducing threshold width does not resolve graph shape, cost-table policy, or the remaining codec controller.
+- Decoder coefficient and transform-state storage is already bounded to one active superblock
+  (`Av1FrameInfo.cs:250-338,651-698`, `Av1SuperblockInfo.cs:50-94`). Reference-state transfer retains motion and
+  segmentation data, not that scratch (`Av1FrameInfo.MotionField.cs:491-581`). Native single-thread decode also
+  uses one superblock buffer (`decoder.h:45-108`, `decodeframe.c:2504-2524,2794`), retained in worker state.
+  Managed frame-owned allocation lifetime remains different; no per-reference coefficient-copy defect was found.
+- Release .NET 11 builds after the CDF-width edit with zero errors and zero reported warnings (24.25 seconds).
+  All 2,298 focused entropy cases pass (`cdf-width-focused.trx`, 4.6192 seconds), followed by all 9,997 AV1 and
+  selected HEIF cases (`cdf-width-production.trx`, 2.9274 minutes). Roslynk reports zero compiler/analyzer errors.
+  No tests or expected output were changed. Fresh optimized native checks preserve exact agreement across
+  8,521,435 established restoration, film-grain, and regenerated moving-color samples: maximum error zero,
+  no differing samples, and zero errors above one. The retained-reference comparison and direct regenerated-output
+  comparison boundaries are unchanged from the residual-skip checkpoint below.
+- The post-edit Dry and Short benchmark jobs both pass exact packed output for the two existing inputs.
+  Across 2,494,464 RGB48 components, maximum error is zero, with no differing samples or errors above one.
+  Both decoders use the shared ImageSharp converter. Independently re-decoding those inputs also reproduces their
+  1,904,640 retained native plane samples exactly (`decoder-benchmark-inputs.json`).
+  Current managed/native means are 13.296/5.099 ms for Kodak and 25.419/9.448 ms for Cosmos.
+  Managed allocations are 715.97/797.24 KiB, about 217 KiB less per input than before the storage correction.
+  Three iterations and the recorded timing variance do not establish a speedup or close the performance gate.
+  Full results and error intervals: `decoder-current-short\20260907-012459` in the temporary takeover directory.
+  The post-edit production assembly SHA-256 is
+  `8469641ACE0351349694D766BB9395DD14800CA3BDFF30E78EF74A0C9D1CE7F5` in both the test and benchmark outputs.
+- Further CDF-layout comparison: native `av1/common/entropymode.h:71-167` embeds differently sized alphabets,
+  their zero sentinels, and their observation counters into the frame context. `decoder/decoder.c:110-116`
+  allocates its base/default contexts once with 32-byte alignment. Tile completion copies the selected state,
+  resets counters, and publishes independent retained-frame state (`decoder/decodeframe.c:5488-5507`).
+  Managed `Av1SymbolReader.cs:112-123` and `Av1SymbolWriter.cs:139-145` hold live distribution aliases;
+  `Av1FrameEntropyContext.cs:545-690` copies/reset counts through those stable objects. Tests explicitly check
+  independent snapshot adaptation (`Av1EntropyTests.cs:70-119`, `Av1MotionModeEntropyTests.cs:98-194`).
+  Flattening storage must preserve those aliases and independent counters together. No distribution-type,
+  frame-ownership, or CDF-layout refactor beyond the verified width correction has been applied.
+
+Encoder residual-skip correction in progress on 2026-09-07:
+
+- The inter block decision required an empty quantized transform on every plane before considering prediction-only
+  reconstruction. This excludes valid lower-cost skip decisions with nonzero coefficients. The starting path was
+  `Av1IntraSuperblockEncoder.ReferenceModeDecision.cs:1230-1266`; its IBC caller has the same restriction at
+  `:327-356`. Native `av1/encoder/tx_search.c:3875-3898` forces skip for an all-empty result and otherwise
+  compares residual syntax plus distortion against prediction-only SSE for lossy blocks, including ties.
+  Both inter and IBC use that decision (`av1/encoder/rdopt.c:1734,3490`).
+- The bounded inter correction now measures prediction-only SSE before transform scratch is reused, normalizes
+  high-depth error with rounding, retains four fractional distortion bits, compares costs without shared prediction
+  syntax, and publishes prediction samples with cleared coefficients and default transform state when skip wins
+  (`EvaluateInterCandidate:1020-1243`, `EvaluateInterPlane:1547-1724` in the current file).
+  IBC now uses the same residual decision at `SelectIntraBlockCopy:318-367`. No search order, effort mapping, partition policy,
+  reference role, quantizer, buffer allocation, or encoded-sample acceptance threshold changed.
+- The new regression initially failed at qindex 64 and perturbation amplitude 4: skip residual cost 938,631 versus
+  coded residual cost 1,001,301, with nonzero coefficients in every legal transform
+  (`residual-skip-red.trx`). The full quantizer/perturbation matrix remains and now runs at 8, 10, and 12 bits.
+  Its oracle computes prediction SSE and rounded costs explicitly, and checks selected rate, distortion, cost,
+  cleared state, and byte-exact retained prediction. Transform arithmetic and entropy primitives are shared with
+  production, so this establishes the block-decision regression only, not independent encoder parity.
+- Automatic approval review rejected the initial combined inter/IBC replacement as too broad, and separately
+  rejected narrowing the test to one pinned input. Neither rejected edit was applied. The safer inter-only patch
+  passed a content check and was accepted; the original test matrix was retained and expanded to all three depths.
+  The expanded test initially failed compilation because the generic span assertion selected an incompatible
+  overload (CS9244); comparing the same complete sample spans as bytes resolved that without changing expectations.
+- The inter-only focused encoder set passes 251/251 (`residual-skip-inter-focused.trx`, 21.9169 seconds).
+  After the precision-test expansion, Release .NET 11 builds with zero errors and 1,009 existing warnings;
+  all three precision cases pass (`residual-skip-precision.trx`, 2.8044 seconds).
+  Twelve regenerated moving-color streams match optimized native decoding across 21,348 samples, maximum
+  error zero, no differing samples, and zero errors above one. Final verification is recorded below.
+  No benchmark or separate-encoder parity measurement has been run.
+- A separate IBC regression now reaches production pixel candidate search using completed reconstructed blocks
+  before the target superblock. After correcting its coefficient-buffer width, it failed at qindex 64 and amplitude 4:
+  skip residual cost 940,455 versus coded residual cost 1,005,028, with nonzero coefficients in every legal transform
+  (`residual-skip-ibc-setup-corrected-red.trx`). The subsequent IBC-only correction was accepted by automatic review.
+  The first post-fix rate check then exposed a missing target-grid mapping in the test setup; adding the same
+  `MapModeInfoBlock` operation used by production traversal corrected the displacement lookup. No expected value
+  or tolerance was relaxed. All six inter/IBC precision cases and the two existing full-RD/half-chroma IBC cases pass
+  (`residual-skip-reference-mapped.trx`, 8/8, 3.4124 seconds).
+  The final build has zero errors and 1,009 existing warnings (10.76 seconds); Roslynk reports zero compiler
+  and analyzer errors. All 9,997 AV1 and selected HEIF cases pass after the final C# edit
+  (`residual-skip-production.trx`, 2.7919 minutes).
+  Fresh optimized-native checks match all 8,521,435 established samples exactly: maximum error zero,
+  zero differing samples, and zero errors above one. The restoration and film-grain scripts re-decode the
+  retained references also exercised by the current managed tests; the moving-color script compares
+  regenerated managed output directly. These checks do not establish separately encoded output parity.
+
+Decoder coefficient reuse correction in progress on 2026-09-06:
+
+- Neighbor-context storage-width correction in progress on 2026-09-07: managed above/left entropy, partition,
+  and transform contexts used `int` entries. Native `av1/common/entropy.h:51-52,80` and
+  `av1/common/enums.h:168,522` define byte-sized entries. Partition masks require five bits, transform extents
+  reach 128, and coefficient contexts pack three saturated level bits with sign class 0/1/2, for a maximum of 23
+  (`av1/common/txb_common.h:274-280`, `av1/decoder/decodetxb.c:316-319`).
+  The two existing context owners and their tile-reader/entropy-decoder spans now use bytes.
+  Coefficients and arithmetic retain their existing precision. Explicit casts occur only after these established bounds.
+  At 3840-pixel width with three planes, the above-context surface changes from 18.75 KiB to 4.6875 KiB;
+  owner count, region strides in entries, and allocation lifetime are unchanged. This is a storage-size correction,
+  not measured performance evidence or completion of the remaining context-lifetime work.
+  Existing coefficient regressions now derive packed edge contexts independently from original quantized values.
+  Their first run exposed an incorrect six-bit assumption in the newly added test and comments (expected 127,
+  actual 15). Direct inspection confirmed that both managed and native constants use three bits; the new expectations
+  and comments were corrected to that contract. Production packing arithmetic and pixel expectations were not changed.
+  All 181 focused coefficient-entropy, tiling, and frame-buffer cases now pass
+  (`byte-neighbor-contexts-focused-corrected.trx`, 5.0877 seconds).
+  Final Release .NET 11 build: zero errors, 1,009 existing warnings, 31.86 seconds.
+  All 9,991 AV1 and selected HEIF cases pass (`byte-neighbor-contexts-production.trx`, 2.8460 minutes).
+  Fresh optimized-native comparisons remain exact across the established 8,521,435-sample corpus:
+  maximum error zero, zero differing samples, and zero errors above one.
+
+- Above-context reset correction on 2026-09-07: `Av1ParseAboveNeighbor4x4Context.Clear` previously reset
+  only the visible tile width and used that same width for every coefficient plane. Native
+  `av1/common/av1_common_int.h:1594-1628` rounds the width to the current superblock extent and scales
+  chroma coefficient widths by horizontal subsampling. Managed above contexts are tile-relative
+  (`Av1TileReader.ParseTransformBlock:1282-1285`), so the equivalent reset starts at local offset zero.
+  The correction now clears that padded extent, preserving neutral contexts for nominal transform reads
+  beyond a clipped tile edge. A poisoned-context regression failed at the first padded transform entry
+  before the correction (expected 64, actual 128; `above-context-reset-before.trx`).
+  Eight cases cover both superblock sizes and monochrome/4:2:0/4:2:2/4:4:4; they also verify untouched
+  regions beyond each plane's required extent. All 66 focused tiling/compound cases pass
+  (`above-context-reset-focused.trx`, 5.6818 seconds). Final incremental Release .NET 11 build:
+  zero errors and zero reported warnings, 24.79 seconds. All 9,991 AV1 and selected HEIF cases pass
+  (`above-context-reset-production.trx`, 2.8410 minutes). Fresh optimized-native comparisons remain exact
+  across the established 8,521,435-sample corpus: maximum error and differing-sample count both zero.
+  This establishes the reset-state defect; a newly failing independently encoded tile fixture has not
+  been established. Decoder-wide conformance and performance claims remain unsupported.
+
+- Reconstruction workspace lifetime follow-up: native `av1/decoder/decoder.h:45-134` retains block scratch
+  on decoder worker state. `av1/decoder/decodeframe.c:3483-3518,5339-5357` allocates prediction scratch when
+  its physical sample capacity changes, and `av1/decoder/decoder.c:237` releases it at decoder destruction.
+  Managed `Av1BlockDecoder` previously rented its combined inverse/prediction/CfL owner in each frame's constructor
+  and returned it through `Av1FrameDecoder.Dispose`. The owner now belongs to `Av1Decoder.ReadTile:777-897`
+  and `Dispose:1061-1076`; frame/block reconstruction borrow `Memory<short>` without an ownership flag or wrapper.
+  `Av1BlockDecoder.GetWorkspaceLength:138-150` preserves the existing layout and sequence-dependent capacity.
+  A larger requirement releases the old owner before renting the replacement; a failed rent leaves no stale owner.
+  Smaller subsequent frames reuse the larger capacity. Native and managed scratch layouts remain different:
+  native has separate motion, convolution, mask, and OBMC allocations, while managed prediction families share
+  one short-based working region. This lifetime correction does not establish identical allocation layout or speed.
+  Component callers now supply and dispose their own workspace; existing exact sizing and one-rent assertions remain.
+  Production checks cover initial/growth allocation rejection, retry, 64/128 superblock transitions, return to the smaller
+  size, exact constant lossless output, and balanced exactly-once returns. The independent restoration sequence also
+  requires the same reconstruction owner across repeated frames and 8/10/12-bit sequence changes.
+  Seven focused cases pass (`reconstruction-workspace-recovery.trx`, 5.5893 seconds).
+  Latest Release .NET 11 build: zero errors, 1,009 existing warnings, 8.44 seconds; Roslynk reports zero compiler errors.
+  All 9,983 AV1 and selected HEIF cases pass (`reconstruction-workspace-production.trx`, 2.8023 minutes).
+  Fresh optimized-native checks after that run remain exact across 8,521,435 samples: maximum error zero,
+  zero differing samples, and zero errors above one. The comparison corpus and retained-plane versus direct-plane
+  distinction are the same as the CfL follow-up below; no timing or separate-encoder parity claim follows.
+  Coefficient and transform-descriptor owners still belong to frame syntax storage,
+  and above/left parser contexts remain frame-local; those worker/common-state lifetime deviations remain open.
+
+- Inter/IBC CfL storage follow-up: `Av1BlockDecoder.EndBlock:1465-1503` now stores luma once after every
+  residual in the block has been reconstructed. Ordinary intra storage remains per transform.
+  `Av1TileReader.ParseBlock` invokes this completion phase after `Residual`; the pre-parsed component entry
+  point uses the same phase. The final parsed luma descriptor supplies the transform alignment for the visible
+  block extent. Evidence: native `av1/decoder/decodeframe.c:844-850,1037,1064-1124` and
+  `av1/common/cfl.c:406-436`. `Av1ChromaFromLumaContext.Store:94-194` shares its existing subsampling kernel
+  between transform dimensions and explicit completed-block dimensions; no additional sample storage was added.
+  Twelve new cases poison the CfL surface, prove it is untouched before completion, then independently calculate
+  Q3 samples and check untouched regions across 8/10/12 bits, 4:2:0/4:2:2, and visible/extended transform heights.
+  The first regression failed before the production correction (expected poison -32768, actual Q3 sample 20).
+  A test initially attempted to assign a private-set property; the inaccessible assignment was removed before
+  execution. Final Release .NET 11 build: zero errors, 1,009 existing warnings, 8.64 seconds.
+  All 58 focused tiling/compound cases pass (`cfl-block-store-focused.trx`, 5.5436 seconds).
+  All 9,981 AV1 and selected HEIF cases pass (`cfl-block-store-production.trx`, 2.8205 minutes).
+  Fresh optimized native comparisons cover 8,521,435 samples: 5,386,240 restoration samples, 3,113,847 film-grain
+  samples, and 21,348 samples from twelve regenerated moving-color streams. Maximum error, differing-sample count,
+  and count above one are all zero. Restoration/film-grain tests compare the edited decoder to the same retained
+  planes independently checked with aomdec; moving-color comparisons directly compare regenerated managed/native
+  planes. These checks do not establish encoder parity or a performance improvement.
+
+- Transform interleaving follow-up: `Av1TileReader.ParseBlock:959-1019` now publishes complete modes and
+  transform geometry before residual parsing, preserving its assigned map index in the borrowed partition state.
+  `Residual:1056-1208` calls reconstruction immediately after each transform's EOB is written.
+  `Av1BlockDecoder.BeginBlock:252-1275` predicts inter/IBC planes before residuals;
+  `DecodeTransform:1283-1457` performs ordinary intra prediction, inverse reconstruction, populated-prefix clearing,
+  and the existing luma-context update. Native ordering is in `av1/decoder/decodeframe.c:283-310,935-1037,1172-1228`.
+  The existing pre-parsed block API uses these same methods for component tests; production no longer walks
+  a second block/transform list. Source/frame ownership and coefficient capacities remain unchanged.
+  The test stub poisons unread EOB fields at block entry and checks during each transform callback that its
+  EOB is populated while all later transforms remain poisoned. It also requires every callback before the next block.
+  This verifies traversal timing independently of the final decoded output.
+  An initial build stopped on three blank lines before closing braces left by the method split; these were corrected.
+  Final Release .NET 11 build: zero errors, 1,009 existing warnings, 32.49 seconds. Forty-six tiling/compound checks
+  passed (`transform-interleaving-focused.trx`, 5.6221 seconds), followed by 9,969/9,969 AV1 and selected HEIF tests
+  (`transform-interleaving-production.trx`, 2.7762 minutes). Fresh optimized native decoding agrees with retained
+  restoration/film-grain planes across 8,500,087 samples; tests compare the edited managed decoder to those same planes.
+  Twelve regenerated moving-color streams add 21,348 directly compared managed/native samples. Combined maximum
+  error is zero, with zero differing samples and zero errors above one (`restoration-comparison.json`,
+  `film-grain-comparison.json`, `decoder-comparison.json` in the temporary takeover directory).
+  At this checkpoint, inter-block CfL storage remained per luma transform,
+  while native `decodeframe.c:844-850,1037` stores once after the block's residuals. Native `cfl.c:421-436` rounds
+  the visible block extent to the last selected transform dimensions before storing. The follow-up above addresses
+  that storage phase. No performance or encoder
+  parity claim follows from these reconstruction checks.
+
+- Subsequent parsed-block traversal correction: native `av1/decoder/decodeframe.c:1172-1228,2746-2801`
+  reconstructs while walking parsed partitions. The managed production reader previously parsed every block
+  in a superblock, then `Av1FrameDecoder.DecodePartition` walked their records again. `Av1TileReader` now
+  begins reconstruction at superblock entry and invokes `IAv1FrameDecoder.DecodeBlock` immediately after
+  publishing each parsed record. `Av1FrameInfo.UpdateModeInfo` returns that existing stored record by reference;
+  reconstruction clears its borrowed palette-map views after consumption. No new buffer or copy was introduced.
+  The first build exposed the unchanged `IAv1FrameDecoder` contract; the interface and its existing test stub
+  were then updated together. A new total-count assertion initially mistook `FrameInfo.ModeInfoCount` capacity
+  for parsed records. It now sums the tile's actual per-superblock record counts without changing pixel expectations.
+  Assertions inside the callbacks require zero records at superblock entry and exactly the currently visited
+  number of published records at each block callback, proving that later blocks have not been parsed first.
+  All 17 tiling checks passed (`block-traversal-focused-fixed.trx`, 2.9108 seconds), followed by 9,969/9,969 AV1
+  and selected HEIF tests (`block-traversal-production.trx`, 2.7630 minutes). Final Release .NET 11 build:
+  zero errors, 1,009 existing warnings, 8.90 seconds. Individual-transform parse/reconstruct interleaving remains
+  open at this checkpoint; `decodeframe.c:935-958,283-310` consumes each transform before reading the next.
+  These are reconstruction/traversal checks, not encoder parity or performance evidence.
+
+- Official main was rechecked through a live request to the official Gitiles endpoint and remains
+  `d565eec60f084421fa34fc0534b760c6452b6a6c`. The cached web response was older and was not used as revision evidence.
+  A fresh direct Gitiles request on 2026-09-07 confirms the same revision. The first request was blocked by
+  sandbox socket permissions; the allowed direct retry succeeded. The web tool again returned an older July
+  response, which was excluded from current-reference evidence.
+- The preceding coefficient-stage checkpoint left a clearing-lifetime deviation open. Native
+  `av1/decoder/decodetxb.c:135-150,279-284` records the largest populated raster index independently of EOB;
+  `av1/decoder/decodeframe.c:154-164` clears that prefix after inverse reconstruction. EOB alone cannot bound
+  the prefix because the scan can visit a larger raster index earlier than its final nonzero symbol.
+- The managed sign/dequantization loop now records that index in `Av1TransformInfo.MaximumCoefficientIndex`.
+  `Av1BlockDecoder.DecodeBlock` clears through it after reconstruction. `Av1TileReader.ReadTile` retains whole-plane
+  clearing only for syntax-only parsing, whose contract exposes coefficients without invoking reconstruction.
+  Initial allocator storage is already clean (`Av1FrameInfo.cs:289-292`); no additional coefficient buffer or owner
+  was introduced. Skipped and all-zero transforms reset their residual metadata at the owning parse boundaries.
+- Focused entropy tests check the populated raster bound, including sparse input, and reuse a nonempty descriptor
+  for an all-zero transform. Existing tile reconstruction cases now assert that all three coefficient scratch planes
+  are zero afterward in both byte and high-bit-depth paths. These assertions supplement exact reference comparisons;
+  they do not establish full decoder correctness or a measured performance improvement.
+- Release .NET 11 build passed with zero errors and the existing 1,009 warnings. Serialized Visual Studio VSTest
+  passed 125/125 focused entropy, tiling, and frame-buffer cases (`coefficient-clearing-focused.trx`), followed by
+  9,375/9,375 AV1 and public HEIF encoder cases in 2.6811 minutes (`coefficient-clearing-production.trx`).
+  Fresh optimized-native checks matched all 8,500,087 retained restoration/film-grain samples and 21,348 regenerated
+  color-sequence samples: maximum error zero and zero differing samples. The retained fixtures also passed the
+  managed exact-plane assertions; this is bounded same-bitstream evidence, not separate-encoder parity.
+- A subsequent ownership correction removes the second dequantization context constructed by `Av1TileReader`.
+  `Av1InverseQuantizer` had already constructed identical values, then discarded its own context when the reader
+  supplied the duplicate to `UpdateDequant`. The quantizer now retains and updates its original context. The frame
+  setup and conditional delta-Q updates still follow `decodeframe.c:1865-1906,1200-1217`. After this final production
+  edit, the Release .NET 11 rebuild passed with zero errors and 1,009 existing warnings; serialized Visual Studio
+  VSTest passed 222/222 focused cases including the independent reconstruction corpus in 1.8621 minutes
+  (`coefficient-lifetime-final.trx`). Roslynk reports zero compiler errors and the existing 34 compiler warnings.
+  No benchmark has run.
+- Whole-superblock parsing before reconstruction and worker lifetimes remain unresolved. This change addresses
+  clearing ownership only; it does not claim completion of the encoder or decoder architecture.
 
 Film-grain decoder source comparison after `ef8b1a823`:
 
@@ -818,8 +1897,10 @@ Motion-controller investigation continued after correction checkpoint `578ec34d9
 - [ ] Reconcile frame configuration and encoder decision policy with the reference before isolated pruning changes.
 - [ ] Implement missing tools and complete reference, partition, motion, transform, coefficient, and winner decisions.
 - [ ] Compare separately encoded results from identical source samples with explicitly reconciled settings.
-  Report maximum absolute error and counts exceeding one for every decoded output component and every frame.
-  The acceptance limit is one component unit per sample; PSNR and average error cannot replace it.
+  Report maximum absolute error and counts exceeding one for every component and every frame.
+  Encoder parity permits at most one component unit per sample; PSNR and average error cannot replace it.
+- [ ] Verify byte-exact decoder output against the reference for identical bitstreams and reconciled output conversion.
+  Report maximum error and counts of differing samples and bytes. Every count and maximum error must be zero.
 - [ ] Verify each final relevant edit with focused serialized Release .NET 11 Visual Studio VSTest and independent
   native production-output checks. Compilation and component tests do not close codec completeness.
 - [ ] Run equivalent end-to-end benchmarks only after the relevant source comparison justifies the next change.
@@ -1417,13 +2498,13 @@ Previously verified algorithm checkpoints remain valuable evidence, but the fina
 - [x] Lossless inverse transform, loop filtering, CDEF, super-resolution, restoration, and film grain have focused checkpoint evidence.
 - [x] Retained references, CDF snapshots, segmentation maps, global motion, temporal motion fields, and dependent-frame lifecycle have been re-audited and verified against current libaom `main`.
 - [x] The 12-case all-intra profile matrix covers every valid 8, 10, and 12-bit monochrome, 4:2:0, 4:2:2, and 4:4:4 combination. Dependent-frame coverage is recorded separately above.
-- [x] The exact current-tree native-plane matrix passes through the production decoder on net10.0 and net11.0. The normal-dispatch and FeatureTestRunner fallback methods pass 2 of 2 focused tests on each target.
-- [x] The exact current-tree presentation matrix passes 12 of 12 cases through ImageSharp's established reference-image API on net10.0 and net11.0.
+- [x] At this historical checkpoint, the native-plane matrix passed through the production decoder on net10.0 and net11.0. The normal-dispatch and FeatureTestRunner fallback methods passed 2 of 2 focused tests on each target. These results do not verify subsequently edited trees.
+- [x] At this historical checkpoint, the presentation matrix passed 12 of 12 cases through ImageSharp's established reference-image API on net10.0 and net11.0. Current verification is recorded in the dated takeover entries above.
 - [x] Verify malformed/truncated data, frame IDs, reference slots, tile bounds, allocation limits, cancellation, and failure unwinding.
 - [x] Verify still items and bounded sequences from file, memory, non-seekable, and short-read streams.
 - [~] Verify ICC, CICP, alpha, grids, pixel aspect ratio, clean aperture, rotation, mirroring, metadata, and every presented sequence frame. Grid validation now requires the first cell to be at least 64 samples on both axes, enforces even output and cell dimensions along each subsampled AV1 chroma axis, and requires every cell to cover its row-major output region without exceeding the first cell's dimensions. This accepts the smaller right and bottom cells supported by the writer while also accepting uniform coded cells whose final row and column are cropped to the grid descriptor. Auxiliary alpha uses the same cropped overlap, so padded cells cannot write outside the final frame. Production regressions cover smaller right, bottom, and bottom-right color and alpha cells; Roslynk compiler and scoped analyzer diagnostics are clean, while runtime verification of the current tree remains pending.
 - [x] Complete the public AVIF format/API review so registered capabilities match implemented behavior.
-- [x] Remove or reject every valid in-scope AV1 syntax branch that remains silently ignored or unsupported.
+- [ ] Implement every valid in-scope AV1 syntax branch. Rejecting an unsupported valid branch does not complete it; tile-list decoding and its external-reference integration remain unresolved.
 
 Verified negative-path and frame-identifier gate evidence on 2026-08-31:
 
@@ -1569,10 +2650,11 @@ Final decoder allocation, lifetime, precision, architecture, and test-validity a
   clipping, while high-bit-depth filtering writes directly to the native `ushort` destination.
 - [x] Reference-to-presentation copying now copies visible native rows only. Padding remains destination
   owned, and the ownership tests mutate a copied visible sample rather than unrelated padding.
-- [x] The remaining decoder allocations and copies are either bounded scratch or required ownership
-  boundaries. Frame planes enforce their contiguous single-span invariant before allocation; palette,
-  transform, film-grain, super-resolution, color-conversion, and alpha workspaces remain bounded and
-  allocator owned. No per-block managed allocation remains in reconstruction.
+- [~] The historical audit did not establish that every remaining decoder allocation or copy is required.
+  Frame planes use contiguous storage and the listed workspaces are allocator owned, but the takeover audit
+  has since found and corrected excess frame-local workspace lifetimes and wider-than-required neighbor
+  contexts. Remaining parser-context, coefficient/TU storage, dispatch, and output ownership paths still
+  require source comparison; see the current audit evidence above.
 - [x] Block reconstruction now uses one exact-size signed-short owner for inverse quantization, inverse
   transform, compound prediction, convolution, and chroma-from-luma scratch. Even-length slices provide
   the integer workspaces without another rent. Monochrome reserves no chroma coefficients, and 4:2:0,
@@ -1580,9 +2662,10 @@ Final decoder allocation, lifetime, precision, architecture, and test-validity a
   constructor rents and their catch-all rollback path; exact allocation length, coefficient span length,
   and exactly-once return pass for all four layouts, with 549 adjacent reconstruction tests passing direct
   net11 VSTest in Release.
-- [x] Valid unsupported tile-list syntax is rejected explicitly. Reserved and metadata OBUs are consumed
-  only after bounded framing and trailing-bit validation. Eight-, ten-, and twelve-bit reconstruction,
-  presentation, alpha, restoration, and film-grain paths retain native precision.
+- [~] Tile-list decoding is not implemented. The explicit rejection test only establishes that restriction;
+  the camera-header/external-reference path and its container integration remain unresolved. Reserved and
+  metadata OBUs have bounded framing and trailing-bit checks. Existing precision tests cover represented
+  reconstruction and presentation paths, not complete AV1 feature support.
 - [x] Predictor traversal remains split into semantic readonly operator families. The planar sample
   adapter and transform-block context are value types, and Release construction sites use `default`
   without null-forgiving suppression.
@@ -1670,16 +2753,16 @@ Encoder verification contract:
 - [~] SIMD-first RGB-to-native-plane conversion now feeds eight-bit and high-bit-depth bordered AV1 source frames directly, preserving ImageSharp's arbitrary packed-pixel input contract without an intermediate full-frame native-plane copy.
 - [~] Auxiliary-alpha encoding now follows the same packed-pixel conversion boundary without scanning pixel contents or cloning the image. Source alpha is converted through ImageSharp's 16-bit pixel contract, deinterleaved with descending Vector512, Vector256, Vector128, and scalar traversal through the shared vector-count helpers, then scaled and rounded once by the existing native-sample writer directly into the final bordered monochrome source frame. One operation-wide allocator owner provides the packed and planar row views; there is no frame-sized alpha staging allocation or second owner. Exact 12-bit precision, physical border extension, the single 12-bytes-per-pixel row rent, and balanced return pass through the production converter. The complete 47-case frame-encoder set passes direct foreground net11 Release VSTest, and current-main `aomdec` at `a40ed1ea9e4ecc3df58a5bccb76623f2c94ae727` accepts the generated 8-, 10-, and 12-bit monochrome payloads. AVIF auxiliary item properties, references, and public activation remain open.
 - [~] Forward transform families, transform workspace, and an allocation-free DC intra block boundary exist locally. For eight-bit and high-bit-depth samples, the composed boundary now follows current libaom's encoder order: predict into the reconstruction plane, subtract prediction from source, transform, quantize into separate qcoeff and dqcoeff storage, retain EOB and transform type, and inverse-transform only when EOB is nonzero so later blocks consume decoder-identical references. Prediction and subtraction retain their SIMD-first operators, independent source and reconstruction strides are preserved, and no frame-sized or per-block buffer is introduced. The block boundary consumes the real bordered encoder-plane regions and indexes their one-segment owner directly; this preserves physical row strides without a row copy and avoids the per-call enumerator allocation exposed by the initial array-only test. One reusable 61 KiB allocator owner supplies tightly packed residual, aligned transform-coefficient, dequantized-coefficient, and transform scratch spans across transform blocks; quantized coefficients write directly to the retained frame coefficient owner instead of being duplicated. A fixed 8x8 DC-intra superblock baseline now traverses the same recursive preorder and frame-edge pruning as the tile writer, gathers left references into that reusable block workspace, writes luma and chroma coefficient-owner slices in the writer's exact consumption order, and updates the caller-owned reconstruction planes for subsequent predictions. Stage-by-stage scalar-oracle, physical-border, retained-syntax, superblock-to-writer synchronization, high-bit-depth precision, and steady-state zero-allocation coverage passes 8 of 8 through direct net11 VSTest in Release. This is a legal fixed baseline, not complete partition or mode analysis.
-- [~] The production tile writer walks raster superblocks, analyzes each immediately before entropy coding, reuses one decision workspace and one block workspace, and retains decoder-identical reconstructed references across each tile. Frames exceeding AV1's 4,096-sample tile-width or 4,096-by-2,304-sample tile-area limit now select the minimum uniform tile-column and tile-row logarithms used by current libaom. Every tile begins from the same normative frame probabilities, appends its independently finalized range-coded bytes to one bounded output allocation, and records only its offset and length in the picture-state owner. Closed byte and high-bit-depth operators feed the existing superblock boundary without runtime sample-type checks. Existing byte-exact and clipped-superblock tests cover traversal and coefficient indexing; a production 4,097-sample-wide lossless case crosses the first tile boundary and checks decoded pixels on both sides. Roslynk reports zero compiler errors; runtime and current-libaom verification of this multi-tile checkpoint remain pending.
+- [~] Production coding now analyzes all tiles before packing. Analysis retains modes, coefficients, palette tokens, motion contexts, and reconstruction; selected deblocking runs before entropy edges are reset for packing. The current frame controller still does not select deblocking levels or select/apply CDEF and restoration. The dated takeover checks above establish only their stated reconstruction and syntax behavior.
 - [~] A non-owning encoder-frame view now separates visible conversion regions from coded regions and performs complete left, top, right, bottom, and corner extension across each bordered plane. Current libaom uses 8-sample-aligned coded dimensions, a 32-sample-aligned luma stride with chroma stride derived from it, and a 64-pixel luma border for non-resized all-intra encoding. One operation-ready frame owner now rents the aligned Y, U, and V storage contiguously, exposes non-owning `Buffer2D` plane views, and returns the rent exactly once. A 4K 4:2:0 frame occupies about 13.0 MiB at 8-bit or 26.0 MiB at 10/12-bit; source and reconstruction therefore remain distinct frame owners rather than adding a full-frame copy. The corrected tests use this real ownership path and verify the exact 54 KiB 64x64 4:2:0 rent. The frame-encoder operation now instantiates matching source and reconstruction owners with ordinary `using` lifetimes and converts packed pixels directly into the source owner before extension.
 - [~] Temporal delimiter, sequence header, frame header, combined-frame tile-group writing, uniform multi-tile layout, and reduced and non-reduced frame operations now exist locally. The remaining codec-tool and verification work is tracked below.
 - [~] Implement superblock and partition analysis for every permitted block size and partition. Efforts zero through eight deliberately split every in-frame node to 8x8 blocks. Effort nine performs recursive live rate-distortion selection at complete 8x8 and 16x16 nodes, while effort ten extends the same search to complete 32x32, 64x64, and 128x128 nodes. Candidate order matches current libaom: `PARTITION_NONE`, `PARTITION_SPLIT`, `PARTITION_HORZ`, `PARTITION_VERT`, the four asymmetric partitions, then `PARTITION_HORZ_4` and `PARTITION_VERT_4`; the two 1-to-4 partitions are excluded at 128x128 as required by current libaom. Invalid chroma geometries are excluded before evaluation. Each candidate saves and restores the exact partition, coefficient, transform, and palette neighbor edges in one aligned block-workspace owner; trials neither allocate nor copy probability state. Recursive split trials publish each selected child's decoded mode, transform, coefficient, and palette contexts before evaluating its next sibling. Coefficient contexts are published per retained transform rather than broadcasting the first transform over an entire partition leaf. Large luma and chroma leaves are evaluated as bounded-64, raster-ordered transform tiles in the existing aligned workspace, and each winning plane is copied to retained storage once. Production picture state retains the compact 8x8 mode allocation below effort nine and explicitly selects 4x4 allocation granularity when sub-8x8 partitions are enabled. Effort-dependent pruning remains.
 - [~] Implement intra mode search, palette, filter intra, chroma-from-luma, and intra-block copy decisions. Live luma search now covers all 13 zero-angle base modes and all six nonzero adjustments for each of the eight directional modes. Joint spatial chroma search covers the same 61 candidates, combines both chroma planes in one rate-distortion decision, and preserves the winning shared angle adjustment. Chroma-from-luma now searches the complete signed alpha alphabet from reconstructed luma and retains its joint U/V syntax. Filter-intra now searches all five predictors after ordinary luma modes. Palette entropy, retained state, production syntax, luma and paired chroma palette selection, screen-content activation, and joint intra-block-copy mode selection exist, but their full reference decision policy and separate-encoder parity remain unverified.
 - [~] Implement inter mode search for bounded sequences, including reference selection and the decoder-supported inter tools. The sequence encoder retains the preceding reconstruction and, from effort six, searches a bounded full-pixel frame translation against that LAST_FRAME reference. Candidate discovery uses the existing SIMD-first squared-error kernels over a central analysis window, validates the winner over the complete coded luma plane, and charges its exact uncompressed-header bit count in the inter-frame rate-distortion domain. Pure translation is signaled as an identity-scale rotation/zoom model, matching current libaom's workaround for the AV1 translation-only axis defect. Each 8x8 inter-frame block first retains the complete intra candidate, then compares NEARESTMV, all three legal NEARMV dynamic-list entries, GLOBALMV, and all three legal NEWMV dynamic-list entries against it with live intra/inter, single-reference, mode, DRL, differential-vector, skip, transform, coefficient, and distortion costs. The initial NEWMV search retains the reference's cheap prediction-error stage, but every surviving mode now owns a complete transform, coefficient, skip, and distortion evaluation before mode selection; selected and candidate workspace views exchange ownership only on strict improvement. Inter trials remain in the existing shared workspace until they strictly beat the intra result, so losing trials require no backup buffer or copy. The tile writer emits the matching DRL path and normative context-selected `LAST_FRAME` reference tree instead of forcing every block through a segmentation feature. The selected DRL index reuses the filter-intra byte because those block syntax branches are mutually exclusive, preserving the existing packed state size. Packed short vectors reuse the existing picture-state owner. Effort six keeps a full-pixel fast path; effort seven refines each selected NEWMV through half- and quarter-pixel eight-tap prediction; effort eight adds the final eighth-pixel stage. The frame header advertises the matching precision, and the shared motion-vector entropy path emits fractional and high-precision symbols only when that precision permits them. Roslynk reports no compiler or scoped analyzer diagnostics, but runtime verification is pending. Additional retained reference pictures, compound prediction, and the remaining inter tools remain.
 - [~] Current-libaom `av1_quantize_fp_no_qmatrix` arithmetic is implemented as a closed generic forward-quantizer family with Vector512, Vector256, Vector128, and scalar paths, raster-order output, coded 64-point coefficient limits, and scan-order EOB selection. High-bit-depth paths widen before multiplying instead of applying the eight-bit coefficient clamp. Lossless blocks use the AV1 4x4 Walsh-Hadamard transform, exact lossless quantization and dequantization, four-by-four-only transform syntax, and non-skipped residual coding. Transform search and coefficient optimization remain.
-- [~] Implement real rate-distortion selection and make quality and effort change work, size, and output quality. The complete luma and joint chroma candidate sets, including chroma-from-luma, filter-intra, palette, and intra-block copy, now perform live rate-distortion selection. Public quality mapping and effort tiers through exhaustive uniform luma mode/transform search are implemented. Effort nine adds exact recursive 8x8 and 16x16 partition rate-distortion selection, and effort ten extends it through 128x128; effort-dependent pruning and the remaining sequence searches remain.
-- [~] Frame effort now progressively expands the available current search: zero is DC-only, one adds every zero-angle spatial mode, two adds every legal directional adjustment, three refines the preliminary luma winner's transform type, four adds filter-intra and chroma-from-luma, and five adds adaptive palette and intra-block-copy analysis. Lower tiers do not signal unavailable sequence or frame tools, and tiers below five skip the whole-frame screen-content scan. Effort six enables `TX_MODE_SELECT` and compares the winning ordinary spatial or filter-intra luma mode as one 8x8 transform against four raster-ordered 4x4 transforms; each luma palette candidate owns that size comparison from effort six onward. Effort seven searches every legal 8x8 transform type inside every ordinary spatial candidate rather than refining only the preliminary winner. Effort eight also performs the 8x8-versus-four-4x4 comparison inside every ordinary spatial and filter-intra candidate, matching current libaom's per-candidate uniform-transform ownership. Effort nine additionally searches every legal partition at complete 8x8 and 16x16 nodes in current-libaom order, and effort ten extends that recursive search through 128x128. Prediction and residual construction run once per mode and are reused across its legal transform types. A 128x128 leaf evaluates four 64x64 luma transforms and as many as sixteen 32x32 transforms per 4:4:4 chroma plane, retaining sparse state at coefficient-area offsets. Residual emission follows AV1's bounded-region order, completing Y, U, and V for each 64x64 luma region before advancing. Every 4x4 transform searches all legal types with live coefficient contexts and reconstructed intra references. The search reuses the aligned block workspace, preserves only global improvements, and performs no per-block, per-partition, or per-transform rent. Non-skipped intra-block copy writes and costs the current-libaom unsplit variable-transform root; skipped intra-block copy emits no transform-partition symbol. Effort-dependent model and transform pruning remain. Decoder-visible production cases inspect the emitted restrictions and frame state and decode the produced streams, including real effort-nine streams selecting sub-8x8 and 8x16 rectangular blocks. The complete non-HEVC HEIF/AV1 namespace passes 9,077 of 9,077 through one foreground net11 Release VSTest run. The last independently built `aomdec`, from the then-current `a40ed1ea9e4ecc3df58a5bccb76623f2c94ae727` snapshot, accepts the previously generated effort-eight and effort-ten payloads as well as the existing palette and intra-block-copy payloads. The affected encoder, partition, and workspace surface passes 139 of 139 through one foreground net11 Release VSTest run. The net11 Release build and Roslynk compiler and analyzer passes report zero errors.
-- [~] Encoder rate accounting converts the entropy writer's live inverse cumulative distributions into current-libaom fixed-point symbol costs without allocating or duplicating probability state. Read-only luma-mode, directional-delta, filter-intra, chroma-mode, block-skip, transform-size, transform-block-skip, and complete transform-coefficient queries share the exact distributions mutated by the subsequent entropy write. Complete coefficient costing follows current libaom's optimized shape: it returns immediately for an empty transform, uses the EOB-specific base-range context, fuses magnitude, sign, base-range, and Golomb accounting into one reverse traversal, and combines repeated full base-range chunks instead of replaying each emitted symbol. Tile-lifetime level and context scratch is reused, the one-coefficient path neither clears nor initializes the forward-neighbor level map, and steady-state queries allocate nothing. Transform-size writing and costing share one subdivision-depth calculation, while shared closed symbol operations keep the writer and cost mappings for transform skip, transform type, and EOB syntax identical without forcing the estimator through the writer's slower two-pass coefficient traversal. The current-libaom fixed-point RD combiner preserves 64-bit distortion and rounds the weighted 1/512-bit rate at the required boundary. Its key-frame multiplier follows libaom's squared DC-quantizer formula and exact 10/12-bit normalization. Live final-block selection evaluates all 61 legal 8x8 luma candidates: the 13 zero-angle base modes in current-libaom order, followed by six nonzero adjustments for each directional mode. Joint chroma selection evaluates the equivalent 61 spatial candidates, combines U and V distortion plus coefficient rate, and charges one live chroma-mode and shared-angle symbol over the actual subsampled 4x4, 4x8, or 8x8 geometry. Chroma-from-luma subsamples the reconstructed luma block once into fixed-stride Q3 stack scratch, subtracts the rounded mean, evaluates all 33 signed alpha values independently for each plane with complete transform RD, and combines the cached plane results across all 1,088 valid joint pairs with one live sign cost and the conditional U/V magnitude costs. This is the allocation-free equivalent of current libaom's exhaustive 33-value path: it requires 66 evaluation transforms rather than transforming every joint pair, preserves DC-before-CfL-before-spatial tie order, and fixes the implicit chroma transform to DCT-DCT. Filter-intra follows ordinary luma candidates, searches all five predictors in syntax order, and evaluates every legal transform while reusing one prepared prediction and source residual per filter mode. Every candidate includes its live mode, angle, filter mode, alpha, and coefficient rate plus normalized pixel-domain distortion. The corrected prepared reference edges retain the common-corner prefix and width-plus-height extent required by rectangular directional prediction. A shared encoder/decoder availability calculation selects reconstructed top-right and bottom-left extensions according to tile, frame, superblock, and block reconstruction order; unavailable extensions repeat the nearest coded endpoint. Missing top or left edges retain current libaom's perpendicular-sample and bit-depth-midpoint rules. Directional prediction applies the AV1 three-degree adjustment step and reuses transform workspace for zone-three transposition before the transform overwrites it, keeping candidate evaluation allocation-free. The winning luma and chroma signed adjustments are retained in the packed final-block state consumed by the tile writer. The tile writer invokes these reusable workspace-backed selectors after mapping current neighbors and immediately before writing each block, so later decisions see reconstructed samples, coefficient contexts, and CDF updates from every preceding block. Block skip is read only after the callback has combined every coded plane. Luma and chroma candidate scratch is partitioned from the encoder's single aligned reusable block workspace; transform-size search uses that owner for four retained 4x4 transform states, local coefficient contexts, and the compact trial reconstruction needed to preserve the best result. No candidate path rents a buffer per block or per transform. Only a newly winning candidate is copied into retained frame storage. Production fixtures force every luma base predictor, both extreme adjustments in all three directional zones, available top-right and bottom-left extensions, high-bit-depth adjustment propagation, exact signed luma and chroma angle-rate terms, joint U/V decisions, packed chroma state, and 4:2:0, 4:2:2, and 4:4:4 transform geometry. The CfL fixtures derive target chroma from a pilot production encode's actual reconstructed luma through an independent scalar Q3 oracle and prove exact positive/negative alpha syntax plus zero-residual DCT-DCT reconstruction for all three subsampling geometries at 8, 10, and 12 bits. The stable fixed-DC traversal comparison uses neutral samples for which both the baseline and live search select DC with non-skip coefficient syntax, instead of relying on textured content to happen to select the baseline mode. Luma palette selection now evaluates dominant-color and one-dimensional K-means candidates for every legal size, snaps near-cache colors with the reference threshold and tie order, removes duplicate snapped colors, extends boundary maps from active samples, and performs complete transform rate-distortion search. Ordinary DC and filter-intra candidates pay the palette-disabled symbol whenever screen-content syntax is enabled. The exact net11 Release rebuild reports 1,992 test-project warnings and zero errors, all 58 intra-superblock cases pass, all 8,935 AVIF cases pass, and all 230 HEIF cases pass. Remaining mode decision work includes transform-size coverage for filter-intra and palette, broader joint mode/transform refinement, and effort-dependent pruning. Ordinary intra blocks now remain non-skipped even when all transforms are empty; inter and intra-block-copy mode selection own their distinct skip-transform RD decisions.
+- [~] Complete reference-led rate-distortion selection remains open. The managed implementation evaluates spatial, filter-intra, palette, chroma-from-luma, and intra-block-copy candidates, but its effort thresholds, partition policy, intra-before-inter ordering, transform pruning, coefficient optimization, and winner refinement are not reconciled with the reference. Evaluating additional candidates and passing the existing tests do not establish encoder parity.
+- [~] The current Effort 0–10 behavior is an unreconciled implementation policy. Its DC-only lower tier and progressive activation of directions, transforms, screen-content tools, and larger partitions were not derived from the complete native profile controller. Existing effort tests verify that current behavior only. GOOD/ALLINTRA cpu-used mapping and the dependent frame-size, quantizer, frame-role, and staged search rules remain unresolved; the native default is not exhaustive enumeration.
+- [~] Encoder rate accounting uses live adaptive CDFs and shared symbol-cost operations. Native coding also uses staged coefficient/mode/motion cost snapshots whose refresh policy must be reproduced. The corrected fixed-point arithmetic and bounded syntax tests do not establish that current candidate costs, ordering, transform choices, or reconstruction match the complete native encoder. Deferred packing is implemented; staged pruning, coefficient optimization before inverse reconstruction, and final winner refinement remain open.
 - [~] The tile writer now publishes one packed coefficient context per covered 4x4 edge unit and derives luma/chroma skip plus DC-sign contexts from the complete transform edges using current-libaom units. Partition, transform, and coefficient neighbor state retains only the above and left context regions used by current libaom; the unused third top-left region, its granularity state, and its unused sentinel are removed. One picture owner packs segmentation, every tile's partition, luma, chroma, and transform edges, CDEF state, preceding quantizer, and encoded payload bounds into one clean byte allocation with typed non-owning views; together with the separately typed packed mode-information owner, the complete picture state uses two allocator rents rather than seven. Each encoded tile has independent neighbor and probability state while sharing the bounded output owner. Earlier aligned-length and balanced-return coverage exists; runtime allocation verification of the current multi-tile layout remains pending.
 - [~] Encoder mode information now uses a frame-owned integer alias grid over a packed 8-byte value allocation, matching current libaom's `mi_grid_base` and `mi_alloc` relationship without a managed object or reference per 4x4 entry. The visible dimensions are aligned to eight luma samples, the grid stride and allocated row count are aligned to 32 mode-information units, and optional 8x8 allocation granularity reduces the value store in both dimensions exactly as current libaom does. One clean ImageSharp byte owner contains both independently typed regions, reducing libaom's two allocation lifetimes to one without a copy. At 4K, the 4x4 layout occupies about 6.0 MiB in total; the 8x8 layout occupies about 3.0 MiB. Exact geometry, clean allocation, typed lengths, aligned mapping, untouched row padding, and exactly-once return pass 4 of 4 direct net11 VSTest cases in Release. Every coded 4x4 cell covered by square, rectangular, or clipped edge blocks maps to its owning allocation entry before context-dependent symbols are written. Packed syntax, relative neighbor lookup, full block mapping, writer traversal, entropy, and OBU coverage pass 1,947 of 1,947 direct net11 VSTest cases in Release; complete mode decision still remains.
 - [~] The superblock decision and palette-map workspace uses one reusable 40.3 KiB ImageSharp allocator owner. Its aligned 8.3 KiB decision region contains 1,024 explicitly packed 8-byte final-block entries and the 341 preorder partition bytes required by a complete 128x128-through-8x8 quadtree; its remaining 32 KiB contains the fixed 128x128 luma and chroma palette maps. This combines storage held separately by libaom; exact lifetime and size reconciliation remains part of the fresh allocation audit, and fewer owners alone does not establish an improvement. Palette colors have their own current-block value and are copied only to the picture edges that later blocks can reference, so enabling palette mode does not add 50 bytes to every final-block entry. Construction and the explicit per-superblock reset initialize every syntax field, including the nonzero sentinel that disables filter-intra prediction; pooled quantizer, prediction, partition, and current-palette bytes cannot leak into the next decision pass. Roslynk reports zero compiler errors for the current one-owner refactor; runtime allocation verification remains pending.
@@ -1699,7 +2782,7 @@ Encoder verification contract:
 - [~] Luma mode selection now evaluates each of its 61 mode-and-angle candidates with the mode-derived default transform used by current libaom's fast intra path. It then refines only the winning mode across all seven transform types permitted by the 8x8 intra set in transform-enum order. This removes the fixed DCT-DCT limitation while avoiding a 61-by-7 expansion; each trial includes live transform-type and coefficient rate, reconstructed pixel-domain distortion, and the existing aligned reusable block workspace. Eighteen exact-prediction production cases prove DCT-DCT wins equal-cost ties in reference order even when the first pass used a different default, while the 72x72 textured traversal proves a non-DCT transform with nonzero coefficients reaches retained syntax. Current-main `aomdec` accepts all 29 regenerated payloads. Special-mode transform-size coverage, full partition search, and broader effort-dependent joint mode/transform search remain.
 - [x] Chroma-from-luma mode decision now reuses the decoder's SIMD-first 4:2:0, 4:2:2, and 4:4:4 reconstructed-luma preparation and prediction kernels for both byte and high-bit-depth encoder operators. The constant DC predictor for each chroma plane is computed once and its sample refills every alpha candidate, matching libaom's per-plane DC cache instead of rebuilding the same edge average 33 times. Each block uses 512 bytes of fixed stack scratch for the maximum 8-row predictor surface plus 792 bytes for complete U/V rate and distortion tables; no allocator owner, managed object, frame copy, or persistent buffer was added. Live probability costs exactly mirror current libaom's joint-sign ownership and conditional magnitude symbols. Nine production cases independently derive exact CfL targets from decoder-visible reconstructed luma at 8, 10, and 12 bits, and three entropy cases cover two nonzero signs plus each single-zero-plane form. The exact net11 Release rebuild remains at 1,005 warnings and zero errors, all 8,959 HEIF/AV1 tests pass, and current-main `aomdec` at `a40ed1ea9e4ecc3df58a5bccb76623f2c94ae727` accepts all 29 regenerated payloads.
 - [x] Filter-intra mode decision now runs after ordinary luma modes in current-libaom order, evaluates all five recursive predictors, and refines each predictor across every legal 8x8 transform in transform-enum order. Strictly-better replacement preserves ordinary-mode and filter-mode tie order. Each filter prediction and its source residual are prepared once and reused across transform candidates, avoiding repeated recursive prediction while retaining SIMD-first predictor and subtraction operators. The stack cost is 192 bytes for eight-bit samples or 256 bytes for high-bit-depth samples; no allocator owner or managed buffer was added. Fifteen production cases force every filter mode at 8, 10, and 12 bits and prove retained filter syntax, zero-residual reconstruction, and the DCT-DCT equal-cost transform tie. The decoded-frame MD5 values selected by this checkpoint are `d7d68803763b95827483f14515281d3a` for the 8x8 10-bit gradient, `3f7e34d44c65d7797ad26b5cd4c35bf4` for the 8x8 12-bit gradient, and `9985f05790d2c9f5f28723ef86d5b89b`, `2ba2f1d0fcfef60394a5175553c7cb8b`, and `6aa7a2ed0dbf76ad2ec0c222585272d0` for the odd 4:2:0, 4:2:2, and 4:4:4 gradients. The exact net11 Release rebuild remains at 1,005 warnings and zero errors, 18 focused filter-intra, predictor-reference, syntax-cost, and allocation cases pass, all 8,974 HEIF/AV1 tests pass, and current-main `aomdec` at `a40ed1ea9e4ecc3df58a5bccb76623f2c94ae727` accepts all 29 regenerated payloads.
-- [x] Empty-transform block skip now compares the complete live rate of the two decoder-identical syntax choices after luma and every coded chroma plane have been selected. Current libaom forces all-intra blocks to non-skip; this encoder retains that behavior for every non-empty block and for equal-cost empty blocks, but emits block skip when its adapted context cost is strictly lower than non-skip plus all empty-transform coefficient costs. Costing and writing share the same above-and-left skip-context calculation, and the coefficient estimator returns after the transform-block-skip symbol without reading coefficient storage. This adds no allocation, copy, or persistent state. A focused adapted-CDF regression proves both outcomes through the production decision helper, the two production all-zero fixtures still prove the default real block path, the exact net11 Release rebuild remains at 1,005 warnings and zero errors, all 8,975 HEIF/AV1 tests pass, and current-main `aomdec` at `a40ed1ea9e4ecc3df58a5bccb76623f2c94ae727` accepts all 29 regenerated payloads.
+- [~] The historical ordinary-intra empty-transform skip experiment was superseded by the source-led correction above. Production ordinary-intra blocks now remain non-skipped, including all-zero transforms. The obsolete helper and its direct test remain after automatic review rejected their removal; they have no production caller. The earlier 8,975-case report and 29 decodable payloads established neither reference-controller parity nor current-tree correctness.
 - [~] Palette entropy coding now mirrors current libaom's adaptive luma-mode, chroma-mode, palette-size, and spatial color-index distributions, together with its truncated-binary uniform code used by palette colors. The complete mutable palette probability graph is created once on first palette search or write, so the current palette-disabled frame path retains zero palette allocations. Three focused regressions cover every legal 2-through-8 color alphabet and every defined mode, size, and color-index context; all 1,928 entropy cases and all 8,978 HEIF/AV1 cases pass direct net11 Release VSTest. The exact Release rebuild remains at 1,005 warnings and zero errors. This checkpoint adds the exact entropy foundation only: palette candidate generation, retained color and index storage, mode decision, map tokenization, and production syntax remain incomplete, and no generated payload changed.
 - [~] Luma and chroma palette-color coding now matches current libaom's neighbor-cache flags, sorted delta representation, wrapped V-plane deltas, strict delta-versus-raw V selection, and fixed-point color-rate model at 8, 10, and 12 bits. Encoder costing and emission use only fixed stack spans, including explicitly initialized cache-membership state, and steady-state color costing allocates zero managed bytes. The decoder consumes the same bounded color-syntax primitive after the tile reader derives its neighbor cache, removing duplicated color parsing without changing retained palette ownership. Nine focused syntax, exact palette decode, constrained-allocation, truncation, presentation, and allocation cases pass; all 1,933 entropy cases and all 8,983 HEIF/AV1 cases pass direct net11 Release VSTest. The exact Release rebuild remains at 1,005 warnings and zero errors. Retained encoder palette colors, neighbor caches, color-index maps, candidate generation, and production palette selection remain incomplete, and the compact 8-byte frame mode entries were not enlarged.
 - [~] Palette color-index map coding now shares the exact current-libaom neighbor weights, stable color ordering, five context classes, first-index uniform code, and diagonal wavefront between encoder costing, encoder writing, and decoder parsing. The decoder's stack-allocated context scores are explicitly cleared before accumulation, removing an invalid dependency on uninitialized stack contents. Costing and writing use a closed generic operation while the shared driver owns traversal and context derivation, so the semantic operations remain independent of map layout and tail handling. The path adds no retained state or per-call managed allocation. Its allocation regression now runs one complete unmeasured hot-path window before measuring an independent 1,000-call steady-state window, so tiered-runtime transitions cannot make the full parallel suite report a one-time allocation as a recurring operation cost. Twelve focused map, exact palette decode, padding, trailing-bit, and allocation cases pass; all 1,941 entropy cases and all 8,991 HEIF/AV1 cases pass direct net11 Release VSTest. The exact Release rebuild remains at 1,005 warnings and zero errors. Production payloads remain unchanged because palette selection is still disabled; retained colors, neighbor caches, index-map storage, candidate generation, and production palette mode decision remain incomplete.
@@ -1709,7 +2792,7 @@ Encoder verification contract:
 - [~] Paired chroma palette clustering now preserves current libaom's squared two-component distance, first-centroid tie order, independently rounded U/V means, paired deterministic empty-cluster replacement, preceding-state retention on increased distortion, and 50-iteration limit. The source planes remain separate, with Vector512, Vector256, Vector128, then scalar dispatch through ImageSharp's shared vector-count helpers. An end-to-end improvement over the native implementation has not been established. Three independent tests cover exact paired convergence, midpoint initialization, 12-bit distance and index parity, untouched destination bounds, and every intrinsic tier. The exact Release test-project build reports 1,992 baseline warnings and zero errors; the focused three-case set, complete 8,934-case AVIF set, and complete 230-case HEIF set pass direct foreground net11 Release VSTest. Roslynk reports zero compiler errors and no touched-file analyzer warnings. Candidate integration and production activation remain in the open chroma-palette checkpoint.
 - [~] Live paired chroma palette selection now follows current libaom's complete 2-through-8 color-size search, U-plane neighbor-cache snapping, stable U-ordered color pairs, shared U/V index map, implicit DCT-DCT transform, and strict rate-distortion winner replacement. It omits the reference's early header-cost pruning, keeps planar U/V source data separate, and reuses the existing prediction, residual, transform, quantization, and reconstruction operators. Omitting pruning is an unresolved decision-policy deviation, not an established improvement. The production tile regression proves both palette-mode probability branches, exact paired colors and indices, coefficient-free reconstruction, and nonempty syntax. The complete 58-case intra-superblock set, 8,935-case AVIF set, and 230-case HEIF set pass direct foreground net11 Release VSTest. The exact Release test-project build reports 1,992 baseline warnings and zero errors; Roslynk reports zero compiler errors and no touched-file analyzer warnings. Production frame activation remains the next checkpoint.
 - [x] Production screen-content activation now matches current libaom's default good-quality detector: it scans only complete 16x16 luma blocks, normalizes palette samples to eight bits, admits 2-through-4-color blocks, and uses the reference's strict greater-than-ten-percent frame-area threshold. The same pass accumulates centered sums and squared sums at native precision, applies libaom's exact 10-bit and 12-bit variance rounding, and enables intra-block copy only when positive rounded per-pixel variance exceeds its strict one-twelfth frame-area threshold. A 256-bit stack bitset and fifth-color early exit replace libaom's larger per-block histogram without a second source scan or allocation. The adaptive sequence flag remains enabled and both frame flags are fixed before picture-state allocation. Focused regressions prove strict palette-threshold equality, high-bit-depth normalization, the exact variance rounding boundary, five-color rejection, emitted frame-header activation, actual production IBC selection, and production decode. The exact Release test-project build reports 1,992 baseline warnings and zero errors; all 9,242 non-HEVC HEIF/AV1 cases pass direct foreground net11 Release VSTest. Current-main `aomdec` at `a40ed1ea9e4ecc3df58a5bccb76623f2c94ae727` accepts all 31 payloads regenerated by the current test tree, including an actual IBC-coded 328x16 stream with decoded MD5 `677435e5af39c930af1178f91c34af6a`. Roslynk reports zero compiler errors and no touched-file analyzer warnings.
-- [~] Intra-block-copy rate accounting now uses the live frame-local flag and displacement-vector distributions without copying or adapting either context during candidate measurement. Displacement-vector costing and writing share one closed symbol operation over the exact current-libaom joint, sign, magnitude-class, class-zero, and integer-offset syntax; final mode evaluation applies libaom's 120/128 displacement-rate weight with nearest-integer rounding. Independent fixed costs cover all four joint states, both signs, class zero, and large offset classes before adaptive writes, followed by an encoder/decoder round trip through the same sequence. Encoder and decoder reference-vector derivation now share the exact eight-candidate spatial scan, independent nearest and outer-region ranking, top-right partition geometry, clamping, and tile-relative fallback. Selected vectors use a naturally aligned pair of signed 16-bit components packed into the existing picture-state owner only when intra-block copy is permitted; a 3840x2160 frame retains 130,560 vectors in 510 KiB while leaving the compact 8-byte mode allocation unchanged. The tile writer derives the same reference and emits the retained vector without another allocation or copy. Coefficient costing and writing now select the inter transform sets and frame-local probability tables required by intra-block copy; independent tests verify every legal symbol against the exact default inter distribution and round-trip full and reduced sets from 4x4 through 32x32. Legal 8x8 hash discovery now indexes every visible source origin, including unaligned origins, in libaom's coarse-to-fine insertion order with the same 256-candidate bucket cap. A separable rolling hash fills one packed picture-lifetime workspace before reconstruction, then reuses that workspace for integer candidate links; exact wide or SIMD block comparison rejects hash collisions, and SIMD variance uses libaom's eight-bit normalization at 8, 10, and 12 bits. Power-of-two bucket arrays scale down with small images and stop at the reference's 16-bit limit, avoiding libaom's fixed six-size pointer table; the 3840x2160 search index occupies about 32.2 MiB and introduces no additional owner or frame copy. Above and left search rectangles, integer displacement legality, strict tie order, and live raw displacement rate follow current libaom. Motion-candidate ranking uses libaom's undiscounted probability cost and exact variance-domain error-per-bit scaling, separately from the later 120/128 final-mode discount. The allocation-free full-pixel core now follows current libaom's NSTEP search: it clamps the spatial reference to each legal region, traverses the fixed 15-stage radii and site order, skips equivalent centered 210-pixel stages, repeats progressively shorter paths, and compares their winners in the normalized variance domain. Paths above the speed-zero screen-content threshold continue through libaom's 256-pixel, one-pixel-step exhaustive mesh. Four adjacent byte or high-bit-depth candidates share each SIMD source load, strict row-major tie ordering is retained, and the final legal tail column remains searchable where libaom's current four-wide remainder loop omits it. Byte and high-bit-depth operators compute each 8x8 absolute difference with Vector128 before scalar fallback; high-bit-depth SAD remains in its native sample scale while its quantizer-derived rate multiplier uses libaom's normalized AC step. Production mode decision now derives the same spatial displacement reference used by the writer, deduplicates hash and full-pixel finalists in search order, and evaluates every surviving vector through complete luma and chroma transform RD. This differs from libaom's preliminary-error pruning by permitting a hash and pixel finalist from the same search region to compete using final syntax and reconstruction costs. It is an unresolved controller deviation, with no established quality or performance improvement. Prediction is prepared once per plane and vector, including integer or half-sample chroma phase, then reused across every legal inter transform without an allocator rent or frame copy. The joint comparison includes the live intra-block-copy flag, discounted displacement rate, skip flag, coefficient syntax, and normalized Y/U/V distortion; an empty transform alternative can win only when its complete skip cost is strictly lower, while conventional intra and earlier vectors retain tie precedence. Winning reconstruction, coefficients, transform state, DC modes, cleared palette/filter/CfL state, and displacement are copied once into the existing retained stores. Production regressions force the path at 8 and 12 bits and force 4:2:0 horizontal half-sample chroma with an unaligned reference. The former bulk local workspace occupied 2.75 KiB for byte samples or 3.375 KiB for high-bit-depth samples. Prediction, candidate, winning reconstruction, residual, and coefficient scratch now occupy one naturally aligned 3.125 KiB extension of the existing frame-reused block-workspace owner, matching libaom's reusable macroblock-scratch lifetime without adding an allocation; only the 128-byte reference, weight, and finalist arrays remain on the stack. The net11 Release solution build reports zero errors; all 2,082 focused transform, entropy, intra-block-copy, intra-superblock, and frame-encoder cases and all 9,242 non-HEVC HEIF/AV1 cases pass through direct foreground VSTest, with tiered compilation disabled only for the full allocation-sensitive suite. Adaptive production activation is complete, and the emitted frame flag remains authoritative for the complete frame rather than being invalidated after tile coding.
+- [~] Intra-block-copy rate accounting now uses the live frame-local flag and displacement-vector distributions without copying or adapting either context during candidate measurement. Displacement-vector costing and writing share one closed symbol operation over the exact current-libaom joint, sign, magnitude-class, class-zero, and integer-offset syntax; final mode evaluation applies libaom's 120/128 displacement-rate weight with nearest-integer rounding. Independent fixed costs cover all four joint states, both signs, class zero, and large offset classes before adaptive writes, followed by an encoder/decoder round trip through the same sequence. Encoder and decoder reference-vector derivation now share the exact eight-candidate spatial scan, independent nearest and outer-region ranking, top-right partition geometry, clamping, and tile-relative fallback. Selected vectors use a naturally aligned pair of signed 16-bit components packed into the existing picture-state owner only when intra-block copy is permitted; a 3840x2160 frame retains 130,560 vectors in 510 KiB while leaving the compact 8-byte mode allocation unchanged. The tile writer derives the same reference and emits the retained vector without another allocation or copy. Coefficient costing and writing now select the inter transform sets and frame-local probability tables required by intra-block copy; independent tests verify every legal symbol against the exact default inter distribution and round-trip full and reduced sets from 4x4 through 32x32. Legal 8x8 hash discovery now indexes every visible source origin, including unaligned origins, in libaom's coarse-to-fine insertion order with the same 256-candidate bucket cap. A separable rolling hash fills one packed picture-lifetime workspace before reconstruction, then reuses that workspace for integer candidate links; exact wide or SIMD block comparison rejects hash collisions, and SIMD variance uses libaom's eight-bit normalization at 8, 10, and 12 bits. Power-of-two bucket arrays scale down with small images and stop at the reference's 16-bit limit, avoiding libaom's fixed six-size pointer table; the 3840x2160 search index occupies about 32.2 MiB and introduces no additional owner or frame copy. Above and left search rectangles, integer displacement legality, strict tie order, and live raw displacement rate follow current libaom. Motion-candidate ranking uses libaom's undiscounted probability cost and exact variance-domain error-per-bit scaling, separately from the later 120/128 final-mode discount. The allocation-free full-pixel core now follows current libaom's NSTEP search: it clamps the spatial reference to each legal region, traverses the fixed 15-stage radii and site order, skips equivalent centered 210-pixel stages, repeats progressively shorter paths, and compares their winners in the normalized variance domain. Paths above the speed-zero screen-content threshold continue through libaom's 256-pixel, one-pixel-step exhaustive mesh. Four adjacent byte or high-bit-depth candidates share each SIMD source load, strict row-major tie ordering is retained, and the final legal tail column remains searchable where libaom's current four-wide remainder loop omits it. Byte and high-bit-depth operators compute each 8x8 absolute difference with Vector128 before scalar fallback; high-bit-depth SAD remains in its native sample scale while its quantizer-derived rate multiplier uses libaom's normalized AC step. Production mode decision now derives the same spatial displacement reference used by the writer, deduplicates hash and full-pixel finalists in search order, and evaluates every surviving vector through complete luma and chroma transform RD. This differs from libaom's preliminary-error pruning by permitting a hash and pixel finalist from the same search region to compete using final syntax and reconstruction costs. It is an unresolved controller deviation, with no established quality or performance improvement. Prediction is prepared once per plane and vector, including integer or half-sample chroma phase, then reused across every legal inter transform without an allocator rent or frame copy. The joint comparison includes the live intra-block-copy flag, discounted displacement rate, skip flag, coefficient syntax, and normalized Y/U/V distortion. The historical implementation required an empty transform and a strictly lower skip cost; the 2026-09-07 residual-skip correction replaces that rule with prediction-only residual RD, including ties. Conventional intra and earlier vectors still retain mode-selection tie precedence. Winning reconstruction, coefficients, transform state, DC modes, cleared palette/filter/CfL state, and displacement are copied once into the existing retained stores. Production regressions force the path at 8 and 12 bits and force 4:2:0 horizontal half-sample chroma with an unaligned reference. The former bulk local workspace occupied 2.75 KiB for byte samples or 3.375 KiB for high-bit-depth samples. Prediction, candidate, winning reconstruction, residual, and coefficient scratch now occupy one naturally aligned 3.125 KiB extension of the existing frame-reused block-workspace owner, matching libaom's reusable macroblock-scratch lifetime without adding an allocation; only the 128-byte reference, weight, and finalist arrays remain on the stack. The net11 Release solution build reports zero errors; all 2,082 focused transform, entropy, intra-block-copy, intra-superblock, and frame-encoder cases and all 9,242 non-HEVC HEIF/AV1 cases pass through direct foreground VSTest, with tiered compilation disabled only for the full allocation-sensitive suite. The frame flag remains authoritative through tile coding. Complete adaptive search activation and reference-controller parity are unverified.
 - [x] The expanded checkpoint exposed a pre-existing transform-block test that asserted uninitialized pooled padding was zero. The test now initializes the complete physical luma plane with a sentinel and proves the block operation leaves both adjacent padding samples unchanged. The exact net11 Release rebuild remains at 1,005 baseline warnings and zero errors, the focused allocator-order set passes 30 of 30 cases, and the complete HEIF/AV1 namespace passes 8,859 of 8,859 direct VSTest cases with zero failures or skips.
 - [x] Combined-frame OBU output now counts the byte-aligned frame and tile-group headers, non-final tile-size fields, and owned tile payloads before emitting the OBU size. It retains only the small allocator-owned header scratch and writes each entropy-coded tile span directly from its detached owner, removing the second file-sized allocator rent and complete-payload copy. A 64 KiB regression proves exactly one sub-payload-sized byte rent with a balanced return and verifies the exact streamed tile tail; the existing two-tile round trip proves size-prefix and ordering parity. The focused writer and production-frame set passes 32 of 32 direct net11 VSTest cases, current-main `aomdec` accepts all 29 generated native-format payloads, and the complete HEIF/AV1 namespace passes 8,860 of 8,860 cases with zero failures or skips.
 - [ ] The earlier fixed-block skip checkpoint was not equivalent to libaom's ordinary-intra policy.
@@ -1720,7 +2803,7 @@ Encoder verification contract:
 - [x] Operation-wide allocation tracking now exercises a real 64x64 12-bit 4:4:4 frame through packed-pixel conversion, both native frame owners, picture and coefficient state, reusable block workspaces, entropy coding, OBU framing, and a non-seekable destination. It proves exactly one 60 KiB tile-output reservation from current libaom's all-intra 2.5x rule and balanced exactly-once returns for every tracked allocation before the operation completes. The focused ownership case passes 1 of 1 and the complete HEIF/AV1 namespace passes 8,863 of 8,863 direct net11 VSTest cases with zero failures or skips.
 - [x] HEIF box offsets are now counted from the start of the encoded file instead of reading `Stream.Position`. This preserves ISO BMFF file-relative `iloc` offsets when the destination begins at a nonzero position and permits non-seekable output. Decoder item extents and image-sequence chunk offsets now resolve from that same file origin rather than the backing stream origin. Real legacy-JPEG HEIF round trips cover non-seekable output and a prefixed destination, while current-position AV1 decode covers both a still item and a five-frame sequence. All 96 encoder/decoder cases and all 38 sequence-parser cases pass direct net11 Release VSTest; the Release build remains at the established 1,005-warning baseline with zero errors.
 
-- [~] Current-libaom source comparison now drives uniform luma transform ownership at each effort boundary. Effort six retains the cheaper winner-only size decision for ordinary spatial and filter-intra modes, while every palette candidate already owns its size decision. Effort seven evaluates every legal 8x8 transform type for every ordinary spatial candidate. Effort eight and above make transform size part of every ordinary spatial and filter-intra candidate's rate-distortion result, so an 8x8-only preliminary comparison cannot discard the mode that wins with four 4x4 transforms. Prediction and subtraction are prepared once per mode and reused across transform types, matching the reference separation between prediction and transform search. Each 4x4 transform searches every legal type with coefficient contexts derived from retained transform edges and preceding trial blocks, while reconstructed top-right and bottom-left references follow production coding order. Palette prediction uses non-owning subregions of the retained color map, and filter-intra rebuilds each recursive prediction from reconstructed edges. The existing aligned block-workspace owner retains prediction, residual, coefficients, contexts, compact reconstruction, and four final states; no allocator rent, managed array, best-candidate re-transform, or full-block intermediate copy was added. Dense decision points now document scratch lifetime, enumeration tie order, global-winner publication, raster reconstruction dependencies, and the deliberate lower-effort shortcut. The packed encoder transform edges initialize to 64, matching libaom and the ImageSharp decoder before a coded neighbor publishes its size, and variable transform syntax remains gated to blocks larger than 4x4. The focused Release verification passes 13 of 13 cases across efforts zero through eight and ten, palette split selection, and transform-size selection. The complete non-HEVC HEIF/AV1 namespace passed 9,301 of 9,301 cases at that checkpoint. The `aomdec` built from the then-current `a40ed1ea9e4ecc3df58a5bccb76623f2c94ae727` snapshot accepts the generated effort-eight and effort-ten streams. Partition search and effort-dependent pruning remain.
+- [~] Uniform luma transform search currently changes ownership and enumeration at managed effort thresholds. Those thresholds and winner-only shortcuts are not validated native policy. The implementation reuses prediction/residual workspace and retains trial coefficient contexts and reconstruction, but candidate-stage versus winner-stage transform policy and cache invalidation still need the complete reference controller. Historical decodability and component-test results do not establish encoder parity or performance.
 
 - [x] Intra-block-copy transform search now prepares motion compensation and subtraction once per plane, alternates the existing candidate and selected work buffers whenever a transform improves, and performs at most one final normalization copy into the caller-owned selected span. This matches current libaom's pointer-swap ownership without adding an allocation or a third reconstruction buffer. Inline documentation now records the scratch lifetime, strict transform tie order, skip-rate replacement, unsplit transform-root syntax, joint-plane winner retention, and final publication boundary. The focused Release encoder and intra-block-copy set passes 17 of 17 cases, the complete non-HEVC HEIF/AV1 namespace passes 9,301 of 9,301 cases with zero failures or skips, and current-main `aomdec` accepts the regenerated effort-five and effort-six intra-block-copy streams.
 
@@ -1752,7 +2835,7 @@ Encoder exit gate:
 
 - [ ] Current-main libaom accepts the payloads regenerated from the final tree.
 - [ ] Reverify lossless output at public pixel and native-plane precision for 8-, 10-, and 12-bit output.
-- [ ] Separately encoded lossy outputs differ by no more than one unit at every decoded output sample with reconciled settings; report maxima and counts exceeding one.
+- [ ] Encoder parity: separately encoded lossy results differ by no more than one component unit per sample with reconciled settings; report maxima and counts exceeding one.
 - [ ] Record equivalent end-to-end absolute timing, output size, quality, and allocation evidence after the source audit.
 - [ ] 8, 10, and 12-bit monochrome, 4:2:0, 4:2:2, and 4:4:4 outputs pass.
 - [ ] Alpha, grids, metadata, color profiles, transforms, and bounded sequences pass.

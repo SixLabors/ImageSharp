@@ -71,6 +71,26 @@ internal class Av1PictureControlSet
     public Memory<Av1EncoderDisplacementVector> DisplacementVectors { get; set; }
 
     /// <summary>
+    /// Gets or sets the reference contexts retained at each allocated block origin.
+    /// </summary>
+    public Memory<Av1EncoderReferenceContext> ReferenceContexts { get; set; }
+
+    /// <summary>
+    /// Gets or sets the prediction parameters retained at each allocated block origin.
+    /// </summary>
+    public Memory<Av1EncoderBlockStruct> BlockEncodings { get; set; }
+
+    /// <summary>
+    /// Gets or sets the palette colors retained at each allocated block origin.
+    /// </summary>
+    public Memory<Av1EncoderPaletteInfo> BlockPalettes { get; set; }
+
+    /// <summary>
+    /// Gets or sets the packed color-map tokens retained for final syntax packing.
+    /// </summary>
+    public Memory<byte> PaletteTokens { get; set; }
+
+    /// <summary>
     /// Gets or sets the non-owning visible-frame hash index used by intra-block-copy motion search.
     /// </summary>
     public Av1IntraBlockCopySearchIndex IntraBlockCopySearch { get; set; }
@@ -100,6 +120,38 @@ internal class Av1PictureControlSet
     /// Gets or sets the encoded byte length of each tile.
     /// </summary>
     public required Memory<int> TileDataLengths { get; set; }
+
+    /// <summary>
+    /// Restores initial tile entropy edges while preserving selected block decisions and reconstruction.
+    /// </summary>
+    public void ResetEntropyContexts()
+    {
+        this.SegmentationNeighborMap.Span.Clear();
+        for (int tileIndex = 0; tileIndex < this.PartitionContexts.Length; tileIndex++)
+        {
+            this.PartitionContexts[tileIndex].Left.Clear();
+            this.PartitionContexts[tileIndex].Top.Clear();
+            this.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].Left.Clear();
+            this.LuminanceDcSignLevelCoefficientNeighbors[tileIndex].Top.Clear();
+            this.CbDcSignLevelCoefficientNeighbors[tileIndex].Left.Clear();
+            this.CbDcSignLevelCoefficientNeighbors[tileIndex].Top.Clear();
+            this.CrDcSignLevelCoefficientNeighbors[tileIndex].Left.Clear();
+            this.CrDcSignLevelCoefficientNeighbors[tileIndex].Top.Clear();
+
+            // Transform contexts use the maximum-size sentinel until a preceding block supplies a size.
+            this.TransformFunctionContexts[tileIndex].Left.Fill((byte)Av1Constants.MaxTransformSize);
+            this.TransformFunctionContexts[tileIndex].Top.Fill((byte)Av1Constants.MaxTransformSize);
+        }
+
+        foreach (Av1NeighborArrayUnit<Av1EncoderPaletteInfo> context in this.PaletteContexts)
+        {
+            context.Left.Clear();
+            context.Top.Clear();
+        }
+
+        this.CdefPreset.Span.Fill(-1);
+        this.Parent.PreviousQIndex.Span.Fill(this.Parent.FrameHeader.QuantizationParameters.BaseQIndex);
+    }
 
     /// <summary>
     /// Gets the mode-information entry mapped to a frame position.

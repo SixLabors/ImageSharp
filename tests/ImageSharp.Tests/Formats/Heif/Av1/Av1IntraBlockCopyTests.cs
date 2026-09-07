@@ -266,7 +266,8 @@ public class Av1IntraBlockCopyTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<byte> reconstruction = new(
             Configuration.Default,
@@ -275,7 +276,8 @@ public class Av1IntraBlockCopyTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         Buffer2DRegion<byte> sourceLuma = source.Frame.View.GetPlane(Av1Plane.Y);
         Buffer2DRegion<byte> reconstructionLuma = reconstruction.Frame.View.GetPlane(Av1Plane.Y);
@@ -352,7 +354,8 @@ public class Av1IntraBlockCopyTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<byte> reconstruction = new(
             Configuration.Default,
@@ -361,7 +364,8 @@ public class Av1IntraBlockCopyTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         Buffer2DRegion<byte> sourceLuma = source.Frame.View.GetPlane(Av1Plane.Y);
         Buffer2DRegion<byte> reconstructionLuma = reconstruction.Frame.View.GetPlane(Av1Plane.Y);
@@ -448,7 +452,8 @@ public class Av1IntraBlockCopyTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<byte> reconstruction = new(
             Configuration.Default,
@@ -457,7 +462,8 @@ public class Av1IntraBlockCopyTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         Buffer2DRegion<byte> sourceLuma = source.Frame.View.GetPlane(Av1Plane.Y);
         Buffer2DRegion<byte> reconstructionLuma = reconstruction.Frame.View.GetPlane(Av1Plane.Y);
@@ -502,6 +508,90 @@ public class Av1IntraBlockCopyTests
     }
 
     /// <summary>
+    /// Checks that high-bit-depth pixel search trades prediction error against motion rate in one common scale.
+    /// </summary>
+    /// <param name="bits">The coded sample precision.</param>
+    [Theory]
+    [InlineData(10)]
+    [InlineData(12)]
+    public void PixelSearchNormalizesSadBeforeComparingMotionRate(int bits)
+    {
+        const int Width = 640;
+        const int Height = 256;
+        const int QIndex = 90;
+        int scale = 1 << (bits - 8);
+        Point blockOrigin = new(0, 128);
+        Point predictionOrigin = new(15, 120);
+        Av1MotionVector reference = new(-64, 120);
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader();
+        sequenceHeader.ColorConfig.BitDepth = bits == 10 ? Av1BitDepth.TenBit : Av1BitDepth.TwelveBit;
+        ObuFrameHeader frameHeader = CreateFrameHeader();
+        frameHeader.AllowScreenContentTools = true;
+        frameHeader.AllowIntraBlockCopy = true;
+        using Av1EncoderPictureBuffer pictureBuffer = new(
+            Configuration.Default,
+            sequenceHeader,
+            frameHeader,
+            Width,
+            Height,
+            disallow4x4AllFrames: true);
+
+        using Av1EncoderFrameBuffer<ushort> source = new(
+            Configuration.Default, Width, Height, bits, Av1ColorFormat.Yuv400, 0, 0, lumaBorder: 64);
+
+        using Av1EncoderFrameBuffer<ushort> reconstruction = new(
+            Configuration.Default, Width, Height, bits, Av1ColorFormat.Yuv400, 0, 0, lumaBorder: 64);
+
+        Buffer2DRegion<ushort> sourceLuma = source.Frame.CodedView.GetPlane(Av1Plane.Y);
+        Buffer2DRegion<ushort> reconstructedLuma = reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y);
+        for (int row = 0; row < Height; row++)
+        {
+            sourceLuma.DangerousGetRowSpan(row).Clear();
+            reconstructedLuma.DangerousGetRowSpan(row).Clear();
+        }
+
+        // The reference candidate differs by one eight-bit unit in its first column. Moving right one pixel
+        // removes that error but adds motion syntax. Raw high-bit-depth SAD would overvalue that small gain.
+        for (int row = 0; row < 8; row++)
+        {
+            sourceLuma.DangerousGetRowSpan(blockOrigin.Y + row).Slice(blockOrigin.X, 8).Fill((ushort)(100 * scale));
+            reconstructedLuma.DangerousGetRowSpan(predictionOrigin.Y + row).Slice(predictionOrigin.X, 9).Fill((ushort)(100 * scale));
+            reconstructedLuma.DangerousGetRowSpan(predictionOrigin.Y + row)[predictionOrigin.X] = (ushort)(101 * scale);
+        }
+
+        using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
+        Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
+        for (int i = 0; i < 64; i++)
+        {
+            // Repeated use of the spatial reference makes a new differential vector appreciably more costly.
+            writer.WriteDisplacementVector(reference, reference);
+        }
+
+        int sadPerBit = Av1RateDistortion.GetMotionSearchSadPerBit(QIndex, sequenceHeader.ColorConfig.BitDepth);
+        int referenceRate = writer.GetDisplacementVectorSearchCost(reference, reference);
+        int adjacentRate = writer.GetDisplacementVectorSearchCost(new Av1MotionVector(-64, 128), reference);
+        int referenceMotionCost = ((referenceRate * sadPerBit) + 256) >> 9;
+        int adjacentMotionCost = ((adjacentRate * sadPerBit) + 256) >> 9;
+        Assert.True(8 + referenceMotionCost < adjacentMotionCost);
+        Assert.True((8 * scale) + referenceMotionCost > adjacentMotionCost);
+
+        int count = pictureBuffer.Picture.IntraBlockCopySearch.FindPixelCandidates<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(
+            sourceLuma,
+            reconstructedLuma,
+            blockOrigin,
+            new Av1TileInfo(0, 0, frameHeader),
+            sequenceHeader,
+            writer,
+            reference,
+            QIndex,
+            Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, sequenceHeader.ColorConfig.BitDepth),
+            candidates);
+
+        Assert.Equal(1, count);
+        Assert.Equal(reference, candidates[0]);
+    }
+
+    /// <summary>
     /// Verifies high-bit-depth SIMD variance normalization against the eight-bit search domain.
     /// </summary>
     [Fact]
@@ -515,7 +605,8 @@ public class Av1IntraBlockCopyTests
             12,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<ushort> reconstruction = new(
             Configuration.Default,
@@ -524,7 +615,8 @@ public class Av1IntraBlockCopyTests
             12,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         Buffer2DRegion<ushort> sourceLuma = source.Frame.View.GetPlane(Av1Plane.Y);
         Buffer2DRegion<ushort> reconstructionLuma = reconstruction.Frame.View.GetPlane(Av1Plane.Y);

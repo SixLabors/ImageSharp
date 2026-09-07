@@ -24,6 +24,11 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     private int effort = 5;
 
     /// <summary>
+    /// The AV1 encoding speed.
+    /// </summary>
+    private HeifEncodingSpeed speed;
+
+    /// <summary>
     /// Gets the compression method used for the primary image item.
     /// The default is <see cref="HeifCompressionMethod.Av1"/>.
     /// </summary>
@@ -95,6 +100,25 @@ public sealed class HeifEncoder : AnimatedImageEncoder
     /// This option has no effect on legacy JPEG image items. The default is <see langword="false"/>.
     /// </summary>
     public bool Lossless { get; init; }
+
+    /// <summary>
+    /// Gets the AV1 encoding speed. Higher levels prioritize speed over compression efficiency.
+    /// The default is <see cref="HeifEncodingSpeed.Level0"/>.
+    /// </summary>
+    /// <exception cref="ArgumentException">The speed is outside the range 0 to 9.</exception>
+    public HeifEncodingSpeed Speed
+    {
+        get => this.speed;
+        init
+        {
+            if (value is < HeifEncodingSpeed.Level0 or > HeifEncodingSpeed.Level9)
+            {
+                throw new ArgumentException("Speed must be in the range [0..9].");
+            }
+
+            this.speed = value;
+        }
+    }
 
     /// <summary>
     /// Gets the encoded precision of each image component, or <see langword="null"/> to use the HEIF metadata bit

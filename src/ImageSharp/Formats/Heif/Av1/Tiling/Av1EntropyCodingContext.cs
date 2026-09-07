@@ -37,5 +37,10 @@ internal partial class Av1TileWriter
         /// Gets or sets the number of chroma coefficient positions consumed in the current superblock.
         /// </summary>
         public int CodedAreaSuperblockUv { get; set; }
+
+        /// <summary>
+        /// Gets or sets the next palette token position in the picture token region.
+        /// </summary>
+        public int PaletteTokenOffset { get; set; }
     }
 }

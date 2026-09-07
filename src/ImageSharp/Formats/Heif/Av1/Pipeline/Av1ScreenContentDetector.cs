@@ -55,7 +55,8 @@ internal static class Av1ScreenContentDetector
     /// <param name="source">The converted source frame.</param>
     /// <param name="allowScreenContentTools">Receives whether palette syntax should be enabled.</param>
     /// <param name="allowIntraBlockCopy">Receives whether intra-block copy should be enabled.</param>
-    public static void Detect(
+    /// <returns>Whether the frame is classified as screen content for encoder decisions.</returns>
+    public static bool Detect(
         Av1EncoderFrame<byte> source,
         out bool allowScreenContentTools,
         out bool allowIntraBlockCopy)
@@ -67,22 +68,23 @@ internal static class Av1ScreenContentDetector
     /// <param name="source">The converted source frame.</param>
     /// <param name="allowScreenContentTools">Receives whether palette syntax should be enabled.</param>
     /// <param name="allowIntraBlockCopy">Receives whether intra-block copy should be enabled.</param>
-    public static void Detect(
+    /// <returns>Whether the frame is classified as screen content for encoder decisions.</returns>
+    public static bool Detect(
         Av1EncoderFrame<ushort> source,
         out bool allowScreenContentTools,
         out bool allowIntraBlockCopy)
         => Detect<ushort, UShortSampleOperator>(source, out allowScreenContentTools, out allowIntraBlockCopy);
 
-    private static void Detect<TSample, TOperator>(
+    private static bool Detect<TSample, TOperator>(
         Av1EncoderFrame<TSample> source,
         out bool allowScreenContentTools,
         out bool allowIntraBlockCopy)
         where TSample : unmanaged
         where TOperator : struct, ISampleOperator<TSample>
     {
-        Av1EncoderFrame<TSample>.PlanarView view = source.View;
-        int width = source.Width;
-        int height = source.Height;
+        Av1EncoderFrame<TSample>.PlanarView view = source.CodedView;
+        int width = (source.Width + 7) & ~7;
+        int height = (source.Height + 7) & ~7;
         long frameArea = (long)width * height;
         int bitDepthShift = source.LumaBitDepth - 8;
         int paletteBlockCount = 0;
@@ -91,7 +93,8 @@ internal static class Av1ScreenContentDetector
         allowScreenContentTools = false;
         allowIntraBlockCopy = false;
 
-        // Complete 16x16 blocks and the strict frame-area threshold preserve the reference detector's decision.
+        // Analyze complete 16x16 blocks in the source's eight-sample-aligned extent. Padding participates in
+        // both color counting and the area thresholds, while any final partial block is omitted.
         for (int blockRow = 0; blockRow + DetectionBlockLength <= height; blockRow += DetectionBlockLength)
         {
             for (int blockColumn = 0; blockColumn + DetectionBlockLength <= width; blockColumn += DetectionBlockLength)
@@ -152,11 +155,14 @@ internal static class Av1ScreenContentDetector
 
                     if (allowIntraBlockCopy)
                     {
-                        return;
+                        return true;
                     }
                 }
             }
         }
+
+        return (long)paletteBlockCount * DetectionBlockArea * 10 > frameArea * 4 &&
+            (long)intraBlockCopyBlockCount * DetectionBlockArea * 30 > frameArea;
     }
 
     private static long RoundPowerOfTwo(long value, int shift)

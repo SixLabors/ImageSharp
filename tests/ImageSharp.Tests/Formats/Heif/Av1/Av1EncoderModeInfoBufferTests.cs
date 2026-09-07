@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -61,6 +62,21 @@ public class Av1EncoderModeInfoBufferTests
 
         // Four CDEF presets, the preceding quantizer, and two payload bounds follow the context regions.
         const int TileStateStorageLength = 7 * sizeof(int);
+        const int AllocatedBlockCount = 256;
+        const int BlockEncodingStorageLength = AllocatedBlockCount * 8;
+        const int BlockPaletteStorageLength = AllocatedBlockCount * 50;
+        const int PaletteTokenStorageLength = 2 * 128 * 128;
+
+        // Four vectors (16 bytes), four weights (8), mode context (2), count (1), and one alignment byte.
+        const int ReferenceContextStorageLength = AllocatedBlockCount * 28;
+
+        // Retained syntax uses fixed-width entries at the existing block origins. Palette tokens reserve
+        // two complete maximum-superblock planes, including coded padding beyond this small visible frame.
+        int retainedStorageLength = BlockEncodingStorageLength +
+            (allowScreenContentTools ? BlockPaletteStorageLength + PaletteTokenStorageLength : 0) +
+            (allowIntraBlockCopy ? ReferenceContextStorageLength : 0);
+
+        int expectedTileStateOffset = expectedContextStorageLength + retainedStorageLength;
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
         Configuration configuration = Configuration.Default.Clone();
@@ -111,11 +127,15 @@ public class Av1EncoderModeInfoBufferTests
             Assert.Equal(6_144, allocations[0].Length);
             Assert.Equal(AllocationOptions.Clean, allocations[0].AllocationOptions);
             Assert.Equal(typeof(byte), allocations[1].ElementType);
-            Assert.Equal(expectedContextStorageLength + TileStateStorageLength, allocations[1].Length);
+            Assert.Equal(expectedTileStateOffset + TileStateStorageLength, allocations[1].Length);
             Assert.Equal(AllocationOptions.Clean, allocations[1].AllocationOptions);
             Assert.Empty(allocator.ReturnLog);
 
             Av1PictureControlSet picture = buffer.Picture;
+            Assert.Equal(AllocatedBlockCount, picture.BlockEncodings.Length);
+            Assert.Equal(8, sizeof(Av1EncoderBlockStruct));
+            Assert.Equal(28, sizeof(Av1EncoderReferenceContext));
+            Assert.Equal(-1, MemoryMarshal.AsBytes(picture.BlockEncodings.Span).IndexOfAnyExcept((byte)0));
             Assert.Equal(16, picture.SegmentationNeighborMap.Length);
             Assert.Equal(32, picture.PartitionContexts[0].Left.Length);
             Assert.Equal(32, picture.PartitionContexts[0].Top.Length);
@@ -140,7 +160,7 @@ public class Av1EncoderModeInfoBufferTests
                     lengths = picture.TileDataLengths.Span)
                 {
                     Assert.Equal((nuint)0, (nuint)cdef % (nuint)sizeof(int));
-                    Assert.Equal(expectedContextStorageLength, (byte*)cdef - state);
+                    Assert.Equal(expectedTileStateOffset, (byte*)cdef - state);
                     Assert.Equal(4, quantizer - cdef);
                     Assert.Equal(1, offsets - quantizer);
                     Assert.Equal(1, lengths - offsets);
@@ -150,6 +170,22 @@ public class Av1EncoderModeInfoBufferTests
 
             if (allowScreenContentTools)
             {
+                Assert.Equal(AllocatedBlockCount, picture.BlockPalettes.Length);
+                Assert.Equal(PaletteTokenStorageLength, picture.PaletteTokens.Length);
+                Assert.Equal(-1, MemoryMarshal.AsBytes(picture.BlockPalettes.Span).IndexOfAnyExcept((byte)0));
+                Assert.Equal(0, picture.PaletteTokens.Span[^1]);
+                fixed (byte* tokens = picture.PaletteTokens.Span)
+                {
+                    fixed (Av1EncoderPaletteInfo* palettes = picture.BlockPalettes.Span)
+                    {
+                        fixed (Av1EncoderBlockStruct* encodings = picture.BlockEncodings.Span)
+                        {
+                            Assert.Equal(BlockPaletteStorageLength, tokens - (byte*)palettes);
+                            Assert.Equal(PaletteTokenStorageLength, (byte*)encodings - tokens);
+                        }
+                    }
+                }
+
                 Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContext = Assert.Single(picture.PaletteContexts);
                 Assert.Equal(32, paletteContext.Left.Length);
                 Assert.Equal(32, paletteContext.Top.Length);
@@ -169,10 +205,26 @@ public class Av1EncoderModeInfoBufferTests
             else
             {
                 Assert.Empty(picture.PaletteContexts);
+                Assert.True(picture.BlockPalettes.IsEmpty);
+                Assert.True(picture.PaletteTokens.IsEmpty);
             }
 
             if (allowIntraBlockCopy)
             {
+                Assert.Equal(AllocatedBlockCount, picture.ReferenceContexts.Length);
+                Assert.Equal(-1, MemoryMarshal.AsBytes(picture.ReferenceContexts.Span).IndexOfAnyExcept((byte)0));
+                fixed (Av1EncoderDisplacementVector* vectors = picture.DisplacementVectors.Span)
+                {
+                    fixed (Av1EncoderReferenceContext* references = picture.ReferenceContexts.Span)
+                    {
+                        fixed (Av1EncoderBlockStruct* encodings = picture.BlockEncodings.Span)
+                        {
+                            Assert.Equal(BlockEncodingStorageLength, (byte*)vectors - (byte*)encodings);
+                            Assert.Equal(AllocatedBlockCount * 4, (byte*)references - (byte*)vectors);
+                        }
+                    }
+                }
+
                 Assert.Equal(256, picture.DisplacementVectors.Length);
                 Assert.Equal(4, sizeof(Av1EncoderDisplacementVector));
                 Assert.Equal(9, picture.IntraBlockCopySearch.OriginWidth);
@@ -193,6 +245,7 @@ public class Av1EncoderModeInfoBufferTests
             else
             {
                 Assert.Equal(0, picture.DisplacementVectors.Length);
+                Assert.True(picture.ReferenceContexts.IsEmpty);
             }
         }
 
@@ -313,6 +366,10 @@ public class Av1EncoderModeInfoBufferTests
         picture.TransformFunctionContexts[0].Top[0] = 8;
         picture.PaletteContexts[0].Left[0].PaletteSizes[0] = 2;
         picture.DisplacementVectors.Span[0] = new Av1EncoderDisplacementVector { Row = -8, Column = 16 };
+        picture.BlockEncodings.Span[0].QuantizationIndex = 53;
+        picture.BlockPalettes.Span[0].PaletteSizes[0] = 3;
+        picture.PaletteTokens.Span[0] = 0x42;
+        picture.ReferenceContexts.Span[0].ModeContext = 37;
         picture.CdefPreset.Span[0] = 2;
         picture.Parent.PreviousQIndex.Span[0] = InitialQIndex + 1;
         picture.TileDataOffsets.Span[0] = 11;
@@ -345,12 +402,35 @@ public class Av1EncoderModeInfoBufferTests
         Assert.Equal(Av1Constants.MaxTransformSize, picture.TransformFunctionContexts[0].Top[0]);
         Assert.Equal(0, picture.PaletteContexts[0].Left[0].PaletteSizes[0]);
         Assert.Equal(default, picture.DisplacementVectors.Span[0]);
+        Assert.Equal(-1, MemoryMarshal.AsBytes(picture.BlockEncodings.Span).IndexOfAnyExcept((byte)0));
+        Assert.Equal(-1, MemoryMarshal.AsBytes(picture.BlockPalettes.Span).IndexOfAnyExcept((byte)0));
+        Assert.Equal(0, picture.PaletteTokens.Span[0]);
+        Assert.Equal(-1, MemoryMarshal.AsBytes(picture.ReferenceContexts.Span).IndexOfAnyExcept((byte)0));
         Assert.Equal(-1, picture.CdefPreset.Span[0]);
         Assert.Equal(NextQIndex, picture.Parent.PreviousQIndex.Span[0]);
         Assert.Equal(0, picture.TileDataOffsets.Span[0]);
         Assert.Equal(0, picture.TileDataLengths.Span[0]);
         Assert.Same(nextFrameHeader, picture.Parent.FrameHeader);
         Assert.Same(nextTiles, picture.Parent.Common.TilesInfo);
+
+        picture.ModeInfoAllocation.Span[0].Block.Mode = Av1PredictionMode.Paeth;
+        picture.BlockEncodings.Span[0].QuantizationIndex = 53;
+        picture.BlockPalettes.Span[0].PaletteSizes[0] = 3;
+        picture.PaletteTokens.Span[0] = 0x42;
+        picture.ReferenceContexts.Span[0].ModeContext = 37;
+        picture.LuminanceDcSignLevelCoefficientNeighbors[0].Top[0] = 0x41;
+        picture.TransformFunctionContexts[0].Left[0] = 4;
+        picture.ResetEntropyContexts();
+
+        Assert.Equal(allocationCount, allocator.AllocationLog.Count);
+        Assert.Empty(allocator.ReturnLog);
+        Assert.Equal(Av1PredictionMode.Paeth, picture.ModeInfoAllocation.Span[0].Block.Mode);
+        Assert.Equal(53, picture.BlockEncodings.Span[0].QuantizationIndex);
+        Assert.Equal(3, picture.BlockPalettes.Span[0].PaletteSizes[0]);
+        Assert.Equal(0x42, picture.PaletteTokens.Span[0]);
+        Assert.Equal(37, picture.ReferenceContexts.Span[0].ModeContext);
+        Assert.Equal(0, picture.LuminanceDcSignLevelCoefficientNeighbors[0].Top[0]);
+        Assert.Equal(Av1Constants.MaxTransformSize, picture.TransformFunctionContexts[0].Left[0]);
     }
 
     [Theory]

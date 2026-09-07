@@ -4,8 +4,10 @@
 using System.Buffers;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
@@ -69,9 +71,9 @@ public class Av1IntraSuperblockEncoderTests
         };
 
         using Image<L8> referenceImage = new(Width, Height);
-        using Av1EncoderFrameBuffer<byte> reference = new(configuration, Width, Height, 8, Av1ColorFormat.Yuv400, 0, 0);
-        using Av1EncoderFrameBuffer<byte> source = new(configuration, Width, Height, 8, Av1ColorFormat.Yuv400, 0, 0);
-        using Av1EncoderFrameBuffer<byte> reconstruction = new(configuration, Width, Height, 8, Av1ColorFormat.Yuv400, 0, 0);
+        using Av1EncoderFrameBuffer<byte> reference = new(configuration, Width, Height, 8, Av1ColorFormat.Yuv400, 0, 0, lumaBorder: 64);
+        using Av1EncoderFrameBuffer<byte> source = new(configuration, Width, Height, 8, Av1ColorFormat.Yuv400, 0, 0, lumaBorder: 64);
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(configuration, Width, Height, 8, Av1ColorFormat.Yuv400, 0, 0, lumaBorder: 64);
         for (int y = 0; y < Height; y++)
         {
             Span<L8> pixels = referenceImage.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
@@ -98,7 +100,8 @@ public class Av1IntraSuperblockEncoderTests
             Height,
             colorConfig,
             qIndex: 0,
-            effort);
+            effort,
+            speed: HeifEncodingSpeed.Level0);
 
         keyEncoder.EncodeKeyFrame(referenceImage.Frames.RootFrame, firstSample);
         ObuSequenceHeader sequenceHeader = keyEncoder.SequenceHeader;
@@ -125,7 +128,7 @@ public class Av1IntraSuperblockEncoderTests
         using Av1EncoderPictureBuffer picture = new(configuration, sequenceHeader, frameHeader, Width, Height, disallow4x4AllFrames: true);
         using Av1EncoderCoefficientBuffer coefficients = new(configuration, sequenceHeader, Width, Height);
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(configuration);
-        using Av1EncoderBlockWorkspace blockWorkspace = new(configuration);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(configuration, allocateInterMotionCosts: true);
         using Av1SymbolEncoder symbolEncoder = new(configuration, TileBufferLength, QIndex, updateCdf: true);
         Av1EncoderTileWorkspace tileWorkspace = new(frameHeader, superblockWorkspace);
         int allocationCount = allocator.AllocationLog.Count;
@@ -240,9 +243,9 @@ public class Av1IntraSuperblockEncoderTests
         };
 
         using Image<L16> referenceImage = new(Width, Height);
-        using Av1EncoderFrameBuffer<ushort> reference = new(configuration, Width, Height, bitDepth, Av1ColorFormat.Yuv400, 0, 0);
-        using Av1EncoderFrameBuffer<ushort> source = new(configuration, Width, Height, bitDepth, Av1ColorFormat.Yuv400, 0, 0);
-        using Av1EncoderFrameBuffer<ushort> reconstruction = new(configuration, Width, Height, bitDepth, Av1ColorFormat.Yuv400, 0, 0);
+        using Av1EncoderFrameBuffer<ushort> reference = new(configuration, Width, Height, bitDepth, Av1ColorFormat.Yuv400, 0, 0, lumaBorder: 64);
+        using Av1EncoderFrameBuffer<ushort> source = new(configuration, Width, Height, bitDepth, Av1ColorFormat.Yuv400, 0, 0, lumaBorder: 64);
+        using Av1EncoderFrameBuffer<ushort> reconstruction = new(configuration, Width, Height, bitDepth, Av1ColorFormat.Yuv400, 0, 0, lumaBorder: 64);
         for (int y = 0; y < Height; y++)
         {
             Span<L16> pixels = referenceImage.Frames.RootFrame.PixelBuffer.DangerousGetRowSpan(y);
@@ -266,7 +269,13 @@ public class Av1IntraSuperblockEncoderTests
         ClearPlane(reconstruction.Luma);
         using MemoryStream firstSample = new();
         using Av1FrameEncoder.SequenceEncoder keyEncoder = Av1FrameEncoder.CreateColorSequenceEncoder(
-            configuration, Width, Height, colorConfig, qIndex: 0, Effort);
+            configuration,
+            Width,
+            Height,
+            colorConfig,
+            qIndex: 0,
+            Effort,
+            speed: HeifEncodingSpeed.Level0);
 
         keyEncoder.EncodeKeyFrame(referenceImage.Frames.RootFrame, firstSample);
         ObuSequenceHeader sequenceHeader = keyEncoder.SequenceHeader;
@@ -293,7 +302,7 @@ public class Av1IntraSuperblockEncoderTests
         using Av1EncoderPictureBuffer picture = new(configuration, sequenceHeader, frameHeader, Width, Height, disallow4x4AllFrames: true);
         using Av1EncoderCoefficientBuffer coefficients = new(configuration, sequenceHeader, Width, Height);
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(configuration);
-        using Av1EncoderBlockWorkspace blockWorkspace = new(configuration);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(configuration, allocateInterMotionCosts: true);
         using Av1SymbolEncoder symbolEncoder = new(configuration, TileBufferLength, QIndex, updateCdf: true);
         Av1EncoderTileWorkspace tileWorkspace = new(frameHeader, superblockWorkspace);
         int allocationCount = allocator.AllocationLog.Count;
@@ -374,7 +383,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             Av1ColorFormat.Yuv420,
             1,
-            1);
+            1,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<byte> reconstruction = new(
             Configuration.Default,
@@ -383,7 +393,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             Av1ColorFormat.Yuv420,
             1,
-            1);
+            1,
+            lumaBorder: 64);
 
         FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.Y), (byte)128);
         FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.U), (byte)128);
@@ -560,7 +571,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             Av1ColorFormat.Yuv420,
             1,
-            1);
+            1,
+            lumaBorder: 64);
 
         ClearPlane(tileReconstruction.Luma);
         ClearPlane(Assert.IsType<Buffer2D<byte>>(tileReconstruction.ChromaBlue));
@@ -600,6 +612,369 @@ public class Av1IntraSuperblockEncoderTests
     }
 
     [Theory]
+    [InlineData(8)]
+    [InlineData(10)]
+    [InlineData(12)]
+    public void InterBlockCanSkipNonzeroQuantizedResiduals(int bitDepthValue)
+    {
+        if (bitDepthValue == 8)
+        {
+            VerifyReferenceBlockCanSkipNonzeroQuantizedResiduals<byte, Av1IntraSuperblockEncoder.ByteOperator>(
+                Av1BitDepth.EightBit,
+                bitDepthValue,
+                isIntraBlockCopy: false,
+                static value => (byte)value);
+        }
+        else
+        {
+            VerifyReferenceBlockCanSkipNonzeroQuantizedResiduals<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(
+                bitDepthValue == 10 ? Av1BitDepth.TenBit : Av1BitDepth.TwelveBit,
+                bitDepthValue,
+                isIntraBlockCopy: false,
+                static value => (ushort)value);
+        }
+    }
+
+    [Theory]
+    [InlineData(8)]
+    [InlineData(10)]
+    [InlineData(12)]
+    public void IntraBlockCopyCanSkipNonzeroQuantizedResiduals(int bitDepthValue)
+    {
+        if (bitDepthValue == 8)
+        {
+            VerifyReferenceBlockCanSkipNonzeroQuantizedResiduals<byte, Av1IntraSuperblockEncoder.ByteOperator>(
+                Av1BitDepth.EightBit,
+                bitDepthValue,
+                isIntraBlockCopy: true,
+                static value => (byte)value);
+        }
+        else
+        {
+            VerifyReferenceBlockCanSkipNonzeroQuantizedResiduals<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(
+                bitDepthValue == 10 ? Av1BitDepth.TenBit : Av1BitDepth.TwelveBit,
+                bitDepthValue,
+                isIntraBlockCopy: true,
+                static value => (ushort)value);
+        }
+    }
+
+    private static void VerifyReferenceBlockCanSkipNonzeroQuantizedResiduals<TSample, TOperator>(
+        Av1BitDepth bitDepth,
+        int bitDepthValue,
+        bool isIntraBlockCopy,
+        SampleFactory<TSample> createSample)
+        where TSample : unmanaged
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+    {
+        const int Width = 8;
+        const int Height = 8;
+        Point blockOrigin = new(isIntraBlockCopy ? 320 : 0, 0);
+        Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+        int frameWidth = blockOrigin.X + Width;
+        int superblockIndex = blockOrigin.X / 64;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = true,
+            SubSamplingX = true,
+            SubSamplingY = true,
+            BitDepth = bitDepth
+        };
+
+        using Av1EncoderFrameBuffer<TSample> source = new(
+            Configuration.Default,
+            frameWidth,
+            Height,
+            bitDepthValue,
+            Av1ColorFormat.Yuv400,
+            0,
+            0,
+            lumaBorder: 64);
+
+        using Av1EncoderFrameBuffer<TSample> reference = new(
+            Configuration.Default,
+            frameWidth,
+            Height,
+            bitDepthValue,
+            Av1ColorFormat.Yuv400,
+            0,
+            0,
+            lumaBorder: 64);
+
+        using Av1EncoderFrameBuffer<TSample> reconstruction = new(
+            Configuration.Default,
+            frameWidth,
+            Height,
+            bitDepthValue,
+            Av1ColorFormat.Yuv400,
+            0,
+            0,
+            lumaBorder: 64);
+
+        TSample[] prediction = new TSample[Width * Height];
+        short[] residual = new short[Width * Height];
+        TSample[] trialReconstruction = new TSample[Width * Height];
+        int[] trialCoefficients = new int[Width * Height];
+        int verifiedCases = 0;
+        for (int qIndex = 64; qIndex <= 192; qIndex += 32)
+        {
+            for (int amplitude = 2; amplitude <= 12; amplitude += 2)
+            {
+                // Independent texture and small, signed perturbations distinguish temporal prediction from spatial DC.
+                // Samples remain inside the coded range. Unaligned high-depth perturbations exercise SSE rounding.
+                long squaredError = 0;
+                for (int y = 0; y < Height; y++)
+                {
+                    Span<TSample> sourceRow = source.Frame.CodedView.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y);
+                    Span<TSample> referenceRow = reference.Frame.CodedView.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y);
+                    if (isIntraBlockCopy)
+                    {
+                        // Completed blocks provide a repeated reconstructed reference before the current superblock.
+                        // The target differs from it, so pixel search must supply the candidate without an exact hash match.
+                        Span<TSample> reconstructionRow = reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y);
+                        for (int x = 0; x < frameWidth; x++)
+                        {
+                            int phase = x % Width;
+                            int sample = 64 + (((phase * 37) + (y * 53) + (phase * y * 19)) % 128);
+                            sourceRow[x] = reconstructionRow[x] = createSample(sample << (bitDepthValue - 8));
+                        }
+                    }
+
+                    for (int x = 0; x < Width; x++)
+                    {
+                        int index = (y * Width) + x;
+                        int sample = 64 + (((x * 37) + (y * 53) + (x * y * 19)) % 128);
+                        int difference = (((x * 13) + (y * 7) + (x * y * 3)) % ((amplitude * 2) + 1)) - amplitude;
+                        int precisionShift = bitDepthValue - 8;
+                        sample <<= precisionShift;
+                        difference = (difference << precisionShift) + (precisionShift > 0 && index % 3 == 0 ? 1 : 0);
+                        prediction[index] = referenceRow[x] = createSample(sample);
+                        sourceRow[blockOrigin.X + x] = createSample(sample + difference);
+                        residual[index] = (short)difference;
+                        squaredError += difference * difference;
+                    }
+                }
+
+                source.Frame.ExtendBorders();
+                reference.Frame.ExtendBorders();
+                using Av1EncoderModeInfoBuffer modeInfoBuffer = new(Configuration.Default, frameWidth, Height, disallow4x4AllFrames: true);
+                Av1PictureControlSet template = CreatePicture(modeInfoBuffer, colorConfig, use128x128Superblock: false, qIndex);
+                template.Parent.FrameHeader.FrameType = isIntraBlockCopy ? ObuFrameType.KeyFrame : ObuFrameType.InterFrame;
+                template.Parent.FrameHeader.AllowIntraBlockCopy = isIntraBlockCopy;
+                template.Parent.FrameHeader.AllowScreenContentTools = isIntraBlockCopy;
+                template.Parent.FrameHeader.FrameSize.FrameWidth = frameWidth;
+                template.Parent.FrameHeader.FrameSize.FrameHeight = Height;
+                template.Parent.FrameHeader.TransformMode = Av1TransformMode.Largest;
+                template.Parent.FrameHeader.InterpolationFilter = Av1InterpolationFilter.Regular;
+                template.Parent.FrameHeader.ReferenceMode = ObuReferenceMode.SingleReference;
+                using Av1EncoderPictureBuffer pictureBuffer = new(
+                    Configuration.Default,
+                    template.Sequence.SequenceHeader,
+                    template.Parent.FrameHeader,
+                    frameWidth,
+                    Height,
+                    disallow4x4AllFrames: true);
+
+                Av1PictureControlSet picture = pictureBuffer.Picture;
+                if (isIntraBlockCopy)
+                {
+                    picture.IntraBlockCopySearch.Initialize<TSample, TOperator>(source.Frame.View.GetPlane(Av1Plane.Y));
+                }
+
+                using Av1EncoderCoefficientBuffer coefficients = new(Configuration.Default, template.Sequence.SequenceHeader, frameWidth, Height);
+                using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+                using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default, allocateInterMotionCosts: !isIntraBlockCopy);
+                using Av1SymbolEncoder writer = new(Configuration.Default, 4096, qIndex, updateCdf: true);
+                if (!isIntraBlockCopy)
+                {
+                    writer.FillMotionVectorCosts(blockWorkspace.GetMotionVectorCosts(picture.Parent.FrameHeader.MotionVectorPrecision));
+                }
+
+                Av1Superblock superblock = new()
+                {
+                    Workspace = superblockWorkspace,
+                    TileInfo = new Av1TileInfo(0, 0, picture.Parent.FrameHeader),
+                    Index = superblockIndex
+                };
+
+                Av1IntraSuperblockEncoder.Prepare(picture, superblock, blockOrigin);
+                picture.MapModeInfoBlock(modeInfoPosition, Av1BlockSize.Block8x8);
+                Av1MacroBlockD macroBlock = new() { Tile = superblock.TileInfo };
+                Av1TileWriter.SetModeInfoRowAndColumn(
+                    picture,
+                    macroBlock,
+                    superblock.TileInfo,
+                    modeInfoPosition,
+                    Av1BlockSize.Block8x8,
+                    picture.Parent.Common.ModeInfoStride,
+                    picture.Parent.Common.ModeInfoRowCount,
+                    picture.Parent.Common.ModeInfoColumnCount);
+
+                if (!isIntraBlockCopy)
+                {
+                    picture.Parent.MotionSearchSettings = new Av1MotionSearchSettings(
+                        HeifEncodingSpeed.Level0, false, new Size(frameWidth, Height), qIndex, false, false);
+
+                    picture.Parent.MotionSearchStepParameter = Av1MotionSearchBase.GetInitialStepParameter(Math.Max(frameWidth, Height));
+
+                    ref Av1ReferenceMotionVectors references = ref blockWorkspace.ReferenceMotionVectors;
+                    references.Build(
+                        picture,
+                        macroBlock,
+                        modeInfoPosition,
+                        Av1BlockSize.Block8x8,
+                        Av1PartitionType.None,
+                        template.Sequence.SequenceHeader,
+                        picture.Parent.FrameHeader,
+                        Av1ReferenceFrameType.Last);
+
+                    // Thirty-two preceding global-motion symbols make the zero global predictor the cheapest
+                    // mode. Keep every competing mode enabled so this fixture tests residual skipping independently
+                    // of mode-search restrictions, while checking exact syntax rates, distortion, and reconstruction.
+                    for (int index = 0; index < 32; index++)
+                    {
+                        writer.WriteInterMode<Av1SymbolEncoder.SymbolUpdateOperation>(Av1PredictionMode.GlobalMotionVector, references.ModeContext);
+                    }
+
+                    int globalRate = writer.GetInterModeCost(Av1PredictionMode.GlobalMotionVector, references.ModeContext);
+                    Assert.True(globalRate < writer.GetInterModeCost(Av1PredictionMode.NearestMotionVector, references.ModeContext));
+                    Assert.True(globalRate < writer.GetInterModeCost(Av1PredictionMode.NearMotionVector, references.ModeContext));
+                    Assert.True(globalRate < writer.GetInterModeCost(Av1PredictionMode.NewMotionVector, references.ModeContext));
+                }
+
+                int multiplier = isIntraBlockCopy
+                    ? Av1RateDistortion.GetKeyFrameRateMultiplier(qIndex, bitDepth)
+                    : Av1RateDistortion.GetInterFrameRateMultiplier(qIndex, bitDepth);
+                int skipContext = Av1TileWriter.GetSkipContext(macroBlock);
+                int skipRate = writer.GetSkipCost(true, skipContext);
+                int squaredPrecisionScale = 1 << ((bitDepthValue - 8) * 2);
+                long expectedDistortion = ((squaredError + (squaredPrecisionScale / 2)) / squaredPrecisionScale) * 16;
+                long skipCost = ((((long)skipRate * multiplier) + 256) / 512) + (expectedDistortion * 128);
+                long bestCodedCost = long.MaxValue;
+                bool allTransformsAreNonzero = true;
+                Av1TransformSetType transformSet = Av1SymbolContextHelper.GetExtendedTransformSetType(
+                    Av1TransformSize.Size8x8,
+                    isInter: true,
+                    picture.Parent.FrameHeader.UseReducedTransformSet);
+
+                // Evaluate residual coding independently of the block decision. Qualifying cases must have
+                // nonzero coefficients in every legal transform, yet cost more than prediction-only reconstruction.
+                for (Av1TransformType transformType = Av1TransformType.DctDct;
+                    transformType < Av1TransformType.AllTransformTypes;
+                    transformType++)
+                {
+                    if (!transformType.IsExtendedSetUsed(transformSet))
+                    {
+                        continue;
+                    }
+
+                    Av1EncoderTransformBlockState state = default;
+                    long distortion = TOperator.EncodePredictionCandidate(
+                        blockWorkspace,
+                        source.Frame.CodedView.GetPlane(Av1Plane.Y),
+                        blockOrigin,
+                        prediction,
+                        residual,
+                        trialReconstruction,
+                        Width,
+                        trialCoefficients,
+                        Av1TransformSize.Size8x8,
+                        transformType,
+                        Av1Plane.Y,
+                        qIndex,
+                        0,
+                        0,
+                        bitDepth,
+                        ref state);
+
+                    allTransformsAreNonzero &= state.EndOfBlock != 0;
+                    int rate = writer.GetSkipCost(false, skipContext) + writer.GetCoefficientCost(
+                        Av1TransformSize.Size8x8,
+                        transformType,
+                        isIntraBlockCopy ? Av1PredictionMode.DC : Av1PredictionMode.GlobalMotionVector,
+                        trialCoefficients,
+                        Av1ComponentType.Luminance,
+                        default,
+                        state.EndOfBlock,
+                        picture.Parent.FrameHeader.UseReducedTransformSet,
+                        Av1FilterIntraMode.AllFilterIntraModes,
+                        usesInterTransformSet: true);
+
+                    long cost = ((((long)rate * multiplier) + 256) / 512) + (distortion * 128);
+                    bestCodedCost = Math.Min(bestCodedCost, cost);
+                }
+
+                if (!allTransformsAreNonzero || skipCost > bestCodedCost)
+                {
+                    continue;
+                }
+
+                Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator> decision = new(
+                    source.Frame,
+                    reference.Frame,
+                    reconstruction.Frame,
+                    picture,
+                    superblock,
+                    coefficients,
+                    blockWorkspace,
+                    effort: 0);
+
+                ref Av1MacroBlockModeInfo modeInfo = ref picture.GetMacroBlockModeInfo(modeInfoPosition);
+                Av1EncoderBlockStruct block = default;
+                Av1EncoderPaletteInfo palette = default;
+                Av1MotionVector displacementReference = default;
+                if (isIntraBlockCopy)
+                {
+                    displacementReference = Av1IntraBlockCopy.FindReference(
+                        picture,
+                        macroBlock,
+                        modeInfoPosition,
+                        Av1BlockSize.Block8x8,
+                        Av1PartitionType.None,
+                        new Av1MotionVector[8],
+                        new int[8]);
+                }
+
+                decision.EncodeBlock(writer, macroBlock, blockOrigin, 0, ref modeInfo, ref block, ref palette);
+                Assert.Equal(isIntraBlockCopy, modeInfo.Block.UseIntraBlockCopy);
+                if (!isIntraBlockCopy)
+                {
+                    Assert.Equal(Av1ReferenceFrameType.Last, modeInfo.Block.ReferenceFrame);
+                }
+
+                Assert.True(modeInfo.Block.Skip, $"qIndex={qIndex}, amplitude={amplitude}, skipCost={skipCost}, codedCost={bestCodedCost}");
+                Assert.Equal(isIntraBlockCopy ? Av1PredictionMode.DC : Av1PredictionMode.GlobalMotionVector, modeInfo.Block.Mode);
+                Assert.Equal(expectedDistortion, decision.SelectedBlockStatistics.Distortion);
+                int expectedRate = skipRate + (isIntraBlockCopy
+                    ? writer.GetUseIntraBlockCopyCost(true) +
+                      writer.GetDisplacementVectorCost(picture.GetDisplacementVector(modeInfoPosition), displacementReference)
+                    : writer.GetIsInterCost(true, Av1TileWriter.GetIntraInterContext(macroBlock)) +
+                      writer.GetSingleReferenceCost(Av1ReferenceFrameType.Last, new byte[Av1Constants.ReferenceFrameCount]) +
+                      writer.GetInterModeCost(Av1PredictionMode.GlobalMotionVector, blockWorkspace.ReferenceMotionVectors.ModeContext));
+
+                Assert.Equal(expectedRate, decision.SelectedBlockStatistics.Rate);
+                Assert.Equal(
+                    ((((long)expectedRate * multiplier) + 256) / 512) + (expectedDistortion * 128),
+                    decision.SelectedBlockStatistics.Cost);
+                Assert.Equal((ushort)0, coefficients.GetTransformBlockSpan(superblockIndex, Av1Plane.Y)[0].EndOfBlock);
+                Assert.Equal(Av1TransformType.DctDct, coefficients.GetTransformBlockSpan(superblockIndex, Av1Plane.Y)[0].TransformType);
+                Assert.Equal((byte)0, coefficients.GetTransformBlockSpan(superblockIndex, Av1Plane.Y)[0].EntropyContext);
+                Assert.All(coefficients.GetPlaneSpan(superblockIndex, Av1Plane.Y)[..64].ToArray(), value => Assert.Equal(0, value));
+                for (int y = 0; y < Height; y++)
+                {
+                    Assert.Equal(
+                        MemoryMarshal.AsBytes(prediction.AsSpan(y * Width, Width)),
+                        MemoryMarshal.AsBytes(reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y).DangerousGetRowSpan(y).Slice(blockOrigin.X, Width)));
+                }
+
+                verifiedCases++;
+            }
+        }
+
+        Assert.True(verifiedCases > 0, "The input set must exercise skipping despite nonzero coefficients in every legal transform.");
+    }
+
+    [Theory]
     [InlineData(true)]
     [InlineData(false)]
     public void PreservesIntraNonSkipForAllZeroTransforms(bool isMonochrome)
@@ -622,7 +997,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             colorFormat,
             1,
-            1);
+            1,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<byte> reconstruction = new(
             Configuration.Default,
@@ -631,7 +1007,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             colorFormat,
             1,
-            1);
+            1,
+            lumaBorder: 64);
 
         FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.Y), (byte)128);
         ClearPlane(reconstruction.Luma);
@@ -713,7 +1090,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             colorFormat,
             1,
-            1);
+            1,
+            lumaBorder: 64);
 
         ClearPlane(liveReconstruction.Luma);
         if (!isMonochrome)
@@ -775,7 +1153,8 @@ public class Av1IntraSuperblockEncoderTests
             12,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<ushort> reconstruction = new(
             Configuration.Default,
@@ -784,7 +1163,8 @@ public class Av1IntraSuperblockEncoderTests
             12,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         Buffer2DRegion<ushort> sourcePlane = source.Frame.CodedView.GetPlane(Av1Plane.Y);
         for (int y = 0; y < sourcePlane.Height; y++)
@@ -847,7 +1227,8 @@ public class Av1IntraSuperblockEncoderTests
             12,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         ClearPlane(tileReconstruction.Luma);
         using Av1EncoderPictureBuffer tilePicture = new(
@@ -907,8 +1288,8 @@ public class Av1IntraSuperblockEncoderTests
             BitDepth = Av1BitDepth.EightBit
         };
 
-        using Av1EncoderFrameBuffer<byte> source = new(Configuration.Default, Width, Height, 8, colorFormat, 1, 1);
-        using Av1EncoderFrameBuffer<byte> reconstruction = new(Configuration.Default, Width, Height, 8, colorFormat, 1, 1);
+        using Av1EncoderFrameBuffer<byte> source = new(Configuration.Default, Width, Height, 8, colorFormat, 1, 1, lumaBorder: 64);
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(Configuration.Default, Width, Height, 8, colorFormat, 1, 1, lumaBorder: 64);
         int planeCount = isMonochrome ? 1 : 3;
         for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
         {
@@ -1422,7 +1803,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             colorFormat,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<byte> reconstruction = new(
             Configuration.Default,
@@ -1431,7 +1813,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             colorFormat,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         Buffer2DRegion<byte> lumaSource = source.Frame.CodedView.GetPlane(Av1Plane.Y);
         Buffer2DRegion<byte> blueSource = source.Frame.CodedView.GetPlane(Av1Plane.U);
@@ -1657,7 +2040,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<byte> reconstruction = new(
             Configuration.Default,
@@ -1666,7 +2050,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         Buffer2DRegion<byte> sourcePlane = source.Frame.CodedView.GetPlane(Av1Plane.Y);
 
@@ -1823,7 +2208,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             colorFormat,
             chromaSubsamplingX,
-            chromaSubsamplingY);
+            chromaSubsamplingY,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<byte> reconstruction = new(
             Configuration.Default,
@@ -1832,7 +2218,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             colorFormat,
             chromaSubsamplingX,
-            chromaSubsamplingY);
+            chromaSubsamplingY,
+            lumaBorder: 64);
 
         FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.Y), (byte)128);
         FillChromaModeSelectionPlane(
@@ -1986,7 +2373,8 @@ public class Av1IntraSuperblockEncoderTests
             bitDepth,
             colorFormat,
             chromaSubsamplingX,
-            chromaSubsamplingY);
+            chromaSubsamplingY,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<TSample> pilotReconstruction = new(
             Configuration.Default,
@@ -1995,7 +2383,8 @@ public class Av1IntraSuperblockEncoderTests
             bitDepth,
             colorFormat,
             chromaSubsamplingX,
-            chromaSubsamplingY);
+            chromaSubsamplingY,
+            lumaBorder: 64);
 
         Buffer2DRegion<TSample> pilotLuma = pilotSource.Frame.CodedView.GetPlane(Av1Plane.Y);
         for (int y = 0; y < pilotLuma.Height; y++)
@@ -2081,7 +2470,8 @@ public class Av1IntraSuperblockEncoderTests
             bitDepth,
             colorFormat,
             chromaSubsamplingX,
-            chromaSubsamplingY);
+            chromaSubsamplingY,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<TSample> reconstruction = new(
             Configuration.Default,
@@ -2090,7 +2480,8 @@ public class Av1IntraSuperblockEncoderTests
             bitDepth,
             colorFormat,
             chromaSubsamplingX,
-            chromaSubsamplingY);
+            chromaSubsamplingY,
+            lumaBorder: 64);
 
         for (int y = 0; y < pilotLuma.Height; y++)
         {
@@ -2335,7 +2726,8 @@ public class Av1IntraSuperblockEncoderTests
             bitDepth,
             Av1ColorFormat.Yuv400,
             1,
-            1);
+            1,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<TSample> pilotReconstruction = new(
             Configuration.Default,
@@ -2344,7 +2736,8 @@ public class Av1IntraSuperblockEncoderTests
             bitDepth,
             Av1ColorFormat.Yuv400,
             1,
-            1);
+            1,
+            lumaBorder: 64);
 
         Buffer2DRegion<TSample> pilotLuma = pilotSource.Frame.CodedView.GetPlane(Av1Plane.Y);
         for (int y = 0; y < pilotLuma.Height; y++)
@@ -2497,7 +2890,8 @@ public class Av1IntraSuperblockEncoderTests
             bitDepth,
             Av1ColorFormat.Yuv400,
             1,
-            1);
+            1,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<TSample> reconstruction = new(
             Configuration.Default,
@@ -2506,7 +2900,8 @@ public class Av1IntraSuperblockEncoderTests
             bitDepth,
             Av1ColorFormat.Yuv400,
             1,
-            1);
+            1,
+            lumaBorder: 64);
 
         Buffer2DRegion<TSample> sourceLuma = source.Frame.CodedView.GetPlane(Av1Plane.Y);
         for (int y = 0; y < pilotLuma.Height; y++)
@@ -2659,7 +3054,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<byte> reconstruction = new(
             Configuration.Default,
@@ -2668,7 +3064,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         Buffer2DRegion<byte> sourcePlane = source.Frame.CodedView.GetPlane(Av1Plane.Y);
         FillPlane(sourcePlane, (byte)128);
@@ -2830,7 +3227,8 @@ public class Av1IntraSuperblockEncoderTests
             bitDepthValue,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<TSample> reconstruction = new(
             Configuration.Default,
@@ -2839,7 +3237,8 @@ public class Av1IntraSuperblockEncoderTests
             bitDepthValue,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         Buffer2DRegion<TSample> sourcePlane = source.Frame.CodedView.GetPlane(Av1Plane.Y);
         for (int row = 0; row < Height; row++)
@@ -2941,7 +3340,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             Av1ColorFormat.Yuv420,
             1,
-            1);
+            1,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<byte> reconstruction = new(
             Configuration.Default,
@@ -2950,7 +3350,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             Av1ColorFormat.Yuv420,
             1,
-            1);
+            1,
+            lumaBorder: 64);
 
         Buffer2DRegion<byte> lumaSource = source.Frame.CodedView.GetPlane(Av1Plane.Y);
         for (int row = 0; row < Height; row++)
@@ -3110,7 +3511,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<byte> reconstruction = new(
             Configuration.Default,
@@ -3119,7 +3521,8 @@ public class Av1IntraSuperblockEncoderTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         FillPlane(source.Frame.CodedView.GetPlane(Av1Plane.Y), 251, 29);
         ClearPlane(reconstruction.Luma);
@@ -3201,8 +3604,8 @@ public class Av1IntraSuperblockEncoderTests
             BitDepth = Av1BitDepth.EightBit
         };
 
-        using Av1EncoderFrameBuffer<byte> source = new(Configuration.Default, size, size, 8, Av1ColorFormat.Yuv400, 0, 0);
-        using Av1EncoderFrameBuffer<byte> reconstruction = new(Configuration.Default, size, size, 8, Av1ColorFormat.Yuv400, 0, 0);
+        using Av1EncoderFrameBuffer<byte> source = new(Configuration.Default, size, size, 8, Av1ColorFormat.Yuv400, 0, 0, lumaBorder: 64);
+        using Av1EncoderFrameBuffer<byte> reconstruction = new(Configuration.Default, size, size, 8, Av1ColorFormat.Yuv400, 0, 0, lumaBorder: 64);
         Buffer2DRegion<byte> sourcePlane = source.Frame.CodedView.GetPlane(Av1Plane.Y);
         for (int y = 0; y < size; y++)
         {
@@ -3272,6 +3675,143 @@ public class Av1IntraSuperblockEncoderTests
         {
             raw.Write(retainedPlane.DangerousGetRowSpan(y));
         }
+    }
+
+    [Theory]
+    [InlineData((int)Av1ColorFormat.Yuv400)]
+    [InlineData((int)Av1ColorFormat.Yuv420)]
+    [InlineData((int)Av1ColorFormat.Yuv422)]
+    [InlineData((int)Av1ColorFormat.Yuv444)]
+    public void ProductionDeblockingPreservesEightBitReconstruction(int colorFormatValue)
+        => VerifyProductionDeblocking<byte>(
+            colorFormatValue,
+            8,
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+
+    [Theory]
+    [InlineData((int)Av1ColorFormat.Yuv400, 10)]
+    [InlineData((int)Av1ColorFormat.Yuv400, 12)]
+    [InlineData((int)Av1ColorFormat.Yuv420, 10)]
+    [InlineData((int)Av1ColorFormat.Yuv420, 12)]
+    [InlineData((int)Av1ColorFormat.Yuv422, 10)]
+    [InlineData((int)Av1ColorFormat.Yuv422, 12)]
+    [InlineData((int)Av1ColorFormat.Yuv444, 10)]
+    [InlineData((int)Av1ColorFormat.Yuv444, 12)]
+    public void ProductionDeblockingPreservesHighBitDepthReconstruction(int colorFormatValue, int bitDepth)
+        => VerifyProductionDeblocking<ushort>(
+            colorFormatValue,
+            bitDepth,
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+
+    /// <summary>
+    /// Verifies retained reconstruction and exports the same encoded stream for an independent decoder comparison.
+    /// </summary>
+    /// <typeparam name="TSample">The component sample type.</typeparam>
+    /// <param name="colorFormatValue">The component layout.</param>
+    /// <param name="bitDepth">The component precision.</param>
+    /// <param name="createWriter">The typed production tile constructor.</param>
+    private static void VerifyProductionDeblocking<TSample>(int colorFormatValue, int bitDepth, TileWriterFactory<TSample> createWriter)
+        where TSample : unmanaged, IBinaryInteger<TSample>
+    {
+        const int Width = 33;
+        const int Height = 137;
+        const int QIndex = 37;
+        Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
+        ObuColorConfig colorConfig = new()
+        {
+            IsMonochrome = colorFormat == Av1ColorFormat.Yuv400,
+            SubSamplingX = colorFormat is Av1ColorFormat.Yuv400 or Av1ColorFormat.Yuv420 or Av1ColorFormat.Yuv422,
+            SubSamplingY = colorFormat is Av1ColorFormat.Yuv400 or Av1ColorFormat.Yuv420,
+            BitDepth = bitDepth == 8 ? Av1BitDepth.EightBit : bitDepth == 10 ? Av1BitDepth.TenBit : Av1BitDepth.TwelveBit
+        };
+
+        using Av1EncoderFrameBuffer<TSample> source = new(Configuration.Default, Width, Height, bitDepth, colorFormat, 1, 1, lumaBorder: 64);
+        using Av1EncoderFrameBuffer<TSample> reconstruction = new(Configuration.Default, Width, Height, bitDepth, colorFormat, 1, 1, lumaBorder: 64);
+        int planeCount = colorConfig.PlaneCount;
+        TSample[][] unfiltered = new TSample[planeCount][];
+        for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
+        {
+            Buffer2DRegion<TSample> plane = source.Frame.View.GetPlane((Av1Plane)planeIndex);
+            unfiltered[planeIndex] = new TSample[plane.Width * plane.Height];
+            for (int y = 0; y < plane.Height; y++)
+            {
+                Span<TSample> row = plane.DangerousGetRowSpan(y);
+                for (int x = 0; x < row.Length; x++)
+                {
+                    // Small discontinuities at coding boundaries activate deblocking. Odd dimensions and a
+                    // height above 128 exercise chroma ownership, coded padding, and intersecting row bands.
+                    int value = 96 + (4 * ((x / 8) + (y / 8))) + (planeIndex * 8);
+                    row[x] = TSample.CreateChecked(value << (bitDepth - 8));
+                }
+            }
+        }
+
+        source.Frame.ExtendBorders();
+        using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, Width, Height, disallow4x4AllFrames: true);
+        Av1PictureControlSet template = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, QIndex);
+        ObuFrameHeader header = template.Parent.FrameHeader;
+        header.FrameSize.FrameWidth = Width;
+        header.FrameSize.FrameHeight = Height;
+        using Av1EncoderPictureBuffer picture = new(
+            Configuration.Default, template.Sequence.SequenceHeader, header, Width, Height, disallow4x4AllFrames: true);
+
+        using Av1EncoderCoefficientBuffer coefficients = new(Configuration.Default, template.Sequence.SequenceHeader, Width, Height);
+        using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(picture.Picture, 8192);
+        _ = createWriter(symbolEncoder, source.Frame, reconstruction.Frame, picture.Picture, coefficients, superblockWorkspace, blockWorkspace);
+        for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
+        {
+            Buffer2DRegion<TSample> plane = reconstruction.Frame.View.GetPlane((Av1Plane)planeIndex);
+            for (int y = 0; y < plane.Height; y++)
+            {
+                plane.DangerousGetRowSpan(y).CopyTo(unfiltered[planeIndex].AsSpan(y * plane.Width, plane.Width));
+            }
+        }
+
+        header.LoopFilterParameters.FilterLevel[0] = 63;
+        header.LoopFilterParameters.FilterLevel[1] = 37;
+        header.LoopFilterParameters.FilterLevelU = 31;
+        header.LoopFilterParameters.FilterLevelV = 47;
+        header.LoopFilterParameters.SharpnessLevel = 3;
+        header.LoopFilterParameters.ReferenceDeltaModeEnabled = true;
+        picture.Reset(header);
+        Av1TileEncoder tileWriter = createWriter(
+            symbolEncoder, source.Frame, reconstruction.Frame, picture.Picture, coefficients, superblockWorkspace, blockWorkspace);
+
+        byte[] payload = WriteCompleteTileObu(picture.Picture, tileWriter, Width, Height);
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> decodedFrame = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        int changedSamples = 0;
+        string directory = Path.Combine(TestEnvironment.ActualOutputDirectoryFullPath, "Heif", "Av1", "ProductionDeblocking");
+        Directory.CreateDirectory(directory);
+        string name = $"{bitDepth}-{colorFormat}";
+        File.WriteAllBytes(Path.Combine(directory, name + ".obu"), payload);
+        using FileStream raw = File.Create(Path.Combine(directory, name + ".retained.yuv"));
+        for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
+        {
+            Av1Plane plane = (Av1Plane)planeIndex;
+            Buffer2DRegion<TSample> retained = reconstruction.Frame.View.GetPlane(plane);
+            int subX = plane == Av1Plane.Y ? 0 : reconstruction.Frame.ChromaSubsamplingX;
+            int subY = plane == Av1Plane.Y ? 0 : reconstruction.Frame.ChromaSubsamplingY;
+            Buffer2DRegion<byte> decoded = decodedFrame.DeriveBlockPointer(plane, subX, subY);
+            for (int y = 0; y < retained.Height; y++)
+            {
+                ReadOnlySpan<TSample> row = retained.DangerousGetRowSpan(y);
+                ReadOnlySpan<TSample> decodedRow = MemoryMarshal.Cast<byte, TSample>(decoded.DangerousGetRowSpan(y));
+                Assert.Equal(row, decodedRow);
+                for (int x = 0; x < row.Length; x++)
+                {
+                    changedSamples += row[x] != unfiltered[planeIndex][(y * retained.Width) + x] ? 1 : 0;
+                }
+
+                raw.Write(MemoryMarshal.AsBytes(row));
+            }
+        }
+
+        Assert.True(changedSamples > 0);
     }
 
     private static byte[] WriteCompleteTileObu(
@@ -3421,7 +3961,8 @@ public class Av1IntraSuperblockEncoderTests
             bitDepthValue,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<TSample> reconstruction = new(
             Configuration.Default,
@@ -3430,7 +3971,8 @@ public class Av1IntraSuperblockEncoderTests
             bitDepthValue,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         Buffer2DRegion<TSample> sourcePlane = source.Frame.CodedView.GetPlane(Av1Plane.Y);
         for (int row = 0; row < sourcePlane.Height; row++)
@@ -3815,6 +4357,8 @@ public class Av1IntraSuperblockEncoderTests
             this.Count = 0;
         }
 
+        public static bool UsesRetainedDecisions => false;
+
         /// <summary>
         /// Gets the number of final blocks visited by the writer.
         /// </summary>
@@ -3890,6 +4434,8 @@ public class Av1IntraSuperblockEncoderTests
             this.mapVariant = mapVariant;
             this.Count = 0;
         }
+
+        public static bool UsesRetainedDecisions => false;
 
         /// <summary>
         /// Gets the number of final blocks visited by the writer.

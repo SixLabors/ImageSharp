@@ -115,7 +115,7 @@ internal static partial class Av1DeblockingFilter
     /// <param name="boundaryLimit">The eight-bit-domain edge-discontinuity threshold.</param>
     /// <param name="highEdgeVarianceThreshold">The eight-bit-domain high-edge-variance threshold.</param>
     /// <param name="bitDepth">The sample bit depth.</param>
-    private static void Filter<TSample, TEdgeOperator>(
+    public static void Filter<TSample, TEdgeOperator>(
         Span<TSample> samples,
         int q0Offset,
         int stride,

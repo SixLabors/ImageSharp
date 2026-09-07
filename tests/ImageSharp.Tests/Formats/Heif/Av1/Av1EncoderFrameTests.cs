@@ -3,6 +3,7 @@
 
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -316,14 +317,16 @@ public class Av1EncoderFrameTests
                 Height,
                 colorConfig,
                 qIndex: 37,
-                effort: 5)
+                effort: 5,
+                speed: HeifEncodingSpeed.Level0)
             : Av1FrameEncoder.CreateColorSequenceEncoder(
                 Configuration.Default,
                 Width,
                 Height,
                 colorConfig,
                 qIndex: 37,
-                effort: 5);
+                effort: 5,
+                speed: HeifEncodingSpeed.Level0);
 
         encoder.EncodeKeyFrame(source.Frames.RootFrame, stream);
         ObuSequenceHeader encodedHeader = encoder.SequenceHeader;
@@ -345,19 +348,50 @@ public class Av1EncoderFrameTests
     /// Verifies dependent color samples with odd visible dimensions and motion across subsampled chroma phases.
     /// </summary>
     [Theory]
-    [InlineData(EightBit, Yuv420, 8)]
-    [InlineData(TenBit, Yuv420, 8)]
-    [InlineData(TwelveBit, Yuv420, 8)]
-    [InlineData(EightBit, Yuv420, 9)]
-    [InlineData(TenBit, Yuv420, 9)]
-    [InlineData(TwelveBit, Yuv420, 9)]
-    [InlineData(EightBit, Yuv422, 9)]
-    [InlineData(TenBit, Yuv422, 9)]
-    [InlineData(TwelveBit, Yuv422, 9)]
-    [InlineData(EightBit, Yuv444, 9)]
-    [InlineData(TenBit, Yuv444, 9)]
-    [InlineData(TwelveBit, Yuv444, 9)]
-    public void SequenceEncoderPreservesNativeColorPlanesWithSubpixelMotion(int bitDepthValue, int colorFormatValue, int effort)
+    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level0)]
+    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level0)]
+    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level0)]
+    [InlineData(EightBit, Yuv420, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(TenBit, Yuv420, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(TwelveBit, Yuv420, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(EightBit, Yuv422, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(TenBit, Yuv422, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(TwelveBit, Yuv422, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(EightBit, Yuv444, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(TenBit, Yuv444, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(TwelveBit, Yuv444, 9, HeifEncodingSpeed.Level0)]
+    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level1)]
+    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level2)]
+    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level3)]
+    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level4)]
+    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level5)]
+    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level6)]
+    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level7)]
+    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level8)]
+    [InlineData(EightBit, Yuv420, 8, HeifEncodingSpeed.Level9)]
+    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level1)]
+    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level2)]
+    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level3)]
+    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level4)]
+    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level5)]
+    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level6)]
+    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level7)]
+    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level8)]
+    [InlineData(TenBit, Yuv420, 8, HeifEncodingSpeed.Level9)]
+    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level1)]
+    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level2)]
+    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level3)]
+    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level4)]
+    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level5)]
+    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level6)]
+    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level7)]
+    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level8)]
+    [InlineData(TwelveBit, Yuv420, 8, HeifEncodingSpeed.Level9)]
+    public void SequenceEncoderPreservesNativeColorPlanesWithSubpixelMotion(
+        int bitDepthValue,
+        int colorFormatValue,
+        int effort,
+        HeifEncodingSpeed speed)
     {
         const int Width = 23;
         const int Height = 19;
@@ -369,15 +403,21 @@ public class Av1EncoderFrameTests
         ReadOnlySpan<int> period = [0, 28, 40, 28, 0, -28, -40, -12];
         using Image<Rgb48> source = new(Width, Height);
         using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
-            Configuration.Default, Width, Height, colorConfig, QIndex, effort);
+            Configuration.Default,
+            Width,
+            Height,
+            colorConfig,
+            QIndex,
+            effort,
+            speed);
 
         string outputDirectory = TestEnvironment.CreateOutputDirectory("Heif", "Av1", nameof(this.SequenceEncoderPreservesNativeColorPlanesWithSubpixelMotion));
-        string outputName = $"{bitDepth.GetBitCount()}-{colorFormat}-effort{effort}";
+        string outputName = $"{bitDepth.GetBitCount()}-{colorFormat}-effort{effort}-speed{(int)speed}";
         using FileStream output = File.Create(Path.Combine(outputDirectory, outputName + ".obu"));
         using BinaryWriter rawOutput = new(File.Create(Path.Combine(outputDirectory, outputName + ".managed.yuv")));
         using Av1Decoder decoder = new(Configuration.Default);
         using MemoryStream sample = new();
-        for (int frameIndex = 0; frameIndex < 2; frameIndex++)
+        for (int frameIndex = 0; frameIndex < 3; frameIndex++)
         {
             // The second source translates all three channels by one luma sample on each axis. Chroma is
             // converted independently by the production converter, so 4:2:0 and 4:2:2 cannot hide behind
@@ -504,7 +544,8 @@ public class Av1EncoderFrameTests
             Height,
             colorConfig,
             qIndex: 37,
-            effort);
+            effort,
+            speed: HeifEncodingSpeed.Level0);
 
         encoder.EncodeKeyFrame(source.Frames.RootFrame, firstSample);
         encoder.EncodeInterFrame(source.Frames.RootFrame, secondSample);
@@ -601,7 +642,8 @@ public class Av1EncoderFrameTests
             Height,
             colorConfig,
             qIndex: 4,
-            effort: 6);
+            effort: 6,
+            speed: HeifEncodingSpeed.Level0);
 
         encoder.EncodeKeyFrame(first.Frames.RootFrame, firstSample);
         encoder.EncodeInterFrame(second.Frames.RootFrame, secondSample);
@@ -649,7 +691,13 @@ public class Av1EncoderFrameTests
         Assert.Throws<InvalidImageContentException>(() =>
         {
             using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
-                configuration, 32, 32, colorConfig, 17, 9);
+                configuration,
+                32,
+                32,
+                colorConfig,
+                17,
+                9,
+                speed: HeifEncodingSpeed.Level0);
         });
 
         Assert.Empty(allocator.AllocationLog);
@@ -674,8 +722,8 @@ public class Av1EncoderFrameTests
         successfulAllocator.EnableNonThreadSafeLogging();
         configuration.MemoryAllocator = successfulAllocator;
         using (Av1FrameEncoder.SequenceEncoder encoder = encodeAlpha
-            ? Av1FrameEncoder.CreateAlphaSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9)
-            : Av1FrameEncoder.CreateColorSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9))
+            ? Av1FrameEncoder.CreateAlphaSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9, speed: HeifEncodingSpeed.Level0)
+            : Av1FrameEncoder.CreateColorSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9, speed: HeifEncodingSpeed.Level0))
         {
             Assert.NotEmpty(successfulAllocator.AllocationLog);
         }
@@ -691,8 +739,8 @@ public class Av1EncoderFrameTests
             InvalidMemoryOperationException exception = Assert.Throws<InvalidMemoryOperationException>(() =>
             {
                 using Av1FrameEncoder.SequenceEncoder encoder = encodeAlpha
-                    ? Av1FrameEncoder.CreateAlphaSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9)
-                    : Av1FrameEncoder.CreateColorSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9);
+                    ? Av1FrameEncoder.CreateAlphaSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9, speed: HeifEncodingSpeed.Level0)
+                    : Av1FrameEncoder.CreateColorSequenceEncoder(configuration, 32, 32, colorConfig, 17, 9, speed: HeifEncodingSpeed.Level0);
             });
 
             Assert.Equal("Sequence allocation failure.", exception.Message);
@@ -739,14 +787,16 @@ public class Av1EncoderFrameTests
                 Height,
                 colorConfig,
                 qIndex: 37,
-                effort: 6)
+                effort: 6,
+                speed: HeifEncodingSpeed.Level0)
             : Av1FrameEncoder.CreateColorSequenceEncoder(
                 configuration,
                 Width,
                 Height,
                 colorConfig,
                 qIndex: 37,
-                effort: 6))
+                effort: 6,
+                speed: HeifEncodingSpeed.Level0))
         {
             rowStorage = Assert.Single(
                 allocator.AllocationLog,
@@ -808,7 +858,8 @@ public class Av1EncoderFrameTests
             bitDepth.GetBitCount(),
             Av1ColorFormat.Yuv444,
             1,
-            1);
+            1,
+            lumaBorder: 64);
 
         Av1FrameEncoder.PrepareSource(
             Configuration.Default,
@@ -1268,7 +1319,8 @@ public class Av1EncoderFrameTests
             12,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
@@ -1339,7 +1391,8 @@ public class Av1EncoderFrameTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         for (int row = 0; row < height; row++)
         {
@@ -1384,7 +1437,8 @@ public class Av1EncoderFrameTests
             10,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         for (int row = 0; row < 16; row++)
         {
@@ -1448,7 +1502,8 @@ public class Av1EncoderFrameTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         Buffer2DRegion<byte> luma = frame.Frame.View.GetPlane(Av1Plane.Y);
         for (int row = 0; row < Height; row++)
@@ -1762,7 +1817,8 @@ public class Av1EncoderFrameTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.EightBit);
 
@@ -1792,7 +1848,8 @@ public class Av1EncoderFrameTests
             10,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         ObuColorConfig colorConfig = CreateColorConfig(Av1BitDepth.TenBit);
 
@@ -1802,13 +1859,15 @@ public class Av1EncoderFrameTests
         AssertReplicatedSingleRow(frameBuffer.Luma, border, expected);
     }
 
-    [Fact]
-    public void ExtendBordersReplicatesEveryPhysicalPlaneEdge()
+    [Theory]
+    [InlineData(64)]
+    [InlineData(96)]
+    [InlineData(160)]
+    public void ExtendBordersReplicatesEveryPhysicalPlaneEdge(int lumaBorder)
     {
         const int visibleWidth = 5;
         const int visibleHeight = 3;
-        const int lumaBorder = Av1EncoderFrame<byte>.LumaBorder;
-        const int chromaBorder = lumaBorder / 2;
+        int chromaBorder = lumaBorder / 2;
 
         using Av1EncoderFrameBuffer<byte> frameBuffer = new(
             Configuration.Default,
@@ -1817,7 +1876,8 @@ public class Av1EncoderFrameTests
             8,
             Av1ColorFormat.Yuv420,
             1,
-            1);
+            1,
+            lumaBorder);
 
         Buffer2D<byte> luma = frameBuffer.Luma;
         Buffer2D<byte> chromaBlue = Assert.IsType<Buffer2D<byte>>(frameBuffer.ChromaBlue);
@@ -1835,12 +1895,19 @@ public class Av1EncoderFrameTests
     }
 
     [Theory]
-    [InlineData(5, 3, 0, 0, 160, 136)]
-    [InlineData(5, 3, 1, 0, 80, 136)]
-    [InlineData(5, 3, 1, 1, 80, 68)]
-    [InlineData(1921, 1081, 0, 0, 2080, 1216)]
-    [InlineData(1921, 1081, 1, 1, 1040, 608)]
+    [InlineData(64, 5, 3, 0, 0, 160, 136)]
+    [InlineData(64, 5, 3, 1, 0, 80, 136)]
+    [InlineData(64, 5, 3, 1, 1, 80, 68)]
+    [InlineData(64, 1921, 1081, 0, 0, 2080, 1216)]
+    [InlineData(64, 1921, 1081, 1, 1, 1040, 608)]
+    [InlineData(96, 5, 3, 0, 0, 224, 200)]
+    [InlineData(96, 5, 3, 1, 0, 112, 200)]
+    [InlineData(96, 5, 3, 1, 1, 112, 100)]
+    [InlineData(160, 5, 3, 0, 0, 352, 328)]
+    [InlineData(160, 5, 3, 1, 0, 176, 328)]
+    [InlineData(160, 5, 3, 1, 1, 176, 164)]
     public void GetPlaneBufferSizeMatchesLibaomLayout(
+        int lumaBorder,
         int width,
         int height,
         int subsamplingX,
@@ -1848,13 +1915,16 @@ public class Av1EncoderFrameTests
         int expectedWidth,
         int expectedHeight)
     {
-        Size actual = Av1EncoderFrame<byte>.GetPlaneBufferSize(width, height, subsamplingX, subsamplingY);
+        Size actual = Av1EncoderFrame<byte>.GetPlaneBufferSize(width, height, subsamplingX, subsamplingY, lumaBorder);
 
         Assert.Equal(new Size(expectedWidth, expectedHeight), actual);
     }
 
-    [Fact]
-    public void FrameBufferUsesOneExactSizeOwnerForAllPlanes()
+    [Theory]
+    [InlineData(64, 55_296)]
+    [InlineData(96, 98_304)]
+    [InlineData(160, 221_184)]
+    public void FrameBufferUsesOneExactSizeOwnerForAllPlanes(int lumaBorder, int expectedLength)
     {
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
@@ -1869,12 +1939,13 @@ public class Av1EncoderFrameTests
             8,
             Av1ColorFormat.Yuv420,
             1,
-            1))
+            1,
+            lumaBorder))
         {
             allocation = Assert.Single(allocator.AllocationLog);
             Assert.Empty(allocator.ReturnLog);
             Assert.Equal(typeof(byte), allocation.ElementType);
-            Assert.Equal(55_296, allocation.Length);
+            Assert.Equal(expectedLength, allocation.Length);
             Assert.Single(frameBuffer.Luma.MemoryGroup);
             Assert.Single(Assert.IsType<Buffer2D<byte>>(frameBuffer.ChromaBlue).MemoryGroup);
             Assert.Single(Assert.IsType<Buffer2D<byte>>(frameBuffer.ChromaRed).MemoryGroup);

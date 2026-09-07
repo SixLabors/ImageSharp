@@ -102,16 +102,42 @@ internal partial class Av1TileWriter
         ushort tileIndex,
         ref TBlockEncoder blockEncoder)
         where TBlockEncoder : struct, IBlockEncodingHandler
+        => WriteSuperblock<Av1SymbolEncoder.SymbolWriteOperation, TBlockEncoder>(
+            pcs,
+            ec_ctx,
+            writer,
+            superblock,
+            coefficientBuffer,
+            tileIndex,
+            ref blockEncoder);
+
+    /// <summary>
+    /// Processes the selected syntax and its adaptive probability state.
+    /// </summary>
+    public static void WriteSuperblock<TOperation, TBlockEncoder>(
+        Av1PictureControlSet pcs,
+        Av1EntropyCodingContext ec_ctx,
+        Av1SymbolEncoder writer,
+        Av1Superblock superblock,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        ushort tileIndex,
+        ref TBlockEncoder blockEncoder)
+        where TBlockEncoder : struct, IBlockEncodingHandler
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         ec_ctx.CodedAreaSuperblock = 0;
         ec_ctx.CodedAreaSuperblockUv = 0;
+        ec_ctx.PaletteTokenOffset = superblock.Index *
+            (1 << (2 * pcs.Sequence.SequenceHeader.SuperblockSizeLog2)) *
+            Math.Min(2, pcs.Sequence.SequenceHeader.ColorConfig.PlaneCount);
+
         ec_ctx.MacroBlock.Tile = superblock.TileInfo;
         int partitionIndex = 0;
         int finalBlockIndex = 0;
 
-        // Current libaom writes the selected partition tree recursively from the superblock origin. Keeping the
-        // decisions in preorder removes the global geometry catalog and keeps traversal state on this stack.
-        WritePartitionTree(
+        // Partition decisions are stored in preorder, so recursive traversal keeps the current geometry
+        // on the stack and visits each selected child after its parent.
+        WritePartitionTree<TOperation, TBlockEncoder>(
             pcs,
             ec_ctx,
             writer,
@@ -128,7 +154,7 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes one selected partition node and recursively visits its split children.
     /// </summary>
-    private static void WritePartitionTree<TBlockEncoder>(
+    private static void WritePartitionTree<TOperation, TBlockEncoder>(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
@@ -141,6 +167,7 @@ internal partial class Av1TileWriter
         ref int finalBlockIndex,
         ref TBlockEncoder blockEncoder)
         where TBlockEncoder : struct, IBlockEncodingHandler
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         Av1EncoderCommon common = pcs.Parent.Common;
         int modeInfoRow = blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
@@ -167,7 +194,7 @@ internal partial class Av1TileWriter
         int halfBlockSize = blockSize.GetWidth() >> 1;
         int quarterBlockSize = blockSize.GetWidth() >> 2;
 
-        EncodePartition(
+        EncodePartition<TOperation>(
             pcs,
             writer,
             blockSize,
@@ -178,7 +205,7 @@ internal partial class Av1TileWriter
         switch (partition)
         {
             case Av1PartitionType.None:
-                WriteFinalBlock(
+                WriteFinalBlock<TOperation, TBlockEncoder>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -191,7 +218,7 @@ internal partial class Av1TileWriter
 
                 break;
             case Av1PartitionType.Horizontal:
-                WriteFinalBlock(
+                WriteFinalBlock<TOperation, TBlockEncoder>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -204,7 +231,7 @@ internal partial class Av1TileWriter
 
                 if (modeInfoRow + (blockSize.Get4x4HighCount() >> 1) < common.ModeInfoRowCount)
                 {
-                    WriteFinalBlock(
+                    WriteFinalBlock<TOperation, TBlockEncoder>(
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -218,7 +245,7 @@ internal partial class Av1TileWriter
 
                 break;
             case Av1PartitionType.Vertical:
-                WriteFinalBlock(
+                WriteFinalBlock<TOperation, TBlockEncoder>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -231,7 +258,7 @@ internal partial class Av1TileWriter
 
                 if (modeInfoColumn + (blockSize.Get4x4WideCount() >> 1) < common.ModeInfoColumnCount)
                 {
-                    WriteFinalBlock(
+                    WriteFinalBlock<TOperation, TBlockEncoder>(
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -262,7 +289,7 @@ internal partial class Av1TileWriter
                             continue;
                         }
 
-                        WriteFinalBlock(
+                        WriteFinalBlock<TOperation, TBlockEncoder>(
                             pcs,
                             entropyCodingContext,
                             writer,
@@ -276,7 +303,7 @@ internal partial class Av1TileWriter
                 }
                 else
                 {
-                    WritePartitionTree(
+                    WritePartitionTree<TOperation, TBlockEncoder>(
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -289,7 +316,7 @@ internal partial class Av1TileWriter
                         ref finalBlockIndex,
                         ref blockEncoder);
 
-                    WritePartitionTree(
+                    WritePartitionTree<TOperation, TBlockEncoder>(
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -302,7 +329,7 @@ internal partial class Av1TileWriter
                         ref finalBlockIndex,
                         ref blockEncoder);
 
-                    WritePartitionTree(
+                    WritePartitionTree<TOperation, TBlockEncoder>(
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -315,7 +342,7 @@ internal partial class Av1TileWriter
                         ref finalBlockIndex,
                         ref blockEncoder);
 
-                    WritePartitionTree(
+                    WritePartitionTree<TOperation, TBlockEncoder>(
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -331,7 +358,7 @@ internal partial class Av1TileWriter
 
                 break;
             case Av1PartitionType.HorizontalA:
-                WriteFinalBlock(
+                WriteFinalBlock<TOperation, TBlockEncoder>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -341,7 +368,7 @@ internal partial class Av1TileWriter
                     blockOrigin,
                     ref finalBlockIndex,
                     ref blockEncoder);
-                WriteFinalBlock(
+                WriteFinalBlock<TOperation, TBlockEncoder>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -351,7 +378,7 @@ internal partial class Av1TileWriter
                     blockOrigin + new Size(halfBlockSize, 0),
                     ref finalBlockIndex,
                     ref blockEncoder);
-                WriteFinalBlock(
+                WriteFinalBlock<TOperation, TBlockEncoder>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -364,7 +391,7 @@ internal partial class Av1TileWriter
 
                 break;
             case Av1PartitionType.HorizontalB:
-                WriteFinalBlock(
+                WriteFinalBlock<TOperation, TBlockEncoder>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -374,7 +401,7 @@ internal partial class Av1TileWriter
                     blockOrigin,
                     ref finalBlockIndex,
                     ref blockEncoder);
-                WriteFinalBlock(
+                WriteFinalBlock<TOperation, TBlockEncoder>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -384,7 +411,7 @@ internal partial class Av1TileWriter
                     blockOrigin + new Size(0, halfBlockSize),
                     ref finalBlockIndex,
                     ref blockEncoder);
-                WriteFinalBlock(
+                WriteFinalBlock<TOperation, TBlockEncoder>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -397,7 +424,7 @@ internal partial class Av1TileWriter
 
                 break;
             case Av1PartitionType.VerticalA:
-                WriteFinalBlock(
+                WriteFinalBlock<TOperation, TBlockEncoder>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -407,7 +434,7 @@ internal partial class Av1TileWriter
                     blockOrigin,
                     ref finalBlockIndex,
                     ref blockEncoder);
-                WriteFinalBlock(
+                WriteFinalBlock<TOperation, TBlockEncoder>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -417,7 +444,7 @@ internal partial class Av1TileWriter
                     blockOrigin + new Size(0, halfBlockSize),
                     ref finalBlockIndex,
                     ref blockEncoder);
-                WriteFinalBlock(
+                WriteFinalBlock<TOperation, TBlockEncoder>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -430,7 +457,7 @@ internal partial class Av1TileWriter
 
                 break;
             case Av1PartitionType.VerticalB:
-                WriteFinalBlock(
+                WriteFinalBlock<TOperation, TBlockEncoder>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -440,7 +467,7 @@ internal partial class Av1TileWriter
                     blockOrigin,
                     ref finalBlockIndex,
                     ref blockEncoder);
-                WriteFinalBlock(
+                WriteFinalBlock<TOperation, TBlockEncoder>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -450,7 +477,7 @@ internal partial class Av1TileWriter
                     blockOrigin + new Size(halfBlockSize, 0),
                     ref finalBlockIndex,
                     ref blockEncoder);
-                WriteFinalBlock(
+                WriteFinalBlock<TOperation, TBlockEncoder>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -472,7 +499,7 @@ internal partial class Av1TileWriter
                         break;
                     }
 
-                    WriteFinalBlock(
+                    WriteFinalBlock<TOperation, TBlockEncoder>(
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -495,7 +522,7 @@ internal partial class Av1TileWriter
                         break;
                     }
 
-                    WriteFinalBlock(
+                    WriteFinalBlock<TOperation, TBlockEncoder>(
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -521,7 +548,7 @@ internal partial class Av1TileWriter
     /// <summary>
     /// Writes the next final block selected by partition traversal.
     /// </summary>
-    private static void WriteFinalBlock<TBlockEncoder>(
+    private static void WriteFinalBlock<TOperation, TBlockEncoder>(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
@@ -532,9 +559,10 @@ internal partial class Av1TileWriter
         ref int finalBlockIndex,
         ref TBlockEncoder blockEncoder)
         where TBlockEncoder : struct, IBlockEncodingHandler
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         ref Av1EncoderBlockStruct block = ref superblock.FinalBlocks[finalBlockIndex++];
-        WriteModesBlock(
+        WriteModesBlock<TOperation, TBlockEncoder>(
             pcs,
             entropyCodingContext,
             writer,
@@ -697,6 +725,25 @@ internal partial class Av1TileWriter
         Av1PartitionType partitionType,
         Point blockOrigin,
         Av1NeighborArrayUnit<Av1PartitionContext> partition_context_na)
+        => EncodePartition<Av1SymbolEncoder.SymbolWriteOperation>(
+            pcs,
+            writer,
+            blockSize,
+            partitionType,
+            blockOrigin,
+            partition_context_na);
+
+    /// <summary>
+    /// Processes the selected syntax and its adaptive probability state.
+    /// </summary>
+    public static void EncodePartition<TOperation>(
+        Av1PictureControlSet pcs,
+        Av1SymbolEncoder writer,
+        Av1BlockSize blockSize,
+        Av1PartitionType partitionType,
+        Point blockOrigin,
+        Av1NeighborArrayUnit<Av1PartitionContext> partition_context_na)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         bool is_partition_point = blockSize >= Av1BlockSize.Block8x8;
 
@@ -721,15 +768,15 @@ internal partial class Av1TileWriter
 
         if (has_rows && has_cols)
         {
-            writer.WritePartitionType(partitionType, context_index);
+            writer.WritePartitionType<TOperation>(partitionType, context_index);
         }
         else if (!has_rows && has_cols)
         {
-            writer.WriteSplitOrHorizontal(partitionType, blockSize, context_index);
+            writer.WriteSplitOrHorizontal<TOperation>(partitionType, blockSize, context_index);
         }
         else
         {
-            writer.WriteSplitOrVertical(partitionType, blockSize, context_index);
+            writer.WriteSplitOrVertical<TOperation>(partitionType, blockSize, context_index);
         }
 
         return;
@@ -780,7 +827,7 @@ internal partial class Av1TileWriter
     /// <param name="blockOrigin">The absolute luma-sample origin of the block.</param>
     /// <param name="coefficientBuffer">The transformed coefficients retained by raster-ordered superblock.</param>
     /// <param name="blockEncoder">The final-block decision producer.</param>
-    private static void WriteModesBlock<TBlockEncoder>(
+    private static void WriteModesBlock<TOperation, TBlockEncoder>(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
@@ -791,6 +838,7 @@ internal partial class Av1TileWriter
         Av1EncoderCoefficientBuffer coefficientBuffer,
         ref TBlockEncoder blockEncoder)
         where TBlockEncoder : struct, IBlockEncodingHandler
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         Av1SequenceControlSet scs = pcs.Sequence;
         ObuFrameHeader frm_hdr = pcs.Parent.FrameHeader;
@@ -831,6 +879,16 @@ internal partial class Av1TileWriter
             ref blk_ptr,
             ref paletteInfo);
 
+        int allocationOffset = pcs.ModeInfoGrid.Span[(mi_row * mi_stride) + mi_col];
+        if (!TOperation.WritesOutput)
+        {
+            pcs.BlockEncodings.Span[allocationOffset] = blk_ptr;
+            if (frm_hdr.AllowScreenContentTools)
+            {
+                pcs.BlockPalettes.Span[allocationOffset] = paletteInfo;
+            }
+        }
+
         bool skipWritingCoefficients = macroBlockModeInfo.Block.Skip;
 
         // Segmentation, skip, filter, and quantizer syntax precede the prediction-domain branch in both
@@ -838,7 +896,7 @@ internal partial class Av1TileWriter
         {
             if (pcs.Parent.FrameHeader.SegmentationParameters.Enabled && pcs.Parent.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
             {
-                WriteSegmentId(
+                WriteSegmentId<TOperation>(
                     pcs,
                     writer,
                     blockSize,
@@ -849,11 +907,11 @@ internal partial class Av1TileWriter
                     beforeSkip: true);
             }
 
-            EncodeSkipCoefficients(writer, macroBlock, skipWritingCoefficients);
+            EncodeSkipCoefficients<TOperation>(writer, macroBlock, skipWritingCoefficients);
 
             if (pcs.Parent.FrameHeader.SegmentationParameters.Enabled && !pcs.Parent.FrameHeader.SegmentationParameters.SegmentIdPrecedesSkip)
             {
-                WriteSegmentId(
+                WriteSegmentId<TOperation>(
                     pcs,
                     writer,
                     blockSize,
@@ -864,7 +922,7 @@ internal partial class Av1TileWriter
                     beforeSkip: false);
             }
 
-            WriteCdef(
+            WriteCdef<TOperation>(
                 scs,
                 pcs,
                 writer,
@@ -883,7 +941,7 @@ internal partial class Av1TileWriter
                     int reduced_delta_qindex = (current_q_index - pcs.Parent.PreviousQIndex.Span[tile_idx]) /
                         frm_hdr.DeltaQParameters.Resolution;
 
-                    writer.WriteDeltaQuantizerIndex(reduced_delta_qindex);
+                    writer.WriteDeltaQuantizerIndex<TOperation>(reduced_delta_qindex);
                     pcs.Parent.PreviousQIndex.Span[tile_idx] = current_q_index;
                 }
             }
@@ -906,7 +964,7 @@ internal partial class Av1TileWriter
                 if (!isReferenceForced && !isGlobalMotionForced)
                 {
                     int intraInterContext = GetIntraInterContext(macroBlock);
-                    writer.WriteIsInter(isInterBlock, intraInterContext);
+                    writer.WriteIsInter<TOperation>(isInterBlock, intraInterContext);
                 }
             }
 
@@ -918,35 +976,68 @@ internal partial class Av1TileWriter
                 {
                     Span<byte> referenceCounts = stackalloc byte[Av1Constants.ReferenceFrameCount];
                     CollectNeighborReferenceCounts(macroBlock, referenceCounts);
-                    writer.WriteSingleReference(
+                    writer.WriteSingleReference<TOperation>(
                         macroBlockModeInfo.Block.ReferenceFrame,
                         referenceCounts);
                 }
 
                 if (!isGlobalMotionForced)
                 {
-                    ref Av1ReferenceMotionVectors referenceMotionVectors = ref tb_ptr.Workspace.ReferenceMotionVectors;
-                    referenceMotionVectors.Build(
-                        pcs,
-                        macroBlock,
-                        modeInfoPosition,
-                        blockSize,
-                        macroBlockModeInfo.Block.PartitionType,
-                        scs.SequenceHeader,
-                        frm_hdr,
-                        macroBlockModeInfo.Block.ReferenceFrame);
+                    Av1EncoderReferenceContext referenceContext;
+                    if (TBlockEncoder.UsesRetainedDecisions)
+                    {
+                        referenceContext = pcs.ReferenceContexts.Span[allocationOffset];
+                    }
+                    else
+                    {
+                        ref Av1ReferenceMotionVectors referenceMotionVectors = ref tb_ptr.Workspace.ReferenceMotionVectors;
+                        referenceMotionVectors.Build(
+                            pcs,
+                            macroBlock,
+                            modeInfoPosition,
+                            blockSize,
+                            macroBlockModeInfo.Block.PartitionType,
+                            scs.SequenceHeader,
+                            frm_hdr,
+                            macroBlockModeInfo.Block.ReferenceFrame);
 
-                    writer.WriteInterMode(lumaMode, referenceMotionVectors.ModeContext);
+                        referenceContext = default;
+                        referenceContext.Count = (byte)referenceMotionVectors.Count;
+                        referenceContext.ModeContext = (ushort)referenceMotionVectors.ModeContext;
+                        int candidateCount = Math.Min(4, referenceMotionVectors.Count);
+                        referenceMotionVectors.Weights[..candidateCount].CopyTo(referenceContext.Weights);
+
+                        // A stack with no candidates still has a differential fallback vector. Candidate
+                        // weights exist only for discovered entries, while reference zero always remains usable.
+                        int referenceCount = Math.Max(1, candidateCount);
+                        for (int index = 0; index < referenceCount; index++)
+                        {
+                            Av1MotionVector candidate = referenceMotionVectors.GetNewReference(index);
+                            referenceContext.References[index] = new Av1EncoderDisplacementVector
+                            {
+                                Row = (short)candidate.Row,
+                                Column = (short)candidate.Column
+                            };
+                        }
+
+                        // Save the contexts before later blocks become visible through the completed frame grid.
+                        if (!TOperation.WritesOutput)
+                        {
+                            pcs.ReferenceContexts.Span[allocationOffset] = referenceContext;
+                        }
+                    }
+
+                    writer.WriteInterMode<TOperation>(lumaMode, referenceContext.ModeContext);
                     int referenceMotionVectorIndex = blk_ptr.ReferenceMotionVectorIndex;
                     if (lumaMode == Av1PredictionMode.NearMotionVector)
                     {
                         // NEARMV reserves stack entry zero for NEARESTMV, so its DRL decisions advance from
                         // near entry zero to one and then from one to two.
-                        for (int index = 1; index < 3 && referenceMotionVectors.Count > index + 1; index++)
+                        for (int index = 1; index < 3 && referenceContext.Count > index + 1; index++)
                         {
                             bool advance = referenceMotionVectorIndex >= index;
-                            int context = Av1SymbolContextHelper.GetDrlContext(referenceMotionVectors.Weights, index);
-                            writer.WriteDynamicReferenceList(advance, context);
+                            int context = Av1SymbolContextHelper.GetDrlContext(referenceContext.Weights, index);
+                            writer.WriteDynamicReferenceList<TOperation>(advance, context);
                             if (!advance)
                             {
                                 break;
@@ -956,11 +1047,11 @@ internal partial class Av1TileWriter
                     else if (lumaMode == Av1PredictionMode.NewMotionVector)
                     {
                         // NEWMV begins at stack entry zero and can advance through entries one and two.
-                        for (int index = 0; index < 2 && referenceMotionVectors.Count > index + 1; index++)
+                        for (int index = 0; index < 2 && referenceContext.Count > index + 1; index++)
                         {
                             bool advance = referenceMotionVectorIndex > index;
-                            int context = Av1SymbolContextHelper.GetDrlContext(referenceMotionVectors.Weights, index);
-                            writer.WriteDynamicReferenceList(advance, context);
+                            int context = Av1SymbolContextHelper.GetDrlContext(referenceContext.Weights, index);
+                            writer.WriteDynamicReferenceList<TOperation>(advance, context);
                             if (!advance)
                             {
                                 break;
@@ -968,10 +1059,20 @@ internal partial class Av1TileWriter
                         }
 
                         Av1MotionVector vector = pcs.GetDisplacementVector(modeInfoPosition);
-                        writer.WriteMotionVector(
+                        writer.WriteMotionVector<TOperation>(
                             vector,
-                            referenceMotionVectors.GetNewReference(referenceMotionVectorIndex),
+                            new Av1MotionVector(
+                                referenceContext.References[referenceMotionVectorIndex].Row,
+                                referenceContext.References[referenceMotionVectorIndex].Column),
                             frm_hdr.MotionVectorPrecision);
+
+                        if (TOperation.WritesOutput && pcs.Parent.MotionSearchSettings.AutomaticStepSizeLevel != 0)
+                        {
+                            // Retain the absolute displacement, not the coded difference from the reference.
+                            // Only packed NEWMV syntax contributes to the following frame's search range.
+                            int magnitude = Math.Max(Math.Abs(vector.Row), Math.Abs(vector.Column)) >> Av1MotionVector.SubpixelBits;
+                            pcs.Parent.MaximumMotionVectorMagnitude = Math.Max(pcs.Parent.MaximumMotionVectorMagnitude, magnitude);
+                        }
                     }
                 }
 
@@ -983,7 +1084,7 @@ internal partial class Av1TileWriter
                         macroBlock,
                         direction: 0);
 
-                    writer.WriteSwitchableInterpolationFilter(macroBlockModeInfo.Block.VerticalInterpolationFilter, verticalContext);
+                    writer.WriteSwitchableInterpolationFilter<TOperation>(macroBlockModeInfo.Block.VerticalInterpolationFilter, verticalContext);
                     if (scs.SequenceHeader.EnableDualFilter)
                     {
                         int horizontalContext = Av1SymbolContextHelper.GetSwitchableInterpolationContext(
@@ -991,23 +1092,24 @@ internal partial class Av1TileWriter
                             macroBlock,
                             direction: 1);
 
-                        writer.WriteSwitchableInterpolationFilter(macroBlockModeInfo.Block.HorizontalInterpolationFilter, horizontalContext);
+                        writer.WriteSwitchableInterpolationFilter<TOperation>(macroBlockModeInfo.Block.HorizontalInterpolationFilter, horizontalContext);
                     }
                 }
             }
             else if (IsIntraBlockCopyAllowed(pcs.Parent.FrameHeader/*, pcs.Parent.SliceType*/))
             {
-                WriteIntraBlockCopyInfo(
+                WriteIntraBlockCopyInfo<TOperation>(
                     pcs,
                     writer,
                     macroBlock,
                     modeInfoPosition,
-                    macroBlockModeInfo);
+                    macroBlockModeInfo,
+                    TBlockEncoder.UsesRetainedDecisions);
             }
 
             if (!isInterBlock && !macroBlockModeInfo.Block.UseIntraBlockCopy)
             {
-                EncodeIntraLumaMode(
+                EncodeIntraLumaMode<TOperation>(
                     writer,
                     frm_hdr,
                     macroBlockModeInfo,
@@ -1021,7 +1123,7 @@ internal partial class Av1TileWriter
             {
                 if (blk_ptr.HasChroma)
                 {
-                    EncodeIntraChromaMode(
+                    EncodeIntraChromaMode<TOperation>(
                         writer,
                         frm_hdr,
                         scs.SequenceHeader.ColorConfig,
@@ -1039,7 +1141,7 @@ internal partial class Av1TileWriter
 
             if (paletteAllowed)
             {
-                WritePaletteModeInfo(
+                WritePaletteModeInfo<TOperation>(
                     scs,
                     pcs,
                     writer,
@@ -1060,7 +1162,7 @@ internal partial class Av1TileWriter
                     paletteInfo.PaletteSizes[0],
                     lumaMode))
             {
-                writer.WriteFilterIntraMode(blk_ptr.FilterIntraMode, blockSize);
+                writer.WriteFilterIntraMode<TOperation>(blk_ptr.FilterIntraMode, blockSize);
             }
 
             if (paletteAllowed)
@@ -1087,20 +1189,41 @@ internal partial class Av1TileWriter
                     // that the decoder consumes before transform syntax and corrupt the remainder of the tile.
                     int columns = (blockWidth + (Math.Min(0, macroBlock.ToRightEdge) >> 3)) >> subX;
                     int rows = (blockHeight + (Math.Min(0, macroBlock.ToBottomEdge) >> 3)) >> subY;
-                    Buffer2DRegion<byte> colorIndexMap = tb_ptr.Workspace
-                        .GetPaletteMaps()
-                        .GetMap(planeType, planeWidth, planeHeight);
+                    int tokenCount = rows * columns;
+                    if (TBlockEncoder.UsesRetainedDecisions)
+                    {
+                        writer.WritePaletteTokens(
+                            paletteSize,
+                            planeType,
+                            pcs.PaletteTokens.Span.Slice(entropyCodingContext.PaletteTokenOffset, tokenCount));
+                    }
+                    else
+                    {
+                        Buffer2DRegion<byte> colorIndexMap = tb_ptr.Workspace
+                            .GetPaletteMaps()
+                            .GetMap(planeType, planeWidth, planeHeight);
 
-                    writer.WritePaletteColorMap(
-                        paletteSize,
-                        planeType,
-                        rows,
-                        columns,
-                        colorIndexMap);
+                        if (TOperation.WritesOutput)
+                        {
+                            writer.WritePaletteColorMap<TOperation>(paletteSize, planeType, rows, columns, colorIndexMap);
+                        }
+                        else
+                        {
+                            writer.TokenizePaletteColorMap(
+                                paletteSize,
+                                planeType,
+                                rows,
+                                columns,
+                                colorIndexMap,
+                                pcs.PaletteTokens.Span.Slice(entropyCodingContext.PaletteTokenOffset, tokenCount));
+                        }
+                    }
+
+                    entropyCodingContext.PaletteTokenOffset += tokenCount;
                 }
             }
 
-            WriteTransformSize(
+            WriteTransformSize<TOperation>(
                 pcs,
                 writer,
                 ref macroBlockModeInfo,
@@ -1112,7 +1235,7 @@ internal partial class Av1TileWriter
             entropyCodingContext.MacroBlockModeInfo = macroBlockModeInfo;
             if (!skipWritingCoefficients)
             {
-                EncodeCoefficients1d(
+                EncodeCoefficients1d<TOperation>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -1124,7 +1247,8 @@ internal partial class Av1TileWriter
                     tb_ptr.Index,
                     luma_dc_sign_level_coeff_na,
                     cr_dc_sign_level_coeff_na,
-                    cb_dc_sign_level_coeff_na);
+                    cb_dc_sign_level_coeff_na,
+                    TBlockEncoder.UsesRetainedDecisions);
             }
         }
 
@@ -1210,6 +1334,27 @@ internal partial class Av1TileWriter
         Av1BlockSize blockSize,
         Point blockOrigin,
         int tileIndex)
+        => WriteTransformSize<Av1SymbolEncoder.SymbolWriteOperation>(
+            pcs,
+            writer,
+            ref macroBlockModeInfo,
+            macroBlock,
+            blockSize,
+            blockOrigin,
+            tileIndex);
+
+    /// <summary>
+    /// Processes the selected syntax and its adaptive probability state.
+    /// </summary>
+    internal static void WriteTransformSize<TOperation>(
+        Av1PictureControlSet pcs,
+        Av1SymbolEncoder writer,
+        ref Av1MacroBlockModeInfo macroBlockModeInfo,
+        Av1MacroBlockD macroBlock,
+        Av1BlockSize blockSize,
+        Point blockOrigin,
+        int tileIndex)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
         bool isLossless = frameHeader.LosslessArray[macroBlockModeInfo.Block.SegmentId];
@@ -1236,7 +1381,7 @@ internal partial class Av1TileWriter
         if (writesUniformTransformSize)
         {
             int context = GetTransformSizeContext(transformContexts, macroBlock, blockOrigin, blockSize);
-            writer.WriteTransformSize(blockSize, transformSize, context);
+            writer.WriteTransformSize<TOperation>(blockSize, transformSize, context);
         }
         else if (writesVariableTransformSize)
         {
@@ -1249,7 +1394,7 @@ internal partial class Av1TileWriter
                 blockSize.GetMaximumTransformSize());
 
             // Current inter decisions retain the maximum transform, so their variable-transform tree has one unsplit root.
-            writer.WriteTransformPartition(false, context);
+            writer.WriteTransformPartition<TOperation>(false, context);
         }
 
         Size blockDimensions = new(blockSize.GetWidth(), blockSize.GetHeight());
@@ -1325,6 +1470,29 @@ internal partial class Av1TileWriter
         Av1BlockSize blockSize,
         Av1PredictionMode lumaMode,
         Av1ChromaPredictionMode chromaMode)
+        => EncodeIntraChromaMode<Av1SymbolEncoder.SymbolWriteOperation>(
+            writer,
+            frameHeader,
+            colorConfig,
+            macroBlockModeInfo,
+            ref blk_ptr,
+            blockSize,
+            lumaMode,
+            chromaMode);
+
+    /// <summary>
+    /// Processes the selected syntax and its adaptive probability state.
+    /// </summary>
+    public static void EncodeIntraChromaMode<TOperation>(
+        Av1SymbolEncoder writer,
+        ObuFrameHeader frameHeader,
+        ObuColorConfig colorConfig,
+        Av1MacroBlockModeInfo macroBlockModeInfo,
+        ref Av1EncoderBlockStruct blk_ptr,
+        Av1BlockSize blockSize,
+        Av1PredictionMode lumaMode,
+        Av1ChromaPredictionMode chromaMode)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         bool isChromaFromLumaAllowed = IsChromaFromLumaAllowed(
             frameHeader,
@@ -1332,18 +1500,18 @@ internal partial class Av1TileWriter
             macroBlockModeInfo,
             blockSize);
 
-        writer.WriteChromaMode(chromaMode, isChromaFromLumaAllowed, lumaMode);
+        writer.WriteChromaMode<TOperation>(chromaMode, isChromaFromLumaAllowed, lumaMode);
 
         if (chromaMode == Av1ChromaPredictionMode.ChromaFromLuma)
         {
-            writer.WriteChromaFromLumaAlphas(
+            writer.WriteChromaFromLumaAlphas<TOperation>(
                 blk_ptr.PredictionUnit.ChromaFromLumaIndex,
                 blk_ptr.PredictionUnit.ChromaFromLumaSigns);
         }
 
         if (blockSize >= Av1BlockSize.Block8x8 && macroBlockModeInfo.Block.UvMode.IsDirectional())
         {
-            writer.WriteAngleDelta(
+            writer.WriteAngleDelta<TOperation>(
                 blk_ptr.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv] + Av1Constants.MaxAngleDelta,
                 chromaMode.ToLumaMode());
         }
@@ -1431,7 +1599,7 @@ internal partial class Av1TileWriter
     /// <param name="blk_ptr">The encoder prediction-unit state.</param>
     /// <param name="blockSize">The block size.</param>
     /// <param name="lumaMode">The selected luma prediction mode.</param>
-    private static void EncodeIntraLumaMode(
+    private static void EncodeIntraLumaMode<TOperation>(
         Av1SymbolEncoder writer,
         ObuFrameHeader frameHeader,
         Av1MacroBlockModeInfo macroBlockModeInfo,
@@ -1439,20 +1607,21 @@ internal partial class Av1TileWriter
         ref Av1EncoderBlockStruct blk_ptr,
         Av1BlockSize blockSize,
         Av1PredictionMode lumaMode)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         if (frameHeader.IsIntra)
         {
             GetYModeContext(macroBlock, out byte topContext, out byte leftContext);
-            writer.WriteLumaMode(lumaMode, topContext, leftContext);
+            writer.WriteLumaMode<TOperation>(lumaMode, topContext, leftContext);
         }
         else
         {
-            writer.WriteInterFrameLumaMode(lumaMode, blockSize);
+            writer.WriteInterFrameLumaMode<TOperation>(lumaMode, blockSize);
         }
 
         if (blockSize >= Av1BlockSize.Block8x8 && macroBlockModeInfo.Block.Mode.IsDirectional())
         {
-            writer.WriteAngleDelta(blk_ptr.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] + Av1Constants.MaxAngleDelta, lumaMode);
+            writer.WriteAngleDelta<TOperation>(blk_ptr.PredictionUnit.AngleDelta[(int)Av1PlaneType.Y] + Av1Constants.MaxAngleDelta, lumaMode);
         }
     }
 
@@ -1565,6 +1734,33 @@ internal partial class Av1TileWriter
         Point blockOrigin,
         int tileIndex,
         bool hasChroma)
+        => WritePaletteModeInfo<Av1SymbolEncoder.SymbolWriteOperation>(
+            scs,
+            pcs,
+            writer,
+            macroBlock,
+            macroBlockModeInfo,
+            ref paletteInfo,
+            blockSize,
+            blockOrigin,
+            tileIndex,
+            hasChroma);
+
+    /// <summary>
+    /// Processes the selected syntax and its adaptive probability state.
+    /// </summary>
+    internal static void WritePaletteModeInfo<TOperation>(
+        Av1SequenceControlSet scs,
+        Av1PictureControlSet pcs,
+        Av1SymbolEncoder writer,
+        Av1MacroBlockD macroBlock,
+        Av1MacroBlockModeInfo macroBlockModeInfo,
+        ref Av1EncoderPaletteInfo paletteInfo,
+        Av1BlockSize blockSize,
+        Point blockOrigin,
+        int tileIndex,
+        bool hasChroma)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         int blockSizeContext = GetPaletteBlockSizeContext(blockSize);
         Av1NeighborArrayUnit<Av1EncoderPaletteInfo> paletteContexts = pcs.PaletteContexts[tileIndex];
@@ -1572,10 +1768,10 @@ internal partial class Av1TileWriter
         if (macroBlockModeInfo.Block.Mode == Av1PredictionMode.DC)
         {
             int neighborContext = GetPaletteYModeContext(paletteContexts, macroBlock, blockOrigin);
-            writer.WritePaletteYMode(yPaletteSize != 0, blockSizeContext, neighborContext);
+            writer.WritePaletteYMode<TOperation>(yPaletteSize != 0, blockSizeContext, neighborContext);
             if (yPaletteSize != 0)
             {
-                writer.WritePaletteSize(yPaletteSize, blockSizeContext, Av1PlaneType.Y);
+                writer.WritePaletteSize<TOperation>(yPaletteSize, blockSizeContext, Av1PlaneType.Y);
                 Span<ushort> colorCache = stackalloc ushort[2 * Av1Constants.PaletteMaxSize];
                 int cacheSize = GetPaletteCache(
                     paletteContexts,
@@ -1584,7 +1780,7 @@ internal partial class Av1TileWriter
                     Av1Plane.Y,
                     colorCache);
 
-                writer.WritePaletteYColors(
+                writer.WritePaletteYColors<TOperation>(
                     colorCache[..cacheSize],
                     paletteInfo.GetColors(Av1Plane.Y),
                     scs.SequenceHeader.ColorConfig.BitDepth.GetBitCount());
@@ -1596,10 +1792,10 @@ internal partial class Av1TileWriter
             macroBlockModeInfo.Block.UvMode == Av1ChromaPredictionMode.DC &&
             hasChroma)
         {
-            writer.WritePaletteUvMode(uvPaletteSize != 0, yPaletteSize != 0);
+            writer.WritePaletteUvMode<TOperation>(uvPaletteSize != 0, yPaletteSize != 0);
             if (uvPaletteSize != 0)
             {
-                writer.WritePaletteSize(uvPaletteSize, blockSizeContext, Av1PlaneType.Uv);
+                writer.WritePaletteSize<TOperation>(uvPaletteSize, blockSizeContext, Av1PlaneType.Uv);
                 Span<ushort> colorCache = stackalloc ushort[2 * Av1Constants.PaletteMaxSize];
                 int cacheSize = GetPaletteCache(
                     paletteContexts,
@@ -1608,7 +1804,7 @@ internal partial class Av1TileWriter
                     Av1Plane.U,
                     colorCache);
 
-                writer.WritePaletteUvColors(
+                writer.WritePaletteUvColors<TOperation>(
                     colorCache[..cacheSize],
                     paletteInfo.GetColors(Av1Plane.U),
                     paletteInfo.GetColors(Av1Plane.V),
@@ -1719,23 +1915,62 @@ internal partial class Av1TileWriter
         Av1MacroBlockD macroBlock,
         Point modeInfoPosition,
         Av1MacroBlockModeInfo macroBlockModeInfo)
+        => WriteIntraBlockCopyInfo<Av1SymbolEncoder.SymbolWriteOperation>(
+            picture,
+            writer,
+            macroBlock,
+            modeInfoPosition,
+            macroBlockModeInfo,
+            false);
+
+    /// <summary>
+    /// Processes the selected syntax and its adaptive probability state.
+    /// </summary>
+    public static void WriteIntraBlockCopyInfo<TOperation>(
+        Av1PictureControlSet picture,
+        Av1SymbolEncoder writer,
+        Av1MacroBlockD macroBlock,
+        Point modeInfoPosition,
+        Av1MacroBlockModeInfo macroBlockModeInfo,
+        bool useRetainedContext)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         bool useIntraBlockCopy = macroBlockModeInfo.Block.UseIntraBlockCopy;
-        writer.WriteUseIntraBlockCopy(useIntraBlockCopy);
+        writer.WriteUseIntraBlockCopy<TOperation>(useIntraBlockCopy);
         if (useIntraBlockCopy)
         {
-            Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[8];
-            Span<int> weights = stackalloc int[8];
-            Av1MotionVector reference = Av1IntraBlockCopy.FindReference(
-                picture,
-                macroBlock,
-                modeInfoPosition,
-                macroBlockModeInfo.Block.BlockSize,
-                macroBlockModeInfo.Block.PartitionType,
-                candidates,
-                weights);
+            int gridOffset = (modeInfoPosition.Y * picture.ModeInfoStride) + modeInfoPosition.X;
+            int allocationOffset = picture.ModeInfoGrid.Span[gridOffset];
+            Av1MotionVector reference;
+            if (useRetainedContext)
+            {
+                Av1EncoderDisplacementVector retained = picture.ReferenceContexts.Span[allocationOffset].References[0];
+                reference = new Av1MotionVector(retained.Row, retained.Column);
+            }
+            else
+            {
+                Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[8];
+                Span<int> weights = stackalloc int[8];
+                reference = Av1IntraBlockCopy.FindReference(
+                    picture,
+                    macroBlock,
+                    modeInfoPosition,
+                    macroBlockModeInfo.Block.BlockSize,
+                    macroBlockModeInfo.Block.PartitionType,
+                    candidates,
+                    weights);
 
-            writer.WriteDisplacementVector(
+                if (!TOperation.WritesOutput)
+                {
+                    picture.ReferenceContexts.Span[allocationOffset].References[0] = new Av1EncoderDisplacementVector
+                    {
+                        Row = (short)reference.Row,
+                        Column = (short)reference.Column
+                    };
+                }
+            }
+
+            writer.WriteDisplacementVector<TOperation>(
                 picture.GetDisplacementVector(modeInfoPosition),
                 reference);
         }
@@ -1858,6 +2093,25 @@ internal partial class Av1TileWriter
         int tileIndex,
         bool skip,
         Point modeInfoPosition)
+        => WriteCdef<Av1SymbolEncoder.SymbolWriteOperation>(
+            scs,
+            pcs,
+            writer,
+            tileIndex,
+            skip,
+            modeInfoPosition);
+
+    /// <summary>
+    /// Processes the selected syntax and its adaptive probability state.
+    /// </summary>
+    internal static void WriteCdef<TOperation>(
+        Av1SequenceControlSet scs,
+        Av1PictureControlSet pcs,
+        Av1SymbolEncoder writer,
+        int tileIndex,
+        bool skip,
+        Point modeInfoPosition)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
 
@@ -1893,7 +2147,7 @@ internal partial class Av1TileWriter
 
             // CDEF strength belongs to the first mode-info block in the 64x64 filter unit even when skipped
             // blocks delay transmission until a later coding block.
-            writer.WriteCdefStrength(firstBlock.CdefStrength, frameHeader.CdefParameters.BitCount);
+            writer.WriteCdefStrength<TOperation>(firstBlock.CdefStrength, frameHeader.CdefParameters.BitCount);
             cdefPreset[index] = firstBlock.CdefStrength;
         }
     }
@@ -1950,7 +2204,8 @@ internal partial class Av1TileWriter
     /// <param name="luma_dc_sign_level_coeff_na">The luma coefficient neighbor contexts.</param>
     /// <param name="cr_dc_sign_level_coeff_na">The red-difference chroma coefficient neighbor contexts.</param>
     /// <param name="cb_dc_sign_level_coeff_na">The blue-difference chroma coefficient neighbor contexts.</param>
-    private static void EncodeCoefficients1d(
+    /// <param name="useRetainedContexts">Whether coefficient contexts come from completed block analysis.</param>
+    private static void EncodeCoefficients1d<TOperation>(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext ec_ctx,
         Av1SymbolEncoder writer,
@@ -1962,9 +2217,11 @@ internal partial class Av1TileWriter
         int superblockIndex,
         Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na,
         Av1NeighborArrayUnit<byte> cr_dc_sign_level_coeff_na,
-        Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na)
+        Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na,
+        bool useRetainedContexts)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
-        EncodeTransformCoefficientRegions(
+        EncodeTransformCoefficientRegions<TOperation>(
             pcs,
             ec_ctx,
             writer,
@@ -1976,7 +2233,8 @@ internal partial class Av1TileWriter
             superblockIndex,
             luma_dc_sign_level_coeff_na,
             cr_dc_sign_level_coeff_na,
-            cb_dc_sign_level_coeff_na);
+            cb_dc_sign_level_coeff_na,
+            useRetainedContexts);
     }
 
     /// <summary>
@@ -2003,6 +2261,35 @@ internal partial class Av1TileWriter
         Av1EncoderCoefficientBuffer coefficientBuffer,
         int superblockIndex,
         Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na)
+        => EncodeTransformCoefficientsY<Av1SymbolEncoder.SymbolWriteOperation>(
+            pcs,
+            entropyCodingContext,
+            writer,
+            ref blk_ptr,
+            blockOrigin,
+            intraLumaDir,
+            plane_bsize,
+            coefficientBuffer,
+            superblockIndex,
+            luma_dc_sign_level_coeff_na,
+            false);
+
+    /// <summary>
+    /// Processes the selected syntax and its adaptive probability state.
+    /// </summary>
+    public static void EncodeTransformCoefficientsY<TOperation>(
+        Av1PictureControlSet pcs,
+        Av1EntropyCodingContext entropyCodingContext,
+        Av1SymbolEncoder writer,
+        ref Av1EncoderBlockStruct blk_ptr,
+        Point blockOrigin,
+        Av1PredictionMode intraLumaDir,
+        Av1BlockSize plane_bsize,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        int superblockIndex,
+        Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na,
+        bool useRetainedContexts)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         Av1MacroBlockD macroBlock = entropyCodingContext.MacroBlock;
         int maximumBlocksWide = plane_bsize.GetWidth();
@@ -2033,7 +2320,7 @@ internal partial class Av1TileWriter
             for (int regionColumn = 0; regionColumn < maximumBlocksWide; regionColumn += maximumUnitBlocksWide)
             {
                 int unitRight = Math.Min(regionColumn + maximumUnitBlocksWide, maximumBlocksWide);
-                EncodeTransformCoefficientRegion(
+                EncodeTransformCoefficientRegion<TOperation>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -2048,7 +2335,8 @@ internal partial class Av1TileWriter
                     regionRow,
                     regionColumn,
                     unitBottom,
-                    unitRight);
+                    unitRight,
+                    useRetainedContexts);
             }
         }
     }
@@ -2067,7 +2355,8 @@ internal partial class Av1TileWriter
     /// <param name="superblockIndex">The raster-ordered index of the containing superblock.</param>
     /// <param name="cr_dc_sign_level_coeff_na">The red-difference chroma coefficient neighbor contexts.</param>
     /// <param name="cb_dc_sign_level_coeff_na">The blue-difference chroma coefficient neighbor contexts.</param>
-    private static void EncodeTransformCoefficientsUv(
+    /// <param name="useRetainedContexts">Whether coefficient contexts come from completed block analysis.</param>
+    private static void EncodeTransformCoefficientsUv<TOperation>(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
@@ -2078,7 +2367,9 @@ internal partial class Av1TileWriter
         Av1EncoderCoefficientBuffer coefficientBuffer,
         int superblockIndex,
         Av1NeighborArrayUnit<byte> cr_dc_sign_level_coeff_na,
-        Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na)
+        Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na,
+        bool useRetainedContexts)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         ObuColorConfig colorConfig = pcs.Sequence.SequenceHeader.ColorConfig;
         if (!blk_ptr.HasChroma || colorConfig.IsMonochrome)
@@ -2117,7 +2408,7 @@ internal partial class Av1TileWriter
             for (int regionColumn = 0; regionColumn < maximumBlocksWide; regionColumn += maximumUnitBlocksWide)
             {
                 int unitRight = Math.Min(regionColumn + maximumUnitBlocksWide, maximumBlocksWide);
-                EncodeTransformCoefficientRegion(
+                EncodeTransformCoefficientRegion<TOperation>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -2132,9 +2423,10 @@ internal partial class Av1TileWriter
                     regionRow,
                     regionColumn,
                     unitBottom,
-                    unitRight);
+                    unitRight,
+                    useRetainedContexts);
 
-                EncodeTransformCoefficientRegion(
+                EncodeTransformCoefficientRegion<TOperation>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -2149,12 +2441,13 @@ internal partial class Av1TileWriter
                     regionRow,
                     regionColumn,
                     unitBottom,
-                    unitRight);
+                    unitRight,
+                    useRetainedContexts);
             }
         }
     }
 
-    private static void EncodeTransformCoefficientRegions(
+    private static void EncodeTransformCoefficientRegions<TOperation>(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
@@ -2166,7 +2459,9 @@ internal partial class Av1TileWriter
         int superblockIndex,
         Av1NeighborArrayUnit<byte> lumaCoefficientNeighbors,
         Av1NeighborArrayUnit<byte> redCoefficientNeighbors,
-        Av1NeighborArrayUnit<byte> blueCoefficientNeighbors)
+        Av1NeighborArrayUnit<byte> blueCoefficientNeighbors,
+        bool useRetainedContexts)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         Av1MacroBlockD macroBlock = entropyCodingContext.MacroBlock;
         int maximumBlocksWide = blockSize.GetWidth();
@@ -2205,7 +2500,7 @@ internal partial class Av1TileWriter
             for (int regionColumn = 0; regionColumn < maximumBlocksWide; regionColumn += maximumUnitBlocksWide)
             {
                 int unitRight = Math.Min(regionColumn + maximumUnitBlocksWide, maximumBlocksWide);
-                EncodeTransformCoefficientRegion(
+                EncodeTransformCoefficientRegion<TOperation>(
                     pcs,
                     entropyCodingContext,
                     writer,
@@ -2220,7 +2515,8 @@ internal partial class Av1TileWriter
                     regionRow,
                     regionColumn,
                     unitBottom,
-                    unitRight);
+                    unitRight,
+                    useRetainedContexts);
 
                 if (hasChroma)
                 {
@@ -2231,7 +2527,7 @@ internal partial class Av1TileWriter
                     // 4x4, 4x8, or 8x4 luma block still emits its shared 4x4 chroma transform.
                     int chromaUnitBottom = Av1Math.RoundPowerOf2(unitBottom, subsamplingY);
                     int chromaUnitRight = Av1Math.RoundPowerOf2(unitRight, subsamplingX);
-                    EncodeTransformCoefficientRegion(
+                    EncodeTransformCoefficientRegion<TOperation>(
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -2246,9 +2542,10 @@ internal partial class Av1TileWriter
                         chromaRegionRow,
                         chromaRegionColumn,
                         chromaUnitBottom,
-                        chromaUnitRight);
+                        chromaUnitRight,
+                        useRetainedContexts);
 
-                    EncodeTransformCoefficientRegion(
+                    EncodeTransformCoefficientRegion<TOperation>(
                         pcs,
                         entropyCodingContext,
                         writer,
@@ -2263,13 +2560,14 @@ internal partial class Av1TileWriter
                         chromaRegionRow,
                         chromaRegionColumn,
                         chromaUnitBottom,
-                        chromaUnitRight);
+                        chromaUnitRight,
+                        useRetainedContexts);
                 }
             }
         }
     }
 
-    private static void EncodeTransformCoefficientRegion(
+    private static void EncodeTransformCoefficientRegion<TOperation>(
         Av1PictureControlSet pcs,
         Av1EntropyCodingContext entropyCodingContext,
         Av1SymbolEncoder writer,
@@ -2284,7 +2582,9 @@ internal partial class Av1TileWriter
         int regionRow,
         int regionColumn,
         int unitBottom,
-        int unitRight)
+        int unitRight,
+        bool useRetainedContexts)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         ObuFrameHeader frameHeader = pcs.Parent.FrameHeader;
         ObuColorConfig colorConfig = pcs.Sequence.SequenceHeader.ColorConfig;
@@ -2333,12 +2633,29 @@ internal partial class Av1TileWriter
                     blockRow << Av1Constants.ModeInfoSizeLog2);
 
                 Span<int> coefficients = planeCoefficients[codedArea..];
-                Av1TransformBlockContext blockContext = GetTransformBlockContexts(
-                    componentType,
-                    coefficientNeighbors,
-                    transformOrigin,
-                    planeBlockSize,
-                    transformSize);
+                Av1TransformBlockContext blockContext;
+                if (useRetainedContexts)
+                {
+                    byte packedContext = transformBlock.EntropyContext;
+                    blockContext = new Av1TransformBlockContext
+                    {
+                        SkipContext = packedContext & 15,
+                        DcSignContext = packedContext >> 4
+                    };
+                }
+                else
+                {
+                    blockContext = GetTransformBlockContexts(
+                        componentType,
+                        coefficientNeighbors,
+                        transformOrigin,
+                        planeBlockSize,
+                        transformSize);
+
+                    // Neighbor probabilities must describe the selected transform at analysis time, before
+                    // final packing revisits the frame. Both context alphabets fit in the existing spare byte.
+                    transformBlock.EntropyContext = (byte)(blockContext.SkipContext | (blockContext.DcSignContext << 4));
+                }
 
                 Av1TransformType transformType = transformBlock.TransformType;
                 if (isLuma && transformBlock.EndOfBlock == 0)
@@ -2347,7 +2664,7 @@ internal partial class Av1TileWriter
                     transformType = transformBlock.TransformType = Av1TransformType.DctDct;
                 }
 
-                int culLevel = writer.WriteCoefficients(
+                int culLevel = writer.WriteCoefficients<TOperation>(
                     transformSize,
                     transformType,
                     intraLumaMode,
@@ -2510,7 +2827,7 @@ internal partial class Av1TileWriter
     /// <param name="block">The encoder block state.</param>
     /// <param name="skip">A value indicating whether residual coefficients are omitted.</param>
     /// <param name="beforeSkip">Whether the segment identifier is written before the skip flag.</param>
-    private static void WriteSegmentId(
+    private static void WriteSegmentId<TOperation>(
         Av1PictureControlSet pcs,
         Av1SymbolEncoder writer,
         Av1BlockSize blockSize,
@@ -2519,6 +2836,7 @@ internal partial class Av1TileWriter
         ref Av1EncoderBlockStruct block,
         bool skip,
         bool beforeSkip)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         ObuSegmentationParameters segmentation_params = pcs.Parent.FrameHeader.SegmentationParameters;
         if (!segmentation_params.Enabled)
@@ -2536,7 +2854,7 @@ internal partial class Av1TileWriter
         }
 
         int coded_id = Av1SymbolContextHelper.NegativeDeinterleave(block.SegmentId, spatial_pred, segmentation_params.LastActiveSegmentId + 1);
-        writer.WriteSegmentId(coded_id, cdf_num);
+        writer.WriteSegmentId<TOperation>(coded_id, cdf_num);
         pcs.UpdateSegmentation(blockSize, blockOrigin, block.SegmentId);
     }
 
@@ -2657,5 +2975,15 @@ internal partial class Av1TileWriter
     /// <param name="macroBlock">The reusable macroblock edge and neighbor state.</param>
     /// <param name="skip">The skip value to write.</param>
     public static void EncodeSkipCoefficients(Av1SymbolEncoder writer, Av1MacroBlockD macroBlock, bool skip)
-        => writer.WriteSkip(skip, GetSkipContext(macroBlock));
+        => EncodeSkipCoefficients<Av1SymbolEncoder.SymbolWriteOperation>(
+            writer,
+            macroBlock,
+            skip);
+
+    /// <summary>
+    /// Processes the selected syntax and its adaptive probability state.
+    /// </summary>
+    public static void EncodeSkipCoefficients<TOperation>(Av1SymbolEncoder writer, Av1MacroBlockD macroBlock, bool skip)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
+        => writer.WriteSkip<TOperation>(skip, GetSkipContext(macroBlock));
 }

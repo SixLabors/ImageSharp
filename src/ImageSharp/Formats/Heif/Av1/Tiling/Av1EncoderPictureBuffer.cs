@@ -132,18 +132,40 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 : 0;
 
             int paletteStorageEnd = checked(paletteStorageOffset + paletteStorageLength);
+            int blockPaletteStorageLength = allocateScreenContentState
+                ? checked(this.modeInfo.Allocation.Length * Unsafe.SizeOf<Av1EncoderPaletteInfo>())
+                : 0;
+
+            int paletteTokenStorageOffset = checked(paletteStorageEnd + blockPaletteStorageLength);
+
+            // Each of the two palette planes needs at most one packed token per sample. Maximum-superblock
+            // rounding keeps this picture-owned capacity valid for either supported superblock geometry.
+            int paletteTokenStorageLength = allocateScreenContentState
+                ? checked(
+                    Av1Math.AlignPowerOf2(width, Av1Constants.MaxSuperBlockSizeLog2) *
+                    Av1Math.AlignPowerOf2(height, Av1Constants.MaxSuperBlockSizeLog2) *
+                    Math.Min(2, colorConfig.PlaneCount))
+                : 0;
+
+            int paletteTokenStorageEnd = checked(paletteTokenStorageOffset + paletteTokenStorageLength);
+            int blockEncodingStorageLength = checked(this.modeInfo.Allocation.Length * Av1EncoderBlockStruct.StorageSize);
+            int blockEncodingStorageEnd = checked(paletteTokenStorageEnd + blockEncodingStorageLength);
             int displacementVectorLength = allocateMotionVectorState ? this.modeInfo.Allocation.Length : 0;
             int displacementVectorStorageOffset = allocateMotionVectorState
-                ? Av1Math.AlignPowerOf2(paletteStorageEnd, 1)
-                : paletteStorageEnd;
+                ? Av1Math.AlignPowerOf2(blockEncodingStorageEnd, 1)
+                : blockEncodingStorageEnd;
 
             int displacementVectorStorageLength = checked(
                 displacementVectorLength * Unsafe.SizeOf<Av1EncoderDisplacementVector>());
 
             int displacementVectorStorageEnd = checked(displacementVectorStorageOffset + displacementVectorStorageLength);
+            int referenceContextStorageLength = checked(
+                displacementVectorLength * Unsafe.SizeOf<Av1EncoderReferenceContext>());
+
+            int referenceContextStorageEnd = checked(displacementVectorStorageEnd + referenceContextStorageLength);
             int intraBlockCopySearchStorageOffset = allocateIntraBlockCopySearch
-                ? Av1Math.AlignPowerOf2(displacementVectorStorageEnd, 2)
-                : displacementVectorStorageEnd;
+                ? Av1Math.AlignPowerOf2(referenceContextStorageEnd, 2)
+                : referenceContextStorageEnd;
 
             int intraBlockCopySearchStorageLength = allocateIntraBlockCopySearch
                 ? Av1IntraBlockCopySearchIndex.GetStorageLength(width, height)
@@ -178,6 +200,7 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             this.redCoefficientContexts = new Av1NeighborArrayUnit<byte>[tileCount];
             this.transformContexts = new Av1NeighborArrayUnit<byte>[tileCount];
             Memory<Av1EncoderPaletteInfo> paletteStorage = Memory<Av1EncoderPaletteInfo>.Empty;
+            Memory<Av1EncoderPaletteInfo> blockPalettes = Memory<Av1EncoderPaletteInfo>.Empty;
             if (allocateScreenContentState)
             {
                 // Palette entries contain 16-bit colors, so their packed typed region begins at an even byte offset.
@@ -185,6 +208,10 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                     stateStorage.Slice(paletteStorageOffset, paletteStorageLength));
 
                 paletteStorage = paletteMemory.Memory;
+                ByteMemoryManager<Av1EncoderPaletteInfo> blockPaletteMemory = new(
+                    stateStorage.Slice(paletteStorageEnd, blockPaletteStorageLength));
+
+                blockPalettes = blockPaletteMemory.Memory;
                 this.paletteContexts = new Av1NeighborArrayUnit<Av1EncoderPaletteInfo>[tileCount];
             }
             else
@@ -193,6 +220,13 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
             }
 
             Memory<Av1EncoderDisplacementVector> displacementVectors = Memory<Av1EncoderDisplacementVector>.Empty;
+
+            // Final syntax parameters use their own eight-byte entries so frequent neighbor lookups retain
+            // the compact mode-info layout. This typed view borrows the same picture-state owner.
+            ByteMemoryManager<Av1EncoderBlockStruct> blockEncodingMemory = new(
+                stateStorage.Slice(paletteTokenStorageEnd, blockEncodingStorageLength));
+
+            Memory<Av1EncoderReferenceContext> referenceContexts = Memory<Av1EncoderReferenceContext>.Empty;
             if (allocateMotionVectorState)
             {
                 // Each component lies strictly inside plus or minus 16384. Two signed 16-bit fields preserve both
@@ -201,6 +235,10 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                     stateStorage.Slice(displacementVectorStorageOffset, displacementVectorStorageLength));
 
                 displacementVectors = displacementVectorMemory.Memory;
+                ByteMemoryManager<Av1EncoderReferenceContext> referenceContextMemory = new(
+                    stateStorage.Slice(displacementVectorStorageEnd, referenceContextStorageLength));
+
+                referenceContexts = referenceContextMemory.Memory;
             }
 
             Av1IntraBlockCopySearchIndex intraBlockCopySearch = default;
@@ -314,6 +352,10 @@ internal sealed class Av1EncoderPictureBuffer : IDisposable
                 ModeInfoGrid = this.modeInfo.Grid,
                 ModeInfoAllocation = this.modeInfo.Allocation,
                 DisplacementVectors = displacementVectors,
+                ReferenceContexts = referenceContexts,
+                BlockEncodings = blockEncodingMemory.Memory,
+                BlockPalettes = blockPalettes,
+                PaletteTokens = stateStorage.Slice(paletteTokenStorageOffset, paletteTokenStorageLength),
                 IntraBlockCopySearch = intraBlockCopySearch,
                 ModeInfoStride = this.modeInfo.ModeInfoStride,
                 Disallow4x4AllFrames = this.modeInfo.Disallow4x4AllFrames,

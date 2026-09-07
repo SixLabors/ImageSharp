@@ -19,16 +19,6 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1IntraSuperblockEncoder
 {
     /// <summary>
-    /// The first effort tier that searches a block-local motion vector.
-    /// </summary>
-    private const int MinimumInterMotionSearchEffort = 6;
-
-    /// <summary>
-    /// The smallest full-pixel radius used by block-local inter search.
-    /// </summary>
-    private const int MinimumInterMotionSearchRadius = 4;
-
-    /// <summary>
     /// The first effort tier that refines full-pixel motion to quarter-pixel precision.
     /// </summary>
     private const int MinimumSubpixelMotionSearchEffort = 7;
@@ -37,16 +27,6 @@ internal static partial class Av1IntraSuperblockEncoder
     /// The first effort tier that adds the final eighth-pixel refinement step.
     /// </summary>
     private const int MinimumHighPrecisionMotionSearchEffort = 8;
-
-    /// <summary>
-    /// The physical border reserved on each side for fractional eight-tap filtering.
-    /// </summary>
-    private const int FractionalInterpolationBorder = 4;
-
-    /// <summary>
-    /// The number of cardinal and diagonal candidates examined at each search step.
-    /// </summary>
-    private const int InterMotionSearchDirectionCount = 8;
 
     /// <summary>
     /// One nearest, three near, one global, and three new-motion candidates.
@@ -236,22 +216,16 @@ internal static partial class Av1IntraSuperblockEncoder
                     out Av1EncoderTransformBlockState lumaCandidateState,
                     out int lumaRate,
                     out long lumaDistortion,
-                    out bool hasEmptyLuma,
-                    out Av1EncoderTransformBlockState emptyLumaState,
-                    out long emptyLumaDistortion);
+                    out long lumaPredictionDistortion);
 
                 int blueRate = 0;
                 int redRate = 0;
                 long blueDistortion = 0;
                 long redDistortion = 0;
-                long emptyBlueDistortion = 0;
-                long emptyRedDistortion = 0;
-                bool hasEmptyBlue = true;
-                bool hasEmptyRed = true;
+                long bluePredictionDistortion = 0;
+                long redPredictionDistortion = 0;
                 Av1EncoderTransformBlockState blueCandidateState = default;
                 Av1EncoderTransformBlockState redCandidateState = default;
-                Av1EncoderTransformBlockState emptyBlueState = default;
-                Av1EncoderTransformBlockState emptyRedState = default;
                 if (!this.source.IsMonochrome)
                 {
                     Av1TransformType chromaTransformType = lumaCandidateState.TransformType;
@@ -292,9 +266,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         out blueCandidateState,
                         out blueRate,
                         out blueDistortion,
-                        out hasEmptyBlue,
-                        out emptyBlueState,
-                        out emptyBlueDistortion);
+                        out bluePredictionDistortion);
 
                     this.EvaluateInterPlane(
                         writer,
@@ -321,40 +293,32 @@ internal static partial class Av1IntraSuperblockEncoder
                         out redCandidateState,
                         out redRate,
                         out redDistortion,
-                        out hasEmptyRed,
-                        out emptyRedState,
-                        out emptyRedDistortion);
+                        out redPredictionDistortion);
                 }
 
-                int displacementRate = writer.GetDisplacementVectorCost(candidate, reference);
-                int candidateRate = writer.GetUseIntraBlockCopyCost(true) +
-                    displacementRate +
-                    writer.GetSkipCost(false, skipContext) +
+                int predictionRate = writer.GetUseIntraBlockCopyCost(true) +
+                    writer.GetDisplacementVectorCost(candidate, reference);
+
+                int residualRate = writer.GetSkipCost(false, skipContext) +
                     transformPartitionRate +
                     lumaRate +
                     blueRate +
                     redRate;
 
                 long candidateDistortion = lumaDistortion + blueDistortion + redDistortion;
-                Av1RateDistortionStatistics candidateStatistics = new(this.rateMultiplier, candidateRate, candidateDistortion);
-                bool candidateSkip = false;
+                int skipRate = writer.GetSkipCost(true, skipContext);
+                long skipDistortion = lumaPredictionDistortion + bluePredictionDistortion + redPredictionDistortion;
 
-                // The skip alternative is available only when every coded plane has an empty transform. Its
-                // distortion comes from prediction alone and its rate excludes the transform tree and coefficients.
-                if (hasEmptyLuma && hasEmptyBlue && hasEmptyRed)
-                {
-                    int skipRate = writer.GetUseIntraBlockCopyCost(true) +
-                        displacementRate +
-                        writer.GetSkipCost(true, skipContext);
+                // Empty residuals omit the transform tree. Nonempty residuals may also be discarded when
+                // prediction alone costs no more; exclude shared prediction syntax before rounding either rate.
+                bool candidateSkip = (lumaCandidateState.EndOfBlock == 0 &&
+                    blueCandidateState.EndOfBlock == 0 && redCandidateState.EndOfBlock == 0) ||
+                    Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, skipDistortion) <=
+                    Av1RateDistortion.GetCost(this.rateMultiplier, residualRate, candidateDistortion);
 
-                    long skipDistortion = emptyLumaDistortion + emptyBlueDistortion + emptyRedDistortion;
-                    Av1RateDistortionStatistics skipStatistics = new(this.rateMultiplier, skipRate, skipDistortion);
-                    if (skipStatistics.Cost < candidateStatistics.Cost)
-                    {
-                        candidateStatistics = skipStatistics;
-                        candidateSkip = true;
-                    }
-                }
+                Av1RateDistortionStatistics candidateStatistics = candidateSkip
+                    ? new(this.rateMultiplier, predictionRate + skipRate, skipDistortion)
+                    : new(this.rateMultiplier, predictionRate + residualRate, candidateDistortion);
 
                 // Conventional intra and earlier IBC vectors retain strict search-order precedence on equal RD.
                 if (candidateStatistics.Cost >= bestStatistics.Cost)
@@ -370,7 +334,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     workspace.LumaPrediction.CopyTo(workspace.SelectedLumaReconstruction);
                     workspace.SelectedLumaCoefficients.Clear();
-                    selectedLumaState = emptyLumaState;
+                    selectedLumaState = default;
                     if (!this.source.IsMonochrome)
                     {
                         int chromaSampleCount = chromaTransformSize.GetSize2d();
@@ -378,8 +342,8 @@ internal static partial class Av1IntraSuperblockEncoder
                         workspace.RedPrediction[..chromaSampleCount].CopyTo(workspace.SelectedRedReconstruction);
                         workspace.SelectedBlueCoefficients[..chromaSampleCount].Clear();
                         workspace.SelectedRedCoefficients[..chromaSampleCount].Clear();
-                        selectedBlueState = emptyBlueState;
-                        selectedRedState = emptyRedState;
+                        selectedBlueState = default;
+                        selectedRedState = default;
                     }
                 }
                 else
@@ -577,45 +541,31 @@ internal static partial class Av1IntraSuperblockEncoder
             Span<Av1PredictionMode> candidateModes = stackalloc Av1PredictionMode[MaximumInterModeCandidateCount];
             Span<byte> candidateReferenceIndices = stackalloc byte[MaximumInterModeCandidateCount];
             int candidateCount = 0;
-            if (this.effort >= MinimumInterMotionSearchEffort)
-            {
-                // Predictor-stack modes precede global and new motion so strict ties retain the reference order.
-                candidateVectors[candidateCount] = referenceMotionVectors.Nearest;
-                candidateModes[candidateCount] = Av1PredictionMode.NearestMotionVector;
-                candidateReferenceIndices[candidateCount++] = 0;
 
-                int maximumNearIndex = Math.Min(2, Math.Max(0, referenceMotionVectors.Count - 2));
-                for (int referenceIndex = 0; referenceIndex <= maximumNearIndex; referenceIndex++)
-                {
-                    candidateVectors[candidateCount] = referenceMotionVectors.GetNearReference(referenceIndex);
-                    candidateModes[candidateCount] = Av1PredictionMode.NearMotionVector;
-                    candidateReferenceIndices[candidateCount++] = (byte)referenceIndex;
-                }
+            // Keep distinct syntax choices even when their prediction vectors are equal.
+            candidateVectors[candidateCount] = referenceMotionVectors.Nearest;
+            candidateModes[candidateCount] = Av1PredictionMode.NearestMotionVector;
+            candidateReferenceIndices[candidateCount++] = 0;
+
+            int maximumNewIndex = Math.Min(2, Math.Max(0, referenceMotionVectors.Count - 1));
+            for (int referenceIndex = 0; referenceIndex <= maximumNewIndex; referenceIndex++)
+            {
+                candidateVectors[candidateCount] = referenceMotionVectors.GetNewReference(referenceIndex);
+                candidateModes[candidateCount] = Av1PredictionMode.NewMotionVector;
+                candidateReferenceIndices[candidateCount++] = (byte)referenceIndex;
+            }
+
+            int maximumNearIndex = Math.Min(2, Math.Max(0, referenceMotionVectors.Count - 2));
+            for (int referenceIndex = 0; referenceIndex <= maximumNearIndex; referenceIndex++)
+            {
+                candidateVectors[candidateCount] = referenceMotionVectors.GetNearReference(referenceIndex);
+                candidateModes[candidateCount] = Av1PredictionMode.NearMotionVector;
+                candidateReferenceIndices[candidateCount++] = (byte)referenceIndex;
             }
 
             candidateVectors[candidateCount] = globalMotion;
             candidateModes[candidateCount] = Av1PredictionMode.GlobalMotionVector;
             candidateReferenceIndices[candidateCount++] = 0;
-            if (this.effort >= MinimumInterMotionSearchEffort)
-            {
-                int maximumNewIndex = Math.Min(2, Math.Max(0, referenceMotionVectors.Count - 1));
-                for (int referenceIndex = 0; referenceIndex <= maximumNewIndex; referenceIndex++)
-                {
-                    Av1MotionVector newReference = referenceMotionVectors.GetNewReference(referenceIndex);
-                    Av1MotionVector searched = this.FindInterMotionVector(
-                        writer,
-                        blockOrigin,
-                        newReference,
-                        referenceIndex);
-
-                    // Equal prediction vectors can carry different DRL and mode costs. Preserve each syntax choice
-                    // as an independent candidate instead of deduplicating solely by reconstructed pixels.
-                    candidateVectors[candidateCount] = searched;
-                    candidateModes[candidateCount] = Av1PredictionMode.NewMotionVector;
-                    candidateReferenceIndices[candidateCount++] = (byte)referenceIndex;
-                }
-            }
-
             Span<TSample> selectedLumaReconstruction = workspace.SelectedLumaReconstruction;
             Span<TSample> candidateLumaReconstruction = workspace.LumaCandidateReconstruction;
             Span<TSample> selectedBlueReconstruction = workspace.SelectedBlueReconstruction;
@@ -698,10 +648,148 @@ internal static partial class Av1IntraSuperblockEncoder
             int horizontalFractionMask = (Av1MotionVector.SubpixelScale << (block.HasChroma && sequenceHeader.ColorConfig.SubSamplingX ? 1 : 0)) - 1;
             int verticalFractionMask = (Av1MotionVector.SubpixelScale << (block.HasChroma && sequenceHeader.ColorConfig.SubSamplingY ? 1 : 0)) - 1;
 
+            Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(Av1Plane.Y);
+            Buffer2DRegion<TSample> referencePlane = this.reference.GetPlane(Av1Plane.Y);
+            int sourceOrigin = ((sourcePlane.Bounds.Y + blockOrigin.Y) * sourcePlane.Stride) + sourcePlane.Bounds.X + blockOrigin.X;
+            int referenceOrigin = ((referencePlane.Bounds.Y + blockOrigin.Y) * referencePlane.Stride) + referencePlane.Bounds.X + blockOrigin.X;
+            Size frameSize = new(
+                this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2,
+                this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
+
+            Rectangle frameBounds = Av1MotionVector.GetFrameSearchBounds(
+                new Rectangle(blockOrigin, new Size(8)),
+                frameSize,
+                Math.Min(referencePlane.Bounds.X, referencePlane.Bounds.Y));
+
+            Av1NeighborArrayUnit<byte> coefficientContexts = this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex];
+            ReadOnlySpan<byte> aboveContexts = coefficientContexts.Top[coefficientContexts.GetTopIndex(blockOrigin)..];
+            ReadOnlySpan<byte> leftContexts = coefficientContexts.Left[coefficientContexts.GetLeftIndex(blockOrigin)..];
+
+            // Frame owners provide contiguous padded planes. Borrow those spans without copying source blocks
+            // or reconstructing border samples, and keep the search scratch disjoint from retained inter winners.
+            Av1MotionSearchBase.SingleReferenceSearch<TSample, TOperator> motionSearch = new(
+                sourcePlane.Buffer.DangerousGetSingleSpan()[sourceOrigin..],
+                sourcePlane.Stride,
+                referencePlane.Buffer.DangerousGetSingleSpan(),
+                referencePlane.Stride,
+                referenceOrigin,
+                BlockSize,
+                frameBounds,
+                this.blockWorkspace,
+                this.blockWorkspace.GetMotionSearchPrediction<TSample>(),
+                this.blockWorkspace.Residual,
+                workspace.PredictionScratch,
+                workspace.TransformCoefficients,
+                writer,
+                aboveContexts,
+                leftContexts,
+                this.bitDepth,
+                this.quantization.QIndex[0],
+                this.quantization.DeltaQDc[0],
+                0,
+                frameHeader.CodedLossless,
+                this.rateMultiplier,
+                transformPartitionRate,
+                writer.GetSkipCost(false, skipContext),
+                writer.GetSkipCost(true, skipContext),
+                defaultFilter,
+                defaultFilter,
+                this.blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision));
+
+            // The first two reference predictors set the block's spatial range. Clamping at the last
+            // potentially visible interpolation tap bounds padded reads without changing their prediction.
+            int spatialMagnitude = 0;
+            for (int index = 0; index < 2; index++)
+            {
+                Av1MotionVector spatial = referenceMotionVectors.GetNewReference(index);
+                int column = Math.Clamp(spatial.Column, -(blockOrigin.X + 8 + 4) * 8, (frameSize.Width - blockOrigin.X + 4) * 8);
+                int row = Math.Clamp(spatial.Row, -(blockOrigin.Y + 8 + 4) * 8, (frameSize.Height - blockOrigin.Y + 4) * 8);
+                spatialMagnitude = Math.Max(spatialMagnitude, Math.Max(Math.Abs(row), Math.Abs(column)) >> 3);
+            }
+
+            Av1MotionSearchSettings motionSettings = this.picture.Parent.MotionSearchSettings;
+            Av1MotionSearchBase.SingleReferenceState motionState = default;
+            Span<Av1MotionSearchBase.StartingCandidate> motionStarts = stackalloc Av1MotionSearchBase.StartingCandidate[1];
+
             // Rank interpolation families with prediction-error modeling before running a full transform search.
             // The selected inter reconstruction remains untouched while two existing prediction views alternate.
             for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
             {
+                if (candidateModes[candidateIndex] == Av1PredictionMode.NewMotionVector)
+                {
+                    int referenceIndex = candidateReferenceIndices[candidateIndex];
+                    Av1MotionVector referenceVector = candidateVectors[candidateIndex];
+                    int drlRate = 0;
+                    for (int index = 0; index < 2 && referenceMotionVectors.Count > index + 1; index++)
+                    {
+                        bool advance = referenceIndex > index;
+                        int context = Av1SymbolContextHelper.GetDrlContext(referenceMotionVectors.Weights, index);
+                        drlRate += writer.GetDynamicReferenceListCost(advance, context);
+                        if (!advance)
+                        {
+                            break;
+                        }
+                    }
+
+                    int searchRange = int.MaxValue;
+                    if (motionSettings.ReduceSearchRange && referenceIndex > 0)
+                    {
+                        int minimumDifference = int.MaxValue;
+                        int bestMatch = 0;
+                        for (int index = 0; index < referenceIndex; index++)
+                        {
+                            Av1MotionVector previousReference = motionState.References[index].ReferenceVector;
+                            int difference = Math.Max(
+                                Math.Abs(referenceVector.Row - previousReference.Row),
+                                Math.Abs(referenceVector.Column - previousReference.Column));
+
+                            if (difference < minimumDifference)
+                            {
+                                minimumDifference = difference;
+                                bestMatch = index;
+                            }
+                        }
+
+                        ref Av1MotionSearchBase.ReferenceSearchResult previous = ref motionState.References[bestMatch];
+                        if (minimumDifference < 16 * 8 && previous.IsValid)
+                        {
+                            int displacement = Math.Max(
+                                Math.Abs(previous.Vector.Row - previous.ReferenceVector.Row),
+                                Math.Abs(previous.Vector.Column - previous.ReferenceVector.Column));
+
+                            searchRange = (minimumDifference + displacement + 4) >> 3;
+                        }
+                    }
+
+                    Point startVector = new(
+                        (referenceVector.Column + 3 + (referenceVector.Column >= 0 ? 1 : 0)) >> 3,
+                        (referenceVector.Row + 3 + (referenceVector.Row >= 0 ? 1 : 0)) >> 3);
+
+                    motionStarts[0] = new Av1MotionSearchBase.StartingCandidate(startVector, 0);
+                    if (!motionSearch.Search(
+                        motionSettings,
+                        this.picture.Parent.MotionSearchStepParameter,
+                        spatialMagnitude,
+                        frameHeader.ShowFrame,
+                        searchRange,
+                        frameHeader.ForceIntegerMotionVector,
+                        frameHeader.AllowHighPrecisionMotionVector,
+                        fineMeshInterval: false,
+                        referenceIndex,
+                        referenceVector,
+                        drlRate,
+                        motionStarts,
+                        totalWeight: 0,
+                        ref motionState,
+                        out Av1MotionSearchBase.FractionalResult searchResult) ||
+                        motionState.References[referenceIndex].Skip)
+                    {
+                        continue;
+                    }
+
+                    candidateVectors[candidateIndex] = searchResult.Vector;
+                }
+
                 modeInfo.Block.Mode = candidateModes[candidateIndex];
                 bool writesFilters = Av1TileWriter.UsesSwitchableInterpolation(frameHeader, modeInfo.Block);
                 Av1InterpolationFilter verticalFilter = defaultFilter;
@@ -811,7 +899,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     out Av1EncoderTransformBlockState candidateBlueState,
                     out Av1EncoderTransformBlockState candidateRedState);
 
-                // Strict replacement preserves predictor-stack, global, then new-motion order on equal RD cost.
+                // Strict replacement preserves nearest, new, near, then global mode order on equal RD cost.
                 if (candidateStatistics.Cost >= selectedStatistics.Cost)
                 {
                     continue;
@@ -988,9 +1076,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 int visibleHeight = Math.Min(height, ((this.source.Height + subsamplingY) >> subsamplingY) - planeOrigin.Y);
                 long squaredError = 0;
 
-                // This view includes coded alignment samples, matching libaom when do_border_pad is false.
-                // Its conditional border-padding policy is not implemented here; these are not visible-frame bounds.
-                // Full blocks use one SIMD reduction; only a partial right edge needs row-sized reductions.
+                // The source view includes samples extended to the coded dimensions. Reduce complete rows together;
+                // a partial right edge needs separate row reductions to exclude samples beyond the source view.
                 if (visibleWidth == width)
                 {
                     squaredError = Av1ResidualBuilder.SumSquares(residual[..(width * visibleHeight)]);
@@ -1097,9 +1184,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 out lumaState,
                 out int lumaRate,
                 out long lumaDistortion,
-                out bool hasEmptyLuma,
-                out Av1EncoderTransformBlockState emptyLumaState,
-                out long emptyLumaDistortion);
+                out long lumaPredictionDistortion);
 
             // Empty luma transforms signal no transform type. Chroma inherits the decoder's inferred DCT
             // type, not the last searched luma type, so normalize before evaluating either chroma plane.
@@ -1124,14 +1209,10 @@ internal static partial class Av1IntraSuperblockEncoder
             int redRate = 0;
             long blueDistortion = 0;
             long redDistortion = 0;
-            long emptyBlueDistortion = 0;
-            long emptyRedDistortion = 0;
-            bool hasEmptyBlue = true;
-            bool hasEmptyRed = true;
+            long bluePredictionDistortion = 0;
+            long redPredictionDistortion = 0;
             blueState = default;
             redState = default;
-            Av1EncoderTransformBlockState emptyBlueState = default;
-            Av1EncoderTransformBlockState emptyRedState = default;
             if (hasChroma)
             {
                 Av1BlockSize chromaBlockSize = BlockSize.GetSubsampled(
@@ -1188,9 +1269,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     out blueState,
                     out blueRate,
                     out blueDistortion,
-                    out hasEmptyBlue,
-                    out emptyBlueState,
-                    out emptyBlueDistortion);
+                    out bluePredictionDistortion);
 
                 this.EvaluateInterPlane(
                     writer,
@@ -1217,9 +1296,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     out redState,
                     out redRate,
                     out redDistortion,
-                    out hasEmptyRed,
-                    out emptyRedState,
-                    out emptyRedDistortion);
+                    out redPredictionDistortion);
             }
 
             int predictionRate = commonPredictionRate +
@@ -1239,258 +1316,34 @@ internal static partial class Av1IntraSuperblockEncoder
 
             long codedDistortion = lumaDistortion + blueDistortion + redDistortion;
             Av1RateDistortionStatistics selectedStatistics = new(this.rateMultiplier, codedRate, codedDistortion);
-            skip = false;
-            if (hasEmptyLuma && hasEmptyBlue && hasEmptyRed)
+            int skipRate = writer.GetSkipCost(true, skipContext);
+            long skipDistortion = lumaPredictionDistortion + bluePredictionDistortion + redPredictionDistortion;
+
+            // All-empty residuals omit the transform tree. Nonempty residuals can also be discarded when
+            // prediction alone costs no more; shared prediction syntax must not affect the rounded comparison.
+            skip = (lumaState.EndOfBlock == 0 && blueState.EndOfBlock == 0 && redState.EndOfBlock == 0) ||
+                Av1RateDistortion.GetCost(this.rateMultiplier, skipRate, skipDistortion) <=
+                Av1RateDistortion.GetCost(this.rateMultiplier, codedRate - predictionRate, codedDistortion);
+
+            if (skip)
             {
-                int skipRate = predictionRate + writer.GetSkipCost(true, skipContext);
-                long skipDistortion = emptyLumaDistortion + emptyBlueDistortion + emptyRedDistortion;
-                Av1RateDistortionStatistics skipStatistics = new(this.rateMultiplier, skipRate, skipDistortion);
-                if (skipStatistics.Cost < selectedStatistics.Cost)
+                selectedStatistics = new(this.rateMultiplier, predictionRate + skipRate, skipDistortion);
+                workspace.LumaPrediction[..LumaTransformSize.GetSize2d()].CopyTo(lumaReconstruction);
+                lumaCoefficients[..LumaTransformSize.GetSize2d()].Clear();
+                lumaState = default;
+                if (hasChroma)
                 {
-                    selectedStatistics = skipStatistics;
-                    skip = true;
-                    workspace.LumaPrediction[..LumaTransformSize.GetSize2d()].CopyTo(lumaReconstruction);
-                    lumaCoefficients[..LumaTransformSize.GetSize2d()].Clear();
-                    lumaState = emptyLumaState;
-                    if (hasChroma)
-                    {
-                        int chromaSampleCount = chromaTransformSize.GetSize2d();
-                        workspace.BluePrediction[..chromaSampleCount].CopyTo(blueReconstruction);
-                        workspace.RedPrediction[..chromaSampleCount].CopyTo(redReconstruction);
-                        blueCoefficients[..chromaSampleCount].Clear();
-                        redCoefficients[..chromaSampleCount].Clear();
-                        blueState = emptyBlueState;
-                        redState = emptyRedState;
-                    }
+                    int chromaSampleCount = chromaTransformSize.GetSize2d();
+                    workspace.BluePrediction[..chromaSampleCount].CopyTo(blueReconstruction);
+                    workspace.RedPrediction[..chromaSampleCount].CopyTo(redReconstruction);
+                    blueCoefficients[..chromaSampleCount].Clear();
+                    redCoefficients[..chromaSampleCount].Clear();
+                    blueState = default;
+                    redState = default;
                 }
             }
 
             return selectedStatistics;
-        }
-
-        /// <summary>
-        /// Searches a bounded full-pixel neighborhood around the spatial reference vector.
-        /// </summary>
-        /// <param name="writer">The live tile entropy model used to measure vector syntax.</param>
-        /// <param name="blockOrigin">The current 8x8 luma origin.</param>
-        /// <param name="referenceVector">The differential reference from the spatial candidate stack.</param>
-        /// <param name="referenceMotionVectorIndex">The selected dynamic-reference-list entry.</param>
-        /// <returns>The lowest-cost full-pixel vector found by the effort-scaled search.</returns>
-        private Av1MotionVector FindInterMotionVector(
-            Av1SymbolEncoder writer,
-            Point blockOrigin,
-            Av1MotionVector referenceVector,
-            int referenceMotionVectorIndex)
-        {
-            int effortShift = this.effort - MinimumInterMotionSearchEffort;
-            int searchRadius = Math.Min(
-                MinimumInterMotionSearchRadius << effortShift,
-                Av1EncoderFrame<TSample>.LumaBorder);
-
-            int referenceColumn = referenceVector.Column >> Av1MotionVector.SubpixelBits;
-            int referenceRow = referenceVector.Row >> Av1MotionVector.SubpixelBits;
-            int minimumColumn = Math.Max(-Av1EncoderFrame<TSample>.LumaBorder, referenceColumn - searchRadius);
-            int maximumColumn = Math.Min(Av1EncoderFrame<TSample>.LumaBorder, referenceColumn + searchRadius);
-            int minimumRow = Math.Max(-Av1EncoderFrame<TSample>.LumaBorder, referenceRow - searchRadius);
-            int maximumRow = Math.Min(Av1EncoderFrame<TSample>.LumaBorder, referenceRow + searchRadius);
-            Point best = new(
-                Av1Math.Clamp(referenceColumn, minimumColumn, maximumColumn),
-                Av1Math.Clamp(referenceRow, minimumRow, maximumRow));
-
-            ref Av1ReferenceMotionVectors referenceMotionVectors = ref this.blockWorkspace.ReferenceMotionVectors;
-            Av1MotionVector bestVector = new(
-                best.Y * Av1MotionVector.SubpixelScale,
-                best.X * Av1MotionVector.SubpixelScale);
-
-            long bestCost = this.GetInterMotionCandidateCost(
-                writer,
-                blockOrigin,
-                bestVector,
-                Av1PredictionMode.NewMotionVector,
-                referenceMotionVectorIndex,
-                in referenceMotionVectors);
-
-            for (int step = searchRadius; step > 0; step >>= 1)
-            {
-                Point stageBest = best;
-                long stageBestCost = bestCost;
-                for (int directionIndex = 0; directionIndex < InterMotionSearchDirectionCount; directionIndex++)
-                {
-                    Point direction = GetInterMotionSearchDirection(directionIndex);
-                    Point candidate = new(
-                        best.X + (direction.X * step),
-                        best.Y + (direction.Y * step));
-
-                    if (candidate.X < minimumColumn || candidate.X > maximumColumn ||
-                        candidate.Y < minimumRow || candidate.Y > maximumRow)
-                    {
-                        continue;
-                    }
-
-                    Av1MotionVector candidateVector = new(
-                        candidate.Y * Av1MotionVector.SubpixelScale,
-                        candidate.X * Av1MotionVector.SubpixelScale);
-
-                    long candidateCost = this.GetInterMotionCandidateCost(
-                        writer,
-                        blockOrigin,
-                        candidateVector,
-                        Av1PredictionMode.NewMotionVector,
-                        referenceMotionVectorIndex,
-                        in referenceMotionVectors);
-
-                    // Strict replacement preserves the earlier reference-centered search position on ties.
-                    if (candidateCost < stageBestCost)
-                    {
-                        stageBestCost = candidateCost;
-                        stageBest = candidate;
-                    }
-                }
-
-                best = stageBest;
-                bestCost = stageBestCost;
-            }
-
-            bestVector = new(
-                best.Y * Av1MotionVector.SubpixelScale,
-                best.X * Av1MotionVector.SubpixelScale);
-
-            if (this.effort < MinimumSubpixelMotionSearchEffort)
-            {
-                return bestVector;
-            }
-
-            int minimumSubpixel = (-Av1EncoderFrame<TSample>.LumaBorder + FractionalInterpolationBorder) *
-                Av1MotionVector.SubpixelScale;
-
-            int maximumSubpixel = (Av1EncoderFrame<TSample>.LumaBorder - FractionalInterpolationBorder) *
-                Av1MotionVector.SubpixelScale;
-
-            if (bestVector.Column < minimumSubpixel || bestVector.Column > maximumSubpixel ||
-                bestVector.Row < minimumSubpixel || bestVector.Row > maximumSubpixel)
-            {
-                return bestVector;
-            }
-
-            int finalStep = this.effort >= MinimumHighPrecisionMotionSearchEffort ? 1 : 2;
-            for (int step = Av1MotionVector.SubpixelScale >> 1; step >= finalStep; step >>= 1)
-            {
-                Av1MotionVector stageBest = bestVector;
-                long stageBestCost = bestCost;
-                for (int directionIndex = 0; directionIndex < InterMotionSearchDirectionCount; directionIndex++)
-                {
-                    Point direction = GetInterMotionSearchDirection(directionIndex);
-                    Av1MotionVector candidate = new(
-                        bestVector.Row + (direction.Y * step),
-                        bestVector.Column + (direction.X * step));
-
-                    if (candidate.Column < minimumSubpixel || candidate.Column > maximumSubpixel ||
-                        candidate.Row < minimumSubpixel || candidate.Row > maximumSubpixel)
-                    {
-                        continue;
-                    }
-
-                    long candidateCost = this.GetInterMotionCandidateCost(
-                        writer,
-                        blockOrigin,
-                        candidate,
-                        Av1PredictionMode.NewMotionVector,
-                        referenceMotionVectorIndex,
-                        in referenceMotionVectors);
-
-                    // Each precision stage remains centered on its incoming winner; strict replacement keeps
-                    // the integer or coarser fractional vector when an interpolated candidate only ties it.
-                    if (candidateCost < stageBestCost)
-                    {
-                        stageBestCost = candidateCost;
-                        stageBest = candidate;
-                    }
-                }
-
-                bestVector = stageBest;
-                bestCost = stageBestCost;
-            }
-
-            return bestVector;
-        }
-
-        /// <summary>
-        /// Combines normalized prediction error with the exact mode and vector syntax rate.
-        /// </summary>
-        /// <param name="writer">The live tile entropy model.</param>
-        /// <param name="blockOrigin">The current 8x8 luma origin.</param>
-        /// <param name="vector">The candidate motion vector.</param>
-        /// <param name="mode">The candidate single-reference inter mode.</param>
-        /// <param name="referenceMotionVectorIndex">The selected dynamic-reference-list entry.</param>
-        /// <param name="referenceMotionVectors">The current spatial candidate stack.</param>
-        /// <returns>The rate-distortion search cost.</returns>
-        private long GetInterMotionCandidateCost(
-            Av1SymbolEncoder writer,
-            Point blockOrigin,
-            Av1MotionVector vector,
-            Av1PredictionMode mode,
-            int referenceMotionVectorIndex,
-            in Av1ReferenceMotionVectors referenceMotionVectors)
-        {
-            long predictionError;
-            if (((vector.Row | vector.Column) & (Av1MotionVector.SubpixelScale - 1)) == 0)
-            {
-                Point predictionOrigin = new(
-                    blockOrigin.X + (vector.Column >> Av1MotionVector.SubpixelBits),
-                    blockOrigin.Y + (vector.Row >> Av1MotionVector.SubpixelBits));
-
-                predictionError = TOperator.GetInterPredictionError(
-                    this.source.GetPlane(Av1Plane.Y),
-                    blockOrigin,
-                    this.reference.GetPlane(Av1Plane.Y),
-                    predictionOrigin,
-                    this.bitDepth);
-            }
-            else
-            {
-                const Av1TransformSize SearchTransformSize = Av1TransformSize.Size8x8;
-                Av1EncoderInterPredictionWorkspace<TSample> workspace =
-                    this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
-
-                int sourceColumnQ4 = (blockOrigin.X << 4) + (vector.Column << 1);
-                int sourceRowQ4 = (blockOrigin.Y << 4) + (vector.Row << 1);
-                Point predictionOrigin = new(sourceColumnQ4 >> 4, sourceRowQ4 >> 4);
-                ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
-
-                // Fractional candidates must pass through the same interpolation and residual kernels used by
-                // final reconstruction; comparing only their integer origins would choose the wrong phase.
-                TOperator.PrepareTranslationalInterPrediction(
-                    this.source.GetPlane(Av1Plane.Y),
-                    blockOrigin,
-                    this.reference.GetPlane(Av1Plane.Y),
-                    predictionOrigin,
-                    frameHeader.InterpolationFilter == Av1InterpolationFilter.Switchable ? Av1InterpolationFilter.Regular : frameHeader.InterpolationFilter,
-                    frameHeader.InterpolationFilter == Av1InterpolationFilter.Switchable ? Av1InterpolationFilter.Regular : frameHeader.InterpolationFilter,
-                    sourceColumnQ4 & 15,
-                    sourceRowQ4 & 15,
-                    workspace.LumaPrediction,
-                    workspace.Residual,
-                    workspace.PredictionScratch,
-                    SearchTransformSize,
-                    this.bitDepth);
-
-                predictionError = Av1ResidualBuilder.SumSquares(workspace.Residual);
-                int normalizationShift = (this.bitDepth.GetBitCount() - 8) * 2;
-                if (normalizationShift != 0)
-                {
-                    predictionError = (predictionError + (1L << (normalizationShift - 1))) >>
-                        normalizationShift;
-                }
-            }
-
-            int rate = this.GetInterModeRate(
-                writer,
-                mode,
-                vector,
-                referenceMotionVectorIndex,
-                in referenceMotionVectors);
-
-            return Av1RateDistortion.GetCost(this.rateMultiplier, rate, predictionError);
         }
 
         /// <summary>
@@ -1543,29 +1396,12 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             Av1MotionVector reference = referenceMotionVectors.GetNewReference(referenceMotionVectorIndex);
-            return rate + writer.GetMotionVectorCost(
-                vector,
-                reference,
-                this.picture.Parent.FrameHeader.MotionVectorPrecision);
-        }
+            Av1MotionVectorCosts costs = this.blockWorkspace.GetMotionVectorCosts(this.picture.Parent.FrameHeader.MotionVectorPrecision);
 
-        /// <summary>
-        /// Gets one cardinal or diagonal search direction in stable reference order.
-        /// </summary>
-        /// <param name="index">The zero-based direction index.</param>
-        /// <returns>The unit full-pixel direction.</returns>
-        private static Point GetInterMotionSearchDirection(int index)
-            => index switch
-            {
-                0 => new Point(0, -1),
-                1 => new Point(0, 1),
-                2 => new Point(-1, 0),
-                3 => new Point(1, 0),
-                4 => new Point(-1, -1),
-                5 => new Point(1, 1),
-                6 => new Point(1, -1),
-                _ => new Point(-1, 1)
-            };
+            // Mode selection discounts motion syntax to 108/128 of its estimated rate. Apply the rounded
+            // weight to the vector alone; mode and dynamic-reference-list symbols retain their full rate.
+            return rate + (((costs.GetCost(vector, reference) * 108) + 64) >> 7);
+        }
 
         /// <summary>
         /// Builds one plane prediction and selects its transform without repeating interpolation for each transform type.
@@ -1595,9 +1431,7 @@ internal static partial class Av1IntraSuperblockEncoder
             out Av1EncoderTransformBlockState selectedState,
             out int selectedRate,
             out long selectedDistortion,
-            out bool hasEmptyTransform,
-            out Av1EncoderTransformBlockState emptyState,
-            out long emptyDistortion)
+            out long predictionDistortion)
         {
             Point planeOrigin = new(lumaOrigin.X >> subsamplingX, lumaOrigin.Y >> subsamplingY);
             int sourceColumnQ4 = (planeOrigin.X << 4) + (vector.Column << (1 - subsamplingX));
@@ -1647,8 +1481,15 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformSize);
             }
 
-            // Motion compensation and subtraction do not depend on transform type. Keep them outside the
-            // transform loop so exhaustive luma search traverses the source and reference blocks only once.
+            // Prediction-only error remains available even when every transform quantizes to nonzero coefficients.
+            // Normalize squared sample precision with rounding before adding four fractional distortion bits.
+            long predictionSquaredError = Av1ResidualBuilder.SumSquares(residual[..sampleCount]);
+            int normalizationShift = (this.bitDepth.GetBitCount() - 8) * 2;
+            predictionDistortion = normalizationShift == 0
+                ? predictionSquaredError << 4
+                : ((predictionSquaredError + (1L << (normalizationShift - 1))) >> normalizationShift) << 4;
+
+            // Motion compensation and subtraction are shared by all transform types for this prediction.
             Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
                 transformSize,
                 isInter: true,
@@ -1665,13 +1506,9 @@ internal static partial class Av1IntraSuperblockEncoder
             selectedState = default;
             selectedRate = 0;
             selectedDistortion = 0;
-            hasEmptyTransform = false;
-            emptyState = default;
-            emptyDistortion = 0;
 
-            // The candidate and best spans alternate ownership whenever a transform improves the result.
-            // This mirrors the reference's buffer-pointer swap and replaces a copy on every improvement
-            // with at most one normalization copy after the transform search.
+            // Alternate candidate and best spans on improvement. The winning storage stays intact during
+            // later trials, with at most one normalization copy into the caller's destination after the search.
             Span<TSample> candidateReconstruction = transformReconstruction[..sampleCount];
             Span<int> candidateCoefficients = transformCoefficients[..sampleCount];
             Span<TSample> bestReconstruction = selectedReconstruction[..sampleCount];
@@ -1736,14 +1573,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     selectedState = candidateState;
                     selectedRate = candidateRate;
                     selectedDistortion = candidateDistortion;
-                }
-
-                if (candidateState.EndOfBlock == 0 &&
-                    (!hasEmptyTransform || candidateDistortion < emptyDistortion))
-                {
-                    hasEmptyTransform = true;
-                    emptyState = candidateState;
-                    emptyDistortion = candidateDistortion;
                 }
             }
 

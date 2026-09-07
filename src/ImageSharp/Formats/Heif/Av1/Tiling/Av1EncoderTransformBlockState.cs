@@ -23,6 +23,11 @@ internal struct Av1EncoderTransformBlockState
     private Av1TransformType transformType;
 
     /// <summary>
+    /// Stores the skip context in bits 0 through 3 and DC-sign context in bits 4 and 5.
+    /// </summary>
+    public byte EntropyContext;
+
+    /// <summary>
     /// Gets or sets the position after the final nonzero coefficient.
     /// </summary>
     public ushort EndOfBlock

@@ -11,7 +11,7 @@ internal static partial class Av1DeblockingFilter
     /// Defines orientation- and storage-specific access to the four samples running along one edge segment.
     /// </summary>
     /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
-    private interface IEdgeOperator<TSample>
+    public interface IEdgeOperator<TSample>
         where TSample : unmanaged
     {
         /// <summary>

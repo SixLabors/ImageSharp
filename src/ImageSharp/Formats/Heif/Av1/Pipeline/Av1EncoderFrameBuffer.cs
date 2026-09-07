@@ -15,7 +15,7 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
     where TSample : unmanaged
 {
     /// <summary>
-    /// The byte boundary used by libaom for SIMD-accessible component planes.
+    /// The byte boundary used for SIMD-accessible component planes.
     /// </summary>
     private const int PlaneAlignmentBytes = 32;
 
@@ -34,6 +34,7 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
     /// <param name="colorFormat">The native luma and chroma sampling layout.</param>
     /// <param name="chromaPositionX">The horizontal chroma position in half-luma-sample units.</param>
     /// <param name="chromaPositionY">The vertical chroma position in half-luma-sample units.</param>
+    /// <param name="lumaBorder">The border width and height in luma samples.</param>
     public Av1EncoderFrameBuffer(
         Configuration configuration,
         int width,
@@ -41,16 +42,17 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
         int bitDepth,
         Av1ColorFormat colorFormat,
         int chromaPositionX,
-        int chromaPositionY)
+        int chromaPositionY,
+        int lumaBorder)
     {
         int subsamplingX = colorFormat is Av1ColorFormat.Yuv420 or Av1ColorFormat.Yuv422 ? 1 : 0;
         int subsamplingY = colorFormat == Av1ColorFormat.Yuv420 ? 1 : 0;
         Size codedSize = Av1EncoderFrame<TSample>.GetCodedSize(width, height);
-        Size lumaSize = Av1EncoderFrame<TSample>.GetPlaneBufferSize(width, height, 0, 0);
+        Size lumaSize = Av1EncoderFrame<TSample>.GetPlaneBufferSize(width, height, 0, 0, lumaBorder);
         int lumaElementCount = checked(lumaSize.Width * lumaSize.Height);
         Size chromaSize = colorFormat == Av1ColorFormat.Yuv400
             ? Size.Empty
-            : Av1EncoderFrame<TSample>.GetPlaneBufferSize(width, height, subsamplingX, subsamplingY);
+            : Av1EncoderFrame<TSample>.GetPlaneBufferSize(width, height, subsamplingX, subsamplingY, lumaBorder);
 
         int chromaElementCount = checked(chromaSize.Width * chromaSize.Height);
         int planeAlignment = Math.Max(PlaneAlignmentBytes / Unsafe.SizeOf<TSample>(), 1);
@@ -60,8 +62,8 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
             ? lumaElementCount
             : checked(chromaRedOffset + chromaElementCount);
 
-        // Libaom keeps the three component planes in one 32-byte-aligned frame allocation. The non-owning
-        // Buffer2D views preserve ImageSharp's row API without introducing separate plane rents or copies.
+        // Component planes share one frame allocation; their offsets preserve the 32-byte plane alignment.
+        // Non-owning Buffer2D views expose rows without introducing separate plane rents or copies.
         IMemoryOwner<TSample> owner = configuration.MemoryAllocator.Allocate<TSample>(storageLength);
         Memory<TSample> storage = owner.Memory;
         Buffer2D<TSample> luma = Buffer2D<TSample>.WrapMemory(
@@ -72,8 +74,8 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
         this.Luma = luma;
 
         Buffer2DRegion<TSample> lumaRegion = luma.GetRegion(
-            Av1EncoderFrame<TSample>.LumaBorder,
-            Av1EncoderFrame<TSample>.LumaBorder,
+            lumaBorder,
+            lumaBorder,
             codedSize.Width,
             codedSize.Height);
 
@@ -94,8 +96,8 @@ internal sealed class Av1EncoderFrameBuffer<TSample> : IDisposable
             this.ChromaBlue = chromaBlue;
             this.ChromaRed = chromaRed;
 
-            int chromaBorderX = Av1EncoderFrame<TSample>.LumaBorder >> subsamplingX;
-            int chromaBorderY = Av1EncoderFrame<TSample>.LumaBorder >> subsamplingY;
+            int chromaBorderX = lumaBorder >> subsamplingX;
+            int chromaBorderY = lumaBorder >> subsamplingY;
             int codedChromaWidth = codedSize.Width >> subsamplingX;
             int codedChromaHeight = codedSize.Height >> subsamplingY;
             chromaBlueRegion = chromaBlue.GetRegion(

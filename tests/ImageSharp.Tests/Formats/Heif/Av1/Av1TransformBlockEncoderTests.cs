@@ -59,7 +59,8 @@ public class Av1TransformBlockEncoderTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         using Av1EncoderFrameBuffer<byte> reconstructionFrame = new(
             Configuration.Default,
@@ -68,7 +69,8 @@ public class Av1TransformBlockEncoderTests
             8,
             Av1ColorFormat.Yuv400,
             0,
-            0);
+            0,
+            lumaBorder: 64);
 
         reconstructionFrame.Luma.DangerousGetSingleSpan().Fill(PaddingSentinel);
         Buffer2DRegion<byte> sourcePlane = sourceFrame.Frame.CodedView.GetPlane(Av1Plane.Y);
@@ -596,8 +598,10 @@ public class Av1TransformBlockEncoderTests
     /// <summary>
     /// Verifies that the block workspace uses one exact-size allocator owner and returns it exactly once.
     /// </summary>
-    [Fact]
-    public void BlockWorkspaceUsesOneExactSizeOwner()
+    [Theory]
+    [InlineData(false, 0)]
+    [InlineData(true, 135836)]
+    public void BlockWorkspaceUsesOneExactSizeOwner(bool allocateInterMotionCosts, int additionalLength)
     {
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
@@ -605,12 +609,12 @@ public class Av1TransformBlockEncoderTests
         configuration.MemoryAllocator = allocator;
 
         TestMemoryAllocator.AllocationRequest allocation;
-        using (Av1EncoderBlockWorkspace workspace = new(configuration))
+        using (Av1EncoderBlockWorkspace workspace = new(configuration, allocateInterMotionCosts))
         {
             allocation = Assert.Single(allocator.AllocationLog);
             Assert.Empty(allocator.ReturnLog);
             Assert.Equal(typeof(int), allocation.ElementType);
-            Assert.Equal(Av1EncoderBlockWorkspace.StorageLength, allocation.Length);
+            Assert.Equal(Av1EncoderBlockWorkspace.StorageLength + additionalLength, allocation.Length);
             Assert.Equal(Av1EncoderBlockWorkspace.MaximumResidualCount, workspace.Residual.Length);
             Assert.Equal(Av1EncoderBlockWorkspace.MaximumCoefficientCount, workspace.TransformCoefficients.Length);
             Assert.Equal(Av1EncoderBlockWorkspace.MaximumCoefficientCount, workspace.DequantizedCoefficients.Length);

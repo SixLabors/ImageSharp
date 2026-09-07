@@ -11,7 +11,7 @@ internal static partial class Av1DeblockingFilter
     /// <summary>
     /// Accesses four rows across a vertical edge in eight-bit storage.
     /// </summary>
-    private readonly struct VerticalByteEdgeOperator : IEdgeOperator<byte>
+    public readonly struct VerticalByteEdgeOperator : IEdgeOperator<byte>
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -11,7 +11,7 @@ internal static partial class Av1DeblockingFilter
     /// <summary>
     /// Accesses four columns across a horizontal edge in 16-bit storage.
     /// </summary>
-    private readonly struct HorizontalUInt16EdgeOperator : IEdgeOperator<ushort>
+    public readonly struct HorizontalUInt16EdgeOperator : IEdgeOperator<ushort>
     {
         /// <inheritdoc/>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

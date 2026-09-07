@@ -3,6 +3,7 @@
 
 using System.Numerics;
 using BenchmarkDotNet.Attributes;
+using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -106,7 +107,7 @@ public class Av1SequenceEncoderBenchmarks
 
         // Export the production-converted source planes only for checking reconstructed output quality.
         // Neither timed encoder reads this file: both convert the original RGB frames during each operation.
-        using Av1EncoderFrameBuffer<byte> planar = new(this.configuration, this.Dimension, this.Dimension, 8, Av1ColorFormat.Yuv420, 0, 0);
+        using Av1EncoderFrameBuffer<byte> planar = new(this.configuration, this.Dimension, this.Dimension, 8, Av1ColorFormat.Yuv420, 0, 0, lumaBorder: 64);
         using FileStream raw = File.Create(Path.Combine(this.outputDirectory, $"bike-{this.Dimension}-3frames.source.yuv"));
         foreach (ImageFrame<Rgb24> frame in this.sequence.Frames)
         {
@@ -131,7 +132,13 @@ public class Av1SequenceEncoderBenchmarks
     {
         this.output.SetLength(0);
         using Av1FrameEncoder.SequenceEncoder encoder = Av1FrameEncoder.CreateColorSequenceEncoder(
-            this.configuration, this.Dimension, this.Dimension, this.colorConfig, QIndex, this.Effort);
+            this.configuration,
+            this.Dimension,
+            this.Dimension,
+            this.colorConfig,
+            QIndex,
+            this.Effort,
+            speed: HeifEncodingSpeed.Level0);
 
         // One operation owns the real sequence lifetime: allocation, conversion, key/inter coding, and disposal.
         // The caller's destination is reused, excluding filesystem and MemoryStream growth from steady-state timing.
@@ -155,7 +162,7 @@ public class Av1SequenceEncoderBenchmarks
         // good-quality speed six while comparing the three managed interpolation-search boundaries.
         this.output.SetLength(0);
         using LibaomBenchmarkEncoder encoder = LibaomBenchmarkEncoder.Open(this.Dimension, this.Dimension, NativeQuality, NativeCpuUsed);
-        using Av1EncoderFrameBuffer<byte> planar = new(this.configuration, this.Dimension, this.Dimension, 8, Av1ColorFormat.Yuv420, 0, 0);
+        using Av1EncoderFrameBuffer<byte> planar = new(this.configuration, this.Dimension, this.Dimension, 8, Av1ColorFormat.Yuv420, 0, 0, lumaBorder: 64);
         using Av1FrameEncoder.Av1EncoderConversionWorkspace conversion = new(this.configuration, this.Dimension, this.colorConfig, false, false);
         Rectangle bounds = new(0, 0, this.Dimension, this.Dimension);
         for (int frameIndex = 0; frameIndex < FrameCount; frameIndex++)

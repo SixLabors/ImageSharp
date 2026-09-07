@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
@@ -38,7 +39,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         int effort)
     {
         this.picture = picture;
-        this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator>(
+        this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
+            Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator>(
             writer,
             source,
             reconstruction,
@@ -74,7 +76,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         int effort)
     {
         this.picture = picture;
-        this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator>(
+        this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
+            Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator>(
             writer,
             source,
             reference,
@@ -110,7 +113,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         int effort)
     {
         this.picture = picture;
-        this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator>(
+        this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
+            Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator>(
             writer,
             source,
             reference,
@@ -144,7 +148,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         int effort)
     {
         this.picture = picture;
-        this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(
+        this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
+            Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator>(
             writer,
             source,
             reconstruction,
@@ -180,7 +185,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         int effort)
     {
         this.picture = picture;
-        this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(
+        this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
+            Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator>(
             writer,
             source,
             reference,
@@ -216,7 +222,8 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         int effort)
     {
         this.picture = picture;
-        this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator>(
+        this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
+            Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator>(
             writer,
             source,
             reference,
@@ -236,7 +243,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         return this.tileData.Span.Slice(offset, length);
     }
 
-    private static ReadOnlyMemory<byte> Encode<TSample, TOperator>(
+    private static ReadOnlyMemory<byte> Encode<TSample, TOperator, TVerticalOperator, THorizontalOperator>(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<TSample> source,
         Av1EncoderFrame<TSample> reference,
@@ -248,6 +255,66 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         int effort)
         where TSample : unmanaged
         where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TVerticalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
+        where THorizontalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
+    {
+        Av1PictureParentControlSet parent = picture.Parent;
+        ObuFrameHeader frameHeader = parent.FrameHeader;
+        Av1MotionSearchSettings motionSettings = new(
+            parent.EncodingSpeed,
+            picture.Sequence.SequenceHeader.IsStillPicture,
+            new Size(source.Width, source.Height),
+            frameHeader.QuantizationParameters.BaseQIndex,
+            frameHeader.IsIntra,
+            parent.IsScreenContent);
+
+        parent.MotionSearchSettings = motionSettings;
+        int maximumDimension = Math.Max(source.Width, source.Height);
+        int stepParameter = Av1MotionSearchBase.GetInitialStepParameter(maximumDimension);
+        if (frameHeader.IsIntra)
+        {
+            // A key frame seeds the following inter frame with the complete frame range.
+            parent.MaximumMotionVectorMagnitude = maximumDimension;
+        }
+        else if (motionSettings.AutomaticStepSizeLevel != 0)
+        {
+            if (frameHeader.ShowFrame && motionSettings.AutomaticStepSizeLevel >= 2 && parent.MaximumMotionVectorMagnitude != -1)
+            {
+                int range = Math.Min(maximumDimension, 2 * parent.MaximumMotionVectorMagnitude);
+                stepParameter = Av1MotionSearchBase.GetInitialStepParameter(range);
+            }
+
+            // The packing pass accumulates actual NEWMV magnitudes. Trial candidates and inherited vectors
+            // do not contribute; a frame with no written NEWMV leaves a zero maximum for the next frame.
+            parent.MaximumMotionVectorMagnitude = 0;
+        }
+
+        parent.MotionSearchStepParameter = stepParameter;
+        _ = ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolUpdateOperation>(
+            writer, source, reference, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace, effort);
+
+        Av1LoopFilterEncoder.ApplyFrame<TSample, TVerticalOperator, THorizontalOperator>(picture, reconstruction);
+
+        // Analysis retains the selected modes, coefficients, palette tokens, and motion contexts. Packing starts
+        // from the same entropy edges and probabilities while the completed frame decisions remain available.
+        picture.ResetEntropyContexts();
+        return ProcessTiles<TSample, TOperator, Av1SymbolEncoder.SymbolWriteOperation>(
+            writer, source, reference, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace, effort);
+    }
+
+    private static ReadOnlyMemory<byte> ProcessTiles<TSample, TOperator, TSymbolOperation>(
+        Av1SymbolEncoder writer,
+        Av1EncoderFrame<TSample> source,
+        Av1EncoderFrame<TSample> reference,
+        Av1EncoderFrame<TSample> reconstruction,
+        Av1PictureControlSet picture,
+        Av1EncoderCoefficientBuffer coefficientBuffer,
+        Av1EncoderTileWorkspace tileWorkspace,
+        Av1EncoderBlockWorkspace blockWorkspace,
+        int effort)
+        where TSample : unmanaged
+        where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
+        where TSymbolOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         ObuFrameHeader frameHeader = picture.Parent.FrameHeader;
         ObuSequenceHeader sequenceHeader = picture.Sequence.SequenceHeader;
@@ -260,7 +327,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         ObuTileGroupHeader tileLayout = frameHeader.TilesInfo;
         Span<int> tileDataOffsets = picture.TileDataOffsets.Span;
         Span<int> tileDataLengths = picture.TileDataLengths.Span;
-        if (frameHeader.AllowIntraBlockCopy)
+        if (!TSymbolOperation.WritesOutput && frameHeader.AllowIntraBlockCopy)
         {
             // Hash the visible source once before reconstruction begins so candidate discovery never depends
             // on coding order and the workspace can be reused as compact bucket links afterward.
@@ -276,12 +343,10 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             for (int tileColumn = 0; tileColumn < tileLayout.TileColumnCount; tileColumn++)
             {
                 tile.SetTileColumn(tileLayout, frameHeader.ModeInfoColumnCount, tileColumn);
-                if (tileIndex > 0)
-                {
-                    // Every tile begins from the same frame probabilities, while its bytes follow the preceding
-                    // tile in the retained output allocation.
-                    writer.Reset(tileDataEnd);
-                }
+
+                // Each pass begins every tile from the same frame probabilities. Only the packing pass
+                // advances the output offset; the analysis operation does not touch range-coder state.
+                writer.Reset(tileDataEnd);
 
                 Point firstModeInfoPosition = new(tile.ModeInfoColumnStart, tile.ModeInfoRowStart);
                 entropyContext.MacroBlockModeInfo = picture.GetMacroBlockModeInfo(firstModeInfoPosition);
@@ -300,36 +365,64 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                             modeInfoColumn << Av1Constants.ModeInfoSizeLog2,
                             modeInfoRow << Av1Constants.ModeInfoSizeLog2);
 
-                        Av1IntraSuperblockEncoder.Prepare(
-                            picture,
-                            superblock,
-                            entropyContext.SuperblockOrigin);
+                        if (TSymbolOperation.WritesOutput)
+                        {
+                            Av1TileWriter.RetainedBlockEncodingHandler blockEncoder = new(picture);
+                            Av1TileWriter.WriteSuperblock<TSymbolOperation, Av1TileWriter.RetainedBlockEncodingHandler>(
+                                picture,
+                                entropyContext,
+                                writer,
+                                superblock,
+                                coefficientBuffer,
+                                (ushort)tileIndex,
+                                ref blockEncoder);
+                        }
+                        else
+                        {
+                            if (!frameHeader.IsIntra)
+                            {
+                                // Candidates within a superblock share one entropy snapshot. Updating while
+                                // trying partitions would make the search depend on discarded alternatives.
+                                writer.FillMotionVectorCosts(blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision));
+                            }
 
-                        Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator> blockEncoder = new(
-                            source,
-                            reference,
-                            reconstruction,
-                            picture,
-                            superblock,
-                            coefficientBuffer,
-                            blockWorkspace,
-                            effort);
+                            Av1IntraSuperblockEncoder.Prepare(
+                                picture,
+                                superblock,
+                                entropyContext.SuperblockOrigin);
 
-                        Av1TileWriter.WriteSuperblock(
-                            picture,
-                            entropyContext,
-                            writer,
-                            superblock,
-                            coefficientBuffer,
-                            (ushort)tileIndex,
-                            ref blockEncoder);
+                            Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator> blockEncoder = new(
+                                source,
+                                reference,
+                                reconstruction,
+                                picture,
+                                superblock,
+                                coefficientBuffer,
+                                blockWorkspace,
+                                effort);
+
+                            Av1TileWriter.WriteSuperblock<
+                                TSymbolOperation,
+                                Av1IntraSuperblockEncoder.ModeDecision<TSample, TOperator>>(
+                                picture,
+                                entropyContext,
+                                writer,
+                                superblock,
+                                coefficientBuffer,
+                                (ushort)tileIndex,
+                                ref blockEncoder);
+                        }
                     }
                 }
 
-                _ = writer.Exit(out int tileDataLength);
-                tileDataOffsets[tileIndex] = tileDataEnd;
-                tileDataLengths[tileIndex] = tileDataLength;
-                tileDataEnd += tileDataLength;
+                if (TSymbolOperation.WritesOutput)
+                {
+                    _ = writer.Exit(out int tileDataLength);
+                    tileDataOffsets[tileIndex] = tileDataEnd;
+                    tileDataLengths[tileIndex] = tileDataLength;
+                    tileDataEnd += tileDataLength;
+                }
+
                 tileIndex++;
             }
         }

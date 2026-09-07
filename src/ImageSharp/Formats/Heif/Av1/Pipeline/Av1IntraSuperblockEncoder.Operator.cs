@@ -20,15 +20,12 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 internal static partial class Av1IntraSuperblockEncoder
 {
     /// <summary>
-    /// The width and height of the fixed block currently used by inter motion search.
-    /// </summary>
-    private const int InterSearchBlockDimension = 8;
-
-    /// <summary>
     /// Defines type-specific block encoding without coupling traversal to sample storage width.
     /// </summary>
     /// <typeparam name="TSample">The native unsigned sample storage type.</typeparam>
-    internal interface IBlockEncodingOperator<TSample> : Av1IntraBlockCopySearchIndex.ISearchOperation<TSample>
+    internal interface IBlockEncodingOperator<TSample> :
+        Av1IntraBlockCopySearchIndex.ISearchOperation<TSample>,
+        Av1MotionSearchBase.IMotionSearchOperator<TSample>
         where TSample : unmanaged
     {
         /// <summary>
@@ -331,22 +328,6 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth);
 
         /// <summary>
-        /// Measures an 8x8 full-pixel reference candidate through the bordered plane storage.
-        /// </summary>
-        /// <param name="source">The coded source plane.</param>
-        /// <param name="sourceOrigin">The source block origin in visible-plane coordinates.</param>
-        /// <param name="reference">The padded retained reference plane.</param>
-        /// <param name="predictionOrigin">The candidate origin, which may lie inside the physical border.</param>
-        /// <param name="bitDepth">The coded sample precision.</param>
-        /// <returns>The squared error normalized to the eight-bit distortion domain.</returns>
-        public static abstract long GetInterPredictionError(
-            Buffer2DRegion<TSample> source,
-            Point sourceOrigin,
-            Buffer2DRegion<TSample> reference,
-            Point predictionOrigin,
-            Av1BitDepth bitDepth);
-
-        /// <summary>
         /// Encodes one prepared prediction with the selected transform into decision scratch.
         /// </summary>
         /// <param name="workspace">The reusable block workspace.</param>
@@ -443,6 +424,80 @@ internal static partial class Av1IntraSuperblockEncoder
     internal readonly struct ByteOperator : IBlockEncodingOperator<byte>
     {
         /// <inheritdoc/>
+        public static void PreparePrediction(
+            ReadOnlySpan<byte> source,
+            int sourceStride,
+            ReadOnlySpan<byte> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Span<byte> prediction,
+            Span<short> residual,
+            Span<short> scratch,
+            int width,
+            int height,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int verticalPhase,
+            int bitDepth)
+            => Av1MotionSearchBase.ByteOperator.PreparePrediction(
+                source,
+                sourceStride,
+                reference,
+                referenceStride,
+                referenceOrigin,
+                prediction,
+                residual,
+                scratch,
+                width,
+                height,
+                horizontalFilter,
+                verticalFilter,
+                horizontalPhase,
+                verticalPhase,
+                bitDepth);
+
+        /// <inheritdoc/>
+        public static void Predict(
+            ReadOnlySpan<byte> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Span<byte> buffer,
+            int width,
+            int height,
+            int horizontalPhase,
+            int verticalPhase,
+            int taps,
+            int bitDepth)
+            => Av1MotionSearchBase.ByteOperator.Predict(
+                reference, referenceStride, referenceOrigin, buffer, width, height, horizontalPhase, verticalPhase, taps, bitDepth);
+
+        /// <inheritdoc/>
+        public static int SumAbsoluteDifferences(
+            ReadOnlySpan<byte> source,
+            int sourceStride,
+            ReadOnlySpan<byte> prediction,
+            int predictionStride,
+            int width,
+            int height,
+            int rowStep)
+            => Av1MotionSearchBase.ByteOperator.SumAbsoluteDifferences(
+                source, sourceStride, prediction, predictionStride, width, height, rowStep);
+
+        /// <inheritdoc/>
+        public static void GetMoments(
+            ReadOnlySpan<byte> source,
+            int sourceStride,
+            ReadOnlySpan<byte> prediction,
+            int predictionStride,
+            int width,
+            int height,
+            out int sum,
+            out long squares)
+            => Av1MotionSearchBase.ByteOperator.GetMoments(
+                source, sourceStride, prediction, predictionStride, width, height, out sum, out squares);
+
+        /// <inheritdoc/>
         public static Span<byte> GetLeftReference(Span<short> residual, int length)
             => MemoryMarshal.AsBytes(residual)[..length];
 
@@ -468,36 +523,6 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             return true;
-        }
-
-        /// <inheritdoc/>
-        public static long GetInterPredictionError(
-            Buffer2DRegion<byte> source,
-            Point sourceOrigin,
-            Buffer2DRegion<byte> reference,
-            Point predictionOrigin,
-            Av1BitDepth bitDepth)
-        {
-            Rectangle sourceBounds = source.Bounds;
-            Rectangle referenceBounds = reference.Bounds;
-            int sourceIndex =
-                ((sourceBounds.Y + sourceOrigin.Y) * source.Stride) +
-                sourceBounds.X +
-                sourceOrigin.X;
-
-            int referenceIndex =
-                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
-                referenceBounds.X +
-                predictionOrigin.X;
-
-            // The shared residual kernel selects the widest available vector width and handles the scalar tail.
-            return Av1ResidualBuilder.SumSquaredError(
-                source.Buffer.DangerousGetSingleSpan()[sourceIndex..],
-                source.Stride,
-                reference.Buffer.DangerousGetSingleSpan()[referenceIndex..],
-                reference.Stride,
-                InterSearchBlockDimension,
-                InterSearchBlockDimension);
         }
 
         /// <inheritdoc/>
@@ -963,6 +988,80 @@ internal static partial class Av1IntraSuperblockEncoder
     internal readonly struct UInt16Operator : IBlockEncodingOperator<ushort>
     {
         /// <inheritdoc/>
+        public static void PreparePrediction(
+            ReadOnlySpan<ushort> source,
+            int sourceStride,
+            ReadOnlySpan<ushort> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Span<ushort> prediction,
+            Span<short> residual,
+            Span<short> scratch,
+            int width,
+            int height,
+            Av1InterpolationFilter horizontalFilter,
+            Av1InterpolationFilter verticalFilter,
+            int horizontalPhase,
+            int verticalPhase,
+            int bitDepth)
+            => Av1MotionSearchBase.UInt16Operator.PreparePrediction(
+                source,
+                sourceStride,
+                reference,
+                referenceStride,
+                referenceOrigin,
+                prediction,
+                residual,
+                scratch,
+                width,
+                height,
+                horizontalFilter,
+                verticalFilter,
+                horizontalPhase,
+                verticalPhase,
+                bitDepth);
+
+        /// <inheritdoc/>
+        public static void Predict(
+            ReadOnlySpan<ushort> reference,
+            int referenceStride,
+            int referenceOrigin,
+            Span<ushort> buffer,
+            int width,
+            int height,
+            int horizontalPhase,
+            int verticalPhase,
+            int taps,
+            int bitDepth)
+            => Av1MotionSearchBase.UInt16Operator.Predict(
+                reference, referenceStride, referenceOrigin, buffer, width, height, horizontalPhase, verticalPhase, taps, bitDepth);
+
+        /// <inheritdoc/>
+        public static int SumAbsoluteDifferences(
+            ReadOnlySpan<ushort> source,
+            int sourceStride,
+            ReadOnlySpan<ushort> prediction,
+            int predictionStride,
+            int width,
+            int height,
+            int rowStep)
+            => Av1MotionSearchBase.UInt16Operator.SumAbsoluteDifferences(
+                source, sourceStride, prediction, predictionStride, width, height, rowStep);
+
+        /// <inheritdoc/>
+        public static void GetMoments(
+            ReadOnlySpan<ushort> source,
+            int sourceStride,
+            ReadOnlySpan<ushort> prediction,
+            int predictionStride,
+            int width,
+            int height,
+            out int sum,
+            out long squares)
+            => Av1MotionSearchBase.UInt16Operator.GetMoments(
+                source, sourceStride, prediction, predictionStride, width, height, out sum, out squares);
+
+        /// <inheritdoc/>
         public static Span<ushort> GetLeftReference(Span<short> residual, int length)
             => MemoryMarshal.Cast<short, ushort>(residual)[..length];
 
@@ -995,38 +1094,6 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             return true;
-        }
-
-        /// <inheritdoc/>
-        public static long GetInterPredictionError(
-            Buffer2DRegion<ushort> source,
-            Point sourceOrigin,
-            Buffer2DRegion<ushort> reference,
-            Point predictionOrigin,
-            Av1BitDepth bitDepth)
-        {
-            Rectangle sourceBounds = source.Bounds;
-            Rectangle referenceBounds = reference.Bounds;
-            int sourceIndex =
-                ((sourceBounds.Y + sourceOrigin.Y) * source.Stride) +
-                sourceBounds.X +
-                sourceOrigin.X;
-
-            int referenceIndex =
-                ((referenceBounds.Y + predictionOrigin.Y) * reference.Stride) +
-                referenceBounds.X +
-                predictionOrigin.X;
-
-            long error = Av1ResidualBuilder.SumSquaredError(
-                source.Buffer.DangerousGetSingleSpan()[sourceIndex..],
-                source.Stride,
-                reference.Buffer.DangerousGetSingleSpan()[referenceIndex..],
-                reference.Stride,
-                InterSearchBlockDimension,
-                InterSearchBlockDimension);
-
-            int shift = (bitDepth.GetBitCount() - 8) * 2;
-            return shift == 0 ? error : (error + (1L << (shift - 1))) >> shift;
         }
 
         /// <inheritdoc/>

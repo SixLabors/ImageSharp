@@ -39,6 +39,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
 
     private const int ResidualStorageLength = MaximumResidualCount / 2;
     private const int MotionSearchSiteCount = 6;
+    private const int MotionSearchPredictionSampleCount = 128 * (128 + 8);
     private const int MotionSearchSiteStorageOffset = StorageLength + Av1MotionVectorCosts.StorageLength;
     private const int TransformCoefficientOffset = ResidualStorageLength;
     private const int DequantizedCoefficientOffset = TransformCoefficientOffset + MaximumCoefficientCount;
@@ -80,9 +81,12 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         InterPredictionCoefficientStorageLength;
 
     private const int ModeDecisionStorageLength = Av1EncoderModeDecisionWorkspace<ushort>.StorageLength;
-    private const int SharedModeDecisionStorageLength = ModeDecisionStorageLength > InterPredictionStorageLength
+    private const int InterSearchStorageLength =
+        InterPredictionStorageLength + (MotionSearchPredictionSampleCount * sizeof(ushort) / sizeof(int));
+
+    private const int SharedModeDecisionStorageLength = ModeDecisionStorageLength > InterSearchStorageLength
         ? ModeDecisionStorageLength
-        : InterPredictionStorageLength;
+        : InterSearchStorageLength;
 
     private const int PartitionContextStorageOffset =
         InterPredictionSampleStorageOffset + SharedModeDecisionStorageLength;
@@ -185,6 +189,20 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// <returns>The worker's reusable motion-rate view.</returns>
     public Av1MotionVectorCosts GetMotionVectorCosts(Av1MotionVectorPrecision precision)
         => new(this.owner.Memory.Span.Slice(StorageLength, Av1MotionVectorCosts.StorageLength), precision);
+
+    /// <summary>
+    /// Borrows prediction samples for motion search while retaining the selected inter reconstruction.
+    /// </summary>
+    /// <typeparam name="TSample">The frame's unsigned sample storage type.</typeparam>
+    /// <returns>The reusable search prediction span.</returns>
+    public Span<TSample> GetMotionSearchPrediction<TSample>()
+        where TSample : unmanaged
+    {
+        // Intra trials have finished before inter search starts. Reuse their storage beyond the live inter
+        // candidate buffers; the extra eight rows accommodate separable filtering of a 128x128 prediction.
+        int offset = InterPredictionSampleStorageOffset + InterPredictionStorageLength;
+        return MemoryMarshal.Cast<int, TSample>(this.owner.Memory.Span[offset..])[..MotionSearchPredictionSampleCount];
+    }
 
     /// <summary>
     /// Gets the retained full-pixel search geometry for the reference plane's current stride.

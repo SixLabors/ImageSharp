@@ -184,22 +184,23 @@ internal readonly struct Av1EncoderFrame<TSample>
             Av1Math.AlignPowerOf2(height, CodedDimensionAlignmentLog2));
 
     /// <summary>
-    /// Calculates the physical dimensions required for an all-intra component plane.
+    /// Calculates the physical dimensions required for a bordered component plane.
     /// </summary>
     /// <param name="width">The visible luma width.</param>
     /// <param name="height">The visible luma height.</param>
     /// <param name="subsamplingX">The plane's horizontal subsampling shift.</param>
     /// <param name="subsamplingY">The plane's vertical subsampling shift.</param>
+    /// <param name="lumaBorder">The border width and height in luma samples.</param>
     /// <returns>The physical plane dimensions, including its complete border and row padding.</returns>
-    public static Size GetPlaneBufferSize(int width, int height, int subsamplingX, int subsamplingY)
+    public static Size GetPlaneBufferSize(int width, int height, int subsamplingX, int subsamplingY, int lumaBorder)
     {
         Size codedSize = GetCodedSize(width, height);
 
-        // libaom aligns the complete luma row before deriving a subsampled plane's stride.
+        // Align the complete luma row before deriving a subsampled plane's stride.
         // Aligning chroma independently would produce a different physical layout for narrow or odd-sized frames.
-        int lumaStride = Av1Math.AlignPowerOf2(codedSize.Width + (2 * LumaBorder), LumaStrideAlignmentLog2);
+        int lumaStride = Av1Math.AlignPowerOf2(codedSize.Width + (2 * lumaBorder), LumaStrideAlignmentLog2);
         int planeStride = lumaStride >> subsamplingX;
-        int planeBorderHeight = LumaBorder >> subsamplingY;
+        int planeBorderHeight = lumaBorder >> subsamplingY;
         return new Size(planeStride, (codedSize.Height >> subsamplingY) + (2 * planeBorderHeight));
     }
 

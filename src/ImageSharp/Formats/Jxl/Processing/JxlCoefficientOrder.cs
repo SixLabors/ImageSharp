@@ -4,6 +4,7 @@
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing;

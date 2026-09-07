@@ -66,4 +66,70 @@ internal static class JxlF16Coder
 
         return true;
     }
+
+    public static bool Write(float value, JxlBitWriter writer)
+    {
+        uint bits32 = BitConverter.SingleToUInt32Bits(value);
+
+        uint sign = bits32 >> 31;
+        uint biasedExp32 = (bits32 >> 23) & 0xFF;
+        uint mantissa32 = bits32 & 0x7FFFFF;
+
+        int exp = (int)biasedExp32 - 127;
+        if (exp > 15)
+        {
+            throw new InvalidOperationException("Too big to encode, CanEncode should return false");
+        }
+
+        // Tiny or zero => zero.
+        if (exp < -24)
+        {
+            writer.Write(16, 0);
+            return true;
+        }
+
+        uint biasedExp16 = 0;
+        uint mantissa16 = 0;
+
+        if (exp < -14)
+        {
+            biasedExp16 = 0;
+
+            uint subExp = unchecked((uint)(-14 - exp));
+
+            if (subExp is not (>= 1 and < 11))
+            {
+                return false;
+            }
+
+            mantissa16 = (1u << (int)(10 - subExp)) + (mantissa32 >> (int)(13 + subExp));
+        }
+        else
+        {
+            // exp = [-14, 15]
+            biasedExp16 = unchecked((uint)(exp + 15));
+
+            if (biasedExp16 is not (>= 1 and < 31))
+            {
+                return false;
+            }
+
+            mantissa16 = mantissa32 >> 13;
+        }
+
+        if (mantissa16 >= 1024)
+        {
+            return false;
+        }
+
+        uint bits16 = (sign << 15) | (biasedExp16 << 10) | mantissa16;
+
+        if (bits16 >= 0x10000)
+        {
+            return false;
+        }
+
+        writer.Write(16, bits16);
+        return true;
+    }
 }

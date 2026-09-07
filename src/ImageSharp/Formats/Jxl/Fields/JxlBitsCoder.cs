@@ -31,6 +31,16 @@ internal static class JxlBitsCoder
         return true;
     }
 
+    public static void Write(int bits, uint value, JxlBitWriter writer)
+    {
+        if (value >= (1u << bits))
+        {
+            throw new InvalidOperationException("Value is too large to encode in " + bits + " bits");
+        }
+
+        writer.Write(bits, value);
+    }
+
     // NOTE: BitsCoder::Read (fields.cc:418) returns a uint32_t,
     // suggesting the input bit size does not exceed 32 bits.
     public static uint Read(uint bits, JxlBitReader reader) => reader.ReadBits32(bits);

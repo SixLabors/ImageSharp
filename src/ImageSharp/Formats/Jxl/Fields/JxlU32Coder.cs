@@ -73,7 +73,7 @@ internal static class JxlU32Coder
     /// </summary>
     public static bool ChooseSelector(in JxlU32Enc enc, uint value, ref uint selector, ref int totalBits)
     {
-        int bitsRequired = 32 - JxlMath.Num0BitsAboveMS1Bit(value);
+        uint bitsRequired = 32 - JxlMath.Num0BitsAboveMS1Bit(value);
 
         if (bitsRequired > 32)
         {
@@ -116,9 +116,36 @@ internal static class JxlU32Coder
 
         if (totalBits == 64)
         {
-            DebugGuard.IsTrue(false, "No matching selector");
+            throw new InvalidOperationException("No matching selector");
+        }
 
+        return true;
+    }
+
+    public static bool Write(in JxlU32Enc enc, uint value, JxlBitWriter writer)
+    {
+        uint selector = 0;
+        int totalBits = 0;
+
+        if (!ChooseSelector(in enc, value, ref selector, ref totalBits))
+        {
             return false;
+        }
+
+        writer.Write(2, selector);
+
+        JxlU32Distribution d = enc.GetDistribution((int)selector);
+
+        if (!d.IsDirect)
+        {
+            uint offset = d.Offset;
+
+            if (value < offset)
+            {
+                return false;
+            }
+
+            writer.WriteBits(totalBits - 2, value - offset);
         }
 
         return true;

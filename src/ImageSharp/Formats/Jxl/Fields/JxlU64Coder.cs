@@ -99,6 +99,59 @@ internal static class JxlU64Coder
         return true;
     }
 
+    public static bool Write(ulong value, JxlBitWriter writer)
+    {
+        if (value == 0)
+        {
+            // Selector: use 0 bits, value 0
+            writer.Write(2, 0);
+        }
+        else if (value <= 16)
+        {
+            // Selector: use 4 bits, value 1..16
+            writer.Write(2, 1);
+            writer.Write(4, value - 1);
+        }
+        else if (value <= 272)
+        {
+            // Selector: use 8 bits, value 17..272
+            writer.Write(2, 2);
+            writer.Write(8, value - 17);
+        }
+        else
+        {
+            // Selector: varint, first a 12-bit group, after that per 8-bit group.
+            writer.Write(2, 3);
+            writer.Write(12, value & 4095);
+            value >>= 12;
+            int shift = 12;
+            while (value > 0 && shift < 60)
+            {
+                // Indicate varint not done
+                writer.Write(1, 1);
+                writer.Write(8, value & 255);
+                value >>= 8;
+                shift += 8;
+            }
+
+            if (value > 0)
+            {
+                // This only could happen if shift == N - 4.
+                writer.Write(1, 1);
+                writer.Write(4, value & 15);
+
+                // Implicitly closed sequence, no extra stop bit is required.
+            }
+            else
+            {
+                // Indicate end of varint
+                writer.Write(1, 0);
+            }
+        }
+
+        return true;
+    }
+
     /// <summary>
     /// Always returns 73.
     /// </summary>

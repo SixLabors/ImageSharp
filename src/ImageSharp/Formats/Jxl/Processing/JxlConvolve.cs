@@ -263,10 +263,10 @@ internal static class JxlConvolve
     }
 
     public static void SlowSymmetric3(
-        JxlImageF input,
+        JxlPlane<float> input,
         Rectangle rect,
         JxlWeightsSymmetric3 weights,
-        JxlImageF output)
+        JxlPlane<float> output)
     {
         int width = rect.Width;
         int height = rect.Height;

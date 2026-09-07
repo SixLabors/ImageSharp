@@ -4,7 +4,7 @@
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
 
-namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
+namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
 
 internal sealed class JxlAnsCode
 {

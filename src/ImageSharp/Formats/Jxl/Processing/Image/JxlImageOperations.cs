@@ -365,6 +365,20 @@ internal static class JxlImageOperations
     }
 
     /// <summary>
+    /// Fills every value in every plane of the image with <paramref name="value"/>.
+    /// </summary>
+    /// <typeparam name="T">The type of the image.</typeparam>
+    /// <param name="value">The value to fill every plane with.</param>
+    /// <param name="image">The image to fill.</param>
+    public static void FillImage<T>(T value, JxlImage3<T> image)
+        where T : unmanaged
+    {
+        FillImage(value, image.Plane(0));
+        FillImage(value, image.Plane(1));
+        FillImage(value, image.Plane(2));
+    }
+
+    /// <summary>
     /// Sets every value in the plane to 0. See also <seealso cref="JxlPlane{T}.Clear()"/> .
     /// </summary>
     /// <typeparam name="T">The type of the plane.</typeparam>

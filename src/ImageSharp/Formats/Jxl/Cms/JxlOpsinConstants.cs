@@ -21,4 +21,6 @@ internal static class JxlOpsinConstants
     public const float OpsinAbsorbanceBias0 = 0.0037930732552754493f;
     public const float OpsinAbsorbanceBias1 = OpsinAbsorbanceBias0;
     public const float OpsinAbsorbanceBias2 = OpsinAbsorbanceBias0;
+
+    public static ReadOnlySpan<float> OpsinAbsorbanceBias => [OpsinAbsorbanceBias0, OpsinAbsorbanceBias1, OpsinAbsorbanceBias2];
 }

@@ -5,7 +5,7 @@ using System.Buffers;
 using System.Runtime.CompilerServices;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Entropy;
 
-namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
+namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder.Ans;
 
 internal static class JxlAnsReader
 {

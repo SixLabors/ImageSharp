@@ -23,7 +23,7 @@ internal sealed class JxlXorShift
         }
     }
 
-    public void XorShift128Plus(uint seed1, uint seed2, uint seed3, uint seed4)
+    public JxlXorShift(uint seed1, uint seed2, uint seed3, uint seed4)
     {
         this.s0[0] = SplitMix64((((ulong)seed1 << 32) + seed2) + 0x9E3779B97F4A7C15uL);
         this.s1[0] = SplitMix64((((ulong)seed3 << 32) + seed4) + 0x9E3779B97F4A7C15uL);

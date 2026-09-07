@@ -11,7 +11,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 /// </summary>
 internal static class JxlLinearAlgebra
 {
-    public static void ConvertToDiagonal(Matrix2x2 a, Vector2 diag, Matrix2x2 u)
+    public static void ConvertToDiagonal(Matrix2x2 a, ref Vector2 diag, ref Matrix2x2 u)
     {
         DebugGuard.MustBeLessThan(Math.Abs(a[0][1] - a[1][0]), 1e-15, nameof(a));
 

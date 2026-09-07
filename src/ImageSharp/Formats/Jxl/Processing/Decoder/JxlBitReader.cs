@@ -8,7 +8,7 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
 /// <summary>
 /// Represents a bitstream reader.
 /// </summary>
-internal sealed class JxlBitReader(Stream stream)
+internal class JxlBitReader(Stream stream)
 {
     private ulong buffer;
     private uint bufferRemainingBits;
@@ -154,17 +154,17 @@ internal sealed class JxlBitReader(Stream stream)
         }
     }
 
-    public uint ReadBits32(uint bits) => this.ReadBits32Core(bits, peek: false);
+    public virtual uint ReadBits32(uint bits) => this.ReadBits32Core(bits, peek: false);
 
-    public uint PeekBits32(uint bits) => this.ReadBits32Core(bits, peek: true);
+    public virtual uint PeekBits32(uint bits) => this.ReadBits32Core(bits, peek: true);
 
-    public void SkipBits32(uint bits) => _ = this.ReadBits32(bits);
+    public virtual void SkipBits32(uint bits) => _ = this.ReadBits32(bits);
 
-    public ulong ReadBits64(ulong bits) => this.ReadBits64Core((uint)bits, peek: false);
+    public virtual ulong ReadBits64(ulong bits) => this.ReadBits64Core((uint)bits, peek: false);
 
-    public ulong PeekBits64(ulong bits) => this.ReadBits64Core((uint)bits, peek: true);
+    public virtual ulong PeekBits64(ulong bits) => this.ReadBits64Core((uint)bits, peek: true);
 
-    public void SkipBits64(ulong bits) => _ = this.ReadBits64(bits);
+    public virtual void SkipBits64(ulong bits) => _ = this.ReadBits64(bits);
 
-    public bool ReadBoolean() => this.ReadBits32Core(1, peek: false) == 1;
+    public virtual bool ReadBoolean() => this.ReadBits32Core(1, peek: false) == 1;
 }

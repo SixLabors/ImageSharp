@@ -5,13 +5,13 @@ namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Primitives;
 
 internal static class RectangleUtils
 {
-    public static int X0(in Rectangle rect) => rect.X;
+    public static int X0(this in Rectangle rect) => rect.X;
 
-    public static int Y0(in Rectangle rect) => rect.Y;
+    public static int Y0(this in Rectangle rect) => rect.Y;
 
-    public static int X1(in Rectangle rect) => rect.X + rect.Width;
+    public static int X1(this in Rectangle rect) => rect.X + rect.Width;
 
-    public static int Y1(in Rectangle rect) => rect.Y + rect.Height;
+    public static int Y1(this in Rectangle rect) => rect.Y + rect.Height;
 
     public static Rectangle Extend(Rectangle curr, int border, Rectangle parent)
     {
@@ -22,4 +22,18 @@ internal static class RectangleUtils
 
         return new(newX0, newY0, newX1 - newX0, newY1 - newY0);
     }
+
+    public static bool IsInside(this Rectangle a, Rectangle b) =>
+        a.X0() >= b.X0() &&
+        a.X1() <= b.X1() &&
+        a.Y0() >= b.Y0() &&
+        a.Y1() <= b.Y1();
+
+    public static Rectangle CreateRectangle(int xbegin, int ybegin, int xSizeMax, int ySizeMax, int xEnd, int yEnd)
+        => new(xbegin, ybegin, ClampedSize(xbegin, xSizeMax, xEnd), ClampedSize(ybegin, ySizeMax, yEnd));
+
+    private static int ClampedSize(int begin, int sizeMax, int end)
+        => begin + sizeMax <= end
+            ? sizeMax
+            : (end > begin ? end - begin : 0);
 }

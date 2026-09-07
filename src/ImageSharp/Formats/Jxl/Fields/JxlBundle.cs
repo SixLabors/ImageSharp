@@ -5,6 +5,7 @@ using SixLabors.ImageSharp.Formats.Jxl.IO.FrameHeader;
 using SixLabors.ImageSharp.Formats.Jxl.IO.Metadata;
 using SixLabors.ImageSharp.Formats.Jxl.Processing;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder.AuxiliaryOutput;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Quantization;
 
@@ -118,7 +119,7 @@ internal static class JxlBundle
             return false;
         }
 
-        return writer.WithMaxBits(totalBits, layer, auxOutput, () =>
+        return writer.WithMaxBits(totalBits, () =>
         {
             JxlWriteVisitor visitor = new(extensionBits, writer);
 

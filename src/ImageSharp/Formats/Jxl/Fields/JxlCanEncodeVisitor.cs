@@ -102,7 +102,7 @@ internal sealed class JxlCanEncodeVisitor : JxlVisitorBase
 
             extensionBits = (int)this.encodedBits - (int)this.posAfterExt;
             int encodedBits = 0;
-            this.OK &= JxlU64Coder.CanEncode(extensionBits, ref encodedBits);
+            this.OK &= JxlU64Coder.CanEncode((ulong)extensionBits, ref encodedBits);
             totalBits += encodedBits;
 
             for (int i = 1; i < BitOperations.PopCount(this.extensions); i++)

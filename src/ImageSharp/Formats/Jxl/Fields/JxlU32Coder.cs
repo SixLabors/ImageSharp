@@ -3,6 +3,7 @@
 
 using SixLabors.ImageSharp.Formats.Jxl.Processing;
 using SixLabors.ImageSharp.Formats.Jxl.Processing.Decoder;
+using SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Fields;
 

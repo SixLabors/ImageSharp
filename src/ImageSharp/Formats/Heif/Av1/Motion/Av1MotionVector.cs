@@ -106,6 +106,68 @@ internal readonly struct Av1MotionVector : IEquatable<Av1MotionVector>
     public static bool operator !=(Av1MotionVector left, Av1MotionVector right) => !left.Equals(right);
 
     /// <summary>
+    /// Computes the full-pixel displacement region that can produce distinct, padded block predictions.
+    /// </summary>
+    /// <param name="block">The block's luma rectangle in the coded frame.</param>
+    /// <param name="frameSize">The frame dimensions rounded to mode-information units.</param>
+    /// <param name="border">The allocated luma border on every side.</param>
+    /// <returns>The displacement region with exclusive right and bottom edges.</returns>
+    public static Rectangle GetFrameSearchBounds(Rectangle block, Size frameSize, int border)
+    {
+        // Reserve eight samples for interpolation support and restrict candidates beyond a replicated edge
+        // once moving farther cannot change the prediction. Bounds describe displacement from this block,
+        // so interior blocks can move across the frame rather than being restricted to the border width.
+        int minimumColumn = Math.Max(-(block.X + border - 8), -(block.Right + 8));
+        int minimumRow = Math.Max(-(block.Y + border - 8), -(block.Bottom + 8));
+        int maximumColumn = Math.Min(frameSize.Width - block.Right + border - 8, frameSize.Width - block.X + 8);
+        int maximumRow = Math.Min(frameSize.Height - block.Bottom + border - 8, frameSize.Height - block.Y + 8);
+        return Rectangle.FromLTRB(minimumColumn, minimumRow, maximumColumn + 1, maximumRow + 1);
+    }
+
+    /// <summary>
+    /// Restricts a frame displacement region to representable full-pixel candidates around this reference.
+    /// </summary>
+    /// <param name="frameBounds">The full-pixel region from <see cref="GetFrameSearchBounds"/>.</param>
+    /// <returns>The full-pixel search region with exclusive right and bottom edges.</returns>
+    public Rectangle GetFullPixelSearchBounds(Rectangle frameBounds)
+    {
+        const int MaximumDisplacement = 1023;
+
+        // Both endpoints must fit inside a 1023-pixel displacement from the fractional reference. Round the
+        // lower endpoint toward positive infinity and the upper toward negative infinity, including for
+        // negative references. Keep the reserved vector-domain endpoints out of the search as well.
+        int minimumColumn = Math.Max(frameBounds.Left, Math.Max(((this.Column + 7) >> 3) - MaximumDisplacement, (LowerBound >> 3) + 1));
+        int minimumRow = Math.Max(frameBounds.Top, Math.Max(((this.Row + 7) >> 3) - MaximumDisplacement, (LowerBound >> 3) + 1));
+        int maximumColumn = Math.Min(frameBounds.Right - 1, Math.Min((this.Column >> 3) + MaximumDisplacement, (UpperBound >> 3) - 1));
+        int maximumRow = Math.Min(frameBounds.Bottom - 1, Math.Min((this.Row >> 3) + MaximumDisplacement, (UpperBound >> 3) - 1));
+        maximumColumn = Math.Max(minimumColumn, maximumColumn);
+        maximumRow = Math.Max(minimumRow, maximumRow);
+        return Rectangle.FromLTRB(minimumColumn, minimumRow, maximumColumn + 1, maximumRow + 1);
+    }
+
+    /// <summary>
+    /// Restricts a frame displacement region to representable fractional candidates around this reference.
+    /// </summary>
+    /// <param name="frameBounds">The full-pixel region from <see cref="GetFrameSearchBounds"/>.</param>
+    /// <returns>The eighth-sample search region with exclusive right and bottom edges.</returns>
+    public Rectangle GetSubpixelSearchBounds(Rectangle frameBounds)
+    {
+        const int MaximumDisplacement = 1023 * SubpixelScale;
+
+        // Refine against the original frame region, not the rounded full-pixel intersection. Otherwise the
+        // fractional portion between an integer endpoint and the reference-centered limit would be lost.
+        int minimumColumn = Math.Max(frameBounds.Left * SubpixelScale, this.Column - MaximumDisplacement);
+        int minimumRow = Math.Max(frameBounds.Top * SubpixelScale, this.Row - MaximumDisplacement);
+        int maximumColumn = Math.Min((frameBounds.Right - 1) * SubpixelScale, this.Column + MaximumDisplacement);
+        int maximumRow = Math.Min((frameBounds.Bottom - 1) * SubpixelScale, this.Row + MaximumDisplacement);
+        maximumColumn = Math.Min(UpperBound - 1, Math.Max(minimumColumn, maximumColumn));
+        maximumRow = Math.Min(UpperBound - 1, Math.Max(minimumRow, maximumRow));
+        minimumColumn = Math.Max(LowerBound + 1, minimumColumn);
+        minimumRow = Math.Max(LowerBound + 1, minimumRow);
+        return Rectangle.FromLTRB(minimumColumn, minimumRow, maximumColumn + 1, maximumRow + 1);
+    }
+
+    /// <summary>
     /// Reduces this vector to the motion-vector precision selected by the current frame.
     /// </summary>
     /// <param name="allowHighPrecision">

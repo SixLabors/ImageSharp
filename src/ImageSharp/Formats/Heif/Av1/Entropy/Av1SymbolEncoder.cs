@@ -901,6 +901,12 @@ internal sealed class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Captures the current motion-vector distributions for a subsequent motion-search interval.
+    /// </summary>
+    /// <param name="costs">The worker-owned rate tables to refresh.</param>
+    public void FillMotionVectorCosts(Av1MotionVectorCosts costs) => costs.Fill(this.motionVector);
+
+    /// <summary>
     /// Measures an inter motion vector relative to its selected stack reference.
     /// </summary>
     /// <param name="value">The selected motion vector.</param>

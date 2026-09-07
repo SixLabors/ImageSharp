@@ -3,6 +3,7 @@
 
 using System.Buffers;
 using System.Runtime.InteropServices;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -26,7 +27,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     public const int MaximumCoefficientCount = (Av1Constants.MaxTransformSize / 2) * (Av1Constants.MaxTransformSize / 2);
 
     /// <summary>
-    /// The complete workspace length in signed-integer storage elements.
+    /// The base workspace length in signed-integer storage elements, excluding inter-motion state.
     /// </summary>
     public const int StorageLength =
         ResidualStorageLength +
@@ -37,6 +38,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
         PartitionContextStorageLength;
 
     private const int ResidualStorageLength = MaximumResidualCount / 2;
+    private const int MotionSearchSiteCount = 6;
+    private const int MotionSearchSiteStorageOffset = StorageLength + Av1MotionVectorCosts.StorageLength;
     private const int TransformCoefficientOffset = ResidualStorageLength;
     private const int DequantizedCoefficientOffset = TransformCoefficientOffset + MaximumCoefficientCount;
     private const int TransformWorkspaceOffset = DequantizedCoefficientOffset + MaximumCoefficientCount;
@@ -117,7 +120,34 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// </summary>
     /// <param name="configuration">The configuration providing the encoder allocator.</param>
     public Av1EncoderBlockWorkspace(Configuration configuration)
-        => this.owner = configuration.MemoryAllocator.Allocate<int>(StorageLength);
+        : this(configuration, allocateInterMotionCosts: false)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="Av1EncoderBlockWorkspace"/> class for a fixed encoding mode.
+    /// </summary>
+    /// <param name="configuration">The configuration providing the encoder allocator.</param>
+    /// <param name="allocateInterMotionCosts">Whether the worker will encode inter frames.</param>
+    public Av1EncoderBlockWorkspace(Configuration configuration, bool allocateInterMotionCosts)
+    {
+        // Motion rates belong to the worker, not a block candidate or frame. Keep both precision pairs after
+        // the existing scratch regions so sequence frames can change precision while retaining one owner.
+        int length = StorageLength +
+            (allocateInterMotionCosts ? Av1MotionVectorCosts.StorageLength + (MotionSearchSiteCount * Av1MotionSearchSites.StorageLength) : 0);
+
+        this.owner = configuration.MemoryAllocator.Allocate<int>(length);
+        if (allocateInterMotionCosts)
+        {
+            // Each shape retains its offsets across frames. A zero stride marks its first use; every populated
+            // site and stage is subsequently overwritten when the reference stride changes.
+            Span<int> storage = this.owner.Memory.Span;
+            for (int index = 0; index < MotionSearchSiteCount; index++)
+            {
+                storage[MotionSearchSiteStorageOffset + ((index + 1) * Av1MotionSearchSites.StorageLength) - 1] = 0;
+            }
+        }
+    }
 
     /// <summary>
     /// Gets the maximum-size spatial residual workspace as a compact 16-bit view of the aligned owner.
@@ -147,6 +177,33 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// Gets the reusable reference-vector stack used by inter mode decision and syntax writing.
     /// </summary>
     public ref Av1ReferenceMotionVectors ReferenceMotionVectors => ref this.referenceMotionVectors;
+
+    /// <summary>
+    /// Borrows the inter-motion rate tables for the current frame's precision.
+    /// </summary>
+    /// <param name="precision">The fractional precision selected by the frame.</param>
+    /// <returns>The worker's reusable motion-rate view.</returns>
+    public Av1MotionVectorCosts GetMotionVectorCosts(Av1MotionVectorPrecision precision)
+        => new(this.owner.Memory.Span.Slice(StorageLength, Av1MotionVectorCosts.StorageLength), precision);
+
+    /// <summary>
+    /// Gets the retained full-pixel search geometry for the reference plane's current stride.
+    /// </summary>
+    /// <param name="method">The block-selected search method.</param>
+    /// <param name="stride">The reference row stride in samples.</param>
+    /// <returns>The configured non-owning search-site view.</returns>
+    public Av1MotionSearchSites GetMotionSearchSites(Av1MotionSearchSettings.FullPixelSearchMethod method, int stride)
+    {
+        // Fast diamond variants differ in stage selection, so they share the big-diamond geometry slot.
+        Av1MotionSearchSettings.FullPixelSearchMethod shape = method > Av1MotionSearchSettings.FullPixelSearchMethod.BigDiamond
+            ? Av1MotionSearchSettings.FullPixelSearchMethod.BigDiamond
+            : method;
+
+        int offset = MotionSearchSiteStorageOffset + ((int)shape * Av1MotionSearchSites.StorageLength);
+        Av1MotionSearchSites sites = new(this.owner.Memory.Span.Slice(offset, Av1MotionSearchSites.StorageLength));
+        sites.Configure(shape, stride);
+        return sites;
+    }
 
     /// <summary>
     /// Gets the disjoint edge snapshot used to restore one square partition-search level.

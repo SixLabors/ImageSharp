@@ -12,6 +12,95 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 public class Av1MotionVectorTests
 {
     /// <summary>
+    /// Checks frame-relative displacement limits and their inclusive last candidate.
+    /// </summary>
+    /// <param name="x">The block column.</param>
+    /// <param name="y">The block row.</param>
+    /// <param name="width">The block width.</param>
+    /// <param name="height">The block height.</param>
+    /// <param name="border">The allocated luma border.</param>
+    /// <param name="minimumColumn">The first legal horizontal displacement.</param>
+    /// <param name="minimumRow">The first legal vertical displacement.</param>
+    /// <param name="maximumColumn">The last legal horizontal displacement.</param>
+    /// <param name="maximumRow">The last legal vertical displacement.</param>
+    [Theory]
+    [InlineData(0, 0, 8, 8, 96, -16, -16, 264, 264)]
+    [InlineData(128, 64, 8, 8, 96, -144, -80, 136, 200)]
+    [InlineData(252, 252, 8, 8, 96, -268, -268, 12, 12)]
+    [InlineData(0, 0, 128, 128, 96, -88, -88, 216, 216)]
+    [InlineData(0, 0, 128, 128, 160, -136, -136, 264, 264)]
+    public void FrameSearchBoundsIncludePositionBlockExtentAndInterpolation(
+        int x,
+        int y,
+        int width,
+        int height,
+        int border,
+        int minimumColumn,
+        int minimumRow,
+        int maximumColumn,
+        int maximumRow)
+    {
+        Rectangle bounds = Av1MotionVector.GetFrameSearchBounds(new Rectangle(x, y, width, height), new Size(256, 256), border);
+        Assert.Equal(Rectangle.FromLTRB(minimumColumn, minimumRow, maximumColumn + 1, maximumRow + 1), bounds);
+        Assert.True(bounds.Contains(minimumColumn, minimumRow));
+        Assert.True(bounds.Contains(maximumColumn, maximumRow));
+        Assert.False(bounds.Contains(maximumColumn + 1, maximumRow));
+        Assert.False(bounds.Contains(maximumColumn, maximumRow + 1));
+    }
+
+    /// <summary>
+    /// Checks inward rounding around fractional references and exclusion of reserved vector endpoints.
+    /// </summary>
+    /// <param name="row">The reference row in eighth-sample units.</param>
+    /// <param name="column">The reference column in eighth-sample units.</param>
+    /// <param name="fullMinimumColumn">The first full-pixel column.</param>
+    /// <param name="fullMinimumRow">The first full-pixel row.</param>
+    /// <param name="fullMaximumColumn">The last full-pixel column.</param>
+    /// <param name="fullMaximumRow">The last full-pixel row.</param>
+    /// <param name="fractionalMinimumColumn">The first eighth-sample column.</param>
+    /// <param name="fractionalMinimumRow">The first eighth-sample row.</param>
+    /// <param name="fractionalMaximumColumn">The last eighth-sample column.</param>
+    /// <param name="fractionalMaximumRow">The last eighth-sample row.</param>
+    [Theory]
+    [InlineData(1, -1, -1023, -1022, 1022, 1023, -8185, -8183, 8183, 8185)]
+    [InlineData(-1, 1, -1022, -1023, 1023, 1022, -8183, -8185, 8185, 8183)]
+    [InlineData(16376, -16376, -2047, 1024, -1024, 2047, -16383, 8192, -8192, 16383)]
+    [InlineData(-16376, 16376, 1024, -2047, 2047, -1024, 8192, -16383, 16383, -8192)]
+    public void SearchBoundsRoundInwardAndExcludeReservedVectorEndpoints(
+        int row,
+        int column,
+        int fullMinimumColumn,
+        int fullMinimumRow,
+        int fullMaximumColumn,
+        int fullMaximumRow,
+        int fractionalMinimumColumn,
+        int fractionalMinimumRow,
+        int fractionalMaximumColumn,
+        int fractionalMaximumRow)
+    {
+        Av1MotionVector reference = new(row, column);
+        Rectangle frameBounds = Rectangle.FromLTRB(-4000, -4000, 4001, 4001);
+        Rectangle full = reference.GetFullPixelSearchBounds(frameBounds);
+        Rectangle fractional = reference.GetSubpixelSearchBounds(frameBounds);
+        Assert.Equal(Rectangle.FromLTRB(fullMinimumColumn, fullMinimumRow, fullMaximumColumn + 1, fullMaximumRow + 1), full);
+        Assert.Equal(Rectangle.FromLTRB(fractionalMinimumColumn, fractionalMinimumRow, fractionalMaximumColumn + 1, fractionalMaximumRow + 1), fractional);
+        Assert.True(fractional.Contains(full.Left * 8, full.Top * 8));
+        Assert.True(fractional.Contains((full.Right - 1) * 8, (full.Bottom - 1) * 8));
+    }
+
+    /// <summary>
+    /// Verifies that reference-centered limits cannot widen a tighter padded-frame region.
+    /// </summary>
+    [Fact]
+    public void FullAndFractionalSearchRetainTighterFrameBounds()
+    {
+        Rectangle frameBounds = Rectangle.FromLTRB(-17, -29, 32, 44);
+        Av1MotionVector reference = new(1, -1);
+        Assert.Equal(frameBounds, reference.GetFullPixelSearchBounds(frameBounds));
+        Assert.Equal(Rectangle.FromLTRB(-136, -232, 249, 345), reference.GetSubpixelSearchBounds(frameBounds));
+    }
+
+    /// <summary>
     /// Verifies that high-precision vectors retain their one-eighth-sample components unchanged.
     /// </summary>
     [Fact]

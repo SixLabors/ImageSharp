@@ -307,16 +307,24 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
     private ImageInfo IdentifyImageSequence(HeifSequence sequence)
     {
         HeifSequenceTrack colorTrack = sequence.ColorTrack;
-        HeifItem primaryItem = this.FindSequencePrimaryItem();
-        bool animateRootFrame = IsPrimaryItemFirstSequenceSample(primaryItem, colorTrack);
+        HeifItem? primaryItem = this.FindItemById(this.primaryItem);
+        bool animateRootFrame = primaryItem is null || IsPrimaryItemFirstSequenceSample(primaryItem, colorTrack);
         Size sequenceExtent = GetSequencePresentationExtent(colorTrack);
-        this.Dimensions = animateRootFrame ? sequenceExtent : GetPresentationExtent(primaryItem);
-        if (!animateRootFrame && this.Dimensions != sequenceExtent)
+        this.Dimensions = sequenceExtent;
+        if (primaryItem is not null)
         {
-            throw new InvalidImageContentException("The primary image and image sequence have different presentation dimensions.");
+            if (!animateRootFrame)
+            {
+                this.Dimensions = GetPresentationExtent(primaryItem);
+                if (this.Dimensions != sequenceExtent)
+                {
+                    throw new InvalidImageContentException("The primary image and image sequence have different presentation dimensions.");
+                }
+            }
+
+            this.UpdateMetadata(this.metadata, primaryItem);
         }
 
-        this.UpdateMetadata(this.metadata, primaryItem);
         this.UpdateSequenceMetadata(this.metadata, sequence, animateRootFrame);
         ImageFrameMetadata[] frameMetadata = CreateSequenceFrameMetadata(colorTrack, animateRootFrame);
         return new ImageInfo(this.Dimensions, this.metadata, frameMetadata);
@@ -337,8 +345,11 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
         where TPixel : unmanaged, IPixel<TPixel>
     {
         HeifSequenceTrack colorTrack = sequence.ColorTrack;
-        HeifItem primaryItem = this.FindSequencePrimaryItem();
-        bool animateRootFrame = IsPrimaryItemFirstSequenceSample(primaryItem, colorTrack);
+        HeifItem? primaryItem = this.FindItemById(this.primaryItem);
+
+        // Track samples carry their own codec configuration and presentation metadata. When no still item is
+        // available, the first visible sample supplies the root; an independent still item keeps its own root.
+        bool animateRootFrame = primaryItem is null || IsPrimaryItemFirstSequenceSample(primaryItem, colorTrack);
         this.UpdateSequenceMetadata(this.metadata, sequence, animateRootFrame);
         Size codedSize = new(colorTrack.CodedWidth, colorTrack.CodedHeight);
         Rectangle sourceRectangle = colorTrack.CleanAperture is not null
@@ -826,13 +837,6 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         return result;
     }
-
-    /// <summary>
-    /// Gets the primary image item required alongside an AVIF image sequence.
-    /// </summary>
-    private HeifItem FindSequencePrimaryItem()
-        => this.FindItemById(this.primaryItem)
-            ?? throw new InvalidImageContentException("The HEIF image sequence contains no primary image item.");
 
     /// <summary>
     /// Determines whether the primary image item reuses the first presented sequence sample.

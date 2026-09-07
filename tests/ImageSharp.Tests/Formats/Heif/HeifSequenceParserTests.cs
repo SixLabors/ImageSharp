@@ -160,6 +160,7 @@ public class HeifSequenceParserTests
         Assert.Equal(HeifBitDepth.Bit8, metadata.BitDepth);
         Assert.Equal(3, metadata.RepeatCount);
         Assert.False(metadata.HasAlpha);
+        Assert.True(metadata.AnimateRootFrame);
         Assert.NotNull(info.Metadata.CicpProfile);
         Assert.NotNull(info.Metadata.ExifProfile);
         Assert.NotNull(info.Metadata.XmpProfile);
@@ -313,6 +314,15 @@ public class HeifSequenceParserTests
 
         Assert.Equal(new Size(4, 4), image.Size);
         Assert.Single(image.Frames);
+        Assert.True(image.Metadata.GetHeifMetadata().AnimateRootFrame);
+        using Image<Rgba32> expected = Image.Load<Rgba32>(source);
+        for (int y = 0; y < image.Height; y++)
+        {
+            for (int x = 0; x < image.Width; x++)
+            {
+                Assert.Equal(expected[x, y], image[x, y]);
+            }
+        }
     }
 
     /// <summary>

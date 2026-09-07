@@ -141,6 +141,13 @@ public class Av1ResidualBuilderTests
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
+    /// Checks rectangular search costs, alternate-row sampling, and wide moments across hardware paths.
+    /// </summary>
+    [Fact]
+    public void RectangularSearchMetricsMatchScalarAcrossHardwareWidths()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateRectangularSearchMetrics, ResidualConfigurations);
+
+    /// <summary>
     /// Verifies 8-bit, 10-bit, and 12-bit residuals across misaligned planes, independent strides, and SIMD tails.
     /// </summary>
     [Fact]
@@ -292,6 +299,134 @@ public class Av1ResidualBuilderTests
         long allocated = GC.GetAllocatedBytesForCurrentThread() - before;
         Assert.True(sum > 0);
         Assert.Equal(0, allocated);
+    }
+
+    /// <summary>
+    /// Exercises independent strides and exact final-row lengths, including every coded block dimension and vector tails.
+    /// </summary>
+    private static void ValidateRectangularSearchMetrics()
+    {
+        foreach (int width in new[] { 4, 8, 12, 16, 24, 31, 32, 63, 64, 127, 128 })
+        {
+            foreach (int height in new[] { 4, 8, 16, 32, 64, 128 })
+            {
+                ValidateByteRectangularSearchMetrics(width, height);
+                ValidateUInt16RectangularSearchMetrics(width, height, 1023);
+                ValidateUInt16RectangularSearchMetrics(width, height, 4095);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Compares each metric with scalar arithmetic for mixed residuals and both signs at maximum magnitude.
+    /// </summary>
+    private static void ValidateByteRectangularSearchMetrics(int width, int height)
+    {
+        int sourceStride = width + 3;
+        int predictionStride = width + 7;
+        byte[] source = new byte[1 + ((height - 1) * sourceStride) + width];
+        byte[] prediction = new byte[3 + ((height - 1) * predictionStride) + width];
+        Span<byte> sourcePlane = source.AsSpan(1);
+        Span<byte> predictionPlane = prediction.AsSpan(3);
+
+        for (int pattern = 0; pattern < 3; pattern++)
+        {
+            FillBytePlanes(sourcePlane, sourceStride, predictionPlane, predictionStride, width, height);
+            int expectedSum = 0;
+            long expectedSquares = 0;
+            int expectedSad = 0;
+            int expectedAlternateSad = 0;
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    if (pattern != 0)
+                    {
+                        // Constant extrema expose overflowing signed reductions and squared block totals.
+                        sourcePlane[(y * sourceStride) + x] = (byte)(pattern == 1 ? byte.MaxValue : 0);
+                        predictionPlane[(y * predictionStride) + x] = (byte)(pattern == 2 ? byte.MaxValue : 0);
+                    }
+
+                    int difference = sourcePlane[(y * sourceStride) + x] - predictionPlane[(y * predictionStride) + x];
+                    expectedSum += difference;
+                    expectedSquares += (long)difference * difference;
+                    expectedSad += Math.Abs(difference);
+                    if ((y & 1) == 0)
+                    {
+                        expectedAlternateSad += 2 * Math.Abs(difference);
+                    }
+                }
+            }
+
+            Av1ResidualBuilder.GetMoments(
+                sourcePlane, sourceStride, predictionPlane, predictionStride, width, height, out int sum, out long squares);
+
+            Assert.Equal(expectedSum, sum);
+            Assert.Equal(expectedSquares, squares);
+            Assert.Equal(
+                expectedSad,
+                Av1ResidualBuilder.SumAbsoluteDifferences(sourcePlane, sourceStride, predictionPlane, predictionStride, width, height, 1));
+
+            Assert.Equal(
+                expectedAlternateSad,
+                Av1ResidualBuilder.SumAbsoluteDifferences(sourcePlane, sourceStride, predictionPlane, predictionStride, width, height, 2));
+        }
+    }
+
+    /// <summary>
+    /// Compares each metric with scalar arithmetic for mixed residuals and both signs at maximum magnitude.
+    /// </summary>
+    private static void ValidateUInt16RectangularSearchMetrics(int width, int height, int maximumSample)
+    {
+        int sourceStride = width + 3;
+        int predictionStride = width + 7;
+        ushort[] source = new ushort[1 + ((height - 1) * sourceStride) + width];
+        ushort[] prediction = new ushort[3 + ((height - 1) * predictionStride) + width];
+        Span<ushort> sourcePlane = source.AsSpan(1);
+        Span<ushort> predictionPlane = prediction.AsSpan(3);
+
+        for (int pattern = 0; pattern < 3; pattern++)
+        {
+            FillUInt16Planes(sourcePlane, sourceStride, predictionPlane, predictionStride, width, height, maximumSample);
+            int expectedSum = 0;
+            long expectedSquares = 0;
+            int expectedSad = 0;
+            int expectedAlternateSad = 0;
+            for (int y = 0; y < height; y++)
+            {
+                for (int x = 0; x < width; x++)
+                {
+                    if (pattern != 0)
+                    {
+                        // Constant extrema expose overflowing signed reductions and squared block totals.
+                        sourcePlane[(y * sourceStride) + x] = (ushort)(pattern == 1 ? maximumSample : 0);
+                        predictionPlane[(y * predictionStride) + x] = (ushort)(pattern == 2 ? maximumSample : 0);
+                    }
+
+                    int difference = sourcePlane[(y * sourceStride) + x] - predictionPlane[(y * predictionStride) + x];
+                    expectedSum += difference;
+                    expectedSquares += (long)difference * difference;
+                    expectedSad += Math.Abs(difference);
+                    if ((y & 1) == 0)
+                    {
+                        expectedAlternateSad += 2 * Math.Abs(difference);
+                    }
+                }
+            }
+
+            Av1ResidualBuilder.GetMoments(
+                sourcePlane, sourceStride, predictionPlane, predictionStride, width, height, out int sum, out long squares);
+
+            Assert.Equal(expectedSum, sum);
+            Assert.Equal(expectedSquares, squares);
+            Assert.Equal(
+                expectedSad,
+                Av1ResidualBuilder.SumAbsoluteDifferences(sourcePlane, sourceStride, predictionPlane, predictionStride, width, height, 1));
+
+            Assert.Equal(
+                expectedAlternateSad,
+                Av1ResidualBuilder.SumAbsoluteDifferences(sourcePlane, sourceStride, predictionPlane, predictionStride, width, height, 2));
+        }
     }
 
     private static void ValidateSumSquares()

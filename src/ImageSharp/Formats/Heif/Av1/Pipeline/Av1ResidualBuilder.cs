@@ -18,6 +18,306 @@ internal static partial class Av1ResidualBuilder
     private const int SearchBlockDimension = 8;
 
     /// <summary>
+    /// Measures absolute prediction error over a rectangular block, optionally sampling alternate rows.
+    /// </summary>
+    /// <param name="source">Source samples beginning at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">Prediction samples beginning at the block origin.</param>
+    /// <param name="predictionStride">The prediction row stride, in samples.</param>
+    /// <param name="width">The block width, in samples.</param>
+    /// <param name="height">The block height, in samples.</param>
+    /// <param name="rowStep">One for every row, or two for alternating rows with doubled error.</param>
+    /// <returns>The unnormalized absolute difference over the block.</returns>
+    public static int SumAbsoluteDifferences(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        ReadOnlySpan<byte> prediction,
+        int predictionStride,
+        int width,
+        int height,
+        int rowStep)
+        => SumAbsoluteDifferences<byte, ByteOperator>(source, sourceStride, prediction, predictionStride, width, height, rowStep);
+
+    /// <summary>
+    /// Measures signed residual sum and squared error over a rectangular prediction block.
+    /// </summary>
+    /// <param name="source">Source samples beginning at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">Prediction samples beginning at the block origin.</param>
+    /// <param name="predictionStride">The prediction row stride, in samples.</param>
+    /// <param name="width">The block width, in samples.</param>
+    /// <param name="height">The block height, in samples.</param>
+    /// <param name="sum">The unnormalized signed residual sum.</param>
+    /// <param name="sumOfSquares">The unnormalized squared residual sum.</param>
+    public static void GetMoments(
+        ReadOnlySpan<byte> source,
+        int sourceStride,
+        ReadOnlySpan<byte> prediction,
+        int predictionStride,
+        int width,
+        int height,
+        out int sum,
+        out long sumOfSquares)
+        => GetMoments<byte, ByteOperator>(source, sourceStride, prediction, predictionStride, width, height, out sum, out sumOfSquares);
+
+    /// <summary>
+    /// Measures absolute prediction error over a rectangular block, optionally sampling alternate rows.
+    /// </summary>
+    /// <param name="source">Source samples beginning at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">Prediction samples beginning at the block origin.</param>
+    /// <param name="predictionStride">The prediction row stride, in samples.</param>
+    /// <param name="width">The block width, in samples.</param>
+    /// <param name="height">The block height, in samples.</param>
+    /// <param name="rowStep">One for every row, or two for alternating rows with doubled error.</param>
+    /// <returns>The unnormalized absolute difference over the block.</returns>
+    public static int SumAbsoluteDifferences(
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
+        ReadOnlySpan<ushort> prediction,
+        int predictionStride,
+        int width,
+        int height,
+        int rowStep)
+        => SumAbsoluteDifferences<ushort, UInt16Operator>(source, sourceStride, prediction, predictionStride, width, height, rowStep);
+
+    /// <summary>
+    /// Measures signed residual sum and squared error over a rectangular prediction block.
+    /// </summary>
+    /// <param name="source">Source samples beginning at the block origin.</param>
+    /// <param name="sourceStride">The source row stride, in samples.</param>
+    /// <param name="prediction">Prediction samples beginning at the block origin.</param>
+    /// <param name="predictionStride">The prediction row stride, in samples.</param>
+    /// <param name="width">The block width, in samples.</param>
+    /// <param name="height">The block height, in samples.</param>
+    /// <param name="sum">The unnormalized signed residual sum.</param>
+    /// <param name="sumOfSquares">The unnormalized squared residual sum.</param>
+    public static void GetMoments(
+        ReadOnlySpan<ushort> source,
+        int sourceStride,
+        ReadOnlySpan<ushort> prediction,
+        int predictionStride,
+        int width,
+        int height,
+        out int sum,
+        out long sumOfSquares)
+        => GetMoments<ushort, UInt16Operator>(source, sourceStride, prediction, predictionStride, width, height, out sum, out sumOfSquares);
+
+    /// <summary>
+    /// Traverses rectangular SAD candidates using the selected sample operator and descending vector widths.
+    /// </summary>
+    private static int SumAbsoluteDifferences<TSample, TOperator>(
+        ReadOnlySpan<TSample> source,
+        int sourceStride,
+        ReadOnlySpan<TSample> prediction,
+        int predictionStride,
+        int width,
+        int height,
+        int rowStep)
+        where TSample : unmanaged
+        where TOperator : struct, IResidualOperator<TSample>
+    {
+        int sum = 0;
+
+        // Wider blocks use complete native loads. The eight-sample tail retains the existing compact load,
+        // which reads eight bytes or eight words without crossing a short row's boundary.
+        for (int y = 0; y < height; y += rowStep)
+        {
+            ReadOnlySpan<TSample> sourceRow = source.Slice(y * sourceStride, width);
+            ReadOnlySpan<TSample> predictionRow = prediction.Slice(y * predictionStride, width);
+            ref TSample sourceBase = ref MemoryMarshal.GetReference(sourceRow);
+            ref TSample predictionBase = ref MemoryMarshal.GetReference(predictionRow);
+            int x = 0;
+
+            if (Vector512.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector512<TSample>.Count; x += Vector512<TSample>.Count)
+                {
+                    Vector512<TSample> sourceVector = Vector512.LoadUnsafe(ref sourceBase, (nuint)x);
+                    Vector512<TSample> predictionVector = Vector512.LoadUnsafe(ref predictionBase, (nuint)x);
+                    Vector512<short> lower = TOperator.Subtract(sourceVector, predictionVector, out Vector512<short> upper);
+
+                    // Absolute residuals fit short, but their horizontal sum may not. Widen before reducing.
+                    Vector512<short> absolute = Vector512.Abs(lower);
+                    sum += Vector512.Sum(Vector512.WidenLower(absolute)) + Vector512.Sum(Vector512.WidenUpper(absolute));
+                    if (Vector512<TSample>.Count != Vector512<short>.Count)
+                    {
+                        // Byte subtraction produces two widened halves; word subtraction has only the lower half.
+                        absolute = Vector512.Abs(upper);
+                        sum += Vector512.Sum(Vector512.WidenLower(absolute)) + Vector512.Sum(Vector512.WidenUpper(absolute));
+                    }
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector256<TSample>.Count; x += Vector256<TSample>.Count)
+                {
+                    Vector256<TSample> sourceVector = Vector256.LoadUnsafe(ref sourceBase, (nuint)x);
+                    Vector256<TSample> predictionVector = Vector256.LoadUnsafe(ref predictionBase, (nuint)x);
+                    Vector256<short> lower = TOperator.Subtract(sourceVector, predictionVector, out Vector256<short> upper);
+
+                    // Absolute residuals fit short, but their horizontal sum may not. Widen before reducing.
+                    Vector256<short> absolute = Vector256.Abs(lower);
+                    sum += Vector256.Sum(Vector256.WidenLower(absolute)) + Vector256.Sum(Vector256.WidenUpper(absolute));
+                    if (Vector256<TSample>.Count != Vector256<short>.Count)
+                    {
+                        // Byte subtraction produces two widened halves; word subtraction has only the lower half.
+                        absolute = Vector256.Abs(upper);
+                        sum += Vector256.Sum(Vector256.WidenLower(absolute)) + Vector256.Sum(Vector256.WidenUpper(absolute));
+                    }
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector128<TSample>.Count; x += Vector128<TSample>.Count)
+                {
+                    Vector128<TSample> sourceVector = Vector128.LoadUnsafe(ref sourceBase, (nuint)x);
+                    Vector128<TSample> predictionVector = Vector128.LoadUnsafe(ref predictionBase, (nuint)x);
+                    Vector128<short> lower = TOperator.Subtract(sourceVector, predictionVector, out Vector128<short> upper);
+
+                    // Absolute residuals fit short, but their horizontal sum may not. Widen before reducing.
+                    Vector128<short> absolute = Vector128.Abs(lower);
+                    sum += Vector128.Sum(Vector128.WidenLower(absolute)) + Vector128.Sum(Vector128.WidenUpper(absolute));
+                    if (Vector128<TSample>.Count != Vector128<short>.Count)
+                    {
+                        // Byte subtraction produces two widened halves; word subtraction has only the lower half.
+                        absolute = Vector128.Abs(upper);
+                        sum += Vector128.Sum(Vector128.WidenLower(absolute)) + Vector128.Sum(Vector128.WidenUpper(absolute));
+                    }
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated && x <= width - SearchBlockDimension)
+            {
+                Vector128<TSample> sourceVector = LoadSearchRow(sourceRow[x..]);
+                Vector128<TSample> predictionVector = LoadSearchRow(predictionRow[x..]);
+                sum += TOperator.SumAbsoluteDifferences(sourceVector, predictionVector);
+                x += SearchBlockDimension;
+            }
+
+            for (; x < width; x++)
+            {
+                sum += TOperator.SumAbsoluteDifferences(sourceRow[x], predictionRow[x]);
+            }
+        }
+
+        // Alternate-row search represents the complete even-height block by doubling the sampled row total.
+        // Precision normalization follows this scaling so fractional error units are truncated only once.
+        return sum * rowStep;
+    }
+
+    /// <summary>
+    /// Accumulates rectangular residual moments without storing an intermediate residual plane.
+    /// </summary>
+    private static void GetMoments<TSample, TOperator>(
+        ReadOnlySpan<TSample> source,
+        int sourceStride,
+        ReadOnlySpan<TSample> prediction,
+        int predictionStride,
+        int width,
+        int height,
+        out int sum,
+        out long sumOfSquares)
+        where TSample : unmanaged
+        where TOperator : struct, IResidualOperator<TSample>
+    {
+        sum = 0;
+        sumOfSquares = 0;
+
+        // Wider blocks use complete native loads. The eight-sample tail retains the existing compact load,
+        // which reads eight bytes or eight words without crossing a short row's boundary.
+        for (int y = 0; y < height; y++)
+        {
+            ReadOnlySpan<TSample> sourceRow = source.Slice(y * sourceStride, width);
+            ReadOnlySpan<TSample> predictionRow = prediction.Slice(y * predictionStride, width);
+            ref TSample sourceBase = ref MemoryMarshal.GetReference(sourceRow);
+            ref TSample predictionBase = ref MemoryMarshal.GetReference(predictionRow);
+            int x = 0;
+
+            if (Vector512.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector512<TSample>.Count; x += Vector512<TSample>.Count)
+                {
+                    Vector512<TSample> sourceVector = Vector512.LoadUnsafe(ref sourceBase, (nuint)x);
+                    Vector512<TSample> predictionVector = Vector512.LoadUnsafe(ref predictionBase, (nuint)x);
+                    Vector512<short> lower = TOperator.Subtract(sourceVector, predictionVector, out Vector512<short> upper);
+
+                    // Widen signed lanes before summing: a vector of twelve-bit residuals can exceed short.
+                    // Each vector's squared sum fits int; the block total needs long for large twelve-bit blocks.
+                    sum += Vector512.Sum(Vector512.WidenLower(lower)) + Vector512.Sum(Vector512.WidenUpper(lower));
+                    sumOfSquares += SumSquares(lower);
+                    if (Vector512<TSample>.Count != Vector512<short>.Count)
+                    {
+                        // Byte subtraction produces two widened halves; word subtraction has only the lower half.
+                        sum += Vector512.Sum(Vector512.WidenLower(upper)) + Vector512.Sum(Vector512.WidenUpper(upper));
+                        sumOfSquares += SumSquares(upper);
+                    }
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector256<TSample>.Count; x += Vector256<TSample>.Count)
+                {
+                    Vector256<TSample> sourceVector = Vector256.LoadUnsafe(ref sourceBase, (nuint)x);
+                    Vector256<TSample> predictionVector = Vector256.LoadUnsafe(ref predictionBase, (nuint)x);
+                    Vector256<short> lower = TOperator.Subtract(sourceVector, predictionVector, out Vector256<short> upper);
+
+                    // Widen signed lanes before summing: a vector of twelve-bit residuals can exceed short.
+                    // Each vector's squared sum fits int; the block total needs long for large twelve-bit blocks.
+                    sum += Vector256.Sum(Vector256.WidenLower(lower)) + Vector256.Sum(Vector256.WidenUpper(lower));
+                    sumOfSquares += SumSquares(lower);
+                    if (Vector256<TSample>.Count != Vector256<short>.Count)
+                    {
+                        // Byte subtraction produces two widened halves; word subtraction has only the lower half.
+                        sum += Vector256.Sum(Vector256.WidenLower(upper)) + Vector256.Sum(Vector256.WidenUpper(upper));
+                        sumOfSquares += SumSquares(upper);
+                    }
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                for (; x <= width - Vector128<TSample>.Count; x += Vector128<TSample>.Count)
+                {
+                    Vector128<TSample> sourceVector = Vector128.LoadUnsafe(ref sourceBase, (nuint)x);
+                    Vector128<TSample> predictionVector = Vector128.LoadUnsafe(ref predictionBase, (nuint)x);
+                    Vector128<short> lower = TOperator.Subtract(sourceVector, predictionVector, out Vector128<short> upper);
+
+                    // Widen signed lanes before summing: a vector of twelve-bit residuals can exceed short.
+                    // Each vector's squared sum fits int; the block total needs long for large twelve-bit blocks.
+                    sum += Vector128.Sum(Vector128.WidenLower(lower)) + Vector128.Sum(Vector128.WidenUpper(lower));
+                    sumOfSquares += SumSquares(lower);
+                    if (Vector128<TSample>.Count != Vector128<short>.Count)
+                    {
+                        // Byte subtraction produces two widened halves; word subtraction has only the lower half.
+                        sum += Vector128.Sum(Vector128.WidenLower(upper)) + Vector128.Sum(Vector128.WidenUpper(upper));
+                        sumOfSquares += SumSquares(upper);
+                    }
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated && x <= width - SearchBlockDimension)
+            {
+                Vector128<TSample> sourceVector = LoadSearchRow(sourceRow[x..]);
+                Vector128<TSample> predictionVector = LoadSearchRow(predictionRow[x..]);
+                sumOfSquares += TOperator.SumSquaredDifferences(sourceVector, predictionVector, out int tailSum);
+                sum += tailSum;
+                x += SearchBlockDimension;
+            }
+
+            for (; x < width; x++)
+            {
+                int difference = TOperator.Subtract(sourceRow[x], predictionRow[x]);
+                sum += difference;
+                sumOfSquares += difference * difference;
+            }
+        }
+    }
+
+    /// <summary>
     /// Calculates the sum of absolute differences for an 8x8 block.
     /// </summary>
     /// <param name="source">The source samples starting at the block origin.</param>

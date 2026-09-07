@@ -26,7 +26,7 @@ internal sealed class JxlImageMetadata : IJxlFields
 
     public bool HaveIntrinsicSize { get; set; }
 
-    public JxlSizeHeader IntrinsicSize { get; set; }
+    public JxlSizeHeader IntrinsicSize { get; set; } = new();
 
     public JxlToneMapping? ToneMapping { get; set; }
 
@@ -34,9 +34,9 @@ internal sealed class JxlImageMetadata : IJxlFields
 
     public List<JxlExtraChannelInfo> ExtraChannels { get; set; } = [];
 
-    public JxlPreviewHeader PreviewSize { get; set; }
+    public JxlPreviewHeader PreviewSize { get; set; } = new();
 
-    public JxlAnimationHeader Animation { get; set; }
+    public JxlAnimationHeader Animation { get; set; } = new();
 
     public long Extensions { get; set; }
 
@@ -76,7 +76,7 @@ internal sealed class JxlImageMetadata : IJxlFields
                 return 0;
             }
 
-            return ec.BitDepth?.BitsPerSample ?? 0;
+            return (int?)ec.BitDepth?.BitsPerSample ?? 0;
         }
 
         set
@@ -119,7 +119,7 @@ internal sealed class JxlImageMetadata : IJxlFields
     {
         if (this.BitDepth != null)
         {
-            this.BitDepth.BitsPerSample = bits;
+            this.BitDepth.BitsPerSample = (uint)bits;
             this.BitDepth.ExponentBitsPerSample = 0;
             this.BitDepth.FloatingPointSample = false;
         }

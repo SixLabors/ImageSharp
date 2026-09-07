@@ -57,5 +57,22 @@ internal static partial class Av1InverseTransformer
             Vector128<byte> reconstructed8 = Vector128.Narrow(reconstructed16, Vector128<ushort>.Zero);
             Unsafe.WriteUnaligned(ref destination, reconstructed8.AsUInt64().ToScalar());
         }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Add(ref byte prediction, ref byte destination, Vector512<int> residual, int bitDepth)
+        {
+            _ = bitDepth;
+
+            // Sixteen packed bytes widen to sixteen Int32 lanes without a lane permutation. Narrow each half in
+            // order after clipping, then store exactly the original sixteen samples rather than a padded vector.
+            Vector128<byte> packed = Vector128.LoadUnsafe(ref prediction);
+            Vector256<ushort> predicted16 = Vector256.Create(Vector128.WidenLower(packed), Vector128.WidenUpper(packed));
+            Vector512<int> predicted32 = Vector512.Create(Vector256.WidenLower(predicted16), Vector256.WidenUpper(predicted16)).AsInt32();
+            Vector512<int> reconstructed = Vector512.Clamp(predicted32 + residual, Vector512<int>.Zero, Vector512.Create((int)byte.MaxValue));
+            Vector256<ushort> reconstructed16 = Vector256.Narrow(reconstructed.GetLower().AsUInt32(), reconstructed.GetUpper().AsUInt32());
+            Vector128<byte> reconstructed8 = Vector128.Narrow(reconstructed16.GetLower(), reconstructed16.GetUpper());
+            reconstructed8.StoreUnsafe(ref destination);
+        }
     }
 }

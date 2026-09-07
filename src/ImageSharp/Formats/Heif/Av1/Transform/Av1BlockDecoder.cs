@@ -1,7 +1,6 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Buffers;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -16,9 +15,9 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 
 /// <summary>
-/// Reconstructs AV1 transform blocks by combining prediction, inverse quantization, and inverse transforms.
+/// Reconstructs AV1 blocks by combining prediction with parsed, dequantized transform residuals.
 /// </summary>
-internal sealed class Av1BlockDecoder : IDisposable
+internal sealed class Av1BlockDecoder
 {
     /// <summary>
     /// The sequence-level syntax that determines superblock size, plane layout, and sample depth.
@@ -46,9 +45,9 @@ internal sealed class Av1BlockDecoder : IDisposable
     private readonly Av1ReferenceFrameStore referenceFrames;
 
     /// <summary>
-    /// Owns the reusable inverse-transform and prediction storage.
+    /// Borrows inverse-transform and prediction storage from the decoder session.
     /// </summary>
-    private readonly IMemoryOwner<short> workspaceOwner;
+    private readonly Memory<short> workspace;
 
     /// <summary>
     /// The prediction workspace offset in signed-short storage elements.
@@ -56,7 +55,7 @@ internal sealed class Av1BlockDecoder : IDisposable
     private readonly int predictionScratchOffset;
 
     /// <summary>
-    /// The reusable predictor portion of <see cref="workspaceOwner"/>, excluding compound and chroma-from-luma storage.
+    /// The reusable predictor portion of <see cref="workspace"/>, excluding compound and chroma-from-luma storage.
     /// </summary>
     private readonly int predictorWorkingLength;
 
@@ -88,6 +87,7 @@ internal sealed class Av1BlockDecoder : IDisposable
     /// <param name="frameBuffer">The frame buffer receiving reconstructed samples.</param>
     /// <param name="loopFilterContext">The transform-size map populated while reconstructing blocks.</param>
     /// <param name="referenceFrames">The retained reconstructed frames selected by inter blocks.</param>
+    /// <param name="workspace">The reconstruction storage available for the lifetime of this frame.</param>
     /// <param name="paletteColorIndexMaps">The complete decoder-session palette map state.</param>
     public Av1BlockDecoder(
         ObuSequenceHeader sequenceHeader,
@@ -95,6 +95,7 @@ internal sealed class Av1BlockDecoder : IDisposable
         Av1FrameBuffer<byte> frameBuffer,
         Av1LoopFilterContext loopFilterContext,
         Av1ReferenceFrameStore referenceFrames,
+        Memory<short> workspace,
         Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps = null)
     {
         this.sequenceHeader = sequenceHeader;
@@ -102,26 +103,19 @@ internal sealed class Av1BlockDecoder : IDisposable
         this.frameBuffer = frameBuffer;
         this.loopFilterContext = loopFilterContext;
         this.referenceFrames = referenceFrames;
+        this.workspace = workspace;
         int maximumBlockLength = 1 << sequenceHeader.SuperblockSizeLog2;
         int maximumBlockArea = maximumBlockLength * maximumBlockLength;
-        int predictorWorkingLength = Math.Max(
-            Av1PredictionDecoder.ScratchLength,
-            Math.Max(
-                Av1TranslationalInterPredictor.GetScratchLength(maximumBlockLength, maximumBlockLength),
-                Av1ScaledInterPredictor.GetMaximumScaledScratchLength(maximumBlockLength, maximumBlockLength)));
+        int predictorWorkingLength = GetPredictorWorkingLength(maximumBlockLength);
 
         int compoundMaskLength = (maximumBlockArea + 1) >> 1;
         int predictorWorkingOffset = (2 * maximumBlockArea) + compoundMaskLength;
         int chromaFromLumaOffset = predictorWorkingOffset + predictorWorkingLength;
-        int predictionScratchLength = chromaFromLumaOffset + Av1ChromaFromLumaContext.BufferLength;
-        this.predictionScratchOffset = Av1TransformWorkspace.MaximumLength * 2;
+        this.predictionScratchOffset = Av1TransformWorkspace.InverseMaximumLength * 2;
 
-        // Integer workspaces occupy even signed-short slices so one allocator owner can retain the complete block
-        // lifetime while prediction still receives the Memory<short> contract needed by its reusable context.
-        this.workspaceOwner = this.frameBuffer.MemoryAllocator.Allocate<short>(
-            this.predictionScratchOffset + predictionScratchLength);
-
-        Memory<short> predictionScratch = this.workspaceOwner.Memory[this.predictionScratchOffset..];
+        // Integer workspaces occupy even signed-short slices. The session retains the owner while these
+        // frame-local views supply prediction and CfL contexts without transferring ownership.
+        Memory<short> predictionScratch = workspace[this.predictionScratchOffset..];
         this.predictorWorkingLength = predictorWorkingLength;
         this.predictionDecoder = new(
             sequenceHeader,
@@ -137,9 +131,33 @@ internal sealed class Av1BlockDecoder : IDisposable
     }
 
     /// <summary>
-    /// Releases the pooled reconstruction workspaces owned by this decoder.
+    /// Gets the number of signed-short elements required for block reconstruction.
     /// </summary>
-    public void Dispose() => this.workspaceOwner.Dispose();
+    /// <param name="sequenceHeader">The sequence determining maximum block dimensions.</param>
+    /// <returns>The required workspace length.</returns>
+    public static int GetWorkspaceLength(ObuSequenceHeader sequenceHeader)
+    {
+        int maximumBlockLength = 1 << sequenceHeader.SuperblockSizeLog2;
+        int maximumBlockArea = maximumBlockLength * maximumBlockLength;
+
+        // Two full prediction surfaces and the byte compound mask precede the shared predictor working area.
+        // Inverse transforms occupy int storage, so their element count is doubled in this short-based layout.
+        return (Av1TransformWorkspace.InverseMaximumLength * 2) +
+            (2 * maximumBlockArea) +
+            ((maximumBlockArea + 1) >> 1) +
+            GetPredictorWorkingLength(maximumBlockLength) +
+            Av1ChromaFromLumaContext.BufferLength;
+    }
+
+    /// <summary>
+    /// Gets the shared working extent needed by each prediction family.
+    /// </summary>
+    private static int GetPredictorWorkingLength(int maximumBlockLength)
+        => Math.Max(
+            Av1PredictionDecoder.ScratchLength,
+            Math.Max(
+                Av1TranslationalInterPredictor.GetScratchLength(maximumBlockLength, maximumBlockLength),
+                Av1ScaledInterPredictor.GetMaximumScaledScratchLength(maximumBlockLength, maximumBlockLength)));
 
     /// <summary>
     /// Resets the per-plane coefficient-region cursors before reconstructing a superblock.
@@ -164,19 +182,13 @@ internal sealed class Av1BlockDecoder : IDisposable
     /// <param name="tileInfo">The tile boundaries used to determine neighbor availability.</param>
     public void DecodeBlock(Av1BlockModeInfo modeInfo, Point modeInfoPosition, Av1BlockSize blockSize, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
     {
-        Span<int> transformWorkspace = MemoryMarshal.Cast<short, int>(
-            this.workspaceOwner.Memory.Span[..(Av1TransformWorkspace.MaximumLength * 2)]);
-
         ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
-        Av1TransformType transformType;
-        Av1TransformSize transformSize;
         int transformUnitCount;
         bool hasChroma = Av1TileReader.HasChroma(this.sequenceHeader, modeInfoPosition, blockSize);
         Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, hasChroma, modeInfo.PartitionType)
         {
             ColumnIndex = modeInfoPosition.X,
-            RowIndex = modeInfoPosition.Y,
-            ChromaFromLumaContext = this.chromaFromLumaContext
+            RowIndex = modeInfoPosition.Y
         };
 
         partitionInfo.ComputeBoundaryOffsets(this.sequenceHeader, this.frameHeader, tileInfo);
@@ -198,6 +210,8 @@ internal sealed class Av1BlockDecoder : IDisposable
 
         partitionInfo.PopulateModeInfoNeighbors(colorConfig);
 
+        this.BeginBlock(ref partitionInfo, tileInfo);
+
         int maxBlocksWide = partitionInfo.GetMaxBlockWide(blockSize, false);
         int maxBlocksHigh = partitionInfo.GetMaxBlockHigh(blockSize, false);
 
@@ -207,6 +221,69 @@ internal sealed class Av1BlockDecoder : IDisposable
             ? (maxBlocksWide * maxBlocksHigh) >> ((colorConfig.SubSamplingX ? 1 : 0) + (colorConfig.SubSamplingY ? 1 : 0))
             : modeInfo.GetTransformUnitCount(Av1Plane.U);
 
+        for (int plane = 0; plane < colorConfig.PlaneCount; plane++)
+        {
+            int subX = (plane > 0) && colorConfig.SubSamplingX ? 1 : 0;
+            int subY = (plane > 0) && colorConfig.SubSamplingY ? 1 : 0;
+
+            if (plane != 0 && !partitionInfo.IsChroma)
+            {
+                continue;
+            }
+
+            // Luma transform descriptors occupy their own stream. U and V share one stream, with the V descriptors
+            // following the U descriptors for this block, so the V base includes the complete U transform-unit count.
+            int transformInfoIndex = plane switch
+            {
+                2 => modeInfo.GetFirstTransformLocation(Av1Plane.V) + chromaTransformUnitCount,
+                1 => modeInfo.GetFirstTransformLocation(Av1Plane.U),
+                0 => modeInfo.GetFirstTransformLocation(Av1Plane.Y),
+                _ => throw new InvalidImageContentException("Maximum of 3 color planes")
+            };
+
+            Span<Av1TransformInfo> transformInfo = superblockInfo.GetTransformInfo(plane)[transformInfoIndex..];
+
+            if (isLosslessBlock)
+            {
+                Guard.IsTrue(transformInfo[0].Size == Av1TransformSize.Size4x4, nameof(transformInfo), "Lossless may only have 4x4 blocks.");
+                transformUnitCount = (maxBlocksWide * maxBlocksHigh) >> (subX + subY);
+            }
+            else
+            {
+                transformUnitCount = modeInfo.GetTransformUnitCount((Av1Plane)plane);
+            }
+
+            Guard.IsFalse(transformUnitCount == 0, nameof(transformUnitCount), "Must have at least a single transform unit to decode.");
+
+            for (int tu = 0; tu < transformUnitCount; tu++)
+            {
+                this.DecodeTransform(ref partitionInfo, plane, ref transformInfo[tu], tileInfo);
+            }
+        }
+
+        this.EndBlock(ref partitionInfo);
+    }
+
+    /// <summary>
+    /// Prepares block prediction before its transform coefficients are read.
+    /// </summary>
+    /// <param name="partitionInfo">The published block modes, geometry, and available neighbors.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    public void BeginBlock(ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
+    {
+        partitionInfo.ChromaFromLumaContext = this.chromaFromLumaContext;
+        ref Av1BlockModeInfo modeInfo = ref partitionInfo.ModeInfo;
+
+        // Ordinary intra prediction consumes the immediately preceding transform's reconstructed edge.
+        // Inter and intra-block-copy predictions cover the complete block before any residual is added.
+        if (modeInfo.ReferenceFrames[0] < Av1ReferenceFrameType.Last && !modeInfo.UseIntraBlockCopy)
+        {
+            return;
+        }
+
+        Point modeInfoPosition = new(partitionInfo.ColumnIndex, partitionInfo.RowIndex);
+        Av1BlockSize blockSize = modeInfo.BlockSize;
+        ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
         bool isInterBlock = modeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last;
         InterReferenceBuffers? interReferenceBuffers = null;
         bool isCompound = modeInfo.ReferenceFrames[1] > Av1ReferenceFrameType.Intra;
@@ -248,29 +325,6 @@ internal sealed class Av1BlockDecoder : IDisposable
                 continue;
             }
 
-            // Luma transform descriptors occupy their own stream. U and V share one stream, with the V descriptors
-            // following the U descriptors for this block, so the V base includes the complete U transform-unit count.
-            int transformInfoIndex = plane switch
-            {
-                2 => modeInfo.GetFirstTransformLocation(Av1Plane.V) + chromaTransformUnitCount,
-                1 => modeInfo.GetFirstTransformLocation(Av1Plane.U),
-                0 => modeInfo.GetFirstTransformLocation(Av1Plane.Y),
-                _ => throw new InvalidImageContentException("Maximum of 3 color planes")
-            };
-            Span<Av1TransformInfo> transformInfo = superblockInfo.GetTransformInfo(plane)[transformInfoIndex..];
-
-            if (isLosslessBlock)
-            {
-                Guard.IsTrue(transformInfo[0].Size == Av1TransformSize.Size4x4, nameof(transformInfo), "Lossless may only have 4x4 blocks.");
-                transformUnitCount = (maxBlocksWide * maxBlocksHigh) >> (subX + subY);
-            }
-            else
-            {
-                transformUnitCount = modeInfo.GetTransformUnitCount((Av1Plane)plane);
-            }
-
-            Guard.IsFalse(transformUnitCount == 0, nameof(transformUnitCount), "Must have at least a single transform unit to decode.");
-
             Point pixelPosition = new(
                 (modeInfoPosition.X >> subX) << Av1Constants.ModeInfoSizeLog2,
                 (modeInfoPosition.Y >> subY) << Av1Constants.ModeInfoSizeLog2);
@@ -283,14 +337,79 @@ internal sealed class Av1BlockDecoder : IDisposable
             // The frame-buffer helpers therefore return a span beginning one logical sample row before the block.
             if (highBitDepth)
             {
-                highBitDepthBlockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer16((Av1Plane)plane, pixelPosition, subX, subY, out reconstructionStride);
+                highBitDepthBlockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer16(
+                    (Av1Plane)plane,
+                    pixelPosition,
+                    subX,
+                    subY,
+                    out reconstructionStride);
             }
             else
             {
                 blockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer((Av1Plane)plane, pixelPosition, subX, subY, out reconstructionStride);
             }
 
-            if (interReferenceBuffers is not null)
+            if (modeInfo.UseIntraBlockCopy)
+            {
+                // Predict the complete plane before adding transform residuals. The displacement validator keeps
+                // the source in an earlier decoded region, so later residual writes cannot change this prediction.
+                // Displacement vectors use one-eighth luma-sample units. Converting them to the plane's q4 grid
+                // leaves luma on an integer sample and can leave subsampled chroma exactly at phase eight.
+                int sourceColumnQ4 = (pixelPosition.X << 4) +
+                    (modeInfo.DisplacementVector.Column << (1 - subX));
+
+                int sourceRowQ4 = (pixelPosition.Y << 4) +
+                    (modeInfo.DisplacementVector.Row << (1 - subY));
+
+                int sourcePhaseX = sourceColumnQ4 & 15;
+                int sourcePhaseY = sourceRowQ4 & 15;
+                DebugGuard.IsTrue(sourcePhaseX is 0 or 8, "Intra-block-copy horizontal phase must be an integer or half sample.");
+                DebugGuard.IsTrue(sourcePhaseY is 0 or 8, "Intra-block-copy vertical phase must be an integer or half sample.");
+
+                Point sourcePixelPosition = new(sourceColumnQ4 >> 4, sourceRowQ4 >> 4);
+                int predictionWidth = Math.Max(4, blockSize.GetWidth() >> subX);
+                int predictionHeight = Math.Max(4, blockSize.GetHeight() >> subY);
+
+                if (highBitDepth)
+                {
+                    Span<short> source = this.frameBuffer.DeriveBlockPointer16(
+                        (Av1Plane)plane,
+                        sourcePixelPosition,
+                        subX,
+                        subY,
+                        out int sourceStride);
+
+                    Av1IntraBlockCopyPredictor.Predict(
+                        source[sourceStride..],
+                        sourceStride,
+                        highBitDepthBlockReconstructionBuffer[reconstructionStride..],
+                        reconstructionStride,
+                        predictionWidth,
+                        predictionHeight,
+                        sourcePhaseX != 0,
+                        sourcePhaseY != 0);
+                }
+                else
+                {
+                    Span<byte> source = this.frameBuffer.DeriveBlockPointer(
+                        (Av1Plane)plane,
+                        sourcePixelPosition,
+                        subX,
+                        subY,
+                        out int sourceStride);
+
+                    Av1IntraBlockCopyPredictor.Predict(
+                        source[sourceStride..],
+                        sourceStride,
+                        blockReconstructionBuffer[reconstructionStride..],
+                        reconstructionStride,
+                        predictionWidth,
+                        predictionHeight,
+                        sourcePhaseX != 0,
+                        sourcePhaseY != 0);
+                }
+            }
+            else if (interReferenceBuffers is not null)
             {
                 InterReferenceBuffers referenceBuffers = interReferenceBuffers.Value;
                 Av1FrameBuffer<byte> primaryReferenceFrameBuffer = referenceBuffers.Primary;
@@ -300,7 +419,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                 int maximumBlockLength = 1 << this.sequenceHeader.SuperblockSizeLog2;
                 int maximumBlockArea = maximumBlockLength * maximumBlockLength;
                 int compoundMaskStorageLength = (maximumBlockArea + 1) >> 1;
-                Span<short> predictionStorage = this.workspaceOwner.Memory.Span[this.predictionScratchOffset..];
+                Span<short> predictionStorage = this.workspace.Span[this.predictionScratchOffset..];
                 Span<short> secondPredictionStorage = predictionStorage[..maximumBlockArea];
                 Span<ushort> firstCompoundPrediction = MemoryMarshal.Cast<short, ushort>(
                     predictionStorage.Slice(maximumBlockArea, maximumBlockArea));
@@ -336,7 +455,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                 int referenceCount = usesSub8x8ChromaPrediction ? 0 : isCompound ? 2 : 1;
 
                 // Every compound predictor is combined before its final rounding step. Warped prediction has its own
-                // convolution kernels, but the reference decoder writes their output into the same unsigned no-round domain.
+                // convolution kernels, but both outputs retain the same unsigned intermediate scale.
                 bool useHighBitDepthCompoundIntermediates =
                     highBitDepth &&
                     modeInfo.CompoundType is (
@@ -363,8 +482,8 @@ internal sealed class Av1BlockDecoder : IDisposable
                         activeReferenceFrameBuffer.Height != this.frameHeader.FrameSize.FrameHeight;
 
                     // Warped prediction is selected per plane. In subsampled frames an otherwise qualifying 8x8 luma
-                    // block has a 4x4 chroma prediction, which the reference decoder deliberately reconstructs with the translational
-                    // center motion vector. Scaled references and integer-only frames exclude both local and global warp.
+                    // block has a 4x4 chroma prediction requiring the translational center motion vector.
+                    // Scaled references and integer-only frames exclude both local and global warp.
                     bool canUseWarpedPrediction =
                         !isScaledReference &&
                         !this.frameHeader.ForceIntegerMotionVector &&
@@ -566,7 +685,7 @@ internal sealed class Av1BlockDecoder : IDisposable
                     }
 
                     // AV1 predicts the complete declared plane block even when its luma extent crosses the frame boundary.
-                    // Subsampled dimensions retain the mandatory four-sample minimum used by set_plane_n4 in the reference decoder.
+                    // Subsampled dimensions retain a four-sample minimum on each axis.
                     int horizontalMotionQ4 = motionVector.Column << (1 - subX);
                     int verticalMotionQ4 = motionVector.Row << (1 - subY);
                     int horizontalExtensionQ4 = (4 + predictionWidth) << 4;
@@ -745,8 +864,8 @@ internal sealed class Av1BlockDecoder : IDisposable
                                     subY,
                                     invert: false);
 
-                                // Masked compound prediction must blend the same no-round intermediates as the reference decoder's
-                                // high-bit-depth d16 path so the mask is applied before the sole final rounding step.
+                                // Masked compound prediction blends unsigned convolution intermediates so the mask
+                                // is applied before the sole final rounding step.
                                 Av1CompoundIntermediateMaskBlendPredictor.BlendIntermediate(
                                     highBitDepthDestination,
                                     reconstructionStride,
@@ -1172,212 +1291,231 @@ internal sealed class Av1BlockDecoder : IDisposable
                         predictionScratch);
                 }
             }
+        }
+    }
 
-            for (int tu = 0; tu < transformUnitCount; tu++)
+    /// <summary>
+    /// Predicts and reconstructs one parsed transform, then clears its populated coefficient prefix.
+    /// </summary>
+    /// <param name="partitionInfo">The current block modes, geometry, and available neighbors.</param>
+    /// <param name="plane">The zero-based color-plane index.</param>
+    /// <param name="transformInfo">The parsed transform geometry and residual metadata.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    public void DecodeTransform(ref Av1PartitionInfo partitionInfo, int plane, ref Av1TransformInfo transformInfo, Av1TileInfo tileInfo)
+    {
+        ref Av1BlockModeInfo modeInfo = ref partitionInfo.ModeInfo;
+        Av1SuperblockInfo superblockInfo = partitionInfo.SuperblockInfo;
+        Point modeInfoPosition = new(partitionInfo.ColumnIndex, partitionInfo.RowIndex);
+        Av1BlockSize blockSize = modeInfo.BlockSize;
+        ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
+        int subX = plane > 0 && colorConfig.SubSamplingX ? 1 : 0;
+        int subY = plane > 0 && colorConfig.SubSamplingY ? 1 : 0;
+        bool highBitDepth = this.frameBuffer.BytesPerSample == 2;
+        bool isInterBlock = modeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last;
+        bool isLossless = this.frameHeader.LosslessArray[modeInfo.SegmentId];
+        Av1TransformSize transformSize = transformInfo.Size;
+        Span<int> transformWorkspace = MemoryMarshal.Cast<short, int>(
+            this.workspace.Span[..(Av1TransformWorkspace.InverseMaximumLength * 2)]);
+
+        Point pixelPosition = new(
+            (modeInfoPosition.X >> subX) << Av1Constants.ModeInfoSizeLog2,
+            (modeInfoPosition.Y >> subY) << Av1Constants.ModeInfoSizeLog2);
+
+        Span<byte> blockReconstructionBuffer = default;
+        Span<short> highBitDepthBlockReconstructionBuffer = default;
+        int reconstructionStride;
+
+        // Prediction reads the row immediately above the destination through negative-relative neighbor offsets.
+        // The frame-buffer helpers therefore return a span beginning one logical sample row before the block.
+        if (highBitDepth)
+        {
+            highBitDepthBlockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer16(
+                (Av1Plane)plane,
+                pixelPosition,
+                subX,
+                subY,
+                out reconstructionStride);
+        }
+        else
+        {
+            blockReconstructionBuffer = this.frameBuffer.DeriveBlockPointer((Av1Plane)plane, pixelPosition, subX, subY, out reconstructionStride);
+        }
+
+        Span<byte> transformBlockReconstructionBuffer = default;
+        Span<short> highBitDepthTransformBlockReconstructionBuffer = default;
+        Span<int> coefficients = superblockInfo.GetCoefficients((Av1Plane)plane)[this.currentCoefficientIndex[plane]..];
+
+        // Transform offsets are stored in mode-info units. Reconstruction strides are expressed in logical
+        // samples for both storage pipelines, so no byte scaling is applied to the high-bit-depth offset.
+        int transformBlockOffset = ((transformInfo.OffsetY * reconstructionStride) + transformInfo.OffsetX) << Av1Constants.ModeInfoSizeLog2;
+        if (highBitDepth)
+        {
+            highBitDepthTransformBlockReconstructionBuffer = highBitDepthBlockReconstructionBuffer[transformBlockOffset..];
+        }
+        else
+        {
+            transformBlockReconstructionBuffer = blockReconstructionBuffer[transformBlockOffset..];
+        }
+
+        if (this.isLoopFilterEnabled)
+        {
+            // U and V share transform geometry. Store the chroma map once so the later plane passes consume
+            // identical sizes without retaining duplicate state.
+            if (plane != 2)
             {
-                Span<byte> transformBlockReconstructionBuffer = default;
-                Span<short> highBitDepthTransformBlockReconstructionBuffer = default;
-                int transformBlockOffset;
+                Point transformPosition = new(
+                    (modeInfoPosition.X >> subX) + transformInfo.OffsetX,
+                    (modeInfoPosition.Y >> subY) + transformInfo.OffsetY);
 
-                transformSize = transformInfo[0].Size;
-                Span<int> coefficients = superblockInfo.GetCoefficients((Av1Plane)plane)[this.currentCoefficientIndex[plane]..];
+                this.loopFilterContext.SetTransformSize((Av1Plane)plane, transformPosition, transformSize);
+            }
+        }
 
-                // Transform offsets are stored in mode-info units. Reconstruction strides are expressed in logical
-                // samples for both storage pipelines, so no byte scaling is applied to the high-bit-depth offset.
-                transformBlockOffset = ((transformInfo[0].OffsetY * reconstructionStride) + transformInfo[0].OffsetX) << Av1Constants.ModeInfoSizeLog2;
-                if (highBitDepth)
-                {
-                    highBitDepthTransformBlockReconstructionBuffer = highBitDepthBlockReconstructionBuffer[transformBlockOffset..];
-                }
-                else
-                {
-                    transformBlockReconstructionBuffer = blockReconstructionBuffer[transformBlockOffset..];
-                }
+        if (!isInterBlock && !modeInfo.UseIntraBlockCopy)
+        {
+            // Conventional intra prediction consumes the reference-prefixed destination span before the
+            // transform residual is reconstructed over its first output row.
+            if (highBitDepth)
+            {
+                this.predictionDecoder.Decode(
+                    ref partitionInfo,
+                    (Av1Plane)plane,
+                    transformSize,
+                    tileInfo,
+                    highBitDepthTransformBlockReconstructionBuffer,
+                    reconstructionStride,
+                    this.frameBuffer.BitDepth,
+                    transformInfo.OffsetX,
+                    transformInfo.OffsetY);
+            }
+            else
+            {
+                this.predictionDecoder.Decode(
+                    ref partitionInfo,
+                    (Av1Plane)plane,
+                    transformSize,
+                    tileInfo,
+                    transformBlockReconstructionBuffer,
+                    reconstructionStride,
+                    this.frameBuffer.BitDepth,
+                    transformInfo.OffsetX,
+                    transformInfo.OffsetY);
+            }
+        }
 
-                if (this.isLoopFilterEnabled)
-                {
-                    // U and V share transform geometry. Store the chroma map once so the later plane passes consume
-                    // identical sizes without retaining duplicate state.
-                    if (plane != 2)
-                    {
-                        Point transformPosition = new(
-                            (modeInfoPosition.X >> subX) + transformInfo[0].OffsetX,
-                            (modeInfoPosition.Y >> subY) + transformInfo[0].OffsetY);
+        int endOfBlock = transformInfo.EndOfBlock;
+        if (endOfBlock != 0)
+        {
+            Av1TransformType transformType = transformInfo.Type;
 
-                        this.loopFilterContext.SetTransformSize((Av1Plane)plane, transformPosition, transformSize);
-                    }
-                }
+            // Entropy decoding has already applied quantization, scan placement, and coefficient clipping.
+            // Prediction includes a top-reference row; inverse reconstruction begins one stride after it.
+            if (highBitDepth)
+            {
+                Av1InverseTransformer.ReconstructHighBitDepth(
+                    coefficients,
+                    highBitDepthTransformBlockReconstructionBuffer[reconstructionStride..],
+                    reconstructionStride,
+                    transformSize,
+                    transformType,
+                    plane,
+                    endOfBlock,
+                    isLossless,
+                    this.frameBuffer.BitDepth,
+                    transformWorkspace);
+            }
+            else
+            {
+                Av1InverseTransformer.Reconstruct8Bit(
+                    coefficients,
+                    transformBlockReconstructionBuffer[reconstructionStride..],
+                    reconstructionStride,
+                    transformSize,
+                    transformType,
+                    plane,
+                    endOfBlock,
+                    isLossless,
+                    transformWorkspace);
+            }
 
-                // Intra-block copy is signaled on an intra-only frame but follows AV1's inter prediction and transform
-                // rules. Its validated displacement always references an earlier reconstructed region of this frame.
-                if (modeInfo.UseIntraBlockCopy)
-                {
-                    // the reference decoder predicts the complete coding block before traversing its residual transforms. The mandatory
-                    // 256-pixel source delay prevents overlap, and the two-tap interpolation is translation-invariant,
-                    // so predicting the matching source rectangle for each transform unit produces the same samples.
-                    Point transformPixelPosition = new(
-                        pixelPosition.X + (transformInfo[0].OffsetX << Av1Constants.ModeInfoSizeLog2),
-                        pixelPosition.Y + (transformInfo[0].OffsetY << Av1Constants.ModeInfoSizeLog2));
+            // Scan order can visit a high raster index before EOB. Clear through the largest written index,
+            // leaving the untouched zero tail ready for a different transform layout in the next superblock.
+            coefficients[..(transformInfo.MaximumCoefficientIndex + 1)].Clear();
+        }
 
-                    // Displacement vectors use one-eighth luma-sample units. Converting them to the plane's q4 grid
-                    // leaves luma on an integer sample and can leave subsampled chroma exactly at phase eight.
-                    int sourceColumnQ4 = (transformPixelPosition.X << 4) +
-                        (modeInfo.DisplacementVector.Column << (1 - subX));
+        this.currentCoefficientIndex[plane] += transformSize.GetWidth() * transformSize.GetHeight();
 
-                    int sourceRowQ4 = (transformPixelPosition.Y << 4) +
-                        (modeInfo.DisplacementVector.Row << (1 - subY));
+        if (plane == (int)Av1Plane.Y && !isInterBlock && !modeInfo.UseIntraBlockCopy && StoreChromaFromLumaRequired(colorConfig, ref partitionInfo))
+        {
+            // The predictor span begins on the previous row; CFL storage consumes reconstructed samples from
+            // the transform block itself, hence the explicit one-stride advance for both sample pipelines.
+            if (highBitDepth)
+            {
+                this.chromaFromLumaContext.Store(
+                    highBitDepthTransformBlockReconstructionBuffer[reconstructionStride..],
+                    reconstructionStride,
+                    transformInfo.OffsetY,
+                    transformInfo.OffsetX,
+                    transformSize,
+                    blockSize,
+                    modeInfoPosition.Y,
+                    modeInfoPosition.X);
+            }
+            else
+            {
+                this.chromaFromLumaContext.Store(
+                    transformBlockReconstructionBuffer[reconstructionStride..],
+                    reconstructionStride,
+                    transformInfo.OffsetY,
+                    transformInfo.OffsetX,
+                    transformSize,
+                    blockSize,
+                    modeInfoPosition.Y,
+                    modeInfoPosition.X);
+            }
+        }
+    }
 
-                    int sourcePhaseX = sourceColumnQ4 & 15;
-                    int sourcePhaseY = sourceRowQ4 & 15;
-                    DebugGuard.IsTrue(sourcePhaseX is 0 or 8, "Intra-block-copy horizontal phase must be an integer or half sample.");
-                    DebugGuard.IsTrue(sourcePhaseY is 0 or 8, "Intra-block-copy vertical phase must be an integer or half sample.");
+    /// <summary>
+    /// Completes reconstruction of a coding block.
+    /// </summary>
+    /// <param name="partitionInfo">The reconstructed block modes and geometry.</param>
+    public void EndBlock(ref Av1PartitionInfo partitionInfo)
+    {
+        ref Av1BlockModeInfo modeInfo = ref partitionInfo.ModeInfo;
+        bool isInterBlock = modeInfo.ReferenceFrames[0] >= Av1ReferenceFrameType.Last || modeInfo.UseIntraBlockCopy;
+        if (isInterBlock && StoreChromaFromLumaRequired(this.sequenceHeader.ColorConfig, ref partitionInfo))
+        {
+            // Inter prediction covers the whole block before residual reconstruction. Store its completed luma once,
+            // including the edge extension required by the final parsed luma transform's dimensions.
+            int lastTransformIndex = modeInfo.GetFirstTransformLocation(Av1Plane.Y) + modeInfo.GetTransformUnitCount(Av1Plane.Y) - 1;
+            Av1TransformSize transformSize = partitionInfo.SuperblockInfo.GetTransformInfoY()[lastTransformIndex].Size;
+            Av1BlockSize blockSize = modeInfo.BlockSize;
+            int width = Av1Math.AlignPowerOf2(
+                partitionInfo.GetMaxBlockWide(blockSize, false) << Av1Constants.ModeInfoSizeLog2,
+                transformSize.GetBlockWidthLog2());
 
-                    Point sourcePixelPosition = new(sourceColumnQ4 >> 4, sourceRowQ4 >> 4);
-                    int transformWidth = transformSize.GetWidth();
-                    int transformHeight = transformSize.GetHeight();
+            int height = Av1Math.AlignPowerOf2(
+                partitionInfo.GetMaxBlockHigh(blockSize, false) << Av1Constants.ModeInfoSizeLog2,
+                transformSize.GetBlockHeightLog2());
 
-                    if (highBitDepth)
-                    {
-                        Span<short> source = this.frameBuffer.DeriveBlockPointer16(
-                            (Av1Plane)plane,
-                            sourcePixelPosition,
-                            subX,
-                            subY,
-                            out int sourceStride);
+            Point pixelPosition = new(
+                partitionInfo.ColumnIndex << Av1Constants.ModeInfoSizeLog2,
+                partitionInfo.RowIndex << Av1Constants.ModeInfoSizeLog2);
 
-                        Av1IntraBlockCopyPredictor.Predict(
-                            source[sourceStride..],
-                            sourceStride,
-                            highBitDepthTransformBlockReconstructionBuffer[reconstructionStride..],
-                            reconstructionStride,
-                            transformWidth,
-                            transformHeight,
-                            sourcePhaseX != 0,
-                            sourcePhaseY != 0);
-                    }
-                    else
-                    {
-                        Span<byte> source = this.frameBuffer.DeriveBlockPointer(
-                            (Av1Plane)plane,
-                            sourcePixelPosition,
-                            subX,
-                            subY,
-                            out int sourceStride);
-
-                        Av1IntraBlockCopyPredictor.Predict(
-                            source[sourceStride..],
-                            sourceStride,
-                            transformBlockReconstructionBuffer[reconstructionStride..],
-                            reconstructionStride,
-                            transformWidth,
-                            transformHeight,
-                            sourcePhaseX != 0,
-                            sourcePhaseY != 0);
-                    }
-                }
-                else if (!isInterBlock)
-                {
-                    // Conventional intra prediction consumes the reference-prefixed destination span before the
-                    // transform residual is reconstructed over its first output row.
-                    if (highBitDepth)
-                    {
-                        this.predictionDecoder.Decode(
-                            ref partitionInfo,
-                            (Av1Plane)plane,
-                            transformSize,
-                            tileInfo,
-                            highBitDepthTransformBlockReconstructionBuffer,
-                            reconstructionStride,
-                            this.frameBuffer.BitDepth,
-                            transformInfo[0].OffsetX,
-                            transformInfo[0].OffsetY);
-                    }
-                    else
-                    {
-                        this.predictionDecoder.Decode(
-                            ref partitionInfo,
-                            (Av1Plane)plane,
-                            transformSize,
-                            tileInfo,
-                            transformBlockReconstructionBuffer,
-                            reconstructionStride,
-                            this.frameBuffer.BitDepth,
-                            transformInfo[0].OffsetX,
-                            transformInfo[0].OffsetY);
-                    }
-                }
-
-                int endOfBlock = transformInfo[0].EndOfBlock;
-                if (endOfBlock != 0)
-                {
-                    transformType = transformInfo[0].Type;
-
-                    // Entropy decoding has already applied quantization, scan placement, and coefficient clipping.
-                    // Prediction includes a top-reference row; inverse reconstruction begins one stride after it.
-                    if (highBitDepth)
-                    {
-                        Av1InverseTransformer.ReconstructHighBitDepth(
-                            coefficients,
-                            highBitDepthTransformBlockReconstructionBuffer[reconstructionStride..],
-                            reconstructionStride,
-                            transformSize,
-                            transformType,
-                            plane,
-                            endOfBlock,
-                            isLossless,
-                            this.frameBuffer.BitDepth,
-                            transformWorkspace);
-                    }
-                    else
-                    {
-                        Av1InverseTransformer.Reconstruct8Bit(
-                            coefficients,
-                            transformBlockReconstructionBuffer[reconstructionStride..],
-                            reconstructionStride,
-                            transformSize,
-                            transformType,
-                            plane,
-                            endOfBlock,
-                            isLossless,
-                            transformWorkspace);
-                    }
-                }
-
-                this.currentCoefficientIndex[plane] += transformSize.GetWidth() * transformSize.GetHeight();
-
-                // Store Luma for CFL if required!
-                if (plane == (int)Av1Plane.Y && StoreChromaFromLumaRequired(colorConfig, ref partitionInfo))
-                {
-                    // The predictor span begins on the previous row; CFL storage consumes reconstructed samples from
-                    // the transform block itself, hence the explicit one-stride advance for both sample pipelines.
-                    if (highBitDepth)
-                    {
-                        this.chromaFromLumaContext.Store(
-                            highBitDepthTransformBlockReconstructionBuffer[reconstructionStride..],
-                            reconstructionStride,
-                            transformInfo[0].OffsetY,
-                            transformInfo[0].OffsetX,
-                            transformSize,
-                            blockSize,
-                            modeInfoPosition.Y,
-                            modeInfoPosition.X);
-                    }
-                    else
-                    {
-                        this.chromaFromLumaContext.Store(
-                            transformBlockReconstructionBuffer[reconstructionStride..],
-                            reconstructionStride,
-                            transformInfo[0].OffsetY,
-                            transformInfo[0].OffsetX,
-                            transformSize,
-                            blockSize,
-                            modeInfoPosition.Y,
-                            modeInfoPosition.X);
-                    }
-                }
-
-                // Transform descriptors and their coefficient regions follow the same per-plane traversal order.
-                transformInfo = transformInfo[1..];
+            // These views include the preceding reference row. Advance one stride to the block's first sample;
+            // both branches pass logical sample strides to the shared Q3 storage kernel.
+            if (this.frameBuffer.BytesPerSample == 2)
+            {
+                Span<short> samples = this.frameBuffer.DeriveBlockPointer16(Av1Plane.Y, pixelPosition, 0, 0, out int stride);
+                this.chromaFromLumaContext.Store(
+                    samples[stride..], stride, 0, 0, width, height, blockSize, partitionInfo.RowIndex, partitionInfo.ColumnIndex);
+            }
+            else
+            {
+                Span<byte> samples = this.frameBuffer.DeriveBlockPointer(Av1Plane.Y, pixelPosition, 0, 0, out int stride);
+                this.chromaFromLumaContext.Store(
+                    samples[stride..], stride, 0, 0, width, height, blockSize, partitionInfo.RowIndex, partitionInfo.ColumnIndex);
             }
         }
     }

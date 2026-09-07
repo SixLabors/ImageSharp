@@ -43,5 +43,14 @@ internal static partial class Av1InverseTransformer
         /// <param name="residual">The eight inverse-transform residuals.</param>
         /// <param name="bitDepth">The coded sample bit depth.</param>
         public static abstract void Add(ref TSample prediction, ref TSample destination, Vector256<int> residual, int bitDepth);
+
+        /// <summary>
+        /// Adds sixteen residuals to predicted samples and stores the clipped results.
+        /// </summary>
+        /// <param name="prediction">The first predicted sample.</param>
+        /// <param name="destination">The first destination sample.</param>
+        /// <param name="residual">The sixteen inverse-transform residuals.</param>
+        /// <param name="bitDepth">The coded sample bit depth.</param>
+        public static abstract void Add(ref TSample prediction, ref TSample destination, Vector512<int> residual, int bitDepth);
     }
 }

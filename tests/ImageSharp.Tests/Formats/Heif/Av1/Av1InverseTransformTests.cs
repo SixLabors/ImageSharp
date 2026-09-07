@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Numerics;
 using System.Runtime.Intrinsics;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
@@ -20,6 +21,135 @@ public class Av1InverseTransformTests
     /// </summary>
     private const HwIntrinsics TransformConfigurations =
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+
+    /// <summary>
+    /// Verifies sparse scalar and SIMD kernels against complete scalar transforms with poisoned unused storage.
+    /// </summary>
+    [Fact]
+    public void SparseOperatorsMatchFullTransforms()
+        => FeatureTestRunner.RunWithHwIntrinsicsFeature(AssertSparseOperatorsMatchFullTransforms, TransformConfigurations);
+
+    /// <summary>
+    /// Verifies the coefficient bounds against every position in each permitted scan prefix.
+    /// </summary>
+    [Theory]
+    [MemberData(nameof(Av1ForwardTransformTests.ValidTransformCases), MemberType = typeof(Av1ForwardTransformTests))]
+    public void SparseBoundsContainEveryCodedCoefficient(int transformTypeValue, int transformSizeValue, int bitDepth)
+    {
+        Av1TransformType transformType = (Av1TransformType)transformTypeValue;
+        Av1TransformSize transformSize = (Av1TransformSize)transformSizeValue;
+        int stride = transformSize.GetAdjusted().GetWidth();
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, transformType).Scan;
+        int lastColumn = 0;
+        int lastRow = 0;
+        for (int index = 0; index < scan.Length; index++)
+        {
+            lastColumn = Math.Max(lastColumn, scan[index] % stride);
+            lastRow = Math.Max(lastRow, scan[index] / stride);
+            Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(transformType, transformSize, bitDepth);
+            config.ConfigureInverseSparsity(index + 1, bitDepth);
+            Assert.True(lastColumn < config.NonzeroWidth, $"Horizontal bound at EOB {index + 1} excludes column {lastColumn}.");
+            Assert.True(lastRow < config.NonzeroHeight, $"Vertical bound at EOB {index + 1} excludes row {lastRow}.");
+        }
+    }
+
+    /// <summary>
+    /// Exercises every supported sparse operator family in each hardware configuration.
+    /// </summary>
+    private static void AssertSparseOperatorsMatchFullTransforms()
+    {
+        AssertSparseOperatorParity<Av1Inverse2dTransformer.Dct8Low1Operator, Av1Inverse2dTransformer.Dct8Operator>(8);
+        AssertSparseOperatorParity<Av1Inverse2dTransformer.Dct16Low1Operator, Av1Inverse2dTransformer.Dct16Operator>(16);
+        AssertSparseOperatorParity<Av1Inverse2dTransformer.Dct16Low8Operator, Av1Inverse2dTransformer.Dct16Operator>(16);
+        AssertSparseOperatorParity<Av1Inverse2dTransformer.Dct32Low1Operator, Av1Inverse2dTransformer.Dct32Operator>(32);
+        AssertSparseOperatorParity<Av1Inverse2dTransformer.Dct32Low8Operator, Av1Inverse2dTransformer.Dct32Operator>(32);
+        AssertSparseOperatorParity<Av1Inverse2dTransformer.Dct32Low16Operator, Av1Inverse2dTransformer.Dct32Operator>(32);
+        AssertSparseOperatorParity<Av1Inverse2dTransformer.Dct64Low1Operator, Av1Inverse2dTransformer.Dct64Operator>(64);
+        AssertSparseOperatorParity<Av1Inverse2dTransformer.Dct64Low8Operator, Av1Inverse2dTransformer.Dct64Operator>(64);
+        AssertSparseOperatorParity<Av1Inverse2dTransformer.Dct64Low16Operator, Av1Inverse2dTransformer.Dct64Operator>(64);
+        AssertSparseOperatorParity<Av1Inverse2dTransformer.Dct64Low32Operator, Av1Inverse2dTransformer.Dct64Operator>(64);
+        AssertSparseOperatorParity<Av1Inverse2dTransformer.Adst8Low1Operator, Av1Inverse2dTransformer.Adst8Operator>(8);
+        AssertSparseOperatorParity<Av1Inverse2dTransformer.Adst16Low1Operator, Av1Inverse2dTransformer.Adst16Operator>(16);
+        AssertSparseOperatorParity<Av1Inverse2dTransformer.Adst16Low8Operator, Av1Inverse2dTransformer.Adst16Operator>(16);
+    }
+
+    /// <summary>
+    /// Compares independent SIMD lanes and scalar output with the complete transform of the same coefficient prefix.
+    /// </summary>
+    /// <typeparam name="TSparse">The sparse operator being checked.</typeparam>
+    /// <typeparam name="TFull">The complete scalar operator used for the arithmetic comparison.</typeparam>
+    /// <param name="length">The transform axis length.</param>
+    private static void AssertSparseOperatorParity<TSparse, TFull>(int length)
+        where TSparse : struct, Av1Inverse2dTransformer.IAv1Transform1dOperator
+        where TFull : struct, Av1Inverse2dTransformer.IAv1Transform1dOperator
+    {
+        const int cosBit = 12;
+        int[] input = new int[length];
+        int[] expected = new int[length];
+        int[] actual = new int[length];
+        int[] scalarStep = new int[length];
+        Av1TransformVector<Vector128<int>> input128 = default;
+        Av1TransformVector<Vector128<int>> output128 = default;
+        Av1TransformVector<Vector256<int>> input256 = default;
+        Av1TransformVector<Vector256<int>> output256 = default;
+
+        foreach (byte range in new byte[] { 16, 18, 20 })
+        {
+            InlineArray12<byte> stageRange = default;
+            for (int index = 0; index < Av1Transform2dFlipConfiguration.MaxStageNumber; index++)
+            {
+                stageRange[index] = range;
+            }
+
+            for (int index = 0; index < length; index++)
+            {
+                input256[index] = Vector256.Create(
+                    GetInputValue(index, 0),
+                    GetInputValue(index, 1),
+                    GetInputValue(index, 2),
+                    GetInputValue(index, 3),
+                    GetInputValue(index, 4),
+                    GetInputValue(index, 5),
+                    GetInputValue(index, 6),
+                    GetInputValue(index, 7));
+
+                input128[index] = input256[index].GetLower();
+                output128[index] = Vector128.Create(int.MinValue);
+                output256[index] = Vector256.Create(int.MinValue);
+            }
+
+            // Unused input positions remain nonzero. Only the selected low-frequency prefix may affect the result,
+            // and aliased input/stage storage exposes a network that overwrites a coefficient before consuming it.
+            TSparse.Transform(ref input128, ref output128, ref input128, cosBit, stageRange);
+            TSparse.Transform(ref input256, ref output256, ref input256, cosBit, stageRange);
+            for (int lane = 0; lane < Vector256<int>.Count; lane++)
+            {
+                for (int index = 0; index < length; index++)
+                {
+                    input[index] = index < TSparse.InputLength ? GetInputValue(index, lane) : 0;
+                }
+
+                Array.Fill(scalarStep, int.MinValue);
+                TFull.Transform(input, expected, scalarStep, cosBit, stageRange);
+                for (int index = TSparse.InputLength; index < length; index++)
+                {
+                    input[index] = GetInputValue(index, lane);
+                }
+
+                Array.Fill(actual, int.MinValue);
+                TSparse.Transform(input, actual, input, cosBit, stageRange);
+                Assert.Equal(expected, actual);
+                for (int index = 0; index < length; index++)
+                {
+                    Assert.Equal(expected[index], output256[index].GetElement(lane));
+                    if (lane < Vector128<int>.Count)
+                    {
+                        Assert.Equal(expected[index], output128[index].GetElement(lane));
+                    }
+                }
+            }
+        }
+    }
 
     /// <summary>
     /// Verifies DCT operator parity across the supported hardware feature levels.
@@ -399,6 +529,138 @@ public class Av1InverseTransformTests
         Assert.Equal(0, allocated);
     }
 
+    /// <summary>
+    /// Verifies DC-only byte reconstruction against the full transform for every size, signed rounding, clipping, and padded layout.
+    /// </summary>
+    /// <param name="inPlace">Whether prediction and reconstruction share their storage.</param>
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void DcOnlyByteReconstructionMatchesFullTransform(bool inPlace)
+    {
+        ReadOnlySpan<int> dcValues = [-32768, -4095, -1025, -65, -33, -32, -31, -17, -1, 0, 1, 17, 31, 32, 33, 65, 1025, 4095, 32767];
+        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
+        for (int size = 0; size < (int)Av1TransformSize.AllSizes; size++)
+        {
+            Av1TransformSize transformSize = (Av1TransformSize)size;
+            Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(Av1TransformType.DctDct, transformSize, 8);
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+            int readStride = width + 3;
+            int writeStride = inPlace ? readStride : width + 7;
+            int[] coefficients = new int[transformSize.GetAdjusted().GetSize2d()];
+            byte[] prediction = new byte[readStride * height];
+            byte[] expected = new byte[writeStride * height];
+            byte[] actual = new byte[expected.Length];
+            for (int i = 0; i < prediction.Length; i++)
+            {
+                prediction[i] = (byte)(i * 47);
+            }
+
+            Av1TransformFunctionParameters parameters = new()
+            {
+                TransformSize = transformSize,
+                TransformType = Av1TransformType.DctDct,
+                BitDepth = 8,
+                EndOfBuffer = 1
+            };
+
+            foreach (int dc in dcValues)
+            {
+                coefficients[0] = dc;
+                Array.Fill(expected, byte.MaxValue);
+                Array.Fill(actual, byte.MaxValue);
+                if (inPlace)
+                {
+                    prediction.CopyTo(expected, 0);
+                    prediction.CopyTo(actual, 0);
+                }
+
+                // Bypass the sparse dispatcher for the oracle: the full two-axis transform retains all rounding
+                // stages. Comparing the entire padded destination also detects writes beyond each active row.
+                Av1Inverse2dTransformer.Transform2dAdd(
+                    coefficients, inPlace ? expected : prediction, readStride, expected, writeStride, ref config, workspace);
+
+                Av1InverseTransformerFactory.InverseTransformAdd(
+                    coefficients, inPlace ? actual : prediction, readStride, actual, writeStride, parameters, workspace);
+
+                Assert.Equal(expected, actual);
+            }
+        }
+    }
+
+    /// <summary>
+    /// Verifies DC-only high-bit-depth reconstruction against the full transform at every supported precision and size.
+    /// </summary>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <param name="inPlace">Whether prediction and reconstruction share their storage.</param>
+    [Theory]
+    [InlineData(8, false)]
+    [InlineData(8, true)]
+    [InlineData(10, false)]
+    [InlineData(10, true)]
+    [InlineData(12, false)]
+    [InlineData(12, true)]
+    public void DcOnlyHighBitDepthReconstructionMatchesFullTransform(int bitDepth, bool inPlace)
+    {
+        ReadOnlySpan<int> dcValues =
+        [
+            -524288, -262143, -65535, -4095, -1025, -65, -33, -32, -31, -17, -1,
+            0, 1, 17, 31, 32, 33, 65, 1025, 4095, 65535, 262143, 524287
+        ];
+
+        int[] workspace = new int[Av1TransformWorkspace.MaximumLength];
+        int maximum = (1 << bitDepth) - 1;
+        for (int size = 0; size < (int)Av1TransformSize.AllSizes; size++)
+        {
+            Av1TransformSize transformSize = (Av1TransformSize)size;
+            Av1Transform2dFlipConfiguration config = Av1Transform2dFlipConfiguration.CreateInverse(Av1TransformType.DctDct, transformSize, bitDepth);
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+            int readStride = width + 3;
+            int writeStride = inPlace ? readStride : width + 7;
+            int[] coefficients = new int[transformSize.GetAdjusted().GetSize2d()];
+            short[] prediction = new short[readStride * height];
+            short[] expected = new short[writeStride * height];
+            short[] actual = new short[expected.Length];
+            for (int i = 0; i < prediction.Length; i++)
+            {
+                prediction[i] = (short)((i * 47) & maximum);
+            }
+
+            Av1TransformFunctionParameters parameters = new()
+            {
+                TransformSize = transformSize,
+                TransformType = Av1TransformType.DctDct,
+                BitDepth = bitDepth,
+                EndOfBuffer = 1,
+                Is16BitPipeline = true
+            };
+
+            foreach (int dc in dcValues)
+            {
+                coefficients[0] = dc;
+                Array.Fill(expected, short.MinValue);
+                Array.Fill(actual, short.MinValue);
+                if (inPlace)
+                {
+                    prediction.CopyTo(expected, 0);
+                    prediction.CopyTo(actual, 0);
+                }
+
+                // Include coefficients outside the input clamp as well as signed rounding boundaries. Sparse and
+                // full reconstruction must apply the same clamping even when the coded value saturates.
+                Av1Inverse2dTransformer.Transform2dAdd(
+                    coefficients, inPlace ? expected : prediction, readStride, expected, writeStride, ref config, workspace, bitDepth);
+
+                Av1InverseTransformerFactory.InverseTransformAdd(
+                    coefficients, inPlace ? actual : prediction, readStride, actual, writeStride, parameters, workspace);
+
+                Assert.Equal(expected, actual);
+            }
+        }
+    }
+
     [Theory]
     [InlineData((int)Av1BitDepth.TenBit, 1023)]
     [InlineData((int)Av1BitDepth.TwelveBit, 4095)]
@@ -609,10 +871,8 @@ public class Av1InverseTransformTests
 
         Av1TransformVector<Vector128<int>> input128 = default;
         Av1TransformVector<Vector128<int>> output128 = default;
-        Av1TransformVector<Vector128<int>> step128 = default;
         Av1TransformVector<Vector256<int>> input256 = default;
         Av1TransformVector<Vector256<int>> output256 = default;
-        Av1TransformVector<Vector256<int>> step256 = default;
 
         for (int index = 0; index < length; index++)
         {
@@ -633,12 +893,11 @@ public class Av1InverseTransformTests
                 GetInputValue(index, 7));
         }
 
-        TOperator.Transform(ref input128, ref output128, ref step128, cosBit, stageRange);
-        TOperator.Transform(ref input256, ref output256, ref step256, cosBit, stageRange);
+        TOperator.Transform(ref input128, ref output128, ref input128, cosBit, stageRange);
+        TOperator.Transform(ref input256, ref output256, ref input256, cosBit, stageRange);
 
         int[] scalarInput = new int[length];
         int[] scalarOutput = new int[length];
-        int[] scalarStep = new int[length];
 
         for (int lane = 0; lane < Vector256<int>.Count; lane++)
         {
@@ -647,7 +906,7 @@ public class Av1InverseTransformTests
                 scalarInput[index] = GetInputValue(index, lane);
             }
 
-            TOperator.Transform(scalarInput, scalarOutput, scalarStep, cosBit, stageRange);
+            TOperator.Transform(scalarInput, scalarOutput, scalarInput, cosBit, stageRange);
 
             for (int index = 0; index < length; index++)
             {
@@ -904,7 +1163,7 @@ public class Av1InverseTransformTests
         int height = transformSize.GetHeight();
         int readStride = width + 3;
         int writeStride = width + 7;
-        int workspaceLength = Av1TransformWorkspace.GetRequiredLength(transformSize);
+        int workspaceLength = Av1TransformWorkspace.GetInverseRequiredLength(transformSize);
         byte[] prediction = new byte[readStride * height];
 
         for (int row = 0; row < height; row++)
@@ -941,6 +1200,45 @@ public class Av1InverseTransformTests
 
             Assert.Equal(scalar, vector256);
         }
+
+        // Keep the complete scalar operator pair as the arithmetic oracle while the factory selects sparse pairs.
+        // Prefixes around powers of two exercise sparse support transitions; the separate bound test covers every EOB.
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, config.TransformType).Scan;
+        int[] sparseCoefficients = new int[coefficients.Length];
+        byte[] sparseOutput = new byte[writeStride * height];
+        int[] sparseWorkspace = new int[workspaceLength];
+        Av1TransformFunctionParameters parameters = new()
+        {
+            TransformType = config.TransformType,
+            TransformSize = transformSize,
+            BitDepth = bitDepth,
+            Is16BitPipeline = false,
+        };
+
+        for (int eob = 1; eob <= scan.Length; eob++)
+        {
+            int raster = scan[eob - 1];
+            sparseCoefficients[raster] = coefficients[raster] == 0 ? 1 : coefficients[raster];
+            if (eob != 1 && eob != scan.Length &&
+                !BitOperations.IsPow2((uint)(eob - 1)) && !BitOperations.IsPow2((uint)eob) && !BitOperations.IsPow2((uint)(eob + 1)))
+            {
+                continue;
+            }
+
+            parameters.EndOfBuffer = eob;
+            Array.Fill(scalar, byte.MaxValue);
+            Array.Fill(sparseOutput, byte.MaxValue);
+            Array.Fill(scalarWorkspace, int.MinValue);
+            Array.Fill(sparseWorkspace, int.MaxValue);
+
+            Av1Inverse2dTransformer.Transform2dScalar<byte, Av1InverseTransformer.ByteOutputOperator, TColumnOperator, TRowOperator>(
+                sparseCoefficients, prediction, readStride, scalar, writeStride, ref config, scalarWorkspace, bitDepth);
+
+            Av1InverseTransformerFactory.InverseTransformAdd(
+                sparseCoefficients, prediction, readStride, sparseOutput, writeStride, parameters, sparseWorkspace);
+
+            Assert.Equal(scalar, sparseOutput);
+        }
     }
 
     /// <summary>
@@ -965,7 +1263,7 @@ public class Av1InverseTransformTests
         int readStride = width + 3;
         int writeStride = width + 7;
         int maximum = (1 << bitDepth) - 1;
-        int workspaceLength = Av1TransformWorkspace.GetRequiredLength(transformSize);
+        int workspaceLength = Av1TransformWorkspace.GetInverseRequiredLength(transformSize);
         short[] prediction = new short[readStride * height];
 
         for (int row = 0; row < height; row++)
@@ -1001,6 +1299,45 @@ public class Av1InverseTransformTests
                 coefficients, prediction, readStride, vector256, writeStride, ref config, vector256Workspace, bitDepth);
 
             Assert.Equal(scalar, vector256);
+        }
+
+        // Keep the complete scalar operator pair as the arithmetic oracle while the factory selects sparse pairs.
+        // Prefixes around powers of two exercise sparse support transitions; the separate bound test covers every EOB.
+        ReadOnlySpan<short> scan = Av1ScanOrderConstants.GetScanOrder(transformSize, config.TransformType).Scan;
+        int[] sparseCoefficients = new int[coefficients.Length];
+        short[] sparseOutput = new short[writeStride * height];
+        int[] sparseWorkspace = new int[workspaceLength];
+        Av1TransformFunctionParameters parameters = new()
+        {
+            TransformType = config.TransformType,
+            TransformSize = transformSize,
+            BitDepth = bitDepth,
+            Is16BitPipeline = true,
+        };
+
+        for (int eob = 1; eob <= scan.Length; eob++)
+        {
+            int raster = scan[eob - 1];
+            sparseCoefficients[raster] = coefficients[raster] == 0 ? 1 : coefficients[raster];
+            if (eob != 1 && eob != scan.Length &&
+                !BitOperations.IsPow2((uint)(eob - 1)) && !BitOperations.IsPow2((uint)eob) && !BitOperations.IsPow2((uint)(eob + 1)))
+            {
+                continue;
+            }
+
+            parameters.EndOfBuffer = eob;
+            Array.Fill(scalar, short.MinValue);
+            Array.Fill(sparseOutput, short.MinValue);
+            Array.Fill(scalarWorkspace, int.MinValue);
+            Array.Fill(sparseWorkspace, int.MaxValue);
+
+            Av1Inverse2dTransformer.Transform2dScalar<short, Av1InverseTransformer.HighBitDepthOutputOperator, TColumnOperator, TRowOperator>(
+                sparseCoefficients, prediction, readStride, scalar, writeStride, ref config, scalarWorkspace, bitDepth);
+
+            Av1InverseTransformerFactory.InverseTransformAdd(
+                sparseCoefficients, prediction, readStride, sparseOutput, writeStride, parameters, sparseWorkspace);
+
+            Assert.Equal(scalar, sparseOutput);
         }
     }
 

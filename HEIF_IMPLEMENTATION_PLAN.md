@@ -14,6 +14,15 @@ The encoder deblocking comparison covered 102,390 samples in 12 streams at 8/10/
 maximum difference zero, differing samples zero, and samples exceeding one zero. These are same-bitstream
 reconstruction checks; they do not establish parity between separately configured encoders or performance acceptance.
 
+The decoder backlog was reverified after the final motion-cost edit in the existing checkout: Release .NET 11
+built with zero errors and 1,009 existing warnings; serialized VSTest passed 10,104/10,104 AV1, public HEIF
+encoder, and sequence-parser cases in 3.3497 minutes (`decoder-checkpoint-r1.trx`). The reconstruction tests
+compare actual native-precision planes sample by sample with zero tolerance. Fresh optimized-native decoding
+also matched the retained restoration and film-grain references over 15 streams and 8,500,087 samples:
+maximum error zero, differing samples zero, and samples exceeding one zero. Temporary native tooling and the
+uncommitted Hadamard-screening experiment remain excluded. Decoder-wide coverage and performance acceptance
+remain open; these results verify the recorded cases and do not establish complete codec conformance.
+
 Acceptance criteria are separate for encoding and decoding:
 
 - Encoder parity permits at most one component unit per sample when comparing separately encoded results

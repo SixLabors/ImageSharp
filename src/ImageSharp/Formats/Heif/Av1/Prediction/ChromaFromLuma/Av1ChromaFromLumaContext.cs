@@ -101,6 +101,32 @@ internal sealed partial class Av1ChromaFromLumaContext
         int modeInfoRow,
         int modeInfoColumn)
         where T : unmanaged, IBinaryInteger<T>
+        => this.Store(input, inputStride, row, column, transformSize.GetWidth(), transformSize.GetHeight(), blockSize, modeInfoRow, modeInfoColumn);
+
+    /// <summary>
+    /// Stores a reconstructed luma region in the chroma-resolution Q3 predictor buffer.
+    /// </summary>
+    /// <typeparam name="T">The integer sample type of the reconstructed luma plane.</typeparam>
+    /// <param name="input">The reconstructed luma samples for the region.</param>
+    /// <param name="inputStride">The distance, in samples, between consecutive input rows.</param>
+    /// <param name="row">The region row relative to the chroma-from-luma block, in mode-info units.</param>
+    /// <param name="column">The region column relative to the chroma-from-luma block, in mode-info units.</param>
+    /// <param name="width">The width of the luma region in samples.</param>
+    /// <param name="height">The height of the luma region in samples.</param>
+    /// <param name="blockSize">The coded luma block size used to resolve shared sub-8x8 chroma ownership.</param>
+    /// <param name="modeInfoRow">The frame-relative luma row in 4x4 mode-info units.</param>
+    /// <param name="modeInfoColumn">The frame-relative luma column in 4x4 mode-info units.</param>
+    public void Store<T>(
+        Span<T> input,
+        int inputStride,
+        int row,
+        int column,
+        int width,
+        int height,
+        Av1BlockSize blockSize,
+        int modeInfoRow,
+        int modeInfoColumn)
+        where T : unmanaged, IBinaryInteger<T>
     {
         if (blockSize.GetHeight() == 4 || blockSize.GetWidth() == 4)
         {
@@ -118,8 +144,6 @@ internal sealed partial class Av1ChromaFromLumaContext
 
         int subX = this.subX ? 1 : 0;
         int subY = this.subY ? 1 : 0;
-        int width = transformSize.GetWidth();
-        int height = transformSize.GetHeight();
         int storeRow = row << (Av1Constants.ModeInfoSizeLog2 - subY);
         int storeColumn = column << (Av1Constants.ModeInfoSizeLog2 - subX);
         int storeWidth = width >> subX;

@@ -16,9 +16,15 @@ internal static partial class Av1Inverse2dTransformer
     /// <remarks>
     /// Each overload performs the same staged fixed-point transform. Vector fields identify coefficient positions,
     /// while vector lanes identify independent rows or columns.
+    /// Input reads finish before the stage buffer is written, allowing input and stage storage to alias.
     /// </remarks>
     internal interface IAv1Transform1dOperator
     {
+        /// <summary>
+        /// Gets the number of coefficient positions read by this transform.
+        /// </summary>
+        public static abstract int InputLength { get; }
+
         /// <summary>
         /// Transforms one axis when hardware vectorization is unavailable.
         /// </summary>

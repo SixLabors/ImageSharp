@@ -16,6 +16,9 @@ internal static partial class Av1Inverse2dTransformer
 {
     internal readonly struct Dct32Operator : IAv1Transform1dOperator
     {
+        /// <inheritdoc/>
+        public static int InputLength => 32;
+
         /// <summary>
         /// Applies the normative 32-point AV1 inverse discrete cosine transform.
         /// </summary>

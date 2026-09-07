@@ -46,5 +46,18 @@ internal static partial class Av1InverseTransformer
             Vector128<short> narrowed = Vector128.Narrow(reconstructed.GetLower(), reconstructed.GetUpper());
             narrowed.StoreUnsafe(ref destination);
         }
+
+        /// <inheritdoc/>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static void Add(ref short prediction, ref short destination, Vector512<int> residual, int bitDepth)
+        {
+            // Widen the lower and upper eight predictions into ordered Int32 halves. Clipping before narrowing keeps
+            // the stored sixteen samples within their actual 8-, 10-, or 12-bit range, including negative residuals.
+            Vector256<short> packed = Vector256.LoadUnsafe(ref prediction);
+            Vector512<int> predicted = Vector512.Create(Vector256.WidenLower(packed), Vector256.WidenUpper(packed));
+            Vector512<int> reconstructed = Vector512.Clamp(predicted + residual, Vector512<int>.Zero, Vector512.Create((1 << bitDepth) - 1));
+            Vector256<short> narrowed = Vector256.Narrow(reconstructed.GetLower(), reconstructed.GetUpper());
+            narrowed.StoreUnsafe(ref destination);
+        }
     }
 }

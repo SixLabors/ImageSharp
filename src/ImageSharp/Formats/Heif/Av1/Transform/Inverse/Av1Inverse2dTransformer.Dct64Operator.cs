@@ -16,6 +16,9 @@ internal static partial class Av1Inverse2dTransformer
 {
     internal readonly struct Dct64Operator : IAv1Transform1dOperator
     {
+        /// <inheritdoc/>
+        public static int InputLength => 64;
+
         /// <summary>
         /// Applies the normative 64-point AV1 inverse discrete cosine transform.
         /// </summary>

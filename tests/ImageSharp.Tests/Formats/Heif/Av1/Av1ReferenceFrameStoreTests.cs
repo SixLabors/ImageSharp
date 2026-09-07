@@ -474,6 +474,97 @@ public class Av1ReferenceFrameStoreTests
     }
 
     /// <summary>
+    /// Verifies that compact film-grain output preserves samples at clipped overlap boundaries.
+    /// </summary>
+    [Theory]
+    [InlineData(0, true, false, false)]
+    [InlineData(0, false, true, true)]
+    [InlineData(0, false, true, false)]
+    [InlineData(0, false, false, false)]
+    [InlineData(1, true, false, false)]
+    [InlineData(1, false, true, true)]
+    [InlineData(1, false, true, false)]
+    [InlineData(1, false, false, false)]
+    [InlineData(2, true, false, false)]
+    [InlineData(2, false, true, true)]
+    [InlineData(2, false, true, false)]
+    [InlineData(2, false, false, false)]
+    public void CompactFilmGrainMatchesBorderedPresentationAtOverlapEdges(int bitDepthIndex, bool monochrome, bool subX, bool subY)
+    {
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(66, 66, (Av1BitDepth)bitDepthIndex, monochrome, subX, subY);
+        Av1ColorFormat colorFormat = sequenceHeader.ColorConfig.GetColorFormat();
+        ObuFrameHeader frameHeader = new()
+        {
+            FilmGrainParameters = new ObuFilmGrainParameters
+            {
+                ApplyGrain = true,
+                GrainSeed = 7391,
+                NumYPoints = 2,
+                ChromaScalingFromLuma = !monochrome,
+                OverlapFlag = true
+            }
+        };
+
+        frameHeader.FilmGrainParameters.PointYValue[0] = 0;
+        frameHeader.FilmGrainParameters.PointYValue[1] = 255;
+        frameHeader.FilmGrainParameters.PointYScaling[0] = 255;
+        frameHeader.FilmGrainParameters.PointYScaling[1] = 255;
+        frameHeader.FilmGrainParameters.ArCoeffsCbPlus128[0] = 128;
+        frameHeader.FilmGrainParameters.ArCoeffsCrPlus128[0] = 128;
+        (int Width, int Height)[] dimensions =
+        [
+            (1, 1), (2, 2), (33, 1), (1, 33), (33, 33), (34, 34),
+            (35, 35), (65, 65), (66, 66), (31, 34), (34, 31), (32, 32)
+        ];
+
+        foreach ((int width, int height) in dimensions)
+        {
+            using Av1FrameBuffer<byte> bordered = new(Configuration.Default, sequenceHeader, colorFormat, false);
+            bordered.Width = width;
+            bordered.Height = height;
+            int planeCount = monochrome ? 1 : 3;
+            for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
+            {
+                int planeSubX = planeIndex != 0 && subX ? 1 : 0;
+                int planeSubY = planeIndex != 0 && subY ? 1 : 0;
+                InitializeVisiblePlane(
+                    bordered,
+                    bordered.GetPlaneBuffer((Av1Plane)planeIndex),
+                    bordered.OriginX >> planeSubX,
+                    bordered.OriginY >> planeSubY,
+                    Av1Math.DivideLog2Ceiling(width, planeSubX),
+                    Av1Math.DivideLog2Ceiling(height, planeSubY),
+                    planeIndex);
+            }
+
+            using Av1FrameBuffer<byte> compact = Av1FrameBuffer<byte>.CreatePresentation(Configuration.Default, sequenceHeader, bordered);
+            bordered.CopyVisibleTo(compact);
+            new Av1FilmGrainDecoder(sequenceHeader, frameHeader, bordered).DecodeFrame();
+            new Av1FilmGrainDecoder(sequenceHeader, frameHeader, compact).DecodeFrame();
+
+            // Overlap can occupy a complete final block row or column. Compare every visible byte independently
+            // of the two storage layouts, including the second byte of each high-bit-depth sample.
+            for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
+            {
+                int planeSubX = planeIndex != 0 && subX ? 1 : 0;
+                int planeSubY = planeIndex != 0 && subY ? 1 : 0;
+                int byteWidth = Av1Math.DivideLog2Ceiling(width, planeSubX) * bordered.BytesPerSample;
+                int planeHeight = Av1Math.DivideLog2Ceiling(height, planeSubY);
+                Buffer2D<byte> expectedPlane = bordered.GetPlaneBuffer((Av1Plane)planeIndex);
+                Buffer2D<byte> actualPlane = compact.GetPlaneBuffer((Av1Plane)planeIndex);
+                for (int row = 0; row < planeHeight; row++)
+                {
+                    ReadOnlySpan<byte> expected = expectedPlane.DangerousGetRowSpan((bordered.OriginY >> planeSubY) + row)
+                        .Slice((bordered.OriginX >> planeSubX) * bordered.BytesPerSample, byteWidth);
+
+                    ReadOnlySpan<byte> actual = actualPlane.DangerousGetRowSpan(row)[..byteWidth];
+                    Assert.True(expected.SequenceEqual(actual), $"{width}x{height}, plane {planeIndex}, row {row}");
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Verifies that a refreshed shown frame retains its ungrained reconstruction while exposing an independently grained output.
     /// </summary>
     [Fact]
@@ -515,7 +606,7 @@ public class Av1ReferenceFrameStoreTests
         Span<byte> reconstructedSamples = reconstructed.GetPlaneBuffer(Av1Plane.Y).DangerousGetSingleSpan();
         byte[] ungrainedSamples = new byte[reconstructedSamples.Length];
         reconstructedSamples.CopyTo(ungrainedSamples);
-        Av1FrameBuffer<byte> presentation = new(Configuration.Default, sequenceHeader, Av1ColorFormat.Yuv400, false);
+        Av1FrameBuffer<byte> presentation = Av1FrameBuffer<byte>.CreatePresentation(Configuration.Default, sequenceHeader, reconstructed);
         reconstructed.CopyVisibleTo(presentation);
 
         Av1FilmGrainDecoder filmGrainDecoder = new(sequenceHeader, frameHeader, presentation);
@@ -533,7 +624,20 @@ public class Av1ReferenceFrameStoreTests
         Assert.Same(grainedOutput, store.OutputFrame);
         Assert.NotSame(retainedReference.FrameBuffer, grainedOutput.FrameBuffer);
         Assert.True(ungrainedSamples.AsSpan().SequenceEqual(retainedReference.FrameBuffer.GetPlaneBuffer(Av1Plane.Y).DangerousGetSingleSpan()));
-        Assert.False(ungrainedSamples.AsSpan().SequenceEqual(grainedOutput.FrameBuffer.GetPlaneBuffer(Av1Plane.Y).DangerousGetSingleSpan()));
+
+        // Compare visible samples at their independent origins; differing allocation lengths do not prove that grain ran.
+        bool changedSample = false;
+        for (int row = 0; row < presentation.Height; row++)
+        {
+            ReadOnlySpan<byte> original = reconstructed.GetPlaneBuffer(Av1Plane.Y).DangerousGetRowSpan(reconstructed.OriginY + row);
+            ReadOnlySpan<byte> displayed = presentation.GetPlaneBuffer(Av1Plane.Y).DangerousGetRowSpan(presentation.OriginY + row);
+            for (int column = 0; column < presentation.Width; column++)
+            {
+                changedSample |= original[reconstructed.OriginX + column] != displayed[presentation.OriginX + column];
+            }
+        }
+
+        Assert.True(changedSample);
 
         using Av1ReferenceFrame selectedOutput = store.TakeOutput();
 
@@ -579,12 +683,12 @@ public class Av1ReferenceFrameStoreTests
         AssertVisiblePlaneCopy(source, destination, Av1Plane.U, 1, 1);
         AssertVisiblePlaneCopy(source, destination, Av1Plane.V, 1, 1);
         Assert.Equal(source.StartPosition, destination.StartPosition);
-        Assert.Equal(source.OriginX, destination.OriginX);
-        Assert.Equal(source.OriginY, destination.OriginY);
+        Assert.Equal(Av1FrameBuffer<byte>.DecoderPaddingValue, destination.OriginX);
+        Assert.Equal(Av1FrameBuffer<byte>.DecoderPaddingValue, destination.OriginY);
         Assert.Equal(source.Width, destination.Width);
         Assert.Equal(source.Height, destination.Height);
-        Assert.Equal(source.MaxWidth, destination.MaxWidth);
-        Assert.Equal(source.MaxHeight, destination.MaxHeight);
+        Assert.Equal(5, destination.MaxWidth);
+        Assert.Equal(3, destination.MaxHeight);
         Assert.Equal(source.BitDepth, destination.BitDepth);
         Assert.Equal(source.ColorFormat, destination.ColorFormat);
 
@@ -592,7 +696,8 @@ public class Av1ReferenceFrameStoreTests
         byte sourceFirstVisibleByte = sourceY.DangerousGetSingleSpan()[visibleStorageOffset];
 
         // Mutating a copied visible sample proves presentation ownership, not merely the already-untouched padding.
-        destinationY.DangerousGetSingleSpan()[visibleStorageOffset] ^= byte.MaxValue;
+        int destinationStorageOffset = (destination.OriginY * destinationY.Width) + (destination.OriginX * destination.BytesPerSample);
+        destinationY.DangerousGetSingleSpan()[destinationStorageOffset] ^= byte.MaxValue;
         Assert.Equal(sourceFirstVisibleByte, sourceY.DangerousGetSingleSpan()[visibleStorageOffset]);
     }
 
@@ -613,14 +718,15 @@ public class Av1ReferenceFrameStoreTests
     {
         Buffer2D<byte> sourceBuffer = source.GetPlaneBuffer(plane);
         Buffer2D<byte> destinationBuffer = destination.GetPlaneBuffer(plane);
-        int originX = (source.OriginX >> subX) * source.BytesPerSample;
-        int originY = source.OriginY >> subY;
+        int originX = (destination.OriginX >> subX) * destination.BytesPerSample;
+        int originY = destination.OriginY >> subY;
+        int sourceOriginX = (source.OriginX >> subX) * source.BytesPerSample;
+        int sourceOriginY = source.OriginY >> subY;
         int width = Av1Math.DivideLog2Ceiling(source.Width, subX) * source.BytesPerSample;
         int height = Av1Math.DivideLog2Ceiling(source.Height, subY);
 
         for (int row = 0; row < destinationBuffer.Height; row++)
         {
-            ReadOnlySpan<byte> sourceRow = sourceBuffer.DangerousGetRowSpan(row);
             ReadOnlySpan<byte> destinationRow = destinationBuffer.DangerousGetRowSpan(row);
 
             for (int column = 0; column < destinationRow.Length; column++)
@@ -628,7 +734,11 @@ public class Av1ReferenceFrameStoreTests
                 bool isVisible = row >= originY && row < originY + height &&
                     column >= originX && column < originX + width;
 
-                Assert.Equal(isVisible ? sourceRow[column] : (byte)0xA5, destinationRow[column]);
+                byte expected = isVisible
+                    ? sourceBuffer.DangerousGetRowSpan(sourceOriginY + row - originY)[sourceOriginX + column - originX]
+                    : (byte)0xA5;
+
+                Assert.Equal(expected, destinationRow[column]);
             }
         }
     }

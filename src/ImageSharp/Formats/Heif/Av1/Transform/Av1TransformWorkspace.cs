@@ -9,9 +9,9 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 /// Describes the reusable storage required by an AV1 two-dimensional transform operation.
 /// </summary>
 /// <remarks>
-/// The workspace reserves three maximum-length transform vectors for input, output, and stage exchange, followed by
-/// full-block raster buffers and the fixed AVX-512 transpose area. All storage is expressed as integers so callers can
-/// rent one buffer and reinterpret aligned prefixes for 16-bit or 32-bit SIMD lanes without per-block allocations.
+/// Forward transformation reserves three vectors, raster buffers, and its fixed transpose area. Inverse transformation
+/// shares input and stage storage and retains one raster intermediate. Sizes are expressed as integers so callers can
+/// rent one buffer and reinterpret its prefixes for SIMD lanes without per-block allocations.
 /// </remarks>
 internal static class Av1TransformWorkspace
 {
@@ -42,6 +42,29 @@ internal static class Av1TransformWorkspace
         (2 * Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize)
         + Vector512StorageLength
         + Vector512TransposeStorageLength;
+
+    /// <summary>
+    /// The number of integers required for the largest supported inverse transform.
+    /// </summary>
+    public const int InverseMaximumLength =
+        (Av1Constants.MaxTransformSize * Av1Constants.MaxTransformSize) + (2 * Av1Constants.MaxTransformSize * 8);
+
+    /// <summary>
+    /// Gets the number of integers required for inverse transformation at a transform size.
+    /// </summary>
+    /// <param name="transformSize">The transform-block dimensions.</param>
+    /// <returns>The required inverse workspace length.</returns>
+    public static int GetInverseRequiredLength(Av1TransformSize transformSize)
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+
+        // Input coefficients are consumed before stage exchange begins, so those two regions share storage.
+        // Reserve the widest supported traversal for these dimensions, allowing the same workspace to serve every
+        // hardware tier. Four-point axes use four-lane traversal; all larger pairs can use eight lanes.
+        int lanes = width >= 8 && height >= 8 ? 8 : 4;
+        return (2 * Math.Max(width, height) * lanes) + (width * height);
+    }
 
     /// <summary>
     /// Gets the number of integers required for a transform size.

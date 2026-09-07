@@ -13,7 +13,7 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 /// <summary>
 /// Applies AV1 constrained directional enhancement filtering to a reconstructed still-image frame.
 /// </summary>
-internal sealed class Av1CdefDecoder
+internal sealed class Av1CdefDecoder : IDisposable
 {
     /// <summary>
     /// The width and height of a CDEF unit in 4x4 luma mode-information units.
@@ -46,61 +46,67 @@ internal sealed class Av1CdefDecoder
     private const int SourceBufferLength = SourceStride * (MaximumUnitPlaneSize + (SourceBorder * 2));
 
     /// <summary>
-    /// The sequence-level superblock, bit-depth, and color configuration.
+    /// The allocator supplying reusable filter storage for this decoding session.
     /// </summary>
-    private readonly ObuSequenceHeader sequenceHeader;
+    private readonly MemoryAllocator allocator;
 
     /// <summary>
-    /// The frame dimensions and CDEF strength table.
+    /// The source unit, preserved borders, and unit-local direction state reused across frames.
     /// </summary>
-    private readonly ObuFrameHeader frameHeader;
+    private IMemoryOwner<ushort>? scratchOwner;
 
     /// <summary>
-    /// The decoded block skip state and CDEF-unit strength selections.
+    /// The requested storage length, independent of any extra capacity supplied by the allocator.
     /// </summary>
-    private readonly Av1FrameInfo frameInfo;
-
-    /// <summary>
-    /// The reconstructed plane samples modified by CDEF.
-    /// </summary>
-    private readonly Av1FrameBuffer<byte> frameBuffer;
+    private int scratchLength;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1CdefDecoder"/> class.
     /// </summary>
-    /// <param name="sequenceHeader">The sequence header defining CDEF availability and the color layout.</param>
-    /// <param name="frameHeader">The frame header defining dimensions and CDEF strengths.</param>
-    /// <param name="frameInfo">The decoded block skip state and per-unit strength selections.</param>
-    /// <param name="frameBuffer">The deblocked frame samples to filter.</param>
-    public Av1CdefDecoder(
-        ObuSequenceHeader sequenceHeader,
-        ObuFrameHeader frameHeader,
-        Av1FrameInfo frameInfo,
-        Av1FrameBuffer<byte> frameBuffer)
+    /// <param name="allocator">The allocator used for filter working storage.</param>
+    public Av1CdefDecoder(MemoryAllocator allocator) => this.allocator = allocator;
+
+    /// <summary>
+    /// Releases the working storage retained by this filtering stage.
+    /// </summary>
+    public void Dispose()
     {
-        this.sequenceHeader = sequenceHeader;
-        this.frameHeader = frameHeader;
-        this.frameInfo = frameInfo;
-        this.frameBuffer = frameBuffer;
+        this.scratchOwner?.Dispose();
+        this.scratchOwner = null;
+        this.scratchLength = 0;
     }
 
     /// <summary>
     /// Filters every enabled color plane using directions derived from the deblocked luma plane.
     /// </summary>
-    public void DecodeFrame()
+    /// <param name="sequenceHeader">The sequence defining filter availability and component sampling.</param>
+    /// <param name="frameHeader">The frame defining dimensions and selected strengths.</param>
+    /// <param name="frameInfo">The block skip state and filter-unit strength selections.</param>
+    /// <param name="frameBuffer">The deblocked samples to filter.</param>
+    public void DecodeFrame(
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        Av1FrameInfo frameInfo,
+        Av1FrameBuffer<byte> frameBuffer)
     {
-        if (!this.sequenceHeader.EnableCdef || this.frameHeader.CodedLossless || this.frameHeader.AllowIntraBlockCopy)
+        if (!sequenceHeader.EnableCdef)
+        {
+            this.Dispose();
+            return;
+        }
+
+        if (frameHeader.CodedLossless || frameHeader.AllowIntraBlockCopy)
         {
             return;
         }
 
-        ObuConstraintDirectionalEnhancementFilterParameters parameters = this.frameHeader.CdefParameters;
+        ObuConstraintDirectionalEnhancementFilterParameters parameters = frameHeader.CdefParameters;
         int strengthCount = 1 << parameters.BitCount;
         bool hasNonZeroStrength = false;
         for (int i = 0; i < strengthCount; i++)
         {
             if (parameters.YStrength[i] != 0 ||
-                (this.sequenceHeader.ColorConfig.PlaneCount > 1 && parameters.UvStrength[i] != 0))
+                (sequenceHeader.ColorConfig.PlaneCount > 1 && parameters.UvStrength[i] != 0))
             {
                 hasNonZeroStrength = true;
                 break;
@@ -112,7 +118,7 @@ internal sealed class Av1CdefDecoder
             return;
         }
 
-        ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
+        ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
         int planeCount = colorConfig.PlaneCount;
         Span<int> subsamplingX = stackalloc int[3];
         Span<int> subsamplingY = stackalloc int[3];
@@ -128,7 +134,7 @@ internal sealed class Av1CdefDecoder
             Av1Plane plane = (Av1Plane)planeIndex;
             int planeSubsamplingX = plane != Av1Plane.Y && colorConfig.SubSamplingX ? 1 : 0;
             int planeSubsamplingY = plane != Av1Plane.Y && colorConfig.SubSamplingY ? 1 : 0;
-            int planeWidth = this.frameHeader.ModeInfoColumnCount << (Av1Constants.ModeInfoSizeLog2 - planeSubsamplingX);
+            int planeWidth = frameHeader.ModeInfoColumnCount << (Av1Constants.ModeInfoSizeLog2 - planeSubsamplingX);
             int maximumUnitHeight = MaximumUnitPlaneSize >> planeSubsamplingY;
 
             subsamplingX[planeIndex] = planeSubsamplingX;
@@ -145,8 +151,17 @@ internal sealed class Av1CdefDecoder
         int blockStorageLength = MaximumBlocksPerUnit * Unsafe.SizeOf<CdefBlock>() / sizeof(ushort);
         int unitStorageOffset = SourceBufferLength + lineBufferLength + columnBufferLength;
         int scratchLength = unitStorageOffset + (directionStorageLength * 2) + blockStorageLength;
-        MemoryAllocator allocator = this.frameBuffer.MemoryAllocator;
-        using IMemoryOwner<ushort> scratchOwner = allocator.Allocate<ushort>(scratchLength);
+        IMemoryOwner<ushort>? scratchOwner = this.scratchOwner;
+        if (scratchOwner is null || this.scratchLength != scratchLength)
+        {
+            // Frame dimensions and sampling determine border storage. Reuse it across equal-size frames;
+            // release the previous allocation before resizing so a failed allocation cannot leave a stale owner.
+            this.Dispose();
+            scratchOwner = this.allocator.Allocate<ushort>(scratchLength);
+            this.scratchOwner = scratchOwner;
+            this.scratchLength = scratchLength;
+        }
+
         Span<ushort> scratch = scratchOwner.Memory.Span[..scratchLength];
         Span<ushort> source = scratch[..SourceBufferLength];
         Span<ushort> lineBuffer = scratch.Slice(SourceBufferLength, lineBufferLength);
@@ -164,11 +179,11 @@ internal sealed class Av1CdefDecoder
             scratch.Slice(unitStorageOffset + (directionStorageLength * 2), blockStorageLength));
 
         Span<bool> cdefLeft = stackalloc bool[3];
-        int unitColumnCount = (this.frameHeader.ModeInfoColumnCount + CdefUnitModeInfoSize - 1) / CdefUnitModeInfoSize;
-        int unitRowCount = (this.frameHeader.ModeInfoRowCount + CdefUnitModeInfoSize - 1) / CdefUnitModeInfoSize;
+        int unitColumnCount = (frameHeader.ModeInfoColumnCount + CdefUnitModeInfoSize - 1) / CdefUnitModeInfoSize;
+        int unitRowCount = (frameHeader.ModeInfoRowCount + CdefUnitModeInfoSize - 1) / CdefUnitModeInfoSize;
 
-        // libaom traverses one 64x64 unit at a time so chroma consumes the luma directions before
-        // the fixed direction arrays are reused. This also bounds direction storage to 64 entries.
+        // Chroma consumes the luma directions before the next 64x64 unit reuses the arrays.
+        // Keeping all planes together bounds direction storage to 64 entries.
         for (int unitRow = 0; unitRow < unitRowCount; unitRow++)
         {
             cdefLeft.Clear();
@@ -188,7 +203,8 @@ internal sealed class Av1CdefDecoder
                     int lineSlotOffset = lineBufferOffsets[planeIndex] +
                         ((unitRow & 1) * SourceBorder * planeWidth);
 
-                    this.GetPlaneDestination(
+                    GetPlaneDestination(
+                        frameBuffer,
                         plane,
                         planeSubsamplingX,
                         planeSubsamplingY,
@@ -196,7 +212,8 @@ internal sealed class Av1CdefDecoder
                         out Span<ushort> highBitDepthDestination,
                         out int destinationStride);
 
-                    this.CopyFrameRectangle(
+                    CopyFrameRectangle(
+                        frameBuffer.BytesPerSample,
                         lowBitDepthDestination,
                         highBitDepthDestination,
                         destinationStride + ((nextPlaneRow - SourceBorder) * destinationStride),
@@ -212,7 +229,7 @@ internal sealed class Av1CdefDecoder
             for (int unitColumn = 0; unitColumn < unitColumnCount; unitColumn++)
             {
                 int unitModeInfoColumn = unitColumn * CdefUnitModeInfoSize;
-                int strengthIndex = this.GetStrengthIndex(unitModeInfoColumn, unitModeInfoRow);
+                int strengthIndex = GetStrengthIndex(frameInfo, unitModeInfoColumn, unitModeInfoRow);
                 if (strengthIndex < 0)
                 {
                     cdefLeft.Clear();
@@ -228,15 +245,15 @@ internal sealed class Av1CdefDecoder
                     continue;
                 }
 
-                int unitModeInfoRowEnd = Math.Min(unitModeInfoRow + CdefUnitModeInfoSize, this.frameHeader.ModeInfoRowCount);
-                int unitModeInfoColumnEnd = Math.Min(unitModeInfoColumn + CdefUnitModeInfoSize, this.frameHeader.ModeInfoColumnCount);
+                int unitModeInfoRowEnd = Math.Min(unitModeInfoRow + CdefUnitModeInfoSize, frameHeader.ModeInfoRowCount);
+                int unitModeInfoColumnEnd = Math.Min(unitModeInfoColumn + CdefUnitModeInfoSize, frameHeader.ModeInfoColumnCount);
                 int blockCount = 0;
 
                 for (int blockModeInfoRow = unitModeInfoRow; blockModeInfoRow < unitModeInfoRowEnd; blockModeInfoRow += 2)
                 {
                     for (int blockModeInfoColumn = unitModeInfoColumn; blockModeInfoColumn < unitModeInfoColumnEnd; blockModeInfoColumn += 2)
                     {
-                        if (this.IsBlockSkipped(blockModeInfoColumn, blockModeInfoRow))
+                        if (IsBlockSkipped(frameInfo, blockModeInfoColumn, blockModeInfoRow))
                         {
                             continue;
                         }
@@ -271,7 +288,9 @@ internal sealed class Av1CdefDecoder
                         columnBufferOffsets[planeIndex],
                         columnBufferLengths[planeIndex]);
 
-                    this.FilterPlane(
+                    FilterPlane(
+                        frameHeader,
+                        frameBuffer,
                         (Av1Plane)planeIndex,
                         subsamplingX[planeIndex],
                         subsamplingY[planeIndex],
@@ -296,6 +315,8 @@ internal sealed class Av1CdefDecoder
     /// <summary>
     /// Filters one color plane in a CDEF unit from a bounded immutable source snapshot.
     /// </summary>
+    /// <param name="frameHeader">The dimensions and selected filter parameters.</param>
+    /// <param name="frameBuffer">The deblocked component planes.</param>
     /// <param name="plane">The color plane to filter.</param>
     /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
     /// <param name="subsamplingY">The vertical chroma subsampling shift.</param>
@@ -310,7 +331,9 @@ internal sealed class Av1CdefDecoder
     /// <param name="topLineBuffer">The two preserved unfiltered rows immediately above this unit row.</param>
     /// <param name="columnBuffer">The preserved unfiltered columns immediately left of this unit.</param>
     /// <param name="leftPrepared">Whether the preceding unit overwrote samples needed by this unit.</param>
-    private void FilterPlane(
+    private static void FilterPlane(
+        ObuFrameHeader frameHeader,
+        Av1FrameBuffer<byte> frameBuffer,
         Av1Plane plane,
         int subsamplingX,
         int subsamplingY,
@@ -326,8 +349,8 @@ internal sealed class Av1CdefDecoder
         Span<ushort> columnBuffer,
         bool leftPrepared)
     {
-        int planeWidth = this.frameHeader.ModeInfoColumnCount << (Av1Constants.ModeInfoSizeLog2 - subsamplingX);
-        int planeHeight = this.frameHeader.ModeInfoRowCount << (Av1Constants.ModeInfoSizeLog2 - subsamplingY);
+        int planeWidth = frameHeader.ModeInfoColumnCount << (Av1Constants.ModeInfoSizeLog2 - subsamplingX);
+        int planeHeight = frameHeader.ModeInfoRowCount << (Av1Constants.ModeInfoSizeLog2 - subsamplingY);
         int planeColumn = (unitModeInfoColumn << Av1Constants.ModeInfoSizeLog2) >> subsamplingX;
         int planeRow = (unitModeInfoRow << Av1Constants.ModeInfoSizeLog2) >> subsamplingY;
         int unitWidth = Math.Min(MaximumUnitPlaneSize >> subsamplingX, planeWidth - planeColumn);
@@ -342,12 +365,13 @@ internal sealed class Av1CdefDecoder
         int copyWidth = leftSampleCount + unitWidth + rightSampleCount;
         int sourceColumn = SourceBorder - leftSampleCount;
 
-        // CDEF output must never become input to a later unit. libaom therefore reconstructs a
-        // bordered unit from saved top/left samples and still-unmodified frame samples. Filling first
-        // also gives every unavailable frame-edge tap the normative CDEF_VERY_LARGE sentinel.
+        // CDEF output must never become input to a later unit. Reconstruct the bordered unit from saved
+        // top/left samples and still-unmodified frame samples. Filling first marks unavailable frame-edge
+        // taps so they contribute no constrained difference and do not affect the neighborhood maximum.
         source.Fill(Av1CdefFilter.VeryLarge);
 
-        this.GetPlaneDestination(
+        GetPlaneDestination(
+            frameBuffer,
             plane,
             subsamplingX,
             subsamplingY,
@@ -368,7 +392,8 @@ internal sealed class Av1CdefDecoder
                 SourceBorder);
         }
 
-        this.CopyFrameRectangle(
+        CopyFrameRectangle(
+            frameBuffer.BytesPerSample,
             lowBitDepthDestination,
             highBitDepthDestination,
             destinationStride + (planeRow * destinationStride) + copyColumn,
@@ -381,7 +406,8 @@ internal sealed class Av1CdefDecoder
 
         if (hasBottom)
         {
-            this.CopyFrameRectangle(
+            CopyFrameRectangle(
+                frameBuffer.BytesPerSample,
                 lowBitDepthDestination,
                 highBitDepthDestination,
                 destinationStride + ((planeRow + unitHeight) * destinationStride) + copyColumn,
@@ -419,8 +445,8 @@ internal sealed class Av1CdefDecoder
             SourceBorder,
             preservedHeight);
 
-        ObuConstraintDirectionalEnhancementFilterParameters parameters = this.frameHeader.CdefParameters;
-        int coefficientShift = Math.Max(this.frameBuffer.BitDepth.GetBitCount() - 8, 0);
+        ObuConstraintDirectionalEnhancementFilterParameters parameters = frameHeader.CdefParameters;
+        int coefficientShift = Math.Max(frameBuffer.BitDepth.GetBitCount() - 8, 0);
         int blockWidth = 8 >> subsamplingX;
         int blockHeight = 8 >> subsamplingY;
         int codedStrength = plane == Av1Plane.Y ? yStrength : uvStrength;
@@ -436,8 +462,8 @@ internal sealed class Av1CdefDecoder
         {
             int blockIndex = 0;
 
-            // The reference decoder analyzes two listed 8x8 blocks together. The per-unit fixed list preserves that traversal
-            // without allocating a managed block list or repeating four skip-map lookups during filtering.
+            // Analyze two listed 8x8 blocks together. The fixed list permits paired SIMD direction search
+            // without repeating four skip-map lookups during filtering.
             for (; blockIndex < blocks.Length - 1; blockIndex += 2)
             {
                 CdefBlock firstBlock = blocks[blockIndex];
@@ -502,7 +528,7 @@ internal sealed class Av1CdefDecoder
 
             int blockDestinationOffset = destinationStride + (blockPlaneRow * destinationStride) + blockPlaneColumn;
 
-            if (this.frameBuffer.BytesPerSample == 2)
+            if (frameBuffer.BytesPerSample == 2)
             {
                 Av1CdefFilter.FilterBlock(
                     source,
@@ -544,13 +570,15 @@ internal sealed class Av1CdefDecoder
     /// <summary>
     /// Gets the byte or native 16-bit destination span for one frame plane.
     /// </summary>
+    /// <param name="frameBuffer">The deblocked component planes.</param>
     /// <param name="plane">The color plane.</param>
     /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
     /// <param name="subsamplingY">The vertical chroma subsampling shift.</param>
     /// <param name="lowBitDepthDestination">Receives the byte destination for an eight-bit frame.</param>
     /// <param name="highBitDepthDestination">Receives the native destination for a high-bit-depth frame.</param>
     /// <param name="destinationStride">Receives the number of samples between adjacent rows.</param>
-    private void GetPlaneDestination(
+    private static void GetPlaneDestination(
+        Av1FrameBuffer<byte> frameBuffer,
         Av1Plane plane,
         int subsamplingX,
         int subsamplingY,
@@ -561,9 +589,9 @@ internal sealed class Av1CdefDecoder
         lowBitDepthDestination = default;
         highBitDepthDestination = default;
 
-        if (this.frameBuffer.BytesPerSample == 2)
+        if (frameBuffer.BytesPerSample == 2)
         {
-            Span<short> signedDestination = this.frameBuffer.DeriveBlockPointer16(
+            Span<short> signedDestination = frameBuffer.DeriveBlockPointer16(
                 plane,
                 Point.Empty,
                 subsamplingX,
@@ -574,7 +602,7 @@ internal sealed class Av1CdefDecoder
         }
         else
         {
-            lowBitDepthDestination = this.frameBuffer.DeriveBlockPointer(
+            lowBitDepthDestination = frameBuffer.DeriveBlockPointer(
                 plane,
                 Point.Empty,
                 subsamplingX,
@@ -586,6 +614,7 @@ internal sealed class Av1CdefDecoder
     /// <summary>
     /// Copies one frame rectangle into 16-bit CDEF working storage.
     /// </summary>
+    /// <param name="bytesPerSample">The number of bytes used to store each component sample.</param>
     /// <param name="lowBitDepthSource">The byte source for an eight-bit frame.</param>
     /// <param name="highBitDepthSource">The native source for a high-bit-depth frame.</param>
     /// <param name="sourceOffset">The offset of the rectangle's top-left source sample.</param>
@@ -595,7 +624,8 @@ internal sealed class Av1CdefDecoder
     /// <param name="destinationStride">The number of samples between adjacent destination rows.</param>
     /// <param name="width">The rectangle width in samples.</param>
     /// <param name="height">The rectangle height in samples.</param>
-    private void CopyFrameRectangle(
+    private static void CopyFrameRectangle(
+        int bytesPerSample,
         ReadOnlySpan<byte> lowBitDepthSource,
         ReadOnlySpan<ushort> highBitDepthSource,
         int sourceOffset,
@@ -606,7 +636,7 @@ internal sealed class Av1CdefDecoder
         int width,
         int height)
     {
-        if (this.frameBuffer.BytesPerSample == 2)
+        if (bytesPerSample == 2)
         {
             Av1CdefFilter.CopyPlane(
                 highBitDepthSource,
@@ -635,12 +665,13 @@ internal sealed class Av1CdefDecoder
     /// <summary>
     /// Gets the strength-table selection assigned to a 64x64 CDEF unit.
     /// </summary>
+    /// <param name="frameInfo">The block decisions for this frame.</param>
     /// <param name="modeInfoColumn">The unit's frame-relative column in 4x4 luma units.</param>
     /// <param name="modeInfoRow">The unit's frame-relative row in 4x4 luma units.</param>
     /// <returns>The strength-table index, or minus one when every block in the unit is skipped.</returns>
-    private int GetStrengthIndex(int modeInfoColumn, int modeInfoRow)
+    private static int GetStrengthIndex(Av1FrameInfo frameInfo, int modeInfoColumn, int modeInfoRow)
     {
-        int superblockModeInfoSize = this.frameInfo.SuperblockModeInfoSize;
+        int superblockModeInfoSize = frameInfo.SuperblockModeInfoSize;
         Point superblockPosition = new(
             modeInfoColumn / superblockModeInfoSize,
             modeInfoRow / superblockModeInfoSize);
@@ -651,22 +682,23 @@ internal sealed class Av1CdefDecoder
         // A 128x128 superblock stores four raster-ordered 64x64 selections; the same
         // expression naturally resolves to index zero for a 64x64 superblock.
         int unitIndex = unitColumn + (unitRow << 1);
-        return this.frameInfo.GetCdefStrength(superblockPosition)[unitIndex];
+        return frameInfo.GetCdefStrength(superblockPosition)[unitIndex];
     }
 
     /// <summary>
     /// Determines whether every 4x4 mode-information block covered by an 8x8 CDEF block is skipped.
     /// </summary>
+    /// <param name="frameInfo">The block decisions for this frame.</param>
     /// <param name="modeInfoColumn">The block's frame-relative column in 4x4 luma units.</param>
     /// <param name="modeInfoRow">The block's frame-relative row in 4x4 luma units.</param>
     /// <returns><see langword="true"/> when the complete 8x8 block is skipped; otherwise, <see langword="false"/>.</returns>
-    private bool IsBlockSkipped(int modeInfoColumn, int modeInfoRow)
+    private static bool IsBlockSkipped(Av1FrameInfo frameInfo, int modeInfoColumn, int modeInfoRow)
     {
         for (int row = 0; row < 2; row++)
         {
             for (int column = 0; column < 2; column++)
             {
-                if (!this.frameInfo.GetModeInfoAt(new Point(modeInfoColumn + column, modeInfoRow + row)).Skip)
+                if (!frameInfo.GetModeInfoAt(new Point(modeInfoColumn + column, modeInfoRow + row)).Skip)
                 {
                     return false;
                 }

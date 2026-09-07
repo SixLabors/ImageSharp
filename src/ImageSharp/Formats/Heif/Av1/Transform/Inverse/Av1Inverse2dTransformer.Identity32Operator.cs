@@ -16,6 +16,9 @@ internal static partial class Av1Inverse2dTransformer
 {
     internal readonly struct Identity32Operator : IAv1Transform1dOperator
     {
+        /// <inheritdoc/>
+        public static int InputLength => 32;
+
         /// <summary>
         /// Applies the normative thirty-two-point AV1 inverse identity transform.
         /// </summary>

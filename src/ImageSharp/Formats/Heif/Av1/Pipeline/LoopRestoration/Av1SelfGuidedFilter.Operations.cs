@@ -19,6 +19,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <summary>
     /// Applies self-guided restoration with the 256-bit traversal.
     /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
     /// <param name="destination">The destination processing-unit rectangle.</param>
@@ -30,10 +31,10 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="projectionCoefficients">The two transmitted projection coefficients.</param>
     /// <param name="scratch">The caller-owned work storage.</param>
     /// <param name="vector">The overload-selection value.</param>
-    private static void FilterBlock(
-        ReadOnlySpan<ushort> source,
+    private static void FilterBlock<TSample>(
+        ReadOnlySpan<TSample> source,
         int sourceStride,
-        Span<ushort> destination,
+        Span<TSample> destination,
         int destinationStride,
         int width,
         int height,
@@ -42,6 +43,7 @@ internal static partial class Av1SelfGuidedFilter
         ReadOnlySpan<int> projectionCoefficients,
         Span<int> scratch,
         Vector256<int> vector)
+        where TSample : unmanaged
     {
         // The caller-owned span contains two visible filtered planes followed by four identically strided coefficient
         // planes. Keeping these regions disjoint allows projection to read either radius after the integral buffers
@@ -119,6 +121,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <summary>
     /// Applies self-guided restoration with the cross-platform 128-bit traversal.
     /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
     /// <param name="destination">The destination processing-unit rectangle.</param>
@@ -130,10 +133,10 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="projectionCoefficients">The two transmitted projection coefficients.</param>
     /// <param name="scratch">The caller-owned work storage.</param>
     /// <param name="vector">The overload-selection value.</param>
-    private static void FilterBlock(
-        ReadOnlySpan<ushort> source,
+    private static void FilterBlock<TSample>(
+        ReadOnlySpan<TSample> source,
         int sourceStride,
-        Span<ushort> destination,
+        Span<TSample> destination,
         int destinationStride,
         int width,
         int height,
@@ -142,6 +145,7 @@ internal static partial class Av1SelfGuidedFilter
         ReadOnlySpan<int> projectionCoefficients,
         Span<int> scratch,
         Vector128<int> vector)
+        where TSample : unmanaged
     {
         // Use the same scratch partition as the 256-bit path. Vector width changes only the number of adjacent columns
         // advanced by each stage; all offsets and fixed-point representations remain identical.
@@ -218,6 +222,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <summary>
     /// Builds the summed-area tables consumed by the 256-bit coefficient stage.
     /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The complete bordered source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
     /// <param name="width">The bordered source width.</param>
@@ -226,8 +231,8 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="squareIntegral">The destination integral image of squared samples.</param>
     /// <param name="sumIntegral">The destination integral image of samples.</param>
     /// <param name="vector">The overload-selection value.</param>
-    private static void BuildIntegralImages(
-        ReadOnlySpan<ushort> source,
+    private static void BuildIntegralImages<TSample>(
+        ReadOnlySpan<TSample> source,
         int sourceStride,
         int width,
         int height,
@@ -235,10 +240,11 @@ internal static partial class Av1SelfGuidedFilter
         Span<int> squareIntegral,
         Span<int> sumIntegral,
         Vector256<int> vector)
+        where TSample : unmanaged
     {
         squareIntegral[..(width + 1)].Clear();
         sumIntegral[..(width + 1)].Clear();
-        ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TSample sourceBase = ref MemoryMarshal.GetReference(source);
         ref int squareBase = ref MemoryMarshal.GetReference(squareIntegral);
         ref int sumBase = ref MemoryMarshal.GetReference(sumIntegral);
 
@@ -255,10 +261,11 @@ internal static partial class Av1SelfGuidedFilter
             nuint vectorCount = Numerics.Vector256Count<int>(width - column);
             for (; vectorCount > 0; vectorCount--, column += Vector256<int>.Count)
             {
-                // Eight packed 16-bit samples become eight 32-bit lanes. The prefix scans mirror
-                // the reference decoder's scan_32, and the replicated carry joins consecutive vector batches.
-                Vector128<ushort> packed = Vector128.LoadUnsafe(ref sourceBase, (nuint)(sourceRowOffset + column));
-                Vector256<int> samples = Vector256.WidenLower(Vector256.Create(packed, Vector128<ushort>.Zero)).AsInt32();
+                // Eight unscaled samples become eight 32-bit lanes. The prefix scans accumulate within
+                // the batch, and the replicated carry joins consecutive batches without a row copy.
+                Vector256<int> samples = Av1RestorationSampleOperations.LoadToInt32(
+                    ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
+                    vector);
                 Vector256<int> squares = samples * samples;
                 Vector256<int> scannedSums = Scan(samples);
                 Vector256<int> scannedSquares = Scan(squares);
@@ -277,7 +284,7 @@ internal static partial class Av1SelfGuidedFilter
             int runningSquareSum = squareCarry.GetElement(0);
             for (; column < width; column++)
             {
-                int sample = source[sourceRowOffset + column];
+                int sample = Av1RestorationSampleOperations.Load(source[sourceRowOffset + column]);
                 runningSum += sample;
                 runningSquareSum += sample * sample;
                 sumIntegral[currentRowOffset + column + 1] = sumIntegral[previousRowOffset + column + 1] + runningSum;
@@ -289,6 +296,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <summary>
     /// Builds the summed-area tables consumed by the cross-platform coefficient stage.
     /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The complete bordered source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
     /// <param name="width">The bordered source width.</param>
@@ -297,8 +305,8 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="squareIntegral">The destination integral image of squared samples.</param>
     /// <param name="sumIntegral">The destination integral image of samples.</param>
     /// <param name="vector">The overload-selection value.</param>
-    private static void BuildIntegralImages(
-        ReadOnlySpan<ushort> source,
+    private static void BuildIntegralImages<TSample>(
+        ReadOnlySpan<TSample> source,
         int sourceStride,
         int width,
         int height,
@@ -306,10 +314,11 @@ internal static partial class Av1SelfGuidedFilter
         Span<int> squareIntegral,
         Span<int> sumIntegral,
         Vector128<int> vector)
+        where TSample : unmanaged
     {
         squareIntegral[..(width + 1)].Clear();
         sumIntegral[..(width + 1)].Clear();
-        ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TSample sourceBase = ref MemoryMarshal.GetReference(source);
         ref int squareBase = ref MemoryMarshal.GetReference(squareIntegral);
         ref int sumBase = ref MemoryMarshal.GetReference(sumIntegral);
 
@@ -326,11 +335,11 @@ internal static partial class Av1SelfGuidedFilter
             nuint vectorCount = Numerics.Vector128Count<int>(width - column);
             for (; vectorCount > 0; vectorCount--, column += Vector128<int>.Count)
             {
-                // Loading through Vector64 avoids reading beyond the four samples owned by this
-                // batch. Widening is normalized by the runtime for both x86 and Arm64 targets.
-                ref ushort sourceReference = ref Unsafe.Add(ref sourceBase, sourceRowOffset + column);
-                Vector64<ushort> packed = Unsafe.As<ushort, Vector64<ushort>>(ref sourceReference);
-                Vector128<int> samples = Vector128.WidenLower(Vector128.Create(packed, Vector64<ushort>.Zero)).AsInt32();
+                // Read exactly four samples at their stored precision. Widening happens in registers,
+                // preserving row bounds for both byte and ushort sources.
+                Vector128<int> samples = Av1RestorationSampleOperations.LoadToInt32(
+                    ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
+                    vector);
                 Vector128<int> squares = samples * samples;
                 Vector128<int> scannedSums = Scan(samples);
                 Vector128<int> scannedSquares = Scan(squares);
@@ -349,7 +358,7 @@ internal static partial class Av1SelfGuidedFilter
             int runningSquareSum = squareCarry.GetElement(0);
             for (; column < width; column++)
             {
-                int sample = source[sourceRowOffset + column];
+                int sample = Av1RestorationSampleOperations.Load(source[sourceRowOffset + column]);
                 runningSum += sample;
                 runningSquareSum += sample * sample;
                 sumIntegral[currentRowOffset + column + 1] = sumIntegral[previousRowOffset + column + 1] + runningSum;
@@ -795,6 +804,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <summary>
     /// Produces the radius-two filtered values in eight-sample SIMD batches.
     /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
     /// <param name="width">The processing-unit width in samples.</param>
@@ -804,8 +814,8 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="localMeans">The scaled local means.</param>
     /// <param name="filtered">The destination fixed-point filtered values.</param>
     /// <param name="vector">The overload-selection value.</param>
-    private static void CalculateRadiusTwoFilter(
-        ReadOnlySpan<ushort> source,
+    private static void CalculateRadiusTwoFilter<TSample>(
+        ReadOnlySpan<TSample> source,
         int sourceStride,
         int width,
         int height,
@@ -814,9 +824,10 @@ internal static partial class Av1SelfGuidedFilter
         ReadOnlySpan<int> localMeans,
         Span<int> filtered,
         Vector256<int> vector)
+        where TSample : unmanaged
     {
         int bufferOrigin = (Border + 1) * (bufferStride + 1);
-        ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TSample sourceBase = ref MemoryMarshal.GetReference(source);
         ref int filteredBase = ref MemoryMarshal.GetReference(filtered);
 
         for (int row = 0; row < height; row++)
@@ -835,8 +846,9 @@ internal static partial class Av1SelfGuidedFilter
             {
                 Vector256<int> factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride, row, vector);
                 Vector256<int> means = CrossSum(localMeans, coefficientRowOffset + column, bufferStride, row, vector);
-                Vector128<ushort> packed = Vector128.LoadUnsafe(ref sourceBase, (nuint)(sourceRowOffset + column));
-                Vector256<int> samples = Vector256.WidenLower(Vector256.Create(packed, Vector128<ushort>.Zero)).AsInt32();
+                Vector256<int> samples = Av1RestorationSampleOperations.LoadToInt32(
+                    ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
+                    vector);
                 Vector256<int> values = Vector256.ShiftRightArithmetic((factors * samples) + means + rounding, roundingBits);
                 values.StoreUnsafe(ref filteredBase, (nuint)(filteredRowOffset + column));
             }
@@ -845,7 +857,7 @@ internal static partial class Av1SelfGuidedFilter
             {
                 int factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride, row);
                 int means = CrossSum(localMeans, coefficientRowOffset + column, bufferStride, row);
-                int value = (factors * source[sourceRowOffset + column]) + means;
+                int value = (factors * Av1RestorationSampleOperations.Load(source[sourceRowOffset + column])) + means;
                 filtered[filteredRowOffset + column] = RoundPowerOfTwo(value, roundingBits);
             }
         }
@@ -854,6 +866,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <summary>
     /// Produces the radius-two filtered values in four-sample cross-platform batches.
     /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
     /// <param name="width">The processing-unit width in samples.</param>
@@ -863,8 +876,8 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="localMeans">The scaled local means.</param>
     /// <param name="filtered">The destination fixed-point filtered values.</param>
     /// <param name="vector">The overload-selection value.</param>
-    private static void CalculateRadiusTwoFilter(
-        ReadOnlySpan<ushort> source,
+    private static void CalculateRadiusTwoFilter<TSample>(
+        ReadOnlySpan<TSample> source,
         int sourceStride,
         int width,
         int height,
@@ -873,9 +886,10 @@ internal static partial class Av1SelfGuidedFilter
         ReadOnlySpan<int> localMeans,
         Span<int> filtered,
         Vector128<int> vector)
+        where TSample : unmanaged
     {
         int bufferOrigin = (Border + 1) * (bufferStride + 1);
-        ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TSample sourceBase = ref MemoryMarshal.GetReference(source);
         ref int filteredBase = ref MemoryMarshal.GetReference(filtered);
 
         for (int row = 0; row < height; row++)
@@ -894,9 +908,9 @@ internal static partial class Av1SelfGuidedFilter
             {
                 Vector128<int> factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride, row, vector);
                 Vector128<int> means = CrossSum(localMeans, coefficientRowOffset + column, bufferStride, row, vector);
-                ref ushort sourceReference = ref Unsafe.Add(ref sourceBase, sourceRowOffset + column);
-                Vector64<ushort> packed = Unsafe.As<ushort, Vector64<ushort>>(ref sourceReference);
-                Vector128<int> samples = Vector128.WidenLower(Vector128.Create(packed, Vector64<ushort>.Zero)).AsInt32();
+                Vector128<int> samples = Av1RestorationSampleOperations.LoadToInt32(
+                    ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
+                    vector);
                 Vector128<int> values = Vector128.ShiftRightArithmetic((factors * samples) + means + rounding, roundingBits);
                 values.StoreUnsafe(ref filteredBase, (nuint)(filteredRowOffset + column));
             }
@@ -905,7 +919,7 @@ internal static partial class Av1SelfGuidedFilter
             {
                 int factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride, row);
                 int means = CrossSum(localMeans, coefficientRowOffset + column, bufferStride, row);
-                int value = (factors * source[sourceRowOffset + column]) + means;
+                int value = (factors * Av1RestorationSampleOperations.Load(source[sourceRowOffset + column])) + means;
                 filtered[filteredRowOffset + column] = RoundPowerOfTwo(value, roundingBits);
             }
         }
@@ -914,6 +928,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <summary>
     /// Produces the radius-one filtered values in eight-sample SIMD batches.
     /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
     /// <param name="width">The processing-unit width in samples.</param>
@@ -923,8 +938,8 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="localMeans">The scaled local means.</param>
     /// <param name="filtered">The destination fixed-point filtered values.</param>
     /// <param name="vector">The overload-selection value.</param>
-    private static void CalculateRadiusOneFilter(
-        ReadOnlySpan<ushort> source,
+    private static void CalculateRadiusOneFilter<TSample>(
+        ReadOnlySpan<TSample> source,
         int sourceStride,
         int width,
         int height,
@@ -933,11 +948,12 @@ internal static partial class Av1SelfGuidedFilter
         ReadOnlySpan<int> localMeans,
         Span<int> filtered,
         Vector256<int> vector)
+        where TSample : unmanaged
     {
         int bufferOrigin = (Border + 1) * (bufferStride + 1);
         int roundingBits = SelfGuidedBits + 5 - RestorationBits;
         Vector256<int> rounding = Vector256.Create(1 << (roundingBits - 1));
-        ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TSample sourceBase = ref MemoryMarshal.GetReference(source);
         ref int filteredBase = ref MemoryMarshal.GetReference(filtered);
 
         for (int row = 0; row < height; row++)
@@ -951,8 +967,9 @@ internal static partial class Av1SelfGuidedFilter
             {
                 Vector256<int> factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride, vector);
                 Vector256<int> means = CrossSum(localMeans, coefficientRowOffset + column, bufferStride, vector);
-                Vector128<ushort> packed = Vector128.LoadUnsafe(ref sourceBase, (nuint)(sourceRowOffset + column));
-                Vector256<int> samples = Vector256.WidenLower(Vector256.Create(packed, Vector128<ushort>.Zero)).AsInt32();
+                Vector256<int> samples = Av1RestorationSampleOperations.LoadToInt32(
+                    ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
+                    vector);
                 Vector256<int> values = Vector256.ShiftRightArithmetic((factors * samples) + means + rounding, roundingBits);
                 values.StoreUnsafe(ref filteredBase, (nuint)(filteredRowOffset + column));
             }
@@ -961,7 +978,7 @@ internal static partial class Av1SelfGuidedFilter
             {
                 int factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride);
                 int means = CrossSum(localMeans, coefficientRowOffset + column, bufferStride);
-                int value = (factors * source[sourceRowOffset + column]) + means;
+                int value = (factors * Av1RestorationSampleOperations.Load(source[sourceRowOffset + column])) + means;
                 filtered[filteredRowOffset + column] = RoundPowerOfTwo(value, roundingBits);
             }
         }
@@ -970,6 +987,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <summary>
     /// Produces the radius-one filtered values in four-sample cross-platform batches.
     /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
     /// <param name="width">The processing-unit width in samples.</param>
@@ -979,8 +997,8 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="localMeans">The scaled local means.</param>
     /// <param name="filtered">The destination fixed-point filtered values.</param>
     /// <param name="vector">The overload-selection value.</param>
-    private static void CalculateRadiusOneFilter(
-        ReadOnlySpan<ushort> source,
+    private static void CalculateRadiusOneFilter<TSample>(
+        ReadOnlySpan<TSample> source,
         int sourceStride,
         int width,
         int height,
@@ -989,11 +1007,12 @@ internal static partial class Av1SelfGuidedFilter
         ReadOnlySpan<int> localMeans,
         Span<int> filtered,
         Vector128<int> vector)
+        where TSample : unmanaged
     {
         int bufferOrigin = (Border + 1) * (bufferStride + 1);
         int roundingBits = SelfGuidedBits + 5 - RestorationBits;
         Vector128<int> rounding = Vector128.Create(1 << (roundingBits - 1));
-        ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TSample sourceBase = ref MemoryMarshal.GetReference(source);
         ref int filteredBase = ref MemoryMarshal.GetReference(filtered);
 
         for (int row = 0; row < height; row++)
@@ -1007,9 +1026,9 @@ internal static partial class Av1SelfGuidedFilter
             {
                 Vector128<int> factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride, vector);
                 Vector128<int> means = CrossSum(localMeans, coefficientRowOffset + column, bufferStride, vector);
-                ref ushort sourceReference = ref Unsafe.Add(ref sourceBase, sourceRowOffset + column);
-                Vector64<ushort> packed = Unsafe.As<ushort, Vector64<ushort>>(ref sourceReference);
-                Vector128<int> samples = Vector128.WidenLower(Vector128.Create(packed, Vector64<ushort>.Zero)).AsInt32();
+                Vector128<int> samples = Av1RestorationSampleOperations.LoadToInt32(
+                    ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
+                    vector);
                 Vector128<int> values = Vector128.ShiftRightArithmetic((factors * samples) + means + rounding, roundingBits);
                 values.StoreUnsafe(ref filteredBase, (nuint)(filteredRowOffset + column));
             }
@@ -1018,7 +1037,7 @@ internal static partial class Av1SelfGuidedFilter
             {
                 int factors = CrossSum(blendFactors, coefficientRowOffset + column, bufferStride);
                 int means = CrossSum(localMeans, coefficientRowOffset + column, bufferStride);
-                int value = (factors * source[sourceRowOffset + column]) + means;
+                int value = (factors * Av1RestorationSampleOperations.Load(source[sourceRowOffset + column])) + means;
                 filtered[filteredRowOffset + column] = RoundPowerOfTwo(value, roundingBits);
             }
         }
@@ -1211,6 +1230,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <summary>
     /// Projects the two restored signals in eight-sample SIMD batches.
     /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
     /// <param name="destination">The destination processing-unit rectangle.</param>
@@ -1224,10 +1244,10 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="filtered0">The first fixed-point restored signal.</param>
     /// <param name="filtered1">The second fixed-point restored signal.</param>
     /// <param name="vector">The overload-selection value.</param>
-    private static void Project(
-        ReadOnlySpan<ushort> source,
+    private static void Project<TSample>(
+        ReadOnlySpan<TSample> source,
         int sourceStride,
-        Span<ushort> destination,
+        Span<TSample> destination,
         int destinationStride,
         int width,
         int height,
@@ -1238,14 +1258,15 @@ internal static partial class Av1SelfGuidedFilter
         ReadOnlySpan<int> filtered0,
         ReadOnlySpan<int> filtered1,
         Vector256<int> vector)
+        where TSample : unmanaged
     {
         const int projectionShift = ProjectionBits + RestorationBits;
         Vector256<int> projection0Vector = Vector256.Create(projection0);
         Vector256<int> projection1Vector = Vector256.Create(projection1);
         Vector256<int> rounding = Vector256.Create(1 << (projectionShift - 1));
         Vector256<int> maximumSample = Vector256.Create((1 << bitDepth) - 1);
-        ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
-        ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
+        ref TSample sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TSample destinationBase = ref MemoryMarshal.GetReference(destination);
         ref int filtered0Base = ref MemoryMarshal.GetReference(filtered0);
         ref int filtered1Base = ref MemoryMarshal.GetReference(filtered1);
 
@@ -1258,8 +1279,9 @@ internal static partial class Av1SelfGuidedFilter
             nuint vectorCount = Numerics.Vector256Count<int>(width - column);
             for (; vectorCount > 0; vectorCount--, column += Vector256<int>.Count)
             {
-                Vector128<ushort> packed = Vector128.LoadUnsafe(ref sourceBase, (nuint)(sourceRowOffset + column));
-                Vector256<int> samples = Vector256.WidenLower(Vector256.Create(packed, Vector128<ushort>.Zero)).AsInt32();
+                Vector256<int> samples = Av1RestorationSampleOperations.LoadToInt32(
+                    ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
+                    vector);
                 Vector256<int> unfiltered = Vector256.ShiftLeft(samples, RestorationBits);
                 Vector256<int> projected = Vector256.ShiftLeft(unfiltered, ProjectionBits);
                 if (radii[0] > 0)
@@ -1280,23 +1302,23 @@ internal static partial class Av1SelfGuidedFilter
                 // Narrowing the result with a zero upper vector places the eight ordered samples in the lower 128 bits,
                 // which can be stored directly without an ISA-specific lane permutation.
                 Vector128<ushort> narrowed = Vector256.Narrow(result.AsUInt32(), Vector256<uint>.Zero).GetLower();
-                narrowed.StoreUnsafe(ref destinationBase, (nuint)(destinationRowOffset + column));
+                Av1RestorationSampleOperations.Store(narrowed, ref Unsafe.Add(ref destinationBase, destinationRowOffset + column));
             }
 
             for (; column < width; column++)
             {
                 int filteredOffset = filteredRowOffset + column;
-                int sample = source[sourceRowOffset + column];
+                int sample = Av1RestorationSampleOperations.Load(source[sourceRowOffset + column]);
                 int restored0 = radii[0] > 0 ? filtered0[filteredOffset] : 0;
                 int restored1 = radii[1] > 0 ? filtered1[filteredOffset] : 0;
-                destination[destinationRowOffset + column] = ProjectSample(
+                destination[destinationRowOffset + column] = Av1RestorationSampleOperations.FromInt32<TSample>(ProjectSample(
                     sample,
                     bitDepth,
                     radii,
                     projection0,
                     projection1,
                     restored0,
-                    restored1);
+                    restored1));
             }
         }
     }
@@ -1304,6 +1326,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <summary>
     /// Projects the two restored signals in four-sample cross-platform batches.
     /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
     /// <param name="destination">The destination processing-unit rectangle.</param>
@@ -1317,10 +1340,10 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="filtered0">The first fixed-point restored signal.</param>
     /// <param name="filtered1">The second fixed-point restored signal.</param>
     /// <param name="vector">The overload-selection value.</param>
-    private static void Project(
-        ReadOnlySpan<ushort> source,
+    private static void Project<TSample>(
+        ReadOnlySpan<TSample> source,
         int sourceStride,
-        Span<ushort> destination,
+        Span<TSample> destination,
         int destinationStride,
         int width,
         int height,
@@ -1331,14 +1354,15 @@ internal static partial class Av1SelfGuidedFilter
         ReadOnlySpan<int> filtered0,
         ReadOnlySpan<int> filtered1,
         Vector128<int> vector)
+        where TSample : unmanaged
     {
         const int projectionShift = ProjectionBits + RestorationBits;
         Vector128<int> projection0Vector = Vector128.Create(projection0);
         Vector128<int> projection1Vector = Vector128.Create(projection1);
         Vector128<int> rounding = Vector128.Create(1 << (projectionShift - 1));
         Vector128<int> maximumSample = Vector128.Create((1 << bitDepth) - 1);
-        ref ushort sourceBase = ref MemoryMarshal.GetReference(source);
-        ref ushort destinationBase = ref MemoryMarshal.GetReference(destination);
+        ref TSample sourceBase = ref MemoryMarshal.GetReference(source);
+        ref TSample destinationBase = ref MemoryMarshal.GetReference(destination);
         ref int filtered0Base = ref MemoryMarshal.GetReference(filtered0);
         ref int filtered1Base = ref MemoryMarshal.GetReference(filtered1);
 
@@ -1351,9 +1375,9 @@ internal static partial class Av1SelfGuidedFilter
             nuint vectorCount = Numerics.Vector128Count<int>(width - column);
             for (; vectorCount > 0; vectorCount--, column += Vector128<int>.Count)
             {
-                ref ushort sourceReference = ref Unsafe.Add(ref sourceBase, sourceRowOffset + column);
-                Vector64<ushort> packed = Unsafe.As<ushort, Vector64<ushort>>(ref sourceReference);
-                Vector128<int> samples = Vector128.WidenLower(Vector128.Create(packed, Vector64<ushort>.Zero)).AsInt32();
+                Vector128<int> samples = Av1RestorationSampleOperations.LoadToInt32(
+                    ref Unsafe.Add(ref sourceBase, sourceRowOffset + column),
+                    vector);
                 Vector128<int> unfiltered = Vector128.ShiftLeft(samples, RestorationBits);
                 Vector128<int> projected = Vector128.ShiftLeft(unfiltered, ProjectionBits);
                 if (radii[0] > 0)
@@ -1371,24 +1395,23 @@ internal static partial class Av1SelfGuidedFilter
                 Vector128<int> result = Vector128.ShiftRightArithmetic(projected + rounding, projectionShift);
                 result = Vector128.Min(Vector128.Max(result, Vector128<int>.Zero), maximumSample);
                 Vector64<ushort> narrowed = Vector128.Narrow(result.AsUInt32(), Vector128<uint>.Zero).GetLower();
-                ref ushort destinationReference = ref Unsafe.Add(ref destinationBase, destinationRowOffset + column);
-                Unsafe.As<ushort, Vector64<ushort>>(ref destinationReference) = narrowed;
+                Av1RestorationSampleOperations.Store(narrowed, ref Unsafe.Add(ref destinationBase, destinationRowOffset + column));
             }
 
             for (; column < width; column++)
             {
                 int filteredOffset = filteredRowOffset + column;
-                int sample = source[sourceRowOffset + column];
+                int sample = Av1RestorationSampleOperations.Load(source[sourceRowOffset + column]);
                 int restored0 = radii[0] > 0 ? filtered0[filteredOffset] : 0;
                 int restored1 = radii[1] > 0 ? filtered1[filteredOffset] : 0;
-                destination[destinationRowOffset + column] = ProjectSample(
+                destination[destinationRowOffset + column] = Av1RestorationSampleOperations.FromInt32<TSample>(ProjectSample(
                     sample,
                     bitDepth,
                     radii,
                     projection0,
                     projection1,
                     restored0,
-                    restored1);
+                    restored1));
             }
         }
     }

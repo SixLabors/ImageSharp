@@ -1188,8 +1188,8 @@ internal ref struct Av1SymbolDecoder
     public int ReadCoefficients(
         Av1BlockModeInfo modeInfo,
         Point blockPosition,
-        Span<int> aboveContexts,
-        Span<int> leftContexts,
+        Span<byte> aboveContexts,
+        Span<byte> leftContexts,
         int aboveOffset,
         int leftOffset,
         int plane,
@@ -1223,6 +1223,7 @@ internal ref struct Av1SymbolDecoder
         if (allZero)
         {
             transformInfo.EndOfBlock = 0;
+            transformInfo.MaximumCoefficientIndex = 0;
             if (plane == 0)
             {
                 transformInfo.Type = Av1TransformType.DctDct;
@@ -1285,11 +1286,19 @@ internal ref struct Av1SymbolDecoder
             inverseQuantizer, modeInfo, transformInfo.Type, transformSize, (Av1Plane)plane);
 
         culLevel = this.ReadCoefficientsSign(
-            coefficientBuffer, endOfBlock, scan, levels, transformBlockContext.DcSignContext, planeType, quantization);
+            coefficientBuffer,
+            endOfBlock,
+            scan,
+            levels,
+            transformBlockContext.DcSignContext,
+            planeType,
+            quantization,
+            out int maximumCoefficientIndex);
 
         UpdateCoefficientContext(aboveContexts, leftContexts, blocksWide, blocksHigh, transformSize, blockPosition, aboveOffset, leftOffset, culLevel, modeBlocksToRightEdge, modeBlocksToBottomEdge);
 
         transformInfo.EndOfBlock = (ushort)endOfBlock;
+        transformInfo.MaximumCoefficientIndex = (ushort)maximumCoefficientIndex;
         return endOfBlock;
     }
 
@@ -1420,6 +1429,7 @@ internal ref struct Av1SymbolDecoder
     /// <param name="dcSignContext">The neighboring DC sign context.</param>
     /// <param name="planeType">The luma or chroma plane category.</param>
     /// <param name="quantization">The segment, plane, matrix, scale, and clipping parameters for this transform.</param>
+    /// <param name="maximumCoefficientIndex">The largest raster coefficient index written to the destination.</param>
     /// <returns>The packed coefficient context used by adjacent transform blocks.</returns>
     private int ReadCoefficientsSign(
         Span<int> coefficientBuffer,
@@ -1428,11 +1438,13 @@ internal ref struct Av1SymbolDecoder
         Av1LevelBuffer levels,
         int dcSignContext,
         Av1PlaneType planeType,
-        Av1InverseQuantizer.TransformParameters quantization)
+        Av1InverseQuantizer.TransformParameters quantization,
+        out int maximumCoefficientIndex)
     {
         ref Av1SymbolReader r = ref this.reader;
         int culLevel = 0;
         int dcValue = 0;
+        maximumCoefficientIndex = 0;
         for (int c = 0; c < endOfBlock; c++)
         {
             int sign = 0;
@@ -1466,6 +1478,7 @@ internal ref struct Av1SymbolDecoder
                 // The entropy context uses the masked quantized magnitude, while reconstruction consumes the
                 // dequantized raster coefficient. Write it directly into the current superblock's zeroed region.
                 coefficientBuffer[pos] = quantization.Dequantize(level, pos, sign != 0);
+                maximumCoefficientIndex = Math.Max(maximumCoefficientIndex, pos);
             }
         }
 
@@ -1610,8 +1623,8 @@ internal ref struct Av1SymbolDecoder
     /// <param name="modeBlockToRightEdge">The signed distance from the mode block to the right frame edge.</param>
     /// <param name="modeBlockToBottomEdge">The signed distance from the mode block to the bottom frame edge.</param>
     private static void UpdateCoefficientContext(
-        Span<int> aboveContexts,
-        Span<int> leftContexts,
+        Span<byte> aboveContexts,
+        Span<byte> leftContexts,
         int blocksWide,
         int blocksHigh,
         Av1TransformSize transformSize,
@@ -1625,26 +1638,30 @@ internal ref struct Av1SymbolDecoder
         int transformSizeWide = transformSize.Get4x4WideCount();
         int transformSizeHigh = transformSize.Get4x4HighCount();
 
+        // The accumulated level is saturated to three bits before its DC sign class (0, 1, or 2) is packed
+        // above it. The largest stored context is therefore 23, including positive DC at saturated activity.
+        byte context = (byte)culLevel;
+
         if (modeBlockToRightEdge < 0)
         {
             int aboveContextCount = Math.Min(transformSizeWide, blocksWide - blockPosition.X);
-            aboveContexts.Slice(aboveOffset, aboveContextCount).Fill(culLevel);
+            aboveContexts.Slice(aboveOffset, aboveContextCount).Fill(context);
             aboveContexts.Slice(aboveOffset + aboveContextCount, transformSizeWide - aboveContextCount).Clear();
         }
         else
         {
-            aboveContexts.Slice(aboveOffset, transformSizeWide).Fill(culLevel);
+            aboveContexts.Slice(aboveOffset, transformSizeWide).Fill(context);
         }
 
         if (modeBlockToBottomEdge < 0)
         {
             int leftContextCount = Math.Min(transformSizeHigh, blocksHigh - blockPosition.Y);
-            leftContexts.Slice(leftOffset, leftContextCount).Fill(culLevel);
+            leftContexts.Slice(leftOffset, leftContextCount).Fill(context);
             leftContexts.Slice(leftOffset + leftContextCount, transformSizeHigh - leftContextCount).Clear();
         }
         else
         {
-            leftContexts.Slice(leftOffset, transformSizeHigh).Fill(culLevel);
+            leftContexts.Slice(leftOffset, transformSizeHigh).Fill(context);
         }
     }
 

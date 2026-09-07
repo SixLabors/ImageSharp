@@ -31,7 +31,7 @@ internal sealed class Av1ParseLeftNeighbor4x4Context : IDisposable
     /// <summary>
     /// Owns the contiguous left-neighbor storage until this instance is disposed.
     /// </summary>
-    private IMemoryOwner<int>? memory;
+    private IMemoryOwner<byte>? memory;
 
     /// <summary>
     /// The number of superblock-row entries stored in each logical region.
@@ -51,21 +51,21 @@ internal sealed class Av1ParseLeftNeighbor4x4Context : IDisposable
         int totalLength = checked(regionCount * superblockModeInfoSize);
 
         // Every region spans the same superblock height and shares the tile-reader lifetime.
-        // One clean rent replaces the jagged array and its per-region arrays while preserving zero initialization.
-        this.memory = configuration.MemoryAllocator.Allocate<int>(totalLength, AllocationOptions.Clean);
+        // Each byte holds a transform extent up to 128, a five-bit partition mask, or three level bits and a two-bit DC sign.
+        this.memory = configuration.MemoryAllocator.Allocate<byte>(totalLength, AllocationOptions.Clean);
     }
 
     /// <summary>
     /// Gets a buffer holding the partition context of the left 4x4 blocks corresponding
     /// to the current super block row.
     /// </summary>
-    public Span<int> LeftPartitionHeight => this.GetRegion(PartitionHeightRegionIndex);
+    public Span<byte> LeftPartitionHeight => this.GetRegion(PartitionHeightRegionIndex);
 
     /// <summary>
     /// Gets a buffer holding the transform sizes of the left 4x4 blocks corresponding
     /// to the current super block row.
     /// </summary>
-    public Span<int> LeftTransformHeight => this.GetRegion(TransformHeightRegionIndex);
+    public Span<byte> LeftTransformHeight => this.GetRegion(TransformHeightRegionIndex);
 
     /// <summary>
     /// Returns the left-neighbor storage to the configured memory allocator.
@@ -84,7 +84,7 @@ internal sealed class Av1ParseLeftNeighbor4x4Context : IDisposable
     {
         int blockCount = sequenceHeader.SuperblockModeInfoSize;
         int planeCount = sequenceHeader.ColorConfig.PlaneCount;
-        this.LeftTransformHeight[..blockCount].Fill(Av1TransformSize.Size64x64.GetHeight());
+        this.LeftTransformHeight[..blockCount].Fill((byte)Av1TransformSize.Size64x64.GetHeight());
         this.LeftPartitionHeight[..blockCount].Clear();
         for (int i = 0; i < planeCount; i++)
         {
@@ -104,7 +104,7 @@ internal sealed class Av1ParseLeftNeighbor4x4Context : IDisposable
         // The left context is reused for each superblock row, so address it relative to the superblock origin.
         int startIndex = (modeInfoLocation.Y - superblockInfo.ModeInfoPosition.Y) & Av1PartitionContext.Mask;
         int bh = blockSize.Get4x4HighCount();
-        int value = Av1PartitionContext.GetLeftContext(subSize);
+        byte value = (byte)Av1PartitionContext.GetLeftContext(subSize);
         DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.LeftPartitionHeight.Length - bh, nameof(startIndex));
         this.LeftPartitionHeight.Slice(startIndex, bh).Fill(value);
     }
@@ -120,12 +120,12 @@ internal sealed class Av1ParseLeftNeighbor4x4Context : IDisposable
     public void UpdateTransformation(Point modeInfoLocation, Av1SuperblockInfo superblockInfo, Av1TransformSize transformSize, Av1BlockSize blockSize, bool skip)
     {
         int startIndex = modeInfoLocation.Y - superblockInfo.ModeInfoPosition.Y;
-        int transformHeight = transformSize.GetHeight();
+        byte transformHeight = (byte)transformSize.GetHeight();
         int n4h = blockSize.Get4x4HighCount();
         if (skip)
         {
             // Skipped blocks expose the full block height as their effective transform extent.
-            transformHeight = n4h << Av1Constants.ModeInfoSizeLog2;
+            transformHeight = (byte)(n4h << Av1Constants.ModeInfoSizeLog2);
         }
 
         DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.LeftTransformHeight.Length - n4h, nameof(startIndex));
@@ -146,14 +146,14 @@ internal sealed class Av1ParseLeftNeighbor4x4Context : IDisposable
     /// </summary>
     /// <param name="plane">The zero-based plane index.</param>
     /// <returns>The coefficient contexts for the plane.</returns>
-    public Span<int> GetContext(int plane) => this.GetRegion(PlaneContextRegionStart + plane);
+    public Span<byte> GetContext(int plane) => this.GetRegion(PlaneContextRegionStart + plane);
 
     /// <summary>
     /// Gets one logical column from the contiguous left-neighbor allocation.
     /// </summary>
     /// <param name="regionIndex">The zero-based logical region index.</param>
     /// <returns>The requested context column.</returns>
-    private Span<int> GetRegion(int regionIndex)
+    private Span<byte> GetRegion(int regionIndex)
     {
         ObjectDisposedException.ThrowIf(this.memory is null, this);
         return this.memory.Memory.Span.Slice(regionIndex * this.contextLength, this.contextLength);

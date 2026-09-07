@@ -109,6 +109,75 @@ public class ObuFrameHeaderTests
         Assert.Equal(reader.Length, blockSize);
     }
 
+    [Fact]
+    public void DecodeSmallFrameWithLargeSequenceMaximum()
+    {
+        byte[] file = TestFile.Create(TestImages.Heif.Orange4x4).Bytes;
+        Span<byte> originalPayload = file.AsSpan(0x010e, 0x001d);
+        Av1TileDecoderStub tiles = new();
+        Av1BitStreamReader reader = new(originalPayload);
+        ObuReader obuReader = new();
+        obuReader.ReadAll(ref reader, originalPayload.Length, () => tiles);
+        ObuSequenceHeader sequence = Assert.IsType<ObuSequenceHeader>(obuReader.SequenceHeader);
+        ObuFrameHeader frame = Assert.IsType<ObuFrameHeader>(obuReader.FrameHeader);
+
+        // The frame keeps its original four-by-four geometry and tile bytes. A full sequence header allows an
+        // explicit frame-size override beneath the largest representable sequence dimensions.
+        sequence.IsReducedStillPictureHeader = false;
+        sequence.FrameWidthBits = 16;
+        sequence.FrameHeightBits = 16;
+        sequence.MaxFrameWidth = 65_536;
+        sequence.MaxFrameHeight = 65_536;
+        sequence.OperatingPoint[0].SequenceLevelIndex = 31;
+        using MemoryStream stream = new();
+        using ObuWriter writer = new(Configuration.Default);
+        writer.WriteSequenceFrame(stream, sequence, frame, tiles);
+        byte[] payload = stream.ToArray();
+
+        string outputDirectory = Path.Combine(
+            TestEnvironment.ActualOutputDirectoryFullPath,
+            "Heif",
+            "Av1",
+            nameof(this.DecodeSmallFrameWithLargeSequenceMaximum));
+
+        Directory.CreateDirectory(outputDirectory);
+        File.WriteAllBytes(Path.Combine(outputDirectory, "original.bit"), originalPayload.ToArray());
+        File.WriteAllBytes(Path.Combine(outputDirectory, "large-maximum.bit"), payload);
+
+        using Av1Decoder originalDecoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> expected = originalDecoder.DecodeFrameBuffer(originalPayload, null, null, out _);
+        using Av1Decoder decoder = new(Configuration.Default);
+        using Av1FrameBuffer<byte> actual = decoder.DecodeFrameBuffer(payload, null, null, out _);
+        Assert.Equal(4, actual.Width);
+        Assert.Equal(4, actual.Height);
+        Assert.Equal(4, actual.MaxWidth);
+        Assert.Equal(4, actual.MaxHeight);
+        Assert.Equal(expected.ColorFormat, actual.ColorFormat);
+        Assert.Equal(expected.BitDepth, actual.BitDepth);
+        using FileStream decodedPlanes = File.Create(Path.Combine(outputDirectory, "managed.yuv"));
+        for (int planeIndex = 0; planeIndex < sequence.ColorConfig.PlaneCount; planeIndex++)
+        {
+            Av1Plane plane = (Av1Plane)planeIndex;
+            int subX = planeIndex != 0 && sequence.ColorConfig.SubSamplingX ? 1 : 0;
+            int subY = planeIndex != 0 && sequence.ColorConfig.SubSamplingY ? 1 : 0;
+            int width = Av1Math.DivideLog2Ceiling(actual.Width, subX);
+            int height = Av1Math.DivideLog2Ceiling(actual.Height, subY);
+            Buffer2D<byte> expectedPlane = expected.GetPlaneBuffer(plane);
+            Buffer2D<byte> actualPlane = actual.GetPlaneBuffer(plane);
+            for (int row = 0; row < height; row++)
+            {
+                ReadOnlySpan<byte> expectedRow = expectedPlane.DangerousGetRowSpan((expected.OriginY >> subY) + row)
+                    .Slice(expected.OriginX >> subX, width);
+
+                ReadOnlySpan<byte> actualRow = actualPlane.DangerousGetRowSpan((actual.OriginY >> subY) + row)
+                    .Slice(actual.OriginX >> subX, width);
+
+                Assert.True(expectedRow.SequenceEqual(actualRow), $"Plane {planeIndex}, row {row}");
+                decodedPlanes.Write(actualRow);
+            }
+        }
+    }
+
     [Theory]
     [InlineData(TestImages.Heif.Orange4x4, 0x010e, 0x001d)]
     [InlineData(TestImages.Heif.XnConvert, 0x010e, 0x03cc)]

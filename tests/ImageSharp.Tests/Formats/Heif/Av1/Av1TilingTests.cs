@@ -19,6 +19,63 @@ namespace SixLabors.ImageSharp.Tests.Formats.Heif.Av1;
 [Trait("Format", "Avif")]
 public class Av1TilingTests
 {
+    /// <summary>
+    /// Resets the full padded context extent before decoding a narrow tile after a wider tile.
+    /// </summary>
+    /// <param name="use128x128Superblock">Whether the padded width covers 32 rather than 16 mode-info columns.</param>
+    /// <param name="colorFormatValue">The plane layout whose horizontal subsampling scales coefficient contexts.</param>
+    [Theory]
+    [InlineData(false, (int)Av1ColorFormat.Yuv400)]
+    [InlineData(false, (int)Av1ColorFormat.Yuv420)]
+    [InlineData(false, (int)Av1ColorFormat.Yuv422)]
+    [InlineData(false, (int)Av1ColorFormat.Yuv444)]
+    [InlineData(true, (int)Av1ColorFormat.Yuv400)]
+    [InlineData(true, (int)Av1ColorFormat.Yuv420)]
+    [InlineData(true, (int)Av1ColorFormat.Yuv422)]
+    [InlineData(true, (int)Av1ColorFormat.Yuv444)]
+    public void AboveContextsResetAlignedTileExtent(bool use128x128Superblock, int colorFormatValue)
+    {
+        Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
+        ObuSequenceHeader sequence = new()
+        {
+            Use128x128Superblock = use128x128Superblock,
+            ColorConfig = new ObuColorConfig
+            {
+                BitDepth = Av1BitDepth.EightBit,
+                IsMonochrome = colorFormat == Av1ColorFormat.Yuv400,
+                SubSamplingX = colorFormat != Av1ColorFormat.Yuv444,
+                SubSamplingY = colorFormat is Av1ColorFormat.Yuv400 or Av1ColorFormat.Yuv420
+            }
+        };
+
+        using Av1ParseAboveNeighbor4x4Context context = new(Configuration.Default, sequence.ColorConfig.PlaneCount, 64);
+        context.AboveTransformWidth.Fill(128);
+        context.AbovePartitionWidth.Fill(31);
+        for (int plane = 0; plane < sequence.ColorConfig.PlaneCount; plane++)
+        {
+            context.GetContext(plane).Fill(191);
+        }
+
+        // A later tile starts at frame column 32, but this reusable surface is tile-relative.
+        // Three visible columns still need one complete superblock of neutral padding.
+        context.Clear(sequence, 32, 35);
+        int lumaWidth = use128x128Superblock ? 32 : 16;
+        for (int column = 0; column < 64; column++)
+        {
+            Assert.Equal(column < lumaWidth ? 64 : 128, context.AboveTransformWidth[column]);
+            Assert.Equal(column < lumaWidth ? 0 : 31, context.AbovePartitionWidth[column]);
+        }
+
+        for (int plane = 0; plane < sequence.ColorConfig.PlaneCount; plane++)
+        {
+            int planeWidth = plane > 0 && sequence.ColorConfig.SubSamplingX ? lumaWidth / 2 : lumaWidth;
+            for (int column = 0; column < 64; column++)
+            {
+                Assert.Equal(column < planeWidth ? 0 : 191, context.GetContext(plane)[column]);
+            }
+        }
+    }
+
     [Theory]
     [InlineData(false, false)]
     [InlineData(false, true)]
@@ -246,12 +303,16 @@ public class Av1TilingTests
             false);
 
         using Av1FrameInfo frameInfo = new(obuReader.SequenceHeader);
+        using IMemoryOwner<short> workspace =
+            frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(obuReader.SequenceHeader));
+
         using Av1FrameDecoder frameDecoder = new(
             obuReader.SequenceHeader,
             obuReader.FrameHeader,
             frameInfo,
             frameBuffer,
-            referenceFrames);
+            referenceFrames,
+            workspace.Memory);
 
         using Av1TileReader tileReader = new(
             Configuration.Default,
@@ -266,6 +327,13 @@ public class Av1TilingTests
         Assert.Equal(dataSize * 8, bitStreamReader.BitPosition);
         Assert.False(frameBuffer.BufferY.Size.IsEmpty);
         Assert.True(frameBuffer.BufferY.DangerousGetSingleSpan().ContainsAnyExcept<byte>(0));
+
+        // Every inverse transform returns its coefficient region to zero before the next superblock reuses it.
+        // The final scratch surface must therefore be clean even though the decoded image contains residuals.
+        Av1SuperblockInfo superblock = tileReader.FrameInfo.GetSuperblock(default);
+        Assert.False(superblock.CoefficientsY.ContainsAnyExcept(0));
+        Assert.False(superblock.CoefficientsU.ContainsAnyExcept(0));
+        Assert.False(superblock.CoefficientsV.ContainsAnyExcept(0));
     }
 
     [Theory]
@@ -290,12 +358,16 @@ public class Av1TilingTests
         using Av1ReferenceFrameStore referenceFrames = new();
         using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, obuReader.SequenceHeader, Av1ColorFormat.Yuv444, false);
         using Av1FrameInfo frameInfo = new(obuReader.SequenceHeader);
+        using IMemoryOwner<short> workspace =
+            frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(obuReader.SequenceHeader));
+
         using Av1FrameDecoder frameDecoder = new(
             obuReader.SequenceHeader,
             obuReader.FrameHeader,
             frameInfo,
             frameBuffer,
-            referenceFrames);
+            referenceFrames,
+            workspace.Memory);
 
         using Av1TileReader tileReader = new(
             Configuration.Default,
@@ -308,6 +380,11 @@ public class Av1TilingTests
         Span<ushort> yRow = frameBuffer.GetHighBitDepthRowSpan(Av1Plane.Y, 0, 0, 0);
         Assert.True(yRow[..4].ContainsAnyExcept<ushort>(0));
         Assert.All(yRow[..4].ToArray(), value => Assert.InRange(value, (ushort)0, maximum));
+
+        Av1SuperblockInfo superblock = tileReader.FrameInfo.GetSuperblock(default);
+        Assert.False(superblock.CoefficientsY.ContainsAnyExcept(0));
+        Assert.False(superblock.CoefficientsU.ContainsAnyExcept(0));
+        Assert.False(superblock.CoefficientsV.ContainsAnyExcept(0));
     }
 
     [Theory]
@@ -337,6 +414,21 @@ public class Av1TilingTests
         // Assert
         Assert.Equal(dataSize * 8, bitStreamReader.BitPosition);
         Assert.Equal(superblockCount, frameDecoder.SuperblockCount);
+        int parsedBlockCount = 0;
+        int superblockSize = obuReader.SequenceHeader.SuperblockModeInfoSize;
+        ObuTileGroupHeader tiles = obuReader.FrameHeader.TilesInfo;
+        for (int row = tiles.TileRowStartModeInfo[0]; row < tiles.TileRowStartModeInfo[1]; row += superblockSize)
+        {
+            for (int column = tiles.TileColumnStartModeInfo[0]; column < tiles.TileColumnStartModeInfo[1]; column += superblockSize)
+            {
+                parsedBlockCount += tileReader.FrameInfo.GetModeInfoCount(new Point(column / superblockSize, row / superblockSize));
+            }
+        }
+
+        Assert.True(parsedBlockCount >= superblockCount);
+        Assert.Equal(parsedBlockCount, frameDecoder.BlockCount);
+        Assert.True(frameDecoder.TransformCount >= parsedBlockCount);
+        Assert.Equal(0, frameDecoder.RemainingTransforms);
     }
 
     [Fact]
@@ -414,6 +506,8 @@ public class Av1TilingTests
         // Assert
         Assert.Equal(dataSize * 8, bitStreamReader.BitPosition);
         Assert.Equal(superblockCount, frameDecoder.SuperblockCount);
+        Assert.True(frameDecoder.TransformCount >= frameDecoder.BlockCount);
+        Assert.Equal(0, frameDecoder.RemainingTransforms);
     }
 
     private sealed class FailingTileAllocator : TestMemoryAllocator

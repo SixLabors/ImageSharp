@@ -6,9 +6,12 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Color;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.FilmGrain;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 using SixLabors.ImageSharp.Formats.Heif.Av1.ReferenceFrames;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.Metadata;
 using SixLabors.ImageSharp.Metadata.Profiles.Cicp;
@@ -31,6 +34,21 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     /// The configuration used for decoded image and scratch-memory allocation.
     /// </summary>
     private readonly Configuration configuration;
+
+    /// <summary>
+    /// The CDEF filtering stage and working storage shared by successive frames.
+    /// </summary>
+    private readonly Av1CdefDecoder cdefDecoder;
+
+    /// <summary>
+    /// The restoration boundary rows shared by successive frames.
+    /// </summary>
+    private readonly Av1LoopRestorationBoundary restorationBoundary;
+
+    /// <summary>
+    /// The restoration stage and working storage shared by successive frames.
+    /// </summary>
+    private readonly Av1LoopRestorationDecoder restorationDecoder;
 
     /// <summary>
     /// Reusable luma palette indices for the coding blocks in one superblock.
@@ -84,6 +102,11 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     private FrameDecodeState? frameDecodeState;
 
     /// <summary>
+    /// Retains reconstruction scratch across frames; the active frame borrows its memory until completion.
+    /// </summary>
+    private IMemoryOwner<short>? reconstructionWorkspace;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1Decoder"/> class.
     /// </summary>
     /// <param name="configuration">The configuration used for image and scratch-memory allocation.</param>
@@ -101,6 +124,9 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
     {
         this.configuration = configuration;
         this.obuReader = new(operatingPointIndex, this.referenceFrames);
+        this.cdefDecoder = new(configuration.MemoryAllocator);
+        this.restorationBoundary = new(configuration.MemoryAllocator);
+        this.restorationDecoder = new(configuration.MemoryAllocator);
 
         // Sequential tile decoding needs only the palette indices belonging to the current superblock. One fixed
         // owner keeps both maximum-superblock maps reusable across the bounded session without fragmented group rents.
@@ -694,11 +720,6 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             return;
         }
 
-        Av1FrameBuffer<byte>.ValidateDimensions(
-            sequenceHeader,
-            sequenceHeader.ColorConfig.GetColorFormat(),
-            false);
-
         this.codecConfiguration?.Validate(sequenceHeader);
         CicpProfile? colorProfile = this.containerColorProfile;
 
@@ -761,6 +782,15 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             ObuSequenceHeader sequenceHeader = this.obuReader.CurrentSequenceHeader;
             ObuFrameHeader frameHeader = this.obuReader.CurrentFrameHeader;
             this.ValidateSequence(sequenceHeader);
+
+            // Sequence dimensions are an upper bound, not an allocation request. Check the active upscaled frame
+            // before renting its syntax state; a small frame can legally belong to a much larger sequence envelope.
+            Av1FrameBuffer<byte>.ValidateDimensions(
+                sequenceHeader,
+                sequenceHeader.ColorConfig.GetColorFormat(),
+                false,
+                frameHeader.FrameSize.SuperResolutionUpscaledWidth,
+                frameHeader.FrameSize.FrameHeight);
 
             if (!ReferenceEquals(this.entropySequenceHeader, sequenceHeader))
             {
@@ -826,12 +856,23 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
                     Height = frameHeader.FrameSize.FrameHeight
                 };
 
+                // No preceding frame is active here. Release an undersized owner before renting its replacement;
+                // a failed rent leaves the session empty and retryable, while completed frames reuse this storage.
+                int workspaceLength = Av1BlockDecoder.GetWorkspaceLength(sequenceHeader);
+                if (this.reconstructionWorkspace is null || this.reconstructionWorkspace.Memory.Length < workspaceLength)
+                {
+                    this.reconstructionWorkspace?.Dispose();
+                    this.reconstructionWorkspace = null;
+                    this.reconstructionWorkspace = this.configuration.MemoryAllocator.Allocate<short>(workspaceLength);
+                }
+
                 Av1FrameDecoder frameDecoder = new(
                     sequenceHeader,
                     frameHeader,
                     tileReader.FrameInfo,
                     frameBuffer,
                     this.referenceFrames,
+                    this.reconstructionWorkspace.Memory[..workspaceLength],
                     new Av1TileReader.PaletteColorIndexMaps(
                         this.lumaPaletteColorIndexMap,
                         this.chromaPaletteColorIndexMap));
@@ -890,13 +931,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
 
                 if (existingFrameHeader.FilmGrainParameters.ApplyGrain)
                 {
-                    presentationBuffer = new Av1FrameBuffer<byte>(
-                        this.configuration,
-                        sequenceHeader,
-                        existingFrame.FrameBuffer.ColorFormat,
-                        false,
-                        existingFrame.FrameBuffer.MaxWidth,
-                        existingFrame.FrameBuffer.MaxHeight);
+                    presentationBuffer = Av1FrameBuffer<byte>.CreatePresentation(this.configuration, sequenceHeader, existingFrame.FrameBuffer);
 
                     // Retained reference samples remain ungrained. Existing-frame presentation receives its own
                     // allocator-owned copy only when the inherited film-grain parameters actually modify the output.
@@ -928,7 +963,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
 
             Av1FrameInfo frameInfo = tileReader.FrameInfo;
             Av1FrameBuffer<byte> reconstructedFrameBuffer = frameBuffer;
-            frameDecoder.CompleteFrame();
+            frameDecoder.CompleteFrame(this.cdefDecoder, this.restorationBoundary, this.restorationDecoder);
 
             bool retainsReference = (frameHeader.RefreshFrameFlags & byte.MaxValue) != 0;
             if (retainsReference)
@@ -945,13 +980,7 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
             bool needsSeparatePresentation = frameHeader.ShowFrame && frameHeader.FilmGrainParameters.ApplyGrain && retainsReference;
             if (needsSeparatePresentation)
             {
-                presentationBuffer = new Av1FrameBuffer<byte>(
-                    this.configuration,
-                    sequenceHeader,
-                    reconstructedFrameBuffer.ColorFormat,
-                    false,
-                    reconstructedFrameBuffer.MaxWidth,
-                    reconstructedFrameBuffer.MaxHeight);
+                presentationBuffer = Av1FrameBuffer<byte>.CreatePresentation(this.configuration, sequenceHeader, reconstructedFrameBuffer);
 
                 // Film grain must never contaminate a decoded reference. A shown frame that is also refreshed therefore
                 // receives one allocator-owned presentation copy; frames with no reference role are grained in place.
@@ -1034,6 +1063,11 @@ internal sealed class Av1Decoder : IAv1TileReader, IDisposable
         this.frameDecodeState?.Dispose();
         this.frameDecodeState = null;
         this.referenceFrames.Dispose();
+        this.reconstructionWorkspace?.Dispose();
+        this.reconstructionWorkspace = null;
+        this.cdefDecoder.Dispose();
+        this.restorationBoundary.Dispose();
+        this.restorationDecoder.Dispose();
         this.FrameInfo?.ReleaseOwner();
         this.FrameInfo = null;
         this.lumaPaletteColorIndexMap.Dispose();

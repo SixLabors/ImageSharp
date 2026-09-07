@@ -16,6 +16,9 @@ internal static partial class Av1Inverse2dTransformer
 {
     internal readonly struct Adst4Operator : IAv1Transform1dOperator
     {
+        /// <inheritdoc/>
+        public static int InputLength => 4;
+
         /// <summary>
         /// Applies the normative four-point AV1 inverse asymmetric discrete sine transform.
         /// </summary>
@@ -28,8 +31,8 @@ internal static partial class Av1Inverse2dTransformer
         {
             ReadOnlySpan<int> sinpi = Av1SinusConstants.SinusPi(cosBit);
 
-            // the reference decoder widens the complete four-point factorization because the products retain their fixed-point scale
-            // until the final shift. The stage buffer is therefore unnecessary for this transform size.
+            // The four-point factorization retains its sine products at fixed-point scale until the final shift.
+            // Int64 intermediates preserve that range; this transform needs no separate stage buffer.
             long x0 = input[0];
             long x1 = input[1];
             long x2 = input[2];
@@ -38,7 +41,7 @@ internal static partial class Av1Inverse2dTransformer
             _ = step;
             _ = stageRange;
 
-            // Avoid the multiplications for the all-zero coefficient vector, matching the reference decoder's scalar kernel.
+            // A zero coefficient vector produces zero residuals without evaluating the sine products.
             if ((x0 | x1 | x2 | x3) == 0)
             {
                 output[..4].Clear();

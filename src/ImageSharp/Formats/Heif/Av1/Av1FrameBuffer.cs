@@ -26,7 +26,7 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     /// <summary>
     /// The number of <typeparamref name="T"/> elements occupied by one logical sample.
     /// </summary>
-    private readonly int storageElementsPerSample;
+    private int storageElementsPerSample;
 
     /// <summary>
     /// The complete plane ownership state, or <see langword="null"/> after disposal.
@@ -69,10 +69,29 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         bool is16BitPipeline,
         int allocationWidth,
         int allocationHeight)
+        : this(
+            configuration.MemoryAllocator,
+            sequenceHeader,
+            maxColorFormat,
+            is16BitPipeline,
+            allocationWidth,
+            allocationHeight,
+            FrameBufferKind.Reconstruction)
     {
-        ValidateDimensions(sequenceHeader, maxColorFormat, is16BitPipeline);
+    }
 
-        this.MemoryAllocator = configuration.MemoryAllocator;
+    private Av1FrameBuffer(
+        MemoryAllocator allocator,
+        ObuSequenceHeader sequenceHeader,
+        Av1ColorFormat maxColorFormat,
+        bool is16BitPipeline,
+        int allocationWidth,
+        int allocationHeight,
+        FrameBufferKind kind)
+    {
+        ValidateDimensions(sequenceHeader, maxColorFormat, is16BitPipeline, allocationWidth, allocationHeight);
+
+        this.MemoryAllocator = allocator;
         Av1ColorFormat colorFormat = sequenceHeader.ColorConfig.IsMonochrome ? Av1ColorFormat.Yuv400 : maxColorFormat;
         this.MaxWidth = allocationWidth;
         this.MaxHeight = allocationHeight;
@@ -85,45 +104,42 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
 
         this.ColorFormat = colorFormat;
         this.Is16BitPipeline = is16BitPipeline;
-        this.StartPosition = new Point(DecoderPaddingValue, DecoderPaddingValue);
+        int border = kind switch
+        {
+            FrameBufferKind.Presentation => 0,
+            FrameBufferKind.Restoration => 32,
+            _ => DecoderPaddingValue
+        };
+
+        this.StartPosition = new Point(border, border);
 
         this.Width = this.MaxWidth;
         this.Height = this.MaxHeight;
-        this.OriginX = DecoderPaddingValue;
-        this.OriginY = DecoderPaddingValue;
+        this.OriginX = border;
+        this.OriginY = border;
 
         FrameBufferLayout layout = CreateFrameBufferLayout(
             allocationWidth,
             allocationHeight,
             colorFormat,
-            this.storageElementsPerSample);
+            this.storageElementsPerSample,
+            kind);
 
-        // Libaom stores Y, U, and V in one aligned frame allocation. Non-owning Buffer2D views retain ImageSharp's
-        // row API without introducing separate plane rents or constructor rollback paths.
-        IMemoryOwner<T> owner = configuration.MemoryAllocator.Allocate<T>(layout.StorageLength);
-        Memory<T> storage = owner.Memory;
-        Buffer2D<T> luma = Buffer2D<T>.WrapMemory(
-            storage.Slice(0, layout.LumaElementCount),
-            layout.LumaStorageWidth,
-            layout.LumaHeight);
+        // One allocation owns every component plane. Restoration retains its capacity across frames;
+        // new storage starts cleared so unwritten alignment and border slots cannot expose pooled data.
+        AllocationOptions options = kind == FrameBufferKind.Restoration ? AllocationOptions.Clean : AllocationOptions.None;
+        IMemoryOwner<T> owner = allocator.Allocate<T>(layout.StorageLength, options);
+        this.planes = WrapPlanes(owner, layout, colorFormat);
+    }
 
-        ChromaPlanes? chroma = null;
-        if (!sequenceHeader.ColorConfig.IsMonochrome)
-        {
-            Buffer2D<T> chromaBlue = Buffer2D<T>.WrapMemory(
-                storage.Slice(layout.ChromaBlueOffset, layout.ChromaElementCount),
-                layout.ChromaStorageWidth,
-                layout.ChromaHeight);
-
-            Buffer2D<T> chromaRed = Buffer2D<T>.WrapMemory(
-                storage.Slice(layout.ChromaRedOffset, layout.ChromaElementCount),
-                layout.ChromaStorageWidth,
-                layout.ChromaHeight);
-
-            chroma = new ChromaPlanes(chromaBlue, chromaRed);
-        }
-
-        this.planes = new(owner, luma, chroma);
+    /// <summary>
+    /// Selects the border and alignment required by the frame's use.
+    /// </summary>
+    private enum FrameBufferKind
+    {
+        Reconstruction,
+        Presentation,
+        Restoration
     }
 
     /// <summary>
@@ -179,12 +195,12 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     /// <summary>
     /// Gets the number of bytes used to store each reconstructed sample.
     /// </summary>
-    public int BytesPerSample { get; }
+    public int BytesPerSample { get; private set; }
 
     /// <summary>
     /// Gets the color configuration signaled by the AV1 sequence header.
     /// </summary>
-    public ObuColorConfig ColorConfig { get; }
+    public ObuColorConfig ColorConfig { get; private set; }
 
     /// <summary>
     /// Gets or sets the luma and chroma plane sampling layout.
@@ -199,7 +215,7 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     /// <summary>
     /// Gets a value indicating whether reconstruction uses native 16-bit samples.
     /// </summary>
-    public bool Is16BitPipeline { get; }
+    public bool Is16BitPipeline { get; private set; }
 
     /// <summary>
     /// Gets the allocator used for frame-owned and frame-scoped working buffers.
@@ -207,15 +223,19 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     public MemoryAllocator MemoryAllocator { get; }
 
     /// <summary>
-    /// Validates that the maximum sequence planes fit the decoder's contiguous ownership contract.
+    /// Validates that the requested frame planes fit the decoder's contiguous ownership contract.
     /// </summary>
-    /// <param name="sequenceHeader">The sequence header defining maximum dimensions, bit depth, and chroma layout.</param>
-    /// <param name="maxColorFormat">The maximum color format required by the sequence.</param>
+    /// <param name="sequenceHeader">The sequence header defining bit depth and chroma layout.</param>
+    /// <param name="maxColorFormat">The color format required by the frame.</param>
     /// <param name="is16BitPipeline">Indicates whether reconstruction uses native 16-bit sample storage.</param>
+    /// <param name="allocationWidth">The active luma width required by the allocation.</param>
+    /// <param name="allocationHeight">The active luma height required by the allocation.</param>
     public static void ValidateDimensions(
         ObuSequenceHeader sequenceHeader,
         Av1ColorFormat maxColorFormat,
-        bool is16BitPipeline)
+        bool is16BitPipeline,
+        int allocationWidth,
+        int allocationHeight)
     {
         int bytesPerSample = sequenceHeader.ColorConfig.BitDepth > Av1BitDepth.EightBit || is16BitPipeline ? 2 : 1;
         int storageElementsPerSample = Math.Max(
@@ -224,10 +244,91 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
 
         Av1ColorFormat colorFormat = sequenceHeader.ColorConfig.IsMonochrome ? Av1ColorFormat.Yuv400 : maxColorFormat;
         _ = CreateFrameBufferLayout(
-            sequenceHeader.MaxFrameWidth,
-            sequenceHeader.MaxFrameHeight,
+            allocationWidth,
+            allocationHeight,
             colorFormat,
-            storageElementsPerSample);
+            storageElementsPerSample,
+            FrameBufferKind.Reconstruction);
+    }
+
+    /// <summary>
+    /// Creates an empty presentation frame for the source's visible picture.
+    /// </summary>
+    /// <param name="configuration">The configuration providing the plane allocator.</param>
+    /// <param name="sequenceHeader">The sequence describing the source samples.</param>
+    /// <param name="source">The frame whose visible dimensions and sample format are required.</param>
+    /// <returns>A frame ready to receive the source's visible samples.</returns>
+    public static Av1FrameBuffer<T> CreatePresentation(
+        Configuration configuration,
+        ObuSequenceHeader sequenceHeader,
+        Av1FrameBuffer<T> source)
+        => new(
+            configuration.MemoryAllocator,
+            sequenceHeader,
+            source.ColorFormat,
+            source.Is16BitPipeline,
+            source.Width,
+            source.Height,
+            FrameBufferKind.Presentation);
+
+    /// <summary>
+    /// Creates an empty restoration frame with the source's visible dimensions and sample format.
+    /// </summary>
+    /// <param name="allocator">The allocator for the frame planes.</param>
+    /// <param name="sequenceHeader">The sequence describing the source samples.</param>
+    /// <param name="source">The reconstructed frame whose output geometry is required.</param>
+    /// <returns>A frame ready to receive restored samples.</returns>
+    public static Av1FrameBuffer<T> CreateRestoration(
+        MemoryAllocator allocator,
+        ObuSequenceHeader sequenceHeader,
+        Av1FrameBuffer<T> source)
+        => new(allocator, sequenceHeader, source.ColorFormat, source.Is16BitPipeline, source.Width, source.Height, FrameBufferKind.Restoration);
+
+    /// <summary>
+    /// Prepares this restoration frame for the source's visible dimensions and sample format.
+    /// </summary>
+    /// <param name="sequenceHeader">The sequence describing the source samples.</param>
+    /// <param name="source">The reconstructed frame whose output geometry is required.</param>
+    public void ResizeRestoration(ObuSequenceHeader sequenceHeader, Av1FrameBuffer<T> source)
+    {
+        // The decoder owns this live restoration frame for its entire session. A different layout may
+        // need new views without needing a new allocation; capacity grows only when the new planes exceed it.
+        FramePlanes? retainedPlanes = this.planes;
+        if (retainedPlanes is null || this.Width != source.Width || this.Height != source.Height ||
+            this.ColorFormat != source.ColorFormat || this.BytesPerSample != source.BytesPerSample)
+        {
+            FrameBufferLayout layout = CreateFrameBufferLayout(
+                source.Width,
+                source.Height,
+                source.ColorFormat,
+                source.storageElementsPerSample,
+                FrameBufferKind.Restoration);
+
+            FramePlanes activePlanes = retainedPlanes.GetValueOrDefault();
+            if (retainedPlanes is null || activePlanes.Owner.Memory.Length < layout.StorageLength)
+            {
+                // Restoration needs none of the previous target's samples. Release its old allocation
+                // before growing so two complete output frames never overlap in memory. A failed rent
+                // leaves an empty target that session disposal or the next resize can handle.
+                this.Dispose();
+                IMemoryOwner<T> owner = this.MemoryAllocator.Allocate<T>(layout.StorageLength, AllocationOptions.Clean);
+                this.planes = WrapPlanes(owner, layout, source.ColorFormat);
+            }
+            else
+            {
+                this.planes = WrapPlanes(activePlanes.Owner, layout, source.ColorFormat);
+                activePlanes.DisposeViews();
+            }
+        }
+
+        this.Width = this.MaxWidth = source.Width;
+        this.Height = this.MaxHeight = source.Height;
+        this.BitDepth = source.BitDepth;
+        this.ColorConfig = sequenceHeader.ColorConfig;
+        this.ColorFormat = source.ColorFormat;
+        this.BytesPerSample = source.BytesPerSample;
+        this.storageElementsPerSample = source.storageElementsPerSample;
+        this.Is16BitPipeline = source.Is16BitPipeline;
     }
 
     /// <summary>
@@ -247,13 +348,10 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     /// <param name="destination">The frame buffer receiving the copied reconstruction.</param>
     public void CopyVisibleTo(Av1FrameBuffer<T> destination)
     {
-        destination.StartPosition = this.StartPosition;
-        destination.OriginX = this.OriginX;
-        destination.OriginY = this.OriginY;
+        // Origins, strides, and capacity belong to the destination allocation. Only the active picture extent
+        // transfers: a presentation copy may have no border and need much less storage than its source.
         destination.Width = this.Width;
         destination.Height = this.Height;
-        destination.MaxWidth = this.MaxWidth;
-        destination.MaxHeight = this.MaxHeight;
         destination.BitDepth = this.BitDepth;
         destination.ColorFormat = this.ColorFormat;
 
@@ -312,14 +410,7 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         }
 
         FramePlanes activePlanes = ownedPlanes.Value;
-        activePlanes.Luma.Dispose();
-        ChromaPlanes? chroma = activePlanes.Chroma;
-        if (chroma is not null)
-        {
-            chroma.Value.Blue.Dispose();
-            chroma.Value.Red.Dispose();
-        }
-
+        activePlanes.DisposeViews();
         activePlanes.Owner.Dispose();
     }
 
@@ -538,24 +629,37 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         int width,
         int height,
         Av1ColorFormat colorFormat,
-        int storageElementsPerSample)
+        int storageElementsPerSample,
+        FrameBufferKind kind)
     {
-        long alignedWidth = (width + 7L) & ~7L;
-        long alignedHeight = (height + 7L) & ~7L;
-        long lumaStride = (alignedWidth + (2L * DecoderPaddingValue) + 31L) & ~31L;
-        long lumaHeight = alignedHeight + (2L * DecoderPaddingValue);
+        // Reconstruction and restoration share eight-sample coded alignment but require different borders.
+        // Grain presentation extends only an odd final row/column and aligns rows in bytes at either bit depth.
+        bool isPresentation = kind == FrameBufferKind.Presentation;
+        long dimensionMask = isPresentation ? 1 : 7;
+        long border = kind switch
+        {
+            FrameBufferKind.Presentation => 0,
+            FrameBufferKind.Restoration => 32,
+            _ => DecoderPaddingValue
+        };
+
+        long rowAlignment = isPresentation ? Math.Max(16 / (storageElementsPerSample * Unsafe.SizeOf<T>()), 1) : 32;
+        long alignedWidth = (width + dimensionMask) & ~dimensionMask;
+        long alignedHeight = (height + dimensionMask) & ~dimensionMask;
+        long lumaStride = (alignedWidth + (2 * border) + rowAlignment - 1) & ~(rowAlignment - 1);
+        long lumaHeight = alignedHeight + (2 * border);
         int subsamplingX = colorFormat is Av1ColorFormat.Yuv420 or Av1ColorFormat.Yuv422 ? 1 : 0;
         int subsamplingY = colorFormat == Av1ColorFormat.Yuv420 ? 1 : 0;
         long chromaStride = colorFormat == Av1ColorFormat.Yuv400 ? 0 : lumaStride >> subsamplingX;
         long chromaHeight = colorFormat == Av1ColorFormat.Yuv400
             ? 0
-            : (alignedHeight >> subsamplingY) + (2L * (DecoderPaddingValue >> subsamplingY));
+            : (alignedHeight >> subsamplingY) + (2 * (border >> subsamplingY));
 
         long lumaStorageWidth = lumaStride * storageElementsPerSample;
         long chromaStorageWidth = chromaStride * storageElementsPerSample;
         long lumaElementCount = lumaStorageWidth * lumaHeight;
         long chromaElementCount = chromaStorageWidth * chromaHeight;
-        long planeAlignment = Math.Max(32 / Unsafe.SizeOf<T>(), 1);
+        long planeAlignment = isPresentation ? 1 : Math.Max(32 / Unsafe.SizeOf<T>(), 1);
         long chromaBlueOffset = ((lumaElementCount + planeAlignment - 1) / planeAlignment) * planeAlignment;
         long chromaRedOffset = ((chromaBlueOffset + chromaElementCount + planeAlignment - 1) / planeAlignment) * planeAlignment;
         long storageLength = colorFormat == Av1ColorFormat.Yuv400
@@ -581,6 +685,36 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
     }
 
     /// <summary>
+    /// Builds non-owning row views over the complete frame allocation.
+    /// </summary>
+    private static FramePlanes WrapPlanes(IMemoryOwner<T> owner, FrameBufferLayout layout, Av1ColorFormat colorFormat)
+    {
+        Memory<T> storage = owner.Memory;
+        Buffer2D<T> luma = Buffer2D<T>.WrapMemory(
+            storage.Slice(0, layout.LumaElementCount),
+            layout.LumaStorageWidth,
+            layout.LumaHeight);
+
+        ChromaPlanes? chroma = null;
+        if (colorFormat != Av1ColorFormat.Yuv400)
+        {
+            Buffer2D<T> chromaBlue = Buffer2D<T>.WrapMemory(
+                storage.Slice(layout.ChromaBlueOffset, layout.ChromaElementCount),
+                layout.ChromaStorageWidth,
+                layout.ChromaHeight);
+
+            Buffer2D<T> chromaRed = Buffer2D<T>.WrapMemory(
+                storage.Slice(layout.ChromaRedOffset, layout.ChromaElementCount),
+                layout.ChromaStorageWidth,
+                layout.ChromaHeight);
+
+            chroma = new ChromaPlanes(chromaBlue, chromaRed);
+        }
+
+        return new(owner, luma, chroma);
+    }
+
+    /// <summary>
     /// Carries the one frame owner, mandatory luma view, and optional complete chroma pair as one state.
     /// </summary>
     private readonly struct FramePlanes(IMemoryOwner<T> owner, Buffer2D<T> luma, ChromaPlanes? chroma)
@@ -599,6 +733,20 @@ internal sealed class Av1FrameBuffer<T> : IDisposable
         /// Gets the padded chroma planes when the frame contains chroma.
         /// </summary>
         public ChromaPlanes? Chroma { get; } = chroma;
+
+        /// <summary>
+        /// Releases row views while leaving the complete allocation with its current owner.
+        /// </summary>
+        public void DisposeViews()
+        {
+            this.Luma.Dispose();
+            ChromaPlanes? chromaPlanes = this.Chroma;
+            if (chromaPlanes is not null)
+            {
+                chromaPlanes.Value.Blue.Dispose();
+                chromaPlanes.Value.Red.Dispose();
+            }
+        }
     }
 
     /// <summary>

@@ -83,11 +83,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     private readonly Av1InverseQuantizer inverseQuantizer;
 
     /// <summary>
-    /// The frame's base per-segment and per-plane dequantization values.
-    /// </summary>
-    private readonly Av1DeQuantizationContext deQuants;
-
-    /// <summary>
     /// Stores the loop-filter delta values carried between superblocks in the current tile.
     /// </summary>
     private InlineArray4<int> currentDeltaLoopFilter;
@@ -270,7 +265,6 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         this.ownsPaletteColorIndexMaps = sharedPaletteColorIndexMaps is null;
         this.entropyContexts.BeginFrame(frameHeader.QuantizationParameters.BaseQIndex, primaryReferenceContext);
         this.inverseQuantizer = new(sequenceHeader, frameHeader);
-        this.deQuants = new(sequenceHeader, frameHeader);
 
         // FrameInfo owns traversal records for this coded frame and one superblock of coefficient scratch.
         this.FrameInfo = new(this.configuration, this.SequenceHeader, this.FrameHeader);
@@ -552,18 +546,22 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                 Av1SuperblockInfo superblockInfo = this.FrameInfo.GetSuperblock(superblockPosition);
 
                 Point modeInfoPosition = new(column, row);
-                superblockInfo.CoefficientsY.Clear();
-                superblockInfo.CoefficientsU.Clear();
-                superblockInfo.CoefficientsV.Clear();
+                if (this.FrameDecoder is null)
+                {
+                    // Syntax-only parsing retains coefficients for inspection and has no reconstruction stage to
+                    // clear them. Full decoding clears each written coefficient region after its inverse transform.
+                    superblockInfo.CoefficientsY.Clear();
+                    superblockInfo.CoefficientsU.Clear();
+                    superblockInfo.CoefficientsV.Clear();
+                }
+
                 this.FrameInfo.ClearCdef(superblockPosition);
                 this.firstTransformOffset[0] = 0;
                 this.firstTransformOffset[1] = 0;
                 this.coefficientIndex[..Av1Constants.MaxPlanes].Clear();
                 this.ReadLoopRestoration(ref reader, modeInfoPosition, superBlockSize);
+                this.FrameDecoder?.BeginSuperblock(superblockInfo);
                 this.ParsePartition(ref reader, modeInfoPosition, superBlockSize, superblockInfo, tileInfo);
-
-                // Identify-only parsing omits a frame decoder but still populates the complete syntax model.
-                this.FrameDecoder?.DecodeSuperblock(modeInfoPosition, superblockInfo, tileInfo);
             }
         }
 
@@ -1000,13 +998,25 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
             this.ResetSkipContext(ref partitionInfo, tileInfo);
         }
 
-        this.Residual(ref reader, ref partitionInfo, superblockInfo, tileInfo, blockSize);
-
         // Record compact frame evidence before later frames release this frame's full mode-information graph.
         this.FrameInfo.RecordInterPredictionFeatures(partitionInfo.ModeInfo, this.FrameHeader);
 
-        // Store the record only after all syntax has populated it, then map every covered 4x4 position.
-        this.FrameInfo.UpdateModeInfo(partitionInfo.ModeInfo, superblockInfo);
+        // Mode and transform geometry are complete before residual parsing. Publish the block now so
+        // inter prediction can resolve its own chroma cells and preceding neighbors through the frame map.
+        ref Av1BlockModeInfo publishedModeInfo = ref this.FrameInfo.UpdateModeInfo(partitionInfo.ModeInfo, superblockInfo);
+        partitionInfo.ModeInfo.ModeInfoIndex = publishedModeInfo.ModeInfoIndex;
+        this.FrameDecoder?.BeginBlock(ref partitionInfo, tileInfo);
+
+        this.Residual(ref reader, ref partitionInfo, superblockInfo, tileInfo, blockSize);
+        this.FrameDecoder?.EndBlock(ref partitionInfo);
+
+        if (this.FrameDecoder is not null)
+        {
+            // Full decoding has consumed every palette index by this point. Syntax-only parsing keeps
+            // its inspection views; reconstructed records release the borrowed views before the next block.
+            publishedModeInfo.SetPaletteColorIndexMap(Av1PlaneType.Y, default);
+            publishedModeInfo.SetPaletteColorIndexMap(Av1PlaneType.Uv, default);
+        }
     }
 
     /// <summary>
@@ -1053,7 +1063,7 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     {
         // Mode syntax has established delta-Q before residual decoding. Keep dequantization at this parsing
         // boundary so each signed level is published once in the form consumed by inverse reconstruction.
-        this.inverseQuantizer.UpdateDequant(this.deQuants, superblockInfo);
+        this.inverseQuantizer.UpdateDequant(superblockInfo);
         int maxBlocksWide = partitionInfo.GetMaxBlockWide(blockSize, false);
         int maxBlocksHigh = partitionInfo.GetMaxBlockHigh(blockSize, false);
         Av1BlockSize maxUnitSize = Av1BlockSize.Block64x64;
@@ -1160,11 +1170,19 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
                                 subX != 0,
                                 subY != 0);
                         }
+                        else
+                        {
+                            transformInfo.MaximumCoefficientIndex = 0;
+                        }
 
                         // Each transform reserves its nominal area even when its residual is empty. EOB belongs
                         // to the descriptor, so the raster coefficient region contains no packed metadata prefix.
                         this.coefficientIndex[plane] += transformInfo.Size.GetWidth() * transformInfo.Size.GetHeight();
                         transformInfo.EndOfBlock = (ushort)endOfBlock;
+
+                        // Intra prediction consumes the previous transform's reconstructed edge. Complete
+                        // prediction, inverse reconstruction, and coefficient clearing before another TU is read.
+                        this.FrameDecoder?.DecodeTransform(ref partitionInfo, plane, ref transformInfo, tileInfo);
 
                         transformInfoIndex++;
                     }
@@ -1387,8 +1405,8 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
         int leftOffset)
     {
         Av1TransformBlockContext transformBlockContext = default;
-        ReadOnlySpan<int> aboveContext = this.aboveNeighborContext.GetContext(plane)[aboveOffset..];
-        ReadOnlySpan<int> leftContext = this.leftNeighborContext.GetContext(plane)[leftOffset..];
+        ReadOnlySpan<byte> aboveContext = this.aboveNeighborContext.GetContext(plane)[aboveOffset..];
+        ReadOnlySpan<byte> leftContext = this.leftNeighborContext.GetContext(plane)[leftOffset..];
         int dcSign = 0;
         int k = 0;
         int mask = (1 << Av1Constants.CoefficientContextBitCount) - 1;
@@ -1464,15 +1482,15 @@ internal sealed class Av1TileReader : IAv1TileReader, IDisposable
     /// <param name="above">The above coefficient contexts.</param>
     /// <param name="left">The left coefficient contexts.</param>
     /// <returns>The sum of the nonzero-above and nonzero-left flags.</returns>
-    private static int GetEntropyContext(Av1TransformSize transformSize, ReadOnlySpan<int> above, ReadOnlySpan<int> left)
+    private static int GetEntropyContext(Av1TransformSize transformSize, ReadOnlySpan<byte> above, ReadOnlySpan<byte> left)
     {
         bool aboveEntropyContext = false;
         bool leftEntropyContext = false;
         int transformBlockUnitWideCount = transformSize.Get4x4WideCount();
         int transformBlockUnitHighCount = transformSize.Get4x4HighCount();
 
-        // the reference decoder tests the context bytes through packed native loads. Enumerating the same transform-width and
-        // transform-height entries avoids unaligned reads while preserving the required any-nonzero result.
+        // Chroma skip context depends on whether any entry on each nominal transform edge is nonzero.
+        // Edge padding has already been reset, so it contributes no activity beyond the visible frame.
         for (int i = 0; i < transformBlockUnitWideCount; i++)
         {
             if (above[i] != 0)

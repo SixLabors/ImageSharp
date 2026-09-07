@@ -25,7 +25,7 @@ internal sealed class Av1InverseQuantizer
     /// <summary>
     /// The current per-segment, per-plane dequantization values, including any superblock delta-Q update.
     /// </summary>
-    private Av1DeQuantizationContext deQuantsDeltaQ;
+    private readonly Av1DeQuantizationContext deQuantsDeltaQ;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1InverseQuantizer"/> class.
@@ -42,12 +42,10 @@ internal sealed class Av1InverseQuantizer
     /// <summary>
     /// Updates the active dequantization context for a superblock, applying its delta-Q value when signaled.
     /// </summary>
-    /// <param name="deQuants">The frame dequantization context to update and retain.</param>
     /// <param name="superblockInfo">The superblock whose quantizer adjustment is applied.</param>
-    public void UpdateDequant(Av1DeQuantizationContext deQuants, Av1SuperblockInfo superblockInfo)
+    public void UpdateDequant(Av1SuperblockInfo superblockInfo)
     {
         Av1BitDepth bitDepth = this.sequenceHeader.ColorConfig.BitDepth;
-        this.deQuantsDeltaQ = deQuants;
         if (this.frameHeader.DeltaQParameters.IsPresent)
         {
             for (int i = 0; i < Av1Constants.MaxSegmentCount; i++)

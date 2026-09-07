@@ -16,6 +16,9 @@ internal static partial class Av1Inverse2dTransformer
 {
     internal readonly struct Adst16Operator : IAv1Transform1dOperator
     {
+        /// <inheritdoc/>
+        public static int InputLength => 16;
+
         /// <summary>
         /// Applies the normative 16-point AV1 inverse asymmetric discrete sine transform.
         /// </summary>

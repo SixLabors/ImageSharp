@@ -49,6 +49,15 @@ internal static class Av1InverseTransformerFactory
             transformFunctionParameters.TransformSize,
             transformFunctionParameters.BitDepth);
 
+        if (transformFunctionParameters.EndOfBuffer == 1 && transformFunctionParameters.TransformType == Av1TransformType.DctDct)
+        {
+            Av1Inverse2dTransformer.TransformDcAdd<byte, Av1InverseTransformer.ByteOutputOperator>(
+                coefficients[0], readBuffer, readStride, writeBuffer, writeStride, ref config, 8);
+
+            return;
+        }
+
+        config.ConfigureInverseSparsity(transformFunctionParameters.EndOfBuffer, transformFunctionParameters.BitDepth);
         Av1Inverse2dTransformer.Transform2dAdd(coefficients, readBuffer, readStride, writeBuffer, writeStride, ref config, workspace);
     }
 
@@ -93,6 +102,15 @@ internal static class Av1InverseTransformerFactory
             transformFunctionParameters.TransformSize,
             transformFunctionParameters.BitDepth);
 
+        if (transformFunctionParameters.EndOfBuffer == 1 && transformFunctionParameters.TransformType == Av1TransformType.DctDct)
+        {
+            Av1Inverse2dTransformer.TransformDcAdd<short, Av1InverseTransformer.HighBitDepthOutputOperator>(
+                coefficients[0], readBuffer, readStride, writeBuffer, writeStride, ref config, transformFunctionParameters.BitDepth);
+
+            return;
+        }
+
+        config.ConfigureInverseSparsity(transformFunctionParameters.EndOfBuffer, transformFunctionParameters.BitDepth);
         Av1Inverse2dTransformer.Transform2dAdd(coefficients, readBuffer, readStride, writeBuffer, writeStride, ref config, workspace, transformFunctionParameters.BitDepth);
     }
 }

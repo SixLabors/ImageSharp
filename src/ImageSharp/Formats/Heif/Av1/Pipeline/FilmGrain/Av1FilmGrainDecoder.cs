@@ -359,8 +359,8 @@ internal sealed class Av1FilmGrainDecoder
             ? scratch.Slice(scratchOffset, chromaColumnLength)
             : Span<int>.Empty;
 
-        // the reference decoder zero-initializes the lookup structure before expanding control points. This matters
-        // when chroma scaling is inherited from an empty luma scaling function.
+        // An empty control-point list leaves its lookup untouched. Start at zero so inherited chroma scaling
+        // cannot read pooled values when the luma scaling function is empty.
         scalingY.Clear();
         scalingCb.Clear();
         scalingCr.Clear();
@@ -499,51 +499,56 @@ internal sealed class Av1FilmGrainDecoder
 
                     int rowAdjustment = halfY != 0 ? 1 : 0;
 
-                    // The top overlap row, when present, is owned by the horizontal-boundary pass below. Skip it here
-                    // so the corner and vertical boundary are each added to the decoded samples exactly once.
-                    int destinationLumaOffset = (((halfY + rowAdjustment) << 1) * lumaStride) + (halfX << 1);
-                    int destinationChromaOffset = (((halfY + rowAdjustment) << (1 - subsamplingY)) * chromaStride) +
-                        (halfX << (1 - subsamplingX));
+                    // A final two-row block belongs entirely to the top overlap. Form destination spans
+                    // only for rows owned by this vertical strip; boundary blending above still prepares its corner.
+                    if (halfY + rowAdjustment < height / 2)
+                    {
+                        // The top overlap row, when present, is owned by the horizontal-boundary pass below. Skip it here
+                        // so the corner and vertical boundary are each added to the decoded samples exactly once.
+                        int destinationLumaOffset = (((halfY + rowAdjustment) << 1) * lumaStride) + (halfX << 1);
+                        int destinationChromaOffset = (((halfY + rowAdjustment) << (1 - subsamplingY)) * chromaStride) +
+                            (halfX << (1 - subsamplingX));
 
-                    int columnGrainOffset = rowAdjustment * (2 - subsamplingY) * (2 - subsamplingX);
-                    Span<TSample> destinationCb = isMonochrome
-                        ? Span<TSample>.Empty
-                        : cb[destinationChromaOffset..];
+                        int columnGrainOffset = rowAdjustment * (2 - subsamplingY) * (2 - subsamplingX);
+                        Span<TSample> destinationCb = isMonochrome
+                            ? Span<TSample>.Empty
+                            : cb[destinationChromaOffset..];
 
-                    Span<TSample> destinationCr = isMonochrome
-                        ? Span<TSample>.Empty
-                        : cr[destinationChromaOffset..];
+                        Span<TSample> destinationCr = isMonochrome
+                            ? Span<TSample>.Empty
+                            : cr[destinationChromaOffset..];
 
-                    Span<int> columnCbGrain = isMonochrome
-                        ? Span<int>.Empty
-                        : cbColumnBuffer[columnGrainOffset..];
+                        Span<int> columnCbGrain = isMonochrome
+                            ? Span<int>.Empty
+                            : cbColumnBuffer[columnGrainOffset..];
 
-                    Span<int> columnCrGrain = isMonochrome
-                        ? Span<int>.Empty
-                        : crColumnBuffer[columnGrainOffset..];
+                        Span<int> columnCrGrain = isMonochrome
+                            ? Span<int>.Empty
+                            : crColumnBuffer[columnGrainOffset..];
 
-                    Av1FilmGrainNoise.Apply(
-                        parameters,
-                        scalingY,
-                        scalingCb,
-                        scalingCr,
-                        luma[destinationLumaOffset..],
-                        destinationCb,
-                        destinationCr,
-                        lumaStride,
-                        chromaStride,
-                        yColumnBuffer[(rowAdjustment * 4)..],
-                        columnCbGrain,
-                        columnCrGrain,
-                        2,
-                        2 - subsamplingX,
-                        Math.Min(LumaSubblockSize >> 1, (height / 2) - halfY) - rowAdjustment,
-                        1,
-                        bitDepth,
-                        subsamplingX,
-                        subsamplingY,
-                        isMonochrome,
-                        isIdentityMatrix);
+                        Av1FilmGrainNoise.Apply(
+                            parameters,
+                            scalingY,
+                            scalingCb,
+                            scalingCr,
+                            luma[destinationLumaOffset..],
+                            destinationCb,
+                            destinationCr,
+                            lumaStride,
+                            chromaStride,
+                            yColumnBuffer[(rowAdjustment * 4)..],
+                            columnCbGrain,
+                            columnCrGrain,
+                            2,
+                            2 - subsamplingX,
+                            Math.Min(LumaSubblockSize >> 1, (height / 2) - halfY) - rowAdjustment,
+                            1,
+                            bitDepth,
+                            subsamplingX,
+                            subsamplingY,
+                            isMonochrome,
+                            isIdentityMatrix);
+                    }
                 }
 
                 if (parameters.OverlapFlag && halfY != 0)
@@ -698,48 +703,53 @@ internal sealed class Av1FilmGrainDecoder
                 int interiorRowAdjustment = parameters.OverlapFlag && halfY != 0 ? 1 : 0;
                 int interiorColumnAdjustment = parameters.OverlapFlag && halfX != 0 ? 1 : 0;
 
-                // Move both the destination and template origins past boundary strips already applied above. This
-                // leaves a disjoint interior rectangle, including clipped partial blocks at the right and bottom edges.
-                int lumaGrainOffset = ((lumaOffsetY + (interiorRowAdjustment << 1)) * lumaBlockWidth) +
-                    lumaOffsetX + (interiorColumnAdjustment << 1);
+                // Overlap can consume the entire clipped rectangle. Only an interior with samples owns
+                // destination spans; the outgoing boundary state below must still advance for the next block.
+                if (halfY + interiorRowAdjustment < height / 2 && halfX + interiorColumnAdjustment < width / 2)
+                {
+                    // Move both the destination and template origins past boundary strips already applied above. This
+                    // leaves a disjoint interior rectangle, including clipped partial blocks at the right and bottom edges.
+                    int lumaGrainOffset = ((lumaOffsetY + (interiorRowAdjustment << 1)) * lumaBlockWidth) +
+                        lumaOffsetX + (interiorColumnAdjustment << 1);
 
-                int chromaGrainOffset = ((chromaOffsetY +
-                    (interiorRowAdjustment << (1 - subsamplingY))) * chromaBlockWidth) +
-                    chromaOffsetX + (interiorColumnAdjustment << (1 - subsamplingX));
+                    int chromaGrainOffset = ((chromaOffsetY +
+                        (interiorRowAdjustment << (1 - subsamplingY))) * chromaBlockWidth) +
+                        chromaOffsetX + (interiorColumnAdjustment << (1 - subsamplingX));
 
-                int interiorLumaOffset = (((halfY + interiorRowAdjustment) << 1) * lumaStride) +
-                    ((halfX + interiorColumnAdjustment) << 1);
+                    int interiorLumaOffset = (((halfY + interiorRowAdjustment) << 1) * lumaStride) +
+                        ((halfX + interiorColumnAdjustment) << 1);
 
-                int interiorChromaOffset = (((halfY + interiorRowAdjustment) << (1 - subsamplingY)) * chromaStride) +
-                    ((halfX + interiorColumnAdjustment) << (1 - subsamplingX));
+                    int interiorChromaOffset = (((halfY + interiorRowAdjustment) << (1 - subsamplingY)) * chromaStride) +
+                        ((halfX + interiorColumnAdjustment) << (1 - subsamplingX));
 
-                Span<TSample> interiorCb = isMonochrome ? Span<TSample>.Empty : cb[interiorChromaOffset..];
-                Span<TSample> interiorCr = isMonochrome ? Span<TSample>.Empty : cr[interiorChromaOffset..];
-                Span<int> interiorCbGrain = isMonochrome ? Span<int>.Empty : cbGrain[chromaGrainOffset..];
-                Span<int> interiorCrGrain = isMonochrome ? Span<int>.Empty : crGrain[chromaGrainOffset..];
+                    Span<TSample> interiorCb = isMonochrome ? Span<TSample>.Empty : cb[interiorChromaOffset..];
+                    Span<TSample> interiorCr = isMonochrome ? Span<TSample>.Empty : cr[interiorChromaOffset..];
+                    Span<int> interiorCbGrain = isMonochrome ? Span<int>.Empty : cbGrain[chromaGrainOffset..];
+                    Span<int> interiorCrGrain = isMonochrome ? Span<int>.Empty : crGrain[chromaGrainOffset..];
 
-                Av1FilmGrainNoise.Apply(
-                    parameters,
-                    scalingY,
-                    scalingCb,
-                    scalingCr,
-                    luma[interiorLumaOffset..],
-                    interiorCb,
-                    interiorCr,
-                    lumaStride,
-                    chromaStride,
-                    lumaGrain[lumaGrainOffset..],
-                    interiorCbGrain,
-                    interiorCrGrain,
-                    lumaBlockWidth,
-                    chromaBlockWidth,
-                    Math.Min(LumaSubblockSize >> 1, (height / 2) - halfY) - interiorRowAdjustment,
-                    Math.Min(LumaSubblockSize >> 1, (width / 2) - halfX) - interiorColumnAdjustment,
-                    bitDepth,
-                    subsamplingX,
-                    subsamplingY,
-                    isMonochrome,
-                    isIdentityMatrix);
+                    Av1FilmGrainNoise.Apply(
+                        parameters,
+                        scalingY,
+                        scalingCb,
+                        scalingCr,
+                        luma[interiorLumaOffset..],
+                        interiorCb,
+                        interiorCr,
+                        lumaStride,
+                        chromaStride,
+                        lumaGrain[lumaGrainOffset..],
+                        interiorCbGrain,
+                        interiorCrGrain,
+                        lumaBlockWidth,
+                        chromaBlockWidth,
+                        Math.Min(LumaSubblockSize >> 1, (height / 2) - halfY) - interiorRowAdjustment,
+                        Math.Min(LumaSubblockSize >> 1, (width / 2) - halfX) - interiorColumnAdjustment,
+                        bitDepth,
+                        subsamplingX,
+                        subsamplingY,
+                        isMonochrome,
+                        isIdentityMatrix);
+                }
 
                 if (parameters.OverlapFlag)
                 {

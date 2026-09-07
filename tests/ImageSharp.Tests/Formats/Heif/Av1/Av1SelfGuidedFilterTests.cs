@@ -31,7 +31,7 @@ public class Av1SelfGuidedFilterTests
     /// The hardware configurations required to exercise AVX2-assisted 256-bit, portable 256-bit, 128-bit, and scalar execution.
     /// </summary>
     private const HwIntrinsics Configurations =
-        HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+        HwIntrinsics.DisableAVX2 | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
 
     /// <summary>
     /// Gets the radii selected by each of the sixteen normative parameter sets.
@@ -65,6 +65,8 @@ public class Av1SelfGuidedFilterTests
         7, 4,
         13, 9,
         29, 6,
+        32, 32,
+        64, 64,
     ];
 
     /// <summary>
@@ -72,7 +74,10 @@ public class Av1SelfGuidedFilterTests
     /// </summary>
     [Fact]
     public void FilterMatchesReference()
-        => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilters, Configurations);
+    {
+        ValidateFilters();
+        FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateFilters, Configurations);
+    }
 
     /// <summary>
     /// Validates the complete self-guided parameter matrix in the active hardware-intrinsic configuration.
@@ -92,15 +97,25 @@ public class Av1SelfGuidedFilterTests
                 ushort[] source = new ushort[sourceStride * (height + (Border * 2))];
                 ushort[] expected = new ushort[destinationStride * height];
                 ushort[] actual = new ushort[destinationStride * height];
-                int[] scratch = new int[Av1SelfGuidedFilter.GetScratchLength(width, height)];
+                byte[] byteSource = new byte[source.Length];
+                byte[] byteActual = new byte[actual.Length + 2];
+                byte[] byteExpected = new byte[actual.Length + 2];
+                int scratchLength = Av1SelfGuidedFilter.GetScratchLength(width, height);
+                int[] scratchStorage = new int[scratchLength + 2];
+                Span<int> scratch = scratchStorage.AsSpan(1, scratchLength);
                 int[] projectionCoefficients = new int[2];
 
                 FillSource(source, sourceStride, maximumSample);
+                for (int index = 0; index < source.Length; index++)
+                {
+                    byteSource[index] = (byte)source[index];
+                }
 
                 for (int parameterSetIndex = 0; parameterSetIndex < 16; parameterSetIndex++)
                 {
                     expected.AsSpan().Fill(ushort.MaxValue);
                     actual.AsSpan().Fill(ushort.MaxValue);
+                    scratchStorage.AsSpan().Fill(int.MinValue);
                     projectionCoefficients[0] = -96 + ((parameterSetIndex * 17) & 127);
                     projectionCoefficients[1] = -32 + ((parameterSetIndex * 29) & 127);
 
@@ -128,6 +143,40 @@ public class Av1SelfGuidedFilterTests
                         scratch);
 
                     AssertBlockEqual(expected, actual, destinationStride, width, height, bitDepth, parameterSetIndex);
+                    Assert.Equal(int.MinValue, scratchStorage[0]);
+                    Assert.Equal(int.MinValue, scratchStorage[^1]);
+
+                    if (bitDepth == 8)
+                    {
+                        // Reuse the independent window result for physical byte storage. The leading,
+                        // trailing, and row-padding sentinels detect stores wider than the result lanes.
+                        byteActual.AsSpan().Fill(byte.MaxValue);
+                        byteExpected.AsSpan().Fill(byte.MaxValue);
+                        for (int index = 0; index < expected.Length; index++)
+                        {
+                            byteExpected[index + 1] = (byte)expected[index];
+                        }
+
+                        scratchStorage.AsSpan().Fill(int.MinValue);
+                        Av1SelfGuidedFilter.FilterBlock<byte>(
+                            byteSource,
+                            sourceStride,
+                            byteActual.AsSpan(1, actual.Length),
+                            destinationStride,
+                            width,
+                            height,
+                            bitDepth,
+                            parameterSetIndex,
+                            projectionCoefficients,
+                            scratch);
+
+                        Assert.True(
+                            byteExpected.AsSpan().SequenceEqual(byteActual),
+                            $"Byte width={width}, height={height}, parameterSet={parameterSetIndex}");
+
+                        Assert.Equal(int.MinValue, scratchStorage[0]);
+                        Assert.Equal(int.MinValue, scratchStorage[^1]);
+                    }
                 }
             }
         }

@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -10,9 +11,9 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 
 /// <summary>
-/// Applies decoded AV1 loop-restoration units to a reconstructed still-image frame.
+/// Applies decoded AV1 loop-restoration units to a reconstructed frame.
 /// </summary>
-internal sealed class Av1LoopRestorationDecoder
+internal sealed class Av1LoopRestorationDecoder : IDisposable
 {
     /// <summary>
     /// The number of source rows and columns required around each filtered processing stripe.
@@ -20,66 +21,150 @@ internal sealed class Av1LoopRestorationDecoder
     private const int FilterBorder = 3;
 
     /// <summary>
-    /// The additional zero-coefficient tap read by the padded Wiener convolution kernel.
+    /// The allocator supplying this decoding stage's working storage.
     /// </summary>
-    private const int WienerPadding = 1;
+    private readonly MemoryAllocator allocator;
 
     /// <summary>
-    /// The sequence-level bit-depth and plane-layout configuration.
+    /// The restored output retained independently of published reference frames.
     /// </summary>
-    private readonly ObuSequenceHeader sequenceHeader;
+    private Av1FrameBuffer<byte>? destinationBuffer;
 
     /// <summary>
-    /// The frame-level restoration-unit and dimension configuration.
+    /// The convolution intermediate reused by successive planes and frames.
     /// </summary>
-    private readonly ObuFrameHeader frameHeader;
+    private IMemoryOwner<ushort>? wienerOwner;
 
     /// <summary>
-    /// The decoded restoration filter and coefficient selections.
+    /// The requested convolution capacity, excluding any allocator padding.
     /// </summary>
-    private readonly Av1FrameInfo frameInfo;
+    private int wienerLength;
 
     /// <summary>
-    /// The reconstructed sample planes updated with restored output.
+    /// The projection and integral/coefficient workspace reused by successive planes and frames.
     /// </summary>
-    private readonly Av1FrameBuffer<byte> frameBuffer;
+    private IMemoryOwner<int>? selfGuidedOwner;
 
     /// <summary>
-    /// The preserved deblocked rows used at restoration-stripe boundaries.
+    /// The requested self-guided capacity, excluding any allocator padding.
     /// </summary>
-    private readonly Av1LoopRestorationBoundary boundary;
+    private int selfGuidedLength;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1LoopRestorationDecoder"/> class.
     /// </summary>
-    /// <param name="sequenceHeader">The sequence header defining bit depth and chroma subsampling.</param>
-    /// <param name="frameHeader">The frame header defining restoration-unit sizes and frame dimensions.</param>
+    /// <param name="allocator">The allocator used for filter working storage.</param>
+    public Av1LoopRestorationDecoder(MemoryAllocator allocator) => this.allocator = allocator;
+
+    /// <summary>
+    /// Releases the output and working storage retained by this filtering stage.
+    /// </summary>
+    public void Dispose()
+    {
+        this.destinationBuffer?.Dispose();
+        this.destinationBuffer = null;
+        this.wienerOwner?.Dispose();
+        this.wienerOwner = null;
+        this.wienerLength = 0;
+        this.selfGuidedOwner?.Dispose();
+        this.selfGuidedOwner = null;
+        this.selfGuidedLength = 0;
+    }
+
+    /// <summary>
+    /// Restores active planes while preserving the unfiltered context needed by neighboring units.
+    /// </summary>
+    /// <param name="sequenceHeader">The sequence defining sample precision and chroma subsampling.</param>
+    /// <param name="frameHeader">The frame defining unit sizes and visible dimensions.</param>
     /// <param name="frameInfo">The decoded restoration-unit selections and coefficients.</param>
-    /// <param name="frameBuffer">The CDEF-filtered and upscaled frame samples.</param>
+    /// <param name="frameBuffer">The CDEF-filtered and upscaled samples to restore.</param>
     /// <param name="boundary">The deblocked context preserved around restoration stripes.</param>
-    public Av1LoopRestorationDecoder(
+    public void DecodeFrame(
         ObuSequenceHeader sequenceHeader,
         ObuFrameHeader frameHeader,
         Av1FrameInfo frameInfo,
         Av1FrameBuffer<byte> frameBuffer,
         Av1LoopRestorationBoundary boundary)
     {
-        this.sequenceHeader = sequenceHeader;
-        this.frameHeader = frameHeader;
-        this.frameInfo = frameInfo;
-        this.frameBuffer = frameBuffer;
-        this.boundary = boundary;
+        Av1FrameBuffer<byte>? destination = this.destinationBuffer;
+        if (destination is null)
+        {
+            destination = Av1FrameBuffer<byte>.CreateRestoration(this.allocator, sequenceHeader, frameBuffer);
+            this.destinationBuffer = destination;
+        }
+        else
+        {
+            destination.ResizeRestoration(sequenceHeader, frameBuffer);
+        }
+
+        // Planes run sequentially and chroma processing units never exceed the luma dimensions.
+        // One capacity calculation therefore covers the complete frame. Keep successful rents reachable
+        // from the session if a later allocation fails, and release old capacity before growing it.
+        int maximumBlockWidth = Math.Min(Av1LoopRestorationBoundary.ProcessingStripeSize, frameHeader.FrameSize.SuperResolutionUpscaledWidth);
+        int maximumStripeHeight = Av1LoopRestorationBoundary.ProcessingStripeSize;
+        int wienerScratchLength = Av1WienerFilter.GetScratchLength(maximumBlockWidth, maximumStripeHeight);
+        IMemoryOwner<ushort>? wiener = this.wienerOwner;
+        if (wiener is null || this.wienerLength < wienerScratchLength)
+        {
+            wiener?.Dispose();
+            this.wienerOwner = null;
+            this.wienerLength = 0;
+            wiener = this.allocator.Allocate<ushort>(wienerScratchLength);
+            this.wienerOwner = wiener;
+            this.wienerLength = wienerScratchLength;
+        }
+
+        int selfGuidedScratchLength = Av1SelfGuidedFilter.GetScratchLength(maximumBlockWidth, maximumStripeHeight);
+        IMemoryOwner<int>? selfGuided = this.selfGuidedOwner;
+        if (selfGuided is null || this.selfGuidedLength < selfGuidedScratchLength)
+        {
+            selfGuided?.Dispose();
+            this.selfGuidedOwner = null;
+            this.selfGuidedLength = 0;
+            selfGuided = this.allocator.Allocate<int>(selfGuidedScratchLength);
+            this.selfGuidedOwner = selfGuided;
+            this.selfGuidedLength = selfGuidedScratchLength;
+        }
+
+        Span<ushort> wienerScratch = wiener.Memory.Span[..wienerScratchLength];
+        Span<int> selfGuidedScratch = selfGuided.Memory.Span[..selfGuidedScratchLength];
+        if (frameBuffer.BytesPerSample == 1)
+        {
+            DecodeFrame<byte>(sequenceHeader, frameHeader, frameInfo, frameBuffer, boundary, destination, wienerScratch, selfGuidedScratch);
+        }
+        else
+        {
+            DecodeFrame<ushort>(sequenceHeader, frameHeader, frameInfo, frameBuffer, boundary, destination, wienerScratch, selfGuidedScratch);
+        }
     }
 
     /// <summary>
-    /// Restores every active color plane from an immutable post-super-resolution source snapshot.
+    /// Selects each active plane with its physical sample type fixed for the complete traversal.
     /// </summary>
-    public void DecodeFrame()
+    /// <typeparam name="TSample">The frame-selected byte or ushort sample type.</typeparam>
+    /// <param name="sequenceHeader">The sequence configuration.</param>
+    /// <param name="frameHeader">The current frame configuration.</param>
+    /// <param name="frameInfo">The decoded unit state.</param>
+    /// <param name="frameBuffer">The source reconstruction.</param>
+    /// <param name="boundary">The preserved stripe context.</param>
+    /// <param name="destinationBuffer">The separate output frame.</param>
+    /// <param name="wienerScratch">The convolution workspace.</param>
+    /// <param name="selfGuidedScratch">The projection and statistics workspace.</param>
+    private static void DecodeFrame<TSample>(
+        ObuSequenceHeader sequenceHeader,
+        ObuFrameHeader frameHeader,
+        Av1FrameInfo frameInfo,
+        Av1FrameBuffer<byte> frameBuffer,
+        Av1LoopRestorationBoundary boundary,
+        Av1FrameBuffer<byte> destinationBuffer,
+        Span<ushort> wienerScratch,
+        Span<int> selfGuidedScratch)
+        where TSample : unmanaged
     {
-        ObuColorConfig colorConfig = this.sequenceHeader.ColorConfig;
+        ObuColorConfig colorConfig = sequenceHeader.ColorConfig;
         for (int planeIndex = 0; planeIndex < colorConfig.PlaneCount; planeIndex++)
         {
-            ObuLoopRestorationItem item = this.frameHeader.LoopRestorationParameters.Items[planeIndex];
+            ObuLoopRestorationItem item = frameHeader.LoopRestorationParameters.Items[planeIndex];
             if (item.Type == ObuRestorationType.None)
             {
                 continue;
@@ -88,87 +173,127 @@ internal sealed class Av1LoopRestorationDecoder
             Av1Plane plane = (Av1Plane)planeIndex;
             int subsamplingX = plane != Av1Plane.Y && colorConfig.SubSamplingX ? 1 : 0;
             int subsamplingY = plane != Av1Plane.Y && colorConfig.SubSamplingY ? 1 : 0;
-            this.DecodePlane(plane, subsamplingX, subsamplingY, item.Size);
+            DecodePlane<TSample>(
+                frameHeader,
+                frameInfo,
+                frameBuffer,
+                boundary,
+                destinationBuffer,
+                plane,
+                subsamplingX,
+                subsamplingY,
+                item.Size,
+                wienerScratch,
+                selfGuidedScratch);
+        }
+
+        // Publish only restored planes, after every unit has consumed the original reconstruction.
+        // Frame-region views carry the physical byte width, including high-bit-depth samples.
+        for (int planeIndex = 0; planeIndex < colorConfig.PlaneCount; planeIndex++)
+        {
+            if (frameHeader.LoopRestorationParameters.Items[planeIndex].Type == ObuRestorationType.None)
+            {
+                continue;
+            }
+
+            Av1Plane plane = (Av1Plane)planeIndex;
+            int subsamplingX = plane != Av1Plane.Y && colorConfig.SubSamplingX ? 1 : 0;
+            int subsamplingY = plane != Av1Plane.Y && colorConfig.SubSamplingY ? 1 : 0;
+            Buffer2DRegion<byte> restored = destinationBuffer.DeriveBlockPointer(plane, subsamplingX, subsamplingY);
+            Buffer2DRegion<byte> target = frameBuffer.DeriveBlockPointer(plane, subsamplingX, subsamplingY);
+            int height = Av1Math.DivideLog2Ceiling(frameHeader.FrameSize.FrameHeight, subsamplingY);
+            for (int row = 0; row < height; row++)
+            {
+                restored.DangerousGetRowSpan(row).CopyTo(target.DangerousGetRowSpan(row));
+            }
         }
     }
 
     /// <summary>
-    /// Restores one color plane in raster-ordered restoration units.
+    /// Restores one plane from its reconstructed samples and preserved stripe boundaries.
     /// </summary>
-    /// <param name="plane">The luma or chroma plane.</param>
+    /// <typeparam name="TSample">The physical plane sample type.</typeparam>
+    /// <param name="frameHeader">The current frame configuration.</param>
+    /// <param name="frameInfo">The decoded unit state.</param>
+    /// <param name="frameBuffer">The source reconstruction.</param>
+    /// <param name="boundary">The preserved stripe context.</param>
+    /// <param name="destinationBuffer">The separate output frame.</param>
+    /// <param name="plane">The selected color plane.</param>
     /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
     /// <param name="subsamplingY">The vertical chroma subsampling shift.</param>
-    /// <param name="unitSize">The nominal restoration-unit width and height in plane samples.</param>
-    private void DecodePlane(Av1Plane plane, int subsamplingX, int subsamplingY, int unitSize)
+    /// <param name="unitSize">The nominal restoration-unit size in plane samples.</param>
+    /// <param name="wienerScratch">The convolution workspace.</param>
+    /// <param name="selfGuidedScratch">The projection and statistics workspace.</param>
+    private static void DecodePlane<TSample>(
+        ObuFrameHeader frameHeader,
+        Av1FrameInfo frameInfo,
+        Av1FrameBuffer<byte> frameBuffer,
+        Av1LoopRestorationBoundary boundary,
+        Av1FrameBuffer<byte> destinationBuffer,
+        Av1Plane plane,
+        int subsamplingX,
+        int subsamplingY,
+        int unitSize,
+        Span<ushort> wienerScratch,
+        Span<int> selfGuidedScratch)
+        where TSample : unmanaged
     {
         int planeIndex = (int)plane;
-        ObuFrameSize frameSize = this.frameHeader.FrameSize;
+        ObuFrameSize frameSize = frameHeader.FrameSize;
         int planeWidth = Av1Math.DivideLog2Ceiling(frameSize.SuperResolutionUpscaledWidth, subsamplingX);
         int planeHeight = Av1Math.DivideLog2Ceiling(frameSize.FrameHeight, subsamplingY);
-        int planeLength = planeWidth * planeHeight;
-        MemoryAllocator allocator = this.frameBuffer.MemoryAllocator;
-        ReadOnlySpan<byte> lowBitDepthSource = default;
-        ReadOnlySpan<ushort> highBitDepthSource = default;
-        int sourceStride;
-        if (this.frameBuffer.BytesPerSample == 2)
-        {
-            Span<short> signedPlane = this.frameBuffer.DeriveBlockPointer16(
-                plane,
-                Point.Empty,
-                subsamplingX,
-                subsamplingY,
-                out sourceStride);
+        int horizontalBorder = Av1LoopRestorationBoundary.HorizontalBorder;
+        Span<byte> sourceStorage = frameBuffer.DeriveBlockPointer(
+            plane,
+            new Point(-horizontalBorder, -FilterBorder),
+            subsamplingX,
+            subsamplingY,
+            out int sourceStride);
 
-            highBitDepthSource = MemoryMarshal.Cast<short, ushort>(signedPlane);
-        }
-        else
+        Span<TSample> source = MemoryMarshal.Cast<byte, TSample>(sourceStorage);
+
+        // The frame view includes one preceding row. Starting it above and left of the visible plane
+        // keeps every temporary boundary replacement inside the existing reconstruction allocation.
+        int sourceOrigin = ((FilterBorder + 1) * sourceStride) + horizontalBorder;
+        int extendedRowWidth = planeWidth + (2 * FilterBorder);
+        for (int row = 0; row < planeHeight; row++)
         {
-            lowBitDepthSource = this.frameBuffer.DeriveBlockPointer(
-                plane,
-                Point.Empty,
-                subsamplingX,
-                subsamplingY,
-                out sourceStride);
+            int offset = sourceOrigin + (row * sourceStride);
+            TSample first = source[offset];
+            TSample last = source[offset + planeWidth - 1];
+            source.Slice(offset - FilterBorder, FilterBorder).Fill(first);
+            source.Slice(offset + planeWidth, FilterBorder).Fill(last);
         }
 
-        int destinationStorageLength = planeLength * this.frameBuffer.BytesPerSample;
-        using IMemoryOwner<byte> destinationOwner = allocator.Allocate<byte>(destinationStorageLength);
-        Span<byte> destinationStorage = destinationOwner.Memory.Span[..destinationStorageLength];
-        Span<byte> lowBitDepthDestination = this.frameBuffer.BytesPerSample == 1
-            ? destinationStorage
-            : default;
-        Span<ushort> highBitDepthDestination = this.frameBuffer.BytesPerSample == 2
-            ? MemoryMarshal.Cast<byte, ushort>(destinationStorage)
-            : default;
+        // Only frame edges replicate samples. Internal unit/stripe edges will borrow preserved
+        // deblocked rows, while their horizontal context continues through adjacent reconstructed units.
+        ReadOnlySpan<TSample> top = source.Slice(sourceOrigin - FilterBorder, extendedRowWidth);
+        ReadOnlySpan<TSample> bottom = source.Slice(sourceOrigin + ((planeHeight - 1) * sourceStride) - FilterBorder, extendedRowWidth);
+        for (int row = 1; row <= FilterBorder; row++)
+        {
+            top.CopyTo(source.Slice(sourceOrigin - (row * sourceStride) - FilterBorder, extendedRowWidth));
+            bottom.CopyTo(source.Slice(sourceOrigin + ((planeHeight - 1 + row) * sourceStride) - FilterBorder, extendedRowWidth));
+        }
 
-        // Restoration units overlap in their filter context but not in their output. Reading the reconstructed
-        // plane directly while writing a native-width destination matches libaom's frame/rst_frame ownership.
+        Span<byte> destinationStorage = destinationBuffer.DeriveBlockPointer(
+            plane,
+            Point.Empty,
+            subsamplingX,
+            subsamplingY,
+            out int destinationStride);
 
-        // The last restoration unit can absorb a remainder, but both filters process at most 64 luma samples
-        // per axis before reusing scratch. Unit dimensions therefore do not determine the filter workspace.
+        // The frame's block view begins one row before its visible origin. Advance by logical samples
+        // after selecting the physical type, preserving the aligned destination stride.
+        Span<TSample> destination = MemoryMarshal.Cast<byte, TSample>(destinationStorage)[destinationStride..];
+
+        // Preserve only the three overwritten rows on each side of the active stripe. The fixed
+        // ushort storage accommodates either physical precision; its row stride remains unchanged
+        // when a byte frame uses half of each row's byte capacity.
+        Span<TSample> savedRows = MemoryMarshal.Cast<ushort, TSample>(boundary.GetStripeSaveBuffer());
+
         int extendedUnitSize = (unitSize * 3) / 2;
-        int processingUnitWidth = Av1LoopRestorationBoundary.ProcessingStripeSize >> subsamplingX;
-        int maximumBlockWidth = Math.Min(processingUnitWidth, planeWidth);
-        int maximumStripeHeight = Av1LoopRestorationBoundary.ProcessingStripeSize >> subsamplingY;
-        int borderedStride = maximumBlockWidth + (FilterBorder * 2) + WienerPadding;
-        int borderedLength = borderedStride * (maximumStripeHeight + (FilterBorder * 2) + WienerPadding);
-        int wienerScratchLength = Av1WienerFilter.GetScratchLength(maximumBlockWidth, maximumStripeHeight);
-        int filterOutputLength = this.frameBuffer.BytesPerSample == 1
-            ? maximumBlockWidth * maximumStripeHeight
-            : 0;
-
-        int ushortScratchLength = borderedLength + wienerScratchLength + filterOutputLength;
-        using IMemoryOwner<ushort> ushortScratchOwner = allocator.Allocate<ushort>(ushortScratchLength);
-        Span<ushort> ushortScratch = ushortScratchOwner.Memory.Span[..ushortScratchLength];
-        Span<ushort> borderedSource = ushortScratch[..borderedLength];
-        Span<ushort> wienerScratch = ushortScratch.Slice(borderedLength, wienerScratchLength);
-        Span<ushort> filterOutput = ushortScratch[(borderedLength + wienerScratchLength)..];
-        int selfGuidedScratchLength = Av1SelfGuidedFilter.GetScratchLength(maximumBlockWidth, maximumStripeHeight);
-        using IMemoryOwner<int> selfGuidedScratchOwner = allocator.Allocate<int>(selfGuidedScratchLength);
-        Span<int> selfGuidedScratch = selfGuidedScratchOwner.Memory.Span[..selfGuidedScratchLength];
-
-        int unitRowCount = this.frameInfo.GetLoopRestorationUnitRowCount(planeIndex);
-        int unitColumnCount = this.frameInfo.GetLoopRestorationUnitColumnCount(planeIndex);
+        int unitRowCount = frameInfo.GetLoopRestorationUnitRowCount(planeIndex);
+        int unitColumnCount = frameInfo.GetLoopRestorationUnitColumnCount(planeIndex);
         int unitY = 0;
         for (int unitRow = 0; unitRow < unitRowCount; unitRow++)
         {
@@ -178,8 +303,8 @@ internal sealed class Av1LoopRestorationDecoder
             int verticalEnd = unitY + unadjustedUnitHeight;
             int verticalOffset = Av1LoopRestorationBoundary.ProcessingStripeOffset >> subsamplingY;
 
-            // Unit ownership is signaled on the unshifted grid, but filtering rows follow the
-            // processing-stripe grid positioned eight luma samples above it.
+            // Syntax owns the unshifted grid; filtering begins eight luma rows above it, except at
+            // the frame edge. The final unit absorbs a remainder smaller than half a nominal unit.
             verticalStart = Math.Max(0, verticalStart - verticalOffset);
             if (verticalEnd < planeHeight)
             {
@@ -191,29 +316,26 @@ internal sealed class Av1LoopRestorationDecoder
             {
                 int remainingWidth = planeWidth - unitX;
                 int unitWidth = remainingWidth < extendedUnitSize ? remainingWidth : unitSize;
-                Av1LoopRestorationUnit unit = this.frameInfo.GetLoopRestorationUnit(
-                    planeIndex,
-                    unitRow,
-                    unitColumn);
-
-                this.FilterUnit(
+                Av1LoopRestorationUnit unit = frameInfo.GetLoopRestorationUnit(planeIndex, unitRow, unitColumn);
+                FilterUnit(
+                    boundary,
+                    frameBuffer.BitDepth.GetBitCount(),
                     planeIndex,
                     subsamplingX,
-                    lowBitDepthSource,
-                    highBitDepthSource,
+                    subsamplingY,
+                    source,
+                    sourceOrigin,
                     sourceStride,
-                    lowBitDepthDestination,
-                    highBitDepthDestination,
-                    planeWidth,
+                    destination,
+                    destinationStride,
                     planeHeight,
                     unitX,
-                    unitX + unitWidth,
+                    unitWidth,
                     verticalStart,
                     verticalEnd,
                     unit,
-                    borderedSource,
+                    savedRows,
                     wienerScratch,
-                    filterOutput,
                     selfGuidedScratch);
 
                 unitX += unitWidth;
@@ -221,137 +343,132 @@ internal sealed class Av1LoopRestorationDecoder
 
             unitY += unadjustedUnitHeight;
         }
-
-        this.CopyWorkingBufferToPlane(
-            plane,
-            subsamplingX,
-            subsamplingY,
-            planeWidth,
-            planeHeight,
-            lowBitDepthDestination,
-            highBitDepthDestination);
     }
 
     /// <summary>
-    /// Copies or filters one restoration unit without reading already restored destination samples.
+    /// Filters a unit using temporary stripe context, restoring every overwritten source row afterward.
     /// </summary>
-    /// <param name="plane">The zero-based color-plane index.</param>
-    /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
-    /// <param name="lowBitDepthSource">The immutable byte post-super-resolution plane, when present.</param>
-    /// <param name="highBitDepthSource">The immutable 16-bit post-super-resolution plane, when present.</param>
-    /// <param name="sourceStride">The number of samples between source rows.</param>
-    /// <param name="lowBitDepthDestination">The byte restoration destination, when present.</param>
-    /// <param name="highBitDepthDestination">The native 16-bit restoration destination, when present.</param>
-    /// <param name="planeWidth">The visible plane width.</param>
+    /// <typeparam name="TSample">The physical plane sample type.</typeparam>
+    /// <param name="boundary">The preserved stripe context.</param>
+    /// <param name="bitDepth">The number of significant sample bits.</param>
+    /// <param name="plane">The zero-based plane index.</param>
+    /// <param name="subsamplingX">The horizontal chroma shift.</param>
+    /// <param name="subsamplingY">The vertical chroma shift.</param>
+    /// <param name="source">The reconstructed plane including its existing border.</param>
+    /// <param name="sourceOrigin">The visible plane origin in source samples.</param>
+    /// <param name="sourceStride">The source row stride in samples.</param>
+    /// <param name="destination">The separate restored plane.</param>
+    /// <param name="destinationStride">The restored output row stride in samples.</param>
     /// <param name="planeHeight">The visible plane height.</param>
-    /// <param name="horizontalStart">The unit's first plane column.</param>
-    /// <param name="horizontalEnd">The exclusive unit column limit.</param>
-    /// <param name="verticalStart">The unit's stripe-aligned first plane row.</param>
+    /// <param name="horizontalStart">The first unit column.</param>
+    /// <param name="unitWidth">The unit width.</param>
+    /// <param name="verticalStart">The stripe-adjusted first unit row.</param>
     /// <param name="verticalEnd">The exclusive unit row limit.</param>
-    /// <param name="unit">The decoded unit filter and coefficients.</param>
-    /// <param name="borderedSource">Reusable storage for one bordered processing stripe.</param>
-    /// <param name="wienerScratch">Reusable Wiener intermediate storage.</param>
-    /// <param name="filterOutput">Reusable native-precision filter output for an eight-bit frame.</param>
-    /// <param name="selfGuidedScratch">Reusable self-guided intermediate storage.</param>
-    private void FilterUnit(
+    /// <param name="unit">The decoded filter choice and coefficients.</param>
+    /// <param name="savedRows">Storage for the temporarily overwritten source rows.</param>
+    /// <param name="wienerScratch">The two-pass convolution workspace.</param>
+    /// <param name="selfGuidedScratch">The self-guided arithmetic workspace.</param>
+    private static void FilterUnit<TSample>(
+        Av1LoopRestorationBoundary boundary,
+        int bitDepth,
         int plane,
         int subsamplingX,
-        ReadOnlySpan<byte> lowBitDepthSource,
-        ReadOnlySpan<ushort> highBitDepthSource,
+        int subsamplingY,
+        Span<TSample> source,
+        int sourceOrigin,
         int sourceStride,
-        Span<byte> lowBitDepthDestination,
-        Span<ushort> highBitDepthDestination,
-        int planeWidth,
+        Span<TSample> destination,
+        int destinationStride,
         int planeHeight,
         int horizontalStart,
-        int horizontalEnd,
+        int unitWidth,
         int verticalStart,
         int verticalEnd,
         Av1LoopRestorationUnit unit,
-        Span<ushort> borderedSource,
+        Span<TSample> savedRows,
         Span<ushort> wienerScratch,
-        Span<ushort> filterOutput,
         Span<int> selfGuidedScratch)
+        where TSample : unmanaged
     {
-        int unitWidth = horizontalEnd - horizontalStart;
         if (unit.FilterType == Av1RestorationFilterType.None)
         {
-            // Every output sample still belongs to exactly one unit, including units that select
-            // RESTORE_NONE, so copy the immutable source rectangle into the destination plane.
-            CopyRectangle(
-                lowBitDepthSource,
-                highBitDepthSource,
-                sourceStride,
-                lowBitDepthDestination,
-                highBitDepthDestination,
-                planeWidth,
-                horizontalStart,
-                unitWidth,
-                verticalStart,
-                verticalEnd);
+            for (int row = verticalStart; row < verticalEnd; row++)
+            {
+                int sourceOffset = sourceOrigin + (row * sourceStride) + horizontalStart;
+                source.Slice(sourceOffset, unitWidth).CopyTo(destination.Slice((row * destinationStride) + horizontalStart, unitWidth));
+            }
 
             return;
         }
 
-        int subsamplingY = plane == (int)Av1Plane.Y || !this.sequenceHeader.ColorConfig.SubSamplingY ? 0 : 1;
         int fullStripeHeight = Av1LoopRestorationBoundary.ProcessingStripeSize >> subsamplingY;
         int stripeOffset = Av1LoopRestorationBoundary.ProcessingStripeOffset >> subsamplingY;
-        int unitHeight = verticalEnd - verticalStart;
-        for (int unitRow = 0; unitRow < unitHeight;)
+        int processingUnitWidth = Av1LoopRestorationBoundary.ProcessingStripeSize >> subsamplingX;
+        int horizontalBorder = Av1LoopRestorationBoundary.HorizontalBorder;
+        int boundaryWidth = unitWidth + (2 * horizontalBorder);
+        int savedStride = (Av1LoopRestorationBoundary.SavedRowLength * sizeof(ushort)) / Unsafe.SizeOf<TSample>();
+        for (int stripeStart = verticalStart; stripeStart < verticalEnd;)
         {
-            int stripeStart = verticalStart + unitRow;
             int frameStripe = (stripeStart + stripeOffset) / fullStripeHeight;
             int nominalStripeHeight = fullStripeHeight - (frameStripe == 0 ? stripeOffset : 0);
             int stripeHeight = Math.Min(nominalStripeHeight, verticalEnd - stripeStart);
+            bool copyAbove = stripeStart != 0;
+            bool copyBelow = stripeStart + nominalStripeHeight < planeHeight;
 
-            // The first frame stripe is shortened by the upward offset; subsequent stripes remain
-            // 64 luma samples high, with the current unit limiting only the final iteration.
-            int processingUnitWidth = Av1LoopRestorationBoundary.ProcessingStripeSize >> subsamplingX;
+            if (copyAbove)
+            {
+                for (int row = 0; row < FilterBorder; row++)
+                {
+                    int offset = sourceOrigin + ((stripeStart + row - FilterBorder) * sourceStride) + horizontalStart - horizontalBorder;
+                    Span<TSample> replaced = source.Slice(offset, boundaryWidth);
+                    replaced.CopyTo(savedRows.Slice(row * savedStride, boundaryWidth));
 
-            // Both filters consume bounded processing units. Their context still comes from the full plane,
-            // so a chunk boundary never becomes a replicated edge or reads an already restored sample.
+                    // Two preserved deblocked rows expand upward as [0, 0, 1].
+                    ReadOnlySpan<TSample> boundaryRow = MemoryMarshal.Cast<byte, TSample>(
+                        boundary.GetRowAboveWithBorder(plane, frameStripe, Math.Max(row - 1, 0)));
+
+                    boundaryRow.Slice(horizontalStart, boundaryWidth).CopyTo(replaced);
+                }
+            }
+
+            if (copyBelow)
+            {
+                for (int row = 0; row < FilterBorder; row++)
+                {
+                    int offset = sourceOrigin + ((stripeStart + stripeHeight + row) * sourceStride) + horizontalStart - horizontalBorder;
+                    Span<TSample> replaced = source.Slice(offset, boundaryWidth);
+                    replaced.CopyTo(savedRows.Slice((FilterBorder + row) * savedStride, boundaryWidth));
+
+                    // The bottom expansion repeats the last deblocked row as [0, 1, 1].
+                    ReadOnlySpan<TSample> boundaryRow = MemoryMarshal.Cast<byte, TSample>(
+                        boundary.GetRowBelowWithBorder(plane, frameStripe, Math.Min(row, 1)));
+
+                    boundaryRow.Slice(horizontalStart, boundaryWidth).CopyTo(replaced);
+                }
+            }
+
             for (int unitColumn = 0; unitColumn < unitWidth; unitColumn += processingUnitWidth)
             {
                 int blockWidth = Math.Min(processingUnitWidth, unitWidth - unitColumn);
                 int blockStart = horizontalStart + unitColumn;
-                int borderedStride = blockWidth + (FilterBorder * 2) + WienerPadding;
-                int sourceLength = borderedStride * (stripeHeight + (FilterBorder * 2) + WienerPadding);
-                Span<ushort> filterSource = borderedSource[..sourceLength];
-                this.PopulateBorderedSource(
-                    plane,
-                    frameStripe,
-                    lowBitDepthSource,
-                    highBitDepthSource,
-                    sourceStride,
-                    planeWidth,
-                    planeHeight,
-                    blockStart,
-                    blockWidth,
-                    stripeStart,
-                    stripeHeight,
-                    borderedStride,
-                    filterSource);
+                int sourceOffset = sourceOrigin + ((stripeStart - FilterBorder) * sourceStride) + blockStart - FilterBorder;
+                int destinationOffset = (stripeStart * destinationStride) + blockStart;
+                ReadOnlySpan<TSample> filterSource = source[sourceOffset..];
+                Span<TSample> filterDestination = destination[destinationOffset..];
 
-                int destinationOffset = (stripeStart * planeWidth) + blockStart;
-                Span<ushort> filterDestination = highBitDepthDestination.IsEmpty
-                    ? filterOutput[..(blockWidth * stripeHeight)]
-                    : highBitDepthDestination[destinationOffset..];
-
-                int filterDestinationStride = highBitDepthDestination.IsEmpty ? blockWidth : planeWidth;
-
-                // Native Wiener kernels round the final chunk's write width up for SIMD. This kernel accepts
-                // the exact tail width, retaining all seven-tap context without writing beyond the plane.
+                // Both kernels read their seven-tap context directly from the reconstructed plane.
+                // The typed source and destination keep byte frames byte-backed through both filters.
                 if (unit.FilterType == Av1RestorationFilterType.Wiener)
                 {
                     int scratchLength = Av1WienerFilter.GetScratchLength(blockWidth, stripeHeight);
                     Av1WienerFilter.FilterStripe(
                         filterSource,
-                        borderedStride,
+                        sourceStride,
                         filterDestination,
-                        filterDestinationStride,
+                        destinationStride,
                         blockWidth,
                         stripeHeight,
-                        this.frameBuffer.BitDepth.GetBitCount(),
+                        bitDepth,
                         unit.WienerHorizontal,
                         unit.WienerVertical,
                         wienerScratch[..scratchLength]);
@@ -361,275 +478,39 @@ internal sealed class Av1LoopRestorationDecoder
                     int scratchLength = Av1SelfGuidedFilter.GetScratchLength(blockWidth, stripeHeight);
                     Av1SelfGuidedFilter.FilterBlock(
                         filterSource,
-                        borderedStride,
+                        sourceStride,
                         filterDestination,
-                        filterDestinationStride,
+                        destinationStride,
                         blockWidth,
                         stripeHeight,
-                        this.frameBuffer.BitDepth.GetBitCount(),
+                        bitDepth,
                         unit.SgrParameterSet,
                         unit.SgrProjectionCoefficients,
                         selfGuidedScratch[..scratchLength]);
                 }
+            }
 
-                if (highBitDepthDestination.IsEmpty)
+            // Later stripes and neighboring units must see the original reconstruction, never a
+            // prior unit's temporary deblocked context. Restore the exact saved bytes before advancing.
+            if (copyAbove)
+            {
+                for (int row = 0; row < FilterBorder; row++)
                 {
-                    CopyFilterOutput(
-                        filterDestination,
-                        filterDestinationStride,
-                        lowBitDepthDestination,
-                        destinationOffset,
-                        planeWidth,
-                        blockWidth,
-                        stripeHeight);
+                    int offset = sourceOrigin + ((stripeStart + row - FilterBorder) * sourceStride) + horizontalStart - horizontalBorder;
+                    savedRows.Slice(row * savedStride, boundaryWidth).CopyTo(source.Slice(offset, boundaryWidth));
                 }
             }
 
-            unitRow += stripeHeight;
-        }
-    }
-
-    /// <summary>
-    /// Builds one filter source rectangle with normative horizontal and stripe-boundary extension.
-    /// </summary>
-    /// <param name="plane">The zero-based color-plane index.</param>
-    /// <param name="frameStripe">The frame-relative processing-stripe index.</param>
-    /// <param name="lowBitDepthSource">The immutable byte post-super-resolution plane, when present.</param>
-    /// <param name="highBitDepthSource">The immutable 16-bit post-super-resolution plane, when present.</param>
-    /// <param name="sourceStride">The number of samples between source rows.</param>
-    /// <param name="planeWidth">The visible plane width.</param>
-    /// <param name="planeHeight">The visible plane height.</param>
-    /// <param name="blockStart">The first filtered plane column.</param>
-    /// <param name="blockWidth">The number of filtered columns.</param>
-    /// <param name="stripeStart">The first filtered plane row.</param>
-    /// <param name="stripeHeight">The number of filtered rows.</param>
-    /// <param name="destinationStride">The number of samples between bordered destination rows.</param>
-    /// <param name="destination">The bordered filter source rectangle.</param>
-    private void PopulateBorderedSource(
-        int plane,
-        int frameStripe,
-        ReadOnlySpan<byte> lowBitDepthSource,
-        ReadOnlySpan<ushort> highBitDepthSource,
-        int sourceStride,
-        int planeWidth,
-        int planeHeight,
-        int blockStart,
-        int blockWidth,
-        int stripeStart,
-        int stripeHeight,
-        int destinationStride,
-        Span<ushort> destination)
-    {
-        int stripeEnd = stripeStart + stripeHeight;
-        int sourceRowCount = stripeHeight + (FilterBorder * 2) + WienerPadding;
-        for (int destinationRow = 0; destinationRow < sourceRowCount; destinationRow++)
-        {
-            int sourceY = stripeStart + destinationRow - FilterBorder;
-            ReadOnlySpan<byte> lowBitDepthSourceRow = default;
-            ReadOnlySpan<ushort> highBitDepthSourceRow;
-            if (sourceY < 0)
+            if (copyBelow)
             {
-                highBitDepthSourceRow = this.boundary.GetRowAbove(plane, frameStripe, 0);
-            }
-            else if (sourceY < stripeStart)
-            {
-                // Two preserved deblocked rows expand to three filter rows as [0, 0, 1].
-                int contextRow = Math.Min(Math.Max(destinationRow - 1, 0), 1);
-                highBitDepthSourceRow = this.boundary.GetRowAbove(plane, frameStripe, contextRow);
-            }
-            else if (sourceY >= planeHeight)
-            {
-                highBitDepthSourceRow = this.boundary.GetRowBelow(plane, frameStripe, 0);
-            }
-            else if (sourceY >= stripeEnd)
-            {
-                // The bottom expansion is [0, 1, 1]; the padded Wiener zero tap also reads row 1.
-                int contextRow = Math.Min(sourceY - stripeEnd, 1);
-                highBitDepthSourceRow = this.boundary.GetRowBelow(plane, frameStripe, contextRow);
-            }
-            else if (!highBitDepthSource.IsEmpty)
-            {
-                int sourceOffset = sourceStride + (sourceY * sourceStride);
-                highBitDepthSourceRow = highBitDepthSource.Slice(sourceOffset, planeWidth);
-            }
-            else
-            {
-                int sourceOffset = sourceStride + (sourceY * sourceStride);
-                lowBitDepthSourceRow = lowBitDepthSource.Slice(sourceOffset, planeWidth);
-                highBitDepthSourceRow = default;
-            }
-
-            Span<ushort> destinationRowSpan = destination.Slice(destinationRow * destinationStride, destinationStride);
-            int sourceX = blockStart - FilterBorder;
-            int leftExtension = Math.Max(-sourceX, 0);
-
-            // Horizontal context crosses restoration-unit and self-guided processing-unit edges.
-            // Replication occurs only at the visible frame boundary.
-            if (leftExtension > 0)
-            {
-                ushort firstSample = highBitDepthSourceRow.IsEmpty
-                    ? lowBitDepthSourceRow[0]
-                    : highBitDepthSourceRow[0];
-
-                destinationRowSpan[..leftExtension].Fill(firstSample);
-            }
-
-            int copiedStart = Math.Max(sourceX, 0);
-            int copiedEnd = Math.Min(sourceX + destinationStride, planeWidth);
-            int copiedLength = copiedEnd - copiedStart;
-            Span<ushort> copiedDestination = destinationRowSpan.Slice(leftExtension, copiedLength);
-            if (!highBitDepthSourceRow.IsEmpty)
-            {
-                highBitDepthSourceRow.Slice(copiedStart, copiedLength).CopyTo(copiedDestination);
-            }
-            else
-            {
-                ReadOnlySpan<byte> copiedSource = lowBitDepthSourceRow.Slice(copiedStart, copiedLength);
-                for (int column = 0; column < copiedLength; column++)
+                for (int row = 0; row < FilterBorder; row++)
                 {
-                    copiedDestination[column] = copiedSource[column];
+                    int offset = sourceOrigin + ((stripeStart + stripeHeight + row) * sourceStride) + horizontalStart - horizontalBorder;
+                    savedRows.Slice((FilterBorder + row) * savedStride, boundaryWidth).CopyTo(source.Slice(offset, boundaryWidth));
                 }
             }
 
-            int populatedLength = leftExtension + copiedLength;
-            if (populatedLength < destinationStride)
-            {
-                ushort lastSample = highBitDepthSourceRow.IsEmpty
-                    ? lowBitDepthSourceRow[^1]
-                    : highBitDepthSourceRow[^1];
-
-                destinationRowSpan[populatedLength..].Fill(lastSample);
-            }
-        }
-    }
-
-    /// <summary>
-    /// Copies an unfiltered restoration-unit rectangle between plane working buffers.
-    /// </summary>
-    /// <param name="lowBitDepthSource">The immutable byte source plane, when present.</param>
-    /// <param name="highBitDepthSource">The immutable 16-bit source plane, when present.</param>
-    /// <param name="sourceStride">The number of samples between source rows.</param>
-    /// <param name="lowBitDepthDestination">The byte destination, when present.</param>
-    /// <param name="highBitDepthDestination">The native 16-bit destination, when present.</param>
-    /// <param name="planeWidth">The number of samples between plane rows.</param>
-    /// <param name="horizontalStart">The first copied column.</param>
-    /// <param name="width">The number of copied columns.</param>
-    /// <param name="verticalStart">The first copied row.</param>
-    /// <param name="verticalEnd">The exclusive copied row limit.</param>
-    private static void CopyRectangle(
-        ReadOnlySpan<byte> lowBitDepthSource,
-        ReadOnlySpan<ushort> highBitDepthSource,
-        int sourceStride,
-        Span<byte> lowBitDepthDestination,
-        Span<ushort> highBitDepthDestination,
-        int planeWidth,
-        int horizontalStart,
-        int width,
-        int verticalStart,
-        int verticalEnd)
-    {
-        for (int row = verticalStart; row < verticalEnd; row++)
-        {
-            int sourceOffset = sourceStride + (row * sourceStride) + horizontalStart;
-            int destinationOffset = (row * planeWidth) + horizontalStart;
-            if (!highBitDepthDestination.IsEmpty)
-            {
-                highBitDepthSource.Slice(sourceOffset, width).CopyTo(highBitDepthDestination.Slice(destinationOffset, width));
-            }
-            else
-            {
-                lowBitDepthSource.Slice(sourceOffset, width).CopyTo(lowBitDepthDestination.Slice(destinationOffset, width));
-            }
-        }
-    }
-
-    /// <summary>
-    /// Narrows one bounded restoration-filter output into its eight-bit frame destination.
-    /// </summary>
-    /// <param name="source">The 16-bit filter output.</param>
-    /// <param name="sourceStride">The number of samples between source rows.</param>
-    /// <param name="destination">The byte restoration destination.</param>
-    /// <param name="destinationOffset">The offset of the first destination sample.</param>
-    /// <param name="destinationStride">The number of samples between destination rows.</param>
-    /// <param name="width">The copied width in samples.</param>
-    /// <param name="height">The copied height in samples.</param>
-    private static void CopyFilterOutput(
-        ReadOnlySpan<ushort> source,
-        int sourceStride,
-        Span<byte> destination,
-        int destinationOffset,
-        int destinationStride,
-        int width,
-        int height)
-    {
-        for (int row = 0; row < height; row++)
-        {
-            ReadOnlySpan<ushort> sourceRow = source.Slice(row * sourceStride, width);
-            Span<byte> destinationRow = destination.Slice(destinationOffset + (row * destinationStride), width);
-
-            for (int column = 0; column < width; column++)
-            {
-                // The 8-bit restoration filters clip every result to the bit-depth range before this exact narrowing.
-                destinationRow[column] = (byte)sourceRow[column];
-            }
-        }
-    }
-
-    /// <summary>
-    /// Copies one native-width restoration buffer back to its reconstructed plane.
-    /// </summary>
-    /// <param name="plane">The luma or chroma plane.</param>
-    /// <param name="subsamplingX">The horizontal chroma subsampling shift.</param>
-    /// <param name="subsamplingY">The vertical chroma subsampling shift.</param>
-    /// <param name="planeWidth">The visible plane width.</param>
-    /// <param name="planeHeight">The visible plane height.</param>
-    /// <param name="lowBitDepthSource">The row-major byte restoration buffer, when present.</param>
-    /// <param name="highBitDepthSource">The row-major native restoration buffer, when present.</param>
-    private void CopyWorkingBufferToPlane(
-        Av1Plane plane,
-        int subsamplingX,
-        int subsamplingY,
-        int planeWidth,
-        int planeHeight,
-        ReadOnlySpan<byte> lowBitDepthSource,
-        ReadOnlySpan<ushort> highBitDepthSource)
-    {
-        Span<byte> lowBitDepthPlane = default;
-        Span<ushort> highBitDepthPlane = default;
-        int destinationStride;
-        if (this.frameBuffer.BytesPerSample == 2)
-        {
-            Span<short> signedPlane = this.frameBuffer.DeriveBlockPointer16(
-                plane,
-                Point.Empty,
-                subsamplingX,
-                subsamplingY,
-                out destinationStride);
-
-            highBitDepthPlane = MemoryMarshal.Cast<short, ushort>(signedPlane);
-        }
-        else
-        {
-            lowBitDepthPlane = this.frameBuffer.DeriveBlockPointer(
-                plane,
-                Point.Empty,
-                subsamplingX,
-                subsamplingY,
-                out destinationStride);
-        }
-
-        for (int row = 0; row < planeHeight; row++)
-        {
-            // The destination view has the same preceding prediction row as the source view.
-            int frameOffset = destinationStride + (row * destinationStride);
-            if (!highBitDepthPlane.IsEmpty)
-            {
-                highBitDepthSource.Slice(row * planeWidth, planeWidth).CopyTo(highBitDepthPlane[frameOffset..]);
-            }
-            else
-            {
-                lowBitDepthSource.Slice(row * planeWidth, planeWidth).CopyTo(lowBitDepthPlane[frameOffset..]);
-            }
+            stripeStart += stripeHeight;
         }
     }
 }

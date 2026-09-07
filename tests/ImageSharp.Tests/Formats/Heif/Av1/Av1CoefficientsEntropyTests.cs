@@ -1252,9 +1252,14 @@ public class Av1CoefficientsEntropyTests
         Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
         ushort endOfBlock = 0;
         Av1BlockModeInfo modeInfo = new(blockSize, new Point(0, 0));
-        Av1TransformInfo transformInfo = new(transformSize, 0, 0);
-        int[] aboveContexts = new int[1];
-        int[] leftContexts = new int[1];
+        Av1TransformInfo transformInfo = new(transformSize, 0, 0)
+        {
+            EndOfBlock = 16,
+            MaximumCoefficientIndex = 15
+        };
+
+        byte[] aboveContexts = new byte[1];
+        byte[] leftContexts = new byte[1];
         Av1TransformBlockContext transformBlockContext = default;
         Configuration configuration = Configuration.Default;
         using Av1SymbolEncoder encoder = new(configuration, CoefficientSyntaxBufferLength, BaseQIndex, updateCdf: true);
@@ -1293,6 +1298,7 @@ public class Av1CoefficientsEntropyTests
 
         // Assert
         Assert.Equal(endOfBlock, transformInfo.EndOfBlock);
+        Assert.Equal(0, transformInfo.MaximumCoefficientIndex);
         Assert.Equal(expected, actuals);
     }
 
@@ -1324,8 +1330,8 @@ public class Av1CoefficientsEntropyTests
         const Av1FilterIntraMode filterIntraMode = Av1FilterIntraMode.DC;
         Av1BlockModeInfo modeInfo = new(blockSize, new Point(0, 0));
         Av1TransformInfo transformInfo = new(transformSize, 0, 0);
-        int[] aboveContexts = new int[1];
-        int[] leftContexts = new int[1];
+        byte[] aboveContexts = new byte[1];
+        byte[] leftContexts = new byte[1];
         Av1TransformBlockContext transformBlockContext = default;
         Configuration configuration = Configuration.Default;
         using Av1SymbolEncoder encoder = new(configuration, CoefficientSyntaxBufferLength, BaseQIndex, updateCdf: true);
@@ -1372,6 +1378,17 @@ public class Av1CoefficientsEntropyTests
 
         // Assert
         Assert.Equal(endOfBlock, transformInfo.EndOfBlock);
+
+        // These positive coefficients retain a positive DC sign (class two) above the saturated three-bit sum.
+        int levelSum = 0;
+        foreach (int coefficient in coefficientsBuffer)
+        {
+            levelSum += coefficient;
+        }
+
+        byte expectedContext = (byte)(16 + Math.Min(7, levelSum));
+        Assert.Equal(expectedContext, aboveContexts[0]);
+        Assert.Equal(expectedContext, leftContexts[0]);
     }
 
     [Theory]
@@ -1448,8 +1465,8 @@ public class Av1CoefficientsEntropyTests
     {
         Av1BlockModeInfo modeInfo = new(blockSize, new Point(0, 0));
         Av1TransformInfo transformInfo = new(transformSize, 0, 0);
-        int[] aboveContexts = new int[transformSize.Get4x4WideCount()];
-        int[] leftContexts = new int[transformSize.Get4x4HighCount()];
+        byte[] aboveContexts = new byte[transformSize.Get4x4WideCount()];
+        byte[] leftContexts = new byte[transformSize.Get4x4HighCount()];
         Av1TransformBlockContext transformBlockContext = default;
         Configuration configuration = Configuration.Default;
         using Av1SymbolEncoder encoder = new(configuration, CoefficientSyntaxBufferLength, BaseQIndex, updateCdf: true);
@@ -1515,13 +1532,32 @@ public class Av1CoefficientsEntropyTests
         // Assert
         Assert.Equal(endOfBlock, transformInfo.EndOfBlock);
 
-        // Reference quant_common.c defines 8-bit qindex 23 as DC=26 and AC=30. Entropy output now publishes
-        // dequantized raster values, including zero runs and positions beyond EOB, rather than packed raw levels.
+        // At 8-bit quantizer index 23, the dequantization steps are 26 for DC and 30 for AC. Check every raster
+        // position, including zero runs and the tail beyond EOB, independently of the entropy scan traversal.
+        int maximumCoefficientIndex = 0;
         for (int coefficientIndex = 0; coefficientIndex < coefficientCount; coefficientIndex++)
         {
             int dequant = coefficientIndex == 0 ? 26 : 30;
             Assert.Equal(coefficientsBuffer[coefficientIndex] * dequant, actuals[coefficientIndex]);
+            if (coefficientsBuffer[coefficientIndex] != 0)
+            {
+                maximumCoefficientIndex = coefficientIndex;
+            }
         }
+
+        Assert.Equal(maximumCoefficientIndex, transformInfo.MaximumCoefficientIndex);
+
+        // Derive the stored edge byte from the original quantized values, independently of decoded magnitudes.
+        int levelSum = 0;
+        foreach (int coefficient in coefficientsBuffer)
+        {
+            levelSum += Math.Abs(coefficient);
+        }
+
+        int dcClass = coefficientsBuffer[0] < 0 ? 1 : coefficientsBuffer[0] > 0 ? 2 : 0;
+        byte expectedContext = (byte)((dcClass * 8) + Math.Min(7, levelSum));
+        Assert.All(aboveContexts, value => Assert.Equal(expectedContext, value));
+        Assert.All(leftContexts, value => Assert.Equal(expectedContext, value));
     }
 
     private static Av1MacroBlockModeInfo CreateModeInfo(Av1PredictionMode mode)

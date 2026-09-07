@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
@@ -30,6 +31,124 @@ public class Av1CompoundBlockDecoderTests
     /// </summary>
     private const HwIntrinsics CompoundPredictionConfigurations =
         HwIntrinsics.AllowAll | HwIntrinsics.DisableAVX512F | HwIntrinsics.DisableAVX | HwIntrinsics.DisableHWIntrinsic;
+
+    /// <summary>
+    /// Inter luma becomes available to shared chroma prediction after all of the block's residuals are reconstructed.
+    /// </summary>
+    /// <param name="bitDepthValue">The reconstructed sample precision.</param>
+    /// <param name="colorFormatValue">The chroma subsampling layout.</param>
+    /// <param name="largeTransform">Whether the final transform extends below the visible frame.</param>
+    [Theory]
+    [InlineData((int)Av1BitDepth.EightBit, (int)Av1ColorFormat.Yuv420, false)]
+    [InlineData((int)Av1BitDepth.TenBit, (int)Av1ColorFormat.Yuv420, false)]
+    [InlineData((int)Av1BitDepth.TwelveBit, (int)Av1ColorFormat.Yuv420, false)]
+    [InlineData((int)Av1BitDepth.EightBit, (int)Av1ColorFormat.Yuv422, false)]
+    [InlineData((int)Av1BitDepth.TenBit, (int)Av1ColorFormat.Yuv422, false)]
+    [InlineData((int)Av1BitDepth.TwelveBit, (int)Av1ColorFormat.Yuv422, false)]
+    [InlineData((int)Av1BitDepth.EightBit, (int)Av1ColorFormat.Yuv420, true)]
+    [InlineData((int)Av1BitDepth.TenBit, (int)Av1ColorFormat.Yuv420, true)]
+    [InlineData((int)Av1BitDepth.TwelveBit, (int)Av1ColorFormat.Yuv420, true)]
+    [InlineData((int)Av1BitDepth.EightBit, (int)Av1ColorFormat.Yuv422, true)]
+    [InlineData((int)Av1BitDepth.TenBit, (int)Av1ColorFormat.Yuv422, true)]
+    [InlineData((int)Av1BitDepth.TwelveBit, (int)Av1ColorFormat.Yuv422, true)]
+    public void InterChromaFromLumaIsStoredAfterBlock(int bitDepthValue, int colorFormatValue, bool largeTransform)
+    {
+        Av1BitDepth bitDepth = (Av1BitDepth)bitDepthValue;
+        Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
+        ObuSequenceHeader sequenceHeader = CreateSequenceHeader(bitDepth, 8, colorFormat);
+        ObuFrameHeader frameHeader = CreateFrameHeader(8);
+        frameHeader.GetReferenceFrameIndices()[0] = 0;
+
+        using Av1ReferenceFrameStore referenceFrames = new();
+        Assert.True(referenceFrames.Commit(1, CreatePatternReferenceFrame(sequenceHeader, frameHeader, colorFormat, 0), showFrame: false));
+
+        using Av1FrameBuffer<byte> frameBuffer = new(Configuration.Default, sequenceHeader, colorFormat, false);
+        using Av1FrameInfo frameInfo = new(sequenceHeader);
+        Av1SuperblockInfo superblockInfo = frameInfo.GetSuperblock(Point.Empty);
+        int transformCount = largeTransform ? 1 : 2;
+        Span<Av1TransformInfo> transforms = superblockInfo.GetTransformInfoY();
+        for (int i = 0; i < transformCount; i++)
+        {
+            transforms[i] = new Av1TransformInfo(largeTransform ? Av1TransformSize.Size4x16 : Av1TransformSize.Size4x4, 0, i);
+        }
+
+        // The four-pixel-wide block shares chroma with its right neighbor. Its coded height exceeds the frame,
+        // allowing the test to distinguish visible rows from the extent rounded to the final transform height.
+        Av1BlockModeInfo modeInfo = CreateSingleReferenceModeInfo(Av1BlockSize.Block4x16, Point.Empty);
+        modeInfo.SetTransformUnitCount(Av1PlaneType.Y, transformCount);
+        frameInfo.UpdateModeInfo(modeInfo, superblockInfo);
+        Av1PartitionInfo partitionInfo = new(modeInfo, superblockInfo, false, modeInfo.PartitionType);
+        Av1TileInfo tileInfo = new(0, 0, frameHeader);
+        partitionInfo.ComputeBoundaryOffsets(sequenceHeader, frameHeader, tileInfo);
+        partitionInfo.PopulateModeInfoNeighbors(sequenceHeader.ColorConfig);
+
+        using Av1LoopFilterContext loopFilterContext = new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
+        using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
+        Av1BlockDecoder decoder = new(
+            sequenceHeader,
+            frameHeader,
+            frameBuffer,
+            loopFilterContext,
+            referenceFrames,
+            workspace.Memory);
+        decoder.UpdateSuperblock(superblockInfo);
+        decoder.BeginBlock(ref partitionInfo, tileInfo);
+        var chromaFromLumaContext = partitionInfo.ChromaFromLumaContext;
+        Assert.NotNull(chromaFromLumaContext);
+        chromaFromLumaContext.Q3Buffer.Fill(short.MinValue);
+
+        for (int i = 0; i < transformCount; i++)
+        {
+            decoder.DecodeTransform(ref partitionInfo, 0, ref transforms[i], tileInfo);
+        }
+
+        foreach (short value in chromaFromLumaContext.Q3Buffer)
+        {
+            Assert.Equal(short.MinValue, value);
+        }
+
+        decoder.EndBlock(ref partitionInfo);
+
+        int subY = colorFormat == Av1ColorFormat.Yuv420 ? 1 : 0;
+        int storedHeight = (largeTransform ? 16 : 8) >> subY;
+        Span<byte> byteSamples = default;
+        Span<short> shortSamples = default;
+        int stride;
+        if (bitDepth == Av1BitDepth.EightBit)
+        {
+            byteSamples = frameBuffer.DeriveBlockPointer(Av1Plane.Y, Point.Empty, 0, 0, out stride);
+        }
+        else
+        {
+            shortSamples = frameBuffer.DeriveBlockPointer16(Av1Plane.Y, Point.Empty, 0, 0, out stride);
+        }
+
+        // Independently average each 2x1 or 2x2 luma footprint and retain three fractional bits.
+        // The source view starts one row above the block; samples outside the completed region stay poisoned.
+        for (int row = 0; row < 32; row++)
+        {
+            for (int column = 0; column < 32; column++)
+            {
+                short expected = short.MinValue;
+                if (row < storedHeight && column < 2)
+                {
+                    int sum = 0;
+                    for (int y = 0; y < (1 << subY); y++)
+                    {
+                        for (int x = 0; x < 2; x++)
+                        {
+                            int index = (((row << subY) + y + 1) * stride) + (column * 2) + x;
+                            sum += bitDepth == Av1BitDepth.EightBit ? byteSamples[index] : shortSamples[index];
+                        }
+                    }
+
+                    expected = (short)(sum << (2 - subY));
+                }
+
+                Assert.Equal(expected, chromaFromLumaContext.Q3Buffer[(row * 32) + column]);
+            }
+        }
+    }
 
     /// <summary>
     /// Verifies that two retained reference planes are predicted and averaged before residual reconstruction.
@@ -86,12 +205,14 @@ public class Av1CompoundBlockDecoderTests
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
 
-        using Av1BlockDecoder decoder = new(
+        using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
+        Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            referenceFrames);
+            referenceFrames,
+            workspace.Memory);
 
         decoder.UpdateSuperblock(superblockInfo);
         decoder.DecodeBlock(
@@ -204,12 +325,14 @@ public class Av1CompoundBlockDecoderTests
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
 
-        using Av1BlockDecoder decoder = new(
+        using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
+        Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            referenceFrames);
+            referenceFrames,
+            workspace.Memory);
 
         decoder.UpdateSuperblock(superblockInfo);
         decoder.DecodeBlock(
@@ -329,12 +452,14 @@ public class Av1CompoundBlockDecoderTests
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
 
-        using Av1BlockDecoder decoder = new(
+        using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
+        Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            referenceFrames);
+            referenceFrames,
+            workspace.Memory);
 
         decoder.UpdateSuperblock(superblockInfo);
         decoder.DecodeBlock(
@@ -419,12 +544,14 @@ public class Av1CompoundBlockDecoderTests
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
 
-        using Av1BlockDecoder decoder = new(
+        using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
+        Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            referenceFrames);
+            referenceFrames,
+            workspace.Memory);
 
         decoder.UpdateSuperblock(superblockInfo);
         decoder.DecodeBlock(
@@ -501,12 +628,14 @@ public class Av1CompoundBlockDecoderTests
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
 
-        using Av1BlockDecoder decoder = new(
+        using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
+        Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            referenceFrames);
+            referenceFrames,
+            workspace.Memory);
 
         decoder.UpdateSuperblock(superblockInfo);
         decoder.DecodeBlock(
@@ -596,12 +725,14 @@ public class Av1CompoundBlockDecoderTests
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
 
-        using Av1BlockDecoder decoder = new(
+        using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
+        Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            referenceFrames);
+            referenceFrames,
+            workspace.Memory);
 
         decoder.UpdateSuperblock(superblockInfo);
         decoder.DecodeBlock(
@@ -851,12 +982,14 @@ public class Av1CompoundBlockDecoderTests
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
 
-        using Av1BlockDecoder decoder = new(
+        using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
+        Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            referenceFrames);
+            referenceFrames,
+            workspace.Memory);
 
         decoder.UpdateSuperblock(superblockInfo);
         decoder.DecodeBlock(
@@ -1245,12 +1378,14 @@ public class Av1CompoundBlockDecoderTests
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
 
-        using Av1BlockDecoder decoder = new(
+        using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
+        Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            referenceFrames);
+            referenceFrames,
+            workspace.Memory);
 
         decoder.UpdateSuperblock(superblockInfo);
         decoder.DecodeBlock(
@@ -1453,12 +1588,14 @@ public class Av1CompoundBlockDecoderTests
         using Av1LoopFilterContext loopFilterContext =
             new(frameBuffer.MemoryAllocator, sequenceHeader, frameHeader);
 
-        using Av1BlockDecoder decoder = new(
+        using IMemoryOwner<short> workspace = frameBuffer.MemoryAllocator.Allocate<short>(Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
+        Av1BlockDecoder decoder = new(
             sequenceHeader,
             frameHeader,
             frameBuffer,
             loopFilterContext,
-            referenceFrames);
+            referenceFrames,
+            workspace.Memory);
 
         decoder.UpdateSuperblock(superblockInfo);
         decoder.DecodeBlock(

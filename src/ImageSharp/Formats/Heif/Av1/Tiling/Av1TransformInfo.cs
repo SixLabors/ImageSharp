@@ -66,4 +66,9 @@ internal struct Av1TransformInfo
     /// Gets or sets the end position of the coded coefficients in entropy scan order; zero means no residual.
     /// </summary>
     public ushort EndOfBlock { get; set; }
+
+    /// <summary>
+    /// Gets or sets the largest raster coefficient index written for this transform block.
+    /// </summary>
+    public ushort MaximumCoefficientIndex { get; set; }
 }

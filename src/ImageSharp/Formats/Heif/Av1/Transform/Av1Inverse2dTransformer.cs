@@ -19,6 +19,91 @@ namespace SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 internal static partial class Av1Inverse2dTransformer
 {
     /// <summary>
+    /// Reconstructs a DCT block whose only coded coefficient is DC, without traversing either full transform axis.
+    /// </summary>
+    /// <typeparam name="TSample">The reconstructed sample storage type.</typeparam>
+    /// <typeparam name="TOutputOperator">The existing sample-depth reconstruction operator.</typeparam>
+    /// <param name="dc">The dequantized DC coefficient.</param>
+    /// <param name="prediction">The predicted samples.</param>
+    /// <param name="predictionStride">The number of prediction samples between rows.</param>
+    /// <param name="destination">The reconstructed samples.</param>
+    /// <param name="destinationStride">The number of destination samples between rows.</param>
+    /// <param name="config">The inverse DCT dimensions and fixed-point settings.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    public static void TransformDcAdd<TSample, TOutputOperator>(
+        int dc,
+        ReadOnlySpan<TSample> prediction,
+        int predictionStride,
+        Span<TSample> destination,
+        int destinationStride,
+        ref Av1Transform2dFlipConfiguration config,
+        int bitDepth)
+        where TSample : unmanaged
+        where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
+    {
+        // A DC-only DCT produces one constant residual across the block. Each axis still requires its own cosine
+        // multiply and rounding; combining the two multiplies would change samples at the fixed-point boundaries.
+        // Cosine-table index 32 is cos(pi/4), the DC basis factor for every supported DCT length.
+        if (Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1)
+        {
+            dc = Av1Math.RoundShift((long)dc * Av1InverseTransformMath.NewInverseSqrt2, Av1InverseTransformMath.NewSqrt2BitCount);
+        }
+
+        dc = Av1Transform1dMath.Clamp(dc, (byte)(bitDepth + 8));
+        dc = Av1Math.RoundShift((long)dc * Av1SinusConstants.CosinusPi(config.CosBitRow)[32], config.CosBitRow);
+        dc = Av1Math.RoundPowerOf2(dc, -config.Shift0);
+        dc = Av1Transform1dMath.Clamp(dc, (byte)Math.Max(bitDepth + 6, 16));
+        dc = Av1Math.RoundShift((long)dc * Av1SinusConstants.CosinusPi(config.CosBitColumn)[32], config.CosBitColumn);
+        dc = Av1Math.RoundPowerOf2(dc, -config.Shift1);
+
+        int width = config.TransformSize.GetWidth();
+        int height = config.TransformSize.GetHeight();
+        for (int y = 0; y < height; y++)
+        {
+            ReadOnlySpan<TSample> predictionRow = prediction.Slice(y * predictionStride, width);
+            Span<TSample> destinationRow = destination.Slice(y * destinationStride, width);
+            ref TSample predictionBase = ref MemoryMarshal.GetReference(predictionRow);
+            ref TSample destinationBase = ref MemoryMarshal.GetReference(destinationRow);
+            int x = 0;
+
+            // Every Int32 lane carries the same residual, while the output operator widens the corresponding packed
+            // prediction samples and clips before narrowing. Independent strides preserve both in-place and separate
+            // buffers. The vector counts cover active samples only, never row padding.
+            if (Vector512.IsHardwareAccelerated)
+            {
+                Vector512<int> residual = Vector512.Create(dc);
+                for (nuint count = Numerics.Vector512Count<int>(width); count > 0; count--, x += Vector512<int>.Count)
+                {
+                    TOutputOperator.Add(ref Unsafe.Add(ref predictionBase, x), ref Unsafe.Add(ref destinationBase, x), residual, bitDepth);
+                }
+            }
+
+            if (Vector256.IsHardwareAccelerated)
+            {
+                Vector256<int> residual = Vector256.Create(dc);
+                for (nuint count = Numerics.Vector256Count<int>(width - x); count > 0; count--, x += Vector256<int>.Count)
+                {
+                    TOutputOperator.Add(ref Unsafe.Add(ref predictionBase, x), ref Unsafe.Add(ref destinationBase, x), residual, bitDepth);
+                }
+            }
+
+            if (Vector128.IsHardwareAccelerated)
+            {
+                Vector128<int> residual = Vector128.Create(dc);
+                for (nuint count = Numerics.Vector128Count<int>(width - x); count > 0; count--, x += Vector128<int>.Count)
+                {
+                    TOutputOperator.Add(ref Unsafe.Add(ref predictionBase, x), ref Unsafe.Add(ref destinationBase, x), residual, bitDepth);
+                }
+            }
+
+            for (; x < width; x++)
+            {
+                destinationRow[x] = TOutputOperator.Add(predictionRow[x], dc, bitDepth);
+            }
+        }
+    }
+
+    /// <summary>
     /// Applies an inverse transform and adds its residual to high-bit-depth predicted samples.
     /// </summary>
     /// <param name="input">The dequantized coefficients in raster order.</param>
@@ -91,11 +176,16 @@ internal static partial class Av1Inverse2dTransformer
         where TSample : unmanaged
         where TOutputOperator : struct, Av1InverseTransformer.IAv1InverseTransformOutputOperator<TSample>
     {
-        Guard.MustBeSizedAtLeast(workspace, Av1TransformWorkspace.GetRequiredLength(config.TransformSize), nameof(workspace));
+        Guard.MustBeSizedAtLeast(workspace, Av1TransformWorkspace.GetInverseRequiredLength(config.TransformSize), nameof(workspace));
         switch (config.TransformFunctionTypeColumn)
         {
             case Av1TransformFunctionType.Dct4:
                 DispatchRow<TSample, TOutputOperator, Dct4Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct8 when config.NonzeroHeight == 1:
+                DispatchRow<TSample, TOutputOperator, Dct8Low1Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
@@ -104,13 +194,58 @@ internal static partial class Av1Inverse2dTransformer
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
+            case Av1TransformFunctionType.Dct16 when config.NonzeroHeight == 1:
+                DispatchRow<TSample, TOutputOperator, Dct16Low1Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct16 when config.NonzeroHeight <= 8:
+                DispatchRow<TSample, TOutputOperator, Dct16Low8Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
             case Av1TransformFunctionType.Dct16:
                 DispatchRow<TSample, TOutputOperator, Dct16Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
+            case Av1TransformFunctionType.Dct32 when config.NonzeroHeight == 1:
+                DispatchRow<TSample, TOutputOperator, Dct32Low1Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct32 when config.NonzeroHeight <= 8:
+                DispatchRow<TSample, TOutputOperator, Dct32Low8Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct32 when config.NonzeroHeight <= 16:
+                DispatchRow<TSample, TOutputOperator, Dct32Low16Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
             case Av1TransformFunctionType.Dct32:
                 DispatchRow<TSample, TOutputOperator, Dct32Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct64 when config.NonzeroHeight == 1:
+                DispatchRow<TSample, TOutputOperator, Dct64Low1Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct64 when config.NonzeroHeight <= 8:
+                DispatchRow<TSample, TOutputOperator, Dct64Low8Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct64 when config.NonzeroHeight <= 16:
+                DispatchRow<TSample, TOutputOperator, Dct64Low16Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct64 when config.NonzeroHeight <= 32:
+                DispatchRow<TSample, TOutputOperator, Dct64Low32Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
@@ -124,8 +259,23 @@ internal static partial class Av1Inverse2dTransformer
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
+            case Av1TransformFunctionType.Adst8 when config.NonzeroHeight == 1:
+                DispatchRow<TSample, TOutputOperator, Adst8Low1Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
             case Av1TransformFunctionType.Adst8:
                 DispatchRow<TSample, TOutputOperator, Adst8Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Adst16 when config.NonzeroHeight == 1:
+                DispatchRow<TSample, TOutputOperator, Adst16Low1Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Adst16 when config.NonzeroHeight <= 8:
+                DispatchRow<TSample, TOutputOperator, Adst16Low8Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
@@ -182,8 +332,23 @@ internal static partial class Av1Inverse2dTransformer
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
+            case Av1TransformFunctionType.Dct8 when config.NonzeroWidth == 1:
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Dct8Low1Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
             case Av1TransformFunctionType.Dct8:
                 Transform2d<TSample, TOutputOperator, TColumnOperator, Dct8Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct16 when config.NonzeroWidth == 1:
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Dct16Low1Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct16 when config.NonzeroWidth <= 8:
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Dct16Low8Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
@@ -192,8 +357,43 @@ internal static partial class Av1Inverse2dTransformer
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
+            case Av1TransformFunctionType.Dct32 when config.NonzeroWidth == 1:
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Dct32Low1Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct32 when config.NonzeroWidth <= 8:
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Dct32Low8Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct32 when config.NonzeroWidth <= 16:
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Dct32Low16Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
             case Av1TransformFunctionType.Dct32:
                 Transform2d<TSample, TOutputOperator, TColumnOperator, Dct32Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct64 when config.NonzeroWidth == 1:
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Dct64Low1Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct64 when config.NonzeroWidth <= 8:
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Dct64Low8Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct64 when config.NonzeroWidth <= 16:
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Dct64Low16Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Dct64 when config.NonzeroWidth <= 32:
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Dct64Low32Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
@@ -207,8 +407,23 @@ internal static partial class Av1Inverse2dTransformer
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
+            case Av1TransformFunctionType.Adst8 when config.NonzeroWidth == 1:
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Adst8Low1Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
             case Av1TransformFunctionType.Adst8:
                 Transform2d<TSample, TOutputOperator, TColumnOperator, Adst8Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Adst16 when config.NonzeroWidth == 1:
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Adst16Low1Operator>(
+                    input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
+
+                break;
+            case Av1TransformFunctionType.Adst16 when config.NonzeroWidth <= 8:
+                Transform2d<TSample, TOutputOperator, TColumnOperator, Adst16Low8Operator>(
                     input, outputForRead, strideForRead, outputForWrite, strideForWrite, ref config, workspace, bitDepth);
 
                 break;
@@ -312,34 +527,38 @@ internal static partial class Av1Inverse2dTransformer
         where TRowOperator : struct, IAv1Transform1dOperator
     {
         const int laneCount = 8;
-        const int vectorLength = Av1Constants.MaxTransformSize * laneCount;
 
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
+        int vectorLength = Math.Max(width, height) * laneCount;
         Av1TransformSize adjustedTransformSize = config.TransformSize.GetAdjusted();
         int inputWidth = adjustedTransformSize.GetWidth();
         int inputHeight = adjustedTransformSize.GetHeight();
+        int rowCount = (config.NonzeroHeight + laneCount - 1) & -laneCount;
+        int rowInputCount = (TRowOperator.InputLength + laneCount - 1) & -laneCount;
         int shift0 = config.Shift0;
         int shift1 = config.Shift1;
         bool normalizeRectangle = Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1;
         byte rowClampBits = (byte)(bitDepth + 8);
         byte columnClampBits = (byte)Math.Max(bitDepth + 6, 16);
 
-        // Three transform vectors occupy the fixed prefix of the caller-owned workspace. Reinterpreting that storage
-        // gives constant field offsets to the one-dimensional operators; the remaining raster buffer holds the first
-        // axis result without allocating or aliasing any active stage vector.
+        // Input and stage storage share one vector: each operator finishes consuming coefficients before its first
+        // stage write. The second vector holds outputs, and the remaining raster stores completed first-axis rows.
+        // Each vector spans only the longer active axis; no fields beyond that transform length are accessed.
         ref int workspaceBase = ref MemoryMarshal.GetReference(workspace);
         ref Av1TransformVector<Vector256<int>> tempIn = ref Unsafe.As<int, Av1TransformVector<Vector256<int>>>(ref workspaceBase);
-        ref Av1TransformVector<Vector256<int>> tempOut = ref Unsafe.As<int, Av1TransformVector<Vector256<int>>>(ref Unsafe.Add(ref workspaceBase, vectorLength));
-        ref Av1TransformVector<Vector256<int>> step = ref Unsafe.As<int, Av1TransformVector<Vector256<int>>>(ref Unsafe.Add(ref workspaceBase, 2 * vectorLength));
-        Span<int> buffer = workspace.Slice(Av1TransformWorkspace.Vector256StorageLength, width * height);
+        ref Av1TransformVector<Vector256<int>> tempOut =
+            ref Unsafe.As<int, Av1TransformVector<Vector256<int>>>(ref Unsafe.Add(ref workspaceBase, vectorLength));
+
+        ref Av1TransformVector<Vector256<int>> step = ref tempIn;
+        Span<int> buffer = workspace.Slice(2 * vectorLength, width * height);
         ref int inputBase = ref MemoryMarshal.GetReference(input);
         ref int bufferBase = ref MemoryMarshal.GetReference(buffer);
 
         // Rows are transposed into lanes so the complete 1-D operator runs once for eight rows.
-        for (int row = 0; row < height; row += laneCount)
+        for (int row = 0; row < rowCount; row += laneCount)
         {
-            for (int column = 0; column < width; column += laneCount)
+            for (int column = 0; column < rowInputCount; column += laneCount)
             {
                 bool hasCodedCoefficients = row < inputHeight && column < inputWidth;
                 Vector256<int> row0;
@@ -418,9 +637,14 @@ internal static partial class Av1Inverse2dTransformer
         {
             int sourceColumn = config.FlipLeftToRight ? width - column - laneCount : column;
 
-            for (int row = 0; row < height; row++)
+            // Sparse operators read only their declared input prefix. Complete operators still receive zeros for
+            // rows omitted by the first axis, including the uncoded half of a sixty-four-point transform.
+            for (int row = 0; row < TColumnOperator.InputLength; row++)
             {
-                Vector256<int> value = Vector256.LoadUnsafe(ref bufferBase, (nuint)((row * width) + sourceColumn));
+                Vector256<int> value = row < rowCount
+                    ? Vector256.LoadUnsafe(ref bufferBase, (nuint)((row * width) + sourceColumn))
+                    : Vector256<int>.Zero;
+
                 value = config.FlipLeftToRight ? Av1Transform2dOperations.Reverse(value) : value;
                 tempIn[row] = Av1Transform1dMath.Clamp(value, columnClampBits);
             }
@@ -468,34 +692,39 @@ internal static partial class Av1Inverse2dTransformer
         where TRowOperator : struct, IAv1Transform1dOperator
     {
         const int laneCount = 4;
-        const int vectorLength = Av1Constants.MaxTransformSize * laneCount;
 
         int width = config.TransformSize.GetWidth();
         int height = config.TransformSize.GetHeight();
+        int vectorLength = Math.Max(width, height) * laneCount;
         Av1TransformSize adjustedTransformSize = config.TransformSize.GetAdjusted();
         int inputWidth = adjustedTransformSize.GetWidth();
         int inputHeight = adjustedTransformSize.GetHeight();
+        int rowCount = (config.NonzeroHeight + laneCount - 1) & -laneCount;
+        int rowInputCount = (TRowOperator.InputLength + laneCount - 1) & -laneCount;
         int shift0 = config.Shift0;
         int shift1 = config.Shift1;
         bool normalizeRectangle = Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1;
         byte rowClampBits = (byte)(bitDepth + 8);
         byte columnClampBits = (byte)Math.Max(bitDepth + 6, 16);
 
-        // The 128-bit workspace has the same three-vector plus raster-buffer layout as the 256-bit path. Only the
-        // number of independent axes represented by each vector changes from eight to four.
+        // Input and stage storage share one vector: each operator finishes consuming coefficients before its first
+        // stage write. The second vector holds outputs, and the remaining raster stores completed first-axis rows.
+        // Each vector spans only the longer active axis; no fields beyond that transform length are accessed.
         ref int workspaceBase = ref MemoryMarshal.GetReference(workspace);
         ref Av1TransformVector<Vector128<int>> tempIn = ref Unsafe.As<int, Av1TransformVector<Vector128<int>>>(ref workspaceBase);
-        ref Av1TransformVector<Vector128<int>> tempOut = ref Unsafe.As<int, Av1TransformVector<Vector128<int>>>(ref Unsafe.Add(ref workspaceBase, vectorLength));
-        ref Av1TransformVector<Vector128<int>> step = ref Unsafe.As<int, Av1TransformVector<Vector128<int>>>(ref Unsafe.Add(ref workspaceBase, 2 * vectorLength));
-        Span<int> buffer = workspace.Slice(Av1TransformWorkspace.Vector128StorageLength, width * height);
+        ref Av1TransformVector<Vector128<int>> tempOut =
+            ref Unsafe.As<int, Av1TransformVector<Vector128<int>>>(ref Unsafe.Add(ref workspaceBase, vectorLength));
+
+        ref Av1TransformVector<Vector128<int>> step = ref tempIn;
+        Span<int> buffer = workspace.Slice(2 * vectorLength, width * height);
         ref int inputBase = ref MemoryMarshal.GetReference(input);
         ref int bufferBase = ref MemoryMarshal.GetReference(buffer);
 
         // A 4-by-4 transpose changes four raster rows into four coefficient-position vectors. Each lane then remains
         // one independent row throughout the complete first-axis stage network.
-        for (int row = 0; row < height; row += laneCount)
+        for (int row = 0; row < rowCount; row += laneCount)
         {
-            for (int column = 0; column < width; column += laneCount)
+            for (int column = 0; column < rowInputCount; column += laneCount)
             {
                 bool hasCodedCoefficients = row < inputHeight && column < inputWidth;
                 Vector128<int> row0;
@@ -550,9 +779,14 @@ internal static partial class Av1Inverse2dTransformer
         {
             int sourceColumn = config.FlipLeftToRight ? width - column - laneCount : column;
 
-            for (int row = 0; row < height; row++)
+            // Sparse operators read only their declared input prefix. Complete operators still receive zeros for
+            // rows omitted by the first axis, including the uncoded half of a sixty-four-point transform.
+            for (int row = 0; row < TColumnOperator.InputLength; row++)
             {
-                Vector128<int> value = Vector128.LoadUnsafe(ref bufferBase, (nuint)((row * width) + sourceColumn));
+                Vector128<int> value = row < rowCount
+                    ? Vector128.LoadUnsafe(ref bufferBase, (nuint)((row * width) + sourceColumn))
+                    : Vector128<int>.Zero;
+
                 value = config.FlipLeftToRight ? Av1Transform2dOperations.Reverse(value) : value;
                 tempIn[row] = Av1Transform1dMath.Clamp(value, columnClampBits);
             }
@@ -604,27 +838,31 @@ internal static partial class Av1Inverse2dTransformer
         Av1TransformSize adjustedTransformSize = config.TransformSize.GetAdjusted();
         int inputWidth = adjustedTransformSize.GetWidth();
         int inputHeight = adjustedTransformSize.GetHeight();
+        int rowInputCount = Math.Min(inputWidth, TRowOperator.InputLength);
         int vectorLength = Math.Max(width, height);
         int shift0 = config.Shift0;
         int shift1 = config.Shift1;
         bool normalizeRectangle = Math.Abs(config.TransformSize.GetRectangleLogRatio()) == 1;
         byte rowClampBits = (byte)(bitDepth + 8);
         byte columnClampBits = (byte)Math.Max(bitDepth + 6, 16);
+
+        // Stage exchange starts after the operator consumes its input. Sharing those spans leaves only two active
+        // vectors before the raster intermediate, with no copy required between transform stages.
         Span<int> tempIn = workspace[..vectorLength];
         Span<int> tempOut = workspace.Slice(vectorLength, vectorLength);
-        Span<int> step = workspace.Slice(2 * vectorLength, vectorLength);
-        Span<int> buffer = workspace.Slice(3 * vectorLength, width * height);
+        Span<int> step = tempIn;
+        Span<int> buffer = workspace.Slice(2 * vectorLength, width * height);
 
-        for (int row = 0; row < height; row++)
+        for (int row = 0; row < config.NonzeroHeight; row++)
         {
             int rowOffset = row * width;
-            tempIn[..width].Clear();
+            tempIn[..TRowOperator.InputLength].Clear();
 
             if (row < inputHeight)
             {
                 int inputOffset = row * inputWidth;
 
-                for (int column = 0; column < inputWidth; column++)
+                for (int column = 0; column < rowInputCount; column++)
                 {
                     int value = input[inputOffset + column];
                     value = normalizeRectangle
@@ -643,9 +881,13 @@ internal static partial class Av1Inverse2dTransformer
         {
             int sourceColumn = config.FlipLeftToRight ? width - column - 1 : column;
 
-            for (int row = 0; row < height; row++)
+            // The first axis writes only potentially nonzero rows. Initialize every input consumed by the selected
+            // second-axis operator so a complete identity or DCT kernel cannot read prior-block workspace contents.
+            for (int row = 0; row < TColumnOperator.InputLength; row++)
             {
-                tempIn[row] = Av1Transform1dMath.Clamp(buffer[(row * width) + sourceColumn], columnClampBits);
+                tempIn[row] = row < config.NonzeroHeight
+                    ? Av1Transform1dMath.Clamp(buffer[(row * width) + sourceColumn], columnClampBits)
+                    : 0;
             }
 
             TColumnOperator.Transform(tempIn, tempOut, step, config.CosBitColumn, config.StageRangeColumn);

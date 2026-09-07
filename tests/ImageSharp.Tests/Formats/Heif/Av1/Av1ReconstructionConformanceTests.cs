@@ -470,6 +470,63 @@ public class Av1ReconstructionConformanceTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateActiveCdefFixtures, ReconstructionConfigurations);
 
     /// <summary>
+    /// Verifies that successive native frames reuse CDEF storage, resize it for a different component layout,
+    /// and release it at decoder disposal while preserving exact component samples.
+    /// </summary>
+    [Fact]
+    public void DecodeCdefReusesSessionStorage()
+    {
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        (string Payload, string Reference, bool ReusesStorage)[] frames =
+        [
+            (TestImages.Heif.Av1Cdef8BitPayload, TestImages.Heif.Av1Cdef8BitReference, false),
+            (TestImages.Heif.Av1Cdef8BitPayload, TestImages.Heif.Av1Cdef8BitReference, true),
+            (TestImages.Heif.Av1Cdef10BitPayload, TestImages.Heif.Av1Cdef10BitReference, false),
+            (TestImages.Heif.Av1Cdef12BitPayload, TestImages.Heif.Av1Cdef12BitReference, true),
+            (TestImages.Heif.Av1Cdef8BitPayload, TestImages.Heif.Av1Cdef8BitReference, false)
+        ];
+
+        int previousAllocationId = -1;
+        using (Av1Decoder decoder = new(configuration))
+        {
+            foreach ((string payloadPath, string referencePath, bool reusesStorage) in frames)
+            {
+                byte[] payload = TestFile.Create(payloadPath).Bytes;
+                byte[] reference = TestFile.Create(referencePath).Bytes;
+                using Av1FrameBuffer<byte> frameBuffer = decoder.DecodeFrameBuffer(payload, null, null, out _);
+                AssertNativePlanesEqual(decoder, frameBuffer, reference);
+
+                // Frame samples use byte owners at every precision. Other 16-bit filter scratch has expired
+                // after frame completion, leaving the reusable CDEF owner identifiable by its allocation ID.
+                TestMemoryAllocator.AllocationRequest active = Assert.Single(
+                    allocator.AllocationLog,
+                    request => request.ElementType == typeof(ushort) &&
+                        !allocator.ReturnLog.Any(returned => returned.AllocationId == request.AllocationId));
+
+                if (reusesStorage)
+                {
+                    Assert.Equal(previousAllocationId, active.AllocationId);
+                }
+                else
+                {
+                    Assert.NotEqual(previousAllocationId, active.AllocationId);
+                    if (previousAllocationId >= 0)
+                    {
+                        Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == previousAllocationId);
+                    }
+                }
+
+                previousAllocationId = active.AllocationId;
+            }
+        }
+
+        Assert.Single(allocator.ReturnLog, returned => returned.AllocationId == previousAllocationId);
+    }
+
+    /// <summary>
     /// Verifies exact presented pixels and public metadata for independently encoded eight-, ten-, and twelve-bit
     /// active-CDEF AVIF images across the available vector widths and the scalar fallback.
     /// </summary>
@@ -1375,7 +1432,7 @@ public class Av1ReconstructionConformanceTests
             nativeOffset += nativeFrameLength;
             ObuFrameHeader frameHeader = Assert.IsType<ObuFrameHeader>(decoder.FrameHeader);
             allowIntraBlockCopy |= frameHeader.AllowIntraBlockCopy;
-            intraBlockCopyBlockCount += GetIntraBlockCopyBlockCount(decoder);
+            intraBlockCopyBlockCount += GetIntraBlockCopyBlockCount(decoder, out _);
         }
 
         Assert.Equal(ivf.Length, ivfOffset);
@@ -2538,6 +2595,58 @@ public class Av1ReconstructionConformanceTests
         => FeatureTestRunner.RunWithHwIntrinsicsFeature(ValidateLoopRestorationFixtures, LoopRestorationConfigurations);
 
     /// <summary>
+    /// Verifies retained restoration storage across repeated frames and changed sequence precision or geometry.
+    /// </summary>
+    [Fact]
+    public void DecodeRestorationAcrossSequenceChangesMatchesReference()
+    {
+        (string Payload, string Reference)[] frames =
+        [
+            (TestImages.Heif.Av1Restoration8BitPayload, TestImages.Heif.Av1Restoration8BitReference),
+            (TestImages.Heif.Av1Restoration8BitPayload, TestImages.Heif.Av1Restoration8BitReference),
+            (TestImages.Heif.Av1Restoration10BitPayload, TestImages.Heif.Av1Restoration10BitReference),
+            (TestImages.Heif.Av1Restoration12BitPayload, TestImages.Heif.Av1Restoration12BitReference),
+            (TestImages.Heif.Av1Restoration8BitPayload, TestImages.Heif.Av1Restoration8BitReference)
+        ];
+
+        // A single decoder must overwrite retained context even when successive 10- and 12-bit
+        // frames have identical storage dimensions. Each expected plane comes from an independent decode.
+        TestMemoryAllocator allocator = new();
+        allocator.EnableNonThreadSafeLogging();
+        Configuration configuration = Configuration.Default.Clone();
+        configuration.MemoryAllocator = allocator;
+        using (Av1Decoder decoder = new(configuration))
+        {
+            int reconstructionLength = 0;
+            foreach ((string payloadPath, string referencePath) in frames)
+            {
+                byte[] payload = TestFile.Create(payloadPath).Bytes;
+                byte[] reference = TestFile.Create(referencePath).Bytes;
+                using Av1FrameBuffer<byte> frame = decoder.DecodeFrameBuffer(payload, null, null, out _);
+                AssertNativePlanesEqual(decoder, frame, reference);
+
+                ObuSequenceHeader sequenceHeader = decoder.SequenceHeader;
+                Assert.NotNull(sequenceHeader);
+                reconstructionLength = Math.Max(reconstructionLength, Av1BlockDecoder.GetWorkspaceLength(sequenceHeader));
+                int reconstructionOwner = Assert.Single(
+                    allocator.AllocationLog,
+                    x => x.ElementType == typeof(short) && x.Length == reconstructionLength).AllocationId;
+
+                Assert.DoesNotContain(allocator.ReturnLog, x => x.AllocationId == reconstructionOwner);
+
+                // Every fixture uses 64-column processing units. Both workspaces must survive each
+                // decoded frame and serve all three planes without another rent or an early return.
+                int wienerOwner = Assert.Single(allocator.AllocationLog, x => x.ElementType == typeof(ushort) && x.Length == 4544).AllocationId;
+                int selfGuidedOwner = Assert.Single(allocator.AllocationLog, x => x.ElementType == typeof(int) && x.Length == 33184).AllocationId;
+                Assert.DoesNotContain(allocator.ReturnLog, x => x.AllocationId == wienerOwner || x.AllocationId == selfGuidedOwner);
+            }
+        }
+
+        Assert.Equal(allocator.AllocationLog.Count, allocator.ReturnLog.Count);
+        Assert.All(allocator.AllocationLog, allocation => Assert.Single(allocator.ReturnLog, x => x.AllocationId == allocation.AllocationId));
+    }
+
+    /// <summary>
     /// Verifies combined super-resolution and loop-restoration geometry for independently encoded 8-bit 4:2:0 content.
     /// </summary>
     [Fact]
@@ -2902,7 +3011,8 @@ public class Av1ReconstructionConformanceTests
         Assert.Equal(Av1ColorFormat.Yuv444, frameBuffer.ColorFormat);
         Assert.NotNull(decoder.FrameHeader);
         Assert.True(decoder.FrameHeader.AllowIntraBlockCopy);
-        Assert.NotEqual(0, GetIntraBlockCopyBlockCount(decoder));
+        Assert.NotEqual(0, GetIntraBlockCopyBlockCount(decoder, out int multipleTransformBlockCount));
+        Assert.NotEqual(0, multipleTransformBlockCount);
         AssertNativePlanesEqual(decoder, frameBuffer, nativeReference);
     }
 
@@ -3855,7 +3965,7 @@ public class Av1ReconstructionConformanceTests
 
         Assert.NotNull(decoder.FrameHeader);
         Assert.True(decoder.FrameHeader.AllowIntraBlockCopy);
-        Assert.NotEqual(0, GetIntraBlockCopyBlockCount(decoder));
+        Assert.NotEqual(0, GetIntraBlockCopyBlockCount(decoder, out _));
     }
 
     /// <summary>
@@ -3983,8 +4093,9 @@ public class Av1ReconstructionConformanceTests
     /// Counts the final coding blocks that select intra-block-copy prediction.
     /// </summary>
     /// <param name="decoder">The decoder after tile parsing and reconstruction.</param>
+    /// <param name="multipleTransformBlockCount">The number of selected blocks containing multiple luma transforms.</param>
     /// <returns>The number of selected intra-block-copy coding blocks.</returns>
-    private static int GetIntraBlockCopyBlockCount(Av1Decoder decoder)
+    private static int GetIntraBlockCopyBlockCount(Av1Decoder decoder, out int multipleTransformBlockCount)
     {
         Assert.NotNull(decoder.SequenceHeader);
         Assert.NotNull(decoder.FrameInfo);
@@ -3992,6 +4103,7 @@ public class Av1ReconstructionConformanceTests
         int superblockColumnCount = Av1Math.AlignPowerOf2(decoder.SequenceHeader.MaxFrameWidth, superblockSizeLog2) >> superblockSizeLog2;
         int superblockRowCount = Av1Math.AlignPowerOf2(decoder.SequenceHeader.MaxFrameHeight, superblockSizeLog2) >> superblockSizeLog2;
         int blockCount = 0;
+        multipleTransformBlockCount = 0;
 
         // Mode records retain final coding blocks in bitstream order. Traversing each record once counts selected
         // intra-block-copy operations without repeatedly visiting the 4x4 cells covered by a larger block.
@@ -4005,6 +4117,10 @@ public class Av1ReconstructionConformanceTests
                     if (modeInfo.UseIntraBlockCopy)
                     {
                         blockCount++;
+                        if (modeInfo.GetTransformUnitCount(Av1Plane.Y) > 1)
+                        {
+                            multipleTransformBlockCount++;
+                        }
                     }
                 }
             }

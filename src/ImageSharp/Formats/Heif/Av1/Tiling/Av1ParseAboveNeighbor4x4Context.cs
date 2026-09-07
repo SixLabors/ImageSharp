@@ -31,7 +31,7 @@ internal sealed class Av1ParseAboveNeighbor4x4Context : IDisposable
     /// <summary>
     /// Owns the contiguous above-neighbor storage until this instance is disposed.
     /// </summary>
-    private IMemoryOwner<int>? memory;
+    private IMemoryOwner<byte>? memory;
 
     /// <summary>
     /// The number of mode-information columns stored in each logical region.
@@ -51,26 +51,26 @@ internal sealed class Av1ParseAboveNeighbor4x4Context : IDisposable
         int totalLength = checked(regionCount * modeInfoColumnCount);
 
         // Every region spans the same aligned frame width and shares the tile-reader lifetime.
-        // One clean rent replaces the jagged array and its per-region arrays while preserving zero initialization.
-        this.memory = configuration.MemoryAllocator.Allocate<int>(totalLength, AllocationOptions.Clean);
+        // Each byte holds a transform extent up to 128, a five-bit partition mask, or three level bits and a two-bit DC sign.
+        this.memory = configuration.MemoryAllocator.Allocate<byte>(totalLength, AllocationOptions.Clean);
     }
 
     /// <summary>
     /// Gets a buffer holding the partition context of the previous 4x4 block row.
     /// </summary>
-    public Span<int> AbovePartitionWidth => this.GetRegion(PartitionWidthRegionIndex);
+    public Span<byte> AbovePartitionWidth => this.GetRegion(PartitionWidthRegionIndex);
 
     /// <summary>
     /// Gets a buffer holding the transform sizes of the previous 4x4 block row.
     /// </summary>
-    public Span<int> AboveTransformWidth => this.GetRegion(TransformWidthRegionIndex);
+    public Span<byte> AboveTransformWidth => this.GetRegion(TransformWidthRegionIndex);
 
     /// <summary>
     /// Gets the coefficient context row for the specified plane.
     /// </summary>
     /// <param name="plane">The zero-based plane index.</param>
     /// <returns>The coefficient contexts for the plane.</returns>
-    public Span<int> GetContext(int plane) => this.GetRegion(PlaneContextRegionStart + plane);
+    public Span<byte> GetContext(int plane) => this.GetRegion(PlaneContextRegionStart + plane);
 
     /// <summary>
     /// Returns the above-neighbor storage to the configured memory allocator.
@@ -90,12 +90,18 @@ internal sealed class Av1ParseAboveNeighbor4x4Context : IDisposable
     public void Clear(ObuSequenceHeader sequenceHeader, int modeInfoColumnStart, int modeInfoColumnEnd)
     {
         int planeCount = sequenceHeader.ColorConfig.PlaneCount;
-        int width = modeInfoColumnEnd - modeInfoColumnStart;
-        this.AboveTransformWidth[..width].Fill(Av1TransformSize.Size64x64.GetWidth());
+        int width = Av1Math.AlignPowerOf2(
+            modeInfoColumnEnd - modeInfoColumnStart,
+            sequenceHeader.SuperblockSizeLog2 - Av1Constants.ModeInfoSizeLog2);
+
+        // Edge transforms inspect their nominal extent even when the visible tile ends sooner. Reset the
+        // superblock padding as well, and scale coefficient-context extents to each plane's sampling grid.
+        this.AboveTransformWidth[..width].Fill((byte)Av1TransformSize.Size64x64.GetWidth());
         this.AbovePartitionWidth[..width].Clear();
         for (int i = 0; i < planeCount; i++)
         {
-            this.GetContext(i)[..width].Clear();
+            int planeWidth = i > 0 && sequenceHeader.ColorConfig.SubSamplingX ? width >> 1 : width;
+            this.GetContext(i)[..planeWidth].Clear();
         }
     }
 
@@ -111,7 +117,7 @@ internal sealed class Av1ParseAboveNeighbor4x4Context : IDisposable
         // Above contexts are tile-local even though block positions are frame-relative.
         int startIndex = modeInfoLocation.X - tileInfo.ModeInfoColumnStart;
         int bw = blockSize.Get4x4WideCount();
-        int value = Av1PartitionContext.GetAboveContext(subSize);
+        byte value = (byte)Av1PartitionContext.GetAboveContext(subSize);
 
         DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.AboveTransformWidth.Length - bw, nameof(startIndex));
         this.AbovePartitionWidth.Slice(startIndex, bw).Fill(value);
@@ -128,12 +134,12 @@ internal sealed class Av1ParseAboveNeighbor4x4Context : IDisposable
     public void UpdateTransformation(Point modeInfoLocation, Av1TileInfo tileInfo, Av1TransformSize transformSize, Av1BlockSize blockSize, bool skip)
     {
         int startIndex = modeInfoLocation.X - tileInfo.ModeInfoColumnStart;
-        int transformWidth = transformSize.GetWidth();
+        byte transformWidth = (byte)transformSize.GetWidth();
         int n4w = blockSize.Get4x4WideCount();
         if (skip)
         {
             // Skipped blocks expose the full block width as their effective transform extent.
-            transformWidth = n4w << Av1Constants.ModeInfoSizeLog2;
+            transformWidth = (byte)(n4w << Av1Constants.ModeInfoSizeLog2);
         }
 
         DebugGuard.MustBeLessThanOrEqualTo(startIndex, this.AboveTransformWidth.Length - n4w, nameof(startIndex));
@@ -154,7 +160,7 @@ internal sealed class Av1ParseAboveNeighbor4x4Context : IDisposable
     /// </summary>
     /// <param name="regionIndex">The zero-based logical region index.</param>
     /// <returns>The requested context row.</returns>
-    private Span<int> GetRegion(int regionIndex)
+    private Span<byte> GetRegion(int regionIndex)
     {
         ObjectDisposedException.ThrowIf(this.memory is null, this);
         return this.memory.Memory.Span.Slice(regionIndex * this.contextLength, this.contextLength);

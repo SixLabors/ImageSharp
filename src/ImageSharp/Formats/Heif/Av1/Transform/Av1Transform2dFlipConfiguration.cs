@@ -53,6 +53,8 @@ internal ref struct Av1Transform2dFlipConfiguration
         // transform-type lookup or flip decision.
         this.TransformSize = transformSize;
         this.TransformType = transformType;
+        this.NonzeroWidth = Math.Min(transformSize.GetWidth(), 32);
+        this.NonzeroHeight = Math.Min(transformSize.GetHeight(), 32);
         this.SetFlip(transformType);
         this.TransformTypeColumn = VerticalType[(int)transformType];
         this.TransformTypeRow = HorizontalType[(int)transformType];
@@ -308,6 +310,16 @@ internal ref struct Av1Transform2dFlipConfiguration
     public Av1TransformType TransformType { get; }
 
     /// <summary>
+    /// Gets the exclusive horizontal bound of potentially nonzero coefficients.
+    /// </summary>
+    public int NonzeroWidth { get; private set; }
+
+    /// <summary>
+    /// Gets the exclusive vertical bound of potentially nonzero coefficients.
+    /// </summary>
+    public int NonzeroHeight { get; private set; }
+
+    /// <summary>
     /// Gets a value indicating whether column input is traversed from bottom to top.
     /// </summary>
     public bool FlipUpsideDown { get; private set; }
@@ -361,6 +373,133 @@ internal ref struct Av1Transform2dFlipConfiguration
     /// <returns>The inverse transform configuration.</returns>
     public static Av1Transform2dFlipConfiguration CreateInverse(Av1TransformType transformType, Av1TransformSize transformSize, int bitDepth)
         => new(transformType, transformSize, bitDepth, false);
+
+    /// <summary>
+    /// Selects inverse-transform coefficient bounds from the last coded scan position.
+    /// </summary>
+    /// <param name="endOfBuffer">The number of scan positions through the last nonzero coefficient.</param>
+    /// <param name="bitDepth">The coded sample bit depth.</param>
+    public void ConfigureInverseSparsity(int endOfBuffer, int bitDepth)
+    {
+        int width = this.NonzeroWidth;
+        int height = this.NonzeroHeight;
+
+        // Four-point axes use complete kernels. A two-axis identity transform retains the complete coefficient
+        // rectangle because each input maps directly to one output instead of spreading across the other axis.
+        if (width == 4 || height == 4 || this.TransformType == Av1TransformType.Identity)
+        {
+            return;
+        }
+
+        // The sparse kernels accept one, eight, sixteen, or thirty-two inputs. Each entry rounds a last coefficient
+        // index up to the corresponding exclusive bound, preserving every coded coefficient in the scan prefix.
+        ReadOnlySpan<byte> extentByLastIndex =
+        [
+            1, 8, 8, 8, 8, 8, 8, 8, 16, 16, 16, 16, 16, 16, 16, 16,
+            32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32, 32,
+        ];
+
+        int last = endOfBuffer - 1;
+        if (this.TransformTypeRow == Av1TransformType1d.Identity)
+        {
+            // The byte path follows the row scan in both dimensions. The wider path keeps the entire identity axis
+            // and uses a conservative column bound, which must not also limit the identity axis.
+            if (bitDepth == 8)
+            {
+                this.NonzeroWidth = last >= width - 1 ? width : extentByLastIndex[last];
+                this.NonzeroHeight = extentByLastIndex[last / width];
+            }
+            else
+            {
+                this.NonzeroHeight = last >= height - 1 ? height : extentByLastIndex[last];
+            }
+
+            return;
+        }
+
+        if (this.TransformTypeColumn == Av1TransformType1d.Identity)
+        {
+            // The column scan advances down the block first. The wider pipeline retains the full identity axis
+            // while only the horizontal transform selects a reduced input network.
+            if (bitDepth == 8)
+            {
+                this.NonzeroWidth = extentByLastIndex[last / height];
+                this.NonzeroHeight = last >= height - 1 ? height : extentByLastIndex[last];
+            }
+            else
+            {
+                this.NonzeroWidth = last >= width - 1 ? width : extentByLastIndex[last];
+            }
+
+            return;
+        }
+
+        if (endOfBuffer == 1)
+        {
+            this.NonzeroWidth = 1;
+            this.NonzeroHeight = 1;
+            return;
+        }
+
+        // Diagonal scan bounds use complete scan-prefix rows, not the raster row of the final coefficient. The low
+        // byte stores the last column and the high byte stores the last row. Adjusted dimensions keep sixty-four-point
+        // transforms within their coded thirty-two-frequency rectangle.
+        ReadOnlySpan<ushort> bounds = this.TransformSize.GetAdjusted() switch
+        {
+            Av1TransformSize.Size8x8 =>
+            [
+                0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0707,
+            ],
+            Av1TransformSize.Size16x16 =>
+            [
+                0x0707, 0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F,
+                0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F,
+            ],
+            Av1TransformSize.Size8x16 =>
+            [
+                0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0F07, 0x0F07, 0x0F07,
+                0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07,
+            ],
+            Av1TransformSize.Size16x8 =>
+            [
+                0x0707, 0x0707, 0x070F, 0x070F, 0x070F, 0x070F, 0x070F, 0x070F,
+            ],
+            Av1TransformSize.Size16x32 =>
+            [
+                0x0707, 0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F0F,
+                0x0F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F,
+                0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F,
+                0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F, 0x1F0F,
+            ],
+            Av1TransformSize.Size32x16 =>
+            [
+                0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F,
+                0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F, 0x0F1F,
+            ],
+            Av1TransformSize.Size8x32 =>
+            [
+                0x0707, 0x0707, 0x0707, 0x0707, 0x0707, 0x0F07, 0x0F07, 0x0F07,
+                0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x0F07, 0x1F07, 0x1F07, 0x1F07,
+                0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07,
+                0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07, 0x1F07,
+            ],
+            Av1TransformSize.Size32x8 =>
+            [
+                0x0707, 0x070F, 0x070F, 0x071F, 0x071F, 0x071F, 0x071F, 0x071F,
+            ],
+            _ =>
+            [
+                0x0707, 0x0F0F, 0x0F0F, 0x0F0F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F,
+                0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F,
+                0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F,
+                0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F, 0x1F1F,
+            ],
+        };
+
+        int bound = bounds[last / width];
+        this.NonzeroWidth = (bound & 255) + 1;
+        this.NonzeroHeight = (bound >> 8) + 1;
+    }
 
     /// <summary>
     /// Determines whether the transform type is permitted for the configured dimensions.

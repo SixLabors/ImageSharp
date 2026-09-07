@@ -1,23 +1,12 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Runtime.Intrinsics;
-using SixLabors.ImageSharp.Common.Helpers;
-
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopRestoration;
 
 /// <summary>
 /// Applies the normative separable Wiener filter used by AV1 loop restoration.
 /// </summary>
-/// <remarks>
-/// The horizontal pass consumes one contiguous eight-tap window at a time. SIMD pairwise multiply-add widens adjacent
-/// unsigned-sample and signed-coefficient products into four 32-bit partial sums, which are reduced before normative
-/// rounding and clipping. The resulting caller-owned intermediate plane supplies contiguous columns to the vertical
-/// pass without allocating per stripe.
-/// </remarks>
-internal static class Av1WienerFilter
+internal static partial class Av1WienerFilter
 {
     /// <summary>
     /// The number of coefficients in the padded Wiener convolution kernel.
@@ -55,6 +44,7 @@ internal static class Av1WienerFilter
     /// <summary>
     /// Filters one restoration stripe from a source rectangle containing the required three-sample borders.
     /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The source rectangle beginning three samples above and left of the destination stripe.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
     /// <param name="destination">The destination span beginning at the restored stripe origin.</param>
@@ -65,10 +55,10 @@ internal static class Av1WienerFilter
     /// <param name="horizontalCoefficients">The three transmitted horizontal coefficients.</param>
     /// <param name="verticalCoefficients">The three transmitted vertical coefficients.</param>
     /// <param name="scratch">Intermediate sample storage sized according to <see cref="GetScratchLength"/>.</param>
-    public static void FilterStripe(
-        ReadOnlySpan<ushort> source,
+    public static void FilterStripe<TSample>(
+        ReadOnlySpan<TSample> source,
         int sourceStride,
-        Span<ushort> destination,
+        Span<TSample> destination,
         int destinationStride,
         int width,
         int height,
@@ -76,6 +66,7 @@ internal static class Av1WienerFilter
         ReadOnlySpan<int> horizontalCoefficients,
         ReadOnlySpan<int> verticalCoefficients,
         Span<ushort> scratch)
+        where TSample : unmanaged
     {
         Span<short> horizontalFilter = stackalloc short[FilterTapCount];
         Span<short> verticalFilter = stackalloc short[FilterTapCount];
@@ -94,43 +85,36 @@ internal static class Av1WienerFilter
         int verticalRoundBits = (FilterBits * 2) - horizontalRoundBits;
         int intermediateMaximum = (1 << (bitDepth + 1 + FilterBits - horizontalRoundBits)) - 1;
         int intermediateHeight = height + IntermediateRowExtension;
-        int horizontalBias = 1 << (bitDepth + FilterBits - 1);
-        for (int row = 0; row < intermediateHeight; row++)
-        {
-            int sourceRowOffset = row * sourceStride;
-            int intermediateRowOffset = row * width;
-            for (int column = 0; column < width; column++)
-            {
-                int sourceOffset = sourceRowOffset + column;
-                int sum = DotProduct(source, sourceOffset, horizontalFilter);
+        int horizontalBias = (1 << (bitDepth + FilterBits - 1)) + (1 << (horizontalRoundBits - 1));
+        FilterRows<TSample, ushort, WienerOperator>(
+            source,
+            sourceStride,
+            scratch,
+            width,
+            width,
+            intermediateHeight,
+            1,
+            horizontalFilter,
+            horizontalBias,
+            horizontalRoundBits,
+            intermediateMaximum);
 
-                // The transmitted center coefficient excludes its implicit 128 contribution.
-                // Adding the unfiltered center sample here reconstructs the complete kernel.
-                sum += (source[sourceOffset + TransmittedCoefficientCount] << FilterBits) + horizontalBias;
-                int value = RoundPowerOfTwo(sum, horizontalRoundBits);
-                scratch[intermediateRowOffset + column] = (ushort)Av1Math.Clip3(0, intermediateMaximum, value);
-            }
-        }
-
+        // The first pass adds a positive bias before clipping to its intermediate precision. Remove that
+        // bias only after the vertical convolution; clipping or subtracting it earlier changes edge samples.
         int maximumSample = (1 << bitDepth) - 1;
-        int verticalBias = 1 << (bitDepth + verticalRoundBits - 1);
-        for (int row = 0; row < height; row++)
-        {
-            int destinationRowOffset = row * destinationStride;
-            for (int column = 0; column < width; column++)
-            {
-                int sum = 0;
-                for (int tap = 0; tap < FilterTapCount; tap++)
-                {
-                    sum += scratch[((row + tap) * width) + column] * verticalFilter[tap];
-                }
-
-                int center = scratch[((row + TransmittedCoefficientCount) * width) + column];
-                sum += (center << FilterBits) - verticalBias;
-                destination[destinationRowOffset + column] =
-                    (ushort)Av1Math.Clip3(0, maximumSample, RoundPowerOfTwo(sum, verticalRoundBits));
-            }
-        }
+        int verticalBias = (1 << (verticalRoundBits - 1)) - (1 << (bitDepth + verticalRoundBits - 1));
+        FilterRows<ushort, TSample, WienerOperator>(
+            scratch,
+            width,
+            destination,
+            destinationStride,
+            width,
+            height,
+            width,
+            verticalFilter,
+            verticalBias,
+            verticalRoundBits,
+            maximumSample);
     }
 
     /// <summary>
@@ -146,54 +130,15 @@ internal static class Av1WienerFilter
         filter[0] = (short)outer;
         filter[1] = (short)middle;
         filter[2] = (short)inner;
-        filter[3] = (short)(-2 * (outer + middle + inner));
+
+        // Including the implicit center weight makes both passes the same seven-tap operation.
+        // The full kernel sums to 128; the caller supplies each pass's distinct offset and rounding.
+        filter[TransmittedCoefficientCount] = (short)((1 << FilterBits) - (2 * (outer + middle + inner)));
         filter[4] = (short)inner;
         filter[5] = (short)middle;
         filter[6] = (short)outer;
 
-        // the reference decoder stores a seven-tap Wiener kernel in the shared eight-tap interpolation shape.
+        // The eighth interpolation slot contributes no sample to this seven-tap kernel.
         filter[7] = 0;
     }
-
-    /// <summary>
-    /// Computes one signed eight-tap horizontal filter product.
-    /// </summary>
-    /// <param name="source">The source rectangle containing the requested samples.</param>
-    /// <param name="sourceOffset">The first source sample consumed by the filter.</param>
-    /// <param name="filter">The eight signed filter coefficients.</param>
-    /// <returns>The unrounded signed filter sum.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int DotProduct(ReadOnlySpan<ushort> source, int sourceOffset, ReadOnlySpan<short> filter)
-    {
-        if (Vector128.IsHardwareAccelerated)
-        {
-            ref ushort sourceReference = ref MemoryMarshal.GetReference(source);
-            ref short filterReference = ref MemoryMarshal.GetReference(filter);
-            Vector128<short> samples = Vector128.LoadUnsafe(ref sourceReference, (nuint)sourceOffset).AsInt16();
-            Vector128<short> coefficients = Vector128.LoadUnsafe(ref filterReference);
-            Vector128<int> pairSums = Vector128_.MultiplyAddAdjacent(samples, coefficients);
-
-            // The shared helper provides the architecture-specific adjacent products; reducing its
-            // four 32-bit lanes scalarly avoids an additional platform-specific shuffle sequence.
-            return pairSums.GetElement(0) + pairSums.GetElement(1) + pairSums.GetElement(2) + pairSums.GetElement(3);
-        }
-
-        int sum = 0;
-        for (int tap = 0; tap < FilterTapCount; tap++)
-        {
-            sum += source[sourceOffset + tap] * filter[tap];
-        }
-
-        return sum;
-    }
-
-    /// <summary>
-    /// Rounds a signed fixed-point value to the requested lower precision.
-    /// </summary>
-    /// <param name="value">The signed fixed-point value.</param>
-    /// <param name="bitCount">The number of low bits to discard.</param>
-    /// <returns>The rounded signed value.</returns>
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static int RoundPowerOfTwo(int value, int bitCount)
-        => (value + (1 << (bitCount - 1))) >> bitCount;
 }

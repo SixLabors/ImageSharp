@@ -777,7 +777,8 @@ internal sealed partial class Av1FrameInfo : IDisposable
     /// </summary>
     /// <param name="modeInfo">The decoded block mode information.</param>
     /// <param name="superblockInfo">The containing superblock.</param>
-    public void UpdateModeInfo(Av1BlockModeInfo modeInfo, Av1SuperblockInfo superblockInfo)
+    /// <returns>A reference to the published mode information.</returns>
+    public ref Av1BlockModeInfo UpdateModeInfo(Av1BlockModeInfo modeInfo, Av1SuperblockInfo superblockInfo)
     {
         Point modeInfoPosition = this.GetModeInfoPosition(superblockInfo.Position, modeInfo.PositionInSuperblock);
         int storageRow = (superblockInfo.Position.Y * this.superblockColumnCount) + superblockInfo.Position.X;
@@ -789,6 +790,7 @@ internal sealed partial class Av1FrameInfo : IDisposable
         modeInfoCount++;
         this.UpdateRetainedMotionField(modeInfo, modeInfoPosition);
         this.modeInfoMap.Update(modeInfoPosition, modeInfo.BlockSize, storageIndex);
+        return ref this.GetModeInfoByStorageIndex(storageIndex);
     }
 
     /// <summary>

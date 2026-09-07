@@ -48,12 +48,12 @@ internal static partial class Av1SelfGuidedFilter
     private const int ReciprocalBits = 12;
 
     /// <summary>
-    /// The base-two exponent used to align work-buffer rows for every supported vector width.
+    /// The base-two exponent used to align work-buffer rows to eight 32-bit lanes.
     /// </summary>
-    private const int BufferAlignmentLog2 = 4;
+    private const int BufferAlignmentLog2 = 3;
 
     /// <summary>
-    /// The extra columns separating integral-image rows to avoid adverse cache aliasing.
+    /// The extra columns separating the active integral-image rows.
     /// </summary>
     private const int BufferPadding = 16;
 
@@ -134,6 +134,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <summary>
     /// Filters one processing unit from a source rectangle containing the required three-sample borders.
     /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The source rectangle beginning three samples above and left of the processing unit.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
     /// <param name="destination">The destination span beginning at the restored processing-unit origin.</param>
@@ -144,10 +145,10 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="parameterSetIndex">The decoded self-guided parameter-set index.</param>
     /// <param name="projectionCoefficients">The two transmitted projection coefficients.</param>
     /// <param name="scratch">Integer storage sized according to <see cref="GetScratchLength"/>.</param>
-    public static void FilterBlock(
-        ReadOnlySpan<ushort> source,
+    public static void FilterBlock<TSample>(
+        ReadOnlySpan<TSample> source,
         int sourceStride,
-        Span<ushort> destination,
+        Span<TSample> destination,
         int destinationStride,
         int width,
         int height,
@@ -155,6 +156,7 @@ internal static partial class Av1SelfGuidedFilter
         int parameterSetIndex,
         ReadOnlySpan<int> projectionCoefficients,
         Span<int> scratch)
+        where TSample : unmanaged
     {
         // The closed vector overloads share the same scratch layout and fixed-point equations. Dispatch is based on
         // portable vector width; ISA-specific acceleration is confined to the individual operation that requires it.
@@ -265,7 +267,7 @@ internal static partial class Av1SelfGuidedFilter
             for (int column = 0; column < width; column++)
             {
                 int filteredOffset = filteredRowOffset + column;
-                int unfiltered = source[sourceRowOffset + column + Border] << RestorationBits;
+                int unfiltered = Av1RestorationSampleOperations.Load(source[sourceRowOffset + column + Border]) << RestorationBits;
                 int projected = unfiltered << ProjectionBits;
                 if (radii[0] > 0)
                 {
@@ -278,10 +280,10 @@ internal static partial class Av1SelfGuidedFilter
                 }
 
                 destination[destinationRowOffset + column] =
-                    (ushort)Av1Math.Clip3(
+                    Av1RestorationSampleOperations.FromInt32<TSample>(Av1Math.Clip3(
                         0,
                         maximumSample,
-                        RoundPowerOfTwo(projected, ProjectionBits + RestorationBits));
+                        RoundPowerOfTwo(projected, ProjectionBits + RestorationBits)));
             }
         }
     }
@@ -289,6 +291,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <summary>
     /// Calculates the local blend factor and mean for the requested filter radius.
     /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
     /// <param name="width">The processing-unit width in samples.</param>
@@ -299,8 +302,8 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="skipAlternateRows">Whether only the rows consumed by the radius-two filter are calculated.</param>
     /// <param name="blendFactors">The destination buffer for local sample blend factors.</param>
     /// <param name="localMeans">The destination buffer for scaled local means.</param>
-    private static void CalculateIntermediateCoefficients(
-        ReadOnlySpan<ushort> source,
+    private static void CalculateIntermediateCoefficients<TSample>(
+        ReadOnlySpan<TSample> source,
         int sourceStride,
         int width,
         int height,
@@ -310,6 +313,7 @@ internal static partial class Av1SelfGuidedFilter
         bool skipAlternateRows,
         Span<int> blendFactors,
         Span<int> localMeans)
+        where TSample : unmanaged
     {
         int bufferStride = width + 2;
         int bufferOrigin = bufferStride + 1;
@@ -330,7 +334,7 @@ internal static partial class Av1SelfGuidedFilter
                 int sourceRowOffset = windowY * sourceStride;
                 for (int windowX = centerX - radius; windowX <= centerX + radius; windowX++)
                 {
-                    int sample = source[sourceRowOffset + windowX];
+                    int sample = Av1RestorationSampleOperations.Load(source[sourceRowOffset + windowX]);
                     sum += sample;
                     squareSum += sample * sample;
                 }
@@ -345,8 +349,8 @@ internal static partial class Av1SelfGuidedFilter
                     for (int windowY = centerY - radius; windowY <= centerY + radius; windowY++)
                     {
                         int sourceRowOffset = windowY * sourceStride;
-                        int departingSample = source[sourceRowOffset + departingX];
-                        int arrivingSample = source[sourceRowOffset + arrivingX];
+                        int departingSample = Av1RestorationSampleOperations.Load(source[sourceRowOffset + departingX]);
+                        int arrivingSample = Av1RestorationSampleOperations.Load(source[sourceRowOffset + arrivingX]);
                         sum += arrivingSample - departingSample;
                         squareSum += (arrivingSample * arrivingSample) - (departingSample * departingSample);
                     }
@@ -380,6 +384,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <summary>
     /// Produces the radius-two filtered values from alternate coefficient rows.
     /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
     /// <param name="width">The processing-unit width in samples.</param>
@@ -387,14 +392,15 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="blendFactors">The local sample blend factors.</param>
     /// <param name="localMeans">The scaled local means.</param>
     /// <param name="filtered">The destination fixed-point filtered values.</param>
-    private static void CalculateRadiusTwoFilter(
-        ReadOnlySpan<ushort> source,
+    private static void CalculateRadiusTwoFilter<TSample>(
+        ReadOnlySpan<TSample> source,
         int sourceStride,
         int width,
         int height,
         ReadOnlySpan<int> blendFactors,
         ReadOnlySpan<int> localMeans,
         Span<int> filtered)
+        where TSample : unmanaged
     {
         int bufferStride = width + 2;
         int bufferOrigin = bufferStride + 1;
@@ -442,7 +448,7 @@ internal static partial class Av1SelfGuidedFilter
                 }
 
                 int value =
-                    (blendFactor * source[sourceRowOffset + column + Border]) + localMean;
+                    (blendFactor * Av1RestorationSampleOperations.Load(source[sourceRowOffset + column + Border])) + localMean;
 
                 filtered[filteredRowOffset + column] = RoundPowerOfTwo(value, roundingBits);
             }
@@ -452,6 +458,7 @@ internal static partial class Av1SelfGuidedFilter
     /// <summary>
     /// Produces the radius-one filtered values from the complete coefficient grid.
     /// </summary>
+    /// <typeparam name="TSample">Byte or ushort, selected by the frame sample precision.</typeparam>
     /// <param name="source">The bordered processing-unit source rectangle.</param>
     /// <param name="sourceStride">The number of samples between source rows.</param>
     /// <param name="width">The processing-unit width in samples.</param>
@@ -459,14 +466,15 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="blendFactors">The local sample blend factors.</param>
     /// <param name="localMeans">The scaled local means.</param>
     /// <param name="filtered">The destination fixed-point filtered values.</param>
-    private static void CalculateRadiusOneFilter(
-        ReadOnlySpan<ushort> source,
+    private static void CalculateRadiusOneFilter<TSample>(
+        ReadOnlySpan<TSample> source,
         int sourceStride,
         int width,
         int height,
         ReadOnlySpan<int> blendFactors,
         ReadOnlySpan<int> localMeans,
         Span<int> filtered)
+        where TSample : unmanaged
     {
         int bufferStride = width + 2;
         int bufferOrigin = bufferStride + 1;
@@ -505,7 +513,7 @@ internal static partial class Av1SelfGuidedFilter
                         + localMeans[coefficientOffset + bufferStride + 1]));
 
                 int value =
-                    (blendFactor * source[sourceRowOffset + column + Border]) + localMean;
+                    (blendFactor * Av1RestorationSampleOperations.Load(source[sourceRowOffset + column + Border])) + localMean;
 
                 filtered[filteredRowOffset + column] = RoundPowerOfTwo(value, roundingBits);
             }
@@ -527,7 +535,11 @@ internal static partial class Av1SelfGuidedFilter
     /// <param name="width">The filtered processing-unit width.</param>
     /// <returns>The aligned number of integers reserved for each work-buffer row.</returns>
     private static int GetBufferStride(int width)
-        => Av1Math.AlignPowerOf2(width + (Border * 2) + BufferPadding, BufferAlignmentLog2);
+    {
+        // The widest implemented arithmetic batch contains eight integers. Include border samples
+        // and row separation before aligning; both the coefficient and integral views use this stride.
+        return Av1Math.AlignPowerOf2(width + (Border * 2) + BufferPadding, BufferAlignmentLog2);
+    }
 
     /// <summary>
     /// Gets the number of integers reserved for one padded work buffer.

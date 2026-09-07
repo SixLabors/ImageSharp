@@ -60,6 +60,7 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     /// <param name="frameInfo">The parsed superblock and block-mode information.</param>
     /// <param name="frameBuffer">The destination planar sample buffers.</param>
     /// <param name="referenceFrames">The retained reconstructed frames selected by inter blocks.</param>
+    /// <param name="reconstructionWorkspace">The reconstruction storage available for the lifetime of this frame.</param>
     /// <param name="paletteColorIndexMaps">The complete decoder-session palette map state.</param>
     public Av1FrameDecoder(
         ObuSequenceHeader sequenceHeader,
@@ -67,6 +68,7 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
         Av1FrameInfo frameInfo,
         Av1FrameBuffer<byte> frameBuffer,
         Av1ReferenceFrameStore referenceFrames,
+        Memory<short> reconstructionWorkspace,
         Av1TileReader.PaletteColorIndexMaps? paletteColorIndexMaps = null)
     {
         this.sequenceHeader = sequenceHeader;
@@ -83,6 +85,7 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
                 this.frameBuffer,
                 this.loopFilterContext,
                 this.referenceFrames,
+                reconstructionWorkspace,
                 paletteColorIndexMaps);
         }
         catch
@@ -97,14 +100,19 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     /// </summary>
     public void Dispose()
     {
-        this.blockDecoder.Dispose();
         this.loopFilterContext.Dispose();
     }
 
     /// <summary>
     /// Applies the in-loop frame stages after every superblock has been reconstructed.
     /// </summary>
-    public void CompleteFrame()
+    /// <param name="cdefDecoder">The session-owned CDEF stage.</param>
+    /// <param name="restorationBoundary">The session-owned restoration boundary rows.</param>
+    /// <param name="restorationDecoder">The session-owned restoration stage.</param>
+    public void CompleteFrame(
+        Av1CdefDecoder cdefDecoder,
+        Av1LoopRestorationBoundary restorationBoundary,
+        Av1LoopRestorationDecoder restorationDecoder)
     {
         bool doLoopRestoration = this.frameHeader.LoopRestorationParameters.UsesLoopRestoration;
 
@@ -117,32 +125,25 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
 
         loopFilterDecoder.DecodeFrame();
 
-        using Av1LoopRestorationBoundary? restorationBoundary = doLoopRestoration
-            ? new(this.sequenceHeader, this.frameHeader, this.frameBuffer)
-            : null;
-
-        if (restorationBoundary is not null)
+        if (doLoopRestoration)
         {
-            restorationBoundary.SaveDeblockedRows();
+            restorationBoundary.SaveDeblockedRows(this.sequenceHeader, this.frameHeader, this.frameBuffer);
         }
 
-        Av1CdefDecoder cdefDecoder = new(this.sequenceHeader, this.frameHeader, this.frameInfo, this.frameBuffer);
-        cdefDecoder.DecodeFrame();
+        cdefDecoder.DecodeFrame(this.sequenceHeader, this.frameHeader, this.frameInfo, this.frameBuffer);
 
         Av1SuperResolutionDecoder superResolutionDecoder = new(this.sequenceHeader, this.frameHeader, this.frameBuffer);
         superResolutionDecoder.DecodeFrame();
 
-        if (restorationBoundary is not null)
+        if (doLoopRestoration)
         {
-            restorationBoundary.SaveFrameEdgeRows();
-            Av1LoopRestorationDecoder loopRestorationDecoder = new(
+            restorationBoundary.SaveFrameEdgeRows(this.sequenceHeader, this.frameHeader, this.frameBuffer);
+            restorationDecoder.DecodeFrame(
                 this.sequenceHeader,
                 this.frameHeader,
                 this.frameInfo,
                 this.frameBuffer,
                 restorationBoundary);
-
-            loopRestorationDecoder.DecodeFrame();
         }
 
         // Film grain is deliberately excluded here because this buffer is the normative post-restoration reference.
@@ -150,40 +151,29 @@ internal sealed class Av1FrameDecoder : IAv1FrameDecoder, IDisposable
     }
 
     /// <summary>
-    /// Reconstructs one superblock from its parsed block state and dequantized coefficients.
+    /// Begins reconstruction of a superblock before its first coding block is parsed.
     /// </summary>
-    /// <param name="modeInfoPosition">The superblock's top-left position in 4x4 mode-info units.</param>
-    /// <param name="superblockInfo">The decoded syntax and block modes for the superblock.</param>
-    /// <param name="tileInfo">The tile that contains the superblock.</param>
-    public void DecodeSuperblock(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
-    {
-        this.blockDecoder.UpdateSuperblock(superblockInfo);
-        this.DecodePartition(modeInfoPosition, superblockInfo, tileInfo);
-    }
+    /// <param name="superblockInfo">The transform and coefficient storage belonging to the superblock.</param>
+    public void BeginSuperblock(Av1SuperblockInfo superblockInfo) => this.blockDecoder.UpdateSuperblock(superblockInfo);
 
     /// <summary>
-    /// Reconstructs each decoded block in a superblock partition.
+    /// Prepares a published coding block before its residual syntax is read.
     /// </summary>
-    /// <param name="modeInfoPosition">The superblock's frame-relative origin in 4x4 mode-info units.</param>
-    /// <param name="superblockInfo">The superblock whose block modes are traversed.</param>
-    /// <param name="tileInfo">The tile boundary information used by intra prediction.</param>
-    /// <remarks>Traverses the depth-first block order produced by tile parsing.</remarks>
-    private void DecodePartition(Point modeInfoPosition, Av1SuperblockInfo superblockInfo, Av1TileInfo tileInfo)
-    {
-        foreach (ref Av1BlockModeInfo modeInfo in superblockInfo.GetModeInfos())
-        {
-            Point subPosition = modeInfo.PositionInSuperblock;
-            Av1BlockSize subSize = modeInfo.BlockSize;
-            Point globalPosition = new(modeInfoPosition.X, modeInfoPosition.Y);
+    /// <param name="partitionInfo">The current block modes, geometry, and available neighbors.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    public void BeginBlock(ref Av1PartitionInfo partitionInfo, Av1TileInfo tileInfo)
+        => this.blockDecoder.BeginBlock(ref partitionInfo, tileInfo);
 
-            // Block positions are stored relative to the superblock; prediction and reconstruction require frame-relative mode-info coordinates.
-            globalPosition.Offset(subPosition);
-            this.blockDecoder.DecodeBlock(modeInfo, globalPosition, subSize, superblockInfo, tileInfo);
+    /// <summary>
+    /// Reconstructs a parsed transform before the following transform's coefficients are read.
+    /// </summary>
+    /// <param name="partitionInfo">The current block modes, geometry, and available neighbors.</param>
+    /// <param name="plane">The zero-based color-plane index.</param>
+    /// <param name="transformInfo">The parsed transform geometry and residual metadata.</param>
+    /// <param name="tileInfo">The active tile boundaries.</param>
+    public void DecodeTransform(ref Av1PartitionInfo partitionInfo, int plane, ref Av1TransformInfo transformInfo, Av1TileInfo tileInfo)
+        => this.blockDecoder.DecodeTransform(ref partitionInfo, plane, ref transformInfo, tileInfo);
 
-            // Palette maps are decoder-session scratch. Retained mode information must not keep views after the block
-            // has consumed them because the next superblock reuses the same storage.
-            modeInfo.SetPaletteColorIndexMap(Av1PlaneType.Y, default);
-            modeInfo.SetPaletteColorIndexMap(Av1PlaneType.Uv, default);
-        }
-    }
+    /// <inheritdoc/>
+    public void EndBlock(ref Av1PartitionInfo partitionInfo) => this.blockDecoder.EndBlock(ref partitionInfo);
 }

@@ -128,8 +128,16 @@ internal sealed class Av1SymbolWriter : IDisposable
         DebugGuard.IsTrue(distribution[distribution.NumberOfSymbols - 1] == 0, "Last entry in Probabilities table needs to be zero.");
 
         this.EncodeIntegerQ15(symbol, distribution);
+        this.UpdateSymbol(symbol, distribution);
+    }
 
-        // disable_cdf_update freezes every tile distribution while leaving range encoding unchanged.
+    /// <summary>
+    /// Adapts a symbol distribution when probability updates are enabled, without emitting range-coded data.
+    /// </summary>
+    /// <param name="symbol">The zero-based symbol.</param>
+    /// <param name="distribution">The inverse cumulative distribution for the symbol alphabet.</param>
+    public void UpdateSymbol(int symbol, Av1Distribution distribution)
+    {
         if (this.updateCdf)
         {
             distribution.Update(symbol);

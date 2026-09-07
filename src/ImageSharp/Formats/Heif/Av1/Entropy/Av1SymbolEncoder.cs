@@ -286,10 +286,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Defines how shared coefficient-syntax helpers handle one adaptive symbol or literal bit field.
+    /// Defines how a syntax traversal handles one adaptive symbol or literal bit field.
     /// </summary>
-    private interface ICoefficientSymbolOperation
+    public interface ISymbolOperation
     {
+        /// <summary>
+        /// Gets a value indicating whether this operation emits a bitstream.
+        /// </summary>
+        public static abstract bool WritesOutput { get; }
+
         /// <summary>
         /// Handles one symbol from an adaptive distribution.
         /// </summary>
@@ -301,6 +306,24 @@ internal sealed class Av1SymbolEncoder : IDisposable
             ref Av1SymbolWriter writer,
             int symbol,
             Av1Distribution distribution);
+
+        /// <summary>
+        /// Handles one binary symbol from an adaptive distribution.
+        /// </summary>
+        /// <param name="writer">The tile range writer.</param>
+        /// <param name="symbol">The binary symbol.</param>
+        /// <param name="distribution">The symbol distribution.</param>
+        /// <returns>The symbol's rate contribution.</returns>
+        public static abstract int ProcessSymbol(ref Av1SymbolWriter writer, bool symbol, Av1Distribution distribution);
+
+        /// <summary>
+        /// Handles one binary symbol with a fixed probability.
+        /// </summary>
+        /// <param name="writer">The tile range writer.</param>
+        /// <param name="value">The binary value.</param>
+        /// <param name="frequency">The probability of true, scaled by 32768.</param>
+        /// <returns>The symbol's rate contribution.</returns>
+        public static abstract int ProcessBoolean(ref Av1SymbolWriter writer, bool value, uint frequency);
 
         /// <summary>
         /// Handles one most-significant-bit-first literal field.
@@ -320,6 +343,11 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// </summary>
     private interface IPaletteColorMapOperation
     {
+        /// <summary>
+        /// Gets a value indicating whether the traversal retains color tokens for later packing.
+        /// </summary>
+        static abstract bool RetainsTokens { get; }
+
         /// <summary>
         /// Handles the first uniformly coded palette index.
         /// </summary>
@@ -374,9 +402,18 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="value">The low-order literal bits.</param>
     /// <param name="bitCount">The number of bits to write.</param>
     public void WriteLiteral(uint value, int bitCount)
+        => this.WriteLiteral<SymbolWriteOperation>(value, bitCount);
+
+    /// <inheritdoc cref="WriteLiteral(uint, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteLiteral<TOperation>(uint value, int bitCount)
+        where TOperation : struct, ISymbolOperation
     {
-        ref Av1SymbolWriter w = ref this.writer;
-        w.WriteLiteral(value, bitCount);
+        if (TOperation.WritesOutput)
+        {
+            ref Av1SymbolWriter w = ref this.writer;
+            _ = TOperation.ProcessLiteral(ref w, value, bitCount);
+        }
     }
 
     /// <summary>
@@ -385,20 +422,29 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="valueCount">The number of possible values.</param>
     /// <param name="value">The value in the range from zero through <paramref name="valueCount"/> minus one.</param>
     public void WriteUniform(int valueCount, int value)
-    {
-        ref Av1SymbolWriter w = ref this.writer;
-        int bitCount = Av1Math.Log2(valueCount) + 1;
-        int threshold = (1 << bitCount) - valueCount;
-        if (value < threshold)
-        {
-            // The lower values use the short prefix; every remaining value carries one final disambiguating bit.
-            w.WriteLiteral((uint)value, bitCount - 1);
-            return;
-        }
+        => this.WriteUniform<SymbolWriteOperation>(valueCount, value);
 
-        int offset = value - threshold;
-        w.WriteLiteral((uint)(threshold + (offset >> 1)), bitCount - 1);
-        w.WriteLiteral((uint)(offset & 1), 1);
+    /// <inheritdoc cref="WriteUniform(int, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteUniform<TOperation>(int valueCount, int value)
+        where TOperation : struct, ISymbolOperation
+    {
+        if (TOperation.WritesOutput)
+        {
+            ref Av1SymbolWriter w = ref this.writer;
+            int bitCount = Av1Math.Log2(valueCount) + 1;
+            int threshold = (1 << bitCount) - valueCount;
+            if (value < threshold)
+            {
+                // The lower values use the short prefix; every remaining value carries one final disambiguating bit.
+                _ = TOperation.ProcessLiteral(ref w, (uint)value, bitCount - 1);
+                return;
+            }
+
+            int offset = value - threshold;
+            _ = TOperation.ProcessLiteral(ref w, (uint)(threshold + (offset >> 1)), bitCount - 1);
+            _ = TOperation.ProcessLiteral(ref w, (uint)(offset & 1), 1);
+        }
     }
 
     /// <summary>
@@ -435,9 +481,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
     /// <param name="neighborContext">The number of available above and left luma neighbors that use palettes.</param>
     public void WritePaletteYMode(bool usePalette, int blockSizeContext, int neighborContext)
+        => this.WritePaletteYMode<SymbolWriteOperation>(usePalette, blockSizeContext, neighborContext);
+
+    /// <inheritdoc cref="WritePaletteYMode(bool, int, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePaletteYMode<TOperation>(bool usePalette, int blockSizeContext, int neighborContext)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(usePalette, this.entropyContext.PaletteYMode[blockSizeContext][neighborContext]);
+        _ = TOperation.ProcessSymbol(ref w, usePalette, this.entropyContext.PaletteYMode[blockSizeContext][neighborContext]);
     }
 
     /// <summary>
@@ -459,9 +511,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="usePalette">Indicates whether the block uses chroma palette prediction.</param>
     /// <param name="hasLumaPalette">Indicates whether the current block uses a luma palette.</param>
     public void WritePaletteUvMode(bool usePalette, bool hasLumaPalette)
+        => this.WritePaletteUvMode<SymbolWriteOperation>(usePalette, hasLumaPalette);
+
+    /// <inheritdoc cref="WritePaletteUvMode(bool, bool)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePaletteUvMode<TOperation>(bool usePalette, bool hasLumaPalette)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(usePalette, this.entropyContext.PaletteUvMode[hasLumaPalette ? 1 : 0]);
+        _ = TOperation.ProcessSymbol(ref w, usePalette, this.entropyContext.PaletteUvMode[hasLumaPalette ? 1 : 0]);
     }
 
     /// <summary>
@@ -487,13 +545,19 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="blockSizeContext">The block-area context in the range from zero through six.</param>
     /// <param name="planeType">The luma or chroma plane class.</param>
     public void WritePaletteSize(int paletteSize, int blockSizeContext, Av1PlaneType planeType)
+        => this.WritePaletteSize<SymbolWriteOperation>(paletteSize, blockSizeContext, planeType);
+
+    /// <inheritdoc cref="WritePaletteSize(int, int, Av1PlaneType)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePaletteSize<TOperation>(int paletteSize, int blockSizeContext, Av1PlaneType planeType)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
         Av1Distribution distribution = planeType == Av1PlaneType.Y
             ? this.entropyContext.PaletteYSize[blockSizeContext]
             : this.entropyContext.PaletteUvSize[blockSizeContext];
 
-        w.WriteSymbol(paletteSize - 2, distribution);
+        _ = TOperation.ProcessSymbol(ref w, paletteSize - 2, distribution);
     }
 
     /// <summary>
@@ -529,13 +593,23 @@ internal sealed class Av1SymbolEncoder : IDisposable
         int paletteSize,
         int colorContext,
         Av1PlaneType planeType)
+        => this.WritePaletteColorIndex<SymbolWriteOperation>(colorOrderIndex, paletteSize, colorContext, planeType);
+
+    /// <inheritdoc cref="WritePaletteColorIndex(int, int, int, Av1PlaneType)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePaletteColorIndex<TOperation>(
+        int colorOrderIndex,
+        int paletteSize,
+        int colorContext,
+        Av1PlaneType planeType)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
         Av1Distribution distribution = planeType == Av1PlaneType.Y
             ? this.entropyContext.PaletteYColorIndex[paletteSize - 2][colorContext]
             : this.entropyContext.PaletteUvColorIndex[paletteSize - 2][colorContext];
 
-        w.WriteSymbol(colorOrderIndex, distribution);
+        _ = TOperation.ProcessSymbol(ref w, colorOrderIndex, distribution);
     }
 
     /// <summary>
@@ -575,24 +649,36 @@ internal sealed class Av1SymbolEncoder : IDisposable
         ReadOnlySpan<ushort> colorCache,
         ReadOnlySpan<ushort> colors,
         int bitDepth)
+        => this.WritePaletteYColors<SymbolWriteOperation>(colorCache, colors, bitDepth);
+
+    /// <inheritdoc cref="WritePaletteYColors(ReadOnlySpan{ushort}, ReadOnlySpan{ushort}, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePaletteYColors<TOperation>(
+        ReadOnlySpan<ushort> colorCache,
+        ReadOnlySpan<ushort> colors,
+        int bitDepth)
+        where TOperation : struct, ISymbolOperation
     {
-        Span<byte> cacheColorFound = stackalloc byte[Av1Constants.PaletteMaxSize * 2];
-        Span<ushort> uncachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
-        int uncachedColorCount = IndexColorCache(
-            colorCache,
-            colors,
-            cacheColorFound,
-            uncachedColors);
-
-        int cachedColorCount = 0;
-        for (int i = 0; i < colorCache.Length && cachedColorCount < colors.Length; i++)
+        if (TOperation.WritesOutput)
         {
-            byte found = cacheColorFound[i];
-            this.WriteLiteral(found, 1);
-            cachedColorCount += found;
-        }
+            Span<byte> cacheColorFound = stackalloc byte[Av1Constants.PaletteMaxSize * 2];
+            Span<ushort> uncachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+            int uncachedColorCount = IndexColorCache(
+                colorCache,
+                colors,
+                cacheColorFound,
+                uncachedColors);
 
-        this.WriteDeltaEncodedColors(uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 1);
+            int cachedColorCount = 0;
+            for (int i = 0; i < colorCache.Length && cachedColorCount < colors.Length; i++)
+            {
+                byte found = cacheColorFound[i];
+                this.WriteLiteral<TOperation>(found, 1);
+                cachedColorCount += found;
+            }
+
+            this.WriteDeltaEncodedColors<TOperation>(uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 1);
+        }
     }
 
     /// <summary>
@@ -640,61 +726,74 @@ internal sealed class Av1SymbolEncoder : IDisposable
         ReadOnlySpan<ushort> uColors,
         ReadOnlySpan<ushort> vColors,
         int bitDepth)
+        => this.WritePaletteUvColors<SymbolWriteOperation>(colorCache, uColors, vColors, bitDepth);
+
+    /// <inheritdoc cref="WritePaletteUvColors(ReadOnlySpan{ushort}, ReadOnlySpan{ushort}, ReadOnlySpan{ushort}, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePaletteUvColors<TOperation>(
+        ReadOnlySpan<ushort> colorCache,
+        ReadOnlySpan<ushort> uColors,
+        ReadOnlySpan<ushort> vColors,
+        int bitDepth)
+        where TOperation : struct, ISymbolOperation
     {
-        Span<byte> cacheColorFound = stackalloc byte[Av1Constants.PaletteMaxSize * 2];
-        Span<ushort> uncachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
-        int uncachedColorCount = IndexColorCache(
-            colorCache,
-            uColors,
-            cacheColorFound,
-            uncachedColors);
-
-        int cachedColorCount = 0;
-        for (int i = 0; i < colorCache.Length && cachedColorCount < uColors.Length; i++)
+        if (TOperation.WritesOutput)
         {
-            byte found = cacheColorFound[i];
-            this.WriteLiteral(found, 1);
-            cachedColorCount += found;
-        }
+            Span<byte> cacheColorFound = stackalloc byte[Av1Constants.PaletteMaxSize * 2];
+            Span<ushort> uncachedColors = stackalloc ushort[Av1Constants.PaletteMaxSize];
+            int uncachedColorCount = IndexColorCache(
+                colorCache,
+                uColors,
+                cacheColorFound,
+                uncachedColors);
 
-        this.WriteDeltaEncodedColors(uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 0);
-
-        int deltaBits = GetPaletteVDeltaBitCount(vColors, bitDepth, out int zeroCount, out int minimumBits);
-        int deltaBitCount = 2 + bitDepth + ((deltaBits + 1) * (vColors.Length - 1)) - zeroCount;
-        int rawBitCount = bitDepth * vColors.Length;
-        bool useDelta = deltaBitCount < rawBitCount;
-        this.WriteLiteral(useDelta ? 1u : 0u, 1);
-        if (!useDelta)
-        {
-            for (int i = 0; i < vColors.Length; i++)
+            int cachedColorCount = 0;
+            for (int i = 0; i < colorCache.Length && cachedColorCount < uColors.Length; i++)
             {
-                this.WriteLiteral(vColors[i], bitDepth);
+                byte found = cacheColorFound[i];
+                this.WriteLiteral<TOperation>(found, 1);
+                cachedColorCount += found;
             }
 
-            return;
-        }
+            this.WriteDeltaEncodedColors<TOperation>(uncachedColors[..uncachedColorCount], bitDepth, minimumDelta: 0);
 
-        this.WriteLiteral((uint)(deltaBits - minimumBits), 2);
-        this.WriteLiteral(vColors[0], bitDepth);
-        int sampleRange = 1 << bitDepth;
-        for (int i = 1; i < vColors.Length; i++)
-        {
-            int signedDelta = vColors[i] - vColors[i - 1];
-            int delta = Math.Abs(signedDelta);
-
-            // Chroma wraps in its unsigned sample domain, so signal whichever circular direction has less magnitude.
-            if (delta <= sampleRange - delta)
+            int deltaBits = GetPaletteVDeltaBitCount(vColors, bitDepth, out int zeroCount, out int minimumBits);
+            int deltaBitCount = 2 + bitDepth + ((deltaBits + 1) * (vColors.Length - 1)) - zeroCount;
+            int rawBitCount = bitDepth * vColors.Length;
+            bool useDelta = deltaBitCount < rawBitCount;
+            this.WriteLiteral<TOperation>(useDelta ? 1u : 0u, 1);
+            if (!useDelta)
             {
-                this.WriteLiteral((uint)delta, deltaBits);
-                if (delta != 0)
+                for (int i = 0; i < vColors.Length; i++)
                 {
-                    this.WriteLiteral(signedDelta < 0 ? 1u : 0u, 1);
+                    this.WriteLiteral<TOperation>(vColors[i], bitDepth);
                 }
+
+                return;
             }
-            else
+
+            this.WriteLiteral<TOperation>((uint)(deltaBits - minimumBits), 2);
+            this.WriteLiteral<TOperation>(vColors[0], bitDepth);
+            int sampleRange = 1 << bitDepth;
+            for (int i = 1; i < vColors.Length; i++)
             {
-                this.WriteLiteral((uint)(sampleRange - delta), deltaBits);
-                this.WriteLiteral(signedDelta < 0 ? 0u : 1u, 1);
+                int signedDelta = vColors[i] - vColors[i - 1];
+                int delta = Math.Abs(signedDelta);
+
+                // Chroma wraps in its unsigned sample domain, so signal whichever circular direction has less magnitude.
+                if (delta <= sampleRange - delta)
+                {
+                    this.WriteLiteral<TOperation>((uint)delta, deltaBits);
+                    if (delta != 0)
+                    {
+                        this.WriteLiteral<TOperation>(signedDelta < 0 ? 1u : 0u, 1);
+                    }
+                }
+                else
+                {
+                    this.WriteLiteral<TOperation>((uint)(sampleRange - delta), deltaBits);
+                    this.WriteLiteral<TOperation>(signedDelta < 0 ? 0u : 1u, 1);
+                }
             }
         }
     }
@@ -719,7 +818,8 @@ internal sealed class Av1SymbolEncoder : IDisposable
             planeType,
             rows,
             columns,
-            colorIndexMap);
+            colorIndexMap,
+            Span<byte>.Empty);
 
     /// <summary>
     /// Writes a complete palette color-index map in AV1 diagonal wavefront order.
@@ -735,13 +835,67 @@ internal sealed class Av1SymbolEncoder : IDisposable
         int rows,
         int columns,
         Buffer2DRegion<byte> colorIndexMap)
+        => this.WritePaletteColorMap<SymbolWriteOperation>(paletteSize, planeType, rows, columns, colorIndexMap);
+
+    /// <inheritdoc cref="WritePaletteColorMap(int, Av1PlaneType, int, int, Buffer2DRegion{byte})"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePaletteColorMap<TOperation>(
+        int paletteSize,
+        Av1PlaneType planeType,
+        int rows,
+        int columns,
+        Buffer2DRegion<byte> colorIndexMap)
+        where TOperation : struct, ISymbolOperation
     {
-        _ = this.ProcessPaletteColorMap<PaletteColorMapWriteOperation>(
+        _ = this.ProcessPaletteColorMap<PaletteColorMapWriteOperation<TOperation>>(
             paletteSize,
             planeType,
             rows,
             columns,
-            colorIndexMap);
+            colorIndexMap,
+            Span<byte>.Empty);
+    }
+
+    /// <summary>
+    /// Retains palette color tokens and updates their adaptive probabilities without writing output bytes.
+    /// </summary>
+    /// <param name="paletteSize">The number of colors in the palette.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <param name="rows">The number of coded map rows.</param>
+    /// <param name="columns">The number of coded map columns.</param>
+    /// <param name="colorIndexMap">The selected color-index map.</param>
+    /// <param name="tokens">The destination with one byte per coded sample.</param>
+    public void TokenizePaletteColorMap(
+        int paletteSize,
+        Av1PlaneType planeType,
+        int rows,
+        int columns,
+        Buffer2DRegion<byte> colorIndexMap,
+        Span<byte> tokens)
+    {
+        _ = this.ProcessPaletteColorMap<PaletteColorMapTokenOperation>(
+            paletteSize,
+            planeType,
+            rows,
+            columns,
+            colorIndexMap,
+            tokens);
+    }
+
+    /// <summary>
+    /// Writes retained palette tokens in their previously selected order.
+    /// </summary>
+    /// <param name="paletteSize">The number of colors in the palette.</param>
+    /// <param name="planeType">The luma or chroma plane class.</param>
+    /// <param name="tokens">The raw first index followed by packed context and color-rank tokens.</param>
+    public void WritePaletteTokens(int paletteSize, Av1PlaneType planeType, ReadOnlySpan<byte> tokens)
+    {
+        this.WriteUniform(paletteSize, tokens[0]);
+        for (int i = 1; i < tokens.Length; i++)
+        {
+            byte token = tokens[i];
+            this.WritePaletteColorIndex(token & 7, paletteSize, token >> 4, planeType);
+        }
     }
 
     /// <summary>
@@ -749,9 +903,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// </summary>
     /// <param name="value">Indicates whether intra-block copy is selected.</param>
     public void WriteUseIntraBlockCopy(bool value)
+        => this.WriteUseIntraBlockCopy<SymbolWriteOperation>(value);
+
+    /// <inheritdoc cref="WriteUseIntraBlockCopy(bool)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteUseIntraBlockCopy<TOperation>(bool value)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(value, this.tileIntraBlockCopy);
+        _ = TOperation.ProcessSymbol(ref w, value, this.tileIntraBlockCopy);
     }
 
     /// <summary>
@@ -768,7 +928,13 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="value">The displacement vector to encode.</param>
     /// <param name="reference">The spatially derived reference vector.</param>
     public void WriteDisplacementVector(Av1MotionVector value, Av1MotionVector reference)
-        => this.displacementVector.Write(this.writer, value, reference, Av1MotionVectorPrecision.Integer);
+        => this.WriteDisplacementVector<SymbolWriteOperation>(value, reference);
+
+    /// <inheritdoc cref="WriteDisplacementVector(Av1MotionVector, Av1MotionVector)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteDisplacementVector<TOperation>(Av1MotionVector value, Av1MotionVector reference)
+        where TOperation : struct, ISymbolOperation
+        => this.displacementVector.Write<TOperation>(this.writer, value, reference, Av1MotionVectorPrecision.Integer);
 
     /// <summary>
     /// Measures an integer intra-block-copy displacement vector against the live distributions.
@@ -818,7 +984,13 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="filter">The regular, smooth, or sharp filter.</param>
     /// <param name="context">The spatial filter context for the selected direction.</param>
     public void WriteSwitchableInterpolationFilter(Av1InterpolationFilter filter, int context)
-        => this.writer.WriteSymbol((int)filter, this.entropyContext.SwitchableInterpolation[context]);
+        => this.WriteSwitchableInterpolationFilter<SymbolWriteOperation>(filter, context);
+
+    /// <inheritdoc cref="WriteSwitchableInterpolationFilter(Av1InterpolationFilter, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSwitchableInterpolationFilter<TOperation>(Av1InterpolationFilter filter, int context)
+        where TOperation : struct, ISymbolOperation
+        => TOperation.ProcessSymbol(ref this.writer, (int)filter, this.entropyContext.SwitchableInterpolation[context]);
 
     /// <summary>
     /// Measures a single-reference inter mode against the live branch distributions.
@@ -859,23 +1031,30 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="mode">The new, global, nearest, or near motion-vector mode.</param>
     /// <param name="modeContext">The packed context derived from the reference-vector stack.</param>
     public void WriteInterMode(Av1PredictionMode mode, int modeContext)
+        => this.WriteInterMode<SymbolWriteOperation>(mode, modeContext);
+
+    /// <inheritdoc cref="WriteInterMode(Av1PredictionMode, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteInterMode<TOperation>(Av1PredictionMode mode, int modeContext)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
         bool isNotNew = mode != Av1PredictionMode.NewMotionVector;
-        w.WriteSymbol(isNotNew, this.newMotionVector[Av1SymbolContextHelper.GetNewMvContext(modeContext)]);
+        _ = TOperation.ProcessSymbol(ref w, isNotNew, this.newMotionVector[Av1SymbolContextHelper.GetNewMvContext(modeContext)]);
         if (!isNotNew)
         {
             return;
         }
 
         bool isNotGlobal = mode != Av1PredictionMode.GlobalMotionVector;
-        w.WriteSymbol(isNotGlobal, this.zeroMotionVector[Av1SymbolContextHelper.GetZeroMvContext(modeContext)]);
+        _ = TOperation.ProcessSymbol(ref w, isNotGlobal, this.zeroMotionVector[Av1SymbolContextHelper.GetZeroMvContext(modeContext)]);
         if (!isNotGlobal)
         {
             return;
         }
 
-        w.WriteSymbol(
+        _ = TOperation.ProcessSymbol(
+            ref w,
             mode == Av1PredictionMode.NearMotionVector,
             this.referenceMotionVector[Av1SymbolContextHelper.GetRefMvContext(modeContext)]);
     }
@@ -895,9 +1074,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="advance">Whether selection advances to the next candidate.</param>
     /// <param name="context">The candidate-weight context.</param>
     public void WriteDynamicReferenceList(bool advance, int context)
+        => this.WriteDynamicReferenceList<SymbolWriteOperation>(advance, context);
+
+    /// <inheritdoc cref="WriteDynamicReferenceList(bool, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteDynamicReferenceList<TOperation>(bool advance, int context)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(advance, this.dynamicReferenceList[context]);
+        _ = TOperation.ProcessSymbol(ref w, advance, this.dynamicReferenceList[context]);
     }
 
     /// <summary>
@@ -929,7 +1114,16 @@ internal sealed class Av1SymbolEncoder : IDisposable
         Av1MotionVector value,
         Av1MotionVector reference,
         Av1MotionVectorPrecision precision)
-        => this.motionVector.Write(this.writer, value, reference, precision);
+        => this.WriteMotionVector<SymbolWriteOperation>(value, reference, precision);
+
+    /// <inheritdoc cref="WriteMotionVector(Av1MotionVector, Av1MotionVector, Av1MotionVectorPrecision)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteMotionVector<TOperation>(
+        Av1MotionVector value,
+        Av1MotionVector reference,
+        Av1MotionVectorPrecision precision)
+        where TOperation : struct, ISymbolOperation
+        => this.motionVector.Write<TOperation>(this.writer, value, reference, precision);
 
     /// <summary>
     /// Gets the current fixed-point cost of a complete block partition symbol.
@@ -946,9 +1140,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="partitionType">The partition type to encode.</param>
     /// <param name="context">The partition probability context.</param>
     public void WritePartitionType(Av1PartitionType partitionType, int context)
+        => this.WritePartitionType<SymbolWriteOperation>(partitionType, context);
+
+    /// <inheritdoc cref="WritePartitionType(Av1PartitionType, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WritePartitionType<TOperation>(Av1PartitionType partitionType, int context)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol((int)partitionType, this.tilePartitionTypes[context]);
+        _ = TOperation.ProcessSymbol(ref w, (int)partitionType, this.tilePartitionTypes[context]);
     }
 
     /// <summary>
@@ -958,11 +1158,20 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="blockSize">The current block size.</param>
     /// <param name="context">The partition probability context.</param>
     public void WriteSplitOrHorizontal(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
+        => this.WriteSplitOrHorizontal<SymbolWriteOperation>(partitionType, blockSize, context);
+
+    /// <inheritdoc cref="WriteSplitOrHorizontal(Av1PartitionType, Av1BlockSize, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSplitOrHorizontal<TOperation>(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
+        where TOperation : struct, ISymbolOperation
     {
-        uint frequency = Av1SymbolDecoder.GetSplitOrHorizontalFrequency(this.tilePartitionTypes, blockSize, context);
-        bool value = partitionType == Av1PartitionType.Split;
-        ref Av1SymbolWriter w = ref this.writer;
-        w.WriteBoolean(value, frequency);
+        if (TOperation.WritesOutput)
+        {
+            uint frequency = Av1SymbolDecoder.GetSplitOrHorizontalFrequency(this.tilePartitionTypes, blockSize, context);
+            bool value = partitionType == Av1PartitionType.Split;
+            ref Av1SymbolWriter w = ref this.writer;
+            _ = TOperation.ProcessBoolean(ref w, value, frequency);
+        }
     }
 
     /// <summary>
@@ -992,11 +1201,20 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="blockSize">The current block size.</param>
     /// <param name="context">The partition probability context.</param>
     public void WriteSplitOrVertical(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
+        => this.WriteSplitOrVertical<SymbolWriteOperation>(partitionType, blockSize, context);
+
+    /// <inheritdoc cref="WriteSplitOrVertical(Av1PartitionType, Av1BlockSize, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSplitOrVertical<TOperation>(Av1PartitionType partitionType, Av1BlockSize blockSize, int context)
+        where TOperation : struct, ISymbolOperation
     {
-        uint frequency = Av1SymbolDecoder.GetSplitOrVerticalFrequency(this.tilePartitionTypes, blockSize, context);
-        bool value = partitionType == Av1PartitionType.Split;
-        ref Av1SymbolWriter w = ref this.writer;
-        w.WriteBoolean(value, frequency);
+        if (TOperation.WritesOutput)
+        {
+            uint frequency = Av1SymbolDecoder.GetSplitOrVerticalFrequency(this.tilePartitionTypes, blockSize, context);
+            bool value = partitionType == Av1PartitionType.Split;
+            ref Av1SymbolWriter w = ref this.writer;
+            _ = TOperation.ProcessBoolean(ref w, value, frequency);
+        }
     }
 
     /// <summary>
@@ -1044,12 +1262,51 @@ internal sealed class Av1SymbolEncoder : IDisposable
         bool useReducedTransformSet,
         Av1FilterIntraMode filterIntraMode,
         bool usesInterTransformSet)
+        => this.WriteCoefficients<SymbolWriteOperation>(
+            transformSize,
+            transformType,
+            intraDirection,
+            coefficientBuffer,
+            componentType,
+            transformBlockContext,
+            endOfBlock,
+            useReducedTransformSet,
+            filterIntraMode,
+            usesInterTransformSet);
+
+    /// <summary>
+    /// Processes finalized coefficient symbols and returns the neighboring coefficient context.
+    /// </summary>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    /// <param name="transformSize">The transform dimensions.</param>
+    /// <param name="transformType">The selected transform type.</param>
+    /// <param name="intraDirection">The luma prediction mode.</param>
+    /// <param name="coefficientBuffer">The quantized raster coefficients.</param>
+    /// <param name="componentType">The luma or chroma component.</param>
+    /// <param name="transformBlockContext">The neighboring skip and DC sign contexts.</param>
+    /// <param name="endOfBlock">The one-based final nonzero scan position, or zero for an empty transform.</param>
+    /// <param name="useReducedTransformSet">Whether the reduced transform set applies.</param>
+    /// <param name="filterIntraMode">The filter-intra prediction mode.</param>
+    /// <param name="usesInterTransformSet">Whether inter transform syntax applies.</param>
+    /// <returns>The coefficient context consumed by adjacent transforms.</returns>
+    public int WriteCoefficients<TOperation>(
+        Av1TransformSize transformSize,
+        Av1TransformType transformType,
+        Av1PredictionMode intraDirection,
+        ReadOnlySpan<int> coefficientBuffer,
+        Av1ComponentType componentType,
+        Av1TransformBlockContext transformBlockContext,
+        ushort endOfBlock,
+        bool useReducedTransformSet,
+        Av1FilterIntraMode filterIntraMode,
+        bool usesInterTransformSet)
+        where TOperation : struct, ISymbolOperation
     {
         Av1TransformSize transformSizeContext = Av1SymbolContextHelper.GetTransformSizeContext(transformSize);
 
         DebugGuard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));
 
-        _ = this.ProcessTransformBlockSkip<CoefficientWriteOperation>(
+        _ = this.ProcessTransformBlockSkip<TOperation>(
             endOfBlock == 0,
             transformSizeContext,
             transformBlockContext.SkipContext);
@@ -1073,7 +1330,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
         levels.Initialize(coefficientBuffer);
         if (componentType == Av1ComponentType.Luminance)
         {
-            _ = this.ProcessTransformType<CoefficientWriteOperation>(
+            _ = this.ProcessTransformType<TOperation>(
                 transformType,
                 transformSize,
                 usesInterTransformSet,
@@ -1083,7 +1340,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
                 intraDirection);
         }
 
-        _ = this.ProcessEndOfBlockPosition<CoefficientWriteOperation>(
+        _ = this.ProcessEndOfBlockPosition<TOperation>(
             endOfBlock,
             componentType,
             transformClass,
@@ -1103,13 +1360,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
 
             if (c == endOfBlock - 1)
             {
-                w.WriteSymbol(
+                _ = TOperation.ProcessSymbol(
+                    ref w,
                     Math.Min(level, 3) - 1,
                     this.coefficientsBaseEndOfBlock[(int)transformSizeContext][(int)componentType][coefficientContext]);
             }
             else
             {
-                w.WriteSymbol(
+                _ = TOperation.ProcessSymbol(
+                    ref w,
                     Math.Min(level, 3),
                     this.coefficientsBase[(int)transformSizeContext][(int)componentType][coefficientContext]);
             }
@@ -1122,7 +1381,8 @@ internal sealed class Av1SymbolEncoder : IDisposable
                 for (int idx = 0; idx < Av1Constants.CoefficientBaseRange; idx += Av1Constants.BaseRangeSizeMinus1)
                 {
                     int symbol = Math.Min(baseRange - idx, Av1Constants.BaseRangeSizeMinus1);
-                    w.WriteSymbol(
+                    _ = TOperation.ProcessSymbol(
+                        ref w,
                         symbol,
                         this.coefficientsBaseRange[limitedTransformSizeContext][(int)componentType][baseRangeContext]);
 
@@ -1148,18 +1408,19 @@ internal sealed class Av1SymbolEncoder : IDisposable
             {
                 if (c == 0)
                 {
-                    w.WriteSymbol(
+                    _ = TOperation.ProcessSymbol(
+                        ref w,
                         (int)sign,
                         this.dcSign[(int)componentType][transformBlockContext.DcSignContext]);
                 }
                 else
                 {
-                    w.WriteLiteral(sign, 1);
+                    _ = TOperation.ProcessLiteral(ref w, sign, 1);
                 }
 
                 if (level > (Av1Constants.CoefficientBaseRange + Av1Constants.BaseLevelsCount))
                 {
-                    this.WriteGolomb(
+                    this.WriteGolomb<TOperation>(
                         level - Av1Constants.CoefficientBaseRange - 1 - Av1Constants.BaseLevelsCount);
                 }
             }
@@ -1361,8 +1622,19 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="transformSize">The signaled transform size selecting the token alphabet.</param>
     /// <param name="transformSizeContext">The square transform-size probability context.</param>
     public void WriteEndOfBlockPosition(ushort endOfBlock, Av1ComponentType componentType, Av1TransformClass transformClass, Av1TransformSize transformSize, Av1TransformSize transformSizeContext)
+        => this.WriteEndOfBlockPosition<SymbolWriteOperation>(endOfBlock, componentType, transformClass, transformSize, transformSizeContext);
+
+    /// <inheritdoc cref="WriteEndOfBlockPosition(ushort, Av1ComponentType, Av1TransformClass, Av1TransformSize, Av1TransformSize)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteEndOfBlockPosition<TOperation>(
+        ushort endOfBlock,
+        Av1ComponentType componentType,
+        Av1TransformClass transformClass,
+        Av1TransformSize transformSize,
+        Av1TransformSize transformSizeContext)
+        where TOperation : struct, ISymbolOperation
     {
-        _ = this.ProcessEndOfBlockPosition<CoefficientWriteOperation>(
+        _ = this.ProcessEndOfBlockPosition<TOperation>(
             endOfBlock,
             componentType,
             transformClass,
@@ -1376,7 +1648,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
         Av1TransformClass transformClass,
         Av1TransformSize transformSize,
         Av1TransformSize transformSizeContext)
-        where TOperation : struct, ICoefficientSymbolOperation
+        where TOperation : struct, ISymbolOperation
     {
         short endOfBlockPosition = Av1SymbolContextHelper.GetEndOfBlockPosition(endOfBlock, out int eobExtra);
         int rate = this.ProcessEndOfBlockFlag<TOperation>(
@@ -1425,15 +1697,21 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="transformSizeContext">The square transform-size probability context.</param>
     /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
     public void WriteTransformBlockSkip(bool skip, Av1TransformSize transformSizeContext, int skipContext)
+        => this.WriteTransformBlockSkip<SymbolWriteOperation>(skip, transformSizeContext, skipContext);
+
+    /// <inheritdoc cref="WriteTransformBlockSkip(bool, Av1TransformSize, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteTransformBlockSkip<TOperation>(bool skip, Av1TransformSize transformSizeContext, int skipContext)
+        where TOperation : struct, ISymbolOperation
     {
-        _ = this.ProcessTransformBlockSkip<CoefficientWriteOperation>(skip, transformSizeContext, skipContext);
+        _ = this.ProcessTransformBlockSkip<TOperation>(skip, transformSizeContext, skipContext);
     }
 
     private int ProcessTransformBlockSkip<TOperation>(
         bool skip,
         Av1TransformSize transformSizeContext,
         int skipContext)
-        where TOperation : struct, ICoefficientSymbolOperation
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
         return TOperation.ProcessSymbol(
@@ -1462,10 +1740,16 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="transformSize">The selected transform size.</param>
     /// <param name="context">The neighboring transform-size context.</param>
     public void WriteTransformSize(Av1BlockSize blockSize, Av1TransformSize transformSize, int context)
+        => this.WriteTransformSize<SymbolWriteOperation>(blockSize, transformSize, context);
+
+    /// <inheritdoc cref="WriteTransformSize(Av1BlockSize, Av1TransformSize, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteTransformSize<TOperation>(Av1BlockSize blockSize, Av1TransformSize transformSize, int context)
+        where TOperation : struct, ISymbolOperation
     {
         int selectedDepth = GetTransformSizeDepth(blockSize, transformSize, out int categoryDepth);
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(selectedDepth, this.transformSize[categoryDepth - 1][context]);
+        _ = TOperation.ProcessSymbol(ref w, selectedDepth, this.transformSize[categoryDepth - 1][context]);
     }
 
     /// <summary>
@@ -1483,9 +1767,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="split">Indicates whether the current transform node is split.</param>
     /// <param name="context">The neighboring variable-transform context.</param>
     public void WriteTransformPartition(bool split, int context)
+        => this.WriteTransformPartition<SymbolWriteOperation>(split, context);
+
+    /// <inheritdoc cref="WriteTransformPartition(bool, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteTransformPartition<TOperation>(bool split, int context)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(split ? 1 : 0, this.transformPartition[context]);
+        _ = TOperation.ProcessSymbol(ref w, split ? 1 : 0, this.transformPartition[context]);
     }
 
     private static int GetTransformSizeDepth(
@@ -1556,12 +1846,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// </summary>
     /// <param name="level">The nonnegative suffix value.</param>
     public void WriteGolomb(int level)
+        => this.WriteGolomb<SymbolWriteOperation>(level);
+
+    private void WriteGolomb<TOperation>(int level)
+        where TOperation : struct, ISymbolOperation
     {
         uint x = (uint)level + 1u;
         int length = GetGolombBitLength(level);
-        ref Av1SymbolWriter w = ref this.writer;
-        w.WriteLiteral(0u, length - 1);
-        w.WriteLiteral(x, length);
+        _ = TOperation.ProcessLiteral(ref this.writer, 0u, length - 1);
+        _ = TOperation.ProcessLiteral(ref this.writer, x, length);
     }
 
     private static int GetBaseRangeCost(int level, Av1Distribution distribution)
@@ -1611,7 +1904,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
         Av1TransformClass transformClass,
         Av1TransformSize transformSize,
         int endOfBlockPosition)
-        where TOperation : struct, ICoefficientSymbolOperation
+        where TOperation : struct, ISymbolOperation
     {
         int endOfBlockMultiSize = transformSize.GetLog2Minus4();
         int endOfBlockContext = transformClass == Av1TransformClass.Class2D ? 0 : 1;
@@ -1668,8 +1961,28 @@ internal sealed class Av1SymbolEncoder : IDisposable
         Av1FilterIntraMode filterIntraMode,
         Av1PredictionMode intraDirection,
         bool usesInterTransformSet)
+        => this.WriteTransformType<SymbolWriteOperation>(
+            transformType,
+            transformSize,
+            useReducedTransformSet,
+            baseQIndex,
+            filterIntraMode,
+            intraDirection,
+            usesInterTransformSet);
+
+    /// <inheritdoc cref="WriteTransformType(Av1TransformType, Av1TransformSize, bool, int, Av1FilterIntraMode, Av1PredictionMode, bool)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteTransformType<TOperation>(
+        Av1TransformType transformType,
+        Av1TransformSize transformSize,
+        bool useReducedTransformSet,
+        int baseQIndex,
+        Av1FilterIntraMode filterIntraMode,
+        Av1PredictionMode intraDirection,
+        bool usesInterTransformSet)
+        where TOperation : struct, ISymbolOperation
     {
-        _ = this.ProcessTransformType<CoefficientWriteOperation>(
+        _ = this.ProcessTransformType<TOperation>(
             transformType,
             transformSize,
             usesInterTransformSet,
@@ -1687,7 +2000,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
         int baseQIndex,
         Av1FilterIntraMode filterIntraMode,
         Av1PredictionMode intraDirection)
-        where TOperation : struct, ICoefficientSymbolOperation
+        where TOperation : struct, ISymbolOperation
     {
         Av1TransformSetType transformSetType = Av1SymbolContextHelper.GetExtendedTransformSetType(
             transformSize,
@@ -1742,9 +2055,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="segmentId">The segment identifier.</param>
     /// <param name="context">The context derived from neighboring segment identifiers.</param>
     public void WriteSegmentId(int segmentId, int context)
+        => this.WriteSegmentId<SymbolWriteOperation>(segmentId, context);
+
+    /// <inheritdoc cref="WriteSegmentId(int, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSegmentId<TOperation>(int segmentId, int context)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(segmentId, this.segmentId[context]);
+        _ = TOperation.ProcessSymbol(ref w, segmentId, this.segmentId[context]);
     }
 
     /// <summary>
@@ -1762,9 +2081,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="skip">Indicates whether the block contains no coded transform coefficients.</param>
     /// <param name="context">The neighboring skip context.</param>
     public void WriteSkip(bool skip, int context)
+        => this.WriteSkip<SymbolWriteOperation>(skip, context);
+
+    /// <inheritdoc cref="WriteSkip(bool, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSkip<TOperation>(bool skip, int context)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(skip, this.skip[context]);
+        _ = TOperation.ProcessSymbol(ref w, skip, this.skip[context]);
     }
 
     /// <summary>
@@ -1773,9 +2098,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="skip">Indicates whether skip mode is selected.</param>
     /// <param name="context">The neighboring skip-mode context.</param>
     public void WriteSkipMode(bool skip, int context)
+        => this.WriteSkipMode<SymbolWriteOperation>(skip, context);
+
+    /// <inheritdoc cref="WriteSkipMode(bool, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSkipMode<TOperation>(bool skip, int context)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(skip, this.skipMode[context]);
+        _ = TOperation.ProcessSymbol(ref w, skip, this.skipMode[context]);
     }
 
     /// <summary>
@@ -1802,13 +2133,19 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="filterIntraMode">The selected filter-intra mode, or the disabled sentinel.</param>
     /// <param name="blockSize">The block size selecting the enable distribution.</param>
     public void WriteFilterIntraMode(Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
+        => this.WriteFilterIntraMode<SymbolWriteOperation>(filterIntraMode, blockSize);
+
+    /// <inheritdoc cref="WriteFilterIntraMode(Av1FilterIntraMode, Av1BlockSize)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteFilterIntraMode<TOperation>(Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
         bool useFilter = filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes;
-        w.WriteSymbol(useFilter, this.filterIntra[(int)blockSize]);
+        _ = TOperation.ProcessSymbol(ref w, useFilter, this.filterIntra[(int)blockSize]);
         if (useFilter)
         {
-            w.WriteSymbol((int)filterIntraMode, this.filterIntraMode);
+            _ = TOperation.ProcessSymbol(ref w, (int)filterIntraMode, this.filterIntraMode);
         }
     }
 
@@ -1817,26 +2154,32 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// </summary>
     /// <param name="deltaQindex">The signed quantizer-index delta.</param>
     public void WriteDeltaQuantizerIndex(int deltaQindex)
+        => this.WriteDeltaQuantizerIndex<SymbolWriteOperation>(deltaQindex);
+
+    /// <inheritdoc cref="WriteDeltaQuantizerIndex(int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteDeltaQuantizerIndex<TOperation>(int deltaQindex)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
         bool sign = deltaQindex < 0;
         int abs = Math.Abs(deltaQindex);
         bool isSmallValue = abs < Av1Constants.DeltaQuantizerSmall;
 
-        w.WriteSymbol(Math.Min(abs, Av1Constants.DeltaQuantizerSmall), this.deltaQuantizerAbsolute);
+        _ = TOperation.ProcessSymbol(ref w, Math.Min(abs, Av1Constants.DeltaQuantizerSmall), this.deltaQuantizerAbsolute);
 
         if (!isSmallValue)
         {
             // Escape magnitudes encode their bit width first, followed by the offset within that width's range.
             int remainingBitCount = Av1Math.MostSignificantBit((uint)(abs - 1));
             int threshold = (1 << remainingBitCount) + 1;
-            w.WriteLiteral((uint)(remainingBitCount - 1), 3);
-            w.WriteLiteral((uint)(abs - threshold), remainingBitCount);
+            _ = TOperation.ProcessLiteral(ref w, (uint)(remainingBitCount - 1), 3);
+            _ = TOperation.ProcessLiteral(ref w, (uint)(abs - threshold), remainingBitCount);
         }
 
         if (abs > 0)
         {
-            w.WriteLiteral(sign);
+            _ = TOperation.ProcessLiteral(ref w, sign ? 1u : 0u, 1);
         }
     }
 
@@ -1859,9 +2202,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="topContext">The reduced above-mode context.</param>
     /// <param name="leftContext">The reduced left-mode context.</param>
     public void WriteLumaMode(Av1PredictionMode lumaMode, byte topContext, byte leftContext)
+        => this.WriteLumaMode<SymbolWriteOperation>(lumaMode, topContext, leftContext);
+
+    /// <inheritdoc cref="WriteLumaMode(Av1PredictionMode, byte, byte)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteLumaMode<TOperation>(Av1PredictionMode lumaMode, byte topContext, byte leftContext)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol((int)lumaMode, this.keyFrameYMode[topContext][leftContext]);
+        _ = TOperation.ProcessSymbol(ref w, (int)lumaMode, this.keyFrameYMode[topContext][leftContext]);
     }
 
     /// <summary>
@@ -1879,9 +2228,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="lumaMode">The intra luma mode.</param>
     /// <param name="blockSize">The coding block size selecting the size group.</param>
     public void WriteInterFrameLumaMode(Av1PredictionMode lumaMode, Av1BlockSize blockSize)
+        => this.WriteInterFrameLumaMode<SymbolWriteOperation>(lumaMode, blockSize);
+
+    /// <inheritdoc cref="WriteInterFrameLumaMode(Av1PredictionMode, Av1BlockSize)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteInterFrameLumaMode<TOperation>(Av1PredictionMode lumaMode, Av1BlockSize blockSize)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol((int)lumaMode, this.frameYMode[blockSize.GetSizeGroup()]);
+        _ = TOperation.ProcessSymbol(ref w, (int)lumaMode, this.frameYMode[blockSize.GetSizeGroup()]);
     }
 
     /// <summary>
@@ -1899,9 +2254,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="isInter">Whether the block uses a retained reference frame.</param>
     /// <param name="context">The neighboring prediction-domain context.</param>
     public void WriteIsInter(bool isInter, int context)
+        => this.WriteIsInter<SymbolWriteOperation>(isInter, context);
+
+    /// <inheritdoc cref="WriteIsInter(bool, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteIsInter<TOperation>(bool isInter, int context)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(isInter, this.intraInter[context]);
+        _ = TOperation.ProcessSymbol(ref w, isInter, this.intraInter[context]);
     }
 
     /// <summary>
@@ -1958,23 +2319,32 @@ internal sealed class Av1SymbolEncoder : IDisposable
     public void WriteSingleReference(
         Av1ReferenceFrameType referenceFrame,
         ReadOnlySpan<byte> referenceCounts)
+        => this.WriteSingleReference<SymbolWriteOperation>(referenceFrame, referenceCounts);
+
+    /// <inheritdoc cref="WriteSingleReference(Av1ReferenceFrameType, ReadOnlySpan{byte})"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteSingleReference<TOperation>(
+        Av1ReferenceFrameType referenceFrame,
+        ReadOnlySpan<byte> referenceCounts)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
         bool isBackward = referenceFrame >= Av1ReferenceFrameType.Backward;
         int context = Av1SymbolContextHelper.GetSingleReferenceBackwardContext(referenceCounts);
-        w.WriteSymbol(isBackward, this.singleReference[context][0]);
+        _ = TOperation.ProcessSymbol(ref w, isBackward, this.singleReference[context][0]);
         if (isBackward)
         {
             bool isAlternate = referenceFrame == Av1ReferenceFrameType.Alternate;
             context = Av1SymbolContextHelper.GetSingleReferenceAlternateContext(referenceCounts);
-            w.WriteSymbol(isAlternate, this.singleReference[context][1]);
+            _ = TOperation.ProcessSymbol(ref w, isAlternate, this.singleReference[context][1]);
             if (isAlternate)
             {
                 return;
             }
 
             context = Av1SymbolContextHelper.GetSingleReferenceAlternate2Context(referenceCounts);
-            w.WriteSymbol(
+            _ = TOperation.ProcessSymbol(
+                ref w,
                 referenceFrame == Av1ReferenceFrameType.Alternate2,
                 this.singleReference[context][5]);
 
@@ -1983,11 +2353,12 @@ internal sealed class Av1SymbolEncoder : IDisposable
 
         bool isLast3OrGolden = referenceFrame is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
         context = Av1SymbolContextHelper.GetSingleReferenceLast3OrGoldenContext(referenceCounts);
-        w.WriteSymbol(isLast3OrGolden, this.singleReference[context][2]);
+        _ = TOperation.ProcessSymbol(ref w, isLast3OrGolden, this.singleReference[context][2]);
         if (isLast3OrGolden)
         {
             context = Av1SymbolContextHelper.GetSingleReferenceGoldenContext(referenceCounts);
-            w.WriteSymbol(
+            _ = TOperation.ProcessSymbol(
+                ref w,
                 referenceFrame == Av1ReferenceFrameType.Golden,
                 this.singleReference[context][4]);
 
@@ -1995,7 +2366,8 @@ internal sealed class Av1SymbolEncoder : IDisposable
         }
 
         context = Av1SymbolContextHelper.GetSingleReferenceLast2Context(referenceCounts);
-        w.WriteSymbol(
+        _ = TOperation.ProcessSymbol(
+            ref w,
             referenceFrame == Av1ReferenceFrameType.Last2,
             this.singleReference[context][3]);
     }
@@ -2017,9 +2389,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="angleDelta">The signed angle delta offset by <see cref="Av1Constants.MaxAngleDelta"/>.</param>
     /// <param name="context">The directional prediction mode selecting the distribution.</param>
     public void WriteAngleDelta(int angleDelta, Av1PredictionMode context)
+        => this.WriteAngleDelta<SymbolWriteOperation>(angleDelta, context);
+
+    /// <inheritdoc cref="WriteAngleDelta(int, Av1PredictionMode)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteAngleDelta<TOperation>(int angleDelta, Av1PredictionMode context)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(angleDelta, this.angleDelta[context - Av1PredictionMode.Vertical]);
+        _ = TOperation.ProcessSymbol(ref w, angleDelta, this.angleDelta[context - Av1PredictionMode.Vertical]);
     }
 
     /// <summary>
@@ -2028,9 +2406,18 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="cdefStrength">The CDEF strength index.</param>
     /// <param name="bitCount">The number of signaled bits.</param>
     public void WriteCdefStrength(int cdefStrength, int bitCount)
+        => this.WriteCdefStrength<SymbolWriteOperation>(cdefStrength, bitCount);
+
+    /// <inheritdoc cref="WriteCdefStrength(int, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteCdefStrength<TOperation>(int cdefStrength, int bitCount)
+        where TOperation : struct, ISymbolOperation
     {
-        ref Av1SymbolWriter w = ref this.writer;
-        w.WriteLiteral((uint)cdefStrength, bitCount);
+        if (TOperation.WritesOutput)
+        {
+            ref Av1SymbolWriter w = ref this.writer;
+            _ = TOperation.ProcessLiteral(ref w, (uint)cdefStrength, bitCount);
+        }
     }
 
     /// <summary>
@@ -2081,10 +2468,16 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="isChromaFromLumaAllowed">Indicates whether chroma-from-luma is valid for the block.</param>
     /// <param name="lumaMode">The block's luma prediction mode.</param>
     public void WriteChromaMode(Av1ChromaPredictionMode chromaMode, bool isChromaFromLumaAllowed, Av1PredictionMode lumaMode)
+        => this.WriteChromaMode<SymbolWriteOperation>(chromaMode, isChromaFromLumaAllowed, lumaMode);
+
+    /// <inheritdoc cref="WriteChromaMode(Av1ChromaPredictionMode, bool, Av1PredictionMode)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteChromaMode<TOperation>(Av1ChromaPredictionMode chromaMode, bool isChromaFromLumaAllowed, Av1PredictionMode lumaMode)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
         int cflAllowed = isChromaFromLumaAllowed ? 1 : 0;
-        w.WriteSymbol((int)chromaMode, this.uvMode[cflAllowed][(int)lumaMode]);
+        _ = TOperation.ProcessSymbol(ref w, (int)chromaMode, this.uvMode[cflAllowed][(int)lumaMode]);
     }
 
     /// <summary>
@@ -2093,9 +2486,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="chromaFromLumaIndex">The packed U/V alpha-magnitude indices.</param>
     /// <param name="joinedSign">The joint U/V sign symbol.</param>
     public void WriteChromaFromLumaAlphas(int chromaFromLumaIndex, int joinedSign)
+        => this.WriteChromaFromLumaAlphas<SymbolWriteOperation>(chromaFromLumaIndex, joinedSign);
+
+    /// <inheritdoc cref="WriteChromaFromLumaAlphas(int, int)"/>
+    /// <typeparam name="TOperation">The operation applied to each symbol and literal.</typeparam>
+    public void WriteChromaFromLumaAlphas<TOperation>(int chromaFromLumaIndex, int joinedSign)
+        where TOperation : struct, ISymbolOperation
     {
         ref Av1SymbolWriter w = ref this.writer;
-        w.WriteSymbol(joinedSign, this.chromaFromLumaSign);
+        _ = TOperation.ProcessSymbol(ref w, joinedSign, this.chromaFromLumaSign);
 
         // Magnitudes are only signaled for nonzero signs; the shared helper keeps encoder and decoder mappings exact.
         int signU = Av1ChromaFromLumaMath.SignU(joinedSign);
@@ -2103,7 +2502,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
         {
             int contextU = Av1ChromaFromLumaMath.ContextU(joinedSign);
             int indexU = Av1ChromaFromLumaMath.IndexU(chromaFromLumaIndex);
-            w.WriteSymbol(indexU, this.chromaFromLumaAlpha[contextU]);
+            _ = TOperation.ProcessSymbol(ref w, indexU, this.chromaFromLumaAlpha[contextU]);
         }
 
         int signV = Av1ChromaFromLumaMath.SignV(joinedSign);
@@ -2111,7 +2510,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
         {
             int contextV = Av1ChromaFromLumaMath.ContextV(joinedSign);
             int indexV = Av1ChromaFromLumaMath.IndexV(chromaFromLumaIndex);
-            w.WriteSymbol(indexV, this.chromaFromLumaAlpha[contextV]);
+            _ = TOperation.ProcessSymbol(ref w, indexV, this.chromaFromLumaAlpha[contextV]);
         }
     }
 
@@ -2125,16 +2524,24 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="columns">The number of coded map columns.</param>
     /// <param name="colorIndexMap">The complete row-addressable color-index map.</param>
     /// <returns>The rate cost in 1/512-bit units, or zero while writing.</returns>
+    /// <param name="tokens">The token destination for retaining operations; otherwise an empty span.</param>
     private int ProcessPaletteColorMap<TOperation>(
         int paletteSize,
         Av1PlaneType planeType,
         int rows,
         int columns,
-        Buffer2DRegion<byte> colorIndexMap)
+        Buffer2DRegion<byte> colorIndexMap,
+        Span<byte> tokens)
         where TOperation : struct, IPaletteColorMapOperation
     {
         int colorIndex = colorIndexMap.DangerousGetRowSpan(0)[0];
         int cost = TOperation.ProcessFirstIndex(this, paletteSize, colorIndex);
+        if (TOperation.RetainsTokens)
+        {
+            tokens[0] = (byte)colorIndex;
+        }
+
+        int tokenIndex = 1;
         Span<byte> colorOrder = stackalloc byte[Av1Constants.PaletteMaxSize];
         for (int diagonal = 1; diagonal < rows + columns - 1; diagonal++)
         {
@@ -2152,6 +2559,13 @@ internal sealed class Av1SymbolEncoder : IDisposable
                     colorIndex,
                     colorOrder,
                     out int colorOrderIndex);
+
+                if (TOperation.RetainsTokens)
+                {
+                    // Three low bits retain the color rank; the upper nibble retains its spatial context.
+                    // Packing later reads this byte without consulting a reused prediction map.
+                    tokens[tokenIndex++] = (byte)((colorContext << 4) | colorOrderIndex);
+                }
 
                 cost += TOperation.ProcessColorIndex(
                     this,
@@ -2264,17 +2678,18 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="colors">The sorted colors.</param>
     /// <param name="bitDepth">The number of bits in each color sample.</param>
     /// <param name="minimumDelta">The minimum representable difference between adjacent colors.</param>
-    private void WriteDeltaEncodedColors(
+    private void WriteDeltaEncodedColors<TOperation>(
         ReadOnlySpan<ushort> colors,
         int bitDepth,
         int minimumDelta)
+        where TOperation : struct, ISymbolOperation
     {
         if (colors.IsEmpty)
         {
             return;
         }
 
-        this.WriteLiteral(colors[0], bitDepth);
+        this.WriteLiteral<TOperation>(colors[0], bitDepth);
         if (colors.Length == 1)
         {
             return;
@@ -2291,12 +2706,12 @@ internal sealed class Av1SymbolEncoder : IDisposable
             (int)Av1Math.CeilLog2((uint)(maximumDelta + 1 - minimumDelta)),
             minimumBits);
 
-        this.WriteLiteral((uint)(bits - minimumBits), 2);
+        this.WriteLiteral<TOperation>((uint)(bits - minimumBits), 2);
         int range = (1 << bitDepth) - colors[0] - minimumDelta;
         for (int i = 1; i < colors.Length; i++)
         {
             int delta = colors[i] - colors[i - 1];
-            this.WriteLiteral((uint)(delta - minimumDelta), bits);
+            this.WriteLiteral<TOperation>((uint)(delta - minimumDelta), bits);
             range -= delta;
             bits = Math.Min(bits, (int)Av1Math.CeilLog2((uint)range));
         }
@@ -2335,10 +2750,14 @@ internal sealed class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
-    /// Emits coefficient syntax and reports no estimated rate.
+    /// Emits symbols and literals and reports no estimated rate.
     /// </summary>
-    private readonly struct CoefficientWriteOperation : ICoefficientSymbolOperation
+    public readonly struct SymbolWriteOperation : ISymbolOperation
     {
+        /// <inheritdoc/>
+        public static bool WritesOutput => true;
+
+        /// <inheritdoc/>
         public static int ProcessSymbol(
             ref Av1SymbolWriter writer,
             int symbol,
@@ -2348,6 +2767,18 @@ internal sealed class Av1SymbolEncoder : IDisposable
             return 0;
         }
 
+        /// <inheritdoc/>
+        public static int ProcessSymbol(ref Av1SymbolWriter writer, bool symbol, Av1Distribution distribution)
+            => ProcessSymbol(ref writer, symbol ? 1 : 0, distribution);
+
+        /// <inheritdoc/>
+        public static int ProcessBoolean(ref Av1SymbolWriter writer, bool value, uint frequency)
+        {
+            writer.WriteBoolean(value, frequency);
+            return 0;
+        }
+
+        /// <inheritdoc/>
         public static int ProcessLiteral(
             ref Av1SymbolWriter writer,
             uint value,
@@ -2359,15 +2790,54 @@ internal sealed class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Updates adaptive probabilities without emitting symbols or literals.
+    /// </summary>
+    public readonly struct SymbolUpdateOperation : ISymbolOperation
+    {
+        /// <inheritdoc/>
+        public static bool WritesOutput => false;
+
+        /// <inheritdoc/>
+        public static int ProcessSymbol(
+            ref Av1SymbolWriter writer,
+            int symbol,
+            Av1Distribution distribution)
+        {
+            writer.UpdateSymbol(symbol, distribution);
+            return 0;
+        }
+
+        /// <inheritdoc/>
+        public static int ProcessSymbol(ref Av1SymbolWriter writer, bool symbol, Av1Distribution distribution)
+            => ProcessSymbol(ref writer, symbol ? 1 : 0, distribution);
+
+        /// <inheritdoc/>
+        public static int ProcessBoolean(ref Av1SymbolWriter writer, bool value, uint frequency)
+            => 0;
+
+        /// <inheritdoc/>
+        public static int ProcessLiteral(ref Av1SymbolWriter writer, uint value, int bitCount)
+            => 0;
+    }
+
+    /// <summary>
     /// Measures coefficient syntax against the live tile distributions without changing them.
     /// </summary>
-    private readonly struct CoefficientCostOperation : ICoefficientSymbolOperation
+    private readonly struct CoefficientCostOperation : ISymbolOperation
     {
+        public static bool WritesOutput => false;
+
         public static int ProcessSymbol(
             ref Av1SymbolWriter writer,
             int symbol,
             Av1Distribution distribution)
             => Av1ProbabilityCost.GetSymbolCost(distribution, symbol);
+
+        public static int ProcessSymbol(ref Av1SymbolWriter writer, bool symbol, Av1Distribution distribution)
+            => ProcessSymbol(ref writer, symbol ? 1 : 0, distribution);
+
+        public static int ProcessBoolean(ref Av1SymbolWriter writer, bool value, uint frequency)
+            => Av1ProbabilityCost.GetSymbolCost((int)(value ? frequency : Av1Distribution.ProbabilityTop - frequency));
 
         public static int ProcessLiteral(
             ref Av1SymbolWriter writer,
@@ -2379,14 +2849,17 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <summary>
     /// Emits palette-map syntax and reports no estimated rate.
     /// </summary>
-    private readonly struct PaletteColorMapWriteOperation : IPaletteColorMapOperation
+    private readonly struct PaletteColorMapWriteOperation<TOperation> : IPaletteColorMapOperation
+        where TOperation : struct, ISymbolOperation
     {
+        public static bool RetainsTokens => false;
+
         public static int ProcessFirstIndex(
             Av1SymbolEncoder encoder,
             int paletteSize,
             int colorIndex)
         {
-            encoder.WriteUniform(paletteSize, colorIndex);
+            encoder.WriteUniform<TOperation>(paletteSize, colorIndex);
             return 0;
         }
 
@@ -2397,7 +2870,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
             int colorContext,
             int colorOrderIndex)
         {
-            encoder.WritePaletteColorIndex(
+            encoder.WritePaletteColorIndex<TOperation>(
                 colorOrderIndex,
                 paletteSize,
                 colorContext,
@@ -2408,10 +2881,34 @@ internal sealed class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Retains color tokens while adapting the selected palette distributions.
+    /// </summary>
+    private readonly struct PaletteColorMapTokenOperation : IPaletteColorMapOperation
+    {
+        public static bool RetainsTokens => true;
+
+        public static int ProcessFirstIndex(Av1SymbolEncoder encoder, int paletteSize, int colorIndex)
+            => 0;
+
+        public static int ProcessColorIndex(
+            Av1SymbolEncoder encoder,
+            int paletteSize,
+            Av1PlaneType planeType,
+            int colorContext,
+            int colorOrderIndex)
+        {
+            encoder.WritePaletteColorIndex<SymbolUpdateOperation>(colorOrderIndex, paletteSize, colorContext, planeType);
+            return 0;
+        }
+    }
+
+    /// <summary>
     /// Measures palette-map syntax against the live tile distributions without changing them.
     /// </summary>
     private readonly struct PaletteColorMapCostOperation : IPaletteColorMapOperation
     {
+        public static bool RetainsTokens => false;
+
         public static int ProcessFirstIndex(
             Av1SymbolEncoder encoder,
             int paletteSize,

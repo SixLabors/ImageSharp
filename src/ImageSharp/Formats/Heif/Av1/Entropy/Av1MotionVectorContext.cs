@@ -107,7 +107,17 @@ internal sealed class Av1MotionVectorContext
     /// <param name="reference">The spatially derived reference vector.</param>
     /// <param name="precision">The fractional precision selected by the frame header.</param>
     public void Write(Av1SymbolWriter writer, Av1MotionVector value, Av1MotionVector reference, Av1MotionVectorPrecision precision)
-        => _ = this.Process<MotionVectorWriteOperation>(writer, value, reference, precision);
+        => this.Write<Av1SymbolEncoder.SymbolWriteOperation>(writer, value, reference, precision);
+
+    /// <inheritdoc cref="Write(Av1SymbolWriter, Av1MotionVector, Av1MotionVector, Av1MotionVectorPrecision)"/>
+    /// <typeparam name="TOperation">The operation applied to each motion-vector symbol.</typeparam>
+    public void Write<TOperation>(
+        Av1SymbolWriter writer,
+        Av1MotionVector value,
+        Av1MotionVector reference,
+        Av1MotionVectorPrecision precision)
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
+        => _ = this.Process<MotionVectorWriteOperation<TOperation>>(writer, value, reference, precision);
 
     /// <summary>
     /// Measures a motion-vector delta against the live distributions without changing them.
@@ -150,14 +160,12 @@ internal sealed class Av1MotionVectorContext
     /// <summary>
     /// Emits motion-vector syntax and reports no estimated rate.
     /// </summary>
-    private readonly struct MotionVectorWriteOperation : IMotionVectorSymbolOperation
+    private readonly struct MotionVectorWriteOperation<TOperation> : IMotionVectorSymbolOperation
+        where TOperation : struct, Av1SymbolEncoder.ISymbolOperation
     {
         /// <inheritdoc/>
         public static int ProcessSymbol(Av1SymbolWriter writer, int symbol, Av1Distribution distribution)
-        {
-            writer.WriteSymbol(symbol, distribution);
-            return 0;
-        }
+            => TOperation.ProcessSymbol(ref writer, symbol, distribution);
     }
 
     /// <summary>
@@ -346,7 +354,7 @@ internal sealed class Av1MotionVectorContext
         /// <param name="value">The nonzero component in one-eighth-sample units.</param>
         /// <param name="precision">The fractional precision selected by the frame header.</param>
         public void Write(Av1SymbolWriter writer, int value, Av1MotionVectorPrecision precision)
-            => _ = this.Process<MotionVectorWriteOperation>(writer, value, precision);
+            => _ = this.Process<MotionVectorWriteOperation<Av1SymbolEncoder.SymbolWriteOperation>>(writer, value, precision);
 
         /// <summary>
         /// Processes one nonzero signed component through the shared motion-vector symbol operation.

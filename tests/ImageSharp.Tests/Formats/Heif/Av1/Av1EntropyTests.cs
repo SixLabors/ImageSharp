@@ -165,8 +165,8 @@ public class Av1EntropyTests
     [InlineData(8, 6144)]
     public void SymbolCostUsesRangeCoderMinimumProbability(uint probability, int expected)
     {
-        // A middle interval can collapse during adaptation. Libaom cost.c floors its mass at EC_MIN_PROB=4,
-        // giving 13 * 512 rate units at and below that floor, while mass 8 costs 12 * 512 units.
+        // Adaptation can collapse a symbol's probability interval. A minimum mass of 4 keeps its estimated
+        // cost finite: 13 bits at 512 rate units per bit, compared with 12 bits for a mass of 8.
         Av1Distribution distribution = new(16384, 16384 + probability);
         Assert.Equal(expected, Av1ProbabilityCost.GetSymbolCost(distribution, 1));
         Assert.Equal(expected, Av1ProbabilityCost.GetSymbolCost((int)probability));
@@ -1790,6 +1790,63 @@ public class Av1EntropyTests
         }
 
         decoder.ValidateTrailingBits();
+    }
+
+    [Theory]
+    [InlineData(true, (int)Av1PlaneType.Y)]
+    [InlineData(false, (int)Av1PlaneType.Y)]
+    [InlineData(true, (int)Av1PlaneType.Uv)]
+    [InlineData(false, (int)Av1PlaneType.Uv)]
+    public void PaletteTokensSurviveMapReuseWithoutWritingAnalysisBytes(bool updateCdf, int planeTypeValue)
+    {
+        const int Rows = 5;
+        const int Columns = 7;
+        const int PaletteSize = 7;
+        Av1PlaneType planeType = (Av1PlaneType)planeTypeValue;
+        Configuration configuration = Configuration.Default;
+        using Buffer2D<byte> source = configuration.MemoryAllocator.Allocate2D<byte>(9, 6);
+        Buffer2DRegion<byte> region = new(source);
+        Span<byte> tokens = stackalloc byte[Rows * Columns];
+        for (int row = 0; row < Rows; row++)
+        {
+            Span<byte> samples = source.DangerousGetRowSpan(row);
+            for (int column = 0; column < Columns; column++)
+            {
+                samples[column] = (byte)(((row * 3) + (column * 5)) % PaletteSize);
+            }
+        }
+
+        using Av1SymbolEncoder analysis = new(configuration, 128, BaseQIndex, updateCdf);
+        using Av1SymbolEncoder immediate = new(configuration, 128, BaseQIndex, updateCdf);
+        using Av1SymbolEncoder packing = new(configuration, 128, BaseQIndex, updateCdf);
+        using Av1SymbolEncoder empty = new(configuration, 128, BaseQIndex, updateCdf);
+        analysis.TokenizePaletteColorMap(PaletteSize, planeType, Rows, Columns, region, tokens);
+        immediate.WritePaletteColorMap(PaletteSize, planeType, Rows, Columns, region);
+
+        for (int context = 0; context < 5; context++)
+        {
+            for (int color = 0; color < PaletteSize; color++)
+            {
+                Assert.Equal(
+                    immediate.GetPaletteColorIndexCost(color, PaletteSize, context, planeType),
+                    analysis.GetPaletteColorIndexCost(color, PaletteSize, context, planeType));
+            }
+        }
+
+        // The prediction workspace is reusable immediately after analysis. Poison every row, including its
+        // padding, so final packing must consume retained tokens rather than consult the old color map.
+        for (int row = 0; row < source.Height; row++)
+        {
+            source.DangerousGetRowSpan(row).Fill(byte.MaxValue);
+        }
+
+        packing.WritePaletteTokens(PaletteSize, planeType, tokens);
+        using IMemoryOwner<byte> analyzedBytes = analysis.Exit();
+        using IMemoryOwner<byte> emptyBytes = empty.Exit();
+        using IMemoryOwner<byte> immediateBytes = immediate.Exit();
+        using IMemoryOwner<byte> packedBytes = packing.Exit();
+        Assert.True(emptyBytes.GetSpan().SequenceEqual(analyzedBytes.GetSpan()));
+        Assert.True(immediateBytes.GetSpan().SequenceEqual(packedBytes.GetSpan()));
     }
 
     [Fact]

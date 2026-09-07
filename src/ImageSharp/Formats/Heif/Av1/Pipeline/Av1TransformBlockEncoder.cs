@@ -3,6 +3,8 @@
 
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Runtime.Intrinsics;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Quantizers;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
@@ -1222,6 +1224,284 @@ internal static class Av1TransformBlockEncoder
             bitDepth);
 
         state.TransformType = transformType;
+    }
+
+    /// <summary>
+    /// Estimates the luma transform rate and distortion of a prepared inter prediction.
+    /// </summary>
+    /// <param name="workspace">The reusable transform storage, overwritten for each transform block.</param>
+    /// <param name="residual">The padded source-minus-prediction block.</param>
+    /// <param name="residualStride">The number of residual samples between rows.</param>
+    /// <param name="quantizedCoefficients">Scratch for one transform's entropy-coding coefficients.</param>
+    /// <param name="writer">The current tile probability state; estimation does not adapt it.</param>
+    /// <param name="aboveContexts">The block's top coefficient contexts in four-sample units.</param>
+    /// <param name="leftContexts">The block's left coefficient contexts in four-sample units.</param>
+    /// <param name="blockSize">The containing prediction block size.</param>
+    /// <param name="activeSize">The coded extent controlling which padded transform blocks are visited.</param>
+    /// <param name="transformSize">The transform size selected for the estimate.</param>
+    /// <param name="qIndex">The effective segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The luma DC quantizer adjustment.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <param name="sharpness">The quantization sharpness setting.</param>
+    /// <param name="lossless">Whether the segment uses reversible transforms and lossless quantization.</param>
+    /// <param name="rateMultiplier">The current block's rate-distortion multiplier.</param>
+    /// <param name="transformSizeRate">The rate for signaling the selected transform partition.</param>
+    /// <param name="noSkipRate">The rate for signaling a non-skipped prediction block.</param>
+    /// <param name="skipRate">The rate for signaling a skipped prediction block.</param>
+    /// <param name="bestCost">The current winning cost used for partial-block termination.</param>
+    /// <param name="statistics">The aggregate estimate, excluding the prediction block's skip flag rate.</param>
+    /// <param name="sumOfSquares">The normalized transform energy before quantization.</param>
+    /// <param name="skip">Whether the aggregate estimate selects transform skip.</param>
+    /// <returns>The decision cost including the skip flag, or the invalid cost for an incomplete estimate.</returns>
+    public static long EstimateInterTransform(
+        Av1EncoderBlockWorkspace workspace,
+        ReadOnlySpan<short> residual,
+        int residualStride,
+        Span<int> quantizedCoefficients,
+        Av1SymbolEncoder writer,
+        ReadOnlySpan<byte> aboveContexts,
+        ReadOnlySpan<byte> leftContexts,
+        Av1BlockSize blockSize,
+        Size activeSize,
+        Av1TransformSize transformSize,
+        int qIndex,
+        int dcDeltaQ,
+        Av1BitDepth bitDepth,
+        int sharpness,
+        bool lossless,
+        int rateMultiplier,
+        int transformSizeRate,
+        int noSkipRate,
+        int skipRate,
+        long bestCost,
+        out Av1RateDistortionStatistics statistics,
+        out long sumOfSquares,
+        out bool skip)
+    {
+        int width = transformSize.GetWidth();
+        int height = transformSize.GetHeight();
+        int widthUnits = width >> Av1Constants.ModeInfoSizeLog2;
+        int heightUnits = height >> Av1Constants.ModeInfoSizeLog2;
+        int coefficientCount = transformSize.GetAdjusted().GetSize2d();
+        Span<int> transformed = workspace.TransformCoefficients[..coefficientCount];
+        Span<int> quantized = quantizedCoefficients[..coefficientCount];
+        Span<int> dequantized = workspace.DequantizedCoefficients[..coefficientCount];
+
+        // A prediction trial changes only its local edge contexts. At most 32 four-sample units lie along
+        // either edge of a 128-sample block; subsequent transforms see earlier transforms from this trial.
+        Span<byte> above = stackalloc byte[32];
+        Span<byte> left = stackalloc byte[32];
+        aboveContexts.CopyTo(above);
+        leftContexts.CopyTo(left);
+        int rate = 0;
+        long distortion = 0;
+        sumOfSquares = 0;
+        skip = true;
+        long currentCost = Math.Min(
+            Av1RateDistortion.GetCost(rateMultiplier, noSkipRate + transformSizeRate, 0),
+            Av1RateDistortion.GetCost(rateMultiplier, skipRate, 0));
+
+        bool exitEarly = false;
+        for (int y = 0; y < activeSize.Height; y += height)
+        {
+            for (int x = 0; x < activeSize.Width; x += width)
+            {
+                // A threshold crossing on the final transform still leaves a complete estimate. Only a
+                // subsequent unvisited transform invalidates it, so preserve the completed block's statistics.
+                if (exitEarly)
+                {
+                    statistics = Av1RateDistortionStatistics.Invalid;
+                    return long.MaxValue;
+                }
+
+                Span<byte> top = above.Slice(x >> Av1Constants.ModeInfoSizeLog2, widthUnits);
+                Span<byte> side = left.Slice(y >> Av1Constants.ModeInfoSizeLog2, heightUnits);
+                Av1TransformBlockContext context = Av1TileWriter.GetTransformBlockContexts(
+                    Av1ComponentType.Luminance, top, side, blockSize, transformSize);
+
+                ReadOnlySpan<short> transformResidual = residual[((y * residualStride) + x)..];
+                ushort endOfBlock;
+                if (lossless)
+                {
+                    Av1ForwardTransformer.TransformLossless4x4(transformResidual, transformed, (uint)residualStride);
+                    endOfBlock = Av1ForwardQuantizer.QuantizeLossless(transformed, quantized, dequantized, bitDepth);
+                }
+                else
+                {
+                    Av1ForwardTransformer.Transform2d(
+                        transformResidual,
+                        transformed,
+                        (uint)residualStride,
+                        Av1TransformType.DctDct,
+                        transformSize,
+                        bitDepth.GetBitCount(),
+                        workspace.TransformWorkspace);
+
+                    endOfBlock = Av1ForwardQuantizer.QuantizeRegular(
+                        transformed, quantized, dequantized, transformSize, Av1TransformType.DctDct, qIndex, dcDeltaQ, 0, bitDepth, sharpness);
+                }
+
+                int transformRate = writer.GetCoefficientCost(
+                    transformSize,
+                    Av1TransformType.DctDct,
+                    Av1PredictionMode.DC,
+                    quantized,
+                    Av1ComponentType.Luminance,
+                    context,
+                    endOfBlock,
+                    useReducedTransformSet: false,
+                    Av1FilterIntraMode.AllFilterIntraModes,
+                    usesInterTransformSet: true);
+
+                long transformDistortion = GetTransformError(transformed, dequantized, transformSize, bitDepth, out long transformEnergy);
+                rate += transformRate;
+                distortion += transformDistortion;
+                sumOfSquares += transformEnergy;
+                skip &= endOfBlock == 0;
+
+                // The running bound chooses the cheaper coded or skipped contribution for each transform.
+                // The final decision below chooses one skip flag for the whole prediction block.
+                currentCost += Math.Min(
+                    Av1RateDistortion.GetCost(rateMultiplier, transformRate, transformDistortion),
+                    Av1RateDistortion.GetCost(rateMultiplier, 0, transformEnergy));
+
+                if (currentCost > bestCost)
+                {
+                    exitEarly = true;
+                    break;
+                }
+
+                byte coefficientContext = Av1SymbolContextHelper.GetCoefficientContext(
+                    quantized, transformSize, Av1TransformType.DctDct, endOfBlock);
+
+                top.Fill(coefficientContext);
+                side.Fill(coefficientContext);
+            }
+        }
+
+        long cost;
+        if (skip)
+        {
+            // Empty transforms retain their coefficient-skip rate in the estimate. The block header cost is
+            // used for this decision but is excluded from the returned rate so the caller can combine planes.
+            cost = Av1RateDistortion.GetCost(rateMultiplier, skipRate, sumOfSquares);
+        }
+        else
+        {
+            cost = Av1RateDistortion.GetCost(rateMultiplier, rate + noSkipRate + transformSizeRate, distortion);
+            rate += transformSizeRate;
+            if (!lossless)
+            {
+                long skipCost = Av1RateDistortion.GetCost(rateMultiplier, skipRate, sumOfSquares);
+                if (skipCost <= cost)
+                {
+                    cost = skipCost;
+                    rate = 0;
+                    distortion = sumOfSquares;
+                    skip = true;
+                }
+            }
+        }
+
+        statistics = new Av1RateDistortionStatistics(rateMultiplier, rate, distortion);
+        return cost;
+    }
+
+    /// <summary>
+    /// Measures quantization error and unquantized energy in the transform distortion domain.
+    /// </summary>
+    /// <param name="coefficients">The original transform coefficients.</param>
+    /// <param name="dequantized">The reconstructed transform coefficients.</param>
+    /// <param name="transformSize">The transform dimensions controlling coefficient scaling.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <param name="sumOfSquares">The normalized energy of the original coefficients.</param>
+    /// <returns>The normalized squared quantization error.</returns>
+    public static long GetTransformError(
+        ReadOnlySpan<int> coefficients,
+        ReadOnlySpan<int> dequantized,
+        Av1TransformSize transformSize,
+        Av1BitDepth bitDepth,
+        out long sumOfSquares)
+    {
+        long error = 0;
+        long energy = 0;
+        int i = 0;
+        ref int coefficientBase = ref MemoryMarshal.GetReference(coefficients);
+        ref int dequantizedBase = ref MemoryMarshal.GetReference(dequantized);
+
+        // Each Int32 lane holds one coefficient in raster order. Widen before squaring: twelve-bit
+        // transforms can exceed the signed Int32 square range even though each coefficient and difference fits.
+        if (Vector512.IsHardwareAccelerated)
+        {
+            Vector512<long> errors = Vector512<long>.Zero;
+            Vector512<long> energies = Vector512<long>.Zero;
+            for (; i <= coefficients.Length - Vector512<int>.Count; i += Vector512<int>.Count)
+            {
+                Vector512<int> values = Vector512.LoadUnsafe(ref coefficientBase, (nuint)i);
+                Vector512<int> differences = values - Vector512.LoadUnsafe(ref dequantizedBase, (nuint)i);
+                (Vector512<long> lower, Vector512<long> upper) = Vector512.Widen(values);
+                (Vector512<long> lowerDifference, Vector512<long> upperDifference) = Vector512.Widen(differences);
+                energies += (lower * lower) + (upper * upper);
+                errors += (lowerDifference * lowerDifference) + (upperDifference * upperDifference);
+            }
+
+            energy += Vector512.Sum(energies);
+            error += Vector512.Sum(errors);
+        }
+
+        if (Vector256.IsHardwareAccelerated)
+        {
+            Vector256<long> errors = Vector256<long>.Zero;
+            Vector256<long> energies = Vector256<long>.Zero;
+            for (; i <= coefficients.Length - Vector256<int>.Count; i += Vector256<int>.Count)
+            {
+                Vector256<int> values = Vector256.LoadUnsafe(ref coefficientBase, (nuint)i);
+                Vector256<int> differences = values - Vector256.LoadUnsafe(ref dequantizedBase, (nuint)i);
+                (Vector256<long> lower, Vector256<long> upper) = Vector256.Widen(values);
+                (Vector256<long> lowerDifference, Vector256<long> upperDifference) = Vector256.Widen(differences);
+                energies += (lower * lower) + (upper * upper);
+                errors += (lowerDifference * lowerDifference) + (upperDifference * upperDifference);
+            }
+
+            energy += Vector256.Sum(energies);
+            error += Vector256.Sum(errors);
+        }
+
+        if (Vector128.IsHardwareAccelerated)
+        {
+            Vector128<long> errors = Vector128<long>.Zero;
+            Vector128<long> energies = Vector128<long>.Zero;
+            for (; i <= coefficients.Length - Vector128<int>.Count; i += Vector128<int>.Count)
+            {
+                Vector128<int> values = Vector128.LoadUnsafe(ref coefficientBase, (nuint)i);
+                Vector128<int> differences = values - Vector128.LoadUnsafe(ref dequantizedBase, (nuint)i);
+                (Vector128<long> lower, Vector128<long> upper) = Vector128.Widen(values);
+                (Vector128<long> lowerDifference, Vector128<long> upperDifference) = Vector128.Widen(differences);
+                energies += (lower * lower) + (upper * upper);
+                errors += (lowerDifference * lowerDifference) + (upperDifference * upperDifference);
+            }
+
+            energy += Vector128.Sum(energies);
+            error += Vector128.Sum(errors);
+        }
+
+        for (; i < coefficients.Length; i++)
+        {
+            long value = coefficients[i];
+            long difference = value - dequantized[i];
+            energy += value * value;
+            error += difference * difference;
+        }
+
+        // Normalize high-bit-depth squared values first, rounding once at the accumulated-block boundary.
+        // Transform scale zero then divides by four, scale one is unchanged, and scale two multiplies by four.
+        int precisionShift = 2 * (bitDepth.GetBitCount() - 8);
+        long rounding = (1L << precisionShift) >> 1;
+        error = (error + rounding) >> precisionShift;
+        energy = (energy + rounding) >> precisionShift;
+        int scaleShift = (1 - transformSize.GetScale()) * 2;
+        sumOfSquares = scaleShift >= 0 ? energy >> scaleShift : energy << -scaleShift;
+        return scaleShift >= 0 ? error >> scaleShift : error << -scaleShift;
     }
 
     public static Span<TSample> GetPlaneSpan<TSample>(Buffer2DRegion<TSample> plane, Point blockOrigin)

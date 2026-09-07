@@ -23,6 +23,19 @@ maximum error zero, differing samples zero, and samples exceeding one zero. Temp
 uncommitted Hadamard-screening experiment remain excluded. Decoder-wide coverage and performance acceptance
 remain open; these results verify the recorded cases and do not establish complete codec conformance.
 
+The inter-mode ordering checkpoint evaluates inter candidates before intra and retains only the winning syntax
+and transform choices across those trials. Final inter reconstruction regenerates the selected transforms using
+existing scratch storage; empty planes retain prediction without re-quantization. Equal-cost intra candidates
+do not replace the preceding inter winner. The source basis is `av1/encoder/rdopt.c:6355-6399,6491-6494`
+and `av1/encoder/partition_search.c:474-503`. This corrects ordering and winner publication, but does not implement
+the reference's full intra gating, TPL decisions, winner refinement, larger inter partitions, or additional references.
+After the final code edit, Release .NET 11 built with zero errors and zero warnings; serialized VSTest passed
+379/379 focused encoder, superblock, intra-copy, and public HEIF cases (`inter-first-r2.trx`, 41.5269 seconds).
+Fresh optimized-native comparisons matched 86,859 samples across 39 motion streams and 477,243 samples across
+three larger row-refresh streams. Encoder reconstruction also matched native decoding over 102,390 samples in
+12 deblocking streams. Each comparison reported maximum error zero, differing samples zero, and counts exceeding
+one zero. These checks establish the recorded same-bitstream behavior, not separate-encoder parity or performance.
+
 Acceptance criteria are separate for encoding and decoding:
 
 - Encoder parity permits at most one component unit per sample when comparing separately encoded results
@@ -331,7 +344,7 @@ Line numbers describe the inspected starting tree, before subsequent corrections
 | Missing functionality | `Av1FrameEncoder.cs:372-408`, under `src/ImageSharp/Formats/Heif/Av1/Pipeline` | `av1/encoder/encoder.c:641-646`; `av1/av1_cx_iface.c:287-288,1284-1286,1561-1562` | Sequence setup unconditionally disables CDEF, restoration, and intra-edge filtering. These are not equivalent to the reference's configured tool decisions. |
 | Architectural deviation | `Av1FrameEncoder.cs:508-542,1551-1557` | `av1/encoder/encode_strategy.c:168-230,1664-1669` | Every frame is error resilient, refreshes all slots, disables frame-end CDF publication, and resets probabilities. The reference selects retained primary-reference state. |
 | Missing functionality | `Av1IntraSuperblockEncoder.ModeDecision.cs:185-245`; `Av1IntraSuperblockEncoder.ReferenceModeDecision.cs:526-566` | `av1/encoder/partition_search.c:3320` onward; `av1/encoder/rdopt.c:6196-6236` | Inter frames retain a fixed 8x8 partition tree and search only LAST. Larger partitions and additional reference roles are not implemented by this path. |
-| Architectural deviation | `Av1IntraSuperblockEncoder.ModeDecision.cs:597-609,662-672,824-834` | `av1/encoder/rdopt.c:111-142,6186-6236`; `av1/encoder/intra_mode_search.c:1291-1344` | Managed coding finishes intra search before inter evaluation. Reference inter search has its own ordered candidates, pruning state, bounds, and later intra evaluation. |
+| Architectural deviation, partly corrected | `Av1IntraSuperblockEncoder.ModeDecision.cs:606-753` | `av1/encoder/rdopt.c:6355-6399,6491-6494`; `av1/encoder/partition_search.c:474-503` | Inter now precedes intra and the final winner is reconstructed after competition. Full intra gating, pruning state, bounds, and winner refinement remain incomplete. |
 | Architectural deviation | `Av1IntraSuperblockEncoder.ReferenceModeDecision.cs:576-617` | `av1/encoder/rdopt.c:111-142` | Managed single-reference mode order is NEAREST, NEAR, GLOBAL, NEW. The reference default order is NEAREST, NEW, NEAR, GLOBAL across eligible references. |
 | Architectural deviation | `Av1IntraSuperblockEncoder.ReferenceModeDecision.cs:1278-1414` | `av1/encoder/mcomp.c`; caller policy in `av1/encoder/motion_search_facade.c` | The managed radius is an effort-shifted value capped by its border; each scale visits eight offsets once. This is a simplified search controller whose full reference-policy reconciliation remains open. |
 | Missing functionality | `Av1TransformBlockEncoder.cs:1047-1097` | `av1/encoder/encodemb.c:842-885` | Lossy transform coding ends at fast quantization. Reference coding selects quantization with trellis policy and can optimize coefficients before reconstruction. Native primitive arithmetic alone does not establish encoder parity. |

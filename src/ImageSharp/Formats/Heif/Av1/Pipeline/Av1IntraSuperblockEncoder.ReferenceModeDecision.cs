@@ -14,7 +14,7 @@ using SixLabors.ImageSharp.Memory;
 namespace SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline;
 
 /// <content>
-/// Provides full rate-distortion selection for reference-frame and intra-block-copy candidates.
+/// Provides reference-frame and intra-block-copy mode decisions.
 /// </content>
 internal static partial class Av1IntraSuperblockEncoder
 {
@@ -449,53 +449,17 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <summary>
-        /// Compares the retained intra result with an inter candidate without disturbing the intra result on loss.
-        /// </summary>
-        private Av1RateDistortionStatistics SelectInterPrediction(
-            Av1SymbolEncoder writer,
-            Av1MacroBlockD macroBlock,
-            Point blockOrigin,
-            ushort tileIndex,
-            Av1RateDistortionStatistics regularStatistics,
-            ref Av1MacroBlockModeInfo modeInfo,
-            ref Av1EncoderBlockStruct block,
-            ref Av1EncoderPaletteInfo paletteInfo)
-        {
-            Av1MacroBlockModeInfo interModeInfo = modeInfo;
-            Av1EncoderBlockStruct interBlock = block;
-            Av1EncoderPaletteInfo interPaletteInfo = default;
-            Av1RateDistortionStatistics selectedStatistics = this.SelectInterBlock(
-                writer,
-                macroBlock,
-                blockOrigin,
-                tileIndex,
-                regularStatistics,
-                ref interModeInfo,
-                ref interBlock,
-                ref interPaletteInfo);
-
-            if (selectedStatistics.Cost < regularStatistics.Cost)
-            {
-                modeInfo = interModeInfo;
-                block = interBlock;
-                paletteInfo = interPaletteInfo;
-            }
-
-            return selectedStatistics;
-        }
-
-        /// <summary>
-        /// Evaluates the supported LAST_FRAME modes and publishes only a strict improvement over the intra result.
+        /// Evaluates reference-frame modes and retains the winning syntax and transform choices.
         /// </summary>
         private Av1RateDistortionStatistics SelectInterBlock(
             Av1SymbolEncoder writer,
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
-            Av1RateDistortionStatistics regularStatistics,
             ref Av1MacroBlockModeInfo modeInfo,
             ref Av1EncoderBlockStruct block,
-            ref Av1EncoderPaletteInfo paletteInfo)
+            out Av1MotionVector selectedVector,
+            out InlineArray3<Av1EncoderTransformBlockState> selectedStates)
         {
             const Av1BlockSize BlockSize = Av1BlockSize.Block8x8;
             const Av1TransformSize LumaTransformSize = Av1TransformSize.Size8x8;
@@ -511,7 +475,6 @@ internal static partial class Av1IntraSuperblockEncoder
             block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv] = 0;
             block.PredictionUnit.ChromaFromLumaIndex = 0;
             block.PredictionUnit.ChromaFromLumaSigns = 0;
-            paletteInfo = default;
 
             Av1EncoderInterPredictionWorkspace<TSample> workspace =
                 this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
@@ -601,15 +564,15 @@ internal static partial class Av1IntraSuperblockEncoder
                 transformPartitionRate = writer.GetTransformPartitionCost(false, transformPartitionContext);
             }
 
-            Av1RateDistortionStatistics selectedStatistics = regularStatistics;
-            Av1MotionVector selectedVector = default;
+            Av1RateDistortionStatistics selectedStatistics = Av1RateDistortionStatistics.Invalid;
+            selectedVector = default;
+            selectedStates = default;
             Av1PredictionMode selectedMode = default;
             int selectedReferenceIndex = 0;
             bool selectedSkip = false;
             Av1EncoderTransformBlockState selectedLumaState = default;
             Av1EncoderTransformBlockState selectedBlueState = default;
             Av1EncoderTransformBlockState selectedRedState = default;
-            bool hasInterWinner = false;
 
             ObuSequenceHeader sequenceHeader = this.picture.Sequence.SequenceHeader;
             bool isSwitchable = frameHeader.InterpolationFilter == Av1InterpolationFilter.Switchable;
@@ -939,86 +902,120 @@ internal static partial class Av1IntraSuperblockEncoder
                 selectedLumaState = candidateLumaState;
                 selectedBlueState = candidateBlueState;
                 selectedRedState = candidateRedState;
-                hasInterWinner = true;
             }
 
-            // Inter trials never overwrite retained picture state. The complete intra result remains authoritative
-            // when no inter candidate strictly improves its rate-distortion cost.
-            if (!hasInterWinner)
-            {
-                return regularStatistics;
-            }
-
-            Span<int> retainedLumaCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.Y);
-            Span<Av1EncoderTransformBlockState> retainedLumaTransformBlocks =
-                this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.Y);
-
-            int lumaTransformIndex = this.codedAreaLuma /
-                Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
-
-            CopyCandidate(
-                selectedLumaReconstruction,
-                selectedLumaCoefficients,
-                this.reconstruction.GetPlane(Av1Plane.Y),
-                blockOrigin,
-                retainedLumaCoefficients[this.codedAreaLuma..],
-                LumaTransformSize,
-                selectedLumaState,
-                ref retainedLumaTransformBlocks[lumaTransformIndex]);
-
-            if (block.HasChroma)
-            {
-                ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
-                int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
-                int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
-                Point chromaOrigin = Av1TileWriter.GetChromaBlockOrigin(
-                    blockOrigin,
-                    subsamplingX,
-                    subsamplingY);
-
-                Av1TransformSize chromaTransformSize = BlockSize.GetMaxUvTransformSize(
-                    colorConfig.SubSamplingX,
-                    colorConfig.SubSamplingY);
-
-                Span<int> retainedBlueCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.U);
-                Span<int> retainedRedCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.V);
-                Span<Av1EncoderTransformBlockState> retainedBlueTransformBlocks =
-                    this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.U);
-
-                Span<Av1EncoderTransformBlockState> retainedRedTransformBlocks =
-                    this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.V);
-
-                int chromaTransformIndex = this.codedAreaChroma /
-                    Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
-
-                CopyCandidate(
-                    selectedBlueReconstruction,
-                    selectedBlueCoefficients,
-                    this.reconstruction.GetPlane(Av1Plane.U),
-                    chromaOrigin,
-                    retainedBlueCoefficients[this.codedAreaChroma..],
-                    chromaTransformSize,
-                    selectedBlueState,
-                    ref retainedBlueTransformBlocks[chromaTransformIndex]);
-
-                CopyCandidate(
-                    selectedRedReconstruction,
-                    selectedRedCoefficients,
-                    this.reconstruction.GetPlane(Av1Plane.V),
-                    chromaOrigin,
-                    retainedRedCoefficients[this.codedAreaChroma..],
-                    chromaTransformSize,
-                    selectedRedState,
-                    ref retainedRedTransformBlocks[chromaTransformIndex]);
-            }
+            // Candidate pixels and coefficients remain scratch. Preserve the transform decisions so final
+            // reconstruction can regenerate only the winner after other mode families reuse this storage.
+            selectedStates[0] = selectedLumaState;
+            selectedStates[1] = selectedBlueState;
+            selectedStates[2] = selectedRedState;
 
             modeInfo.Block.Mode = selectedMode;
             modeInfo.Block.Skip = selectedSkip;
             modeInfo.Block.VerticalInterpolationFilter = selectedVerticalFilter;
             modeInfo.Block.HorizontalInterpolationFilter = selectedHorizontalFilter;
             block.ReferenceMotionVectorIndex = selectedReferenceIndex;
-            this.picture.SetDisplacementVector(modeInfoPosition, selectedVector);
             return selectedStatistics;
+        }
+
+        /// <summary>
+        /// Reconstructs the selected inter mode after intra trials have reused its arithmetic storage.
+        /// </summary>
+        /// <param name="blockOrigin">The luma block origin.</param>
+        /// <param name="modeInfo">The selected prediction and interpolation syntax.</param>
+        /// <param name="block">The selected block parameters.</param>
+        /// <param name="vector">The selected motion vector in eighth-luma-sample units.</param>
+        /// <param name="states">The selected transform choices, indexed by plane.</param>
+        private void ReconstructSelectedInterBlock(
+            Point blockOrigin,
+            Av1MacroBlockModeInfo modeInfo,
+            Av1EncoderBlockStruct block,
+            Av1MotionVector vector,
+            ReadOnlySpan<Av1EncoderTransformBlockState> states)
+        {
+            Av1EncoderInterPredictionWorkspace<TSample> workspace = this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
+            ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
+            int planeCount = block.HasChroma ? 3 : 1;
+            for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
+            {
+                Av1Plane plane = (Av1Plane)planeIndex;
+                int subX = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingX;
+                int subY = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingY;
+                Point planeOrigin = new(blockOrigin.X >> subX, blockOrigin.Y >> subY);
+                Av1TransformSize transformSize = planeIndex == 0
+                    ? modeInfo.Block.TransformSize
+                    : modeInfo.Block.BlockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
+
+                int sampleCount = transformSize.GetSize2d();
+                Span<TSample> reconstruction = workspace.LumaCandidateReconstruction[..sampleCount];
+                Span<int> coefficients = workspace.LumaCandidateCoefficients[..sampleCount];
+                Span<TSample> prediction = workspace.LumaPrediction[..sampleCount];
+                Span<short> residual = workspace.Residual[..sampleCount];
+
+                // Convert eighth-luma-sample motion into the plane's sixteenth-sample interpolation
+                // coordinates. The low four bits carry the phase; the remaining bits locate the reference.
+                int columnQ4 = (planeOrigin.X << 4) + (vector.Column << (1 - subX));
+                int rowQ4 = (planeOrigin.Y << 4) + (vector.Row << (1 - subY));
+                TOperator.PrepareTranslationalInterPrediction(
+                    this.source.GetPlane(plane),
+                    planeOrigin,
+                    this.reference.GetPlane(plane),
+                    new Point(columnQ4 >> 4, rowQ4 >> 4),
+                    modeInfo.Block.HorizontalInterpolationFilter,
+                    modeInfo.Block.VerticalInterpolationFilter,
+                    columnQ4 & 15,
+                    rowQ4 & 15,
+                    prediction,
+                    residual,
+                    workspace.PredictionScratch,
+                    transformSize,
+                    this.bitDepth);
+
+                Av1EncoderTransformBlockState state = default;
+                if (modeInfo.Block.Skip || states[planeIndex].EndOfBlock == 0)
+                {
+                    // An empty transform retains prediction even when other planes have coded residuals.
+                    // Re-quantizing its inferred DCT could otherwise introduce coefficients absent in the winner.
+                    reconstruction = prediction;
+                    coefficients.Clear();
+                }
+                else
+                {
+                    // Regenerate only the selected transform. Motion, transform choice, coefficient-rate
+                    // measurement, and skip decisions are complete before this final reconstruction.
+                    _ = TOperator.EncodePredictionCandidate(
+                        this.blockWorkspace,
+                        this.source.GetPlane(plane),
+                        planeOrigin,
+                        prediction,
+                        residual,
+                        reconstruction,
+                        transformSize.GetWidth(),
+                        coefficients,
+                        transformSize,
+                        states[planeIndex].TransformType,
+                        plane,
+                        this.quantization.QIndex[0],
+                        this.quantization.DeltaQDc[planeIndex],
+                        this.quantization.DeltaQAc[planeIndex],
+                        this.bitDepth,
+                        ref state);
+                }
+
+                int codedArea = planeIndex == 0 ? this.codedAreaLuma : this.codedAreaChroma;
+                int transformIndex = codedArea / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+                Span<int> retainedCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane);
+                Span<Av1EncoderTransformBlockState> retainedStates = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane);
+                CopyCandidate(
+                    reconstruction,
+                    coefficients,
+                    this.reconstruction.GetPlane(plane),
+                    planeOrigin,
+                    retainedCoefficients[codedArea..],
+                    transformSize,
+                    state,
+                    ref retainedStates[transformIndex]);
+            }
         }
 
         /// <summary>

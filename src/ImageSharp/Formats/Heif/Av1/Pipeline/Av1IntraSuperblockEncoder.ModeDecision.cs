@@ -3,6 +3,7 @@
 
 using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
@@ -602,6 +603,36 @@ internal static partial class Av1IntraSuperblockEncoder
             block.QuantizationIndex = qIndex;
             block.SegmentId = 0;
 
+            bool isInterFrame = !this.picture.Parent.FrameHeader.IsIntra;
+            Av1RateDistortionStatistics interStatistics = Av1RateDistortionStatistics.Invalid;
+            Av1MacroBlockModeInfo interModeInfo = default;
+            Av1EncoderBlockStruct interBlock = default;
+            InlineArray3<Av1EncoderTransformBlockState> interStates = default;
+            Av1MotionVector interVector = default;
+            if (isInterFrame)
+            {
+                Av1MacroBlockModeInfo initialModeInfo = modeInfo;
+                Av1EncoderBlockStruct initialBlock = block;
+                interStatistics = this.SelectInterBlock(
+                    writer,
+                    macroBlock,
+                    blockOrigin,
+                    tileIndex,
+                    ref modeInfo,
+                    ref block,
+                    out interVector,
+                    out interStates);
+
+                interModeInfo = modeInfo;
+                interBlock = block;
+
+                // Only the winning syntax and transform choices survive across mode families. Intra trials
+                // reuse prediction and coefficient scratch; the selected inter block is reconstructed afterward.
+                modeInfo = initialModeInfo;
+                block = initialBlock;
+                paletteInfo = default;
+            }
+
             Span<int> lumaCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.Y);
             Span<Av1EncoderTransformBlockState> lumaTransformBlocks =
                 this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.Y);
@@ -628,83 +659,39 @@ internal static partial class Av1IntraSuperblockEncoder
             block.FilterIntraMode = filterIntraMode;
             modeInfo.Block.TransformSize = lumaTransformSize;
 
-            // Ordinary intra keeps the block non-skipped, including when all transforms are empty. Its RD cost
-            // includes those transform symbols and the non-skip flag; only inter or IBC winners can replace this state.
-            if (this.source.IsMonochrome)
+            int chromaArea = 0;
+            if (block.HasChroma)
             {
-                bool allowIntraBlockCopy = blockSize == Av1BlockSize.Block8x8 &&
-                    this.picture.Parent.FrameHeader.AllowIntraBlockCopy;
+                ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
+                int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
+                int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
+                Point chromaOrigin = Av1TileWriter.GetChromaBlockOrigin(
+                    blockOrigin,
+                    subsamplingX,
+                    subsamplingY);
 
-                Av1RateDistortionStatistics regularStatistics = this.GetRegularBlockCost(
-                    writer,
-                    macroBlock,
-                    lumaStatistics,
-                    allowIntraBlockCopy);
+                Av1TransformSize chromaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
+                    ? Av1TransformSize.Size4x4
+                    : blockSize.GetMaxUvTransformSize(
+                        colorConfig.SubSamplingX,
+                        colorConfig.SubSamplingY);
 
-                if (!this.picture.Parent.FrameHeader.IsIntra)
-                {
-                    this.SelectedBlockStatistics = this.SelectInterPrediction(
-                        writer,
-                        macroBlock,
-                        blockOrigin,
-                        tileIndex,
-                        regularStatistics,
-                        ref modeInfo,
-                        ref block,
-                        ref paletteInfo);
-                }
-                else
-                {
-                    this.SelectedBlockStatistics = allowIntraBlockCopy
-                        ? this.SelectIntraBlockCopy(
-                            writer,
-                            macroBlock,
-                            blockOrigin,
-                            tileIndex,
-                            regularStatistics,
-                            ref modeInfo,
-                            ref block,
-                            ref paletteInfo)
-                        : regularStatistics;
-                }
-
-                this.codedAreaLuma += blockSize.GetWidth() * blockSize.GetHeight();
-                return;
-            }
-
-            ObuColorConfig colorConfig = this.picture.Sequence.SequenceHeader.ColorConfig;
-            int subsamplingX = colorConfig.SubSamplingX ? 1 : 0;
-            int subsamplingY = colorConfig.SubSamplingY ? 1 : 0;
-            Point chromaOrigin = Av1TileWriter.GetChromaBlockOrigin(
-                blockOrigin,
-                subsamplingX,
-                subsamplingY);
-
-            Av1TransformSize chromaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
-                ? Av1TransformSize.Size4x4
-                : blockSize.GetMaxUvTransformSize(
+                Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(
                     colorConfig.SubSamplingX,
                     colorConfig.SubSamplingY);
 
-            Av1BlockSize chromaBlockSize = blockSize.GetSubsampled(
-                colorConfig.SubSamplingX,
-                colorConfig.SubSamplingY);
+                Span<int> blueCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.U);
+                Span<int> redCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.V);
+                Span<Av1EncoderTransformBlockState> blueTransformBlocks =
+                    this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.U);
+                Span<Av1EncoderTransformBlockState> redTransformBlocks =
+                    this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.V);
 
-            Span<int> blueCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.U);
-            Span<int> redCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, Av1Plane.V);
-            Span<Av1EncoderTransformBlockState> blueTransformBlocks =
-                this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.U);
-            Span<Av1EncoderTransformBlockState> redTransformBlocks =
-                this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, Av1Plane.V);
+                int chromaTransformIndex = this.codedAreaChroma /
+                    Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
 
-            int chromaTransformIndex = this.codedAreaChroma /
-                Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
-
-            Span<Av1EncoderTransformBlockState> retainedBlueStates = blueTransformBlocks[chromaTransformIndex..];
-            Span<Av1EncoderTransformBlockState> retainedRedStates = redTransformBlocks[chromaTransformIndex..];
-            Av1RateDistortionStatistics chromaStatistics = default;
-            if (block.HasChroma)
-            {
+                Span<Av1EncoderTransformBlockState> retainedBlueStates = blueTransformBlocks[chromaTransformIndex..];
+                Span<Av1EncoderTransformBlockState> retainedRedStates = redTransformBlocks[chromaTransformIndex..];
                 modeInfo.Block.UvMode = this.SelectChromaMode(
                     writer,
                     macroBlock,
@@ -723,55 +710,51 @@ internal static partial class Av1IntraSuperblockEncoder
                     out int chromaAngleDelta,
                     out byte chromaFromLumaIndex,
                     out sbyte chromaFromLumaSigns,
-                    out chromaStatistics);
+                    out Av1RateDistortionStatistics chromaStatistics);
 
                 block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv] = (sbyte)chromaAngleDelta;
                 block.PredictionUnit.ChromaFromLumaIndex = chromaFromLumaIndex;
                 block.PredictionUnit.ChromaFromLumaSigns = chromaFromLumaSigns;
+                chromaArea = chromaBlockSize.GetWidth() * chromaBlockSize.GetHeight();
+                lumaStatistics.Add(this.rateMultiplier, in chromaStatistics);
             }
 
-            bool allowColorIntraBlockCopy = blockSize == Av1BlockSize.Block8x8 &&
+            bool allowIntraBlockCopy = blockSize == Av1BlockSize.Block8x8 &&
                 this.picture.Parent.FrameHeader.AllowIntraBlockCopy;
 
-            lumaStatistics.Add(this.rateMultiplier, in chromaStatistics);
-            Av1RateDistortionStatistics regularColorStatistics = this.GetRegularBlockCost(
+            Av1RateDistortionStatistics regularStatistics = this.GetRegularBlockCost(
                 writer,
                 macroBlock,
                 lumaStatistics,
-                allowColorIntraBlockCopy);
+                allowIntraBlockCopy);
 
-            if (!this.picture.Parent.FrameHeader.IsIntra)
+            if (isInterFrame && interStatistics.Cost <= regularStatistics.Cost)
             {
-                this.SelectedBlockStatistics = this.SelectInterPrediction(
-                    writer,
-                    macroBlock,
-                    blockOrigin,
-                    tileIndex,
-                    regularColorStatistics,
-                    ref modeInfo,
-                    ref block,
-                    ref paletteInfo);
+                // Inter candidates precede intra candidates, so an equal cost retains the inter winner.
+                modeInfo = interModeInfo;
+                block = interBlock;
+                paletteInfo = default;
+                this.ReconstructSelectedInterBlock(blockOrigin, modeInfo, block, interVector, interStates);
+                this.picture.SetDisplacementVector(modeInfoPosition, interVector);
+                this.SelectedBlockStatistics = interStatistics;
             }
             else
             {
-                this.SelectedBlockStatistics = allowColorIntraBlockCopy
+                this.SelectedBlockStatistics = allowIntraBlockCopy
                     ? this.SelectIntraBlockCopy(
                         writer,
                         macroBlock,
                         blockOrigin,
                         tileIndex,
-                        regularColorStatistics,
+                        regularStatistics,
                         ref modeInfo,
                         ref block,
                         ref paletteInfo)
-                    : regularColorStatistics;
+                    : regularStatistics;
             }
 
             this.codedAreaLuma += blockSize.GetWidth() * blockSize.GetHeight();
-            if (block.HasChroma)
-            {
-                this.codedAreaChroma += chromaBlockSize.GetWidth() * chromaBlockSize.GetHeight();
-            }
+            this.codedAreaChroma += chromaArea;
         }
 
         private Av1RateDistortionStatistics EvaluatePartitionLeaf(

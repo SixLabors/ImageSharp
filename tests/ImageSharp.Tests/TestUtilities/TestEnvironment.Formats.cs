@@ -85,6 +85,12 @@ public static partial class TestEnvironment
             bmpEncoder,
             new BmpImageFormatDetector());
 
+        cfg.ConfigureCodecs(
+            HeifFormat.Instance,
+            MagickReferenceDecoder.Heif,
+            new HeifEncoder(),
+            new HeifImageFormatDetector());
+
         return cfg;
     }
 }

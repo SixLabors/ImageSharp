@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers.Binary;
+
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg;
 
 internal sealed class JpegBitWriter
@@ -62,14 +64,9 @@ internal sealed class JpegBitWriter
 
     public void StoreBe64(ulong value)
     {
-        this.buffer[this.pos++] = (byte)(value >> 56);
-        this.buffer[this.pos++] = (byte)(value >> 48);
-        this.buffer[this.pos++] = (byte)(value >> 40);
-        this.buffer[this.pos++] = (byte)(value >> 32);
-        this.buffer[this.pos++] = (byte)(value >> 24);
-        this.buffer[this.pos++] = (byte)(value >> 16);
-        this.buffer[this.pos++] = (byte)(value >> 8);
-        this.buffer[this.pos++] = (byte)value;
+        Span<byte> span = this.buffer.AsSpan(this.pos);
+        BinaryPrimitives.WriteUInt64BigEndian(span, value);
+        this.pos += 8;
     }
 
     public void DischargeBitBuffer(int nBits, ulong bits)

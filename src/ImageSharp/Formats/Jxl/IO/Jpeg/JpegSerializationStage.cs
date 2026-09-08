@@ -3,7 +3,7 @@
 
 namespace SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg;
 
-internal enum JpegSerializationStage
+internal enum JpegSerializationStage : byte
 {
     Initialize,
     SerializeSection,

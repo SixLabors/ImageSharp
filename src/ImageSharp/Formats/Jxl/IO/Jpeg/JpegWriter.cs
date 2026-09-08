@@ -226,18 +226,18 @@ internal class JpegWriter
         state.OutputQueue.Add([(byte)(markerLength + 2)]);
 
         Span<byte> data = CollectionsMarshal.AsSpan(state.OutputQueue[^1]);
-        int pos = 0;
+        int pos = 10;
 
-        data[pos++] = 0xff;
-        data[pos++] = marker;
-        data[pos++] = (byte)(markerLength >> 8);
-        data[pos++] = (byte)markerLength;
-        data[pos++] = JpegPrecision;
-        data[pos++] = (byte)(jpg.Height >> 8);
-        data[pos++] = (byte)jpg.Height;
-        data[pos++] = (byte)(jpg.Width >> 8);
-        data[pos++] = (byte)jpg.Width;
-        data[pos++] = (byte)componentCount;
+        data[0] = 0xff;
+        data[1] = marker;
+        data[2] = (byte)(markerLength >> 8);
+        data[3] = (byte)markerLength;
+        data[4] = JpegPrecision;
+        data[5] = (byte)(jpg.Height >> 8);
+        data[6] = (byte)jpg.Height;
+        data[7] = (byte)(jpg.Width >> 8);
+        data[8] = (byte)jpg.Width;
+        data[9] = (byte)componentCount;
 
         for (int i = 0; i < componentCount; ++i)
         {
@@ -267,13 +267,13 @@ internal class JpegWriter
         state.OutputQueue.Add([(byte)(markerLength + 2)]);
 
         Span<byte> data = CollectionsMarshal.AsSpan(state.OutputQueue[^1]);
-        int pos = 0;
+        int pos = 5;
 
-        data[pos++] = 0xff;
-        data[pos++] = 0xda;
-        data[pos++] = (byte)(markerLength >> 8);
-        data[pos++] = (byte)markerLength;
-        data[pos++] = (byte)scanCount;
+        data[0] = 0xff;
+        data[1] = 0xda;
+        data[2] = (byte)(markerLength >> 8);
+        data[3] = (byte)markerLength;
+        data[4] = (byte)scanCount;
 
         for (int i = 0; i < scanCount; ++i)
         {
@@ -327,12 +327,12 @@ internal class JpegWriter
         state.OutputQueue.Add([(byte)(markerLength + 2)]);
 
         Span<byte> data = CollectionsMarshal.AsSpan(state.OutputQueue[^1]);
-        int pos = 0;
+        int pos = 4;
 
-        data[pos++] = 0xff;
-        data[pos++] = 0xc4;
-        data[pos++] = (byte)(markerLength >> 8);
-        data[pos++] = (byte)markerLength;
+        data[0] = 0xff;
+        data[1] = 0xc4;
+        data[2] = (byte)(markerLength >> 8);
+        data[3] = (byte)markerLength;
 
         while (true)
         {
@@ -428,12 +428,12 @@ internal class JpegWriter
         state.OutputQueue.Add([(byte)(markerLength + 2)]);
 
         Span<byte> data = CollectionsMarshal.AsSpan(state.OutputQueue[^1]);
-        int pos = 0;
+        int pos = 4;
 
-        data[pos++] = 0xff;
-        data[pos++] = 0xdb;
-        data[pos++] = (byte)(markerLength >> 8);
-        data[pos++] = (byte)markerLength;
+        data[0] = 0xff;
+        data[1] = 0xdb;
+        data[2] = (byte)(markerLength >> 8);
+        data[3] = (byte)markerLength;
 
         while (true)
         {

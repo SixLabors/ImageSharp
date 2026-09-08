@@ -3,6 +3,9 @@
 
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Encoder;
 
+/// <summary>
+/// TODO
+/// </summary>
 internal static class JxlTransformsEncoder
 {
 }

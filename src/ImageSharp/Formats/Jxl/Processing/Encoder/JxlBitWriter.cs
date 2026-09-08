@@ -57,6 +57,18 @@ internal sealed class JxlBitWriter(Stream stream)
         }
     }
 
+    public void ZeroPadToByte()
+    {
+        long remainderBits = JxlMath.RoundUpBitsToByteMultiple((int)this.BitsWritten) - this.BitsWritten;
+
+        if (remainderBits == 0)
+        {
+            return;
+        }
+
+        this.Write((int)remainderBits, 0);
+    }
+
     public bool WithMaxBits(ulong maxBits, Func<bool> func)
     {
         bool previousIsLimited = this.isLimited;

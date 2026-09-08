@@ -135,7 +135,7 @@ internal static class JxlBundle
     public static bool WriteCodestreamHeaders(JxlCodecMetadata metadata, JxlBitWriter writer, JxlAuxiliaryOutput auxOut)
     {
         // Marker/signature
-        if (!writer.WithMaxBits(16, JxlLayerType.Header, auxOut, () =>
+        if (!writer.WithMaxBits(16, () =>
         {
             writer.Write(8, 0xFF);
             writer.Write(8, JxlShared.CodestreamMarker);

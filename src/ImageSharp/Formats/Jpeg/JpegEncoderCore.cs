@@ -90,13 +90,11 @@ internal sealed unsafe partial class JpegEncoderCore
             this.WriteApp14Marker(frameConfig.AdobeColorTransformMarkerFlag.Value, buffer);
         }
 
-        if (!this.encoder.SkipMetadata)
-        {
-            // Profiles and comments are optional application metadata and must not leak into a containing format
-            // when the containing encoder has requested a metadata-free embedded JPEG payload.
-            this.WriteProfiles(metadata, buffer);
-            this.WriteComments(image.Configuration, jpegMetadata);
-        }
+        // Write Exif, XMP, ICC and IPTC profiles
+        this.WriteProfiles(metadata, buffer);
+
+        // Write comments
+        this.WriteComments(image.Configuration, jpegMetadata);
 
         // Write the image dimensions.
         this.WriteStartOfFrame(image.Width, image.Height, frameConfig, buffer);

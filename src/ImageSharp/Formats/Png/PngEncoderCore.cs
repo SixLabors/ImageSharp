@@ -1057,7 +1057,7 @@ internal sealed class PngEncoderCore : IDisposable
     /// <exception cref="NotSupportedException">CICP matrix coefficients other than Identity are not supported in PNG.</exception>
     private void WriteCicpChunk(Stream stream, ImageMetadata metaData)
     {
-        if (this.chunkFilter == PngChunkFilter.ExcludeAll || metaData.CicpProfile is null)
+        if (metaData.CicpProfile is null)
         {
             return;
         }

@@ -282,7 +282,7 @@ internal partial class Av1TileWriter
                             (childIndex & 1) * halfBlockSize,
                             (childIndex >> 1) * halfBlockSize);
 
-                        Point childModeInfoPosition = childOrigin >> Av1Constants.ModeInfoSizeLog2;
+                        Point childModeInfoPosition = new(childOrigin.X >> Av1Constants.ModeInfoSizeLog2, childOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
                         if (childModeInfoPosition.Y >= common.ModeInfoRowCount ||
                             childModeInfoPosition.X >= common.ModeInfoColumnCount)
                         {
@@ -791,7 +791,7 @@ internal partial class Av1TileWriter
         out bool hasColumns)
     {
         int halfBlockModeInfoCount = blockSize.Get4x4WideCount() >> 1;
-        Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+        Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
         hasRows = modeInfoPosition.Y + halfBlockModeInfoCount < pcs.Parent.Common.ModeInfoRowCount;
         hasColumns = modeInfoPosition.X + halfBlockModeInfoCount < pcs.Parent.Common.ModeInfoColumnCount;
         int leftIndex = partitionContexts.GetLeftIndex(blockOrigin);
@@ -2024,7 +2024,7 @@ internal partial class Av1TileWriter
         Av1NeighborArrayUnit<byte> luma_dc_sign_level_coeff_na = pcs.LuminanceDcSignLevelCoefficientNeighbors[tile_idx];
         Av1NeighborArrayUnit<byte> cr_dc_sign_level_coeff_na = pcs.CrDcSignLevelCoefficientNeighbors[tile_idx];
         Av1NeighborArrayUnit<byte> cb_dc_sign_level_coeff_na = pcs.CbDcSignLevelCoefficientNeighbors[tile_idx];
-        Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+        Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
         ref Av1MacroBlockModeInfo mbmi = ref pcs.GetMacroBlockModeInfo(modeInfoPosition);
         bool skip_coeff = mbmi.Block.Skip;
 

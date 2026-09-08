@@ -670,7 +670,7 @@ public class Av1IntraSuperblockEncoderTests
         const int Width = 8;
         const int Height = 8;
         Point blockOrigin = new(isIntraBlockCopy ? 320 : 0, 0);
-        Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+        Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
         int frameWidth = blockOrigin.X + Width;
         int superblockIndex = blockOrigin.X / 64;
         ObuColorConfig colorConfig = new()

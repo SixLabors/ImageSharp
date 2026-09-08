@@ -177,22 +177,6 @@ public sealed partial class IccProfile : IDeepCloneable<IccProfile>
         return IccWriter.Write(this);
     }
 
-    /// <summary>
-    /// Gets the serialized profile storage for an encoder that consumes it before the operation returns.
-    /// </summary>
-    /// <returns>The existing raw profile storage, or a newly serialized profile when this instance was built from entries.</returns>
-    internal ReadOnlyMemory<byte> GetDataForWriting()
-    {
-        if (this.data is not null)
-        {
-            // Internal encoders only read this memory during the current operation, so the immutable view avoids
-            // cloning an already-owned profile before it is copied into format-specific output.
-            return this.data;
-        }
-
-        return IccWriter.Write(this);
-    }
-
     private void InitializeHeader()
     {
         if (this.header != null)

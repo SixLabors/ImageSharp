@@ -480,7 +480,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 this.blockWorkspace.GetInterPredictionWorkspace<TSample>();
 
             ObuFrameHeader frameHeader = this.picture.Parent.FrameHeader;
-            Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+            Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
             ref Av1ReferenceMotionVectors referenceMotionVectors = ref this.blockWorkspace.ReferenceMotionVectors;
             referenceMotionVectors.Build(
                 this.picture,

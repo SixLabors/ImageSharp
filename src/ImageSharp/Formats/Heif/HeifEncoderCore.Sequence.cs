@@ -339,7 +339,7 @@ internal sealed partial class HeifEncoderCore
         IccProfile? iccProfile = image.Metadata.IccProfile;
         if (!this.encoder.SkipMetadata && iccProfile is not null)
         {
-            iccProfileData = iccProfile.GetDataForWriting();
+            iccProfileData = iccProfile.ToByteArray();
         }
 
         return new HeifSequenceEncoding(

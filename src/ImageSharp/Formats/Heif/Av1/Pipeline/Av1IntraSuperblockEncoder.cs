@@ -187,7 +187,7 @@ internal static partial class Av1IntraSuperblockEncoder
         public void EncodePartitionTree(Point blockOrigin, Av1BlockSize blockSize)
         {
             Av1EncoderCommon common = this.picture.Parent.Common;
-            Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+            Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
             if (modeInfoPosition.Y >= common.ModeInfoRowCount || modeInfoPosition.X >= common.ModeInfoColumnCount)
             {
                 return;

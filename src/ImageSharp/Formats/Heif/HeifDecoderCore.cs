@@ -1289,12 +1289,12 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
                 this.itemLinks.Add(link);
             }
-            catch (Exception ex) when (linkType == Heif4CharCode.Cdsc && ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+            catch (Exception ex) when (linkType == Heif4CharCode.Cdsc && HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
             {
                 // A malformed descriptive link cannot change reconstructed pixels, so non-strict modes omit it.
                 bytesRead = referenceEnd;
             }
-            catch (Exception ex) when (linkType != Heif4CharCode.Cdsc && ImageDecoderCore.ShouldIgnoreImageDataSegmentError(this.Options, ex))
+            catch (Exception ex) when (linkType != Heif4CharCode.Cdsc && HeifDecoderCore.ShouldIgnoreImageDataSegmentError(this.Options, ex))
             {
                 // IgnoreImageData permits a malformed optional image relationship to be omitted while retaining
                 // independently reconstructable items and thumbnail fallbacks.
@@ -1440,7 +1440,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                     {
                         iccProfile = HeifPropertyParser.ParseIccProfile(profileData);
                     }
-                    catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                    catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
                     {
                         // Keep the understood property index without retaining invalid ancillary metadata.
                     }
@@ -1482,7 +1482,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             pixelAspectRatio = HeifPropertyParser.ParsePixelAspectRatio(boxBuffer);
                         }
-                        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1555,7 +1555,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             contentLightLevel = HeifPropertyParser.ParseContentLightLevel(boxBuffer);
                         }
-                        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1568,7 +1568,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             masteringDisplayColorVolume = HeifPropertyParser.ParseMasteringDisplayColorVolume(boxBuffer);
                         }
-                        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1581,7 +1581,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             contentColorVolume = HeifPropertyParser.ParseContentColorVolume(boxBuffer);
                         }
-                        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1594,7 +1594,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             ambientViewingEnvironment = HeifPropertyParser.ParseAmbientViewingEnvironment(boxBuffer);
                         }
-                        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1607,7 +1607,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             referenceViewingEnvironment = HeifPropertyParser.ParseReferenceViewingEnvironment(boxBuffer);
                         }
-                        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1620,7 +1620,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         {
                             nominalDiffuseWhite = HeifPropertyParser.ParseNominalDiffuseWhite(boxBuffer);
                         }
-                        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
+                        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(this.Options, ex))
                         {
                             // Keep the understood property index without retaining invalid ancillary metadata.
                         }
@@ -1683,7 +1683,7 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
                         break;
                 }
             }
-            catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreImageDataSegmentError(this.Options, ex))
+            catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreImageDataSegmentError(this.Options, ex))
             {
                 // Invalid image properties retain their physical association index. Typed association handling ignores
                 // the placeholder so another decodable item or the coded-image defaults can remain usable.
@@ -3152,5 +3152,43 @@ internal sealed class HeifDecoderCore : ImageDecoderCore
 
         bytesRead = terminator + 1;
         return Encoding.UTF8.GetString(span[..terminator]);
+    }
+
+    /// <summary>
+    /// Determines whether a malformed ancillary box can be omitted under the selected integrity policy.
+    /// </summary>
+    public static bool ShouldIgnoreAncillarySegmentError(DecoderOptions options, Exception exception)
+        => options.SegmentIntegrityHandling is not SegmentIntegrityHandling.Strict
+            && IsRecoverableBoxError(exception);
+
+    /// <summary>
+    /// Determines whether a malformed image-data box can be omitted under the selected integrity policy.
+    /// </summary>
+    internal static bool ShouldIgnoreImageDataSegmentError(DecoderOptions options, Exception exception)
+        => options.SegmentIntegrityHandling is SegmentIntegrityHandling.IgnoreImageData
+            && IsRecoverableBoxError(exception);
+
+    /// <summary>
+    /// Identifies malformed-box failures eligible for the segment integrity policy.
+    /// </summary>
+    /// <param name="exception">The failure raised while reading the box.</param>
+    /// <returns>Whether the failure describes recoverable image content.</returns>
+    private static bool IsRecoverableBoxError(Exception exception)
+        => exception is ImageFormatException
+            or InvalidIccProfileException
+            or InvalidImageContentException
+            or InvalidOperationException
+            or NotSupportedException;
+
+    /// <summary>
+    /// Rejects malformed image properties unless image-data errors are explicitly ignored.
+    /// </summary>
+    /// <param name="message">The description of the malformed property.</param>
+    private void ThrowOrIgnoreImageDataSegmentError(string message)
+    {
+        if (this.Options.SegmentIntegrityHandling is not SegmentIntegrityHandling.IgnoreImageData)
+        {
+            throw new InvalidImageContentException(message);
+        }
     }
 }

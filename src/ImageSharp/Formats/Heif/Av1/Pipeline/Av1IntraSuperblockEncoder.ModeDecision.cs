@@ -88,7 +88,7 @@ internal static partial class Av1IntraSuperblockEncoder
         ref int partitionIndex)
     {
         Av1EncoderCommon common = picture.Parent.Common;
-        Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+        Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
         if (modeInfoPosition.Y >= common.ModeInfoRowCount || modeInfoPosition.X >= common.ModeInfoColumnCount)
         {
             return;
@@ -219,7 +219,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 return preparedPartition;
             }
 
-            Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+            Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
             bool hasRows =
                 modeInfoPosition.Y + blockSize.Get4x4HighCount() <= this.picture.Parent.Common.ModeInfoRowCount;
 
@@ -479,7 +479,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
         private bool IsBlockOriginInsideFrame(Point blockOrigin)
         {
-            Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+            Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
             return modeInfoPosition.Y < this.picture.Parent.Common.ModeInfoRowCount &&
                 modeInfoPosition.X < this.picture.Parent.Common.ModeInfoColumnCount;
         }
@@ -596,7 +596,7 @@ internal static partial class Av1IntraSuperblockEncoder
             };
 
             modeInfo.CdefStrength = 0;
-            Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+            Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
             block.HasChroma = !this.source.IsMonochrome &&
                 Av1TileReader.HasChroma(this.picture.Sequence.SequenceHeader, modeInfoPosition, blockSize);
 
@@ -768,7 +768,7 @@ internal static partial class Av1IntraSuperblockEncoder
         {
             // Trial leaves must use the same reconstruction order as final leaves of this partition.
             this.SetBlockGeometry(blockOrigin, blockSize, partitionType);
-            Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+            Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
             Av1TileWriter.SetModeInfoRowAndColumn(
                 this.picture,
                 macroBlock,
@@ -813,7 +813,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Av1PartitionType partitionType)
         {
-            Point modeInfoPosition = blockOrigin >> Av1Constants.ModeInfoSizeLog2;
+            Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
             ref Av1MacroBlockModeInfo modeInfo = ref this.picture.GetMacroBlockModeInfo(modeInfoPosition);
             modeInfo.Block = new Av1EncoderBlockModeInfo
             {

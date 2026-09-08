@@ -348,6 +348,7 @@ public partial class PixelOperations<TPixel>
 
     /// <summary>
     /// Bulk operation that packs 3 separate RGB channels to <paramref name="destination"/>.
+    /// The destination must contain at least as many pixels as each source channel.
     /// </summary>
     /// <param name="redChannel">A <see cref="ReadOnlySpan{T}"/> to the red values.</param>
     /// <param name="greenChannel">A <see cref="ReadOnlySpan{T}"/> to the green values.</param>

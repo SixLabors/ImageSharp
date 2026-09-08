@@ -224,7 +224,7 @@ internal sealed class HeifItem(Heif4CharCode type, uint id)
         {
             // Exact-size container writing queries the payload length before copying it. Retaining the serialized
             // view on this transient item prevents an entry-built profile from being serialized for both passes.
-            this.serializedIccProfile = this.iccProfile.GetDataForWriting();
+            this.serializedIccProfile = this.iccProfile.ToByteArray();
         }
 
         return this.serializedIccProfile;

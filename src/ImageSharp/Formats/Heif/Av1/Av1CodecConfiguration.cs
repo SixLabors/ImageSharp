@@ -382,7 +382,7 @@ internal sealed class Av1CodecConfiguration
             contentLightLevel = dataObuContentLightLevel ?? this.configContentLightLevel;
             masteringDisplayColorVolume = dataObuMasteringDisplayColorVolume ?? this.configMasteringDisplayColorVolume;
         }
-        catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(options, ex))
+        catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(options, ex))
         {
             // Conflicting optional OBU metadata is discarded without weakening OBU framing or sequence-header checks.
         }
@@ -563,7 +563,7 @@ internal sealed class Av1CodecConfiguration
                         masteringDisplayColorVolume = obuMasteringDisplayColorVolume;
                     }
                 }
-                catch (Exception ex) when (ImageDecoderCore.ShouldIgnoreAncillarySegmentError(options, ex))
+                catch (Exception ex) when (HeifDecoderCore.ShouldIgnoreAncillarySegmentError(options, ex))
                 {
                     // The OBU payload remains bounded by the image-data scan; only its invalid optional metadata is discarded.
                 }

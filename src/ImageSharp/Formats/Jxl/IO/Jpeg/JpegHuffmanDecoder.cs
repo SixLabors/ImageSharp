@@ -8,8 +8,8 @@ namespace SixLabors.ImageSharp.Formats.Jxl.IO.Jpeg;
 /// </summary>
 internal static class JpegHuffmanDecoder
 {
-    private const int RootTableBits = 8;
-    private const int LookupSize = 8;
+    public const int RootTableBits = 8;
+    public const int LookupSize = 8;
 
     private static int NextTableBitSize(Span<int> count, int length)
     {

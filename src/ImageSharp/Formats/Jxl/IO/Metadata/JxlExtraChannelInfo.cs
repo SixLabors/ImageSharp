@@ -23,5 +23,17 @@ internal sealed class JxlExtraChannelInfo : IJxlFields
 
     public int CfaChannel { get; set; }
 
-    public bool Visit(JxlVisitor visitor) => throw new NotImplementedException();
+    public bool Visit(JxlVisitor visitor)
+    {
+        if (visitor.AllDefault(this, ref this.allDefault))
+        {
+            visitor.SetDefault(this);
+            return true;
+        }
+
+        if (!visitor.Enum(JxlExtraChannel.Alpha, ref this.Type))
+        {
+            return false;
+        }
+    }
 }

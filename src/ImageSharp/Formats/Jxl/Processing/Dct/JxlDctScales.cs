@@ -1,6 +1,8 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Runtime.CompilerServices;
+
 namespace SixLabors.ImageSharp.Formats.Jxl.Processing.Dct;
 
 /// <summary>
@@ -385,4 +387,59 @@ internal static class JxlDctScales
         256 => Multipliers256,
         _ => []
     };
+
+    [MethodImpl(InliningOptions.HotPath | InliningOptions.AlwaysInline)]
+    public static ReadOnlySpan<float> GetResampleScales(int x, int y)
+    {
+        DebugGuard.IsTrue(x is 1 or 2 or 4 or 8 or 16 or 32 or 64 or 128 or 256, "x is invalid");
+        if (x == 1)
+        {
+            DebugGuard.IsTrue(y == 8, "Only y=8 resample scale for x=1 exists");
+            return ResampleScales1_8;
+        }
+        else if (x == 2)
+        {
+            DebugGuard.IsTrue(y == 16, "Only y=16 resample scale for x=2 exists");
+            return ResampleScales2_16;
+        }
+        else if (x == 4)
+        {
+            DebugGuard.IsTrue(y == 32, "Only y=32 resample scale for x=4 exists");
+            return ResampleScales4_32;
+        }
+        else if (x == 8)
+        {
+            DebugGuard.IsTrue(y is 1 or 64, "Only y=1,64 resample scale for x=8 exists");
+            return y == 1 ? ResampleScales8_1 : ResampleScales8_64;
+        }
+        else if (x == 16)
+        {
+            DebugGuard.IsTrue(y is 2 or 128, "Only y=2,128 resample scale for x=16 exists");
+            return y == 2 ? ResampleScales16_2 : ResampleScales16_128;
+        }
+        else if (x == 32)
+        {
+            DebugGuard.IsTrue(y is 4 or 256, "Only y=4,256 resample scale for x=32 exists");
+            return y == 4 ? ResampleScales32_4 : ResampleScales32_256;
+        }
+        else if (x == 64)
+        {
+            DebugGuard.IsTrue(y == 8, "Only y=8 resample scale for x=64 exists");
+            return ResampleScales64_8;
+        }
+        else if (x == 128)
+        {
+            DebugGuard.IsTrue(y == 16, "Only y=16 resample scale for x=128 exists");
+            return ResampleScales128_16;
+        }
+        else if (x == 256)
+        {
+            DebugGuard.IsTrue(y == 32, "Only y=32 resample scale for x=256 exists");
+            return ResampleScales256_32;
+        }
+        else
+        {
+            return [];
+        }
+    }
 }

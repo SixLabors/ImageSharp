@@ -377,7 +377,7 @@ internal class JpegWriter
                 huffTable = state.DcHuffTable[index];
             }
 
-            huffTable.InitDepths(127);
+            huffTable.InitializeDepths(127);
 
             if (!BuildJpegHuffmanCodeTable(huff, huffTable))
             {

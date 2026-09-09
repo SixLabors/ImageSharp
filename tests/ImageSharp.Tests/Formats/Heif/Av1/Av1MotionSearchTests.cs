@@ -52,7 +52,7 @@ public class Av1MotionSearchTests
         const int QIndex = 90;
         const int ReferenceStride = 192;
         const int ReferenceOrigin = (64 * ReferenceStride) + 64;
-        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default, allocateInterMotionCosts: true);
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default, allocateInterMotionCosts: true, allocateDisplacementCosts: false);
         using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
         Av1MotionVectorCosts costs = workspace.GetMotionVectorCosts(Av1MotionVectorPrecision.EighthSample);
         writer.FillMotionVectorCosts(costs);
@@ -235,7 +235,7 @@ public class Av1MotionSearchTests
     [Fact]
     public void SearchSitesPreserveShapeAcrossStrideChanges()
     {
-        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default, allocateInterMotionCosts: true);
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default, allocateInterMotionCosts: true, allocateDisplacementCosts: false);
         for (int methodIndex = 0; methodIndex <= (int)FullPixelSearchMethod.VeryFastDiamond; methodIndex++)
         {
             FullPixelSearchMethod method = (FullPixelSearchMethod)methodIndex;
@@ -276,7 +276,7 @@ public class Av1MotionSearchTests
         const int ReferenceStride = 192;
         const int ReferenceOrigin = (64 * ReferenceStride) + 64;
         int maximum = (1 << bits) - 1;
-        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default, allocateInterMotionCosts: true);
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default, allocateInterMotionCosts: true, allocateDisplacementCosts: false);
         using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
         Av1MotionVectorCosts costs = workspace.GetMotionVectorCosts(Av1MotionVectorPrecision.EighthSample);
         writer.FillMotionVectorCosts(costs);

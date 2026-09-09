@@ -955,37 +955,10 @@ internal sealed class Av1SymbolEncoder : IDisposable
         => this.displacementVector.Write<TOperation>(this.writer, value, reference, Av1MotionVectorPrecision.Integer);
 
     /// <summary>
-    /// Measures an integer intra-block-copy displacement vector against the live distributions.
+    /// Captures integer displacement rates without adapting the coding distributions.
     /// </summary>
-    /// <param name="value">The displacement vector to measure.</param>
-    /// <param name="reference">The spatially derived reference vector.</param>
-    /// <returns>The discounted syntax cost in 1/512-bit units.</returns>
-    public int GetDisplacementVectorCost(Av1MotionVector value, Av1MotionVector reference)
-    {
-        const int DisplacementVectorCostWeight = 120;
-        const int WeightShift = 7;
-        int rate = this.displacementVector.GetCost(
-            this.writer,
-            value,
-            reference,
-            Av1MotionVectorPrecision.Integer);
-
-        // Displacement syntax uses a 120/128 discount during mode search; adding half the divisor rounds to nearest.
-        return ((rate * DisplacementVectorCostWeight) + (1 << (WeightShift - 1))) >> WeightShift;
-    }
-
-    /// <summary>
-    /// Measures an integer intra-block-copy displacement vector for variance-domain motion search.
-    /// </summary>
-    /// <param name="value">The displacement vector to measure.</param>
-    /// <param name="reference">The spatially derived reference vector.</param>
-    /// <returns>The syntax cost in 1/512-bit units.</returns>
-    public int GetDisplacementVectorSearchCost(Av1MotionVector value, Av1MotionVector reference)
-        => this.displacementVector.GetCost(
-            this.writer,
-            value,
-            reference,
-            Av1MotionVectorPrecision.Integer);
+    /// <param name="costs">The worker's retained integer-rate storage.</param>
+    public void FillDisplacementVectorCosts(Av1MotionVectorCosts costs) => costs.Fill(this.displacementVector);
 
     /// <summary>
     /// Measures one switchable interpolation filter against its live tile distribution.

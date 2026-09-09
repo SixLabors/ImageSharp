@@ -428,6 +428,14 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                                 writer.FillMotionVectorCosts(blockWorkspace.GetMotionVectorCosts(frameHeader.MotionVectorPrecision));
                             }
 
+                            if (frameHeader.AllowIntraBlockCopy &&
+                                (firstSuperblock || (!sequenceHeader.IsStillPicture && !frameHeader.DisableCdfUpdate)))
+                            {
+                                // Still images retain their initial displacement rates. Sequence intra frames
+                                // refresh at superblock boundaries while entropy coding continues to adapt.
+                                writer.FillDisplacementVectorCosts(blockWorkspace.GetDisplacementVectorCosts());
+                            }
+
                             Av1IntraSuperblockEncoder.Prepare(
                                 picture,
                                 superblock,

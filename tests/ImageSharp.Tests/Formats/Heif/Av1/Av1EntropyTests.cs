@@ -2371,17 +2371,29 @@ public class Av1EntropyTests
         int[] expectedCosts = [1440, 1661, 5231, 5807, 16955, 31656];
         Configuration configuration = Configuration.Default;
         using Av1SymbolEncoder encoder = new(configuration, 64, BaseQIndex, updateCdf: true);
+        using IMemoryOwner<int> costStorage = configuration.MemoryAllocator.Allocate<int>(Av1MotionVectorCosts.IntegerStorageLength);
+        Av1MotionVectorCosts costs = new(costStorage.Memory.Span, Av1MotionVectorPrecision.Integer);
+        encoder.FillDisplacementVectorCosts(costs);
 
-        // These current-libaom costs cover every joint, both signs, class zero, and large-class offset bits.
+        // These fixed costs cover every joint, both signs, class zero, and large-class offset bits.
         for (int i = 0; i < values.Length; i++)
         {
-            Assert.Equal(expectedCosts[i], encoder.GetDisplacementVectorCost(values[i], references[i]));
+            Assert.Equal(expectedCosts[i], costs.GetDisplacementVectorCost(values[i], references[i]));
         }
 
         for (int i = 0; i < values.Length; i++)
         {
             encoder.WriteDisplacementVector(values[i], references[i]);
         }
+
+        // Coding adapts the probabilities, but candidate rates change only at an explicit refresh boundary.
+        for (int i = 0; i < values.Length; i++)
+        {
+            Assert.Equal(expectedCosts[i], costs.GetDisplacementVectorCost(values[i], references[i]));
+        }
+
+        encoder.FillDisplacementVectorCosts(costs);
+        Assert.NotEqual(expectedCosts[0], costs.GetDisplacementVectorCost(values[0], references[0]));
 
         using IMemoryOwner<byte> encoded = encoder.Exit();
         Av1SymbolDecoder decoder = new(configuration, encoded.GetSpan(), BaseQIndex);

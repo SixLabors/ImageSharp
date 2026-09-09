@@ -599,9 +599,11 @@ public class Av1TransformBlockEncoderTests
     /// Verifies that the block workspace uses one exact-size allocator owner and returns it exactly once.
     /// </summary>
     [Theory]
-    [InlineData(false, 0)]
-    [InlineData(true, 135836)]
-    public void BlockWorkspaceUsesOneExactSizeOwner(bool allocateInterMotionCosts, int additionalLength)
+    [InlineData(false, false, 0)]
+    [InlineData(true, false, 135836)]
+    [InlineData(false, true, 65538)]
+    [InlineData(true, true, 201374)]
+    public void BlockWorkspaceUsesOneExactSizeOwner(bool allocateInterMotionCosts, bool allocateDisplacementCosts, int additionalLength)
     {
         TestMemoryAllocator allocator = new();
         allocator.EnableNonThreadSafeLogging();
@@ -609,7 +611,7 @@ public class Av1TransformBlockEncoderTests
         configuration.MemoryAllocator = allocator;
 
         TestMemoryAllocator.AllocationRequest allocation;
-        using (Av1EncoderBlockWorkspace workspace = new(configuration, allocateInterMotionCosts))
+        using (Av1EncoderBlockWorkspace workspace = new(configuration, allocateInterMotionCosts, allocateDisplacementCosts))
         {
             allocation = Assert.Single(allocator.AllocationLog);
             Assert.Empty(allocator.ReturnLog);

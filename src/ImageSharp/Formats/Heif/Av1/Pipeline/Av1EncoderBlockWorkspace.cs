@@ -124,7 +124,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// </summary>
     /// <param name="configuration">The configuration providing the encoder allocator.</param>
     public Av1EncoderBlockWorkspace(Configuration configuration)
-        : this(configuration, allocateInterMotionCosts: false)
+        : this(configuration, allocateInterMotionCosts: false, allocateDisplacementCosts: false)
     {
     }
 
@@ -133,12 +133,15 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// </summary>
     /// <param name="configuration">The configuration providing the encoder allocator.</param>
     /// <param name="allocateInterMotionCosts">Whether the worker will encode inter frames.</param>
-    public Av1EncoderBlockWorkspace(Configuration configuration, bool allocateInterMotionCosts)
+    /// <param name="allocateDisplacementCosts">Whether the worker can encode intra-block copy.</param>
+    public Av1EncoderBlockWorkspace(Configuration configuration, bool allocateInterMotionCosts, bool allocateDisplacementCosts)
     {
         // Motion rates belong to the worker, not a block candidate or frame. Keep both precision pairs after
         // the existing scratch regions so sequence frames can change precision while retaining one owner.
+        // Block-copy capacity appends its independent integer pair at the end of that same allocation.
         int length = StorageLength +
-            (allocateInterMotionCosts ? Av1MotionVectorCosts.StorageLength + (MotionSearchSiteCount * Av1MotionSearchSites.StorageLength) : 0);
+            (allocateInterMotionCosts ? Av1MotionVectorCosts.StorageLength + (MotionSearchSiteCount * Av1MotionSearchSites.StorageLength) : 0) +
+            (allocateDisplacementCosts ? Av1MotionVectorCosts.IntegerStorageLength : 0);
 
         this.owner = configuration.MemoryAllocator.Allocate<int>(length);
         if (allocateInterMotionCosts)
@@ -189,6 +192,13 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// <returns>The worker's reusable motion-rate view.</returns>
     public Av1MotionVectorCosts GetMotionVectorCosts(Av1MotionVectorPrecision precision)
         => new(this.owner.Memory.Span.Slice(StorageLength, Av1MotionVectorCosts.StorageLength), precision);
+
+    /// <summary>
+    /// Borrows the integer rates retained by a worker with intra-block-copy capacity.
+    /// </summary>
+    /// <returns>The worker's displacement-rate view.</returns>
+    public Av1MotionVectorCosts GetDisplacementVectorCosts()
+        => new(this.owner.Memory.Span[^Av1MotionVectorCosts.IntegerStorageLength..], Av1MotionVectorPrecision.Integer);
 
     /// <summary>
     /// Borrows prediction samples for motion search while retaining the selected inter reconstruction.

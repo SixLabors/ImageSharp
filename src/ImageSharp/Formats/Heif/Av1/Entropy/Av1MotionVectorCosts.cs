@@ -22,6 +22,11 @@ internal readonly ref struct Av1MotionVectorCosts
     /// </summary>
     public const int StorageLength = 4 + (4 * ComponentCount);
 
+    /// <summary>
+    /// Storage for joint symbols and one integer displacement component pair.
+    /// </summary>
+    public const int IntegerStorageLength = 4 + (2 * ComponentCount);
+
     private readonly Span<int> joint;
     private readonly Span<int> row;
     private readonly Span<int> column;
@@ -30,7 +35,7 @@ internal readonly ref struct Av1MotionVectorCosts
     /// <summary>
     /// Initializes a new instance of the <see cref="Av1MotionVectorCosts"/> struct.
     /// </summary>
-    /// <param name="storage">Worker-lifetime storage containing both precision tables.</param>
+    /// <param name="storage">Worker-lifetime storage containing the selected precision tables.</param>
     /// <param name="precision">The precision used by the current frame.</param>
     public Av1MotionVectorCosts(Span<int> storage, Av1MotionVectorPrecision precision)
     {
@@ -70,6 +75,22 @@ internal readonly ref struct Av1MotionVectorCosts
         int columnDifference = value.Column - reference.Column;
         int jointType = (rowDifference != 0 ? 2 : 0) | (columnDifference != 0 ? 1 : 0);
         return this.joint[jointType] + this.row[MaximumComponent + rowDifference] + this.column[MaximumComponent + columnDifference];
+    }
+
+    /// <summary>
+    /// Measures an integer displacement vector for block-copy mode selection.
+    /// </summary>
+    /// <param name="value">The displacement vector to measure.</param>
+    /// <param name="reference">The spatially derived reference vector.</param>
+    /// <returns>The discounted syntax cost in 1/512-bit units.</returns>
+    public int GetDisplacementVectorCost(Av1MotionVector value, Av1MotionVector reference)
+    {
+        const int DisplacementVectorCostWeight = 120;
+        const int WeightShift = 7;
+        int rate = this.GetCost(value, reference);
+
+        // Mode selection discounts displacement syntax by 120/128; the half-divisor rounds to nearest.
+        return ((rate * DisplacementVectorCostWeight) + (1 << (WeightShift - 1))) >> WeightShift;
     }
 
     /// <summary>

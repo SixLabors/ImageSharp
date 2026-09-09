@@ -68,13 +68,14 @@ internal static partial class Av1IntraSuperblockEncoder
 
             Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
             Av1IntraBlockCopySearchIndex search = this.picture.IntraBlockCopySearch;
+            Av1MotionVectorCosts displacementCosts = this.blockWorkspace.GetDisplacementVectorCosts();
             int candidateCount = search.FindCandidates<TSample, TOperator>(
                 lumaSource,
                 lumaReconstruction,
                 blockOrigin,
                 macroBlock.Tile,
                 this.picture.Sequence.SequenceHeader,
-                writer,
+                displacementCosts,
                 reference,
                 this.quantization.QIndex[0],
                 this.rateMultiplier,
@@ -265,7 +266,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
 
                 int predictionRate = writer.GetUseIntraBlockCopyCost(true) +
-                    writer.GetDisplacementVectorCost(candidate, reference);
+                    displacementCosts.GetDisplacementVectorCost(candidate, reference);
 
                 int residualRate = writer.GetSkipCost(false, skipContext) +
                     transformPartitionRate +

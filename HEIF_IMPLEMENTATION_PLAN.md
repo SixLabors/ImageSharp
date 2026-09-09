@@ -8,8 +8,8 @@ The previous `d565eec6` source directory is an export without Git metadata. Its 
 selects Release, x86_64, runtime CPU detection, encoder enabled, and libyuv disabled; that build does
 not verify the newly fetched revision. No encoder benchmark has been run for this edited tree.
 
-The Speed and block-copy selection checkpoint is committed as `99485a8f3`. The active correction
-is the encoder's retained rate costs and update schedule. Mode and coefficient costs now share
+The Speed and block-copy selection checkpoint is committed as `99485a8f3`; retained mode/coefficient
+rates and the split-search edge-lifetime fix are committed as `d02a29849`. Mode and coefficient costs share
 the existing worker allocation and remain fixed between updates; entropy adaptation remains live.
 The coefficient layout includes base-level and range-rate differences for subsequent refinement.
 Roslyn reports zero errors. The final Release/net11 build completed with zero errors and 1,012 existing test warnings.
@@ -33,7 +33,20 @@ The existing exact reconstruction test caught this defect and now passes. All fo
 also pass with hardware intrinsics disabled (`encoder-cost-dual-axis-scalar-r2`).
 Temporary coefficient logging and test stream export have been removed. Assertions and native PNGs
 have not been relaxed. Local comparison files remain outside the repository in `av1-takeover-20260905`.
-This does not complete coefficient optimization, displacement-vector cost storage, or encoder parity.
+This does not complete coefficient optimization or encoder parity.
+The follow-up adds worker-owned integer displacement rates only when intra-block copy is possible.
+Hash/pixel candidate search and final mode pricing use the same retained table; syntax adaptation remains separate.
+Native evidence: `av1/encoder/rd.c:708-713` fills one signed component pair at integer precision;
+`speed_features.c:363,2443` retains initial still-image rates and defaults other modes to superblock updates.
+The pair adds 65,538 integers (256.01 KiB) to the existing worker owner only when required. Still-image
+allocation now follows tool selection; sequence allocation reserves its known maximum block-copy capacity.
+Release/net11 build has zero errors and 1,012 existing test warnings. Focused VSTest runs passed:
+`encoder-dv-search-r1` 12/12, `encoder-dv-block-r1` 115/115, `encoder-dv-entropy-r1` 2,007/2,007,
+`encoder-dv-allocation-r1` 5/5, `encoder-dv-motion-r1` 7/7, and `encoder-dv-rates-r1` 7/7.
+The allocation run includes all four inter/block-copy capacity combinations; rate tests cover every legal
+integer, quarter-, and eighth-sample component, adaptation, and explicit refresh boundaries.
+`encoder-dv-public-r1` still passes 73/76, with the same three separate-encoder native flag comparisons failing.
+No acceptance threshold or reference image was changed. Controller/search completeness remains open.
 Source evidence: `av1/encoder/rd.c:82-350,602-704` defines the mode/coefficient tables;
 `encodeframe_utils.c:1621-1699` applies their update schedule; `speed_features.c:339-340,593-594,1054-1055`
 sets the supported speed/resolution exceptions. `av1_cx_iface.c:391-392` defaults both to superblock updates.

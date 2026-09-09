@@ -295,7 +295,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
     /// <param name="blockOrigin">The current 8x8 block origin.</param>
     /// <param name="tile">The active tile boundaries.</param>
     /// <param name="sequenceHeader">The sequence geometry and sample precision.</param>
-    /// <param name="writer">The live tile entropy model used for displacement rate.</param>
+    /// <param name="costs">The retained integer displacement rates.</param>
     /// <param name="reference">The spatial displacement-vector reference.</param>
     /// <param name="qIndex">The effective segment quantizer index.</param>
     /// <param name="rateMultiplier">The active rate-distortion multiplier.</param>
@@ -308,7 +308,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Point blockOrigin,
         Av1TileInfo tile,
         ObuSequenceHeader sequenceHeader,
-        Av1SymbolEncoder writer,
+        Av1MotionVectorCosts costs,
         Av1MotionVector reference,
         int qIndex,
         int rateMultiplier,
@@ -360,7 +360,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                 blockOrigin,
                 tile,
                 sequenceHeader,
-                writer,
+                costs,
                 reference,
                 rateMultiplier,
                 minimumColumn,
@@ -378,7 +378,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                     reconstruction,
                     blockOrigin,
                     sequenceHeader,
-                    writer,
+                    costs,
                     reference,
                     rateMultiplier,
                     sadPerBit,
@@ -468,7 +468,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Point blockOrigin,
         Av1TileInfo tile,
         ObuSequenceHeader sequenceHeader,
-        Av1SymbolEncoder writer,
+        Av1MotionVectorCosts costs,
         Av1MotionVector reference,
         int rateMultiplier,
         int minimumColumn,
@@ -531,7 +531,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                 candidateOrigin,
                 sequenceHeader.ColorConfig.BitDepth);
 
-            int rate = writer.GetDisplacementVectorSearchCost(vector, reference);
+            int rate = costs.GetCost(vector, reference);
             int cost = Av1RateDistortion.GetMotionSearchCost(rateMultiplier, rate, variance);
             if (cost < bestCost)
             {
@@ -549,7 +549,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Buffer2DRegion<TSample> reconstruction,
         Point blockOrigin,
         ObuSequenceHeader sequenceHeader,
-        Av1SymbolEncoder writer,
+        Av1MotionVectorCosts costs,
         Av1MotionVector reference,
         int rateMultiplier,
         int sadPerBit,
@@ -601,7 +601,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             source,
             reconstruction,
             blockOrigin,
-            writer,
+            costs,
             reference,
             sequenceHeader.ColorConfig.BitDepth,
             rateMultiplier,
@@ -622,7 +622,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Buffer2DRegion<TSample> source,
         Buffer2DRegion<TSample> reconstruction,
         Point blockOrigin,
-        Av1SymbolEncoder writer,
+        Av1MotionVectorCosts costs,
         Av1MotionVector reference,
         Av1BitDepth bitDepth,
         int rateMultiplier,
@@ -644,7 +644,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             source,
             reconstruction,
             blockOrigin,
-            writer,
+            costs,
             reference,
             sadPerBit,
             sadShift,
@@ -661,7 +661,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             source,
             reconstruction,
             blockOrigin,
-            writer,
+            costs,
             reference,
             bitDepth,
             rateMultiplier,
@@ -676,7 +676,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                 source,
                 reconstruction,
                 blockOrigin,
-                writer,
+                costs,
                 reference,
                 sadPerBit,
                 sadShift,
@@ -693,7 +693,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                 source,
                 reconstruction,
                 blockOrigin,
-                writer,
+                costs,
                 reference,
                 bitDepth,
                 rateMultiplier,
@@ -716,7 +716,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                 source,
                 reconstruction,
                 blockOrigin,
-                writer,
+                costs,
                 reference,
                 sadPerBit,
                 sadShift,
@@ -730,7 +730,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                 source,
                 reconstruction,
                 blockOrigin,
-                writer,
+                costs,
                 reference,
                 bitDepth,
                 rateMultiplier,
@@ -750,7 +750,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Buffer2DRegion<TSample> source,
         Buffer2DRegion<TSample> reconstruction,
         Point blockOrigin,
-        Av1SymbolEncoder writer,
+        Av1MotionVectorCosts costs,
         Av1MotionVector reference,
         int sadPerBit,
         int sadShift,
@@ -772,7 +772,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             source,
             reconstruction,
             blockOrigin,
-            writer,
+            costs,
             reference,
             sadPerBit,
             sadShift,
@@ -809,7 +809,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                 }
 
                 Av1MotionVector vector = new(candidate.Y * 8, candidate.X * 8);
-                int rate = writer.GetDisplacementVectorSearchCost(vector, reference);
+                int rate = costs.GetCost(vector, reference);
                 int candidateCost = Av1RateDistortion.GetMotionSearchSadCost(
                     sadPerBit,
                     rate,
@@ -848,7 +848,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Buffer2DRegion<TSample> source,
         Buffer2DRegion<TSample> reconstruction,
         Point blockOrigin,
-        Av1SymbolEncoder writer,
+        Av1MotionVectorCosts costs,
         Av1MotionVector reference,
         int sadPerBit,
         int sadShift,
@@ -865,7 +865,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             source,
             reconstruction,
             blockOrigin,
-            writer,
+            costs,
             reference,
             sadPerBit,
             sadShift,
@@ -905,7 +905,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
 
                     Point candidate = new(firstCandidate.X + i, firstCandidate.Y);
                     Av1MotionVector vector = new(candidate.Y * 8, candidate.X * 8);
-                    int rate = writer.GetDisplacementVectorSearchCost(vector, reference);
+                    int rate = costs.GetCost(vector, reference);
                     int candidateCost = Av1RateDistortion.GetMotionSearchSadCost(
                         sadPerBit,
                         rate,
@@ -937,7 +937,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
                 }
 
                 Av1MotionVector vector = new(candidate.Y * 8, candidate.X * 8);
-                int rate = writer.GetDisplacementVectorSearchCost(vector, reference);
+                int rate = costs.GetCost(vector, reference);
                 int candidateCost = Av1RateDistortion.GetMotionSearchSadCost(
                     sadPerBit,
                     rate,
@@ -958,7 +958,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Buffer2DRegion<TSample> source,
         Buffer2DRegion<TSample> reconstruction,
         Point blockOrigin,
-        Av1SymbolEncoder writer,
+        Av1MotionVectorCosts costs,
         Av1MotionVector reference,
         int sadPerBit,
         int sadShift,
@@ -974,7 +974,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             predictionOrigin) >> sadShift;
 
         Av1MotionVector vector = new(candidate.Y * 8, candidate.X * 8);
-        int rate = writer.GetDisplacementVectorSearchCost(vector, reference);
+        int rate = costs.GetCost(vector, reference);
         return Av1RateDistortion.GetMotionSearchSadCost(sadPerBit, rate, sumOfAbsoluteDifferences);
     }
 
@@ -982,7 +982,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
         Buffer2DRegion<TSample> source,
         Buffer2DRegion<TSample> reconstruction,
         Point blockOrigin,
-        Av1SymbolEncoder writer,
+        Av1MotionVectorCosts costs,
         Av1MotionVector reference,
         Av1BitDepth bitDepth,
         int rateMultiplier,
@@ -999,7 +999,7 @@ internal readonly struct Av1IntraBlockCopySearchIndex
             bitDepth);
 
         Av1MotionVector vector = new(candidate.Y * 8, candidate.X * 8);
-        int rate = writer.GetDisplacementVectorSearchCost(vector, reference);
+        int rate = costs.GetCost(vector, reference);
         return Av1RateDistortion.GetMotionSearchCost(rateMultiplier, rate, variance);
     }
 

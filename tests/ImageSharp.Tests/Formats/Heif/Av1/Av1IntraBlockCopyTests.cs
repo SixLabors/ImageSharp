@@ -1,6 +1,7 @@
 // Copyright (c) Six Labors.
 // Licensed under the Six Labors Split License.
 
+using System.Buffers;
 using SixLabors.ImageSharp.Formats.Heif;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
@@ -308,6 +309,9 @@ public class Av1IntraBlockCopyTests
         Av1PictureControlSet picture = pictureBuffer.Picture;
         picture.IntraBlockCopySearch.Initialize<byte, Av1IntraSuperblockEncoder.ByteOperator>(sourceLuma);
         using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
+        using IMemoryOwner<int> costStorage = Configuration.Default.MemoryAllocator.Allocate<int>(Av1MotionVectorCosts.IntegerStorageLength);
+        Av1MotionVectorCosts costs = new(costStorage.Memory.Span, Av1MotionVectorPrecision.Integer);
+        writer.FillDisplacementVectorCosts(costs);
         Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
         Av1MotionVector reference = new(0, -2560);
         int candidateCount = picture.IntraBlockCopySearch.FindCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(
@@ -316,7 +320,7 @@ public class Av1IntraBlockCopyTests
             blockOrigin,
             new Av1TileInfo(0, 0, frameHeader),
             sequenceHeader,
-            writer,
+            costs,
             reference,
             QIndex,
             Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, Av1BitDepth.EightBit),
@@ -411,6 +415,9 @@ public class Av1IntraBlockCopyTests
                 new Point(15, 120)));
 
         using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
+        using IMemoryOwner<int> costStorage = Configuration.Default.MemoryAllocator.Allocate<int>(Av1MotionVectorCosts.IntegerStorageLength);
+        Av1MotionVectorCosts costs = new(costStorage.Memory.Span, Av1MotionVectorPrecision.Integer);
+        writer.FillDisplacementVectorCosts(costs);
         Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
         int candidateCount = pictureBuffer.Picture.IntraBlockCopySearch
             .FindCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(
@@ -419,7 +426,7 @@ public class Av1IntraBlockCopyTests
                 blockOrigin,
                 new Av1TileInfo(0, 0, frameHeader),
                 sequenceHeader,
-                writer,
+                costs,
                 new Av1MotionVector(-64, 120),
                 QIndex,
                 Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, Av1BitDepth.EightBit),
@@ -499,6 +506,9 @@ public class Av1IntraBlockCopyTests
         Buffer2DRegion<byte> codedSourceLuma = source.Frame.CodedView.GetPlane(Av1Plane.Y);
         Buffer2DRegion<byte> codedReconstructionLuma = reconstruction.Frame.CodedView.GetPlane(Av1Plane.Y);
         using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
+        using IMemoryOwner<int> costStorage = Configuration.Default.MemoryAllocator.Allocate<int>(Av1MotionVectorCosts.IntegerStorageLength);
+        Av1MotionVectorCosts costs = new(costStorage.Memory.Span, Av1MotionVectorPrecision.Integer);
+        writer.FillDisplacementVectorCosts(costs);
         Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
         int candidateCount = pictureBuffer.Picture.IntraBlockCopySearch
             .FindCandidates<byte, Av1IntraSuperblockEncoder.ByteOperator>(
@@ -507,7 +517,7 @@ public class Av1IntraBlockCopyTests
                 blockOrigin,
                 new Av1TileInfo(0, 0, frameHeader),
                 sequenceHeader,
-                writer,
+                costs,
                 new Av1MotionVector(-64, 0),
                 QIndex,
                 Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, Av1BitDepth.EightBit),
@@ -572,6 +582,9 @@ public class Av1IntraBlockCopyTests
         }
 
         using Av1SymbolEncoder writer = new(Configuration.Default, 64, QIndex, updateCdf: true);
+        using IMemoryOwner<int> costStorage = Configuration.Default.MemoryAllocator.Allocate<int>(Av1MotionVectorCosts.IntegerStorageLength);
+        Av1MotionVectorCosts costs = new(costStorage.Memory.Span, Av1MotionVectorPrecision.Integer);
+        writer.FillDisplacementVectorCosts(costs);
         Span<Av1MotionVector> candidates = stackalloc Av1MotionVector[2];
         for (int i = 0; i < 64; i++)
         {
@@ -579,9 +592,10 @@ public class Av1IntraBlockCopyTests
             writer.WriteDisplacementVector(reference, reference);
         }
 
+        writer.FillDisplacementVectorCosts(costs);
         int sadPerBit = Av1RateDistortion.GetMotionSearchSadPerBit(QIndex, sequenceHeader.ColorConfig.BitDepth);
-        int referenceRate = writer.GetDisplacementVectorSearchCost(reference, reference);
-        int adjacentRate = writer.GetDisplacementVectorSearchCost(new Av1MotionVector(-64, 128), reference);
+        int referenceRate = costs.GetCost(reference, reference);
+        int adjacentRate = costs.GetCost(new Av1MotionVector(-64, 128), reference);
         int referenceMotionCost = ((referenceRate * sadPerBit) + 256) >> 9;
         int adjacentMotionCost = ((adjacentRate * sadPerBit) + 256) >> 9;
         Assert.True(8 + referenceMotionCost < adjacentMotionCost);
@@ -594,7 +608,7 @@ public class Av1IntraBlockCopyTests
             blockOrigin,
             new Av1TileInfo(0, 0, frameHeader),
             sequenceHeader,
-            writer,
+            costs,
             reference,
             QIndex,
             Av1RateDistortion.GetKeyFrameRateMultiplier(QIndex, sequenceHeader.ColorConfig.BitDepth),

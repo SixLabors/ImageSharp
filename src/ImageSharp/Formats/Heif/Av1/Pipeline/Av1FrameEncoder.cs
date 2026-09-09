@@ -663,7 +663,6 @@ internal static class Av1FrameEncoder
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(configuration);
 
         Av1EncoderTileWorkspace tileWorkspace = new(frameHeader, superblockWorkspace);
-        using Av1EncoderBlockWorkspace blockWorkspace = new(configuration);
         using Av1SymbolEncoder symbolEncoder = new(
             configuration,
             tileBufferLength,
@@ -683,6 +682,11 @@ internal static class Av1FrameEncoder
             effort,
             speed,
             encodeAlpha);
+
+        using Av1EncoderBlockWorkspace blockWorkspace = new(
+            configuration,
+            allocateInterMotionCosts: false,
+            allocateDisplacementCosts: frameHeader.AllowIntraBlockCopy);
 
         using Av1EncoderPictureBuffer picture = new(
             configuration,
@@ -756,7 +760,6 @@ internal static class Av1FrameEncoder
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(configuration);
 
         Av1EncoderTileWorkspace tileWorkspace = new(frameHeader, superblockWorkspace);
-        using Av1EncoderBlockWorkspace blockWorkspace = new(configuration);
         using Av1SymbolEncoder symbolEncoder = new(
             configuration,
             tileBufferLength,
@@ -776,6 +779,11 @@ internal static class Av1FrameEncoder
             effort,
             speed,
             encodeAlpha);
+
+        using Av1EncoderBlockWorkspace blockWorkspace = new(
+            configuration,
+            allocateInterMotionCosts: false,
+            allocateDisplacementCosts: frameHeader.AllowIntraBlockCopy);
 
         using Av1EncoderPictureBuffer picture = new(
             configuration,
@@ -1614,7 +1622,10 @@ internal static class Av1FrameEncoder
                 this.SuperblockWorkspace = new Av1EncoderSuperblockWorkspace(configuration);
 
                 this.TileWorkspace = new Av1EncoderTileWorkspace(this.FrameHeader, this.SuperblockWorkspace);
-                this.BlockWorkspace = new Av1EncoderBlockWorkspace(configuration, allocateInterMotionCosts: true);
+                this.BlockWorkspace = new Av1EncoderBlockWorkspace(
+                    configuration,
+                    allocateInterMotionCosts: true,
+                    allocateDisplacementCosts: allocateIntraBlockCopySearch);
 
                 // Tile probabilities adapt within a sample, while error-resilient frame headers prohibit carrying
                 // those updates into the next sample. The retained encoder is therefore reset before each frame.

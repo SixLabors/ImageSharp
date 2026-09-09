@@ -129,7 +129,7 @@ public class Av1IntraSuperblockEncoderTests
         using Av1EncoderPictureBuffer picture = new(configuration, sequenceHeader, frameHeader, Width, Height, disallow4x4AllFrames: true);
         using Av1EncoderCoefficientBuffer coefficients = new(configuration, sequenceHeader, Width, Height);
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(configuration);
-        using Av1EncoderBlockWorkspace blockWorkspace = new(configuration, allocateInterMotionCosts: true);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(configuration, allocateInterMotionCosts: true, allocateDisplacementCosts: false);
         using Av1SymbolEncoder symbolEncoder = new(configuration, TileBufferLength, QIndex, updateCdf: true);
         Av1EncoderTileWorkspace tileWorkspace = new(frameHeader, superblockWorkspace);
         int allocationCount = allocator.AllocationLog.Count;
@@ -314,7 +314,7 @@ public class Av1IntraSuperblockEncoderTests
         using Av1EncoderPictureBuffer picture = new(configuration, sequenceHeader, frameHeader, Width, Height, disallow4x4AllFrames: true);
         using Av1EncoderCoefficientBuffer coefficients = new(configuration, sequenceHeader, Width, Height);
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(configuration);
-        using Av1EncoderBlockWorkspace blockWorkspace = new(configuration, allocateInterMotionCosts: true);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(configuration, allocateInterMotionCosts: true, allocateDisplacementCosts: false);
         using Av1SymbolEncoder symbolEncoder = new(configuration, TileBufferLength, QIndex, updateCdf: true);
         Av1EncoderTileWorkspace tileWorkspace = new(frameHeader, superblockWorkspace);
         int allocationCount = allocator.AllocationLog.Count;
@@ -781,11 +781,19 @@ public class Av1IntraSuperblockEncoderTests
 
                 using Av1EncoderCoefficientBuffer coefficients = new(Configuration.Default, template.Sequence.SequenceHeader, frameWidth, Height);
                 using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
-                using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default, allocateInterMotionCosts: !isIntraBlockCopy);
+                using Av1EncoderBlockWorkspace blockWorkspace = new(
+                    Configuration.Default,
+                    allocateInterMotionCosts: !isIntraBlockCopy,
+                    allocateDisplacementCosts: isIntraBlockCopy);
+
                 using Av1SymbolEncoder writer = new(Configuration.Default, 4096, qIndex, updateCdf: true);
                 if (!isIntraBlockCopy)
                 {
                     writer.FillMotionVectorCosts(blockWorkspace.GetMotionVectorCosts(picture.Parent.FrameHeader.MotionVectorPrecision));
+                }
+                else
+                {
+                    writer.FillDisplacementVectorCosts(blockWorkspace.GetDisplacementVectorCosts());
                 }
 
                 Av1Superblock superblock = new()
@@ -946,7 +954,8 @@ public class Av1IntraSuperblockEncoderTests
                 Assert.Equal(expectedDistortion, decision.SelectedBlockStatistics.Distortion);
                 int expectedRate = skipRate + (isIntraBlockCopy
                     ? writer.GetUseIntraBlockCopyCost(true) +
-                      writer.GetDisplacementVectorCost(picture.GetDisplacementVector(modeInfoPosition), displacementReference)
+                      blockWorkspace.GetDisplacementVectorCosts().GetDisplacementVectorCost(
+                          picture.GetDisplacementVector(modeInfoPosition), displacementReference)
                     : writer.GetIsInterCost(true, Av1TileWriter.GetIntraInterContext(macroBlock)) +
                       writer.GetSingleReferenceCost(Av1ReferenceFrameType.Last, new byte[Av1Constants.ReferenceFrameCount]) +
                       writer.GetInterModeCost(Av1PredictionMode.GlobalMotionVector, blockWorkspace.ReferenceMotionVectors.ModeContext));
@@ -3280,7 +3289,11 @@ public class Av1IntraSuperblockEncoderTests
             Height);
 
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
-        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(
+            Configuration.Default,
+            allocateInterMotionCosts: false,
+            allocateDisplacementCosts: true);
+
         using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(
             picture.Picture,
             TileBufferLength);
@@ -3415,7 +3428,11 @@ public class Av1IntraSuperblockEncoderTests
             Height);
 
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
-        using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
+        using Av1EncoderBlockWorkspace blockWorkspace = new(
+            Configuration.Default,
+            allocateInterMotionCosts: false,
+            allocateDisplacementCosts: true);
+
         using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(
             picture.Picture,
             4096);

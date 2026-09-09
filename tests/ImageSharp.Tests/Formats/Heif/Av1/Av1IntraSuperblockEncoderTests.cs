@@ -17,6 +17,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.Inter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
+using SixLabors.ImageSharp.Formats.Heif.Components;
 using SixLabors.ImageSharp.Memory;
 using SixLabors.ImageSharp.PixelFormats;
 using SixLabors.ImageSharp.Tests.Memory;
@@ -104,6 +105,8 @@ public class Av1IntraSuperblockEncoderTests
             effort,
             speed: HeifEncodingSpeed.Level0);
 
+        // Keep frame filtering outside this motion-search allocation and interpolation test.
+        keyEncoder.SequenceHeader.EnableCdef = false;
         keyEncoder.EncodeKeyFrame(referenceImage.Frames.RootFrame, firstSample);
         ObuSequenceHeader sequenceHeader = keyEncoder.SequenceHeader;
         using Av1EncoderModeInfoBuffer modeInfo = new(configuration, Width, Height, disallow4x4AllFrames: true);
@@ -289,6 +292,8 @@ public class Av1IntraSuperblockEncoderTests
             Effort,
             speed: HeifEncodingSpeed.Level0);
 
+        // Keep frame filtering outside this motion-search allocation and interpolation test.
+        keyEncoder.SequenceHeader.EnableCdef = false;
         keyEncoder.EncodeKeyFrame(referenceImage.Frames.RootFrame, firstSample);
         ObuSequenceHeader sequenceHeader = keyEncoder.SequenceHeader;
         using Av1EncoderModeInfoBuffer modeInfo = new(configuration, Width, Height, disallow4x4AllFrames: true);
@@ -3680,9 +3685,11 @@ public class Av1IntraSuperblockEncoderTests
     [InlineData((int)Av1ColorFormat.Yuv422)]
     [InlineData((int)Av1ColorFormat.Yuv444)]
     public void ProductionDeblockingPreservesEightBitReconstruction(int colorFormatValue)
-        => VerifyProductionDeblocking<byte>(
+        => VerifyProductionDeblocking<byte, HeifByteSampleConverter>(
             colorFormatValue,
             8,
+            false,
+            HeifEncodingSpeed.Level0,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
 
@@ -3696,25 +3703,68 @@ public class Av1IntraSuperblockEncoderTests
     [InlineData((int)Av1ColorFormat.Yuv444, 10)]
     [InlineData((int)Av1ColorFormat.Yuv444, 12)]
     public void ProductionDeblockingPreservesHighBitDepthReconstruction(int colorFormatValue, int bitDepth)
-        => VerifyProductionDeblocking<ushort>(
+        => VerifyProductionDeblocking<ushort, HeifUShortSampleConverter>(
             colorFormatValue,
             bitDepth,
+            false,
+            HeifEncodingSpeed.Level0,
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+
+    [Theory]
+    [InlineData((int)Av1ColorFormat.Yuv400, HeifEncodingSpeed.Level0)]
+    [InlineData((int)Av1ColorFormat.Yuv420, HeifEncodingSpeed.Level6)]
+    [InlineData((int)Av1ColorFormat.Yuv422, HeifEncodingSpeed.Level9)]
+    [InlineData((int)Av1ColorFormat.Yuv444, HeifEncodingSpeed.Level0)]
+    public void CdefPreservesEightBitReconstruction(int colorFormatValue, HeifEncodingSpeed speed)
+        => VerifyProductionDeblocking<byte, HeifByteSampleConverter>(
+            colorFormatValue,
+            8,
+            true,
+            speed,
+            static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
+                new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
+
+    [Theory]
+    [InlineData((int)Av1ColorFormat.Yuv400, 10, HeifEncodingSpeed.Level0)]
+    [InlineData((int)Av1ColorFormat.Yuv400, 12, HeifEncodingSpeed.Level0)]
+    [InlineData((int)Av1ColorFormat.Yuv420, 10, HeifEncodingSpeed.Level6)]
+    [InlineData((int)Av1ColorFormat.Yuv420, 12, HeifEncodingSpeed.Level6)]
+    [InlineData((int)Av1ColorFormat.Yuv422, 10, HeifEncodingSpeed.Level9)]
+    [InlineData((int)Av1ColorFormat.Yuv422, 12, HeifEncodingSpeed.Level9)]
+    [InlineData((int)Av1ColorFormat.Yuv444, 10, HeifEncodingSpeed.Level0)]
+    [InlineData((int)Av1ColorFormat.Yuv444, 12, HeifEncodingSpeed.Level0)]
+    public void CdefPreservesHighBitDepthReconstruction(int colorFormatValue, int bitDepth, HeifEncodingSpeed speed)
+        => VerifyProductionDeblocking<ushort, HeifUShortSampleConverter>(
+            colorFormatValue,
+            bitDepth,
+            true,
+            speed,
             static (writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace) =>
                 new(writer, source, reconstruction, picture, coefficients, superblockWorkspace, blockWorkspace, effort: 5));
 
     /// <summary>
-    /// Verifies retained reconstruction and exports the same encoded stream for an independent decoder comparison.
+    /// Verifies that decoding the emitted stream reproduces the retained, filtered reconstruction exactly.
     /// </summary>
     /// <typeparam name="TSample">The component sample type.</typeparam>
+    /// <typeparam name="TConverter">The source pixel conversion operator.</typeparam>
     /// <param name="colorFormatValue">The component layout.</param>
     /// <param name="bitDepth">The component precision.</param>
+    /// <param name="enableCdef">Whether directional enhancement follows deblocking.</param>
+    /// <param name="speed">The directional-enhancement selection policy.</param>
     /// <param name="createWriter">The typed production tile constructor.</param>
-    private static void VerifyProductionDeblocking<TSample>(int colorFormatValue, int bitDepth, TileWriterFactory<TSample> createWriter)
+    private static void VerifyProductionDeblocking<TSample, TConverter>(
+        int colorFormatValue,
+        int bitDepth,
+        bool enableCdef,
+        HeifEncodingSpeed speed,
+        TileWriterFactory<TSample> createWriter)
         where TSample : unmanaged, IBinaryInteger<TSample>
+        where TConverter : struct, IHeifSampleConverter<TSample>
     {
-        const int Width = 33;
+        int width = enableCdef ? 129 : 33;
         const int Height = 137;
-        const int QIndex = 37;
+        int qIndex = enableCdef ? 128 : 37;
         Av1ColorFormat colorFormat = (Av1ColorFormat)colorFormatValue;
         ObuColorConfig colorConfig = new()
         {
@@ -3724,8 +3774,8 @@ public class Av1IntraSuperblockEncoderTests
             BitDepth = bitDepth == 8 ? Av1BitDepth.EightBit : bitDepth == 10 ? Av1BitDepth.TenBit : Av1BitDepth.TwelveBit
         };
 
-        using Av1EncoderFrameBuffer<TSample> source = new(Configuration.Default, Width, Height, bitDepth, colorFormat, 1, 1, lumaBorder: 64);
-        using Av1EncoderFrameBuffer<TSample> reconstruction = new(Configuration.Default, Width, Height, bitDepth, colorFormat, 1, 1, lumaBorder: 64);
+        using Av1EncoderFrameBuffer<TSample> source = new(Configuration.Default, width, Height, bitDepth, colorFormat, 1, 1, lumaBorder: 64);
+        using Av1EncoderFrameBuffer<TSample> reconstruction = new(Configuration.Default, width, Height, bitDepth, colorFormat, 1, 1, lumaBorder: 64);
         int planeCount = colorConfig.PlaneCount;
         TSample[][] unfiltered = new TSample[planeCount][];
         for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
@@ -3745,16 +3795,30 @@ public class Av1IntraSuperblockEncoderTests
             }
         }
 
+        if (enableCdef)
+        {
+            colorConfig.MatrixCoefficients = ObuMatrixCoefficients.Bt709;
+            using Image<Rgba32> image = TestFile.Create(TestImages.Png.Bike).CreateRgba32Image();
+            HeifColorConversionParameters parameters = Av1YuvConverter.GetConversionParameters(colorConfig, colorConfig.ColorRange, out HeifColorConversionMode mode);
+            HeifPlanarColorConverter.ConvertFromRgb<Rgba32, Av1EncoderFrame<TSample>.PlanarView, TSample, TConverter>(
+                Configuration.Default,
+                image.Frames.RootFrame,
+                new Rectangle(0, 0, width, Height),
+                source.Frame.View,
+                in parameters,
+                mode);
+        }
+
         source.Frame.ExtendBorders();
-        using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, Width, Height, disallow4x4AllFrames: true);
-        Av1PictureControlSet template = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, QIndex);
+        using Av1EncoderModeInfoBuffer modeInfo = new(Configuration.Default, width, Height, disallow4x4AllFrames: true);
+        Av1PictureControlSet template = CreatePicture(modeInfo, colorConfig, use128x128Superblock: false, qIndex);
         ObuFrameHeader header = template.Parent.FrameHeader;
-        header.FrameSize.FrameWidth = Width;
+        header.FrameSize.FrameWidth = width;
         header.FrameSize.FrameHeight = Height;
         using Av1EncoderPictureBuffer picture = new(
-            Configuration.Default, template.Sequence.SequenceHeader, header, Width, Height, disallow4x4AllFrames: true);
+            Configuration.Default, template.Sequence.SequenceHeader, header, width, Height, disallow4x4AllFrames: true);
 
-        using Av1EncoderCoefficientBuffer coefficients = new(Configuration.Default, template.Sequence.SequenceHeader, Width, Height);
+        using Av1EncoderCoefficientBuffer coefficients = new(Configuration.Default, template.Sequence.SequenceHeader, width, Height);
         using Av1EncoderSuperblockWorkspace superblockWorkspace = new(Configuration.Default);
         using Av1EncoderBlockWorkspace blockWorkspace = new(Configuration.Default);
         using Av1SymbolEncoder symbolEncoder = CreateTileSymbolEncoder(picture.Picture, 8192);
@@ -3774,11 +3838,26 @@ public class Av1IntraSuperblockEncoderTests
         header.LoopFilterParameters.FilterLevelV = 47;
         header.LoopFilterParameters.SharpnessLevel = 3;
         header.LoopFilterParameters.ReferenceDeltaModeEnabled = true;
+        template.Sequence.SequenceHeader.EnableCdef = enableCdef;
+        template.Sequence.SequenceHeader.IsStillPicture = true;
+        picture.Picture.Parent.EncodingSpeed = speed;
         picture.Reset(header);
         Av1TileEncoder tileWriter = createWriter(
             symbolEncoder, source.Frame, reconstruction.Frame, picture.Picture, coefficients, superblockWorkspace, blockWorkspace);
 
-        byte[] payload = WriteCompleteTileObu(picture.Picture, tileWriter, Width, Height);
+        if (enableCdef)
+        {
+            bool hasStrength = false;
+            for (int index = 0; index < 1 << header.CdefParameters.BitCount; index++)
+            {
+                hasStrength |= header.CdefParameters.YStrength[index] != 0 ||
+                    (planeCount > 1 && header.CdefParameters.UvStrength[index] != 0);
+            }
+
+            Assert.True(hasStrength);
+        }
+
+        byte[] payload = WriteCompleteTileObu(picture.Picture, tileWriter, width, Height);
         using Av1Decoder decoder = new(Configuration.Default);
         using Av1FrameBuffer<byte> decodedFrame = decoder.DecodeFrameBuffer(payload, null, null, out _);
         int changedSamples = 0;

@@ -136,6 +136,8 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// <param name="allocateDisplacementCosts">Whether the worker can encode intra-block copy.</param>
     public Av1EncoderBlockWorkspace(Configuration configuration, bool allocateInterMotionCosts, bool allocateDisplacementCosts)
     {
+        this.MemoryAllocator = configuration.MemoryAllocator;
+
         // Motion rates belong to the worker, not a block candidate or frame. Keep both precision pairs after
         // the existing scratch regions so sequence frames can change precision while retaining one owner.
         // Block-copy capacity appends its independent integer pair at the end of that same allocation.
@@ -143,7 +145,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
             (allocateInterMotionCosts ? Av1MotionVectorCosts.StorageLength + (MotionSearchSiteCount * Av1MotionSearchSites.StorageLength) : 0) +
             (allocateDisplacementCosts ? Av1MotionVectorCosts.IntegerStorageLength : 0);
 
-        this.owner = configuration.MemoryAllocator.Allocate<int>(length);
+        this.owner = this.MemoryAllocator.Allocate<int>(length);
         if (allocateInterMotionCosts)
         {
             // Each shape retains its offsets across frames. A zero stride marks its first use; every populated
@@ -155,6 +157,11 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
             }
         }
     }
+
+    /// <summary>
+    /// Gets the allocator used by frame-scoped encoder stages.
+    /// </summary>
+    public MemoryAllocator MemoryAllocator { get; }
 
     /// <summary>
     /// Gets the maximum-size spatial residual workspace as a compact 16-bit view of the aligned owner.

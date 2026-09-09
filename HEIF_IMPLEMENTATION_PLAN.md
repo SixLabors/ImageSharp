@@ -2,6 +2,30 @@
 
 ## Encoder source comparison in progress: 2026-09-09
 
+Active production milestone: CDEF selection, reconstruction filtering, and bitstream integration.
+The uncommitted implementation now runs after deblocking and before the retained-decision packing pass,
+and enables the sequence flag. It uses the current default PSNR tuning and CDEF_ALL control;
+adaptive CDEF under IQ/SSIMULACRA2 and low-complexity-decoding options is not an exposed configuration.
+Source comparison: `av1/encoder/pickcdef.c:86-225` defines palette selection and refinement,
+lines 517-632 define unit grouping and candidate measurement, lines 747-836 define quantizer prediction,
+and lines 838-1102 define signaling-rate selection and strength assignment. Candidate sets come from
+`pickcdef.h:39-81`; still-image policy is in `speed_features.c:419,497,558,572`, sequence policy in
+lines 813,940,986,1083. `av1/common/cdef_block.h:23-32` defines the bordered working dimensions.
+No per-candidate allocation or second reconstructed frame is introduced. Frame-scoped pooled storage
+holds candidate errors, filtered-unit scratch, and preserved borders. Roslyn reports zero compiler errors
+and no additional warnings; Release/net11 builds with zero errors and the existing 1,012 test warnings.
+Verification: `encoder-cdef-block-final` passes all 127 block cases; `encoder-cdef-scalar-final`
+passes the 12 CDEF cases with hardware intrinsics disabled. The cases use a 129x137 crop of Bike,
+assert nonzero selected strengths, and require exact decoded reconstruction for monochrome, 4:2:0,
+4:2:2, and 4:4:4 at 8/10/12 bits. Optimized libaom at the revision below independently decoded all
+12 emitted streams with maximum sample error 0, differing-sample count 0, and count above one 0.
+The temporary export code was removed before the final build and tests; native files remain outside
+the repository. `encoder-cdef-public-final` passes 73 of 76 cases and retains the same three failing
+screen-content encoder comparisons. No test expectations or reference images were relaxed.
+This verifies filtering, reconstruction, and signaling, not independent strength-selection parity,
+complete encoder parity, or performance. Large-block unit grouping still needs runtime coverage.
+The next production dependency is restoration selection and its frame-lifetime integration.
+
 The official main ref was resolved and fetched as `8e7b6a567df174d795479b92b4ac766d271add73`
 into `D:\GitHub\ynse01\aom-8e7b6a56-reference`, outside this repository.
 The previous `d565eec6` source directory is an export without Git metadata. Its local build cache

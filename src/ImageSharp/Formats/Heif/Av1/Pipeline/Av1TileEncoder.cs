@@ -4,6 +4,7 @@
 using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.Cdef;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Pipeline.LoopFilter;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 
@@ -40,7 +41,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     {
         this.picture = picture;
         this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
-            Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator>(
+            Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator, Av1CdefEncoder.ByteOperator>(
             writer,
             source,
             reconstruction,
@@ -77,7 +78,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     {
         this.picture = picture;
         this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
-            Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator>(
+            Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator, Av1CdefEncoder.ByteOperator>(
             writer,
             source,
             reference,
@@ -114,7 +115,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     {
         this.picture = picture;
         this.tileData = Encode<byte, Av1IntraSuperblockEncoder.ByteOperator,
-            Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator>(
+            Av1DeblockingFilter.VerticalByteEdgeOperator, Av1DeblockingFilter.HorizontalByteEdgeOperator, Av1CdefEncoder.ByteOperator>(
             writer,
             source,
             reference,
@@ -149,7 +150,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     {
         this.picture = picture;
         this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
-            Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator>(
+            Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
             writer,
             source,
             reconstruction,
@@ -186,7 +187,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     {
         this.picture = picture;
         this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
-            Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator>(
+            Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
             writer,
             source,
             reference,
@@ -223,7 +224,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
     {
         this.picture = picture;
         this.tileData = Encode<ushort, Av1IntraSuperblockEncoder.UInt16Operator,
-            Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator>(
+            Av1DeblockingFilter.VerticalUInt16EdgeOperator, Av1DeblockingFilter.HorizontalUInt16EdgeOperator, Av1CdefEncoder.UInt16Operator>(
             writer,
             source,
             reference,
@@ -243,7 +244,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         return this.tileData.Span.Slice(offset, length);
     }
 
-    private static ReadOnlyMemory<byte> Encode<TSample, TOperator, TVerticalOperator, THorizontalOperator>(
+    private static ReadOnlyMemory<byte> Encode<TSample, TOperator, TVerticalOperator, THorizontalOperator, TCdefOperator>(
         Av1SymbolEncoder writer,
         Av1EncoderFrame<TSample> source,
         Av1EncoderFrame<TSample> reference,
@@ -257,6 +258,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         where TOperator : struct, Av1IntraSuperblockEncoder.IBlockEncodingOperator<TSample>
         where TVerticalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
         where THorizontalOperator : struct, Av1DeblockingFilter.IEdgeOperator<TSample>
+        where TCdefOperator : struct, Av1CdefEncoder.IEncodingOperator<TSample>
     {
         Av1PictureParentControlSet parent = picture.Parent;
         ObuFrameHeader frameHeader = parent.FrameHeader;
@@ -294,6 +296,7 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
             writer, source, reference, reconstruction, picture, coefficientBuffer, tileWorkspace, blockWorkspace, effort);
 
         Av1LoopFilterEncoder.ApplyFrame<TSample, TVerticalOperator, THorizontalOperator>(picture, reconstruction);
+        Av1CdefEncoder.ApplyFrame<TSample, TCdefOperator>(blockWorkspace.MemoryAllocator, picture, source, reconstruction);
 
         // Analysis retains the selected modes, coefficients, palette tokens, and motion contexts. Packing starts
         // from the same entropy edges and probabilities while the completed frame decisions remain available.

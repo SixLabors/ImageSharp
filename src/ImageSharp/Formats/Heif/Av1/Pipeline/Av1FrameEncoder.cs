@@ -419,7 +419,7 @@ internal static class Av1FrameEncoder
             EnableDualFilter = !isStillPicture && effort >= MinimumDualInterpolationEffort,
             EnableIntraEdgeFilter = true,
             EnableSuperResolution = false,
-            EnableCdef = false,
+            EnableCdef = true,
             EnableRestoration = false,
             ColorConfig = colorConfig
         };

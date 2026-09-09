@@ -154,7 +154,8 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         ColorProfileConverter converter = new(new ColorConversionOptions
         {
             SourceIccProfile = TestIccProfiles.GetProfile(sourceProfile),
-            TargetIccProfile = TestIccProfiles.GetProfile(targetProfile)
+            TargetIccProfile = TestIccProfiles.GetProfile(targetProfile),
+            IccInterpolationMethod = IccInterpolationMethod.Trilinear
         });
 
         IccColorSpaceType sourceDataSpace = converter.Options.SourceIccProfile!.Header.DataColorSpace;
@@ -178,7 +179,8 @@ public class ColorProfileConverterTests(ITestOutputHelper testOutputHelper)
         ColorProfileConverter converter = new(new ColorConversionOptions
         {
             SourceIccProfile = TestIccProfiles.GetProfile(sourceProfile),
-            TargetIccProfile = TestIccProfiles.GetProfile(targetProfile)
+            TargetIccProfile = TestIccProfiles.GetProfile(targetProfile),
+            IccInterpolationMethod = IccInterpolationMethod.Trilinear
         });
 
         IccColorSpaceType sourceDataSpace = converter.Options.SourceIccProfile!.Header.DataColorSpace;

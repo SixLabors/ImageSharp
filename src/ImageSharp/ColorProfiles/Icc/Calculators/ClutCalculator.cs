@@ -8,51 +8,39 @@ namespace SixLabors.ImageSharp.ColorProfiles.Icc.Calculators;
 
 /// <summary>
 /// Implements interpolation methods for color profile lookup tables.
-/// Adapted from ICC Reference implementation:
-/// https://github.com/InternationalColorConsortium/DemoIccMAX/blob/79ecb74135ad47bac7d42692905a079839b7e105/IccProfLib/IccTagLut.cpp
 /// </summary>
 internal class ClutCalculator : IVector4Calculator
 {
+    private readonly bool useTrilinearInterpolation;
     private readonly int inputCount;
     private readonly int outputCount;
     private readonly float[] lut;
     private readonly byte[] gridPointCount;
     private readonly byte[] maxGridPoint;
-    private readonly int[] indexFactor;
     private readonly int[] dimSize;
-    private readonly int nodeCount;
-    private readonly float[][] nodes;
-    private readonly float[] g;
-    private readonly uint[] ig;
-    private readonly float[] s;
-    private readonly float[] df;
-    private readonly uint[] nPower;
-    private int n000;
-    private int n001;
-    private int n010;
-    private int n011;
-    private int n100;
-    private int n101;
-    private int n110;
-    private int n111;
-    private int n1000;
+    private const int LowerCorner = 0;
+    private readonly int n001;
+    private readonly int n010;
+    private readonly int n011;
 
-    public ClutCalculator(IccClut clut)
+    /// <summary>
+    /// Initializes a new instance of the <see cref="ClutCalculator"/> class.
+    /// </summary>
+    /// <param name="clut">The table to evaluate.</param>
+    /// <param name="useTrilinearInterpolation">Whether tables use multilinear interpolation.</param>
+    public ClutCalculator(IccClut clut, bool useTrilinearInterpolation)
     {
         Guard.NotNull(clut, nameof(clut));
-        Guard.MustBeGreaterThan(clut.InputChannelCount, 0, nameof(clut.InputChannelCount));
-        Guard.MustBeGreaterThan(clut.OutputChannelCount, 0, nameof(clut.OutputChannelCount));
 
+        // This calculator consumes and produces Vector4 values. A table may describe
+        // more channels, but it cannot be evaluated through this four-channel contract.
+        Guard.MustBeBetweenOrEqualTo(clut.InputChannelCount, 1, 4, nameof(clut.InputChannelCount));
+        Guard.MustBeBetweenOrEqualTo(clut.OutputChannelCount, 1, 4, nameof(clut.OutputChannelCount));
+
+        this.useTrilinearInterpolation = useTrilinearInterpolation;
         this.inputCount = clut.InputChannelCount;
         this.outputCount = clut.OutputChannelCount;
-        this.g = new float[this.inputCount];
-        this.ig = new uint[this.inputCount];
-        this.s = new float[this.inputCount];
-        this.nPower = new uint[16];
         this.lut = clut.Values;
-        this.nodeCount = (int)Math.Pow(2, clut.InputChannelCount);
-        this.df = new float[this.nodeCount];
-        this.nodes = new float[this.nodeCount][];
         this.dimSize = new int[this.inputCount];
         this.gridPointCount = clut.GridPointCount;
         this.maxGridPoint = new byte[this.inputCount];
@@ -67,9 +55,15 @@ internal class ClutCalculator : IVector4Calculator
             this.dimSize[i] = this.dimSize[i + 1] * this.gridPointCount[i + 1];
         }
 
-        this.indexFactor = this.CalculateIndexFactor();
+        this.n001 = this.dimSize[0];
+        if (this.inputCount == 2)
+        {
+            this.n010 = this.dimSize[1];
+            this.n011 = this.n001 + this.n010;
+        }
     }
 
+    /// <inheritdoc/>
     public unsafe Vector4 Calculate(Vector4 value)
     {
         Vector4 result = default;
@@ -82,95 +76,30 @@ internal class ClutCalculator : IVector4Calculator
                 this.Interpolate2d((float*)&value, (float*)&result);
                 break;
             case 3:
-                this.Interpolate3d((float*)&value, (float*)&result);
+                if (this.useTrilinearInterpolation)
+                {
+                    this.Interpolate3d((float*)&value, (float*)&result);
+                }
+                else
+                {
+                    this.InterpolateTetrahedral((float*)&value, (float*)&result);
+                }
+
                 break;
             case 4:
-                this.Interpolate4d((float*)&value, (float*)&result);
-                break;
-            default:
-                this.InterpolateNd((float*)&value, (float*)&result);
+                if (this.useTrilinearInterpolation)
+                {
+                    this.Interpolate4d((float*)&value, (float*)&result);
+                }
+                else
+                {
+                    this.InterpolateTetrahedral((float*)&value, (float*)&result);
+                }
+
                 break;
         }
 
         return result;
-    }
-
-    private int[] CalculateIndexFactor()
-    {
-        int[] factors = new int[16];
-        switch (this.inputCount)
-        {
-            case 1:
-                factors[0] = this.n000 = 0;
-                factors[1] = this.n001 = this.dimSize[0];
-                break;
-            case 2:
-                factors[0] = this.n000 = 0;
-                factors[1] = this.n001 = this.dimSize[0];
-                factors[2] = this.n010 = this.dimSize[1];
-                factors[3] = this.n011 = this.n001 + this.n010;
-                break;
-            case 3:
-                factors[0] = this.n000 = 0;
-                factors[1] = this.n001 = this.dimSize[0];
-                factors[2] = this.n010 = this.dimSize[1];
-                factors[3] = this.n011 = this.n001 + this.n010;
-                factors[4] = this.n100 = this.dimSize[2];
-                factors[5] = this.n101 = this.n100 + this.n001;
-                factors[6] = this.n110 = this.n100 + this.n010;
-                factors[7] = this.n111 = this.n110 + this.n001;
-                break;
-            case 4:
-                factors[0] = 0;
-                factors[1] = this.n001 = this.dimSize[0];
-                factors[2] = this.n010 = this.dimSize[1];
-                factors[3] = factors[2] + factors[1];
-                factors[4] = this.n100 = this.dimSize[2];
-                factors[5] = factors[4] + factors[1];
-                factors[6] = factors[4] + factors[2];
-                factors[7] = factors[4] + factors[3];
-                factors[8] = this.n1000 = this.dimSize[3];
-                factors[9] = factors[8] + factors[1];
-                factors[10] = factors[8] + factors[2];
-                factors[11] = factors[8] + factors[3];
-                factors[12] = factors[8] + factors[4];
-                factors[13] = factors[8] + factors[5];
-                factors[14] = factors[8] + factors[6];
-                factors[15] = factors[8] + factors[7];
-                break;
-            default:
-                // Initialize ND interpolation variables.
-                factors[0] = 0;
-                int count;
-                for (count = 0; count < this.inputCount; count++)
-                {
-                    this.nPower[count] = (uint)(1 << (this.inputCount - 1 - count));
-                }
-
-                uint[] nPower = [0, 1];
-                count = 0;
-                int nFlag = 1;
-                for (uint j = 1; j < this.nodeCount; j++)
-                {
-                    if (j == nPower[1])
-                    {
-                        factors[j] = this.dimSize[count];
-                        nPower[0] = (uint)(1 << count);
-                        count++;
-                        nPower[1] = (uint)(1 << count);
-                        nFlag = 1;
-                    }
-                    else
-                    {
-                        factors[j] = factors[nPower[0]] + factors[nFlag];
-                        nFlag++;
-                    }
-                }
-
-                break;
-        }
-
-        return factors;
     }
 
     /// <summary>
@@ -182,7 +111,7 @@ internal class ClutCalculator : IVector4Calculator
     {
         byte mx = this.maxGridPoint[0];
 
-        float x = UnitClip(srcPixel[0]) * mx;
+        float x = Numerics.Clamp(srcPixel[0], 0F, 1F) * mx;
 
         uint ix = (uint)x;
 
@@ -206,7 +135,7 @@ internal class ClutCalculator : IVector4Calculator
         int offset = 0;
         for (i = 0; i < this.outputCount; i++)
         {
-            destPixel[i] = (float)((p[offset + this.n000] * dF0) + (p[offset + this.n001] * dF1));
+            destPixel[i] = (float)((p[offset + LowerCorner] * dF0) + (p[offset + this.n001] * dF1));
             offset++;
         }
     }
@@ -221,8 +150,8 @@ internal class ClutCalculator : IVector4Calculator
         byte mx = this.maxGridPoint[0];
         byte my = this.maxGridPoint[1];
 
-        float x = UnitClip(srcPixel[0]) * mx;
-        float y = UnitClip(srcPixel[1]) * my;
+        float x = Numerics.Clamp(srcPixel[0], 0F, 1F) * mx;
+        float y = Numerics.Clamp(srcPixel[1], 0F, 1F) * my;
 
         uint ix = (uint)x;
         uint iy = (uint)y;
@@ -257,25 +186,29 @@ internal class ClutCalculator : IVector4Calculator
         int offset = 0;
         for (i = 0; i < this.outputCount; i++)
         {
-            destPixel[i] = (float)((p[offset + this.n000] * dF0) + (p[offset + this.n001] * dF1) + (p[offset + this.n010] * dF2) + (p[offset + this.n011] * dF3));
+            destPixel[i] = (float)((p[offset + LowerCorner] * dF0) + (p[offset + this.n001] * dF1) + (p[offset + this.n010] * dF2) + (p[offset + this.n011] * dF3));
             offset++;
         }
     }
 
     /// <summary>
-    /// Three dimensional interpolation function.
+    /// Interpolates a three-channel table independently along each axis.
     /// </summary>
     /// <param name="srcPixel">The input pixel values, which will be interpolated.</param>
     /// <param name="destPixel">The interpolated output pixels.</param>
     private unsafe void Interpolate3d(float* srcPixel, float* destPixel)
     {
+        int xStride = this.dimSize[0];
+        int yStride = this.dimSize[1];
+        int zStride = this.dimSize[2];
+
         byte mx = this.maxGridPoint[0];
         byte my = this.maxGridPoint[1];
         byte mz = this.maxGridPoint[2];
 
-        float x = UnitClip(srcPixel[0]) * mx;
-        float y = UnitClip(srcPixel[1]) * my;
-        float z = UnitClip(srcPixel[2]) * mz;
+        float x = Numerics.Clamp(srcPixel[0], 0F, 1F) * mx;
+        float y = Numerics.Clamp(srcPixel[1], 0F, 1F) * my;
+        float z = Numerics.Clamp(srcPixel[2], 0F, 1F) * mz;
 
         uint ix = (uint)x;
         uint iy = (uint)y;
@@ -307,9 +240,10 @@ internal class ClutCalculator : IVector4Calculator
         float nt = (float)(1.0 - t);
         float nu = (float)(1.0 - u);
 
-        Span<float> p = this.lut.AsSpan((int)((ix * this.n001) + (iy * this.n010) + (iz * this.n100)));
+        Span<float> p = this.lut.AsSpan((int)((ix * xStride) + (iy * yStride) + (iz * zStride)));
 
-        // Normalize grid units
+        // The eight corner weights are products of the independent axis fractions.
+        // This tensor-product blend is used for Lab-indexed output tables.
         float dF0 = ns * nt * nu;
         float dF1 = ns * nt * u;
         float dF2 = ns * t * nu;
@@ -322,50 +256,60 @@ internal class ClutCalculator : IVector4Calculator
         int offset = 0;
         for (int i = 0; i < this.outputCount; i++)
         {
-            destPixel[i] = (float)((p[offset + this.n000] * dF0) +
-                                   (p[offset + this.n001] * dF1) +
-                                   (p[offset + this.n010] * dF2) +
-                                   (p[offset + this.n011] * dF3) +
-                                   (p[offset + this.n100] * dF4) +
-                                   (p[offset + this.n101] * dF5) +
-                                   (p[offset + this.n110] * dF6) +
-                                   (p[offset + this.n111] * dF7));
+            destPixel[i] = (float)((p[offset + 0] * dF0) +
+                                   (p[offset + xStride] * dF1) +
+                                   (p[offset + yStride] * dF2) +
+                                   (p[offset + (xStride + yStride)] * dF3) +
+                                   (p[offset + zStride] * dF4) +
+                                   (p[offset + (xStride + zStride)] * dF5) +
+                                   (p[offset + (yStride + zStride)] * dF6) +
+                                   (p[offset + (xStride + yStride + zStride)] * dF7));
             offset++;
         }
     }
 
     /// <summary>
-    /// Four dimensional interpolation function.
+    /// Interpolates three-channel tables or blends tetrahedral slices of four-channel tables.
     /// </summary>
     /// <param name="srcPixel">The input pixel values, which will be interpolated.</param>
     /// <param name="destPixel">The interpolated output pixels.</param>
-    private unsafe void Interpolate4d(float* srcPixel, float* destPixel)
+    private unsafe void InterpolateTetrahedral(float* srcPixel, float* destPixel)
     {
-        byte mw = this.maxGridPoint[0];
-        byte mx = this.maxGridPoint[1];
-        byte my = this.maxGridPoint[2];
-        byte mz = this.maxGridPoint[3];
+        int dimension = this.inputCount - 3;
+        int tableOffset = 0;
+        int sliceStride = 0;
+        float fraction = 0F;
+        if (this.inputCount == 4)
+        {
+            float position = Numerics.Clamp(srcPixel[0], 0F, 1F) * this.maxGridPoint[0];
+            int lowerSlice = (int)position;
+            fraction = position - lowerSlice;
+            tableOffset = lowerSlice * this.dimSize[0];
+            sliceStride = lowerSlice == this.maxGridPoint[0] ? 0 : this.dimSize[0];
+            srcPixel++;
+        }
 
-        float w = UnitClip(srcPixel[0]) * mw;
-        float x = UnitClip(srcPixel[1]) * mx;
-        float y = UnitClip(srcPixel[2]) * my;
-        float z = UnitClip(srcPixel[3]) * mz;
+        // Adjacent slices have the same grid and input coordinates. Compute their cell
+        // and tetrahedron once; only the first-axis offset differs between the slices.
+        int xStride = this.dimSize[dimension];
+        int yStride = this.dimSize[dimension + 1];
+        int zStride = this.dimSize[dimension + 2];
 
-        uint iw = (uint)w;
+        byte mx = this.maxGridPoint[dimension];
+        byte my = this.maxGridPoint[dimension + 1];
+        byte mz = this.maxGridPoint[dimension + 2];
+
+        float x = Numerics.Clamp(srcPixel[0], 0F, 1F) * mx;
+        float y = Numerics.Clamp(srcPixel[1], 0F, 1F) * my;
+        float z = Numerics.Clamp(srcPixel[2], 0F, 1F) * mz;
+
         uint ix = (uint)x;
         uint iy = (uint)y;
         uint iz = (uint)z;
 
-        float v = w - iw;
         float u = x - ix;
         float t = y - iy;
         float s = z - iz;
-
-        if (iw == mw)
-        {
-            iw--;
-            v = 1.0f;
-        }
 
         if (ix == mx)
         {
@@ -385,122 +329,161 @@ internal class ClutCalculator : IVector4Calculator
             s = 1.0f;
         }
 
-        float ns = (float)(1.0 - s);
-        float nt = (float)(1.0 - t);
-        float nu = (float)(1.0 - u);
-        float nv = (float)(1.0 - v);
+        // The fractional coordinates select one of six tetrahedra sharing the cell's
+        // lower and upper corners. Walking the axes from largest fraction to smallest
+        // identifies the two intermediate vertices. Choose once for all output channels.
+        int firstVertex;
+        int secondVertex;
+        float firstWeight;
+        float secondWeight;
+        float thirdWeight;
 
-        Span<float> p = this.lut.AsSpan((int)((iw * this.n001) + (ix * this.n010) + (iy * this.n100) + (iz * this.n1000)));
-
-        // Normalize grid units.
-        float[] dF =
-        [
-            ns * nt * nu * nv,
-            ns * nt * nu * v,
-            ns * nt * u * nv,
-            ns * nt * u * v,
-            ns * t * nu * nv,
-            ns * t * nu * v,
-            ns * t * u * nv,
-            ns * t * u * v,
-            s * nt * nu * nv,
-            s * nt * nu * v,
-            s * nt * u * nv,
-            s * nt * u * v,
-            s * t * nu * nv,
-            s * t * nu * v,
-            s * t * u * nv,
-            s * t * u * v,
-        ];
-
-        int offset = 0;
-        for (int i = 0; i < this.outputCount; i++)
+        if (u >= t)
         {
-            float pv = 0.0f;
-            for (int j = 0; j < 16; j++)
+            if (t >= s)
             {
-                pv += p[offset + this.indexFactor[j]] * dF[j];
+                firstVertex = xStride;
+                secondVertex = xStride + yStride;
+                firstWeight = u;
+                secondWeight = t;
+                thirdWeight = s;
             }
+            else if (u >= s)
+            {
+                firstVertex = xStride;
+                secondVertex = xStride + zStride;
+                firstWeight = u;
+                secondWeight = s;
+                thirdWeight = t;
+            }
+            else
+            {
+                firstVertex = zStride;
+                secondVertex = xStride + zStride;
+                firstWeight = s;
+                secondWeight = u;
+                thirdWeight = t;
+            }
+        }
+        else if (u >= s)
+        {
+            firstVertex = yStride;
+            secondVertex = xStride + yStride;
+            firstWeight = t;
+            secondWeight = u;
+            thirdWeight = s;
+        }
+        else if (t >= s)
+        {
+            firstVertex = yStride;
+            secondVertex = yStride + zStride;
+            firstWeight = t;
+            secondWeight = s;
+            thirdWeight = u;
+        }
+        else
+        {
+            firstVertex = zStride;
+            secondVertex = yStride + zStride;
+            firstWeight = s;
+            secondWeight = t;
+            thirdWeight = u;
+        }
 
-            destPixel[i] = pv;
-            offset++;
+        ReadOnlySpan<float> cell = this.lut.AsSpan(tableOffset + (int)((ix * xStride) + (iy * yStride) + (iz * zStride)));
+
+        // Interpolate along the tetrahedron's three edges. Sorted fractions give vertex
+        // weights 1-first, first-second, second-third, and third, which sum to one.
+        // An input at the upper boundary uses the preceding cell with fraction one;
+        // equal fractions give a shared face or edge the same value from either side.
+        int upperVertex = xStride + yStride + zStride;
+        if (this.inputCount == 3)
+        {
+            for (int i = 0; i < this.outputCount; i++)
+            {
+                float lower = cell[i];
+                float first = cell[i + firstVertex];
+                float second = cell[i + secondVertex];
+                float upper = cell[i + upperVertex];
+                destPixel[i] = lower
+                    + ((first - lower) * firstWeight)
+                    + ((second - first) * secondWeight)
+                    + ((upper - second) * thirdWeight);
+            }
+        }
+        else
+        {
+            // Evaluate corresponding vertices in both slices and immediately blend the
+            // channel results. At the upper boundary both slices address the same cell.
+            ReadOnlySpan<float> upperCell = cell[sliceStride..];
+            for (int i = 0; i < this.outputCount; i++)
+            {
+                float lower = cell[i];
+                float first = cell[i + firstVertex];
+                float second = cell[i + secondVertex];
+                float upper = cell[i + upperVertex];
+                float lowerValue = lower
+                    + ((first - lower) * firstWeight)
+                    + ((second - first) * secondWeight)
+                    + ((upper - second) * thirdWeight);
+
+                lower = upperCell[i];
+                first = upperCell[i + firstVertex];
+                second = upperCell[i + secondVertex];
+                upper = upperCell[i + upperVertex];
+                float upperValue = lower
+                    + ((first - lower) * firstWeight)
+                    + ((second - first) * secondWeight)
+                    + ((upper - second) * thirdWeight);
+
+                destPixel[i] = lowerValue + ((upperValue - lowerValue) * fraction);
+            }
         }
     }
 
     /// <summary>
-    /// Generic N-dimensional interpolation function.
+    /// Interpolates the sixteen corners surrounding a four-channel input.
     /// </summary>
-    /// <param name="srcPixel">The input pixel values, which will be interpolated.</param>
-    /// <param name="destPixel">The interpolated output pixels.</param>
-    private unsafe void InterpolateNd(float* srcPixel, float* destPixel)
+    /// <param name="srcPixel">The normalized input channels.</param>
+    /// <param name="destPixel">The interpolated output channels, initially zero.</param>
+    private unsafe void Interpolate4d(float* srcPixel, float* destPixel)
     {
-        int index = 0;
-        for (int i = 0; i < this.inputCount; i++)
+        // Each lane holds one input axis. At the upper boundary, the lower and upper
+        // corner share an index, so a zero stride keeps every lookup inside the table.
+        Vector4 position = Numerics.Clamp(new Vector4(srcPixel[0], srcPixel[1], srcPixel[2], srcPixel[3]), Vector4.Zero, Vector4.One)
+            * new Vector4(this.maxGridPoint[0], this.maxGridPoint[1], this.maxGridPoint[2], this.maxGridPoint[3]);
+
+        int w = (int)position.X;
+        int x = (int)position.Y;
+        int y = (int)position.Z;
+        int z = (int)position.W;
+        Vector4 fraction = position - new Vector4(w, x, y, z);
+        Vector4 inverse = Vector4.One - fraction;
+        int offset = (w * this.dimSize[0]) + (x * this.dimSize[1]) + (y * this.dimSize[2]) + (z * this.dimSize[3]);
+        int dw = w == this.maxGridPoint[0] ? 0 : this.dimSize[0];
+        int dx = x == this.maxGridPoint[1] ? 0 : this.dimSize[1];
+        int dy = y == this.maxGridPoint[2] ? 0 : this.dimSize[2];
+        int dz = z == this.maxGridPoint[3] ? 0 : this.dimSize[3];
+
+        // The low bit selects the first axis. Multiply weights from the last axis
+        // to the first, and reuse each corner's weight across all output channels.
+        for (int corner = 0; corner < 16; corner++)
         {
-            this.g[i] = UnitClip(srcPixel[i]) * this.maxGridPoint[i];
-            this.ig[i] = (uint)this.g[i];
-            this.s[this.inputCount - 1 - i] = this.g[i] - this.ig[i];
-            if (this.ig[i] == this.maxGridPoint[i])
+            float weight = ((corner & 8) == 0 ? inverse.W : fraction.W)
+                * ((corner & 4) == 0 ? inverse.Z : fraction.Z)
+                * ((corner & 2) == 0 ? inverse.Y : fraction.Y)
+                * ((corner & 1) == 0 ? inverse.X : fraction.X);
+
+            int index = offset
+                + ((corner & 1) == 0 ? 0 : dw)
+                + ((corner & 2) == 0 ? 0 : dx)
+                + ((corner & 4) == 0 ? 0 : dy)
+                + ((corner & 8) == 0 ? 0 : dz);
+
+            for (int channel = 0; channel < this.outputCount; channel++)
             {
-                this.ig[i]--;
-                this.s[this.inputCount - 1 - i] = 1.0f;
+                destPixel[channel] += this.lut[index + channel] * weight;
             }
-
-            index += (int)this.ig[i] * this.dimSize[i];
         }
-
-        Span<float> p = this.lut.AsSpan(index);
-        float[] temp = new float[2];
-        bool nFlag = false;
-
-        for (int i = 0; i < this.nodeCount; i++)
-        {
-            this.df[i] = 1.0f;
-        }
-
-        for (int i = 0; i < this.inputCount; i++)
-        {
-            temp[0] = 1.0f - this.s[i];
-            temp[1] = this.s[i];
-            index = (int)this.nPower[i];
-            for (int j = 0; j < this.nodeCount; j++)
-            {
-                this.df[j] *= temp[nFlag ? 1 : 0];
-                if ((j + 1) % index == 0)
-                {
-                    nFlag = !nFlag;
-                }
-            }
-
-            nFlag = false;
-        }
-
-        int offset = 0;
-        for (int i = 0; i < this.outputCount; i++)
-        {
-            float pv = 0;
-            for (int j = 0; j < this.nodeCount; j++)
-            {
-                pv += p[offset + this.indexFactor[j]] * this.df[j];
-            }
-
-            destPixel[i] = pv;
-            offset++;
-        }
-    }
-
-    private static float UnitClip(float v)
-    {
-        if (v < 0)
-        {
-            return 0;
-        }
-
-        if (v > 1.0)
-        {
-            return 1.0f;
-        }
-
-        return v;
     }
 }

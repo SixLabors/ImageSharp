@@ -328,6 +328,42 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BitDepth bitDepth);
 
         /// <summary>
+        /// Applies the selected luma adjustment to a DC-predicted chroma block.
+        /// </summary>
+        /// <param name="lumaQ3">The zero-mean Q3 luma surface.</param>
+        /// <param name="prediction">The DC prediction receiving the adjustment.</param>
+        /// <param name="alphaQ3">The signed Q3 scale.</param>
+        /// <param name="transformSize">The chroma dimensions.</param>
+        /// <param name="bitDepth">The coded sample precision.</param>
+        public static abstract void ApplyChromaFromLuma(
+            ReadOnlySpan<short> lumaQ3,
+            Span<TSample> prediction,
+            int alphaQ3,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth);
+
+        /// <summary>
+        /// Adds a selected transform's residual to the destination prediction.
+        /// </summary>
+        /// <param name="workspace">The dequantized coefficients and transform workspace.</param>
+        /// <param name="prediction">The destination starting at the transform origin.</param>
+        /// <param name="stride">The destination row stride in samples.</param>
+        /// <param name="transformSize">The transform dimensions.</param>
+        /// <param name="plane">The component being reconstructed.</param>
+        /// <param name="bitDepth">The coded sample precision.</param>
+        /// <param name="lossless">Whether the reversible transform is required.</param>
+        /// <param name="state">The nonempty transform's type and end-of-block position.</param>
+        public static abstract void AddSelectedResidual(
+            Av1EncoderBlockWorkspace workspace,
+            Span<TSample> prediction,
+            int stride,
+            Av1TransformSize transformSize,
+            Av1Plane plane,
+            Av1BitDepth bitDepth,
+            bool lossless,
+            Av1EncoderTransformBlockState state);
+
+        /// <summary>
         /// Encodes one prepared prediction with the selected transform into decision scratch.
         /// </summary>
         /// <param name="workspace">The reusable block workspace.</param>
@@ -914,6 +950,37 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         /// <inheritdoc/>
+        public static void ApplyChromaFromLuma(
+            ReadOnlySpan<short> lumaQ3,
+            Span<byte> prediction,
+            int alphaQ3,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth)
+            => Av1ChromaFromLumaPredictor.Predict(
+                lumaQ3, prediction, transformSize.GetWidth(), alphaQ3, transformSize.GetWidth(), transformSize.GetHeight());
+
+        /// <inheritdoc/>
+        public static void AddSelectedResidual(
+            Av1EncoderBlockWorkspace workspace,
+            Span<byte> prediction,
+            int stride,
+            Av1TransformSize transformSize,
+            Av1Plane plane,
+            Av1BitDepth bitDepth,
+            bool lossless,
+            Av1EncoderTransformBlockState state)
+            => Av1InverseTransformer.Reconstruct8Bit(
+                workspace.DequantizedCoefficients,
+                prediction,
+                stride,
+                transformSize,
+                state.TransformType,
+                (int)plane,
+                state.EndOfBlock,
+                lossless,
+                workspace.TransformWorkspace);
+
+        /// <inheritdoc/>
         public static long EncodePredictionCandidate(
             Av1EncoderBlockWorkspace workspace,
             Buffer2DRegion<byte> source,
@@ -1485,6 +1552,44 @@ internal static partial class Av1IntraSuperblockEncoder
 
             SubtractPrediction(source, blockOrigin, prediction, residual, transformSize);
         }
+
+        /// <inheritdoc/>
+        public static void ApplyChromaFromLuma(
+            ReadOnlySpan<short> lumaQ3,
+            Span<ushort> prediction,
+            int alphaQ3,
+            Av1TransformSize transformSize,
+            Av1BitDepth bitDepth)
+            => Av1ChromaFromLumaPredictor.Predict(
+                lumaQ3,
+                MemoryMarshal.Cast<ushort, short>(prediction),
+                transformSize.GetWidth(),
+                alphaQ3,
+                bitDepth.GetBitCount(),
+                transformSize.GetWidth(),
+                transformSize.GetHeight());
+
+        /// <inheritdoc/>
+        public static void AddSelectedResidual(
+            Av1EncoderBlockWorkspace workspace,
+            Span<ushort> prediction,
+            int stride,
+            Av1TransformSize transformSize,
+            Av1Plane plane,
+            Av1BitDepth bitDepth,
+            bool lossless,
+            Av1EncoderTransformBlockState state)
+            => Av1InverseTransformer.ReconstructHighBitDepth(
+                workspace.DequantizedCoefficients,
+                MemoryMarshal.Cast<ushort, short>(prediction),
+                stride,
+                transformSize,
+                state.TransformType,
+                (int)plane,
+                state.EndOfBlock,
+                lossless,
+                bitDepth,
+                workspace.TransformWorkspace);
 
         /// <inheritdoc/>
         public static long EncodePredictionCandidate(

@@ -25,7 +25,8 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
     /// <summary>
     /// The decision-region length in packed final-block storage elements.
     /// </summary>
-    public const int DecisionStorageLength = MaximumFinalBlockCount + ((MaximumPartitionCount + Av1EncoderBlockStruct.StorageSize - 1) / Av1EncoderBlockStruct.StorageSize);
+    public const int DecisionStorageLength = MaximumFinalBlockCount +
+        (((2 * MaximumPartitionCount) + Av1EncoderBlockStruct.StorageSize - 1) / Av1EncoderBlockStruct.StorageSize);
 
     /// <summary>
     /// The byte length of the aligned final-block and partition decision region.
@@ -73,6 +74,12 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
     public Span<byte> PartitionTypes => this.owner.Memory.Span.Slice(PartitionStorageOffset, MaximumPartitionCount);
 
     /// <summary>
+    /// Gets partition choices indexed by their position in the complete quadtree.
+    /// </summary>
+    public Span<byte> PartitionSearchTypes
+        => this.owner.Memory.Span.Slice(PartitionStorageOffset + MaximumPartitionCount, MaximumPartitionCount);
+
+    /// <summary>
     /// Gets the palette sizes and colors selected for the block currently being written.
     /// </summary>
     public ref Av1EncoderPaletteInfo PaletteInfo => ref this.paletteInfo;
@@ -101,6 +108,7 @@ internal sealed class Av1EncoderSuperblockWorkspace : IDisposable
 
         this.FinalBlocks.Fill(initialBlock);
         this.PartitionTypes.Clear();
+        this.PartitionSearchTypes.Fill((byte)Av1PartitionType.Invalid);
         this.paletteInfo = default;
     }
 

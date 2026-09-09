@@ -59,4 +59,19 @@ internal struct Av1RateDistortionStatistics
         this.Distortion += other.Distortion;
         this.Cost = Av1RateDistortion.GetCost(rateMultiplier, this.Rate, this.Distortion);
     }
+
+    /// <summary>
+    /// Computes the rate and distortion remaining after a partial candidate.
+    /// </summary>
+    /// <param name="rateMultiplier">The rate multiplier for the remaining candidate.</param>
+    /// <param name="other">The rate and distortion already consumed.</param>
+    /// <returns>The remaining bound, or an unbounded sentinel when either input is invalid.</returns>
+    public readonly Av1RateDistortionStatistics Subtract(int rateMultiplier, in Av1RateDistortionStatistics other)
+    {
+        // Search starts without a winning candidate. Preserve that unbounded state instead of subtracting
+        // from sentinel integers; finite bounds subtract raw components before the single rate rounding.
+        return this.Cost == long.MaxValue || other.Cost == long.MaxValue
+            ? Invalid
+            : new(rateMultiplier, this.Rate - other.Rate, this.Distortion - other.Distortion);
+    }
 }

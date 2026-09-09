@@ -93,7 +93,7 @@ Restoration search, filtering, signaling, and retained trial storage are committ
   partition search on Effort. The next implementation must include source-defined search bounds,
   pruning, and candidate reuse; merely enabling the existing exhaustive/repeated trials is insufficient.
 
-### Palette controller work in progress: 2026-09-09
+### Palette controller checkpoint: 2026-09-09 (`d92e32a78`)
 
 - Luma and paired-chroma selection now accept every palette-eligible block geometry, including
   rectangular blocks and multiple residual transforms. The common dispatch follows ordinary mode
@@ -116,9 +116,30 @@ Restoration search, filtering, signaling, and retained trial storage are committ
 - Removed unused unique-color arrays and the full dominant-order buffer after Roslyn confirmed no
   callers, reducing palette workspace by 20 KiB. Final `palette-block-final` passes 143/143 and
   `palette-public-final` passes 73/76. The same three screen-content comparisons remain failing.
-- Partition mode-context retention/replay, partition bounds/pruning, transform-type pruning, and
-  coefficient optimization remain outstanding. Current Effort-gated partition selection still forces
-  the failing locations to 8x8. Full encoder acceptance and performance remain unestablished.
+- Partition controller completion, transform-type pruning, and coefficient optimization remain
+  outstanding. Current Effort-gated partition selection still forces the failing locations to 8x8.
+  Full encoder acceptance and performance remain unestablished.
+
+### Partition mode retention and bounds in progress: 2026-09-10
+
+- Partition trials now retain scalar syntax, transform states and palette maps in superblock-scoped
+  worker storage. Selected leaves reconstruct their chosen prediction and transform without another
+  mode search. Coefficients remain in shared scratch until final writing. Source: `context_tree.c:35-176`,
+  `encodeframe_utils.c:176-302`, and `partition_search.c:1422-1508`.
+- Recursive search passes the remaining raw rate/distortion bound to children and stops a losing
+  prefix before evaluating another child. Subtraction precedes rate-cost rounding, matching
+  `rd.h:236-251` and `partition_search.c:4523-4665`.
+- Matching leading leaves of asymmetric partitions reuse previous mode results. Palette and
+  chroma-from-luma results are excluded by the eligibility conditions. Source:
+  `partition_search.c:3571-3634,3771-3897,4596-4619`.
+- After asymmetric reuse was connected, Release/net11 passed 143/143 block reconstruction tests
+  (`partition-reuse-block-final`) and 73/76 public encoder tests (`partition-reuse-public-final`).
+  The same three screen-content comparisons fail. Roslyn reports zero errors and no added warnings.
+- The arena currently reserves all geometrically legal candidates, and palette replay copies the
+  retained map into existing writer scratch. Allocation sizing/lifetimes still need comparison
+  against pruned candidate allocation. No allocation or speed parity is claimed.
+- Source-defined partition pruning and boundary handling are not complete; existing Effort gates
+  have not been removed. No benchmarks, tolerance changes or reference-image updates were made.
 
 The official main ref was resolved and fetched as `8e7b6a567df174d795479b92b4ac766d271add73`
 into `D:\GitHub\ynse01\aom-8e7b6a56-reference`, outside this repository.

@@ -1174,7 +1174,20 @@ internal static class Av1TransformBlockEncoder
             bitDepth,
             ref state);
 
-    private static void EncodeLossy(
+    /// <summary>
+    /// Transforms and quantizes a prepared residual block.
+    /// </summary>
+    /// <param name="workspace">The coefficient and transform storage.</param>
+    /// <param name="residual">The prepared residual samples in transform row order.</param>
+    /// <param name="quantizedCoefficients">The destination entropy-coding coefficients.</param>
+    /// <param name="transformSize">The transform dimensions.</param>
+    /// <param name="transformType">The compound transform type.</param>
+    /// <param name="qIndex">The segment quantizer index.</param>
+    /// <param name="dcDeltaQ">The plane DC quantizer adjustment.</param>
+    /// <param name="acDeltaQ">The plane AC quantizer adjustment.</param>
+    /// <param name="bitDepth">The coded sample precision.</param>
+    /// <param name="state">The resulting transform type and end-of-block position.</param>
+    public static void EncodeLossy(
         Av1EncoderBlockWorkspace workspace,
         ReadOnlySpan<short> residual,
         Span<int> quantizedCoefficients,

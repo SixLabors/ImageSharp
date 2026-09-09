@@ -136,6 +136,11 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     private Av1EncoderFrameBuffer<ushort>? restorationHighBitDepthTrial;
 
     /// <summary>
+    /// Retained syntax and transform choices for the current superblock search.
+    /// </summary>
+    private Av1EncoderPartitionTree? partitionTree;
+
+    /// <summary>
     /// Initializes a new instance of the <see cref="Av1EncoderBlockWorkspace"/> class.
     /// </summary>
     /// <param name="configuration">The configuration providing the encoder allocator.</param>
@@ -183,6 +188,11 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     /// Gets the configuration used by frame-scoped encoder buffers.
     /// </summary>
     public Configuration Configuration { get; }
+
+    /// <summary>
+    /// Gets reusable mode storage for partition search.
+    /// </summary>
+    public Av1EncoderPartitionTree PartitionTree => this.partitionTree ??= new(this.MemoryAllocator);
 
     /// <summary>
     /// Gets the preserved restoration stripe rows for this worker.
@@ -383,6 +393,7 @@ internal sealed class Av1EncoderBlockWorkspace : IDisposable
     {
         this.restorationByteTrial?.Dispose();
         this.restorationHighBitDepthTrial?.Dispose();
+        this.partitionTree?.Dispose();
         this.restorationBoundary?.Dispose();
         this.owner.Dispose();
     }

@@ -916,8 +916,6 @@ internal static partial class Av1IntraSuperblockEncoder
                     : modeInfo.Block.BlockSize.GetMaxUvTransformSize(colorConfig.SubSamplingX, colorConfig.SubSamplingY);
 
                 int sampleCount = transformSize.GetSize2d();
-                Span<TSample> reconstruction = workspace.LumaCandidateReconstruction[..sampleCount];
-                Span<int> coefficients = workspace.LumaCandidateCoefficients[..sampleCount];
                 Span<TSample> prediction = workspace.LumaPrediction[..sampleCount];
                 Span<short> residual = workspace.Residual[..sampleCount];
 
@@ -940,50 +938,16 @@ internal static partial class Av1IntraSuperblockEncoder
                     transformSize,
                     this.bitDepth);
 
-                Av1EncoderTransformBlockState state = default;
-                if (modeInfo.Block.Skip || states[planeIndex].EndOfBlock == 0)
-                {
-                    // An empty transform retains prediction even when other planes have coded residuals.
-                    // Re-quantizing its inferred DCT could otherwise introduce coefficients absent in the winner.
-                    reconstruction = prediction;
-                    coefficients.Clear();
-                }
-                else
-                {
-                    // Regenerate only the selected transform. Motion, transform choice, coefficient-rate
-                    // measurement, and skip decisions are complete before this final reconstruction.
-                    _ = TOperator.EncodePredictionCandidate(
-                        this.blockWorkspace,
-                        this.source.GetPlane(plane),
-                        planeOrigin,
-                        prediction,
-                        residual,
-                        reconstruction,
-                        transformSize.GetWidth(),
-                        coefficients,
-                        transformSize,
-                        states[planeIndex].TransformType,
-                        plane,
-                        this.quantization.QIndex[0],
-                        this.quantization.DeltaQDc[planeIndex],
-                        this.quantization.DeltaQAc[planeIndex],
-                        this.bitDepth,
-                        ref state);
-                }
-
                 int codedArea = planeIndex == 0 ? this.codedAreaLuma : this.codedAreaChroma;
-                int transformIndex = codedArea / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
-                Span<int> retainedCoefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane);
-                Span<Av1EncoderTransformBlockState> retainedStates = this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane);
-                CopyCandidate(
-                    reconstruction,
-                    coefficients,
-                    this.reconstruction.GetPlane(plane),
+                this.ReconstructSelectedTransform(
                     planeOrigin,
-                    retainedCoefficients[codedArea..],
+                    plane,
                     transformSize,
-                    state,
-                    ref retainedStates[transformIndex]);
+                    prediction,
+                    residual,
+                    states[planeIndex],
+                    modeInfo.Block.Skip,
+                    codedArea);
             }
         }
 

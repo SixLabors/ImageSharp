@@ -6,6 +6,7 @@ using SixLabors.ImageSharp.Formats.Heif.Av1.Entropy;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.OpenBitstreamUnit;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
+using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction.ChromaFromLuma;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Tiling;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Transform;
 using SixLabors.ImageSharp.Memory;
@@ -140,6 +141,10 @@ internal static partial class Av1IntraSuperblockEncoder
         private readonly int effort;
         private int codedAreaLuma;
         private int codedAreaChroma;
+        private int replayNodeIndex;
+        private Av1PartitionType replayPartition;
+        private Point replayPartitionOrigin;
+        private Av1BlockSize replayParentSize;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ModeDecision{TSample, TOperator}"/> struct.
@@ -230,6 +235,23 @@ internal static partial class Av1IntraSuperblockEncoder
             this.codedAreaLuma = 0;
             this.codedAreaChroma = 0;
             this.SelectedBlockStatistics = default;
+            this.replayNodeIndex = -1;
+            this.replayPartition = Av1PartitionType.Invalid;
+            this.replayPartitionOrigin = default;
+            this.replayParentSize = Av1BlockSize.Invalid;
+            if (picture.Parent.FrameHeader.IsIntra && effort >= 9)
+            {
+                int side = 1 << picture.Sequence.SequenceHeader.SuperblockSizeLog2;
+                int x = (superblock.Index % coefficientBuffer.SuperblockColumnCount) * side;
+                int y = (superblock.Index / coefficientBuffer.SuperblockColumnCount) * side;
+                int width = Math.Min(side, (picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2) - x);
+                int height = Math.Min(side, (picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2) - y);
+                blockWorkspace.PartitionTree.Reset(
+                    picture.Sequence.SequenceHeader,
+                    width,
+                    height,
+                    picture.Parent.FrameHeader.AllowScreenContentTools);
+            }
         }
 
         /// <inheritdoc/>
@@ -249,6 +271,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1BlockSize blockSize,
             Av1PartitionType preparedPartition)
         {
+            this.replayNodeIndex = -1;
             if (!this.picture.Parent.FrameHeader.IsIntra)
             {
                 // The first inter implementation retains the prepared 8x8 tree so every prediction and residual
@@ -290,16 +313,40 @@ internal static partial class Av1IntraSuperblockEncoder
                 return preparedPartition;
             }
 
-            Av1PartitionType selectedPartition = this.SelectBestPartition(
-                writer,
-                macroBlock,
-                blockOrigin,
-                tileIndex,
-                blockSize);
+            int nodeIndex = 0;
+            int nodeWidth = this.picture.Sequence.SequenceHeader.SuperblockSize.GetWidth();
+            int localX = blockOrigin.X & (nodeWidth - 1);
+            int localY = blockOrigin.Y & (nodeWidth - 1);
+            while (nodeWidth > blockSize.GetWidth())
+            {
+                nodeWidth >>= 1;
+                int childIndex = (localX >= nodeWidth ? 1 : 0) | (localY >= nodeWidth ? 2 : 0);
+                nodeIndex = (nodeIndex * 4) + childIndex + 1;
+                localX &= nodeWidth - 1;
+                localY &= nodeWidth - 1;
+            }
 
-            // Trial reconstruction and mode entries need no copy-back. The selected branch is evaluated again
-            // in raster order, overwriting each trial-local value before a later selected leaf can consume it.
+            Av1PartitionType selectedPartition = (Av1PartitionType)this.superblock.Workspace.PartitionSearchTypes[nodeIndex];
+            if (selectedPartition == Av1PartitionType.Invalid)
+            {
+                selectedPartition = this.SelectBestPartition(
+                    writer,
+                    macroBlock,
+                    blockOrigin,
+                    tileIndex,
+                    blockSize,
+                    nodeIndex,
+                    Av1RateDistortionStatistics.Invalid,
+                    out _);
+            }
+
+            // Search children retain their choices by quadtree position, independently of the final writer's
+            // preorder index. Later traversal visits those choices without repeating recursive partition search.
             this.PreparePartitionGeometry(blockOrigin, blockSize, selectedPartition);
+            this.replayNodeIndex = nodeIndex;
+            this.replayPartition = selectedPartition;
+            this.replayPartitionOrigin = blockOrigin;
+            this.replayParentSize = blockSize;
             return selectedPartition;
         }
 
@@ -308,12 +355,16 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
-            Av1BlockSize blockSize)
+            Av1BlockSize blockSize,
+            int nodeIndex,
+            Av1RateDistortionStatistics costLimit,
+            out Av1RateDistortionStatistics selectedStatistics)
         {
             int savedLumaArea = this.codedAreaLuma;
             int savedChromaArea = this.codedAreaChroma;
             this.SavePartitionTrialContexts(blockOrigin, tileIndex, blockSize);
-            Av1RateDistortionStatistics bestStatistics = Av1RateDistortionStatistics.Invalid;
+            Av1RateDistortionStatistics bestStatistics = costLimit;
+            selectedStatistics = Av1RateDistortionStatistics.Invalid;
             Av1PartitionType selectedPartition = Av1PartitionType.None;
             ReadOnlySpan<Av1PartitionType> searchOrder = PartitionSearchOrder;
             int candidateCount = blockSize == Av1BlockSize.Block8x8 ? 4 : searchOrder.Length;
@@ -325,6 +376,44 @@ internal static partial class Av1IntraSuperblockEncoder
                     continue;
                 }
 
+                if (partitionType is >= Av1PartitionType.HorizontalA and <= Av1PartitionType.VerticalB)
+                {
+                    bool squareFirst = partitionType is Av1PartitionType.HorizontalA or Av1PartitionType.VerticalA;
+                    int sourceNode = squareFirst ? (nodeIndex * 4) + 1 : nodeIndex;
+                    Av1PartitionType sourcePartition = squareFirst
+                        ? Av1PartitionType.None
+                        : partitionType == Av1PartitionType.HorizontalB ? Av1PartitionType.Horizontal : Av1PartitionType.Vertical;
+
+                    bool firstAvailable = !squareFirst ||
+                        (Av1PartitionType)this.superblock.Workspace.PartitionSearchTypes[sourceNode] == Av1PartitionType.None;
+
+                    if (firstAvailable)
+                    {
+                        Av1EncoderPartitionTree.ModeContext previous =
+                            this.blockWorkspace.PartitionTree.GetContext(sourceNode, sourcePartition, 0);
+
+                        if (previous.Snapshot.Ready)
+                        {
+                            // These leading leaves have the same geometry and already reconstructed neighbors.
+                            // Palette and CfL choices are excluded when establishing reuse, since their inputs
+                            // depend on the surrounding partition's reconstruction and palette contexts.
+                            this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, 0).CopyFrom(previous, partitionType);
+                            int secondNode = (nodeIndex * 4) + 2;
+                            if (partitionType == Av1PartitionType.HorizontalA &&
+                                (Av1PartitionType)this.superblock.Workspace.PartitionSearchTypes[secondNode] == Av1PartitionType.None)
+                            {
+                                Av1EncoderPartitionTree.ModeContext second =
+                                    this.blockWorkspace.PartitionTree.GetContext(secondNode, Av1PartitionType.None, 0);
+
+                                if (second.Snapshot.Ready)
+                                {
+                                    this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, 1).CopyFrom(second, partitionType);
+                                }
+                            }
+                        }
+                    }
+                }
+
                 Av1RateDistortionStatistics candidateStatistics = this.EvaluatePartitionCandidate(
                     writer,
                     macroBlock,
@@ -332,11 +421,15 @@ internal static partial class Av1IntraSuperblockEncoder
                     tileIndex,
                     blockSize,
                     partitionType,
+                    nodeIndex,
+                    bestStatistics,
+                    searchChildren: true,
                     publishFinalContexts: false);
 
                 if (candidateStatistics.Cost < bestStatistics.Cost)
                 {
                     bestStatistics = candidateStatistics;
+                    selectedStatistics = candidateStatistics;
                     selectedPartition = partitionType;
                 }
 
@@ -348,6 +441,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     savedChromaArea);
             }
 
+            this.superblock.Workspace.PartitionSearchTypes[nodeIndex] = selectedStatistics.Cost == long.MaxValue
+                ? (byte)Av1PartitionType.Invalid
+                : (byte)selectedPartition;
+
             return selectedPartition;
         }
 
@@ -357,14 +454,29 @@ internal static partial class Av1IntraSuperblockEncoder
             Point blockOrigin,
             ushort tileIndex,
             Av1BlockSize blockSize,
+            int nodeIndex,
+            Av1RateDistortionStatistics costLimit,
+            bool searchChildren,
             bool publishContexts)
         {
-            Av1PartitionType selectedPartition = this.SelectBestPartition(
-                writer,
-                macroBlock,
-                blockOrigin,
-                tileIndex,
-                blockSize);
+            Av1PartitionType selectedPartition = (Av1PartitionType)this.superblock.Workspace.PartitionSearchTypes[nodeIndex];
+            if (searchChildren)
+            {
+                selectedPartition = this.SelectBestPartition(
+                    writer,
+                    macroBlock,
+                    blockOrigin,
+                    tileIndex,
+                    blockSize,
+                    nodeIndex,
+                    costLimit,
+                    out Av1RateDistortionStatistics selectedStatistics);
+
+                if (selectedStatistics.Cost == long.MaxValue)
+                {
+                    return selectedStatistics;
+                }
+            }
 
             Av1RateDistortionStatistics statistics = this.EvaluatePartitionCandidate(
                 writer,
@@ -373,6 +485,9 @@ internal static partial class Av1IntraSuperblockEncoder
                 tileIndex,
                 blockSize,
                 selectedPartition,
+                nodeIndex,
+                Av1RateDistortionStatistics.Invalid,
+                searchChildren: false,
                 publishContexts);
 
             if (publishContexts)
@@ -395,6 +510,9 @@ internal static partial class Av1IntraSuperblockEncoder
             ushort tileIndex,
             Av1BlockSize blockSize,
             Av1PartitionType partitionType,
+            int nodeIndex,
+            Av1RateDistortionStatistics costLimit,
+            bool searchChildren,
             bool publishFinalContexts)
         {
             int rate = Av1TileWriter.GetPartitionCost(
@@ -408,10 +526,15 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1RateDistortionStatistics statistics = new(this.rateMultiplier, rate, 0);
             int leafCount = GetPartitionLeafCount(partitionType);
 
-            // Child reconstruction and syntax contexts become input to the next child. Publishing only
-            // the required leaves reproduces libaom's raster dry run without writing entropy symbols.
+            // Each child consumes part of the parent's bound. A losing prefix cannot be recovered by
+            // later nonnegative rates or distortion, so it must stop before another child changes contexts.
             for (int leafIndex = 0; leafIndex < leafCount; leafIndex++)
             {
+                if (statistics.Cost >= costLimit.Cost)
+                {
+                    return Av1RateDistortionStatistics.Invalid;
+                }
+
                 GetPartitionLeafGeometry(
                     blockOrigin,
                     blockSize,
@@ -420,6 +543,12 @@ internal static partial class Av1IntraSuperblockEncoder
                     out Point leafOrigin,
                     out Av1BlockSize leafSize);
 
+                if (!this.IsBlockOriginInsideFrame(leafOrigin))
+                {
+                    continue;
+                }
+
+                Av1RateDistortionStatistics remainingCost = costLimit.Subtract(this.rateMultiplier, in statistics);
                 bool publishContexts = leafIndex < leafCount - 1 || publishFinalContexts;
                 Av1RateDistortionStatistics childStatistics = partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8
                     ? this.EvaluateSelectedPartitionTree(
@@ -428,20 +557,53 @@ internal static partial class Av1IntraSuperblockEncoder
                         leafOrigin,
                         tileIndex,
                         leafSize,
+                        (nodeIndex * 4) + leafIndex + 1,
+                        remainingCost,
+                        searchChildren,
                         publishContexts)
-                    : this.EvaluatePartitionLeaf(
-                        writer,
-                        macroBlock,
-                        leafOrigin,
-                        tileIndex,
-                        leafSize,
-                        partitionType == Av1PartitionType.Split ? Av1PartitionType.None : partitionType,
-                        publishContexts);
+                    : searchChildren &&
+                        !this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex).Snapshot.Ready
+                        ? this.EvaluatePartitionLeaf(
+                            writer,
+                            macroBlock,
+                            leafOrigin,
+                            tileIndex,
+                            leafSize,
+                            partitionType == Av1PartitionType.Split ? Av1PartitionType.None : partitionType,
+                            this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex),
+                            publishContexts)
+                        : this.ReconstructPartitionLeaf(
+                            macroBlock,
+                            leafOrigin,
+                            tileIndex,
+                            this.blockWorkspace.PartitionTree.GetContext(nodeIndex, partitionType, leafIndex),
+                            publishContexts);
+
+                if (childStatistics.Cost == long.MaxValue)
+                {
+                    return Av1RateDistortionStatistics.Invalid;
+                }
 
                 statistics.Add(this.rateMultiplier, in childStatistics);
+                bool reusableSplit = partitionType == Av1PartitionType.Split && blockSize > Av1BlockSize.Block8x8 && leafIndex < 2;
+                bool reusableRectangle = partitionType is Av1PartitionType.Horizontal or Av1PartitionType.Vertical &&
+                    leafIndex == 0 && statistics.Cost < costLimit.Cost;
+
+                int reusableNode = reusableSplit ? (nodeIndex * 4) + leafIndex + 1 : nodeIndex;
+                if (searchChildren &&
+                    (reusableRectangle || (reusableSplit &&
+                        (Av1PartitionType)this.superblock.Workspace.PartitionSearchTypes[reusableNode] == Av1PartitionType.None)))
+                {
+                    Av1EncoderPartitionTree.ModeContext reusable = this.blockWorkspace.PartitionTree.GetContext(
+                        reusableNode, reusableSplit ? Av1PartitionType.None : partitionType, 0);
+
+                    reusable.Snapshot.Ready = reusable.Snapshot.Palette.PaletteSizes[0] == 0 &&
+                        reusable.Snapshot.Palette.PaletteSizes[1] == 0 &&
+                        reusable.Snapshot.ModeInfo.Block.UvMode != Av1ChromaPredictionMode.ChromaFromLuma;
+                }
             }
 
-            return statistics;
+            return statistics.Cost < costLimit.Cost ? statistics : Av1RateDistortionStatistics.Invalid;
         }
 
         private void ResetPartitionTrial(
@@ -629,6 +791,38 @@ internal static partial class Av1IntraSuperblockEncoder
             ref Av1EncoderBlockStruct block,
             ref Av1EncoderPaletteInfo paletteInfo)
         {
+            if (this.replayNodeIndex >= 0)
+            {
+                int halfSize = this.replayParentSize.GetWidth() >> 1;
+                int localX = blockOrigin.X - this.replayPartitionOrigin.X;
+                int localY = blockOrigin.Y - this.replayPartitionOrigin.Y;
+                int leafIndex = this.replayPartition switch
+                {
+                    Av1PartitionType.Horizontal => localY / halfSize,
+                    Av1PartitionType.Vertical => localX / halfSize,
+                    Av1PartitionType.Split => (localX / halfSize) + (2 * (localY / halfSize)),
+                    Av1PartitionType.HorizontalA => localY < halfSize ? localX / halfSize : 2,
+                    Av1PartitionType.HorizontalB => localY < halfSize ? 0 : 1 + (localX / halfSize),
+                    Av1PartitionType.VerticalA => localX < halfSize ? localY / halfSize : 2,
+                    Av1PartitionType.VerticalB => localX < halfSize ? 0 : 1 + (localY / halfSize),
+                    Av1PartitionType.Horizontal4 => localY / (halfSize >> 1),
+                    Av1PartitionType.Vertical4 => localX / (halfSize >> 1),
+                    _ => 0
+                };
+
+                // The writer reaches each terminal leaf in partition order. Restore its selected syntax
+                // and rebuild the residual against the preceding leaves, without running mode search again.
+                Av1EncoderPartitionTree.ModeContext context =
+                    this.blockWorkspace.PartitionTree.GetContext(this.replayNodeIndex, this.replayPartition, leafIndex);
+
+                modeInfo = context.Snapshot.ModeInfo;
+                block = context.Snapshot.Block;
+                paletteInfo = context.Snapshot.Palette;
+                this.ReconstructSelectedIntraBlock(macroBlock, blockOrigin, context);
+                this.SelectedBlockStatistics = context.Snapshot.Statistics;
+                return;
+            }
+
             Av1BlockSize blockSize = modeInfo.Block.BlockSize;
             Av1PartitionType partitionType = modeInfo.Block.PartitionType;
             Av1TransformSize maximumLumaTransformSize = this.picture.Parent.FrameHeader.CodedLossless
@@ -815,6 +1009,7 @@ internal static partial class Av1IntraSuperblockEncoder
             ushort tileIndex,
             Av1BlockSize blockSize,
             Av1PartitionType partitionType,
+            Av1EncoderPartitionTree.ModeContext context,
             bool publishContexts)
         {
             // Trial leaves must use the same reconstruction order as final leaves of this partition.
@@ -844,6 +1039,46 @@ internal static partial class Av1IntraSuperblockEncoder
                 ref block,
                 ref paletteInfo);
 
+            context.Snapshot = new Av1EncoderPartitionTree.ModeSnapshot
+            {
+                ModeInfo = modeInfo,
+                Block = block,
+                Palette = paletteInfo,
+                Statistics = this.SelectedBlockStatistics,
+                Displacement = modeInfo.Block.UseIntraBlockCopy ? this.picture.GetDisplacementVector(modeInfoPosition) : default,
+                Ready = false
+            };
+
+            int planeCount = block.HasChroma ? 3 : 1;
+            for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
+            {
+                Av1Plane plane = (Av1Plane)planeIndex;
+                Av1BlockSize planeSize = plane == Av1Plane.Y
+                    ? blockSize
+                    : blockSize.GetSubsampled(this.source.ChromaSubsamplingX != 0, this.source.ChromaSubsamplingY != 0);
+
+                int count = planeSize.GetWidth() * planeSize.GetHeight();
+                int area = plane == Av1Plane.Y ? lumaArea : chromaArea;
+                this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane)
+                    .Slice(
+                        area / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount,
+                        count / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount)
+                    .CopyTo(context.GetTransformStates(plane));
+
+                if (plane != Av1Plane.V && paletteInfo.PaletteSizes[plane == Av1Plane.Y ? 0 : 1] > 0)
+                {
+                    Av1PlaneType planeType = plane == Av1Plane.Y ? Av1PlaneType.Y : Av1PlaneType.Uv;
+                    int width = planeSize.GetWidth();
+                    int height = planeSize.GetHeight();
+                    Buffer2DRegion<byte> map = this.superblock.Workspace.GetPaletteMaps().GetMap(planeType, width, height);
+                    Span<byte> retained = context.GetPaletteIndices(planeType);
+                    for (int row = 0; row < height; row++)
+                    {
+                        map.DangerousGetRowSpan(row).CopyTo(retained.Slice(row * width, width));
+                    }
+                }
+            }
+
             if (publishContexts)
             {
                 this.PublishPartitionLeafContexts(
@@ -857,6 +1092,274 @@ internal static partial class Av1IntraSuperblockEncoder
             }
 
             return this.SelectedBlockStatistics;
+        }
+
+        private Av1RateDistortionStatistics ReconstructPartitionLeaf(
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            ushort tileIndex,
+            Av1EncoderPartitionTree.ModeContext context,
+            bool publishContexts)
+        {
+            Av1EncoderPartitionTree.ModeSnapshot snapshot = context.Snapshot;
+            Av1BlockSize blockSize = snapshot.ModeInfo.Block.BlockSize;
+            this.SetBlockGeometry(blockOrigin, blockSize, snapshot.ModeInfo.Block.PartitionType);
+            Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
+            this.picture.GetMacroBlockModeInfo(modeInfoPosition) = snapshot.ModeInfo;
+            Av1TileWriter.SetModeInfoRowAndColumn(
+                this.picture,
+                macroBlock,
+                macroBlock.Tile,
+                modeInfoPosition,
+                blockSize,
+                this.picture.Parent.Common.ModeInfoStride,
+                this.picture.Parent.Common.ModeInfoRowCount,
+                this.picture.Parent.Common.ModeInfoColumnCount);
+
+            int lumaArea = this.codedAreaLuma;
+            int chromaArea = this.codedAreaChroma;
+            this.ReconstructSelectedIntraBlock(macroBlock, blockOrigin, context);
+            if (publishContexts)
+            {
+                this.PublishPartitionLeafContexts(
+                    blockOrigin,
+                    tileIndex,
+                    lumaArea,
+                    chromaArea,
+                    snapshot.ModeInfo,
+                    snapshot.Block,
+                    snapshot.Palette);
+            }
+
+            this.SelectedBlockStatistics = snapshot.Statistics;
+            return snapshot.Statistics;
+        }
+
+        private void ReconstructSelectedIntraBlock(
+            Av1MacroBlockD macroBlock,
+            Point blockOrigin,
+            Av1EncoderPartitionTree.ModeContext context)
+        {
+            Av1EncoderPartitionTree.ModeSnapshot snapshot = context.Snapshot;
+            Av1BlockSize blockSize = snapshot.ModeInfo.Block.BlockSize;
+            bool blockCopy = snapshot.ModeInfo.Block.UseIntraBlockCopy;
+            bool usesChromaFromLuma = snapshot.Block.HasChroma && snapshot.ModeInfo.Block.UvMode == Av1ChromaPredictionMode.ChromaFromLuma;
+            Av1EncoderModeDecisionWorkspace<TSample> workspace = this.blockWorkspace.GetModeDecisionWorkspace<TSample>();
+            Span<short> lumaQ3 = workspace.ChromaFromLumaSamples;
+            int planeCount = snapshot.Block.HasChroma ? 3 : 1;
+            int chromaArea = 0;
+
+            for (int planeIndex = 0; planeIndex < planeCount; planeIndex++)
+            {
+                Av1Plane plane = (Av1Plane)planeIndex;
+                int subX = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingX;
+                int subY = planeIndex == 0 ? 0 : this.source.ChromaSubsamplingY;
+                Point planeOrigin = planeIndex == 0 ? blockOrigin : Av1TileWriter.GetChromaBlockOrigin(blockOrigin, subX, subY);
+                Av1BlockSize planeBlockSize = planeIndex == 0 ? blockSize : blockSize.GetSubsampled(subX != 0, subY != 0);
+                int width = planeBlockSize.GetWidth();
+                int height = planeBlockSize.GetHeight();
+                Av1TransformSize transformSize = planeIndex == 0
+                    ? snapshot.ModeInfo.Block.TransformSize
+                    : this.picture.Parent.FrameHeader.CodedLossless
+                        ? Av1TransformSize.Size4x4
+                        : blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
+
+                int transformWidth = transformSize.GetWidth();
+                int transformHeight = transformSize.GetHeight();
+                int sampleCount = transformSize.GetSize2d();
+                int coefficientOffset = planeIndex == 0 ? this.codedAreaLuma : this.codedAreaChroma;
+                ReadOnlySpan<Av1EncoderTransformBlockState> states = context.GetTransformStates(plane);
+                Buffer2DRegion<TSample> sourcePlane = this.source.GetPlane(plane);
+                Buffer2DRegion<TSample> destinationPlane = this.reconstruction.GetPlane(plane);
+                ReadOnlySpan<TSample> reconstructedBlock = Av1TransformBlockEncoder.GetPlaneSpan(destinationPlane, planeOrigin);
+
+                // Prediction stays outside transient CfL storage. The zero-mean luma surface survives
+                // both chroma planes while the residual and inverse-transform workspaces are reused.
+                Span<TSample> prediction = workspace.GetCandidateReconstruction(0)[..sampleCount];
+                Span<short> residual = workspace.Residual[..sampleCount];
+                Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
+                Span<TSample> leftStorage = workspace.GetReferenceSamples(1);
+                Av1PlaneType planeType = planeIndex == 0 ? Av1PlaneType.Y : Av1PlaneType.Uv;
+                int paletteSize = snapshot.Palette.PaletteSizes[(int)planeType];
+                Buffer2DRegion<byte> paletteMap = default;
+                if (paletteSize > 0)
+                {
+                    paletteMap = this.superblock.Workspace.GetPaletteMaps().GetMap(planeType, width, height);
+                    if (plane != Av1Plane.V)
+                    {
+                        ReadOnlySpan<byte> retainedMap = context.GetPaletteIndices(planeType);
+                        for (int row = 0; row < height; row++)
+                        {
+                            retainedMap.Slice(row * width, width).CopyTo(paletteMap.DangerousGetRowSpan(row));
+                        }
+                    }
+                }
+
+                if (plane == Av1Plane.U && usesChromaFromLuma)
+                {
+                    TOperator.PrepareChromaFromLuma(
+                        this.reconstruction.GetPlane(Av1Plane.Y),
+                        new Point(planeOrigin.X << subX, planeOrigin.Y << subY),
+                        lumaQ3,
+                        transformSize,
+                        subX != 0,
+                        subY != 0);
+                }
+
+                Av1BlockSize maximumUnit = planeIndex == 0
+                    ? Av1BlockSize.Block64x64
+                    : Av1BlockSize.Block64x64.GetSubsampled(subX != 0, subY != 0);
+
+                int unitWidth = Math.Min(maximumUnit.GetWidth(), width);
+                int unitHeight = Math.Min(maximumUnit.GetHeight(), height);
+                int transformIndex = 0;
+
+                // Large coding blocks visit bounded 64x64 luma regions before advancing to the next region.
+                // Within each region, raster order supplies the reconstructed edges of later transforms.
+                for (int unitY = 0; unitY < height; unitY += unitHeight)
+                {
+                    for (int unitX = 0; unitX < width; unitX += unitWidth)
+                    {
+                        for (int y = unitY; y < unitY + unitHeight; y += transformHeight)
+                        {
+                            for (int x = unitX; x < unitX + unitWidth; x += transformWidth, transformIndex++)
+                            {
+                                Point transformOrigin = planeOrigin + new Size(x, y);
+                                if (blockCopy)
+                                {
+                                    Point referenceOrigin = new(
+                                        blockOrigin.X + (snapshot.Displacement.Column >> 3),
+                                        blockOrigin.Y + (snapshot.Displacement.Row >> 3));
+
+                                    TOperator.PrepareIntraBlockCopyPrediction(
+                                        sourcePlane,
+                                        transformOrigin,
+                                        destinationPlane,
+                                        new Point((referenceOrigin.X >> subX) + x, (referenceOrigin.Y >> subY) + y),
+                                        subX != 0 && (referenceOrigin.X & 1) != 0,
+                                        subY != 0 && (referenceOrigin.Y & 1) != 0,
+                                        prediction,
+                                        residual,
+                                        transformSize);
+                                }
+                                else if (paletteSize > 0)
+                                {
+                                    TOperator.PreparePalette(
+                                        sourcePlane,
+                                        transformOrigin,
+                                        snapshot.Palette.GetColors(plane),
+                                        paletteMap.GetSubRegion(x, y, transformWidth, transformHeight),
+                                        prediction,
+                                        residual,
+                                        transformSize);
+                                }
+                                else
+                                {
+                                    this.PrepareTransformReferenceSamples(
+                                        destinationPlane,
+                                        blockOrigin,
+                                        planeOrigin,
+                                        blockSize,
+                                        macroBlock,
+                                        y / transformHeight,
+                                        x / transformWidth,
+                                        destinationPlane.Stride,
+                                        transformSize,
+                                        subX,
+                                        subY,
+                                        reconstructedBlock,
+                                        aboveStorage,
+                                        leftStorage,
+                                        out bool hasLeft,
+                                        out bool hasAbove);
+
+                                    ReadOnlySpan<TSample> above = aboveStorage.Slice(1, transformWidth + transformHeight);
+                                    ReadOnlySpan<TSample> left = leftStorage.Slice(1, transformWidth + transformHeight);
+                                    if (planeIndex > 0 && usesChromaFromLuma)
+                                    {
+                                        TOperator.PrepareChromaFromLumaDc(
+                                            prediction, above, left, hasLeft, hasAbove, transformSize, this.bitDepth);
+
+                                        int jointSign = snapshot.Block.PredictionUnit.ChromaFromLumaSigns;
+                                        int indices = snapshot.Block.PredictionUnit.ChromaFromLumaIndex;
+                                        int sign = plane == Av1Plane.U ? Av1ChromaFromLumaMath.SignU(jointSign) : Av1ChromaFromLumaMath.SignV(jointSign);
+                                        int magnitude = plane == Av1Plane.U ? Av1ChromaFromLumaMath.IndexU(indices) : Av1ChromaFromLumaMath.IndexV(indices);
+                                        int alpha = sign == Av1ChromaFromLumaMath.SignZero
+                                            ? 0
+                                            : (magnitude + 1) * (sign == Av1ChromaFromLumaMath.SignNegative ? -1 : 1);
+
+                                        TOperator.ApplyChromaFromLuma(lumaQ3, prediction, alpha, transformSize, this.bitDepth);
+                                        TOperator.SubtractPrediction(sourcePlane, transformOrigin, prediction, residual, transformSize);
+                                    }
+                                    else if (planeIndex == 0 && snapshot.Block.FilterIntraMode != Av1FilterIntraMode.AllFilterIntraModes)
+                                    {
+                                        TOperator.PrepareFilterIntra(
+                                            this.blockWorkspace,
+                                            sourcePlane,
+                                            transformOrigin,
+                                            prediction,
+                                            above,
+                                            left,
+                                            residual,
+                                            snapshot.Block.FilterIntraMode,
+                                            transformSize,
+                                            this.bitDepth);
+                                    }
+                                    else
+                                    {
+                                        Av1PredictionMode mode = planeIndex == 0
+                                            ? snapshot.ModeInfo.Block.Mode
+                                            : snapshot.ModeInfo.Block.UvMode.ToLumaMode();
+
+                                        TOperator.PrepareIntra(
+                                            this.blockWorkspace,
+                                            sourcePlane,
+                                            transformOrigin,
+                                            prediction,
+                                            above,
+                                            left,
+                                            hasLeft,
+                                            hasAbove,
+                                            mode,
+                                            snapshot.Block.PredictionUnit.AngleDelta[(int)planeType],
+                                            this.picture.Sequence.SequenceHeader.EnableIntraEdgeFilter,
+                                            this.UseSmoothIntraEdges(macroBlock, blockOrigin, blockSize, plane),
+                                            residual,
+                                            transformSize,
+                                            this.bitDepth);
+                                    }
+                                }
+
+                                int stateIndex = transformIndex * sampleCount / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
+                                this.ReconstructSelectedTransform(
+                                    transformOrigin,
+                                    plane,
+                                    transformSize,
+                                    prediction,
+                                    residual,
+                                    states[stateIndex],
+                                    snapshot.ModeInfo.Block.Skip,
+                                    coefficientOffset + (transformIndex * sampleCount));
+                            }
+                        }
+                    }
+                }
+
+                if (planeIndex != 0)
+                {
+                    chromaArea = width * height;
+                }
+            }
+
+            if (blockCopy)
+            {
+                this.picture.SetDisplacementVector(
+                    new Point(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2),
+                    snapshot.Displacement);
+            }
+
+            this.codedAreaLuma += blockSize.GetWidth() * blockSize.GetHeight();
+            this.codedAreaChroma += chromaArea;
         }
 
         private void SetBlockGeometry(
@@ -2373,7 +2876,7 @@ internal static partial class Av1IntraSuperblockEncoder
             Av1MacroBlockD macroBlock,
             int transformRow,
             int transformColumn,
-            int planeBlockWidth,
+            int candidateStride,
             Av1TransformSize transformSize,
             int subsamplingX,
             int subsamplingY,
@@ -2390,8 +2893,8 @@ internal static partial class Av1IntraSuperblockEncoder
             int modeInfoRow = lumaBlockOrigin.Y >> Av1Constants.ModeInfoSizeLog2;
             int modeInfoColumn = lumaBlockOrigin.X >> Av1Constants.ModeInfoSizeLog2;
 
-            // Internal top and left edges come from the candidate mosaic built in raster order. Edges outside
-            // the candidate continue to read committed reconstruction, keeping unsuccessful trials isolated.
+            // Internal edges read the supplied surface at its own stride. Trials supply their isolated mosaic;
+            // selected-mode reconstruction supplies the frame containing earlier transforms.
             hasAbove = transformRow > 0 || macroBlock.IsUpAvailable;
             hasLeft = transformColumn > 0 || macroBlock.IsLeftAvailable;
             int transformRow4x4 = rowOffset >> Av1Constants.ModeInfoSizeLog2;
@@ -2444,7 +2947,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 if (transformRow > 0)
                 {
                     candidateReconstruction
-                        .Slice(((rowOffset - 1) * planeBlockWidth) + columnOffset, transformWidth)
+                        .Slice(((rowOffset - 1) * candidateStride) + columnOffset, transformWidth)
                         .CopyTo(above);
                 }
                 else
@@ -2462,7 +2965,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     for (int row = 0; row < transformHeight; row++)
                     {
                         left[row] = candidateReconstruction[
-                            ((rowOffset + row) * planeBlockWidth) + columnOffset - 1];
+                            ((rowOffset + row) * candidateStride) + columnOffset - 1];
                     }
                 }
                 else
@@ -2500,7 +3003,7 @@ internal static partial class Av1IntraSuperblockEncoder
                 {
                     candidateReconstruction
                         .Slice(
-                            ((rowOffset - 1) * planeBlockWidth) + columnOffset + transformWidth,
+                            ((rowOffset - 1) * candidateStride) + columnOffset + transformWidth,
                             topRightCount)
                         .CopyTo(above[transformWidth..]);
                 }
@@ -2528,7 +3031,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     for (int row = transformHeight; row < transformHeight + bottomLeftCount; row++)
                     {
                         left[row] = candidateReconstruction[
-                            ((rowOffset + row) * planeBlockWidth) + columnOffset - 1];
+                            ((rowOffset + row) * candidateStride) + columnOffset - 1];
                     }
                 }
                 else
@@ -2548,7 +3051,7 @@ internal static partial class Av1IntraSuperblockEncoder
             // to read the already reconstructed neighboring block so candidate trials remain isolated.
             TSample corner = hasAbove && hasLeft
                 ? transformRow > 0 && transformColumn > 0
-                    ? candidateReconstruction[((rowOffset - 1) * planeBlockWidth) + columnOffset - 1]
+                    ? candidateReconstruction[((rowOffset - 1) * candidateStride) + columnOffset - 1]
                     : reconstructionPlane.DangerousGetRowSpan(planeBlockOrigin.Y + rowOffset - 1)[
                         planeBlockOrigin.X + columnOffset - 1]
                 : hasAbove
@@ -2745,6 +3248,69 @@ internal static partial class Av1IntraSuperblockEncoder
                         reconstructionPlane
                             .DangerousGetRowSpan(blockOrigin.Y + row)
                             .Slice(blockOrigin.X, BlockWidth));
+            }
+        }
+
+        private void ReconstructSelectedTransform(
+            Point planeOrigin,
+            Av1Plane plane,
+            Av1TransformSize transformSize,
+            ReadOnlySpan<TSample> prediction,
+            ReadOnlySpan<short> residual,
+            Av1EncoderTransformBlockState selectedState,
+            bool skipTransform,
+            int coefficientOffset)
+        {
+            Buffer2DRegion<TSample> destinationPlane = this.reconstruction.GetPlane(plane);
+            Span<TSample> destination = Av1TransformBlockEncoder.GetPlaneSpan(destinationPlane, planeOrigin);
+            int width = transformSize.GetWidth();
+            int height = transformSize.GetHeight();
+            for (int row = 0; row < height; row++)
+            {
+                prediction.Slice(row * width, width).CopyTo(destination.Slice(row * destinationPlane.Stride, width));
+            }
+
+            Span<int> coefficients = this.coefficientBuffer.GetPlaneSpan(this.superblock.Index, plane)
+                .Slice(coefficientOffset, transformSize.GetSize2d());
+
+            ref Av1EncoderTransformBlockState state = ref this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane)[
+                coefficientOffset / Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount];
+
+            state = default;
+            if (skipTransform || selectedState.EndOfBlock == 0)
+            {
+                // Empty selected transforms must retain prediction. Re-quantizing an inferred transform
+                // could otherwise introduce residual coefficients that were absent from the winning mode.
+                coefficients.Clear();
+                return;
+            }
+
+            // Mode and transform decisions are already fixed. Generate their coefficients and add the
+            // inverse transform directly to the frame, without another distortion scan or candidate copy.
+            int planeIndex = (int)plane;
+            Av1TransformBlockEncoder.EncodeLossy(
+                this.blockWorkspace,
+                residual,
+                coefficients,
+                transformSize,
+                selectedState.TransformType,
+                this.quantization.QIndex[0],
+                this.quantization.DeltaQDc[planeIndex],
+                this.quantization.DeltaQAc[planeIndex],
+                this.bitDepth,
+                ref state);
+
+            if (state.EndOfBlock > 0)
+            {
+                TOperator.AddSelectedResidual(
+                    this.blockWorkspace,
+                    destination,
+                    destinationPlane.Stride,
+                    transformSize,
+                    plane,
+                    this.bitDepth,
+                    this.quantization.QIndex[0] == 0,
+                    state);
             }
         }
     }

@@ -151,6 +151,27 @@ Restoration search, filtering, signaling, and retained trial storage are committ
   All six corrected cases pass after the final test edits (`sequence-row-reuse-final` 4/4,
   `screen-copy-location-final` 2/2). Pixel assertions and reference outputs were not changed.
 
+### Coded-edge partition traversal checkpoint: 2026-09-10
+
+- Removed the full-block-fit restriction from partition search. The candidate alphabet now uses
+  coded midpoint availability; permitted blocks can extend into padding. Native evidence:
+  `partition_search.c:3320-3418`. Existing Effort gates still remain.
+- Transform candidates, selected reconstruction, coefficient copying, coded-area offsets and
+  neighbor publication now omit transforms wholly outside the coded frame. Intersecting transforms
+  retain their complete samples. Native evidence: `encodemb.c:660-709` and
+  `av1_common_int.h:1567-1592`. The shared tiled commit replaces the duplicate 8x8 split-copy helper.
+- Tiled intra edges now repeat the last coded neighbor when a transform extends past the frame,
+  instead of reading padded rows as neighbors. Native evidence: `reconintra.c:1734-1754,1802-1832`.
+- Release/net11 and Roslyn succeed without added diagnostics. Four odd-sized lossless cases were
+  added to the existing frame test, keeping exact source-pixel assertions. All ten clipped cases
+  pass (`clipped-partition-r1`), the frame suite passes 176/176 (`clipped-partition-frame`), and
+  block reconstruction passes 143/143 (`clipped-partition-block`). Public encoder tests remain
+  73/76 (`clipped-partition-public`), with the same three screen-content failures.
+- These checks establish managed reconstruction and source-lossless behavior, not native encoder
+  parity. Visible-pixel distortion clipping remains to be corrected: `tx_search.c:979-1001` uses
+  `rdopt_utils.h:361-403`, whereas candidate distortion still includes complete padded transforms.
+  No benchmark, reference output change, or tolerance relaxation was performed.
+
 The official main ref was resolved and fetched as `8e7b6a567df174d795479b92b4ac766d271add73`
 into `D:\GitHub\ynse01\aom-8e7b6a56-reference`, outside this repository.
 The previous `d565eec6` source directory is an export without Git metadata. Its local build cache

@@ -406,7 +406,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         reconstructionPlane,
                         blockOrigin,
                         blockWidth,
-                        blockHeight,
+                        GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0),
                         transformSize,
                         retainedCoefficients,
                         retainedStates);

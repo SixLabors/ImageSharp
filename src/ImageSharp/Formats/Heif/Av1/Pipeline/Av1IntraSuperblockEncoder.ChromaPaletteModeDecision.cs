@@ -329,7 +329,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         blueReconstruction,
                         chromaOrigin,
                         width,
-                        height,
+                        GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY),
                         transformSize,
                         retainedBlueCoefficients,
                         retainedBlueStates);
@@ -341,7 +341,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         redReconstruction,
                         chromaOrigin,
                         width,
-                        height,
+                        GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY),
                         transformSize,
                         retainedRedCoefficients,
                         retainedRedStates);

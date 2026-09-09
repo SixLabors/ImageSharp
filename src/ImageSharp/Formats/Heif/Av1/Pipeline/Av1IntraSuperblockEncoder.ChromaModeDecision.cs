@@ -796,7 +796,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         blueReconstruction,
                         chromaOrigin,
                         blockWidth,
-                        blockHeight,
+                        GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY),
                         transformSize,
                         retainedBlueCoefficients,
                         retainedBlueStates);
@@ -808,7 +808,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         redReconstruction,
                         chromaOrigin,
                         blockWidth,
-                        blockHeight,
+                        GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY),
                         transformSize,
                         retainedRedCoefficients,
                         retainedRedStates);
@@ -859,8 +859,9 @@ internal static partial class Av1IntraSuperblockEncoder
             int transformSampleCount = transformSize.GetSize2d();
             int transformWidth4x4 = transformSize.Get4x4WideCount();
             int transformHeight4x4 = transformSize.Get4x4HighCount();
-            int maximumUnitWidth = Math.Min(maximumUnitBlockSize.GetWidth(), blockWidth);
-            int maximumUnitHeight = Math.Min(maximumUnitBlockSize.GetHeight(), blockHeight);
+            Size codedExtent = GetCodedTransformExtent(macroBlock, chromaBlockSize, transformSize, subsamplingX, subsamplingY);
+            int maximumUnitWidth = Math.Min(maximumUnitBlockSize.GetWidth(), codedExtent.Width);
+            int maximumUnitHeight = Math.Min(maximumUnitBlockSize.GetHeight(), codedExtent.Height);
             Av1TransformType transformType = this.picture.Parent.FrameHeader.CodedLossless
                 ? Av1TransformType.DctDct
                 : Av1SymbolContextHelper.GetDefaultIntraTransformType(
@@ -885,12 +886,12 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Residual syntax completes each bounded 64x64 luma region, scaled for chroma, before
             // moving to the next region. Candidate coefficients and states must retain that exact order.
-            for (int regionRow = 0; regionRow < blockHeight; regionRow += maximumUnitHeight)
+            for (int regionRow = 0; regionRow < codedExtent.Height; regionRow += maximumUnitHeight)
             {
-                int unitBottom = Math.Min(regionRow + maximumUnitHeight, blockHeight);
-                for (int regionColumn = 0; regionColumn < blockWidth; regionColumn += maximumUnitWidth)
+                int unitBottom = Math.Min(regionRow + maximumUnitHeight, codedExtent.Height);
+                for (int regionColumn = 0; regionColumn < codedExtent.Width; regionColumn += maximumUnitWidth)
                 {
-                    int unitRight = Math.Min(regionColumn + maximumUnitWidth, blockWidth);
+                    int unitRight = Math.Min(regionColumn + maximumUnitWidth, codedExtent.Width);
                     for (int rowOffset = regionRow; rowOffset < unitBottom; rowOffset += transformHeight)
                     {
                         int transformRow = rowOffset / transformHeight;
@@ -1022,26 +1023,28 @@ internal static partial class Av1IntraSuperblockEncoder
             Buffer2DRegion<TSample> reconstruction,
             Point blockOrigin,
             int blockWidth,
-            int blockHeight,
+            Size codedExtent,
             Av1TransformSize transformSize,
             Span<int> retainedCoefficients,
             Span<Av1EncoderTransformBlockState> retainedStates)
         {
-            int blockSampleCount = blockWidth * blockHeight;
+            int blockSampleCount = codedExtent.Width * codedExtent.Height;
             int transformStateStride =
                 transformSize.GetSize2d() /
                 Av1EncoderCoefficientBuffer.TransformBlockUnitCoefficientCount;
 
             candidateCoefficients[..blockSampleCount].CopyTo(retainedCoefficients);
-            for (int transformIndex = 0; transformIndex < candidateStates.Length; transformIndex++)
+            int transformCount = blockSampleCount / transformSize.GetSize2d();
+            for (int transformIndex = 0; transformIndex < transformCount; transformIndex++)
             {
                 retainedStates[transformIndex * transformStateStride] = candidateStates[transformIndex];
             }
 
-            for (int row = 0; row < blockHeight; row++)
+            Span<TSample> destination = Av1TransformBlockEncoder.GetPlaneSpan(reconstruction, blockOrigin);
+            for (int row = 0; row < codedExtent.Height; row++)
             {
-                candidateReconstruction.Slice(row * blockWidth, blockWidth)
-                    .CopyTo(reconstruction.DangerousGetRowSpan(blockOrigin.Y + row).Slice(blockOrigin.X, blockWidth));
+                candidateReconstruction.Slice(row * blockWidth, codedExtent.Width)
+                    .CopyTo(destination.Slice(row * reconstruction.Stride, codedExtent.Width));
             }
         }
 

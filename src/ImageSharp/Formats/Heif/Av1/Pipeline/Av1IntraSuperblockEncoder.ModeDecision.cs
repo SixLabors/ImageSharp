@@ -293,21 +293,6 @@ internal static partial class Av1IntraSuperblockEncoder
                 return preparedPartition;
             }
 
-            Point modeInfoPosition = new(blockOrigin.X >> Av1Constants.ModeInfoSizeLog2, blockOrigin.Y >> Av1Constants.ModeInfoSizeLog2);
-            bool hasRows =
-                modeInfoPosition.Y + blockSize.Get4x4HighCount() <= this.picture.Parent.Common.ModeInfoRowCount;
-
-            bool hasColumns =
-                modeInfoPosition.X + blockSize.Get4x4WideCount() <= this.picture.Parent.Common.ModeInfoColumnCount;
-
-            if (!hasRows || !hasColumns)
-            {
-                // Coded dimensions are aligned to eight samples, so an incomplete searched node must retain
-                // the prepared split tree rather than evaluating a block that extends beyond source storage.
-                this.PreparePartitionGeometry(blockOrigin, blockSize, preparedPartition);
-                return preparedPartition;
-            }
-
             if (this.effort < 9)
             {
                 return preparedPartition;
@@ -371,7 +356,7 @@ internal static partial class Av1IntraSuperblockEncoder
             for (int candidateIndex = 0; candidateIndex < candidateCount; candidateIndex++)
             {
                 Av1PartitionType partitionType = searchOrder[candidateIndex];
-                if (!this.IsPartitionCandidateAllowed(blockSize, partitionType))
+                if (!this.IsPartitionCandidateAllowed(blockOrigin, blockSize, partitionType))
                 {
                     continue;
                 }
@@ -648,9 +633,28 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         private bool IsPartitionCandidateAllowed(
+            Point blockOrigin,
             Av1BlockSize blockSize,
             Av1PartitionType partitionType)
         {
+            int halfWidth = blockSize.GetWidth() >> 1;
+            int halfHeight = blockSize.GetHeight() >> 1;
+            bool hasRows = blockOrigin.Y + halfHeight <
+                (this.picture.Parent.Common.ModeInfoRowCount << Av1Constants.ModeInfoSizeLog2);
+
+            bool hasColumns = blockOrigin.X + halfWidth <
+                (this.picture.Parent.Common.ModeInfoColumnCount << Av1Constants.ModeInfoSizeLog2);
+
+            // At frame edges the partition alphabet depends on whether each midpoint is visible.
+            // A remaining half-block is split implicitly; permitted leaves may extend into padding.
+            if ((partitionType == Av1PartitionType.None && (!hasRows || !hasColumns)) ||
+                (partitionType == Av1PartitionType.Horizontal && !hasColumns) ||
+                (partitionType == Av1PartitionType.Vertical && !hasRows) ||
+                (partitionType >= Av1PartitionType.HorizontalA && (!hasRows || !hasColumns)))
+            {
+                return false;
+            }
+
             if (partitionType.GetBlockSubSize(blockSize) == Av1BlockSize.Invalid)
             {
                 return false;
@@ -960,7 +964,10 @@ internal static partial class Av1IntraSuperblockEncoder
                 block.PredictionUnit.AngleDelta[(int)Av1PlaneType.Uv] = (sbyte)chromaAngleDelta;
                 block.PredictionUnit.ChromaFromLumaIndex = chromaFromLumaIndex;
                 block.PredictionUnit.ChromaFromLumaSigns = chromaFromLumaSigns;
-                chromaArea = chromaBlockSize.GetWidth() * chromaBlockSize.GetHeight();
+                Size chromaExtent = GetCodedTransformExtent(
+                    macroBlock, chromaBlockSize, chromaTransformSize, subsamplingX, subsamplingY);
+
+                chromaArea = chromaExtent.Width * chromaExtent.Height;
                 lumaStatistics.Add(this.rateMultiplier, in chromaStatistics);
             }
 
@@ -998,7 +1005,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     : regularStatistics;
             }
 
-            this.codedAreaLuma += blockSize.GetWidth() * blockSize.GetHeight();
+            Size lumaExtent = GetCodedTransformExtent(macroBlock, blockSize, modeInfo.Block.TransformSize, 0, 0);
+            this.codedAreaLuma += lumaExtent.Width * lumaExtent.Height;
             this.codedAreaChroma += chromaArea;
         }
 
@@ -1057,7 +1065,7 @@ internal static partial class Av1IntraSuperblockEncoder
                     ? blockSize
                     : blockSize.GetSubsampled(this.source.ChromaSubsamplingX != 0, this.source.ChromaSubsamplingY != 0);
 
-                int count = planeSize.GetWidth() * planeSize.GetHeight();
+                int count = plane == Av1Plane.Y ? this.codedAreaLuma - lumaArea : this.codedAreaChroma - chromaArea;
                 int area = plane == Av1Plane.Y ? lumaArea : chromaArea;
                 this.coefficientBuffer.GetTransformBlockSpan(this.superblock.Index, plane)
                     .Slice(
@@ -1082,6 +1090,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (publishContexts)
             {
                 this.PublishPartitionLeafContexts(
+                    macroBlock,
                     blockOrigin,
                     tileIndex,
                     lumaArea,
@@ -1122,6 +1131,7 @@ internal static partial class Av1IntraSuperblockEncoder
             if (publishContexts)
             {
                 this.PublishPartitionLeafContexts(
+                    macroBlock,
                     blockOrigin,
                     tileIndex,
                     lumaArea,
@@ -1164,6 +1174,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         ? Av1TransformSize.Size4x4
                         : blockSize.GetMaxUvTransformSize(subX != 0, subY != 0);
 
+                Size codedExtent = GetCodedTransformExtent(macroBlock, planeBlockSize, transformSize, subX, subY);
                 int transformWidth = transformSize.GetWidth();
                 int transformHeight = transformSize.GetHeight();
                 int sampleCount = transformSize.GetSize2d();
@@ -1210,19 +1221,19 @@ internal static partial class Av1IntraSuperblockEncoder
                     ? Av1BlockSize.Block64x64
                     : Av1BlockSize.Block64x64.GetSubsampled(subX != 0, subY != 0);
 
-                int unitWidth = Math.Min(maximumUnit.GetWidth(), width);
-                int unitHeight = Math.Min(maximumUnit.GetHeight(), height);
+                int unitWidth = Math.Min(maximumUnit.GetWidth(), codedExtent.Width);
+                int unitHeight = Math.Min(maximumUnit.GetHeight(), codedExtent.Height);
                 int transformIndex = 0;
 
                 // Large coding blocks visit bounded 64x64 luma regions before advancing to the next region.
                 // Within each region, raster order supplies the reconstructed edges of later transforms.
-                for (int unitY = 0; unitY < height; unitY += unitHeight)
+                for (int unitY = 0; unitY < codedExtent.Height; unitY += unitHeight)
                 {
-                    for (int unitX = 0; unitX < width; unitX += unitWidth)
+                    for (int unitX = 0; unitX < codedExtent.Width; unitX += unitWidth)
                     {
-                        for (int y = unitY; y < unitY + unitHeight; y += transformHeight)
+                        for (int y = unitY; y < Math.Min(unitY + unitHeight, codedExtent.Height); y += transformHeight)
                         {
-                            for (int x = unitX; x < unitX + unitWidth; x += transformWidth, transformIndex++)
+                            for (int x = unitX; x < Math.Min(unitX + unitWidth, codedExtent.Width); x += transformWidth, transformIndex++)
                             {
                                 Point transformOrigin = planeOrigin + new Size(x, y);
                                 if (blockCopy)
@@ -1347,7 +1358,7 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (planeIndex != 0)
                 {
-                    chromaArea = width * height;
+                    chromaArea = codedExtent.Width * codedExtent.Height;
                 }
             }
 
@@ -1358,7 +1369,8 @@ internal static partial class Av1IntraSuperblockEncoder
                     snapshot.Displacement);
             }
 
-            this.codedAreaLuma += blockSize.GetWidth() * blockSize.GetHeight();
+            Size lumaExtent = GetCodedTransformExtent(macroBlock, blockSize, snapshot.ModeInfo.Block.TransformSize, 0, 0);
+            this.codedAreaLuma += lumaExtent.Width * lumaExtent.Height;
             this.codedAreaChroma += chromaArea;
         }
 
@@ -1379,6 +1391,7 @@ internal static partial class Av1IntraSuperblockEncoder
         }
 
         private void PublishPartitionLeafContexts(
+            Av1MacroBlockD macroBlock,
             Point blockOrigin,
             ushort tileIndex,
             int lumaArea,
@@ -1410,7 +1423,7 @@ internal static partial class Av1IntraSuperblockEncoder
             PublishCoefficientContexts(
                 this.picture.LuminanceDcSignLevelCoefficientNeighbors[tileIndex],
                 blockOrigin,
-                blockSize,
+                GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0),
                 transformSize,
                 Av1BlockSize.Block64x64,
                 lumaCoefficients[lumaArea..],
@@ -1469,7 +1482,7 @@ internal static partial class Av1IntraSuperblockEncoder
             PublishCoefficientContexts(
                 this.picture.CbDcSignLevelCoefficientNeighbors[tileIndex],
                 chromaOrigin,
-                chromaBlockSize,
+                GetCodedTransformExtent(macroBlock, chromaBlockSize, chromaTransformSize, subsamplingX, subsamplingY),
                 chromaTransformSize,
                 maximumChromaUnitBlockSize,
                 blueCoefficients[chromaArea..],
@@ -1478,7 +1491,7 @@ internal static partial class Av1IntraSuperblockEncoder
             PublishCoefficientContexts(
                 this.picture.CrDcSignLevelCoefficientNeighbors[tileIndex],
                 chromaOrigin,
-                chromaBlockSize,
+                GetCodedTransformExtent(macroBlock, chromaBlockSize, chromaTransformSize, subsamplingX, subsamplingY),
                 chromaTransformSize,
                 maximumChromaUnitBlockSize,
                 redCoefficients[chromaArea..],
@@ -1488,7 +1501,7 @@ internal static partial class Av1IntraSuperblockEncoder
         private static void PublishCoefficientContexts(
             Av1NeighborArrayUnit<byte> neighbors,
             Point blockOrigin,
-            Av1BlockSize blockSize,
+            Size codedExtent,
             Av1TransformSize transformSize,
             Av1BlockSize maximumUnitBlockSize,
             ReadOnlySpan<int> coefficients,
@@ -1498,8 +1511,8 @@ internal static partial class Av1IntraSuperblockEncoder
                 Av1NeighborArrayUnit<byte>.UnitMask.Top |
                 Av1NeighborArrayUnit<byte>.UnitMask.Left;
 
-            int blockWidth = blockSize.GetWidth();
-            int blockHeight = blockSize.GetHeight();
+            int blockWidth = codedExtent.Width;
+            int blockHeight = codedExtent.Height;
             int transformWidth = transformSize.GetWidth();
             int transformHeight = transformSize.GetHeight();
             int transformSampleCount = transformSize.GetSize2d();
@@ -2104,12 +2117,15 @@ internal static partial class Av1IntraSuperblockEncoder
 
                     if (splitStatistics.Cost < bestStatistics.Cost)
                     {
-                        CopySplitCandidate(
+                        CopyTiledCandidate(
                             candidateReconstruction,
                             candidateCoefficients,
                             workspace.CandidateTransformBlocks,
                             reconstructionPlane,
                             blockOrigin,
+                            8,
+                            GetCodedTransformExtent(macroBlock, blockSize, Av1TransformSize.Size4x4, 0, 0),
+                            Av1TransformSize.Size4x4,
                             retainedCoefficients,
                             retainedStates);
 
@@ -2295,12 +2311,15 @@ internal static partial class Av1IntraSuperblockEncoder
 
                         if (splitStatistics.Cost < bestTransformStatistics.Cost)
                         {
-                            CopySplitCandidate(
+                            CopyTiledCandidate(
                                 candidateReconstruction,
                                 candidateCoefficients,
                                 workspace.CandidateTransformBlocks,
                                 reconstructionPlane,
                                 blockOrigin,
+                                8,
+                                GetCodedTransformExtent(macroBlock, blockSize, Av1TransformSize.Size4x4, 0, 0),
+                                Av1TransformSize.Size4x4,
                                 retainedCoefficients,
                                 retainedStates);
 
@@ -2346,12 +2365,15 @@ internal static partial class Av1IntraSuperblockEncoder
 
                 if (splitStatistics.Cost < bestTransformStatistics.Cost)
                 {
-                    CopySplitCandidate(
+                    CopyTiledCandidate(
                         candidateReconstruction,
                         candidateCoefficients,
                         workspace.CandidateTransformBlocks,
                         reconstructionPlane,
                         blockOrigin,
+                        8,
+                        GetCodedTransformExtent(macroBlock, blockSize, Av1TransformSize.Size4x4, 0, 0),
+                        Av1TransformSize.Size4x4,
                         retainedCoefficients,
                         retainedStates);
 
@@ -2529,7 +2551,7 @@ internal static partial class Av1IntraSuperblockEncoder
                         reconstructionPlane,
                         blockOrigin,
                         blockWidth,
-                        blockHeight,
+                        GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0),
                         transformSize,
                         retainedCoefficients,
                         retainedStates);
@@ -2656,8 +2678,9 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Earlier transforms provide reconstructed edges and coefficient contexts to later transforms.
             // Palette blocks fit within one bounded 64x64 luma region, so their transform order is raster order.
-            int transformColumnCount = blockWidth / transformWidth;
-            int transformRowCount = blockHeight / transformHeight;
+            Size codedExtent = GetCodedTransformExtent(macroBlock, blockSize, transformSize, 0, 0);
+            int transformColumnCount = codedExtent.Width / transformWidth;
+            int transformRowCount = codedExtent.Height / transformHeight;
             for (int transformRow = 0; transformRow < transformRowCount; transformRow++)
             {
                 for (int transformColumn = 0; transformColumn < transformColumnCount; transformColumn++)
@@ -2938,31 +2961,73 @@ internal static partial class Av1IntraSuperblockEncoder
                 subsamplingX,
                 subsamplingY);
 
-            // Rectangular transforms project as far as width + height - 1 on either edge.
-            // The existing reference storage already holds this maximum; no additional scratch is needed.
+            // Reference availability ends at the coded frame edge, even when a transform reaches into
+            // padded storage. Extend the final available sample instead of reading padding as a neighbor.
+            Av1BlockSize planeBlockSize = blockSize.GetSubsampled(subsamplingX != 0, subsamplingY != 0);
+            int remainingWidth = planeBlockSize.GetWidth() +
+                (macroBlock.ToRightEdge >> (3 + subsamplingX)) - columnOffset;
+
+            int remainingHeight = planeBlockSize.GetHeight() +
+                (macroBlock.ToBottomEdge >> (3 + subsamplingY)) - rowOffset;
+
             Span<TSample> above = aboveStorage.Slice(1, transformWidth + transformHeight);
             Span<TSample> left = leftStorage.Slice(1, transformWidth + transformHeight);
+            int topCount = hasAbove ? Math.Min(transformWidth, remainingWidth) : 0;
+            int leftCount = hasLeft ? Math.Min(transformHeight, remainingHeight) : 0;
             if (hasAbove)
             {
                 if (transformRow > 0)
                 {
                     candidateReconstruction
-                        .Slice(((rowOffset - 1) * candidateStride) + columnOffset, transformWidth)
+                        .Slice(((rowOffset - 1) * candidateStride) + columnOffset, topCount)
                         .CopyTo(above);
                 }
                 else
                 {
                     reconstructionPlane.DangerousGetRowSpan(planeBlockOrigin.Y - 1)
-                        .Slice(planeBlockOrigin.X + columnOffset, transformWidth)
+                        .Slice(planeBlockOrigin.X + columnOffset, topCount)
                         .CopyTo(above);
                 }
+
+                int topRightCount = hasTopRight
+                    ? Math.Min(Math.Min(transformWidth, transformHeight), remainingWidth - transformWidth)
+                    : 0;
+
+                if (topRightCount > 0)
+                {
+                    if (transformRow > 0)
+                    {
+                        candidateReconstruction
+                            .Slice(((rowOffset - 1) * candidateStride) + columnOffset + transformWidth, topRightCount)
+                            .CopyTo(above[transformWidth..]);
+                    }
+                    else
+                    {
+                        reconstructionPlane.DangerousGetRowSpan(planeBlockOrigin.Y - 1)
+                            .Slice(planeBlockOrigin.X + columnOffset + transformWidth, topRightCount)
+                            .CopyTo(above[transformWidth..]);
+                    }
+
+                    topCount += topRightCount;
+                }
+
+                above[topCount..].Fill(above[topCount - 1]);
             }
 
             if (hasLeft)
             {
+                int bottomLeftCount = hasBottomLeft
+                    ? Math.Min(Math.Min(transformHeight, transformWidth), remainingHeight - transformHeight)
+                    : 0;
+
+                if (bottomLeftCount > 0)
+                {
+                    leftCount += bottomLeftCount;
+                }
+
                 if (transformColumn > 0)
                 {
-                    for (int row = 0; row < transformHeight; row++)
+                    for (int row = 0; row < leftCount; row++)
                     {
                         left[row] = candidateReconstruction[
                             ((rowOffset + row) * candidateStride) + columnOffset - 1];
@@ -2970,82 +3035,26 @@ internal static partial class Av1IntraSuperblockEncoder
                 }
                 else
                 {
-                    for (int row = 0; row < transformHeight; row++)
+                    for (int row = 0; row < leftCount; row++)
                     {
                         left[row] = reconstructionPlane
                             .DangerousGetRowSpan(planeBlockOrigin.Y + rowOffset + row)[planeBlockOrigin.X - 1];
                     }
                 }
+
+                left[leftCount..].Fill(left[leftCount - 1]);
             }
 
             int midpoint = 128 << (this.bitDepth.GetBitCount() - 8);
             if (!hasAbove)
             {
-                above[..transformWidth].Fill(hasLeft ? left[0] : TOperator.CreateSample(midpoint - 1));
+                above.Fill(hasLeft ? left[0] : TOperator.CreateSample(midpoint - 1));
             }
 
             if (!hasLeft)
             {
-                left[..transformHeight].Fill(hasAbove ? above[0] : TOperator.CreateSample(midpoint + 1));
+                left.Fill(hasAbove ? above[0] : TOperator.CreateSample(midpoint + 1));
             }
-
-            // Candidate mosaics share the committed frame's coded extent. Padding beyond that extent is
-            // never a reference sample, even when coding order makes the adjacent block available.
-            int topRightCount = hasTopRight
-                ? Math.Min(
-                    Math.Min(transformWidth, transformHeight),
-                    reconstructionPlane.Width - planeBlockOrigin.X - columnOffset - transformWidth)
-                : 0;
-
-            if (hasTopRight)
-            {
-                if (transformRow > 0)
-                {
-                    candidateReconstruction
-                        .Slice(
-                            ((rowOffset - 1) * candidateStride) + columnOffset + transformWidth,
-                            topRightCount)
-                        .CopyTo(above[transformWidth..]);
-                }
-                else
-                {
-                    reconstructionPlane.DangerousGetRowSpan(planeBlockOrigin.Y - 1)
-                        .Slice(planeBlockOrigin.X + columnOffset + transformWidth, topRightCount)
-                        .CopyTo(above[transformWidth..]);
-                }
-            }
-
-            int topCount = transformWidth + topRightCount;
-            above[topCount..].Fill(above[topCount - 1]);
-
-            int bottomLeftCount = hasBottomLeft
-                ? Math.Min(
-                    Math.Min(transformHeight, transformWidth),
-                    reconstructionPlane.Height - planeBlockOrigin.Y - rowOffset - transformHeight)
-                : 0;
-
-            if (hasBottomLeft)
-            {
-                if (transformColumn > 0)
-                {
-                    for (int row = transformHeight; row < transformHeight + bottomLeftCount; row++)
-                    {
-                        left[row] = candidateReconstruction[
-                            ((rowOffset + row) * candidateStride) + columnOffset - 1];
-                    }
-                }
-                else
-                {
-                    for (int row = transformHeight; row < transformHeight + bottomLeftCount; row++)
-                    {
-                        left[row] = reconstructionPlane
-                            .DangerousGetRowSpan(planeBlockOrigin.Y + rowOffset + row)[planeBlockOrigin.X - 1];
-                    }
-                }
-            }
-
-            int leftCount = transformHeight + bottomLeftCount;
-            left[leftCount..].Fill(left[leftCount - 1]);
 
             // Only an interior transform corner belongs to decision scratch. Boundary corners continue
             // to read the already reconstructed neighboring block so candidate trials remain isolated.
@@ -3204,6 +3213,29 @@ internal static partial class Av1IntraSuperblockEncoder
             return new(this.rateMultiplier, rate, distortion);
         }
 
+        private static Size GetCodedTransformExtent(
+            Av1MacroBlockD macroBlock,
+            Av1BlockSize planeBlockSize,
+            Av1TransformSize transformSize,
+            int subsamplingX,
+            int subsamplingY)
+        {
+            int width = planeBlockSize.GetWidth();
+            int height = planeBlockSize.GetHeight();
+            int transformWidth = transformSize.GetWidth();
+            int transformHeight = transformSize.GetHeight();
+
+            // A transform that intersects the coded frame is encoded in full. Only transforms wholly
+            // in the padded border are omitted; the coefficient stream packs the remaining transforms.
+            width += Math.Min(0, macroBlock.ToRightEdge >> (3 + subsamplingX));
+            height += Math.Min(0, macroBlock.ToBottomEdge >> (3 + subsamplingY));
+            width &= ~((1 << Av1Constants.ModeInfoSizeLog2) - 1);
+            height &= ~((1 << Av1Constants.ModeInfoSizeLog2) - 1);
+            return new Size(
+                (width + transformWidth - 1) & -transformWidth,
+                (height + transformHeight - 1) & -transformHeight);
+        }
+
         private static void CopyCandidate(
             ReadOnlySpan<TSample> candidateReconstruction,
             ReadOnlySpan<int> candidateCoefficients,
@@ -3217,38 +3249,14 @@ internal static partial class Av1IntraSuperblockEncoder
             int width = transformSize.GetWidth();
             int height = transformSize.GetHeight();
             candidateCoefficients[..transformSize.GetSize2d()].CopyTo(retainedCoefficients);
+            Span<TSample> destination = Av1TransformBlockEncoder.GetPlaneSpan(reconstructionPlane, blockOrigin);
             for (int row = 0; row < height; row++)
             {
                 candidateReconstruction.Slice(row * width, width)
-                    .CopyTo(reconstructionPlane.DangerousGetRowSpan(blockOrigin.Y + row).Slice(blockOrigin.X, width));
+                    .CopyTo(destination.Slice(row * reconstructionPlane.Stride, width));
             }
 
             retainedState = candidateState;
-        }
-
-        private static void CopySplitCandidate(
-            ReadOnlySpan<TSample> candidateReconstruction,
-            ReadOnlySpan<int> candidateCoefficients,
-            ReadOnlySpan<Av1EncoderTransformBlockState> candidateTransformBlocks,
-            Buffer2DRegion<TSample> reconstructionPlane,
-            Point blockOrigin,
-            Span<int> retainedCoefficients,
-            Span<Av1EncoderTransformBlockState> retainedTransformBlocks)
-        {
-            const int BlockWidth = 8;
-            const int SampleCount = BlockWidth * BlockWidth;
-            candidateCoefficients[..SampleCount].CopyTo(retainedCoefficients);
-            candidateTransformBlocks[..Av1EncoderModeDecisionWorkspace<TSample>.CandidateTransformBlockCount]
-                .CopyTo(retainedTransformBlocks);
-
-            for (int row = 0; row < BlockWidth; row++)
-            {
-                candidateReconstruction.Slice(row * BlockWidth, BlockWidth)
-                    .CopyTo(
-                        reconstructionPlane
-                            .DangerousGetRowSpan(blockOrigin.Y + row)
-                            .Slice(blockOrigin.X, BlockWidth));
-            }
         }
 
         private void ReconstructSelectedTransform(

@@ -958,6 +958,10 @@ public class Av1EncoderFrameTests
     [InlineData(24, 80, 9)]
     [InlineData(96, 24, 10)]
     [InlineData(24, 96, 10)]
+    [InlineData(13, 21, 9)]
+    [InlineData(21, 13, 9)]
+    [InlineData(77, 21, 10)]
+    [InlineData(21, 77, 10)]
     public void EncodeLosslessPartitionSearchAcrossClippedSuperblocks(int width, int height, int effort)
     {
         ReadOnlySpan<int> period = [0, 28, 40, 28, 0, -28, -40, -12];

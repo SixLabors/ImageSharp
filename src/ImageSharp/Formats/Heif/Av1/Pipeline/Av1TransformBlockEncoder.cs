@@ -156,13 +156,14 @@ internal static class Av1TransformBlockEncoder
             plane,
             ref state);
 
+        // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
         long distortion = Av1ResidualBuilder.SumSquaredError(
             sourceSamples,
             source.Stride,
             reconstruction,
             width,
-            width,
-            height);
+            Math.Min(width, source.Width - blockOrigin.X),
+            Math.Min(height, source.Height - blockOrigin.Y));
 
         return distortion << 4;
     }
@@ -241,13 +242,14 @@ internal static class Av1TransformBlockEncoder
                 workspace.TransformWorkspace);
         }
 
+        // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
         long distortion = Av1ResidualBuilder.SumSquaredError(
             sourceSamples,
             source.Stride,
             reconstruction,
             reconstructionStride,
-            width,
-            height);
+            Math.Min(width, source.Width - blockOrigin.X),
+            Math.Min(height, source.Height - blockOrigin.Y));
 
         return distortion << 4;
     }
@@ -329,13 +331,14 @@ internal static class Av1TransformBlockEncoder
         }
 
         // Final distortion is measured against the samples a decoder reconstructs, not the unquantized predictor.
+        // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
         long distortion = Av1ResidualBuilder.SumSquaredError(
             sourceSamples,
             source.Stride,
             reconstruction,
             width,
-            width,
-            height);
+            Math.Min(width, source.Width - blockOrigin.X),
+            Math.Min(height, source.Height - blockOrigin.Y));
 
         return distortion << 4;
     }
@@ -483,13 +486,14 @@ internal static class Av1TransformBlockEncoder
             bitDepth,
             ref state);
 
+        // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
         long distortion = Av1ResidualBuilder.SumSquaredError(
             sourceSamples,
             source.Stride,
             reconstruction,
             width,
-            width,
-            height);
+            Math.Min(width, source.Width - blockOrigin.X),
+            Math.Min(height, source.Height - blockOrigin.Y));
 
         int shift = (bitDepth.GetBitCount() - 8) * 2;
         long normalizedDistortion = shift == 0
@@ -576,13 +580,14 @@ internal static class Av1TransformBlockEncoder
                 workspace.TransformWorkspace);
         }
 
+        // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
         long distortion = Av1ResidualBuilder.SumSquaredError(
             sourceSamples,
             source.Stride,
             reconstruction,
             reconstructionStride,
-            width,
-            height);
+            Math.Min(width, source.Width - blockOrigin.X),
+            Math.Min(height, source.Height - blockOrigin.Y));
 
         int shift = (bitDepth.GetBitCount() - 8) * 2;
         long normalizedDistortion = shift == 0
@@ -679,13 +684,14 @@ internal static class Av1TransformBlockEncoder
                 workspace.TransformWorkspace);
         }
 
+        // Full transforms retain their padded samples; only the coded source extent contributes to distortion.
         long distortion = Av1ResidualBuilder.SumSquaredError(
             sourceSamples,
             source.Stride,
             reconstruction,
             width,
-            width,
-            height);
+            Math.Min(width, source.Width - blockOrigin.X),
+            Math.Min(height, source.Height - blockOrigin.Y));
 
         int shift = (bitDepth.GetBitCount() - 8) * 2;
         long normalizedDistortion = shift == 0

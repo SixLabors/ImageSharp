@@ -168,9 +168,28 @@ Restoration search, filtering, signaling, and retained trial storage are committ
   block reconstruction passes 143/143 (`clipped-partition-block`). Public encoder tests remain
   73/76 (`clipped-partition-public`), with the same three screen-content failures.
 - These checks establish managed reconstruction and source-lossless behavior, not native encoder
-  parity. Visible-pixel distortion clipping remains to be corrected: `tx_search.c:979-1001` uses
-  `rdopt_utils.h:361-403`, whereas candidate distortion still includes complete padded transforms.
+  parity. Distortion clipping was still unresolved at this checkpoint; it is addressed below.
   No benchmark, reference output change, or tolerance relaxation was performed.
+
+### Coded-boundary distortion checkpoint: 2026-09-10
+
+- Intra, prediction and chroma-from-luma candidate distortion now excludes samples beyond the coded
+  source region, while transform and reconstruction retain complete intersecting transforms.
+  Inter skip distortion uses the same extent as coded-residual distortion.
+- The boundary is not always the raw image extent. For the current still-image configuration,
+  `encoder.c:4559-4568` disables border-padding residual treatment, and
+  `encoder.h:4292-4310` uses the frame extent aligned to eight pixels. The existing coded source
+  view already represents that extent. `tx_search.c:979-1001` and `rdopt_utils.h:361-403`
+  clip distortion there. No extra region field, buffer or method overload was added.
+- Two regression cases distinguish full-transform reconstruction from clipped distortion at
+  eight and twelve bits, including normalization after accumulation. Release/net11 succeeds
+  with the existing 1012 test-project warnings; Roslyn reports zero errors and the existing
+  2113 solution warnings. Transform tests pass 14/14 (`coded-distortion-transform`), frame tests
+  176/176 (`coded-distortion-frame`), and block tests 143/143 (`coded-distortion-block`).
+  Public encoder tests remain 73/76 (`coded-distortion-public`), with the three screen-content
+  failures unresolved. These results do not establish separate-encoder parity.
+- The source-led partition controller replacement remains next: current Effort gates still
+  override speed-dependent partition decisions. No benchmark or golden-output update was made.
 
 The official main ref was resolved and fetched as `8e7b6a567df174d795479b92b4ac766d271add73`
 into `D:\GitHub\ynse01\aom-8e7b6a56-reference`, outside this repository.

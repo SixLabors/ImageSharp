@@ -359,6 +359,105 @@ public class Av1TransformBlockEncoderTests
     }
 
     /// <summary>
+    /// Verifies that transform padding cannot add distortion outside the coded source region.
+    /// </summary>
+    [Fact]
+    public void EightBitCandidateExcludesTransformPaddingFromDistortion()
+    {
+        const int TransformWidth = 16;
+        const int CodedWidth = 8;
+        byte[] source = new byte[TransformWidth * TransformWidth];
+        byte[] prediction = new byte[source.Length];
+        byte[] reconstruction = new byte[source.Length];
+        short[] residual = new short[source.Length];
+        int[] quantized = new int[source.Length];
+        source.AsSpan().Fill(129);
+        prediction.AsSpan().Fill(128);
+        residual.AsSpan().Fill(1);
+
+        // Storage contains the whole transform, while the source region ends at the coded frame boundary.
+        using Buffer2D<byte> sourceBuffer = Buffer2D<byte>.WrapMemory(
+            source,
+            TransformWidth,
+            TransformWidth,
+            TransformWidth);
+
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        Av1EncoderTransformBlockState state = default;
+        long distortion = Av1TransformBlockEncoder.EncodePredictionLossyCandidate(
+            workspace,
+            sourceBuffer.GetRegion(new Rectangle(0, 0, CodedWidth, CodedWidth)),
+            Point.Empty,
+            prediction,
+            residual,
+            reconstruction,
+            TransformWidth,
+            quantized,
+            Av1TransformSize.Size16x16,
+            Av1TransformType.DctDct,
+            qIndex: 255,
+            dcDeltaQ: 0,
+            acDeltaQ: 0,
+            Av1Plane.Y,
+            ref state);
+
+        Assert.Equal((ushort)0, state.EndOfBlock);
+        Assert.True(prediction.AsSpan().SequenceEqual(reconstruction));
+        Assert.Equal(((long)CodedWidth * CodedWidth) << 4, distortion);
+    }
+
+    /// <summary>
+    /// Verifies that transform padding cannot add distortion outside the coded source region.
+    /// </summary>
+    [Fact]
+    public void TwelveBitCandidateExcludesTransformPaddingFromDistortion()
+    {
+        const int TransformWidth = 16;
+        const int CodedWidth = 8;
+        ushort[] source = new ushort[TransformWidth * TransformWidth];
+        ushort[] prediction = new ushort[source.Length];
+        ushort[] reconstruction = new ushort[source.Length];
+        short[] residual = new short[source.Length];
+        int[] quantized = new int[source.Length];
+        source.AsSpan().Fill(2049);
+        prediction.AsSpan().Fill(2048);
+        residual.AsSpan().Fill(1);
+
+        // Storage contains the whole transform, while the source region ends at the coded frame boundary.
+        using Buffer2D<ushort> sourceBuffer = Buffer2D<ushort>.WrapMemory(
+            source,
+            TransformWidth,
+            TransformWidth,
+            TransformWidth);
+
+        using Av1EncoderBlockWorkspace workspace = new(Configuration.Default);
+        Av1EncoderTransformBlockState state = default;
+        long distortion = Av1TransformBlockEncoder.EncodePredictionLossyCandidate(
+            workspace,
+            sourceBuffer.GetRegion(new Rectangle(0, 0, CodedWidth, CodedWidth)),
+            Point.Empty,
+            prediction,
+            residual,
+            reconstruction,
+            TransformWidth,
+            quantized,
+            Av1TransformSize.Size16x16,
+            Av1TransformType.DctDct,
+            qIndex: 255,
+            dcDeltaQ: 0,
+            acDeltaQ: 0,
+            Av1Plane.Y,
+            Av1BitDepth.TwelveBit,
+            ref state);
+
+        Assert.Equal((ushort)0, state.EndOfBlock);
+        Assert.True(prediction.AsSpan().SequenceEqual(reconstruction));
+
+        // The visible SSE is 64, which rounds to zero at twelve-bit precision; the full transform SSE would not.
+        Assert.Equal(0, distortion);
+    }
+
+    /// <summary>
     /// Verifies that high-bit-depth directional candidates apply the selected syntax adjustment.
     /// </summary>
     /// <param name="angleDelta">The signed AV1 directional adjustment.</param>

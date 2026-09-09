@@ -1413,7 +1413,22 @@ internal static partial class Av1IntraSuperblockEncoder
 
             // Prediction-only error remains available even when every transform quantizes to nonzero coefficients.
             // Normalize squared sample precision with rounding before adding four fractional distortion bits.
-            long predictionSquaredError = Av1ResidualBuilder.SumSquares(residual[..sampleCount]);
+            int width = transformSize.GetWidth();
+            int visibleWidth = Math.Min(width, sourcePlane.Width - planeOrigin.X);
+            int visibleHeight = Math.Min(transformSize.GetHeight(), sourcePlane.Height - planeOrigin.Y);
+            long predictionSquaredError = 0;
+            if (visibleWidth == width)
+            {
+                predictionSquaredError = Av1ResidualBuilder.SumSquares(residual[..(width * visibleHeight)]);
+            }
+            else
+            {
+                for (int row = 0; row < visibleHeight; row++)
+                {
+                    predictionSquaredError += Av1ResidualBuilder.SumSquares(residual.Slice(row * width, visibleWidth));
+                }
+            }
+
             int normalizationShift = (this.bitDepth.GetBitCount() - 8) * 2;
             predictionDistortion = normalizationShift == 0
                 ? predictionSquaredError << 4

@@ -188,7 +188,7 @@ internal readonly struct Av1MotionSearchSettings
     }
 
     /// <summary>
-    /// The serial tile traversal boundaries at which motion costs are refreshed.
+    /// The serial tile traversal boundaries at which coding costs are refreshed.
     /// </summary>
     public enum CostUpdateFrequency
     {
@@ -205,7 +205,12 @@ internal readonly struct Av1MotionSearchSettings
         /// <summary>
         /// Refresh at evenly spaced sets of superblock rows within a tile.
         /// </summary>
-        SuperblockRowSet
+        SuperblockRowSet,
+
+        /// <summary>
+        /// Retain the initial rates without further updates during the tile.
+        /// </summary>
+        Off
     }
 
     /// <summary>

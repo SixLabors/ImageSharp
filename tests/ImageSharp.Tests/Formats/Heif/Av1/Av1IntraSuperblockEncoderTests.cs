@@ -603,9 +603,9 @@ public class Av1IntraSuperblockEncoderTests
             tileCoefficients,
             tileSuperblockWorkspace,
             tileBlockWorkspace,
-            effort: 5);
+            effort: 0);
 
-        // The production tile traversal must be byte-identical to the explicit analyze-then-write composition above.
+        // Both paths evaluate DC only, so differing bytes identify a traversal or writing defect rather than a different mode choice.
         Assert.True(encoded.GetSpan().SequenceEqual(tileWriter.GetTileData(0)));
     }
 
@@ -834,6 +834,7 @@ public class Av1IntraSuperblockEncoderTests
                         writer.WriteInterMode<Av1SymbolEncoder.SymbolUpdateOperation>(Av1PredictionMode.GlobalMotionVector, references.ModeContext);
                     }
 
+                    writer.RefreshCosts();
                     int globalRate = writer.GetInterModeCost(Av1PredictionMode.GlobalMotionVector, references.ModeContext);
                     Assert.True(globalRate < writer.GetInterModeCost(Av1PredictionMode.NearestMotionVector, references.ModeContext));
                     Assert.True(globalRate < writer.GetInterModeCost(Av1PredictionMode.NearMotionVector, references.ModeContext));
@@ -1433,7 +1434,7 @@ public class Av1IntraSuperblockEncoderTests
     }
 
     [Fact]
-    public void BlockDecisionObservesLiveCdfInWriterOrder()
+    public void BlockDecisionRetainsRatesWithinSuperblock()
     {
         const int Width = 16;
         const int Height = 8;
@@ -1497,7 +1498,7 @@ public class Av1IntraSuperblockEncoderTests
 
         using IMemoryOwner<byte> encoded = writer.Exit();
         Assert.Equal(2, blockEncoder.Count);
-        Assert.True(costs[1] < costs[0]);
+        Assert.Equal(costs[0], costs[1]);
         Assert.NotEqual(0, encoded.GetSpan().Length);
     }
 

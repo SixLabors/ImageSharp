@@ -328,6 +328,19 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
         Span<int> tileDataOffsets = picture.TileDataOffsets.Span;
         Span<int> tileDataLengths = picture.TileDataLengths.Span;
         Av1MotionSearchSettings.CostUpdateFrequency motionCostUpdate = picture.Parent.MotionSearchSettings.MotionCostUpdate;
+        Av1MotionSearchSettings.CostUpdateFrequency modeCostUpdate = Av1MotionSearchSettings.CostUpdateFrequency.Superblock;
+        int minimumDimension = Math.Min(source.Width, source.Height);
+        if (sequenceHeader.IsStillPicture && picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level9)
+        {
+            modeCostUpdate = minimumDimension < 2160
+                ? Av1MotionSearchSettings.CostUpdateFrequency.Off
+                : Av1MotionSearchSettings.CostUpdateFrequency.SuperblockRow;
+        }
+        else if (!sequenceHeader.IsStillPicture && picture.Parent.EncodingSpeed >= HeifEncodingSpeed.Level6 && minimumDimension < 720)
+        {
+            modeCostUpdate = Av1MotionSearchSettings.CostUpdateFrequency.SuperblockRow;
+        }
+
         if (!TSymbolOperation.WritesOutput && frameHeader.AllowIntraBlockCopy)
         {
             // Hash the visible source once before reconstruction begins so candidate discovery never depends
@@ -393,6 +406,16 @@ internal readonly struct Av1TileEncoder : IAv1TileWriter
                         {
                             bool firstColumn = modeInfoColumn == tile.ModeInfoColumnStart;
                             bool firstSuperblock = firstColumn && modeInfoRow == tile.ModeInfoRowStart;
+                            bool refreshModeCosts = modeCostUpdate == Av1MotionSearchSettings.CostUpdateFrequency.Superblock ||
+                                (modeCostUpdate == Av1MotionSearchSettings.CostUpdateFrequency.SuperblockRow && firstColumn);
+
+                            if (!firstSuperblock && !frameHeader.DisableCdfUpdate && refreshModeCosts)
+                            {
+                                // Reset initialized this tile's first rates. Later boundaries consume only
+                                // preceding selected blocks; all candidates within the boundary share rates.
+                                writer.RefreshCosts();
+                            }
+
                             int tileSuperblockRow = (modeInfoRow - tile.ModeInfoRowStart) >> superblockShift;
                             bool refreshMotionCosts = motionCostUpdate == Av1MotionSearchSettings.CostUpdateFrequency.Superblock ||
                                 (firstColumn && (tileSuperblockRow % motionCostRowInterval) == 0);

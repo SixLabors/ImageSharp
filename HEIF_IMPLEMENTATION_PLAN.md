@@ -8,7 +8,37 @@ The previous `d565eec6` source directory is an export without Git metadata. Its 
 selects Release, x86_64, runtime CPU detection, encoder enabled, and libyuv disabled; that build does
 not verify the newly fetched revision. No encoder benchmark has been run for this edited tree.
 
-The active correction is propagation and use of the public Speed option in still-color, alpha,
+The Speed and block-copy selection checkpoint is committed as `99485a8f3`. The active correction
+is the encoder's retained rate costs and update schedule. Mode and coefficient costs now share
+the existing worker allocation and remain fixed between updates; entropy adaptation remains live.
+The coefficient layout includes base-level and range-rate differences for subsequent refinement.
+Roslyn reports zero errors. The final Release/net11 build completed with zero errors and 1,012 existing test warnings.
+`encoder-cost-entropy-r3` passed 2,007 entropy cases, including fixed numerical rates, refresh boundaries,
+and allocation reuse. `encoder-cost-public-r2` passed 73 existing public encoder cases and still failed
+the three native flag comparisons. `encoder-cost-block-r3` passed all 115 block cases. The clipped traversal
+comparison now selects DC only on both paths, retaining its exact-byte assertion; its former full-search
+setting could legitimately choose different modes. Test CDF priming explicitly refreshes costs where required.
+This verifies the retained mode/coefficient-cost checkpoint, not overall encoder parity or completeness.
+
+The failing dual-axis case (12-bit, reversed filters) first differs at second-frame position (0,16),
+not (0,0). Both optimized current libaom and the managed decoder produce 2166 there; the encoder's
+retained reconstruction contains 2474. The earlier first-row comparison did not identify the failing
+coordinate and incorrectly attributed this to the decoder. Scalar execution has the same failure.
+The concrete defect is overlapping reference-edge lifetimes: SelectLumaMode retains edges 0/1 at
+`Av1IntraSuperblockEncoder.ModeDecision.cs:1285-1306`, but GetSplitLumaCandidateCost reused them
+for 4x4 neighbours at lines 2098-2099, corrupting the next 8x8 candidate's prediction.
+Split trials now use the already allocated edges 2/3; no workspace growth or additional copy is needed.
+Native `av1/common/reconintra.c:1383-1403,1473-1497` prepares invocation-local directional edges.
+The existing exact reconstruction test caught this defect and now passes. All four 10/12-bit axis cases
+also pass with hardware intrinsics disabled (`encoder-cost-dual-axis-scalar-r2`).
+Temporary coefficient logging and test stream export have been removed. Assertions and native PNGs
+have not been relaxed. Local comparison files remain outside the repository in `av1-takeover-20260905`.
+This does not complete coefficient optimization, displacement-vector cost storage, or encoder parity.
+Source evidence: `av1/encoder/rd.c:82-350,602-704` defines the mode/coefficient tables;
+`encodeframe_utils.c:1621-1699` applies their update schedule; `speed_features.c:339-340,593-594,1054-1055`
+sets the supported speed/resolution exceptions. `av1_cx_iface.c:391-392` defaults both to superblock updates.
+
+The preceding correction propagated the public Speed option in still-color, alpha,
 grid, and sequence frame preparation, including intra-block-copy eligibility and sequence allocation.
 Previously only sequence encoding assigned Parent.EncodingSpeed. Still paths silently used its default.
 Av1FrameEncoder.ConfigureFrameTools now applies the existing motion policy before picture allocation.
@@ -49,6 +79,20 @@ over one. Restricting native to 8x8 for diagnosis leaves one red sample differen
 native trellis or block copy does not change that result. These restrictions are not acceptance settings.
 Current libaom decoding the managed payload exactly matches ImageMagick's decoded RGB for all 72,000
 components in this case. No timing comparison or general decoder parity is established by this check.
+
+The managed PNGs at speeds 0, 6, and 9 are byte-identical for this flag. Matching-speed native
+comparisons give the following 8-bit RGB errors (24,000 samples per channel):
+
+| Speed | Maximum R/G/B error | R/G/B counts exceeding one |
+| --- | --- | --- |
+| 0 | 2 / 2 / 0 | 3 / 1 / 0 |
+| 6 | 3 / 1 / 0 | 5 / 0 / 0 |
+| 9 | 7 / 5 / 0 | 22 / 8 / 0 |
+
+Checkpoint `99485a8f3` contains the verified Speed propagation and block-copy candidate controller.
+The next production milestone is complete worker-owned rate-cost storage and refresh scheduling,
+covering mode, coefficient, motion, and displacement costs and all production search callers.
+No portion of that storage correction has been implemented yet.
 
 Unresolved source-backed gaps:
 - Architectural: sequence CDEF and restoration remain disabled in CreateSequenceHeader. Intra-edge

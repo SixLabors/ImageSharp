@@ -39,6 +39,19 @@ internal static class Av1ProbabilityCost
     public static int GetLiteralCost(int bitCount) => bitCount << CostShift;
 
     /// <summary>
+    /// Writes the fixed-point cost of each symbol in a distribution.
+    /// </summary>
+    /// <param name="distribution">The symbol distribution.</param>
+    /// <param name="costs">The destination rate entries.</param>
+    public static void FillSymbolCosts(Av1Distribution distribution, Span<int> costs)
+    {
+        for (int symbol = 0; symbol < distribution.NumberOfSymbols; symbol++)
+        {
+            costs[symbol] = GetSymbolCost(distribution, symbol);
+        }
+    }
+
+    /// <summary>
     /// Gets the fixed-point cost of coding one symbol from an inverse cumulative distribution.
     /// </summary>
     /// <param name="distribution">The distribution used by the entropy writer.</param>

@@ -279,6 +279,7 @@ public class Av1EntropyTests
             encoder.WriteLumaMode(LumaMode, TopContext, LeftContext);
         }
 
+        encoder.RefreshCosts();
         Assert.NotEqual(initialCost, encoder.GetLumaModeCost(LumaMode, TopContext, LeftContext));
 
         encoder.Reset();
@@ -305,13 +306,14 @@ public class Av1EntropyTests
                 BlockSkipContext,
                 emptyTransformRate));
 
-        // Repeated non-skip symbols make another block skip more expensive while the empty-transform
-        // rate remains unchanged, proving the decision reads the adapted live distribution.
+        // Repeated non-skip symbols make another block skip more expensive at the next cost update.
+        // The empty-transform distribution is unchanged because no transform symbols were written.
         for (int index = 0; index < 256; index++)
         {
             encoder.WriteSkip(false, BlockSkipContext);
         }
 
+        encoder.RefreshCosts();
         Assert.False(
             Av1TileWriter.ShouldSkipCoefficients(
                 encoder,
@@ -427,21 +429,41 @@ public class Av1EntropyTests
     }
 
     [Fact]
-    public void SymbolEncoderCostTracksWrittenLumaMode()
+    public void SymbolEncoderCostsChangeAtRefreshBoundary()
     {
         using Av1SymbolEncoder encoder = new(Configuration.Default, 64, BaseQIndex, updateCdf: true);
         Av1Distribution expected = Av1DefaultDistributions.KeyFrameYMode[0][0];
+        Av1Distribution expectedSkip = Av1DefaultDistributions.GetTransformBlockSkip(BaseQIndex)[0][0];
+        int initialModeCost = encoder.GetLumaModeCost(Av1PredictionMode.DC, 0, 0);
+        int initialSkipCost = encoder.GetTransformBlockSkipCost(true, Av1TransformSize.Size4x4, 0);
 
-        Assert.Equal(
-            Av1ProbabilityCost.GetSymbolCost(expected, (int)Av1PredictionMode.DC),
-            encoder.GetLumaModeCost(Av1PredictionMode.DC, 0, 0));
+        Assert.Equal(Av1ProbabilityCost.GetSymbolCost(expected, (int)Av1PredictionMode.DC), initialModeCost);
+        Assert.Equal(Av1ProbabilityCost.GetSymbolCost(expectedSkip, 1), initialSkipCost);
 
         encoder.WriteLumaMode(Av1PredictionMode.DC, 0, 0);
+        encoder.WriteTransformBlockSkip(true, Av1TransformSize.Size4x4, 0);
         expected.Update((int)Av1PredictionMode.DC);
+        expectedSkip.Update(1);
+
+        // Writing selected symbols adapts probabilities without changing rates for other candidates
+        // in the same interval. The refresh boundary makes both updates visible together.
+        Assert.Equal(initialModeCost, encoder.GetLumaModeCost(Av1PredictionMode.DC, 0, 0));
+        Assert.Equal(initialSkipCost, encoder.GetTransformBlockSkipCost(true, Av1TransformSize.Size4x4, 0));
+        encoder.RefreshCosts();
 
         Assert.Equal(
             Av1ProbabilityCost.GetSymbolCost(expected, (int)Av1PredictionMode.DC),
             encoder.GetLumaModeCost(Av1PredictionMode.DC, 0, 0));
+
+        Assert.Equal(
+            Av1ProbabilityCost.GetSymbolCost(expectedSkip, 1),
+            encoder.GetTransformBlockSkipCost(true, Av1TransformSize.Size4x4, 0));
+
+        Assert.NotEqual(initialModeCost, encoder.GetLumaModeCost(Av1PredictionMode.DC, 0, 0));
+        Assert.NotEqual(initialSkipCost, encoder.GetTransformBlockSkipCost(true, Av1TransformSize.Size4x4, 0));
+        encoder.Reset();
+        Assert.Equal(initialModeCost, encoder.GetLumaModeCost(Av1PredictionMode.DC, 0, 0));
+        Assert.Equal(initialSkipCost, encoder.GetTransformBlockSkipCost(true, Av1TransformSize.Size4x4, 0));
     }
 
     [Fact]
@@ -740,6 +762,7 @@ public class Av1EntropyTests
             Av1FilterIntraMode.AllFilterIntraModes,
             usesInterTransformSet: false);
 
+        actualEncoder.RefreshCosts();
         int adaptedCost = actualEncoder.GetCoefficientCost(
             transformSize,
             transformType,
@@ -1178,8 +1201,11 @@ public class Av1EntropyTests
             Assert.Equal(typeof(byte), levelScratch.ElementType);
             Assert.Equal(expectedLevelLength, levelScratch.Length);
             Assert.Equal(AllocationOptions.Clean, levelScratch.AllocationOptions);
-            Assert.Equal(typeof(sbyte), contextScratch.ElementType);
-            Assert.Equal(maximumTransformDimension * maximumTransformDimension, contextScratch.Length);
+            Assert.Equal(typeof(int), contextScratch.ElementType);
+            Assert.Equal(
+                Av1ModeCosts.StorageLength + Av1CoefficientCosts.StorageLength + (maximumTransformDimension * maximumTransformDimension / sizeof(int)),
+                contextScratch.Length);
+
             Assert.Equal(typeof(byte), outputScratch.ElementType);
             Assert.Equal(64, outputScratch.Length);
 

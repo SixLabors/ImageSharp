@@ -2095,8 +2095,10 @@ internal static partial class Av1IntraSuperblockEncoder
                     }
                     else
                     {
-                        Span<TSample> aboveStorage = workspace.GetReferenceSamples(0);
-                        Span<TSample> leftStorage = workspace.GetReferenceSamples(1);
+                        // The parent 8x8 search retains edges 0 and 1 across mode candidates. The split
+                        // transforms need separate edges because their neighbours include earlier 4x4 reconstructions.
+                        Span<TSample> aboveStorage = workspace.GetReferenceSamples(2);
+                        Span<TSample> leftStorage = workspace.GetReferenceSamples(3);
                         this.PrepareTransformReferenceSamples(
                             reconstructionPlane,
                             blockOrigin,

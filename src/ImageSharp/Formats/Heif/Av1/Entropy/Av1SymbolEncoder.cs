@@ -2,6 +2,7 @@
 // Licensed under the Six Labors Split License.
 
 using System.Buffers;
+using System.Runtime.InteropServices;
 using SixLabors.ImageSharp.Formats.Heif.Av1;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Motion;
 using SixLabors.ImageSharp.Formats.Heif.Av1.Prediction;
@@ -204,9 +205,9 @@ internal sealed class Av1SymbolEncoder : IDisposable
     private readonly Av1LevelBuffer levels;
 
     /// <summary>
-    /// The reusable raster-order coefficient contexts for one transform.
+    /// Owns retained mode and coefficient rates followed by the raster-order coefficient contexts for one transform.
     /// </summary>
-    private readonly IMemoryOwner<sbyte> coefficientContexts;
+    private readonly IMemoryOwner<int> entropyWorkspace;
 
     /// <summary>
     /// The range writer producing the current tile payload.
@@ -270,16 +271,19 @@ internal sealed class Av1SymbolEncoder : IDisposable
         this.levels = new Av1LevelBuffer(configuration);
         try
         {
-            this.coefficientContexts =
-                configuration.MemoryAllocator.Allocate<sbyte>(MaximumCoefficientContextCount);
+            // Rates and coefficient contexts share one worker-lifetime allocation. The contexts follow the
+            // integer tables so both sections retain natural alignment without an additional buffer owner.
+            this.entropyWorkspace = configuration.MemoryAllocator.Allocate<int>(
+                Av1ModeCosts.StorageLength + Av1CoefficientCosts.StorageLength + (MaximumCoefficientContextCount / sizeof(int)));
 
+            this.RefreshCosts();
             this.writer = new(configuration, bufferLength, updateCdf);
             this.baseQIndex = qIndex;
         }
         catch
         {
             // The level buffer is already owned here; a later allocation failure cannot be unwound by the caller.
-            this.coefficientContexts?.Dispose();
+            this.entropyWorkspace?.Dispose();
             this.levels.Dispose();
             throw;
         }
@@ -378,12 +382,33 @@ internal sealed class Av1SymbolEncoder : IDisposable
     }
 
     /// <summary>
+    /// Gets the retained mode rates.
+    /// </summary>
+    private Av1ModeCosts ModeCosts => new(this.entropyWorkspace.Memory.Span[..Av1ModeCosts.StorageLength]);
+
+    /// <summary>
+    /// Gets the retained coefficient rates.
+    /// </summary>
+    private Av1CoefficientCosts CoefficientCosts => new(
+        this.entropyWorkspace.Memory.Span.Slice(Av1ModeCosts.StorageLength, Av1CoefficientCosts.StorageLength));
+
+    /// <summary>
     /// Restores the initial tile distributions and range coder while retaining their complete object graph and buffers.
     /// </summary>
     public void Reset()
     {
         this.entropyContext.ResetToDefaults(this.baseQIndex);
+        this.RefreshCosts();
         this.writer.Reset();
+    }
+
+    /// <summary>
+    /// Retains mode and coefficient rates from the current distributions for subsequent candidate comparisons.
+    /// </summary>
+    public void RefreshCosts()
+    {
+        this.ModeCosts.Update(this.entropyContext);
+        this.CoefficientCosts.Update(this.entropyContext);
     }
 
     /// <summary>
@@ -393,6 +418,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     public void Reset(int outputOffset)
     {
         this.entropyContext.ResetToDefaults(this.baseQIndex);
+        this.RefreshCosts();
         this.writer.Reset(outputOffset);
     }
 
@@ -469,9 +495,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetPaletteYModeCost(bool usePalette, int blockSizeContext, int neighborContext)
     {
-        return Av1ProbabilityCost.GetSymbolCost(
-            this.entropyContext.PaletteYMode[blockSizeContext][neighborContext],
-            usePalette ? 1 : 0);
+        return this.ModeCosts.GetPaletteYMode(blockSizeContext, neighborContext, usePalette ? 1 : 0);
     }
 
     /// <summary>
@@ -500,9 +524,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetPaletteUvModeCost(bool usePalette, bool hasLumaPalette)
     {
-        return Av1ProbabilityCost.GetSymbolCost(
-            this.entropyContext.PaletteUvMode[hasLumaPalette ? 1 : 0],
-            usePalette ? 1 : 0);
+        return this.ModeCosts.GetPaletteUvMode(hasLumaPalette ? 1 : 0, usePalette ? 1 : 0);
     }
 
     /// <summary>
@@ -531,11 +553,9 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetPaletteSizeCost(int paletteSize, int blockSizeContext, Av1PlaneType planeType)
     {
-        Av1Distribution distribution = planeType == Av1PlaneType.Y
-            ? this.entropyContext.PaletteYSize[blockSizeContext]
-            : this.entropyContext.PaletteUvSize[blockSizeContext];
-
-        return Av1ProbabilityCost.GetSymbolCost(distribution, paletteSize - 2);
+        return planeType == Av1PlaneType.Y
+            ? this.ModeCosts.GetPaletteYSize(blockSizeContext, paletteSize - 2)
+            : this.ModeCosts.GetPaletteUvSize(blockSizeContext, paletteSize - 2);
     }
 
     /// <summary>
@@ -574,11 +594,9 @@ internal sealed class Av1SymbolEncoder : IDisposable
         int colorContext,
         Av1PlaneType planeType)
     {
-        Av1Distribution distribution = planeType == Av1PlaneType.Y
-            ? this.entropyContext.PaletteYColorIndex[paletteSize - 2][colorContext]
-            : this.entropyContext.PaletteUvColorIndex[paletteSize - 2][colorContext];
-
-        return Av1ProbabilityCost.GetSymbolCost(distribution, colorOrderIndex);
+        return planeType == Av1PlaneType.Y
+            ? this.ModeCosts.GetPaletteYColorIndex(paletteSize - 2, colorContext, colorOrderIndex)
+            : this.ModeCosts.GetPaletteUvColorIndex(paletteSize - 2, colorContext, colorOrderIndex);
     }
 
     /// <summary>
@@ -920,7 +938,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="value">Indicates whether intra-block copy is selected.</param>
     /// <returns>The syntax cost in 1/512-bit units.</returns>
     public int GetUseIntraBlockCopyCost(bool value)
-        => Av1ProbabilityCost.GetSymbolCost(this.tileIntraBlockCopy, value ? 1 : 0);
+        => this.ModeCosts.GetIntraBlockCopy(value ? 1 : 0);
 
     /// <summary>
     /// Writes an integer intra-block-copy displacement vector relative to a spatial reference.
@@ -976,7 +994,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="context">The spatial filter context for the selected direction.</param>
     /// <returns>The syntax cost in 1/512-bit units.</returns>
     public int GetSwitchableInterpolationFilterCost(Av1InterpolationFilter filter, int context)
-        => Av1ProbabilityCost.GetSymbolCost(this.entropyContext.SwitchableInterpolation[context], (int)filter);
+        => this.ModeCosts.GetSwitchableInterpolation(context, (int)filter);
 
     /// <summary>
     /// Writes one switchable interpolation filter and updates its live tile distribution.
@@ -1001,9 +1019,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     public int GetInterModeCost(Av1PredictionMode mode, int modeContext)
     {
         bool isNotNew = mode != Av1PredictionMode.NewMotionVector;
-        int rate = Av1ProbabilityCost.GetSymbolCost(
-            this.newMotionVector[Av1SymbolContextHelper.GetNewMvContext(modeContext)],
-            isNotNew ? 1 : 0);
+        int rate = this.ModeCosts.GetNewMv(Av1SymbolContextHelper.GetNewMvContext(modeContext), isNotNew ? 1 : 0);
 
         if (!isNotNew)
         {
@@ -1011,18 +1027,14 @@ internal sealed class Av1SymbolEncoder : IDisposable
         }
 
         bool isNotGlobal = mode != Av1PredictionMode.GlobalMotionVector;
-        rate += Av1ProbabilityCost.GetSymbolCost(
-            this.zeroMotionVector[Av1SymbolContextHelper.GetZeroMvContext(modeContext)],
-            isNotGlobal ? 1 : 0);
+        rate += this.ModeCosts.GetZeroMv(Av1SymbolContextHelper.GetZeroMvContext(modeContext), isNotGlobal ? 1 : 0);
 
         if (!isNotGlobal)
         {
             return rate;
         }
 
-        return rate + Av1ProbabilityCost.GetSymbolCost(
-            this.referenceMotionVector[Av1SymbolContextHelper.GetRefMvContext(modeContext)],
-            mode == Av1PredictionMode.NearMotionVector ? 1 : 0);
+        return rate + this.ModeCosts.GetRefMv(Av1SymbolContextHelper.GetRefMvContext(modeContext), mode == Av1PredictionMode.NearMotionVector ? 1 : 0);
     }
 
     /// <summary>
@@ -1066,7 +1078,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="context">The candidate-weight context.</param>
     /// <returns>The syntax cost in 1/512-bit units.</returns>
     public int GetDynamicReferenceListCost(bool advance, int context)
-        => Av1ProbabilityCost.GetSymbolCost(this.dynamicReferenceList[context], advance ? 1 : 0);
+        => this.ModeCosts.GetDrl(context, advance ? 1 : 0);
 
     /// <summary>
     /// Writes one dynamic-reference-list advance decision.
@@ -1132,7 +1144,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="context">The partition probability context.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetPartitionTypeCost(Av1PartitionType partitionType, int context)
-        => Av1ProbabilityCost.GetSymbolCost(this.tilePartitionTypes[context], (int)partitionType);
+        => this.ModeCosts.GetPartitionTypes(context, (int)partitionType);
 
     /// <summary>
     /// Writes a complete block partition type using the selected partition context.
@@ -1463,7 +1475,8 @@ internal sealed class Av1SymbolEncoder : IDisposable
 
         DebugGuard.MustBeLessThan((int)transformSizeContext, (int)Av1TransformSize.AllSizes, nameof(transformSizeContext));
 
-        int rate = this.ProcessTransformBlockSkip<CoefficientCostOperation>(
+        ReadOnlySpan<int> costs = this.CoefficientCosts.GetPlane((int)transformSizeContext, (int)componentType);
+        int rate = this.GetTransformBlockSkipCost(
             endOfBlock == 0,
             transformSizeContext,
             transformBlockContext.SkipContext);
@@ -1504,22 +1517,29 @@ internal sealed class Av1SymbolEncoder : IDisposable
                 usesInterTransformSet);
         }
 
-        rate += this.ProcessEndOfBlockPosition<CoefficientCostOperation>(
-            endOfBlock,
-            componentType,
-            transformClass,
-            transformSize,
-            transformSizeContext);
+        short endOfBlockPosition = Av1SymbolContextHelper.GetEndOfBlockPosition(endOfBlock, out int endOfBlockExtra);
+        rate += this.CoefficientCosts.GetEndOfBlock(
+            transformSize.GetLog2Minus4(),
+            (int)componentType,
+            transformClass == Av1TransformClass.Class2D ? 0 : 1,
+            endOfBlockPosition - 1);
+
+        int suffixBits = Av1SymbolContextHelper.EndOfBlockOffsetBits[endOfBlockPosition];
+        if (suffixBits > 0)
+        {
+            rate += Av1CoefficientCosts.GetExtra(costs, endOfBlockPosition - 3, Av1Math.GetBit(endOfBlockExtra, suffixBits - 1));
+            rate += Av1ProbabilityCost.GetLiteralCost(suffixBits - 1);
+        }
 
         Av1SymbolContextHelper.GetNzMapContexts(levels, scan, endOfBlock, transformSize, transformClass, coefficientContexts);
-        int limitedTransformSizeContext = Math.Min((int)transformSizeContext, (int)Av1TransformSize.Size32x32);
         int c = endOfBlock - 1;
         int pos = scan[c];
         int value = coefficientBuffer[pos];
         int level = Math.Abs(value);
         int coefficientContext = coefficientContexts[pos];
-        rate += Av1ProbabilityCost.GetSymbolCost(
-            this.coefficientsBaseEndOfBlock[(int)transformSizeContext][(int)componentType][coefficientContext],
+        rate += Av1CoefficientCosts.GetBaseEndOfBlock(
+            costs,
+            coefficientContext,
             Math.Min(level, 3) - 1);
 
         if (level > Av1Constants.BaseLevelsCount)
@@ -1530,13 +1550,15 @@ internal sealed class Av1SymbolEncoder : IDisposable
 
             rate += GetBaseRangeCost(
                 level,
-                this.coefficientsBaseRange[limitedTransformSizeContext][(int)componentType][baseRangeContext]);
+                costs,
+                baseRangeContext);
         }
 
         if (c == 0)
         {
-            return rate + Av1ProbabilityCost.GetSymbolCost(
-                this.dcSign[(int)componentType][transformBlockContext.DcSignContext],
+            return rate + Av1CoefficientCosts.GetSign(
+                costs,
+                transformBlockContext.DcSignContext,
                 value < 0 ? 1 : 0);
         }
 
@@ -1547,8 +1569,9 @@ internal sealed class Av1SymbolEncoder : IDisposable
             value = coefficientBuffer[pos];
             level = Math.Abs(value);
             coefficientContext = coefficientContexts[pos];
-            rate += Av1ProbabilityCost.GetSymbolCost(
-                this.coefficientsBase[(int)transformSizeContext][(int)componentType][coefficientContext],
+            rate += Av1CoefficientCosts.GetBase(
+                costs,
+                coefficientContext,
                 Math.Min(level, 3));
 
             if (level == 0)
@@ -1566,7 +1589,8 @@ internal sealed class Av1SymbolEncoder : IDisposable
 
                 rate += GetBaseRangeCost(
                     level,
-                    this.coefficientsBaseRange[limitedTransformSizeContext][(int)componentType][baseRangeContext]);
+                    costs,
+                    baseRangeContext);
             }
         }
 
@@ -1574,14 +1598,16 @@ internal sealed class Av1SymbolEncoder : IDisposable
         value = coefficientBuffer[pos];
         level = Math.Abs(value);
         coefficientContext = coefficientContexts[pos];
-        rate += Av1ProbabilityCost.GetSymbolCost(
-            this.coefficientsBase[(int)transformSizeContext][(int)componentType][coefficientContext],
+        rate += Av1CoefficientCosts.GetBase(
+            costs,
+            coefficientContext,
             Math.Min(level, 3));
 
         if (level > 0)
         {
-            rate += Av1ProbabilityCost.GetSymbolCost(
-                this.dcSign[(int)componentType][transformBlockContext.DcSignContext],
+            rate += Av1CoefficientCosts.GetSign(
+                costs,
+                transformBlockContext.DcSignContext,
                 value < 0 ? 1 : 0);
 
             if (level > Av1Constants.BaseLevelsCount)
@@ -1593,7 +1619,8 @@ internal sealed class Av1SymbolEncoder : IDisposable
 
                 rate += GetBaseRangeCost(
                     level,
-                    this.coefficientsBaseRange[limitedTransformSizeContext][(int)componentType][baseRangeContext]);
+                    costs,
+                    baseRangeContext);
             }
         }
 
@@ -1609,7 +1636,8 @@ internal sealed class Av1SymbolEncoder : IDisposable
         // AV1 omits high-frequency coefficients beyond 32 samples on every 64-point transform dimension. The tile
         // creates maximum-sized workspaces once, then changes only the active views for subsequent transform blocks.
         this.levels.Reset(new Size(width, height), clearLevels);
-        coefficientContexts = this.coefficientContexts.Memory.Span[..(width * height)];
+        coefficientContexts = MemoryMarshal.Cast<int, sbyte>(
+            this.entropyWorkspace.Memory.Span[(Av1ModeCosts.StorageLength + Av1CoefficientCosts.StorageLength)..])[..(width * height)];
         return this.levels;
     }
 
@@ -1664,8 +1692,8 @@ internal sealed class Av1SymbolEncoder : IDisposable
             int eobShift = eobOffsetBitCount - 1;
             int bit = Av1Math.GetBit(eobExtra, eobShift);
 
-            // The local table retains placeholders for the first three tokens, unlike the reference decoder's compact table,
-            // so the encoded token is also the distribution index.
+            // The first three tokens have no extra-bit distribution. Their placeholders keep later
+            // distributions indexed directly by the encoded token.
             int endOfBlockContext = endOfBlockPosition;
             rate += TOperation.ProcessSymbol(
                 ref w,
@@ -1688,7 +1716,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="skipContext">The context derived from neighboring coefficient blocks.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetTransformBlockSkipCost(bool skip, Av1TransformSize transformSizeContext, int skipContext)
-        => this.ProcessTransformBlockSkip<CoefficientCostOperation>(skip, transformSizeContext, skipContext);
+        => Av1CoefficientCosts.GetSkip(this.CoefficientCosts.GetPlane((int)transformSizeContext, 0), skipContext, skip ? 1 : 0);
 
     /// <summary>
     /// Writes whether a transform block has no coded coefficients.
@@ -1730,7 +1758,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     public int GetTransformSizeCost(Av1BlockSize blockSize, Av1TransformSize transformSize, int context)
     {
         int selectedDepth = GetTransformSizeDepth(blockSize, transformSize, out int categoryDepth);
-        return Av1ProbabilityCost.GetSymbolCost(this.transformSize[categoryDepth - 1][context], selectedDepth);
+        return this.ModeCosts.GetTransformSize(categoryDepth - 1, context, selectedDepth);
     }
 
     /// <summary>
@@ -1759,7 +1787,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="context">The neighboring variable-transform context.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetTransformPartitionCost(bool split, int context)
-        => Av1ProbabilityCost.GetSymbolCost(this.transformPartition[context], split ? 1 : 0);
+        => this.ModeCosts.GetTransformPartition(context, split ? 1 : 0);
 
     /// <summary>
     /// Writes one variable-transform partition decision.
@@ -1834,7 +1862,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     {
         if (!this.isDisposed)
         {
-            this.coefficientContexts.Dispose();
+            this.entropyWorkspace.Dispose();
             this.levels.Dispose();
             this.writer.Dispose();
             this.isDisposed = true;
@@ -1857,28 +1885,13 @@ internal sealed class Av1SymbolEncoder : IDisposable
         _ = TOperation.ProcessLiteral(ref this.writer, x, length);
     }
 
-    private static int GetBaseRangeCost(int level, Av1Distribution distribution)
+    private static int GetBaseRangeCost(int level, ReadOnlySpan<int> costs, int context)
     {
         int baseRange = Math.Min(
             level - 1 - Av1Constants.BaseLevelsCount,
             Av1Constants.CoefficientBaseRange);
 
-        int fullChunkCount = baseRange / Av1Constants.BaseRangeSizeMinus1;
-        int rate = 0;
-        if (fullChunkCount > 0)
-        {
-            rate = fullChunkCount * Av1ProbabilityCost.GetSymbolCost(
-                distribution,
-                Av1Constants.BaseRangeSizeMinus1);
-        }
-
-        // A partial range ends with its remainder symbol. Reaching the complete base range consumes four
-        // maximum symbols and has no terminating remainder before the Golomb escape.
-        if (baseRange < Av1Constants.CoefficientBaseRange)
-        {
-            int remainder = baseRange - (fullChunkCount * Av1Constants.BaseRangeSizeMinus1);
-            rate += Av1ProbabilityCost.GetSymbolCost(distribution, remainder);
-        }
+        int rate = Av1CoefficientCosts.GetRange(costs, context, baseRange);
 
         if (level > (Av1Constants.CoefficientBaseRange + Av1Constants.BaseLevelsCount))
         {
@@ -1934,14 +1947,31 @@ internal sealed class Av1SymbolEncoder : IDisposable
         Av1FilterIntraMode filterIntraMode,
         Av1PredictionMode intraDirection,
         bool usesInterTransformSet)
-        => this.ProcessTransformType<CoefficientCostOperation>(
-            transformType,
+    {
+        Av1TransformSetType setType = Av1SymbolContextHelper.GetExtendedTransformSetType(
             transformSize,
             usesInterTransformSet,
-            useReducedTransformSet,
-            baseQIndex,
-            filterIntraMode,
-            intraDirection);
+            useReducedTransformSet);
+
+        if (Av1SymbolContextHelper.GetExtendedTransformTypeCount(setType) == 1 || baseQIndex == 0)
+        {
+            return 0;
+        }
+
+        int set = Av1SymbolContextHelper.GetExtendedTransformSet(setType, usesInterTransformSet);
+        int size = (int)transformSize.GetSquareSize();
+        int symbol = Av1SymbolContextHelper.GetExtendedTransformIndex(setType, transformType);
+        if (usesInterTransformSet)
+        {
+            return this.ModeCosts.GetInterExtendedTransform(set, size, symbol);
+        }
+
+        Av1PredictionMode direction = filterIntraMode == Av1FilterIntraMode.AllFilterIntraModes
+            ? intraDirection
+            : filterIntraMode.ToIntraDirection();
+
+        return this.ModeCosts.GetIntraExtendedTransform(set, size, (int)direction, symbol);
+    }
 
     /// <summary>
     /// Writes a transform type when the permitted transform set contains multiple choices.
@@ -2073,7 +2103,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="context">The neighboring skip context.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetSkipCost(bool skip, int context)
-        => Av1ProbabilityCost.GetSymbolCost(this.skip[context], skip ? 1 : 0);
+        => this.ModeCosts.GetSkip(context, skip ? 1 : 0);
 
     /// <summary>
     /// Writes the transform-skip flag from a neighboring skip context.
@@ -2118,10 +2148,10 @@ internal sealed class Av1SymbolEncoder : IDisposable
     public int GetFilterIntraModeCost(Av1FilterIntraMode filterIntraMode, Av1BlockSize blockSize)
     {
         bool useFilter = filterIntraMode != Av1FilterIntraMode.AllFilterIntraModes;
-        int cost = Av1ProbabilityCost.GetSymbolCost(this.filterIntra[(int)blockSize], useFilter ? 1 : 0);
+        int cost = this.ModeCosts.GetFilterIntra((int)blockSize, useFilter ? 1 : 0);
         if (useFilter)
         {
-            cost += Av1ProbabilityCost.GetSymbolCost(this.filterIntraMode, (int)filterIntraMode);
+            cost += this.ModeCosts.GetFilterIntraMode((int)filterIntraMode);
         }
 
         return cost;
@@ -2191,9 +2221,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="leftContext">The reduced left-mode context.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetLumaModeCost(Av1PredictionMode lumaMode, byte topContext, byte leftContext)
-        => Av1ProbabilityCost.GetSymbolCost(
-            this.keyFrameYMode[topContext][leftContext],
-            (int)lumaMode);
+        => this.ModeCosts.GetKeyFrameYMode(topContext, leftContext, (int)lumaMode);
 
     /// <summary>
     /// Writes a key-frame luma prediction mode using the above and left mode contexts.
@@ -2220,7 +2248,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="blockSize">The coding block size selecting the size group.</param>
     /// <returns>The syntax cost in 1/512-bit units.</returns>
     public int GetInterFrameLumaModeCost(Av1PredictionMode lumaMode, Av1BlockSize blockSize)
-        => Av1ProbabilityCost.GetSymbolCost(this.frameYMode[blockSize.GetSizeGroup()], (int)lumaMode);
+        => this.ModeCosts.GetFrameYMode(blockSize.GetSizeGroup(), (int)lumaMode);
 
     /// <summary>
     /// Writes an intra luma mode coded inside an inter frame.
@@ -2246,7 +2274,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="context">The neighboring prediction-domain context.</param>
     /// <returns>The syntax cost in 1/512-bit units.</returns>
     public int GetIsInterCost(bool isInter, int context)
-        => Av1ProbabilityCost.GetSymbolCost(this.intraInter[context], isInter ? 1 : 0);
+        => this.ModeCosts.GetIntraInter(context, isInter ? 1 : 0);
 
     /// <summary>
     /// Writes the prediction-domain decision for an inter-frame block.
@@ -2277,38 +2305,32 @@ internal sealed class Av1SymbolEncoder : IDisposable
     {
         bool isBackward = referenceFrame >= Av1ReferenceFrameType.Backward;
         int context = Av1SymbolContextHelper.GetSingleReferenceBackwardContext(referenceCounts);
-        int rate = Av1ProbabilityCost.GetSymbolCost(this.singleReference[context][0], isBackward ? 1 : 0);
+        int rate = this.ModeCosts.GetSingleReference(context, 0, isBackward ? 1 : 0);
         if (isBackward)
         {
             bool isAlternate = referenceFrame == Av1ReferenceFrameType.Alternate;
             context = Av1SymbolContextHelper.GetSingleReferenceAlternateContext(referenceCounts);
-            rate += Av1ProbabilityCost.GetSymbolCost(this.singleReference[context][1], isAlternate ? 1 : 0);
+            rate += this.ModeCosts.GetSingleReference(context, 1, isAlternate ? 1 : 0);
             if (isAlternate)
             {
                 return rate;
             }
 
             context = Av1SymbolContextHelper.GetSingleReferenceAlternate2Context(referenceCounts);
-            return rate + Av1ProbabilityCost.GetSymbolCost(
-                this.singleReference[context][5],
-                referenceFrame == Av1ReferenceFrameType.Alternate2 ? 1 : 0);
+            return rate + this.ModeCosts.GetSingleReference(context, 5, referenceFrame == Av1ReferenceFrameType.Alternate2 ? 1 : 0);
         }
 
         bool isLast3OrGolden = referenceFrame is Av1ReferenceFrameType.Last3 or Av1ReferenceFrameType.Golden;
         context = Av1SymbolContextHelper.GetSingleReferenceLast3OrGoldenContext(referenceCounts);
-        rate += Av1ProbabilityCost.GetSymbolCost(this.singleReference[context][2], isLast3OrGolden ? 1 : 0);
+        rate += this.ModeCosts.GetSingleReference(context, 2, isLast3OrGolden ? 1 : 0);
         if (isLast3OrGolden)
         {
             context = Av1SymbolContextHelper.GetSingleReferenceGoldenContext(referenceCounts);
-            return rate + Av1ProbabilityCost.GetSymbolCost(
-                this.singleReference[context][4],
-                referenceFrame == Av1ReferenceFrameType.Golden ? 1 : 0);
+            return rate + this.ModeCosts.GetSingleReference(context, 4, referenceFrame == Av1ReferenceFrameType.Golden ? 1 : 0);
         }
 
         context = Av1SymbolContextHelper.GetSingleReferenceLast2Context(referenceCounts);
-        return rate + Av1ProbabilityCost.GetSymbolCost(
-            this.singleReference[context][3],
-            referenceFrame == Av1ReferenceFrameType.Last2 ? 1 : 0);
+        return rate + this.ModeCosts.GetSingleReference(context, 3, referenceFrame == Av1ReferenceFrameType.Last2 ? 1 : 0);
     }
 
     /// <summary>
@@ -2379,9 +2401,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="context">The directional prediction mode selecting the distribution.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetAngleDeltaCost(int angleDelta, Av1PredictionMode context)
-        => Av1ProbabilityCost.GetSymbolCost(
-            this.angleDelta[context - Av1PredictionMode.Vertical],
-            angleDelta);
+        => this.ModeCosts.GetAngleDelta(context - Av1PredictionMode.Vertical, angleDelta);
 
     /// <summary>
     /// Writes an unsigned directional angle-delta symbol.
@@ -2430,7 +2450,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     public int GetChromaModeCost(Av1ChromaPredictionMode chromaMode, bool isChromaFromLumaAllowed, Av1PredictionMode lumaMode)
     {
         int cflAllowed = isChromaFromLumaAllowed ? 1 : 0;
-        return Av1ProbabilityCost.GetSymbolCost(this.uvMode[cflAllowed][(int)lumaMode], (int)chromaMode);
+        return this.ModeCosts.GetUvMode(cflAllowed, (int)lumaMode, (int)chromaMode);
     }
 
     /// <summary>
@@ -2440,26 +2460,7 @@ internal sealed class Av1SymbolEncoder : IDisposable
     /// <param name="joinedSign">The joint U/V sign symbol.</param>
     /// <returns>The rate cost in 1/512-bit units.</returns>
     public int GetChromaFromLumaCost(int chromaFromLumaIndex, int joinedSign)
-    {
-        int cost = Av1ProbabilityCost.GetSymbolCost(this.chromaFromLumaSign, joinedSign);
-        int signU = Av1ChromaFromLumaMath.SignU(joinedSign);
-        if (signU != Av1ChromaFromLumaMath.SignZero)
-        {
-            int contextU = Av1ChromaFromLumaMath.ContextU(joinedSign);
-            int indexU = Av1ChromaFromLumaMath.IndexU(chromaFromLumaIndex);
-            cost += Av1ProbabilityCost.GetSymbolCost(this.chromaFromLumaAlpha[contextU], indexU);
-        }
-
-        int signV = Av1ChromaFromLumaMath.SignV(joinedSign);
-        if (signV != Av1ChromaFromLumaMath.SignZero)
-        {
-            int contextV = Av1ChromaFromLumaMath.ContextV(joinedSign);
-            int indexV = Av1ChromaFromLumaMath.IndexV(chromaFromLumaIndex);
-            cost += Av1ProbabilityCost.GetSymbolCost(this.chromaFromLumaAlpha[contextV], indexV);
-        }
-
-        return cost;
-    }
+        => this.ModeCosts.GetChromaFromLuma(chromaFromLumaIndex, joinedSign);
 
     /// <summary>
     /// Writes a chroma intra prediction mode conditioned on the luma mode and chroma-from-luma availability.
